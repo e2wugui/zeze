@@ -30,6 +30,7 @@ import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutInt;
 import Zeze.Util.OutObject;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -121,8 +122,10 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		if (server != null)
 			return;
 
-		if (ENABLE_PERF)
+		if (ENABLE_PERF) {
 			perf = new GlobalCacheManagerPerf("", serialIdGenerator);
+			PerfCounter.instance.startScheduledLog();
+		}
 
 		if (config == null)
 			config = new Config().addCustomize(this.config).loadAndParse();

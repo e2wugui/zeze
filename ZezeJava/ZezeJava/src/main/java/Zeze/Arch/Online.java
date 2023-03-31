@@ -1018,11 +1018,11 @@ public class Online extends AbstractOnline {
 		return sendCount;
 	}
 
-	public void broadcast(Protocol<?> p, int time) {
+	public int broadcast(Protocol<?> p, int time) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);
-		int sendCount = broadcast(typeId, new Binary(p.encode()), time);
+		return broadcast(typeId, new Binary(p.encode()), time);
 	}
 
 	private void verifyLocal() {

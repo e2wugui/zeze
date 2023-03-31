@@ -66,8 +66,7 @@ public class ProviderUserSession {
 	private void sendResponseDirectReal(@NotNull Rpc<?, ?> rpc) {
 		rpc.setRequest(false);
 		protocolLogSend(rpc);
-		var pdata = new Binary(rpc.encode());
-		var send = new Send(new BSend(rpc.getTypeId(), pdata));
+		var send = new Send(new BSend(rpc.getTypeId(), new Binary(rpc.encode())));
 		send.Argument.getLinkSids().add(getLinkSid());
 
 		var link = getLink();

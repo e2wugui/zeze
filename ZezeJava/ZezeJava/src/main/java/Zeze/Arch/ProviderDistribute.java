@@ -67,7 +67,7 @@ public class ProviderDistribute {
 
 	// ChoiceDataIndex 用于RedirectAll或者那些已知数据分块索引的地方。
 	public BServiceInfo choiceDataIndex(Agent.SubscribeState providers, ConsistentHash<BServiceInfo> consistentHash,
-											   int dataIndex, int dataConcurrentLevel) {
+										int dataIndex, int dataConcurrentLevel) {
 		if (consistentHash == null)
 			return null;
 //		if (consistentHash.getNodes().size() > dataConcurrentLevel)
@@ -135,7 +135,10 @@ public class ProviderDistribute {
 				continue;
 			}
 			// Object tempVar2 = App.ProviderService.GetSocket(providerModuleState.getSessionId()).getUserState();
-			var ps = (ProviderSession)providerService.GetSocket(providerModuleState.sessionId).getUserState();
+			var s = providerService.GetSocket(providerModuleState.sessionId);
+			if (s == null)
+				continue;
+			var ps = (ProviderSession)s.getUserState();
 			if (ps == null)
 				continue; // 这里发现关闭的服务，仅仅忽略.
 

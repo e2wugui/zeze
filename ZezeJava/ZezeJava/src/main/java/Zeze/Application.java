@@ -339,6 +339,7 @@ public final class Application {
 			if (!defaultDb.getDirectOperates().tryLock()) {
 				logger.info("lock default database fail. sleep and try again...");
 				// alter 可能很慢，这里多睡一下也行，但是为了兼容不是关系表，选一个合适的值吧。
+				//noinspection BusyWait
 				Thread.sleep(1000);
 				continue;
 			}

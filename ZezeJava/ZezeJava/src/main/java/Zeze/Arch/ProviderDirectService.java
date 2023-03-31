@@ -64,7 +64,10 @@ public class ProviderDirectService extends HandshakeBoth {
 			// connection has ready.
 			var mid = Integer.parseInt(pm.getServiceName().split("#")[1]);
 			var m = providerApp.modules.get(mid);
-			setReady(ss, pm, ps, mid, m);
+			if (m != null)
+				setReady(ss, pm, ps, mid, m);
+			else
+				logger.error("addServer: not found module: {}", pm.getServiceName());
 			return;
 		}
 		if (pm.getServiceIdentity().startsWith("@")) // from linkd
@@ -230,6 +233,10 @@ public class ProviderDirectService extends HandshakeBoth {
 					continue;
 				var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
 				var m = providerApp.modules.get(mid);
+				if (m == null) {
+					logger.error("setRelativeServiceReady: not found module: {}", ss.getServiceName());
+					continue;
+				}
 				for (var server : infos.getServiceInfoListSortedByIdentity()) {
 					// 符合当前连接目标。每个Identity标识的服务的(ip,port)必须不一样。
 					if (server.getPassiveIp().equals(ip) && server.getPassivePort() == port) {

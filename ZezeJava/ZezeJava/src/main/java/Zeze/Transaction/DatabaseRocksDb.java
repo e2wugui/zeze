@@ -247,6 +247,7 @@ public class DatabaseRocksDb extends Database {
 	public Table openTable(String name) {
 		var isNew = new OutObject<Boolean>();
 		var cfh = getOrAddFamily(name, isNew);
+		//noinspection DataFlowIssue
 		return new TableRocksDb(cfh, isNew.value);
 	}
 

@@ -375,6 +375,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
+	// 返回值应被看作是无符号32位整数
 	public int ReadUInt() {
 		ensureRead(1);
 		byte[] bytes = Bytes;
@@ -689,6 +690,26 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			case 12: case 13:                   return ((long)(b & 1) << 48) + ReadLong6BE();
 			case 14:                            return ReadLong7BE();
 			default:                            return ReadLong8BE();
+			}
+			//@formatter:on
+		}
+	}
+
+	public void SkipULong() {
+		int b = ReadByte();
+		switch ((b >> 4) & 0xf) {
+		//@formatter:off
+		case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: return;
+		case  8: case  9: case 10: case 11: ensureRead(1); ReadIndex++; return;
+		case 12: case 13:                   ensureRead(2); ReadIndex += 2; return;
+		case 14:                            ensureRead(3); ReadIndex += 3; return;
+		default:
+			switch (b & 0xf) {
+			case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: ensureRead(4); ReadIndex += 4; return;
+			case  8: case  9: case 10: case 11: ensureRead(5); ReadIndex += 5; return;
+			case 12: case 13:                   ensureRead(6); ReadIndex += 6; return;
+			case 14:                            ensureRead(7); ReadIndex += 7; return;
+			default:                            ensureRead(8); ReadIndex += 8;
 			}
 			//@formatter:on
 		}

@@ -18,11 +18,14 @@ public final class PerfCounter {
 	private static final Logger logger = LogManager.getLogger(PerfCounter.class);
 
 	private static class RunInfo {
+		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
+
 		final @NotNull String name;
 		final LongAdder procCount = new LongAdder(); // 处理次数
 		final LongAdder procTime = new LongAdder(); // 处理时间(ns)
 		long lastProcCount;
 		long lastProcTime;
+		int idleCount; // 没收集到信息的轮数
 
 		RunInfo(String name) {
 			this.name = name;
@@ -191,11 +194,18 @@ public final class PerfCounter {
 		var procCountAll = 0L;
 		var procTimeAll = 0L;
 		var rList = new ArrayList<RunInfo>(runInfoMap.size());
-		for (var ri : runInfoMap.values()) {
+		for (var it = runInfoMap.values().iterator(); it.hasNext(); ) {
+			var ri = it.next();
 			ri.lastProcCount = ri.procCount.sumThenReset();
+			if (ri.lastProcCount == 0) {
+				if (++ri.idleCount >= RunInfo.MAX_IDLE_COUNT)
+					it.remove();
+				continue;
+			}
 			ri.lastProcTime = ri.procTime.sumThenReset();
 			procCountAll += ri.lastProcCount;
 			procTimeAll += ri.lastProcTime;
+			ri.idleCount = 0;
 			rList.add(ri);
 		}
 		var sb = new StringBuilder(100 + 50 * 3 * PERF_COUNT).append("count last ").append(time).append("ms:\n")
@@ -204,8 +214,6 @@ public final class PerfCounter {
 		rList.sort((ri0, ri1) -> Long.signum(ri1.lastProcTime - ri0.lastProcTime));
 		for (int i = 0, n = Math.min(rList.size(), PERF_COUNT); i < n; i++) {
 			var ri = rList.get(i);
-			if (ri.lastProcTime == 0)
-				break;
 			var perTime = ri.lastProcCount > 0 ? ri.lastProcTime / ri.lastProcCount : 0;
 			sb.append(' ').append(' ').append(ri.name).append(':').append(' ').append(ri.lastProcTime / 1_000_000)
 					.append("ms = ").append(ri.lastProcCount).append(" * ")
@@ -218,17 +226,24 @@ public final class PerfCounter {
 		var sendCountAll = 0L;
 		var sendSizeAll = 0L;
 		var pList = new ArrayList<ProtocolInfo>(protocolInfoMap.size());
-		for (var pi : protocolInfoMap) {
+		for (var it = protocolInfoMap.iterator(); it.hasNext(); ) {
+			var pi = it.next();
 			pi.lastProcCount = pi.procCount.sumThenReset();
+			pi.lastSendCount = pi.sendCount.sumThenReset();
+			if ((pi.lastProcCount | pi.lastSendCount) == 0) {
+				if (++pi.idleCount >= RunInfo.MAX_IDLE_COUNT)
+					it.remove();
+				continue;
+			}
 			pi.lastProcTime = pi.procTime.sumThenReset();
 			pi.lastRecvSize = pi.recvSize.sumThenReset();
-			pi.lastSendCount = pi.sendCount.sumThenReset();
 			pi.lastSendSize = pi.sendSize.sumThenReset();
 			procCountAll += pi.lastProcCount;
 			procTimeAll += pi.lastProcTime;
 			recvSizeAll += pi.lastRecvSize;
 			sendCountAll += pi.lastSendCount;
 			sendSizeAll += pi.lastSendSize;
+			pi.idleCount = 0;
 			pList.add(pi);
 		}
 		sb.append(" [recv: ").append(procCountAll).append(',').append(' ').append(recvSizeAll / 1000).append("K, ")
@@ -236,8 +251,6 @@ public final class PerfCounter {
 		pList.sort((pi0, pi1) -> Long.signum(pi1.lastProcTime - pi0.lastProcTime));
 		for (int i = 0, n = Math.min(pList.size(), PERF_COUNT); i < n; i++) {
 			var pi = pList.get(i);
-			if (pi.lastProcTime == 0)
-				break;
 			var perTime = 0L;
 			var perSize = 0L;
 			if (pi.lastProcCount > 0) {

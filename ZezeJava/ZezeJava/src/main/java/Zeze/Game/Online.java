@@ -993,9 +993,10 @@ public class Online extends AbstractOnline {
 	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time) {
 //		TaskCompletionSource<Long> future = null;
 		var broadcast = new Broadcast(new BBroadcast(typeId, fullEncodedProtocol, time));
+		var pdata = broadcast.encode();
 		int sendCount = 0;
 		for (var link : providerApp.providerService.getLinks().values()) {
-			if (link.getSocket() != null && link.getSocket().Send(broadcast))
+			if (link.getSocket() != null && link.getSocket().Send(pdata))
 				sendCount++;
 		}
 //		if (future != null)
@@ -1007,11 +1008,11 @@ public class Online extends AbstractOnline {
 		broadcast(p, 60 * 1000);
 	}
 
-	public void broadcast(@NotNull Protocol<?> p, int time) {
+	public int broadcast(@NotNull Protocol<?> p, int time) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);
-		broadcast(typeId, new Binary(p.encode()), time);
+		return broadcast(typeId, new Binary(p.encode()), time);
 	}
 
 	private void verifyLocal() {

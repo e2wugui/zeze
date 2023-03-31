@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Serialize;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.BitConverter;
@@ -289,24 +290,63 @@ public class TestByteBuffer extends TestCase {
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 	}
 
+	private static void testSkipUInt(int x) {
+		ByteBuffer bb = ByteBuffer.Allocate();
+		bb.WriteUInt(x);
+		bb.ReadUInt();
+		int ri = bb.ReadIndex;
+		bb.ReadIndex = 0;
+		bb.SkipUInt();
+		assertEquals(ri, bb.ReadIndex);
+	}
+
+	private static void testSkipLong(long x) {
+		ByteBuffer bb = ByteBuffer.Allocate();
+		bb.WriteLong(x);
+		bb.ReadLong();
+		int ri = bb.ReadIndex;
+		bb.ReadIndex = 0;
+		bb.SkipLong();
+		assertEquals(ri, bb.ReadIndex);
+	}
+
+	private static void testSkipULong(long x) {
+		ByteBuffer bb = ByteBuffer.Allocate();
+		bb.WriteULong(x);
+		bb.ReadULong();
+		int ri = bb.ReadIndex;
+		bb.ReadIndex = 0;
+		bb.SkipULong();
+		assertEquals(ri, bb.ReadIndex);
+	}
+
 	private static void testAll(long x) {
 		testInt((int)x);
 		testInt((int)-x);
 		testUInt((int)x);
 		testUInt((int)-x);
+		testSkipUInt((int)x);
+		testSkipUInt((int)-x);
 		testLong(x);
 		testLong(-x);
 		testULong(x);
 		testULong(-x);
+		testSkipLong(x);
+		testSkipLong(-x);
+		testSkipULong(x);
+		testSkipULong(-x);
 	}
 
 	public void testInteger() {
-		for (int i = 0; i <= 64; ++i) {
+		for (int i = 0; i <= 64; i++) {
 			testAll(1L << i);
 			testAll((1L << i) - 1);
 			testAll(((1L << i) - 1) & 0x5555_5555_5555_5555L);
 			testAll(((1L << i) - 1) & 0xaaaa_aaaa_aaaa_aaaaL);
 		}
+		var r = ThreadLocalRandom.current();
+		for (int i = 0; i < 10000; i++)
+			testAll(r.nextLong());
 		testInt(Integer.MIN_VALUE);
 		testInt(Integer.MAX_VALUE);
 		testLong(Integer.MIN_VALUE);
@@ -319,6 +359,16 @@ public class TestByteBuffer extends TestCase {
 		testULong(Integer.MAX_VALUE);
 		testULong(Long.MIN_VALUE);
 		testULong(Long.MAX_VALUE);
+		testSkipLong(Integer.MIN_VALUE);
+		testSkipLong(Integer.MAX_VALUE);
+		testSkipLong(Long.MIN_VALUE);
+		testSkipLong(Long.MAX_VALUE);
+		testSkipUInt(Integer.MIN_VALUE);
+		testSkipUInt(Integer.MAX_VALUE);
+		testSkipULong(Integer.MIN_VALUE);
+		testSkipULong(Integer.MAX_VALUE);
+		testSkipULong(Long.MIN_VALUE);
+		testSkipULong(Long.MAX_VALUE);
 	}
 
 	public void testToLong() {

@@ -128,6 +128,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 		// 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
 		var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
+		if (providerSocket == null)
+			return false;
 		var staticBinds = ((LinkdProviderSession)providerSocket.getUserState()).getStaticBinds();
 		linkSession.bind(linkdApp.linkdProviderService, link, staticBinds.keySet(), providerSocket);
 		return true;

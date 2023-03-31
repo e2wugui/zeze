@@ -4,8 +4,14 @@ import java.util.ArrayList;
 import java.util.concurrent.Future;
 import com.alibaba.druid.pool.DruidDataSource;
 
+/*
+use mysql;
+create user 'dev'@'localhost' identified by 'devtest12345';
+grant all privileges on devtest.* to 'dev'@'localhost';
+create table if not exists bench1(a bigint, b int);
+*/
 public class Bench1Mysql {
-	public static void main(String [] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		var url = "jdbc:mysql://localhost/devtest?user=dev&password=devtest12345&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
 
 		try (var dataSource = new DruidDataSource()) {

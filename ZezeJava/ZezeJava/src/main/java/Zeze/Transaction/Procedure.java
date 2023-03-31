@@ -4,6 +4,7 @@ import Zeze.Application;
 import Zeze.IModule;
 import Zeze.Util.FuncLong;
 import Zeze.Util.Macro;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.TaskCanceledException;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -132,11 +133,14 @@ public class Procedure {
 	public final long call() {
 		Transaction currentT = Transaction.getCurrent();
 		if (currentT == null) {
+			long timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
 				return Transaction.create(zeze.getLocks()).perform(this);
 			} finally {
 				Transaction.destroy();
+				if (PerfCounter.ENABLE_PERF)
+					PerfCounter.instance.addRunInfo(getActionName(), System.nanoTime() - timeBegin);
 			}
 		}
 

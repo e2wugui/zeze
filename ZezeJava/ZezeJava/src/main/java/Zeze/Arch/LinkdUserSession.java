@@ -100,8 +100,9 @@ public class LinkdUserSession {
 			for (var moduleId : moduleIds) {
 				var exist = binds.get(moduleId);
 				if (exist != null && exist.longValue() != providerSessionId.longValue()) {
+					var s = linkdProviderService.GetSocket(exist);
 					logger.warn("LinkSession.Bind replace provider {} {} {}", moduleId,
-							linkdProviderService.GetSocket(exist).getRemoteAddress(), provider.getRemoteAddress());
+							s != null ? s.getRemoteAddress() : null, provider.getRemoteAddress());
 				}
 				binds.put(moduleId, providerSessionId);
 				var ps = (LinkdProviderSession)provider.getUserState();
@@ -144,8 +145,9 @@ public class LinkdUserSession {
 								ps.removeLinkSession(moduleId, link.getSessionId());
 						}
 					} else {
+						var s = linkdProviderService.GetSocket(exist);
 						logger.warn("LinkSession.UnBind not owner {} {} {}", moduleId,
-								linkdProviderService.GetSocket(exist).getRemoteAddress(), provider.getRemoteAddress());
+								s != null ? s.getRemoteAddress() : null, provider.getRemoteAddress());
 					}
 				}
 			}
