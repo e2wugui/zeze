@@ -144,7 +144,7 @@ public class TestWalkPage {
 
 	@Test
 	public void testWalkCacheKey() throws Exception {
-		var t = TestWalkPage.prepareTableCache();
+		var t = TestWalkPage.prepareTable();
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 		t.walkCacheKey(key -> {
@@ -243,7 +243,7 @@ public class TestWalkPage {
 
 	@Test
 	public void testWalkCache() {
-		var t = TestWalkPage.prepareTableCache();
+		var t = TestWalkPage.prepareTable();
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 		t.walkCache((key, value) -> {
@@ -278,19 +278,6 @@ public class TestWalkPage {
 			return 0;
 		}, "prepare walk data by desc").call();
 		App.getInstance().Zeze.checkpointRun();
-		return t;
-	}
-
-	private static tWalkPage prepareTableCache() {
-		var t = App.getInstance().demo_Module1.tWalkPage();
-		App.getInstance().Zeze.newProcedure(() -> {
-			t.put(3, new Bean1());
-			t.put(2, new Bean1());
-			t.put(1, new Bean1());
-			t.put(5, new Bean1());
-			t.put(4, new Bean1());
-			return 0;
-		}, "prepare walk data by desc").call();
 		return t;
 	}
 }
