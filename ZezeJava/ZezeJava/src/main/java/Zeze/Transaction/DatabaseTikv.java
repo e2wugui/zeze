@@ -248,6 +248,8 @@ public class DatabaseTikv extends Database {
 
 		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			throw new UnsupportedOperationException();
+			/*
 			int keyPrefixSize = keyPrefix.length;
 			var startKey = ByteString.copyFrom(keyPrefix);
 			var endKey = Key.toRawKey(keyPrefix).nextPrefix().toByteString();
@@ -269,12 +271,12 @@ public class DatabaseTikv extends Database {
 			}
 			//noinspection ConstantValue
 			return null == lastKey ? null : ByteBuffer.Wrap(lastKey);
+			*/
 		}
 
 		@Override
 		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
-			// todo
-			return null;
+			throw new UnsupportedOperationException();
 		}
 
 		private ByteString addKeyPrefixBS(ByteBuffer key) {
