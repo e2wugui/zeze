@@ -361,9 +361,6 @@ public class DatabaseRocksDb extends Database {
 				var lastKey = it.key();
 				//noinspection EqualsBetweenInconvertibleTypes
 				if (exclusiveStartKey != null && exclusiveStartKey.equals(lastKey)) { // 第一个item可能为exclusiveStartKey时需要忽略。
-					if (!callback.handle(lastKey, it.value()))
-						return ByteBuffer.Wrap(lastKey);
-					proposeLimit--;
 					it.next();
 				}
 				for (; proposeLimit-- > 0 && it.isValid(); it.next()) {
@@ -371,7 +368,7 @@ public class DatabaseRocksDb extends Database {
 					if (!callback.handle(lastKey, it.value()))
 						break;
 				}
-				return ByteBuffer.Wrap(lastKey);
+				return it.isValid() ? ByteBuffer.Wrap(lastKey) : null;
 			}
 		}
 
@@ -390,9 +387,6 @@ public class DatabaseRocksDb extends Database {
 				var lastKey = it.key();
 				//noinspection EqualsBetweenInconvertibleTypes
 				if (exclusiveStartKey != null && exclusiveStartKey.equals(lastKey)) { // 第一个item可能为exclusiveStartKey时需要忽略。
-					if (!callback.handle(lastKey))
-						return ByteBuffer.Wrap(lastKey);
-					proposeLimit--;
 					it.next();
 				}
 				for (; proposeLimit-- > 0 && it.isValid(); it.next()) {
@@ -400,7 +394,7 @@ public class DatabaseRocksDb extends Database {
 					if (!callback.handle(lastKey))
 						break;
 				}
-				return ByteBuffer.Wrap(lastKey);
+				return it.isValid() ? ByteBuffer.Wrap(lastKey) : null;
 			}
 		}
 
@@ -412,16 +406,13 @@ public class DatabaseRocksDb extends Database {
 				if (exclusiveStartKey == null)
 					it.seekToLast();
 				else
-					it.seek(copyIf(exclusiveStartKey));
+					it.seekForPrev(copyIf(exclusiveStartKey));
 				if (!it.isValid())
 					return null;
 
 				var lastKey = it.key();
 				//noinspection EqualsBetweenInconvertibleTypes
 				if (exclusiveStartKey != null && exclusiveStartKey.equals(lastKey)) { // 第一个item可能为exclusiveStartKey时需要忽略。
-					if (!callback.handle(lastKey, it.value()))
-						return ByteBuffer.Wrap(lastKey);
-					proposeLimit--;
 					it.prev();
 				}
 				for (; proposeLimit-- > 0 && it.isValid(); it.prev()) {
@@ -429,7 +420,7 @@ public class DatabaseRocksDb extends Database {
 					if (!callback.handle(lastKey, it.value()))
 						break;
 				}
-				return ByteBuffer.Wrap(lastKey);
+				return it.isValid() ? ByteBuffer.Wrap(lastKey) : null;
 			}
 		}
 
@@ -441,16 +432,13 @@ public class DatabaseRocksDb extends Database {
 				if (exclusiveStartKey == null)
 					it.seekToLast();
 				else
-					it.seek(copyIf(exclusiveStartKey));
+					it.seekForPrev(copyIf(exclusiveStartKey));
 				if (!it.isValid())
 					return null;
 
 				var lastKey = it.key();
 				//noinspection EqualsBetweenInconvertibleTypes
 				if (exclusiveStartKey != null && exclusiveStartKey.equals(lastKey)) { // 第一个item可能为exclusiveStartKey时需要忽略。
-					if (!callback.handle(lastKey))
-						return ByteBuffer.Wrap(lastKey);
-					proposeLimit--;
 					it.prev();
 				}
 				for (; proposeLimit-- > 0 && it.isValid(); it.prev()) {
@@ -458,7 +446,7 @@ public class DatabaseRocksDb extends Database {
 					if (!callback.handle(lastKey))
 						break;
 				}
-				return ByteBuffer.Wrap(lastKey);
+				return it.isValid() ? ByteBuffer.Wrap(lastKey) : null;
 			}
 		}
 	}
