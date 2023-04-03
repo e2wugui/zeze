@@ -141,16 +141,43 @@ public class TimerAccount {
 		return true;
 	}
 
-	public String scheduleOffline(String account, String clientId, long delay, long period, long times, long endTime,
+	public boolean scheduleOfflineNamed(String timerName, String account, String clientId,
+									   long delay, long period, long times, long endTime,
+									   int missFirePolicy,
+									   Class<? extends TimerHandle> handleClassName, Bean customData) {
+		var timer = online.providerApp.zeze.getTimer();
+		var timerIndex = timer.tIndexs().get(timerName);
+		if (null != timerIndex)
+			return false;
+
+		scheduleOffline(timerName, account, clientId, delay, period, times, endTime, missFirePolicy, handleClassName, customData);
+		return true;
+	}
+
+	public String scheduleOffline(String account, String clientId,
+								  long delay, long period, long times, long endTime,
+								  int missFirePolicy,
 								  Class<? extends TimerHandle> handleClassName, Bean customData) {
+		var timer = online.providerApp.zeze.getTimer();
+		return scheduleOffline("@" + timer.timerIdAutoKey.nextString(),
+				account, clientId, delay, period, times, endTime, missFirePolicy,
+				handleClassName, customData);
+	}
+
+	private String scheduleOffline(String timerId, String account, String clientId,
+								   long delay, long period, long times, long endTime,
+								   int missFirePolicy,
+								   Class<? extends TimerHandle> handleClassName, Bean customData) {
 		var logoutVersion = online.getLogoutVersion(account, clientId);
 		if (null == logoutVersion)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineAccountCustom("", account, clientId, logoutVersion, handleClassName.getName());
-		var timerName = timer.schedule(delay, period, times, endTime,
-				Timer.eMissfirePolicyNothing, OfflineHandle.class, custom);
+		var simpleTimer = new BSimpleTimer();
+		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
+		simpleTimer.setMissfirePolicy(missFirePolicy);
+		var timerName = timer.schedule(timerId, simpleTimer, OfflineHandle.class, custom);
 		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
 		if (null != customData) {
 			timer.register(customData.getClass());
@@ -166,16 +193,38 @@ public class TimerAccount {
 		return timerName;
 	}
 
-	public String scheduleOffline(String account, String clientId, String cron, long times, long endTime,
+	public boolean scheduleOfflineNamed(String timerName, String account, String clientId, String cron, long times, long endTime,
+								  int missFirePolicy,
 								  Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
+		var timer = online.providerApp.zeze.getTimer();
+		var timerIndex = timer.tIndexs().get(timerName);
+		if (null != timerIndex)
+			return false;
+		scheduleOffline(timerName, account, clientId, cron, times, endTime, missFirePolicy, handleClassName, customData);
+		return true;
+	}
+
+	public String scheduleOffline(String account, String clientId, String cron, long times, long endTime,
+								  int missFirePolicy,
+								  Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
+		var timer = online.providerApp.zeze.getTimer();
+		return scheduleOffline("@" + timer.timerIdAutoKey.nextString(),
+				account, clientId, cron, times, endTime, missFirePolicy, handleClassName, customData);
+	}
+
+	private String scheduleOffline(String timerId, String account, String clientId, String cron, long times, long endTime,
+								   int missFirePolicy,
+								   Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
 		var logoutVersion = online.getLogoutVersion(account, clientId);
 		if (null == logoutVersion)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineAccountCustom("", account, clientId, logoutVersion, handleClassName.getName());
-		var timerName = timer.schedule(cron, times, endTime,
-				Timer.eMissfirePolicyNothing, OfflineHandle.class, custom);
+		var cronTimer = new BCronTimer();
+		Timer.initCronTimer(cronTimer, cron, times, endTime);
+		cronTimer.setMissfirePolicy(missFirePolicy);
+		var timerName = timer.schedule(timerId, cronTimer, OfflineHandle.class, custom);
 		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
 		if (null != customData) {
 			timer.register(customData.getClass());

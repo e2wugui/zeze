@@ -209,7 +209,7 @@ public class Timer extends AbstractTimer {
 		return schedule("@" + timerIdAutoKey.nextString(), simpleTimer, handle, customData);
 	}
 
-	private @NotNull String schedule(@NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
+	@NotNull String schedule(@NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
 									 @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData) {
 		var serverId = zeze.getConfig().getServerId();
 		var root = _tNodeRoot.getOrAdd(serverId);
@@ -391,7 +391,7 @@ public class Timer extends AbstractTimer {
 		return schedule("@" + timerIdAutoKey.nextString(), cronTimer, name, customData);
 	}
 
-	private @NotNull String schedule(@NotNull String timerId, BCronTimer cronTimer,
+	@NotNull String schedule(@NotNull String timerId, BCronTimer cronTimer,
 									 @NotNull Class<? extends TimerHandle> name, @Nullable Bean customData) {
 		var serverId = zeze.getConfig().getServerId();
 		var root = _tNodeRoot.getOrAdd(serverId);
@@ -631,6 +631,10 @@ public class Timer extends AbstractTimer {
 	// Online Timer
 	@NotNull tAccountTimers tAccountTimers() {
 		return _tAccountTimers;
+	}
+
+	tIndexs tIndexs() {
+		return _tIndexs;
 	}
 
 	@NotNull tRoleTimers tRoleTimers() {

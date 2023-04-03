@@ -143,17 +143,92 @@ public class TimerRole {
 		return true;
 	}
 
-	public @NotNull String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
+	public @NotNull boolean scheduleOfflineNamed(String timerName, long roleId, long delay, long period, long times, long endTime,
+												int missFirePolicy,
+												@NotNull Class<? extends TimerHandle> handleClassName,
+												@Nullable Bean customData) {
+		var timer = online.providerApp.zeze.getTimer();
+		var timerIndex = timer.tIndexs().get(timerName);
+		if (null != timerIndex)
+			return false;
+		scheduleOffline(timerName, roleId, delay, period, times, endTime, missFirePolicy, handleClassName, customData);
+		return true;
+	}
+
+	private @NotNull String scheduleOffline(String timerId, long roleId, long delay, long period, long times, long endTime,
+										   int missFirePolicy,
 										   @NotNull Class<? extends TimerHandle> handleClassName,
 										   @Nullable Bean customData) {
+
 		var logoutVersion = online.getLogoutVersion(roleId);
 		if (null == logoutVersion)
 			throw new IllegalStateException("not logout. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineRoleCustom("", roleId, logoutVersion, handleClassName.getName());
-		var timerName = timer.schedule(delay, period, times, endTime,
-				Timer.eMissfirePolicyNothing, OfflineHandle.class, custom);
+
+		var simpleTimer = new BSimpleTimer();
+		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
+		simpleTimer.setMissfirePolicy(missFirePolicy);
+		var timerName = timer.schedule(timerId, simpleTimer, OfflineHandle.class, custom);
+
+		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
+		if (null != customData) {
+			timer.register(customData.getClass());
+			custom.getCustomData().setBean(customData);
+		}
+		var offline = timer.tRoleOfflineTimers().getOrAdd(roleId);
+		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit())
+			throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
+
+		if (null != offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()))
+			throw new IllegalStateException("duplicate timerName. roleId=" + roleId);
+		return timerName;
+	}
+
+	public @NotNull String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
+										   int missFirePolicy,
+										   @NotNull Class<? extends TimerHandle> handleClassName,
+										   @Nullable Bean customData) {
+		var timer = online.providerApp.zeze.getTimer();
+		return scheduleOffline("@" + timer.timerIdAutoKey.nextString(),
+				roleId, delay, period, times, endTime, missFirePolicy,
+				handleClassName, customData);
+	}
+
+	public @NotNull String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
+										   @NotNull Class<? extends TimerHandle> handleClassName,
+										   @Nullable Bean customData) {
+		return scheduleOffline(roleId, delay, period, times, endTime, Timer.eMissfirePolicyNothing, handleClassName, customData);
+	}
+
+	public @NotNull boolean scheduleOfflineNamed(String timerName, long roleId, @NotNull String cron, long times, long endTime,
+										   int missFirePolicy,
+										   @NotNull Class<? extends TimerHandle> handleClassName,
+										   @Nullable Bean customData) throws ParseException {
+		var timer = online.providerApp.zeze.getTimer();
+		var timerIndex = timer.tIndexs().get(timerName);
+		if (null != timerIndex)
+			return false;
+
+		scheduleOffline(timerName, roleId, cron, times, endTime, missFirePolicy, handleClassName, customData);
+		return true;
+	}
+
+	private @NotNull String scheduleOffline(String timerId, long roleId, @NotNull String cron, long times, long endTime,
+											int missFirePolicy,
+											@NotNull Class<? extends TimerHandle> handleClassName,
+											@Nullable Bean customData) throws ParseException {
+		var logoutVersion = online.getLogoutVersion(roleId);
+		if (null == logoutVersion)
+			throw new IllegalStateException("not logout. roleId=" + roleId);
+
+		var timer = online.providerApp.zeze.getTimer();
+		var custom = new BOfflineRoleCustom("", roleId, logoutVersion, handleClassName.getName());
+		var cronTimer = new BCronTimer();
+		Timer.initCronTimer(cronTimer, cron, times, endTime);
+		cronTimer.setMissfirePolicy(missFirePolicy);
+		var timerName = timer.schedule(timerId, cronTimer, OfflineHandle.class, custom);
 		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
 		if (null != customData) {
 			timer.register(customData.getClass());
@@ -169,28 +244,18 @@ public class TimerRole {
 	}
 
 	public @NotNull String scheduleOffline(long roleId, @NotNull String cron, long times, long endTime,
+										   int missFirePolicy,
 										   @NotNull Class<? extends TimerHandle> handleClassName,
 										   @Nullable Bean customData) throws ParseException {
-		var logoutVersion = online.getLogoutVersion(roleId);
-		if (null == logoutVersion)
-			throw new IllegalStateException("not logout. roleId=" + roleId);
-
 		var timer = online.providerApp.zeze.getTimer();
-		var custom = new BOfflineRoleCustom("", roleId, logoutVersion, handleClassName.getName());
-		var timerName = timer.schedule(cron, times, endTime,
-				Timer.eMissfirePolicyNothing, OfflineHandle.class, custom);
-		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
-		if (null != customData) {
-			timer.register(customData.getClass());
-			custom.getCustomData().setBean(customData);
-		}
-		var offline = timer.tRoleOfflineTimers().getOrAdd(roleId);
-		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit())
-			throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
+		return scheduleOffline("@" + timer.timerIdAutoKey.nextString(),
+				roleId, cron, times, endTime, missFirePolicy, handleClassName, customData);
+	}
 
-		if (null != offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()))
-			throw new IllegalStateException("duplicate timerName. roleId=" + roleId);
-		return timerName;
+	public @NotNull String scheduleOffline(long roleId, @NotNull String cron, long times, long endTime,
+										   @NotNull Class<? extends TimerHandle> handleClassName,
+										   @Nullable Bean customData) throws ParseException {
+		return scheduleOffline(roleId, cron, times, endTime, Timer.eMissfirePolicyNothing, handleClassName, customData);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////
