@@ -625,6 +625,9 @@ public class Timer extends AbstractTimer {
 			// cancel future
 			if (index.getServerId() != zeze.getConfig().getServerId())
 				Transaction.whileCommit(() -> redirectCancel(index.getServerId(), timerId));
+		} else {
+			// 定时器数据已经不存在了，尝试移除future。
+			cancelFuture(timerId);
 		}
 	}
 
