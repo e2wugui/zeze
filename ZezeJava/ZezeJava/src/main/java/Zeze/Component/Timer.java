@@ -2,6 +2,7 @@ package Zeze.Component;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.AppBase;
@@ -258,7 +259,7 @@ public class Timer extends AbstractTimer {
 					timer.getCustomData().setBean(customData);
 				}
 
-				scheduleSimple(serverId, timerId,
+				scheduleSimple(index.getSerialId(), serverId, timerId,
 						simpleTimer.getExpectedTime() - System.currentTimeMillis(),
 						timer.getConcurrentFireSerialNo());
 				return timerId;
@@ -440,7 +441,7 @@ public class Timer extends AbstractTimer {
 					timer.getCustomData().setBean(customData);
 				}
 
-				scheduleCron(serverId, timerId, cronTimer, timer.getConcurrentFireSerialNo());
+				scheduleCron(index.getSerialId(), serverId, timerId, cronTimer, timer.getConcurrentFireSerialNo());
 				return timerId;
 			}
 			nodeId = nodeIdAutoKey.nextId();
@@ -619,12 +620,12 @@ public class Timer extends AbstractTimer {
 		*/
 
 		var index = _tIndexs.get(timerId);
-		if (null == index) {
-			// 尽可能的执行取消操作，不做严格判断。
-			cancel(zeze.getConfig().getServerId(), timerId, null, null);
-			return;
+		if (null != index) {
+			cancel(index.getServerId(), timerId, index, _tNodes.get(index.getNodeId()));
+			// cancel future
+			if (index.getServerId() != zeze.getConfig().getServerId())
+				Transaction.whileCommit(() -> redirectCancel(index.getServerId(), timerId));
 		}
-		cancelTryRedirect(index.getServerId(), timerId);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -662,29 +663,10 @@ public class Timer extends AbstractTimer {
 
 	/////////////////////////////////////////////////////////////
 	// 内部实现
-	void cancelTryRedirect(int serverId, @NotNull String timerId) {
-		if (serverId == zeze.getConfig().getServerId())
-			cancelAlways(serverId, timerId); // 本地定时器，马上cancel，不需要redirect。
-		else if (zeze.redirect.providerApp.providerDirectService.providerByServerId.containsKey(serverId))
-			redirectCancel(serverId, timerId);
-		else
-			// 远程服务联系不上时，直接强制从数据库cancel掉。
-			cancelAlways(serverId, timerId);
-	}
-
-	private void cancelAlways(int serverId, @NotNull String timerId) {
-		// 尽可能的执行取消操作，不做严格判断。
-		var index = _tIndexs.get(timerId);
-		if (null == index) {
-			cancel(serverId, timerId, null, null);
-			return;
-		}
-		cancel(serverId, timerId, index, _tNodes.get(index.getNodeId()));
-	}
-
 	@RedirectToServer
 	protected void redirectCancel(int serverId, @NotNull String timerId) {
-		cancelAlways(serverId, timerId);
+		// redirect 现在仅取消future，总是尝试，不检查其他参数。
+		cancelFuture(timerId);
 	}
 
 	void cancelFuture(@NotNull String timerName) {
@@ -694,43 +676,47 @@ public class Timer extends AbstractTimer {
 	}
 
 	private void cancel(int serverId, @NotNull String timerName, @Nullable BIndex index, @Nullable BNode node) {
-		cancelFuture(timerName);
-		if (null == node || null == index)
+		// 事务成功时，总是尝试cancel future
+		Transaction.whileCommit(() -> cancelFuture(timerName));
+
+		if (null == index)
 			return;
 
-		var timers = node.getTimers();
-		timers.remove(timerName);
+		// remove node
+		if (null != node) {
+			var timers = node.getTimers();
+			timers.remove(timerName);
 
-		if (timers.isEmpty()) {
-			var prev = _tNodes.get(node.getPrevNodeId());
-			var next = _tNodes.get(node.getNextNodeId());
-			var root = _tNodeRoot.get(serverId);
-			if (root.getHeadNodeId() == root.getTailNodeId()) {
-				// only one node and will be removed.
-				root.setHeadNodeId(0L);
-				root.setTailNodeId(0L);
-			} else {
-				if (root.getHeadNodeId() == index.getNodeId())
-					root.setHeadNodeId(node.getNextNodeId());
-				if (root.getTailNodeId() == index.getNodeId())
-					root.setTailNodeId(node.getPrevNodeId());
+			if (timers.isEmpty()) {
+				var prev = _tNodes.get(node.getPrevNodeId());
+				var next = _tNodes.get(node.getNextNodeId());
+				var root = _tNodeRoot.get(serverId);
+				if (root.getHeadNodeId() == root.getTailNodeId()) {
+					// only one node and will be removed.
+					root.setHeadNodeId(0L);
+					root.setTailNodeId(0L);
+				} else {
+					if (root.getHeadNodeId() == index.getNodeId())
+						root.setHeadNodeId(node.getNextNodeId());
+					if (root.getTailNodeId() == index.getNodeId())
+						root.setTailNodeId(node.getPrevNodeId());
+				}
+				prev.setNextNodeId(node.getNextNodeId());
+				next.setPrevNodeId(node.getPrevNodeId());
+
+				// 把当前空的Node加入垃圾回收。
+				// 由于Nodes并发访问的原因，不能马上删除。延迟一定时间就安全了。
+				// 不删除的话就会在数据库留下垃圾。
+				_tNodes.delayRemove(index.getNodeId());
 			}
-			prev.setNextNodeId(node.getNextNodeId());
-			next.setPrevNodeId(node.getPrevNodeId());
-
-			// 把当前空的Node加入垃圾回收。
-			// 由于Nodes并发访问的原因，不能马上删除。延迟一定时间就安全了。
-			// 不删除的话就会在数据库留下垃圾。
-			_tNodes.delayRemove(index.getNodeId());
 		}
-
 		_tIndexs.remove(timerName);
 	}
 
-	private void scheduleSimple(int serverId, @NotNull String timerId, long delay, long concurrentSerialNo) {
+	private void scheduleSimple(long timerSerialId, int serverId, @NotNull String timerId, long delay, long concurrentSerialNo) {
 		Transaction.whileCommit(
 				() -> timersFuture.put(timerId, Task.scheduleUnsafe(delay,
-						() -> fireSimple(serverId, timerId, concurrentSerialNo, false))));
+						() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false))));
 	}
 
 	public static void initSimpleTimer(@NotNull BSimpleTimer simpleTimer,
@@ -785,12 +771,15 @@ public class Timer extends AbstractTimer {
 		return simpleTimer.getEndTime() <= 0 || simpleTimer.getNextExpectedTime() <= simpleTimer.getEndTime();
 	}
 
-	private long fireSimple(int serverId, @NotNull String timerId, long concurrentSerialNo, boolean missFire) {
+	private long fireSimple(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo, boolean missFire) {
 		if (0 != Task.call(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
-			if (null == index || index.getServerId() != zeze.getConfig().getServerId()) {
+			if (null == index
+					|| index.getServerId() != zeze.getConfig().getServerId() // 不是拥有者，取消本地调度，应该是不大可能发生的。
+					|| index.getSerialId() != timerSerialId // 新注册的，旧的future需要取消。
+			) {
 				cancelFuture(timerId);
-				return 0; // 不是拥有者，取消本地调度，应该是不大可能发生的。
+				return 0;
 			}
 
 			var node = _tNodes.get(index.getNodeId());
@@ -840,7 +829,7 @@ public class Timer extends AbstractTimer {
 
 			// continue period
 			long delay = simpleTimer.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleSimple(serverId, timerId, delay, concurrentSerialNo + 1);
+			scheduleSimple(timerSerialId, serverId, timerId, delay, concurrentSerialNo + 1);
 
 			return 0L;
 		}, "Timer.fireSimple"))) {
@@ -852,21 +841,21 @@ public class Timer extends AbstractTimer {
 		return 0L;
 	}
 
-	private void scheduleCron(int serverId, @NotNull String timerName, @NotNull BCronTimer cron,
+	private void scheduleCron(long timerSerialId, int serverId, @NotNull String timerName, @NotNull BCronTimer cron,
 							  long concurrentSerialNo) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext(serverId, timerName, delay, concurrentSerialNo);
+			scheduleCronNext(timerSerialId, serverId, timerName, delay, concurrentSerialNo);
 		} catch (Exception ex) {
 			// 这个错误是在不好处理。先只记录日志吧。
 			logger.error("", ex);
 		}
 	}
 
-	private void scheduleCronNext(int serverId, @NotNull String timerName, long delay, long concurrentSerialNo) {
+	private void scheduleCronNext(long timerSerialId, int serverId, @NotNull String timerName, long delay, long concurrentSerialNo) {
 		Transaction.whileCommit(
 				() -> timersFuture.put(timerName, Task.scheduleUnsafe(delay,
-						() -> fireCron(serverId, timerName, concurrentSerialNo, false))));
+						() -> fireCron(timerSerialId, serverId, timerName, concurrentSerialNo, false))));
 	}
 
 	public static long cronNextTime(@NotNull String cron, long time) throws ParseException {
@@ -914,12 +903,15 @@ public class Timer extends AbstractTimer {
 		return cronTimer.getEndTime() <= 0 || cronTimer.getNextExpectedTime() <= cronTimer.getEndTime();
 	}
 
-	private void fireCron(int serverId, @NotNull String timerId, long concurrentSerialNo, boolean missFire) {
+	private void fireCron(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo, boolean missFire) {
 		if (0 != Task.call(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
-			if (null == index || index.getServerId() != zeze.getConfig().getServerId()) {
+			if (null == index
+					|| index.getServerId() != zeze.getConfig().getServerId() // 不是拥有者，取消本地调度，应该是不大可能发生的。
+					|| index.getSerialId() != timerSerialId // 新注册的，旧的future需要取消。
+			) {
 				cancelFuture(timerId);
-				return 0; // 不是拥有者，取消本地调度，应该是不大可能发生的。
+				return 0;
 			}
 
 			var node = _tNodes.get(index.getNodeId());
@@ -966,7 +958,7 @@ public class Timer extends AbstractTimer {
 
 			// continue period
 			long delay = cronTimer.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext(serverId, timerId, delay, concurrentSerialNo + 1);
+			scheduleCronNext(timerSerialId, serverId, timerId, delay, concurrentSerialNo + 1);
 			return 0L; // procedure done
 		}, "Timer.fireCron"))) {
 			Task.call(zeze.newProcedure(() -> {
@@ -1071,7 +1063,9 @@ public class Timer extends AbstractTimer {
 					switch (simpleTimer.getMissfirePolicy()) {
 					case eMissfirePolicyRunOnce:
 					case eMissfirePolicyRunOnceOldNext:
-						Task.run(() -> fireSimple(serverId, timer.getTimerName(),
+						Task.run(() -> fireSimple(
+								Objects.requireNonNull(_tIndexs.get(timer.getTimerName())).getSerialId(),
+								serverId, timer.getTimerName(),
 								timer.getConcurrentFireSerialNo(), true), "Timer.missFireSimple");
 						continue; // loop done, continue
 
@@ -1084,7 +1078,9 @@ public class Timer extends AbstractTimer {
 						throw new RuntimeException("Unknown MissFirePolicy");
 					}
 				}
-				scheduleSimple(serverId, timer.getTimerName(),
+				scheduleSimple(
+						Objects.requireNonNull(_tIndexs.get(timer.getTimerName())).getSerialId(),
+						serverId, timer.getTimerName(),
 						simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
 						timer.getConcurrentFireSerialNo());
 			} else {
@@ -1093,7 +1089,9 @@ public class Timer extends AbstractTimer {
 					switch (cronTimer.getMissfirePolicy()) {
 					case eMissfirePolicyRunOnce:
 					case eMissfirePolicyRunOnceOldNext:
-						Task.run(() -> fireCron(serverId, timer.getTimerName(),
+						Task.run(() -> fireCron(
+								Objects.requireNonNull(_tIndexs.get(timer.getTimerName())).getSerialId(),
+								serverId, timer.getTimerName(),
 								timer.getConcurrentFireSerialNo(), true), "Timer.missFireCron");
 						continue; // loop done, continue
 
@@ -1106,7 +1104,9 @@ public class Timer extends AbstractTimer {
 						throw new RuntimeException("Unknown MissFirePolicy");
 					}
 				}
-				scheduleCron(serverId, timer.getTimerName(), cronTimer, timer.getConcurrentFireSerialNo());
+				scheduleCron(
+						Objects.requireNonNull(_tIndexs.get(timer.getTimerName())).getSerialId(),
+						serverId, timer.getTimerName(), cronTimer, timer.getConcurrentFireSerialNo());
 			}
 			if (serverId != zeze.getConfig().getServerId()) {
 				var index = _tIndexs.get(timer.getTimerName());
