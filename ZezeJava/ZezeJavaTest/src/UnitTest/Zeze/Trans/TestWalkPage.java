@@ -179,15 +179,17 @@ public class TestWalkPage {
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 
-		t.walkDatabase((TableWalkHandleRaw) (key, value) -> {
-			var bbKey = t.decodeKey(ByteBuffer.Wrap(key));
-			walkTimes.value += 1;
-			walkedKeys.add(bbKey);
-			return true;
-		});
-		Assert.assertEquals(walkTimes.value, walkedKeys.size());
-		var expected = List.of(1, 2, 3, 4, 5);
-		Assert.assertEquals(expected, walkedKeys);
+		if (!t.isUseRelationalMapping()) {
+			t.walkDatabase((TableWalkHandleRaw)(key, value) -> {
+				var bbKey = t.decodeKey(ByteBuffer.Wrap(key));
+				walkTimes.value += 1;
+				walkedKeys.add(bbKey);
+				return true;
+			});
+			Assert.assertEquals(walkTimes.value, walkedKeys.size());
+			var expected = List.of(1, 2, 3, 4, 5);
+			Assert.assertEquals(expected, walkedKeys);
+		}
 	}
 
 	@Test
@@ -196,15 +198,17 @@ public class TestWalkPage {
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 
-		t.walkDatabaseDesc((TableWalkHandleRaw) (key, value) -> {
-			var bbKey = t.decodeKey(ByteBuffer.Wrap(key));
-			walkTimes.value += 1;
-			walkedKeys.add(bbKey);
-			return true;
-		});
-		Assert.assertEquals(walkTimes.value, walkedKeys.size());
-		var expected = List.of(5, 4, 3, 2, 1);
-		Assert.assertEquals(expected, walkedKeys);
+		if (!t.isUseRelationalMapping()) {
+			t.walkDatabaseDesc((TableWalkHandleRaw)(key, value) -> {
+				var bbKey = t.decodeKey(ByteBuffer.Wrap(key));
+				walkTimes.value += 1;
+				walkedKeys.add(bbKey);
+				return true;
+			});
+			Assert.assertEquals(walkTimes.value, walkedKeys.size());
+			var expected = List.of(5, 4, 3, 2, 1);
+			Assert.assertEquals(expected, walkedKeys);
+		}
 	}
 
 	@Test

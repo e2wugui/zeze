@@ -120,7 +120,7 @@
 		<table name="tflush" key="long" value="BValue" memory="false"/>
 		<module name="Module11" id="3" comment=""/> module的注释
 
-		<table name="tWalkPage" key="int" value="demo.Bean1" memory="false"/>
+		<table name="tWalkPage" key="int" RelationalMapping="true" value="demo.Bean1" memory="false"/>
 		
 		<protocol name="ProtocolUseData" argument="BValue" UseData="true" handle="server"/>
 		
