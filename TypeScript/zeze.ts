@@ -814,6 +814,27 @@ export module Zeze {
 			return x;
 		}
 
+		public SkipUInt() {
+			this.EnsureRead(1);
+			var readIndex = this.ReadIndex;
+			var v = this.Bytes[readIndex];
+			if (v < 0x80)
+				this.ReadIndex = readIndex + 1;
+			else if (v < 0xc0) {
+				this.EnsureRead(2);
+				this.ReadIndex = readIndex + 2;
+			} else if (v < 0xe0) {
+				this.EnsureRead(3);
+				this.ReadIndex = readIndex + 3;
+			} else if (v < 0xf0) {
+				this.EnsureRead(4);
+				this.ReadIndex = readIndex + 4;
+			} else {
+				this.EnsureRead(5);
+				this.ReadIndex = readIndex + 5;
+			}
+		}
+
 		public WriteLong(x: bigint) {
 			if (x >= 0) {
 				if (x < 0x40) {
@@ -1024,6 +1045,34 @@ export module Zeze {
 			}
 		}
 
+		public SkipLong() {
+			this.EnsureRead(1);
+			var b = this.Bytes[this.ReadIndex++];
+			b = b < 0x80 ? b : b - 0x100;
+			switch ((b >> 3) & 0x1f) {
+				case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
+				case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return;
+				case 0x08: case 0x09: case 0x0a: case 0x0b:
+				case 0x14: case 0x15: case 0x16: case 0x17: this.EnsureRead(1); this.ReadIndex++; return;
+				case 0x0c: case 0x0d: case 0x12: case 0x13: this.EnsureRead(2); this.ReadIndex += 2; return;
+				case 0x0e: case 0x11: this.EnsureRead(3); this.ReadIndex += 3; return;
+				case 0x0f:
+					switch (b & 7) {
+						case 0: case 1: case 2: case 3: this.EnsureRead(4); this.ReadIndex += 4; return;
+						case 4: case 5: this.EnsureRead(5); this.ReadIndex += 5; return;
+						case 6: this.EnsureRead(6); this.ReadIndex += 6; return;
+						default: this.EnsureRead(1); var n = 6 + (this.Bytes[this.ReadIndex++] >> 7); this.EnsureRead(n); this.ReadIndex += n; return;
+					}
+				default: // 0x10
+					switch (b & 7) {
+						case 4: case 5: case 6: case 7: this.EnsureRead(4); this.ReadIndex += 4; return;
+						case 2: case 3: this.EnsureRead(5); this.ReadIndex += 5; return;
+						case 1: this.EnsureRead(6); this.ReadIndex += 6; return;
+						default: this.EnsureRead(1); var n = 7 - (this.Bytes[this.ReadIndex++] >> 7); this.EnsureRead(n); this.ReadIndex += n;
+					}
+			}
+		}
+
 		public WriteInt(x: number) {
 			this.WriteLong(BigInt(x));
 		}
@@ -1145,6 +1194,11 @@ export module Zeze {
 		public static readonly MAP = 5; // map
 		public static readonly BEAN = 6; // bean
 		public static readonly DYNAMIC = 7; // dynamic
+		public static readonly VECTOR2 = 8; // float{x,y}
+		public static readonly VECTOR2INT = 9; // int{x,y}
+		public static readonly VECTOR3 = 10; // float{x,y,z}
+		public static readonly VECTOR3INT = 11; // int{x,y,z}
+		public static readonly VECTOR4 = 12; // float{x,y,z,w} Quaternion
 
 		public static readonly TAG_SHIFT = 4;
 		public static readonly TAG_MASK = (1 << ByteBuffer.TAG_SHIFT) - 1;
@@ -1303,17 +1357,35 @@ export module Zeze {
 			var type = tag & ByteBuffer.TAG_MASK;
 			switch (type) {
 				case ByteBuffer.INTEGER:
-					this.ReadLong();
+					this.SkipLong();
 					return;
 				case ByteBuffer.FLOAT:
-					if (tag == 1) // FLOAT == 1
+					if (tag == ByteBuffer.FLOAT) // high bits == 0
 						return;
 					this.EnsureRead(4);
 					this.ReadIndex += 4;
 					return;
 				case ByteBuffer.DOUBLE:
+				case ByteBuffer.VECTOR2:
 					this.EnsureRead(8);
 					this.ReadIndex += 8;
+					return;
+				case ByteBuffer.VECTOR2INT:
+					this.SkipLong();
+					this.SkipLong();
+					return;
+				case ByteBuffer.VECTOR3:
+					this.EnsureRead(12);
+					this.ReadIndex += 12;
+					return;
+				case ByteBuffer.VECTOR3INT:
+					this.SkipLong();
+					this.SkipLong();
+					this.SkipLong();
+					return;
+				case ByteBuffer.VECTOR4:
+					this.EnsureRead(16);
+					this.ReadIndex += 16;
 					return;
 				case ByteBuffer.BYTES:
 					this.SkipBytes();
@@ -1327,11 +1399,11 @@ export module Zeze {
 					this.SkipUnknownMap(t >> ByteBuffer.TAG_SHIFT, t, this.ReadUInt());
 					return;
 				case ByteBuffer.DYNAMIC:
-					this.ReadLong();
+					this.SkipLong();
 				case ByteBuffer.BEAN:
 					while ((t = this.ReadByte()) != 0) {
 						if ((t & ByteBuffer.ID_MASK) == 0xf0)
-							this.ReadUInt();
+							this.SkipUInt();
 						this.SkipUnknownField(t);
 					}
 					return;

@@ -1638,7 +1638,7 @@ namespace Zeze.Serialize
                     ReadLong();
                     return;
                 case FLOAT:
-                    if (tag == 1) // FLOAT == 1
+                    if (tag == FLOAT) // high bits == 0
                         return;
                     EnsureRead(4);
                     ReadIndex += 4;

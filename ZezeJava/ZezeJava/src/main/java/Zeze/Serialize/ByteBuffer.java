@@ -1606,7 +1606,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipLong();
 			return;
 		case FLOAT:
-			if (tag == 1) // FLOAT == 1
+			if (tag == FLOAT) // high bits == 0
 				return;
 			ensureRead(4);
 			ReadIndex += 4;
