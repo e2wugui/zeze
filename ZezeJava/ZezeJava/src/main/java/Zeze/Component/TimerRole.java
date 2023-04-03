@@ -143,10 +143,10 @@ public class TimerRole {
 		return true;
 	}
 
-	public @NotNull boolean scheduleOfflineNamed(String timerName, long roleId, long delay, long period, long times, long endTime,
-												int missFirePolicy,
-												@NotNull Class<? extends TimerHandle> handleClassName,
-												@Nullable Bean customData) {
+	public @NotNull boolean scheduleOfflineNamed(@NotNull String timerName, long roleId, long delay, long period,
+												 long times, long endTime, int missFirePolicy,
+												 @NotNull Class<? extends TimerHandle> handleClassName,
+												 @Nullable Bean customData) {
 		var timer = online.providerApp.zeze.getTimer();
 		var timerIndex = timer.tIndexs().get(timerName);
 		if (null != timerIndex)
@@ -155,10 +155,10 @@ public class TimerRole {
 		return true;
 	}
 
-	private @NotNull String scheduleOffline(String timerId, long roleId, long delay, long period, long times, long endTime,
-										   int missFirePolicy,
-										   @NotNull Class<? extends TimerHandle> handleClassName,
-										   @Nullable Bean customData) {
+	private @NotNull String scheduleOffline(@NotNull String timerId, long roleId, long delay, long period,
+											long times, long endTime, int missFirePolicy,
+											@NotNull Class<? extends TimerHandle> handleClassName,
+											@Nullable Bean customData) {
 
 		var logoutVersion = online.getLogoutVersion(roleId);
 		if (null == logoutVersion)
@@ -187,8 +187,7 @@ public class TimerRole {
 	}
 
 	public @NotNull String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
-										   int missFirePolicy,
-										   @NotNull Class<? extends TimerHandle> handleClassName,
+										   int missFirePolicy, @NotNull Class<? extends TimerHandle> handleClassName,
 										   @Nullable Bean customData) {
 		var timer = online.providerApp.zeze.getTimer();
 		return scheduleOffline("@" + timer.timerIdAutoKey.nextString(),
@@ -202,10 +201,10 @@ public class TimerRole {
 		return scheduleOffline(roleId, delay, period, times, endTime, Timer.eMissfirePolicyNothing, handleClassName, customData);
 	}
 
-	public @NotNull boolean scheduleOfflineNamed(String timerName, long roleId, @NotNull String cron, long times, long endTime,
-										   int missFirePolicy,
-										   @NotNull Class<? extends TimerHandle> handleClassName,
-										   @Nullable Bean customData) throws ParseException {
+	public @NotNull boolean scheduleOfflineNamed(@NotNull String timerName, long roleId, @NotNull String cron,
+												 long times, long endTime, int missFirePolicy,
+												 @NotNull Class<? extends TimerHandle> handleClassName,
+												 @Nullable Bean customData) throws ParseException {
 		var timer = online.providerApp.zeze.getTimer();
 		var timerIndex = timer.tIndexs().get(timerName);
 		if (null != timerIndex)
@@ -215,8 +214,8 @@ public class TimerRole {
 		return true;
 	}
 
-	private @NotNull String scheduleOffline(String timerId, long roleId, @NotNull String cron, long times, long endTime,
-											int missFirePolicy,
+	private @NotNull String scheduleOffline(@NotNull String timerId, long roleId, @NotNull String cron, long times,
+											long endTime, int missFirePolicy,
 											@NotNull Class<? extends TimerHandle> handleClassName,
 											@Nullable Bean customData) throws ParseException {
 		var logoutVersion = online.getLogoutVersion(roleId);
@@ -244,8 +243,7 @@ public class TimerRole {
 	}
 
 	public @NotNull String scheduleOffline(long roleId, @NotNull String cron, long times, long endTime,
-										   int missFirePolicy,
-										   @NotNull Class<? extends TimerHandle> handleClassName,
+										   int missFirePolicy, @NotNull Class<? extends TimerHandle> handleClassName,
 										   @Nullable Bean customData) throws ParseException {
 		var timer = online.providerApp.zeze.getTimer();
 		return scheduleOffline("@" + timer.timerIdAutoKey.nextString(),

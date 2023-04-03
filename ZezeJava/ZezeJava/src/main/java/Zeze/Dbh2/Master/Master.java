@@ -4,7 +4,6 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Builtin.Dbh2.Master.BRegister;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
@@ -66,7 +65,7 @@ public class Master extends AbstractMaster {
 		if (null != seedValue) {
 			seed = ByteBuffer.Wrap(seedValue).ReadInt();
 		}
-		seed ++;
+		seed++;
 		var bb = ByteBuffer.Allocate();
 		bb.WriteInt(seed);
 		masterDb.put(Bucket.getDefaultWriteOptions(), seedKey, 0, seedKey.length, bb.Bytes, bb.ReadIndex, bb.size());

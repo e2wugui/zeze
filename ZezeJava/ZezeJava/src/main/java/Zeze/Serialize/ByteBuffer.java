@@ -700,16 +700,16 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		switch ((b >> 4) & 0xf) {
 		//@formatter:off
 		case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: return;
-		case  8: case  9: case 10: case 11: ensureRead(1); ReadIndex++; return;
-		case 12: case 13:                   ensureRead(2); ReadIndex += 2; return;
-		case 14:                            ensureRead(3); ReadIndex += 3; return;
+		case  8: case  9: case 10: case 11: Skip(1); return;
+		case 12: case 13:                   Skip(2); return;
+		case 14:                            Skip(3); return;
 		default:
 			switch (b & 0xf) {
-			case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: ensureRead(4); ReadIndex += 4; return;
-			case  8: case  9: case 10: case 11: ensureRead(5); ReadIndex += 5; return;
-			case 12: case 13:                   ensureRead(6); ReadIndex += 6; return;
-			case 14:                            ensureRead(7); ReadIndex += 7; return;
-			default:                            ensureRead(8); ReadIndex += 8;
+			case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: Skip(4); return;
+			case  8: case  9: case 10: case 11: Skip(5); return;
+			case 12: case 13:                   Skip(6); return;
+			case 14:                            Skip(7); return;
+			default:                            Skip(8);
 			}
 			//@formatter:on
 		}
@@ -869,22 +869,22 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
 		case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return;
 		case 0x08: case 0x09: case 0x0a: case 0x0b:
-		case 0x14: case 0x15: case 0x16: case 0x17: ensureRead(1); ReadIndex++; return;
-		case 0x0c: case 0x0d: case 0x12: case 0x13: ensureRead(2); ReadIndex += 2; return;
-		case 0x0e: case 0x11:                       ensureRead(3); ReadIndex += 3; return;
+		case 0x14: case 0x15: case 0x16: case 0x17: Skip(1); return;
+		case 0x0c: case 0x0d: case 0x12: case 0x13: Skip(2); return;
+		case 0x0e: case 0x11:                       Skip(3); return;
 		case 0x0f:
 			switch (b & 7) {
-			case 0: case 1: case 2: case 3: ensureRead(4); ReadIndex += 4; return;
-			case 4: case 5:                 ensureRead(5); ReadIndex += 5; return;
-			case 6:                         ensureRead(6); ReadIndex += 6; return;
-			default: ensureRead(1); int n = 6 + (Bytes[ReadIndex++] >>> 31); ensureRead(n); ReadIndex += n; return;
+			case 0: case 1: case 2: case 3: Skip(4); return;
+			case 4: case 5:                 Skip(5); return;
+			case 6:                         Skip(6); return;
+			default: ensureRead(1); Skip(6 + (Bytes[ReadIndex++] >>> 31)); return;
 			}
 		default: // 0x10
 			switch (b & 7) {
-			case 4: case 5: case 6: case 7: ensureRead(4); ReadIndex += 4; return;
-			case 2: case 3:                 ensureRead(5); ReadIndex += 5; return;
-			case 1:                         ensureRead(6); ReadIndex += 6; return;
-			default: ensureRead(1); int n = 7 - (Bytes[ReadIndex++] >>> 31); ensureRead(n); ReadIndex += n;
+			case 4: case 5: case 6: case 7: Skip(4); return;
+			case 2: case 3:                 Skip(5); return;
+			case 1:                         Skip(6); return;
+			default: ensureRead(1); Skip(7 - (Bytes[ReadIndex++] >>> 31));
 			}
 			//@formatter:on
 		}
@@ -1015,16 +1015,17 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return v;
 	}
 
-	public void SkipBytes() {
-		int n = ReadUInt();
+	public void Skip(int n) {
 		ensureRead(n);
 		ReadIndex += n;
 	}
 
+	public void SkipBytes() {
+		Skip(ReadUInt());
+	}
+
 	public void SkipBytes4() {
-		int n = ReadInt4();
-		ensureRead(n);
-		ReadIndex += n;
+		Skip(ReadInt4());
 	}
 
 	/**
@@ -1034,7 +1035,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		int n = ReadUInt();
 		ensureRead(n);
 		int cur = ReadIndex;
-		ReadIndex += n;
+		ReadIndex = cur + n;
 		return Wrap(Bytes, cur, n);
 	}
 
@@ -1608,21 +1609,18 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		case FLOAT:
 			if (tag == FLOAT) // high bits == 0
 				return;
-			ensureRead(4);
-			ReadIndex += 4;
+			Skip(4);
 			return;
 		case DOUBLE:
 		case VECTOR2:
-			ensureRead(8);
-			ReadIndex += 8;
+			Skip(8);
 			return;
 		case VECTOR2INT:
 			SkipLong();
 			SkipLong();
 			return;
 		case VECTOR3:
-			ensureRead(12);
-			ReadIndex += 12;
+			Skip(12);
 			return;
 		case VECTOR3INT:
 			SkipLong();
@@ -1630,8 +1628,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipLong();
 			return;
 		case VECTOR4:
-			ensureRead(16);
-			ReadIndex += 16;
+			Skip(16);
 			return;
 		case BYTES:
 			SkipBytes();

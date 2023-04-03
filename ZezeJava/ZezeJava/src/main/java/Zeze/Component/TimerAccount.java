@@ -142,9 +142,8 @@ public class TimerAccount {
 	}
 
 	public boolean scheduleOfflineNamed(String timerName, String account, String clientId,
-									   long delay, long period, long times, long endTime,
-									   int missFirePolicy,
-									   Class<? extends TimerHandle> handleClassName, Bean customData) {
+										long delay, long period, long times, long endTime, int missFirePolicy,
+										Class<? extends TimerHandle> handleClassName, Bean customData) {
 		var timer = online.providerApp.zeze.getTimer();
 		var timerIndex = timer.tIndexs().get(timerName);
 		if (null != timerIndex)
@@ -155,8 +154,7 @@ public class TimerAccount {
 	}
 
 	public String scheduleOffline(String account, String clientId,
-								  long delay, long period, long times, long endTime,
-								  int missFirePolicy,
+								  long delay, long period, long times, long endTime, int missFirePolicy,
 								  Class<? extends TimerHandle> handleClassName, Bean customData) {
 		var timer = online.providerApp.zeze.getTimer();
 		return scheduleOffline("@" + timer.timerIdAutoKey.nextString(),
@@ -165,8 +163,7 @@ public class TimerAccount {
 	}
 
 	private String scheduleOffline(String timerId, String account, String clientId,
-								   long delay, long period, long times, long endTime,
-								   int missFirePolicy,
+								   long delay, long period, long times, long endTime, int missFirePolicy,
 								   Class<? extends TimerHandle> handleClassName, Bean customData) {
 		var logoutVersion = online.getLogoutVersion(account, clientId);
 		if (null == logoutVersion)
@@ -193,9 +190,9 @@ public class TimerAccount {
 		return timerName;
 	}
 
-	public boolean scheduleOfflineNamed(String timerName, String account, String clientId, String cron, long times, long endTime,
-								  int missFirePolicy,
-								  Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
+	public boolean scheduleOfflineNamed(String timerName, String account, String clientId, String cron,
+										long times, long endTime, int missFirePolicy,
+										Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
 		var timer = online.providerApp.zeze.getTimer();
 		var timerIndex = timer.tIndexs().get(timerName);
 		if (null != timerIndex)
