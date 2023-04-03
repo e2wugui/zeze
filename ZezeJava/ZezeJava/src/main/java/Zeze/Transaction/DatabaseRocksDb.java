@@ -6,13 +6,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.IntList;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -39,7 +40,7 @@ public class DatabaseRocksDb extends Database {
 	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
 
 	private final RocksDB rocksDb;
-	private final ConcurrentHashMap<String, ColumnFamilyHandle> columnFamilies = new ConcurrentHashMap<>();
+	private final HashMap<String, ColumnFamilyHandle> columnFamilies = new HashMap<>();
 
 	static {
 		RocksDB.loadLibrary();
@@ -227,7 +228,7 @@ public class DatabaseRocksDb extends Database {
 		}
 	}
 
-	private ColumnFamilyHandle getOrAddFamily(String name, OutObject<Boolean> isNew) {
+	private synchronized @NotNull ColumnFamilyHandle getOrAddFamily(String name, @Nullable OutObject<Boolean> isNew) {
 		if (isNew != null)
 			isNew.value = false;
 
@@ -249,6 +250,42 @@ public class DatabaseRocksDb extends Database {
 		var cfh = getOrAddFamily(name, isNew);
 		//noinspection DataFlowIssue
 		return new TableRocksDb(cfh, isNew.value);
+	}
+
+	@Override
+	public synchronized @NotNull Table @NotNull [] openTables(String @NotNull [] names) {
+		var n = names.length;
+		var tables = new Table[n];
+		var newIndexes = new IntList();
+		var keyList = new ArrayList<byte[]>();
+		for (int idx = 0; idx < n; idx++) {
+			var cfh = columnFamilies.get(names[idx]);
+			if (cfh != null)
+				tables[idx] = new TableRocksDb(cfh, false);
+			else {
+				newIndexes.add(idx);
+				keyList.add(names[idx].getBytes(StandardCharsets.UTF_8));
+			}
+		}
+		n = keyList.size();
+		if (n > 0) {
+			try {
+				var cfhs = rocksDb.createColumnFamilies(defaultCfOptions, keyList);
+				if (cfhs.size() != keyList.size()) {
+					throw new IllegalStateException("createColumnFamilies unmatched: "
+							+ cfhs.size() + " != " + keyList.size());
+				}
+				for (int i = 0; i < n; i++) {
+					var idx = newIndexes.get(i);
+					var cfh = cfhs.get(i);
+					columnFamilies.put(names[idx], cfh);
+					tables[idx] = new TableRocksDb(cfh, true);
+				}
+			} catch (RocksDBException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		return tables;
 	}
 
 	private final class TableRocksDb extends Database.AbstractKVTable {

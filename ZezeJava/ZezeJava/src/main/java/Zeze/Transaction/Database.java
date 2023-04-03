@@ -88,15 +88,22 @@ public abstract class Database {
 	}
 
 	public final void open(@NotNull Application app) {
-		for (Zeze.Transaction.Table table : tables.values()) {
-			var storage = table.open(app, this);
+		var ts = tables.values().toArray(new Zeze.Transaction.Table[tables.size()]);
+		var names = new String[ts.length];
+		int i = 0;
+		for (var table : ts)
+			names[i++] = table.getName();
+		var localTables = app.getLocalRocksCacheDb().openTables(names);
+		i = 0;
+		for (var table : ts) {
+			var storage = table.open(app, this, localTables[i++]);
 			if (storage != null)
 				storages.add(storage);
 		}
 	}
 
 	public final void openDynamicTable(@NotNull Application app, @NotNull Zeze.Transaction.Table table) {
-		var storage = table.open(app, this);
+		var storage = table.open(app, this, null);
 		if (null != storage)
 			storages.add(storage);
 	}
@@ -143,6 +150,13 @@ public abstract class Database {
 	}
 
 	public abstract @NotNull Table openTable(@NotNull String name);
+
+	public @NotNull Table @NotNull [] openTables(String @NotNull [] names) {
+		var tables = new Table[names.length];
+		for (int i = 0, n = names.length; i < n; i++)
+			tables[i] = openTable(names[i]);
+		return tables;
+	}
 
 	public static byte @NotNull [] copyIf(@NotNull java.nio.ByteBuffer bb) {
 		if (bb.limit() == bb.capacity() && bb.arrayOffset() == 0)

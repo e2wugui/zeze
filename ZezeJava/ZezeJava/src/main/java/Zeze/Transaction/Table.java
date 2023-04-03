@@ -57,7 +57,8 @@ public abstract class Table {
 		database = db;
 	}
 
-	abstract @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database);
+	abstract @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database,
+										  @Nullable DatabaseRocksDb.Table localTable);
 
 	abstract void close();
 

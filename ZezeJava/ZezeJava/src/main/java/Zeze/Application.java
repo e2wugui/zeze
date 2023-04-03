@@ -264,23 +264,37 @@ public final class Application {
 		return new Procedure(this, action, actionName, level, userState);
 	}
 
-	static void deleteDirectory(@NotNull File directoryToBeDeleted) throws IOException, InterruptedException {
-		File[] allContents = directoryToBeDeleted.listFiles();
+	public static void deleteDirectory(@NotNull File directoryToBeDeleted) throws IOException, InterruptedException {
+		var allContents = directoryToBeDeleted.listFiles();
 		if (allContents != null) {
-			for (File file : allContents) {
+			for (File file : allContents)
 				deleteDirectory(file);
-			}
 		}
-		for (int i = 0; directoryToBeDeleted.exists(); i++) {
+		for (int i = 0; directoryToBeDeleted.exists(); ) {
 			//noinspection ResultOfMethodCallIgnored
 			directoryToBeDeleted.delete();
 			if (!directoryToBeDeleted.exists())
 				break;
-			if (i >= 50)
+			if (++i >= 100)
 				throw new IOException("delete failed: " + directoryToBeDeleted.getAbsolutePath());
 			//noinspection BusyWait
 			Thread.sleep(100);
 		}
+	}
+
+	// 先把要删的目录改名再删除,会更安全一些,降低并发访问目录中文件的可能性
+	public static void renameAndDeleteDirectory(@NotNull File directoryToBeDeleted)
+			throws IOException, InterruptedException {
+		if (directoryToBeDeleted.isDirectory()) {
+			var path = directoryToBeDeleted.getAbsolutePath();
+			var newFile = new File(path + ".del");
+			for (int i = 0; !directoryToBeDeleted.renameTo(newFile); newFile = new File(path + ".del" + i)) {
+				if (++i >= 10000)
+					throw new IOException("rename failed: " + path);
+			}
+			directoryToBeDeleted = newFile;
+		}
+		deleteDirectory(directoryToBeDeleted);
 	}
 
 	public void endStart() {
@@ -351,8 +365,13 @@ public final class Application {
 				schemasCompatible();
 
 				// Open Databases
-				for (var db : databases.values())
+				for (var e : databases.entrySet()) {
+					var timeBegin = System.nanoTime();
+					var db = e.getValue();
 					db.open(this);
+					logger.info("open {} tables from database '{}' ({} ms)",
+							db.getTables().size(), e.getKey(), (System.nanoTime() - timeBegin) / 1_000_000);
+				}
 
 				for (var db : getDatabases().values()) {
 					if (!(db instanceof DatabaseMySql))

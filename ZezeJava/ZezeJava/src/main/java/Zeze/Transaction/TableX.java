@@ -618,7 +618,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	final @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database) {
+	final @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database,
+									   @Nullable DatabaseRocksDb.Table localTable) {
 		if (cache != null)
 			throw new IllegalStateException("table has opened: " + getName());
 
@@ -634,7 +635,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		storage = isMemory() ? null : new Storage<>(this, database, getName());
 		oldTable = getTableConf().getDatabaseOldMode() == 1
 				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName()) : null;
-		localRocksCacheTable = app.getLocalRocksCacheDb().openTable(getName());
+		localRocksCacheTable = localTable != null ? localTable : app.getLocalRocksCacheDb().openTable(getName());
 		useRelationalMapping = isRelationalMapping() && database instanceof DatabaseMySql;
 		return storage;
 	}
