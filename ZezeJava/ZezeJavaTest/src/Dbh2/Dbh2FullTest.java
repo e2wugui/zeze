@@ -36,6 +36,7 @@ public class Dbh2FullTest {
 		}, "");
 	}
 
+	@Test
 	public void testBench() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
 
@@ -81,22 +82,23 @@ public class Dbh2FullTest {
 		Task.tryInitThreadPool(null, null, null);
 
 		var master = new Zeze.Dbh2.Master.Main();
-		master.start();
 		var managers = new ArrayList<Dbh2Manager>();
-		for (int i = 0; i < 3; ++i)
-			managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i));
-		for (var manager : managers)
-			manager.start();
-
-		var database = newDatabase("dbh2TestDb");
-		var table1 = (Database.AbstractKVTable)database.openTable("table1");
-		var table2 = (Database.AbstractKVTable)database.openTable("table2");
-
-		var key = ByteBuffer.Wrap(new byte[] {});
-		var key1 = ByteBuffer.Wrap(new byte[] { 1 });
-		var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
-
+		Database database = null;
 		try {
+			master.start();
+			for (int i = 0; i < 3; ++i)
+				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i));
+			for (var manager : managers)
+				manager.start();
+
+			database = newDatabase("dbh2TestDb");
+			var table1 = (Database.AbstractKVTable)database.openTable("table1");
+			var table2 = (Database.AbstractKVTable)database.openTable("table2");
+
+			var key = ByteBuffer.Wrap(new byte[] {});
+			var key1 = ByteBuffer.Wrap(new byte[] { 1 });
+			var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
+
 			try (var trans = database.beginTransaction()) {
 				table1.replace(trans, key, value);
 				table1.replace(trans, key1, value);
@@ -127,7 +129,8 @@ public class Dbh2FullTest {
 			master.stop();
 			for (var manager : managers)
 				manager.stop();
-			database.close();
+			if (null != database)
+				database.close();
 			Dbh2AgentManager.getInstance().clear();
 		}
 	}

@@ -76,11 +76,12 @@ public class Dbh2Test {
 					<node Host="127.0.0.1" Port="10005"/>
 				</raft>
 				""");
-
-		final var db = "database";
-		final var tb1 = "table1";
-		final var tb2 = "table2";
 		try {
+
+			final var db = "database";
+			final var tb1 = "table1";
+			final var tb2 = "table2";
+
 			var meta1 = new BBucketMeta.Data();
 			meta1.setDatabaseName(db);
 			meta1.setTableName(tb1);
