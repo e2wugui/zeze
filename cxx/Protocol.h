@@ -62,8 +62,7 @@ namespace Zeze
 			{
 				bb.WriteInt4(ModuleId());
 				bb.WriteInt4(ProtocolId());
-				int outstate;
-				bb.BeginWriteWithSize4(outstate);
+				int outstate = bb.BeginWriteWithSize4();
 				this->Encode(bb);
 				bb.EndWriteWithSize4(outstate);
 			}

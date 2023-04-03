@@ -126,6 +126,9 @@
     <ClCompile Include="..\CxxTest\TaskTest\TaskExt\ModuleTaskExt.cpp">
       <Filter>CxxTest\TaskTest\TaskExt</Filter>
     </ClCompile>
+    <ClCompile Include="TestByteBuffer.cpp">
+      <Filter>CxxTest</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\cxx\Bean.h">

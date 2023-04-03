@@ -3,9 +3,9 @@
 
 namespace Zeze
 {
-	DynamicBean& ByteBuffer::ReadDynamic(DynamicBean& dynBean, int type)
+	DynamicBean& ByteBuffer::ReadDynamic(DynamicBean& dynBean, int tag)
 	{
-		type &= TAG_MASK;
+		int type = tag & TAG_MASK;
 		if (type == DYNAMIC)
 		{
 			dynBean.Decode(*this);
@@ -16,7 +16,7 @@ namespace Zeze
 			dynBean.NewBean(0)->Decode(*this);
 			return dynBean;
 		}
-		SkipUnknownField(type);
+		SkipUnknownField(tag);
 		return dynBean;
 	}
 }

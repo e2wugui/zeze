@@ -1,10 +1,10 @@
-
 #include "Gen/demo/Bean1.hpp"
 #include "Gen/demo/Module1/BValue.hpp"
 #include "zeze/cxx/Net.h"
 #include "demo/TestClient.h"
 #include <cmath>
 
+void TestByteBuffer();
 void TestSocket();
 void TestEncode();
 void TestProtocol();
@@ -12,6 +12,7 @@ void TestFuture();
 
 int main(char* args[])
 {
+	TestByteBuffer();
 	TestFuture();
 	int mills = 200;
 	std::cout << std::ceil(mills / 1000.0) << std::endl;
@@ -142,7 +143,7 @@ void TestEncode()
 {
 	Zeze::ByteBuffer bb(16);
 	demo::Module1::BValue bValue;
-	bValue.Int1 = 1;
+	bValue.Int_1 = 1;
 	bValue.Long2 = 2;
 	bValue.String3 = "3";
 	bValue.Bool4 = true;
@@ -153,12 +154,12 @@ void TestEncode()
 	bValue.List9.push_back(demo::Bean1());
 	bValue.Set10.insert(10);
 	bValue.Map11[11] = demo::Module2::BValue();
-	bValue.Bean12.Int1 = 12;
+	bValue.Bean12.Int_1 = 12;
 	bValue.Byte13 = 13;
 	bValue.Dynamic14.SetBean(new demo::Bean1());
 	bValue.Dynamic14.SetBean(new demo::Module1::BSimple()); // set again
 	bValue.Map15[15] = 15;
-	demo::Module1::Key key(16);
+	demo::Module1::Key key(16, "abc");
 	bValue.Map16[key] = demo::Module1::BSimple();
 	bValue.Vector2.x = 17;
 	bValue.Vector2Int.x = 18;
@@ -173,7 +174,7 @@ void TestEncode()
 	bValue.Map26[key].SetBean(new demo::Module1::BSimple());
 	bValue.Dynamic27.SetBean(new demo::Module1::BSimple());
 	bValue.Key28.S = 28;
-	bValue.Key28.Assign(demo::Module1::Key(28));
+	bValue.Key28.Assign(demo::Module1::Key(28, "abc"));
 	bValue.Array29.push_back(29);
 	bValue.LongList.push_back(30);
 	bValue.Encode(bb);

@@ -90,8 +90,7 @@ namespace Zeze
 				Zeze::ByteBuffer bb(1024);
 				bb.WriteInt4(ModuleId);
 				bb.WriteInt4(ProtocolId);
-				int outstate;
-				bb.BeginWriteWithSize4(outstate);
+				int outstate = bb.BeginWriteWithSize4();
 				bb.WriteBool(isRequest);
 				bb.WriteLong(sid);
 				bb.WriteLong(resultCode);
@@ -110,8 +109,7 @@ namespace Zeze
 				Zeze::ByteBuffer bb(1024);
 				bb.WriteInt4(ModuleId);
 				bb.WriteInt4(ProtocolId);
-				int outstate;
-				bb.BeginWriteWithSize4(outstate);
+				int outstate = bb.BeginWriteWithSize4();
 				bb.WriteLong(resultCode);
 				Lua.GetField(-1, "Argument");
 				EncodeBean(bb, pit->second.ArgumentBeanTypeId);
