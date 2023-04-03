@@ -107,7 +107,7 @@ public class MasterDatabase {
 				sbRaft.append("    <node Host=\"");
 				sbRaft.append(e.getValue().getDbh2RaftAcceptorName());
 				sbRaft.append("\" Port=\"");
-				var portId = master.nextBucketPortId();
+				var portId = master.nextBucketPortId(e.getValue().getDbh2RaftAcceptorName());
 				sbRaft.append(portId);
 				sbRaft.append("\"/>\n");
 				raftNames.add(e.getValue().getDbh2RaftAcceptorName() + ":" + portId);

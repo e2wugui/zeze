@@ -1,6 +1,7 @@
 package Zeze.Dbh2.Master;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -10,24 +11,38 @@ import Zeze.Builtin.Dbh2.Master.CreateTable;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.LocateBucket;
 import Zeze.Builtin.Dbh2.Master.Register;
+import Zeze.Dbh2.Bucket;
 import Zeze.Net.AsyncSocket;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 
 public class Master extends AbstractMaster {
+	public static final String MasterDbName = "__master__";
+
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
 	private final String home;
 
 	// todo 可用Dbh2Manager的数据结构。
 	private final HashMap<AsyncSocket, BRegister.Data> managers = new HashMap<>();
-	private final AtomicInteger atomicBucketPortId = new AtomicInteger(10000);
+	private RocksDB masterDb;
 
-	public Master(String home) {
+	public Master(String home) throws RocksDBException {
 		this.home = home;
+
+		var masterDbFile = new File(home, MasterDbName);
+		masterDbFile.mkdirs();
+		masterDb = RocksDB.open(masterDbFile.toString());
+
 		var dbs = new File(home).listFiles();
 		if (null != dbs) {
 			for (var db : dbs) {
 				if (!db.isDirectory())
 					continue;
+				if (db.getName().equals(MasterDbName)) {
+					continue;
+				}
 				databases.computeIfAbsent(db.getName(), (dbName) -> new MasterDatabase(this, dbName));
 			}
 		}
@@ -41,10 +56,21 @@ public class Master extends AbstractMaster {
 		for (var db : databases.values())
 			db.close();
 		databases.clear();
+		masterDb.close();
 	}
 
-	public int nextBucketPortId() {
-		return atomicBucketPortId.incrementAndGet();
+	public synchronized int nextBucketPortId(String acceptorName) throws RocksDBException {
+		var seed = 0;
+		var seedKey = acceptorName.getBytes(StandardCharsets.UTF_8);
+		var seedValue = masterDb.get(Bucket.getDefaultReadOptions(), seedKey);
+		if (null != seedValue) {
+			seed = ByteBuffer.Wrap(seedValue).ReadInt();
+		}
+		seed ++;
+		var bb = ByteBuffer.Allocate();
+		bb.WriteInt(seed);
+		masterDb.put(Bucket.getDefaultWriteOptions(), seedKey, 0, seedKey.length, bb.Bytes, bb.ReadIndex, bb.size());
+		return seed;
 	}
 
 	public HashMap<AsyncSocket, BRegister.Data> choiceManagers() {

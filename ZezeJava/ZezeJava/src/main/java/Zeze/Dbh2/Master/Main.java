@@ -2,12 +2,13 @@ package Zeze.Dbh2.Master;
 
 import Zeze.Config;
 import Zeze.Util.ShutdownHook;
+import org.rocksdb.RocksDBException;
 
 public class Main {
 	private final MasterService service;
 	private final Master master;
 
-	public Main() {
+	public Main() throws RocksDBException {
 		var config = Config.load();
 		service = new MasterService(config);
 		master = new Master("master");
