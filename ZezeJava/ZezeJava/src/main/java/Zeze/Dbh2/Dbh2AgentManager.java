@@ -70,6 +70,12 @@ public class Dbh2AgentManager {
 		return isNew;
 	}
 
+	public void dumpAgents() {
+		System.out.println("dump agents ...");
+		for (var it = agents.keys().asIterator(); it.hasNext(); )
+			System.out.println(it.next());
+	}
+
 	// todo Database.Table中缓存MasterTableDaTa，减少map查找。
 	//  难点是信息发生了变更需要刷新Table中缓存的数据。
 	public Dbh2Agent open(
@@ -97,6 +103,7 @@ public class Dbh2AgentManager {
 	public synchronized void reload(
 			MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName) {
+		//System.out.println("reload ..." + tableName);
 		putBuckets(masterAgent.getBuckets(databaseName, tableName), masterName, databaseName, tableName);
 	}
 

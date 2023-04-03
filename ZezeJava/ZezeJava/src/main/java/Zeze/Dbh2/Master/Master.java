@@ -60,7 +60,7 @@ public class Master extends AbstractMaster {
 	}
 
 	public synchronized int nextBucketPortId(String acceptorName) throws RocksDBException {
-		var seed = 0;
+		var seed = 10000;
 		var seedKey = acceptorName.getBytes(StandardCharsets.UTF_8);
 		var seedValue = masterDb.get(Bucket.getDefaultReadOptions(), seedKey);
 		if (null != seedValue) {

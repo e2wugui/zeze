@@ -65,6 +65,8 @@ public class Dbh2FullTest {
 				var keyEnd = keyStart + count;
 				futures.add(startBench(keyStart, keyEnd, database, tables.get(t % tables.size()), value));
 			}
+			Thread.sleep(2000);
+			Dbh2AgentManager.getInstance().dumpAgents();
 			for (var future : futures)
 				future.get();
 			b.report("Bench Dbh2 Full Transaction", count * threads);
