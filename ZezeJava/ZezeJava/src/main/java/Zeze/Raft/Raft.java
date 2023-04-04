@@ -335,7 +335,7 @@ public final class Raft {
 			logger.info("Raft {} ShutdownHook end", getName());
 		});
 
-		timerTask = Task.scheduleUnsafe(10, this::onTimer);
+		timerTask = Task.scheduleUnsafe(20, 20, this::onTimer);
 	}
 
 	private long processAppendEntries(AppendEntries r) throws Exception {
@@ -502,7 +502,7 @@ public final class Raft {
 			}
 		} finally {
 			unlock();
-			timerTask = Task.scheduleUnsafe(10, this::onTimer);
+			//timerTask = Task.scheduleUnsafe(10, this::onTimer);
 		}
 	}
 

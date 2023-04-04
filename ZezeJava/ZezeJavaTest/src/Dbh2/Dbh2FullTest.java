@@ -39,6 +39,7 @@ public class Dbh2FullTest {
 	@Test
 	public void testBench() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
+		Zeze.Net.Selectors.getInstance().add(3);
 
 		var master = new Zeze.Dbh2.Master.Main();
 		master.start();
