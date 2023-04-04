@@ -41,11 +41,11 @@ public class Dbh2FullTest {
 		Task.tryInitThreadPool(null, null, null);
 		Zeze.Net.Selectors.getInstance().add(7);
 
-		var master = new Zeze.Dbh2.Master.Main();
+		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		master.start();
 		var managers = new ArrayList<Dbh2Manager>();
 		for (int i = 0; i < 3; ++i)
-			managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i));
+			managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
 		for (var manager : managers)
 			manager.start();
 
@@ -88,13 +88,13 @@ public class Dbh2FullTest {
 	public void testFull() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
 
-		var master = new Zeze.Dbh2.Master.Main();
+		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		Database database = null;
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
-				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i));
+				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
 			for (var manager : managers)
 				manager.start();
 

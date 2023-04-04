@@ -9,8 +9,8 @@ public class Main {
 	private final MasterService service;
 	private final Master master;
 
-	public Main() throws RocksDBException {
-		var config = Config.load();
+	public Main(String configXml) throws RocksDBException {
+		var config = Config.load(configXml);
 		service = new MasterService(config);
 		master = new Master("master");
 	}
@@ -32,7 +32,7 @@ public class Main {
 	public static void main(String[] args) throws Exception {
 		Task.tryInitThreadPool(null, null, null);
 
-		var main = new Main();
+		var main = new Main(args[0]);
 		main.start();
 
 		synchronized (Thread.currentThread()) {

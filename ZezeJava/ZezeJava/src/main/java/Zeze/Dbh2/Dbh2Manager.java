@@ -82,9 +82,9 @@ public class Dbh2Manager {
 		}
 	}
 
-	public Dbh2Manager(String home) {
+	public Dbh2Manager(String home, String configXml) {
 		this.home = home;
-		var config = Config.load();
+		var config = Config.load(configXml);
 		masterAgent = new MasterAgent(config, this::ProcessCreateBucketRequest, new Service(config));
 	}
 
@@ -128,7 +128,7 @@ public class Dbh2Manager {
 		Task.tryInitThreadPool(null, null, null);
 		Zeze.Net.Selectors.getInstance().add(Runtime.getRuntime().availableProcessors() - 1);
 
-		var manager = new Dbh2Manager(args[0]);
+		var manager = new Dbh2Manager(args[0], args[1]);
 		manager.start();
 		synchronized (Thread.currentThread()) {
 			Thread.currentThread().wait();
