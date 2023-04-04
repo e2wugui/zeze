@@ -17,6 +17,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
+using Zeze.Net;
 
 namespace Draft
 {
@@ -29,8 +30,41 @@ namespace Draft
     }
     public class Program
     {
+        public static void Test2()
+        {
+            var so = new AsyncSocket(new Service("connector"), "127.0.0.1", 9999);
+            so.SetOutputSecurityCodec(new byte[]{1}, 1);
+            var r = new Random(1234);
+            var s = new byte[1024 * 1024 * 2];
+            for (;;)
+            {
+                for (int i = 0; i < s.Length; i++)
+                    s[i] = (byte)r.Next(16);
+                Console.WriteLine(so.Send(s));
+                Thread.Sleep(1000);
+            }
+        }
+        
+        public static void Test1()
+        {
+            var bc = new BufferCodec();
+            var c = new Compress(new Encrypt(bc, new byte[1] { 1 }));
+            var r = new Random(1234);
+            var s = new byte[1024 * 1024 * 2];
+            for (int i = 0; i < s.Length; i++)
+                s[i] = (byte)r.Next(16);
+            c.update(s, 0, s.Length);
+            c.flush();
+        
+            File.WriteAllBytes("test0.bin", s);
+            File.WriteAllBytes("test1.bin", bc.Buffer.Copy());
+            Console.WriteLine("OK");
+        
+        }
         public static void Main(string[] args)
         {
+            Test2();
+            
             Console.WriteLine(Tx<int, Program>.x);
             Console.WriteLine(Tx<int, A>.x);
         }
