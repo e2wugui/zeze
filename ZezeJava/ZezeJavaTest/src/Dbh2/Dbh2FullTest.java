@@ -57,8 +57,10 @@ public class Dbh2FullTest {
 		var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
 
 		try {
+			Thread.sleep(5000); // leader 重启apply可能时间较长，给它5秒。
+
 			var count = 1_0000;
-			var threads = 16;
+			var threads = 32;
 			var futures = new ArrayList<Future<?>>();
 			var b = new Zeze.Util.Benchmark();
 			for (var t = 0; t < threads; ++t) {
