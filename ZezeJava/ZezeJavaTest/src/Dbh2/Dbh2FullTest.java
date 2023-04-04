@@ -39,7 +39,7 @@ public class Dbh2FullTest {
 	@Test
 	public void testBench() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
-		Zeze.Net.Selectors.getInstance().add(3);
+		Zeze.Net.Selectors.getInstance().add(7);
 
 		var master = new Zeze.Dbh2.Master.Main();
 		master.start();
@@ -51,14 +51,14 @@ public class Dbh2FullTest {
 
 		var database = newDatabase("dbh2TestDb");
 		var tables = new ArrayList<AbstractKVTable>();
-		for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < 8; ++i)
 			tables.add((Database.AbstractKVTable)database.openTable("table" + i));
 
 		var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
 
 		try {
 			var count = 1_0000;
-			var threads = 4;
+			var threads = 16;
 			var futures = new ArrayList<Future<?>>();
 			var b = new Zeze.Util.Benchmark();
 			for (var t = 0; t < threads; ++t) {
