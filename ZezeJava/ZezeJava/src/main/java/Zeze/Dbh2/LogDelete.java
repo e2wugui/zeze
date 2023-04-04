@@ -17,7 +17,7 @@ public class LogDelete extends Log {
 	}
 
 	public LogDelete(Delete req) {
-		super(req);
+		super(null);
 		if (null != req)
 			this.argument = req.Argument;
 	}

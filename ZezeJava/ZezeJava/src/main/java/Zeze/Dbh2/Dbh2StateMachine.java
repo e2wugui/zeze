@@ -86,8 +86,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void commitTransaction(BCommitTransactionArgument.Data argument) {
 		try {
-			var transaction = transactionMap.get(argument.getTransactionId());
-			transaction.commit();
+			var transaction = transactionMap.remove(argument.getTransactionId());
+			if (null != transaction)
+				transaction.commit();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -96,8 +97,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void rollbackTransaction(BRollbackTransactionArgument.Data argument) {
 		try {
-			var transaction = transactionMap.get(argument.getTransactionId());
-			transaction.rollback();
+			var transaction = transactionMap.remove(argument.getTransactionId());
+			if (null != transaction)
+				transaction.rollback();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();

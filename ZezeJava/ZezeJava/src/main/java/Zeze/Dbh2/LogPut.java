@@ -17,7 +17,7 @@ public class LogPut extends Log {
 	}
 
 	public LogPut(Put req) {
-		super(req);
+		super(null);
 		if (null != req)
 			argument = req.Argument;
 	}

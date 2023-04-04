@@ -17,7 +17,7 @@ public class LogCommitTransaction extends Log {
 	}
 
 	public LogCommitTransaction(CommitTransaction req) {
-		super(req);
+		super(null);
 		if (null != req)
 			this.argument = req.Argument;
 	}

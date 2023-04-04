@@ -17,7 +17,7 @@ public class LogRollbackTransaction extends Log {
 	}
 
 	public LogRollbackTransaction(RollbackTransaction req) {
-		super(req);
+		super(null);
 		if (null != req)
 			argument = req.Argument;
 	}
