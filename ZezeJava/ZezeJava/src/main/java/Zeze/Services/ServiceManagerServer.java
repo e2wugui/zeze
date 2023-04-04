@@ -777,7 +777,7 @@ public final class ServiceManagerServer implements Closeable {
 		public AutoKey(String name, ServiceManagerServer sms) {
 			this.sms = sms;
 			byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
-			var bb = ByteBuffer.Allocate(ByteBuffer.writeUIntSize(nameBytes.length) + nameBytes.length);
+			var bb = ByteBuffer.Allocate(ByteBuffer.WriteUIntSize(nameBytes.length) + nameBytes.length);
 			bb.WriteBytes(nameBytes);
 			key = bb.Bytes;
 			try {
@@ -802,7 +802,7 @@ public final class ServiceManagerServer implements Closeable {
 
 			long current = this.current + count;
 			this.current = current;
-			var bb = ByteBuffer.Allocate(ByteBuffer.writeLongSize(current));
+			var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(current));
 			bb.WriteLong(current);
 			try {
 				sms.autoKeysDb.put(DatabaseRocksDb.getSyncWriteOptions(), key, bb.Bytes);

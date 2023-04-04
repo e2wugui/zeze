@@ -31,7 +31,7 @@ namespace UnitTest.Zeze.Serialize
             Assert.AreEqual("02-01-02", bb.ToString());
             Assert.AreEqual(BitConverter.ToString(v), BitConverter.ToString(bb.ReadBytes()));
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
- 
+
             var str = new string(new[]{(char)(0xd800 + 0x155), (char)(0xdc00 + 0x2aa),
                 (char)(0xd800 + 0x2aa), (char)(0xdc00 + 0x155)}); // surrogate chars
             var b0 = Encoding.UTF8.GetBytes(str);
@@ -281,6 +281,7 @@ namespace UnitTest.Zeze.Serialize
             int y = bb.ReadInt();
             Assert.AreEqual(x, y);
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+            Assert.AreEqual(bb.WriteIndex, ByteBuffer.WriteLongSize(x));
         }
 
         static void TestLong(long x)
@@ -290,15 +291,21 @@ namespace UnitTest.Zeze.Serialize
             long y = bb.ReadLong();
             Assert.AreEqual(x, y);
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+            Assert.AreEqual(bb.WriteIndex, ByteBuffer.WriteLongSize(x));
         }
 
         static void TestUInt(int x)
         {
             ByteBuffer bb = ByteBuffer.Allocate();
+            ByteBuffer bb1 = ByteBuffer.Allocate();
             bb.WriteUInt(x);
+            bb1.WriteULong((uint)x);
+            Assert.IsTrue(bb.Equals(bb1));
             int y = bb.ReadUInt();
             Assert.AreEqual(x, y);
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+            Assert.AreEqual(bb.WriteIndex, ByteBuffer.WriteUIntSize(x));
+            Assert.AreEqual(bb.WriteIndex, ByteBuffer.WriteULongSize((uint)x));
         }
 
         static void TestULong(long x)
@@ -308,6 +315,40 @@ namespace UnitTest.Zeze.Serialize
             long y = bb.ReadULong();
             Assert.AreEqual(x, y);
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+            Assert.AreEqual(bb.WriteIndex, ByteBuffer.WriteULongSize(x));
+        }
+
+        private static void testSkipUInt(int x)
+        {
+            ByteBuffer bb = ByteBuffer.Allocate();
+            bb.WriteUInt(x);
+            bb.ReadUInt();
+            int ri = bb.ReadIndex;
+            bb.ReadIndex = 0;
+            bb.SkipUInt();
+            Assert.AreEqual(ri, bb.ReadIndex);
+        }
+
+        private static void testSkipLong(long x)
+        {
+            ByteBuffer bb = ByteBuffer.Allocate();
+            bb.WriteLong(x);
+            bb.ReadLong();
+            int ri = bb.ReadIndex;
+            bb.ReadIndex = 0;
+            bb.SkipLong();
+            Assert.AreEqual(ri, bb.ReadIndex);
+        }
+
+        private static void testSkipULong(long x)
+        {
+            ByteBuffer bb = ByteBuffer.Allocate();
+            bb.WriteULong(x);
+            bb.ReadULong();
+            int ri = bb.ReadIndex;
+            bb.ReadIndex = 0;
+            bb.SkipULong();
+            Assert.AreEqual(ri, bb.ReadIndex);
         }
 
         static void TestAll(long x)
@@ -316,16 +357,22 @@ namespace UnitTest.Zeze.Serialize
             TestInt((int)-x);
             TestUInt((int)x);
             TestUInt((int)-x);
+            testSkipUInt((int)x);
+            testSkipUInt((int)-x);
             TestLong(x);
             TestLong(-x);
             TestULong(x);
             TestULong(-x);
+            testSkipLong(x);
+            testSkipLong(-x);
+            testSkipULong(x);
+            testSkipULong(-x);
         }
 
         [TestMethod]
         public void TestInteger()
         {
-            for (int i = 0; i <= 64; ++i)
+            for (int i = 0; i <= 64; i++)
             {
                 TestAll(1L << i);
                 TestAll((1L << i) - 1);
@@ -335,6 +382,9 @@ namespace UnitTest.Zeze.Serialize
                     TestAll(((1L << i) - 1) & (long)0xaaaa_aaaa_aaaa_aaaaL);
                 }
             }
+            var r = new Random();
+            for (int i = 0; i < 10000; i++)
+                TestAll(r.NextInt64());
             TestInt(int.MinValue);
             TestInt(int.MaxValue);
             TestLong(int.MinValue);
@@ -347,6 +397,16 @@ namespace UnitTest.Zeze.Serialize
             TestULong(int.MaxValue);
             TestULong(long.MinValue);
             TestULong(long.MaxValue);
+            testSkipLong(int.MinValue);
+            testSkipLong(int.MaxValue);
+            testSkipLong(long.MinValue);
+            testSkipLong(long.MaxValue);
+            testSkipUInt(int.MinValue);
+            testSkipUInt(int.MaxValue);
+            testSkipULong(int.MinValue);
+            testSkipULong(int.MaxValue);
+            testSkipULong(long.MinValue);
+            testSkipULong(long.MaxValue);
         }
 
         [TestMethod]

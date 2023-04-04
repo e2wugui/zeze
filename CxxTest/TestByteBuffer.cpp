@@ -248,10 +248,10 @@ static void testAll(int64_t x)
 
 static int64_t nextLong()
 {
-	int r0 = rand();
-	int r1 = rand();
-	int r2 = rand();
-	return ((int64_t)r2 << 22) ^ ((int64_t)r1 << 11) ^ (int64_t)r0;
+	int64_t r = 0;
+	for (int i = 0; i < 64; i += 15)
+		r = (r << 15) + rand();
+	return r;
 }
 
 static void testInteger()

@@ -329,7 +329,8 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return v;
 	}
 
-	public static int writeUIntSize(int v) {
+	// v看成无符号数时,与WriteULongSize的结果一致,即相当于WriteULongSize(v & 0xffff_ffffL);
+	public static int WriteUIntSize(int v) {
 		long u = v & 0xffff_ffffL;
 		//@formatter:off
 		if (u <        0x80) return 1;
@@ -340,6 +341,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		//@formatter:on
 	}
 
+	// v看成无符号数时,与WriteULong的结果一致,即相当于WriteULong(v & 0xffff_ffffL);
 	public void WriteUInt(int v) {
 		long u = v & 0xffff_ffffL;
 		if (u < 0x80) { // 0xxx xxxx
@@ -377,33 +379,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 
 	// 返回值应被看作是无符号32位整数
 	public int ReadUInt() {
-		ensureRead(1);
-		byte[] bytes = Bytes;
-		int readIndex = ReadIndex;
-		int v = bytes[readIndex] & 0xff;
-		if (v < 0x80)
-			ReadIndex = readIndex + 1;
-		else if (v < 0xc0) {
-			ensureRead(2);
-			v = ((v & 0x3f) << 8)
-					+ (bytes[readIndex + 1] & 0xff);
-			ReadIndex = readIndex + 2;
-		} else if (v < 0xe0) {
-			ensureRead(3);
-			v = ((v & 0x1f) << 16)
-					+ ((bytes[readIndex + 1] & 0xff) << 8)
-					+ (bytes[readIndex + 2] & 0xff);
-			ReadIndex = readIndex + 3;
-		} else if (v < 0xf0) {
-			ensureRead(4);
-			v = (int)intBeHandler.get(bytes, readIndex) & 0xfff_ffff;
-			ReadIndex = readIndex + 4;
-		} else {
-			ensureRead(5);
-			v = (int)intBeHandler.get(bytes, readIndex + 1);
-			ReadIndex = readIndex + 5;
-		}
-		return v;
+		return (int)ReadULong();
 	}
 
 	public void SkipUInt() {
@@ -427,7 +403,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
-	public static int writeLongSize(long v) {
+	public static int WriteLongSize(long v) {
 		//@formatter:off
 		if (v >= 0) {
 			if (v <                0x40 ) return 1;
@@ -578,7 +554,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
-	public static int writeULongSize(long v) {
+	public static int WriteULongSize(long v) {
 		//@formatter:off
 		if (v <                 0x80 ) return v >= 0 ? 1 : 9;
 		if (v <               0x4000 ) return 2;
@@ -691,7 +667,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			case 14:                            return ReadLong7BE();
 			default:                            return ReadLong8BE();
 			}
-			//@formatter:on
+		//@formatter:on
 		}
 	}
 
@@ -711,7 +687,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			case 14:                            Skip(7); return;
 			default:                            Skip(8);
 			}
-			//@formatter:on
+		//@formatter:on
 		}
 	}
 
@@ -857,7 +833,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			default: long r = ReadLong7BE(); return r >= 0x80_0000_0000_0000L ?
 					0xff00_0000_0000_0000L + r : ((r + 0x80_0000_0000_0000L) << 8) + ReadLong1();
 			}
-			//@formatter:on
+		//@formatter:on
 		}
 	}
 
@@ -886,7 +862,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			case 1:                         Skip(6); return;
 			default: ensureRead(1); Skip(7 - (Bytes[ReadIndex++] >>> 31));
 			}
-			//@formatter:on
+		//@formatter:on
 		}
 	}
 

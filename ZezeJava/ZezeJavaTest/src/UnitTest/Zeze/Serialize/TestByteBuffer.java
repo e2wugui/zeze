@@ -264,6 +264,7 @@ public class TestByteBuffer extends TestCase {
 		int y = bb.ReadInt();
 		assertEquals(x, y);
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
+		assertEquals(bb.WriteIndex, ByteBuffer.WriteLongSize(x));
 	}
 
 	private static void testLong(long x) {
@@ -272,14 +273,20 @@ public class TestByteBuffer extends TestCase {
 		long y = bb.ReadLong();
 		assertEquals(x, y);
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
+		assertEquals(bb.WriteIndex, ByteBuffer.WriteLongSize(x));
 	}
 
 	private static void testUInt(int x) {
 		ByteBuffer bb = ByteBuffer.Allocate();
+		ByteBuffer bb1 = ByteBuffer.Allocate();
 		bb.WriteUInt(x);
+		bb1.WriteULong(x & 0xffff_ffffL);
+		assertTrue(bb.equals(bb1));
 		int y = bb.ReadUInt();
 		assertEquals(x, y);
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
+		assertEquals(bb.WriteIndex, ByteBuffer.WriteUIntSize(x));
+		assertEquals(bb.WriteIndex, ByteBuffer.WriteULongSize(x & 0xffff_ffffL));
 	}
 
 	private static void testULong(long x) {
@@ -288,6 +295,7 @@ public class TestByteBuffer extends TestCase {
 		long y = bb.ReadULong();
 		assertEquals(x, y);
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
+		assertEquals(bb.WriteIndex, ByteBuffer.WriteULongSize(x));
 	}
 
 	private static void testSkipUInt(int x) {

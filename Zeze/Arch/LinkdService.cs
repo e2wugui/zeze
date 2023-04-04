@@ -36,7 +36,7 @@ namespace Zeze.Arch
             if (isRequest)
             {
                 if ((compress & FamilyClass.BitResultCode) != 0)
-                    bb.ReadLong();
+                    bb.SkipLong();
                 var sessionId = bb.ReadLong();
                 // argument 忽略，必须要解析出来，也不知道是什么。
 

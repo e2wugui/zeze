@@ -92,9 +92,9 @@ public class AutoKey {
 		if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
 			throw new IllegalStateException("AutoKey.nextByteBuffer: serverId(" + serverId + ") < 0");
 		var seed = nextSeed();
-		int size = ByteBuffer.writeULongSize(seed);
+		int size = ByteBuffer.WriteULongSize(seed);
 		if (serverId > 0)
-			size += ByteBuffer.writeUIntSize(serverId);
+			size += ByteBuffer.WriteUIntSize(serverId);
 		var bb = ByteBuffer.Allocate(size);
 		if (serverId > 0) // 如果serverId==0,写1个字节0不会影响ToLongBE的结果,但会多占1个字节,所以只在serverId>0时写ByteBuffer
 			bb.WriteUInt(serverId);
