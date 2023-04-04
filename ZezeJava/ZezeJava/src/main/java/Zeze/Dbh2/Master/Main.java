@@ -2,6 +2,7 @@ package Zeze.Dbh2.Master;
 
 import Zeze.Config;
 import Zeze.Util.ShutdownHook;
+import Zeze.Util.Task;
 import org.rocksdb.RocksDBException;
 
 public class Main {
@@ -29,6 +30,8 @@ public class Main {
 	}
 
 	public static void main(String[] args) throws Exception {
+		Task.tryInitThreadPool(null, null, null);
+
 		var main = new Main();
 		main.start();
 

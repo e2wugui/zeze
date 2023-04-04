@@ -13,6 +13,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.OutObject;
 import Zeze.Util.ShutdownHook;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -124,7 +125,10 @@ public class Dbh2Manager {
 	}
 
 	public static void main(String [] args) throws Exception {
-		var manager = new Dbh2Manager("manager");
+		Task.tryInitThreadPool(null, null, null);
+		Zeze.Net.Selectors.getInstance().add(Runtime.getRuntime().availableProcessors() - 1);
+
+		var manager = new Dbh2Manager(args[0]);
 		manager.start();
 		synchronized (Thread.currentThread()) {
 			Thread.currentThread().wait();

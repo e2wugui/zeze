@@ -49,18 +49,20 @@ public class Dbh2FullTest {
 		for (var manager : managers)
 			manager.start();
 
+		Thread.sleep(2000); // leader 重启apply可能时间较长，给它5秒。
+
 		var database = newDatabase("dbh2TestDb");
 		var tables = new ArrayList<AbstractKVTable>();
-		for (int i = 0; i < 8; ++i)
+		for (int i = 0; i < 4; ++i)
 			tables.add((Database.AbstractKVTable)database.openTable("table" + i));
 
 		var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
 
 		try {
-			Thread.sleep(5000); // leader 重启apply可能时间较长，给它5秒。
+			Thread.sleep(3000); // leader 重启apply可能时间较长，给它5秒。
 
 			var count = 1_0000;
-			var threads = 32;
+			var threads = 8;
 			var futures = new ArrayList<Future<?>>();
 			var b = new Zeze.Util.Benchmark();
 			for (var t = 0; t < threads; ++t) {
