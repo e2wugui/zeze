@@ -57,7 +57,7 @@ public class Client {
 			futures.add(Task.runUnsafe(() -> {
 				var key = Zeze.Util.Random.getInstance().nextLong();
 				while (running.value) {
-					++key;
+					key = (key + 1) % 200_00000; // 限制所有key的范围，防止服务器占用太大硬盘。
 					try (var trans = database.beginTransaction()) {
 						var keyBb = ByteBuffer.Allocate();
 						keyBb.WriteLong(key);
