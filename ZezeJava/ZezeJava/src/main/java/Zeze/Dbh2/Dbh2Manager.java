@@ -6,6 +6,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
@@ -16,6 +18,7 @@ import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 
 /**
@@ -23,12 +26,23 @@ import org.apache.logging.log4j.core.LoggerContext;
  * 一个管理器包含多个桶。
  */
 public class Dbh2Manager {
+	private static final Logger logger = LogManager.getLogger(Dbh2Manager.class);
+
 	private final MasterAgent masterAgent;
 	static {
 		System.setProperty("log4j.configurationFile", "log4j2.xml");
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}
+
+	// 性能统计。
+	public final AtomicLong counterGet = new AtomicLong();
+	public final AtomicLong counterPut = new AtomicLong();
+	public final AtomicLong counterDelete = new AtomicLong();
+	public final AtomicLong counterBeginTransaction = new AtomicLong();
+	public final AtomicLong counterCommitTransaction = new AtomicLong();
+	public final AtomicLong counterRollbackTransaction = new AtomicLong();
+	private Future<?> reportTimer;
 
 	private final String home;
 
@@ -57,7 +71,7 @@ public class Dbh2Manager {
 				r.Argument.getRaftConfig(),
 				StandardOpenOption.CREATE);
 		dbh2s.computeIfAbsent(r.Argument.getRaftConfig(),
-				(key) -> new Dbh2(raftConfig.getName(), raftConfig, null, false));
+				(key) -> new Dbh2(this, raftConfig.getName(), raftConfig, null, false));
 		r.SendResult();
 		return 0;
 	}
@@ -111,17 +125,69 @@ public class Dbh2Manager {
 			var raftConfig = RaftConfig.loadFromString(raftStr);
 			raftConfig.setDbHome(raftXml.getParent()); // todo 这个路径对吗？ 需要调试一下。
 			dbh2s.computeIfAbsent(raftStr,
-					(key) -> new Dbh2(raftConfig.getName(), raftConfig, null, false));
+					(key) -> new Dbh2(this, raftConfig.getName(), raftConfig, null, false));
 		}
 		masterAgent.startAndWaitConnectionReady();
+		reportTimer = Task.scheduleUnsafe(2000, 2000, this::reportLoad);
 	}
+
 
 	public void stop() throws Exception {
 		ShutdownHook.remove(this);
+		if (null != reportTimer)
+			reportTimer.cancel(true);
 		masterAgent.stop();
 		for (var dbh2 : dbh2s.values())
 			dbh2.close();
 		dbh2s.clear();
+	}
+
+	private long lastGet;
+	private long lastPut;
+	private long lastDelete;
+	private long lastBeginTransaction;
+	private long lastCommitTransaction;
+	private long lastRollbackTransaction;
+	private long lastReportTime = System.currentTimeMillis();
+
+	private void reportLoad() {
+		var now = System.currentTimeMillis();
+		var elapse = (now - lastReportTime) / 1000.0f;
+		lastReportTime = now;
+
+		var nowGet = counterGet.get();
+		var nowPut = counterPut.get();
+		var nowDelete = counterDelete.get();
+		var nowBeginTransaction = counterBeginTransaction.get();
+		var nowCommitTransaction = counterCommitTransaction.get();
+		var nowRollbackTransaction = counterRollbackTransaction.get();
+
+		var diffGet = nowGet - lastGet;
+		var diffPut = nowPut - lastPut;
+		var diffDelete = nowDelete - lastDelete;
+		var diffBeginTransaction = nowBeginTransaction - lastBeginTransaction;
+		var diffCommitTransaction = nowCommitTransaction - lastCommitTransaction;
+		var diffRollbackTransaction = nowRollbackTransaction - lastRollbackTransaction;
+
+		if (diffGet > 0 || diffPut > 0 || diffDelete > 0
+			|| diffBeginTransaction > 0 || diffCommitTransaction > 0 || diffRollbackTransaction > 0) {
+			lastGet = nowGet;
+			lastPut = nowPut;
+			lastDelete = nowDelete;
+			lastBeginTransaction = nowBeginTransaction;
+			lastCommitTransaction = nowCommitTransaction;
+			lastRollbackTransaction = nowRollbackTransaction;
+
+			var sb = new StringBuilder();
+			sb.append(" get=").append(diffGet / elapse);
+			sb.append(" put=").append(diffPut / elapse);
+			sb.append(" delete=").append(diffDelete / elapse);
+			sb.append(" begin=").append(diffBeginTransaction / elapse);
+			sb.append(" commit=").append(diffCommitTransaction / elapse);
+			sb.append(" rollback=").append(diffRollbackTransaction / elapse);
+
+			logger.info(sb.toString());
+		}
 	}
 
 	public static void main(String [] args) throws Exception {

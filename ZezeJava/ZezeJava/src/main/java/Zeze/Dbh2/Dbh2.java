@@ -19,12 +19,18 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     private final Dbh2Config config = new Dbh2Config();
     private final Raft raft;
     private final Dbh2StateMachine stateMachine;
+    private final Dbh2Manager manager;
 
     public Raft getRaft() {
         return raft;
     }
+    public Dbh2Manager getManager() {
+        return manager;
+    }
 
-    public Dbh2(String raftName, RaftConfig raftConf, Config config, boolean writeOptionSync) {
+    public Dbh2(Dbh2Manager manager, String raftName, RaftConfig raftConf, Config config, boolean writeOptionSync) {
+        this.manager = manager;
+
         if (config == null)
             config = new Config().addCustomize(this.config).loadAndParse();
 
@@ -56,6 +62,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessBeginTransactionRequest(Zeze.Builtin.Dbh2.BeginTransaction r) {
+        if (null != manager)
+            manager.counterBeginTransaction.incrementAndGet();
+
         // 错误检查，防止访问桶错乱。
         if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
             return errorCode(eBucketMissmatch);
@@ -73,6 +82,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessCommitTransactionRequest(CommitTransaction r) throws Exception {
+        if (null != manager)
+            manager.counterCommitTransaction.incrementAndGet();
+
         var log = new LogCommitTransaction(r);
         raft.appendLog(log, r.Result); // result is empty
         r.SendResult();
@@ -81,6 +93,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessRollbackTransactionRequest(RollbackTransaction r) throws Exception {
+        if (null != manager)
+            manager.counterRollbackTransaction.incrementAndGet();
+
         var log = new LogRollbackTransaction(r);
         raft.appendLog(log, r.Result); // result is empty
         r.SendResult();
@@ -97,6 +112,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessDeleteRequest(Zeze.Builtin.Dbh2.Delete r) {
+        if (null != manager)
+            manager.counterDelete.incrementAndGet();
+
         if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
             return errorCode(eBucketMissmatch);
 
@@ -108,6 +126,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws RocksDBException {
+        if (null != manager)
+            manager.counterGet.incrementAndGet();
+
         // 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
         var bucket = stateMachine.getBucket();
         if (!bucket.inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
@@ -129,6 +150,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessPutRequest(Zeze.Builtin.Dbh2.Put r) {
+        if (null != manager)
+            manager.counterPut.incrementAndGet();
+
         if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
             return errorCode(eBucketMissmatch);
 

@@ -161,6 +161,6 @@ public class Dbh2Test {
 
 	private static Zeze.Dbh2.Dbh2 start(String config, String raftName) throws Exception {
 		var raftConfig = RaftConfig.loadFromString(config);
-		return new Zeze.Dbh2.Dbh2(raftName, raftConfig, null, false);
+		return new Zeze.Dbh2.Dbh2(null, raftName, raftConfig, null, false);
 	}
 }
