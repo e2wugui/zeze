@@ -6,8 +6,10 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 
@@ -52,6 +54,7 @@ public class BenchClient {
 		var value = ByteBuffer.Wrap(Zeze.Util.Random.nextBinary(valueSize));
 		var running = new OutObject<>(true);
 		var futures = new ArrayList<Future<?>>();
+		var transCounter = new AtomicLong();
 		for (int i = 0; i < threadNumber; ++i) {
 			futures.add(Task.runUnsafe(() -> {
 				var key = Zeze.Util.Random.getInstance().nextLong();
@@ -63,10 +66,23 @@ public class BenchClient {
 						var table = tables.get(Zeze.Util.Random.getInstance().nextInt(tables.size()));
 						table.replace(trans, keyBb, value);
 						trans.commit();
+						transCounter.incrementAndGet();
 					}
 				}
 			}, "table thread"));
 		}
+		var lastReportTime = new OutLong(System.currentTimeMillis());
+		var lastReportCount = new OutLong();
+		var reportTimer = Task.scheduleUnsafe(2000, 2000, () -> {
+			var now = System.currentTimeMillis();
+			var elapse = now - lastReportTime.value;
+			lastReportTime.value = now;
+			var countNow = transCounter.get();
+			var diff = countNow - lastReportCount.value;
+			lastReportCount.value = countNow;
+
+			System.out.println("transaction/s: " + diff / (elapse / 1000.0f));
+		});
 
 		var inputReader = new BufferedReader(new InputStreamReader(System.in));
 		while (true) {
@@ -74,7 +90,7 @@ public class BenchClient {
 			if (line.equals("exit"))
 				break;
 		}
-
+		reportTimer.cancel(true);
 		running.value = false;
 		for (var future : futures)
 			future.get();
