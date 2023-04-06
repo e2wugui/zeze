@@ -2,7 +2,7 @@ package Zeze.Dbh2.Master;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.Master.BRegister;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
@@ -22,12 +22,26 @@ public class Master extends AbstractMaster {
 
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
 	private final String home;
+	private final MasterService service;
 
 	// todo 可用Dbh2Manager的数据结构。
-	private final HashMap<AsyncSocket, BRegister.Data> managers = new HashMap<>();
+	public static class Manager {
+		public AsyncSocket socket;
+		public BRegister.Data data;
+
+		public Manager(AsyncSocket socket, BRegister.Data data) {
+			this.socket = socket;
+			this.data = data;
+		}
+	}
+
+	private final ArrayList<Manager> managers = new ArrayList<>();
+	private int choiceIndex;
+
 	private RocksDB masterDb;
 
-	public Master(String home) throws RocksDBException {
+	public Master(MasterService service, String home) throws RocksDBException {
+		this.service = service;
 		this.home = home;
 
 		var masterDbFile = new File(home, MasterDbName);
@@ -72,16 +86,24 @@ public class Master extends AbstractMaster {
 		return seed;
 	}
 
-	public HashMap<AsyncSocket, BRegister.Data> choiceManagers() {
-		// todo 选择规则。。。大大的。
-		var result = new HashMap<AsyncSocket, BRegister.Data>();
-		int i = 0;
-		for (var e : managers.entrySet()) {
-			result.put(e.getKey(), e.getValue());
-			if (++i == 3)
-				break;
+	public ArrayList<Manager> choiceManagers() {
+		var result = new ArrayList<Manager>();
+		if (managers.size() < 3)
+			return result;
+
+		var last = choiceIndex;
+		var c = 0;
+		while (c < 3) {
+			var m = managers.get(choiceIndex);
+			result.add(m);
+			++c;
+
+			// 先推进到下一个，并且判断是否绕回到开始的索引。
+			choiceIndex = (choiceIndex + 1) % managers.size();
+			if (choiceIndex == last)
+				break; // 绕回来了。
 		}
-		return result;
+		return result; // size仍然可能小于3
 	}
 
 	@Override
@@ -101,7 +123,7 @@ public class Master extends AbstractMaster {
 		if (null == table)
 			return errorCode(eTableNotFound);
 		r.Result = table;
-		if (outIsNew.value)
+		if (Boolean.TRUE.equals(outIsNew.value))
 			r.setResultCode(errorCode(eTableIsNew));
 		r.SendResult();
 		return 0;
@@ -134,8 +156,8 @@ public class Master extends AbstractMaster {
 	}
 
 	@Override
-	protected long ProcessRegisterRequest(Register r) throws Exception {
-		managers.put(r.getSender(), r.Argument);
+	protected synchronized long ProcessRegisterRequest(Register r) throws Exception {
+		managers.add(new Manager(r.getSender(), r.Argument));
 		r.SendResult();
 		return 0;
 	}

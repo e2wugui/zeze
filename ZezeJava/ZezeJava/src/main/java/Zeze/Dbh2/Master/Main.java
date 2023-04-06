@@ -12,7 +12,7 @@ public class Main {
 	public Main(String configXml) throws RocksDBException {
 		var config = Config.load(configXml);
 		service = new MasterService(config);
-		master = new Master("master");
+		master = new Master(service,"master");
 	}
 
 	public void start() throws Exception {

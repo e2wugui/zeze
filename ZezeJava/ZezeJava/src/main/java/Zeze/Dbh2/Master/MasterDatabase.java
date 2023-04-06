@@ -103,14 +103,14 @@ public class MasterDatabase {
 			sbRaft.append("\n");
 			sbRaft.append("<raft Name=\"RaftName\">\n");
 			var raftNames = new ArrayList<String>(managers.size());
-			for (var e : managers.entrySet()) {
+			for (var e : managers) {
 				sbRaft.append("    <node Host=\"");
-				sbRaft.append(e.getValue().getDbh2RaftAcceptorName());
+				sbRaft.append(e.data.getDbh2RaftAcceptorName());
 				sbRaft.append("\" Port=\"");
-				var portId = master.nextBucketPortId(e.getValue().getDbh2RaftAcceptorName());
+				var portId = master.nextBucketPortId(e.data.getDbh2RaftAcceptorName());
 				sbRaft.append(portId);
 				sbRaft.append("\"/>\n");
-				raftNames.add(e.getValue().getDbh2RaftAcceptorName() + ":" + portId);
+				raftNames.add(e.data.getDbh2RaftAcceptorName() + ":" + portId);
 			}
 			sbRaft.append("</raft>");
 			bucket.setRaftConfig(sbRaft.toString());
@@ -118,13 +118,13 @@ public class MasterDatabase {
 
 			var futures = new ArrayList<TaskCompletionSource<?>>();
 			var i = 0;
-			for (var e : managers.entrySet()) {
+			for (var e : managers) {
 				var r = new CreateBucket();
 				r.Argument.assign(bucket);
 				// 用于manager服务器的需要replace RaftName.
 				r.Argument.setRaftConfig(r.Argument.getRaftConfig().replaceAll("RaftName", raftNames.get(i++)));
 				//System.out.println(r.Argument.getRaftConfig());
-				futures.add(r.SendForWait(e.getKey()));
+				futures.add(r.SendForWait(e.socket));
 			}
 			for (var future : futures)
 				future.await();
