@@ -680,7 +680,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				// 1 检测 buffer 是否满，2 剩余数据 Compact，3 需要的话，释放buffer内存。
 				int remain = codecBuf.size();
 				if (remain <= 0) {
-					if (codecBuf.Capacity() <= 32 * 1024)
+					if (codecBuf.capacity() <= 32 * 1024)
 						codecBuf.Reset();
 					else
 						codecBuf.FreeInternalBuffer(); // 只在过大的缓冲区时释放内部bytes[], 避免频繁分配

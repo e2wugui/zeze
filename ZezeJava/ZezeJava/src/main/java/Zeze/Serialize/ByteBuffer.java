@@ -253,7 +253,9 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteIndex = 0;
 	}
 
-	protected static int toPower2(int needSize) {
+	protected int toPower2(int needSize) {
+		if ((needSize & 0xffff_ffffL) > 0x4000_0000)
+			throw new IllegalStateException("invalid needSize=" + needSize + " at " + ReadIndex + '/' + WriteIndex);
 		int size = 16;
 		while (size < needSize)
 			size <<= 1;
@@ -262,7 +264,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 
 	public void EnsureWrite(int size) {
 		int newSize = WriteIndex + size;
-		if (newSize > Capacity()) {
+		if (newSize > capacity()) {
 			byte[] newBytes = new byte[toPower2(newSize)];
 			System.arraycopy(Bytes, ReadIndex, newBytes, 0, WriteIndex -= ReadIndex);
 			ReadIndex = 0;
@@ -959,6 +961,12 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 
 	public @NotNull String ReadString() {
 		int n = ReadUInt();
+		if (n == 0)
+			return "";
+		if (n < 0) {
+			throw new IllegalStateException("invalid length for ReadString: " + n
+					+ " at " + ReadIndex + '/' + WriteIndex);
+		}
 		ensureRead(n);
 		String v = new String(Bytes, ReadIndex, n, StandardCharsets.UTF_8);
 		ReadIndex += n;
@@ -988,6 +996,10 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		int n = ReadUInt();
 		if (n == 0)
 			return Empty;
+		if (n < 0) {
+			throw new IllegalStateException("invalid length for ReadBytes: " + n
+					+ " at " + ReadIndex + '/' + WriteIndex);
+		}
 		ensureRead(n);
 		byte[] v = new byte[n];
 		System.arraycopy(Bytes, ReadIndex, v, 0, n);
@@ -1001,11 +1013,21 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	}
 
 	public void SkipBytes() {
-		Skip(ReadUInt());
+		int n = ReadUInt();
+		if (n < 0) {
+			throw new IllegalStateException("invalid length for SkipBytes: " + n
+					+ " at " + ReadIndex + '/' + WriteIndex);
+		}
+		Skip(n);
 	}
 
 	public void SkipBytes4() {
-		Skip(ReadInt4());
+		int n = ReadInt4();
+		if (n < 0) {
+			throw new IllegalStateException("invalid length for SkipBytes4: " + n
+					+ " at " + ReadIndex + '/' + WriteIndex);
+		}
+		Skip(n);
 	}
 
 	/**
@@ -1013,6 +1035,10 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	 */
 	public @NotNull ByteBuffer ReadByteBuffer() {
 		int n = ReadUInt();
+		if (n < 0) {
+			throw new IllegalStateException("invalid length for ReadByteBuffer: " + n
+					+ " at " + ReadIndex + '/' + WriteIndex);
+		}
 		ensureRead(n);
 		int cur = ReadIndex;
 		ReadIndex = cur + n;
