@@ -9,10 +9,18 @@ public class Main {
 	private final MasterService service;
 	private final Master master;
 
+	public Master getMaster() {
+		return master;
+	}
+
+	public MasterService getService() {
+		return service;
+	}
+
 	public Main(String configXml) throws RocksDBException {
 		var config = Config.load(configXml);
-		service = new MasterService(config);
-		master = new Master(service,"master");
+		service = new MasterService(this, config);
+		master = new Master(this,"master");
 	}
 
 	public void start() throws Exception {

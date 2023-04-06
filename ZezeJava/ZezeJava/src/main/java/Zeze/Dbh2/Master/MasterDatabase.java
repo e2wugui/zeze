@@ -97,6 +97,8 @@ public class MasterDatabase {
 			// allocate first bucket service and setup table
 
 			var managers = master.choiceManagers();
+			if (managers.size() < 3)
+				return null;
 			// 构建raft-config，基本的用于客户端，用于manager服务器的需要replace RaftName.
 			var sbRaft = new StringBuilder();
 			sbRaft.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");

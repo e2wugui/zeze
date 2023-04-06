@@ -22,7 +22,6 @@ public class Master extends AbstractMaster {
 
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
 	private final String home;
-	private final MasterService service;
 
 	// todo 可用Dbh2Manager的数据结构。
 	public static class Manager {
@@ -39,9 +38,10 @@ public class Master extends AbstractMaster {
 	private int choiceIndex;
 
 	private RocksDB masterDb;
+	public Main main;
 
-	public Master(MasterService service, String home) throws RocksDBException {
-		this.service = service;
+	public Master(Main main, String home) throws RocksDBException {
+		this.main = main;
 		this.home = home;
 
 		var masterDbFile = new File(home, MasterDbName);
@@ -86,7 +86,17 @@ public class Master extends AbstractMaster {
 		return seed;
 	}
 
-	public ArrayList<Manager> choiceManagers() {
+	public synchronized void tryRemoveManager(AsyncSocket manager) {
+		for (int i = 0; i < managers.size(); ++i) {
+			var e = managers.get(i);
+			if (e.socket == manager) {
+				managers.remove(i);
+				break;
+			}
+		}
+	}
+
+	public synchronized ArrayList<Manager> choiceManagers() {
 		var result = new ArrayList<Manager>();
 		if (managers.size() < 3)
 			return result;

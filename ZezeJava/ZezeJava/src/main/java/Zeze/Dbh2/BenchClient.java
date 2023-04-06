@@ -32,6 +32,7 @@ public class BenchClient {
 		var valueSize = 12;
 		var masterIp = "127.0.0.1";
 		var masterPort = 30000;
+		var tableAccess = 2;
 
 		for (int i = 0; i < args.length; ++i) {
 			if (args[i].equals("-tableNumber"))
@@ -44,8 +45,11 @@ public class BenchClient {
 				masterIp = args[++i];
 			else if (args[i].equals("-masterPort"))
 				masterPort = Integer.parseInt(args[++i]);
+			else if (args[i].equals("-tableAccess"))
+				tableAccess = Integer.parseInt(args[++i]);
 		}
 
+		var tableAccessFinal = tableAccess;
 		var database = newDatabase(masterIp, masterPort, "dbh2TestDb");
 		var tables = new ArrayList<Zeze.Transaction.Database.AbstractKVTable>();
 		for (int i = 0; i < tableNumber; ++i)
@@ -57,14 +61,16 @@ public class BenchClient {
 		var transCounter = new AtomicLong();
 		for (int i = 0; i < threadNumber; ++i) {
 			futures.add(Task.runUnsafe(() -> {
-				var key = Zeze.Util.Random.getInstance().nextLong();
 				while (running.value) {
-					key = (key + 1) % 200_00000; // 限制所有key的范围，防止服务器占用太大硬盘。
+					// 限制所有key的范围，防止服务器占用太大硬盘。
 					try (var trans = database.beginTransaction()) {
-						var keyBb = ByteBuffer.Allocate();
-						keyBb.WriteLong(key);
-						var table = tables.get(Zeze.Util.Random.getInstance().nextInt(tables.size()));
-						table.replace(trans, keyBb, value);
+						for (int a = 0; a < tableAccessFinal; ++a) {
+							var key = (Zeze.Util.Random.getInstance().nextLong() + 1) % 1000_00000;
+							var keyBb = ByteBuffer.Allocate();
+							keyBb.WriteLong(key);
+							var table = tables.get(Zeze.Util.Random.getInstance().nextInt(tables.size()));
+							table.replace(trans, keyBb, value);
+						}
 						trans.commit();
 						transCounter.incrementAndGet();
 					}
