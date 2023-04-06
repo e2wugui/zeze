@@ -127,8 +127,10 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	}
 
 	public void Replace(int writeIndex, byte @NotNull [] src, int offset, int len) {
-		if (writeIndex < ReadIndex || writeIndex + len > WriteIndex)
-			throw new IllegalStateException();
+		if (writeIndex < ReadIndex || writeIndex + len > WriteIndex) {
+			throw new IllegalStateException("Replace writeIndex=" + writeIndex + ", len=" + len
+					+ " at " + ReadIndex + '/' + WriteIndex);
+		}
 		System.arraycopy(src, offset, Bytes, writeIndex, len);
 	}
 
@@ -141,8 +143,10 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 
 	public void EndWriteWithSize4(int saveSize) {
 		int oldWriteIndex = ReadIndex + saveSize;
-		if (oldWriteIndex + 4 > WriteIndex)
-			throw new IllegalStateException();
+		if (oldWriteIndex + 4 > WriteIndex) {
+			throw new IllegalStateException("EndWriteWithSize4 saveSize=" + saveSize
+					+ " at " + ReadIndex + '/' + WriteIndex);
+		}
 		intLeHandler.set(Bytes, oldWriteIndex, WriteIndex - oldWriteIndex - 4);
 	}
 
@@ -1185,7 +1189,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return false;
 		}
-		throw new IllegalStateException("can not ReadBool for type=" + type);
+		throw new IllegalStateException("can not ReadBool for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public byte ReadByte(int tag) {
@@ -1200,7 +1204,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return 0;
 		}
-		throw new IllegalStateException("can not ReadByte for type=" + type);
+		throw new IllegalStateException("can not ReadByte for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public short ReadShort(int tag) {
@@ -1215,7 +1219,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return 0;
 		}
-		throw new IllegalStateException("can not ReadShort for type=" + type);
+		throw new IllegalStateException("can not ReadShort for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public int ReadInt(int tag) {
@@ -1230,7 +1234,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return 0;
 		}
-		throw new IllegalStateException("can not ReadInt for type=" + type);
+		throw new IllegalStateException("can not ReadInt for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public long ReadLong(int tag) {
@@ -1245,7 +1249,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return 0;
 		}
-		throw new IllegalStateException("can not ReadLong for type=" + type);
+		throw new IllegalStateException("can not ReadLong for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public float ReadFloat(int tag) {
@@ -1260,7 +1264,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return 0;
 		}
-		throw new IllegalStateException("can not ReadFloat for type=" + type);
+		throw new IllegalStateException("can not ReadFloat for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public double ReadDouble(int tag) {
@@ -1275,7 +1279,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return 0;
 		}
-		throw new IllegalStateException("can not ReadDouble for type=" + type);
+		throw new IllegalStateException("can not ReadDouble for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public @NotNull Binary ReadBinary(int tag) {
@@ -1286,7 +1290,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return Binary.Empty;
 		}
-		throw new IllegalStateException("can not ReadBinary for type=" + type);
+		throw new IllegalStateException("can not ReadBinary for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public @NotNull String ReadString(int tag) {
@@ -1297,7 +1301,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return "";
 		}
-		throw new IllegalStateException("can not ReadString for type=" + type);
+		throw new IllegalStateException("can not ReadString for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public @NotNull Vector2 ReadVector2() {
@@ -1376,7 +1380,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return Vector2.ZERO;
 		}
-		throw new IllegalStateException("can not ReadVector2 for type=" + type);
+		throw new IllegalStateException("can not ReadVector2 for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public @NotNull Vector3 ReadVector3(int tag) {
@@ -1401,7 +1405,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return Vector3.ZERO;
 		}
-		throw new IllegalStateException("can not ReadVector3 for type=" + type);
+		throw new IllegalStateException("can not ReadVector3 for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public @NotNull Vector4 ReadVector4(int tag) {
@@ -1426,7 +1430,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return Vector4.ZERO;
 		}
-		throw new IllegalStateException("can not ReadVector4 for type=" + type);
+		throw new IllegalStateException("can not ReadVector4 for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public @NotNull Quaternion ReadQuaternion(int tag) {
@@ -1451,7 +1455,8 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return Quaternion.ZERO;
 		}
-		throw new IllegalStateException("can not ReadQuaternion for type=" + type);
+		throw new IllegalStateException("can not ReadQuaternion for type=" + type
+				+ " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public @NotNull Vector2Int ReadVector2Int(int tag) {
@@ -1476,7 +1481,8 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return Vector2Int.ZERO;
 		}
-		throw new IllegalStateException("can not ReadVector2Int for type=" + type);
+		throw new IllegalStateException("can not ReadVector2Int for type=" + type
+				+ " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public @NotNull Vector3Int ReadVector3Int(int tag) {
@@ -1501,7 +1507,8 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return Vector3Int.ZERO;
 		}
-		throw new IllegalStateException("can not ReadVector3Int for type=" + type);
+		throw new IllegalStateException("can not ReadVector3Int for type=" + type
+				+ " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public <T extends Serializable> @NotNull T ReadBean(@NotNull T bean, int tag) {
@@ -1513,8 +1520,10 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			bean.decode(this);
 		} else if (IGNORE_INCOMPATIBLE_FIELD)
 			SkipUnknownField(tag);
-		else
-			throw new IllegalStateException("can not ReadBean(" + bean.getClass().getName() + ") for type=" + type);
+		else {
+			throw new IllegalStateException("can not ReadBean(" + bean.getClass().getName() + ") for type=" + type
+					+ " at " + ReadIndex + '/' + WriteIndex);
+		}
 		return bean;
 	}
 
@@ -1532,7 +1541,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return dynBean;
 		}
-		throw new IllegalStateException("can not ReadDynamic for type=" + type);
+		throw new IllegalStateException("can not ReadDynamic for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public @NotNull DynamicBeanData ReadDynamic(@NotNull DynamicBeanData dynBean, int tag) {
@@ -1552,14 +1561,16 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(tag);
 			return dynBean;
 		}
-		throw new IllegalStateException("can not ReadDynamic for type=" + type);
+		throw new IllegalStateException("can not ReadDynamic for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
 	public void SkipUnknownFieldOrThrow(int tag, @NotNull String curType) {
 		if (IGNORE_INCOMPATIBLE_FIELD)
 			SkipUnknownField(tag);
-		else
-			throw new IllegalStateException("can not read " + curType + " for type=" + (tag & TAG_MASK));
+		else {
+			throw new IllegalStateException("can not read " + curType + " for type=" + (tag & TAG_MASK)
+					+ " at " + ReadIndex + '/' + WriteIndex);
+		}
 	}
 
 	public void SkipUnknownField(int tag, int count) {
@@ -1628,7 +1639,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			}
 			return;
 		default:
-			throw new IllegalStateException("SkipUnknownField: type=" + type);
+			throw new IllegalStateException("SkipUnknownField: type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 		}
 	}
 
