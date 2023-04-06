@@ -38,6 +38,8 @@ public class Dbh2Manager {
 	// 性能统计。
 	public final AtomicLong counterGet = new AtomicLong();
 	public final AtomicLong counterPut = new AtomicLong();
+	public final AtomicLong sizeGet = new AtomicLong();
+	public final AtomicLong sizePut = new AtomicLong();
 	public final AtomicLong counterDelete = new AtomicLong();
 	public final AtomicLong counterBeginTransaction = new AtomicLong();
 	public final AtomicLong counterCommitTransaction = new AtomicLong();
@@ -144,6 +146,8 @@ public class Dbh2Manager {
 
 	private long lastGet;
 	private long lastPut;
+	private long lastSizeGet;
+	private long lastSizePut;
 	private long lastDelete;
 	private long lastBeginTransaction;
 	private long lastCommitTransaction;
@@ -157,6 +161,8 @@ public class Dbh2Manager {
 
 		var nowGet = counterGet.get();
 		var nowPut = counterPut.get();
+		var nowSizeGet = sizeGet.get();
+		var nowSizePut = sizePut.get();
 		var nowDelete = counterDelete.get();
 		var nowBeginTransaction = counterBeginTransaction.get();
 		var nowCommitTransaction = counterCommitTransaction.get();
@@ -164,15 +170,19 @@ public class Dbh2Manager {
 
 		var diffGet = nowGet - lastGet;
 		var diffPut = nowPut - lastPut;
+		var diffSizeGet = nowSizeGet - lastSizeGet;
+		var diffSizePut = nowSizePut - lastSizePut;
 		var diffDelete = nowDelete - lastDelete;
 		var diffBeginTransaction = nowBeginTransaction - lastBeginTransaction;
 		var diffCommitTransaction = nowCommitTransaction - lastCommitTransaction;
 		var diffRollbackTransaction = nowRollbackTransaction - lastRollbackTransaction;
 
-		if (diffGet > 0 || diffPut > 0 || diffDelete > 0
+		if (diffGet > 0 || diffPut > 0 || diffDelete > 0 || diffSizeGet > 0 || diffSizePut > 0
 			|| diffBeginTransaction > 0 || diffCommitTransaction > 0 || diffRollbackTransaction > 0) {
 			lastGet = nowGet;
 			lastPut = nowPut;
+			lastSizeGet = nowSizeGet;
+			lastSizePut = nowSizePut;
 			lastDelete = nowDelete;
 			lastBeginTransaction = nowBeginTransaction;
 			lastCommitTransaction = nowCommitTransaction;
@@ -181,6 +191,8 @@ public class Dbh2Manager {
 			var sb = new StringBuilder();
 			sb.append(" get=").append(diffGet / elapse);
 			sb.append(" put=").append(diffPut / elapse);
+			sb.append(" getSize=").append(diffSizeGet / elapse);
+			sb.append(" putSize=").append(diffSizePut / elapse);
 			sb.append(" delete=").append(diffDelete / elapse);
 			sb.append(" begin=").append(diffBeginTransaction / elapse);
 			sb.append(" commit=").append(diffCommitTransaction / elapse);

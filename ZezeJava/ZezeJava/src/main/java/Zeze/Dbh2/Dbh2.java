@@ -136,8 +136,11 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
         var value = bucket.get(r.Argument.getKey());
         if (null == value)
             r.Result.setNull(true);
-        else
+        else {
             r.Result.setValue(new Binary(value));
+            if (null != manager)
+                manager.sizeGet.addAndGet(value.length);
+        }
         r.SendResult();
         return 0;
     }
@@ -150,9 +153,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessPutRequest(Zeze.Builtin.Dbh2.Put r) {
-        if (null != manager)
+        if (null != manager) {
             manager.counterPut.incrementAndGet();
-
+            manager.sizePut.addAndGet(r.Argument.getValue().size());
+        }
         if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
             return errorCode(eBucketMissmatch);
 
