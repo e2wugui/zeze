@@ -1,4 +1,4 @@
-package Zeze.Dbh2.Bench;
+package Zeze.Dbh2;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -7,12 +7,11 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import Zeze.Config;
-import Zeze.Dbh2.Database;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 
-public class Client {
+public class BenchClient {
 
 	private static Database newDatabase(String masterIp, int masterPort, String dbName) {
 		var databaseConf = new Config.DatabaseConf();
