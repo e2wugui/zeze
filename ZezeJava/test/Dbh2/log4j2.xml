@@ -35,8 +35,8 @@
 
 		<Root level="INFO" includeLocation="false">
 			<!--
-			<AppenderRef ref="Console" />
 			-->
+			<AppenderRef ref="Console" />
 			<AppenderRef ref="AllLog" />
 			<AppenderRef ref="ErrorLog" />
 		</Root>
