@@ -4,17 +4,29 @@ namespace Zeze.Serialize
 {
     public class Vector2 : Serializable
     {
-        public float x { get; internal set; }
-        public float y { get; internal set; }
+        public float x { get; private set; }
+        public float y { get; private set; }
 
         public Vector2()
-        { 
+        {
         }
 
         public Vector2(float x, float y)
         {
             this.x = x;
             this.y = y;
+        }
+
+        public Vector2(Vector2 v)
+        {
+            x = v.x;
+            y = v.y;
+        }
+
+        public Vector2(Vector2Int v)
+        {
+            x = v.x;
+            y = v.y;
         }
 
         public virtual void Decode(ByteBuffer bb)
@@ -51,21 +63,33 @@ namespace Zeze.Serialize
 
     public class Vector3 : Vector2
     {
-        public float z { get; internal set; }
+        public float z { get; private set; }
 
         public Vector3()
         {
         }
 
-        public Vector3(Vector2 v2)
-            : base(v2.x, v2.y)
+        public Vector3(float x, float y, float z) : base(x, y)
+        {
+            this.z = z;
+        }
+
+        public Vector3(Vector2 v) : base(v)
         {
         }
 
-        public Vector3(float x, float y, float z)
-            : base(x, y)
+        public Vector3(Vector3 v) : base(v)
         {
-            this.z = z;
+            z = v.z;
+        }
+
+        public Vector3(Vector2Int v) : base(v)
+        {
+        }
+
+        public Vector3(Vector3Int v) : base(v)
+        {
+            z = v.z;
         }
 
         public override void Decode(ByteBuffer bb)
@@ -101,27 +125,37 @@ namespace Zeze.Serialize
     }
 
     public class Vector4 : Vector3
-    { 
-        public float w { get; internal set; }
+    {
+        public float w { get; private set; }
 
         public Vector4()
         {
         }
 
-        public Vector4(Vector2 v2)
-            : base(v2)
-        {
-        }
-
-        public Vector4(Vector3 v3)
-            : base(v3.x, v3.y, v3.z)
-        {
-        }
-
-        public Vector4(float x, float y, float z, float w)
-            : base(x, y, z)
+        public Vector4(float x, float y, float z, float w) : base(x, y, z)
         {
             this.w = w;
+        }
+
+        public Vector4(Vector2 v) : base(v)
+        {
+        }
+
+        public Vector4(Vector3 v) : base(v)
+        {
+        }
+
+        public Vector4(Vector4 v) : base(v)
+        {
+            w = v.w;
+        }
+
+        public Vector4(Vector2Int v) : base(v)
+        {
+        }
+
+        public Vector4(Vector3Int v) : base(v)
+        {
         }
 
         public override void Decode(ByteBuffer bb)
@@ -159,43 +193,59 @@ namespace Zeze.Serialize
     public class Quaternion : Vector4
     {
         public Quaternion()
-        { 
-        }
-
-        public Quaternion(Vector2 v2)
-            : base(v2)
         {
         }
 
-        public Quaternion(Vector3 v3)
-            : base(v3)
+        public Quaternion(float x, float y, float z, float w) : base(x, y, z, w)
         {
         }
 
-        public Quaternion(Vector4 v4)
-            : base(v4.x, v4.y, v4.z, v4.w)
+        public Quaternion(Vector2 v) : base(v)
         {
         }
 
-        public Quaternion(float x, float y, float z, float w)
-            : base(x, y, z, w)
+        public Quaternion(Vector3 v) : base(v)
+        {
+        }
+
+        public Quaternion(Vector4 v) : base(v)
+        {
+        }
+
+        public Quaternion(Vector2Int v) : base(v)
+        {
+        }
+
+        public Quaternion(Vector3Int v) : base(v)
         {
         }
     }
 
     public class Vector2Int : Serializable
     {
-        public int x { get; internal set; }
-        public int y { get; internal set; }
+        public int x { get; private set; }
+        public int y { get; private set; }
 
         public Vector2Int()
-        { 
+        {
         }
 
         public Vector2Int(int x, int y)
         {
             this.x = x;
             this.y = y;
+        }
+
+        public Vector2Int(Vector2Int v)
+        {
+            x = v.x;
+            y = v.y;
+        }
+
+        public Vector2Int(Vector2 v)
+        {
+            x = (int)v.x;
+            y = (int)v.y;
         }
 
         public virtual void Decode(ByteBuffer bb)
@@ -232,21 +282,33 @@ namespace Zeze.Serialize
 
     public class Vector3Int : Vector2Int
     {
-        public int z { get; internal set; }
+        public int z { get; private set; }
 
         public Vector3Int()
-        { 
-        }
-        
-        public Vector3Int(Vector2Int v2)
-            : base (v2.x, v2.y)
         {
         }
 
-        public Vector3Int(int x, int y, int z)
-            : base(x, y)
+        public Vector3Int(int x, int y, int z) : base(x, y)
         {
             this.z = z;
+        }
+
+        public Vector3Int(Vector2Int v) : base(v)
+        {
+        }
+
+        public Vector3Int(Vector3Int v) : base(v)
+        {
+            z = v.z;
+        }
+
+        public Vector3Int(Vector2 v) : base(v)
+        {
+        }
+
+        public Vector3Int(Vector3 v) : base(v)
+        {
+            z = (int)v.z;
         }
 
         public override void Decode(ByteBuffer bb)

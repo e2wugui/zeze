@@ -282,6 +282,20 @@ namespace Zeze.Serialize
             return x;
         }
 
+        // v看成无符号数时,与WriteULongSize的结果一致,即相当于WriteULongSize((long)(uint)v);
+        public static int WriteUIntSize(int v)
+        {
+            long u = v & 0xffff_ffffL;
+            //@formatter:off
+            if (u <        0x80) return 1;
+            if (u <      0x4000) return 2;
+            if (u <   0x20_0000) return 3;
+            if (u < 0x1000_0000) return 4;
+            return 5;
+            //@formatter:on
+        }
+
+        // v看成无符号数时,与WriteULong的结果一致,即相当于WriteULong((long)(uint)v);
         public void WriteUInt(int x)
         {
             uint u = (uint)x;
@@ -334,48 +348,66 @@ namespace Zeze.Serialize
             }
         }
 
+        // 返回值应被看作是无符号32位整数
         public int ReadUInt()
         {
+            return (int)ReadULong();
+        }
+
+        public void SkipUInt()
+        {
             EnsureRead(1);
-            byte[] bytes = Bytes;
             int readIndex = ReadIndex;
-            int x = bytes[readIndex];
-            if (x < 0x80)
+            int v = Bytes[readIndex];
+            if (v < 0x80)
                 ReadIndex = readIndex + 1;
-            else if (x < 0xc0)
+            else if (v < 0xc0)
             {
                 EnsureRead(2);
-                x = ((x & 0x3f) << 8)
-                        + bytes[readIndex + 1];
                 ReadIndex = readIndex + 2;
             }
-            else if (x < 0xe0)
+            else if (v < 0xe0)
             {
                 EnsureRead(3);
-                x = ((x & 0x1f) << 16)
-                        + ((bytes[readIndex + 1]) << 8)
-                        + bytes[readIndex + 2];
                 ReadIndex = readIndex + 3;
             }
-            else if (x < 0xf0)
+            else if (v < 0xf0)
             {
                 EnsureRead(4);
-                x = ((x & 0xf) << 24)
-                        + ((bytes[readIndex + 1]) << 16)
-                        + ((bytes[readIndex + 2]) << 8)
-                        + bytes[readIndex + 3];
                 ReadIndex = readIndex + 4;
             }
             else
             {
                 EnsureRead(5);
-                x = (bytes[readIndex + 1] << 24)
-                        + ((bytes[readIndex + 2]) << 16)
-                        + ((bytes[readIndex + 3]) << 8)
-                        + bytes[readIndex + 4];
                 ReadIndex = readIndex + 5;
             }
-            return x;
+        }
+
+        public static int WriteLongSize(long v)
+        {
+            //@formatter:off
+            if (v >= 0)
+            {
+                if (v <                0x40 ) return 1;
+                if (v <              0x2000 ) return 2;
+                if (v <           0x10_0000 ) return 3;
+                if (v <          0x800_0000 ) return 4;
+                if (v <       0x4_0000_0000L) return 5;
+                if (v <     0x200_0000_0000L) return 6;
+                if (v <  0x1_0000_0000_0000L) return 7;
+                if (v < 0x80_0000_0000_0000L) return 8;
+                                              return 9;
+            }
+            if (v >= -               0x40 ) return 1;
+            if (v >= -             0x2000 ) return 2;
+            if (v >= -          0x10_0000 ) return 3;
+            if (v >= -         0x800_0000 ) return 4;
+            if (v >= -      0x4_0000_0000L) return 5;
+            if (v >= -    0x200_0000_0000L) return 6;
+            if (v >= - 0x1_0000_0000_0000L) return 7;
+            if (v >= -0x80_0000_0000_0000L) return 8;
+            return 9;
+            //@formatter:on
         }
 
         public void WriteLong(long x)
@@ -598,6 +630,21 @@ namespace Zeze.Serialize
             }
         }
 
+        public static int WriteULongSize(long v)
+        {
+            //@formatter:off
+            if (v <                 0x80 ) return v >= 0 ? 1 : 9;
+            if (v <               0x4000 ) return 2;
+            if (v <            0x20_0000 ) return 3;
+            if (v <          0x1000_0000 ) return 4;
+            if (v <        0x8_0000_0000L) return 5;
+            if (v <      0x400_0000_0000L) return 6;
+            if (v <   0x2_0000_0000_0000L) return 7;
+            if (v < 0x100_0000_0000_0000L) return 8;
+            return 9;
+            //@formatter:on
+        }
+
         public void WriteULong(long x)
         {
             ulong u = (ulong)x;
@@ -729,7 +776,30 @@ namespace Zeze.Serialize
                 case 14:                            return ReadLong7BE();
                 default:                            return ReadLong8BE();
                 }
-                //@formatter:on
+            //@formatter:on
+            }
+        }
+
+        public void SkipULong()
+        {
+            int b = ReadByte();
+            switch ((b >> 4) & 0xf)
+            {
+            //@formatter:off
+            case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: return;
+            case  8: case  9: case 10: case 11: Skip(1); return;
+            case 12: case 13:                   Skip(2); return;
+            case 14:                            Skip(3); return;
+            default:
+                switch (b & 0xf)
+                {
+                case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: Skip(4); return;
+                case  8: case  9: case 10: case 11: Skip(5); return;
+                case 12: case 13:                   Skip(6); return;
+                case 14:                            Skip(7); return;
+                default:                            Skip(8); return;
+                }
+            //@formatter:on
             }
         }
 
@@ -862,6 +932,39 @@ namespace Zeze.Serialize
             }
         }
 
+        public void SkipLong()
+        {
+            EnsureRead(1);
+            int b = Bytes[ReadIndex++];
+            switch ((b >> 3) & 0x1f)
+            {
+            //@formatter:off
+            case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
+            case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return;
+            case 0x08: case 0x09: case 0x0a: case 0x0b:
+            case 0x14: case 0x15: case 0x16: case 0x17: Skip(1); return;
+            case 0x0c: case 0x0d: case 0x12: case 0x13: Skip(2); return;
+            case 0x0e: case 0x11:                       Skip(3); return;
+            case 0x0f:
+                switch (b & 7)
+                {
+                case 0: case 1: case 2: case 3: Skip(4); return;
+                case 4: case 5:                 Skip(5); return;
+                case 6:                         Skip(6); return;
+                default: EnsureRead(1); Skip(6 + (Bytes[ReadIndex++] >> 7)); return;
+                }
+            default: // 0x10
+                switch (b & 7)
+                {
+                case 4: case 5: case 6: case 7: Skip(4); return;
+                case 2: case 3:                 Skip(5); return;
+                case 1:                         Skip(6); return;
+                default: EnsureRead(1); Skip(7 - (Bytes[ReadIndex++] >> 7)); return;
+                }
+            //@formatter:on
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteInt(int x)
         {
@@ -966,19 +1069,22 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SkipBytes()
+        public void Skip(int n)
         {
-            int n = ReadUInt();
             EnsureRead(n);
             ReadIndex += n;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SkipBytes()
+        {
+            Skip(ReadUInt());
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SkipBytes4()
         {
-            int n = ReadInt4();
-            EnsureRead(n);
-            ReadIndex += n;
+            Skip(ReadInt4());
         }
 
         /// <summary>
@@ -991,7 +1097,7 @@ namespace Zeze.Serialize
             int n = ReadUInt();
             EnsureRead(n);
             int cur = ReadIndex;
-            ReadIndex += n;
+            ReadIndex = cur + n;
             return Wrap(Bytes, cur, n);
         }
 
@@ -1206,9 +1312,9 @@ namespace Zeze.Serialize
             return deltaId < 0xf ? deltaId : 0xf + ReadUInt();
         }
 
-        public bool ReadBool(int type)
+        public bool ReadBool(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == INTEGER)
                 return ReadLong() != 0;
             if (type == FLOAT)
@@ -1217,15 +1323,15 @@ namespace Zeze.Serialize
                 return ReadDouble() != 0;
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return false;
             }
             throw new Exception("can not ReadBool for type=" + type);
         }
 
-        public byte ReadByte(int type)
+        public byte ReadByte(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == INTEGER)
                 return (byte)ReadLong();
             if (type == FLOAT)
@@ -1234,15 +1340,15 @@ namespace Zeze.Serialize
                 return (byte)ReadDouble();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return 0;
             }
             throw new Exception("can not ReadByte for type=" + type);
         }
 
-        public short ReadShort(int type)
+        public short ReadShort(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == INTEGER)
                 return (short)ReadLong();
             if (type == FLOAT)
@@ -1251,15 +1357,15 @@ namespace Zeze.Serialize
                 return (short)ReadDouble();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return 0;
             }
             throw new Exception("can not ReadShort for type=" + type);
         }
 
-        public int ReadInt(int type)
+        public int ReadInt(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == INTEGER)
                 return (int)ReadLong();
             if (type == FLOAT)
@@ -1268,15 +1374,15 @@ namespace Zeze.Serialize
                 return (int)ReadDouble();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return 0;
             }
             throw new Exception("can not ReadInt for type=" + type);
         }
 
-        public long ReadLong(int type)
+        public long ReadLong(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == INTEGER)
                 return ReadLong();
             if (type == FLOAT)
@@ -1285,15 +1391,15 @@ namespace Zeze.Serialize
                 return (long)ReadDouble();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return 0;
             }
             throw new Exception("can not ReadLong for type=" + type);
         }
 
-        public float ReadFloat(int type)
+        public float ReadFloat(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == FLOAT)
                 return ReadFloat();
             if (type == DOUBLE)
@@ -1302,15 +1408,15 @@ namespace Zeze.Serialize
                 return ReadLong();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return 0;
             }
             throw new Exception("can not ReadFloat for type=" + type);
         }
 
-        public double ReadDouble(int type)
+        public double ReadDouble(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == DOUBLE)
                 return ReadDouble();
             if (type == FLOAT)
@@ -1319,33 +1425,33 @@ namespace Zeze.Serialize
                 return ReadLong();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return 0;
             }
             throw new Exception("can not ReadDouble for type=" + type);
         }
 
-        public Binary ReadBinary(int type)
+        public Binary ReadBinary(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == BYTES)
                 return ReadBinary();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return Binary.Empty;
             }
             throw new Exception("can not ReadBinary for type=" + type);
         }
 
-        public string ReadString(int type)
+        public string ReadString(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == BYTES)
                 return ReadString();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return "";
             }
             throw new Exception("can not ReadString for type=" + type);
@@ -1394,128 +1500,192 @@ namespace Zeze.Serialize
             return r;
         }
 
-        public Vector2 ReadVector2(int type)
+        public Vector2 ReadVector2(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == VECTOR2)
                 return ReadVector2();
             if (type == VECTOR3)
                 return ReadVector3();
             if (type == VECTOR4)
                 return ReadVector4();
+            if (type == VECTOR2INT)
+                return new Vector2(ReadVector2Int());
+            if (type == VECTOR3INT)
+                return new Vector3(ReadVector3Int());
+            if (type == FLOAT)
+                return new Vector2(ReadFloat(), 0);
+            if (type == DOUBLE)
+                return new Vector2((float)ReadDouble(), 0);
+            if (type == INTEGER)
+                return new Vector2(ReadLong(), 0);
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return new Vector2();
             }
             throw new Exception("can not ReadVector2 for type=" + type);
         }
 
-        public Vector3 ReadVector3(int type)
+        public Vector3 ReadVector3(int tag)
         {
-            type &= TAG_MASK;
-            if (type == VECTOR2)
-                return new Vector3(ReadVector2());
+            int type = tag & TAG_MASK;
             if (type == VECTOR3)
                 return ReadVector3();
+            if (type == VECTOR2)
+                return new Vector3(ReadVector2());
             if (type == VECTOR4)
                 return ReadVector4();
+            if (type == VECTOR3INT)
+                return new Vector3(ReadVector3Int());
+            if (type == VECTOR2INT)
+                return new Vector3(ReadVector2Int());
+            if (type == FLOAT)
+                return new Vector3(ReadFloat(), 0, 0);
+            if (type == DOUBLE)
+                return new Vector3((float)ReadDouble(), 0, 0);
+            if (type == INTEGER)
+                return new Vector3(ReadLong(), 0, 0);
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return new Vector3();
             }
             throw new Exception("can not ReadVector3 for type=" + type);
         }
 
-        public Vector4 ReadVector4(int type)
+        public Vector4 ReadVector4(int tag)
         {
-            type &= TAG_MASK;
-            if (type == VECTOR2)
-                return new Vector4(ReadVector2());
-            if (type == VECTOR3)
-                return new Vector4(ReadVector3());
+            int type = tag & TAG_MASK;
             if (type == VECTOR4)
                 return ReadVector4();
+            if (type == VECTOR3)
+                return new Vector4(ReadVector3());
+            if (type == VECTOR2)
+                return new Vector4(ReadVector2());
+            if (type == VECTOR3INT)
+                return new Vector4(ReadVector3Int());
+            if (type == VECTOR2INT)
+                return new Vector4(ReadVector2Int());
+            if (type == FLOAT)
+                return new Vector4(ReadFloat(), 0, 0, 0);
+            if (type == DOUBLE)
+                return new Vector4((float)ReadDouble(), 0, 0, 0);
+            if (type == INTEGER)
+                return new Vector4(ReadLong(), 0, 0, 0);
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return new Vector4();
             }
             throw new Exception("can not ReadVector4 for type=" + type);
         }
 
-        public Quaternion ReadQuaternion(int type)
+        public Quaternion ReadQuaternion(int tag)
         {
-            type &= TAG_MASK;
-            if (type == VECTOR2)
-                return new Quaternion(ReadVector2());
-            if (type == VECTOR3)
-                return new Quaternion(ReadVector3());
+            int type = tag & TAG_MASK;
             if (type == VECTOR4)
                 return new Quaternion(ReadVector4());
+            if (type == VECTOR3)
+                return new Quaternion(ReadVector3());
+            if (type == VECTOR2)
+                return new Quaternion(ReadVector2());
+            if (type == VECTOR3INT)
+                return new Quaternion(ReadVector3Int());
+            if (type == VECTOR2INT)
+                return new Quaternion(ReadVector2Int());
+            if (type == FLOAT)
+                return new Quaternion(ReadFloat(), 0, 0, 0);
+            if (type == DOUBLE)
+                return new Quaternion((float)ReadDouble(), 0, 0, 0);
+            if (type == INTEGER)
+                return new Quaternion(ReadLong(), 0, 0, 0);
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return new Quaternion();
             }
             throw new Exception("can not ReadQuaternion for type=" + type);
         }
 
-        public Vector2Int ReadVector2Int(int type)
+        public Vector2Int ReadVector2Int(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == VECTOR2INT)
                 return ReadVector2Int();
             if (type == VECTOR3INT)
                 return ReadVector3Int();
+            if (type == VECTOR2)
+                return new Vector2Int(ReadVector2());
+            if (type == VECTOR3)
+                return new Vector3Int(ReadVector3());
+            if (type == VECTOR4)
+                return new Vector3Int(ReadVector4());
+            if (type == INTEGER)
+                return new Vector2Int(ReadInt(), 0);
+            if (type == FLOAT)
+                return new Vector2Int((int)ReadFloat(), 0);
+            if (type == DOUBLE)
+                return new Vector2Int((int)ReadDouble(), 0);
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return new Vector2Int();
             }
             throw new Exception("can not ReadVector2Int for type=" + type);
         }
 
-        public Vector3Int ReadVector3Int(int type)
+        public Vector3Int ReadVector3Int(int tag)
         {
-            type &= TAG_MASK;
-            if (type == VECTOR2INT)
-                return new Vector3Int(ReadVector2Int());
+            int type = tag & TAG_MASK;
             if (type == VECTOR3INT)
                 return ReadVector3Int();
+            if (type == VECTOR2INT)
+                return new Vector3Int(ReadVector2Int());
+            if (type == VECTOR3)
+                return new Vector3Int(ReadVector3());
+            if (type == VECTOR2)
+                return new Vector3Int(ReadVector2());
+            if (type == VECTOR4)
+                return new Vector3Int(ReadVector4());
+            if (type == INTEGER)
+                return new Vector3Int(ReadInt(), 0, 0);
+            if (type == FLOAT)
+                return new Vector3Int((int)ReadFloat(), 0, 0);
+            if (type == DOUBLE)
+                return new Vector3Int((int)ReadDouble(), 0, 0);
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return new Vector3Int();
             }
             throw new Exception("can not ReadVector3Int for type=" + type);
         }
 #endif
-        public T ReadBean<T>(T bean, int type) where T : Serializable
+        public T ReadBean<T>(T bean, int tag) where T : Serializable
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == BEAN)
                 bean.Decode(this);
             else if (type == DYNAMIC)
             {
-                ReadLong();
+                SkipLong();
                 bean.Decode(this);
             }
             else if (IGNORE_INCOMPATIBLE_FIELD)
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
             else
                 throw new Exception("can not ReadBean(" + bean.GetType().Name + ") for type=" + type);
             return bean;
         }
 
 #if USE_CONFCS
-        public Util.ConfDynamicBean ReadDynamic(Util.ConfDynamicBean dynBean, int type)
+        public Util.ConfDynamicBean ReadDynamic(Util.ConfDynamicBean dynBean, int tag)
 #else
-        public Transaction.DynamicBean ReadDynamic(Transaction.DynamicBean dynBean, int type)
+        public Transaction.DynamicBean ReadDynamic(Transaction.DynamicBean dynBean, int tag)
 #endif
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == DYNAMIC)
             {
                 dynBean.Decode(this);
@@ -1532,26 +1702,26 @@ namespace Zeze.Serialize
             }
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return dynBean;
             }
             throw new Exception("can not ReadDynamic for type=" + type);
         }
 
-        public void SkipUnknownFieldOrThrow(int type, string curType)
+        public void SkipUnknownFieldOrThrow(int tag, string curType)
         {
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return;
             }
-            throw new Exception("can not read " + curType + " for type=" + type);
+            throw new Exception("can not read " + curType + " for type=" + (tag & TAG_MASK));
         }
 
-        public void SkipUnknownField(int type, int count)
+        public void SkipUnknownField(int tag, int count)
         {
             while (--count >= 0)
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
         }
 
         public void SkipUnknownField(int type1, int type2, int count)
@@ -1565,40 +1735,37 @@ namespace Zeze.Serialize
             }
         }
 
-        public void SkipUnknownField(int type)
+        public void SkipUnknownField(int tag)
         {
-            switch (type & TAG_MASK)
+            int type = tag & TAG_MASK;
+            switch (type)
             {
                 case INTEGER:
-                    ReadLong();
+                    SkipLong();
                     return;
                 case FLOAT:
-                    if (type == 1) // FLOAT == 1
+                    if (tag == FLOAT) // high bits == 0
                         return;
-                    EnsureRead(4);
-                    ReadIndex += 4;
+                    Skip(4);
                     return;
                 case DOUBLE:
                 case VECTOR2:
-                    EnsureRead(8);
-                    ReadIndex += 8;
+                    Skip(8);
                     return;
                 case VECTOR2INT:
-                    ReadLong();
-                    ReadLong();
+                    SkipLong();
+                    SkipLong();
                     return;
                 case VECTOR3:
-                    EnsureRead(12);
-                    ReadIndex += 12;
+                    Skip(12);
                     return;
                 case VECTOR3INT:
-                    ReadLong();
-                    ReadLong();
-                    ReadLong();
+                    SkipLong();
+                    SkipLong();
+                    SkipLong();
                     return;
                 case VECTOR4:
-                    EnsureRead(16);
-                    ReadIndex += 16;
+                    Skip(16);
                     return;
                 case BYTES:
                     SkipBytes();
@@ -1612,18 +1779,18 @@ namespace Zeze.Serialize
                     SkipUnknownField(t >> TAG_SHIFT, t, ReadUInt());
                     return;
                 case DYNAMIC:
-                    ReadLong();
+                    SkipLong();
                     goto case BEAN;
                 case BEAN:
                     while ((t = ReadByte()) != 0)
                     {
                         if ((t & ID_MASK) == 0xf0)
-                            ReadUInt();
+                            SkipUInt();
                         SkipUnknownField(t);
                     }
                     return;
                 default:
-                    throw new Exception("SkipUnknownField: " + type);
+                    throw new Exception("SkipUnknownField: type=" + type);
             }
         }
 

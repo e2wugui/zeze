@@ -527,7 +527,8 @@ namespace Zeze.Net
                         // 已经发送的数据比数组中的少。
                         ArraySegment<byte> segment = _outputBufferListSending[i];
                         // Slice .net framework 没有定义。
-                        _outputBufferListSending[i] = new ArraySegment<byte>(segment.Array, bytesTransferred, segment.Count - bytesTransferred);
+                        _outputBufferListSending[i] = new ArraySegment<byte>(
+                            segment.Array, bytesTransferred + segment.Offset, segment.Count - bytesTransferred);
                         _outputBufferListSending.RemoveRange(0, i);
                         break;
                     }
