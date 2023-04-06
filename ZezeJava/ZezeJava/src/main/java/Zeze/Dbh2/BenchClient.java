@@ -81,13 +81,13 @@ public class BenchClient {
 		var lastReportCount = new OutLong();
 		var reportTimer = Task.scheduleUnsafe(2000, 2000, () -> {
 			var now = System.currentTimeMillis();
-			var elapse = now - lastReportTime.value;
+			var elapse = (now - lastReportTime.value) / 1000.0f;
 			lastReportTime.value = now;
 			var countNow = transCounter.get();
 			var diff = countNow - lastReportCount.value;
 			lastReportCount.value = countNow;
 
-			System.out.println("transaction/s: " + diff / (elapse / 1000.0f));
+			System.out.println("transaction/s: " + diff / elapse);
 		});
 
 		var inputReader = new BufferedReader(new InputStreamReader(System.in));
