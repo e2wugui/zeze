@@ -13,11 +13,15 @@ import Zeze.Builtin.Dbh2.Master.Register;
 import Zeze.Dbh2.Bucket;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Util.OutObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 public class Master extends AbstractMaster {
+	private static final Logger logger = LogManager.getLogger(Master.class);
 	public static final String MasterDbName = "__master__";
 
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
@@ -45,8 +49,9 @@ public class Master extends AbstractMaster {
 		this.home = home;
 
 		var masterDbFile = new File(home, MasterDbName);
+		logger.info("RocksDB.open: '{}'", masterDbFile.toString());
 		masterDbFile.mkdirs();
-		masterDb = RocksDB.open(masterDbFile.toString());
+		masterDb = RocksDB.open(DatabaseRocksDb.getCommonOptions(), masterDbFile.toString());
 
 		var dbs = new File(home).listFiles();
 		if (null != dbs) {

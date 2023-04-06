@@ -205,12 +205,12 @@ public class LogSequence {
 
 	public static RocksDB openDb(Options options, String path) throws RocksDBException {
 		RocksDBException lastE = null;
-		logger.info("openDb: {}", path);
+		logger.info("RocksDB.open: '{}'", path);
 		for (int i = 0; i < 10; ++i) {
 			try {
 				return RocksDB.open(options, path);
 			} catch (RocksDBException e) {
-				logger.warn("RocksDB.open failed: {}", path, e);
+				logger.warn("RocksDB.open failed: '{}'", path, e);
 				lastE = e;
 				try {
 					Thread.sleep(1000);

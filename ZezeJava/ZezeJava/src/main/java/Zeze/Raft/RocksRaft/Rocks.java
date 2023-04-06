@@ -140,6 +140,7 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	private void openDb() throws RocksDBException {
 		var dbName = Paths.get(getDbHome(), "statemachine").toString();
+		logger.info("RocksDB.open: '{}'", dbName);
 
 		// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 		var columnFamilies = getColumnFamilies(dbName);

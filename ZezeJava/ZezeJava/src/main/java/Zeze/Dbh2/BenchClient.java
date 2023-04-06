@@ -93,7 +93,7 @@ public class BenchClient {
 		var inputReader = new BufferedReader(new InputStreamReader(System.in));
 		while (true) {
 			var line = inputReader.readLine();
-			if (line.equals("exit"))
+			if (line == null || line.equals("exit"))
 				break;
 		}
 		reportTimer.cancel(true);

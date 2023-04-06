@@ -11,6 +11,7 @@ import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -26,14 +27,14 @@ public class MasterDatabase {
 	private final Master master;
 
 	public MasterDatabase(Master master, String databaseName) {
-		logger.info("openDb: {}, {}", master.getHome(), databaseName);
 		try {
 			this.master = master;
 			this.databaseName = databaseName;
 			var dbHome = Path.of(master.getHome(), databaseName);
+			logger.info("RocksDB.open: '{}'", dbHome.toString());
 			//noinspection ResultOfMethodCallIgnored
 			dbHome.toFile().mkdirs();
-			this.db = RocksDB.open(dbHome.toString());
+			this.db = RocksDB.open(DatabaseRocksDb.getCommonOptions(), dbHome.toString());
 
 			try (var it = this.db.newIterator(Bucket.getDefaultReadOptions())) {
 				it.seekToFirst();

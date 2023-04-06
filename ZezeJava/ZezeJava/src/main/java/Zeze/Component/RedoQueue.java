@@ -14,6 +14,8 @@ import Zeze.Serialize.Serializable;
 import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.Procedure;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
@@ -26,6 +28,7 @@ import org.rocksdb.RocksDBException;
  * 3.【可选】使用ServiceManager动态发现zeze-server。感觉没有必要。
  */
 public class RedoQueue extends HandshakeClient {
+	private static final Logger logger = LogManager.getLogger(RedoQueue.class);
 	private RocksDB db;
 	private final ConcurrentHashMap<String, ColumnFamilyHandle> families = new ConcurrentHashMap<>();
 	private ColumnFamilyHandle familyLastDoneTaskId;
@@ -61,6 +64,7 @@ public class RedoQueue extends HandshakeClient {
 			return;
 
 		var dbHome = super.getName();
+		logger.info("RocksDB.open: '{}'", dbHome);
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		for (var cf : RocksDB.listColumnFamilies(DatabaseRocksDb.getCommonOptions(), dbHome))
 			columnFamilies.add(new ColumnFamilyDescriptor(cf, DatabaseRocksDb.getDefaultCfOptions()));

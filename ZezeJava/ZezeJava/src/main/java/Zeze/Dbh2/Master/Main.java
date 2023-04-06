@@ -3,9 +3,13 @@ package Zeze.Dbh2.Master;
 import Zeze.Config;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 
 public class Main {
+	private static final Logger logger = LogManager.getLogger(Main.class);
+
 	private final MasterService service;
 	private final Master master;
 
@@ -37,14 +41,18 @@ public class Main {
 		master.close();
 	}
 
-	public static void main(String[] args) throws Exception {
-		Task.tryInitThreadPool(null, null, null);
+	public static void main(String[] args) {
+		try {
+			Task.tryInitThreadPool(null, null, null);
 
-		var main = new Main(args[0]);
-		main.start();
+			var main = new Main(args[0]);
+			main.start();
 
-		synchronized (Thread.currentThread()) {
-			Thread.currentThread().wait();
+			synchronized (Thread.currentThread()) {
+				Thread.currentThread().wait();
+			}
+		} catch (Exception e) {
+			logger.error("", e);
 		}
 	}
 }

@@ -72,13 +72,14 @@ public class DatabaseRocksDb extends Database {
 
 	public static RocksDB open(DBOptions options, String path, List<ColumnFamilyDescriptor> columnFamilyDescriptors,
 							   List<ColumnFamilyHandle> columnFamilyHandles) throws RocksDBException {
+		logger.info("RocksDB.open: '{}'", path);
 		for (int i = 0; ; ) {
 			try {
 				//options.setAtomicFlush(true); // atomic batch 独立于这个选项？
 				options.setMaxWriteBatchGroupSizeBytes(100 * 1024 * 1024);
 				return RocksDB.open(options, path, columnFamilyDescriptors, columnFamilyHandles);
 			} catch (RocksDBException e) {
-				logger.warn("RocksDB.open {} failed:", path, e);
+				logger.warn("RocksDB.open '{}' failed:", path, e);
 				if (++i >= 10)
 					throw e;
 				try {
@@ -93,7 +94,6 @@ public class DatabaseRocksDb extends Database {
 
 	public DatabaseRocksDb(@NotNull Application zeze, @NotNull Config.DatabaseConf conf) {
 		super(zeze, conf);
-		logger.info("new: {}", getDatabaseUrl());
 
 		var dbHome = getDatabaseUrl().isEmpty() ? "db" : getDatabaseUrl();
 		try {

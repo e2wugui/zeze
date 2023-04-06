@@ -29,6 +29,7 @@ public class Dbh2Manager {
 	private static final Logger logger = LogManager.getLogger(Dbh2Manager.class);
 
 	private final MasterAgent masterAgent;
+
 	static {
 		System.setProperty("log4j.configurationFile", "log4j2.xml");
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
@@ -85,7 +86,10 @@ public class Dbh2Manager {
 
 		private String getOneAcceptorIp() {
 			var outIp = new OutObject<String>(null);
-			getConfig().forEachAcceptor2((a) -> { outIp.value = a.getIp(); return false; } );
+			getConfig().forEachAcceptor2((a) -> {
+				outIp.value = a.getIp();
+				return false;
+			});
 			if (null == outIp.value)
 				throw new RuntimeException("acceptor not found");
 			return outIp.value;
@@ -133,7 +137,6 @@ public class Dbh2Manager {
 		reportTimer = Task.scheduleUnsafe(2000, 2000, this::reportLoad);
 	}
 
-
 	public void stop() throws Exception {
 		ShutdownHook.remove(this);
 		if (null != reportTimer)
@@ -178,7 +181,7 @@ public class Dbh2Manager {
 		var diffRollbackTransaction = nowRollbackTransaction - lastRollbackTransaction;
 
 		if (diffGet > 0 || diffPut > 0 || diffDelete > 0 || diffSizeGet > 0 || diffSizePut > 0
-			|| diffBeginTransaction > 0 || diffCommitTransaction > 0 || diffRollbackTransaction > 0) {
+				|| diffBeginTransaction > 0 || diffCommitTransaction > 0 || diffRollbackTransaction > 0) {
 			lastGet = nowGet;
 			lastPut = nowPut;
 			lastSizeGet = nowSizeGet;
@@ -202,14 +205,18 @@ public class Dbh2Manager {
 		}
 	}
 
-	public static void main(String [] args) throws Exception {
-		Task.tryInitThreadPool(null, null, null);
-		Zeze.Net.Selectors.getInstance().add(Runtime.getRuntime().availableProcessors() - 1);
+	public static void main(String[] args) {
+		try {
+			Task.tryInitThreadPool(null, null, null);
+			Zeze.Net.Selectors.getInstance().add(Runtime.getRuntime().availableProcessors() - 1);
 
-		var manager = new Dbh2Manager(args[0], args[1]);
-		manager.start();
-		synchronized (Thread.currentThread()) {
-			Thread.currentThread().wait();
+			var manager = new Dbh2Manager(args[0], args[1]);
+			manager.start();
+			synchronized (Thread.currentThread()) {
+				Thread.currentThread().wait();
+			}
+		} catch (Exception e) {
+			logger.error("", e);
 		}
 	}
 }

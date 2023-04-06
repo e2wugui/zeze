@@ -8,6 +8,9 @@ import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DatabaseRocksDb;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -22,6 +25,7 @@ import org.rocksdb.WriteOptions;
  * 桶管理一张表的局部范围的记录。
  */
 public class Bucket {
+	private static final Logger logger = LogManager.getLogger(Bucket.class);
 	private static final Options commonOptions = new Options()
 			.setCreateIfMissing(true)
 			.setDbWriteBufferSize(64 << 20) // total write buffer bytes, include all the columns
@@ -65,7 +69,7 @@ public class Bucket {
 	private volatile BBucketMeta.Data meta;
 	private long tid;
 	private final ColumnFamilyHandle cfMeta;
-	private final byte[] metaKey = new byte[] { 1 };
+	private final byte[] metaKey = new byte[]{1};
 	private final byte[] metaTid = new byte[0];
 
 	private ColumnFamilyHandle cfOpen(String name) {
@@ -87,14 +91,14 @@ public class Bucket {
 		try {
 			// 读取meta，meta创建在Bucket创建流程中写入。
 			var path = Path.of(raftConfig.getDbHome(), "statemachine").toAbsolutePath().toString();
+			logger.info("RocksDB.open: '{}'", path);
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 			for (var cf : OptimisticTransactionDB.listColumnFamilies(new Options(), path))
 				columnFamilies.add(new ColumnFamilyDescriptor(cf, defaultCfOptions));
 			if (columnFamilies.isEmpty())
 				columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), defaultCfOptions));
-			var dbOptions = new DBOptions().setCreateIfMissing(true);
 			var cfHandlesOut = new ArrayList<ColumnFamilyHandle>();
-			this.db = OptimisticTransactionDB.open(dbOptions, path, columnFamilies, cfHandlesOut);
+			this.db = OptimisticTransactionDB.open(DatabaseRocksDb.getCommonDbOptions(), path, columnFamilies, cfHandlesOut);
 			for (var i = 0; i < columnFamilies.size(); ++i) {
 				var cfName = new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8);
 				this.cfHandles.put(cfName, cfHandlesOut.get(i));
