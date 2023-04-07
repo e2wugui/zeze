@@ -100,8 +100,16 @@ public class RocksDatabase {
 		return new Batch();
 	}
 
-	public Table openTable(String name) {
+	public synchronized Table openTable(String name) {
 		return tables.computeIfAbsent(name, _name -> new Table(name, openFamily(name)));
+	}
+
+	public synchronized void dropTable(Table table) throws RocksDBException {
+		// dropTable 和 openTable 互斥.
+		if (null != tables.remove(table.name) && null != columnFamilies.remove(table.name)) {
+			rocksDb.dropColumnFamily(table.columnFamily);
+			rocksDb.destroyColumnFamilyHandle(table.columnFamily);
+		}
 	}
 
 	private @NotNull ColumnFamilyHandle openFamily(String name) {
@@ -114,10 +122,6 @@ public class RocksDatabase {
 				throw new RuntimeException(e);
 			}
 		});
-	}
-
-	private void removeFamily(String name) {
-		columnFamilies.remove(name);
 	}
 
 	public void close() {
@@ -213,11 +217,7 @@ public class RocksDatabase {
 
 		// 有数据的时候可以直接删除family吧！
 		public void drop() throws RocksDBException {
-			if (tables.remove(name) != null) {
-				rocksDb.dropColumnFamily(columnFamily);
-				removeFamily(name);
-				rocksDb.destroyColumnFamilyHandle(columnFamily);
-			}
+			dropTable(this);
 		}
 
 		public void close() {
