@@ -317,7 +317,7 @@ public class LogSequence {
 			if (db.getTime() < expired) {
 				var opened = uniqueRequestSets.remove(tableName);
 				if (null != opened)
-					opened.table.drop();
+					opened.table.drop(); // 包含opened.close。
 				else
 					database.openTable(tableName).drop();
 			}
