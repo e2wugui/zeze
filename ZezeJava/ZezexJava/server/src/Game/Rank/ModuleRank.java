@@ -608,6 +608,10 @@ public class ModuleRank extends AbstractModule {
 	public void TestInnerClass(int serverId, InnerBean inner) {
 	}
 
+	@RedirectToServer
+	public void TestBeanList(int serverId, List<InnerBean> inner) {
+	}
+
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleRank(Game.App app) {
         super(app);

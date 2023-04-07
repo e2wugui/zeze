@@ -1,9 +1,17 @@
 package Zeze.Arch.Gen;
 
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.function.Supplier;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -11,6 +19,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Util.Action3;
 import Zeze.Util.Action4;
 import Zeze.Util.StringBuilderCs;
+import org.jetbrains.annotations.NotNull;
 
 final class Gen {
 	static final Gen instance = new Gen();
@@ -153,62 +162,121 @@ final class Gen {
 		return type.toString().replace('$', '.'); // ParameterizedType
 	}
 
+	private static boolean isAbstract(@NotNull Class<?> klass) {
+		return (klass.getModifiers() & (Modifier.INTERFACE | Modifier.ABSTRACT)) != 0;
+	}
+
+	private static Class<?> getCollectionType(@NotNull Class<?> klass) {
+		if (isAbstract(klass)) {
+			if (klass.isAssignableFrom(ArrayList.class))
+				klass = ArrayList.class;
+			else if (klass.isAssignableFrom(HashSet.class))
+				klass = HashSet.class;
+			else if (klass.isAssignableFrom(TreeSet.class))
+				klass = TreeSet.class;
+			else if (klass.isAssignableFrom(ArrayDeque.class))
+				klass = ArrayDeque.class;
+			else if (klass.isAssignableFrom(LinkedList.class))
+				klass = LinkedList.class;
+			else
+				throw new UnsupportedOperationException("unsupported collection type: " + klass.getName());
+		}
+		return klass;
+	}
+
 	@SuppressWarnings("SameParameterValue")
 	void genLocalVariable(StringBuilderCs sb, String prefix, Parameter param) throws Exception {
 		var type = param.getType();
 		var name = param.getName();
 		var kn = serializer.get(type);
-		if (kn != null)
+		if (kn != null) {
 			kn.define.run(sb, prefix, name);
-		else if (Serializable.class.isAssignableFrom(type))
+			return;
+		}
+		if (Serializable.class.isAssignableFrom(type)) {
 			sb.appendLine("{}var {} = new {}();", prefix, name, type.getTypeName().replace('$', '.'));
-		else
-			sb.appendLine("{}{} {};", prefix, getTypeName(param.getParameterizedType()), name);
+			return;
+		}
+		var paramType = param.getParameterizedType();
+		if (Collection.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
+			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
+			if (elemType instanceof Class && Serializable.class.isAssignableFrom((Class<?>)elemType) && !isAbstract((Class<?>)elemType)) {
+				sb.appendLine("{}var {} = new {}<{}>();", prefix, name,
+						getCollectionType(type).getTypeName().replace('$', '.'),
+						elemType.getTypeName().replace('$', '.'));
+				return;
+			}
+		}
+		sb.appendLine("{}{} {};", prefix, getTypeName(paramType), name);
 	}
 
-	void genEncode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, String varName) throws Exception {
+	void genEncode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, Type paramType, String varName) throws Exception {
 		var kn = serializer.get(type);
-		if (kn != null)
+		if (kn != null) {
 			kn.encoder.run(sb, prefix, varName, bbName);
-		else if (Serializable.class.isAssignableFrom(type))
-			sb.appendLine("{}{}.encode({});", prefix, varName, bbName);
-		else {
-			sb.appendLine("{}try (var _bs_ = new java.io.ByteArrayOutputStream();", prefix);
-			sb.appendLine("{}     var _os_ = new java.io.ObjectOutputStream(_bs_)) {", prefix);
-			sb.appendLine("{}    _os_.writeObject({});", prefix, varName);
-			sb.appendLine("{}    {}.WriteBytes(_bs_.toByteArray());", prefix, bbName);
-			sb.appendLine("{}} catch (java.io.IOException _e_) {", prefix);
-			sb.appendLine("{}    throw new RuntimeException(_e_);", prefix);
-			sb.appendLine("{}}", prefix);
+			return;
 		}
+		if (Serializable.class.isAssignableFrom(type)) {
+			sb.appendLine("{}{}.encode({});", prefix, varName, bbName);
+			return;
+		}
+		if (Collection.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
+			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
+			if (elemType instanceof Class && Serializable.class.isAssignableFrom((Class<?>)elemType) && !isAbstract((Class<?>)elemType)) {
+				sb.appendLine("{}{}.WriteUInt({}.size());", prefix, bbName, varName);
+				sb.appendLine("{}for (var _e_ : {})", prefix, varName);
+				sb.appendLine("{}    _e_.encode({});", prefix, bbName);
+				return;
+			}
+		}
+		sb.appendLine("{}try (var _bs_ = new java.io.ByteArrayOutputStream();", prefix);
+		sb.appendLine("{}     var _os_ = new java.io.ObjectOutputStream(_bs_)) {", prefix);
+		sb.appendLine("{}    _os_.writeObject({});", prefix, varName);
+		sb.appendLine("{}    {}.WriteBytes(_bs_.toByteArray());", prefix, bbName);
+		sb.appendLine("{}} catch (java.io.IOException _e_) {", prefix);
+		sb.appendLine("{}    throw new RuntimeException(_e_);", prefix);
+		sb.appendLine("{}}", prefix);
 	}
 
 	void genDecode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, Type paramType, String varName) throws Exception {
 		var kn = serializer.get(type);
-		if (kn != null)
+		if (kn != null) {
 			kn.decoder.run(sb, prefix, varName, bbName);
-		else if (Serializable.class.isAssignableFrom(type))
-			sb.appendLine("{}{}.decode({});", prefix, varName, bbName);
-		else {
-			sb.appendLine("{}{", prefix);
-			sb.appendLine("{}    var _bo_ = {}.ReadByteBuffer();", prefix, bbName);
-			sb.appendLine("{}    try (var _bs_ = new java.io.ByteArrayInputStream(_bo_.Bytes, _bo_.ReadIndex, _bo_.size());", prefix);
-			sb.appendLine("{}         var _os_ = new java.io.ObjectInputStream(_bs_)) {", prefix);
-			if (type == Object.class)
-				sb.appendLine("{}        {} = Zeze.Util.Reflect.cast(_os_.readObject());", prefix, varName);
-			else
-				sb.appendLine("{}        {} = ({})_os_.readObject();", prefix, varName, getTypeName(paramType));
-			sb.appendLine("{}    } catch (java.io.IOException _e_) {", prefix);
-			sb.appendLine("{}        throw new RuntimeException(_e_);", prefix);
-			sb.appendLine("{}    }", prefix);
-			sb.appendLine("{}}", prefix);
+			return;
 		}
+		if (Serializable.class.isAssignableFrom(type)) {
+			sb.appendLine("{}{}.decode({});", prefix, varName, bbName);
+			return;
+		}
+		if (Collection.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
+			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
+			if (elemType instanceof Class && Serializable.class.isAssignableFrom((Class<?>)elemType) && !isAbstract((Class<?>)elemType)) {
+				sb.appendLine("{}for (int _n_ = {}.ReadUInt(); _n_ > 0; _n_--) {", prefix, bbName);
+				sb.appendLine("{}    var _e_ = new {}();", prefix, elemType.getTypeName().replace('$', '.'));
+				sb.appendLine("{}    _e_.decode({});", prefix, bbName);
+				sb.appendLine("{}    {}.add(_e_);", prefix, varName);
+				sb.appendLine("{}}", prefix);
+				return;
+			}
+		}
+		sb.appendLine("{}{", prefix);
+		sb.appendLine("{}    var _bo_ = {}.ReadByteBuffer();", prefix, bbName);
+		sb.appendLine("{}    try (var _bs_ = new java.io.ByteArrayInputStream(_bo_.Bytes, _bo_.ReadIndex, _bo_.size());", prefix);
+		sb.appendLine("{}         var _os_ = new java.io.ObjectInputStream(_bs_)) {", prefix);
+		if (type == Object.class)
+			sb.appendLine("{}        {} = Zeze.Util.Reflect.cast(_os_.readObject());", prefix, varName);
+		else
+			sb.appendLine("{}        {} = ({})_os_.readObject();", prefix, varName, getTypeName(paramType));
+		sb.appendLine("{}    } catch (java.io.IOException _e_) {", prefix);
+		sb.appendLine("{}        throw new RuntimeException(_e_);", prefix);
+		sb.appendLine("{}    }", prefix);
+		sb.appendLine("{}}", prefix);
 	}
 
 	@SuppressWarnings("SameParameterValue")
 	void genEncode(StringBuilderCs sb, String prefix, String bbName, List<Parameter> parameters) throws Exception {
 		for (Parameter p : parameters)
-			genEncode(sb, prefix, bbName, p.getType(), p.getName());
+			genEncode(sb, prefix, bbName, p.getType(), p.getParameterizedType(), p.getName());
 	}
 
 	@SuppressWarnings("SameParameterValue")

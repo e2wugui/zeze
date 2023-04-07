@@ -342,7 +342,7 @@ public final class GenModule {
 				sbHandles.appendLine("                var _r_ = ({})_result_;", m.resultTypeName);
 				sbHandles.appendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
 				for (var field : m.resultFields)
-					Gen.instance.genEncode(sbHandles, "                ", "_b_", field.getType(), "_r_." + field.getName());
+					Gen.instance.genEncode(sbHandles, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
 				sbHandles.appendLine("                return new Zeze.Net.Binary(_b_);");
 				sbHandles.appendLine("            }));");
 			} else
@@ -451,7 +451,7 @@ public final class GenModule {
 			sbHandles.appendLine("                var _r_ = ({})_result_;", m.resultTypeName);
 			sbHandles.appendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
 			for (var field : m.resultFields)
-				Gen.instance.genEncode(sbHandles, "                ", "_b_", field.getType(), "_r_." + field.getName());
+				Gen.instance.genEncode(sbHandles, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
 			sbHandles.appendLine("                return new Zeze.Net.Binary(_b_);");
 			sbHandles.appendLine("            }));");
 		} else
