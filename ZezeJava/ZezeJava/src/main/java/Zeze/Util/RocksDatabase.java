@@ -4,8 +4,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Transaction.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -67,7 +67,8 @@ public class RocksDatabase {
 
 	private final String home;
 	private final RocksDB rocksDb;
-	private final HashMap<String, ColumnFamilyHandle> columnFamilies = new HashMap<>();
+	private final ConcurrentHashMap<String, ColumnFamilyHandle> columnFamilies = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Table> tables = new ConcurrentHashMap<>();
 
 	public RocksDatabase(String home) throws RocksDBException {
 		this.home = home;
@@ -87,6 +88,10 @@ public class RocksDatabase {
 		}
 	}
 
+	public ConcurrentHashMap<String, ColumnFamilyHandle> getColumnFamilies() {
+		return columnFamilies;
+	}
+
 	public String getHome() {
 		return home;
 	}
@@ -96,10 +101,10 @@ public class RocksDatabase {
 	}
 
 	public Table openTable(String name) {
-		return new Table(name, openFamily(name));
+		return tables.computeIfAbsent(name, _name -> new Table(name, openFamily(name)));
 	}
 
-	private synchronized @NotNull ColumnFamilyHandle openFamily(String name) {
+	private @NotNull ColumnFamilyHandle openFamily(String name) {
 		return columnFamilies.computeIfAbsent(name, key -> {
 			try {
 				return rocksDb.createColumnFamily(new ColumnFamilyDescriptor(
@@ -111,8 +116,14 @@ public class RocksDatabase {
 		});
 	}
 
-	private synchronized void removeFamily(String name) {
+	private void removeFamily(String name) {
 		columnFamilies.remove(name);
+	}
+
+	public void close() {
+		for (var table : tables.values())
+			table.close();
+		rocksDb.close();
 	}
 
 	public final class Table {
@@ -140,6 +151,14 @@ public class RocksDatabase {
 			return rocksDb.get(columnFamily, defaultReadOptions, key, offset, size);
 		}
 
+		public byte[] get(ReadOptions options, byte[] key) throws RocksDBException {
+			return rocksDb.get(columnFamily, options, key);
+		}
+
+		public byte[] get(ReadOptions options, byte[] key, int offset, int size) throws RocksDBException {
+			return rocksDb.get(columnFamily, options, key, offset, size);
+		}
+
 		public void put(byte[] key, byte[] value) throws RocksDBException {
 			rocksDb.put(columnFamily, defaultWriteOptions, key, value);
 		}
@@ -154,6 +173,22 @@ public class RocksDatabase {
 
 		public void delete(byte[] key, int keyOff, int keyLen) throws RocksDBException {
 			rocksDb.delete(columnFamily, defaultWriteOptions, key, keyOff, keyLen);
+		}
+
+		public void put(WriteOptions options, byte[] key, byte[] value) throws RocksDBException {
+			rocksDb.put(columnFamily, options, key, value);
+		}
+
+		public void put(WriteOptions options, byte[] key, int keyOff, int keyLen, byte[] value, int valueOff, int valueLen) throws RocksDBException {
+			rocksDb.put(columnFamily, options, key, keyOff, keyLen, value, valueOff, valueLen);
+		}
+
+		public void delete(WriteOptions options, byte[] key) throws RocksDBException {
+			rocksDb.delete(columnFamily, options, key);
+		}
+
+		public void delete(WriteOptions options, byte[] key, int keyOff, int keyLen) throws RocksDBException {
+			rocksDb.delete(columnFamily, options, key, keyOff, keyLen);
 		}
 
 		public void put(Batch batch, byte[] key, byte[] value) throws RocksDBException {
@@ -178,9 +213,15 @@ public class RocksDatabase {
 
 		// 有数据的时候可以直接删除family吧！
 		public void drop() throws RocksDBException {
-			rocksDb.dropColumnFamily(columnFamily);
-			removeFamily(name);
-			rocksDb.destroyColumnFamilyHandle(columnFamily);
+			if (tables.remove(name) != null) {
+				rocksDb.dropColumnFamily(columnFamily);
+				removeFamily(name);
+				rocksDb.destroyColumnFamilyHandle(columnFamily);
+			}
+		}
+
+		public void close() {
+			tables.remove(name);
 		}
 	}
 
@@ -209,6 +250,10 @@ public class RocksDatabase {
 
 		public void commit() throws RocksDBException {
 			rocksDb.write(syncWriteOptions, batch);
+		}
+
+		public void commit(WriteOptions options) throws RocksDBException {
+			rocksDb.write(options, batch);
 		}
 
 		@Override

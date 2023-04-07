@@ -33,7 +33,7 @@ public class Bucket {
 	private final byte[] metaKey = new byte[]{1};
 	private final byte[] metaTid = new byte[0];
 
-	private ColumnFamilyHandle cfOpen(String name) {
+	private ColumnFamilyHandle openFamily(String name) {
 		return cfHandles.computeIfAbsent(name, (_name) -> {
 			try {
 				return db.createColumnFamily(new ColumnFamilyDescriptor(
@@ -65,7 +65,7 @@ public class Bucket {
 				var cfName = new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8);
 				this.cfHandles.put(cfName, cfHandlesOut.get(i));
 			}
-			this.cfMeta = cfOpen("meta");
+			this.cfMeta = openFamily("meta");
 			var metaValue = db.get(cfMeta, metaKey);
 			if (null != metaValue) {
 				var bb = ByteBuffer.Wrap(metaValue);

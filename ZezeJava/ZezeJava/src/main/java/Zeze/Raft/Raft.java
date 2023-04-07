@@ -506,7 +506,7 @@ public final class Raft {
 		}
 	}
 
-	private void onLowPrecisionTimer() throws ParseException {
+	private void onLowPrecisionTimer() throws ParseException, RocksDBException {
 		server.getConfig().forEachConnector(Connector::start); // Connector Reconnect Bug?
 		logSequence.removeExpiredUniqueRequestSet();
 	}

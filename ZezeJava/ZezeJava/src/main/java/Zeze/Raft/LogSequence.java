@@ -3,7 +3,6 @@ package Zeze.Raft;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -12,8 +11,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
@@ -55,7 +52,8 @@ public class LogSequence {
 
 	private WriteOptions writeOptions = RocksDatabase.getSyncWriteOptions();
 	private RocksDB logs;
-	private RocksDB rafts;
+	private RocksDatabase database;
+	private RocksDatabase.Table rafts;
 	private final ConcurrentHashMap<String, UniqueRequestSet> uniqueRequestSets = new ConcurrentHashMap<>();
 
 	private final byte[] raftsTermKey;
@@ -221,24 +219,19 @@ public class LogSequence {
 		throw lastE;
 	}
 
-	static final class UniqueRequestSet {
-		private RocksDB db;
-		private final String dbName;
-		private final LogSequence logSequence;
-		private final Lock mutex = new ReentrantLock();
+	final class UniqueRequestSet {
+		private RocksDatabase.Table table;
 
-		public UniqueRequestSet(LogSequence lq, String dbName) {
-			this.dbName = dbName;
-			logSequence = lq;
+		public UniqueRequestSet(String tableName) {
+			this.table = database.openTable(tableName);
 		}
 
 		private void put(RaftLog log, boolean isApply) throws IOException, RocksDBException {
-			var db = openDb();
 			var key = ByteBuffer.Allocate(32);
 			log.getLog().getUnique().encode(key);
 
 			// 先读取并检查状态，减少写操作。
-			var existBytes = db.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
+			var existBytes = table.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
 			if (!isApply && existBytes != null)
 				throw new RaftRetryException("Duplicate Request Found = " + log.getLog().getUnique());
 
@@ -251,7 +244,7 @@ public class LogSequence {
 
 			var value = ByteBuffer.Allocate(32);
 			new UniqueRequestState(log, isApply).encode(value);
-			db.put(logSequence.writeOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+			table.put(writeOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 		}
 
 		public void save(RaftLog log) throws IOException, RocksDBException {
@@ -265,13 +258,13 @@ public class LogSequence {
 		public void remove(RaftLog log) throws IOException, RocksDBException {
 			var key = ByteBuffer.Allocate(32);
 			log.getLog().getUnique().encode(key);
-			openDb().delete(logSequence.writeOptions, key.Bytes, 0, key.WriteIndex);
+			table.delete(writeOptions, key.Bytes, 0, key.WriteIndex);
 		}
 
 		public UniqueRequestState getRequestState(IRaftRpc raftRpc) throws IOException, RocksDBException {
 			var key = ByteBuffer.Allocate(32);
 			raftRpc.getUnique().encode(key);
-			var val = openDb().get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
+			var val = table.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
 			if (val == null)
 				return null;
 			var bb = ByteBuffer.Wrap(val);
@@ -280,34 +273,8 @@ public class LogSequence {
 			return state;
 		}
 
-		private RocksDB openDb() throws IOException, RocksDBException {
-			mutex.lock();
-			try {
-				if (null == db) {
-					var dir = Paths.get(logSequence.raft.getRaftConfig().getDbHome(), "unique").toString();
-					try {
-						Files.createDirectories(Paths.get(dir));
-					} catch (FileAlreadyExistsException ignored) {
-					}
-					db = LogSequence.openDb(RocksDatabase.getCommonOptions(), Paths.get(dir, dbName).toString());
-				}
-				return db;
-			} finally {
-				mutex.unlock();
-			}
-		}
-
-		public void dispose() {
-			mutex.lock();
-			try {
-				if (db != null) {
-					logger.info("closeDb: {}, unique, {}", logSequence.raft.getRaftConfig().getDbHome(), dbName);
-					db.close();
-					db = null;
-				}
-			} finally {
-				mutex.unlock();
-			}
+		public void close() {
+			table.close();
 		}
 	}
 
@@ -338,34 +305,21 @@ public class LogSequence {
 		deletedDirectoryAndCheck(path, 10);
 	}
 
-	public void removeExpiredUniqueRequestSet() throws ParseException {
+	public void removeExpiredUniqueRequestSet() throws ParseException, RocksDBException {
 		RaftConfig raftConf = raft.getRaftConfig();
 		long expired = System.currentTimeMillis() - (raftConf.getUniqueRequestExpiredDays() + 1) * 86400_000L;
 		SimpleDateFormat format = new SimpleDateFormat("yyyy.M.d");
-		var uniqueHome = Paths.get(raftConf.getDbHome(), "unique").toString();
 
-		// try close and delete
-		for (var reqSets : uniqueRequestSets.entrySet()) {
-			Date db = format.parse(reqSets.getKey());
+		for (var tableName : database.getColumnFamilies().keySet()) {
+			if (!tableName.startsWith("unique."))
+				continue;
+			var db = format.parse(tableName.substring("unique.".length()));
 			if (db.getTime() < expired) {
-				reqSets.getValue().dispose();
-				uniqueRequestSets.remove(reqSets.getKey());
-				deleteDirectory(new File(Paths.get(uniqueHome, reqSets.getKey()).toString()));
-			}
-		}
-		// try delete in dirs
-		File file = new File(uniqueHome);
-		if (file.isDirectory()) {
-			File[] subFiles = file.listFiles();
-			if (subFiles != null) {
-				for (var subFile : subFiles) {
-					if (subFile.isDirectory()) {
-						var dirName = subFile.getName();
-						var db = format.parse(dirName);
-						if (db.getTime() < expired)
-							deleteDirectory(new File(Paths.get(uniqueHome, dirName).toString()));
-					}
-				}
+				var opened = uniqueRequestSets.remove(tableName);
+				if (null != opened)
+					opened.table.drop();
+				else
+					database.openTable(tableName).drop();
 			}
 		}
 	}
@@ -387,13 +341,20 @@ public class LogSequence {
 				logs.close();
 				logs = null;
 			}
+
 			if (rafts != null) {
-				logger.info("closeDb: {}, rafts", raft.getRaftConfig().getDbHome());
 				rafts.close();
 				rafts = null;
 			}
+
+			if (database != null) {
+				logger.info("closeDb: {}, rafts", raft.getRaftConfig().getDbHome());
+				database.close();
+				database = null;
+			}
+
 			for (var db : uniqueRequestSets.values())
-				db.dispose();
+				db.close();
 			uniqueRequestSets.clear();
 		} finally {
 			raft.unlock();
@@ -403,8 +364,8 @@ public class LogSequence {
 	public LogSequence(Raft raft) throws RocksDBException {
 		this.raft = raft;
 
-		rafts = openDb(RocksDatabase.getCommonOptions(),
-				Paths.get(this.raft.getRaftConfig().getDbHome(), "rafts").toString());
+		this.database = new RocksDatabase(Paths.get(this.raft.getRaftConfig().getDbHome(), "rafts").toString());
+		rafts = this.database.openTable("rafts");
 		{
 			// Read Term
 			var termKey = ByteBuffer.Allocate(1);
@@ -501,8 +462,8 @@ public class LogSequence {
 	private UniqueRequestSet openUniqueRequests(long time) {
 		var dateTime = new Date(time);
 		@SuppressWarnings("deprecation")
-		var dbName = String.format("%d.%d.%d", dateTime.getYear() + 1900, dateTime.getMonth() + 1, dateTime.getDate());
-		return uniqueRequestSets.computeIfAbsent(dbName, db -> new UniqueRequestSet(this, db));
+		var dbName = String.format("unique.%d.%d.%d", dateTime.getYear() + 1900, dateTime.getMonth() + 1, dateTime.getDate());
+		return uniqueRequestSets.computeIfAbsent(dbName, UniqueRequestSet::new);
 	}
 
 	public WriteOptions getWriteOptions() {
