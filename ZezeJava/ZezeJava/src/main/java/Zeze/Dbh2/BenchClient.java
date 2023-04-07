@@ -1,10 +1,8 @@
 package Zeze.Dbh2;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Config;
@@ -18,10 +16,10 @@ import org.apache.logging.log4j.Logger;
 public class BenchClient {
 	private static final Logger logger = LogManager.getLogger(BenchClient.class);
 
-	private static Database newDatabase(String masterIp, int masterPort, String dbName) {
+	private static Database newDatabase(String masterIp, int masterPort) {
 		var databaseConf = new Config.DatabaseConf();
 		databaseConf.setDatabaseType(Config.DbType.Dbh2);
-		databaseConf.setDatabaseUrl("dbh2://" + masterIp + ":" + masterPort + "/" + dbName);
+		databaseConf.setDatabaseUrl("dbh2://" + masterIp + ":" + masterPort + "/" + "dbh2TestDb");
 		databaseConf.setName("dbh2");
 		return new Database(null, databaseConf);
 	}
@@ -39,22 +37,18 @@ public class BenchClient {
 			var tableAccess = 2;
 
 			for (int i = 0; i < args.length; ++i) {
-				if (args[i].equals("-tableNumber"))
-					tableNumber = Integer.parseInt(args[++i]);
-				else if (args[i].equals("-threadNumber"))
-					threadNumber = Integer.parseInt(args[++i]);
-				else if (args[i].equals("-valueSize"))
-					valueSize = Integer.parseInt(args[++i]);
-				else if (args[i].equals("-masterIp"))
-					masterIp = args[++i];
-				else if (args[i].equals("-masterPort"))
-					masterPort = Integer.parseInt(args[++i]);
-				else if (args[i].equals("-tableAccess"))
-					tableAccess = Integer.parseInt(args[++i]);
+				switch (args[i]) {
+				case "-tableNumber" -> tableNumber = Integer.parseInt(args[++i]);
+				case "-threadNumber" -> threadNumber = Integer.parseInt(args[++i]);
+				case "-valueSize" -> valueSize = Integer.parseInt(args[++i]);
+				case "-masterIp" -> masterIp = args[++i];
+				case "-masterPort" -> masterPort = Integer.parseInt(args[++i]);
+				case "-tableAccess" -> tableAccess = Integer.parseInt(args[++i]);
+				}
 			}
 
 			var tableAccessFinal = tableAccess;
-			var database = newDatabase(masterIp, masterPort, "dbh2TestDb");
+			var database = newDatabase(masterIp, masterPort);
 			var tables = new ArrayList<Zeze.Transaction.Database.AbstractKVTable>();
 			for (int i = 0; i < tableNumber; ++i)
 				tables.add((Database.AbstractKVTable)database.openTable("table" + i));
@@ -65,7 +59,7 @@ public class BenchClient {
 			var transCounter = new AtomicLong();
 			for (int i = 0; i < threadNumber; ++i) {
 				futures.add(Task.runUnsafe(() -> {
-					while (running.value) {
+					while (Boolean.TRUE.equals(running.value)) {
 						// 限制所有key的范围，防止服务器占用太大硬盘。
 						try (var trans = database.beginTransaction()) {
 							for (int a = 0; a < tableAccessFinal; ++a) {
