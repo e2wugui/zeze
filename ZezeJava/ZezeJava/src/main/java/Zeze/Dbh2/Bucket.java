@@ -26,7 +26,7 @@ public class Bucket {
 
 	private final OptimisticTransactionDB db;
 	private final HashMap<String, ColumnFamilyHandle> cfHandles = new HashMap<>();
-	private final WriteOptions writeOptions = new WriteOptions();
+	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
 	private volatile BBucketMeta.Data meta;
 	private long tid;
 	private final ColumnFamilyHandle cfMeta;
@@ -42,6 +42,10 @@ public class Bucket {
 				throw new RuntimeException(e);
 			}
 		});
+	}
+
+	public void setWriteOptions(WriteOptions options) {
+		writeOptions = options;
 	}
 
 	public OptimisticTransactionDB getDb() {

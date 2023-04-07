@@ -42,6 +42,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
             stateMachine.openBucket();
             var writeOptions = writeOptionSync ? RocksDatabase.getSyncWriteOptions() : RocksDatabase.getDefaultWriteOptions();
             raft.getLogSequence().setWriteOptions(writeOptions);
+            stateMachine.getBucket().setWriteOptions(writeOptions);
 
             RegisterProtocols(raft.getServer());
             raft.getServer().start();
