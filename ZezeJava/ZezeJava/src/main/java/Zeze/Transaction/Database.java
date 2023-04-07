@@ -170,6 +170,12 @@ public abstract class Database {
 		return Arrays.copyOfRange(bb.Bytes, bb.ReadIndex, bb.WriteIndex);
 	}
 
+	public static byte @NotNull [] copyIf(byte[] bytes, int offset, int len) {
+		if (offset == 0 && bytes.length == len)
+			return bytes;
+		return Arrays.copyOfRange(bytes, offset, offset + len);
+	}
+
 	public interface Table {
 		boolean isNew();
 

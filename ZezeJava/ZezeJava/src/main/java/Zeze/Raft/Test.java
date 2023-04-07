@@ -18,13 +18,13 @@ import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Random;
+import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.ThreadFactoryWithName;
@@ -48,8 +48,8 @@ public class Test {
 
 	private static void logDump(String db) throws IOException, RocksDBException {
 		RocksDB.loadLibrary();
-		try (var r1 = RocksDB.openReadOnly(DatabaseRocksDb.getCommonOptions(), Paths.get(db, "logs").toString())) {
-			try (var it1 = r1.newIterator(DatabaseRocksDb.getDefaultReadOptions())) {
+		try (var r1 = RocksDB.openReadOnly(RocksDatabase.getCommonOptions(), Paths.get(db, "logs").toString())) {
+			try (var it1 = r1.newIterator(RocksDatabase.getDefaultReadOptions())) {
 				var StateMachine = new TestStateMachine();
 				var snapshot = Paths.get(db, LogSequence.snapshotFileName).toString();
 				if (new File(snapshot).isFile())
@@ -825,7 +825,7 @@ public class Test {
 			Files.createDirectories(Paths.get(raftConfig.getDbHome()));
 
 			raft = new Raft(stateMachine, raftName, raftConfig);
-			raft.getLogSequence().setWriteOptions(DatabaseRocksDb.getDefaultWriteOptions());
+			raft.getLogSequence().setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 			raft.getServer().AddFactoryHandle(AddCount.TypeId_,
 					new Service.ProtocolFactoryHandle<>(AddCount::new, this::processAddCount));
 			raft.getServer().AddFactoryHandle(GetCount.TypeId_,

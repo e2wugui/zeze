@@ -20,7 +20,6 @@ import Zeze.Net.Service;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.*;
-import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
@@ -31,6 +30,7 @@ import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
+import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.Level;
@@ -762,7 +762,7 @@ public final class ServiceManagerServer implements Closeable {
 
 		var dbPath = Paths.get(this.config.dbHome, "autokeys").toString();
 		logger.info("RocksDB.open: '{}'", dbPath);
-		autoKeysDb = RocksDB.open(DatabaseRocksDb.getCommonOptions(), dbPath);
+		autoKeysDb = RocksDB.open(RocksDatabase.getCommonOptions(), dbPath);
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		serverSocket = server.newServerSocket(ipaddress, port,
@@ -782,7 +782,7 @@ public final class ServiceManagerServer implements Closeable {
 			bb.WriteBytes(nameBytes);
 			key = bb.Bytes;
 			try {
-				byte[] value = this.sms.autoKeysDb.get(DatabaseRocksDb.getDefaultReadOptions(), key);
+				byte[] value = this.sms.autoKeysDb.get(RocksDatabase.getDefaultReadOptions(), key);
 				if (value != null)
 					current = ByteBuffer.Wrap(value).ReadLong();
 			} catch (RocksDBException e) {
@@ -806,7 +806,7 @@ public final class ServiceManagerServer implements Closeable {
 			var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(current));
 			bb.WriteLong(current);
 			try {
-				sms.autoKeysDb.put(DatabaseRocksDb.getSyncWriteOptions(), key, bb.Bytes);
+				sms.autoKeysDb.put(RocksDatabase.getSyncWriteOptions(), key, bb.Bytes);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}

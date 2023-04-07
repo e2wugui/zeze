@@ -12,8 +12,8 @@ import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Services.HandshakeClient;
-import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.RocksDatabase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -51,7 +51,7 @@ public class RedoQueue extends HandshakeClient {
 		return families.computeIfAbsent(name, key -> {
 			try {
 				return db.createColumnFamily(new ColumnFamilyDescriptor(
-						key.getBytes(StandardCharsets.UTF_8), DatabaseRocksDb.getDefaultCfOptions()));
+						key.getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -66,12 +66,12 @@ public class RedoQueue extends HandshakeClient {
 		var dbHome = super.getName();
 		logger.info("RocksDB.open: '{}'", dbHome);
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-		for (var cf : RocksDB.listColumnFamilies(DatabaseRocksDb.getCommonOptions(), dbHome))
-			columnFamilies.add(new ColumnFamilyDescriptor(cf, DatabaseRocksDb.getDefaultCfOptions()));
+		for (var cf : RocksDB.listColumnFamilies(RocksDatabase.getCommonOptions(), dbHome))
+			columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
 		if (columnFamilies.isEmpty())
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), DatabaseRocksDb.getDefaultCfOptions()));
+			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), RocksDatabase.getDefaultCfOptions()));
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		db = RocksDB.open(DatabaseRocksDb.getCommonDbOptions(), dbHome, columnFamilies, outHandles);
+		db = RocksDB.open(RocksDatabase.getCommonDbOptions(), dbHome, columnFamilies, outHandles);
 		for (int i = 0; i < columnFamilies.size(); ++i) {
 			var cf = columnFamilies.get(i);
 			var str = new String(cf.getName(), StandardCharsets.UTF_8);
@@ -79,14 +79,14 @@ public class RedoQueue extends HandshakeClient {
 		}
 		familyLastDoneTaskId = getOrAddFamily("FamilyLastDoneTaskId");
 		familyTaskQueue = getOrAddFamily("FamilyTaskQueue");
-		try (var qit = db.newIterator(familyTaskQueue, DatabaseRocksDb.getDefaultReadOptions())) {
+		try (var qit = db.newIterator(familyTaskQueue, RocksDatabase.getDefaultReadOptions())) {
 			qit.seekToLast();
 			if (qit.isValid()) {
 				var last = ByteBuffer.Wrap(qit.key());
 				lastTaskId = last.ReadLong();
 			}
 		}
-		var done = db.get(familyLastDoneTaskId, DatabaseRocksDb.getDefaultReadOptions(), lastDoneTaskIdKey);
+		var done = db.get(familyLastDoneTaskId, RocksDatabase.getDefaultReadOptions(), lastDoneTaskIdKey);
 		if (done != null)
 			lastDoneTaskId = ByteBuffer.Wrap(done).ReadLong();
 		super.start();
@@ -113,7 +113,7 @@ public class RedoQueue extends HandshakeClient {
 			task.encode(value);
 
 			// 保存完整的rpc请求，重新发送的时候不用再次打包。
-			db.put(familyTaskQueue, DatabaseRocksDb.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex,
+			db.put(familyTaskQueue, RocksDatabase.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex,
 					value.Bytes, 0, value.WriteIndex);
 			tryStartSendNextTask(task, null);
 		} catch (RocksDBException ex) {
@@ -134,7 +134,7 @@ public class RedoQueue extends HandshakeClient {
 				// 最近加入的不是要发送的，从Db中读取。
 				var key = ByteBuffer.Allocate(16);
 				key.WriteLong(taskId);
-				var value = db.get(familyTaskQueue, DatabaseRocksDb.getDefaultReadOptions(),
+				var value = db.get(familyTaskQueue, RocksDatabase.getDefaultReadOptions(),
 						key.Bytes, 0, key.WriteIndex);
 				if (value == null)
 					return; // error
@@ -162,7 +162,7 @@ public class RedoQueue extends HandshakeClient {
 			lastDoneTaskId = rpc.Result.getTaskId();
 			var value = ByteBuffer.Allocate(9);
 			value.WriteLong(lastDoneTaskId);
-			db.put(familyLastDoneTaskId, DatabaseRocksDb.getDefaultWriteOptions(),
+			db.put(familyLastDoneTaskId, RocksDatabase.getDefaultWriteOptions(),
 					lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
 			tryStartSendNextTask(null, rpc.getSender());
 			return 0L;

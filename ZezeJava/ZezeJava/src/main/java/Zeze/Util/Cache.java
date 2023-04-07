@@ -75,7 +75,7 @@ public class Cache {
 
 		var key = ByteBuffer.Allocate(128);
 		key.WriteString(id);
-		var bytes = db.get(DatabaseRocksDb.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
+		var bytes = db.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
 		if (null != bytes) {
 			// decoder
 			var bb = ByteBuffer.Wrap(bytes);
@@ -107,7 +107,7 @@ public class Cache {
 
 		var key = ByteBuffer.Allocate(128);
 		key.WriteString(id);
-		db.put(DatabaseRocksDb.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex, bb.Bytes, 0, bb.WriteIndex);
+		db.put(RocksDatabase.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex, bb.Bytes, 0, bb.WriteIndex);
 
 		today().write((id + "\n").getBytes(StandardCharsets.UTF_8));
 	}
@@ -153,7 +153,7 @@ public class Cache {
 					continue; // 当前使用中的项不删除。
 				var key = ByteBuffer.Allocate(9);
 				key.WriteString(id);
-				db.delete(DatabaseRocksDb.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex);
+				db.delete(RocksDatabase.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex);
 			}
 		}
 	}

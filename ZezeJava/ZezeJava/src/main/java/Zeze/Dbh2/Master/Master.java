@@ -13,8 +13,8 @@ import Zeze.Builtin.Dbh2.Master.Register;
 import Zeze.Dbh2.Bucket;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Util.OutObject;
+import Zeze.Util.RocksDatabase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDB;
@@ -51,7 +51,7 @@ public class Master extends AbstractMaster {
 		var masterDbFile = new File(home, MasterDbName);
 		logger.info("RocksDB.open: '{}'", masterDbFile.toString());
 		masterDbFile.mkdirs();
-		masterDb = RocksDB.open(DatabaseRocksDb.getCommonOptions(), masterDbFile.toString());
+		masterDb = RocksDB.open(RocksDatabase.getCommonOptions(), masterDbFile.toString());
 
 		var dbs = new File(home).listFiles();
 		if (null != dbs) {

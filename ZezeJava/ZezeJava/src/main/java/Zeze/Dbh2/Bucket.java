@@ -8,7 +8,7 @@ import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.DatabaseRocksDb;
+import Zeze.Util.RocksDatabase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -98,7 +98,7 @@ public class Bucket {
 			if (columnFamilies.isEmpty())
 				columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), defaultCfOptions));
 			var cfHandlesOut = new ArrayList<ColumnFamilyHandle>();
-			this.db = OptimisticTransactionDB.open(DatabaseRocksDb.getCommonDbOptions(), path, columnFamilies, cfHandlesOut);
+			this.db = OptimisticTransactionDB.open(RocksDatabase.getCommonDbOptions(), path, columnFamilies, cfHandlesOut);
 			for (var i = 0; i < columnFamilies.size(); ++i) {
 				var cfName = new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8);
 				this.cfHandles.put(cfName, cfHandlesOut.get(i));

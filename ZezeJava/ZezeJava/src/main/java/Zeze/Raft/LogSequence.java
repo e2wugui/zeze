@@ -17,10 +17,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -53,7 +53,7 @@ public class LogSequence {
 
 	private long leaderActiveTime = System.currentTimeMillis(); // Leader, Follower
 
-	private WriteOptions writeOptions = DatabaseRocksDb.getSyncWriteOptions();
+	private WriteOptions writeOptions = RocksDatabase.getSyncWriteOptions();
 	private RocksDB logs;
 	private RocksDB rafts;
 	private final ConcurrentHashMap<String, UniqueRequestSet> uniqueRequestSets = new ConcurrentHashMap<>();
@@ -137,7 +137,7 @@ public class LogSequence {
 	private RocksIterator newLogsIterator() {
 		raft.lock();
 		try {
-			return logs.newIterator(DatabaseRocksDb.getDefaultReadOptions());
+			return logs.newIterator(RocksDatabase.getDefaultReadOptions());
 		} finally {
 			raft.unlock();
 		}
@@ -238,7 +238,7 @@ public class LogSequence {
 			log.getLog().getUnique().encode(key);
 
 			// 先读取并检查状态，减少写操作。
-			var existBytes = db.get(DatabaseRocksDb.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
+			var existBytes = db.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
 			if (!isApply && existBytes != null)
 				throw new RaftRetryException("Duplicate Request Found = " + log.getLog().getUnique());
 
@@ -271,7 +271,7 @@ public class LogSequence {
 		public UniqueRequestState getRequestState(IRaftRpc raftRpc) throws IOException, RocksDBException {
 			var key = ByteBuffer.Allocate(32);
 			raftRpc.getUnique().encode(key);
-			var val = openDb().get(DatabaseRocksDb.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
+			var val = openDb().get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
 			if (val == null)
 				return null;
 			var bb = ByteBuffer.Wrap(val);
@@ -289,7 +289,7 @@ public class LogSequence {
 						Files.createDirectories(Paths.get(dir));
 					} catch (FileAlreadyExistsException ignored) {
 					}
-					db = LogSequence.openDb(DatabaseRocksDb.getCommonOptions(), Paths.get(dir, dbName).toString());
+					db = LogSequence.openDb(RocksDatabase.getCommonOptions(), Paths.get(dir, dbName).toString());
 				}
 				return db;
 			} finally {
@@ -403,25 +403,26 @@ public class LogSequence {
 	public LogSequence(Raft raft) throws RocksDBException {
 		this.raft = raft;
 
-		rafts = openDb(DatabaseRocksDb.getCommonOptions(), Paths.get(this.raft.getRaftConfig().getDbHome(), "rafts").toString());
+		rafts = openDb(RocksDatabase.getCommonOptions(),
+				Paths.get(this.raft.getRaftConfig().getDbHome(), "rafts").toString());
 		{
 			// Read Term
 			var termKey = ByteBuffer.Allocate(1);
 			termKey.WriteInt(0);
 			raftsTermKey = termKey.Copy();
-			var termValue = rafts.get(DatabaseRocksDb.getDefaultReadOptions(), raftsTermKey);
+			var termValue = rafts.get(RocksDatabase.getDefaultReadOptions(), raftsTermKey);
 			term = termValue != null ? ByteBuffer.Wrap(termValue).ReadLong() : 0;
 			// Read VoteFor
 			var voteForKey = ByteBuffer.Allocate(1);
 			voteForKey.WriteInt(1);
 			raftsVoteForKey = voteForKey.Copy();
-			var voteForValue = rafts.get(DatabaseRocksDb.getDefaultReadOptions(), raftsVoteForKey);
+			var voteForValue = rafts.get(RocksDatabase.getDefaultReadOptions(), raftsVoteForKey);
 			voteFor = voteForValue != null ? ByteBuffer.Wrap(voteForValue).ReadString() : "";
 			// Read FirstIndex 由于snapshot并发，Logs中的第一条记录可能不是FirstIndex了。
 			var firstIndexKey = ByteBuffer.Allocate(1);
 			firstIndexKey.WriteInt(2);
 			raftsFirstIndexKey = firstIndexKey.Copy();
-			var firstIndexValue = rafts.get(DatabaseRocksDb.getDefaultReadOptions(), raftsFirstIndexKey);
+			var firstIndexValue = rafts.get(RocksDatabase.getDefaultReadOptions(), raftsFirstIndexKey);
 			firstIndex = firstIndexValue != null ? ByteBuffer.Wrap(firstIndexValue).ReadLong() : -1; // never snapshot. will re-initialize later.
 			// NodeReady
 			// 节点第一次启动，包括机器毁坏后换了新机器再次启动时为 false。
@@ -433,15 +434,16 @@ public class LogSequence {
 			var nodeReadyKey = ByteBuffer.Allocate(1);
 			nodeReadyKey.WriteInt(3);
 			raftsNodeReadyKey = nodeReadyKey.Copy();
-			var nodeReadyValue = rafts.get(DatabaseRocksDb.getDefaultReadOptions(), raftsNodeReadyKey);
+			var nodeReadyValue = rafts.get(RocksDatabase.getDefaultReadOptions(), raftsNodeReadyKey);
 			if (nodeReadyValue != null)
 				nodeReady = ByteBuffer.Wrap(nodeReadyValue).ReadBool();
 		}
 
-		logs = openDb(DatabaseRocksDb.getCommonOptions(), Paths.get(this.raft.getRaftConfig().getDbHome(), "logs").toString());
+		logs = openDb(RocksDatabase.getCommonOptions(),
+				Paths.get(this.raft.getRaftConfig().getDbHome(), "logs").toString());
 		{
 			// Read Last Log Index
-			try (var itLast = logs.newIterator(DatabaseRocksDb.getDefaultReadOptions())) {
+			try (var itLast = logs.newIterator(RocksDatabase.getDefaultReadOptions())) {
 				itLast.seekToLast();
 				if (itLast.isValid())
 					lastIndex = RaftLog.decodeTermIndex(itLast.value()).getIndex();
@@ -455,7 +457,7 @@ public class LogSequence {
 
 				// 【注意】snapshot 以后 FirstIndex 会推进，不再是从0开始。
 				if (firstIndex == -1) { // never snapshot
-					try (var itFirst = logs.newIterator(DatabaseRocksDb.getDefaultReadOptions())) {
+					try (var itFirst = logs.newIterator(RocksDatabase.getDefaultReadOptions())) {
 						itFirst.seekToFirst();
 						if (itFirst.isValid()) {
 							firstIndex = RaftLog.decode(new Binary(itFirst.value()),
@@ -537,7 +539,7 @@ public class LogSequence {
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(index);
 		RocksDB logs = this.logs;
-		return logs != null ? logs.get(DatabaseRocksDb.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex) : null;
+		return logs != null ? logs.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex) : null;
 	}
 
 	private RaftLog readLog(long index) throws RocksDBException {
@@ -850,7 +852,7 @@ public class LogSequence {
 				cancelPendingAppendLogFutures();
 				var logsDir = Paths.get(raft.getRaftConfig().getDbHome(), "logs").toString();
 				deletedDirectoryAndCheck(new File(logsDir), 10000);
-				logs = openDb(DatabaseRocksDb.getCommonOptions(), logsDir);
+				logs = openDb(RocksDatabase.getCommonOptions(), logsDir);
 				var lastIncludedLog = RaftLog.decode(r.Argument.getLastIncludedLog(),
 						raft.getStateMachine()::logFactory);
 				saveLog(lastIncludedLog);

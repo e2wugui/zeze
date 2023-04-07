@@ -3,94 +3,28 @@ package Zeze.Transaction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.IntList;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
+import Zeze.Util.RocksDatabase;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ColumnFamilyOptions;
-import org.rocksdb.DBOptions;
-import org.rocksdb.Options;
-import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteBatch;
-import org.rocksdb.WriteOptions;
 
 public class DatabaseRocksDb extends Database {
-	private static final Options commonOptions = new Options()
-			.setCreateIfMissing(true)
-			.setDbWriteBufferSize(64 << 20) // total write buffer bytes, include all the columns
-			.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
-	private static final DBOptions commonDbOptions = new DBOptions()
-			.setCreateIfMissing(true)
-			.setDbWriteBufferSize(64 << 20) // total write buffer bytes, include all the columns
-			.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
-	private static final ColumnFamilyOptions defaultCfOptions = new ColumnFamilyOptions();
-	private static final ReadOptions defaultReadOptions = new ReadOptions();
-	private static final WriteOptions defaultWriteOptions = new WriteOptions();
-	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
 
 	private final RocksDB rocksDb;
 	private final HashMap<String, ColumnFamilyHandle> columnFamilies = new HashMap<>();
-
-	static {
-		RocksDB.loadLibrary();
-	}
-
-	public static Options getCommonOptions() {
-		return commonOptions;
-	}
-
-	public static DBOptions getCommonDbOptions() {
-		return commonDbOptions;
-	}
-
-	public static ColumnFamilyOptions getDefaultCfOptions() {
-		return defaultCfOptions;
-	}
-
-	public static ReadOptions getDefaultReadOptions() {
-		return defaultReadOptions;
-	}
-
-	public static WriteOptions getDefaultWriteOptions() {
-		return defaultWriteOptions;
-	}
-
-	public static WriteOptions getSyncWriteOptions() {
-		return syncWriteOptions;
-	}
-
-	public static RocksDB open(DBOptions options, String path, List<ColumnFamilyDescriptor> columnFamilyDescriptors,
-							   List<ColumnFamilyHandle> columnFamilyHandles) throws RocksDBException {
-		logger.info("RocksDB.open: '{}'", path);
-		for (int i = 0; ; ) {
-			try {
-				//options.setAtomicFlush(true); // atomic batch 独立于这个选项？
-				options.setMaxWriteBatchGroupSizeBytes(100 * 1024 * 1024);
-				return RocksDB.open(options, path, columnFamilyDescriptors, columnFamilyHandles);
-			} catch (RocksDBException e) {
-				logger.warn("RocksDB.open '{}' failed:", path, e);
-				if (++i >= 10)
-					throw e;
-				try {
-					//noinspection BusyWait
-					Thread.sleep(1000);
-				} catch (InterruptedException ignored) {
-					throw e;
-				}
-			}
-		}
-	}
 
 	public DatabaseRocksDb(@NotNull Application zeze, @NotNull Config.DatabaseConf conf) {
 		super(zeze, conf);
@@ -98,14 +32,15 @@ public class DatabaseRocksDb extends Database {
 		var dbHome = getDatabaseUrl().isEmpty() ? "db" : getDatabaseUrl();
 		try {
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-			for (var cf : RocksDB.listColumnFamilies(commonOptions, dbHome))
-				columnFamilies.add(new ColumnFamilyDescriptor(cf, defaultCfOptions));
+			for (var cf : RocksDB.listColumnFamilies(RocksDatabase.getCommonOptions(), dbHome))
+				columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
 			if (columnFamilies.isEmpty())
-				columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), defaultCfOptions));
+				columnFamilies.add(new ColumnFamilyDescriptor(
+						"default".getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
 
 			// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 			var outHandles = new ArrayList<ColumnFamilyHandle>();
-			rocksDb = open(commonDbOptions, dbHome, columnFamilies, outHandles);
+			rocksDb = RocksDatabase.open(RocksDatabase.getCommonDbOptions(), dbHome, columnFamilies, outHandles);
 
 			for (int i = 0; i < columnFamilies.size(); i++) {
 				var name = new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8);
@@ -200,14 +135,14 @@ public class DatabaseRocksDb extends Database {
 			if (null != verifyAction) {
 				synchronized (rocksDb) {
 					try {
-						rocksDb.write(defaultWriteOptions, batch);
+						rocksDb.write(RocksDatabase.getDefaultWriteOptions(), batch);
 					} catch (RocksDBException e) {
 						throw new RuntimeException(e);
 					}
 				}
 			} else {
 				try {
-					rocksDb.write(defaultWriteOptions, batch);
+					rocksDb.write(RocksDatabase.getSyncWriteOptions(), batch);
 				} catch (RocksDBException e) {
 					throw new RuntimeException(e);
 				}
@@ -237,7 +172,7 @@ public class DatabaseRocksDb extends Database {
 				if (isNew != null)
 					isNew.value = true;
 				return rocksDb.createColumnFamily(
-						new ColumnFamilyDescriptor(key.getBytes(StandardCharsets.UTF_8), defaultCfOptions));
+						new ColumnFamilyDescriptor(key.getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -270,7 +205,7 @@ public class DatabaseRocksDb extends Database {
 		n = keyList.size();
 		if (n > 0) {
 			try {
-				var cfhs = rocksDb.createColumnFamilies(defaultCfOptions, keyList);
+				var cfhs = rocksDb.createColumnFamilies(RocksDatabase.getDefaultCfOptions(), keyList);
 				if (cfhs.size() != keyList.size()) {
 					throw new IllegalStateException("createColumnFamilies unmatched: "
 							+ cfhs.size() + " != " + keyList.size());
@@ -314,7 +249,7 @@ public class DatabaseRocksDb extends Database {
 		@Override
 		public ByteBuffer find(ByteBuffer key) {
 			try {
-				var value = rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size());
+				var value = rocksDb.get(columnFamily, RocksDatabase.getDefaultReadOptions(), key.Bytes, key.ReadIndex, key.Size());
 				return value != null ? ByteBuffer.Wrap(value) : null;
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
@@ -333,7 +268,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public long walk(TableWalkHandleRaw callback) {
-			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+			try (var it = rocksDb.newIterator(columnFamily, RocksDatabase.getDefaultReadOptions())) {
 				long countWalked = 0;
 				for (it.seekToFirst(); it.isValid(); it.next()) {
 					countWalked++;
@@ -346,7 +281,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public long walkKey(TableWalkKeyRaw callback) {
-			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+			try (var it = rocksDb.newIterator(columnFamily, RocksDatabase.getDefaultReadOptions())) {
 				long countWalked = 0;
 				for (it.seekToFirst(); it.isValid(); it.next()) {
 					countWalked++;
@@ -359,7 +294,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public long walkDesc(TableWalkHandleRaw callback) {
-			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+			try (var it = rocksDb.newIterator(columnFamily, RocksDatabase.getDefaultReadOptions())) {
 				long countWalked = 0;
 				for (it.seekToLast(); it.isValid(); it.prev()) {
 					countWalked++;
@@ -372,7 +307,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public long walkKeyDesc(TableWalkKeyRaw callback) {
-			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+			try (var it = rocksDb.newIterator(columnFamily, RocksDatabase.getDefaultReadOptions())) {
 				long countWalked = 0;
 				for (it.seekToLast(); it.isValid(); it.prev()) {
 					countWalked++;
@@ -387,7 +322,7 @@ public class DatabaseRocksDb extends Database {
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			if (proposeLimit <= 0)
 				return null;
-			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+			try (var it = rocksDb.newIterator(columnFamily, RocksDatabase.getDefaultReadOptions())) {
 				if (exclusiveStartKey == null)
 					it.seekToFirst();
 				else
@@ -413,7 +348,7 @@ public class DatabaseRocksDb extends Database {
 		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
 			if (proposeLimit <= 0)
 				return null;
-			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+			try (var it = rocksDb.newIterator(columnFamily, RocksDatabase.getDefaultReadOptions())) {
 				if (exclusiveStartKey == null)
 					it.seekToFirst();
 				else
@@ -439,7 +374,7 @@ public class DatabaseRocksDb extends Database {
 		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			if (proposeLimit <= 0)
 				return null;
-			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+			try (var it = rocksDb.newIterator(columnFamily, RocksDatabase.getDefaultReadOptions())) {
 				if (exclusiveStartKey == null)
 					it.seekToLast();
 				else
@@ -465,7 +400,7 @@ public class DatabaseRocksDb extends Database {
 		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
 			if (proposeLimit <= 0)
 				return null;
-			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+			try (var it = rocksDb.newIterator(columnFamily, RocksDatabase.getDefaultReadOptions())) {
 				if (exclusiveStartKey == null)
 					it.seekToLast();
 				else
@@ -494,7 +429,8 @@ public class DatabaseRocksDb extends Database {
 		@Override
 		public synchronized DataWithVersion getDataWithVersion(ByteBuffer key) {
 			try {
-				return DataWithVersion.decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
+				return DataWithVersion.decode(rocksDb.get(columnFamily,
+						RocksDatabase.getDefaultReadOptions(), key.Bytes, key.ReadIndex, key.Size()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -503,7 +439,8 @@ public class DatabaseRocksDb extends Database {
 		@Override
 		public synchronized KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			try {
-				var dv = DataWithVersion.decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
+				var dv = DataWithVersion.decode(rocksDb.get(columnFamily,
+						RocksDatabase.getDefaultReadOptions(), key.Bytes, key.ReadIndex, key.Size()));
 				if (dv.version != version)
 					return KV.create(version, false);
 
@@ -511,7 +448,7 @@ public class DatabaseRocksDb extends Database {
 				dv.data = data;
 				var value = ByteBuffer.Allocate();
 				dv.encode(value);
-				rocksDb.put(columnFamily, defaultWriteOptions,
+				rocksDb.put(columnFamily, RocksDatabase.getDefaultWriteOptions(),
 						key.Bytes, key.ReadIndex, key.size(),
 						value.Bytes, value.ReadIndex, value.size());
 				return KV.create(version, true);

@@ -6,11 +6,11 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Util.ConcurrentLruLike;
 import Zeze.Util.Func1;
 import Zeze.Util.Func2;
 import Zeze.Util.Reflect;
+import Zeze.Util.RocksDatabase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyHandle;
@@ -192,7 +192,7 @@ public final class Table<K, V extends Bean> {
 		keyEncodeFunc.accept(keyBB, key);
 		byte[] valueBytes;
 		try {
-			valueBytes = rocks.getStorage().get(columnFamily, DatabaseRocksDb.getDefaultReadOptions(),
+			valueBytes = rocks.getStorage().get(columnFamily, RocksDatabase.getDefaultReadOptions(),
 					keyBB.Bytes, 0, keyBB.WriteIndex);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
@@ -265,7 +265,7 @@ public final class Table<K, V extends Bean> {
 	}
 
 	public boolean walk(Func2<K, V, Boolean> callback) throws Exception {
-		try (var it = rocks.getStorage().newIterator(columnFamily, DatabaseRocksDb.getDefaultReadOptions())) {
+		try (var it = rocks.getStorage().newIterator(columnFamily, RocksDatabase.getDefaultReadOptions())) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));
 				var value = newValue();
@@ -278,7 +278,7 @@ public final class Table<K, V extends Bean> {
 	}
 
 	public boolean walkKey(Func1<K, Boolean> callback) throws Exception {
-		try (var it = rocks.getStorage().newIterator(columnFamily, DatabaseRocksDb.getDefaultReadOptions())) {
+		try (var it = rocks.getStorage().newIterator(columnFamily, RocksDatabase.getDefaultReadOptions())) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));
 				if (!callback.call(key))
