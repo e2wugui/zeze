@@ -58,7 +58,7 @@ public class Bucket {
 			var path = Path.of(raftConfig.getDbHome(), "statemachine").toAbsolutePath().toString();
 			logger.info("RocksDB.open: '{}'", path);
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-			for (var cf : OptimisticTransactionDB.listColumnFamilies(new Options(), path))
+			for (var cf : OptimisticTransactionDB.listColumnFamilies(RocksDatabase.getCommonOptions(), path))
 				columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
 			if (columnFamilies.isEmpty())
 				columnFamilies.add(new ColumnFamilyDescriptor(
