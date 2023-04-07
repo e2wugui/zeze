@@ -13,11 +13,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ColumnFamilyOptions;
-import org.rocksdb.DBOptions;
 import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
-import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
 
@@ -26,42 +23,6 @@ import org.rocksdb.WriteOptions;
  */
 public class Bucket {
 	private static final Logger logger = LogManager.getLogger(Bucket.class);
-	private static final Options commonOptions = new Options()
-			.setCreateIfMissing(true)
-			.setDbWriteBufferSize(64 << 20) // total write buffer bytes, include all the columns
-			.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
-	private static final DBOptions commonDbOptions = new DBOptions()
-			.setCreateIfMissing(true)
-			.setDbWriteBufferSize(64 << 20) // total write buffer bytes, include all the columns
-			.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
-	private static final ColumnFamilyOptions defaultCfOptions = new ColumnFamilyOptions();
-	private static final ReadOptions defaultReadOptions = new ReadOptions();
-	private static final WriteOptions defaultWriteOptions = new WriteOptions();
-	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
-
-	public static Options getCommonOptions() {
-		return commonOptions;
-	}
-
-	public static DBOptions getCommonDbOptions() {
-		return commonDbOptions;
-	}
-
-	public static ColumnFamilyOptions getDefaultCfOptions() {
-		return defaultCfOptions;
-	}
-
-	public static ReadOptions getDefaultReadOptions() {
-		return defaultReadOptions;
-	}
-
-	public static WriteOptions getDefaultWriteOptions() {
-		return defaultWriteOptions;
-	}
-
-	public static WriteOptions getSyncWriteOptions() {
-		return syncWriteOptions;
-	}
 
 	private final OptimisticTransactionDB db;
 	private final HashMap<String, ColumnFamilyHandle> cfHandles = new HashMap<>();
@@ -75,8 +36,8 @@ public class Bucket {
 	private ColumnFamilyHandle cfOpen(String name) {
 		return cfHandles.computeIfAbsent(name, (_name) -> {
 			try {
-				return db.createColumnFamily(
-						new ColumnFamilyDescriptor(name.getBytes(StandardCharsets.UTF_8), defaultCfOptions));
+				return db.createColumnFamily(new ColumnFamilyDescriptor(
+						name.getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -94,9 +55,10 @@ public class Bucket {
 			logger.info("RocksDB.open: '{}'", path);
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 			for (var cf : OptimisticTransactionDB.listColumnFamilies(new Options(), path))
-				columnFamilies.add(new ColumnFamilyDescriptor(cf, defaultCfOptions));
+				columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
 			if (columnFamilies.isEmpty())
-				columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), defaultCfOptions));
+				columnFamilies.add(new ColumnFamilyDescriptor(
+						"default".getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
 			var cfHandlesOut = new ArrayList<ColumnFamilyHandle>();
 			this.db = OptimisticTransactionDB.open(RocksDatabase.getCommonDbOptions(), path, columnFamilies, cfHandlesOut);
 			for (var i = 0; i < columnFamilies.size(); ++i) {
@@ -146,7 +108,7 @@ public class Bucket {
 		var lock = Lock.get(key.bytesUnsafe());
 		lock.lock();
 		try {
-			return db.get(getDefaultReadOptions(), key.bytesUnsafe(), key.getOffset(), key.size());
+			return db.get(RocksDatabase.getDefaultReadOptions(), key.bytesUnsafe(), key.getOffset(), key.size());
 		} finally {
 			lock.unlock();
 		}

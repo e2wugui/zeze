@@ -36,7 +36,7 @@ public class MasterDatabase {
 			dbHome.toFile().mkdirs();
 			this.db = RocksDB.open(RocksDatabase.getCommonOptions(), dbHome.toString());
 
-			try (var it = this.db.newIterator(Bucket.getDefaultReadOptions())) {
+			try (var it = this.db.newIterator(RocksDatabase.getDefaultReadOptions())) {
 				it.seekToFirst();
 				while (it.isValid()) {
 					var tableName = new String(it.key(), StandardCharsets.UTF_8);
@@ -147,7 +147,7 @@ public class MasterDatabase {
 			var bbValue = ByteBuffer.Allocate();
 			table.encode(bbValue);
 			var key = tableName.getBytes(StandardCharsets.UTF_8);
-			this.db.put(Bucket.getDefaultWriteOptions(), key, 0, key.length, bbValue.Bytes, bbValue.ReadIndex, bbValue.size());
+			this.db.put(RocksDatabase.getDefaultWriteOptions(), key, 0, key.length, bbValue.Bytes, bbValue.ReadIndex, bbValue.size());
 
 			// 保存在内存中，用来快速查询。
 			this.tables.put(tableName, table);

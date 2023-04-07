@@ -80,14 +80,14 @@ public class Master extends AbstractMaster {
 	public synchronized int nextBucketPortId(String acceptorName) throws RocksDBException {
 		var seed = 10000;
 		var seedKey = acceptorName.getBytes(StandardCharsets.UTF_8);
-		var seedValue = masterDb.get(Bucket.getDefaultReadOptions(), seedKey);
+		var seedValue = masterDb.get(RocksDatabase.getDefaultReadOptions(), seedKey);
 		if (null != seedValue) {
 			seed = ByteBuffer.Wrap(seedValue).ReadInt();
 		}
 		seed++;
 		var bb = ByteBuffer.Allocate();
 		bb.WriteInt(seed);
-		masterDb.put(Bucket.getDefaultWriteOptions(), seedKey, 0, seedKey.length, bb.Bytes, bb.ReadIndex, bb.size());
+		masterDb.put(RocksDatabase.getDefaultWriteOptions(), seedKey, 0, seedKey.length, bb.Bytes, bb.ReadIndex, bb.size());
 		return seed;
 	}
 
@@ -118,7 +118,7 @@ public class Master extends AbstractMaster {
 			if (choiceIndex == last)
 				break; // 绕回来了。
 		}
-		return result; // size仍然可能小于3
+		return result;
 	}
 
 	@Override

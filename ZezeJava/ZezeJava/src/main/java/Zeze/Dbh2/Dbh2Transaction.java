@@ -1,9 +1,10 @@
 package Zeze.Dbh2;
 
+import java.io.Closeable;
 import java.util.concurrent.ConcurrentHashMap;
 import org.rocksdb.RocksDBException;
 
-public class Dbh2Transaction {
+public class Dbh2Transaction implements Closeable {
 	private final org.rocksdb.Transaction transaction;
 	private final ConcurrentHashMap<Lock, Lock> locks = new ConcurrentHashMap<>();
 
@@ -42,6 +43,7 @@ public class Dbh2Transaction {
 		transaction.commit();
 	}
 
+	@Override
 	public void close() {
 		transaction.close();
 		unlockAll();

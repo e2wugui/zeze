@@ -12,6 +12,7 @@ import Zeze.Builtin.Dbh2.BPutArgument;
 import Zeze.Builtin.Dbh2.BRollbackTransactionArgument;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
+import Zeze.Util.RocksDatabase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.BackupEngine;
@@ -85,15 +86,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void commitTransaction(BCommitTransactionArgument.Data argument) {
-		try {
-			var transaction = transactionMap.remove(argument.getTransactionId());
-			if (null != transaction) {
-				try {
-					transaction.commit();
-				} finally {
-					transaction.close();
-				}
-			}
+		try (var transaction = transactionMap.remove(argument.getTransactionId())) {
+			if (null != transaction)
+				transaction.commit();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -101,15 +96,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void rollbackTransaction(BRollbackTransactionArgument.Data argument) {
-		try {
-			var transaction = transactionMap.remove(argument.getTransactionId());
-			if (null != transaction) {
-				try {
-					transaction.rollback();
-				} finally {
-					transaction.close();
-				}
-			}
+		try (var transaction = transactionMap.remove(argument.getTransactionId())) {
+			if (null != transaction)
+				transaction.rollback();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -208,17 +197,17 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public static ArrayList<ColumnFamilyDescriptor> getColumnFamilies(String dir) throws RocksDBException {
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		if (new File(dir).isDirectory()) {
-			for (var cf : OptimisticTransactionDB.listColumnFamilies(Bucket.getCommonOptions(), dir))
-				columnFamilies.add(new ColumnFamilyDescriptor(cf, Bucket.getDefaultCfOptions()));
+			for (var cf : OptimisticTransactionDB.listColumnFamilies(RocksDatabase.getCommonOptions(), dir))
+				columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
 		}
 		if (columnFamilies.isEmpty())
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), Bucket.getDefaultCfOptions()));
+			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), RocksDatabase.getDefaultCfOptions()));
 		return columnFamilies;
 	}
 
 	public static void backup(String checkpointDir, String backupDir) throws RocksDBException {
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		try (var src = OptimisticTransactionDB.open(Bucket.getCommonDbOptions(), checkpointDir,
+		try (var src = OptimisticTransactionDB.open(RocksDatabase.getCommonDbOptions(), checkpointDir,
 				getColumnFamilies(checkpointDir), outHandles);
 			 var backupOptions = new BackupEngineOptions(backupDir);
 			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
