@@ -87,7 +87,7 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 		if (result == null) { // slow-path
 			result = dataMap.computeIfAbsent(key, k -> {
 				var r = valueFactory.create();
-				lruHot.put(key, r); // replace: add or update see this.Remove
+				lruHot.put(k, r); // replace: add or update see this.Remove
 				r.setLruNode(lruHot);
 				return r;
 			});

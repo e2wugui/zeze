@@ -398,9 +398,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @NotNull Binary encodeGlobalKey(@NotNull K key) {
-		var bb = ByteBuffer.Allocate();
-		bb.WriteInt4(getId());
 		var bbKey = encodeKey(key);
+		var bb = ByteBuffer.Allocate(4 + bbKey.size());
+		bb.WriteInt4(getId());
 		bb.Append(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
 		return new Binary(bb);
 	}

@@ -70,7 +70,6 @@ public class ProviderService extends HandshakeClient {
 			var outC = new OutObject<Connector>();
 			if (getConfig().tryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
 				try {
-					//noinspection DataFlowIssue
 					outC.value.start();
 				} catch (Exception e) {
 					throw new RuntimeException(e);

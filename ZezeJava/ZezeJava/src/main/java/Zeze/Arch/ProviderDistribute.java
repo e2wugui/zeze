@@ -32,7 +32,7 @@ public class ProviderDistribute {
 	}
 
 	public void addServer(Agent.SubscribeState state, BServiceInfo s) {
-		consistentHashes.computeIfAbsent(s.getServiceName(), key -> new ConsistentHash<>())
+		consistentHashes.computeIfAbsent(s.getServiceName(), __ -> new ConsistentHash<>())
 				.add(s.getServiceIdentity(), s);
 	}
 
@@ -43,7 +43,7 @@ public class ProviderDistribute {
 	}
 
 	public void applyServers(Agent.SubscribeState ass) {
-		var consistentHash = consistentHashes.computeIfAbsent(ass.getServiceName(), key -> new ConsistentHash<>());
+		var consistentHash = consistentHashes.computeIfAbsent(ass.getServiceName(), __ -> new ConsistentHash<>());
 		var nodeSet = consistentHash.getNodes();
 		var nodes = nodeSet.toArray(new BServiceInfo[nodeSet.size()]);
 		var current = new HashSet<BServiceInfo>();

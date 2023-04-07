@@ -95,7 +95,7 @@ public final class ServiceConf {
 										@Nullable OutObject<Connector> getOrAdd) {
 		var name = host + ":" + port;
 		final var addNew = new OutObject<Connector>();
-		var c = connectors.computeIfAbsent(name, key -> {
+		var c = connectors.computeIfAbsent(name, __ -> {
 			Connector add = new Connector(host, port, autoReconnect);
 			add.SetService(service);
 			addNew.value = add;

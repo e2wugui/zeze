@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class OutObject<T> {
-	public @Nullable T value;
+	public T value;
 
 	public OutObject() {
 	}

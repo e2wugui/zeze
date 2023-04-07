@@ -74,7 +74,7 @@ public class Dbh2Manager {
 				r.Argument.getRaftConfig(),
 				StandardOpenOption.CREATE);
 		dbh2s.computeIfAbsent(r.Argument.getRaftConfig(),
-				(key) -> new Dbh2(this, raftConfig.getName(), raftConfig, null, false));
+				__ -> new Dbh2(this, raftConfig.getName(), raftConfig, null, false));
 		r.SendResult();
 		return 0;
 	}
@@ -131,7 +131,7 @@ public class Dbh2Manager {
 			var raftConfig = RaftConfig.loadFromString(raftStr);
 			raftConfig.setDbHome(raftXml.getParent()); // todo 这个路径对吗？ 需要调试一下。
 			dbh2s.computeIfAbsent(raftStr,
-					(key) -> new Dbh2(this, raftConfig.getName(), raftConfig, null, false));
+					__ -> new Dbh2(this, raftConfig.getName(), raftConfig, null, false));
 		}
 		masterAgent.startAndWaitConnectionReady();
 		reportTimer = Task.scheduleUnsafe(2000, 2000, this::reportLoad);

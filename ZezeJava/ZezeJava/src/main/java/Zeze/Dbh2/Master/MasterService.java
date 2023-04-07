@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class MasterService extends Zeze.Net.Service {
-	public Main main;
+	private final Main main;
 
 	public MasterService(Main main, Config config) {
 		super("Zeze.Dbh2.Master", config);

@@ -14,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.OptimisticTransactionDB;
-import org.rocksdb.Options;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
 
@@ -33,11 +32,11 @@ public class Bucket {
 	private final byte[] metaKey = new byte[]{1};
 	private final byte[] metaTid = new byte[0];
 
-	private ColumnFamilyHandle openFamily(String name) {
-		return cfHandles.computeIfAbsent(name, (_name) -> {
+	private ColumnFamilyHandle openFamily(@SuppressWarnings("SameParameterValue") String name) {
+		return cfHandles.computeIfAbsent(name, _name -> {
 			try {
 				return db.createColumnFamily(new ColumnFamilyDescriptor(
-						name.getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
+						_name.getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -87,14 +86,14 @@ public class Bucket {
 	}
 
 	public void setMeta(BBucketMeta.Data meta) throws RocksDBException {
-		var bb = ByteBuffer.Allocate();
+		var bb = ByteBuffer.Allocate(32);
 		meta.encode(bb);
 		db.put(cfMeta, writeOptions, metaKey, 0, metaKey.length, bb.Bytes, bb.ReadIndex, bb.size());
 		this.meta = meta;
 	}
 
 	public void setTid(long tid) throws RocksDBException {
-		var bb = ByteBuffer.Allocate();
+		var bb = ByteBuffer.Allocate(9);
 		bb.WriteLong(tid);
 		db.put(cfMeta, writeOptions, metaTid, 0, metaTid.length, bb.Bytes, bb.ReadIndex, bb.size());
 		this.tid = tid;

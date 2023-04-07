@@ -41,7 +41,7 @@ public class Counters {
 
 	public void increment(String name) {
 		if (enable)
-			counters.computeIfAbsent(name, key -> new LongAdder()).increment();
+			counters.computeIfAbsent(name, __ -> new LongAdder()).increment();
 	}
 
 	private synchronized void report() {
@@ -51,7 +51,7 @@ public class Counters {
 		sb.append(dateFormat.format(c.getTime())).append(name).append("\n");
 		var changed = false;
 		for (var e : counters.entrySet()) {
-			var prev = reports.computeIfAbsent(e.getKey(), key -> new AtomicLong());
+			var prev = reports.computeIfAbsent(e.getKey(), __ -> new AtomicLong());
 			var total = e.getValue().sum();
 			var diff = total - prev.get();
 			if (diff > 0)

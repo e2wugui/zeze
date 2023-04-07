@@ -10,7 +10,6 @@ import java.nio.file.Paths;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.DatabaseRocksDb;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 

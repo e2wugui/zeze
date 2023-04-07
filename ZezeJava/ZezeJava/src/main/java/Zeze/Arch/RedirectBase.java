@@ -149,7 +149,7 @@ public class RedirectBase {
 					try {
 						var service = providerApp.providerDirectService;
 						// 为了完整支持事务重置传入的协议，这里需要编码一次。
-						var bb = ByteBuffer.Allocate();
+						var bb = ByteBuffer.Allocate(32);
 						request.encode(bb);
 						service.dispatchProtocol(request.getTypeId(), bb,
 								Objects.requireNonNull(service.findProtocolFactoryHandle(request.getTypeId())), null);
@@ -176,7 +176,7 @@ public class RedirectBase {
 			miss.setResultCode(ModuleRedirect.ResultCodeLinkdNoProvider);
 			try {
 				var service = providerApp.providerDirectService;
-				var bb = ByteBuffer.Allocate();
+				var bb = ByteBuffer.Allocate(32);
 				miss.encode(bb);
 				service.dispatchProtocol(miss.getTypeId(), bb,
 						Objects.requireNonNull(service.findProtocolFactoryHandle(miss.getTypeId())), null);

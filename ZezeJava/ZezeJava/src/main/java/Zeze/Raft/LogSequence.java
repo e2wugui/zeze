@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.ParseException;
@@ -22,7 +23,6 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
@@ -201,29 +201,11 @@ public class LogSequence {
 		leaderActiveTime = value;
 	}
 
-	public static RocksDB openDb(Options options, String path) throws RocksDBException {
-		RocksDBException lastE = null;
-		logger.info("RocksDB.open: '{}'", path);
-		for (int i = 0; i < 10; ++i) {
-			try {
-				return RocksDB.open(options, path);
-			} catch (RocksDBException e) {
-				logger.warn("RocksDB.open failed: '{}'", path, e);
-				lastE = e;
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException ignored) {
-				}
-			}
-		}
-		throw lastE;
-	}
-
 	final class UniqueRequestSet {
-		private RocksDatabase.Table table;
+		private final RocksDatabase.Table table;
 
 		public UniqueRequestSet(String tableName) {
-			this.table = database.openTable(tableName);
+			table = database.openTable(tableName);
 		}
 
 		private void put(RaftLog log, boolean isApply) throws IOException, RocksDBException {
@@ -271,10 +253,6 @@ public class LogSequence {
 			var state = new UniqueRequestState();
 			state.decode(bb);
 			return state;
-		}
-
-		public void close() {
-			table.close();
 		}
 	}
 
@@ -342,10 +320,7 @@ public class LogSequence {
 				logs = null;
 			}
 
-			if (rafts != null) {
-				rafts.close();
-				rafts = null;
-			}
+			rafts = null;
 
 			if (database != null) {
 				logger.info("closeDb: {}, rafts", raft.getRaftConfig().getDbHome());
@@ -353,8 +328,6 @@ public class LogSequence {
 				database = null;
 			}
 
-			for (var db : uniqueRequestSets.values())
-				db.close();
 			uniqueRequestSets.clear();
 		} finally {
 			raft.unlock();
@@ -364,8 +337,8 @@ public class LogSequence {
 	public LogSequence(Raft raft) throws RocksDBException {
 		this.raft = raft;
 
-		this.database = new RocksDatabase(Paths.get(this.raft.getRaftConfig().getDbHome(), "rafts").toString());
-		rafts = this.database.openTable("rafts");
+		database = new RocksDatabase(Paths.get(raft.getRaftConfig().getDbHome(), "rafts").toString());
+		rafts = database.openTable("rafts");
 		{
 			// Read Term
 			var termKey = ByteBuffer.Allocate(1);
@@ -400,8 +373,8 @@ public class LogSequence {
 				nodeReady = ByteBuffer.Wrap(nodeReadyValue).ReadBool();
 		}
 
-		logs = openDb(RocksDatabase.getCommonOptions(),
-				Paths.get(this.raft.getRaftConfig().getDbHome(), "logs").toString());
+		logs = RocksDatabase.open(RocksDatabase.getCommonOptions(),
+				Path.of(raft.getRaftConfig().getDbHome(), "logs").toString());
 		{
 			// Read Last Log Index
 			try (var itLast = logs.newIterator(RocksDatabase.getDefaultReadOptions())) {
@@ -413,8 +386,8 @@ public class LogSequence {
 					saveLog(new RaftLog(term, 0, new HeartbeatLog()));
 					lastIndex = 0;
 				}
-				logger.info("{}-{} {} LastIndex={} Count={}", this.raft.getName(), this.raft.isLeader(),
-						this.raft.getRaftConfig().getDbHome(), lastIndex, getTestStateMachineCount());
+				logger.info("{}-{} {} LastIndex={} Count={}", raft.getName(), raft.isLeader(),
+						raft.getRaftConfig().getDbHome(), lastIndex, getTestStateMachineCount());
 
 				// 【注意】snapshot 以后 FirstIndex 会推进，不再是从0开始。
 				if (firstIndex == -1) { // never snapshot
@@ -422,7 +395,7 @@ public class LogSequence {
 						itFirst.seekToFirst();
 						if (itFirst.isValid()) {
 							firstIndex = RaftLog.decode(new Binary(itFirst.value()),
-									this.raft.getStateMachine()::logFactory).getIndex();
+									raft.getStateMachine()::logFactory).getIndex();
 						}
 					}
 				}
@@ -813,7 +786,7 @@ public class LogSequence {
 				cancelPendingAppendLogFutures();
 				var logsDir = Paths.get(raft.getRaftConfig().getDbHome(), "logs").toString();
 				deletedDirectoryAndCheck(new File(logsDir), 10000);
-				logs = openDb(RocksDatabase.getCommonOptions(), logsDir);
+				logs = RocksDatabase.open(RocksDatabase.getCommonOptions(), logsDir);
 				var lastIncludedLog = RaftLog.decode(r.Argument.getLastIncludedLog(),
 						raft.getStateMachine()::logFactory);
 				saveLog(lastIncludedLog);

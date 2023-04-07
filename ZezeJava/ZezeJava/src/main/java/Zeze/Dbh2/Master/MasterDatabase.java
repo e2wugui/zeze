@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
-import Zeze.Dbh2.Bucket;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
@@ -30,11 +29,8 @@ public class MasterDatabase {
 		try {
 			this.master = master;
 			this.databaseName = databaseName;
-			var dbHome = Path.of(master.getHome(), databaseName);
-			logger.info("RocksDB.open: '{}'", dbHome.toString());
-			//noinspection ResultOfMethodCallIgnored
-			dbHome.toFile().mkdirs();
-			this.db = RocksDB.open(RocksDatabase.getCommonOptions(), dbHome.toString());
+			this.db = RocksDatabase.open(RocksDatabase.getCommonOptions(),
+					Path.of(master.getHome(), databaseName).toString());
 
 			try (var it = this.db.newIterator(RocksDatabase.getDefaultReadOptions())) {
 				it.seekToFirst();
@@ -75,7 +71,7 @@ public class MasterDatabase {
 
 	public MasterTable.Data createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
 		outIsNew.value = false;
-		var table = this.tables.computeIfAbsent(tableName, (tbName) -> new MasterTable.Data());
+		var table = this.tables.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 		if (table.created)
 			return table;
 
@@ -147,7 +143,7 @@ public class MasterDatabase {
 			var bbValue = ByteBuffer.Allocate();
 			table.encode(bbValue);
 			var key = tableName.getBytes(StandardCharsets.UTF_8);
-			this.db.put(RocksDatabase.getDefaultWriteOptions(), key, 0, key.length, bbValue.Bytes, bbValue.ReadIndex, bbValue.size());
+			this.db.put(RocksDatabase.getDefaultWriteOptions(), key, 0, key.length, bbValue.Bytes, 0, bbValue.WriteIndex);
 
 			// 保存在内存中，用来快速查询。
 			this.tables.put(tableName, table);

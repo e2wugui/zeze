@@ -64,7 +64,7 @@ public class BenchClient {
 						try (var trans = database.beginTransaction()) {
 							for (int a = 0; a < tableAccessFinal; ++a) {
 								var key = (Zeze.Util.Random.getInstance().nextLong() + 1) % 1000_00000;
-								var keyBb = ByteBuffer.Allocate();
+								var keyBb = ByteBuffer.Allocate(9);
 								keyBb.WriteLong(key);
 								var table = tables.get(Zeze.Util.Random.getInstance().nextInt(tables.size()));
 								table.replace(trans, keyBb, value);

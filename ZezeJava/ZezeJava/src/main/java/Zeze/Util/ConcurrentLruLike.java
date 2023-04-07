@@ -169,7 +169,7 @@ public class ConcurrentLruLike<K, V> {
 		if (lruItem == null) { // slow-path
 			lruItem = dataMap.computeIfAbsent(key, k -> {
 				var item = new LruItem<>(factory.create(), lruHot);
-				lruHot.put(key, item); // MUST replace
+				lruHot.put(k, item); // MUST replace
 				return item;
 			});
 		}

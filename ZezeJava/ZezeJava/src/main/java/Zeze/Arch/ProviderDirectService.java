@@ -82,7 +82,6 @@ public class ProviderDirectService extends HandshakeBoth {
 		var out = new OutObject<Connector>();
 		if (getConfig().tryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
 			// 新建的Connector。开始连接。
-			//noinspection DataFlowIssue
 			out.value.userState = newSession(serverId);
 			out.value.start();
 		}

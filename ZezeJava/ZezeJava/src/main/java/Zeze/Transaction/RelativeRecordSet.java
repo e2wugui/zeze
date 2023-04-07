@@ -185,7 +185,7 @@ public final class RelativeRecordSet {
 		var groupResult = new TreeMap<String, ArrayList<Object>>();
 		if (null != result.recordSet) {
 			for (var r : result.recordSet) {
-				groupResult.computeIfAbsent(r.getTable().getName(), key -> new ArrayList<>()).add(r.getObjectKey());
+				groupResult.computeIfAbsent(r.getTable().getName(), __ -> new ArrayList<>()).add(r.getObjectKey());
 			}
 		}
 		for (var locked : groupLocked) {
@@ -196,7 +196,7 @@ public final class RelativeRecordSet {
 			groupResult.clear(); // reuse this var
 			if (null != result.recordSet) {
 				for (var r : result.recordSet) {
-					groupResult.computeIfAbsent(r.getTable().getName(), key -> new ArrayList<>()).add(r.getObjectKey());
+					groupResult.computeIfAbsent(r.getTable().getName(), __ -> new ArrayList<>()).add(r.getObjectKey());
 				}
 			}
 			Checkpoint.logger.info("locked.size=" + groupLocked.size() + " trans.size=" + groupTrans.size()
@@ -206,7 +206,7 @@ public final class RelativeRecordSet {
 
 	private static void build(Transaction trans, TreeMap<String, ArrayList<Object>> groupTrans) {
 		for (var ar : trans.getAccessedRecords().values()) {
-			groupTrans.computeIfAbsent(ar.atomicTupleRecord.record.getTable().getName(), key -> new ArrayList<>())
+			groupTrans.computeIfAbsent(ar.atomicTupleRecord.record.getTable().getName(), __ -> new ArrayList<>())
 					.add(ar.atomicTupleRecord.record.getObjectKey());
 		}
 	}
@@ -216,7 +216,7 @@ public final class RelativeRecordSet {
 			var group = new TreeMap<String, ArrayList<Object>>();
 			if (rrs.recordSet != null) {
 				for (var r : rrs.recordSet) {
-					group.computeIfAbsent(r.getTable().getName(), key -> new ArrayList<>()).add(r.getObjectKey());
+					group.computeIfAbsent(r.getTable().getName(), __ -> new ArrayList<>()).add(r.getObjectKey());
 				}
 			}
 			groupLocked.add(group);
@@ -409,7 +409,7 @@ public final class RelativeRecordSet {
 				/*
 				var debug = new java.util.HashMap<String, ArrayList<Object>>();
 				for (var r : rs)
-					debug.computeIfAbsent(r.getTable().getName(), (_key_) -> new ArrayList<>()).add(r.getObjectKey());
+					debug.computeIfAbsent(r.getTable().getName(), __ -> new ArrayList<>()).add(r.getObjectKey());
 				Checkpoint.logger.info(debug.toString() + sortedRrs.keySet());
 				*/
 

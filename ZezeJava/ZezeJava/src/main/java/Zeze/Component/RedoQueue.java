@@ -14,8 +14,6 @@ import Zeze.Serialize.Serializable;
 import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
@@ -28,7 +26,6 @@ import org.rocksdb.RocksDBException;
  * 3.【可选】使用ServiceManager动态发现zeze-server。感觉没有必要。
  */
 public class RedoQueue extends HandshakeClient {
-	private static final Logger logger = LogManager.getLogger(RedoQueue.class);
 	private RocksDB db;
 	private final ConcurrentHashMap<String, ColumnFamilyHandle> families = new ConcurrentHashMap<>();
 	private ColumnFamilyHandle familyLastDoneTaskId;
@@ -47,7 +44,7 @@ public class RedoQueue extends HandshakeClient {
 		super(name, config);
 	}
 
-	ColumnFamilyHandle getOrAddFamily(String name) {
+	private ColumnFamilyHandle getOrAddFamily(String name) {
 		return families.computeIfAbsent(name, key -> {
 			try {
 				return db.createColumnFamily(new ColumnFamilyDescriptor(
@@ -64,14 +61,13 @@ public class RedoQueue extends HandshakeClient {
 			return;
 
 		var dbHome = super.getName();
-		logger.info("RocksDB.open: '{}'", dbHome);
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		for (var cf : RocksDB.listColumnFamilies(RocksDatabase.getCommonOptions(), dbHome))
 			columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
 		if (columnFamilies.isEmpty())
 			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), RocksDatabase.getDefaultCfOptions()));
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		db = RocksDB.open(RocksDatabase.getCommonDbOptions(), dbHome, columnFamilies, outHandles);
+		db = RocksDatabase.open(RocksDatabase.getCommonDbOptions(), dbHome, columnFamilies, outHandles);
 		for (int i = 0; i < columnFamilies.size(); ++i) {
 			var cf = columnFamilies.get(i);
 			var str = new String(cf.getName(), StandardCharsets.UTF_8);
@@ -95,8 +91,10 @@ public class RedoQueue extends HandshakeClient {
 	@Override
 	public synchronized void stop() throws Exception {
 		super.stop();
-		db.close();
-		db = null;
+		if (db != null) {
+			db.close();
+			db = null;
+		}
 	}
 
 	public synchronized void add(int taskType, Serializable taskParam) {

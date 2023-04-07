@@ -66,6 +66,7 @@ public final class DumpRocksDb {
 		var outputTxtFile = argCount == 1 ? null : argCount == 2 ? args[1] : args[2];
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		var cfOptions = new ColumnFamilyOptions();
+		var dbOptions = new DBOptions();
 		for (var cf : RocksDB.listColumnFamilies(new Options(), inputDbPath))
 			columnFamilies.add(new ColumnFamilyDescriptor(cf, cfOptions));
 		if (columnFamilies.isEmpty())
@@ -76,7 +77,7 @@ public final class DumpRocksDb {
 			var levelCount = new int[8];
 			var levelSize = new long[8];
 			long totalCount = 0, totalSize = 0;
-			try (var rocksDb = RocksDB.openReadOnly(new DBOptions(), inputDbPath, columnFamilies, outHandles)) {
+			try (var rocksDb = RocksDB.openReadOnly(dbOptions, inputDbPath, columnFamilies, outHandles)) {
 				System.out.println("lvl fileName     size  seqNumMin  seqNumMax reads entry delete columnFamilyName");
 				System.out.println("-------------------------------------------------------------------------------");
 				var metaList = rocksDb.getLiveFilesMetaData();
@@ -109,7 +110,7 @@ public final class DumpRocksDb {
 			System.err.println("INFO: compact database in '" + inputDbPath + "'");
 			var t = System.currentTimeMillis();
 			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
-			try (var rocksDb = RocksDB.open(new DBOptions(), inputDbPath, columnFamilies, outHandles)) {
+			try (var rocksDb = RocksDB.open(dbOptions, inputDbPath, columnFamilies, outHandles)) {
 				var selColName = columnFamilyName != null ? columnFamilyName.getBytes(UTF_8) : null;
 				for (int i = 0; i < columnFamilies.size(); i++) {
 					var cf = columnFamilies.get(i);
@@ -131,7 +132,7 @@ public final class DumpRocksDb {
 				System.err.println("INFO: compact database from level-0 to level-1 in '" + inputDbPath + "'");
 			var t = System.currentTimeMillis();
 			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
-			try (var rocksDb = RocksDB.open(new DBOptions(), inputDbPath, columnFamilies, outHandles)) {
+			try (var rocksDb = RocksDB.open(dbOptions, inputDbPath, columnFamilies, outHandles)) {
 				var cOptions = new CompactionOptions();
 				var fileList = new ArrayList<String>();
 				var selColName = columnFamilyName != null ? columnFamilyName.getBytes(UTF_8) : null;
@@ -156,7 +157,7 @@ public final class DumpRocksDb {
 
 		if (outputTxtFile == null) {
 			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
-			try (var ignored = RocksDB.openReadOnly(new DBOptions(), inputDbPath, columnFamilies, outHandles)) {
+			try (var ignored = RocksDB.openReadOnly(dbOptions, inputDbPath, columnFamilies, outHandles)) {
 				System.out.println("        ID columnFamilyName");
 				System.out.println("---------------------------");
 				for (var cfh : outHandles)
@@ -208,8 +209,9 @@ public final class DumpRocksDb {
 			valueDumper = DumpRocksDb::dumpRaw;
 		}
 		var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
-		try (var rocksDb = RocksDB.openReadOnly(new DBOptions(), inputDbPath, columnFamilies, outHandles);
-			 var it = rocksDb.newIterator(outHandles.get(selectCfIndex), new ReadOptions());
+		try (var rocksDb = RocksDB.openReadOnly(dbOptions, inputDbPath, columnFamilies, outHandles);
+			 var ro = new ReadOptions();
+			 var it = rocksDb.newIterator(outHandles.get(selectCfIndex), ro);
 			 var os = outputTxtFile.equals("-") ? System.out : new BufferedOutputStream(new FileOutputStream(outputTxtFile))) {
 			long n = 0;
 			var key = ByteBuffer.Wrap(ByteBuffer.Empty);

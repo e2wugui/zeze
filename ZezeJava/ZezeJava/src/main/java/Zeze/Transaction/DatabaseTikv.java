@@ -95,10 +95,11 @@ public class DatabaseTikv extends Database {
 
 			dv.version = ++version;
 			dv.data = data;
+			var bb = ByteBuffer.Allocate(5 + 9 + dv.data.size());
+			dv.encode(bb);
 			try (var txn = beginTransaction()) {
-				var bb = ByteBuffer.Allocate();
-				dv.encode(bb);
 				table.replace(txn, key, bb);
+				txn.commit();
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}

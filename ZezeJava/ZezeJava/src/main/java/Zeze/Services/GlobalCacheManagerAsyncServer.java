@@ -848,7 +848,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						perf.onOthers("XXX 10 " + StateModify);
 					// logger.error("XXX 10 {} {} {}", sender, StateModify, cs);
 					rpc.Result.state = StateInvalid;
-					//noinspection DataFlowIssue
 					if (errorFreshAcquire.value)
 						rpc.SendResultCode(StateReduceErrorFreshAcquire); // 这个错误不看做失败，允许发送方继续尝试。
 					else

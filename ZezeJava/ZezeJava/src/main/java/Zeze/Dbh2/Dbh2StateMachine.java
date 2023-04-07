@@ -50,6 +50,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void openBucket() {
+		if (bucket != null)
+			return;
 		bucket = new Bucket(getRaft().getRaftConfig());
 		tidAllocator = new TidAllocator();
 	}
@@ -160,7 +162,13 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void close() {
-		bucket.close();
+		for (var tran : transactionMap.values())
+			tran.close();
+		transactionMap.clear();
+		if (bucket != null) {
+			bucket.close();
+			bucket = null;
+		}
 	}
 
 	@Override
@@ -218,10 +226,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public void restore(String backupDir) throws RocksDBException {
 		getRaft().lock();
 		try {
-			if (bucket != null) {
-				bucket.close(); // close current
-				bucket = null;
-			}
+			close();
 
 			var dbName = Paths.get(getDbHome(), "statemachine").toString();
 			try (var restoreOptions = new RestoreOptions(false);

@@ -319,7 +319,6 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var ModifyAcquired = serverAcquiredTemplate.openTable(cs.getModify());
-				//noinspection DataFlowIssue
 				switch (reduceResultState.value) {
 				case StateShare:
 					ModifyAcquired.put(globalTableKey, newAcquiredState(StateShare));
@@ -460,7 +459,6 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var ModifyAcquired = serverAcquiredTemplate.openTable(cs.getModify());
-				//noinspection DataFlowIssue
 				switch (reduceResultState.value) {
 				case StateInvalid:
 					ModifyAcquired.remove(globalTableKey);
@@ -607,7 +605,6 @@ public class GlobalCacheManagerWithRaft
 				// logger.error("XXX 10 {} {} {}", sender, acquireState, cs);
 				rpc.Result.setState(StateInvalid);
 				lockey.pulseAll();
-				//noinspection DataFlowIssue
 				rpc.setResultCode(errorFreshAcquire.value
 						? StateReduceErrorFreshAcquire  // 这个错误码导致Server-RedoAndReleaseLock
 						: AcquireModifyFailed); // 这个错误码导致Server事务失败。

@@ -26,7 +26,6 @@ public class HandshakeClient extends HandshakeBase {
 	public final void connect(@NotNull String hostNameOrAddress, int port, boolean autoReconnect) {
 		var c = new OutObject<Connector>();
 		getConfig().tryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, c);
-		//noinspection DataFlowIssue
 		c.value.start();
 	}
 

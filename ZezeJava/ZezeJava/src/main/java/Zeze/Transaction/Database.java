@@ -26,7 +26,7 @@ import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 public abstract class Database {
 	protected static final Logger logger = LogManager.getLogger(Database.class);
 
-	// 当数据库对Key长度有限制时，使用这个常量。这个数字来自 PorlarDb-X。其中MySql 8是3072.
+	// 当数据库对Key长度有限制时，使用这个常量。这个数字来自 PolarDb-X。其中MySql 8是3072.
 	// 以后需要升级时，修改这个常量。但是对于已经存在的表，需要自己完成Alter。
 	public final static int eMaxKeyLength = 3070;
 
@@ -170,7 +170,7 @@ public abstract class Database {
 		return Arrays.copyOfRange(bb.Bytes, bb.ReadIndex, bb.WriteIndex);
 	}
 
-	public static byte @NotNull [] copyIf(byte[] bytes, int offset, int len) {
+	public static byte @NotNull [] copyIf(byte @NotNull [] bytes, int offset, int len) {
 		if (offset == 0 && bytes.length == len)
 			return bytes;
 		return Arrays.copyOfRange(bytes, offset, offset + len);

@@ -140,12 +140,11 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	private void openDb() throws RocksDBException {
 		var dbName = Paths.get(getDbHome(), "statemachine").toString();
-		logger.info("RocksDB.open: '{}'", dbName);
 
 		// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 		var columnFamilies = getColumnFamilies(dbName);
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		storage = RocksDB.open(RocksDatabase.getCommonDbOptions(), dbName, columnFamilies, outHandles);
+		storage = RocksDatabase.open(RocksDatabase.getCommonDbOptions(), dbName, columnFamilies, outHandles);
 
 		columns.clear();
 		for (int i = 0; i < columnFamilies.size(); i++) {
@@ -276,8 +275,8 @@ public final class Rocks extends StateMachine implements Closeable {
 			for (var r : rs)
 				r.flush(batch);
 			for (var it = changes.getAtomicLongs().iterator(); it.moveToNext(); ) {
-				var key = ByteBuffer.Allocate();
-				var value = ByteBuffer.Allocate();
+				var key = ByteBuffer.Allocate(5);
+				var value = ByteBuffer.Allocate(9);
 				key.WriteInt(it.key());
 				value.WriteLong(it.value());
 				batch.put(atomicLongsColumnFamily, key.Copy(), value.Copy());
@@ -313,7 +312,7 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	public static void backup(String checkpointDir, String backupDir) throws RocksDBException {
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		try (var src = RocksDB.open(RocksDatabase.getCommonDbOptions(), checkpointDir,
+		try (var src = RocksDatabase.open(RocksDatabase.getCommonDbOptions(), checkpointDir,
 				getColumnFamilies(checkpointDir), outHandles);
 			 var backupOptions = new BackupEngineOptions(backupDir);
 			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {

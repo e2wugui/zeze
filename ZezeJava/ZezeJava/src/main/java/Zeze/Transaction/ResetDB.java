@@ -17,8 +17,8 @@ public class ResetDB {
 		if (null == other)
 			return;
 
-		if (!app.getConfig().autoResetTable()){
-			app.getSchemas().checkCompatible(other,app);
+		if (!app.getConfig().autoResetTable()) {
+			app.getSchemas().checkCompatible(other, app);
 			return;
 		}
 
@@ -55,7 +55,7 @@ public class ResetDB {
 					continue;
 				}
 				Storage<?, ?> storage = rmTable.getStorage();
-				if(storage == null){
+				if (storage == null) {
 					continue;
 				}
 				// 空表删除也很快，不需要特别忽略？
@@ -87,30 +87,31 @@ public class ResetDB {
 		return removeList;
 	}
 
-	private static void removeTable(Database db, List<String> removeList) {
+	private static void removeTable(Database db, List<String> removeList) throws Exception {
 		for (var rmTable : removeList) {
 			Table table = db.getTable(rmTable);
 			if (table == null) {
 				continue;
 			}
-			Database.Transaction transaction = db.beginTransaction();
-			Storage<?, ?> storage = table.getStorage();
-			if(storage == null){
-				continue;
+			try (Database.Transaction transaction = db.beginTransaction()) {
+				Storage<?, ?> storage = table.getStorage();
+				if (storage == null) {
+					continue;
+				}
+				if (storage.getDatabaseTable() instanceof Database.AbstractKVTable) {
+					var databaseTable = (Database.AbstractKVTable)storage.getDatabaseTable();
+					AtomicInteger count = new AtomicInteger();
+					databaseTable.walk((key, value) -> {
+						databaseTable.remove(transaction, ByteBuffer.Wrap(key));
+						count.incrementAndGet();
+						return true;
+					});
+					logger.warn("remove table :{} count:{}", rmTable, count.get());
+				} else {
+					logger.warn("remove table :{} NOT A KV TABLE.", rmTable);
+				}
+				transaction.commit();
 			}
-			if (storage.getDatabaseTable() instanceof Database.AbstractKVTable) {
-				var databaseTable = (Database.AbstractKVTable)storage.getDatabaseTable();
-				AtomicInteger count = new AtomicInteger();
-				databaseTable.walk((key, value) -> {
-					databaseTable.remove(transaction, ByteBuffer.Wrap(key));
-					count.incrementAndGet();
-					return true;
-				});
-				logger.warn("remove table :{} count:{}", rmTable, count.get());
-			} else {
-				logger.warn("remove table :{} NOT A KV TABLE.", rmTable);
-			}
-			transaction.commit();
 		}
 	}
 }

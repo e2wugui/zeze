@@ -90,7 +90,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	 */
 	public final void perform(CubeIndex index, CubeHandle<TCube> action) {
 		while (true) {
-			var cube = cubes.computeIfAbsent(index, (key) -> factory.create());
+			var cube = cubes.computeIfAbsent(index, __ -> factory.create());
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (cube) {
 				if (cube.getState() == Cube.StateRemoved)

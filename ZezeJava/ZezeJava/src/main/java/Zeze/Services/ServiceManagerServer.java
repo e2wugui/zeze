@@ -4,7 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -760,9 +760,8 @@ public final class ServiceManagerServer implements Closeable {
 			});
 		}
 
-		var dbPath = Paths.get(this.config.dbHome, "autokeys").toString();
-		logger.info("RocksDB.open: '{}'", dbPath);
-		autoKeysDb = RocksDB.open(RocksDatabase.getCommonOptions(), dbPath);
+		autoKeysDb = RocksDatabase.open(RocksDatabase.getCommonOptions(),
+				Path.of(this.config.dbHome, "autokeys").toString());
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		serverSocket = server.newServerSocket(ipaddress, port,

@@ -2,6 +2,7 @@ package Zeze.Dbh2.Master;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.Master.BRegister;
@@ -10,18 +11,14 @@ import Zeze.Builtin.Dbh2.Master.CreateTable;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.LocateBucket;
 import Zeze.Builtin.Dbh2.Master.Register;
-import Zeze.Dbh2.Bucket;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
 import Zeze.Util.RocksDatabase;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 public class Master extends AbstractMaster {
-	private static final Logger logger = LogManager.getLogger(Master.class);
 	public static final String MasterDbName = "__master__";
 
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
@@ -41,17 +38,14 @@ public class Master extends AbstractMaster {
 	private final ArrayList<Manager> managers = new ArrayList<>();
 	private int choiceIndex;
 
-	private RocksDB masterDb;
-	public Main main;
+	private final RocksDB masterDb;
+	private final Main main;
 
 	public Master(Main main, String home) throws RocksDBException {
 		this.main = main;
 		this.home = home;
 
-		var masterDbFile = new File(home, MasterDbName);
-		logger.info("RocksDB.open: '{}'", masterDbFile.toString());
-		masterDbFile.mkdirs();
-		masterDb = RocksDB.open(RocksDatabase.getCommonOptions(), masterDbFile.toString());
+		masterDb = RocksDatabase.open(RocksDatabase.getCommonOptions(), Path.of(home, MasterDbName).toString());
 
 		var dbs = new File(home).listFiles();
 		if (null != dbs) {
@@ -61,7 +55,7 @@ public class Master extends AbstractMaster {
 				if (db.getName().equals(MasterDbName)) {
 					continue;
 				}
-				databases.computeIfAbsent(db.getName(), (dbName) -> new MasterDatabase(this, dbName));
+				databases.computeIfAbsent(db.getName(), dbName -> new MasterDatabase(this, dbName));
 			}
 		}
 	}
@@ -85,9 +79,9 @@ public class Master extends AbstractMaster {
 			seed = ByteBuffer.Wrap(seedValue).ReadInt();
 		}
 		seed++;
-		var bb = ByteBuffer.Allocate();
+		var bb = ByteBuffer.Allocate(5);
 		bb.WriteInt(seed);
-		masterDb.put(RocksDatabase.getDefaultWriteOptions(), seedKey, 0, seedKey.length, bb.Bytes, bb.ReadIndex, bb.size());
+		masterDb.put(RocksDatabase.getDefaultWriteOptions(), seedKey, 0, seedKey.length, bb.Bytes, 0, bb.WriteIndex);
 		return seed;
 	}
 
@@ -123,7 +117,7 @@ public class Master extends AbstractMaster {
 
 	@Override
 	protected long ProcessCreateDatabaseRequest(CreateDatabase r) throws Exception {
-		databases.computeIfAbsent(r.Argument.getDatabase(), (dbName) -> new MasterDatabase(this, dbName));
+		databases.computeIfAbsent(r.Argument.getDatabase(), dbName -> new MasterDatabase(this, dbName));
 		r.SendResult();
 		return 0;
 	}

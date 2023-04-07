@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import Zeze.Raft.LogSequence;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.BitConverter;
+import Zeze.Util.RocksDatabase;
 import org.junit.Test;
 import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
@@ -18,8 +19,7 @@ public class TestRocksDb {
 	public void testKeyGet() throws IOException, RocksDBException {
 		var path = Path.of("TestRocksDb");
 		LogSequence.deleteDirectory(path.toFile());
-		var options = new Options().setCreateIfMissing(true);
-		try (var db = OptimisticTransactionDB.open(options, path.toString())) {
+		try (var db = OptimisticTransactionDB.open(RocksDatabase.getCommonOptions(), path.toString())) {
 			var key = "key".getBytes(StandardCharsets.UTF_8);
 			var value = "value".getBytes(StandardCharsets.UTF_8);
 			byte[] key1;
@@ -43,8 +43,7 @@ public class TestRocksDb {
 				bb.WriteLong(3);
 				key3 = bb.Copy();
 			}
-			var writeOptions = new WriteOptions();
-			try (var trans = db.beginTransaction(writeOptions)) {
+			try (var trans = db.beginTransaction(RocksDatabase.getDefaultWriteOptions())) {
 				trans.put(key1, value);
 				trans.put(key2, value);
 				trans.commit();

@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
@@ -22,8 +21,7 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteBatch;
 
 public class DatabaseRocksDb extends Database {
-
-	private final RocksDB rocksDb;
+	private final @NotNull RocksDB rocksDb;
 	private final HashMap<String, ColumnFamilyHandle> columnFamilies = new HashMap<>();
 
 	public DatabaseRocksDb(@NotNull Application zeze, @NotNull Config.DatabaseConf conf) {
@@ -34,9 +32,10 @@ public class DatabaseRocksDb extends Database {
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 			for (var cf : RocksDB.listColumnFamilies(RocksDatabase.getCommonOptions(), dbHome))
 				columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
-			if (columnFamilies.isEmpty())
+			if (columnFamilies.isEmpty()) {
 				columnFamilies.add(new ColumnFamilyDescriptor(
 						"default".getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
+			}
 
 			// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 			var outHandles = new ArrayList<ColumnFamilyHandle>();
@@ -55,6 +54,7 @@ public class DatabaseRocksDb extends Database {
 	@Override
 	public void close() {
 		logger.info("Close: {}", getDatabaseUrl());
+		columnFamilies.clear();
 		if (rocksDb.isOwningHandle()) {
 			try {
 				rocksDb.syncWal();
@@ -70,7 +70,7 @@ public class DatabaseRocksDb extends Database {
 		return new RocksDbTrans();
 	}
 
-	public static Runnable verifyAction;
+	public static @Nullable Runnable verifyAction;
 
 	// 多表原子查询。
 	public HashMap<String, Map<ByteBuffer, ByteBuffer>> finds(Map<String, Set<ByteBuffer>> tableKeys) {
@@ -102,7 +102,7 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	private final class RocksDbTrans implements Transaction {
-		private WriteBatch batch;
+		private @Nullable WriteBatch batch;
 
 		private WriteBatch getBatch() {
 			var wb = batch;
@@ -171,8 +171,8 @@ public class DatabaseRocksDb extends Database {
 			try {
 				if (isNew != null)
 					isNew.value = true;
-				return rocksDb.createColumnFamily(
-						new ColumnFamilyDescriptor(key.getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
+				return rocksDb.createColumnFamily(new ColumnFamilyDescriptor(
+						key.getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -183,7 +183,6 @@ public class DatabaseRocksDb extends Database {
 	public Table openTable(String name) {
 		var isNew = new OutObject<Boolean>();
 		var cfh = getOrAddFamily(name, isNew);
-		//noinspection DataFlowIssue
 		return new TableRocksDb(cfh, isNew.value);
 	}
 
@@ -446,11 +445,11 @@ public class DatabaseRocksDb extends Database {
 
 				dv.version = ++version;
 				dv.data = data;
-				var value = ByteBuffer.Allocate();
+				var value = ByteBuffer.Allocate(5 + 9 + dv.data.size());
 				dv.encode(value);
 				rocksDb.put(columnFamily, RocksDatabase.getDefaultWriteOptions(),
 						key.Bytes, key.ReadIndex, key.size(),
-						value.Bytes, value.ReadIndex, value.size());
+						value.Bytes, 0, value.WriteIndex);
 				return KV.create(version, true);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);

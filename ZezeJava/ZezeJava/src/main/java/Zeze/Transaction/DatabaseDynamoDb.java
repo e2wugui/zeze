@@ -76,12 +76,15 @@ public class DatabaseDynamoDb extends Database {
 
 			dv.version = ++version;
 			dv.data = data;
-			var value = ByteBuffer.Allocate();
+			var value = ByteBuffer.Allocate(5 + 9 + dv.data.size());
 			dv.encode(value);
 
-			var trans = beginTransaction();
-			dataWithVersion.replace(trans, key, value);
-			trans.commit();
+			try (var trans = beginTransaction()) {
+				dataWithVersion.replace(trans, key, value);
+				trans.commit();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
 			return KV.create(version, true);
 		}
 

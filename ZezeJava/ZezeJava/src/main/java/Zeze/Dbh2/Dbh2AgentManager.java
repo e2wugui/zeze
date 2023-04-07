@@ -47,10 +47,10 @@ public class Dbh2AgentManager {
 	public MasterAgent openDatabase(
 			String masterName,
 			String databaseName) {
-		var master = masterAgent.computeIfAbsent(masterName, (_masterName) -> {
+		var master = masterAgent.computeIfAbsent(masterName, _masterName -> {
 			var config = new Config();
 			var serviceConf = new ServiceConf();
-			var ipPort = masterName.split(":");
+			var ipPort = _masterName.split(":");
 			config.getServiceConfMap().put(MasterAgent.eServiceName, serviceConf);
 			serviceConf.tryGetOrAddConnector(ipPort[0], Integer.parseInt(ipPort[1]), true, null);
 			var m = new MasterAgent(config);
@@ -82,17 +82,17 @@ public class Dbh2AgentManager {
 			MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName,
 			Binary key) {
-		var master = buckets.computeIfAbsent(masterName, (mName) -> new ConcurrentHashMap<>());
-		var database = master.computeIfAbsent(databaseName, (dbName) -> new ConcurrentHashMap<>());
-		var table = database.computeIfAbsent(tableName, (tbName) -> masterAgent.getBuckets(databaseName, tableName));
+		var master = buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
+		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
+		var table = database.computeIfAbsent(tableName, tbName -> masterAgent.getBuckets(databaseName, tbName));
 		var bucket = table.locate(key);
 		return open(bucket.getRaftConfig());
 	}
 
 	public Dbh2Agent open(String raft) {
-		return agents.computeIfAbsent(raft, (_raft) -> {
+		return agents.computeIfAbsent(raft, _raft -> {
 			try {
-				var raftConfig = RaftConfig.loadFromString(raft);
+				var raftConfig = RaftConfig.loadFromString(_raft);
 				return new Dbh2Agent(raftConfig);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
@@ -112,8 +112,8 @@ public class Dbh2AgentManager {
 			String masterName,
 			String databaseName,
 			String tableName) {
-		var master = this.buckets.computeIfAbsent(masterName, (mName) -> new ConcurrentHashMap<>());
-		var database = master.computeIfAbsent(databaseName, (dbName) -> new ConcurrentHashMap<>());
+		var master = this.buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
+		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
 		var table = database.get(tableName);
 		if (table == null) {
 			database.put(tableName, buckets);
