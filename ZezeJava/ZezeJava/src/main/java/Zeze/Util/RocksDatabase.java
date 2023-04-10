@@ -74,6 +74,10 @@ public class RocksDatabase implements Closeable {
 	private final ConcurrentHashMap<String, ColumnFamilyHandle> columnFamilies = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Table> tables = new ConcurrentHashMap<>();
 
+	public RocksDB getRocksDb() {
+		return rocksDb;
+	}
+
 	public RocksDatabase(@NotNull String home) throws RocksDBException {
 		this.home = home;
 

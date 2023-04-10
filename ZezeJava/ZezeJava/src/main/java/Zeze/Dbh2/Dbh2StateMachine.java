@@ -118,9 +118,11 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void close() {
-		for (var tran : transactionMap.values())
-			tran.close();
-		transactionMap.clear();
+		// todo
+//		for (var tran : transactionMap.values())
+//			tran.close();
+//		transactionMap.clear();
+
 		if (bucket != null) {
 			bucket.close();
 			bucket = null;
