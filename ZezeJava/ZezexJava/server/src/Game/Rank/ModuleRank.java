@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import Game.App;
 import Zeze.Arch.ProviderUserSession;
@@ -609,7 +610,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@RedirectToServer
-	public void TestBeanList(int serverId, List<InnerBean> inner) {
+	public void TestBeanList(int serverId, List<InnerBean> inner, List<Long> longList, Map<Long, InnerBean> map) {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

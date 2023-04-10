@@ -9,8 +9,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 import Zeze.Net.Binary;
@@ -41,112 +44,112 @@ final class Gen {
 		}
 	}
 
-	private final HashMap<Class<?>, KnownSerializer> serializer = new HashMap<>();
+	private final HashMap<Class<?>, KnownSerializer> serializers = new HashMap<>();
 
 	private Gen() {
-		serializer.put(Boolean.class, new KnownSerializer(
+		serializers.put(Boolean.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteBool({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadBool();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}boolean {};", prefix, varName),
 				() -> "Boolean")
 		);
-		serializer.put(boolean.class, new KnownSerializer(
+		serializers.put(boolean.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteBool({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadBool();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}boolean {};", prefix, varName),
 				() -> "boolean")
 		);
-		serializer.put(Byte.class, new KnownSerializer(
+		serializers.put(Byte.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = (byte){}.ReadLong();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}byte {1};", prefix, varName),
 				() -> "Byte")
 		);
-		serializer.put(byte.class, new KnownSerializer(
+		serializers.put(byte.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = (byte){}.ReadLong();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}byte {};", prefix, varName),
 				() -> "byte")
 		);
-		serializer.put(Short.class, new KnownSerializer(
+		serializers.put(Short.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = (short){}.ReadLong();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}short {};", prefix, varName),
 				() -> "Short")
 		);
-		serializer.put(short.class, new KnownSerializer(
+		serializers.put(short.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = (short){}.ReadLong();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}short {};", prefix, varName),
 				() -> "short")
 		);
-		serializer.put(Integer.class, new KnownSerializer(
+		serializers.put(Integer.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = (int){}.ReadLong();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}int {};", prefix, varName),
 				() -> "Integer")
 		);
-		serializer.put(int.class, new KnownSerializer(
+		serializers.put(int.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = (int){}.ReadLong();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}int {};", prefix, varName),
 				() -> "int")
 		);
-		serializer.put(Long.class, new KnownSerializer(
+		serializers.put(Long.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadLong();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}long {};", prefix, varName),
 				() -> "Long")
 		);
-		serializer.put(long.class, new KnownSerializer(
+		serializers.put(long.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadLong();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}long {};", prefix, varName),
 				() -> "long")
 		);
-		serializer.put(Float.class, new KnownSerializer(
+		serializers.put(Float.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteFloat({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadFloat();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}float {};", prefix, varName),
 				() -> "Float")
 		);
-		serializer.put(float.class, new KnownSerializer(
+		serializers.put(float.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteFloat({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadFloat();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}float {};", prefix, varName),
 				() -> "float")
 		);
-		serializer.put(Double.class, new KnownSerializer(
+		serializers.put(Double.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteDouble({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadDouble();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}double {};", prefix, varName),
 				() -> "Double")
 		);
-		serializer.put(double.class, new KnownSerializer(
+		serializers.put(double.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteDouble({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadDouble();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}double {};", prefix, varName),
 				() -> "double")
 		);
-		serializer.put(String.class, new KnownSerializer(
+		serializers.put(String.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteString({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadString();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}String {};", prefix, varName),
 				() -> "String")
 		);
-		serializer.put(byte[].class, new KnownSerializer(
+		serializers.put(byte[].class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteBytes({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadBytes();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}byte[] {};", prefix, varName),
 				() -> "byte[]")
 		);
-		serializer.put(Binary.class, new KnownSerializer(
+		serializers.put(Binary.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteBinary({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadBinary();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}Zeze.Net.Binary {};", prefix, varName),
 				() -> "Zeze.Net.Binary")
 		);
-		serializer.put(ByteBuffer.class, new KnownSerializer(
+		serializers.put(ByteBuffer.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteByteBuffer({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = Zeze.Serialize.ByteBuffer.Wrap({}.ReadBytes());", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.appendLine("{}Zeze.Serialize.ByteBuffer {};", prefix, varName),
@@ -156,7 +159,7 @@ final class Gen {
 
 	String getTypeName(Type type) {
 		if (type instanceof Class) {
-			var kn = serializer.get(type);
+			var kn = serializers.get(type);
 			return kn != null ? kn.typeName.get() : type.getTypeName().replace('$', '.');
 		}
 		return type.toString().replace('$', '.'); // ParameterizedType
@@ -184,11 +187,25 @@ final class Gen {
 		return klass;
 	}
 
+	private static Class<?> getMapType(@NotNull Class<?> klass) {
+		if (isAbstract(klass)) {
+			if (klass.isAssignableFrom(HashMap.class))
+				klass = HashMap.class;
+			else if (klass.isAssignableFrom(TreeMap.class))
+				klass = TreeMap.class;
+			else if (klass.isAssignableFrom(LinkedHashMap.class))
+				klass = LinkedHashMap.class;
+			else
+				throw new UnsupportedOperationException("unsupported map type: " + klass.getName());
+		}
+		return klass;
+	}
+
 	@SuppressWarnings("SameParameterValue")
 	void genLocalVariable(StringBuilderCs sb, String prefix, Parameter param) throws Exception {
 		var type = param.getType();
 		var name = param.getName();
-		var kn = serializer.get(type);
+		var kn = serializers.get(type);
 		if (kn != null) {
 			kn.define.run(sb, prefix, name);
 			return;
@@ -200,18 +217,40 @@ final class Gen {
 		var paramType = param.getParameterizedType();
 		if (Collection.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
 			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
-			if (elemType instanceof Class && Serializable.class.isAssignableFrom((Class<?>)elemType) && !isAbstract((Class<?>)elemType)) {
-				sb.appendLine("{}var {} = new {}<{}>();", prefix, name,
-						getCollectionType(type).getTypeName().replace('$', '.'),
-						elemType.getTypeName().replace('$', '.'));
-				return;
+			if (elemType instanceof Class) {
+				var elemClass = (Class<?>)elemType;
+				var serializer = serializers.get(elemClass);
+				if (!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))) {
+					sb.appendLine("{}var {} = new {}<{}>();", prefix, name,
+							getCollectionType(type).getTypeName().replace('$', '.'),
+							elemType.getTypeName().replace('$', '.'));
+					return;
+				}
+			}
+		}
+		if (Map.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
+			var keyType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
+			var valueType = ((ParameterizedType)paramType).getActualTypeArguments()[1];
+			if (keyType instanceof Class && valueType instanceof Class) {
+				var keyClass = (Class<?>)keyType;
+				var valueClass = (Class<?>)valueType;
+				var keySerializer = serializers.get(keyClass);
+				var valueSerializer = serializers.get(valueClass);
+				if (!isAbstract(keyClass) && (keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&
+						!isAbstract(valueClass) && (valueSerializer != null || Serializable.class.isAssignableFrom(valueClass))) {
+					sb.appendLine("{}var {} = new {}<{}, {}>();", prefix, name,
+							getMapType(type).getTypeName().replace('$', '.'),
+							keyType.getTypeName().replace('$', '.'),
+							valueType.getTypeName().replace('$', '.'));
+					return;
+				}
 			}
 		}
 		sb.appendLine("{}{} {};", prefix, getTypeName(paramType), name);
 	}
 
 	void genEncode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, Type paramType, String varName) throws Exception {
-		var kn = serializer.get(type);
+		var kn = serializers.get(type);
 		if (kn != null) {
 			kn.encoder.run(sb, prefix, varName, bbName);
 			return;
@@ -222,11 +261,45 @@ final class Gen {
 		}
 		if (Collection.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
 			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
-			if (elemType instanceof Class && Serializable.class.isAssignableFrom((Class<?>)elemType) && !isAbstract((Class<?>)elemType)) {
-				sb.appendLine("{}{}.WriteUInt({}.size());", prefix, bbName, varName);
-				sb.appendLine("{}for (var _e_ : {})", prefix, varName);
-				sb.appendLine("{}    _e_.encode({});", prefix, bbName);
-				return;
+			if (elemType instanceof Class) {
+				var elemClass = (Class<?>)elemType;
+				var serializer = serializers.get(elemClass);
+				if (!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))) {
+					sb.appendLine("{}{}.WriteUInt({}.size());", prefix, bbName, varName);
+					sb.appendLine("{}for (var _e_ : {})", prefix, varName);
+					if (serializer != null)
+						serializer.encoder.run(sb, prefix + "    ", "_e_", bbName);
+					else
+						sb.appendLine("{}    _e_.encode({});", prefix, bbName);
+					return;
+				}
+			}
+		}
+		if (Map.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
+			var keyType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
+			var valueType = ((ParameterizedType)paramType).getActualTypeArguments()[1];
+			if (keyType instanceof Class && valueType instanceof Class) {
+				var keyClass = (Class<?>)keyType;
+				var valueClass = (Class<?>)valueType;
+				var keySerializer = serializers.get(keyClass);
+				var valueSerializer = serializers.get(valueClass);
+				if (!isAbstract(keyClass) && (keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&
+						!isAbstract(valueClass) && (valueSerializer != null || Serializable.class.isAssignableFrom(valueClass))) {
+					sb.appendLine("{}{}.WriteUInt({}.size());", prefix, bbName, varName);
+					sb.appendLine("{}for (var _e_ : {}.entrySet()) {", prefix, varName);
+					sb.appendLine("{}    var _k_ = _e_.getKey();", prefix);
+					sb.appendLine("{}    var _v_ = _e_.getValue();", prefix);
+					if (keySerializer != null)
+						keySerializer.encoder.run(sb, prefix + "    ", "_k_", bbName);
+					else
+						sb.appendLine("{}    _k_.encode({});", prefix, bbName);
+					if (valueSerializer != null)
+						valueSerializer.encoder.run(sb, prefix + "    ", "_v_", bbName);
+					else
+						sb.appendLine("{}    _v_.encode({});", prefix, bbName);
+					sb.appendLine("{}}", prefix);
+					return;
+				}
 			}
 		}
 		sb.appendLine("{}try (var _bs_ = new java.io.ByteArrayOutputStream();", prefix);
@@ -239,7 +312,7 @@ final class Gen {
 	}
 
 	void genDecode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, Type paramType, String varName) throws Exception {
-		var kn = serializer.get(type);
+		var kn = serializers.get(type);
 		if (kn != null) {
 			kn.decoder.run(sb, prefix, varName, bbName);
 			return;
@@ -250,13 +323,56 @@ final class Gen {
 		}
 		if (Collection.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
 			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
-			if (elemType instanceof Class && Serializable.class.isAssignableFrom((Class<?>)elemType) && !isAbstract((Class<?>)elemType)) {
-				sb.appendLine("{}for (int _n_ = {}.ReadUInt(); _n_ > 0; _n_--) {", prefix, bbName);
-				sb.appendLine("{}    var _e_ = new {}();", prefix, elemType.getTypeName().replace('$', '.'));
-				sb.appendLine("{}    _e_.decode({});", prefix, bbName);
-				sb.appendLine("{}    {}.add(_e_);", prefix, varName);
-				sb.appendLine("{}}", prefix);
-				return;
+			if (elemType instanceof Class) {
+				var elemClass = (Class<?>)elemType;
+				var serializer = serializers.get(elemClass);
+				if (!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))) {
+					sb.appendLine("{}for (int _n_ = {}.ReadUInt(); _n_ > 0; _n_--) {", prefix, bbName);
+					if (serializer != null) {
+						var prefix1 = prefix + "    ";
+						serializer.define.run(sb, prefix1, "_e_");
+						serializer.decoder.run(sb, prefix1, "_e_", bbName);
+					} else {
+						sb.appendLine("{}    var _e_ = new {}();", prefix, elemType.getTypeName().replace('$', '.'));
+						sb.appendLine("{}    _e_.decode({});", prefix, bbName);
+					}
+					sb.appendLine("{}    {}.add(_e_);", prefix, varName);
+					sb.appendLine("{}}", prefix);
+					return;
+				}
+			}
+		}
+		if (Map.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
+			var keyType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
+			var valueType = ((ParameterizedType)paramType).getActualTypeArguments()[1];
+			if (keyType instanceof Class && valueType instanceof Class) {
+				var keyClass = (Class<?>)keyType;
+				var valueClass = (Class<?>)valueType;
+				var keySerializer = serializers.get(keyClass);
+				var valueSerializer = serializers.get(valueClass);
+				if (!isAbstract(keyClass) && (keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&
+						!isAbstract(valueClass) && (valueSerializer != null || Serializable.class.isAssignableFrom(valueClass))) {
+					sb.appendLine("{}for (int _n_ = {}.ReadUInt(); _n_ > 0; _n_--) {", prefix, bbName);
+					if (keySerializer != null) {
+						var prefix1 = prefix + "    ";
+						keySerializer.define.run(sb, prefix1, "_k_");
+						keySerializer.decoder.run(sb, prefix1, "_k_", bbName);
+					} else {
+						sb.appendLine("{}    var _k_ = new {}();", prefix, keyType.getTypeName().replace('$', '.'));
+						sb.appendLine("{}    _k_.decode({});", prefix, bbName);
+					}
+					if (valueSerializer != null) {
+						var prefix1 = prefix + "    ";
+						valueSerializer.define.run(sb, prefix1, "_v_");
+						valueSerializer.decoder.run(sb, prefix1, "_v_", bbName);
+					} else {
+						sb.appendLine("{}    var _v_ = new {}();", prefix, valueType.getTypeName().replace('$', '.'));
+						sb.appendLine("{}    _v_.decode({});", prefix, bbName);
+					}
+					sb.appendLine("{}    {}.put(_k_, _v_);", prefix, varName);
+					sb.appendLine("{}}", prefix);
+					return;
+				}
 			}
 		}
 		sb.appendLine("{}{", prefix);
