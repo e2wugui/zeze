@@ -1,13 +1,11 @@
 package Zeze.Dbh2;
 
+import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
-import Zeze.Builtin.Dbh2.BeginTransaction;
-import Zeze.Builtin.Dbh2.CommitTransaction;
-import Zeze.Builtin.Dbh2.Delete;
+import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.Get;
 import Zeze.Builtin.Dbh2.KeepAlive;
-import Zeze.Builtin.Dbh2.Put;
-import Zeze.Builtin.Dbh2.RollbackTransaction;
+import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Net.Binary;
 import Zeze.Raft.Agent;
@@ -55,66 +53,17 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return KV.create(true, bb);
 	}
 
-	public Long beginTransaction(String databaseName, String tableName) {
-		var r = new BeginTransaction();
-		r.Argument.setDatabase(databaseName);
-		r.Argument.setTable(tableName);
+	public void sendBatch(BPrepareBatch.Data data) {
+		var r = new PrepareBatch();
+		r.Argument = data;
 		raftClient.sendForWait(r).await();
 
+		// todo 先要 prepare。writeBatch需要分两步。第一步发送，服务器检查锁定桶相关key；第二部提交；
 		if (r.getResultCode() == errorCode(eBucketMissmatch))
-			return null;
+			return;
 
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("fail! code=" + r.getResultCode());
-
-		return r.Result.getTransactionId();
-	}
-
-	public void commitTransaction(long tid) {
-		var r = new CommitTransaction();
-		r.Argument.setTransactionId(tid);
-		raftClient.sendForWait(r).await();
-	}
-
-	public void rollbackTransaction(long tid) {
-		var r = new RollbackTransaction();
-		r.Argument.setTransactionId(tid);
-		raftClient.sendForWait(r).await();
-	}
-
-	public String put(String databaseName, String tableName, long tid, Binary key, Binary value) {
-		var r = new Put();
-		r.Argument.setTransactionId(tid);
-		r.Argument.setDatabase(databaseName);
-		r.Argument.setTable(tableName);
-		r.Argument.setKey(key);
-		r.Argument.setValue(value);
-		raftClient.sendForWait(r).await();
-
-		if (r.getResultCode() == errorCode(eBucketMissmatch))
-			return null;
-
-		if (r.getResultCode() != 0)
-			throw new RuntimeException("fail! code=" + r.getResultCode());
-
-		return r.Result.getRaftConfig();
-	}
-
-	public String delete(String databaseName, String tableName, long tid, Binary key) {
-		var r = new Delete();
-		r.Argument.setTransactionId(tid);
-		r.Argument.setDatabase(databaseName);
-		r.Argument.setTable(tableName);
-		r.Argument.setKey(key);
-		raftClient.sendForWait(r).await();
-
-		if (r.getResultCode() == errorCode(eBucketMissmatch))
-			return null;
-
-		if (r.getResultCode() != 0)
-			throw new RuntimeException("fail! code=" + r.getResultCode());
-
-		return r.Result.getRaftConfig();
 	}
 
 	private void verifyFastFail() {

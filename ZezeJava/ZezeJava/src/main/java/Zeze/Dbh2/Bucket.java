@@ -23,32 +23,32 @@ import org.rocksdb.WriteOptions;
 public class Bucket {
 	private static final Logger logger = LogManager.getLogger(Bucket.class);
 
-	private final OptimisticTransactionDB db;
+	private final RocksDatabase db;
+	private final RocksDatabase.Table tData;
+	private final RocksDatabase.Table tMeta;
+
 	private final HashMap<String, ColumnFamilyHandle> cfHandles = new HashMap<>();
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
 	private volatile BBucketMeta.Data meta;
 	private long tid;
-	private final ColumnFamilyHandle cfMeta;
 	private final byte[] metaKey = new byte[]{1};
 	private final byte[] metaTid = new byte[0];
 
-	private ColumnFamilyHandle openFamily(@SuppressWarnings("SameParameterValue") String name) {
-		return cfHandles.computeIfAbsent(name, _name -> {
-			try {
-				return db.createColumnFamily(new ColumnFamilyDescriptor(
-						_name.getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
-			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
-			}
-		});
+	public WriteOptions getWriteOptions() {
+		return writeOptions;
 	}
 
 	public void setWriteOptions(WriteOptions options) {
 		writeOptions = options;
 	}
 
-	public OptimisticTransactionDB getDb() {
+
+	public RocksDatabase getDb() {
 		return db;
+	}
+
+	public RocksDatabase.Table getTData() {
+		return tData;
 	}
 
 	public Bucket(RaftConfig raftConfig) {
@@ -56,26 +56,16 @@ public class Bucket {
 			// 读取meta，meta创建在Bucket创建流程中写入。
 			var path = Path.of(raftConfig.getDbHome(), "statemachine").toAbsolutePath().toString();
 			logger.info("RocksDB.open: '{}'", path);
-			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-			for (var cf : OptimisticTransactionDB.listColumnFamilies(RocksDatabase.getCommonOptions(), path))
-				columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
-			if (columnFamilies.isEmpty())
-				columnFamilies.add(new ColumnFamilyDescriptor(
-						"default".getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
-			var cfHandlesOut = new ArrayList<ColumnFamilyHandle>();
-			this.db = OptimisticTransactionDB.open(RocksDatabase.getCommonDbOptions(), path, columnFamilies, cfHandlesOut);
-			for (var i = 0; i < columnFamilies.size(); ++i) {
-				var cfName = new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8);
-				this.cfHandles.put(cfName, cfHandlesOut.get(i));
-			}
-			this.cfMeta = openFamily("meta");
-			var metaValue = db.get(cfMeta, metaKey);
+			db = new RocksDatabase(path);
+			tData = db.openTable("data");
+			tMeta = db.openTable("meta");
+			var metaValue = tMeta.get(metaKey);
 			if (null != metaValue) {
 				var bb = ByteBuffer.Wrap(metaValue);
 				this.meta = new BBucketMeta.Data();
 				this.meta.decode(bb);
 			}
-			var tidValue = db.get(cfMeta, metaTid);
+			var tidValue = tMeta.get(metaTid);
 			if (null != tidValue) {
 				var bb = ByteBuffer.Wrap(tidValue);
 				tid = bb.ReadLong();
@@ -88,14 +78,14 @@ public class Bucket {
 	public void setMeta(BBucketMeta.Data meta) throws RocksDBException {
 		var bb = ByteBuffer.Allocate(32);
 		meta.encode(bb);
-		db.put(cfMeta, writeOptions, metaKey, 0, metaKey.length, bb.Bytes, bb.ReadIndex, bb.size());
+		tMeta.put(writeOptions, metaKey, 0, metaKey.length, bb.Bytes, bb.ReadIndex, bb.size());
 		this.meta = meta;
 	}
 
 	public void setTid(long tid) throws RocksDBException {
 		var bb = ByteBuffer.Allocate(9);
 		bb.WriteLong(tid);
-		db.put(cfMeta, writeOptions, metaTid, 0, metaTid.length, bb.Bytes, bb.ReadIndex, bb.size());
+		tMeta.put(writeOptions, metaTid, 0, metaTid.length, bb.Bytes, bb.ReadIndex, bb.size());
 		this.tid = tid;
 	}
 
@@ -103,18 +93,11 @@ public class Bucket {
 		return tid;
 	}
 
-	public Dbh2Transaction beginTransaction() {
-		return new Dbh2Transaction(db.beginTransaction(writeOptions));
-	}
-
-	public byte[] get(Binary key) throws RocksDBException {
-		var lock = Lock.get(key.bytesUnsafe());
-		lock.lock();
-		try {
-			return db.get(RocksDatabase.getDefaultReadOptions(), key.bytesUnsafe(), key.getOffset(), key.size());
-		} finally {
-			lock.unlock();
-		}
+	public Binary get(Binary key) throws RocksDBException {
+		var value = tData.get(key.bytesUnsafe(), key.getOffset(), key.size());
+		if (null == value)
+			return null;
+		return new Binary(value);
 	}
 
 	public boolean inBucket(String databaseName, String tableName) {

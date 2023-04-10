@@ -1,13 +1,13 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Dbh2;
 
-public interface BBeginTransactionArgumentReadOnly {
+public interface BPrepareBatchReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BBeginTransactionArgument copy();
+    BPrepareBatch copy();
 
     String getDatabase();
     String getTable();
-    long getTransactionId();
+    Zeze.Builtin.Dbh2.BBatchReadOnly getBatchReadOnly();
 }

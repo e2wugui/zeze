@@ -496,7 +496,7 @@ public final class Raft {
 				});
 				break;
 			}
-			if (++lowPrecisionTimer > 1000) { // 10s
+			if (++lowPrecisionTimer > 1000) {
 				lowPrecisionTimer = 0;
 				onLowPrecisionTimer();
 			}

@@ -17,25 +17,11 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.BeginTransaction.class, Zeze.Builtin.Dbh2.BeginTransaction.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Dbh2.BeginTransaction::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessBeginTransactionResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessBeginTransactionResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47360124156483L, factoryHandle); // 11026, -480216509
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.CommitTransaction.class, Zeze.Builtin.Dbh2.CommitTransaction.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Dbh2.CommitTransaction::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitTransactionResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitTransactionResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47359122130965L, factoryHandle); // 11026, -1482242027
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Delete.class, Zeze.Builtin.Dbh2.Delete.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Dbh2.Delete::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessDeleteResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessDeleteResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47360236597486L, factoryHandle); // 11026, -367775506
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.CommitBatch.class, Zeze.Builtin.Dbh2.CommitBatch.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.CommitBatch::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitBatchResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitBatchResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47357049712520L, factoryHandle); // 11026, 740306824
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Get.class, Zeze.Builtin.Dbh2.Get.TypeId_);
@@ -52,18 +38,11 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
             service.AddFactoryHandle(47358800944088L, factoryHandle); // 11026, -1803428904
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Put.class, Zeze.Builtin.Dbh2.Put.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Dbh2.Put::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessPutResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessPutResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47359688675419L, factoryHandle); // 11026, -915697573
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.RollbackTransaction.class, Zeze.Builtin.Dbh2.RollbackTransaction.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Dbh2.RollbackTransaction::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRollbackTransactionResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRollbackTransactionResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47360280866090L, factoryHandle); // 11026, -323506902
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.PrepareBatch.class, Zeze.Builtin.Dbh2.PrepareBatch.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.PrepareBatch::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessPrepareBatchResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessPrepareBatchResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47360344602230L, factoryHandle); // 11026, -259770762
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.SetBucketMeta.class, Zeze.Builtin.Dbh2.SetBucketMeta.TypeId_);
@@ -72,17 +51,22 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessSetBucketMetaResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47356909547647L, factoryHandle); // 11026, 600141951
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.UndoBatch.class, Zeze.Builtin.Dbh2.UndoBatch.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.UndoBatch::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessUndoBatchResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessUndoBatchResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47357555155327L, factoryHandle); // 11026, 1245749631
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
-        service.getFactorys().remove(47360124156483L);
-        service.getFactorys().remove(47359122130965L);
-        service.getFactorys().remove(47360236597486L);
+        service.getFactorys().remove(47357049712520L);
         service.getFactorys().remove(47356839198180L);
         service.getFactorys().remove(47358800944088L);
-        service.getFactorys().remove(47359688675419L);
-        service.getFactorys().remove(47360280866090L);
+        service.getFactorys().remove(47360344602230L);
         service.getFactorys().remove(47356909547647L);
+        service.getFactorys().remove(47357555155327L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {

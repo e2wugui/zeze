@@ -4,33 +4,12 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDeleteArgumentReadOnly {
-    public static final long TYPEID = 3113412576231487346L;
+public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepareBatchReadOnly {
+    public static final long TYPEID = 216908947802855063L;
 
-    private long _TransactionId;
     private String _Database; // 用来纠错
     private String _Table; // 用来纠错
-    private Zeze.Net.Binary _Key;
-
-    @Override
-    public long getTransactionId() {
-        if (!isManaged())
-            return _TransactionId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _TransactionId;
-        var log = (Log__TransactionId)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _TransactionId;
-    }
-
-    public void setTransactionId(long value) {
-        if (!isManaged()) {
-            _TransactionId = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TransactionId(this, 1, value));
-    }
+    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Dbh2.BBatch> _Batch;
 
     @Override
     public String getDatabase() {
@@ -39,7 +18,7 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Database;
-        var log = (Log__Database)txn.getLog(objectId() + 2);
+        var log = (Log__Database)txn.getLog(objectId() + 1);
         return log != null ? log.value : _Database;
     }
 
@@ -51,7 +30,7 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Database(this, 2, value));
+        txn.putLog(new Log__Database(this, 1, value));
     }
 
     @Override
@@ -61,7 +40,7 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Table;
-        var log = (Log__Table)txn.getLog(objectId() + 3);
+        var log = (Log__Table)txn.getLog(objectId() + 2);
         return log != null ? log.value : _Table;
     }
 
@@ -73,91 +52,81 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Table(this, 3, value));
+        txn.putLog(new Log__Table(this, 2, value));
+    }
+
+    public Zeze.Builtin.Dbh2.BBatch getBatch() {
+        return _Batch.getValue();
+    }
+
+    public void setBatch(Zeze.Builtin.Dbh2.BBatch value) {
+        _Batch.setValue(value);
     }
 
     @Override
-    public Zeze.Net.Binary getKey() {
-        if (!isManaged())
-            return _Key;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _Key;
-        var log = (Log__Key)txn.getLog(objectId() + 4);
-        return log != null ? log.value : _Key;
-    }
-
-    public void setKey(Zeze.Net.Binary value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _Key = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Key(this, 4, value));
+    public Zeze.Builtin.Dbh2.BBatchReadOnly getBatchReadOnly() {
+        return _Batch.getValue();
     }
 
     @SuppressWarnings("deprecation")
-    public BDeleteArgument() {
+    public BPrepareBatch() {
         _Database = "";
         _Table = "";
-        _Key = Zeze.Net.Binary.Empty;
+        _Batch = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBatch(), Zeze.Builtin.Dbh2.BBatch.class);
+        _Batch.variableId(3);
     }
 
     @SuppressWarnings("deprecation")
-    public BDeleteArgument(long _TransactionId_, String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
-        _TransactionId = _TransactionId_;
+    public BPrepareBatch(String _Database_, String _Table_) {
         if (_Database_ == null)
             throw new IllegalArgumentException();
         _Database = _Database_;
         if (_Table_ == null)
             throw new IllegalArgumentException();
         _Table = _Table_;
-        if (_Key_ == null)
-            throw new IllegalArgumentException();
-        _Key = _Key_;
+        _Batch = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBatch(), Zeze.Builtin.Dbh2.BBatch.class);
+        _Batch.variableId(3);
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BDeleteArgument.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.BDeleteArgument.Data();
+    public Zeze.Builtin.Dbh2.BPrepareBatch.Data toData() {
+        var data = new Zeze.Builtin.Dbh2.BPrepareBatch.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BDeleteArgument.Data)other);
+        assign((Zeze.Builtin.Dbh2.BPrepareBatch.Data)other);
     }
 
-    public void assign(BDeleteArgument.Data other) {
-        setTransactionId(other.getTransactionId());
+    public void assign(BPrepareBatch.Data other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
-        setKey(other.getKey());
+        Zeze.Builtin.Dbh2.BBatch data_Batch = new Zeze.Builtin.Dbh2.BBatch();
+        data_Batch.assign(other.getBatch());
+        _Batch.setValue(data_Batch);
     }
 
-    public void assign(BDeleteArgument other) {
-        setTransactionId(other.getTransactionId());
+    public void assign(BPrepareBatch other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
-        setKey(other.getKey());
+        _Batch.assign(other._Batch);
     }
 
-    public BDeleteArgument copyIfManaged() {
+    public BPrepareBatch copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BDeleteArgument copy() {
-        var copy = new BDeleteArgument();
+    public BPrepareBatch copy() {
+        var copy = new BPrepareBatch();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BDeleteArgument a, BDeleteArgument b) {
-        BDeleteArgument save = a.copy();
+    public static void swap(BPrepareBatch a, BPrepareBatch b) {
+        BPrepareBatch save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -167,32 +136,18 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
         return TYPEID;
     }
 
-    private static final class Log__TransactionId extends Zeze.Transaction.Logs.LogLong {
-        public Log__TransactionId(BDeleteArgument bean, int varId, long value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BDeleteArgument)getBelong())._TransactionId = value; }
-    }
-
     private static final class Log__Database extends Zeze.Transaction.Logs.LogString {
-        public Log__Database(BDeleteArgument bean, int varId, String value) { super(bean, varId, value); }
+        public Log__Database(BPrepareBatch bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BDeleteArgument)getBelong())._Database = value; }
+        public void commit() { ((BPrepareBatch)getBelong())._Database = value; }
     }
 
     private static final class Log__Table extends Zeze.Transaction.Logs.LogString {
-        public Log__Table(BDeleteArgument bean, int varId, String value) { super(bean, varId, value); }
+        public Log__Table(BPrepareBatch bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BDeleteArgument)getBelong())._Table = value; }
-    }
-
-    private static final class Log__Key extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Key(BDeleteArgument bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BDeleteArgument)getBelong())._Key = value; }
+        public void commit() { ((BPrepareBatch)getBelong())._Table = value; }
     }
 
     @Override
@@ -204,12 +159,13 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BDeleteArgument: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BPrepareBatch: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TransactionId=").append(getTransactionId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(getDatabase()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(getTable()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(getKey()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Batch=").append(System.lineSeparator());
+        _Batch.buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -230,32 +186,28 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            long _x_ = getTransactionId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
-        {
             String _x_ = getDatabase();
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
             String _x_ = getTable();
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            var _x_ = getKey();
-            if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
-                _o_.WriteBinary(_x_);
-            }
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 3, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            _Batch.encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
         }
         _o_.WriteByte(0);
     }
@@ -265,19 +217,15 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTransactionId(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
             setDatabase(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 3) {
+        if (_i_ == 2) {
             setTable(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 4) {
-            setKey(_o_.ReadBinary(_t_));
+        if (_i_ == 3) {
+            _o_.ReadBean(_Batch, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -287,10 +235,13 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
     }
 
     @Override
-    public boolean negativeCheck() {
-        if (getTransactionId() < 0)
-            return true;
-        return false;
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Batch.initRootInfo(root, this);
+    }
+
+    @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Batch.initRootInfoWithRedo(root, this);
     }
 
     @SuppressWarnings("unchecked")
@@ -302,10 +253,9 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TransactionId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _Database = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _Table = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 4: _Key = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _Database = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _Table = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 3: _Batch.followerApply(vlog); break;
             }
         }
     }
@@ -313,43 +263,34 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setTransactionId(rs.getLong(_parents_name_ + "TransactionId"));
         setDatabase(rs.getString(_parents_name_ + "Database"));
         if (getDatabase() == null)
             setDatabase("");
         setTable(rs.getString(_parents_name_ + "Table"));
         if (getTable() == null)
             setTable("");
-        setKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Key")));
-        if (getKey() == null)
-            setKey(Zeze.Net.Binary.Empty);
+        parents.add("Batch");
+        getBatch().decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "TransactionId", getTransactionId());
         st.appendString(_parents_name_ + "Database", getDatabase());
         st.appendString(_parents_name_ + "Table", getTable());
-        st.appendBinary(_parents_name_ + "Key", getKey());
+        parents.add("Batch");
+        getBatch().encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
     }
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = 3113412576231487346L;
+    public static final long TYPEID = 216908947802855063L;
 
-    private long _TransactionId;
     private String _Database; // 用来纠错
     private String _Table; // 用来纠错
-    private Zeze.Net.Binary _Key;
-
-    public long getTransactionId() {
-        return _TransactionId;
-    }
-
-    public void setTransactionId(long value) {
-        _TransactionId = value;
-    }
+    private Zeze.Builtin.Dbh2.BBatch.Data _Batch;
 
     public String getDatabase() {
         return _Database;
@@ -371,71 +312,68 @@ public static final class Data extends Zeze.Transaction.Data {
         _Table = value;
     }
 
-    public Zeze.Net.Binary getKey() {
-        return _Key;
+    public Zeze.Builtin.Dbh2.BBatch.Data getBatch() {
+        return _Batch;
     }
 
-    public void setKey(Zeze.Net.Binary value) {
+    public void setBatch(Zeze.Builtin.Dbh2.BBatch.Data value) {
         if (value == null)
             throw new IllegalArgumentException();
-        _Key = value;
+        _Batch = value;
     }
 
     @SuppressWarnings("deprecation")
     public Data() {
         _Database = "";
         _Table = "";
-        _Key = Zeze.Net.Binary.Empty;
+        _Batch = new Zeze.Builtin.Dbh2.BBatch.Data();
+        _Batch.variableId(3);
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _TransactionId_, String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
-        _TransactionId = _TransactionId_;
+    public Data(String _Database_, String _Table_) {
         if (_Database_ == null)
             throw new IllegalArgumentException();
         _Database = _Database_;
         if (_Table_ == null)
             throw new IllegalArgumentException();
         _Table = _Table_;
-        if (_Key_ == null)
-            throw new IllegalArgumentException();
-        _Key = _Key_;
+        _Batch = new Zeze.Builtin.Dbh2.BBatch.Data();
+        _Batch.variableId(3);
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BDeleteArgument toBean() {
-        var bean = new Zeze.Builtin.Dbh2.BDeleteArgument();
+    public Zeze.Builtin.Dbh2.BPrepareBatch toBean() {
+        var bean = new Zeze.Builtin.Dbh2.BPrepareBatch();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BDeleteArgument)other);
+        assign((BPrepareBatch)other);
     }
 
-    public void assign(BDeleteArgument other) {
-        setTransactionId(other.getTransactionId());
+    public void assign(BPrepareBatch other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
-        setKey(other.getKey());
+        _Batch.assign(other.getBatch());
     }
 
-    public void assign(BDeleteArgument.Data other) {
-        setTransactionId(other.getTransactionId());
+    public void assign(BPrepareBatch.Data other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
-        setKey(other.getKey());
+        _Batch.assign(other.getBatch());
     }
 
     @Override
-    public BDeleteArgument.Data copy() {
-        var copy = new BDeleteArgument.Data();
+    public BPrepareBatch.Data copy() {
+        var copy = new BPrepareBatch.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BDeleteArgument.Data a, BDeleteArgument.Data b) {
+    public static void swap(BPrepareBatch.Data a, BPrepareBatch.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -455,12 +393,13 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BDeleteArgument: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BPrepareBatch: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TransactionId=").append(getTransactionId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(getDatabase()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(getTable()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(getKey()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Batch=").append(System.lineSeparator());
+        _Batch.buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -481,32 +420,28 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            long _x_ = getTransactionId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
-        {
             String _x_ = getDatabase();
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
             String _x_ = getTable();
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            var _x_ = getKey();
-            if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
-                _o_.WriteBinary(_x_);
-            }
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 3, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            _Batch.encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
         }
         _o_.WriteByte(0);
     }
@@ -516,19 +451,15 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTransactionId(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
             setDatabase(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 3) {
+        if (_i_ == 2) {
             setTable(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 4) {
-            setKey(_o_.ReadBinary(_t_));
+        if (_i_ == 3) {
+            _o_.ReadBean(_Batch, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

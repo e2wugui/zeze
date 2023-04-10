@@ -2,12 +2,12 @@ package Zeze.Dbh2;
 
 import java.io.Closeable;
 import java.io.IOException;
-import Zeze.Builtin.Dbh2.CommitTransaction;
+import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.KeepAlive;
-import Zeze.Builtin.Dbh2.RollbackTransaction;
+import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
+import Zeze.Builtin.Dbh2.UndoBatch;
 import Zeze.Config;
-import Zeze.Net.Binary;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.RocksDatabase;
@@ -63,64 +63,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     }
 
     @Override
-    protected long ProcessBeginTransactionRequest(Zeze.Builtin.Dbh2.BeginTransaction r) {
-        if (null != manager)
-            manager.counterBeginTransaction.incrementAndGet();
-
-        // 错误检查，防止访问桶错乱。
-        if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
-            return errorCode(eBucketMissmatch);
-
-        // allocate tid
-        var tid = stateMachine.getTidAllocator().next(stateMachine);
-
-        r.Argument.setTransactionId(tid); // setup first
-        var log = new LogBeginTransaction(r);
-        r.Result.setTransactionId(tid); // prepare result before appendLog,
-        raft.appendLog(log, r.Result);
-        r.SendResult();
-        return 0;
-    }
-
-    @Override
-    protected long ProcessCommitTransactionRequest(CommitTransaction r) throws Exception {
-        if (null != manager)
-            manager.counterCommitTransaction.incrementAndGet();
-
-        var log = new LogCommitTransaction(r);
-        raft.appendLog(log, r.Result); // result is empty
-        r.SendResult();
-        return 0;
-    }
-
-    @Override
-    protected long ProcessRollbackTransactionRequest(RollbackTransaction r) throws Exception {
-        if (null != manager)
-            manager.counterRollbackTransaction.incrementAndGet();
-
-        var log = new LogRollbackTransaction(r);
-        raft.appendLog(log, r.Result); // result is empty
-        r.SendResult();
-        return 0;
-    }
-
-    @Override
     protected long ProcessSetBucketMetaRequest(SetBucketMeta r) throws Exception {
         var log = new LogSetBucketMeta(r);
-        raft.appendLog(log, r.Result); // result is empty
-        r.SendResult();
-        return 0;
-    }
-
-    @Override
-    protected long ProcessDeleteRequest(Zeze.Builtin.Dbh2.Delete r) {
-        if (null != manager)
-            manager.counterDelete.incrementAndGet();
-
-        if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
-            return errorCode(eBucketMissmatch);
-
-        var log = new LogDelete(r);
         raft.appendLog(log, r.Result); // result is empty
         r.SendResult();
         return 0;
@@ -139,9 +83,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
         if (null == value)
             r.Result.setNull(true);
         else {
-            r.Result.setValue(new Binary(value));
+            r.Result.setValue(value);
             if (null != manager)
-                manager.sizeGet.addAndGet(value.length);
+                manager.sizeGet.addAndGet(value.size());
         }
         r.SendResult();
         return 0;
@@ -154,17 +98,18 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     }
 
     @Override
-    protected long ProcessPutRequest(Zeze.Builtin.Dbh2.Put r) {
-        if (null != manager) {
-            manager.counterPut.incrementAndGet();
-            manager.sizePut.addAndGet(r.Argument.getValue().size());
-        }
-        if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
-            return errorCode(eBucketMissmatch);
+    protected long ProcessPrepareBatchRequest(PrepareBatch r) throws Exception {
+        // stateMachine.getBucket().prepare(r.Argument);
+        return 0;
+    }
 
-        var log = new LogPut(r);
-        raft.appendLog(log, r.Result); // result is empty
-        r.SendResult();
+    @Override
+    protected long ProcessCommitBatchRequest(CommitBatch r) throws Exception {
+        return 0;
+    }
+
+    @Override
+    protected long ProcessUndoBatchRequest(UndoBatch r) throws Exception {
         return 0;
     }
 }

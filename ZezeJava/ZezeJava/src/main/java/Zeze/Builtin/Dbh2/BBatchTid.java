@@ -4,78 +4,73 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BPutResult extends Zeze.Transaction.Bean implements BPutResultReadOnly {
-    public static final long TYPEID = 2501510166579002026L;
+public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidReadOnly {
+    public static final long TYPEID = -8862994320894252651L;
 
-    private String _RaftConfig;
+    private long _Tid;
 
     @Override
-    public String getRaftConfig() {
+    public long getTid() {
         if (!isManaged())
-            return _RaftConfig;
+            return _Tid;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _RaftConfig;
-        var log = (Log__RaftConfig)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _RaftConfig;
+            return _Tid;
+        var log = (Log__Tid)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Tid;
     }
 
-    public void setRaftConfig(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
+    public void setTid(long value) {
         if (!isManaged()) {
-            _RaftConfig = value;
+            _Tid = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__RaftConfig(this, 1, value));
+        txn.putLog(new Log__Tid(this, 1, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BPutResult() {
-        _RaftConfig = "";
+    public BBatchTid() {
     }
 
     @SuppressWarnings("deprecation")
-    public BPutResult(String _RaftConfig_) {
-        if (_RaftConfig_ == null)
-            throw new IllegalArgumentException();
-        _RaftConfig = _RaftConfig_;
+    public BBatchTid(long _Tid_) {
+        _Tid = _Tid_;
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BPutResult.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.BPutResult.Data();
+    public Zeze.Builtin.Dbh2.BBatchTid.Data toData() {
+        var data = new Zeze.Builtin.Dbh2.BBatchTid.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BPutResult.Data)other);
+        assign((Zeze.Builtin.Dbh2.BBatchTid.Data)other);
     }
 
-    public void assign(BPutResult.Data other) {
-        setRaftConfig(other.getRaftConfig());
+    public void assign(BBatchTid.Data other) {
+        setTid(other.getTid());
     }
 
-    public void assign(BPutResult other) {
-        setRaftConfig(other.getRaftConfig());
+    public void assign(BBatchTid other) {
+        setTid(other.getTid());
     }
 
-    public BPutResult copyIfManaged() {
+    public BBatchTid copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BPutResult copy() {
-        var copy = new BPutResult();
+    public BBatchTid copy() {
+        var copy = new BBatchTid();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BPutResult a, BPutResult b) {
-        BPutResult save = a.copy();
+    public static void swap(BBatchTid a, BBatchTid b) {
+        BBatchTid save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -85,11 +80,11 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
         return TYPEID;
     }
 
-    private static final class Log__RaftConfig extends Zeze.Transaction.Logs.LogString {
-        public Log__RaftConfig(BPutResult bean, int varId, String value) { super(bean, varId, value); }
+    private static final class Log__Tid extends Zeze.Transaction.Logs.LogLong {
+        public Log__Tid(BBatchTid bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BPutResult)getBelong())._RaftConfig = value; }
+        public void commit() { ((BBatchTid)getBelong())._Tid = value; }
     }
 
     @Override
@@ -101,9 +96,9 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BPutResult: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBatchTid: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("RaftConfig=").append(getRaftConfig()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Tid=").append(getTid()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -124,10 +119,10 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getRaftConfig();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
+            long _x_ = getTid();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -138,13 +133,20 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setRaftConfig(_o_.ReadString(_t_));
+            setTid(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean negativeCheck() {
+        if (getTid() < 0)
+            return true;
+        return false;
     }
 
     @SuppressWarnings("unchecked")
@@ -156,7 +158,7 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _RaftConfig = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _Tid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }
@@ -164,73 +166,66 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setRaftConfig(rs.getString(_parents_name_ + "RaftConfig"));
-        if (getRaftConfig() == null)
-            setRaftConfig("");
+        setTid(rs.getLong(_parents_name_ + "Tid"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "RaftConfig", getRaftConfig());
+        st.appendLong(_parents_name_ + "Tid", getTid());
     }
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = 2501510166579002026L;
+    public static final long TYPEID = -8862994320894252651L;
 
-    private String _RaftConfig;
+    private long _Tid;
 
-    public String getRaftConfig() {
-        return _RaftConfig;
+    public long getTid() {
+        return _Tid;
     }
 
-    public void setRaftConfig(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        _RaftConfig = value;
+    public void setTid(long value) {
+        _Tid = value;
     }
 
     @SuppressWarnings("deprecation")
     public Data() {
-        _RaftConfig = "";
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _RaftConfig_) {
-        if (_RaftConfig_ == null)
-            throw new IllegalArgumentException();
-        _RaftConfig = _RaftConfig_;
+    public Data(long _Tid_) {
+        _Tid = _Tid_;
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BPutResult toBean() {
-        var bean = new Zeze.Builtin.Dbh2.BPutResult();
+    public Zeze.Builtin.Dbh2.BBatchTid toBean() {
+        var bean = new Zeze.Builtin.Dbh2.BBatchTid();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BPutResult)other);
+        assign((BBatchTid)other);
     }
 
-    public void assign(BPutResult other) {
-        setRaftConfig(other.getRaftConfig());
+    public void assign(BBatchTid other) {
+        setTid(other.getTid());
     }
 
-    public void assign(BPutResult.Data other) {
-        setRaftConfig(other.getRaftConfig());
+    public void assign(BBatchTid.Data other) {
+        setTid(other.getTid());
     }
 
     @Override
-    public BPutResult.Data copy() {
-        var copy = new BPutResult.Data();
+    public BBatchTid.Data copy() {
+        var copy = new BBatchTid.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BPutResult.Data a, BPutResult.Data b) {
+    public static void swap(BBatchTid.Data a, BBatchTid.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -250,9 +245,9 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BPutResult: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBatchTid: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("RaftConfig=").append(getRaftConfig()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Tid=").append(getTid()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -273,10 +268,10 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getRaftConfig();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
+            long _x_ = getTid();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -287,7 +282,7 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setRaftConfig(_o_.ReadString(_t_));
+            setTid(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

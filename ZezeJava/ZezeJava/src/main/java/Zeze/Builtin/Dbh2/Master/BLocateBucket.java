@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 				Dbh2发现桶没找到错误时，使用GetBuckets得到完整的信息。
 				因为只LocateBucket最新的桶信息虽然能用，但是出现桶没找到错误时，通常意味着前一个桶的信息也需要更新。
 				不更新旧桶，桶的定位方法可以工作（只依赖桶的KeyFrist），但感觉不好。
-				所以LocateBucket核心先不用，仅使用GetBuckets。
+				所以LocateBucket先不用，仅使用GetBuckets。
 */
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocateBucketReadOnly {
@@ -291,7 +291,7 @@ public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocat
 				Dbh2发现桶没找到错误时，使用GetBuckets得到完整的信息。
 				因为只LocateBucket最新的桶信息虽然能用，但是出现桶没找到错误时，通常意味着前一个桶的信息也需要更新。
 				不更新旧桶，桶的定位方法可以工作（只依赖桶的KeyFrist），但感觉不好。
-				所以LocateBucket核心先不用，仅使用GetBuckets。
+				所以LocateBucket先不用，仅使用GetBuckets。
 */
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {

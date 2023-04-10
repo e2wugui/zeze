@@ -63,7 +63,7 @@ public class Database extends Zeze.Transaction.Database {
 		@Override
 		public void commit() {
 			for (var e : transactions.entrySet()) {
-				e.getKey().commitTransaction(e.getValue());
+				// todo e.getKey().commitTransaction(e.getValue());
 			}
 		}
 
@@ -76,7 +76,7 @@ public class Database extends Zeze.Transaction.Database {
 						bKey);
 				var tid = transactions.get(agent);
 				if (null == tid)
-					tid = agent.beginTransaction(databaseName, tableName);
+					tid = 0L; // todo agent.beginTransaction(databaseName, tableName);
 				if (null != tid) {
 					transactions.put(agent, tid);
 					return KV.create(tid, agent);
@@ -89,7 +89,7 @@ public class Database extends Zeze.Transaction.Database {
 		private long beginTransactionIf(Dbh2Agent agent, String tableName) {
 			var tid = transactions.get(agent);
 			if (null == tid)
-				tid = agent.beginTransaction(databaseName, tableName);
+				tid = 0L; // todo agent.beginTransaction(databaseName, tableName);
 			if (null != tid) {
 				transactions.put(agent, tid);
 				return tid;
@@ -130,14 +130,16 @@ public class Database extends Zeze.Transaction.Database {
 		public void replace(String tableName, ByteBuffer key, ByteBuffer value) throws Exception {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
-			operate(tableName, bKey, (tid, agent)
-					-> agent.put(databaseName, tableName, tid, bKey, bValue));
+			// todo
+//			operate(tableName, bKey, (tid, agent)
+//					-> agent.put(databaseName, tableName, tid, bKey, bValue));
 		}
 
 		public void remove(String tableName, ByteBuffer key) throws Exception {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
-			operate(tableName, bKey, (tid, agent)
-					-> agent.delete(databaseName, tableName, tid, bKey));
+			// todo
+//			operate(tableName, bKey, (tid, agent)
+//					-> agent.delete(databaseName, tableName, tid, bKey));
 		}
 
 		@Override
@@ -145,9 +147,10 @@ public class Database extends Zeze.Transaction.Database {
 			if (rollBacked)
 				return;
 			rollBacked = true;
-			for (var e : transactions.entrySet()) {
-				e.getKey().rollbackTransaction(e.getValue());
-			}
+			// todo
+//			for (var e : transactions.entrySet()) {
+//				e.getKey().rollbackTransaction(e.getValue());
+//			}
 		}
 
 		@Override

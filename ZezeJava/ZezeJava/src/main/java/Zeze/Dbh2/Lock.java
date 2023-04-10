@@ -1,15 +1,18 @@
 package Zeze.Dbh2;
 
-public class Lock {
-	public void lock() {
+import Zeze.Net.Binary;
 
+public class Lock {
+
+	// 超时将抛出异常。
+	public void lock() {
 	}
 
 	public void unlock() {
 
 	}
 
-	public static Lock get(byte[] key) {
+	public static Lock get(Binary key) {
 		return new Lock();
 	}
 }

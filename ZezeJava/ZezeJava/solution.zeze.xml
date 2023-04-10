@@ -1294,7 +1294,7 @@
 				Dbh2发现桶没找到错误时，使用GetBuckets得到完整的信息。
 				因为只LocateBucket最新的桶信息虽然能用，但是出现桶没找到错误时，通常意味着前一个桶的信息也需要更新。
 				不更新旧桶，桶的定位方法可以工作（只依赖桶的KeyFrist），但感觉不好。
-				所以LocateBucket核心先不用，仅使用GetBuckets。
+				所以LocateBucket先不用，仅使用GetBuckets。
 				-->
 				<bean name="BLocateBucket">
 					<variable id="1" name="Database" type="string"/>
@@ -1358,52 +1358,22 @@
 			</bean>
 			<rpc name="Get" argument="BGetArgument" result="BGetResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
-			<bean name="BBeginTransactionArgument">
+			<bean name="BBatch">
+				<variable id="1" name="Puts" type="map[binary, binary]"/>
+				<variable id="2" name="Deletes" type="set[binary]"/>
+			</bean>
+			<bean name="BPrepareBatch">
 				<variable id="1" name="Database" type="string"/> 用来纠错
 				<variable id="2" name="Table" type="string"/> 用来纠错
-				<variable id="3" name="TransactionId" type="long"/> 发送请求不用填写，Raft内部用
+				<variable id="3" name="Batch" type="BBatch"/>
 			</bean>
-			<bean name="BBeginTransactionResult">
-				<variable id="1" name="TransactionId" type="long"/>
+			<bean name="BBatchTid">
+				<variable id="1" name="Tid" type="long"/>
 			</bean>
-			<rpc name="BeginTransaction" argument="BBeginTransactionArgument" result="BBeginTransactionResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
-
-			<bean name="BCommitTransactionArgument">
-				<variable id="1" name="TransactionId" type="long"/>
-			</bean>
-			<bean name="BCommitTransactionResult">
-			</bean>
-			<rpc name="CommitTransaction" argument="BCommitTransactionArgument" result="BCommitTransactionResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
-
-			<bean name="BRollbackTransactionArgument">
-				<variable id="1" name="TransactionId" type="long"/>
-			</bean>
-			<bean name="BRollbackTransactionResult">
-			</bean>
-			<rpc name="RollbackTransaction" argument="BRollbackTransactionArgument" result="BRollbackTransactionResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
-
-			<bean name="BPutArgument">
-				<variable id="1" name="TransactionId" type="long"/>
-				<variable id="2" name="Database" type="string"/> 用来纠错
-				<variable id="3" name="Table" type="string"/> 用来纠错
-				<variable id="4" name="Key" type="binary"/>
-				<variable id="5" name="Value" type="binary"/>
-			</bean>
-			<bean name="BPutResult">
-				<variable id="1" name="RaftConfig" type="string"/>
-			</bean>
-			<rpc name="Put" argument="BPutArgument" result="BPutResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
-
-			<bean name="BDeleteArgument">
-				<variable id="1" name="TransactionId" type="long"/>
-				<variable id="2" name="Database" type="string"/> 用来纠错
-				<variable id="3" name="Table" type="string"/> 用来纠错
-				<variable id="4" name="Key" type="binary"/>
-			</bean>
-			<bean name="BDeleteResult">
-				<variable id="1" name="RaftConfig" type="string"/>
-			</bean>
-			<rpc name="Delete" argument="BDeleteArgument" result="BDeleteResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			<!-- 桶正在迁移中造成Batch中部分Key失败，整个事务失败。-->
+			<rpc name="PrepareBatch" argument="BPrepareBatch" result="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			<rpc name="CommitBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			<rpc name="UndoBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 		</module>
 
 		<!--

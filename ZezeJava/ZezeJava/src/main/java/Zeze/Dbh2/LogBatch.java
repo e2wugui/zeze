@@ -1,25 +1,25 @@
 package Zeze.Dbh2;
 
-import Zeze.Builtin.Dbh2.BBeginTransactionArgument;
-import Zeze.Builtin.Dbh2.BeginTransaction;
+import Zeze.Builtin.Dbh2.BBatch;
+import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
 
-public class LogBeginTransaction extends Log {
-	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogBeginTransaction.class.getName());
+public class LogBatch extends Log {
+	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogBatch.class.getName());
 
-	private BBeginTransactionArgument.Data argument;
+	private BBatch.Data argument;
 
-	public LogBeginTransaction() {
+	public LogBatch() {
 		this(null);
 	}
 
-	public LogBeginTransaction(BeginTransaction req) {
+	public LogBatch(PrepareBatch req) {
 		super(null);
 		if (null != req)
-			this.argument = req.Argument;
+			this.argument = req.Argument.getBatch();
 	}
 
 	@Override
@@ -30,7 +30,7 @@ public class LogBeginTransaction extends Log {
 	@Override
 	public void apply(RaftLog holder, StateMachine stateMachine) throws Exception {
 		var sm = (Dbh2StateMachine)stateMachine;
-		sm.beginTransaction(argument);
+		sm.writeBatch(argument);
 	}
 
 	@Override
@@ -42,7 +42,7 @@ public class LogBeginTransaction extends Log {
 	@Override
 	public void decode(ByteBuffer bb) {
 		super.decode(bb);
-		argument = new BBeginTransactionArgument.Data();
+		argument = new BBatch.Data();
 		argument.decode(bb);
 	}
 }

@@ -23,8 +23,6 @@ namespace Zeze.Gen.Types
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);
 			ValueType = Type.Compile(space, value, null, null, var);
-			if (ValueType is TypeBinary)
-				throw new Exception(Name + " Error : value type is binary.");
 			if (ValueType is TypeDynamic)
 				throw new Exception(Name + " Error : value type is dynamic.");
 			if (!ValueType.IsKeyable)

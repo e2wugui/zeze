@@ -3,13 +3,8 @@ package Zeze.Dbh2;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
-import Zeze.Builtin.Dbh2.BBeginTransactionArgument;
+import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
-import Zeze.Builtin.Dbh2.BCommitTransactionArgument;
-import Zeze.Builtin.Dbh2.BDeleteArgument;
-import Zeze.Builtin.Dbh2.BPutArgument;
-import Zeze.Builtin.Dbh2.BRollbackTransactionArgument;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
 import Zeze.Util.RocksDatabase;
@@ -27,16 +22,12 @@ import org.rocksdb.RocksDBException;
 
 public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private static final Logger logger = LogManager.getLogger(Dbh2StateMachine.class);
-	private final HashMap<Long, Dbh2Transaction> transactionMap = new HashMap<>();
 	private Bucket bucket;
 	private TidAllocator tidAllocator;
 
 	public Dbh2StateMachine() {
-		super.addFactory(LogBeginTransaction.TypeId_, LogBeginTransaction::new);
-		super.addFactory(LogCommitTransaction.TypeId_, LogCommitTransaction::new);
-		super.addFactory(LogRollbackTransaction.TypeId_, LogRollbackTransaction::new);
-		super.addFactory(LogPut.TypeId_, LogPut::new);
-		super.addFactory(LogDelete.TypeId_, LogDelete::new);
+		super.addFactory(LogBatch.TypeId_, LogBatch::new);
+		super.addFactory(LogBatch.TypeId_, LogBatch::new);
 		super.addFactory(LogSetBucketMeta.TypeId_, LogSetBucketMeta::new);
 		super.addFactory(LogAllocateTid.TypeId_, LogAllocateTid::new);
 	}
@@ -79,48 +70,13 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void beginTransaction(BBeginTransactionArgument.Data argument) {
-		var transaction = bucket.beginTransaction();
-		if (null != transactionMap.putIfAbsent(argument.getTransactionId(), transaction)) {
-			logger.error("duplicate tid=" + argument.getTransactionId());
-			getRaft().fatalKill();
-		}
-	}
-
-	public void commitTransaction(BCommitTransactionArgument.Data argument) {
-		try (var transaction = transactionMap.remove(argument.getTransactionId())) {
-			if (null != transaction)
-				transaction.commit();
-		} catch (RocksDBException e) {
-			logger.error("", e);
-			getRaft().fatalKill();
-		}
-	}
-
-	public void rollbackTransaction(BRollbackTransactionArgument.Data argument) {
-		try (var transaction = transactionMap.remove(argument.getTransactionId())) {
-			if (null != transaction)
-				transaction.rollback();
-		} catch (RocksDBException e) {
-			logger.error("", e);
-			getRaft().fatalKill();
-		}
-	}
-
-	public void put(BPutArgument.Data argument) {
-		try {
-			var transaction = transactionMap.get(argument.getTransactionId());
-			transaction.put(argument.getKey().bytesUnsafe(), argument.getValue().bytesUnsafe());
-		} catch (RocksDBException e) {
-			logger.error("", e);
-			getRaft().fatalKill();
-		}
-	}
-
-	public void delete(BDeleteArgument.Data argument) {
-		try {
-			var transaction = transactionMap.get(argument.getTransactionId());
-			transaction.delete(argument.getKey().bytesUnsafe());
+	public void writeBatch(BBatch.Data bBatch) {
+		try (var batch = bucket.getDb().newBatch()) {
+			for (var e : bBatch.getPuts().entrySet())
+				bucket.getTData().put(batch, e.getKey(), e.getValue());
+			for (var e : bBatch.getDeletes())
+				bucket.getTData().delete(batch, e);
+			batch.commit(bucket.getWriteOptions());
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -193,7 +149,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			result.lastIncludedIndex = lastAppliedLog.getIndex();
 			result.lastIncludedTerm = lastAppliedLog.getTerm();
 
-			try (var cp = Checkpoint.create(bucket.getDb())) {
+			// todo 把 checkpoint,backup，restore 相关代码重构到 RocksDatabase 中。
+			try (var cp = Checkpoint.create(bucket.getDb().getRocksDb())) {
 				cp.createCheckpoint(checkpointDir);
 			}
 		} finally {

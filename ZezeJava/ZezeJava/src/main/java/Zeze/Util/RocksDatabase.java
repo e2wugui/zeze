@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Net.Binary;
 import Zeze.Transaction.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -170,7 +171,11 @@ public class RocksDatabase implements Closeable {
 		return false;
 	}
 
-	private @NotNull ColumnFamilyHandle openFamily(@NotNull String name) {
+	public Batch newBatch() {
+		return new Batch();
+	}
+
+	private @NotNull ColumnFamilyHandle openFamily(String name) {
 		return columnFamilies.computeIfAbsent(name, key -> {
 			try {
 				return rocksDb.createColumnFamily(new ColumnFamilyDescriptor(
@@ -255,7 +260,12 @@ public class RocksDatabase implements Closeable {
 			rocksDb.delete(columnFamily, options, key, keyOff, keyLen);
 		}
 
-		public void put(@NotNull Batch batch, byte[] key, byte[] value) throws RocksDBException {
+		public void put(Batch batch, Binary key, Binary value) throws RocksDBException {
+			batch.put(columnFamily, key.bytesUnsafe(), key.getOffset(), key.size(),
+					value.bytesUnsafe(), value.getOffset(), value.size());
+		}
+
+		public void put(Batch batch, byte[] key, byte[] value) throws RocksDBException {
 			batch.put(columnFamily, key, value);
 		}
 
@@ -264,7 +274,11 @@ public class RocksDatabase implements Closeable {
 			batch.put(columnFamily, key, keyOff, keyLen, value, valueOff, valueLen);
 		}
 
-		public void delete(@NotNull Batch batch, byte[] key) throws RocksDBException {
+		public void delete(Batch batch, Binary key) throws RocksDBException {
+			batch.delete(columnFamily, key.bytesUnsafe(), key.getOffset(), key.size());
+		}
+
+		public void delete(Batch batch, byte[] key) throws RocksDBException {
 			batch.delete(columnFamily, key);
 		}
 
@@ -316,7 +330,7 @@ public class RocksDatabase implements Closeable {
 		}
 
 		@Override
-		public void close() throws IOException {
+		public void close() {
 			batch.close();
 		}
 	}
