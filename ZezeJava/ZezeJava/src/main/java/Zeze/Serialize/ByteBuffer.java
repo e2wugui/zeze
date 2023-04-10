@@ -1,5 +1,10 @@
 package Zeze.Serialize;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteOrder;
@@ -1045,8 +1050,29 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return Wrap(Bytes, cur, n);
 	}
 
-	public void WriteByteBuffer(@NotNull ByteBuffer o) {
-		WriteBytes(o.Bytes, o.ReadIndex, o.size());
+	public void WriteByteBuffer(@NotNull ByteBuffer bb) {
+		WriteBytes(bb.Bytes, bb.ReadIndex, bb.size());
+	}
+
+	public void WriteJavaObject(@NotNull java.io.Serializable obj) {
+		try (var bs = new ByteArrayOutputStream();
+			 var os = new ObjectOutputStream(bs)) {
+			os.writeObject(obj);
+			WriteBytes(bs.toByteArray());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T extends java.io.Serializable> T ReadJavaObject() {
+		var bb = ReadByteBuffer();
+		try (var bs = new ByteArrayInputStream(bb.Bytes, bb.ReadIndex, bb.size());
+			 var os = new ObjectInputStream(bs)) {
+			return (T)os.readObject();
+		} catch (IOException | ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override

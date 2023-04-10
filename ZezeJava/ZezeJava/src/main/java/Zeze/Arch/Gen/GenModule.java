@@ -190,163 +190,167 @@ public final class GenModule {
 
 		var sbHandles = new StringBuilderCs();
 		for (var m : overrides) {
-			var parametersDefine = m.getDefineString();
-			var methodNameHash = m.method.getName();
-			String returnName;
-			var type = m.method.getReturnType();
-			if (type == void.class)
-				returnName = "void";
-			else if (type == RedirectFuture.class)
-				returnName = "Zeze.Arch.RedirectFuture<" + m.resultTypeName + '>';
-			else if (type == RedirectAllFuture.class)
-				returnName = "Zeze.Arch.RedirectAllFuture<" + m.resultTypeName + '>';
-			else {
-				throw new UnsupportedOperationException("Redirect return type Must Be void or RedirectFuture or RedirectAllFuture: "
-						+ moduleClass.getName() + '.' + m.method.getName());
-			}
-			String modifier;
-			int flags = m.method.getModifiers();
-			if ((flags & Modifier.PUBLIC) != 0)
-				modifier = "public ";
-			else if ((flags & Modifier.PROTECTED) != 0)
-				modifier = "protected ";
-			else {
-				throw new UnsupportedOperationException("Redirect method Must Be public or protected: "
-						+ moduleClass.getName() + '.' + m.method.getName());
-			}
-
-			var redirectFullName = moduleFullName + ':' + m.method.getName();
-			if (!redirectFullNames.add(redirectFullName))
-				throw new UnsupportedOperationException("Duplicated redirect method name: " + redirectFullName);
-
-			sb.appendLine("    @Override");
-			sb.appendLine("    {}{} {}({}) {", modifier, returnName, m.method.getName(), parametersDefine); // m.getThrows() // 继承方法允许不标throws
-			var prefix = "        ";
-			if (!(m.annotation instanceof RedirectAll) && !returnName.equals("void")) {
-				sb.appendLine("{}var _f_ = new Zeze.Arch.RedirectFuture<{}>();", prefix, m.resultTypeName);
-				sb.appendLine("{}try {", prefix);
-				prefix = "            ";
-			}
-
-			choiceTargetRunLoopback(sb, m, returnName, prefix);
-
-			if (m.annotation instanceof RedirectAll) {
-				genRedirectAll(sb, sbHandles, moduleId, moduleFullName, m);
-				continue;
-			}
-
-			sb.appendLine("{}var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirect();", prefix);
-			sb.appendLine("{}var _a_ = _p_.Argument;", prefix);
-			sb.appendLine("{}_a_.setModuleId({});", prefix, moduleId);
-			sb.appendLine("{}_a_.setRedirectType({});", prefix, m.getRedirectType());
-			sb.appendLine("{}_a_.setHashCode({});", prefix, m.hashOrServerIdParameter.getName());
-			sb.appendLine("{}_a_.setMethodFullName(\"{}:{}\");", prefix, moduleFullName, m.method.getName());
-			sb.appendLine("{}_a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);", prefix);
-			if (m.inputParameters.size() > 0) {
-				sb.appendLine("{}var _b_ = Zeze.Serialize.ByteBuffer.Allocate();", prefix);
-				Gen.instance.genEncode(sb, prefix, "_b_", m.inputParameters);
-				sb.appendLine("{}_a_.setParams(new Zeze.Net.Binary(_b_));", prefix);
-			}
-			sb.appendLine();
-			if (returnName.equals("void"))
-				sb.appendLine("{}_p_.Send(_t_, null);", prefix);
-			else {
-				sb.appendLine("{}if (!_p_.Send(_t_, _rpc_ -> {", prefix);
-				sb.appendLine("{}    if (_rpc_.isTimeout()) {", prefix);
-				sb.appendLine("{}        _f_.setException(Zeze.Arch.RedirectException.timeoutInstance);", prefix);
-				sb.appendLine("{}        return Zeze.Transaction.Procedure.Success;", prefix);
-				sb.appendLine("{}    }", prefix);
-				if (m.resultType == Long.class)
-					sb.appendLine("{}    _f_.setResult(_rpc_.getResultCode());", prefix);
+			try {
+				var parametersDefine = m.getDefineString();
+				var methodNameHash = m.method.getName();
+				String returnName;
+				var type = m.method.getReturnType();
+				if (type == void.class)
+					returnName = "void";
+				else if (type == RedirectFuture.class)
+					returnName = "Zeze.Arch.RedirectFuture<" + m.resultTypeName + '>';
+				else if (type == RedirectAllFuture.class)
+					returnName = "Zeze.Arch.RedirectAllFuture<" + m.resultTypeName + '>';
 				else {
-					if ("String".equals(m.resultTypeName))
-						sb.appendLine("{}    var _r_ = Zeze.Util.Str.fromBinary(_rpc_.Result.getParams());", prefix);
-					else if ("Zeze.Net.Binary".equals(m.resultTypeName))
-						sb.appendLine("{}    var _r_ = _rpc_.Result.getParams();", prefix);
-					else
-						sb.appendLine("{}    var _r_ = new {}();", prefix, m.resultTypeName);
-					if (Serializable.class.isAssignableFrom(m.resultClass)) {
-						sb.appendLine("{}    var _param_ = _rpc_.Result.getParams();", prefix);
-						sb.appendLine("{}    if (_param_.size() > 0)", prefix);
-						sb.appendLine("{}        _r_.decode(_param_.Wrap());", prefix);
-						if (m.returnTypeHasResultCode)
-							sb.appendLine("{}    _r_.setResultCode(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());", prefix);
-					} else {
-						if (!m.resultFields.isEmpty()) {
-							sb.appendLine("{}    var _param_ = _rpc_.Result.getParams();", prefix);
-							sb.appendLine("{}    if (_param_.size() > 0) {", prefix);
-							sb.appendLine("{}        var _bb_ = _param_.Wrap();", prefix);
-							for (var field : m.resultFields)
-								Gen.instance.genDecode(sb, prefix + "        ", "_bb_", field.getType(), field.getGenericType(), "_r_." + field.getName());
-							sb.appendLine("{}    }", prefix);
-						}
-						if (m.returnTypeHasResultCode)
-							sb.appendLine("{}    _r_.resultCode = _rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode();", prefix);
-					}
-					sb.appendLine("{}    _f_.setResult(_r_);", prefix);
+					throw new UnsupportedOperationException("Redirect return type Must Be void or RedirectFuture or RedirectAllFuture: "
+							+ moduleClass.getName() + '.' + m.method.getName());
 				}
-				sb.appendLine("{}    return Zeze.Transaction.Procedure.Success;", prefix);
-				if (m.annotation instanceof RedirectHash)
-					sb.appendLine("{}}, {})) {", prefix, ((RedirectHash)m.annotation).timeout());
-				else
-					sb.appendLine("{}}, {})) {", prefix, ((RedirectToServer)m.annotation).timeout());
-				if (m.annotation instanceof RedirectHash)
-					sb.appendLine("{}    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, \"not found hash=\" + {}));", prefix, m.hashOrServerIdParameter.getName());
-				else
-					sb.appendLine("{}    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, \"not found serverId=\" + {}));", prefix, m.hashOrServerIdParameter.getName());
-				sb.appendLine("{}}", prefix);
-				prefix = "        ";
-				sb.appendLine("{}} catch (Exception e) {", prefix);
-				sb.appendLine("{}    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, e.getMessage(), e));", prefix);
-				sb.appendLine("{}}", prefix);
-				sb.appendLine("{}return _f_;", prefix);
-			}
-			sb.appendLine("    }");
-			sb.appendLine();
+				String modifier;
+				int flags = m.method.getModifiers();
+				if ((flags & Modifier.PUBLIC) != 0)
+					modifier = "public ";
+				else if ((flags & Modifier.PROTECTED) != 0)
+					modifier = "protected ";
+				else {
+					throw new UnsupportedOperationException("Redirect method Must Be public or protected: "
+							+ moduleClass.getName() + '.' + m.method.getName());
+				}
 
-			// Handles
-			sbHandles.appendLine("        _app_.getZeze().redirect.handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", moduleFullName, m.method.getName());
-			sbHandles.appendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.transactionLevel);
-			boolean genLocal = false;
-			for (int i = 0; i < m.inputParameters.size(); ++i) {
-				var p = m.inputParameters.get(i);
-				Gen.instance.genLocalVariable(sbHandles, "                ", p);
-				genLocal = true;
+				var redirectFullName = moduleFullName + ':' + m.method.getName();
+				if (!redirectFullNames.add(redirectFullName))
+					throw new UnsupportedOperationException("Duplicated redirect method name: " + redirectFullName);
+
+				sb.appendLine("    @Override");
+				sb.appendLine("    {}{} {}({}) {", modifier, returnName, m.method.getName(), parametersDefine); // m.getThrows() // 继承方法允许不标throws
+				var prefix = "        ";
+				if (!(m.annotation instanceof RedirectAll) && !returnName.equals("void")) {
+					sb.appendLine("{}var _f_ = new Zeze.Arch.RedirectFuture<{}>();", prefix, m.resultTypeName);
+					sb.appendLine("{}try {", prefix);
+					prefix = "            ";
+				}
+
+				choiceTargetRunLoopback(sb, m, returnName, prefix);
+
+				if (m.annotation instanceof RedirectAll) {
+					genRedirectAll(sb, sbHandles, moduleId, moduleFullName, m);
+					continue;
+				}
+
+				sb.appendLine("{}var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirect();", prefix);
+				sb.appendLine("{}var _a_ = _p_.Argument;", prefix);
+				sb.appendLine("{}_a_.setModuleId({});", prefix, moduleId);
+				sb.appendLine("{}_a_.setRedirectType({});", prefix, m.getRedirectType());
+				sb.appendLine("{}_a_.setHashCode({});", prefix, m.hashOrServerIdParameter.getName());
+				sb.appendLine("{}_a_.setMethodFullName(\"{}:{}\");", prefix, moduleFullName, m.method.getName());
+				sb.appendLine("{}_a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);", prefix);
+				if (m.inputParameters.size() > 0) {
+					sb.appendLine("{}var _b_ = Zeze.Serialize.ByteBuffer.Allocate();", prefix);
+					Gen.instance.genEncode(sb, prefix, "_b_", m.inputParameters);
+					sb.appendLine("{}_a_.setParams(new Zeze.Net.Binary(_b_));", prefix);
+				}
+				sb.appendLine();
+				if (returnName.equals("void"))
+					sb.appendLine("{}_p_.Send(_t_, null);", prefix);
+				else {
+					sb.appendLine("{}if (!_p_.Send(_t_, _rpc_ -> {", prefix);
+					sb.appendLine("{}    if (_rpc_.isTimeout()) {", prefix);
+					sb.appendLine("{}        _f_.setException(Zeze.Arch.RedirectException.timeoutInstance);", prefix);
+					sb.appendLine("{}        return Zeze.Transaction.Procedure.Success;", prefix);
+					sb.appendLine("{}    }", prefix);
+					if (m.resultType == Long.class)
+						sb.appendLine("{}    _f_.setResult(_rpc_.getResultCode());", prefix);
+					else {
+						if ("String".equals(m.resultTypeName))
+							sb.appendLine("{}    var _r_ = Zeze.Util.Str.fromBinary(_rpc_.Result.getParams());", prefix);
+						else if ("Zeze.Net.Binary".equals(m.resultTypeName))
+							sb.appendLine("{}    var _r_ = _rpc_.Result.getParams();", prefix);
+						else
+							sb.appendLine("{}    var _r_ = new {}();", prefix, m.resultTypeName);
+						if (Serializable.class.isAssignableFrom(m.resultClass)) {
+							sb.appendLine("{}    var _param_ = _rpc_.Result.getParams();", prefix);
+							sb.appendLine("{}    if (_param_.size() > 0)", prefix);
+							sb.appendLine("{}        _r_.decode(_param_.Wrap());", prefix);
+							if (m.returnTypeHasResultCode)
+								sb.appendLine("{}    _r_.setResultCode(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());", prefix);
+						} else {
+							if (!m.resultFields.isEmpty()) {
+								sb.appendLine("{}    var _param_ = _rpc_.Result.getParams();", prefix);
+								sb.appendLine("{}    if (_param_.size() > 0) {", prefix);
+								sb.appendLine("{}        var _bb_ = _param_.Wrap();", prefix);
+								for (var field : m.resultFields)
+									Gen.instance.genDecode(sb, prefix + "        ", "_bb_", field.getType(), field.getGenericType(), "_r_." + field.getName());
+								sb.appendLine("{}    }", prefix);
+							}
+							if (m.returnTypeHasResultCode)
+								sb.appendLine("{}    _r_.resultCode = _rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode();", prefix);
+						}
+						sb.appendLine("{}    _f_.setResult(_r_);", prefix);
+					}
+					sb.appendLine("{}    return Zeze.Transaction.Procedure.Success;", prefix);
+					if (m.annotation instanceof RedirectHash)
+						sb.appendLine("{}}, {})) {", prefix, ((RedirectHash)m.annotation).timeout());
+					else
+						sb.appendLine("{}}, {})) {", prefix, ((RedirectToServer)m.annotation).timeout());
+					if (m.annotation instanceof RedirectHash)
+						sb.appendLine("{}    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, \"not found hash=\" + {}));", prefix, m.hashOrServerIdParameter.getName());
+					else
+						sb.appendLine("{}    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, \"not found serverId=\" + {}));", prefix, m.hashOrServerIdParameter.getName());
+					sb.appendLine("{}}", prefix);
+					prefix = "        ";
+					sb.appendLine("{}} catch (Exception e) {", prefix);
+					sb.appendLine("{}    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, e.getMessage(), e));", prefix);
+					sb.appendLine("{}}", prefix);
+					sb.appendLine("{}return _f_;", prefix);
+				}
+				sb.appendLine("    }");
+				sb.appendLine();
+
+				// Handles
+				sbHandles.appendLine("        _app_.getZeze().redirect.handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", moduleFullName, m.method.getName());
+				sbHandles.appendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.transactionLevel);
+				boolean genLocal = false;
+				for (int i = 0; i < m.inputParameters.size(); ++i) {
+					var p = m.inputParameters.get(i);
+					Gen.instance.genLocalVariable(sbHandles, "                ", p);
+					genLocal = true;
+				}
+				if (genLocal)
+					sbHandles.appendLine("                var _b_ = _params_.Wrap();");
+				Gen.instance.genDecode(sbHandles, "                ", "_b_", m.inputParameters);
+				var normalCall = m.getNormalCallString();
+				var sep = normalCall.isEmpty() ? "" : ", ";
+				if (returnName.equals("void")) {
+					sbHandles.appendLine("                super.{}(_hash_{}{});", methodNameHash, sep, normalCall);
+					sbHandles.appendLine("                return null;");
+				} else {
+					if (normalCall.isEmpty())
+						sbHandles.appendLine("                //noinspection CodeBlock2Expr");
+					sbHandles.appendLine("                return super.{}(_hash_{}{});", methodNameHash, sep, normalCall);
+				}
+				if (m.resultType != null && Serializable.class.isAssignableFrom(m.resultClass)) {
+					sbHandles.appendLine("            }, _result_ -> {");
+					sbHandles.appendLine("                var _r_ = ({})_result_;", m.resultTypeName);
+					sbHandles.appendLine("                int _s_ = _r_.preAllocSize();");
+					sbHandles.appendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate(Math.min(_s_, 65536));");
+					sbHandles.appendLine("                _r_.encode(_b_);");
+					sbHandles.appendLine("                int _t_ = _b_.WriteIndex;");
+					sbHandles.appendLine("                if (_t_ > _s_)");
+					sbHandles.appendLine("                    _r_.preAllocSize(_t_);");
+					sbHandles.appendLine("                return new Zeze.Net.Binary(_b_);");
+					sbHandles.appendLine("            }));");
+				} else if (!m.resultFields.isEmpty()) {
+					sbHandles.appendLine("            }, _result_ -> {");
+					sbHandles.appendLine("                var _r_ = ({})_result_;", m.resultTypeName);
+					sbHandles.appendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
+					for (var field : m.resultFields)
+						Gen.instance.genEncode(sbHandles, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
+					sbHandles.appendLine("                return new Zeze.Net.Binary(_b_);");
+					sbHandles.appendLine("            }));");
+				} else
+					sbHandles.appendLine("            }, null));");
+			} catch (Exception e) {
+				throw new RuntimeException("generate redirect method failed: " + m.method.getName() + " in " + moduleClass.getName(), e);
 			}
-			if (genLocal)
-				sbHandles.appendLine("                var _b_ = _params_.Wrap();");
-			Gen.instance.genDecode(sbHandles, "                ", "_b_", m.inputParameters);
-			var normalCall = m.getNormalCallString();
-			var sep = normalCall.isEmpty() ? "" : ", ";
-			if (returnName.equals("void")) {
-				sbHandles.appendLine("                super.{}(_hash_{}{});", methodNameHash, sep, normalCall);
-				sbHandles.appendLine("                return null;");
-			} else {
-				if (normalCall.isEmpty())
-					sbHandles.appendLine("                //noinspection CodeBlock2Expr");
-				sbHandles.appendLine("                return super.{}(_hash_{}{});", methodNameHash, sep, normalCall);
-			}
-			if (m.resultType != null && Serializable.class.isAssignableFrom(m.resultClass)) {
-				sbHandles.appendLine("            }, _result_ -> {");
-				sbHandles.appendLine("                var _r_ = ({})_result_;", m.resultTypeName);
-				sbHandles.appendLine("                int _s_ = _r_.preAllocSize();");
-				sbHandles.appendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate(Math.min(_s_, 65536));");
-				sbHandles.appendLine("                _r_.encode(_b_);");
-				sbHandles.appendLine("                int _t_ = _b_.WriteIndex;");
-				sbHandles.appendLine("                if (_t_ > _s_)");
-				sbHandles.appendLine("                    _r_.preAllocSize(_t_);");
-				sbHandles.appendLine("                return new Zeze.Net.Binary(_b_);");
-				sbHandles.appendLine("            }));");
-			} else if (!m.resultFields.isEmpty()) {
-				sbHandles.appendLine("            }, _result_ -> {");
-				sbHandles.appendLine("                var _r_ = ({})_result_;", m.resultTypeName);
-				sbHandles.appendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
-				for (var field : m.resultFields)
-					Gen.instance.genEncode(sbHandles, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
-				sbHandles.appendLine("                return new Zeze.Net.Binary(_b_);");
-				sbHandles.appendLine("            }));");
-			} else
-				sbHandles.appendLine("            }, null));");
 		}
 
 		sb.appendLine("    @SuppressWarnings({\"unchecked\", \"RedundantSuppression\"})");

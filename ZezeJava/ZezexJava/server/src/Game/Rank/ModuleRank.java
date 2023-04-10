@@ -566,7 +566,7 @@ public class ModuleRank extends AbstractModule {
 	public static class GenericResult<T extends Serializable> {
 		public long resultCode;
 		public T ser;
-		public Object obj;
+		public java.io.Serializable obj;
 	}
 
 	@RedirectHash(timeout = 2000)
@@ -583,7 +583,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@RedirectAll(timeout = 3000)
-	public void TestAllNoResult(int hash, Object obj) {
+	public void TestAllNoResult(int hash, java.io.Serializable obj) {
 	}
 
 	@RedirectAll

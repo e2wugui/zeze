@@ -287,28 +287,27 @@ final class Gen {
 						!isAbstract(valueClass) && (valueSerializer != null || Serializable.class.isAssignableFrom(valueClass))) {
 					sb.appendLine("{}{}.WriteUInt({}.size());", prefix, bbName, varName);
 					sb.appendLine("{}for (var _e_ : {}.entrySet()) {", prefix, varName);
-					sb.appendLine("{}    var _k_ = _e_.getKey();", prefix);
-					sb.appendLine("{}    var _v_ = _e_.getValue();", prefix);
 					if (keySerializer != null)
-						keySerializer.encoder.run(sb, prefix + "    ", "_k_", bbName);
+						keySerializer.encoder.run(sb, prefix + "    ", "_e_.getKey()", bbName);
 					else
-						sb.appendLine("{}    _k_.encode({});", prefix, bbName);
+						sb.appendLine("{}    _e_.getKey().encode({});", prefix, bbName);
 					if (valueSerializer != null)
-						valueSerializer.encoder.run(sb, prefix + "    ", "_v_", bbName);
+						valueSerializer.encoder.run(sb, prefix + "    ", "_e_.getValue()", bbName);
 					else
-						sb.appendLine("{}    _v_.encode({});", prefix, bbName);
+						sb.appendLine("{}    _e_.getValue().encode({});", prefix, bbName);
 					sb.appendLine("{}}", prefix);
 					return;
 				}
-			}
+				if (!java.io.Serializable.class.isAssignableFrom(keyClass) || !java.io.Serializable.class.isAssignableFrom(valueClass))
+					throw new UnsupportedOperationException("unsupported param type: " + paramType.getTypeName());
+			} else
+				throw new UnsupportedOperationException("unsupported param type: " + paramType.getTypeName());
 		}
-		sb.appendLine("{}try (var _bs_ = new java.io.ByteArrayOutputStream();", prefix);
-		sb.appendLine("{}     var _os_ = new java.io.ObjectOutputStream(_bs_)) {", prefix);
-		sb.appendLine("{}    _os_.writeObject({});", prefix, varName);
-		sb.appendLine("{}    {}.WriteBytes(_bs_.toByteArray());", prefix, bbName);
-		sb.appendLine("{}} catch (java.io.IOException _e_) {", prefix);
-		sb.appendLine("{}    throw new RuntimeException(_e_);", prefix);
-		sb.appendLine("{}}", prefix);
+		if (java.io.Serializable.class.isAssignableFrom(type)) {
+			sb.appendLine("{}{}.WriteJavaObject({});", prefix, bbName, varName);
+			return;
+		}
+		throw new UnsupportedOperationException("unsupported param type: " + type.getName());
 	}
 
 	void genDecode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, Type paramType, String varName) throws Exception {
@@ -328,15 +327,15 @@ final class Gen {
 				var serializer = serializers.get(elemClass);
 				if (!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))) {
 					sb.appendLine("{}for (int _n_ = {}.ReadUInt(); _n_ > 0; _n_--) {", prefix, bbName);
+					var prefix1 = prefix + "    ";
 					if (serializer != null) {
-						var prefix1 = prefix + "    ";
 						serializer.define.run(sb, prefix1, "_e_");
 						serializer.decoder.run(sb, prefix1, "_e_", bbName);
 					} else {
-						sb.appendLine("{}    var _e_ = new {}();", prefix, elemType.getTypeName().replace('$', '.'));
-						sb.appendLine("{}    _e_.decode({});", prefix, bbName);
+						sb.appendLine("{}var _e_ = new {}();", prefix1, elemType.getTypeName().replace('$', '.'));
+						sb.appendLine("{}_e_.decode({});", prefix1, bbName);
 					}
-					sb.appendLine("{}    {}.add(_e_);", prefix, varName);
+					sb.appendLine("{}{}.add(_e_);", prefix1, varName);
 					sb.appendLine("{}}", prefix);
 					return;
 				}
@@ -353,40 +352,35 @@ final class Gen {
 				if (!isAbstract(keyClass) && (keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&
 						!isAbstract(valueClass) && (valueSerializer != null || Serializable.class.isAssignableFrom(valueClass))) {
 					sb.appendLine("{}for (int _n_ = {}.ReadUInt(); _n_ > 0; _n_--) {", prefix, bbName);
+					var prefix1 = prefix + "    ";
 					if (keySerializer != null) {
-						var prefix1 = prefix + "    ";
 						keySerializer.define.run(sb, prefix1, "_k_");
 						keySerializer.decoder.run(sb, prefix1, "_k_", bbName);
 					} else {
-						sb.appendLine("{}    var _k_ = new {}();", prefix, keyType.getTypeName().replace('$', '.'));
-						sb.appendLine("{}    _k_.decode({});", prefix, bbName);
+						sb.appendLine("{}var _k_ = new {}();", prefix1, keyType.getTypeName().replace('$', '.'));
+						sb.appendLine("{}_k_.decode({});", prefix1, bbName);
 					}
 					if (valueSerializer != null) {
-						var prefix1 = prefix + "    ";
 						valueSerializer.define.run(sb, prefix1, "_v_");
 						valueSerializer.decoder.run(sb, prefix1, "_v_", bbName);
 					} else {
-						sb.appendLine("{}    var _v_ = new {}();", prefix, valueType.getTypeName().replace('$', '.'));
-						sb.appendLine("{}    _v_.decode({});", prefix, bbName);
+						sb.appendLine("{}var _v_ = new {}();", prefix1, valueType.getTypeName().replace('$', '.'));
+						sb.appendLine("{}_v_.decode({});", prefix1, bbName);
 					}
-					sb.appendLine("{}    {}.put(_k_, _v_);", prefix, varName);
+					sb.appendLine("{}{}.put(_k_, _v_);", prefix1, varName);
 					sb.appendLine("{}}", prefix);
 					return;
 				}
-			}
+				if (!java.io.Serializable.class.isAssignableFrom(keyClass) || !java.io.Serializable.class.isAssignableFrom(valueClass))
+					throw new UnsupportedOperationException("unsupported param type: " + paramType.getTypeName());
+			} else
+				throw new UnsupportedOperationException("unsupported param type: " + paramType.getTypeName());
 		}
-		sb.appendLine("{}{", prefix);
-		sb.appendLine("{}    var _bo_ = {}.ReadByteBuffer();", prefix, bbName);
-		sb.appendLine("{}    try (var _bs_ = new java.io.ByteArrayInputStream(_bo_.Bytes, _bo_.ReadIndex, _bo_.size());", prefix);
-		sb.appendLine("{}         var _os_ = new java.io.ObjectInputStream(_bs_)) {", prefix);
-		if (type == Object.class)
-			sb.appendLine("{}        {} = Zeze.Util.Reflect.cast(_os_.readObject());", prefix, varName);
-		else
-			sb.appendLine("{}        {} = ({})_os_.readObject();", prefix, varName, getTypeName(paramType));
-		sb.appendLine("{}    } catch (java.io.IOException _e_) {", prefix);
-		sb.appendLine("{}        throw new RuntimeException(_e_);", prefix);
-		sb.appendLine("{}    }", prefix);
-		sb.appendLine("{}}", prefix);
+		if (java.io.Serializable.class.isAssignableFrom(type)) {
+			sb.appendLine("{}{} = {}.ReadJavaObject();", prefix, varName, bbName);
+			return;
+		}
+		throw new UnsupportedOperationException("unsupported param type: " + type.getName());
 	}
 
 	@SuppressWarnings("SameParameterValue")
