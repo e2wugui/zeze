@@ -26,8 +26,8 @@ public class Master extends AbstractMaster {
 
 	// todo 可用Dbh2Manager的数据结构。
 	public static class Manager {
-		public AsyncSocket socket;
-		public BRegister.Data data;
+		public final AsyncSocket socket;
+		public final BRegister.Data data;
 
 		public Manager(AsyncSocket socket, BRegister.Data data) {
 			this.socket = socket;

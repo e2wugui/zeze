@@ -191,6 +191,7 @@ public class Dbh2Manager {
 			lastCommitTransaction = nowCommitTransaction;
 			lastRollbackTransaction = nowRollbackTransaction;
 
+			//noinspection StringBufferReplaceableByString
 			var sb = new StringBuilder();
 			sb.append(" get=").append(diffGet / elapse);
 			sb.append(" put=").append(diffPut / elapse);

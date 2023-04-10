@@ -37,18 +37,26 @@ public class BenchClient {
 			var tableAccess = 2;
 
 			for (int i = 0; i < args.length; ++i) {
-				if (args[i].equals("-tableNumber"))
+				switch (args[i]) {
+				case "-tableNumber":
 					tableNumber = Integer.parseInt(args[++i]);
-				else if (args[i].equals("-threadNumber"))
+					break;
+				case "-threadNumber":
 					threadNumber = Integer.parseInt(args[++i]);
-				else if (args[i].equals("-valueSize"))
+					break;
+				case "-valueSize":
 					valueSize = Integer.parseInt(args[++i]);
-				else if (args[i].equals("-masterIp"))
+					break;
+				case "-masterIp":
 					masterIp = args[++i];
-				else if (args[i].equals("-masterPort"))
+					break;
+				case "-masterPort":
 					masterPort = Integer.parseInt(args[++i]);
-				else if (args[i].equals("-tableAccess"))
+					break;
+				case "-tableAccess":
 					tableAccess = Integer.parseInt(args[++i]);
+					break;
+				}
 			}
 
 			var tableAccessFinal = tableAccess;

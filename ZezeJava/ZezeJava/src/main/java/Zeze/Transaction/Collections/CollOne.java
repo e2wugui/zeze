@@ -72,11 +72,10 @@ public class CollOne<V extends Bean> extends Collection {
 
 	@Override
 	public @NotNull LogBean createLogBean() {
-		var log = new LogOne<V>();
+		var log = new LogOne<>(getValue());
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
-		log.setValue(getValue());
 		return log;
 	}
 
@@ -105,7 +104,8 @@ public class CollOne<V extends Bean> extends Collection {
 	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogOne<V>)_log;
-		if (null != log.value) {
+		//noinspection ConstantValue
+		if (null != log.value) { //FIXME: value是否真的可以为null,目前没看到哪里可以让它为null
 			_Value = log.value;
 		} else if (null != log.logBean) {
 			_Value.followerApply(log.logBean);

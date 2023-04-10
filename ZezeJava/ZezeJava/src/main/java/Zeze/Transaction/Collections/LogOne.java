@@ -8,10 +8,11 @@ import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
 
 public class LogOne<V extends Bean> extends LogBean {
-	public V value;
+	public @NotNull V value;
 	public LogBean logBean;
 
-	LogOne() {
+	LogOne(@NotNull V value) {
+		this.value = value;
 	}
 
 	public void setValue(@NotNull V value) {
@@ -20,11 +21,10 @@ public class LogOne<V extends Bean> extends LogBean {
 
 	@Override
 	public @NotNull Log beginSavepoint() {
-		var dup = new LogOne<>();
+		var dup = new LogOne<>(value);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
-		dup.value = value;
 		return dup;
 	}
 
@@ -46,14 +46,16 @@ public class LogOne<V extends Bean> extends LogBean {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void commit() {
-		if (value != null) {
+		//noinspection ConstantValue
+		if (value != null) { //FIXME: value是否真的可以为null,目前没看到哪里可以让它为null
 			((CollOne<V>)getThis())._Value = value;
 		}
 	}
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		if (null != value) {
+		//noinspection ConstantValue
+		if (null != value) { //FIXME: value是否真的可以为null,目前没看到哪里可以让它为null
 			bb.WriteBool(true);
 			value.encode(bb);
 		} else {
