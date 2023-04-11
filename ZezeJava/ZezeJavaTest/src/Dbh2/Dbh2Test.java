@@ -107,8 +107,8 @@ public class Dbh2Test {
 			{
 				var batch = new Database.BatchWithTid(db, tb1);
 				batch.put(key, value);
-				bucket1.agent().prepareBatch(batch);
-				bucket1.agent().commitBatch(batch);
+				bucket1.agent().prepareBatch(batch).await();
+				bucket1.agent().commitBatch(batch).await();
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
@@ -119,8 +119,8 @@ public class Dbh2Test {
 			{
 				var batch = new Database.BatchWithTid(db, tb1);
 				batch.delete(key);
-				bucket1.agent().prepareBatch(batch);
-				bucket1.agent().commitBatch(batch);
+				bucket1.agent().prepareBatch(batch).await();
+				bucket1.agent().commitBatch(batch).await();
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
@@ -136,11 +136,11 @@ public class Dbh2Test {
 				batch1.put(key, value);
 				batch2.put(key, value);
 
-				bucket1.agent().prepareBatch(batch1);
-				bucket2.agent().prepareBatch(batch2);
+				bucket1.agent().prepareBatch(batch1).await();
+				bucket2.agent().prepareBatch(batch2).await();
 
-				bucket1.agent().commitBatch(batch1);
-				bucket2.agent().commitBatch(batch2);
+				bucket1.agent().commitBatch(batch1).await();
+				bucket2.agent().commitBatch(batch2).await();
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);

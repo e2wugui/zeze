@@ -1,6 +1,8 @@
 package Zeze.Dbh2;
 
+import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.Get;
 import Zeze.Builtin.Dbh2.KeepAlive;
@@ -11,7 +13,9 @@ import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
+import Zeze.Raft.RaftRpc;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
@@ -56,29 +60,22 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return KV.create(true, bb);
 	}
 
-	public void prepareBatch(Database.BatchWithTid batch) {
+	public TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BBatchTid.Data>> prepareBatch(Database.BatchWithTid batch) {
 		var r = new PrepareBatch();
 		r.Argument = batch.data;
-		raftClient.sendForWait(r).await();
-		if (r.getResultCode() != 0)
-			throw new RuntimeException("fail! code=" + IModule.getErrorCode(r.getResultCode()));
-		batch.tid = r.Result.getTid();
+		return raftClient.sendForWait(r);
 	}
 
-	public void commitBatch(Database.BatchWithTid batch) {
+	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> commitBatch(Database.BatchWithTid batch) {
 		var r = new CommitBatch();
 		r.Argument.setTid(batch.tid);
-		raftClient.sendForWait(r).await();
-		if (r.getResultCode() != 0)
-			logger.warn("commit with result code={}", IModule.getErrorCode(r.getResultCode()));
+		return raftClient.sendForWait(r);
 	}
 
-	public void undoBatch(Database.BatchWithTid batch) {
+	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> undoBatch(Database.BatchWithTid batch) {
 		var r = new UndoBatch();
 		r.Argument.setTid(batch.tid);
-		raftClient.sendForWait(r).await();
-		if (r.getResultCode() != 0)
-			logger.warn("undo with result code={}", r.getResultCode());
+		return raftClient.sendForWait(r);
 	}
 
 	private void verifyFastFail() {

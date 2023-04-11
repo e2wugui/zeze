@@ -1,18 +1,24 @@
 package Zeze.Dbh2;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import Zeze.Application;
 import Zeze.Builtin.Dbh2.BBatch;
+import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
+import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Net.Binary;
+import Zeze.Raft.RaftRpc;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
 import Zeze.Util.Func2;
 import Zeze.Util.KV;
+import Zeze.Util.TaskCompletionSource;
 
 /**
  * 适配zeze-Database
@@ -83,19 +89,31 @@ public class Database extends Zeze.Transaction.Database {
 		@Override
 		public void commit() {
 			try {
+				var futures = new ArrayList<KV<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BBatchTid.Data>>, BatchWithTid>>();
 				for (var e : transactions.entrySet()) {
-					e.getKey().prepareBatch(e.getValue());
+					futures.add(KV.create(e.getKey().prepareBatch(e.getValue()), e.getValue()));
 				}
-				// todo 准备开始提交，持久化关键点。
+				for (var e : futures) {
+					var r = e.getKey().get();
+					e.getValue().tid = r.Result.getTid();
+				}
+			} catch (Throwable ex) {
+				var futures = new ArrayList<TaskCompletionSource<?>>();
 				for (var e : transactions.entrySet()) {
-					e.getKey().commitBatch(e.getValue());
+					futures.add(e.getKey().undoBatch(e.getValue()));
 				}
-			} catch (Exception ex) {
-				for (var e : transactions.entrySet()) {
-					e.getKey().undoBatch(e.getValue());
-				}
-				throw ex;
+				for (var e : futures)
+					e.await();
+				throw new RuntimeException(ex);
 			}
+
+			// todo 准备开始提交，持久化关键点。
+			var futures = new ArrayList<TaskCompletionSource<?>>();
+			for (var e : transactions.entrySet()) {
+				futures.add(e.getKey().commitBatch(e.getValue()));
+			}
+			for (var e : futures)
+				e.await();
 		}
 
 		public void replace(String tableName, ByteBuffer key, ByteBuffer value) throws Exception {
