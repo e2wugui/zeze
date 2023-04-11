@@ -90,4 +90,14 @@ public abstract class StateMachine {
 	 * 然后 Raft 会从 LastIncludedIndex 后面开始复制日志。进入正常的模式。
 	 */
 	public abstract void loadSnapshot(String path) throws Exception;
+
+
+	/**
+	 * 没有快照的时候，stateMachine可能需要重置。
+	 * 需要重置的重载这个方法。
+	 * 比如stateMachine使用RocksDB存储数据的，某些情况下逻辑操作和旧数据相关，需要从空的数据库开始时，重载这个方法先清空数据库。
+	 */
+	public void reset() {
+
+	}
 }

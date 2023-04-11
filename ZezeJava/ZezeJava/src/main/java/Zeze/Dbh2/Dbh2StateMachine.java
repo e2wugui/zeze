@@ -1,9 +1,9 @@
 package Zeze.Dbh2;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -20,6 +20,7 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.Env;
 import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.RestoreOptions;
+import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
@@ -121,7 +122,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		var backupFile = new File(backupDir);
 		if (!backupFile.isDirectory() && !backupFile.mkdirs())
 			logger.error("create backup directory failed: {}", backupDir);
-		backup(cpHome, backupDir);
+		RocksDatabase.backup(cpHome, backupDir);
 
 		long t2 = System.nanoTime();
 		LogSequence.deleteDirectory(new File(cpHome));
@@ -150,6 +151,12 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	@Override
+	public void reset() {
+		var path = Path.of(getDbHome(), "statemachine").toAbsolutePath().toFile();
+		LogSequence.deletedDirectoryAndCheck(path, 100);
+	}
+
+	@Override
 	public void loadSnapshot(String path) throws Exception {
 		var backupDir = Paths.get(getDbHome(), "backup").toString();
 		var backupFile = new File(backupDir);
@@ -171,7 +178,6 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			result.lastIncludedIndex = lastAppliedLog.getIndex();
 			result.lastIncludedTerm = lastAppliedLog.getTerm();
 
-			// todo 把 checkpoint,backup，restore 相关代码重构到 RocksDatabase 中。
 			try (var cp = Checkpoint.create(bucket.getDb().getRocksDb())) {
 				cp.createCheckpoint(checkpointDir);
 			}
@@ -181,39 +187,12 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		return checkpointDir;
 	}
 
-	public static ArrayList<ColumnFamilyDescriptor> getColumnFamilies(String dir) throws RocksDBException {
-		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-		if (new File(dir).isDirectory()) {
-			for (var cf : OptimisticTransactionDB.listColumnFamilies(RocksDatabase.getCommonOptions(), dir))
-				columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
-		}
-		if (columnFamilies.isEmpty())
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), RocksDatabase.getDefaultCfOptions()));
-		return columnFamilies;
-	}
-
-	public static void backup(String checkpointDir, String backupDir) throws RocksDBException {
-		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		try (var src = OptimisticTransactionDB.open(RocksDatabase.getCommonDbOptions(), checkpointDir,
-				getColumnFamilies(checkpointDir), outHandles);
-			 var backupOptions = new BackupEngineOptions(backupDir);
-			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
-			backup.createNewBackup(src, true);
-		}
-	}
-
 	public void restore(String backupDir) throws RocksDBException {
 		getRaft().lock();
 		try {
 			close();
-
 			var dbName = Paths.get(getDbHome(), "statemachine").toString();
-			try (var restoreOptions = new RestoreOptions(false);
-				 var backupOptions = new BackupEngineOptions(backupDir);
-				 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
-				backup.restoreDbFromLatestBackup(dbName, dbName, restoreOptions);
-			}
-
+			RocksDatabase.restore(backupDir, dbName);
 			openBucket(); // reopen
 		} finally {
 			getRaft().unlock();

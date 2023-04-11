@@ -74,20 +74,25 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     protected long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws RocksDBException {
         if (null != manager)
             manager.counterGet.incrementAndGet();
-
-        // 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
-        var bucket = stateMachine.getBucket();
-        if (!bucket.inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
-            return errorCode(eBucketMissmatch);
-        var value = bucket.get(r.Argument.getKey());
-        if (null == value)
-            r.Result.setNull(true);
-        else {
-            r.Result.setValue(value);
-            if (null != manager)
-                manager.sizeGet.addAndGet(value.size());
+        var lock = Lock.get(r.Argument.getKey());
+        lock.lock();
+        try {
+            // 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
+            var bucket = stateMachine.getBucket();
+            if (!bucket.inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
+                return errorCode(eBucketMissmatch);
+            var value = bucket.get(r.Argument.getKey());
+            if (null == value)
+                r.Result.setNull(true);
+            else {
+                r.Result.setValue(value);
+                if (null != manager)
+                    manager.sizeGet.addAndGet(value.size());
+            }
+            r.SendResult();
+        } finally {
+            lock.unlock();
         }
-        r.SendResult();
         return 0;
     }
 

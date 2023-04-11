@@ -11,12 +11,17 @@ import Zeze.Transaction.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.rocksdb.BackupEngine;
+import org.rocksdb.BackupEngineOptions;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.DBOptions;
+import org.rocksdb.Env;
+import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
+import org.rocksdb.RestoreOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
@@ -335,6 +340,35 @@ public class RocksDatabase implements Closeable {
 		@Override
 		public void close() {
 			batch.close();
+		}
+	}
+
+	public static ArrayList<ColumnFamilyDescriptor> getColumnFamilies(String dir) throws RocksDBException {
+		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
+		if (new File(dir).isDirectory()) {
+			for (var cf : OptimisticTransactionDB.listColumnFamilies(RocksDatabase.getCommonOptions(), dir))
+				columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
+		}
+		if (columnFamilies.isEmpty())
+			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), RocksDatabase.getDefaultCfOptions()));
+		return columnFamilies;
+	}
+
+	public static void backup(String checkpointDir, String backupDir) throws RocksDBException {
+		var outHandles = new ArrayList<ColumnFamilyHandle>();
+		try (var src = RocksDB.open(RocksDatabase.getCommonDbOptions(), checkpointDir,
+				getColumnFamilies(checkpointDir), outHandles);
+			 var backupOptions = new BackupEngineOptions(backupDir);
+			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
+			backup.createNewBackup(src, true);
+		}
+	}
+
+	public static void restore(String backupDir, String dbName) throws RocksDBException {
+		try (var restoreOptions = new RestoreOptions(false);
+			 var backupOptions = new BackupEngineOptions(backupDir);
+			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
+			backup.restoreDbFromLatestBackup(dbName, dbName, restoreOptions);
 		}
 	}
 }
