@@ -68,6 +68,7 @@ public class Dbh2Transaction implements Closeable {
 			for (var del : logs.getDeletes()) {
 				bucket.getTData().delete(b, del);
 			}
+			b.commit(bucket.getWriteOptions());
 		}
 	}
 

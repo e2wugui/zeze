@@ -107,8 +107,22 @@ public class Dbh2Test {
 			{
 				var batch = new Database.BatchWithTid(db, tb1);
 				batch.put(key, value);
-				bucket1.agent().prepareBatch(batch).await();
+				var r = bucket1.agent().prepareBatch(batch).get();
+				batch.setTid(r.Result.getTid());
 				bucket1.agent().commitBatch(batch).await();
+			}
+			{
+				var kv = bucket1.agent().get(db, tb1, key);
+				Assert.assertTrue(kv.getKey());
+				Assert.assertNotNull(kv.getValue());
+				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
+			}
+			{
+				var batch = new Database.BatchWithTid(db, tb1);
+				batch.put(key, Binary.Empty);
+				var r = bucket1.agent().prepareBatch(batch).get();
+				batch.setTid(r.Result.getTid());
+				bucket1.agent().undoBatch(batch).await();
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);

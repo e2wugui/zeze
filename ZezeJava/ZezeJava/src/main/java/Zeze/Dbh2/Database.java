@@ -71,6 +71,10 @@ public class Database extends Zeze.Transaction.Database {
 			data.setTable(tableName);
 		}
 
+		public void setTid(long tid) {
+			this.tid = tid;
+		}
+
 		public void put(Binary key, Binary value) {
 			data.getBatch().getPuts().put(key, value);
 			data.getBatch().getDeletes().remove(key);

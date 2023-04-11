@@ -96,7 +96,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void undoBatch(long tid) {
 		try (var txn = transactions.remove(tid)) {
-			txn.undoBatch(bucket);
+			if (null != txn)
+				txn.undoBatch(bucket);
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
