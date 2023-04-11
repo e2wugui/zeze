@@ -14,6 +14,7 @@ import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Net.AsyncSocket;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.OutObject;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
@@ -209,7 +210,8 @@ public class Dbh2Manager {
 	public static void main(String[] args) {
 		try {
 			Task.tryInitThreadPool(null, null, null);
-			Zeze.Net.Selectors.getInstance().add(Runtime.getRuntime().availableProcessors() - 1);
+			// Zeze.Net.Selectors.getInstance().add(Runtime.getRuntime().availableProcessors() - 1);
+			PerfCounter.instance.startScheduledLog();
 
 			var manager = new Dbh2Manager(args[0], args[1]);
 			manager.start();
