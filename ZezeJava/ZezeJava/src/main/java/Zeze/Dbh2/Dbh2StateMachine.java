@@ -30,7 +30,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public Dbh2StateMachine() {
 		super.addFactory(LogPrepareBatch.TypeId_, LogPrepareBatch::new);
-		super.addFactory(LogPrepareBatch.TypeId_, LogPrepareBatch::new);
+		super.addFactory(LogCommitBatch.TypeId_, LogCommitBatch::new);
+		super.addFactory(LogUndoBatch.TypeId_, LogUndoBatch::new);
 		super.addFactory(LogSetBucketMeta.TypeId_, LogSetBucketMeta::new);
 		super.addFactory(LogAllocateTid.TypeId_, LogAllocateTid::new);
 	}

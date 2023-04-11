@@ -7,6 +7,7 @@ import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Builtin.Dbh2.UndoBatch;
+import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
@@ -60,7 +61,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		r.Argument = batch.data;
 		raftClient.sendForWait(r).await();
 		if (r.getResultCode() != 0)
-			throw new RuntimeException("fail! code=" + r.getResultCode());
+			throw new RuntimeException("fail! code=" + IModule.getErrorCode(r.getResultCode()));
 		batch.tid = r.Result.getTid();
 	}
 
@@ -69,7 +70,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		r.Argument.setTid(batch.tid);
 		raftClient.sendForWait(r).await();
 		if (r.getResultCode() != 0)
-			logger.warn("commit with result code={}", r.getResultCode());
+			logger.warn("commit with result code={}", IModule.getErrorCode(r.getResultCode()));
 	}
 
 	public void undoBatch(Database.BatchWithTid batch) {

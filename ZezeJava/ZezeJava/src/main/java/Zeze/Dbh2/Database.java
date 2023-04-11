@@ -57,8 +57,13 @@ public class Database extends Zeze.Transaction.Database {
 	}
 
 	public static class BatchWithTid {
-		BPrepareBatch.Data data;
+		final BPrepareBatch.Data data = new BPrepareBatch.Data();
 		long tid;
+
+		public BatchWithTid(String databaseName, String tableName) {
+			data.setDatabase(databaseName);
+			data.setTable(tableName);
+		}
 
 		public void put(Binary key, Binary value) {
 			data.getBatch().getPuts().put(key, value);
@@ -98,7 +103,7 @@ public class Database extends Zeze.Transaction.Database {
 			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
 			var manager = Dbh2AgentManager.getInstance();
 			var agent = manager.open(masterAgent, masterName, databaseName, tableName, bKey);
-			var batch = transactions.computeIfAbsent(agent, _agent_ -> new BatchWithTid());
+			var batch = transactions.computeIfAbsent(agent, _agent_ -> new BatchWithTid(databaseName, tableName));
 			batch.put(bKey, bValue);
 		}
 
@@ -106,7 +111,7 @@ public class Database extends Zeze.Transaction.Database {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			var manager = Dbh2AgentManager.getInstance();
 			var agent = manager.open(masterAgent, masterName, databaseName, tableName, bKey);
-			var batch = transactions.computeIfAbsent(agent, _agent_ -> new BatchWithTid());
+			var batch = transactions.computeIfAbsent(agent, _agent_ -> new BatchWithTid(databaseName, tableName));
 			batch.delete(bKey);
 		}
 

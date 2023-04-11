@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Dbh2.Database;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
@@ -103,12 +104,11 @@ public class Dbh2Test {
 			var key = new Binary(new byte[] { 1 });
 			var value = new Binary(new byte[] { 1 });
 
-			/* todo
 			{
-				var tid = bucket1.agent().beginTransaction(db, tb1);
-				Assert.assertNotNull(tid);
-				bucket1.agent().put(db, tb1, tid, key, value);
-				bucket1.agent().commitTransaction(tid);
+				var batch = new Database.BatchWithTid(db, tb1);
+				batch.put(key, value);
+				bucket1.agent().prepareBatch(batch);
+				bucket1.agent().commitBatch(batch);
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
@@ -117,10 +117,10 @@ public class Dbh2Test {
 				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
 			}
 			{
-				var tid = bucket1.agent().beginTransaction(db, tb1);
-				Assert.assertNotNull(tid);
-				bucket1.agent().delete(db, tb1, tid, key);
-				bucket1.agent().commitTransaction(tid);
+				var batch = new Database.BatchWithTid(db, tb1);
+				batch.delete(key);
+				bucket1.agent().prepareBatch(batch);
+				bucket1.agent().commitBatch(batch);
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
@@ -130,18 +130,18 @@ public class Dbh2Test {
 
 			// multi-bucket transaction
 			{
-				var tid1 = bucket1.agent().beginTransaction(db, tb1);
-				Assert.assertNotNull(tid1);
-				var tid2 = bucket2.agent().beginTransaction(db, tb2);
-				Assert.assertNotNull(tid2);
+				var batch1 = new Database.BatchWithTid(db, tb1);
+				var batch2 = new Database.BatchWithTid(db, tb2);
 
-				bucket1.agent().put(db, tb1, tid1, key, value);
-				bucket2.agent().put(db, tb2, tid2, key, value);
+				batch1.put(key, value);
+				batch2.put(key, value);
 
-				bucket1.agent().commitTransaction(tid1);
-				bucket2.agent().commitTransaction(tid2);
+				bucket1.agent().prepareBatch(batch1);
+				bucket2.agent().prepareBatch(batch2);
+
+				bucket1.agent().commitBatch(batch1);
+				bucket2.agent().commitBatch(batch2);
 			}
-			*/
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
 				Assert.assertTrue(kv.getKey());
