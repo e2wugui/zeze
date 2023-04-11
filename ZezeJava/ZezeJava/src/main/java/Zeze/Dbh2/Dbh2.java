@@ -115,10 +115,18 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
             if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
                 return errorCode(eBucketMissmatch);
             for (var put : r.Argument.getBatch().getPuts().entrySet()) {
-                if (!stateMachine.getBucket().inBucket(put.getKey()))
+                var key = put.getKey();
+                var value = put.getValue();
+                if (null != manager) {
+                    manager.counterPut.incrementAndGet();
+                    manager.sizePut.addAndGet(value.size() + key.size());
+                }
+                if (!stateMachine.getBucket().inBucket(key))
                     return errorCode(eBucketMissmatch);
             }
             for (var del : r.Argument.getBatch().getDeletes()) {
+                if (null != manager)
+                    manager.counterDelete.incrementAndGet();
                 if (!stateMachine.getBucket().inBucket(del))
                     return errorCode(eBucketMissmatch);
             }
