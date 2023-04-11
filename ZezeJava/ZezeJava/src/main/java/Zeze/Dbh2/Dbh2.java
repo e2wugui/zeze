@@ -119,6 +119,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
             }
             // apply to raft
             getRaft().appendLog(new LogPrepareBatch(tid, r));
+            r.Result.setTid(tid);
             r.SendResultCode(0);
             // 操作成功，释放所有权。see finally.
             txn = null;
