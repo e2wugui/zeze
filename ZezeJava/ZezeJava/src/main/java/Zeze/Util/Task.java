@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import Zeze.Application;
 import Zeze.IModule;
@@ -218,7 +219,7 @@ public final class Task {
 			scheduleUnsafe(initialDelay, action);
 	}
 
-	public static @NotNull Future<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action) {
+	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action) {
 		return threadPoolScheduled.schedule(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
@@ -261,11 +262,11 @@ public final class Task {
 			scheduleAtUnsafe(hour, minute, period, action);
 	}
 
-	public static @NotNull Future<?> scheduleAtUnsafe(int hour, int minute, @NotNull Action0 action) {
+	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, @NotNull Action0 action) {
 		return scheduleAtUnsafe(hour, minute, -1, action);
 	}
 
-	public static @NotNull Future<?> scheduleAtUnsafe(int hour, int minute, long period, @NotNull Action0 action) {
+	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period, @NotNull Action0 action) {
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, hour);
 		firstTime.set(Calendar.MINUTE, minute);
@@ -287,7 +288,7 @@ public final class Task {
 			scheduleUnsafe(initialDelay, period, action);
 	}
 
-	public static @NotNull Future<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
+	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
 		return threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {

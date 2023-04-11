@@ -49,7 +49,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		try {
 			var lookup = MethodHandles.lookup();
 			closedHandle = lookup.findVarHandle(AsyncSocket.class, "closed", byte.class);
-			outputBufferSizeHandle = lookup.findVarHandle(AsyncSocket.class, "outputBufferSize", int.class);
+			outputBufferSizeHandle = lookup.findVarHandle(AsyncSocket.class, "outputBufferSize", long.class);
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
@@ -82,7 +82,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private volatile Object userState;
 
 	@SuppressWarnings("unused")
-	private volatile int outputBufferSize;
+	private volatile long outputBufferSize;
 	private final ConcurrentLinkedQueue<Action0> operates;
 
 	private final BufferCodec inputBuffer; // 记录这个变量用来操作buffer. 只在selector线程访问
@@ -195,6 +195,14 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	public long getSendRawSize() {
 		return sendRawSize;
+	}
+
+	public int getOperateSize() {
+		return operates.size();
+	}
+
+	public long getOutputBufferSize() {
+		return outputBufferSize;
 	}
 
 	/**
@@ -493,10 +501,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public boolean Send(byte @NotNull [] bytes, int offset, int length) {
 		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
-		var newSize = (int)outputBufferSizeHandle.getAndAdd(this, length) + length;
+		var newSize = (long)outputBufferSizeHandle.getAndAdd(this, (long)length) + length;
 		try {
 			if (!service.checkOverflow(this, newSize, bytes, offset, length)) {
-				outputBufferSizeHandle.getAndAdd(this, -length);
+				outputBufferSizeHandle.getAndAdd(this, (long)-length);
 				return false;
 			}
 			if (submitAction(() -> { // 进selector线程调用
@@ -508,7 +516,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					codec.update(bytes, offset, length);
 					int deltaLen = outputBuffer.size() - oldSize - length;
 					if (deltaLen != 0)
-						outputBufferSizeHandle.getAndAdd(this, deltaLen);
+						outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
 				} else
 					outputBuffer.put(bytes, offset, length);
 				if (PerfCounter.ENABLE_PERF)
@@ -516,7 +524,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			}))
 				return true;
 		} catch (Exception ex) {
-			outputBufferSizeHandle.getAndAdd(this, -length);
+			outputBufferSizeHandle.getAndAdd(this, (long)-length);
 			close(ex);
 		}
 		return false;
@@ -748,7 +756,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					int deltaLen = newBufSize - bufSize;
 					if (deltaLen != 0) {
 						bufSize = newBufSize;
-						outputBufferSizeHandle.getAndAdd(this, deltaLen);
+						outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
 					}
 				} else
 					flushed = false;
@@ -761,7 +769,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					return;
 				}
 				sendSize += rc;
-				outputBufferSizeHandle.getAndAdd(this, (int)-rc);
+				outputBufferSizeHandle.getAndAdd(this, -rc);
 				bufSize = outputBuffer.size();
 				if (bufSize > 0) {
 					// 有数据正在发送，此时可以安全退出执行，写完以后Selector会再次触发doWrite。

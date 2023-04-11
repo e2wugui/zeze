@@ -45,27 +45,27 @@ public class RocksDatabase implements Closeable {
 	private static final WriteOptions defaultWriteOptions = new WriteOptions();
 	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
 
-	public static Options getCommonOptions() {
+	public static @NotNull Options getCommonOptions() {
 		return commonOptions;
 	}
 
-	public static DBOptions getCommonDbOptions() {
+	public static @NotNull DBOptions getCommonDbOptions() {
 		return commonDbOptions;
 	}
 
-	public static ColumnFamilyOptions getDefaultCfOptions() {
+	public static @NotNull ColumnFamilyOptions getDefaultCfOptions() {
 		return defaultCfOptions;
 	}
 
-	public static ReadOptions getDefaultReadOptions() {
+	public static @NotNull ReadOptions getDefaultReadOptions() {
 		return defaultReadOptions;
 	}
 
-	public static WriteOptions getDefaultWriteOptions() {
+	public static @NotNull WriteOptions getDefaultWriteOptions() {
 		return defaultWriteOptions;
 	}
 
-	public static WriteOptions getSyncWriteOptions() {
+	public static @NotNull WriteOptions getSyncWriteOptions() {
 		return syncWriteOptions;
 	}
 
@@ -179,11 +179,11 @@ public class RocksDatabase implements Closeable {
 		return false;
 	}
 
-	public Batch newBatch() {
+	public @NotNull Batch newBatch() {
 		return new Batch();
 	}
 
-	private @NotNull ColumnFamilyHandle openFamily(String name) {
+	private @NotNull ColumnFamilyHandle openFamily(@NotNull String name) {
 		return columnFamilies.computeIfAbsent(name, key -> {
 			try {
 				return rocksDb.createColumnFamily(new ColumnFamilyDescriptor(
@@ -305,11 +305,7 @@ public class RocksDatabase implements Closeable {
 	}
 
 	public final class Batch implements Closeable {
-		private final @NotNull WriteBatch batch;
-
-		public Batch() {
-			batch = new WriteBatch();
-		}
+		private final WriteBatch batch = new WriteBatch();
 
 		public void put(@NotNull ColumnFamilyHandle columnFamily, byte[] key, byte[] value) throws RocksDBException {
 			batch.put(columnFamily, key, value);

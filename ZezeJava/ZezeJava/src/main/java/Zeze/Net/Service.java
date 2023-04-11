@@ -8,6 +8,7 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
@@ -21,6 +22,7 @@ import Zeze.Util.Factory;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashMap;
+import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -64,7 +66,8 @@ public class Service {
 	@SuppressWarnings("unused")
 	protected volatile int overflowCount;
 
-	private Selectors selectors;
+	private @Nullable Selectors selectors;
+	private @Nullable ScheduledFuture<?> statisticLogFuture;
 
 	public Service(@NotNull String name) {
 		this(name, (Config)null);
@@ -75,6 +78,8 @@ public class Service {
 		zeze = null;
 		this.config = initConfig(config);
 		socketOptions = this.config.getSocketOptions();
+		logger.info("start: {}", name);
+		tryStartStatisticLog();
 	}
 
 	public Service(@NotNull String name, @Nullable Application app) {
@@ -82,6 +87,17 @@ public class Service {
 		zeze = app;
 		config = initConfig(app != null ? app.getConfig() : null);
 		socketOptions = config.getSocketOptions();
+		logger.info("start: {}", name);
+		tryStartStatisticLog();
+	}
+
+	private void tryStartStatisticLog() {
+		var stat = System.getProperty(name + ".stat");
+		if (stat != null && !stat.isBlank()) {
+			int periodSec = Integer.parseInt(stat);
+			if (periodSec > 0)
+				startStatisticLog(periodSec);
+		}
 	}
 
 	private @NotNull ServiceConf initConfig(@Nullable Config config) {
@@ -744,5 +760,48 @@ public class Service {
 
 	public boolean discard(@NotNull AsyncSocket sender, int moduleId, int protocolId, int size) throws Exception {
 		return false;
+	}
+
+	public synchronized @NotNull ScheduledFuture<?> startStatisticLog(int periodSec) {
+		var f = statisticLogFuture;
+		if (f != null && !f.isCancelled())
+			return f;
+		var lastSizes = new long[4];
+		lastSizes[0] = -1;
+		f = Task.scheduleUnsafe(0, periodSec * 1000L, () -> {
+			updateRecvSendSize();
+			var selectors = getSelectors();
+			long selectCount = selectors.getSelectCount();
+			long recvSize = getRecvSize();
+			long sendSize = getSendSize();
+			long sendRawSize = getSendRawSize();
+			if (lastSizes[0] != -1) {
+				long sc = selectCount - lastSizes[0];
+				long rs = recvSize - lastSizes[1];
+				long ss = sendSize - lastSizes[2];
+				long srs = sendRawSize - lastSizes[3];
+				var operates = new OutLong();
+				var outBufSize = new OutLong();
+				foreach(socket -> {
+					operates.value += socket.getOperateSize();
+					outBufSize.value += socket.getOutputBufferSize();
+				});
+				logger.info("{}.stat: select={}/{}, recv={}, send={}, sendRaw={}, sockets={}, ops={}, outBuf={}",
+						getClass().getName(), sc, selectors.getCount(), rs, ss, srs, getSocketCount(),
+						operates.value, outBufSize.value);
+			}
+			lastSizes[0] = selectCount;
+			lastSizes[1] = recvSize;
+			lastSizes[2] = sendSize;
+			lastSizes[3] = sendRawSize;
+		});
+		statisticLogFuture = f;
+		return f;
+	}
+
+	public synchronized boolean cancelStartStatisticLog() {
+		var f = statisticLogFuture;
+		statisticLogFuture = null;
+		return f != null && f.cancel(false);
 	}
 }

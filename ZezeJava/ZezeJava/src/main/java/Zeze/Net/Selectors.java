@@ -114,6 +114,13 @@ public class Selectors {
 		return selectorList.length;
 	}
 
+	public long getSelectCount() {
+		long count = 0;
+		for (var selector : selectorList)
+			count += selector.getSelectCount();
+		return count;
+	}
+
 	public @NotNull Selectors add(int count) {
 		try {
 			Selector[] tmp = selectorList;

@@ -26,6 +26,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	private final @NotNull ByteBuffer readBuffer; // 此线程共享的buffer,只能临时使用
 	private final AtomicInteger wakeupNotified = new AtomicInteger();
 	private final ArrayList<ByteBuffer> bbPool = new ArrayList<>();
+	private long selectCount;
 	private boolean firstAction;
 	private volatile boolean running = true;
 
@@ -48,6 +49,10 @@ public class Selector extends Thread implements ByteBufferAllocator {
 
 	@NotNull ByteBuffer getReadBuffer() {
 		return readBuffer;
+	}
+
+	public long getSelectCount() {
+		return selectCount;
 	}
 
 	@Override
@@ -194,6 +199,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 //						time / 1_000_000);
 //			}
 			try {
+				selectCount++;
 				// 如果在这个时间窗口 wakeup，下面的 select 会马上返回。wakeup 不会丢失。
 				if (selectTimeout == 0) {
 					firstAction = true;
