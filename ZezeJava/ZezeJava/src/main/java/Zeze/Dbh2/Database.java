@@ -3,6 +3,8 @@ package Zeze.Dbh2;
 import java.net.URI;
 import java.util.HashMap;
 import Zeze.Application;
+import Zeze.Builtin.Dbh2.BBatch;
+import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Net.Binary;
@@ -39,7 +41,6 @@ public class Database extends Zeze.Transaction.Database {
 		}
 		setDirectOperates(new NullOperates()); // todo operates
 
-		// todo 构造的时候创建Database可行？
 		masterAgent = Dbh2AgentManager.getInstance().openDatabase(masterName, databaseName);
 	}
 
@@ -55,107 +56,66 @@ public class Database extends Zeze.Transaction.Database {
 		return new Dbh2Transaction();
 	}
 
+	public static class BatchWithTid {
+		BPrepareBatch.Data data;
+		long tid;
+
+		public void put(Binary key, Binary value) {
+			data.getBatch().getPuts().put(key, value);
+			data.getBatch().getDeletes().remove(key);
+		}
+
+		public void delete(Binary key) {
+			data.getBatch().getDeletes().add(key);
+			data.getBatch().getPuts().remove(key);
+		}
+	}
+
 	public class Dbh2Transaction implements Zeze.Transaction.Database.Transaction {
 
-		private final HashMap<Dbh2Agent, Long> transactions = new HashMap<>();
-		private boolean rollBacked = false;
+		private final HashMap<Dbh2Agent, BatchWithTid> transactions = new HashMap<>();
 
 		@Override
 		public void commit() {
-			for (var e : transactions.entrySet()) {
-				// todo e.getKey().commitTransaction(e.getValue());
-			}
-		}
-
-		private KV<Long, Dbh2Agent> beginTransactionIf(String tableName, Binary bKey) {
-			var manager = Dbh2AgentManager.getInstance();
-			for (int i = 0; i < 2; ++i) {
-				var agent = manager.open(
-						masterAgent, masterName,
-						databaseName, tableName,
-						bKey);
-				var tid = transactions.get(agent);
-				if (null == tid)
-					tid = 0L; // todo agent.beginTransaction(databaseName, tableName);
-				if (null != tid) {
-					transactions.put(agent, tid);
-					return KV.create(tid, agent);
+			try {
+				for (var e : transactions.entrySet()) {
+					e.getKey().prepareBatch(e.getValue());
 				}
-				manager.reload(masterAgent, masterName, databaseName, tableName);
-			}
-			throw new RuntimeException("begin transaction fail.");
-		}
-
-		private long beginTransactionIf(Dbh2Agent agent, String tableName) {
-			var tid = transactions.get(agent);
-			if (null == tid)
-				tid = 0L; // todo agent.beginTransaction(databaseName, tableName);
-			if (null != tid) {
-				transactions.put(agent, tid);
-				return tid;
-			}
-			throw new RuntimeException("begin transaction 2 fail.");
-		}
-
-		private void operate(String tableName,
-							 Binary bKey,
-							 Func2<Long, Dbh2Agent, String> action) throws Exception {
-			var manager = Dbh2AgentManager.getInstance();
-			String raftNew = null;
-			for (int i = 0; i < 2; ++i) {
-				var kv = beginTransactionIf(tableName, bKey); // KV<tid, Dbh2Agent>
-				raftNew = action.call(kv.getKey(), kv.getValue());
-				if (raftNew == null) {
-					// miss match bucket
-					manager.reload(masterAgent, masterName, databaseName, tableName);
-					continue;
+				// todo 准备开始提交，持久化关键点。
+				for (var e : transactions.entrySet()) {
+					e.getKey().commitBatch(e.getValue());
 				}
-				if (raftNew.isEmpty())
-					return; // done success
-
-				// 迁移中的桶，数据已经被迁移到新的节点。
-				break;
+			} catch (Exception ex) {
+				for (var e : transactions.entrySet()) {
+					e.getKey().undoBatch(e.getValue());
+				}
+				throw ex;
 			}
-			var agent = manager.open(raftNew);
-			var tid = beginTransactionIf(agent, tableName);
-			raftNew = action.call(tid, agent);
-			if (raftNew == null)
-				throw new RuntimeException("moving bucket target miss.");
-			if (raftNew.isEmpty())
-				return; // done success
-			// 直接打开目标，建立新的事务执行put。
-			throw new RuntimeException("put too many try.");
 		}
 
 		public void replace(String tableName, ByteBuffer key, ByteBuffer value) throws Exception {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
-			// todo
-//			operate(tableName, bKey, (tid, agent)
-//					-> agent.put(databaseName, tableName, tid, bKey, bValue));
+			var manager = Dbh2AgentManager.getInstance();
+			var agent = manager.open(masterAgent, masterName, databaseName, tableName, bKey);
+			var batch = transactions.computeIfAbsent(agent, _agent_ -> new BatchWithTid());
+			batch.put(bKey, bValue);
 		}
 
 		public void remove(String tableName, ByteBuffer key) throws Exception {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
-			// todo
-//			operate(tableName, bKey, (tid, agent)
-//					-> agent.delete(databaseName, tableName, tid, bKey));
+			var manager = Dbh2AgentManager.getInstance();
+			var agent = manager.open(masterAgent, masterName, databaseName, tableName, bKey);
+			var batch = transactions.computeIfAbsent(agent, _agent_ -> new BatchWithTid());
+			batch.delete(bKey);
 		}
 
 		@Override
 		public void rollback() {
-			if (rollBacked)
-				return;
-			rollBacked = true;
-			// todo
-//			for (var e : transactions.entrySet()) {
-//				e.getKey().rollbackTransaction(e.getValue());
-//			}
 		}
 
 		@Override
 		public void close() throws Exception {
-			rollback();
 		}
 	}
 

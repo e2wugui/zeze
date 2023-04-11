@@ -1,12 +1,12 @@
 package Zeze.Dbh2;
 
-import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
-import Zeze.Builtin.Dbh2.BPrepareBatch;
+import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.Get;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
+import Zeze.Builtin.Dbh2.UndoBatch;
 import Zeze.Net.Binary;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
@@ -14,9 +14,11 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class Dbh2Agent extends AbstractDbh2Agent {
-//	private static final Logger logger = LogManager.getLogger(Dbh2Agent.class);
+	private static final Logger logger = LogManager.getLogger(Dbh2Agent.class);
 	private final Agent raftClient;
 	private final TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 	private volatile long lastErrorTime;
@@ -53,17 +55,29 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return KV.create(true, bb);
 	}
 
-	public void sendBatch(BPrepareBatch.Data data) {
+	public void prepareBatch(Database.BatchWithTid batch) {
 		var r = new PrepareBatch();
-		r.Argument = data;
+		r.Argument = batch.data;
 		raftClient.sendForWait(r).await();
-
-		// todo 先要 prepare。writeBatch需要分两步。第一步发送，服务器检查锁定桶相关key；第二部提交；
-		if (r.getResultCode() == errorCode(eBucketMissmatch))
-			return;
-
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("fail! code=" + r.getResultCode());
+		batch.tid = r.Result.getTid();
+	}
+
+	public void commitBatch(Database.BatchWithTid batch) {
+		var r = new CommitBatch();
+		r.Argument.setTid(batch.tid);
+		raftClient.sendForWait(r).await();
+		if (r.getResultCode() != 0)
+			logger.warn("commit with result code={}", r.getResultCode());
+	}
+
+	public void undoBatch(Database.BatchWithTid batch) {
+		var r = new UndoBatch();
+		r.Argument.setTid(batch.tid);
+		raftClient.sendForWait(r).await();
+		if (r.getResultCode() != 0)
+			logger.warn("undo with result code={}", r.getResultCode());
 	}
 
 	private void verifyFastFail() {

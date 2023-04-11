@@ -3,6 +3,8 @@ package Zeze.Dbh2;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Raft.LogSequence;
@@ -24,10 +26,11 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private static final Logger logger = LogManager.getLogger(Dbh2StateMachine.class);
 	private Bucket bucket;
 	private TidAllocator tidAllocator;
+	private final ConcurrentHashMap<Long, Dbh2Transaction> transactions = new ConcurrentHashMap<>();
 
 	public Dbh2StateMachine() {
-		super.addFactory(LogBatch.TypeId_, LogBatch::new);
-		super.addFactory(LogBatch.TypeId_, LogBatch::new);
+		super.addFactory(LogPrepareBatch.TypeId_, LogPrepareBatch::new);
+		super.addFactory(LogPrepareBatch.TypeId_, LogPrepareBatch::new);
 		super.addFactory(LogSetBucketMeta.TypeId_, LogSetBucketMeta::new);
 		super.addFactory(LogAllocateTid.TypeId_, LogAllocateTid::new);
 	}
@@ -38,6 +41,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public TidAllocator getTidAllocator() {
 		return tidAllocator;
+	}
+
+	public ConcurrentHashMap<Long, Dbh2Transaction> getTransactions() {
+		return transactions;
 	}
 
 	public void openBucket() {
@@ -70,13 +77,25 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void writeBatch(BBatch.Data bBatch) {
-		try (var batch = bucket.getDb().newBatch()) {
-			for (var e : bBatch.getPuts().entrySet())
-				bucket.getTData().put(batch, e.getKey(), e.getValue());
-			for (var e : bBatch.getDeletes())
-				bucket.getTData().delete(batch, e);
-			batch.commit(bucket.getWriteOptions());
+	public void prepareBatch(long tid, BBatch.Data bBatch) {
+		try {
+			var txn = transactions.computeIfAbsent(tid, _tid -> new Dbh2Transaction(bBatch));
+			txn.prepareBatch(bucket, bBatch);
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
+		}
+	}
+
+	public void commitBatch(long tid) {
+		try (var txn = transactions.remove(tid)) {
+			// do nothing
+		}
+	}
+
+	public void undoBatch(long tid) {
+		try (var txn = transactions.remove(tid)) {
+			txn.undoBatch(bucket);
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -118,10 +137,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void close() {
-		// todo
-//		for (var tran : transactionMap.values())
-//			tran.close();
-//		transactionMap.clear();
+		for (var tran : transactions.values())
+			tran.close();
+		transactions.clear();
 
 		if (bucket != null) {
 			bucket.close();

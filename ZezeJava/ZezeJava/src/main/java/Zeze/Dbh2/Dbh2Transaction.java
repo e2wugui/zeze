@@ -11,97 +11,69 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 public class Dbh2Transaction implements Closeable {
-	private final HashMap<Lock, Lock> locks;
-	private final Bucket bucket;
-	private final BBatch.Data batch;
-	private final BBatch.Data logs;
+	private final HashMap<Lock, Lock> locks = new HashMap<>();
+	private final BBatch.Data logs = new BBatch.Data();
 
-	/*
-	 * firstCreate, raftCreate 从正常操作流程上，可以统一。
-	 * 但是为了不同的错误处理，分成两个方法。
-	 * firstCreate 需要检查是否在桶中，以及锁定失败时，报告错误给PrepareBatch请求放。
-	 * raftCreate 不检查是否在桶中，锁定必须成功。出现错误，raft强制退出。
+	/**
+	 * 锁住输入batch中的所有记录。
+	 * @param batch batch parameter
 	 */
-	public static Dbh2Transaction firstCreate(Bucket bucket, BBatch.Data batch) throws RocksDBException {
-		var locks = new HashMap<Lock, Lock>();
-		try {
-			var logs = new BBatch.Data();
-			var result = new Dbh2Transaction(bucket, batch, logs, locks);
+	public Dbh2Transaction(BBatch.Data batch) {
+		for (var put : batch.getPuts().entrySet()) {
+			var key = put.getKey();
+			var lock = Lock.get(key);
+			if (null == locks.putIfAbsent(lock, lock))
+				lock.lock();
+		}
+		for (var del : batch.getDeletes()) {
+			var lock = Lock.get(del);
+			if (null == locks.putIfAbsent(lock, lock))
+				lock.lock();
+		}
+	}
+
+	/**
+	 * 把batch数据写入db，并且构造出undo logs。
+	 * @param bucket bucket
+	 * @param batch batch
+	 * @throws RocksDBException
+	 */
+	public void prepareBatch(Bucket bucket, BBatch.Data batch) throws RocksDBException {
+		try (var b = bucket.getDb().newBatch()) {
 			for (var put : batch.getPuts().entrySet()) {
 				var key = put.getKey();
-				if (!bucket.inBucket(key))
-					return null;
-
-				var lock = Lock.get(key);
-				if (null == locks.putIfAbsent(lock, lock))
-					lock.lock();
-
 				var exist = bucket.get(key);
 				if (exist != null)
 					logs.getPuts().put(key, exist);
 				else
 					logs.getDeletes().add(key);
+				bucket.getTData().put(b, key, put.getValue());
 			}
-
 			for (var del : batch.getDeletes()) {
-				var lock = Lock.get(del);
-				if (null == locks.putIfAbsent(lock, lock))
-					lock.lock();
-
 				var exist = bucket.get(del);
 				if (exist != null)
 					logs.getPuts().put(del, exist);
 				// else delete not exist record. skip.
+				bucket.getTData().delete(b, del);
 			}
+			b.commit(bucket.getWriteOptions());
+		}
+	}
 
-			locks = null; // 释放拥有，finally就不会unlock。
-			return result;
-
-		} finally {
-			// 失败的时候释放锁。
-			if (null != locks) {
-				for (var lock : locks.keySet())
-					lock.unlock();
+	public void undoBatch(Bucket bucket) throws RocksDBException {
+		try (var b = bucket.getDb().newBatch()) {
+			for (var put : logs.getPuts().entrySet()) {
+				bucket.getTData().put(b, put.getKey(), put.getValue());
+			}
+			for (var del : logs.getDeletes()) {
+				bucket.getTData().delete(b, del);
 			}
 		}
 	}
 
-	public static Dbh2Transaction raftCreate(Bucket bucket, BBatch.Data batch, BBatch.Data logs) {
-		var locks = new HashMap<Lock, Lock>();
-		try {
-			var result = new Dbh2Transaction(bucket, batch, logs, locks);
-			for (var put : batch.getPuts().entrySet()) {
-				var key = put.getKey();
-				var lock = Lock.get(key);
-				if (null == locks.putIfAbsent(lock, lock))
-					lock.lock();
-			}
-
-			for (var del : batch.getDeletes()) {
-				var lock = Lock.get(del);
-				if (null == locks.putIfAbsent(lock, lock))
-					lock.lock();
-			}
-
-			locks = null; // 释放拥有，finally就不会unlock。
-			return result;
-
-		} finally {
-			// 失败的时候释放锁。
-			if (null != locks) {
-				for (var lock : locks.keySet())
-					lock.unlock();
-			}
-		}
-	}
-
-	private Dbh2Transaction(Bucket bucket, BBatch.Data batch, BBatch.Data logs, HashMap<Lock, Lock> locks) {
-		this.bucket = bucket;
-		this.batch = batch;
-		this.logs = logs;
-		this.locks = locks;
-	}
-
+	/**
+	 * 完成事务，释放锁。
+	 */
 	@Override
 	public void close() {
 		for (var lock : locks.values())

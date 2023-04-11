@@ -9,12 +9,14 @@ import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
+import com.alibaba.druid.sql.visitor.functions.Bin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 /**
@@ -98,6 +100,10 @@ public class Bucket {
 		if (null == value)
 			return null;
 		return new Binary(value);
+	}
+
+	public void deleteBatch(RocksDatabase.Batch batch, Binary key) throws RocksDBException {
+		tData.delete(batch, key);
 	}
 
 	public boolean inBucket(String databaseName, String tableName) {

@@ -91,13 +91,14 @@ foreach(bucket : buckets)
 localTransactionFileLog.add(tid，buckets, timestamp); // 二段式提交关键点。持久化以后用于系统宕机重启以后继续提交。
 foreach (bucket : buckets)
 	bucket.CommitBatch();
-localTransactionFileLog.remove(tid);
+localTransactionFileLog.remove(tid); 【不能删除，慢速GC，删除7天前的】
 see https://blog.csdn.net/lengxiao1993/article/details/88290514
 
 【桶的实现伪码】
 Raft.Leader.OnPrepareBatch(batch) {
 	// 由于锁定解锁跨线程，所以这里的锁应该用信号量(Semaphore)。
-	if (inBucketAndLock()) { // leader需要检查inBucket和lock error，并马上报告结果。
+	if (inBucketAndLock()) {
+		// leader需要检查inBucket和lock error，并马上报告结果。
 		tid = allocateTid();
 		appendLog(tid, batch);
 		r.Result.setTid(tid);
@@ -107,8 +108,9 @@ Raft.Leader.OnPrepareBatch(batch) {
 	r.sendResultCode(error_code);
 }
 LogPrepareBatch.apply(tid, batch) {
-	// 所有的raft节点都建立事务上下文。但是只有leader的才会进行timeout检测。
-	var txn = Dbh2Transaction.raftCreate(batch, isLeader); // isLeader! leader在收集的时候已经加锁。这里就不需要加锁了。
+	// leader在预先检查阶段已经加锁，事务会存在。所以用getOrAdd。
+	// 构造函数里面加锁。
+	var txn = transaction.getOrAdd(tid, new Dbh2Transaction(batch));
 	batchTransaction.put(tid, txn);
 }
 
@@ -129,10 +131,7 @@ LogUndoBatch.apply(tid) {
 	// 所有raft节点。
 	var txn = batchTransaction.remove(tid);
 	if (null != txn) // 允许重复的RaftUndoLog.
-		appendLog(txn.getLogs());
-}
-LogUndo.apply(logs) { // 这个真正完成Undo。
-	bucket.putOrDelete(logs);
+		txn.undoBatch(bucket);
 }
 
 【问题】
@@ -156,8 +155,7 @@ LogUndo.apply(logs) { // 这个真正完成Undo。
 7). PrepareBatch 流程中断造成桶的正在进行的事务一直空悬。
      桶主动查询事务所在的Agent，判断是否（localTransactionFileLog）关键点(isCommtting)，
      if (isCommitting) commit(); else undo(); 查询失败下一次尝试，必须能查询到结果。
-     -- 由于 localTransactionFileLog 在事务成功结束以后会 remove。这个查询和committing有并发问题，
-     -- 需要考虑一下。几个 if (null != remove()) 的判断就足够了，还没细想。
+     【localTransactionFileLog 在事务成功结束以后不会删除】。
 
 //////////////////////////////////////////////////////////////////////////////////////
 // 旧内容，可快速略过。

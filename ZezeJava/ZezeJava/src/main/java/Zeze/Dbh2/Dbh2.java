@@ -99,17 +99,49 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessPrepareBatchRequest(PrepareBatch r) throws Exception {
-        // stateMachine.getBucket().prepare(r.Argument);
+        var tid = stateMachine.getTidAllocator().next(stateMachine);
+        // lock
+        var txn = new Dbh2Transaction(r.Argument.getBatch());
+        try {
+            // save txn
+            if (null != stateMachine.getTransactions().putIfAbsent(tid, txn))
+                return errorCode(eDuplicateTid);
+            // check inBucket
+            if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
+                return errorCode(eBucketMissmatch);
+            for (var put : r.Argument.getBatch().getPuts().entrySet()) {
+                if (!stateMachine.getBucket().inBucket(put.getKey()))
+                    return errorCode(eBucketMissmatch);
+            }
+            for (var del : r.Argument.getBatch().getDeletes()) {
+                if (!stateMachine.getBucket().inBucket(del))
+                    return errorCode(eBucketMissmatch);
+            }
+            // apply to raft
+            getRaft().appendLog(new LogPrepareBatch(tid, r));
+            r.SendResultCode(0);
+            // 操作成功，释放所有权。see finally.
+            txn = null;
+        } finally {
+            if (null != txn) {
+                stateMachine.getTransactions().remove(tid); // undo putIfAbsent
+                txn.close();
+            }
+        }
         return 0;
     }
 
     @Override
     protected long ProcessCommitBatchRequest(CommitBatch r) throws Exception {
+        getRaft().appendLog(new LogCommitBatch(r));
+        r.SendResult();
         return 0;
     }
 
     @Override
     protected long ProcessUndoBatchRequest(UndoBatch r) throws Exception {
+        getRaft().appendLog(new LogUndoBatch(r));
+        r.SendResult();
         return 0;
     }
 }
