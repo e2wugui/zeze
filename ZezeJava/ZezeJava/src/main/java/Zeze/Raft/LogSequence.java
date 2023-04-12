@@ -11,6 +11,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -122,6 +123,45 @@ public class LogSequence {
 	}
 
 	public void commitSnapshot(String path, long newFirstIndex) throws IOException, RocksDBException {
+		if (raft.getRaftConfig().isSnapshotCommitDelayed()) {
+			// 查找目录下已经存在的延时提交的snapshot。
+			// 实际上只会存在一个延时提交的snapshot，这里的代码写法能处理多个。
+			var files = new File(path).listFiles();
+			var delayed = new TreeMap<Long, File>();
+			if (null != files) {
+				for (var file : files) {
+					if (!file.isFile())
+						continue;
+
+					var fileName = file.getName();
+					if (fileName.endsWith(".commit.delayed")) {
+						var splits = fileName.split("\\.");
+						try {
+							var index = Long.parseLong(splits[0]);
+							delayed.put(index, file);
+						} catch (Exception ex) {
+							// skip
+						}
+					}
+				}
+			}
+			if (!delayed.isEmpty()) {
+				// 删除最后一个entry，并且提交。
+				var biggestIndex = delayed.lastKey();
+				var biggestFile = delayed.remove(biggestIndex);
+				_commitSnapshot(biggestFile.toString(), biggestIndex);
+				// 删除多余的延时提交文件。一般不会发生。
+				for (var file : delayed.values())
+					Files.deleteIfExists(file.toPath());
+			}
+			// 当前snapshot重命名，带上index信息。等到下一个snapshot发生的时候推进。
+			Files.move(Paths.get(path), Paths.get(newFirstIndex + "." + path + ".commit.delayed"));
+			return;
+		}
+		_commitSnapshot(path, newFirstIndex);
+	}
+
+	private void _commitSnapshot(String path, long newFirstIndex) throws IOException, RocksDBException {
 		raft.lock();
 		try {
 			Files.move(Paths.get(path), Paths.get(getSnapshotFullName()), StandardCopyOption.REPLACE_EXISTING);
