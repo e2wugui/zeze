@@ -1111,7 +1111,10 @@
 			<table name="tRoleTimers" key="string" value="BGameOnlineTimer" memory="true"/>
 
 			<bean name="BOnlineCustom"> 保存真正的用户自定义数据
-				<variable id="1" name="CustomData" type="dynamic"/>
+				<variable id="1" name="CustomData" type="dynamic">
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getOnlineSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createOnlineBeanFromSpecialTypeId"/>
+				</variable>
 			</bean>
 			<bean name="BOnlineTimers"> 这个Bean作为Online.Local.Any存储
 				<variable id="1" name="TimerIds" type="map[string, BOnlineCustom]"/>

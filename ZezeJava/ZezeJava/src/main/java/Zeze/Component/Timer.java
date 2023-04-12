@@ -38,6 +38,14 @@ public class Timer extends AbstractTimer {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
+	public static long getOnlineSpecialTypeIdFromBean(@NotNull Bean bean) {
+		return bean.typeId();
+	}
+
+	public static @NotNull Bean createOnlineBeanFromSpecialTypeId(long typeId) {
+		throw new UnsupportedOperationException(); // online custom data do not need decode.
+	}
+
 	public static final int CountPerNode = 200;
 
 	static final Logger logger = LogManager.getLogger(Timer.class);

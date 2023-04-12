@@ -11,20 +11,15 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
     private final Zeze.Transaction.DynamicBean _CustomData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_CustomData() {
-        return new Zeze.Transaction.DynamicBean(1, BOnlineCustom::getSpecialTypeIdFromBean_1, BOnlineCustom::createBeanFromSpecialTypeId_1);
+        return new Zeze.Transaction.DynamicBean(1, Zeze.Component.Timer::getOnlineSpecialTypeIdFromBean, Zeze.Component.Timer::createOnlineBeanFromSpecialTypeId);
     }
 
     public static long getSpecialTypeIdFromBean_1(Zeze.Transaction.Bean bean) {
-        var _typeId_ = bean.typeId();
-        if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-            return Zeze.Transaction.EmptyBean.TYPEID;
-        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BOnlineCustom:CustomData");
+        return Zeze.Component.Timer.getOnlineSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_1(long typeId) {
-        if (typeId == Zeze.Transaction.EmptyBean.TYPEID)
-            return new Zeze.Transaction.EmptyBean();
-        return null;
+        return Zeze.Component.Timer.createOnlineBeanFromSpecialTypeId(typeId);
     }
 
     private transient Object __zeze_map_key__;
