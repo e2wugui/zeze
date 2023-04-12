@@ -1,7 +1,7 @@
-
 #pragma warning(push)
 #pragma warning(disable : 4310)
 
+#include <malloc.h>
 #include "codec.h"
 
 namespace limax {
