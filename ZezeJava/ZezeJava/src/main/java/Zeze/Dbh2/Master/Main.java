@@ -48,7 +48,7 @@ public class Main {
 
 			var selector = 1;
 
-			for (int i = 0; i < args.length; ++i) {
+			for (int i = 1; i < args.length; ++i) {
 				//noinspection SwitchStatementWithTooFewBranches
 				switch (args[i]) {
 				case "-selector":
