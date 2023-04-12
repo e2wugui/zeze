@@ -95,8 +95,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	@SuppressWarnings("unused")
 	private volatile byte closed;
 	private volatile boolean closePending;
-	private long recvSize; // 已从socket接收数据的统计总字节数
-	private long sendSize; // 已向socket发送数据的统计总字节数
+	private long recvCount, recvSize; // 已处理接收的次数, 已从socket接收数据的统计总字节数
+	private long sendCount, sendSize; // 已处理发送的次数, 已向socket发送数据的统计总字节数
 	private long sendRawSize; // 准备发送数据的统计总字节数(只在SetOutputSecurityCodec后统计,压缩加密之前的大小)
 	private final TimeThrottle timeThrottle;
 
@@ -185,8 +185,16 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return closed != 0;
 	}
 
+	public long getRecvCount() {
+		return recvCount;
+	}
+
 	public long getRecvSize() {
 		return recvSize;
+	}
+
+	public long getSendCount() {
+		return sendCount;
 	}
 
 	public long getSendSize() {
@@ -658,11 +666,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	private void processReceive(@NotNull SocketChannel sc) throws Exception { // 只在selector线程调用
+		recvCount++;
 		java.nio.ByteBuffer buffer = selector.getReadBuffer(); // 线程共享的buffer,只能本方法内临时使用
 		boolean readAgain = false;
 		do {
 			buffer.clear();
-			int bytesTransferred = sc.read(buffer);
+			int bytesTransferred = sc.read(buffer); // 对方正常关闭或shutdownOutput会返回-1; 而连接被对方RESET会抛异常
 			if (bytesTransferred > 0) {
 				recvSize += bytesTransferred;
 				readAgain = bytesTransferred == buffer.limit();
@@ -699,7 +708,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					codecBuf.Compact();
 				}
 			} else if (!readAgain)
-				close(); // 对方正常关闭连接时的处理, 不设置异常; 连接被对方RESET的话read会抛异常
+				service.OnSocketInputClosed(this);
 			else
 				readAgain = false;
 		} while (readAgain);
@@ -737,6 +746,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 *    考虑清楚以后去掉while(true)？
 	 */
 	private void doWrite(@NotNull SocketChannel sc) throws Exception { // 只在selector线程调用
+		sendCount++;
 		int blockSize = selector.getSelectors().getBbPoolBlockSize();
 		int bufSize = outputBuffer.size();
 		while (true) {

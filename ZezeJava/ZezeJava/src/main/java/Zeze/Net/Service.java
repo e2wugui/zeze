@@ -33,13 +33,16 @@ import org.jetbrains.annotations.Nullable;
 public class Service {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
 	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(1);
-	private static final VarHandle closedRecvSizeHandle, closedSendSizeHandle, closedSendRawSizeHandle;
+	private static final VarHandle closedRecvCountHandle, closedRecvSizeHandle;
+	private static final VarHandle closedSendCountHandle, closedSendSizeHandle, closedSendRawSizeHandle;
 	protected static final VarHandle overflowSizeHandle, overflowCountHandle;
 
 	static {
 		var l = MethodHandles.lookup();
 		try {
+			closedRecvCountHandle = l.findVarHandle(Service.class, "closedRecvCount", long.class);
 			closedRecvSizeHandle = l.findVarHandle(Service.class, "closedRecvSize", long.class);
+			closedSendCountHandle = l.findVarHandle(Service.class, "closedSendCount", long.class);
 			closedSendSizeHandle = l.findVarHandle(Service.class, "closedSendSize", long.class);
 			closedSendRawSizeHandle = l.findVarHandle(Service.class, "closedSendRawSize", long.class);
 			overflowSizeHandle = l.findVarHandle(Service.class, "overflowSize", long.class);
@@ -59,8 +62,8 @@ public class Service {
 	private final LongConcurrentHashMap<Protocol<?>> rpcContexts = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ManualContext> manualContexts = new LongConcurrentHashMap<>();
 	@SuppressWarnings("unused")
-	private volatile long closedRecvSize, closedSendSize, closedSendRawSize; // 已关闭连接的从socket接收/已发送数据/准备发送数据的总字节数
-	private volatile long recvSize, sendSize, sendRawSize; // 当前已统计的从socket接收/已发送数据/准备发送数据的总字节数
+	private volatile long closedRecvCount, closedRecvSize, closedSendCount, closedSendSize, closedSendRawSize; // 已关闭连接的从socket接收/已发送数据/准备发送数据的次数和总字节数
+	private volatile long recvCount, recvSize, sendCount, sendSize, sendRawSize; // 当前已统计的从socket接收/已发送数据/准备发送数据的次数和总字节数
 	@SuppressWarnings("unused")
 	protected volatile long overflowSize;
 	@SuppressWarnings("unused")
@@ -177,7 +180,9 @@ public class Service {
 			if (socketMap.putIfAbsent(newSessionId, so) == null)
 				return;
 			if (socketMap.putIfAbsent(oldSessionId, so) != null) { // rollback
+				closedRecvCountHandle.getAndAdd(this, so.getRecvCount());
 				closedRecvSizeHandle.getAndAdd(this, so.getRecvSize());
+				closedSendCountHandle.getAndAdd(this, so.getSendCount());
 				closedSendSizeHandle.getAndAdd(this, so.getSendSize());
 				closedSendRawSizeHandle.getAndAdd(this, so.getSendRawSize());
 			}
@@ -188,19 +193,31 @@ public class Service {
 	}
 
 	public final void updateRecvSendSize() {
-		long r = 0, s = 0, sr = 0;
+		long rc = 0, rs = 0, sc = 0, ss = 0, sr = 0;
 		for (var socket : socketMap) {
-			r += socket.getRecvSize();
-			s += socket.getSendSize();
+			rc += socket.getRecvCount();
+			rs += socket.getRecvSize();
+			sc += socket.getSendCount();
+			ss += socket.getSendSize();
 			sr += socket.getSendRawSize();
 		}
-		recvSize = closedRecvSize + r;
-		sendSize = closedSendSize + s;
+		recvCount = closedRecvCount + rc;
+		recvSize = closedRecvSize + rs;
+		sendCount = closedSendCount + sc;
+		sendSize = closedSendSize + ss;
 		sendRawSize = closedSendRawSize + sr;
+	}
+
+	public final long getRecvCount() {
+		return recvCount;
 	}
 
 	public final long getRecvSize() {
 		return recvSize;
+	}
+
+	public final long getSendCount() {
+		return sendCount;
 	}
 
 	public final long getSendSize() {
@@ -281,7 +298,9 @@ public class Service {
 	 */
 	public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
 		if (socketMap.remove(so.getSessionId(), so)) {
+			closedRecvCountHandle.getAndAdd(this, so.getRecvCount());
 			closedRecvSizeHandle.getAndAdd(this, so.getRecvSize());
+			closedSendCountHandle.getAndAdd(this, so.getSendCount());
 			closedSendSizeHandle.getAndAdd(this, so.getSendSize());
 			closedSendRawSizeHandle.getAndAdd(this, so.getSendRawSize());
 		}
@@ -381,6 +400,15 @@ public class Service {
 	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull ByteBuffer input) throws Exception {
 		Protocol.decode(this, so, input);
 		return true;
+	}
+
+	/**
+	 * 对方正常关闭连接或者shutdownOutput时的处理, 大多数情况直接关闭连接来应对, 少数情况可以继续发送数据直到主动关闭.
+	 * 理论上无法得知对方是否还可以接收数据, 只能靠上层协商行为规范.
+	 */
+	@SuppressWarnings("MethodMayBeStatic")
+	public void OnSocketInputClosed(@NotNull AsyncSocket so) throws Exception {
+		so.close();
 	}
 
 	// 用来派发异步rpc回调。
@@ -766,34 +794,40 @@ public class Service {
 		var f = statisticLogFuture;
 		if (f != null && !f.isCancelled())
 			return f;
-		var lastSizes = new long[4];
+		var lastSizes = new long[6];
 		lastSizes[0] = -1;
 		f = Task.scheduleUnsafe(0, periodSec * 1000L, () -> {
 			updateRecvSendSize();
 			var selectors = getSelectors();
 			long selectCount = selectors.getSelectCount();
-			long recvSize = getRecvSize();
-			long sendSize = getSendSize();
-			long sendRawSize = getSendRawSize();
+			long recvCount = this.recvCount;
+			long recvSize = this.recvSize;
+			long sendCount = this.sendCount;
+			long sendSize = this.sendSize;
+			long sendRawSize = this.sendRawSize;
 			if (lastSizes[0] != -1) {
-				long sc = selectCount - lastSizes[0];
-				long rs = recvSize - lastSizes[1];
-				long ss = sendSize - lastSizes[2];
-				long srs = sendRawSize - lastSizes[3];
+				long sn = selectCount - lastSizes[0];
+				long rc = recvCount - lastSizes[1];
+				long rs = recvSize - lastSizes[2];
+				long sc = sendCount - lastSizes[3];
+				long ss = sendSize - lastSizes[4];
+				long sr = sendRawSize - lastSizes[5];
 				var operates = new OutLong();
 				var outBufSize = new OutLong();
 				foreach(socket -> {
 					operates.value += socket.getOperateSize();
 					outBufSize.value += socket.getOutputBufferSize();
 				});
-				logger.info("{}.stat: select={}/{}, recv={}, send={}, sendRaw={}, sockets={}, ops={}, outBuf={}",
-						getClass().getName(), sc, selectors.getCount(), rs, ss, srs, getSocketCount(),
+				logger.info("{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
+						getClass().getName(), sn, selectors.getCount(), rs, rc, ss, sc, sr, getSocketCount(),
 						operates.value, outBufSize.value);
 			}
 			lastSizes[0] = selectCount;
-			lastSizes[1] = recvSize;
-			lastSizes[2] = sendSize;
-			lastSizes[3] = sendRawSize;
+			lastSizes[1] = recvCount;
+			lastSizes[2] = recvSize;
+			lastSizes[3] = sendCount;
+			lastSizes[4] = sendSize;
+			lastSizes[5] = sendRawSize;
 		});
 		statisticLogFuture = f;
 		return f;
