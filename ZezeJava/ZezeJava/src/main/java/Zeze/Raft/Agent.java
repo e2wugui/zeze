@@ -369,7 +369,7 @@ public final class Agent {
 		var leaderSocket = leader != null ? leader.TryGetReadySocket() : null;
 		ArrayList<RaftRpc<?, ?>> removed = null;
 		long now = System.currentTimeMillis();
-		long timeout = (long)raftConfig.getAgentTimeout() * 2 + 1000; // 比rpc超时一倍还大一些，足够发送重试一次。
+		long timeout = raftConfig.getAppendEntriesTimeout() + 200; // 比一次raft-rpc超时大一些。
 		for (var rpc : urgentPending) {
 			if (rpc.getTimeout() > 0 && now - rpc.getCreateTime() > rpc.getTimeout()) {
 				rpc = urgentPending.remove(rpc.getUnique().getRequestId());

@@ -61,13 +61,14 @@ public class LogSequence {
 	private final byte[] raftsVoteForKey;
 	private final byte[] raftsFirstIndexKey;
 	private final byte[] raftsNodeReadyKey; // 只会被写一次，所以这个优化可以不做，统一形式吧。
+	private final byte[] lastSnapshotIndexKey;
 
 	public volatile TaskCompletionSource<Boolean> applyFuture; // follower background apply task
 	private final LongConcurrentHashMap<RaftLog> leaderAppendLogs = new LongConcurrentHashMap<>();
 
 	// 是否有安装进程正在进行中，用来阻止新的创建请求。
 	private final ConcurrentHashMap<String, Server.ConnectorEx> installSnapshotting = new ConcurrentHashMap<>();
-	private long prevSnapshotIndex;
+	private long lastSnapshotIndex;
 	private boolean snapshotting = false; // 是否正在创建Snapshot过程中，用来阻止新的创建请求。
 
 	static {
@@ -375,6 +376,12 @@ public class LogSequence {
 		}
 	}
 
+	public static byte[] makeRaftsKey(int key) {
+		var bb = ByteBuffer.Allocate();
+		bb.WriteInt(key);
+		return bb.Copy();
+	}
+
 	public LogSequence(Raft raft) throws RocksDBException {
 		this.raft = raft;
 
@@ -382,23 +389,18 @@ public class LogSequence {
 		rafts = database.openTable("rafts");
 		{
 			// Read Term
-			var termKey = ByteBuffer.Allocate(1);
-			termKey.WriteInt(0);
-			raftsTermKey = termKey.Copy();
+			raftsTermKey = makeRaftsKey(0);
 			var termValue = rafts.get(RocksDatabase.getDefaultReadOptions(), raftsTermKey);
 			term = termValue != null ? ByteBuffer.Wrap(termValue).ReadLong() : 0;
 			// Read VoteFor
-			var voteForKey = ByteBuffer.Allocate(1);
-			voteForKey.WriteInt(1);
-			raftsVoteForKey = voteForKey.Copy();
+			raftsVoteForKey = makeRaftsKey(1);
 			var voteForValue = rafts.get(RocksDatabase.getDefaultReadOptions(), raftsVoteForKey);
 			voteFor = voteForValue != null ? ByteBuffer.Wrap(voteForValue).ReadString() : "";
 			// Read FirstIndex 由于snapshot并发，Logs中的第一条记录可能不是FirstIndex了。
-			var firstIndexKey = ByteBuffer.Allocate(1);
-			firstIndexKey.WriteInt(2);
-			raftsFirstIndexKey = firstIndexKey.Copy();
+			raftsFirstIndexKey = makeRaftsKey(2);
 			var firstIndexValue = rafts.get(RocksDatabase.getDefaultReadOptions(), raftsFirstIndexKey);
-			firstIndex = firstIndexValue != null ? ByteBuffer.Wrap(firstIndexValue).ReadLong() : -1; // never snapshot. will re-initialize later.
+			firstIndex = firstIndexValue != null ? ByteBuffer.Wrap(firstIndexValue).ReadLong() : -1;
+			// -1 no committed snapshot. will re-initialize later.
 			// NodeReady
 			// 节点第一次启动，包括机器毁坏后换了新机器再次启动时为 false。
 			// 当满足以下条件之一：
@@ -406,12 +408,13 @@ public class LogSequence {
 			// 2. 成为Follower并在处理AppendEntries时观察到LeaderCommit发生了变更
 			// 满足条件以后设置 NodeReady 为 true。
 			// 这个条件影响投票逻辑：NodeReady 为 true 以前，只允许给 Candidate.LastIndex == 0 的节点投票。
-			var nodeReadyKey = ByteBuffer.Allocate(1);
-			nodeReadyKey.WriteInt(3);
-			raftsNodeReadyKey = nodeReadyKey.Copy();
+			raftsNodeReadyKey = makeRaftsKey(3);
 			var nodeReadyValue = rafts.get(RocksDatabase.getDefaultReadOptions(), raftsNodeReadyKey);
 			if (nodeReadyValue != null)
 				nodeReady = ByteBuffer.Wrap(nodeReadyValue).ReadBool();
+			lastSnapshotIndexKey = makeRaftsKey(4);
+			var lastSnapshotIndexValue = rafts.get(RocksDatabase.getDefaultReadOptions(), lastSnapshotIndexKey);
+			lastSnapshotIndex = lastSnapshotIndexValue != null ? ByteBuffer.Wrap(lastSnapshotIndexValue).ReadLong() : 0;
 		}
 
 		logs = RocksDatabase.open(RocksDatabase.getCommonOptions(),
@@ -430,8 +433,8 @@ public class LogSequence {
 				logger.info("{}-{} {} LastIndex={} Count={}", raft.getName(), raft.isLeader(),
 						raft.getRaftConfig().getDbHome(), lastIndex, getTestStateMachineCount());
 
-				// 【注意】snapshot 以后 FirstIndex 会推进，不再是从0开始。
-				if (firstIndex == -1) { // never snapshot
+				// 【注意】snapshot 以后 FirstIndex 会推进，不再是从-1开始。
+				if (firstIndex == -1) { // no committed snapshot
 					try (var itFirst = logs.newIterator(RocksDatabase.getDefaultReadOptions())) {
 						itFirst.seekToFirst();
 						if (itFirst.isValid()) {
@@ -669,11 +672,16 @@ public class LogSequence {
 		trySnapshot();
 	}
 
-	private void trySnapshot() {
+	private void trySnapshot() throws RocksDBException {
 		var snapshotLogCount = raft.getRaftConfig().getSnapshotLogCount();
 		if (snapshotLogCount > 0) {
-			if (lastApplied - prevSnapshotIndex > snapshotLogCount) {
-				prevSnapshotIndex = lastApplied;
+			if (lastApplied - lastSnapshotIndex > snapshotLogCount) {
+				lastSnapshotIndex = lastApplied;
+				var bb = ByteBuffer.Allocate();
+				bb.WriteLong(lastSnapshotIndex);
+				rafts.put(writeOptions,
+						lastSnapshotIndexKey, 0, lastSnapshotIndexKey.length,
+						bb.Bytes, bb.ReadIndex, bb.size());
 				Task.run(this::snapshot, "Snapshot", DispatchMode.Normal);
 			}
 		}
