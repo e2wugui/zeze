@@ -125,8 +125,8 @@ public class LogSequence {
 	public void commitSnapshot(String path, long newFirstIndex) throws IOException, RocksDBException {
 		if (raft.getRaftConfig().isSnapshotCommitDelayed()) {
 			// 查找目录下已经存在的延时提交的snapshot。
-			// 实际上只会存在一个延时提交的snapshot，这里的代码写法能处理多个。
-			var files = new File(path).listFiles();
+			// 实际上最多只会存在一个延时提交的snapshot，这里的代码写法能处理多个。
+			var files = new File(path).getParentFile().listFiles();
 			var delayed = new TreeMap<Long, File>();
 			if (null != files) {
 				for (var file : files) {
@@ -149,6 +149,7 @@ public class LogSequence {
 				// 删除最后一个entry，并且提交。
 				var biggestIndex = delayed.lastKey();
 				var biggestFile = delayed.remove(biggestIndex);
+				// 里面会把这个rename成真正的snapshot。
 				_commitSnapshot(biggestFile.toString(), biggestIndex);
 				// 删除多余的延时提交文件。一般不会发生。
 				for (var file : delayed.values())
