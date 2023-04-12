@@ -114,7 +114,7 @@ public final class Agent {
 		rpc.setCreateTime(System.currentTimeMillis());
 		rpc.setSendTime(rpc.getCreateTime());
 		if (rpc.getTimeout() == 0) // set default timeout
-			rpc.setTimeout(raftConfig.getAppendEntriesTimeout());
+			rpc.setTimeout(raftConfig.getAgentTimeout());
 
 		rpc.setUrgent(urgent);
 		var pending = urgent ? urgentPending : this.pending;
@@ -204,7 +204,7 @@ public final class Agent {
 		rpc.setCreateTime(System.currentTimeMillis());
 		rpc.setSendTime(rpc.getCreateTime());
 		if (rpc.getTimeout() == 0) // set default timeout
-			rpc.setTimeout(raftConfig.getAppendEntriesTimeout());
+			rpc.setTimeout(raftConfig.getAgentTimeout());
 
 		var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
 		rpc.setUrgent(urgent);
@@ -369,7 +369,7 @@ public final class Agent {
 		var leaderSocket = leader != null ? leader.TryGetReadySocket() : null;
 		ArrayList<RaftRpc<?, ?>> removed = null;
 		long now = System.currentTimeMillis();
-		long timeout = raftConfig.getAppendEntriesTimeout() + 1000;
+		long timeout = (long)raftConfig.getAgentTimeout() * 2 + 1000; // 比rpc超时一倍还大一些，足够发送重试一次。
 		for (var rpc : urgentPending) {
 			if (rpc.getTimeout() > 0 && now - rpc.getCreateTime() > rpc.getTimeout()) {
 				rpc = urgentPending.remove(rpc.getUnique().getRequestId());

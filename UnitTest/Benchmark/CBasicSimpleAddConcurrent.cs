@@ -20,16 +20,30 @@ namespace Benchmark
                 }
                 var tasks = new List<Task>(AddCount);
                 Console.WriteLine("benchmark start...");
+                for (int i = 0; i < ConcurrentLevel; ++i)
+                {
+                    int c = i;
+                    tasks.Add(demo.App.Instance.Zeze.NewProcedure(() => Add(c), "Add").CallAsync());
+                }
+                foreach (var task in tasks)
+                    task.Wait();
+                tasks.Clear();
                 var b = new Zeze.Util.Benchmark();
-                for (int i = 0; i < AddCount; ++i)
+                for (int i = 0; i < AddCount - ConcurrentLevel; ++i)
                 {
                     int c = i % ConcurrentLevel;
                     tasks.Add(demo.App.Instance.Zeze.NewProcedure(() => Add(c), "Add").CallAsync());
+                    // 修改测试，使用队列，并保持队列不空，不出现停等，看实际效果。
+                    if (c == ConcurrentLevel - 1)
+                    {
+                        foreach (var task in tasks)
+                            task.Wait();
+                        tasks.Clear();
+                    }
                 }
-                b.Report(this.GetType().FullName, AddCount);
-                foreach (var task in tasks) {
+                foreach (var task in tasks)
                     task.Wait();
-                }
+                tasks.Clear();
                 b.Report(this.GetType().FullName, AddCount);
                 demo.App.Instance.Zeze.NewProcedure(Check, "check").CallSynchronously();
                 for (long i = 0; i < ConcurrentLevel; ++i) {

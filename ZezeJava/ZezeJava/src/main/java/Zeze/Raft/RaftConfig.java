@@ -67,6 +67,10 @@ public final class RaftConfig {
 		return appendEntriesTimeout;
 	}
 
+	public int getAgentTimeout() {
+		return appendEntriesTimeout + 2000;
+	}
+
 	public void setAppendEntriesTimeout(int value) {
 		appendEntriesTimeout = value;
 	}

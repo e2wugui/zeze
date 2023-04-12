@@ -56,6 +56,8 @@ public class BenchClient {
 				case "-tableAccess":
 					tableAccess = Integer.parseInt(args[++i]);
 					break;
+				default:
+					throw new RuntimeException("unknown option " + args[i]);
 				}
 			}
 
