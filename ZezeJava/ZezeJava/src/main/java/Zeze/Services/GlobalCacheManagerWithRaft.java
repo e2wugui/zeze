@@ -113,7 +113,7 @@ public class GlobalCacheManagerWithRaft
 
 		if (ENABLE_PERF)
 			perf = new GlobalCacheManagerPerf(raftName, serialId); // Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
-		PerfCounter.instance.startScheduledLog();
+		PerfCounter.instance.tryStartScheduledLog();
 
 		rocks.getRaft().getServer().start();
 

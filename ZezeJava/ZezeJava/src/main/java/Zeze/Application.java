@@ -91,7 +91,7 @@ public final class Application {
 		// Start Thread Pool
 		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化
 
-		PerfCounter.instance.startScheduledLog();
+		PerfCounter.instance.tryStartScheduledLog();
 
 		switch (conf.getServiceManager()) {
 		case "raft":

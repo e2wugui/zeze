@@ -123,9 +123,19 @@ public class Selectors {
 
 	public @NotNull Selectors add(int count) {
 		try {
-			Selector[] tmp = selectorList;
-			tmp = tmp == null ? new Selector[count = Math.max(count, 1)] : Arrays.copyOf(tmp, Math.max(tmp.length + count, 1));
-			for (int i = tmp.length - count; i < tmp.length; i++) {
+			int i, n;
+			var tmp = selectorList;
+			if (tmp == null) {
+				i = 0;
+				n = Math.max(count, 1);
+				tmp = new Selector[n];
+			} else {
+				i = tmp.length;
+				n = Math.max(Math.addExact(i, count), 1);
+				if (i != n)
+					tmp = Arrays.copyOf(tmp, n);
+			}
+			for (; i < n; i++) {
 				tmp[i] = new Selector(this, name + '-' + i);
 				tmp[i].start();
 			}

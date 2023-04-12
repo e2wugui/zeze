@@ -4,7 +4,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Net.FamilyClass;
@@ -58,7 +58,7 @@ public final class PerfCounter {
 	private final DecimalFormat numFormatter = new DecimalFormat("#,###");
 	private @NotNull String lastLog = "";
 	private long lastLogTime = System.currentTimeMillis();
-	private @Nullable Future<?> scheduleFuture;
+	private @Nullable ScheduledFuture<?> scheduleFuture;
 
 	// 只能在启动统计前调用
 	public synchronized boolean addExcludeRunKey(@NotNull String key) {
@@ -175,16 +175,23 @@ public final class PerfCounter {
 		return lastLogTime;
 	}
 
-	public @Nullable Future<?> getScheduleFuture() {
+	public @Nullable ScheduledFuture<?> getScheduleFuture() {
 		return scheduleFuture;
 	}
 
-	public synchronized @Nullable Future<?> startScheduledLog() {
-		if (ENABLE_PERF && scheduleFuture == null) {
+	public synchronized @Nullable ScheduledFuture<?> tryStartScheduledLog() {
+		var f = scheduleFuture;
+		if (ENABLE_PERF && (f == null || f.isCancelled())) {
 			long periodMs = PERF_PERIOD * 1000L;
-			scheduleFuture = Task.scheduleUnsafe(periodMs, periodMs, () -> logger.info(getLogAndReset()));
+			scheduleFuture = f = Task.scheduleUnsafe(periodMs, periodMs, () -> logger.info(getLogAndReset()));
 		}
-		return scheduleFuture;
+		return f;
+	}
+
+	public synchronized boolean cancelScheduledLog() {
+		var f = scheduleFuture;
+		scheduleFuture = null;
+		return f != null && f.cancel(false);
 	}
 
 	public void resetCounter() {

@@ -59,7 +59,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf, Config config,
 								  boolean RocksDbWriteOptionSync) throws Exception {
-		PerfCounter.instance.startScheduledLog();
+		PerfCounter.instance.tryStartScheduledLog();
 
 		if (null == config)
 			config = Config.load();

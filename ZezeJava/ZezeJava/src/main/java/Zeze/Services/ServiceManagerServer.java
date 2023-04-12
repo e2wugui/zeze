@@ -719,7 +719,7 @@ public final class ServiceManagerServer implements Closeable {
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port, @NotNull Config config, int startNotifyDelay)
 			throws Exception {
-		PerfCounter.instance.startScheduledLog();
+		PerfCounter.instance.tryStartScheduledLog();
 
 		this.config = config.getCustomize(new Conf());
 

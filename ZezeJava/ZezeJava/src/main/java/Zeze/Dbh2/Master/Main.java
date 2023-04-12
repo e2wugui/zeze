@@ -1,6 +1,7 @@
 package Zeze.Dbh2.Master;
 
 import Zeze.Config;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -24,7 +25,7 @@ public class Main {
 	public Main(String configXml) throws RocksDBException {
 		var config = Config.load(configXml);
 		service = new MasterService(this, config);
-		master = new Master(this,"master");
+		master = new Master(this, "master");
 	}
 
 	public void start() throws Exception {
@@ -44,6 +45,22 @@ public class Main {
 	public static void main(String[] args) {
 		try {
 			Task.tryInitThreadPool(null, null, null);
+
+			var selector = 1;
+
+			for (int i = 0; i < args.length; ++i) {
+				//noinspection SwitchStatementWithTooFewBranches
+				switch (args[i]) {
+				case "-selector":
+					selector = Integer.parseInt(args[++i]);
+					break;
+				default:
+					throw new RuntimeException("unknown option: " + args[i]);
+				}
+			}
+
+			Zeze.Net.Selectors.getInstance().add(selector - 1);
+			PerfCounter.instance.tryStartScheduledLog();
 
 			var main = new Main(args[0]);
 			main.start();

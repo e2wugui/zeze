@@ -210,8 +210,22 @@ public class Dbh2Manager {
 	public static void main(String[] args) {
 		try {
 			Task.tryInitThreadPool(null, null, null);
-			// Zeze.Net.Selectors.getInstance().add(Runtime.getRuntime().availableProcessors() - 1);
-			PerfCounter.instance.startScheduledLog();
+
+			var selector = 1;
+
+			for (int i = 0; i < args.length; ++i) {
+				//noinspection SwitchStatementWithTooFewBranches
+				switch (args[i]) {
+				case "-selector":
+					selector = Integer.parseInt(args[++i]);
+					break;
+				default:
+					throw new RuntimeException("unknown option: " + args[i]);
+				}
+			}
+
+			Zeze.Net.Selectors.getInstance().add(selector - 1);
+			PerfCounter.instance.tryStartScheduledLog();
 
 			var manager = new Dbh2Manager(args[0], args[1]);
 			manager.start();

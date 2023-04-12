@@ -9,6 +9,7 @@ import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,7 +20,7 @@ public class BenchClient {
 	private static Database newDatabase(String masterIp, int masterPort) {
 		var databaseConf = new Config.DatabaseConf();
 		databaseConf.setDatabaseType(Config.DbType.Dbh2);
-		databaseConf.setDatabaseUrl("dbh2://" + masterIp + ":" + masterPort + "/" + "dbh2TestDb");
+		databaseConf.setDatabaseUrl("dbh2://" + masterIp + ":" + masterPort + "/dbh2TestDb");
 		databaseConf.setName("dbh2");
 		return new Database(null, databaseConf);
 	}
@@ -27,7 +28,6 @@ public class BenchClient {
 	public static void main(String[] args) {
 		try {
 			Task.tryInitThreadPool(null, null, null);
-			Zeze.Net.Selectors.getInstance().add(Runtime.getRuntime().availableProcessors() - 1);
 
 			var tableNumber = 4;
 			var threadNumber = 4;
@@ -35,6 +35,7 @@ public class BenchClient {
 			var masterIp = "127.0.0.1";
 			var masterPort = 30000;
 			var tableAccess = 2;
+			var selector = Runtime.getRuntime().availableProcessors();
 
 			for (int i = 0; i < args.length; ++i) {
 				switch (args[i]) {
@@ -56,10 +57,16 @@ public class BenchClient {
 				case "-tableAccess":
 					tableAccess = Integer.parseInt(args[++i]);
 					break;
+				case "-selector":
+					selector = Integer.parseInt(args[++i]);
+					break;
 				default:
-					throw new RuntimeException("unknown option " + args[i]);
+					throw new RuntimeException("unknown option: " + args[i]);
 				}
 			}
+
+			Zeze.Net.Selectors.getInstance().add(selector - 1);
+			PerfCounter.instance.tryStartScheduledLog();
 
 			var tableAccessFinal = tableAccess;
 			var database = newDatabase(masterIp, masterPort);

@@ -124,7 +124,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 		if (ENABLE_PERF)
 			perf = new GlobalCacheManagerPerf("", serialIdGenerator);
-		PerfCounter.instance.startScheduledLog();
+		PerfCounter.instance.tryStartScheduledLog();
 
 		if (config == null)
 			config = new Config().addCustomize(this.config).loadAndParse();
