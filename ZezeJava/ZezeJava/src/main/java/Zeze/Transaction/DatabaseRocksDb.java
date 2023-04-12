@@ -61,8 +61,8 @@ public class DatabaseRocksDb extends Database {
 			} catch (RocksDBException ignored) {
 			}
 		}
-		rocksDb.close();
 		super.close();
+		rocksDb.close();
 	}
 
 	@Override
