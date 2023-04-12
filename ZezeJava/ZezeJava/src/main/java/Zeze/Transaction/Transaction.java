@@ -321,6 +321,7 @@ public final class Transaction {
 							redoBeans.clear();
 							redoActions.clear();
 							doneActions.clear();
+							logActions.clear(); // retry 中间的日志不记录。
 
 							state = TransactionState.Running; // prepare to retry
 						}
