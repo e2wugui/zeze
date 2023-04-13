@@ -1,6 +1,8 @@
 package Zeze.Transaction;
 
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
@@ -25,16 +27,52 @@ public final class ProcedureStatistics {
 	private ProcedureStatistics() {
 	}
 
+	private Future<?> timer;
+
+	public synchronized void start() {
+		if (null != timer)
+			return;
+		timer = Task.scheduleUnsafe(60000, 60000, this::report);
+	}
+
+	private void report() {
+		var sorted = new TreeMap<Long, Statistics>();
+		for (var e : getProcedures().values()) {
+			sorted.put(e.getResults().get(0L).sum(), e);
+		}
+		var sb = new StringBuilder();
+		sb.append("ProcedureStatistics:\n");
+		var it = sorted.descendingMap().entrySet().iterator();
+		for (int i = 0; i < 20 && it.hasNext(); ++i) {
+			var stat = it.next().getValue();
+			sb.append("\t").append(stat.getProcedureName());
+			stat.buildString(",", sb, "");
+		}
+		logger.info(sb.toString());
+	}
+
+	public synchronized void stop() {
+		if (null != timer) {
+			timer.cancel(true);
+			timer = null;
+		}
+	}
+
 	public ConcurrentHashMap<String, Statistics> getProcedures() {
 		return procedures;
 	}
 
 	public Statistics getOrAdd(String procedureName) {
-		return procedures.computeIfAbsent(procedureName, __ -> new Statistics());
+		return procedures.computeIfAbsent(procedureName, Statistics::new);
 	}
 
 	public static final class Statistics {
 		private final LongConcurrentHashMap<LongAdder> Results = new LongConcurrentHashMap<>();
+		private final String procedureName;
+
+		public Statistics(String name) {
+			procedureName = name;
+		}
 
 		public LongConcurrentHashMap<LongAdder> getResults() {
 			return Results;
@@ -42,6 +80,10 @@ public final class ProcedureStatistics {
 
 		public LongAdder getOrAdd(long result) {
 			return Results.computeIfAbsent(result, __ -> new LongAdder());
+		}
+
+		public String getProcedureName() {
+			return procedureName;
 		}
 
 		public void buildString(String prefix, StringBuilder sb, String end) {

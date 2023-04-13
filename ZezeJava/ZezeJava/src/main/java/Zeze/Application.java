@@ -28,9 +28,11 @@ import Zeze.Transaction.GlobalAgent;
 import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Locks;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.ResetDB;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
+import Zeze.Transaction.TableStatistics;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
@@ -468,6 +470,8 @@ public final class Application {
 				timer.loadCustomClassAnd();
 		} else
 			startState = 2;
+		ProcedureStatistics.getInstance().start();
+		TableStatistics.getInstance().start();
 	}
 
 	public synchronized void stop() throws Exception {
@@ -475,6 +479,8 @@ public final class Application {
 			return;
 		startState = 1;
 		ShutdownHook.remove(this);
+		TableStatistics.getInstance().stop();
+		ProcedureStatistics.getInstance().stop();
 		logger.info("Stop ServerId={}", conf.getServerId());
 
 		if (delayRemove != null) {

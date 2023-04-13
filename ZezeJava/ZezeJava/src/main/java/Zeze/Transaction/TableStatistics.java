@@ -1,9 +1,15 @@
 package Zeze.Transaction;
 
+import java.util.TreeMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class TableStatistics {
+	private static final Logger logger = LogManager.getLogger(TableStatistics.class);
 	// 为了使用的地方可以方便访问，定义成全局的。
 	// 这里的tableId也是全局分配的，即时起多个Zeze.Application，也是没问题的。see Table.cs
 	private static final TableStatistics instance = new TableStatistics();
@@ -22,10 +28,41 @@ public final class TableStatistics {
 	}
 
 	public Statistics getOrAdd(int id) {
-		return getTables().computeIfAbsent(id, __ -> new Statistics());
+		return getTables().computeIfAbsent(id, Statistics::new);
+	}
+
+	private Future<?> timer;
+
+	public synchronized void start() {
+		if (null != timer)
+			return;
+		timer = Task.scheduleUnsafe(60000, 60000, this::report);
+	}
+
+	private void report() {
+		var sorted = new TreeMap<Long, Statistics>();
+		tables.forEach((e) -> sorted.put(e.getTableFindCount(), e));
+
+		var sb = new StringBuilder();
+		sb.append("TableStatistics:\n");
+		var it = sorted.descendingMap().entrySet().iterator();
+		for (int i = 0; i < 20 && it.hasNext(); ++i) {
+			var stat = it.next().getValue();
+			sb.append("\t").append(stat.getTableName());
+			stat.buildString(",", sb, "");
+		}
+		logger.info(sb.toString());
+	}
+
+	public synchronized void stop() {
+		if (null != timer) {
+			timer.cancel(true);
+			timer = null;
+		}
 	}
 
 	public static final class Statistics {
+		private final long tableId; // 实际上是int，只是TableKey.tables存储成long了。
 		private final LongAdder readLockTimes = new LongAdder();
 		private final LongAdder writeLockTimes = new LongAdder();
 		private final LongAdder storageFindCount = new LongAdder();
@@ -87,6 +124,18 @@ public final class TableStatistics {
 		public double getGlobalAcquireModifyHit() {
 			double total = getTableFindCount();
 			return (total - getGlobalAcquireModify().sum()) / total;
+		}
+
+		public Statistics(long tableId) {
+			this.tableId = tableId;
+		}
+
+		public int getTableId() {
+			return (int)tableId;
+		}
+
+		public String getTableName() {
+			return TableKey.tables.get(tableId);
 		}
 
 		public void buildString(String prefix, StringBuilder sb, String end) {
