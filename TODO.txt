@@ -22,11 +22,22 @@ Dbh2 创建表选择负载低的服务器的策略。
 Dbh2 根据负载或什么策略并发拆分桶。
 Dbh2 Commit中断【结论：开始Commit前，持久化记录保存点，重启以后继续Commit】【！！！还没实现！！！】
 Dbh2 桶在agent.prepare中断后的悬挂事务需要主动探测agent的查询接口并undo掉。
-	基于文件多进程访问？【如下】或者使用rocksdb????
-	Agent 写commit关键点。file.append(); file.sync()????
-	CommitStateQueryServer file.read(); 如果file的一个记录存在部分写入，这里能检测出来暂时忽略。
-	？？？file.index怎么建立。需要快速查询。
-	transaction-key=(sort(raft-node-names).join(), tid); 有点长，但是探测是少数，就不优化了。
+实现两个版本：
+1. 嵌入Agent所在进程，基于RocksDB，也由这个进程提供查询服务。
+    prepare with local ip, port;
+    rocksdb.put();
+    commit;
+2. 独立服务器CommitServer，基于RocksDB，提交过程也有这个服务器完成。
+    Agent:
+    var commitServer = choice();
+    prepare with commitServer ip, port);
+    commitServer.commit();
+    CommitServer:
+    rocksdb.put();
+    commit;
+* 上面两个方案，每个事务带上ip，port是可行的。有一点浪费。但比较简单，也灵活。
+* CommitServer独立以后可以加上raft。
+3. 基于文件共享的多进程，同步互斥，索引等问题，比较复杂，废弃。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/4/14 v1.2.2 Timer; Dbh2 Go; BUG c# AsyncSocket BeginSendAsync; RocksDatabase; Raft; Online; TimerFuture;
