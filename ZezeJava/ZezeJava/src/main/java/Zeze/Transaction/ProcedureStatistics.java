@@ -38,7 +38,8 @@ public final class ProcedureStatistics {
 	private void report() {
 		var sorted = new TreeMap<Long, Statistics>();
 		for (var e : getProcedures().values()) {
-			sorted.put(e.getResults().get(0L).sum(), e);
+			var statResult = e.getResults().get(0L);
+			sorted.put(null == statResult ? 0L : statResult.sum(), e);
 		}
 		var sb = new StringBuilder();
 		sb.append("ProcedureStatistics:\n");
@@ -47,6 +48,7 @@ public final class ProcedureStatistics {
 			var stat = it.next().getValue();
 			sb.append("\t").append(stat.getProcedureName());
 			stat.buildString(",", sb, "");
+			sb.append("\n");
 		}
 		logger.info(sb.toString());
 	}

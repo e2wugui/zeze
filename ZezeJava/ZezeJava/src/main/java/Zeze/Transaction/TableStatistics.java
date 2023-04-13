@@ -50,6 +50,7 @@ public final class TableStatistics {
 			var stat = it.next().getValue();
 			sb.append("\t").append(stat.getTableName());
 			stat.buildString(",", sb, "");
+			sb.append("\n");
 		}
 		logger.info(sb.toString());
 	}
