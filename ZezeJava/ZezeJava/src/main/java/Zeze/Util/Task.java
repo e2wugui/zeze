@@ -290,7 +290,6 @@ public final class Task {
 			scheduleUnsafe(initialDelay, period, action);
 	}
 
-
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
 		var lock = new ReentrantLock();
 		var canceled = new AtomicBoolean();

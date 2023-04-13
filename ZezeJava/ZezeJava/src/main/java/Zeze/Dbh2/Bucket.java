@@ -1,22 +1,14 @@
 package Zeze.Dbh2;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
-import com.alibaba.druid.sql.visitor.functions.Bin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.rocksdb.ColumnFamilyDescriptor;
-import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 /**
@@ -29,7 +21,7 @@ public class Bucket {
 	private final RocksDatabase.Table tData;
 	private final RocksDatabase.Table tMeta;
 
-	private final HashMap<String, ColumnFamilyHandle> cfHandles = new HashMap<>();
+	// private final HashMap<String, ColumnFamilyHandle> cfHandles = new HashMap<>();
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
 	private volatile BBucketMeta.Data meta;
 	private long tid;
@@ -43,7 +35,6 @@ public class Bucket {
 	public void setWriteOptions(WriteOptions options) {
 		writeOptions = options;
 	}
-
 
 	public RocksDatabase getDb() {
 		return db;

@@ -3,7 +3,6 @@ package Zeze.Dbh2;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -12,15 +11,7 @@ import Zeze.Raft.Raft;
 import Zeze.Util.RocksDatabase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.rocksdb.BackupEngine;
-import org.rocksdb.BackupEngineOptions;
 import org.rocksdb.Checkpoint;
-import org.rocksdb.ColumnFamilyDescriptor;
-import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.Env;
-import org.rocksdb.OptimisticTransactionDB;
-import org.rocksdb.RestoreOptions;
-import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
@@ -90,7 +81,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void commitBatch(long tid) {
-		try (var txn = transactions.remove(tid)) {
+		//noinspection EmptyTryBlock
+		try (var ignored = transactions.remove(tid)) {
 			// do nothing
 		}
 	}

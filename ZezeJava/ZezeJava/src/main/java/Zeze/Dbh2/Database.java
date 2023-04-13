@@ -4,21 +4,18 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import Zeze.Application;
-import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
-import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftRpc;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
-import Zeze.Util.Func2;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 适配zeze-Database
@@ -28,7 +25,7 @@ public class Database extends Zeze.Transaction.Database {
 	private final String databaseName;
 	private final MasterAgent masterAgent;
 
-	public Database(Application zeze, Config.DatabaseConf conf) {
+	public Database(@NotNull Application zeze, Config.DatabaseConf conf) {
 		super(zeze, conf);
 		// dbh2://ip:port/databaseName?user=xxx&passwd=xxx
 		try {

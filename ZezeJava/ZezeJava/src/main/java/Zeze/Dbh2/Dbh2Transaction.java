@@ -2,12 +2,7 @@ package Zeze.Dbh2;
 
 import java.io.Closeable;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBatch;
-import Zeze.Net.Binary;
-import Zeze.Util.RocksDatabase;
-import com.alibaba.druid.sql.visitor.functions.Bin;
-import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 public class Dbh2Transaction implements Closeable {
@@ -16,6 +11,7 @@ public class Dbh2Transaction implements Closeable {
 
 	/**
 	 * 锁住输入batch中的所有记录。
+	 *
 	 * @param batch batch parameter
 	 */
 	public Dbh2Transaction(BBatch.Data batch) {
@@ -34,9 +30,9 @@ public class Dbh2Transaction implements Closeable {
 
 	/**
 	 * 把batch数据写入db，并且构造出undo logs。
+	 *
 	 * @param bucket bucket
-	 * @param batch batch
-	 * @throws RocksDBException
+	 * @param batch  batch
 	 */
 	public void prepareBatch(Bucket bucket, BBatch.Data batch) throws RocksDBException {
 		try (var b = bucket.getDb().newBatch()) {

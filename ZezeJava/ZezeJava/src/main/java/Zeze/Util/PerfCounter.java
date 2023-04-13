@@ -182,7 +182,7 @@ public final class PerfCounter {
 	public synchronized @Nullable ScheduledFuture<?> tryStartScheduledLog() {
 		var f = scheduleFuture;
 		if (ENABLE_PERF && (f == null || f.isCancelled())) {
-			long periodMs = PERF_PERIOD * 1000L;
+			long periodMs = Math.max(PERF_PERIOD, 1) * 1000L;
 			scheduleFuture = f = Task.scheduleUnsafe(periodMs, periodMs, () -> logger.info(getLogAndReset()));
 		}
 		return f;

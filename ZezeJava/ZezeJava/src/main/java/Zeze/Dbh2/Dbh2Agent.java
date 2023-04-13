@@ -9,7 +9,6 @@ import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Builtin.Dbh2.UndoBatch;
-import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
@@ -19,11 +18,9 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class Dbh2Agent extends AbstractDbh2Agent {
-	private static final Logger logger = LogManager.getLogger(Dbh2Agent.class);
+	// private static final Logger logger = LogManager.getLogger(Dbh2Agent.class);
 	private final Agent raftClient;
 	private final TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 	private volatile long lastErrorTime;
@@ -54,9 +51,9 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		var bb = r.Result.isNull()
 				? null
 				: ByteBuffer.Wrap(
-						r.Result.getValue().bytesUnsafe(),
-						r.Result.getValue().getOffset(),
-						r.Result.getValue().size());
+				r.Result.getValue().bytesUnsafe(),
+				r.Result.getValue().getOffset(),
+				r.Result.getValue().size());
 		return KV.create(true, bb);
 	}
 

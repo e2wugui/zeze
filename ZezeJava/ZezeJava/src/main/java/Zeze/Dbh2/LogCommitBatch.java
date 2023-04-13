@@ -1,9 +1,6 @@
 package Zeze.Dbh2;
 
-import Zeze.Builtin.Dbh2.BBatch;
-import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.CommitBatch;
-import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
