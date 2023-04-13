@@ -355,7 +355,7 @@ public final class Task {
 		}
 	}
 
-	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
+	public static @NotNull TimerFuture2 scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
 		var lock = new ReentrantLock();
 		var canceled = new AtomicBoolean();
 		return new TimerFuture2(lock, canceled, threadPoolScheduled.scheduleWithFixedDelay(() -> {
