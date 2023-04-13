@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -9,6 +10,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.IModule;
 import Zeze.Net.Protocol;
@@ -288,19 +292,91 @@ public final class Task {
 			scheduleUnsafe(initialDelay, period, action);
 	}
 
-	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
-		return threadPoolScheduled.scheduleWithFixedDelay(() -> {
-			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+	@SuppressWarnings("rawtypes")
+	public static class TimerFuture2 implements ScheduledFuture {
+		private final ReentrantLock lock;
+		private final AtomicBoolean canceled;
+		private final ScheduledFuture<?> future;
+
+		public TimerFuture2(ReentrantLock lock, AtomicBoolean canceled, ScheduledFuture<?> future) {
+			this.lock = lock;
+			this.canceled = canceled;
+			this.future = future;
+		}
+
+		public void cancelJoin() {
+			cancelJoin(true);
+		}
+
+		public void cancelJoin(boolean mayInterruptIfRunning) {
+			lock.lock();
 			try {
-				action.run();
-			} catch (Exception e) {
-				logger.error("schedule", e);
+				cancel(mayInterruptIfRunning);
 			} finally {
-				//noinspection ConstantValue
-				if (PerfCounter.ENABLE_PERF && action != null)
-					PerfCounter.instance.addRunInfo(action.getClass(), System.nanoTime() - timeBegin);
+				lock.unlock();
 			}
-		}, initialDelay, period, TimeUnit.MILLISECONDS);
+		}
+
+		@Override
+		public long getDelay(@NotNull TimeUnit unit) {
+			return future.getDelay(unit);
+		}
+
+		@Override
+		public int compareTo(@NotNull Delayed o) {
+			return future.compareTo(o);
+		}
+
+		@Override
+		public boolean cancel(boolean mayInterruptIfRunning) {
+			canceled.set(true);
+			return future.cancel(mayInterruptIfRunning);
+		}
+
+		@Override
+		public boolean isCancelled() {
+			return future.isCancelled();
+		}
+
+		@Override
+		public boolean isDone() {
+			return future.isDone();
+		}
+
+		@Override
+		public Object get() throws InterruptedException, ExecutionException {
+			return future.get();
+		}
+
+		@Override
+		public Object get(long timeout, @NotNull TimeUnit unit)
+				throws InterruptedException, ExecutionException, TimeoutException {
+			return future.get(timeout, unit);
+		}
+	}
+
+	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
+		var lock = new ReentrantLock();
+		var canceled = new AtomicBoolean();
+		return new TimerFuture2(lock, canceled, threadPoolScheduled.scheduleWithFixedDelay(() -> {
+			lock.lock();
+			try {
+				if (canceled.get())
+					return;
+				var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+				try {
+					action.run();
+				} catch (Exception e) {
+					logger.error("schedule", e);
+				} finally {
+					//noinspection ConstantValue
+					if (PerfCounter.ENABLE_PERF && action != null)
+						PerfCounter.instance.addRunInfo(action.getClass(), System.nanoTime() - timeBegin);
+				}
+			} finally {
+				lock.unlock();
+			}
+		}, initialDelay, period, TimeUnit.MILLISECONDS));
 	}
 
 	public static @NotNull TimerFuture scheduleUnsafeEx(long initialDelay, long period, @NotNull ActionTimer action) {
