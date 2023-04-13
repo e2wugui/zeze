@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import java.security.Provider;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,6 +51,7 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
 import Zeze.Util.OutLong;
+import Zeze.Util.OutObject;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
@@ -1063,25 +1065,20 @@ public class Online extends AbstractOnline {
 			redirectRemoveLocal(serverId, roleId);
 	}
 
+	@TransactionLevelAnnotation(Level=TransactionLevel.None)
 	@Override
 	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) throws Exception {
+		var done = new OutObject<>(false);
+		while (!done.value)
+			Task.run(providerApp.zeze.newProcedure(()-> ProcessLoginRequest(rpc, done), "ProcessLoginRequest"));
+		return 0;
+	}
+
+	private long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc, OutObject<Boolean> done) throws Exception {
+		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
+
 		var session = ProviderUserSession.get(rpc);
-
-		Transaction.whileCommit(() -> {
-			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
-		});
-
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
-		var link = online.getLink();
-
-		if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
-			providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
-					BKick.ErrorDuplicateLogin, "duplicate role login");
-		}
-
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
 
@@ -1090,10 +1087,23 @@ public class Online extends AbstractOnline {
 			var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.LOGIN);
 			if (0 != ret)
 				return ret;
-			// trigger remove; new record
-			online = _tonline.getOrAdd(rpc.Argument.getRoleId());
-			local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
-			link = online.getLink();
+			// 发生了补Logout事件，重做Login。
+			done.value = false;
+			return 0; // Logout事件补了以后这个局部事务是成功完成的。
+		}
+
+		// 开始登录流程，先准备 link-state。
+		Transaction.whileCommit(() -> {
+			var setUserState = new SetUserState();
+			setUserState.Argument.setLinkSid(session.getLinkSid());
+			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
+		});
+
+		var link = online.getLink();
+		if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
+			providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
+					BKick.ErrorDuplicateLogin, "duplicate role login");
 		}
 
 		var loginVersion = version.getLoginVersion() + 1;
@@ -1116,25 +1126,20 @@ public class Online extends AbstractOnline {
 		return loginTrigger(session.getAccount(), rpc.Argument.getRoleId());
 	}
 
+	@TransactionLevelAnnotation(Level=TransactionLevel.None)
 	@Override
 	protected long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc) throws Exception {
+		var done = new OutObject<>(false);
+		while (!done.value)
+			Task.run(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest"));
+		return 0;
+	}
+
+	private long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc, OutObject<Boolean> done) throws Exception {
+		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
+
 		var session = ProviderUserSession.get(rpc);
-
-		Transaction.whileCommit(() -> {
-			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
-		});
-
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
-		var link = online.getLink();
-
-		if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
-			providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
-					BKick.ErrorDuplicateLogin, "duplicate role login");
-		}
-
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
 
@@ -1143,9 +1148,23 @@ public class Online extends AbstractOnline {
 			var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.RE_LOGIN);
 			if (0 != ret)
 				return ret;
-			// trigger remove; new record
-			online = _tonline.getOrAdd(rpc.Argument.getRoleId());
-			local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
+			// 发生了补Logout事件，重做ReLogin。
+			done.value = false;
+			return 0; // Logout事件补了以后这个局部事务是成功完成的。
+		}
+
+		// 开始登录流程，先准备 link-state。
+		Transaction.whileCommit(() -> {
+			var setUserState = new SetUserState();
+			setUserState.Argument.setLinkSid(session.getLinkSid());
+			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
+		});
+
+		var link = online.getLink();
+		if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
+			providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
+					BKick.ErrorDuplicateLogin, "duplicate role login");
 		}
 
 		var loginVersion = version.getLoginVersion() + 1;

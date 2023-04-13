@@ -27,9 +27,12 @@ Dbh2 桶在agent.prepare中断后的悬挂事务需要主动探测agent的查询
 	CommitStateQueryServer file.read(); 如果file的一个记录存在部分写入，这里能检测出来暂时忽略。
 	？？？file.index怎么建立。需要快速查询。
 	transaction-key=(sort(raft-node-names).join(), tid); 有点长，但是探测是少数，就不优化了。
+
 ------------------------------------------------------------------------------------------------------------------------------
-2023/4/14 v1.2.2 Timer; Dbh2 Go; BUG c# AsyncSocket BeginSendAsync; RocksDatabase; Raft; 
+2023/4/14 v1.2.2 Timer; Dbh2 Go; BUG c# AsyncSocket BeginSendAsync; RocksDatabase; Raft; Online; TimerFuture;
 ------------------------------------------------------------------------------------------------------------------------------
+Game.Online/Arch.Online Login/ReLogin 流程调整：当出现补Logout时，先完成当前事务，触发重做。
+TimerFuture 安全的取消Timer（如果正在运行会等待执行完成）@张路 版本。
 Dbh2 Raft-Snapshot 回退避开正在进行中的事务。
 	【糟糕，这个不好实现啊，因为raft-log都是apply进到stateMachine的，回退raft-log可以实现，但是stateMachine怎么办？】
 	【想到一个办法，就是stateMachine.checkpoint,backup操作先完成，但是这个snapshot不提交（有这个操作），知道raft-log继续往前走了“回退数量”了以后才提交。】

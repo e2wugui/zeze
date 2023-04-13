@@ -1085,21 +1085,23 @@ public class Online extends AbstractOnline {
 			redirectRemoveLocal(serverId, account);
 	}
 
+	@TransactionLevelAnnotation(Level=TransactionLevel.None)
 	@Override
 	protected long ProcessLoginRequest(Zeze.Builtin.Online.Login rpc) throws Exception {
-		var session = ProviderUserSession.get(rpc);
+		var done = new OutObject<>(false);
+		while (!done.value)
+			Task.run(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest"));
+		return 0;
+	}
 
-		Transaction.whileCommit(() -> {
-			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.setContext(rpc.Argument.getClientId());
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
-		});
+	private long ProcessLoginRequest(Zeze.Builtin.Online.Login rpc, OutObject<Boolean> done) throws Exception {
+		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
+
+		var session = ProviderUserSession.get(rpc);
 
 		var online = _tonline.getOrAdd(session.getAccount());
 		var local = _tlocal.getOrAdd(session.getAccount());
 		var version = _tversion.getOrAdd(session.getAccount());
-
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
 		var loginVersion = version.getLogins().getOrAdd(rpc.Argument.getClientId());
 
@@ -1109,10 +1111,19 @@ public class Online extends AbstractOnline {
 			var ret = logoutTrigger(session.getAccount(), rpc.Argument.getClientId());
 			if (0 != ret)
 				return ret;
-			online = _tonline.getOrAdd(session.getAccount());
-			local = _tlocal.getOrAdd(session.getAccount());
-			loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
+			// 发生了补Logout事件，重做Login。
+			done.value = false;
+			return 0; // Logout事件补了以后这个局部事务是成功完成的。
 		}
+
+		// 开始登录流程，先准备 link-state。
+		Transaction.whileCommit(() -> {
+			var setUserState = new SetUserState();
+			setUserState.Argument.setLinkSid(session.getLinkSid());
+			setUserState.Argument.setContext(rpc.Argument.getClientId());
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
+		});
+
 		var loginVersionSerialId = version.getLastLoginVersion() + 1;
 		version.setLastLoginVersion(loginVersionSerialId);
 		loginVersion.setLoginVersion(loginVersionSerialId);
@@ -1148,21 +1159,23 @@ public class Online extends AbstractOnline {
 		return loginTrigger(session.getAccount(), rpc.Argument.getClientId());
 	}
 
+	@TransactionLevelAnnotation(Level=TransactionLevel.None)
 	@Override
 	protected long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc) throws Exception {
-		var session = ProviderUserSession.get(rpc);
+		var done = new OutObject<>(false);
+		while (!done.value)
+			Task.run(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest"));
+		return 0;
+	}
 
-		Transaction.whileCommit(() -> {
-			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.setContext(rpc.Argument.getClientId());
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
-		});
+	private long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc, OutObject<Boolean> done) throws Exception {
+		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
+
+		var session = ProviderUserSession.get(rpc);
 
 		var online = _tonline.getOrAdd(session.getAccount());
 		var local = _tlocal.getOrAdd(session.getAccount());
 		var version = _tversion.getOrAdd(session.getAccount());
-
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
 		var loginVersion = version.getLogins().getOrAdd(rpc.Argument.getClientId());
 
@@ -1171,10 +1184,19 @@ public class Online extends AbstractOnline {
 			var ret = logoutTrigger(session.getAccount(), rpc.Argument.getClientId());
 			if (0 != ret)
 				return ret;
-			online = _tonline.getOrAdd(session.getAccount());
-			local = _tlocal.getOrAdd(session.getAccount());
-			loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
+			// 发生了补Logout事件，重做ReLogin。
+			done.value = false;
+			return 0; // Logout事件补了以后这个局部事务是成功完成的。
 		}
+
+		// 开始登录流程，先准备 link-state。
+		Transaction.whileCommit(() -> {
+			var setUserState = new SetUserState();
+			setUserState.Argument.setLinkSid(session.getLinkSid());
+			setUserState.Argument.setContext(rpc.Argument.getClientId());
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
+		});
+
 		var loginVersionSerialId = version.getLastLoginVersion() + 1;
 		version.setLastLoginVersion(loginVersionSerialId);
 		loginVersion.setLoginVersion(loginVersionSerialId);
