@@ -40,7 +40,7 @@ Dbh2 桶在agent.prepare中断后的悬挂事务需要主动探测agent的查询
 3. 基于文件共享的多进程，同步互斥，索引等问题，比较复杂，废弃。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/4/13 v1.2.2 Timer; Dbh2 Go; BUG c# AsyncSocket BeginSendAsync; RocksDatabase; Raft; Online; TimerFuture;
+2023/4/14 v1.2.2 Timer; Dbh2 Go; BUG c# AsyncSocket BeginSendAsync; RocksDatabase; Raft; Online; TimerFuture;
 ------------------------------------------------------------------------------------------------------------------------------
 Game.Online/Arch.Online Login/ReLogin 流程调整：当出现补Logout时，先完成当前事务，触发重做。
 TimerFuture 安全的取消Timer（如果正在运行会等待执行完成）@张路 版本。
