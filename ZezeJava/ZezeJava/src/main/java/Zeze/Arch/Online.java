@@ -1144,15 +1144,8 @@ public class Online extends AbstractOnline {
 		// var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
 		loginVersion.setServerId(providerApp.zeze.getConfig().getServerId());
 
-		var ret = loginTrigger(session.getAccount(), rpc.Argument.getClientId());
-		if (0 != ret)
-			return ret;
-
-		// 先提交结果再设置状态。
-		// see linkd::Zezex.Provider.ModuleProvider。ProcessBroadcast
 		session.sendResponseWhileCommit(rpc);
-		//App.Load.LoginCount.IncrementAndGet();
-		return Procedure.Success;
+		return loginTrigger(session.getAccount(), rpc.Argument.getClientId());
 	}
 
 	@Override
@@ -1197,14 +1190,12 @@ public class Online extends AbstractOnline {
 		if (loginOnline.getLinkSid() != session.getLinkSid())
 			loginOnline.setLinkSid(session.getLinkSid());
 		/////////////////////////////////////////////////////////////
-
-		var ret = reloginTrigger(session.getAccount(), rpc.Argument.getClientId());
-		if (0 != ret)
-			return ret;
-
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
 		session.sendResponseWhileCommit(rpc);
+		var ret = reloginTrigger(session.getAccount(), rpc.Argument.getClientId());
+		if (0 != ret)
+			return ret;
 
 		var syncResultCode = reliableNotifySync(session.getAccount(), rpc.Argument.getClientId(),
 				session, rpc.Argument.getReliableNotifyConfirmIndex(), true);

@@ -303,6 +303,32 @@ public final class Task {
 		}, initialDelay, period, TimeUnit.MILLISECONDS);
 	}
 
+	public static @NotNull TimerFuture scheduleUnsafeEx(long initialDelay, long period, @NotNull ActionTimer action) {
+		var timerFuture = new TimerFuture();
+		timerFuture.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
+			// 防止timer触发，而future还没设置。一般不会发生，这里严格保护一下。
+			while (timerFuture.getFuture() == null) {
+				try {
+					//noinspection BusyWait
+					Thread.sleep(1);
+				} catch (InterruptedException e) {
+					// skip
+				}
+			}
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			try {
+				action.run(timerFuture);
+			} catch (Exception e) {
+				logger.error("schedule", e);
+			} finally {
+				//noinspection ConstantValue
+				if (PerfCounter.ENABLE_PERF && action != null)
+					PerfCounter.instance.addRunInfo(action.getClass(), System.nanoTime() - timeBegin);
+			}
+		}, initialDelay, period, TimeUnit.MILLISECONDS));
+		return timerFuture;
+	}
+
 	public static void DefaultLogAction(Throwable ex, long result, Protocol<?> p, String actionName) {
 		// exception -> Error
 		// 0 != result -> level from p or Info
