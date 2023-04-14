@@ -107,7 +107,7 @@ public class Database extends Zeze.Transaction.Database {
 				}
 
 				// 保存 commit-point，写到这里，如果失败，则 undo。
-				Dbh2AgentManager.getInstance().getCommitRocks().saveCommitPoint(transactions);
+				Dbh2AgentManager.getInstance().getCommit().getRocks().saveCommitPoint(transactions);
 			} catch (Throwable ex) {
 				var futures = new ArrayList<TaskCompletionSource<?>>();
 				for (var e : transactions.entrySet()) {
@@ -130,7 +130,7 @@ public class Database extends Zeze.Transaction.Database {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
 			var manager = Dbh2AgentManager.getInstance();
-			var agent = manager.open(masterAgent, masterName, databaseName, tableName, bKey);
+			var agent = manager.start(masterAgent, masterName, databaseName, tableName, bKey);
 			var batch = transactions.computeIfAbsent(agent, _agent_ -> new BatchWithTid(databaseName, tableName));
 			batch.put(bKey, bValue);
 		}
@@ -138,7 +138,7 @@ public class Database extends Zeze.Transaction.Database {
 		public void remove(String tableName, ByteBuffer key) throws Exception {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			var manager = Dbh2AgentManager.getInstance();
-			var agent = manager.open(masterAgent, masterName, databaseName, tableName, bKey);
+			var agent = manager.start(masterAgent, masterName, databaseName, tableName, bKey);
 			var batch = transactions.computeIfAbsent(agent, _agent_ -> new BatchWithTid(databaseName, tableName));
 			batch.delete(bKey);
 		}
@@ -183,7 +183,7 @@ public class Database extends Zeze.Transaction.Database {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			// 最多执行两次。
 			for (int i = 0; i < 2; ++i) {
-				var agent = manager.open(
+				var agent = manager.start(
 						Database.this.masterAgent, Database.this.masterName,
 						Database.this.databaseName, name,
 						bKey);

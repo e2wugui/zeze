@@ -10,7 +10,6 @@ import Zeze.Net.ServiceConf;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.rocksdb.RocksDBException;
 
 /**
  * 这个类管理到桶的raft-client-agent。
@@ -25,7 +24,7 @@ public class Dbh2AgentManager {
 			buckets = new ConcurrentHashMap<>();
 	// agent 不同 master 也装在一起。
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
-	private CommitRocks commitRocks;
+	private Commit commit;
 
 	private static final Dbh2AgentManager instance = new Dbh2AgentManager();
 
@@ -36,25 +35,29 @@ public class Dbh2AgentManager {
 	public Dbh2AgentManager() {
 	}
 
-	public CommitRocks getCommitRocks() {
-		return commitRocks;
+	public Commit getCommit() {
+		return commit;
 	}
 
-	public synchronized void open() throws RocksDBException {
-		if (null == commitRocks)
-			commitRocks = new CommitRocks(this);
+	// Dbh2Agent 嵌入服务器需要初始化；
+	// CommitServer 独立服务器需要初始化；
+	public synchronized void start(Config config) throws Exception {
+		if (null == commit) {
+			commit = new Commit(this, config);
+			commit.start();
+		}
 	}
 
-	public synchronized void close() throws Exception {
+	public synchronized void stop() throws Exception {
 		for (var ma : masterAgent.values())
 			ma.stop();
 		masterAgent.clear();
 		for (var da : agents.values())
 			da.close();
 		agents.clear();
-		if (null != commitRocks) {
-			commitRocks.close();
-			commitRocks = null;
+		if (null != commit) {
+			commit.stop();
+			commit = null;
 		}
 	}
 
@@ -92,7 +95,7 @@ public class Dbh2AgentManager {
 
 	// todo Database.Table中缓存MasterTableDaTa，减少map查找。
 	//  难点是信息发生了变更需要刷新Table中缓存的数据。
-	public Dbh2Agent open(
+	public Dbh2Agent start(
 			MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName,
 			Binary key) {
@@ -100,10 +103,10 @@ public class Dbh2AgentManager {
 		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
 		var table = database.computeIfAbsent(tableName, tbName -> masterAgent.getBuckets(databaseName, tbName));
 		var bucket = table.locate(key);
-		return open(bucket.getRaftConfig());
+		return start(bucket.getRaftConfig());
 	}
 
-	public Dbh2Agent open(String raft) {
+	public Dbh2Agent start(String raft) {
 		return agents.computeIfAbsent(raft, _raft -> {
 			try {
 				return new Dbh2Agent(raft);

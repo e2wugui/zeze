@@ -1378,15 +1378,41 @@
 			<rpc name="PrepareBatch" argument="BPrepareBatch" result="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			<rpc name="CommitBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			<rpc name="UndoBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			
+			<module name="Commit" id="11028" DefaultTransactionLevel="None">
+				<enum name="eCommitNotExist" value="0"/>
+				<enum name="eCommitPoint" value="1"/>
+
+				<bean name="BQuery">
+					<variable id="1" name="TransactionKey" type="binary"/>
+				</bean>
+				<rpc name="Query" argument="BQuery" UseData="true" handle="server"/>
+				<bean name="BCommit">
+					<variable id="1" name="TransactionData" type="binary"/>
+				</bean>
+				<rpc name="Commit" argument="BCommit" UseData="true" handle="server"/>
+			</module>
 		</module>
 
 		<!--
-		可用id范围 [11028, 11100) [11102, 11999]
+		可用id范围 [11029, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="Commit" gendir="src/main/java" genrelativedir="Zeze/Dbh2" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Dbh2.Commit"/>
+		</service>
+	</component>
+
+	<component name="CommitAgent" gendir="src/main/java" genrelativedir="Zeze/Dbh2" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Dbh2.Commit"/>
+		</service>
+	</component>
+
 	<component name="Master" gendir="src/main/java" genrelativedir="Zeze/Dbh2/Master" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Dbh2.Master"/>

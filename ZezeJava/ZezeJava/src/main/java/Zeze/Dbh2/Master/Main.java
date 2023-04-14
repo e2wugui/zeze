@@ -26,18 +26,16 @@ public class Main {
 		var config = Config.load(configXml);
 		service = new MasterService(this, config);
 		master = new Master(this, "master");
+		master.RegisterProtocols(service);
 	}
 
 	public void start() throws Exception {
-		master.RegisterProtocols(service);
 		service.start();
-
 		ShutdownHook.add(this, this::stop);
 	}
 
 	public void stop() throws Exception {
 		ShutdownHook.remove(this);
-
 		service.stop();
 		master.close();
 	}

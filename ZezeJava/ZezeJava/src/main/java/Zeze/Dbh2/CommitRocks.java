@@ -21,12 +21,23 @@ public class CommitRocks {
 		commitPoint = database.openTable("CommitPoint");
 	}
 
+	public Dbh2AgentManager getManager() {
+		return manager;
+	}
+
 	public void close() {
 		database.close();
 	}
 
 	public void setWriteOptions(WriteOptions writeOptions) {
 		this.writeOptions = writeOptions;
+	}
+
+	public long query(Binary key) throws RocksDBException {
+		var value = commitPoint.get(key.bytesUnsafe(), key.getOffset(), key.size());
+		if (null == value)
+			return Commit.eCommitNotExist;
+		return Commit.eCommitPoint;
 	}
 
 	public void saveCommitPoint(HashMap<Dbh2Agent, Database.BatchWithTid> batches) throws RocksDBException {
@@ -49,7 +60,7 @@ public class CommitRocks {
 		// 第一步：先打开Dbh2Agent.
 		var agents = new HashMap<Dbh2Agent, Long>();
 		for (var e : batches.entrySet()) {
-			var agent = manager.open(e.getKey());
+			var agent = manager.start(e.getKey());
 			var tid = e.getValue();
 			agents.put(agent, tid);
 		}
