@@ -64,6 +64,7 @@ public final class TableStatistics {
 			timer.cancel(true);
 			timer = null;
 		}
+		tables.clear();
 	}
 
 	public static final class Statistics {
@@ -155,10 +156,10 @@ public final class TableStatistics {
 			sb.append(prefix).append("StorageFind=").append(getStorageFindCount().sum()).append(end);
 			sb.append(prefix).append("TableFind=").append(getTableFindCount()).append(end);
 
-			sb.append(prefix).append("ReadLocks").append(getReadLockTimes().sum()).append(end);
-			sb.append(prefix).append("WriteLocks").append(getReadLockTimes().sum()).append(end);
-			sb.append(prefix).append("TryReadLocks").append(getTryReadLockTimes().sum()).append(end);
-			sb.append(prefix).append("TryWriteLocks").append(getTryWriteLockTimes().sum()).append(end);
+			sb.append(prefix).append("ReadLocks=").append(getReadLockTimes().sum()).append(end);
+			sb.append(prefix).append("WriteLocks=").append(getReadLockTimes().sum()).append(end);
+			sb.append(prefix).append("TryReadLocks=").append(getTryReadLockTimes().sum()).append(end);
+			sb.append(prefix).append("TryWriteLocks=").append(getTryWriteLockTimes().sum()).append(end);
 		}
 	}
 }

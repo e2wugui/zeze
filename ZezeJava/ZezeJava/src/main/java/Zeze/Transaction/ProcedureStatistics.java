@@ -62,6 +62,7 @@ public final class ProcedureStatistics {
 			timer.cancel(true);
 			timer = null;
 		}
+		procedures.clear();
 	}
 
 	public ConcurrentHashMap<String, Statistics> getProcedures() {
