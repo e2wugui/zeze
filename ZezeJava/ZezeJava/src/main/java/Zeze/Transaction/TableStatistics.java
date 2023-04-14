@@ -4,6 +4,7 @@ import java.util.TreeMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.Random;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -36,7 +37,7 @@ public final class TableStatistics {
 	public synchronized void start() {
 		if (null != timer)
 			return;
-		timer = Task.scheduleUnsafe(60000, 60000, this::report);
+		timer = Task.scheduleUnsafe(Random.getInstance().nextLong(60000), 60000, this::report);
 	}
 
 	private void report() {
@@ -47,7 +48,10 @@ public final class TableStatistics {
 		sb.append("TableStatistics:\n");
 		var it = sorted.descendingMap().entrySet().iterator();
 		for (int i = 0; i < 20 && it.hasNext(); ++i) {
-			var stat = it.next().getValue();
+			var e = it.next();
+			if (e.getKey() == 0)
+				break;
+			var stat = e.getValue();
 			sb.append("\t").append(stat.getTableName());
 			stat.buildString(",", sb, "");
 			sb.append("\n");
