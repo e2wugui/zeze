@@ -11,10 +11,9 @@
     "clean": "tsc --build --clean"
   },
   "devDependencies": {
-    "@types/node": "^8.0.14",
+    "@types/node": "^11.0.0",
     "typescript": "^3.2.2"
   },
   "dependencies": {
-    "text-encoding": "git+https://github.com/inexorabletash/text-encoding.git"
   }
 }

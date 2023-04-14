@@ -1,6 +1,4 @@
-import { TextEncoder, TextDecoder } from "text-encoding"
-
-var HostLang;
+var HostLang: any;
 var IsUe = false;
 
 try {
@@ -168,8 +166,8 @@ export module Zeze {
 	}
 
 	export interface Serializable {
-		Encode(_os_: ByteBuffer);
-		Decode(_os_: ByteBuffer);
+		Encode(_os_: ByteBuffer): void;
+		Decode(_os_: ByteBuffer): void;
 	}
 
 	export interface Bean extends Serializable {
@@ -210,10 +208,10 @@ export module Zeze {
 		private _TypeId: bigint;
 		private _Bean: Bean;
 
-		public GetSpecialTypeIdFromBean: (Bean) => bigint;
-		public CreateBeanFromSpecialTypeId: (bigint) => Bean;
+		public GetSpecialTypeIdFromBean: (bean: Bean) => bigint;
+		public CreateBeanFromSpecialTypeId: (typeId: bigint) => Bean;
 
-		public constructor(get: (Bean) => bigint, create: (bigint) => Bean) {
+		public constructor(get: (bean: Bean) => bigint, create: (typeId: bigint) => Bean) {
 			this.GetSpecialTypeIdFromBean = get;
 			this.CreateBeanFromSpecialTypeId = create;
 			this._Bean = new EmptyBean();
@@ -253,21 +251,21 @@ export module Zeze {
 	}
 
 	export abstract class Protocol implements Serializable {
-		public FamilyClass: number = Zeze.FamilyClass.Protocol;
-		public ResultCode: bigint; // int
-		public Sender: Socket;
+		public FamilyClass: number = FamilyClass.Protocol;
+		public ResultCode: bigint = 0n; // int
+		public Sender: Socket | null = null;
 
 		public abstract ModuleId(): number;
 		public abstract ProtocolId(): number;
-		abstract Encode(_os_: ByteBuffer);
-		abstract Decode(_os_: ByteBuffer);
+		abstract Encode(_os_: ByteBuffer): void;
+		abstract Decode(_os_: ByteBuffer): void;
 
 		public TypeId(): bigint {
 			return BigInt(this.ModuleId()) << 32n | BigInt(this.ProtocolId());
 		}
 
-		public EncodeProtocol(): Zeze.ByteBuffer {
-			var bb = new Zeze.ByteBuffer();
+		public EncodeProtocol(): ByteBuffer {
+			var bb = new ByteBuffer();
 			bb.WriteInt4(this.ModuleId());
 			bb.WriteInt4(this.ProtocolId());
 			var state = bb.BeginWriteWithSize4();
@@ -276,15 +274,18 @@ export module Zeze {
 			return bb;
 		}
 
-		public Send(socket: Socket) {
+		public Send(socket: Socket | null): boolean {
+			if (socket == null)
+				return false;
 			socket.Send(this.EncodeProtocol());
+			return true;
 		}
 
 		public Dispatch(service: Service, factoryHandle: ProtocolFactoryHandle) {
 			service.DispatchProtocol(this, factoryHandle);
 		}
 
-		public static DecodeProtocol(service: Service, singleEncodedProtocol: ByteBuffer): Protocol {
+		public static DecodeProtocol(service: Service, singleEncodedProtocol: ByteBuffer): Protocol | null {
 			var moduleId: number = singleEncodedProtocol.ReadInt4();
 			var protocolId: number = singleEncodedProtocol.ReadInt4();
 			var size: number = singleEncodedProtocol.ReadInt4();
@@ -298,8 +299,8 @@ export module Zeze {
 			return null;
 		}
 
-		public static DecodeProtocols(service: Service, socket: Socket, input: Zeze.ByteBuffer) {
-			var os = new Zeze.ByteBuffer(input.Bytes, input.ReadIndex, input.Size());
+		public static DecodeProtocols(service: Service, socket: Socket, input: ByteBuffer) {
+			var os = new ByteBuffer(input.Bytes, input.ReadIndex, input.Size());
 			while (os.Size() > 0) {
 				var moduleId: number;
 				var protocolId: number;
@@ -320,7 +321,7 @@ export module Zeze {
 					return;
 				}
 
-				var buffer = new Zeze.ByteBuffer(os.Bytes, os.ReadIndex, size);
+				var buffer = new ByteBuffer(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
 				var type: bigint = BigInt(moduleId) << 32n | BigInt(protocolId);
 				var factoryHandle = service.FactoryHandleMap.get(type);
@@ -348,7 +349,7 @@ export module Zeze {
 		public Encode(_os_: ByteBuffer) {
 			var compress = this.FamilyClass;
 			if (this.ResultCode != 0n)
-				compress |= Zeze.FamilyClass.BitResultCode;
+				compress |= FamilyClass.BitResultCode;
 			_os_.WriteInt(compress);
 			if (this.ResultCode != 0n)
 				_os_.WriteLong(this.ResultCode);
@@ -357,22 +358,22 @@ export module Zeze {
 
 		public Decode(_os_: ByteBuffer) {
 			var compress = _os_.ReadInt();
-			this.FamilyClass = compress & Zeze.FamilyClass.FamilyClassMask;
-			this.ResultCode = ((compress & Zeze.FamilyClass.BitResultCode) != 0) ? _os_.ReadLong() : 0n;
+			this.FamilyClass = compress & FamilyClass.FamilyClassMask;
+			this.ResultCode = ((compress & FamilyClass.BitResultCode) != 0) ? _os_.ReadLong() : 0n;
 			this.Argument.Decode(_os_);
 		}
 	}
 
-	export type FunctionProtocolFactory = () => Zeze.Protocol;
-	export type FunctionProtocolHandle = (p: Zeze.Protocol) => number;
+	export type FunctionProtocolFactory = () => Protocol;
+	export type FunctionProtocolHandle = (p: Protocol) => number;
 
-	export abstract class Rpc<TArgument extends Zeze.Bean, TResult extends Zeze.Bean> extends Zeze.ProtocolWithArgument<TArgument> {
+	export abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends ProtocolWithArgument<TArgument> {
 		public Result: TResult;
-		public ResponseHandle: FunctionProtocolHandle;
+		public ResponseHandle: FunctionProtocolHandle | null = null;
 		public IsTimeout: boolean = false;
 
-		private IsRequest: boolean;
-		private sid: bigint;
+		private IsRequest: boolean = false;
+		private sid: bigint = 0n;
 		private timeout: any;
 
 		public constructor(argument: TArgument, result: TResult) {
@@ -380,7 +381,7 @@ export module Zeze {
 			this.Result = result;
 		}
 
-		public Send(socket: Socket) {
+		public Send(socket: Socket): never {
 			throw new Error("Rpc Need Use SendWithCallback");
 		}
 
@@ -391,7 +392,7 @@ export module Zeze {
 			this.sid = socket.service.AddRpcContext(this);
 
 			this.timeout = setTimeout(() => {
-				var context = <Rpc<TArgument, TResult>>this.Sender.service.RemoveRpcContext(this.sid);
+				var context = <Rpc<TArgument, TResult>><unknown>socket.service.RemoveRpcContext(this.sid);
 				if (context && context.ResponseHandle) {
 					context.IsTimeout = true;
 					context.ResponseHandle(context);
@@ -404,7 +405,7 @@ export module Zeze {
 		public async SendForWait(socket: Socket, timeoutMs: number = 5000): Promise<void> {
 			return new Promise<void>((resolve, reject) => {
 				this.SendWithCallback(socket, (response) => {
-					var res = <Rpc<TArgument, TResult>>response;
+					var res = <Rpc<TArgument, TResult>><unknown>response;
 					if (res.IsTimeout)
 						reject("Rpc.SendForWait Timeout");
 					else
@@ -429,7 +430,7 @@ export module Zeze {
 				service.DispatchProtocol(this, factoryHandle);
 				return;
 			}
-			var context = <Rpc<TArgument, TResult>>service.RemoveRpcContext(this.sid);
+			var context = <Rpc<TArgument, TResult>><unknown>service.RemoveRpcContext(this.sid);
 			if (null == context)
 				return;
 
@@ -444,11 +445,11 @@ export module Zeze {
 				context.ResponseHandle(context);
 		}
 
-		Decode(bb: Zeze.ByteBuffer) {
+		Decode(bb: ByteBuffer) {
 			var compress = bb.ReadInt();
-			this.FamilyClass = compress & Zeze.FamilyClass.FamilyClassMask;
-			this.IsRequest = this.FamilyClass == Zeze.FamilyClass.Request;
-			this.ResultCode = ((compress & Zeze.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0n;
+			this.FamilyClass = compress & FamilyClass.FamilyClassMask;
+			this.IsRequest = this.FamilyClass == FamilyClass.Request;
+			this.ResultCode = ((compress & FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0n;
 			this.sid = bb.ReadLong();
 			if (this.IsRequest)
 				this.Argument.Decode(bb);
@@ -456,11 +457,11 @@ export module Zeze {
 				this.Result.Decode(bb);
 		}
 
-		Encode(bb: Zeze.ByteBuffer) {
+		Encode(bb: ByteBuffer) {
 			// skip value of this.FamilyClass
-			var compress = this.IsRequest ? Zeze.FamilyClass.Request : Zeze.FamilyClass.Response;
+			var compress = this.IsRequest ? FamilyClass.Request : FamilyClass.Response;
 			if (this.ResultCode != 0n)
-				compress |= Zeze.FamilyClass.BitResultCode;
+				compress |= FamilyClass.BitResultCode;
 			bb.WriteInt(compress);
 			if (this.ResultCode != 0n)
 				bb.WriteLong(this.ResultCode);
@@ -485,14 +486,14 @@ export module Zeze {
 	export class Socket {
 		public service: Service;
 		public SessionId: bigint;
-		public InputBuffer: Zeze.ByteBuffer;
+		public InputBuffer: ByteBuffer | null = null;
 
 		public constructor(service: Service, sessionId: bigint) {
 			this.service = service;
 			this.SessionId = sessionId;
 		}
 
-		public Send(buffer: Zeze.ByteBuffer) {
+		public Send(buffer: ByteBuffer) {
 			this.service.Send(this.SessionId, buffer)
 		}
 
@@ -503,15 +504,15 @@ export module Zeze {
 		public OnProcessInput(newInput: ArrayBuffer, offset: number, len: number) {
 			if (null != this.InputBuffer) {
 				this.InputBuffer.Append(new Uint8Array(newInput), offset, len);
-				Zeze.Protocol.DecodeProtocols(this.service, this, this.InputBuffer);
+				Protocol.DecodeProtocols(this.service, this, this.InputBuffer);
 				if (this.InputBuffer.Size() > 0)
 					this.InputBuffer.Campact();
 				else
 					this.InputBuffer = null;
 				return;
 			}
-			var bufdirect = new Zeze.ByteBuffer(new Uint8Array(newInput), offset, len);
-			Zeze.Protocol.DecodeProtocols(this.service, this, bufdirect);
+			var bufdirect = new ByteBuffer(new Uint8Array(newInput), offset, len);
+			Protocol.DecodeProtocols(this.service, this, bufdirect);
 			if (bufdirect.Size() > 0) {
 				bufdirect.Campact();
 				this.InputBuffer = bufdirect;
@@ -520,29 +521,29 @@ export module Zeze {
 	}
 
 	export interface IServiceEventHandle {
-		OnSocketConnected(service: Service, socket: Socket);
-		OnSocketClosed(service: Service, socket: Socket);
-		OnSoekctInput(service: Service, socket: Socket, buffer: ArrayBuffer, offset: number, len: number): boolean; // true 已经处理了，false 进行默认处理
+		OnSocketConnected(service: Service, socket: Socket): void;
+		OnSocketClosed(service: Service, socket: Socket): void;
+		OnSoekctInput(service: Service, socket: Socket, buffer: ArrayBuffer, offset: number, len: number): boolean; // true: processed; false: need process by default
 	}
 
 	export class ProtocolHead {
-		public moduleId: number;
-		public protocolId: number;
+		public moduleId: number = 0;
+		public protocolId: number = 0;
 	}
 
 	export class Service {
-		public FactoryHandleMap: Map<bigint, Zeze.ProtocolFactoryHandle> = new Map<bigint, Zeze.ProtocolFactoryHandle>();
+		public FactoryHandleMap: Map<bigint, ProtocolFactoryHandle> = new Map<bigint, ProtocolFactoryHandle>();
 
 		private serialId: bigint = 0n;
-		private contexts: Map<bigint, Zeze.Protocol> = new Map<bigint, Zeze.Protocol>();
+		private contexts: Map<bigint, Protocol> = new Map<bigint, Protocol>();
 
-		public AddRpcContext(rpc: Zeze.Protocol): bigint {
+		public AddRpcContext(rpc: Protocol): bigint {
 			this.serialId = this.serialId + 1n;
 			this.contexts.set(this.serialId, rpc);
 			return this.serialId;
 		}
 
-		public RemoveRpcContext(sid: bigint): Zeze.Protocol {
+		public RemoveRpcContext(sid: bigint): Protocol | null {
 			var ctx= this.contexts.get(sid);
 			if (ctx) {
 				this.contexts.delete(sid);
@@ -551,15 +552,15 @@ export module Zeze {
 			return null;
 		}
 
-		public DispatchUnknownProtocol(socket: Socket, type: bigint, buffer: Zeze.ByteBuffer) {
+		public DispatchUnknownProtocol(socket: Socket, type: bigint, buffer: ByteBuffer) {
 		}
 
-		public DispatchProtocol(p: Zeze.Protocol, factoryHandle: ProtocolFactoryHandle) {
+		public DispatchProtocol(p: Protocol, factoryHandle: ProtocolFactoryHandle) {
 			factoryHandle.handle(p);
 		}
 
-		public Connection: Socket;
-		public ServiceEventHandle: IServiceEventHandle;
+		public Connection: Socket | null = null;
+		public ServiceEventHandle: IServiceEventHandle | null = null;
 
 		protected CallbackOnSocketHandshakeDone(sessionId: bigint) {
 			if (this.Connection)
@@ -578,7 +579,7 @@ export module Zeze {
 		}
 
 		protected CallbackOnSocketProcessInputBuffer(sessionId: bigint, buffer: ArrayBuffer, offset: number, len: number) {
-			if (this.Connection.SessionId == sessionId) {
+			if (this.Connection && this.Connection.SessionId == sessionId) {
 				if (this.ServiceEventHandle) {
 					if (this.ServiceEventHandle.OnSoekctInput(this, this.Connection, buffer, offset, len))
 						return;
@@ -603,7 +604,7 @@ export module Zeze {
 			this.Implement.Connect(hostNameOrAddress, port, autoReconnect);
 		}
 
-		public Send(sessionId: bigint, buffer: Zeze.ByteBuffer) {
+		public Send(sessionId: bigint, buffer: ByteBuffer) {
 			this.Implement.Send(sessionId, buffer.Bytes.buffer, buffer.ReadIndex, buffer.Size());
 		}
 
@@ -630,7 +631,7 @@ export module Zeze {
 			return this.WriteIndex - this.ReadIndex;
 		}
 
-		public constructor(buffer: Uint8Array = null, readIndex: number = 0, length: number = 0) {
+		public constructor(buffer: Uint8Array | null = null, readIndex: number = 0, length: number = 0) {
 			this.Bytes = (null == buffer) ? new Uint8Array(16) : buffer;
 			this.View = new DataView(this.Bytes.buffer);
 			this.ReadIndex = readIndex;
@@ -1254,7 +1255,7 @@ export module Zeze {
 			return ByteBuffer.toString(this.Bytes, this.ReadIndex, this.WriteIndex);
 		}
 
-		// 只能增加新的类型定义，增加时记得同步 SkipUnknownField
+		// Only new type definitions can be added, and remember to synchronize SkipUnknownField when adding them
 		public static readonly INTEGER = 0; // byte,short,int,long,bool
 		public static readonly FLOAT = 1; // float
 		public static readonly DOUBLE = 2; // double
@@ -1511,7 +1512,7 @@ export module Zeze {
 				return dynBean;
 			}
 			if (type == ByteBuffer.BEAN) {
-				var bean = dynBean.CreateBeanFromSpecialTypeId(0);
+				var bean = dynBean.CreateBeanFromSpecialTypeId(0n);
 				if (bean != null) {
 					bean.Decode(this);
 					return dynBean;
