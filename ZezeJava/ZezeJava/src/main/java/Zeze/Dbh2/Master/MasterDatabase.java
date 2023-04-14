@@ -129,8 +129,7 @@ public class MasterDatabase {
 				future.await();
 
 			// 第一条Dbh2桶协议，桶必须初始化以后才能使用。
-			var raftConfig = RaftConfig.loadFromString(bucket.getRaftConfig());
-			var agent = new Dbh2Agent(raftConfig);
+			var agent = new Dbh2Agent(bucket.getRaftConfig());
 			try {
 				agent.setBucketMeta(bucket);
 			} finally {

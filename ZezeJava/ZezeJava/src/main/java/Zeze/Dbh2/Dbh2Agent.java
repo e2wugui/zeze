@@ -22,10 +22,19 @@ import Zeze.Util.TaskCompletionSource;
 public class Dbh2Agent extends AbstractDbh2Agent {
 	// private static final Logger logger = LogManager.getLogger(Dbh2Agent.class);
 	private final Agent raftClient;
+	private final String raftConfigString;
 	private final TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 	private volatile long lastErrorTime;
 	private final Dbh2Config config = new Dbh2Config();
 	private volatile long activeTime = System.currentTimeMillis();
+
+	public RaftConfig getRaftConfig() {
+		return raftClient.getRaftConfig();
+	}
+
+	public String getRaftConfigString() {
+		return raftConfigString;
+	}
 
 	public void setBucketMeta(BBucketMeta.Data meta) {
 		var r = new SetBucketMeta();
@@ -63,15 +72,15 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return raftClient.sendForWait(r);
 	}
 
-	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> commitBatch(Database.BatchWithTid batch) {
+	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> commitBatch(long batchTid) {
 		var r = new CommitBatch();
-		r.Argument.setTid(batch.tid);
+		r.Argument.setTid(batchTid);
 		return raftClient.sendForWait(r);
 	}
 
-	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> undoBatch(Database.BatchWithTid batch) {
+	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> undoBatch(long batchTid) {
 		var r = new UndoBatch();
-		r.Argument.setTid(batch.tid);
+		r.Argument.setTid(batchTid);
 		return raftClient.sendForWait(r);
 	}
 
@@ -98,7 +107,9 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		});
 	}
 
-	public Dbh2Agent(RaftConfig raftConf) throws Exception {
+	public Dbh2Agent(String raftConfigString) throws Exception {
+		this.raftConfigString = raftConfigString;
+		var raftConf = RaftConfig.loadFromString(raftConfigString);
 		raftClient = new Agent("dbh2.raft", raftConf);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		RegisterProtocols(raftClient.getClient());

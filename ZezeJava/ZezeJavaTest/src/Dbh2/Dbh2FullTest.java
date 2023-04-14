@@ -58,6 +58,7 @@ public class Dbh2FullTest {
 
 		var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
 
+		Dbh2AgentManager.getInstance().open();
 		try {
 			Thread.sleep(3000); // leader 重启apply可能时间较长，给它5秒。
 
@@ -80,7 +81,7 @@ public class Dbh2FullTest {
 			for (var manager : managers)
 				manager.stop();
 			database.close();
-			Dbh2AgentManager.getInstance().clear();
+			Dbh2AgentManager.getInstance().close();
 		}
 	}
 
@@ -91,6 +92,7 @@ public class Dbh2FullTest {
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		Database database = null;
+		Dbh2AgentManager.getInstance().open();
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
@@ -98,6 +100,7 @@ public class Dbh2FullTest {
 			for (var manager : managers)
 				manager.start();
 
+			Thread.sleep(2000); // leader 重启apply可能时间较长，给它5秒。
 			database = newDatabase("dbh2TestDb");
 			var table1 = (Database.AbstractKVTable)database.openTable("table1");
 			var table2 = (Database.AbstractKVTable)database.openTable("table2");
@@ -106,6 +109,7 @@ public class Dbh2FullTest {
 			var key1 = ByteBuffer.Wrap(new byte[] { 1 });
 			var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
 
+			Thread.sleep(3000); // leader 重启apply可能时间较长，给它5秒。
 			try (var trans = database.beginTransaction()) {
 				table1.replace(trans, key, value);
 				table1.replace(trans, key1, value);
@@ -138,7 +142,7 @@ public class Dbh2FullTest {
 				manager.stop();
 			if (null != database)
 				database.close();
-			Dbh2AgentManager.getInstance().clear();
+			Dbh2AgentManager.getInstance().close();
 		}
 	}
 }

@@ -63,9 +63,16 @@ public class Database extends Zeze.Transaction.Database {
 		final BPrepareBatch.Data data = new BPrepareBatch.Data();
 		long tid;
 
+		public BatchWithTid() {
+		}
+
 		public BatchWithTid(String databaseName, String tableName) {
 			data.setDatabase(databaseName);
 			data.setTable(tableName);
+		}
+
+		public long getTid() {
+			return tid;
 		}
 
 		public void setTid(long tid) {
@@ -98,20 +105,22 @@ public class Database extends Zeze.Transaction.Database {
 					var r = e.getKey().get();
 					e.getValue().tid = r.Result.getTid();
 				}
+
+				// 保存 commit-point，写到这里，如果失败，则 undo。
+				Dbh2AgentManager.getInstance().getCommitRocks().saveCommitPoint(transactions);
 			} catch (Throwable ex) {
 				var futures = new ArrayList<TaskCompletionSource<?>>();
 				for (var e : transactions.entrySet()) {
-					futures.add(e.getKey().undoBatch(e.getValue()));
+					futures.add(e.getKey().undoBatch(e.getValue().tid));
 				}
 				for (var e : futures)
 					e.await();
 				throw new RuntimeException(ex);
 			}
 
-			// todo 准备开始提交，持久化关键点。
 			var futures = new ArrayList<TaskCompletionSource<?>>();
 			for (var e : transactions.entrySet()) {
-				futures.add(e.getKey().commitBatch(e.getValue()));
+				futures.add(e.getKey().commitBatch(e.getValue().tid));
 			}
 			for (var e : futures)
 				e.await();

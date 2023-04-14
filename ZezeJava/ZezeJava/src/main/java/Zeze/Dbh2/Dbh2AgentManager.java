@@ -7,10 +7,10 @@ import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Dbh2.Master.MasterTable;
 import Zeze.Net.Binary;
 import Zeze.Net.ServiceConf;
-import Zeze.Raft.RaftConfig;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.rocksdb.RocksDBException;
 
 /**
  * 这个类管理到桶的raft-client-agent。
@@ -25,6 +25,7 @@ public class Dbh2AgentManager {
 			buckets = new ConcurrentHashMap<>();
 	// agent 不同 master 也装在一起。
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
+	private CommitRocks commitRocks;
 
 	private static final Dbh2AgentManager instance = new Dbh2AgentManager();
 
@@ -35,13 +36,26 @@ public class Dbh2AgentManager {
 	public Dbh2AgentManager() {
 	}
 
-	public void clear() throws Exception {
+	public CommitRocks getCommitRocks() {
+		return commitRocks;
+	}
+
+	public synchronized void open() throws RocksDBException {
+		if (null == commitRocks)
+			commitRocks = new CommitRocks(this);
+	}
+
+	public synchronized void close() throws Exception {
 		for (var ma : masterAgent.values())
 			ma.stop();
 		masterAgent.clear();
 		for (var da : agents.values())
 			da.close();
 		agents.clear();
+		if (null != commitRocks) {
+			commitRocks.close();
+			commitRocks = null;
+		}
 	}
 
 	public MasterAgent openDatabase(
@@ -92,8 +106,7 @@ public class Dbh2AgentManager {
 	public Dbh2Agent open(String raft) {
 		return agents.computeIfAbsent(raft, _raft -> {
 			try {
-				var raftConfig = RaftConfig.loadFromString(_raft);
-				return new Dbh2Agent(raftConfig);
+				return new Dbh2Agent(raft);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}

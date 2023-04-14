@@ -33,7 +33,7 @@ public class Dbh2Test {
 			var raftConfig = RaftConfig.loadFromString(raftConfigString);
 			for (var config : raftConfig.getNodes().values())
 				raftNodes.add(start(raftConfigString, config.getName()));
-			agent = new Dbh2Agent(raftConfig);
+			agent = new Dbh2Agent(raftConfigString);
 		}
 
 		public Dbh2Agent agent() {
@@ -109,7 +109,7 @@ public class Dbh2Test {
 				batch.put(key, value);
 				var r = bucket1.agent().prepareBatch(batch).get();
 				batch.setTid(r.Result.getTid());
-				bucket1.agent().commitBatch(batch).await();
+				bucket1.agent().commitBatch(batch.getTid()).await();
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
@@ -122,7 +122,7 @@ public class Dbh2Test {
 				batch.put(key, Binary.Empty);
 				var r = bucket1.agent().prepareBatch(batch).get();
 				batch.setTid(r.Result.getTid());
-				bucket1.agent().undoBatch(batch).await();
+				bucket1.agent().undoBatch(batch.getTid()).await();
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
@@ -134,7 +134,7 @@ public class Dbh2Test {
 				var batch = new Database.BatchWithTid(db, tb1);
 				batch.delete(key);
 				bucket1.agent().prepareBatch(batch).await();
-				bucket1.agent().commitBatch(batch).await();
+				bucket1.agent().commitBatch(batch.getTid()).await();
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
@@ -153,8 +153,8 @@ public class Dbh2Test {
 				bucket1.agent().prepareBatch(batch1).await();
 				bucket2.agent().prepareBatch(batch2).await();
 
-				bucket1.agent().commitBatch(batch1).await();
-				bucket2.agent().commitBatch(batch2).await();
+				bucket1.agent().commitBatch(batch1.getTid()).await();
+				bucket2.agent().commitBatch(batch2.getTid()).await();
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);

@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.TransformerException;
@@ -23,6 +24,8 @@ public final class RaftConfig {
 	private final String xmlFileName;
 	private final Element self;
 	private final ConcurrentHashMap<String, Node> nodes = new ConcurrentHashMap<>();
+	private final String sortedNames;
+	private final byte[] sortedNamesUtf8;
 	private String name; // 【这个参数不保存】可以在启动的时候从参数读取并设置
 	private String dbHome;
 	private int appendEntriesTimeout = DefaultAppendEntriesTimeout; // 复制日志超时，以及发送失败重试超时
@@ -42,6 +45,26 @@ public final class RaftConfig {
 
 	public ConcurrentHashMap<String, Node> getNodes() {
 		return nodes;
+	}
+
+	public String getSortedNames() {
+		return sortedNames;
+	}
+
+	public byte[] getSortedNamesUtf8() {
+		return sortedNamesUtf8;
+	}
+
+	private String makeSortedNames() {
+		var sorted = new String[nodes.size()];
+		var i = 0;
+		for (var node : nodes.values())
+			sorted[i++] = node.getName();
+		Arrays.sort(sorted);
+		var sb = new StringBuilder();
+		for (var s : sorted)
+			sb.append("-").append(s);
+		return sb.toString();
 	}
 
 	public String getName() {
@@ -187,6 +210,8 @@ public final class RaftConfig {
 			if ("node".equals(e.getTagName()))
 				addNode(new Node(e));
 		}
+		sortedNames = makeSortedNames();
+		sortedNamesUtf8 = sortedNames.getBytes(StandardCharsets.UTF_8);
 	}
 
 	public void verify() {
