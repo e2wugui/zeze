@@ -10,11 +10,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.jetbrains.annotations.NotNull;
 
 public class TimerFuture<V> implements ScheduledFuture<V> {
-	private final ReentrantLock lock;
-	private final AtomicBoolean canceled;
-	private final ScheduledFuture<V> future;
+	private final @NotNull ReentrantLock lock;
+	private final @NotNull OutInt canceled;
+	private final @NotNull ScheduledFuture<V> future;
 
-	public TimerFuture(ReentrantLock lock, AtomicBoolean canceled, ScheduledFuture<V> future) {
+	public TimerFuture(@NotNull ReentrantLock lock, @NotNull OutInt canceled, @NotNull ScheduledFuture<V> future) {
 		this.lock = lock;
 		this.canceled = canceled;
 		this.future = future;
@@ -24,7 +24,7 @@ public class TimerFuture<V> implements ScheduledFuture<V> {
 	public boolean cancel(boolean mayInterruptIfRunning) {
 		lock.lock();
 		try {
-			canceled.set(true);
+			canceled.value = 1;
 			return future.cancel(mayInterruptIfRunning);
 		} finally {
 			lock.unlock();

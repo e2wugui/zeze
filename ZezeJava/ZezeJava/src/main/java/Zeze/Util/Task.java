@@ -9,7 +9,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.IModule;
@@ -292,11 +291,11 @@ public final class Task {
 
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
 		var lock = new ReentrantLock();
-		var canceled = new AtomicBoolean();
+		var canceled = new OutInt();
 		return new TimerFuture<>(lock, canceled, threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			lock.lock();
 			try {
-				if (canceled.get())
+				if (canceled.value != 0)
 					return;
 				var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 				try {
