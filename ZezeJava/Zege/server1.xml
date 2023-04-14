@@ -6,7 +6,7 @@ ServerId   每个 server 必须配置不一样，范围 [0, AutoKeyLocalStep)
 AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 -->
 <zeze
-	GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5555"
+	GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5002"
 	CheckpointPeriod="60000"
 	ServerId="1"
 	>

@@ -1083,7 +1083,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		});
 
 		String ip = null;
-		int port = 5555;
+		int port = 5002;
 		int threadCount = 0;
 		String raftName = null;
 		String raftConf = "global.raft.xml";

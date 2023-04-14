@@ -38,7 +38,7 @@ public class Simulate {
 	private static String serviceManagerIp = "127.0.0.1";
 	private static int serviceManagerPort = 5001;
 	private static String globalServerIp = "127.0.0.1";
-	private static int globalServerPort = 5555;
+	private static int globalServerPort = 5002;
 
 	private static int read1Weight = 40;
 	private static int readWrite1Weight = 30;

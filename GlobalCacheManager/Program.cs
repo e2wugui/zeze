@@ -12,7 +12,7 @@ namespace GlobalCacheManager
         public static void Main(string[] args)
         {
             string ip = null;
-            int port = 5555;
+            int port = 5002;
             string raftName = null;
             string raftConf = "global.raft.xml";
 

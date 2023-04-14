@@ -966,7 +966,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		});
 
 		String ip = null;
-		int port = 5555;
+		int port = 5002;
 		String raftName = null;
 		String raftConf = "global.raft.xml";
 

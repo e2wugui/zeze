@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <zeze
-	GlobalCacheManagerHostNameOrAddress="GlobalCacheManagersConf" GlobalCacheManagerPort="5555"
+	GlobalCacheManagerHostNameOrAddress="GlobalCacheManagersConf" GlobalCacheManagerPort="5002"
 	CheckpointPeriod="60000" CheckpointMode="Table" ServerId="0"
 	>
 

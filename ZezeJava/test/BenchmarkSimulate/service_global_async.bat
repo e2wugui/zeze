@@ -14,5 +14,5 @@ java -Dlogname=global ^
 -Xlog:gc=info,gc+heap=info:global_gc.log:time ^
 -cp .;lib\* ^
 Zeze.Services.GlobalCacheManagerAsyncServer ^
--port 5555
+-port 5002
 -tryNextSync
