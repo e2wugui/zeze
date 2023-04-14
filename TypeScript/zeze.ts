@@ -1,8 +1,7 @@
-
 import { TextEncoder, TextDecoder } from "text-encoding"
 
 var HostLang;
-var IsUe: boolean = false;
+var IsUe = false;
 
 try {
 	HostLang = require('csharp'); // puerts unity
@@ -10,8 +9,7 @@ try {
 	try {
 		HostLang = require('ue'); // puerts unreal
 		IsUe = true;
-	}
-	catch (ex) {
+	} catch (ex) {
 	}
 }
 
@@ -47,15 +45,13 @@ export module Zeze {
 			}
 			var base = 16;
 			var hex = bn.toString(base);
-			if (hex.length % 2) {
+			if (hex.length % 2)
 				hex = '0' + hex;
-			}
 			// Check the high byte _after_ proper hex padding
 			var highbyte = parseInt(hex.slice(0, 2), 16);
 			var highbit = (0x80 & highbyte);
-			if (pos && highbit) {
+			if (pos && highbit)
 				hex = '00' + hex;
-			}
 			var bytes = hex.length / 2;
 			if (bytes > bytesCount)
 				throw new Error("bigint too big. bytes=" + bytes + ", bytesCount=" + bytesCount);
@@ -75,12 +71,10 @@ export module Zeze {
 		public static BitNot(bn: bigint): bigint {
 			var bin = (bn).toString(2)
 			var prefix = '';
-			while (bin.length % 8) {
+			while (bin.length % 8)
 				bin = '0' + bin;
-			}
-			if ('1' === bin[0] && -1 !== bin.slice(1).indexOf('1')) {
+			if ('1' === bin[0] && -1 !== bin.slice(1).indexOf('1'))
 				prefix = '11111111';
-			}
 			bin = bin.split('').map(function (i) {
 				return '0' === i ? '1' : '0';
 			}).join('');
@@ -91,12 +85,12 @@ export module Zeze {
 			var hex = [];
 			var end = offset + len;
 			var pos = true;
-			if (len > 0 && (u8[offset] & 0x80)) {
+			if (len > 0 && (u8[offset] & 0x80))
 				pos = false;
-			}
 			for (var i = offset; i < end; ++i) {
 				var h = u8[i].toString(16);
-				if (h.length % 2) { h = '0' + h; }
+				if (h.length % 2)
+					h = '0' + h;
 				hex.push(h);
 			}
 
@@ -119,7 +113,8 @@ export module Zeze {
 			}
 			for (var i = end - 1; i >= offset; --i) {
 				var h = u8[i].toString(16);
-				if (h.length % 2) { h = '0' + h; }
+				if (h.length % 2)
+					h = '0' + h;
 				hex.push(h);
 			}
 
@@ -129,6 +124,46 @@ export module Zeze {
 				bn = -bn;
 			}
 			return bn;
+		}
+	}
+
+	export class Vector2 {
+		public x: number;
+		public y: number;
+
+		constructor(x: number, y: number) {
+			this.x = x;
+			this.y = y;
+		}
+	}
+
+	export class Vector3 extends Vector2 {
+		public z: number;
+
+		constructor(x: number, y: number, z: number) {
+			super(x, y);
+			this.z = z;
+		}
+
+		public static FromVector2(v: Vector2): Vector3 {
+			return new Vector3(v.x, v.y, 0);
+		}
+	}
+
+	export class Vector4 extends Vector3 {
+		public w: number;
+
+		constructor(x: number, y: number, z: number, w: number) {
+			super(x, y, z);
+			this.w = w;
+		}
+
+		public static FromVector2(v: Vector2): Vector4 {
+			return new Vector4(v.x, v.y, 0, 0);
+		}
+
+		public static FromVector3(v: Vector3): Vector4 {
+			return new Vector4(v.x, v.y, v.z, 0);
 		}
 	}
 
@@ -215,7 +250,6 @@ export module Zeze {
 		public static readonly Response: number = 0;
 		public static readonly BitResultCode: number = 1 << 5;
 		public static readonly FamilyClassMask: number = FamilyClass.BitResultCode - 1;
-
 	}
 
 	export abstract class Protocol implements Serializable {
@@ -243,8 +277,7 @@ export module Zeze {
 		}
 
 		public Send(socket: Socket) {
-			var bb = this.EncodeProtocol();
-			socket.Send(bb);
+			socket.Send(this.EncodeProtocol());
 		}
 
 		public Dispatch(service: Service, factoryHandle: ProtocolFactoryHandle) {
@@ -273,13 +306,11 @@ export module Zeze {
 				var size: number;
 				var readIndexSaved = os.ReadIndex;
 
-				if (os.Size() >= 12) // protocl header size.
-				{
+				if (os.Size() >= 12) { // protocol header size.
 					moduleId = os.ReadInt4();
 					protocolId = os.ReadInt4();
 					size = os.ReadInt4();
-				}
-				else {
+				} else {
 					input.ReadIndex = readIndexSaved;
 					return;
 				}
@@ -491,7 +522,7 @@ export module Zeze {
 	export interface IServiceEventHandle {
 		OnSocketConnected(service: Service, socket: Socket);
 		OnSocketClosed(service: Service, socket: Socket);
-		OnSoekctInput(service: Service, socket: Socket, buffer: ArrayBuffer, offset: number, len: number): boolean; // true 已经处理了，false 进行默认处理
+		OnSoekctInput(service: Service, socket: Socket, buffer: ArrayBuffer, offset: number, len: number): boolean; // true 宸茬粡澶勭悊浜嗭紝false 杩涜榛樿澶勭悊
 	}
 
 	export class ProtocolHead {
@@ -559,11 +590,10 @@ export module Zeze {
 		private Implement;
 
 		public constructor(name: string) {
-			if (IsUe) {
+			if (IsUe)
 				this.Implement = new HostLang.ToTypeScriptService();
-			} else {
+			else
 				this.Implement = new HostLang.ToTypeScriptService(name);
-			}
 			this.Implement.CallbackWhenSocketHandshakeDone = this.CallbackOnSocketHandshakeDone.bind(this);
 			this.Implement.CallbackWhenSocketClose = this.CallbackOnSocketClose.bind(this);
 			this.Implement.CallbackWhenSocketProcessInputBuffer = this.CallbackOnSocketProcessInputBuffer.bind(this);
@@ -601,23 +631,22 @@ export module Zeze {
 		}
 
 		public constructor(buffer: Uint8Array = null, readIndex: number = 0, length: number = 0) {
-			this.Bytes = (null == buffer) ? new Uint8Array(1024) : buffer;
+			this.Bytes = (null == buffer) ? new Uint8Array(16) : buffer;
 			this.View = new DataView(this.Bytes.buffer);
 			this.ReadIndex = readIndex;
 			this.WriteIndex = this.ReadIndex + length;
 		}
 
 		ToPower2(needSize: number) {
-			var size = 1024;
+			var size = 16;
 			while (size < needSize)
 				size <<= 1;
 			return size;
 		}
 
 		public static BlockCopy(src: Uint8Array, srcOffset: number, dst: Uint8Array, dstOffset: number, count: number) {
-			for (var i = 0; i < count; ++i) {
+			for (var i = 0; i < count; ++i)
 				dst[i + dstOffset] = src[i + srcOffset];
-			}
 		}
 
 		public Copy(): Uint8Array {
@@ -675,8 +704,7 @@ export module Zeze {
 					this.ReadIndex = 0;
 					this.WriteIndex = size;
 				}
-			}
-			else
+			} else
 				this.Reset();
 		}
 
@@ -1107,6 +1135,47 @@ export module Zeze {
 			return x;
 		}
 
+		public WriteVector2(v: Vector2) {
+			this.EnsureWrite(8);
+			var bytes = this.Bytes;
+			var i = this.WriteIndex;
+			this.View.setFloat32(i, v.x, true);
+			this.View.setFloat32(i + 4, v.y, true);
+			this.WriteIndex = i + 8;
+		}
+
+		public WriteVector3(v: Vector3) {
+			this.EnsureWrite(12);
+			var bytes = this.Bytes;
+			var i = this.WriteIndex;
+			this.View.setFloat32(i, v.x, true);
+			this.View.setFloat32(i + 4, v.y, true);
+			this.View.setFloat32(i + 8, v.z, true);
+			this.WriteIndex = i + 12;
+		}
+
+		public WriteVector4(v: Vector4) {
+			this.EnsureWrite(16);
+			var bytes = this.Bytes;
+			var i = this.WriteIndex;
+			this.View.setFloat32(i, v.x, true);
+			this.View.setFloat32(i + 4, v.y, true);
+			this.View.setFloat32(i + 8, v.z, true);
+			this.View.setFloat32(i + 12, v.w, true);
+			this.WriteIndex = i + 16;
+		}
+
+		public WriteVector2Int(v: Vector2) {
+			this.WriteInt(v.x);
+			this.WriteInt(v.y);
+		}
+
+		public WriteVector3Int(v: Vector3) {
+			this.WriteInt(v.x);
+			this.WriteInt(v.y);
+			this.WriteInt(v.z);
+		}
+
 		static Encoder: TextEncoder = new TextEncoder();
 		static Decoder: TextDecoder = new TextDecoder();
 
@@ -1185,7 +1254,7 @@ export module Zeze {
 			return ByteBuffer.toString(this.Bytes, this.ReadIndex, this.WriteIndex);
 		}
 
-		// 只能增加新的类型定义，增加时记得同步 SkipUnknownField
+		// 鍙兘澧炲姞鏂扮殑绫诲瀷瀹氫箟锛屽鍔犳椂璁板緱鍚屾 SkipUnknownField
 		public static readonly INTEGER = 0; // byte,short,int,long,bool
 		public static readonly FLOAT = 1; // float
 		public static readonly DOUBLE = 2; // double
@@ -1308,6 +1377,119 @@ export module Zeze {
 				return this.ReadString();
 			this.SkipUnknownField(tag);
 			return "";
+		}
+
+		private ToFloat(i: number): number {
+			return this.View.getFloat32(i, true);
+		}
+
+		public ReadVector2(): Vector2 {
+			this.EnsureRead(8);
+			var i = this.ReadIndex;
+			var x = this.ToFloat(i);
+			var y = this.ToFloat(i + 4);
+			this.ReadIndex = i + 8;
+			return new Vector2(x, y);
+		}
+
+		public ReadVector3(): Vector3 {
+			this.EnsureRead(12);
+			var i = this.ReadIndex;
+			var x = this.ToFloat(i);
+			var y = this.ToFloat(i + 4);
+			var z = this.ToFloat(i + 8);
+			this.ReadIndex = i + 12;
+			return new Vector3(x, y, z);
+		}
+
+		public ReadVector4(): Vector4 {
+			this.EnsureRead(16);
+			var i = this.ReadIndex;
+			var x = this.ToFloat(i);
+			var y = this.ToFloat(i + 4);
+			var z = this.ToFloat(i + 8);
+			var w = this.ToFloat(i + 12);
+			this.ReadIndex = i + 16;
+			return new Vector4(x, y, z, w);
+		}
+
+		public ReadVector2Int(): Vector2 {
+			var x = this.ReadInt();
+			var y = this.ReadInt();
+			return new Vector2(x, y);
+		}
+
+		public ReadVector3Int(): Vector3 {
+			var x = this.ReadInt();
+			var y = this.ReadInt();
+			var z = this.ReadInt();
+			return new Vector3(x, y, z);
+		}
+
+		public ReadVector2T(tag: number): Vector2 {
+			var type = tag & ByteBuffer.TAG_MASK;
+			if (type == ByteBuffer.VECTOR2)
+				return this.ReadVector2();
+			if (type == ByteBuffer.VECTOR3)
+				return this.ReadVector3();
+			if (type == ByteBuffer.VECTOR4)
+				return this.ReadVector4();
+			if (type == ByteBuffer.VECTOR2INT)
+				return this.ReadVector2Int();
+			if (type == ByteBuffer.VECTOR3INT)
+				return this.ReadVector3Int();
+			if (type == ByteBuffer.FLOAT)
+				return new Vector2(this.ReadFloat(), 0);
+			if (type == ByteBuffer.DOUBLE)
+				return new Vector2(this.ReadDouble(), 0);
+			if (type == ByteBuffer.INTEGER)
+				return new Vector2(Number(this.ReadLong()), 0);
+			this.SkipUnknownField(tag);
+			return new Vector2(0, 0);
+		}
+
+		public ReadVector3T(tag: number): Vector3 {
+			var type = tag & ByteBuffer.TAG_MASK;
+			if (type == ByteBuffer.VECTOR3)
+				return this.ReadVector3();
+			if (type == ByteBuffer.VECTOR2)
+				return Vector3.FromVector2(this.ReadVector2());
+			if (type == ByteBuffer.VECTOR4)
+				return this.ReadVector4();
+			if (type == ByteBuffer.VECTOR3INT)
+				return this.ReadVector3Int();
+			if (type == ByteBuffer.VECTOR2INT)
+				return Vector3.FromVector2(this.ReadVector2Int());
+			if (type == ByteBuffer.FLOAT)
+				return new Vector3(this.ReadFloat(), 0, 0);
+			if (type == ByteBuffer.DOUBLE)
+				return new Vector3(this.ReadDouble(), 0, 0);
+			if (type == ByteBuffer.INTEGER)
+				return new Vector3(Number(this.ReadLong()), 0, 0);
+			this.SkipUnknownField(tag);
+			return new Vector3(0, 0, 0);
+		}
+
+		public ReadVector4T(tag: number): Vector4 {
+			var type = tag & ByteBuffer.TAG_MASK;
+			if (type == ByteBuffer.VECTOR4)
+				return this.ReadVector4();
+			if (type == ByteBuffer.VECTOR3)
+				return Vector4.FromVector3(this.ReadVector3());
+			if (type == ByteBuffer.VECTOR2)
+				return Vector4.FromVector2(this.ReadVector2());
+			if (type == ByteBuffer.VECTOR3INT)
+				return Vector4.FromVector3(this.ReadVector3Int());
+			if (type == ByteBuffer.VECTOR2INT)
+				return Vector4.FromVector2(this.ReadVector2Int());
+			if (type == ByteBuffer.FLOAT)
+				return new Vector4(this.ReadFloat(), 0, 0, 0);
+			if (type == ByteBuffer.DOUBLE)
+				return new Vector4(this.ReadDouble(), 0, 0, 0);
+			if (type == ByteBuffer.INTEGER)
+				return new Vector4(Number(this.ReadLong()), 0, 0, 0);
+			this.SkipUnknownField(tag);
+			return new Vector4(0, 0, 0, 0);
 		}
 
 		public ReadBean<T extends Serializable>(bean: T, tag: number): T {
