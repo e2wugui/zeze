@@ -805,7 +805,7 @@ public final class ServiceManagerServer implements Closeable {
 			var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(current));
 			bb.WriteLong(current);
 			try {
-				sms.autoKeysDb.put(RocksDatabase.getSyncWriteOptions(), key, bb.Bytes);
+				sms.autoKeysDb.put(RocksDatabase.getDefaultWriteOptions(), key, bb.Bytes);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}

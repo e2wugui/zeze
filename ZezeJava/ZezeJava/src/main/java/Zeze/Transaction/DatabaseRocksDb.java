@@ -142,7 +142,7 @@ public class DatabaseRocksDb extends Database {
 				}
 			} else {
 				try {
-					rocksDb.write(RocksDatabase.getSyncWriteOptions(), batch);
+					rocksDb.write(RocksDatabase.getDefaultWriteOptions(), batch);
 				} catch (RocksDBException e) {
 					throw new RuntimeException(e);
 				}
