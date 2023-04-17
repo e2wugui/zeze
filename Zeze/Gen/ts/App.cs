@@ -50,7 +50,6 @@ namespace Zeze.Gen.ts
             {
                 sw.WriteLine("    public " + m.Name + ": Zeze.Service;");
             }
-            sw.WriteLine();
         }
 
         private void PropertyInitInConstructorGen(System.IO.StreamWriter sw)
@@ -109,7 +108,6 @@ namespace Zeze.Gen.ts
             // new file
             FileSystem.CreateDirectory(fullDir);
             using System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
-            sw.WriteLine();
             sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImportGen);
             ImportGen(sw);
             sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImportGen);
@@ -118,6 +116,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNamePropertyGen);
             PropertyGen(sw);
             sw.WriteLine("    " + fcg.ChunkEndTag + " " + ChunkNamePropertyGen);
+            sw.WriteLine();
             sw.WriteLine("    public constructor() {");
             sw.WriteLine("        " + fcg.ChunkStartTag + " " + ChunkNamePropertyInitGen);
             PropertyInitInConstructorGen(sw);

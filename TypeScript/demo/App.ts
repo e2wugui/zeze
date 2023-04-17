@@ -1,4 +1,3 @@
-
 // ZEZE_FILE_CHUNK {{{ IMPORT GEN
 import { Zeze } from "zeze"
 import { demo_Module1 } from "demo/Module1/ModuleModule1"
@@ -10,8 +9,8 @@ export class demo_App {
     public demo_Module1: demo_Module1;
     public demo_Module1_Module11: demo_Module1_Module11;
     public Client: Zeze.Service;
-
     // ZEZE_FILE_CHUNK }}} PROPERTY GEN
+
     public constructor() {
         // ZEZE_FILE_CHUNK {{{ PROPERTY INIT GEN
         this.Client = new Zeze.Service("Client");

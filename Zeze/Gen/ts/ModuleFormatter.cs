@@ -51,7 +51,7 @@ namespace Zeze.Gen.ts
                 {
                     importp.Append(p.Space.Path("_", p.Name)).Append(", ");
                 }
-                sw.WriteLine("import { " + importp.ToString() + "} from \"gen\"");
+                sw.WriteLine("import { " + importp + "} from \"gen\"");
             }
             sw.WriteLine("import { demo_App } from \"demo/App\"");
         }
@@ -66,7 +66,7 @@ namespace Zeze.Gen.ts
             int serviceHandleFlags = module.ReferenceService.HandleFlags;
             foreach (Protocol p in module.Protocols.Values)
             {
-                if (p is Rpc rpc)
+                if (p is Rpc)
                 {
                     // rpc 总是需要注册.
                     need.Add(p);
@@ -89,19 +89,20 @@ namespace Zeze.Gen.ts
             int serviceHandleFlags = module.ReferenceService.HandleFlags;
             foreach (Protocol p in module.Protocols.Values)
             {
-                string fullName = p.Space.Path("_", p.Name);
-                string factory = "() => { return new " + fullName + "(); }";
                 if (p is Rpc rpc)
                 {
-                    string handle = ((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0)
-                        ? "this.Process" + rpc.Name + "Request.bind(this)" : "null";
-                    sw.WriteLine($"        app.{serv.Name}.FactoryHandleMap.set({rpc.TypeId}n, new Zeze.ProtocolFactoryHandle({factory}, {handle}));");
+                    string handle = (rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0
+                        ? $"p => this.Process{rpc.Name}Request(<{p.Space.Path("_", p.Name)}>p)" : "null";
+                    sw.WriteLine($"        app.{serv.Name}.FactoryHandleMap.set({rpc.TypeId}n, new Zeze.ProtocolFactoryHandle(");
+                    sw.WriteLine($"            () => {{ return new {p.Space.Path("_", p.Name)}(); }},");
+                    sw.WriteLine($"            {handle}));");
                     continue;
                 }
                 if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))
                 {
-                    string handle = "this.Process" + p.Name + ".bind(this)";
-                    sw.WriteLine($"        app.{serv.Name}.FactoryHandleMap.set({p.TypeId}n, new Zeze.ProtocolFactoryHandle({factory}, {handle}));");
+                    sw.WriteLine($"        app.{serv.Name}.FactoryHandleMap.set({p.TypeId}n, new Zeze.ProtocolFactoryHandle(");
+                    sw.WriteLine($"            () => {{ return new {p.Space.Path("_", p.Name)}(); }},");
+                    sw.WriteLine($"            p => this.Process{p.Name}(<{p.Space.Path("_", p.Name)}>p)));");
                 }
             }
         }
@@ -132,15 +133,14 @@ namespace Zeze.Gen.ts
                 // new file
                 FileSystem.CreateDirectory(fullDir);
                 using System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
-                sw.WriteLine();
                 sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport);
                 Import(sw);
                 sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport);
                 sw.WriteLine();
                 sw.WriteLine("export class " + module.Path("_") + " {");
-                sw.WriteLine("        " + fcg.ChunkStartTag + " " + ChunkNameModuleEnums);
+                sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNameModuleEnums);
                 PrintModuleEnums(sw);
-                sw.WriteLine("        " + fcg.ChunkEndTag + " " + ChunkNameModuleEnums);
+                sw.WriteLine("    " + fcg.ChunkEndTag + " " + ChunkNameModuleEnums);
                 sw.WriteLine("    public constructor(app: " + module.Solution.Name + "_App) {");
                 sw.WriteLine("        " + fcg.ChunkStartTag + " " + ChunkNameRegisterProtocol);
                 RegisterProtocol(sw);
@@ -152,7 +152,6 @@ namespace Zeze.Gen.ts
                 sw.WriteLine();
                 sw.WriteLine("    public Stop(app: " + module.Solution.Name + "_App): void {");
                 sw.WriteLine("    }");
-                sw.WriteLine();
                 if (module.ReferenceService != null)
                 {
                     int serviceHandleFlags = module.ReferenceService.HandleFlags;
@@ -163,19 +162,19 @@ namespace Zeze.Gen.ts
                         {
                             if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags) != 0)
                             {
+                                sw.WriteLine();
                                 sw.WriteLine("    public Process" + rpc.Name + "Request(rpc: " + fullName + "): number {");
                                 sw.WriteLine("        return 0;");
                                 sw.WriteLine("    }");
-                                sw.WriteLine();
                             }
                             continue;
                         }
                         if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleScriptFlags))
                         {
+                            sw.WriteLine();
                             sw.WriteLine("    public Process" + p.Name + "(protocol: " + fullName + "): number {");
                             sw.WriteLine("        return 0;");
                             sw.WriteLine("    }");
-                            sw.WriteLine();
                         }
                     }
                 }
