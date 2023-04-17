@@ -261,7 +261,7 @@ namespace Zeze.Gen.javadata
             }
         }
 
-        public static bool IsOldStypeEncodeDecodeType(Types.Type type)
+        public static bool IsOldStyleEncodeDecodeType(Types.Type type)
         {
             switch (type)
             {
@@ -280,7 +280,7 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.Write(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
-            if (IsOldStypeEncodeDecodeType(vt))
+            if (IsOldStyleEncodeDecodeType(vt))
             {
                 sw.WriteLine(" {");
                 vt.Accept(new Define("_e_", sw, prefix + "        "));
@@ -318,7 +318,7 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
             sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
-            if (IsOldStypeEncodeDecodeType(kt))
+            if (IsOldStyleEncodeDecodeType(kt))
             {
                 kt.Accept(new Define("_k_", sw, prefix + "        "));
                 kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        ", "_s_"));
@@ -327,7 +327,7 @@ namespace Zeze.Gen.javadata
             {
                 sw.WriteLine(prefix + "        var _k_ = " + DecodeElement(kt, "_s_") + ';');
             }
-            if (IsOldStypeEncodeDecodeType(vt))
+            if (IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_v_", sw, prefix + "        "));
                 vt.Accept(new Decode("_v_", 0, bufname, sw, prefix + "        "));

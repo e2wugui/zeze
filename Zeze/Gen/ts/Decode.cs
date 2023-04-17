@@ -189,12 +189,24 @@ namespace Zeze.Gen.ts
                     return bufname + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                 case TypeDynamic:
                     return bufname + ".ReadDynamic(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
+                case TypeVector2:
+                    return bufname + ".ReadVector2T(" + typeVar + ')';
+                case TypeVector2Int:
+                    return bufname + ".ReadVector2T(" + typeVar + ')';
+                case TypeVector3:
+                    return bufname + ".ReadVector3T(" + typeVar + ')';
+                case TypeVector3Int:
+                    return bufname + ".ReadVector3T(" + typeVar + ')';
+                case TypeVector4:
+                    return bufname + ".ReadVector4T(" + typeVar + ')';
+                case TypeQuaternion:
+                    return bufname + ".ReadVector4T(" + typeVar + ')';
                 default:
                     throw new Exception("invalid collection element type: " + type);
             }
         }
 
-        public static bool IsOldStypeEncodeDecodeType(Types.Type type)
+        public static bool IsOldStyleEncodeDecodeType(Types.Type type)
         {
             if (type is TypeDynamic)
                 return true;
@@ -224,7 +236,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
             sw.WriteLine(prefix + "    {");
-            if (IsOldStypeEncodeDecodeType(vt))
+            if (IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_e_", sw, prefix + "        "));
                 vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        "));
@@ -251,7 +263,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
             sw.WriteLine(prefix + "    {");
-            if (IsOldStypeEncodeDecodeType(vt))
+            if (IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_e_", sw, prefix + "        "));
                 vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        "));
@@ -278,7 +290,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.WriteLine(prefix + "    var _s_ = (_t_ = " + bufname + ".ReadByte()) >> Zeze.ByteBuffer.TAG_SHIFT;");
             sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
-            if (IsOldStypeEncodeDecodeType(kt))
+            if (IsOldStyleEncodeDecodeType(kt))
             {
                 kt.Accept(new Define("_k" + id + "_", sw, prefix + "        "));
                 kt.Accept(new Decode("_k" + id + "_", 0, bufname, sw, prefix + "        "));
@@ -287,7 +299,7 @@ namespace Zeze.Gen.ts
             {
                 sw.WriteLine(prefix + "        var _k" + id + "_ = " + DecodeElement(kt, "_s_") + ';');
             }
-            if (IsOldStypeEncodeDecodeType(vt))
+            if (IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_v" + id + "_", sw, prefix + "        "));
                 vt.Accept(new Decode("_v" + id + "_", 0, bufname, sw, prefix + "        "));
@@ -323,37 +335,55 @@ namespace Zeze.Gen.ts
             if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadDynamic(" + varname + ", _t_);");
             else
-                sw.WriteLine(prefix + bufname + ".ReadDynamic(" + varname + ", _t_);");
-        }
-
-        public void Visit(TypeQuaternion type)
-        {
-            throw new NotImplementedException();
+                sw.WriteLine(prefix + varname + ".Decode(" + bufname + ");");
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new NotImplementedException();
+            if (id > 0)
+                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadVector2T(_t_);");
+            else
+                sw.WriteLine(prefix + bufname + ".ReadVector2(" + varname + ");");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            if (id > 0)
+                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadVector2T(_t_);");
+            else
+                sw.WriteLine(prefix + bufname + ".ReadVector2(" + varname + ");");
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new NotImplementedException();
+            if (id > 0)
+                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadVector3T(_t_);");
+            else
+                sw.WriteLine(prefix + bufname + ".ReadVector3(" + varname + ");");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            if (id > 0)
+                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadVector3T(_t_);");
+            else
+                sw.WriteLine(prefix + bufname + ".ReadVector3(" + varname + ");");
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new NotImplementedException();
+            if (id > 0)
+                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadVector4T(_t_);");
+            else
+                sw.WriteLine(prefix + bufname + ".ReadVector4(" + varname + ");");
+        }
+
+        public void Visit(TypeQuaternion type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + varname + " = " + bufname + ".ReadVector4T(_t_);");
+            else
+                sw.WriteLine(prefix + bufname + ".ReadVector4(" + varname + ");");
         }
     }
 }

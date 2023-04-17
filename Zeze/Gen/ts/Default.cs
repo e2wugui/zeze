@@ -102,34 +102,34 @@ namespace Zeze.Gen.ts
             Value = "null";
         }
 
-        public void Visit(TypeQuaternion type)
-        {
-            throw new NotImplementedException();
-        }
-
         public void Visit(TypeVector2 type)
         {
-            throw new NotImplementedException();
+            Value = "new Zeze.Vector2(0, 0);";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            Value = "new Zeze.Vector2(0, 0);";
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new NotImplementedException();
+            Value = "new Zeze.Vector3(0, 0, 0);";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            Value = "new Zeze.Vector3(0, 0, 0);";
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new NotImplementedException();
+            Value = "new Zeze.Vector4(0, 0, 0, 0);";
+        }
+
+        public void Visit(TypeQuaternion type)
+        {
+            Value = "new Zeze.Vector4(0, 0, 0, 0);";
         }
     }
 }

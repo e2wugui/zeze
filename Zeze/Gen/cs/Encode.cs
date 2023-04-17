@@ -232,6 +232,12 @@ namespace Zeze.Gen.cs
                 case Bean:
                 case BeanKey:
                 case TypeDynamic:
+                case TypeVector2:
+                case TypeVector2Int:
+                case TypeVector3:
+                case TypeVector3Int:
+                case TypeVector4:
+                case TypeQuaternion:
                     sw.WriteLine(prefix + varName + ".Encode(" + bufname + ");");
                     break;
                 default:
@@ -270,7 +276,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    foreach (var _v_ in _x_)");
             sw.WriteLine(prefix + "    {");
-            if (Decode.IsOldStypeEncodeDecodeType(vt))
+            if (Decode.IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        ", varUpperName1));
             }
@@ -306,7 +312,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    foreach (var _e_ in _x_)");
             sw.WriteLine(prefix + "    {");
-            if (Decode.IsOldStypeEncodeDecodeType(kt))
+            if (Decode.IsOldStyleEncodeDecodeType(kt))
             {
                 vt.Accept(new Encode("_e_.Key", 0, bufname, sw, prefix + "        ", varUpperName1));
             }
@@ -314,7 +320,7 @@ namespace Zeze.Gen.cs
             {
                 EncodeElement(kt, prefix + "        ", "_e_.Key");
             }
-            if (Decode.IsOldStypeEncodeDecodeType(vt))
+            if (Decode.IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Encode("_e_.Value", 0, bufname, sw, prefix + "        ", varUpperName1));
             }

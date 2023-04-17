@@ -133,6 +133,10 @@ export module Zeze {
 			this.x = x;
 			this.y = y;
 		}
+
+		public isZero(): boolean {
+			return this.x == 0 && this.y == 0;
+		}
 	}
 
 	export class Vector3 extends Vector2 {
@@ -145,6 +149,10 @@ export module Zeze {
 
 		public static FromVector2(v: Vector2): Vector3 {
 			return new Vector3(v.x, v.y, 0);
+		}
+
+		public isZero(): boolean {
+			return this.x == 0 && this.y == 0 && this.z == 0;
 		}
 	}
 
@@ -162,6 +170,10 @@ export module Zeze {
 
 		public static FromVector3(v: Vector3): Vector4 {
 			return new Vector4(v.x, v.y, v.z, 0);
+		}
+
+		public isZero(): boolean {
+			return this.x == 0 && this.y == 0 && this.z == 0 && this.w == 0;
 		}
 	}
 

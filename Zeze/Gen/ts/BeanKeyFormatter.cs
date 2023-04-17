@@ -30,6 +30,7 @@ namespace Zeze.Gen.ts
 
         public void Make(System.IO.StreamWriter sw)
         {
+            sw.WriteLine();
             sw.WriteLine("export class " + beanKey.Space.Path("_", beanKey.Name) + " implements Zeze.Bean {");
             // declare enums
             foreach (Types.Enum e in beanKey.Enums)
@@ -50,7 +51,7 @@ namespace Zeze.Gen.ts
 
             // params construct with init
             {
-                sw.WriteLine("     public constructor(" + GetParamListWithDefault(beanKey.Variables) + ") {");
+                sw.WriteLine("    public constructor(" + GetParamListWithDefault(beanKey.Variables) + ") {");
                 foreach (Types.Variable v in beanKey.Variables)
                 {
                     sw.WriteLine("        this." + v.Name + " = " + v.NamePrivate + "_;");
@@ -60,7 +61,6 @@ namespace Zeze.Gen.ts
             }
             sw.WriteLine("    public static readonly TYPEID: bigint = " + beanKey.TypeId + "n;");
             sw.WriteLine("    public TypeId(): bigint { return " + beanKey.Space.Path("_", beanKey.Name) + ".TYPEID; }");
-            sw.WriteLine();
             sw.WriteLine();
             Encode.Make(beanKey, sw, "    ");
             Decode.Make(beanKey, sw, "    ");

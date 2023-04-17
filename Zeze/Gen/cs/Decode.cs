@@ -244,7 +244,7 @@ namespace Zeze.Gen.cs
             }
         }
 
-        public static bool IsOldStypeEncodeDecodeType(Types.Type type)
+        public static bool IsOldStyleEncodeDecodeType(Types.Type type)
         {
             if (type is TypeDynamic)
                 return true;
@@ -300,7 +300,7 @@ namespace Zeze.Gen.cs
                 }
                 sw.WriteLine(prefix + "    for (int _j_ = 0; _j_ < _n_; _j_++)");
                 sw.WriteLine(prefix + "    {");
-                if (IsOldStypeEncodeDecodeType(vt))
+                if (IsOldStyleEncodeDecodeType(vt))
                 {
                     vt.Accept(new Define("_e_", sw, prefix + "        "));
                     vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        ", varUpperName1, "_t_"));
@@ -313,7 +313,7 @@ namespace Zeze.Gen.cs
             {
                 sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
                 sw.WriteLine(prefix + "    {");
-                if (IsOldStypeEncodeDecodeType(vt))
+                if (IsOldStyleEncodeDecodeType(vt))
                 {
                     vt.Accept(new Define("_e_", sw, prefix + "        "));
                     vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        ", varUpperName1, "_t_"));
@@ -351,7 +351,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
             sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--)");
             sw.WriteLine(prefix + "    {");
-            if (IsOldStypeEncodeDecodeType(kt))
+            if (IsOldStyleEncodeDecodeType(kt))
             {
                 kt.Accept(new Define("_k_", sw, prefix + "        "));
                 kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        ", varUpperName1, "_s_"));
@@ -360,7 +360,7 @@ namespace Zeze.Gen.cs
             {
                 sw.WriteLine(prefix + "        var _k_ = " + DecodeElement(kt, "_s_") + ';');
             }
-            if (IsOldStypeEncodeDecodeType(vt))
+            if (IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_v_", sw, prefix + "        "));
                 vt.Accept(new Decode("_v_", 0, bufname, sw, prefix + "        ", varUpperName1, "_t_"));

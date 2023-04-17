@@ -291,7 +291,7 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "if (_n_ != 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
-            if (Decode.IsOldStypeEncodeDecodeType(vt))
+            if (Decode.IsOldStyleEncodeDecodeType(vt))
             {
                 sw.WriteLine(prefix + "    for (var _v_ : _x_) {");
                 vt.Accept(new Encode(null, "_v_", 0, bufname, sw, prefix + "        "));
@@ -327,7 +327,7 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    for (var _e_ : _x_.entrySet()) {");
-            if (Decode.IsOldStypeEncodeDecodeType(kt))
+            if (Decode.IsOldStyleEncodeDecodeType(kt))
             {
                 vt.Accept(new Encode(null, "_e_.getKey()", 0, bufname, sw, prefix + "        "));
             }
@@ -335,7 +335,7 @@ namespace Zeze.Gen.javadata
             {
                 EncodeElement(kt, prefix + "        ", "_e_.getKey()");
             }
-            if (Decode.IsOldStypeEncodeDecodeType(vt))
+            if (Decode.IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Encode(null, "_e_.getValue()", 0, bufname, sw, prefix + "        "));
             }

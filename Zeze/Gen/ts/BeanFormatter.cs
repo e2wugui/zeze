@@ -17,6 +17,7 @@ namespace Zeze.Gen.ts
 
         public void Make(System.IO.StreamWriter sw)
         {
+            sw.WriteLine();
             sw.WriteLine("export class " + bean.Space.Path("_", bean.Name) + " implements Zeze.Bean {");
             // declare enums
             foreach (Types.Enum e in bean.Enums)
@@ -33,9 +34,7 @@ namespace Zeze.Gen.ts
                 sw.WriteLine($"    public {v.Name}: {TypeName.GetName(v.VariableType)}; {v.Comment}");
             }
             sw.WriteLine();
-            sw.WriteLine();
             Construct.Make(bean, sw, "    ");
-            sw.WriteLine();
             sw.WriteLine("    public static readonly TYPEID: bigint = " + bean.TypeId + "n;");
             sw.WriteLine("    public TypeId(): bigint { return " + bean.Space.Path("_", bean.Name) + ".TYPEID; }");
             sw.WriteLine();
@@ -43,7 +42,6 @@ namespace Zeze.Gen.ts
             Decode.Make(bean, sw, "    ");
             MakeDynamicStaticFunc(sw);
             sw.WriteLine("}");
-            sw.WriteLine();
         }
 
         private void GenDynamicSpecialMethod(System.IO.StreamWriter sw, Types.Variable v, Types.TypeDynamic d, bool isCollection)

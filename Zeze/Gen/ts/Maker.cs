@@ -25,7 +25,6 @@ namespace Zeze.Gen.ts
             sw.WriteLine("// auto-generated");
             sw.WriteLine();
             sw.WriteLine("import { Zeze } from \"zeze\"");
-            sw.WriteLine();
             foreach (Types.Bean bean in Project.AllBeans.Values)
             {
                 new BeanFormatter(bean).Make(sw);
@@ -36,10 +35,9 @@ namespace Zeze.Gen.ts
             }
             foreach (Protocol protocol in Project.AllProtocols.Values)
             {
+                sw.WriteLine();
                 if (protocol is Rpc rpc)
-                {
                    new RpcFormatter(rpc).Make(sw);
-                }
                 else
                     new ProtocolFormatter(protocol).Make(sw);
             }
@@ -55,6 +53,5 @@ namespace Zeze.Gen.ts
             }
             */
         }
-
     }
 }
