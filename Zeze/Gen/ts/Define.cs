@@ -74,7 +74,7 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeList type)
         {
-            DefineNew(type);
+            sw.WriteLine(prefix + "const " + varname + ": " + TypeName.GetName(type) + " = [];");
         }
 
         public void Visit(TypeSet type)

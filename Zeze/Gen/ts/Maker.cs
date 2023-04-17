@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
-
-namespace Zeze.Gen.ts
+﻿namespace Zeze.Gen.ts
 {
     public class Maker
     {
@@ -23,7 +18,7 @@ namespace Zeze.Gen.ts
 
             using System.IO.StreamWriter sw = Program.OpenWriterNoPath(genDir, Project.Solution.Name + "/gen.ts");
             sw.WriteLine("// auto-generated");
-            sw.WriteLine();
+            sw.WriteLine("/* eslint-disable camelcase, class-methods-use-this, lines-between-class-members, max-classes-per-file, new-cap, no-bitwise, no-plusplus, no-underscore-dangle, no-unused-vars, no-use-before-define, prettier/prettier */");
             sw.WriteLine("import { Zeze } from 'zeze/zeze';");
             foreach (Types.Bean bean in Project.AllBeans.Values)
             {
@@ -37,7 +32,7 @@ namespace Zeze.Gen.ts
             {
                 sw.WriteLine();
                 if (protocol is Rpc rpc)
-                   new RpcFormatter(rpc).Make(sw);
+                    new RpcFormatter(rpc).Make(sw);
                 else
                     new ProtocolFormatter(protocol).Make(sw);
             }

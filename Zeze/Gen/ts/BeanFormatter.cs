@@ -54,8 +54,8 @@ namespace Zeze.Gen.ts
             {
                 sw.WriteLine($"            case {real.Value.TypeId}n: return {real.Key}n; // {real.Value.FullName}");
             }
+            sw.WriteLine($"            default: throw new Error(\"Unknown Bean! dynamic@{((Bean)v.Bean).FullName}:{v.Name}\");");
             sw.WriteLine($"        }}");
-            sw.WriteLine($"        throw new Error(\"Unknown Bean! dynamic@{((Bean)v.Bean).FullName}:{v.Name}\");");
             sw.WriteLine($"    }}");
             sw.WriteLine();
             sw.WriteLine($"    public static CreateBeanFromSpecialTypeId_{v.Id}(typeId: bigint): Zeze.Bean | null {{");
@@ -65,8 +65,8 @@ namespace Zeze.Gen.ts
             {
                 sw.WriteLine($"            case {real.Key}n: return new {real.Value.Space.Path("_", real.Value.Name)}();");
             }
+            sw.WriteLine($"            default: return null;");
             sw.WriteLine($"        }}");
-            sw.WriteLine($"        return null;");
             sw.WriteLine($"    }}");
             sw.WriteLine();
         }

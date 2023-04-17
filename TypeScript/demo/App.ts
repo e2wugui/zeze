@@ -1,3 +1,4 @@
+/* eslint-disable import/no-cycle, lines-between-class-members, prettier/prettier */
 // ZEZE_FILE_CHUNK {{{ IMPORT GEN
 import { Zeze } from 'zeze/zeze';
 import ModuleModule1 from 'demo/Module1/ModuleModule1';

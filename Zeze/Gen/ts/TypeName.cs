@@ -62,7 +62,7 @@ namespace Zeze.Gen.ts
         public void Visit(TypeList type)
         {
             string valueName = GetName(type.ValueType);
-            name = "Array<" + valueName + ">";
+            name = valueName + "[]";
         }
 
         public void Visit(TypeSet type)

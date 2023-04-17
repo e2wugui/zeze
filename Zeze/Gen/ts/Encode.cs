@@ -80,7 +80,7 @@ namespace Zeze.Gen.ts
             if (id > 0)
             {
                 sw.WriteLine(prefix + "const _x_ = " + varname + ';');
-                sw.WriteLine(prefix + "if (_x_ != 0) {");
+                sw.WriteLine(prefix + "if (_x_ !== 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteInt(_x_);");
                 sw.WriteLine(prefix + "}");
@@ -94,7 +94,7 @@ namespace Zeze.Gen.ts
             if (id > 0)
             {
                 sw.WriteLine(prefix + "const _x_ = " + varname + ';');
-                sw.WriteLine(prefix + "if (_x_ != 0) {");
+                sw.WriteLine(prefix + "if (_x_ !== 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteInt(_x_);");
                 sw.WriteLine(prefix + "}");
@@ -108,7 +108,7 @@ namespace Zeze.Gen.ts
             if (id > 0)
             {
                 sw.WriteLine(prefix + "const _x_ = " + varname + ';');
-                sw.WriteLine(prefix + "if (_x_ != 0) {");
+                sw.WriteLine(prefix + "if (_x_ !== 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteInt(_x_);");
                 sw.WriteLine(prefix + "}");
@@ -122,7 +122,7 @@ namespace Zeze.Gen.ts
             if (id > 0)
             {
                 sw.WriteLine(prefix + "const _x_ = " + varname + ';');
-                sw.WriteLine(prefix + "if (_x_ != 0n) {");
+                sw.WriteLine(prefix + "if (_x_ !== 0n) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteLong(_x_);");
                 sw.WriteLine(prefix + "}");
@@ -136,7 +136,7 @@ namespace Zeze.Gen.ts
             if (id > 0)
             {
                 sw.WriteLine(prefix + "const _x_ = " + varname + ';');
-                sw.WriteLine(prefix + "if (_x_ != 0) {");
+                sw.WriteLine(prefix + "if (_x_ !== 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteFloat(_x_);");
                 sw.WriteLine(prefix + "}");
@@ -150,7 +150,7 @@ namespace Zeze.Gen.ts
             if (id > 0)
             {
                 sw.WriteLine(prefix + "const _x_ = " + varname + ';');
-                sw.WriteLine(prefix + "if (_x_ != 0) {");
+                sw.WriteLine(prefix + "if (_x_ !== 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteDouble(_x_);");
                 sw.WriteLine(prefix + "}");
@@ -164,7 +164,7 @@ namespace Zeze.Gen.ts
             if (id > 0)
             {
                 sw.WriteLine(prefix + "const _x_ = " + varname + ';');
-                sw.WriteLine(prefix + "if (_x_.length != 0) {");
+                sw.WriteLine(prefix + "if (_x_.length !== 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteBytes(_x_);");
                 sw.WriteLine(prefix + "}");
@@ -178,7 +178,7 @@ namespace Zeze.Gen.ts
             if (id > 0)
             {
                 sw.WriteLine(prefix + "const _x_ = " + varname + ';');
-                sw.WriteLine(prefix + "if (_x_.length != 0) {");
+                sw.WriteLine(prefix + "if (_x_.length !== 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteString(_x_);");
                 sw.WriteLine(prefix + "}");
@@ -249,19 +249,19 @@ namespace Zeze.Gen.ts
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "const _x_ = " + varname + ';');
             sw.WriteLine(prefix + "const _n_ = _x_.length;");
-            sw.WriteLine(prefix + "if (_n_ != 0) {");
+            sw.WriteLine(prefix + "if (_n_ !== 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
-            sw.WriteLine(prefix + "    for (const _v_ in _x_) {");
+            sw.WriteLine(prefix + "    _x_.forEach(_v_ => {");
             // if (Decode.IsOldStyleEncodeDecodeType(vt))
             // {
             //     vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        "));
             // }
             // else
             {
-                EncodeElement(vt, prefix + "        ", varname + "[_v_]");
+                EncodeElement(vt, prefix + "        ", "_v_");
             }
-            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    });");
             sw.WriteLine(prefix + "}");
         }
 
@@ -272,10 +272,10 @@ namespace Zeze.Gen.ts
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "const _x_ = " + varname + ';');
             sw.WriteLine(prefix + "const _n_ = _x_.size;");
-            sw.WriteLine(prefix + "if (_n_ != 0) {");
+            sw.WriteLine(prefix + "if (_n_ !== 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
-            sw.WriteLine(prefix + "    for (const _v_ of _x_) {");
+            sw.WriteLine(prefix + "    _x_.forEach(_v_ => {");
             if (Decode.IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        "));
@@ -284,7 +284,7 @@ namespace Zeze.Gen.ts
             {
                 EncodeElement(vt, prefix + "        ", "_v_");
             }
-            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    });");
             sw.WriteLine(prefix + "}");
         }
 
@@ -296,27 +296,27 @@ namespace Zeze.Gen.ts
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "const _x_ = " + varname + ';');
             sw.WriteLine(prefix + "const _n_ = _x_.size;");
-            sw.WriteLine(prefix + "if (_n_ != 0) {");
+            sw.WriteLine(prefix + "if (_n_ !== 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
-            sw.WriteLine(prefix + "    for (const _e_ of _x_.entries()) {");
+            sw.WriteLine(prefix + "    _x_.forEach((_v_, _k_) => {");
             if (Decode.IsOldStyleEncodeDecodeType(kt))
             {
-                vt.Accept(new Encode("_e_[0]", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Encode("_k_", 0, bufname, sw, prefix + "        "));
             }
             else
             {
-                EncodeElement(kt, prefix + "        ", "_e_[0]");
+                EncodeElement(kt, prefix + "        ", "_k_");
             }
             if (Decode.IsOldStyleEncodeDecodeType(kt))
             {
-                vt.Accept(new Encode("_e_[1]", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        "));
             }
             else
             {
-                EncodeElement(vt, prefix + "        ", "_e_[1]");
+                EncodeElement(vt, prefix + "        ", "_v_");
             }
-            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    });");
             sw.WriteLine(prefix + "}");
         }
 
@@ -328,7 +328,7 @@ namespace Zeze.Gen.ts
                 sw.WriteLine(prefix + "const _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "const _b_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
-                sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
+                sw.WriteLine(prefix + "if (_b_ + 1 === " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
                 sw.WriteLine(prefix + "else");
                 sw.WriteLine(prefix + "    _i_ = _j_;");
@@ -345,7 +345,7 @@ namespace Zeze.Gen.ts
                 sw.WriteLine(prefix + "const _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "const _b_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
-                sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
+                sw.WriteLine(prefix + "if (_b_ + 1 === " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
                 sw.WriteLine(prefix + "else");
                 sw.WriteLine(prefix + "    _i_ = _j_;");

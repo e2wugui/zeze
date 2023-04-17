@@ -92,8 +92,7 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeList type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "this." + variable.Name + " = new " + typeName + "();");
+            sw.WriteLine(prefix + "this." + variable.Name + " = [];");
         }
 
         public void Visit(TypeSet type)

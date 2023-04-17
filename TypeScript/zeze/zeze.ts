@@ -1,14 +1,26 @@
+/* eslint-disable no-param-reassign */
+/* eslint-disable no-case-declarations */
+/* eslint-disable no-underscore-dangle */
+/* eslint-disable class-methods-use-this */
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-use-before-define */
+/* eslint-disable no-plusplus */
+/* eslint-disable no-bitwise */
+/* eslint-disable prefer-template */
+/* eslint-disable lines-between-class-members */
+/* eslint-disable global-require */
+/* eslint-disable prettier/prettier */
+/* eslint-disable max-classes-per-file */
 let HostLang: any;
 let IsUe = false;
 
 try {
 	HostLang = require('csharp'); // puerts unity
-} catch (ex) {
+} catch (_) {
 	try {
 		HostLang = require('ue'); // puerts unreal
 		IsUe = true;
-	} catch (ex) {
-	}
+	} catch (__) { /* empty */ }
 }
 
 export module Zeze {
@@ -51,8 +63,8 @@ export module Zeze {
 				let prefix = '';
 				const prefixString = pos ? '00' : 'ff';
 				while (prefixBytes > 0) {
-					prefix = prefix + prefixString;
-					prefixBytes = prefixBytes - 1;
+					prefix += prefixString;
+					prefixBytes--;
 				}
 				hex = prefix + hex;
 			}
@@ -64,11 +76,9 @@ export module Zeze {
 			let prefix = '';
 			while (bin.length % 8)
 				bin = '0' + bin;
-			if ('1' === bin[0] && -1 !== bin.slice(1).indexOf('1'))
+			if (bin[0] === '1' && bin.slice(1).indexOf('1') !== -1)
 				prefix = '11111111';
-			bin = bin.split('').map(function (i) {
-				return '0' === i ? '1' : '0';
-			}).join('');
+			bin = bin.split('').map(i => i === '0' ? '1' : '0').join('');
 			return BigInt('0b' + prefix + bin);
 		}
 
@@ -86,11 +96,11 @@ export module Zeze {
 			}
 
 			let bn = BigInt('0x' + hex.join(''));
-			//console.log(bn.toString(16));
+			// console.log(bn.toString(16));
 			if (!pos) {
-				bn = BigInt('0b' + bn.toString(2).split('').map(function (i) { return '0' === i ? 1 : 0 }).join('')) + BigInt(1);
+				bn = BigInt('0b' + bn.toString(2).split('').map(i => i === '0' ? 1 : 0).join('')) + BigInt(1);
 				bn = -bn;
-				//console.log(bn.toString(16));
+				// console.log(bn.toString(16));
 			}
 			return bn;
 		}
@@ -110,7 +120,7 @@ export module Zeze {
 
 			let bn = BigInt('0x' + hex.join(''));
 			if (!pos) {
-				bn = BigInt('0b' + bn.toString(2).split('').map(function (i) { return '0' === i ? 1 : 0 }).join('')) + BigInt(1);
+				bn = BigInt('0b' + bn.toString(2).split('').map(i => i === '0' ? 1 : 0).join('')) + BigInt(1);
 				bn = -bn;
 			}
 			return bn;
@@ -127,7 +137,7 @@ export module Zeze {
 		}
 
 		public isZero(): boolean {
-			return this.x == 0 && this.y == 0;
+			return this.x === 0 && this.y === 0;
 		}
 	}
 
@@ -144,7 +154,7 @@ export module Zeze {
 		}
 
 		public isZero(): boolean {
-			return this.x == 0 && this.y == 0 && this.z == 0;
+			return this.x === 0 && this.y === 0 && this.z === 0;
 		}
 	}
 
@@ -165,7 +175,7 @@ export module Zeze {
 		}
 
 		public isZero(): boolean {
-			return this.x == 0 && this.y == 0 && this.z == 0 && this.w == 0;
+			return this.x === 0 && this.y === 0 && this.z === 0 && this.w === 0;
 		}
 	}
 
@@ -223,7 +233,7 @@ export module Zeze {
 		}
 
 		public isEmpty(): boolean {
-			return this._TypeId == EmptyBean.TYPEID && this._Bean instanceof EmptyBean;
+			return this._TypeId === EmptyBean.TYPEID && this._Bean instanceof EmptyBean;
 		}
 
 		public Encode(bb: ByteBuffer) {
@@ -329,14 +339,13 @@ export module Zeze {
 				os.ReadIndex += size;
 				const type: bigint = BigInt(moduleId) << 32n | BigInt(protocolId);
 				const factoryHandle = service.FactoryHandleMap.get(type);
-				if (null != factoryHandle) {
+				if (factoryHandle != null) {
 					const p = factoryHandle.factory();
 					p.Decode(buffer);
 					p.Sender = socket;
 					p.Dispatch(service, factoryHandle);
-					continue;
-				}
-				service.DispatchUnknownProtocol(socket, type, buffer);
+				} else
+				  service.DispatchUnknownProtocol(socket, type, buffer);
 			}
 			input.ReadIndex = os.ReadIndex;
 		}
@@ -351,7 +360,7 @@ export module Zeze {
 		}
 
 		public Encode(bb: ByteBuffer) {
-			if (this.ResultCode == 0n)
+			if (this.ResultCode === 0n)
 				bb.WriteInt(FamilyClass.Protocol);
 			else {
 				bb.WriteInt(FamilyClass.Protocol | FamilyClass.BitResultCode);
@@ -363,7 +372,7 @@ export module Zeze {
 		public Decode(bb: ByteBuffer) {
 			const header = bb.ReadInt();
 			this.FamilyClass = header & FamilyClass.FamilyClassMask;
-			this.ResultCode = ((header & FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0n;
+			this.ResultCode = ((header & FamilyClass.BitResultCode) !== 0) ? bb.ReadLong() : 0n;
 			this.Argument.Decode(bb);
 		}
 	}
@@ -411,6 +420,7 @@ export module Zeze {
 				this.SendWithCallback(socket, (response) => {
 					const res = <Rpc<TArgument, TResult>><unknown>response;
 					if (res.IsTimeout)
+						// eslint-disable-next-line prefer-promise-reject-errors
 						reject("Rpc.SendForWait Timeout");
 					else
 						resolve();
@@ -435,7 +445,7 @@ export module Zeze {
 				return;
 			}
 			const context = <Rpc<TArgument, TResult>><unknown>service.RemoveRpcContext(this.sid);
-			if (null == context)
+			if (context == null)
 				return;
 
 			if (context.timeout)
@@ -452,8 +462,8 @@ export module Zeze {
 		Decode(bb: ByteBuffer) {
 			const header = bb.ReadInt();
 			this.FamilyClass = header & FamilyClass.FamilyClassMask;
-			this.IsRequest = this.FamilyClass == FamilyClass.Request;
-			this.ResultCode = ((header & FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0n;
+			this.IsRequest = this.FamilyClass === FamilyClass.Request;
+			this.ResultCode = ((header & FamilyClass.BitResultCode) !== 0) ? bb.ReadLong() : 0n;
 			this.sid = bb.ReadLong();
 			if (this.IsRequest)
 				this.Argument.Decode(bb);
@@ -464,7 +474,7 @@ export module Zeze {
 		Encode(bb: ByteBuffer) {
 			// skip value of this.FamilyClass
 			const header = this.IsRequest ? FamilyClass.Request : FamilyClass.Response;
-			if (this.ResultCode == 0n)
+			if (this.ResultCode === 0n)
 				bb.WriteInt(header);
 			else {
 				bb.WriteInt(header | FamilyClass.BitResultCode);
@@ -507,7 +517,7 @@ export module Zeze {
 		}
 
 		public OnProcessInput(newInput: ArrayBuffer, offset: number, len: number) {
-			if (null != this.InputBuffer) {
+			if (this.InputBuffer != null) {
 				this.InputBuffer.Append(new Uint8Array(newInput), offset, len);
 				Protocol.DecodeProtocols(this.service, this, this.InputBuffer);
 				if (this.InputBuffer.Size() > 0)
@@ -543,8 +553,7 @@ export module Zeze {
 		private contexts: Map<bigint, Protocol> = new Map<bigint, Protocol>();
 
 		public AddRpcContext(rpc: Protocol): bigint {
-			this.serialId = this.serialId + 1n;
-			this.contexts.set(this.serialId, rpc);
+			this.contexts.set(++this.serialId, rpc);
 			return this.serialId;
 		}
 
@@ -561,6 +570,7 @@ export module Zeze {
 		}
 
 		public DispatchProtocol(p: Protocol, factoryHandle: ProtocolFactoryHandle) {
+			// eslint-disable-next-line prefer-destructuring
 			const handle = factoryHandle.handle;
 			if (handle)
 				handle(p);
@@ -578,7 +588,7 @@ export module Zeze {
 		}
 
 		protected CallbackOnSocketClose(sessionId: bigint) {
-			if (this.Connection && this.Connection.SessionId == sessionId) {
+			if (this.Connection && this.Connection.SessionId === sessionId) {
 				if (this.ServiceEventHandle)
 					this.ServiceEventHandle.OnSocketClosed(this, this.Connection);
 				this.Connection = null;
@@ -586,7 +596,7 @@ export module Zeze {
 		}
 
 		protected CallbackOnSocketProcessInputBuffer(sessionId: bigint, buffer: ArrayBuffer, offset: number, len: number) {
-			if (this.Connection && this.Connection.SessionId == sessionId) {
+			if (this.Connection && this.Connection.SessionId === sessionId) {
 				if (this.ServiceEventHandle) {
 					if (this.ServiceEventHandle.OnSoekctInput(this, this.Connection, buffer, offset, len))
 						return;
@@ -639,7 +649,7 @@ export module Zeze {
 		}
 
 		public constructor(buffer: Uint8Array | null = null, readIndex: number = 0, length: number = 0) {
-			this.Bytes = (null == buffer) ? new Uint8Array(16) : buffer;
+			this.Bytes = (buffer == null) ? new Uint8Array(16) : buffer;
 			this.View = new DataView(this.Bytes.buffer);
 			this.ReadIndex = readIndex;
 			this.WriteIndex = this.ReadIndex + length;
@@ -727,7 +737,7 @@ export module Zeze {
 		}
 
 		public ReadBool(): boolean {
-			return this.ReadLong() != 0n;
+			return this.ReadLong() !== 0n;
 		}
 
 		public WriteByte(byte: number) {
@@ -774,7 +784,8 @@ export module Zeze {
 					this.EnsureWrite(1); // 0xxx xxxx
 					this.Bytes[this.WriteIndex++] = (u > 0 ? u : 0);
 					return;
-				} else if (u < 0x4000) {
+				}
+				if (u < 0x4000) {
 					this.EnsureWrite(2); // 10xx xxxx +1B
 					const bytes = this.Bytes;
 					const writeIndex = this.WriteIndex;
@@ -782,7 +793,8 @@ export module Zeze {
 					bytes[writeIndex + 1] = u;
 					this.WriteIndex = writeIndex + 2;
 					return;
-				} else if (u < 0x20_0000) {
+				}
+				if (u < 0x20_0000) {
 					this.EnsureWrite(3); // 110x xxxx +2B
 					const bytes = this.Bytes;
 					const writeIndex = this.WriteIndex;
@@ -791,7 +803,8 @@ export module Zeze {
 					bytes[writeIndex + 2] = u;
 					this.WriteIndex = writeIndex + 3;
 					return;
-				} else if (u < 0x1000_0000) {
+				}
+				if (u < 0x1000_0000) {
 					this.EnsureWrite(4); // 1110 xxxx +3B
 					const bytes = this.Bytes;
 					const writeIndex = this.WriteIndex;
@@ -936,6 +949,7 @@ export module Zeze {
 					this.WriteIndex += 9;
 				}
 			} else {
+				// eslint-disable-next-line no-lonely-if
 				if (x >= -0x40) {
 					this.EnsureWrite(1); // 11xx xxxx
 					this.Bytes[this.WriteIndex++] = Number(x);
@@ -1194,7 +1208,7 @@ export module Zeze {
 		}
 
 		public WriteBytes(x: Uint8Array, offset: number = 0, length: number = -1) {
-			if (length == -1)
+			if (length === -1)
 				length = x.byteLength;
 			this.WriteUInt(length);
 			this.EnsureWrite(length);
@@ -1221,12 +1235,12 @@ export module Zeze {
 			if (other == null)
 				return false;
 
-			if (this.Size != other.Size)
+			if (this.Size !== other.Size)
 				return false;
 
 			const size = this.Size();
 			for (let i = 0; i < size; i++) {
-				if (this.Bytes[this.ReadIndex + i] != other.Bytes[other.ReadIndex + i])
+				if (this.Bytes[this.ReadIndex + i] !== other.Bytes[other.ReadIndex + i])
 					return false;
 			}
 			return true;
@@ -1242,7 +1256,7 @@ export module Zeze {
 		public static toString(x: Uint8Array, from: number = 0, to: number = -1): string {
 			let ss = "";
 			let bfirst = true;
-			if (to == -1)
+			if (to === -1)
 				to = x.byteLength;
 			for (let i = from; i < to; ++i) {
 				if (bfirst)
@@ -1310,23 +1324,23 @@ export module Zeze {
 
 		public ReadBoolT(tag: number): boolean {
 			const type = tag & ByteBuffer.TAG_MASK;
-			if (type == ByteBuffer.INTEGER)
-				return this.ReadLong() != 0n;
-			if (type == ByteBuffer.FLOAT)
-				return this.ReadFloat() != 0;
-			if (type == ByteBuffer.DOUBLE)
-				return this.ReadDouble() != 0;
+			if (type === ByteBuffer.INTEGER)
+				return this.ReadLong() !== 0n;
+			if (type === ByteBuffer.FLOAT)
+				return this.ReadFloat() !== 0;
+			if (type === ByteBuffer.DOUBLE)
+				return this.ReadDouble() !== 0;
 			this.SkipUnknownField(tag);
 			return false;
 		}
 
 		public ReadIntT(tag: number): number {
 			const type = tag & ByteBuffer.TAG_MASK;
-			if (type == ByteBuffer.INTEGER)
+			if (type === ByteBuffer.INTEGER)
 				return Number(this.ReadLong());
-			if (type == ByteBuffer.FLOAT)
+			if (type === ByteBuffer.FLOAT)
 				return this.ReadFloat();
-			if (type == ByteBuffer.DOUBLE)
+			if (type === ByteBuffer.DOUBLE)
 				return this.ReadDouble();
 			this.SkipUnknownField(tag);
 			return 0;
@@ -1334,11 +1348,11 @@ export module Zeze {
 
 		public ReadLongT(tag: number): bigint {
 			const type = tag & ByteBuffer.TAG_MASK;
-			if (type == ByteBuffer.INTEGER)
+			if (type === ByteBuffer.INTEGER)
 				return this.ReadLong();
-			if (type == ByteBuffer.FLOAT)
+			if (type === ByteBuffer.FLOAT)
 				return BigInt(this.ReadFloat());
-			if (type == ByteBuffer.DOUBLE)
+			if (type === ByteBuffer.DOUBLE)
 				return BigInt(this.ReadDouble());
 			this.SkipUnknownField(tag);
 			return 0n;
@@ -1346,11 +1360,11 @@ export module Zeze {
 
 		public ReadFloatT(tag: number): number {
 			const type = tag & ByteBuffer.TAG_MASK;
-			if (type == ByteBuffer.FLOAT)
+			if (type === ByteBuffer.FLOAT)
 				return this.ReadFloat();
-			if (type == ByteBuffer.DOUBLE)
+			if (type === ByteBuffer.DOUBLE)
 				return this.ReadDouble();
-			if (type == ByteBuffer.INTEGER)
+			if (type === ByteBuffer.INTEGER)
 				return Number(this.ReadLong());
 			this.SkipUnknownField(tag);
 			return 0;
@@ -1358,11 +1372,11 @@ export module Zeze {
 
 		public ReadDoubleT(tag: number): number {
 			const type = tag & ByteBuffer.TAG_MASK;
-			if (type == ByteBuffer.DOUBLE)
+			if (type === ByteBuffer.DOUBLE)
 				return this.ReadDouble();
-			if (type == ByteBuffer.FLOAT)
+			if (type === ByteBuffer.FLOAT)
 				return this.ReadFloat();
-			if (type == ByteBuffer.INTEGER)
+			if (type === ByteBuffer.INTEGER)
 				return Number(this.ReadLong());
 			this.SkipUnknownField(tag);
 			return 0;
@@ -1370,7 +1384,7 @@ export module Zeze {
 
 		public ReadBytesT(tag: number): Uint8Array {
 			const type = tag & ByteBuffer.TAG_MASK;
-			if (type == ByteBuffer.BYTES)
+			if (type === ByteBuffer.BYTES)
 				return this.ReadBytes();
 			this.SkipUnknownField(tag);
 			return new Uint8Array(0);
@@ -1378,7 +1392,7 @@ export module Zeze {
 
 		public ReadStringT(tag: number): string {
 			const type = tag & ByteBuffer.TAG_MASK;
-			if (type == ByteBuffer.BYTES)
+			if (type === ByteBuffer.BYTES)
 				return this.ReadString();
 			this.SkipUnknownField(tag);
 			return "";
@@ -1433,21 +1447,21 @@ export module Zeze {
 
 		public ReadVector2T(tag: number): Vector2 {
 			const type = tag & ByteBuffer.TAG_MASK;
-			if (type == ByteBuffer.VECTOR2)
+			if (type === ByteBuffer.VECTOR2)
 				return this.ReadVector2();
-			if (type == ByteBuffer.VECTOR3)
+			if (type === ByteBuffer.VECTOR3)
 				return this.ReadVector3();
-			if (type == ByteBuffer.VECTOR4)
+			if (type === ByteBuffer.VECTOR4)
 				return this.ReadVector4();
-			if (type == ByteBuffer.VECTOR2INT)
+			if (type === ByteBuffer.VECTOR2INT)
 				return this.ReadVector2Int();
-			if (type == ByteBuffer.VECTOR3INT)
+			if (type === ByteBuffer.VECTOR3INT)
 				return this.ReadVector3Int();
-			if (type == ByteBuffer.FLOAT)
+			if (type === ByteBuffer.FLOAT)
 				return new Vector2(this.ReadFloat(), 0);
-			if (type == ByteBuffer.DOUBLE)
+			if (type === ByteBuffer.DOUBLE)
 				return new Vector2(this.ReadDouble(), 0);
-			if (type == ByteBuffer.INTEGER)
+			if (type === ByteBuffer.INTEGER)
 				return new Vector2(Number(this.ReadLong()), 0);
 			this.SkipUnknownField(tag);
 			return new Vector2(0, 0);
@@ -1455,21 +1469,21 @@ export module Zeze {
 
 		public ReadVector3T(tag: number): Vector3 {
 			const type = tag & ByteBuffer.TAG_MASK;
-			if (type == ByteBuffer.VECTOR3)
+			if (type === ByteBuffer.VECTOR3)
 				return this.ReadVector3();
-			if (type == ByteBuffer.VECTOR2)
+			if (type === ByteBuffer.VECTOR2)
 				return Vector3.FromVector2(this.ReadVector2());
-			if (type == ByteBuffer.VECTOR4)
+			if (type === ByteBuffer.VECTOR4)
 				return this.ReadVector4();
-			if (type == ByteBuffer.VECTOR3INT)
+			if (type === ByteBuffer.VECTOR3INT)
 				return this.ReadVector3Int();
-			if (type == ByteBuffer.VECTOR2INT)
+			if (type === ByteBuffer.VECTOR2INT)
 				return Vector3.FromVector2(this.ReadVector2Int());
-			if (type == ByteBuffer.FLOAT)
+			if (type === ByteBuffer.FLOAT)
 				return new Vector3(this.ReadFloat(), 0, 0);
-			if (type == ByteBuffer.DOUBLE)
+			if (type === ByteBuffer.DOUBLE)
 				return new Vector3(this.ReadDouble(), 0, 0);
-			if (type == ByteBuffer.INTEGER)
+			if (type === ByteBuffer.INTEGER)
 				return new Vector3(Number(this.ReadLong()), 0, 0);
 			this.SkipUnknownField(tag);
 			return new Vector3(0, 0, 0);
@@ -1477,21 +1491,21 @@ export module Zeze {
 
 		public ReadVector4T(tag: number): Vector4 {
 			const type = tag & ByteBuffer.TAG_MASK;
-			if (type == ByteBuffer.VECTOR4)
+			if (type === ByteBuffer.VECTOR4)
 				return this.ReadVector4();
-			if (type == ByteBuffer.VECTOR3)
+			if (type === ByteBuffer.VECTOR3)
 				return Vector4.FromVector3(this.ReadVector3());
-			if (type == ByteBuffer.VECTOR2)
+			if (type === ByteBuffer.VECTOR2)
 				return Vector4.FromVector2(this.ReadVector2());
-			if (type == ByteBuffer.VECTOR3INT)
+			if (type === ByteBuffer.VECTOR3INT)
 				return Vector4.FromVector3(this.ReadVector3Int());
-			if (type == ByteBuffer.VECTOR2INT)
+			if (type === ByteBuffer.VECTOR2INT)
 				return Vector4.FromVector2(this.ReadVector2Int());
-			if (type == ByteBuffer.FLOAT)
+			if (type === ByteBuffer.FLOAT)
 				return new Vector4(this.ReadFloat(), 0, 0, 0);
-			if (type == ByteBuffer.DOUBLE)
+			if (type === ByteBuffer.DOUBLE)
 				return new Vector4(this.ReadDouble(), 0, 0, 0);
-			if (type == ByteBuffer.INTEGER)
+			if (type === ByteBuffer.INTEGER)
 				return new Vector4(Number(this.ReadLong()), 0, 0, 0);
 			this.SkipUnknownField(tag);
 			return new Vector4(0, 0, 0, 0);
@@ -1499,9 +1513,9 @@ export module Zeze {
 
 		public ReadBean<T extends Serializable>(bean: T, tag: number): T {
 			const type = tag & ByteBuffer.TAG_MASK;
-			if (type == ByteBuffer.BEAN)
+			if (type === ByteBuffer.BEAN)
 				bean.Decode(this);
-			else if (type == ByteBuffer.DYNAMIC) {
+			else if (type === ByteBuffer.DYNAMIC) {
 				this.ReadLong();
 				bean.Decode(this);
 			} else
@@ -1511,11 +1525,11 @@ export module Zeze {
 
 		public ReadDynamic(dynBean: DynamicBean, tag: number): DynamicBean {
 			const type = tag & ByteBuffer.TAG_MASK;
-			if (type == ByteBuffer.DYNAMIC) {
+			if (type === ByteBuffer.DYNAMIC) {
 				dynBean.Decode(this);
 				return dynBean;
 			}
-			if (type == ByteBuffer.BEAN) {
+			if (type === ByteBuffer.BEAN) {
 				const bean = dynBean.CreateBeanFromSpecialTypeId(0n);
 				if (bean != null) {
 					bean.Decode(this);
@@ -1547,7 +1561,7 @@ export module Zeze {
 					this.SkipLong();
 					return;
 				case ByteBuffer.FLOAT:
-					if (tag == ByteBuffer.FLOAT) // high bits == 0
+					if (tag === ByteBuffer.FLOAT) // high bits === 0
 						return;
 					this.EnsureRead(4);
 					this.ReadIndex += 4;
@@ -1587,9 +1601,11 @@ export module Zeze {
 					return;
 				case ByteBuffer.DYNAMIC:
 					this.SkipLong();
+				// eslint-disable-next-line no-fallthrough
 				case ByteBuffer.BEAN:
-					while ((t = this.ReadByte()) != 0) {
-						if ((t & ByteBuffer.ID_MASK) == 0xf0)
+					// eslint-disable-next-line no-cond-assign
+					while ((t = this.ReadByte()) !== 0) {
+						if ((t & ByteBuffer.ID_MASK) === 0xf0)
 							this.SkipUInt();
 						this.SkipUnknownField(t);
 					}
