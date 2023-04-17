@@ -1215,7 +1215,6 @@ public class Online extends AbstractOnline {
 		// 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。
 		// 因为Online数据可能会被很多地方缓存，写操作会造成缓存失效。
 		// see Linkd.StableLinkSid
-		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 		if (!loginOnline.getLinkName().equals(session.getLinkName()))
 			loginOnline.setLinkName(session.getLinkName());
 		if (loginOnline.getLinkSid() != session.getLinkSid())
