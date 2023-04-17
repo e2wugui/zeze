@@ -81,6 +81,8 @@ public class Dbh2AgentManager {
 				out.setValue(a.getPort());
 				return false;
 			});
+			if (out.getKey() == null || out.getValue() == 0)
+				throw new RuntimeException("Commit Query Acceptor Not Set.");
 			return out;
 		}
 
