@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 
 namespace Zeze.Gen.ts
@@ -32,35 +31,26 @@ namespace Zeze.Gen.ts
         {
             sw.WriteLine();
             sw.WriteLine("export class " + beanKey.Space.Path("_", beanKey.Name) + " implements Zeze.Bean {");
+            sw.WriteLine("    public static readonly TYPEID: bigint = " + beanKey.TypeId + "n;");
+            sw.WriteLine("    public TypeId(): bigint { return " + beanKey.Space.Path("_", beanKey.Name) + ".TYPEID; }");
+            sw.WriteLine();
             // declare enums
             foreach (Types.Enum e in beanKey.Enums)
-            {
                 sw.WriteLine("    public static readonly " + e.Name + " = " + e.Value + ";" + e.Comment);
-            }
             if (beanKey.Enums.Count > 0)
-            {
                 sw.WriteLine();
-            }
 
             // declare variables
             foreach (Types.Variable v in beanKey.Variables)
-            {
-                sw.WriteLine($"    public {v.Name}: {TypeName.GetName(v.VariableType)}; {v.Comment}");
-            }
-            sw.WriteLine();
+                sw.WriteLine($"    public {v.Name}: {TypeName.GetName(v.VariableType)};{v.Comment}");
+            if (beanKey.Variables.Count > 0)
+                sw.WriteLine();
 
             // params construct with init
-            {
-                sw.WriteLine("    public constructor(" + GetParamListWithDefault(beanKey.Variables) + ") {");
-                foreach (Types.Variable v in beanKey.Variables)
-                {
-                    sw.WriteLine("        this." + v.Name + " = " + v.NamePrivate + "_;");
-                }
-                sw.WriteLine("    }");
-                sw.WriteLine();
-            }
-            sw.WriteLine("    public static readonly TYPEID: bigint = " + beanKey.TypeId + "n;");
-            sw.WriteLine("    public TypeId(): bigint { return " + beanKey.Space.Path("_", beanKey.Name) + ".TYPEID; }");
+            sw.WriteLine("    public constructor(" + GetParamListWithDefault(beanKey.Variables) + ") {");
+            foreach (Types.Variable v in beanKey.Variables)
+                sw.WriteLine("        this." + v.Name + " = " + v.NamePrivate + "_;");
+            sw.WriteLine("    }");
             sw.WriteLine();
             Encode.Make(beanKey, sw, "    ");
             Decode.Make(beanKey, sw, "    ");

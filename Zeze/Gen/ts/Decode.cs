@@ -232,10 +232,8 @@ namespace Zeze.Gen.ts
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "var _x" + id + "_ = new " + TypeName.GetName(type) + "();");
             sw.WriteLine(prefix + varname + " = _x" + id + "_;");
-            sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ")");
-            sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
-            sw.WriteLine(prefix + "    {");
+            sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
+            sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--) {");
             if (IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_e_", sw, prefix + "        "));
@@ -259,10 +257,8 @@ namespace Zeze.Gen.ts
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "var _x" + id + "_ = " + varname + ';');
             sw.WriteLine(prefix + "_x" + id + "_.clear();");
-            sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ")");
-            sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
-            sw.WriteLine(prefix + "    {");
+            sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
+            sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--) {");
             if (IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_e_", sw, prefix + "        "));

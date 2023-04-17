@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Zeze.Gen.ts
+﻿namespace Zeze.Gen.ts
 {
     public class ProtocolFormatter
     {
-        global::Zeze.Gen.Protocol p;
-        public ProtocolFormatter(global::Zeze.Gen.Protocol p)
+        Protocol p;
+
+        public ProtocolFormatter(Protocol p)
         {
             this.p = p;
         }

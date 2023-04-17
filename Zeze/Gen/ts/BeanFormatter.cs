@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.Net.Mime;
-using System.Text;
+﻿using Zeze.Gen.Types;
 
 namespace Zeze.Gen.ts
 {
     public class BeanFormatter
     {
-        Types.Bean bean;
+        Bean bean;
 
-        public BeanFormatter(Types.Bean bean)
+        public BeanFormatter(Bean bean)
         {
             this.bean = bean;
         }
@@ -19,32 +15,27 @@ namespace Zeze.Gen.ts
         {
             sw.WriteLine();
             sw.WriteLine("export class " + bean.Space.Path("_", bean.Name) + " implements Zeze.Bean {");
-            // declare enums
-            foreach (Types.Enum e in bean.Enums)
-            {
-                sw.WriteLine("    public static readonly " + e.Name + " = " + e.Value + ";" + e.Comment);
-            }
-            if (bean.Enums.Count > 0)
-            {
-                sw.WriteLine();
-            }
-            // declare variables
-            foreach (Types.Variable v in bean.Variables)
-            {
-                sw.WriteLine($"    public {v.Name}: {TypeName.GetName(v.VariableType)}; {v.Comment}");
-            }
-            sw.WriteLine();
-            Construct.Make(bean, sw, "    ");
             sw.WriteLine("    public static readonly TYPEID: bigint = " + bean.TypeId + "n;");
             sw.WriteLine("    public TypeId(): bigint { return " + bean.Space.Path("_", bean.Name) + ".TYPEID; }");
             sw.WriteLine();
+            // declare enums
+            foreach (var e in bean.Enums)
+                sw.WriteLine("    public static readonly " + e.Name + " = " + e.Value + ";" + e.Comment);
+            if (bean.Enums.Count > 0)
+                sw.WriteLine();
+            // declare variables
+            foreach (var v in bean.Variables)
+                sw.WriteLine($"    public {v.Name}: {TypeName.GetName(v.VariableType)};{v.Comment}");
+            if (bean.Variables.Count > 0)
+                sw.WriteLine();
+            Construct.Make(bean, sw, "    ");
+            MakeDynamicStaticFunc(sw);
             Encode.Make(bean, sw, "    ");
             Decode.Make(bean, sw, "    ");
-            MakeDynamicStaticFunc(sw);
             sw.WriteLine("}");
         }
 
-        private void GenDynamicSpecialMethod(System.IO.StreamWriter sw, Types.Variable v, Types.TypeDynamic d, bool isCollection)
+        private void GenDynamicSpecialMethod(System.IO.StreamWriter sw, Variable v, TypeDynamic d, bool isCollection)
         {
             if (false == isCollection)
             {
@@ -57,20 +48,18 @@ namespace Zeze.Gen.ts
             }
 
             sw.WriteLine($"    public static GetSpecialTypeIdFromBean_{v.Id}(bean: Zeze.Bean): bigint {{");
-            sw.WriteLine($"        switch (bean.TypeId())");
-            sw.WriteLine($"        {{");
+            sw.WriteLine($"        switch (bean.TypeId()) {{");
             sw.WriteLine($"            case Zeze.EmptyBean.TYPEID: return Zeze.EmptyBean.TYPEID;");
             foreach (var real in d.RealBeans)
             {
                 sw.WriteLine($"            case {real.Value.TypeId}n: return {real.Key}n; // {real.Value.FullName}");
             }
             sw.WriteLine($"        }}");
-            sw.WriteLine($"        throw new Error(\"Unknown Bean! dynamic@{(v.Bean as Types.Bean).FullName}:{v.Name}\");");
+            sw.WriteLine($"        throw new Error(\"Unknown Bean! dynamic@{((Bean)v.Bean).FullName}:{v.Name}\");");
             sw.WriteLine($"    }}");
             sw.WriteLine();
             sw.WriteLine($"    public static CreateBeanFromSpecialTypeId_{v.Id}(typeId: bigint): Zeze.Bean {{");
-            sw.WriteLine($"        switch (typeId)");
-            sw.WriteLine($"        {{");
+            sw.WriteLine($"        switch (typeId) {{");
             //sw.WriteLine($"            case Zeze.EmptyBean.TYPEID: return new Zeze.EmptyBean();");
             foreach (var real in d.RealBeans)
             {
@@ -86,11 +75,11 @@ namespace Zeze.Gen.ts
         {
             foreach (var v in bean.Variables)
             {
-                if (v.VariableType is Types.TypeDynamic d)
+                if (v.VariableType is TypeDynamic d)
                     GenDynamicSpecialMethod(sw, v, d, false);
-                else if (v.VariableType is Types.TypeMap map && map.ValueType is Types.TypeDynamic dy1)
+                else if (v.VariableType is TypeMap map && map.ValueType is TypeDynamic dy1)
                     GenDynamicSpecialMethod(sw, v, dy1, true);
-                else if (v.VariableType is Types.TypeCollection coll && coll.ValueType is Types.TypeDynamic dy2)
+                else if (v.VariableType is TypeCollection coll && coll.ValueType is TypeDynamic dy2)
                     GenDynamicSpecialMethod(sw, v, dy2, true);
             }
         }
