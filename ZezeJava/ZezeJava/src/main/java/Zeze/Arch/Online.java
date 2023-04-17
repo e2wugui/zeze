@@ -1104,10 +1104,18 @@ public class Online extends AbstractOnline {
 		var version = _tversion.getOrAdd(session.getAccount());
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
 		var loginVersion = version.getLogins().getOrAdd(rpc.Argument.getClientId());
+		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 
 		if (loginVersion.getLoginVersion() != loginVersion.getLogoutVersion()) {
 			// login exist
 			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
+
+			if (!loginOnline.getLinkName().equals(session.getLinkName())
+					|| loginOnline.getLinkSid() != session.getLinkSid()) {
+				providerApp.providerService.kick(loginOnline.getLinkName(), loginOnline.getLinkSid(),
+						BKick.ErrorDuplicateLogin,
+						"duplicate login " + session.getAccount() + ":" + rpc.Argument.getClientId());
+			}
 			var ret = logoutTrigger(session.getAccount(), rpc.Argument.getClientId());
 			if (0 != ret)
 				return ret;
@@ -1128,14 +1136,6 @@ public class Online extends AbstractOnline {
 		version.setLastLoginVersion(loginVersionSerialId);
 		loginVersion.setLoginVersion(loginVersionSerialId);
 		loginLocal.setLoginVersion(loginVersionSerialId);
-
-		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
-		if (!loginOnline.getLinkName().equals(session.getLinkName())
-				|| loginOnline.getLinkSid() != session.getLinkSid()) {
-			providerApp.providerService.kick(loginOnline.getLinkName(), loginOnline.getLinkSid(),
-					BKick.ErrorDuplicateLogin,
-					"duplicate login " + session.getAccount() + ":" + rpc.Argument.getClientId());
-		}
 
 		/////////////////////////////////////////////////////////////
 		// 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。
@@ -1178,9 +1178,18 @@ public class Online extends AbstractOnline {
 		var version = _tversion.getOrAdd(session.getAccount());
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
 		var loginVersion = version.getLogins().getOrAdd(rpc.Argument.getClientId());
+		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 
-		if (loginVersion.getLoginVersion() != 0) {
+		if (loginVersion.getLoginVersion() != loginVersion.getLogoutVersion()) {
 			// login exist
+			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
+
+			if (!loginOnline.getLinkName().equals(session.getLinkName())
+					|| loginOnline.getLinkSid() != session.getLinkSid()) {
+				providerApp.providerService.kick(loginOnline.getLinkName(), loginOnline.getLinkSid(),
+						BKick.ErrorDuplicateLogin,
+						"duplicate login " + session.getAccount() + ":" + rpc.Argument.getClientId());
+			}
 			var ret = logoutTrigger(session.getAccount(), rpc.Argument.getClientId());
 			if (0 != ret)
 				return ret;
