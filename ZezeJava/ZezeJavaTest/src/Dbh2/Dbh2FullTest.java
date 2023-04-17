@@ -11,6 +11,7 @@ import Zeze.Util.Task;
 import org.junit.Assert;
 import org.junit.Test;
 import Zeze.Transaction.Database.AbstractKVTable;
+import org.rocksdb.RocksDBException;
 
 // 测试整体结构(Dbh2Manager,Master,Agent)
 public class Dbh2FullTest {
@@ -81,6 +82,46 @@ public class Dbh2FullTest {
 			for (var manager : managers)
 				manager.stop();
 			database.close();
+			Dbh2AgentManager.getInstance().stop();
+		}
+	}
+
+	@Test
+	public void testCommitServerQueryVerify() throws Exception {
+		Task.tryInitThreadPool(null, null, null);
+
+		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
+		var managers = new ArrayList<Dbh2Manager>();
+		Database database = null;
+		Dbh2AgentManager.getInstance().start(Config.load());
+		try {
+			master.start();
+			for (int i = 0; i < 3; ++i)
+				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
+			for (var manager : managers)
+				manager.start();
+
+			Thread.sleep(2000); // leader 重启apply可能时间较长，给它5秒。
+			database = newDatabase("dbh2TestDb");
+			var table1 = (Database.AbstractKVTable)database.openTable("table1");
+			Thread.sleep(3000); // leader 重启apply可能时间较长，给它5秒。
+			var key = ByteBuffer.Wrap(new byte[] {});
+			var key1 = ByteBuffer.Wrap(new byte[] { 1 });
+			var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
+			try (var _trans = database.beginTransaction()) {
+				var trans = (Database.Dbh2Transaction)_trans;
+				table1.replace(trans, key, value);
+				table1.replace(trans, key1, value);
+				trans.commitBreakAfterPrepareForDebugOnly();
+			}
+			Thread.sleep(10000);
+
+		} finally {
+			master.stop();
+			for (var manager : managers)
+				manager.stop();
+			if (null != database)
+				database.close();
 			Dbh2AgentManager.getInstance().stop();
 		}
 	}

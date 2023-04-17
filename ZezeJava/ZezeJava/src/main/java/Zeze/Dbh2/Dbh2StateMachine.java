@@ -53,7 +53,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		bucket = new Bucket(getRaft().getRaftConfig());
 		tidAllocator = new TidAllocator();
 
-		if (null != timer) {
+		if (null == timer) {
 			var period = getRaft().getRaftConfig().getAppendEntriesTimeout() + 200;
 			var delay = Random.getInstance().nextLong(period);
 			timer = Task.scheduleUnsafe(delay, period, this::onTimer);
@@ -64,14 +64,23 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	private void onTimer() {
+		if (!getRaft().isLeader())
+			return;
+
 		var now = System.currentTimeMillis();
 		var period = getRaft().getRaftConfig().getAppendEntriesTimeout() + 200;
 		for (var e : transactions.entrySet()) {
 			var t = e.getValue();
 			if (now - t.getCreateTime() < period)
 				continue;
-			commitAgent.query(t.getQueryIp(), t.getQueryPort(),
-					getRaft().getRaftConfig().getSortedNamesBinary(), e.getKey());
+			var tid = e.getKey();
+			//logger.info("onTimer tid=" + tid);
+			if (Commit.eCommitNotExist == commitAgent.query(
+					t.getQueryIp(), t.getQueryPort(),
+					getRaft().getRaftConfig().getSortedNamesBinary(), tid)) {
+				logger.warn("Undo Timeout " + tid + " " + t);
+				getRaft().appendLog(new LogUndoBatch(tid));
+			}
 		}
 	}
 

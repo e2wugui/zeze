@@ -21,6 +21,11 @@ public class LogUndoBatch extends Log {
 			this.tid = req.Argument.getTid();
 	}
 
+	public LogUndoBatch(long tid) {
+		super(null);
+		this.tid = tid;
+	}
+
 	@Override
 	public int typeId() {
 		return TypeId_;

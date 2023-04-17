@@ -6,10 +6,13 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.TaskCompletionSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
 
 public class CommitRocks {
+	private static final Logger logger = LogManager.getLogger(CommitRocks.class);
 	private final Dbh2AgentManager manager;
 	private final RocksDatabase database;
 	private final RocksDatabase.Table commitPoint;
@@ -34,6 +37,7 @@ public class CommitRocks {
 	}
 
 	public long query(Binary sortedNames, long tid) throws RocksDBException {
+		//logger.info("query tid=" + tid);
 		var key = ByteBuffer.Allocate(sortedNames.size() + 11);
 		key.WriteBinary(sortedNames);
 		key.WriteLong(tid);

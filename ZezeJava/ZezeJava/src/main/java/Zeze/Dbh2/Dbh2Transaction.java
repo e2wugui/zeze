@@ -12,6 +12,11 @@ public class Dbh2Transaction implements Closeable {
 	private final int queryPort;
 	private final long createTime;
 
+	@Override
+	public String toString() {
+		return queryIp + ":" + queryPort + " logs=" + logs;
+	}
+
 	public String getQueryIp() {
 		return queryIp;
 	}

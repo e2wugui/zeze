@@ -94,12 +94,41 @@ public class Database extends Zeze.Transaction.Database {
 
 		private final HashMap<Dbh2Agent, BatchWithTid> batches = new HashMap<>();
 
+		public void commitBreakAfterPrepareForDebugOnly() {
+			var manager = Dbh2AgentManager.getInstance();
+			var query = manager.choiceCommitServer();
+			try {
+				// prepare
+				var futures = new ArrayList<KV<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BBatchTid.Data>>, BatchWithTid>>();
+				for (var e : batches.entrySet()) {
+					var batch = e.getValue();
+					batch.data.getBatch().setQueryIp(query.getKey());
+					batch.data.getBatch().setQueryPort(query.getValue());
+					futures.add(KV.create(e.getKey().prepareBatch(batch), batch));
+				}
+				for (var e : futures) {
+					var r = e.getKey().get();
+					e.getValue().tid = r.Result.getTid();
+				}
+			} catch (Throwable ex) {
+				// undo
+				var futures = new ArrayList<TaskCompletionSource<?>>();
+				for (var e : batches.entrySet()) {
+					futures.add(e.getKey().undoBatch(e.getValue().tid));
+				}
+				for (var e : futures)
+					e.await();
+				throw new RuntimeException(ex);
+			}
+		}
+
 		@Override
 		public void commit() {
 			var manager = Dbh2AgentManager.getInstance();
 			var query = manager.choiceCommitServer();
 			boolean localCommit;
 			try {
+				// prepare
 				var futures = new ArrayList<KV<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BBatchTid.Data>>, BatchWithTid>>();
 				for (var e : batches.entrySet()) {
 					var batch = e.getValue();
@@ -115,6 +144,7 @@ public class Database extends Zeze.Transaction.Database {
 				// 保存 commit-point，如果失败，则 undo。
 				localCommit = manager.saveCommitPoint(query.getKey(), query.getValue(), batches);
 			} catch (Throwable ex) {
+				// undo
 				var futures = new ArrayList<TaskCompletionSource<?>>();
 				for (var e : batches.entrySet()) {
 					futures.add(e.getKey().undoBatch(e.getValue().tid));
@@ -124,6 +154,7 @@ public class Database extends Zeze.Transaction.Database {
 				throw new RuntimeException(ex);
 			}
 
+			// commit
 			if (localCommit) {
 				var futures = new ArrayList<TaskCompletionSource<?>>();
 				for (var e : batches.entrySet()) {
