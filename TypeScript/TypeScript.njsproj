@@ -36,9 +36,18 @@
     <Content Include="tsconfig.json" />
   </ItemGroup>
   <ItemGroup>
-    <TypeScriptCompile Include="gen.ts" />
+    <TypeScriptCompile Include="demo\App.ts" />
+    <TypeScriptCompile Include="demo\gen.ts" />
+    <TypeScriptCompile Include="demo\Module1\Module11\ModuleModule11.ts" />
+    <TypeScriptCompile Include="demo\Module1\ModuleModule1.ts" />
     <TypeScriptCompile Include="test.ts" />
-    <TypeScriptCompile Include="zeze.ts" />
+    <TypeScriptCompile Include="zeze\zeze.ts" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="demo\" />
+    <Folder Include="demo\Module1\" />
+    <Folder Include="demo\Module1\Module11\" />
+    <Folder Include="zeze\" />
   </ItemGroup>
   <Import Project="$(VSToolsPath)\Node.js Tools\Microsoft.NodejsToolsV2.targets" />
   <ProjectExtensions>

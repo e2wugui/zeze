@@ -1,4 +1,4 @@
-import { Zeze } from "zeze"
+import { Zeze } from "zeze/zeze"
 
 function assert(condition: any, msg: string): asserts condition {
 	if (!condition) {
@@ -7,10 +7,7 @@ function assert(condition: any, msg: string): asserts condition {
 }
 
 export class Test {
-	p: string;
-
-	constructor(p: string) {
-		this.p = p;
+	constructor() {
 	}
 
 	test(): string {

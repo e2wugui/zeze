@@ -1,6 +1,6 @@
 // ZEZE_FILE_CHUNK {{{ IMPORT GEN
-import { Zeze } from "zeze"
-import { demo_Module1_Protocol1, demo_Module1_Protocol3, demo_Module1_Rpc1, demo_Module1_Rpc2, } from "gen"
+import { Zeze } from "zeze/zeze"
+import { demo_Module1_Protocol1, demo_Module1_Protocol3, demo_Module1_Rpc1, demo_Module1_Rpc2 } from "demo/gen"
 import { demo_App } from "demo/App"
 // ZEZE_FILE_CHUNK }}} IMPORT GEN
 

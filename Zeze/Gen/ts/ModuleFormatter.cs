@@ -42,7 +42,7 @@ namespace Zeze.Gen.ts
 
         private void Import(System.IO.StreamWriter sw)
         {
-            sw.WriteLine("import { Zeze } from \"zeze\"");
+            sw.WriteLine("import { Zeze } from \"zeze/zeze\"");
             var needp = NeedRegisterProtocold();
             if (needp.Count > 0)
             {
@@ -51,9 +51,11 @@ namespace Zeze.Gen.ts
                 {
                     importp.Append(p.Space.Path("_", p.Name)).Append(", ");
                 }
-                sw.WriteLine("import { " + importp + "} from \"gen\"");
+                if (needp.Count > 0)
+                    importp.Length -= 2;
+                sw.WriteLine($"import {{ {importp} }} from \"{module.Solution.Name}/gen\"");
             }
-            sw.WriteLine("import { demo_App } from \"demo/App\"");
+            sw.WriteLine($"import {{ {module.Solution.Name}_App }} from \"{module.Solution.Name}/App\"");
         }
 
         private List<Protocol> NeedRegisterProtocold()

@@ -1,5 +1,5 @@
 // ZEZE_FILE_CHUNK {{{ IMPORT GEN
-import { Zeze } from "zeze"
+import { Zeze } from "zeze/zeze"
 import { demo_App } from "demo/App"
 // ZEZE_FILE_CHUNK }}} IMPORT GEN
 

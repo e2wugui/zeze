@@ -21,10 +21,10 @@ namespace Zeze.Gen.ts
             string genDir = Project.ScriptDir.Length > 0
                 ? System.IO.Path.Combine(projectDir, Project.ScriptDir) : projectDir;
 
-            using System.IO.StreamWriter sw = Program.OpenWriterNoPath(genDir, "gen.ts");
+            using System.IO.StreamWriter sw = Program.OpenWriterNoPath(genDir, Project.Solution.Name + "/gen.ts");
             sw.WriteLine("// auto-generated");
             sw.WriteLine();
-            sw.WriteLine("import { Zeze } from \"zeze\"");
+            sw.WriteLine("import { Zeze } from \"zeze/zeze\"");
             foreach (Types.Bean bean in Project.AllBeans.Values)
             {
                 new BeanFormatter(bean).Make(sw);
