@@ -9,7 +9,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.IModule;
 import Zeze.Net.Protocol;
@@ -290,12 +289,11 @@ public final class Task {
 	}
 
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
-		var lock = new ReentrantLock();
-		var canceled = new OutInt();
-		return new TimerFuture<>(lock, canceled, threadPoolScheduled.scheduleWithFixedDelay(() -> {
-			lock.lock();
+		var future = new TimerFuture<>();
+		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
+			future.lock();
 			try {
-				if (canceled.value != 0)
+				if (future.isCancelled())
 					return;
 				var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 				try {
@@ -308,9 +306,10 @@ public final class Task {
 						PerfCounter.instance.addRunInfo(action.getClass(), System.nanoTime() - timeBegin);
 				}
 			} finally {
-				lock.unlock();
+				future.unlock();
 			}
 		}, initialDelay, period, TimeUnit.MILLISECONDS));
+		return future;
 	}
 
 	public static void DefaultLogAction(Throwable ex, long result, Protocol<?> p, String actionName) {

@@ -5,29 +5,26 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import org.jetbrains.annotations.NotNull;
 
-public class TimerFuture<V> implements ScheduledFuture<V> {
-	private final @NotNull ReentrantLock lock;
-	private final @NotNull OutInt canceled;
-	private final @NotNull ScheduledFuture<V> future;
+public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> {
+	private ScheduledFuture<V> future;
+	private boolean canceled;
 
-	public TimerFuture(@NotNull ReentrantLock lock, @NotNull OutInt canceled, @NotNull ScheduledFuture<V> future) {
-		this.lock = lock;
-		this.canceled = canceled;
-		this.future = future;
+	@SuppressWarnings("unchecked")
+	public void setFuture(@NotNull ScheduledFuture<?> future) {
+		this.future = (ScheduledFuture<V>)future;
 	}
 
 	@Override
 	public boolean cancel(boolean mayInterruptIfRunning) {
-		lock.lock();
+		lock();
 		try {
-			canceled.value = 1;
+			canceled = true;
 			return future.cancel(mayInterruptIfRunning);
 		} finally {
-			lock.unlock();
+			unlock();
 		}
 	}
 
@@ -43,7 +40,7 @@ public class TimerFuture<V> implements ScheduledFuture<V> {
 
 	@Override
 	public boolean isCancelled() {
-		return future.isCancelled();
+		return canceled; // future.isCancelled(); // 调用此方法可能future字段还没赋值
 	}
 
 	@Override
