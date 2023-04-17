@@ -1080,9 +1080,15 @@ public class Online extends AbstractOnline {
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
+		var link = online.getLink();
 
 		// login exist
 		if (assignLogoutVersion(version)) {
+
+			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
+				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
+						BKick.ErrorDuplicateLogin, "duplicate role login");
+			}
 			var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.LOGIN);
 			if (0 != ret)
 				return ret;
@@ -1099,11 +1105,6 @@ public class Online extends AbstractOnline {
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
-		var link = online.getLink();
-		if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
-			providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
-					BKick.ErrorDuplicateLogin, "duplicate role login");
-		}
 
 		var loginVersion = version.getLoginVersion() + 1;
 		version.setLoginVersion(loginVersion);
@@ -1141,9 +1142,14 @@ public class Online extends AbstractOnline {
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
+		var link = online.getLink();
 
 		// login exist
 		if (assignLogoutVersion(version)) {
+			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
+				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
+						BKick.ErrorDuplicateLogin, "duplicate role login");
+			}
 			var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.RE_LOGIN);
 			if (0 != ret)
 				return ret;
@@ -1159,12 +1165,6 @@ public class Online extends AbstractOnline {
 			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
-
-		var link = online.getLink();
-		if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
-			providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
-					BKick.ErrorDuplicateLogin, "duplicate role login");
-		}
 
 		var loginVersion = version.getLoginVersion() + 1;
 		version.setLoginVersion(loginVersion);
