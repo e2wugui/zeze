@@ -1,13 +1,13 @@
 // ZEZE_FILE_CHUNK {{{ IMPORT GEN
-import { Zeze } from "zeze/zeze"
-import { demo_Module1_Protocol1, demo_Module1_Protocol3, demo_Module1_Rpc1, demo_Module1_Rpc2 } from "demo/gen"
-import { demo_App } from "demo/App"
+import { Zeze } from 'zeze/zeze';
+import { demo_Module1_Protocol1, demo_Module1_Protocol3, demo_Module1_Rpc1, demo_Module1_Rpc2 } from 'demo/gen';
+import App from 'demo/App';
 // ZEZE_FILE_CHUNK }}} IMPORT GEN
 
-export class demo_Module1 {
+export default class ModuleModule1 {
     // ZEZE_FILE_CHUNK {{{ MODULE ENUMS
     // ZEZE_FILE_CHUNK }}} MODULE ENUMS
-    public constructor(app: demo_App) {
+    public constructor(app: App) {
         // ZEZE_FILE_CHUNK {{{ REGISTER PROTOCOL
         app.Client.FactoryHandleMap.set(7370347356n, new Zeze.ProtocolFactoryHandle(
             () => { return new demo_Module1_Protocol1(); },
@@ -24,10 +24,10 @@ export class demo_Module1 {
         // ZEZE_FILE_CHUNK }}} REGISTER PROTOCOL
     }
 
-    public Start(app: demo_App): void {
+    public Start(app: App): void {
     }
 
-    public Stop(app: demo_App): void {
+    public Stop(app: App): void {
     }
 
     public ProcessProtocol1(protocol: demo_Module1_Protocol1): number {

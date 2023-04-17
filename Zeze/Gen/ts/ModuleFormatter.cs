@@ -42,8 +42,8 @@ namespace Zeze.Gen.ts
 
         private void Import(System.IO.StreamWriter sw)
         {
-            sw.WriteLine("import { Zeze } from \"zeze/zeze\"");
-            var needp = NeedRegisterProtocold();
+            sw.WriteLine("import { Zeze } from 'zeze/zeze';");
+            var needp = NeedRegisterProtocol();
             if (needp.Count > 0)
             {
                 StringBuilder importp = new StringBuilder();
@@ -53,12 +53,12 @@ namespace Zeze.Gen.ts
                 }
                 if (needp.Count > 0)
                     importp.Length -= 2;
-                sw.WriteLine($"import {{ {importp} }} from \"{module.Solution.Name}/gen\"");
+                sw.WriteLine($"import {{ {importp} }} from '{module.Solution.Name}/gen';");
             }
-            sw.WriteLine($"import {{ {module.Solution.Name}_App }} from \"{module.Solution.Name}/App\"");
+            sw.WriteLine($"import App from '{module.Solution.Name}/App';");
         }
 
-        private List<Protocol> NeedRegisterProtocold()
+        private List<Protocol> NeedRegisterProtocol()
         {
             List<Protocol> need = new List<Protocol>();
             Service serv = module.ReferenceService;
@@ -125,7 +125,7 @@ namespace Zeze.Gen.ts
         {
             FileChunkGen fcg = new FileChunkGen();
             string fullDir = module.GetFullPath(genDir);
-            string fullFileName = System.IO.Path.Combine(fullDir, $"Module{module.Name}.ts");
+            string fullFileName = System.IO.Path.Combine(fullDir, "Module" + Program.Upper1(module.Name) + ".ts");
             if (fcg.LoadFile(fullFileName))
             {
                 fcg.SaveFile(fullFileName, GenChunkByName);
@@ -139,20 +139,20 @@ namespace Zeze.Gen.ts
                 Import(sw);
                 sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport);
                 sw.WriteLine();
-                sw.WriteLine("export class " + module.Path("_") + " {");
+                sw.WriteLine("export default class Module" + Program.Upper1(module.Name) + " {");
                 sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNameModuleEnums);
                 PrintModuleEnums(sw);
                 sw.WriteLine("    " + fcg.ChunkEndTag + " " + ChunkNameModuleEnums);
-                sw.WriteLine("    public constructor(app: " + module.Solution.Name + "_App) {");
+                sw.WriteLine("    public constructor(app: App) {");
                 sw.WriteLine("        " + fcg.ChunkStartTag + " " + ChunkNameRegisterProtocol);
                 RegisterProtocol(sw);
                 sw.WriteLine("        " + fcg.ChunkEndTag + " " + ChunkNameRegisterProtocol);
                 sw.WriteLine("    }");
                 sw.WriteLine();
-                sw.WriteLine("    public Start(app: " + module.Solution.Name + "_App): void {");
+                sw.WriteLine("    public Start(app: App): void {");
                 sw.WriteLine("    }");
                 sw.WriteLine();
-                sw.WriteLine("    public Stop(app: " + module.Solution.Name + "_App): void {");
+                sw.WriteLine("    public Stop(app: App): void {");
                 sw.WriteLine("    }");
                 if (module.ReferenceService != null)
                 {

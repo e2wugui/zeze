@@ -1,4 +1,4 @@
-import { Zeze } from "zeze/zeze"
+import { Zeze } from 'zeze/zeze';
 
 function assert(condition: any, msg: string): asserts condition {
 	if (!condition) {

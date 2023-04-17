@@ -44,7 +44,7 @@ namespace Zeze.Gen.ts
         {
             foreach (Module m in project.AllOrderDefineModules)
             {
-                sw.WriteLine("    public " + m.Path("_") + ": " + m.Path("_") + ";");
+                sw.WriteLine("    public module" + Program.Upper1(m.Name) + ": Module" + Program.Upper1(m.Name) + ";");
             }
             foreach (Service m in project.Services.Values)
             {
@@ -60,16 +60,17 @@ namespace Zeze.Gen.ts
             }
             foreach (Module m in project.AllOrderDefineModules)
             {
-                sw.WriteLine("        this." + m.Path("_") + " = new " + m.Path("_") + "(this);");
+                sw.WriteLine("        this.module" + Program.Upper1(m.Name) + " = new Module" + Program.Upper1(m.Name) + "(this);");
             }
         }
 
         private void ImportGen(System.IO.StreamWriter sw)
         {
-            sw.WriteLine("import { Zeze } from \"zeze/zeze\"");
+            sw.WriteLine("import { Zeze } from 'zeze/zeze';");
             foreach (Module m in project.AllOrderDefineModules)
             {
-                sw.WriteLine("import { " + m.Path("_")  + " } from \"" + m.Path("/", $"Module{m.Name}") + "\"");
+                var clsName = "Module" + Program.Upper1(m.Name);
+                sw.WriteLine("import " + clsName  + " from '" + m.Path("/", clsName) + "';");
             }
         }
 
@@ -77,13 +78,13 @@ namespace Zeze.Gen.ts
         {
             foreach (var m in project.ModuleStartOrder)
             {
-                sw.WriteLine("        this." + m.Path("_") + ".Start(this);");
+                sw.WriteLine("        this.module" + Program.Upper1(m.Name) + ".Start(this);");
             }
             foreach (Module m in project.AllOrderDefineModules)
             {
                 if (project.ModuleStartOrder.Contains(m))
                     continue;
-                sw.WriteLine("        this." + m.Path("_") + ".Start(this);");
+                sw.WriteLine("        this.module" + Program.Upper1(m.Name) + ".Start(this);");
             }
         }
 
@@ -91,7 +92,7 @@ namespace Zeze.Gen.ts
         {
             foreach (Module m in project.AllOrderDefineModules)
             {
-                sw.WriteLine("        this." + m.Path("_") + ".Stop(this);");
+                sw.WriteLine("        this.module" + Program.Upper1(m.Name) + ".Stop(this);");
             }
         }
 
@@ -112,7 +113,7 @@ namespace Zeze.Gen.ts
             ImportGen(sw);
             sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImportGen);
             sw.WriteLine();
-            sw.WriteLine("export class " + project.Solution.Name + "_App {");
+            sw.WriteLine("export default class App {");
             sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNamePropertyGen);
             PropertyGen(sw);
             sw.WriteLine("    " + fcg.ChunkEndTag + " " + ChunkNamePropertyGen);
