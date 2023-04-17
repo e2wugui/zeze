@@ -21,13 +21,13 @@ namespace Zeze.Gen.ts
         private void DefineNew(Types.Type type)
         {
             string tName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "var " + varname + ": " + tName + " = new " + tName + "();");
+            sw.WriteLine(prefix + "let " + varname + ": " + tName + " = new " + tName + "();");
         }
 
         private void DefineStack(Types.Type type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "var " + varname + ": " + typeName + ";");
+            sw.WriteLine(prefix + "let " + varname + ": " + typeName + ";");
         }
 
         public void Visit(Bean type)
@@ -106,14 +106,14 @@ namespace Zeze.Gen.ts
             var bean = (Bean)type.Variable.Bean;
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {
-                sw.WriteLine($"{prefix}var {varname} = new Zeze.DynamicBean("
+                sw.WriteLine($"{prefix}let {varname} = new Zeze.DynamicBean("
                 + $"{bean.Space.Path("_", bean.Name)}.GetSpecialTypeIdFromBean_{type.Variable.Id}, "
                 + $"{bean.Space.Path("_", bean.Name)}.CreateBeanFromSpecialTypeId_{type.Variable.Id}"
                 + ");");
             }
             else
             {
-                sw.WriteLine($"{prefix}var {varname} = new Zeze.DynamicBean"
+                sw.WriteLine($"{prefix}let {varname} = new Zeze.DynamicBean"
                     + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBeanCsharp}, {type.DynamicParams.CreateBeanFromSpecialTypeIdCsharp});");
             }
         }

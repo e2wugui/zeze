@@ -35,6 +35,8 @@ x64/
 /TypeScript/**/*.js
 /TypeScript/**/*.js.map
 /TypeScript/gen.ts
+/TypeScript/node_modules
+/TypeScript/package-lock.json
 /TypeScript/webpack/node_modules
 /UnitTest/gsd/Gen
 /UnitTest/Properties

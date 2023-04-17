@@ -15,8 +15,8 @@ namespace Zeze.Gen.ts
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "public Decode(_o_: Zeze.ByteBuffer) {");
-            sw.WriteLine(prefix + "    var _t_ = _o_.ReadByte();");
-            sw.WriteLine(prefix + "    var _i_ = _o_.ReadTagSize(_t_);");
+            sw.WriteLine(prefix + "    let _t_ = _o_.ReadByte();");
+            sw.WriteLine(prefix + "    let _i_ = _o_.ReadTagSize(_t_);");
 
             int lastId = 0;
             foreach (Variable v in bean.Variables)
@@ -56,8 +56,8 @@ namespace Zeze.Gen.ts
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "public Decode(_o_: Zeze.ByteBuffer) {");
-            sw.WriteLine(prefix + "    var _t_ = _o_.ReadByte();");
-            sw.WriteLine(prefix + "    var _i_ = _o_.ReadTagSize(_t_);");
+            sw.WriteLine(prefix + "    let _t_ = _o_.ReadByte();");
+            sw.WriteLine(prefix + "    let _i_ = _o_.ReadTagSize(_t_);");
 
             foreach (Variable v in bean.Variables)
             {
@@ -230,19 +230,19 @@ namespace Zeze.Gen.ts
             if (id <= 0)
                 throw new Exception("invalid variable.id");
             Types.Type vt = type.ValueType;
-            sw.WriteLine(prefix + "var _x" + id + "_ = new " + TypeName.GetName(type) + "();");
-            sw.WriteLine(prefix + varname + " = _x" + id + "_;");
+            sw.WriteLine(prefix + "let _x_ = new " + TypeName.GetName(type) + "();");
+            sw.WriteLine(prefix + varname + " = _x_;");
             sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
-            sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--) {");
+            sw.WriteLine(prefix + "    for (let _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--) {");
             if (IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_e_", sw, prefix + "        "));
                 vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        "));
-                sw.WriteLine(prefix + "        _x" + id + "_.push(_e_);");
+                sw.WriteLine(prefix + "        _x_.push(_e_);");
             }
             else
             {
-                sw.WriteLine(prefix + "        _x" + id + "_.push(" + DecodeElement(vt, "_t_") + ");");
+                sw.WriteLine(prefix + "        _x_.push(" + DecodeElement(vt, "_t_") + ");");
             }
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
@@ -255,19 +255,19 @@ namespace Zeze.Gen.ts
             if (id <= 0)
                 throw new Exception("invalid variable.id");
             Types.Type vt = type.ValueType;
-            sw.WriteLine(prefix + "var _x" + id + "_ = " + varname + ';');
-            sw.WriteLine(prefix + "_x" + id + "_.clear();");
+            sw.WriteLine(prefix + "let _x_ = " + varname + ';');
+            sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
-            sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--) {");
+            sw.WriteLine(prefix + "    for (let _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--) {");
             if (IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_e_", sw, prefix + "        "));
                 vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        "));
-                sw.WriteLine(prefix + "        _x" + id + "_.add(_e_);");
+                sw.WriteLine(prefix + "        _x_.add(_e_);");
             }
             else
             {
-                sw.WriteLine(prefix + "        _x" + id + "_.add(" + DecodeElement(vt, "_t_") + ");");
+                sw.WriteLine(prefix + "        _x_.add(" + DecodeElement(vt, "_t_") + ");");
             }
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
@@ -281,30 +281,30 @@ namespace Zeze.Gen.ts
                 throw new Exception("invalid variable.id");
             Types.Type kt = type.KeyType;
             Types.Type vt = type.ValueType;
-            sw.WriteLine(prefix + "var _x" + id + "_ = " + varname + ';');
-            sw.WriteLine(prefix + "_x" + id + "_.clear();");
+            sw.WriteLine(prefix + "let _x_ = " + varname + ';');
+            sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
-            sw.WriteLine(prefix + "    var _s_ = (_t_ = " + bufname + ".ReadByte()) >> Zeze.ByteBuffer.TAG_SHIFT;");
-            sw.WriteLine(prefix + "    for (var _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
+            sw.WriteLine(prefix + "    let _s_ = (_t_ = " + bufname + ".ReadByte()) >> Zeze.ByteBuffer.TAG_SHIFT;");
+            sw.WriteLine(prefix + "    for (let _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
             if (IsOldStyleEncodeDecodeType(kt))
             {
-                kt.Accept(new Define("_k" + id + "_", sw, prefix + "        "));
-                kt.Accept(new Decode("_k" + id + "_", 0, bufname, sw, prefix + "        "));
+                kt.Accept(new Define("_k_", sw, prefix + "        "));
+                kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        "));
             }
             else
             {
-                sw.WriteLine(prefix + "        var _k" + id + "_ = " + DecodeElement(kt, "_s_") + ';');
+                sw.WriteLine(prefix + "        let _k_ = " + DecodeElement(kt, "_s_") + ';');
             }
             if (IsOldStyleEncodeDecodeType(vt))
             {
-                vt.Accept(new Define("_v" + id + "_", sw, prefix + "        "));
-                vt.Accept(new Decode("_v" + id + "_", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Define("_v_", sw, prefix + "        "));
+                vt.Accept(new Decode("_v_", 0, bufname, sw, prefix + "        "));
             }
             else
             {
-                sw.WriteLine(prefix + "        var _v" + id + "_ = " + DecodeElement(vt, "_t_") + ';');
+                sw.WriteLine(prefix + "        let _v_ = " + DecodeElement(vt, "_t_") + ';');
             }
-            sw.WriteLine(prefix + "        _x" + id + "_.set(_k" + id + "_, _v" + id + "_);");
+            sw.WriteLine(prefix + "        _x_.set(_k_, _v_);");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "} else");
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");

@@ -1,5 +1,5 @@
-var HostLang: any;
-var IsUe = false;
+let HostLang: any;
+let IsUe = false;
 
 try {
 	HostLang = require('csharp'); // puerts unity
@@ -22,11 +22,11 @@ export module Zeze {
 		}
 
 		public static ToUint8Array(bn: bigint, bytesCount: number = 8): Uint8Array {
-			var hex = Long.ToHex(bn, bytesCount);
-			var len = hex.length / 2;
-			var u8 = new Uint8Array(len);
-			var i = 0;
-			var j = 0;
+			let hex = Long.ToHex(bn, bytesCount);
+			let len = hex.length / 2;
+			let u8 = new Uint8Array(len);
+			let i = 0;
+			let j = 0;
 			while (i < len) {
 				u8[i] = parseInt(hex.slice(j, j + 2), 16);
 				i += 1;
@@ -36,27 +36,27 @@ export module Zeze {
 		}
 
 		public static ToHex(bn: bigint, bytesCount: number = 8) {
-			var pos = true;
+			let pos = true;
 			if (bn < 0) {
 				pos = false;
 				bn = Long.BitNot(-bn) + 1n;
 			}
-			var base = 16;
-			var hex = bn.toString(base);
+			let base = 16;
+			let hex = bn.toString(base);
 			if (hex.length % 2)
 				hex = '0' + hex;
 			// Check the high byte _after_ proper hex padding
-			var highbyte = parseInt(hex.slice(0, 2), 16);
-			var highbit = (0x80 & highbyte);
+			let highbyte = parseInt(hex.slice(0, 2), 16);
+			let highbit = (0x80 & highbyte);
 			if (pos && highbit)
 				hex = '00' + hex;
-			var bytes = hex.length / 2;
+			let bytes = hex.length / 2;
 			if (bytes > bytesCount)
 				throw new Error("bigint too big. bytes=" + bytes + ", bytesCount=" + bytesCount);
-			var prefixBytes = bytesCount - bytes;
+			let prefixBytes = bytesCount - bytes;
 			if (prefixBytes > 0) {
-				var prefix = '';
-				var prefixString = pos ? '00' : 'ff';
+				let prefix = '';
+				let prefixString = pos ? '00' : 'ff';
 				while (prefixBytes > 0) {
 					prefix = prefix + prefixString;
 					prefixBytes = prefixBytes - 1;
@@ -67,8 +67,8 @@ export module Zeze {
 		}
 
 		public static BitNot(bn: bigint): bigint {
-			var bin = (bn).toString(2)
-			var prefix = '';
+			let bin = (bn).toString(2)
+			let prefix = '';
 			while (bin.length % 8)
 				bin = '0' + bin;
 			if ('1' === bin[0] && -1 !== bin.slice(1).indexOf('1'))
@@ -80,19 +80,19 @@ export module Zeze {
 		}
 
 		public static FromUint8ArrayBigEndian(u8: Uint8Array, offset: number, len: number): bigint {
-			var hex = [];
-			var end = offset + len;
-			var pos = true;
+			let hex = [];
+			let end = offset + len;
+			let pos = true;
 			if (len > 0 && (u8[offset] & 0x80))
 				pos = false;
-			for (var i = offset; i < end; ++i) {
-				var h = u8[i].toString(16);
+			for (let i = offset; i < end; ++i) {
+				let h = u8[i].toString(16);
 				if (h.length % 2)
 					h = '0' + h;
 				hex.push(h);
 			}
 
-			var bn = BigInt('0x' + hex.join(''));
+			let bn = BigInt('0x' + hex.join(''));
 			//console.log(bn.toString(16));
 			if (!pos) {
 				bn = BigInt('0b' + bn.toString(2).split('').map(function (i) { return '0' === i ? 1 : 0 }).join('')) + BigInt(1);
@@ -103,20 +103,20 @@ export module Zeze {
 		}
 
 		public static FromUint8ArrayLittleEndian(u8: Uint8Array, offset: number, len: number): bigint {
-			var hex = [];
-			var end = offset + len;
-			var pos = true;
+			let hex = [];
+			let end = offset + len;
+			let pos = true;
 			if (len > 0 && (u8[end - 1] & 0x80)) {
 				pos = false;
 			}
-			for (var i = end - 1; i >= offset; --i) {
-				var h = u8[i].toString(16);
+			for (let i = end - 1; i >= offset; --i) {
+				let h = u8[i].toString(16);
 				if (h.length % 2)
 					h = '0' + h;
 				hex.push(h);
 			}
 
-			var bn = BigInt('0x' + hex.join(''));
+			let bn = BigInt('0x' + hex.join(''));
 			if (!pos) {
 				bn = BigInt('0b' + bn.toString(2).split('').map(function (i) { return '0' === i ? 1 : 0 }).join('')) + BigInt(1);
 				bn = -bn;
@@ -212,7 +212,7 @@ export module Zeze {
 		}
 
 		public SetRealBean(bean: Bean) {
-			var typeId = this.GetSpecialTypeIdFromBean(bean);
+			let typeId = this.GetSpecialTypeIdFromBean(bean);
 			this._Bean = bean;
 			this._TypeId = typeId;
 		}
@@ -240,8 +240,8 @@ export module Zeze {
 		}
 
 		public Decode(bb: ByteBuffer) {
-			var typeId = bb.ReadLong();
-			var real = this.CreateBeanFromSpecialTypeId(typeId);
+			let typeId = bb.ReadLong();
+			let real = this.CreateBeanFromSpecialTypeId(typeId);
 			if (real != null) {
 				real.Decode(bb);
 				this._Bean = real;
@@ -277,10 +277,10 @@ export module Zeze {
 		}
 
 		public EncodeProtocol(): ByteBuffer {
-			var bb = new ByteBuffer();
+			let bb = new ByteBuffer();
 			bb.WriteInt4(this.ModuleId());
 			bb.WriteInt4(this.ProtocolId());
-			var state = bb.BeginWriteWithSize4();
+			let state = bb.BeginWriteWithSize4();
 			this.Encode(bb);
 			bb.EndWriteWithSize4(state);
 			return bb;
@@ -298,13 +298,13 @@ export module Zeze {
 		}
 
 		public static DecodeProtocol(service: Service, singleEncodedProtocol: ByteBuffer): Protocol | null {
-			var moduleId: number = singleEncodedProtocol.ReadInt4();
-			var protocolId: number = singleEncodedProtocol.ReadInt4();
-			var size: number = singleEncodedProtocol.ReadInt4();
-			var type: bigint = BigInt(moduleId) << 32n | BigInt(protocolId);
-			var factoryHandle = service.FactoryHandleMap.get(type);
+			let moduleId: number = singleEncodedProtocol.ReadInt4();
+			let protocolId: number = singleEncodedProtocol.ReadInt4();
+			let size: number = singleEncodedProtocol.ReadInt4();
+			let type: bigint = BigInt(moduleId) << 32n | BigInt(protocolId);
+			let factoryHandle = service.FactoryHandleMap.get(type);
 			if (factoryHandle != null) {
-				var p = factoryHandle.factory();
+				let p = factoryHandle.factory();
 				p.Decode(singleEncodedProtocol);
 				return p;
 			}
@@ -312,12 +312,12 @@ export module Zeze {
 		}
 
 		public static DecodeProtocols(service: Service, socket: Socket, input: ByteBuffer) {
-			var os = new ByteBuffer(input.Bytes, input.ReadIndex, input.Size());
+			let os = new ByteBuffer(input.Bytes, input.ReadIndex, input.Size());
 			while (os.Size() > 0) {
-				var moduleId: number;
-				var protocolId: number;
-				var size: number;
-				var readIndexSaved = os.ReadIndex;
+				let moduleId: number;
+				let protocolId: number;
+				let size: number;
+				let readIndexSaved = os.ReadIndex;
 
 				if (os.Size() >= 12) { // protocol header size.
 					moduleId = os.ReadInt4();
@@ -333,12 +333,12 @@ export module Zeze {
 					return;
 				}
 
-				var buffer = new ByteBuffer(os.Bytes, os.ReadIndex, size);
+				let buffer = new ByteBuffer(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
-				var type: bigint = BigInt(moduleId) << 32n | BigInt(protocolId);
-				var factoryHandle = service.FactoryHandleMap.get(type);
+				let type: bigint = BigInt(moduleId) << 32n | BigInt(protocolId);
+				let factoryHandle = service.FactoryHandleMap.get(type);
 				if (null != factoryHandle) {
-					var p = factoryHandle.factory();
+					let p = factoryHandle.factory();
 					p.Decode(buffer);
 					p.Sender = socket;
 					p.Dispatch(service, factoryHandle);
@@ -359,7 +359,7 @@ export module Zeze {
 		}
 
 		public Encode(_os_: ByteBuffer) {
-			var compress = this.FamilyClass;
+			let compress = this.FamilyClass;
 			if (this.ResultCode != 0n)
 				compress |= FamilyClass.BitResultCode;
 			_os_.WriteInt(compress);
@@ -369,7 +369,7 @@ export module Zeze {
 		}
 
 		public Decode(_os_: ByteBuffer) {
-			var compress = _os_.ReadInt();
+			let compress = _os_.ReadInt();
 			this.FamilyClass = compress & FamilyClass.FamilyClassMask;
 			this.ResultCode = ((compress & FamilyClass.BitResultCode) != 0) ? _os_.ReadLong() : 0n;
 			this.Argument.Decode(_os_);
@@ -404,7 +404,7 @@ export module Zeze {
 			this.sid = socket.service.AddRpcContext(this);
 
 			this.timeout = setTimeout(() => {
-				var context = <Rpc<TArgument, TResult>><unknown>socket.service.RemoveRpcContext(this.sid);
+				let context = <Rpc<TArgument, TResult>><unknown>socket.service.RemoveRpcContext(this.sid);
 				if (context && context.ResponseHandle) {
 					context.IsTimeout = true;
 					context.ResponseHandle(context);
@@ -417,7 +417,7 @@ export module Zeze {
 		public async SendForWait(socket: Socket, timeoutMs: number = 5000): Promise<void> {
 			return new Promise<void>((resolve, reject) => {
 				this.SendWithCallback(socket, (response) => {
-					var res = <Rpc<TArgument, TResult>><unknown>response;
+					let res = <Rpc<TArgument, TResult>><unknown>response;
 					if (res.IsTimeout)
 						reject("Rpc.SendForWait Timeout");
 					else
@@ -442,7 +442,7 @@ export module Zeze {
 				service.DispatchProtocol(this, factoryHandle);
 				return;
 			}
-			var context = <Rpc<TArgument, TResult>><unknown>service.RemoveRpcContext(this.sid);
+			let context = <Rpc<TArgument, TResult>><unknown>service.RemoveRpcContext(this.sid);
 			if (null == context)
 				return;
 
@@ -458,7 +458,7 @@ export module Zeze {
 		}
 
 		Decode(bb: ByteBuffer) {
-			var compress = bb.ReadInt();
+			let compress = bb.ReadInt();
 			this.FamilyClass = compress & FamilyClass.FamilyClassMask;
 			this.IsRequest = this.FamilyClass == FamilyClass.Request;
 			this.ResultCode = ((compress & FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0n;
@@ -471,7 +471,7 @@ export module Zeze {
 
 		Encode(bb: ByteBuffer) {
 			// skip value of this.FamilyClass
-			var compress = this.IsRequest ? FamilyClass.Request : FamilyClass.Response;
+			let compress = this.IsRequest ? FamilyClass.Request : FamilyClass.Response;
 			if (this.ResultCode != 0n)
 				compress |= FamilyClass.BitResultCode;
 			bb.WriteInt(compress);
@@ -523,7 +523,7 @@ export module Zeze {
 					this.InputBuffer = null;
 				return;
 			}
-			var bufdirect = new ByteBuffer(new Uint8Array(newInput), offset, len);
+			let bufdirect = new ByteBuffer(new Uint8Array(newInput), offset, len);
 			Protocol.DecodeProtocols(this.service, this, bufdirect);
 			if (bufdirect.Size() > 0) {
 				bufdirect.Campact();
@@ -556,7 +556,7 @@ export module Zeze {
 		}
 
 		public RemoveRpcContext(sid: bigint): Protocol | null {
-			var ctx= this.contexts.get(sid);
+			let ctx= this.contexts.get(sid);
 			if (ctx) {
 				this.contexts.delete(sid);
 				return ctx;
@@ -651,27 +651,27 @@ export module Zeze {
 		}
 
 		ToPower2(needSize: number) {
-			var size = 16;
+			let size = 16;
 			while (size < needSize)
 				size <<= 1;
 			return size;
 		}
 
 		public static BlockCopy(src: Uint8Array, srcOffset: number, dst: Uint8Array, dstOffset: number, count: number) {
-			for (var i = 0; i < count; ++i)
+			for (let i = 0; i < count; ++i)
 				dst[i + dstOffset] = src[i + srcOffset];
 		}
 
 		public Copy(): Uint8Array {
-			var copy = new Uint8Array(this.Size());
+			let copy = new Uint8Array(this.Size());
 			ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, copy, 0, this.Size());
 			return copy;
 		}
 
 		public EnsureWrite(size: number) {
-			var newSize = this.WriteIndex + size;
+			let newSize = this.WriteIndex + size;
 			if (newSize > this.Capacity()) {
-				var newBytes = new Uint8Array(this.ToPower2(newSize));
+				let newBytes = new Uint8Array(this.ToPower2(newSize));
 				this.WriteIndex -= this.ReadIndex;
 				ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, newBytes, 0, this.WriteIndex);
 				this.ReadIndex = 0;
@@ -693,14 +693,14 @@ export module Zeze {
 		}
 
 		public BeginWriteWithSize4(): number {
-			var state = this.Size();
+			let state = this.Size();
 			this.EnsureWrite(4);
 			this.WriteIndex += 4;
 			return state;
 		}
 
 		public EndWriteWithSize4(state: number) {
-			var oldWriteIndex = state + this.ReadIndex;
+			let oldWriteIndex = state + this.ReadIndex;
 			this.View.setInt32(oldWriteIndex, this.WriteIndex - oldWriteIndex - 4, true);
 		}
 
@@ -710,7 +710,7 @@ export module Zeze {
 		}
 
 		public Campact() {
-			var size = this.Size();
+			let size = this.Size();
 			if (size > 0) {
 				if (this.ReadIndex > 0) {
 					ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, this.Bytes, 0, size);
@@ -753,22 +753,22 @@ export module Zeze {
 
 		public ReadInt4(): number {
 			this.EnsureRead(4);
-			var x = this.View.getInt32(this.ReadIndex, true);
+			let x = this.View.getInt32(this.ReadIndex, true);
 			this.ReadIndex += 4;
 			return x;
 		}
 
 		public WriteLong8(x: bigint) {
 			this.EnsureWrite(8);
-			var u8 = Long.ToUint8Array(x, 8);
-			for (var i = u8.length - 1, j = this.WriteIndex; i >= 0; --i, ++j)
+			let u8 = Long.ToUint8Array(x, 8);
+			for (let i = u8.length - 1, j = this.WriteIndex; i >= 0; --i, ++j)
 				this.Bytes[j] = u8[i];
 			this.WriteIndex += 8;
 		}
 
 		public ReadLong8(): bigint {
 			this.EnsureRead(8);
-			var x = Long.FromUint8ArrayLittleEndian(this.Bytes, this.ReadIndex, 8);
+			let x = Long.FromUint8ArrayLittleEndian(this.Bytes, this.ReadIndex, 8);
 			this.ReadIndex += 8;
 			return x;
 		}
@@ -781,16 +781,16 @@ export module Zeze {
 					return;
 				} else if (u < 0x4000) {
 					this.EnsureWrite(2); // 10xx xxxx +1B
-					var bytes = this.Bytes;
-					var writeIndex = this.WriteIndex;
+					let bytes = this.Bytes;
+					let writeIndex = this.WriteIndex;
 					bytes[writeIndex] = (u >> 8) + 0x80;
 					bytes[writeIndex + 1] = u;
 					this.WriteIndex = writeIndex + 2;
 					return;
 				} else if (u < 0x20_0000) {
 					this.EnsureWrite(3); // 110x xxxx +2B
-					var bytes = this.Bytes;
-					var writeIndex = this.WriteIndex;
+					let bytes = this.Bytes;
+					let writeIndex = this.WriteIndex;
 					bytes[writeIndex] = (u >> 16) + 0xc0;
 					bytes[writeIndex + 1] = u >> 8;
 					bytes[writeIndex + 2] = u;
@@ -798,8 +798,8 @@ export module Zeze {
 					return;
 				} else if (u < 0x1000_0000) {
 					this.EnsureWrite(4); // 1110 xxxx +3B
-					var bytes = this.Bytes;
-					var writeIndex = this.WriteIndex;
+					let bytes = this.Bytes;
+					let writeIndex = this.WriteIndex;
 					bytes[writeIndex] = (u >> 24) + 0xe0;
 					bytes[writeIndex + 1] = u >> 16;
 					bytes[writeIndex + 2] = u >> 8;
@@ -809,8 +809,8 @@ export module Zeze {
 				}
 			}
 			this.EnsureWrite(5); // 1111 0000 +4B
-			var bytes = this.Bytes;
-			var writeIndex = this.WriteIndex;
+			let bytes = this.Bytes;
+			let writeIndex = this.WriteIndex;
 			bytes[writeIndex] = 0xf0;
 			bytes[writeIndex + 1] = u >> 24;
 			bytes[writeIndex + 2] = u >> 16;
@@ -821,9 +821,9 @@ export module Zeze {
 
 		public ReadUInt(): number {
 			this.EnsureRead(1);
-			var bytes = this.Bytes;
-			var readIndex = this.ReadIndex;
-			var x = bytes[readIndex];
+			let bytes = this.Bytes;
+			let readIndex = this.ReadIndex;
+			let x = bytes[readIndex];
 			if (x < 0x80) {
 				this.ReadIndex = readIndex + 1;
 			} else if (x < 0xc0) {
@@ -857,8 +857,8 @@ export module Zeze {
 
 		public SkipUInt() {
 			this.EnsureRead(1);
-			var readIndex = this.ReadIndex;
-			var v = this.Bytes[readIndex];
+			let readIndex = this.ReadIndex;
+			let v = this.Bytes[readIndex];
 			if (v < 0x80)
 				this.ReadIndex = readIndex + 1;
 			else if (v < 0xc0) {
@@ -883,26 +883,26 @@ export module Zeze {
 					this.Bytes[this.WriteIndex++] = Number(x);
 				} else if (x < 0x2000) {
 					this.EnsureWrite(2); // 010x xxxx +1B
-					var bytes = this.Bytes;
-					var writeIndex = this.WriteIndex;
-					var v = Number(x)
+					let bytes = this.Bytes;
+					let writeIndex = this.WriteIndex;
+					let v = Number(x)
 					bytes[writeIndex] = (v >> 8) + 0x40;
 					bytes[writeIndex + 1] = v;
 					this.WriteIndex = writeIndex + 2;
 				} else if (x < 0x10_0000) {
 					this.EnsureWrite(3); // 0110 xxxx +2B
-					var bytes = this.Bytes;
-					var writeIndex = this.WriteIndex;
-					var v = Number(x)
+					let bytes = this.Bytes;
+					let writeIndex = this.WriteIndex;
+					let v = Number(x)
 					bytes[writeIndex] = (v >> 16) + 0x60;
 					bytes[writeIndex + 1] = v >> 8;
 					bytes[writeIndex + 2] = v;
 					this.WriteIndex = writeIndex + 3;
 				} else if (x < 0x800_0000) {
 					this.EnsureWrite(4); // 0111 0xxx +3B
-					var bytes = this.Bytes;
-					var writeIndex = this.WriteIndex;
-					var v = Number(x)
+					let bytes = this.Bytes;
+					let writeIndex = this.WriteIndex;
+					let v = Number(x)
 					bytes[writeIndex] = (v >> 24) + 0x70;
 					bytes[writeIndex + 1] = v >> 16;
 					bytes[writeIndex + 2] = v >> 8;
@@ -910,31 +910,31 @@ export module Zeze {
 					this.WriteIndex = writeIndex + 4;
 				} else if (x < 0x4_0000_0000n) {
 					this.EnsureWrite(5); // 0111 10xx +4B
-					var u8 = Long.ToUint8Array(x, 5);
+					let u8 = Long.ToUint8Array(x, 5);
 					this.Bytes[this.WriteIndex] = u8[0] + 0x78;
 					ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 4);
 					this.WriteIndex += 5;
 				} else if (x < 0x200_0000_0000n) {
 					this.EnsureWrite(6); // 0111 110x +5B
-					var u8 = Long.ToUint8Array(x, 6);
+					let u8 = Long.ToUint8Array(x, 6);
 					this.Bytes[this.WriteIndex] = u8[0] + 0x7c;
 					ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 5);
 					this.WriteIndex += 6;
 				} else if (x < 0x1_0000_0000_0000n) {
 					this.EnsureWrite(7); // 0111 1110 +6B
-					var u8 = Long.ToUint8Array(x, 7);
+					let u8 = Long.ToUint8Array(x, 7);
 					this.Bytes[this.WriteIndex] = u8[0] + 0x7e;
 					ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 6);
 					this.WriteIndex += 7;
 				} else if (x < 0x80_0000_0000_0000n) {
 					this.EnsureWrite(8); // 0111 1111 0 +7B
-					var u8 = Long.ToUint8Array(x, 8);
+					let u8 = Long.ToUint8Array(x, 8);
 					this.Bytes[this.WriteIndex] = u8[0] + 0x7f;
 					ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 7);
 					this.WriteIndex += 8;
 				} else {
 					this.EnsureWrite(9); // 0111 1111 1 +8B
-					var u8 = Long.ToUint8Array(x, 8);
+					let u8 = Long.ToUint8Array(x, 8);
 					this.Bytes[this.WriteIndex] = 0x7f;
 					this.Bytes[this.WriteIndex + 1] = u8[0] + 0x80;
 					ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 2, 7);
@@ -946,26 +946,26 @@ export module Zeze {
 					this.Bytes[this.WriteIndex++] = Number(x);
 				} else if (x >= -0x2000) {
 					this.EnsureWrite(2); // 101x xxxx +1B
-					var bytes = this.Bytes;
-					var writeIndex = this.WriteIndex;
-					var v = Number(x)
+					let bytes = this.Bytes;
+					let writeIndex = this.WriteIndex;
+					let v = Number(x)
 					bytes[writeIndex] = (v >> 8) - 0x40;
 					bytes[writeIndex + 1] = v;
 					this.WriteIndex = writeIndex + 2;
 				} else if (x >= -0x10_0000) {
 					this.EnsureWrite(3); // 1001 xxxx +2B
-					var bytes = this.Bytes;
-					var writeIndex = this.WriteIndex;
-					var v = Number(x)
+					let bytes = this.Bytes;
+					let writeIndex = this.WriteIndex;
+					let v = Number(x)
 					bytes[writeIndex] = (v >> 16) - 0x60;
 					bytes[writeIndex + 1] = v >> 8;
 					bytes[writeIndex + 2] = v;
 					this.WriteIndex = writeIndex + 3;
 				} else if (x >= -0x800_0000) {
 					this.EnsureWrite(4); // 1000 1xxx +3B
-					var bytes = this.Bytes;
-					var writeIndex = this.WriteIndex;
-					var v = Number(x)
+					let bytes = this.Bytes;
+					let writeIndex = this.WriteIndex;
+					let v = Number(x)
 					bytes[writeIndex] = (v >> 24) - 0x70;
 					bytes[writeIndex + 1] = v >> 16;
 					bytes[writeIndex + 2] = v >> 8;
@@ -973,31 +973,31 @@ export module Zeze {
 					this.WriteIndex = writeIndex + 4;
 				} else if (x >= -0x4_0000_0000n) {
 					this.EnsureWrite(5); // 1000 01xx +4B
-					var u8 = Long.ToUint8Array(x, 8);
+					let u8 = Long.ToUint8Array(x, 8);
 					this.Bytes[this.WriteIndex] = u8[3] - 0x78;
 					ByteBuffer.BlockCopy(u8, 4, this.Bytes, this.WriteIndex + 1, 4);
 					this.WriteIndex += 5;
 				} else if (x >= -0x200_0000_0000n) {
 					this.EnsureWrite(6); // 1000 001x +5B
-					var u8 = Long.ToUint8Array(x, 8);
+					let u8 = Long.ToUint8Array(x, 8);
 					this.Bytes[this.WriteIndex] = u8[2] - 0x7c;
 					ByteBuffer.BlockCopy(u8, 3, this.Bytes, this.WriteIndex + 1, 5);
 					this.WriteIndex += 6;
 				} else if (x >= -0x1_0000_0000_0000n) {
 					this.EnsureWrite(7); // 1000 0001 +6B
-					var u8 = Long.ToUint8Array(x, 8);
+					let u8 = Long.ToUint8Array(x, 8);
 					this.Bytes[this.WriteIndex] = 0x81;
 					ByteBuffer.BlockCopy(u8, 2, this.Bytes, this.WriteIndex + 1, 6);
 					this.WriteIndex += 7;
 				} else if (x >= -0x80_0000_0000_0000n) {
 					this.EnsureWrite(8); // 1000 0000 1 +7B
-					var u8 = Long.ToUint8Array(x, 8);
+					let u8 = Long.ToUint8Array(x, 8);
 					this.Bytes[this.WriteIndex] = 0x80;
 					ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 1, 7);
 					this.WriteIndex += 8;
 				} else {
 					this.EnsureWrite(9); // 1000 0000 0 +8B
-					var u8 = Long.ToUint8Array(x, 8);
+					let u8 = Long.ToUint8Array(x, 8);
 					this.Bytes[this.WriteIndex] = 0x80;
 					this.Bytes[this.WriteIndex + 1] = u8[0] - 0x80;
 					ByteBuffer.BlockCopy(u8, 1, this.Bytes, this.WriteIndex + 2, 7);
@@ -1008,8 +1008,8 @@ export module Zeze {
 
 		public ReadLong2BE(): number {
 			this.EnsureRead(2);
-			var bytes = this.Bytes;
-			var readIndex = this.ReadIndex;
+			let bytes = this.Bytes;
+			let readIndex = this.ReadIndex;
 			this.ReadIndex = readIndex + 2;
 			return (bytes[readIndex] << 8) +
 				bytes[readIndex + 1];
@@ -1017,8 +1017,8 @@ export module Zeze {
 
 		public ReadLong3BE(): number {
 			this.EnsureRead(3);
-			var bytes = this.Bytes;
-			var readIndex = this.ReadIndex;
+			let bytes = this.Bytes;
+			let readIndex = this.ReadIndex;
 			this.ReadIndex = readIndex + 3;
 			return (bytes[readIndex] << 16) +
 				(bytes[readIndex + 1] << 8) +
@@ -1027,35 +1027,35 @@ export module Zeze {
 
 		public ReadLong4BE(): bigint {
 			this.EnsureRead(4);
-			var readIndex = this.ReadIndex;
+			let readIndex = this.ReadIndex;
 			this.ReadIndex = readIndex + 4;
 			return Long.FromUint8ArrayBigEndian(this.Bytes, readIndex, 4) & 0xffff_ffffn;
 		}
 
 		public ReadLong5BE(): bigint {
 			this.EnsureRead(5);
-			var readIndex = this.ReadIndex;
+			let readIndex = this.ReadIndex;
 			this.ReadIndex = readIndex + 5;
 			return Long.FromUint8ArrayBigEndian(this.Bytes, readIndex, 5) & 0xff_ffff_ffffn;
 		}
 
 		public ReadLong6BE(): bigint {
 			this.EnsureRead(6);
-			var readIndex = this.ReadIndex;
+			let readIndex = this.ReadIndex;
 			this.ReadIndex = readIndex + 6;
 			return Long.FromUint8ArrayBigEndian(this.Bytes, readIndex, 6) & 0xffff_ffff_ffffn;
 		}
 
 		public ReadLong7BE(): bigint {
 			this.EnsureRead(7);
-			var readIndex = this.ReadIndex;
+			let readIndex = this.ReadIndex;
 			this.ReadIndex = readIndex + 7;
 			return Long.FromUint8ArrayBigEndian(this.Bytes, readIndex, 7) & 0xff_ffff_ffff_ffffn;
 		}
 
 		public ReadLong(): bigint {
 			this.EnsureRead(1);
-			var b = this.Bytes[this.ReadIndex++];
+			let b = this.Bytes[this.ReadIndex++];
 			b = b < 0x80 ? b : b - 0x100;
 			switch ((b >> 3) & 0x1f) {
 			case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
@@ -1071,7 +1071,7 @@ export module Zeze {
 					case 0: case 1: case 2: case 3: return (BigInt(b - 0x78) << 32n) + this.ReadLong4BE();
 					case 4: case 5: return (BigInt(b - 0x7c) << 40n) + this.ReadLong5BE();
 					case 6: return this.ReadLong6BE();
-					default: var r = this.ReadLong7BE(); return r < 0x80_0000_0000_0000n ?
+					default: let r = this.ReadLong7BE(); return r < 0x80_0000_0000_0000n ?
 						r : ((r - 0x80_0000_0000_0000n) << 8n) + BigInt(this.ReadByte());
 				}
 			default: // 0x10
@@ -1079,7 +1079,7 @@ export module Zeze {
 					case 4: case 5: case 6: case 7: return (BigInt(b + 0x78) << 32n) + this.ReadLong4BE();
 					case 2: case 3: return (BigInt(b + 0x7c) << 40n) + this.ReadLong5BE();
 					case 1: return -0x1_0000_0000_0000n + this.ReadLong6BE();
-					default: var r = this.ReadLong7BE(); r = r >= 0x80_0000_0000_0000n ?
+					default: let r = this.ReadLong7BE(); r = r >= 0x80_0000_0000_0000n ?
 						-0x100_0000_0000_0000n + r : ((r + 0x80_0000_0000_0000n) << 8n) + BigInt(this.ReadByte());
 						return r < 0x8000_0000_0000_0000n ? r : r - 0x1_0000_0000_0000_0000n; // special fix
 				}
@@ -1088,7 +1088,7 @@ export module Zeze {
 
 		public SkipLong() {
 			this.EnsureRead(1);
-			var b = this.Bytes[this.ReadIndex++];
+			let b = this.Bytes[this.ReadIndex++];
 			b = b < 0x80 ? b : b - 0x100;
 			switch ((b >> 3) & 0x1f) {
 				case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
@@ -1102,14 +1102,14 @@ export module Zeze {
 						case 0: case 1: case 2: case 3: this.EnsureRead(4); this.ReadIndex += 4; return;
 						case 4: case 5: this.EnsureRead(5); this.ReadIndex += 5; return;
 						case 6: this.EnsureRead(6); this.ReadIndex += 6; return;
-						default: this.EnsureRead(1); var n = 6 + (this.Bytes[this.ReadIndex++] >> 7); this.EnsureRead(n); this.ReadIndex += n; return;
+						default: this.EnsureRead(1); let n = 6 + (this.Bytes[this.ReadIndex++] >> 7); this.EnsureRead(n); this.ReadIndex += n; return;
 					}
 				default: // 0x10
 					switch (b & 7) {
 						case 4: case 5: case 6: case 7: this.EnsureRead(4); this.ReadIndex += 4; return;
 						case 2: case 3: this.EnsureRead(5); this.ReadIndex += 5; return;
 						case 1: this.EnsureRead(6); this.ReadIndex += 6; return;
-						default: this.EnsureRead(1); var n = 7 - (this.Bytes[this.ReadIndex++] >> 7); this.EnsureRead(n); this.ReadIndex += n;
+						default: this.EnsureRead(1); let n = 7 - (this.Bytes[this.ReadIndex++] >> 7); this.EnsureRead(n); this.ReadIndex += n;
 					}
 			}
 		}
@@ -1130,7 +1130,7 @@ export module Zeze {
 
 		public ReadFloat(): number {
 			this.EnsureRead(4);
-			var x = this.View.getFloat32(this.ReadIndex, true);
+			let x = this.View.getFloat32(this.ReadIndex, true);
 			this.ReadIndex += 4;
 			return x;
 		}
@@ -1143,15 +1143,15 @@ export module Zeze {
 
 		public ReadDouble(): number {
 			this.EnsureRead(8);
-			var x = this.View.getFloat64(this.ReadIndex, true);
+			let x = this.View.getFloat64(this.ReadIndex, true);
 			this.ReadIndex += 8;
 			return x;
 		}
 
 		public WriteVector2(v: Vector2) {
 			this.EnsureWrite(8);
-			var bytes = this.Bytes;
-			var i = this.WriteIndex;
+			let bytes = this.Bytes;
+			let i = this.WriteIndex;
 			this.View.setFloat32(i, v.x, true);
 			this.View.setFloat32(i + 4, v.y, true);
 			this.WriteIndex = i + 8;
@@ -1159,8 +1159,8 @@ export module Zeze {
 
 		public WriteVector3(v: Vector3) {
 			this.EnsureWrite(12);
-			var bytes = this.Bytes;
-			var i = this.WriteIndex;
+			let bytes = this.Bytes;
+			let i = this.WriteIndex;
 			this.View.setFloat32(i, v.x, true);
 			this.View.setFloat32(i + 4, v.y, true);
 			this.View.setFloat32(i + 8, v.z, true);
@@ -1169,8 +1169,8 @@ export module Zeze {
 
 		public WriteVector4(v: Vector4) {
 			this.EnsureWrite(16);
-			var bytes = this.Bytes;
-			var i = this.WriteIndex;
+			let bytes = this.Bytes;
+			let i = this.WriteIndex;
 			this.View.setFloat32(i, v.x, true);
 			this.View.setFloat32(i + 4, v.y, true);
 			this.View.setFloat32(i + 8, v.z, true);
@@ -1193,7 +1193,7 @@ export module Zeze {
 		static Decoder: TextDecoder = new TextDecoder();
 
 		public WriteString(x: string) {
-			var utf8 = ByteBuffer.Encoder.encode(x);
+			let utf8 = ByteBuffer.Encoder.encode(x);
 			this.WriteBytes(utf8, 0, utf8.length);
 		}
 
@@ -1211,16 +1211,16 @@ export module Zeze {
 		}
 
 		public ReadBytes(): Uint8Array {
-			var n = this.ReadUInt();
+			let n = this.ReadUInt();
 			this.EnsureRead(n);
-			var x = new Uint8Array(n);
+			let x = new Uint8Array(n);
 			ByteBuffer.BlockCopy(this.Bytes, this.ReadIndex, x, 0, n);
 			this.ReadIndex += n;
 			return x;
 		}
 
 		public SkipBytes() {
-			var n = this.ReadUInt();
+			let n = this.ReadUInt();
 			this.EnsureRead(n);
 			this.ReadIndex += n;
 		}
@@ -1232,8 +1232,8 @@ export module Zeze {
 			if (this.Size != other.Size)
 				return false;
 
-			var size = this.Size();
-			for (var i = 0; i < size; i++) {
+			let size = this.Size();
+			for (let i = 0; i < size; i++) {
 				if (this.Bytes[this.ReadIndex + i] != other.Bytes[other.ReadIndex + i])
 					return false;
 			}
@@ -1242,17 +1242,17 @@ export module Zeze {
 
 		static HEX = "0123456789ABCDEF";
 		public static toHex(x: number): string {
-			var l = x & 0x0f;
-			var h = (x >> 4) & 0x0f;
+			let l = x & 0x0f;
+			let h = (x >> 4) & 0x0f;
 			return this.HEX[h] + this.HEX[l];
 		}
 
 		public static toString(x: Uint8Array, from: number = 0, to: number = -1): string {
-			var ss = "";
-			var bfirst = true;
+			let ss = "";
+			let bfirst = true;
 			if (to == -1)
 				to = x.byteLength;
-			for (var i = from; i < to; ++i) {
+			for (let i = from; i < to; ++i) {
 				if (bfirst)
 					bfirst = false;
 				else
@@ -1287,7 +1287,7 @@ export module Zeze {
 		public static readonly ID_MASK = 0xff - ByteBuffer.TAG_MASK;
 
 		public WriteTag(lastVarId: number, varId: number, type: number): number {
-			var deltaId = varId - lastVarId;
+			let deltaId = varId - lastVarId;
 			if (deltaId < 0xf)
 				this.WriteByte((deltaId << ByteBuffer.TAG_SHIFT) + type);
 			else {
@@ -1312,12 +1312,12 @@ export module Zeze {
 		}
 
 		public ReadTagSize(tagByte: number): number {
-			var deltaId = (tagByte & ByteBuffer.ID_MASK) >> ByteBuffer.TAG_SHIFT;
+			let deltaId = (tagByte & ByteBuffer.ID_MASK) >> ByteBuffer.TAG_SHIFT;
 			return deltaId < 0xf ? deltaId : 0xf + this.ReadUInt();
 		}
 
 		public ReadBoolT(tag: number): boolean {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.INTEGER)
 				return this.ReadLong() != 0n;
 			if (type == ByteBuffer.FLOAT)
@@ -1329,7 +1329,7 @@ export module Zeze {
 		}
 
 		public ReadIntT(tag: number): number {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.INTEGER)
 				return Number(this.ReadLong());
 			if (type == ByteBuffer.FLOAT)
@@ -1341,7 +1341,7 @@ export module Zeze {
 		}
 
 		public ReadLongT(tag: number): bigint {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.INTEGER)
 				return this.ReadLong();
 			if (type == ByteBuffer.FLOAT)
@@ -1353,7 +1353,7 @@ export module Zeze {
 		}
 
 		public ReadFloatT(tag: number): number {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.FLOAT)
 				return this.ReadFloat();
 			if (type == ByteBuffer.DOUBLE)
@@ -1365,7 +1365,7 @@ export module Zeze {
 		}
 
 		public ReadDoubleT(tag: number): number {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.DOUBLE)
 				return this.ReadDouble();
 			if (type == ByteBuffer.FLOAT)
@@ -1377,7 +1377,7 @@ export module Zeze {
 		}
 
 		public ReadBytesT(tag: number): Uint8Array {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.BYTES)
 				return this.ReadBytes();
 			this.SkipUnknownField(tag);
@@ -1385,7 +1385,7 @@ export module Zeze {
 		}
 
 		public ReadStringT(tag: number): string {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.BYTES)
 				return this.ReadString();
 			this.SkipUnknownField(tag);
@@ -1398,49 +1398,49 @@ export module Zeze {
 
 		public ReadVector2(): Vector2 {
 			this.EnsureRead(8);
-			var i = this.ReadIndex;
-			var x = this.ToFloat(i);
-			var y = this.ToFloat(i + 4);
+			let i = this.ReadIndex;
+			let x = this.ToFloat(i);
+			let y = this.ToFloat(i + 4);
 			this.ReadIndex = i + 8;
 			return new Vector2(x, y);
 		}
 
 		public ReadVector3(): Vector3 {
 			this.EnsureRead(12);
-			var i = this.ReadIndex;
-			var x = this.ToFloat(i);
-			var y = this.ToFloat(i + 4);
-			var z = this.ToFloat(i + 8);
+			let i = this.ReadIndex;
+			let x = this.ToFloat(i);
+			let y = this.ToFloat(i + 4);
+			let z = this.ToFloat(i + 8);
 			this.ReadIndex = i + 12;
 			return new Vector3(x, y, z);
 		}
 
 		public ReadVector4(): Vector4 {
 			this.EnsureRead(16);
-			var i = this.ReadIndex;
-			var x = this.ToFloat(i);
-			var y = this.ToFloat(i + 4);
-			var z = this.ToFloat(i + 8);
-			var w = this.ToFloat(i + 12);
+			let i = this.ReadIndex;
+			let x = this.ToFloat(i);
+			let y = this.ToFloat(i + 4);
+			let z = this.ToFloat(i + 8);
+			let w = this.ToFloat(i + 12);
 			this.ReadIndex = i + 16;
 			return new Vector4(x, y, z, w);
 		}
 
 		public ReadVector2Int(): Vector2 {
-			var x = this.ReadInt();
-			var y = this.ReadInt();
+			let x = this.ReadInt();
+			let y = this.ReadInt();
 			return new Vector2(x, y);
 		}
 
 		public ReadVector3Int(): Vector3 {
-			var x = this.ReadInt();
-			var y = this.ReadInt();
-			var z = this.ReadInt();
+			let x = this.ReadInt();
+			let y = this.ReadInt();
+			let z = this.ReadInt();
 			return new Vector3(x, y, z);
 		}
 
 		public ReadVector2T(tag: number): Vector2 {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.VECTOR2)
 				return this.ReadVector2();
 			if (type == ByteBuffer.VECTOR3)
@@ -1462,7 +1462,7 @@ export module Zeze {
 		}
 
 		public ReadVector3T(tag: number): Vector3 {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.VECTOR3)
 				return this.ReadVector3();
 			if (type == ByteBuffer.VECTOR2)
@@ -1484,7 +1484,7 @@ export module Zeze {
 		}
 
 		public ReadVector4T(tag: number): Vector4 {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.VECTOR4)
 				return this.ReadVector4();
 			if (type == ByteBuffer.VECTOR3)
@@ -1506,7 +1506,7 @@ export module Zeze {
 		}
 
 		public ReadBean<T extends Serializable>(bean: T, tag: number): T {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.BEAN)
 				bean.Decode(this);
 			else if (type == ByteBuffer.DYNAMIC) {
@@ -1518,13 +1518,13 @@ export module Zeze {
 		}
 
 		public ReadDynamic(dynBean: DynamicBean, tag: number): DynamicBean {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.DYNAMIC) {
 				dynBean.Decode(this);
 				return dynBean;
 			}
 			if (type == ByteBuffer.BEAN) {
-				var bean = dynBean.CreateBeanFromSpecialTypeId(0n);
+				let bean = dynBean.CreateBeanFromSpecialTypeId(0n);
 				if (bean != null) {
 					bean.Decode(this);
 					return dynBean;
@@ -1549,7 +1549,7 @@ export module Zeze {
 		}
 
 		public SkipUnknownField(tag: number) {
-			var type = tag & ByteBuffer.TAG_MASK;
+			let type = tag & ByteBuffer.TAG_MASK;
 			switch (type) {
 				case ByteBuffer.INTEGER:
 					this.SkipLong();
@@ -1586,7 +1586,7 @@ export module Zeze {
 					this.SkipBytes();
 					return;
 				case ByteBuffer.LIST:
-					var t = this.ReadByte();
+					let t = this.ReadByte();
 					this.SkipUnknownList(t, this.ReadTagSize(t));
 					return;
 				case ByteBuffer.MAP:

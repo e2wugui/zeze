@@ -1,4 +1,3 @@
-
 import { Zeze } from "zeze"
 
 function assert(condition: any, msg: string): asserts condition {
@@ -16,8 +15,8 @@ export class Test {
 
 	test(): string {
 		{
-			var bb = new Zeze.ByteBuffer();
-			var v = new Uint8Array(0);
+			let bb = new Zeze.ByteBuffer();
+			let v = new Uint8Array(0);
 			bb.WriteBytes(v);
 			assert(bb.Size() == 1, "assert 1");
 			assert(bb.toString() == "00", "assert 2");
@@ -33,11 +32,11 @@ export class Test {
 			assert(bb.ReadIndex == bb.WriteIndex, "assert 8");
 		}
 		{
-			var bb = new Zeze.ByteBuffer();
+			let bb = new Zeze.ByteBuffer();
 			assert(bb.ReadIndex == bb.WriteIndex, "assert 9");
 
 			{
-				var b = true;
+				let b = true;
 				bb.WriteBool(b);
 				assert(1 == bb.Size(), "assert 10");
 				assert(1 == bb.Bytes[bb.ReadIndex], "assert 11");
@@ -45,7 +44,7 @@ export class Test {
 				assert(bb.ReadIndex == bb.WriteIndex, "assert 13");
 			}
 			{
-				var vbyte = 1;
+				let vbyte = 1;
 				bb.WriteByte(vbyte);
 				assert(1 == bb.Size(), "assert 14");
 				assert(1 == bb.Bytes[bb.ReadIndex], "assert 15");
@@ -53,7 +52,7 @@ export class Test {
 				assert(bb.ReadIndex == bb.WriteIndex, "assert 17");
 			}
 			{
-				var vdouble = 1.1;
+				let vdouble = 1.1;
 				bb.WriteDouble(vdouble);
 				assert(8 == bb.Size(), "assert 18");
 				assert("9A-99-99-99-99-99-F1-3F" == bb.toString(), "assert 19");
@@ -61,7 +60,7 @@ export class Test {
 				assert(bb.ReadIndex == bb.WriteIndex, "assert 21");
 			}
 			{
-				var vfloat = 1.1;
+				let vfloat = 1.1;
 				bb.WriteFloat(vfloat);
 				assert(4 == bb.Size(), "assert 22");
 				assert("CD-CC-8C-3F" == bb.toString(), "assert 23");
@@ -70,10 +69,10 @@ export class Test {
 			}
 		}
 		{
-			var bb = new Zeze.ByteBuffer();
+			let bb = new Zeze.ByteBuffer();
 			assert(bb.ReadIndex == bb.WriteIndex, "assert 43");
 
-			var int4 = 0x1234;
+			let int4 = 0x1234;
 			bb.WriteInt4(int4);
 			assert(4 == bb.Size(), "assert 44");
 			assert("34-12-00-00" == bb.toString(), "assert 45");
@@ -82,10 +81,10 @@ export class Test {
 		}
 
 		{
-			var bb = new Zeze.ByteBuffer();
+			let bb = new Zeze.ByteBuffer();
 			assert(bb.ReadIndex == bb.WriteIndex, "assert 48");
 
-			var long8: bigint = 0x1234567801020304n;
+			let long8: bigint = 0x1234567801020304n;
 			bb.WriteLong8(long8);
 			assert(8 == bb.Size(), "assert 49");
 			assert("04-03-02-01-78-56-34-12" == bb.toString(), "assert 50");
@@ -94,24 +93,24 @@ export class Test {
 		}
 
 		{
-			var bb = new Zeze.ByteBuffer();
+			let bb = new Zeze.ByteBuffer();
 			assert(bb.ReadIndex == bb.WriteIndex, "assert 48_");
 
-			var long8: bigint = -12345678n;
+			let long8: bigint = -12345678n;
 			bb.WriteLong8(long8);
 			assert(8 == bb.Size(), "assert 49_");
 			assert("B2-9E-43-FF-FF-FF-FF-FF" == bb.toString(), "assert 50_");
-			var readlong8 = bb.ReadLong8();
+			let readlong8 = bb.ReadLong8();
 			//console.log(readlong8);
 			assert(long8 == readlong8, "assert 51_");
 			assert(bb.ReadIndex == bb.WriteIndex, "assert 52_");
 		}
 
 		{
-			var bb = new Zeze.ByteBuffer();
+			let bb = new Zeze.ByteBuffer();
 			assert(bb.ReadIndex == bb.WriteIndex, "assert 53");
 
-			var intv = 1;
+			let intv = 1;
 			bb.WriteUInt(intv);
 			assert(1 == bb.Size(), "assert 54");
 			assert("01" == bb.toString(), "assert 55");
@@ -154,10 +153,10 @@ export class Test {
 			assert(bb.ReadIndex == bb.WriteIndex, "assert 77");
 		}
 		{
-			var bb = new Zeze.ByteBuffer();
+			let bb = new Zeze.ByteBuffer();
 			assert(bb.ReadIndex == bb.WriteIndex, "assert 78");
 
-			var longv: bigint = 1n;
+			let longv: bigint = 1n;
 			bb.WriteLong(longv);
 			assert(1 == bb.Size(), "assert 79");
 			assert("01" == bb.toString(), "assert 80");
@@ -238,7 +237,7 @@ export class Test {
 			assert(bb.ReadIndex == bb.WriteIndex, "assert 122");
 		}
 		{
-			for (var i = 0; i <= 64; ++i) {
+			for (let i = 0; i <= 64; ++i) {
 				Test.testAll(1n << BigInt(i));
 				Test.testAll((1n << BigInt(i)) - 1n);
 				Test.testAll(((1n << BigInt(i)) - 1n) & 0x5555_5555_5555_5555n);
@@ -263,10 +262,10 @@ export class Test {
 	private static testInt(x: number) {
 		if (x < -0x8000_0000 || x > 0x7fff_ffff)
 			return;
-		var bb = new Zeze.ByteBuffer();
+		let bb = new Zeze.ByteBuffer();
 		bb.WriteInt(x);
-		var s = bb.toString();
-		var y = bb.ReadInt();
+		let s = bb.toString();
+		let y = bb.ReadInt();
 		assert(x == y, "testInt 1: " + s + ": " + x + " != " + y);
 		assert(bb.ReadIndex == bb.WriteIndex, "testInt 2: " + s + ": " + x);
 	}
@@ -274,10 +273,10 @@ export class Test {
 	private static testLong(x: bigint) {
 		if (x < -0x8000_0000_0000_0000n || x > 0x7fff_ffff_ffff_ffffn)
 			return;
-		var bb = new Zeze.ByteBuffer();
+		let bb = new Zeze.ByteBuffer();
 		bb.WriteLong(x);
-		var s = bb.toString();
-		var y = bb.ReadLong();
+		let s = bb.toString();
+		let y = bb.ReadLong();
 		assert(x == y, "testLong 1: " + s + ": " + x + " != " + y);
 		assert(bb.ReadIndex == bb.WriteIndex, "testLong 2: " + s + ": " + x);
 	}
@@ -285,10 +284,10 @@ export class Test {
 	private static testUInt(x: number) {
 		if (x < -0x8000_0000 || x > 0x7fff_ffff)
 			return;
-		var bb = new Zeze.ByteBuffer();
+		let bb = new Zeze.ByteBuffer();
 		bb.WriteUInt(x);
-		var s = bb.toString();
-		var y = bb.ReadUInt();
+		let s = bb.toString();
+		let y = bb.ReadUInt();
 		assert(x == y, "testUInt 1: " + s + ": " + x + " != " + y);
 		assert(bb.ReadIndex == bb.WriteIndex, "testUInt 2: " + s + ": " + x);
 	}
@@ -296,10 +295,10 @@ export class Test {
 	private static testSkipUInt(x: number) {
 		if (x < -0x8000_0000 || x > 0x7fff_ffff)
 			return;
-		var bb = new Zeze.ByteBuffer();
+		let bb = new Zeze.ByteBuffer();
 		bb.WriteUInt(x);
 		bb.ReadUInt();
-		var ri = bb.ReadIndex;
+		let ri = bb.ReadIndex;
 		bb.ReadIndex = 0;
 		bb.SkipUInt();
 		assert(ri == bb.ReadIndex, "testSkipUInt: " + x);
@@ -308,10 +307,10 @@ export class Test {
 	private static testSkipLong(x: bigint) {
 		if (x < -0x8000_0000_0000_0000n || x > 0x7fff_ffff_ffff_ffffn)
 			return;
-		var bb = new Zeze.ByteBuffer();
+		let bb = new Zeze.ByteBuffer();
 		bb.WriteLong(x);
 		bb.ReadLong();
-		var ri = bb.ReadIndex;
+		let ri = bb.ReadIndex;
 		bb.ReadIndex = 0;
 		bb.SkipLong();
 		assert(ri == bb.ReadIndex, "testSkipLong: " + x);
