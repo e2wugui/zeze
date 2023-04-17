@@ -17,9 +17,14 @@ public class CommitServer {
 	}
 
 	public static void main(String [] args) throws Exception {
+		var config = "zeze.xml";
+		for (int i = 0; i < args.length; ++i) {
+			switch (args[i]) {
+			case "conf": config = args[++i]; break;
+			}
+		}
 		var server = new CommitServer();
-		var config = Config.load();
-		server.start(config);
+		server.start(Config.load(config));
 		synchronized (Thread.currentThread()) {
 			Thread.currentThread().wait();
 		}

@@ -4,11 +4,16 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.Checkpoint;
@@ -19,6 +24,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private Bucket bucket;
 	private TidAllocator tidAllocator;
 	private final ConcurrentHashMap<Long, Dbh2Transaction> transactions = new ConcurrentHashMap<>();
+	private Future<?> timer;
+	private CommitAgent commitAgent;
 
 	public Dbh2StateMachine() {
 		super.addFactory(LogPrepareBatch.TypeId_, LogPrepareBatch::new);
@@ -45,6 +52,27 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			return;
 		bucket = new Bucket(getRaft().getRaftConfig());
 		tidAllocator = new TidAllocator();
+
+		if (null != timer) {
+			var period = getRaft().getRaftConfig().getAppendEntriesTimeout() + 200;
+			var delay = Random.getInstance().nextLong(period);
+			timer = Task.scheduleUnsafe(delay, period, this::onTimer);
+		}
+
+		if (null == commitAgent)
+			commitAgent = new CommitAgent();
+	}
+
+	private void onTimer() {
+		var now = System.currentTimeMillis();
+		var period = getRaft().getRaftConfig().getAppendEntriesTimeout() + 200;
+		for (var e : transactions.entrySet()) {
+			var t = e.getValue();
+			if (now - t.getCreateTime() < period)
+				continue;
+			commitAgent.query(t.getQueryIp(), t.getQueryPort(),
+					getRaft().getRaftConfig().getSortedNamesBinary(), e.getKey());
+		}
 	}
 
 	public void setBucketMeta(BBucketMeta.Data argument) {
@@ -131,7 +159,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		return result;
 	}
 
-	public void close() {
+	public void close() throws Exception {
 		for (var tran : transactions.values())
 			tran.close();
 		transactions.clear();
@@ -139,6 +167,16 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		if (bucket != null) {
 			bucket.close();
 			bucket = null;
+		}
+
+		if (null != timer) {
+			timer.cancel(true);
+			timer = null;
+		}
+
+		if (null != commitAgent) {
+			commitAgent.stop();
+			commitAgent = null;
 		}
 	}
 
@@ -179,7 +217,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		return checkpointDir;
 	}
 
-	public void restore(String backupDir) throws RocksDBException {
+	public void restore(String backupDir) throws Exception {
 		getRaft().lock();
 		try {
 			close();

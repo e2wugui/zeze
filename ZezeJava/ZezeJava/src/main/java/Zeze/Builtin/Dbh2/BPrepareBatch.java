@@ -244,6 +244,13 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         _Batch.initRootInfoWithRedo(root, this);
     }
 
+    @Override
+    public boolean negativeCheck() {
+        if (_Batch.negativeCheck())
+            return true;
+        return false;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

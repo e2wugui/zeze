@@ -33,8 +33,11 @@ public class CommitRocks {
 		this.writeOptions = writeOptions;
 	}
 
-	public long query(Binary key) throws RocksDBException {
-		var value = commitPoint.get(key.bytesUnsafe(), key.getOffset(), key.size());
+	public long query(Binary sortedNames, long tid) throws RocksDBException {
+		var key = ByteBuffer.Allocate(sortedNames.size() + 11);
+		key.WriteBinary(sortedNames);
+		key.WriteLong(tid);
+		var value = commitPoint.get(key.Bytes, key.ReadIndex, key.size());
 		if (null == value)
 			return Commit.eCommitNotExist;
 		return Commit.eCommitPoint;
@@ -60,7 +63,7 @@ public class CommitRocks {
 		// 第一步：先打开Dbh2Agent.
 		var agents = new HashMap<Dbh2Agent, Long>();
 		for (var e : batches.entrySet()) {
-			var agent = manager.start(e.getKey());
+			var agent = manager.startWithSortedNames(e.getKey());
 			var tid = e.getValue();
 			agents.put(agent, tid);
 		}
@@ -90,7 +93,7 @@ public class CommitRocks {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteInt(batches.size());
 		for (var e : batches.entrySet()) {
-			bb.WriteString(e.getKey().getRaftConfigString());
+			bb.WriteString(e.getKey().getRaftConfig().getSortedNames());
 			bb.WriteLong(e.getValue().getTid());
 		}
 		return new Binary(bb);

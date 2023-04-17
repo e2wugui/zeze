@@ -91,6 +91,7 @@ public final class Config {
 	private int delayRemoveDays = 7; // a week
 
 	private int offlineTimerLimit = 200;
+	private boolean dbh2LocalCommit = true;
 
 	public Config() {
 	}
@@ -174,6 +175,14 @@ public final class Config {
 
 	public void setCheckpointModeTableFlushSetCount(int value) {
 		checkpointModeTableFlushSetCount = value;
+	}
+
+	public boolean isDbh2LocalCommit() {
+		return dbh2LocalCommit;
+	}
+
+	public void setDbh2LocalCommit(boolean value) {
+		dbh2LocalCommit = value;
 	}
 
 	public @NotNull CheckpointMode getCheckpointMode() {
@@ -510,6 +519,10 @@ public final class Config {
 			offlineTimerLimit = Integer.parseInt(attr);
 
 		serviceManager = self.getAttribute("ServiceManager").trim();
+
+		attr = self.getAttribute("Dbh2LocalCommit");
+		if (!attr.isBlank())
+			dbh2LocalCommit = Boolean.parseBoolean(attr);
 
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {

@@ -33,7 +33,8 @@ public class Dbh2Test {
 			var raftConfig = RaftConfig.loadFromString(raftConfigString);
 			for (var config : raftConfig.getNodes().values())
 				raftNodes.add(start(raftConfigString, config.getName()));
-			agent = new Dbh2Agent(raftConfigString);
+			var raftConf = RaftConfig.loadFromString(raftConfigString);
+			agent = new Dbh2Agent(raftConf);
 		}
 
 		public Dbh2Agent agent() {

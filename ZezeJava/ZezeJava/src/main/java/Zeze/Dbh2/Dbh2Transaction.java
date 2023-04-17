@@ -8,6 +8,21 @@ import org.rocksdb.RocksDBException;
 public class Dbh2Transaction implements Closeable {
 	private final HashMap<Lock, Lock> locks = new HashMap<>();
 	private final BBatch.Data logs = new BBatch.Data();
+	private final String queryIp;
+	private final int queryPort;
+	private final long createTime;
+
+	public String getQueryIp() {
+		return queryIp;
+	}
+
+	public int getQueryPort() {
+		return queryPort;
+	}
+
+	public long getCreateTime() {
+		return createTime;
+	}
 
 	/**
 	 * 锁住输入batch中的所有记录。
@@ -15,6 +30,10 @@ public class Dbh2Transaction implements Closeable {
 	 * @param batch batch parameter
 	 */
 	public Dbh2Transaction(BBatch.Data batch) {
+		this.queryIp = batch.getQueryIp();
+		this.queryPort = batch.getQueryPort();
+		this.createTime = System.currentTimeMillis();
+
 		for (var put : batch.getPuts().entrySet()) {
 			var key = put.getKey();
 			var lock = Lock.get(key);

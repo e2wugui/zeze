@@ -22,7 +22,6 @@ import Zeze.Util.TaskCompletionSource;
 public class Dbh2Agent extends AbstractDbh2Agent {
 	// private static final Logger logger = LogManager.getLogger(Dbh2Agent.class);
 	private final Agent raftClient;
-	private final String raftConfigString;
 	private final TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 	private volatile long lastErrorTime;
 	private final Dbh2Config config = new Dbh2Config();
@@ -30,10 +29,6 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 
 	public RaftConfig getRaftConfig() {
 		return raftClient.getRaftConfig();
-	}
-
-	public String getRaftConfigString() {
-		return raftConfigString;
 	}
 
 	public void setBucketMeta(BBucketMeta.Data meta) {
@@ -107,9 +102,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		});
 	}
 
-	public Dbh2Agent(String raftConfigString) throws Exception {
-		this.raftConfigString = raftConfigString;
-		var raftConf = RaftConfig.loadFromString(raftConfigString);
+	public Dbh2Agent(RaftConfig raftConf) throws Exception {
 		raftClient = new Agent("dbh2.raft", raftConf);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		RegisterProtocols(raftClient.getClient());

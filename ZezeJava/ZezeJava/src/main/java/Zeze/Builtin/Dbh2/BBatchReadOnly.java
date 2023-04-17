@@ -9,4 +9,6 @@ public interface BBatchReadOnly {
 
     Zeze.Transaction.Collections.PMap1ReadOnly<Zeze.Net.Binary, Zeze.Net.Binary> getPutsReadOnly();
     Zeze.Transaction.Collections.PSet1ReadOnly<Zeze.Net.Binary> getDeletesReadOnly();
+    String getQueryIp();
+    int getQueryPort();
 }

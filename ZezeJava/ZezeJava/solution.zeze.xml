@@ -1365,6 +1365,8 @@
 			<bean name="BBatch">
 				<variable id="1" name="Puts" type="map[binary, binary]"/>
 				<variable id="2" name="Deletes" type="set[binary]"/>
+				<variable id="3" name="QueryIp" type="string"/>
+				<variable id="4" name="QueryPort" type="int"/>
 			</bean>
 			<bean name="BPrepareBatch">
 				<variable id="1" name="Database" type="string"/> 用来纠错
@@ -1384,7 +1386,8 @@
 				<enum name="eCommitPoint" value="1"/>
 
 				<bean name="BQuery">
-					<variable id="1" name="TransactionKey" type="binary"/>
+					<variable id="1" name="BucketRaftSortedNames" type="binary"/>
+					<variable id="2" name="BucketTid" type="long"/>
 				</bean>
 				<rpc name="Query" argument="BQuery" UseData="true" handle="server"/>
 				<bean name="BCommit">

@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Config;
@@ -7,9 +8,13 @@ import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Dbh2.Master.MasterTable;
 import Zeze.Net.Binary;
 import Zeze.Net.ServiceConf;
+import Zeze.Raft.RaftConfig;
+import Zeze.Util.KV;
+import Zeze.Util.OutInt;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.rocksdb.RocksDBException;
 
 /**
  * 这个类管理到桶的raft-client-agent。
@@ -24,7 +29,10 @@ public class Dbh2AgentManager {
 			buckets = new ConcurrentHashMap<>();
 	// agent 不同 master 也装在一起。
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
+
+	private Config config;
 	private Commit commit;
+	private CommitAgent commitAgent;
 
 	private static final Dbh2AgentManager instance = new Dbh2AgentManager();
 
@@ -35,17 +43,49 @@ public class Dbh2AgentManager {
 	public Dbh2AgentManager() {
 	}
 
-	public Commit getCommit() {
-		return commit;
+	public boolean saveCommitPoint(String host, int port, HashMap<Dbh2Agent, Database.BatchWithTid> batches) throws RocksDBException {
+		if (config.isDbh2LocalCommit()) {
+			commit.getRocks().saveCommitPoint(batches);
+			return true;
+		}
+		// choice CommitServer outside.
+		commitAgent.commit(host, port, batches);
+		return false;
 	}
 
 	// Dbh2Agent 嵌入服务器需要初始化；
 	// CommitServer 独立服务器需要初始化；
 	public synchronized void start(Config config) throws Exception {
-		if (null == commit) {
-			commit = new Commit(this, config);
-			commit.start();
+		this.config = config;
+
+		// ugly
+		if (config.isDbh2LocalCommit()) {
+			if (null == commit) {
+				commit = new Commit(this, config);
+				commit.start();
+			}
+		} else {
+			if (null == commitAgent) {
+				commitAgent = new CommitAgent();
+				commitAgent.startAndWaitConnectionReady();
+			}
 		}
+	}
+
+	public KV<String, Integer> choiceCommitServer() {
+		// ugly
+		if (config.isDbh2LocalCommit()) {
+			var out = new KV<String, Integer>();
+			commit.getService().getConfig().forEachAcceptor2((a) -> {
+				out.setKey(a.getIp());
+				out.setValue(a.getPort());
+				return false;
+			});
+			return out;
+		}
+
+		// todo 选择独立 CommitServer。
+		return null;
 	}
 
 	public synchronized void stop() throws Exception {
@@ -55,9 +95,14 @@ public class Dbh2AgentManager {
 		for (var da : agents.values())
 			da.close();
 		agents.clear();
+
 		if (null != commit) {
 			commit.stop();
 			commit = null;
+		}
+		if (null != commitAgent) {
+			commitAgent.stop();
+			commitAgent = null;
 		}
 	}
 
@@ -89,8 +134,8 @@ public class Dbh2AgentManager {
 
 	public void dumpAgents() {
 		System.out.println("dump agents ...");
-		for (var it = agents.keys().asIterator(); it.hasNext(); )
-			System.out.println(it.next());
+		for (var e : agents.keySet())
+			System.out.println(e);
 	}
 
 	// todo Database.Table中缓存MasterTableDaTa，减少map查找。
@@ -103,13 +148,19 @@ public class Dbh2AgentManager {
 		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
 		var table = database.computeIfAbsent(tableName, tbName -> masterAgent.getBuckets(databaseName, tbName));
 		var bucket = table.locate(key);
-		return start(bucket.getRaftConfig());
+		var raftConf = RaftConfig.loadFromString(bucket.getRaftConfig());
+		return start(raftConf);
 	}
 
-	public Dbh2Agent start(String raft) {
-		return agents.computeIfAbsent(raft, _raft -> {
+	public Dbh2Agent startWithSortedNames(String raftNames) {
+		var raftConf = RaftConfig.loadFromSortedNames(raftNames);
+		return start(raftConf);
+	}
+
+	public Dbh2Agent start(RaftConfig raftConf) {
+		return agents.computeIfAbsent(raftConf.getSortedNames(), _raft -> {
 			try {
-				return new Dbh2Agent(raft);
+				return new Dbh2Agent(raftConf);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -141,7 +192,8 @@ public class Dbh2AgentManager {
 		for (var bucket : buckets.buckets())
 			oldRaft.remove(bucket.getRaftConfig());
 		for (var raft : oldRaft) {
-			var agent = agents.remove(raft);
+			var raftConf = RaftConfig.loadFromString(raft);
+			var agent = agents.remove(raftConf.getSortedNames());
 			if (null != agent) {
 				try {
 					agent.close();

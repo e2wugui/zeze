@@ -4,7 +4,7 @@ import Zeze.Config;
 import org.rocksdb.RocksDBException;
 
 public class Commit extends AbstractCommit {
-    private final CommitRocks rocks;
+    private CommitRocks rocks;
     private final CommitService service;
 
     public Commit(Dbh2AgentManager manager, Config config) throws RocksDBException {
@@ -17,12 +17,20 @@ public class Commit extends AbstractCommit {
         service.start();
     }
 
-    public void stop() throws Exception {
+    public synchronized void stop() throws Exception {
+        if (null != rocks) {
+            rocks.close();
+            rocks = null;
+        }
         service.stop();
     }
 
     public CommitRocks getRocks() {
         return rocks;
+    }
+
+    public CommitService getService() {
+        return service;
     }
 
     @Override
@@ -35,7 +43,7 @@ public class Commit extends AbstractCommit {
 
     @Override
     protected long ProcessQueryRequest(Zeze.Builtin.Dbh2.Commit.Query r) throws Exception {
-        r.setResultCode(rocks.query(r.Argument.getTransactionKey()));
+        r.setResultCode(rocks.query(r.Argument.getBucketRaftSortedNames(), r.Argument.getBucketTid()));
         r.SendResult();
         return 0;
     }

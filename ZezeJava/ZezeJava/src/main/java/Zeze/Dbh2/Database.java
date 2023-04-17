@@ -92,25 +92,31 @@ public class Database extends Zeze.Transaction.Database {
 
 	public class Dbh2Transaction implements Zeze.Transaction.Database.Transaction {
 
-		private final HashMap<Dbh2Agent, BatchWithTid> transactions = new HashMap<>();
+		private final HashMap<Dbh2Agent, BatchWithTid> batches = new HashMap<>();
 
 		@Override
 		public void commit() {
+			var manager = Dbh2AgentManager.getInstance();
+			var query = manager.choiceCommitServer();
+			boolean localCommit;
 			try {
 				var futures = new ArrayList<KV<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BBatchTid.Data>>, BatchWithTid>>();
-				for (var e : transactions.entrySet()) {
-					futures.add(KV.create(e.getKey().prepareBatch(e.getValue()), e.getValue()));
+				for (var e : batches.entrySet()) {
+					var batch = e.getValue();
+					batch.data.getBatch().setQueryIp(query.getKey());
+					batch.data.getBatch().setQueryPort(query.getValue());
+					futures.add(KV.create(e.getKey().prepareBatch(batch), batch));
 				}
 				for (var e : futures) {
 					var r = e.getKey().get();
 					e.getValue().tid = r.Result.getTid();
 				}
 
-				// 保存 commit-point，写到这里，如果失败，则 undo。
-				Dbh2AgentManager.getInstance().getCommit().getRocks().saveCommitPoint(transactions);
+				// 保存 commit-point，如果失败，则 undo。
+				localCommit = manager.saveCommitPoint(query.getKey(), query.getValue(), batches);
 			} catch (Throwable ex) {
 				var futures = new ArrayList<TaskCompletionSource<?>>();
-				for (var e : transactions.entrySet()) {
+				for (var e : batches.entrySet()) {
 					futures.add(e.getKey().undoBatch(e.getValue().tid));
 				}
 				for (var e : futures)
@@ -118,12 +124,14 @@ public class Database extends Zeze.Transaction.Database {
 				throw new RuntimeException(ex);
 			}
 
-			var futures = new ArrayList<TaskCompletionSource<?>>();
-			for (var e : transactions.entrySet()) {
-				futures.add(e.getKey().commitBatch(e.getValue().tid));
+			if (localCommit) {
+				var futures = new ArrayList<TaskCompletionSource<?>>();
+				for (var e : batches.entrySet()) {
+					futures.add(e.getKey().commitBatch(e.getValue().tid));
+				}
+				for (var e : futures)
+					e.await();
 			}
-			for (var e : futures)
-				e.await();
 		}
 
 		public void replace(String tableName, ByteBuffer key, ByteBuffer value) throws Exception {
@@ -131,7 +139,7 @@ public class Database extends Zeze.Transaction.Database {
 			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
 			var manager = Dbh2AgentManager.getInstance();
 			var agent = manager.start(masterAgent, masterName, databaseName, tableName, bKey);
-			var batch = transactions.computeIfAbsent(agent, _agent_ -> new BatchWithTid(databaseName, tableName));
+			var batch = batches.computeIfAbsent(agent, _agent_ -> new BatchWithTid(databaseName, tableName));
 			batch.put(bKey, bValue);
 		}
 
@@ -139,7 +147,7 @@ public class Database extends Zeze.Transaction.Database {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			var manager = Dbh2AgentManager.getInstance();
 			var agent = manager.start(masterAgent, masterName, databaseName, tableName, bKey);
-			var batch = transactions.computeIfAbsent(agent, _agent_ -> new BatchWithTid(databaseName, tableName));
+			var batch = batches.computeIfAbsent(agent, _agent_ -> new BatchWithTid(databaseName, tableName));
 			batch.delete(bKey);
 		}
 

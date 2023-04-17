@@ -7,5 +7,6 @@ public interface BQueryReadOnly {
     boolean negativeCheck();
     BQuery copy();
 
-    Zeze.Net.Binary getTransactionKey();
+    Zeze.Net.Binary getBucketRaftSortedNames();
+    long getBucketTid();
 }

@@ -11,6 +11,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import Zeze.Net.Binary;
 import Zeze.Util.Random;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -26,6 +27,8 @@ public final class RaftConfig {
 	private final ConcurrentHashMap<String, Node> nodes = new ConcurrentHashMap<>();
 	private final String sortedNames;
 	private final byte[] sortedNamesUtf8;
+	private final Binary sortedNamesBinary;
+
 	private String name; // 【这个参数不保存】可以在启动的时候从参数读取并设置
 	private String dbHome;
 	private int appendEntriesTimeout = DefaultAppendEntriesTimeout; // 复制日志超时，以及发送失败重试超时
@@ -53,6 +56,10 @@ public final class RaftConfig {
 
 	public byte[] getSortedNamesUtf8() {
 		return sortedNamesUtf8;
+	}
+
+	public Binary getSortedNamesBinary() {
+		return sortedNamesBinary;
 	}
 
 	private String makeSortedNames() {
@@ -164,6 +171,24 @@ public final class RaftConfig {
 		uniqueRequestExpiredDays = value;
 	}
 
+	private RaftConfig(String sortedNames) {
+		xmlDocument = null;
+		xmlFileName = null;
+		self = null;
+
+		this.sortedNames = sortedNames;
+		this.sortedNamesUtf8 = sortedNames.getBytes(StandardCharsets.UTF_8);
+		this.sortedNamesBinary = new Binary(sortedNamesUtf8);
+
+		var nodes = sortedNames.split("-");
+		for (var node : nodes) {
+			if (node.isEmpty())
+				continue;
+			var ipPort = node.split(":");
+			addNode(new Node(ipPort[0], Integer.parseInt(ipPort[1])));
+		}
+	}
+
 	private RaftConfig(Document xml, String filename, Element self) {
 		xmlDocument = xml;
 		xmlFileName = filename;
@@ -212,6 +237,7 @@ public final class RaftConfig {
 		}
 		sortedNames = makeSortedNames();
 		sortedNamesUtf8 = sortedNames.getBytes(StandardCharsets.UTF_8);
+		sortedNamesBinary = new Binary(sortedNamesUtf8);
 	}
 
 	public void verify() {
@@ -224,6 +250,9 @@ public final class RaftConfig {
 	}
 
 	public void save() throws TransformerException {
+		if (null == self || null == xmlDocument)
+			return; // client 可能不是从xml装载，不需要保存。
+
 		// skip default
 		if (appendEntriesTimeout != DefaultAppendEntriesTimeout)
 			self.setAttribute("AppendEntriesTimeout", String.valueOf(appendEntriesTimeout));
@@ -264,10 +293,18 @@ public final class RaftConfig {
 		throw new FileNotFoundException(String.format("Raft.Config: '%s' not exists.", xmlFile));
 	}
 
-	public static RaftConfig loadFromString(String content) throws Exception {
-		var is = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
-		var doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
-		return new RaftConfig(doc, null, doc.getDocumentElement());
+	public static RaftConfig loadFromSortedNames(String names) {
+		return new RaftConfig(names);
+	}
+
+	public static RaftConfig loadFromString(String content) {
+		try {
+			var is = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+			var doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
+			return new RaftConfig(doc, null, doc.getDocumentElement());
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
 	}
 
 	private void addNode(Node node) {
@@ -284,6 +321,11 @@ public final class RaftConfig {
 			this.self = self;
 			host = self.getAttribute("Host");
 			port = Integer.parseInt(self.getAttribute("Port"));
+		}
+
+		Node(String host, int port) {
+			this.host = host;
+			this.port = port;
 		}
 
 		public String getHost() {
@@ -306,5 +348,15 @@ public final class RaftConfig {
 			self.setAttribute("HostNameOrAddress", host);
 			self.setAttribute("Port", String.valueOf(port));
 		}
+
+		@Override
+		public String toString() {
+			return getName();
+		}
+	}
+
+	public static void main(String [] args) {
+		var conf = RaftConfig.loadFromSortedNames("-127.0.0.1:10004-127.0.0.1:10005-127.0.0.1:10006");
+		System.out.println(conf.getNodes());
 	}
 }
