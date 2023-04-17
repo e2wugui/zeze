@@ -37,6 +37,7 @@ x64/
 /TypeScript/gen.ts
 /TypeScript/node_modules
 /TypeScript/package-lock.json
+/TypeScript/tsconfig.tsbuildinfo
 /TypeScript/webpack/node_modules
 /UnitTest/gsd/Gen
 /UnitTest/Properties

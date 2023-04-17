@@ -22,7 +22,7 @@ namespace Zeze.Gen.ts
         private const string ChunkNameImport = "IMPORT GEN";
         private const string ChunkNameModuleEnums = "MODULE ENUMS";
 
-        private void GenChunkByName(System.IO.StreamWriter writer, Zeze.Util.FileChunkGen.Chunk chunk)
+        private void GenChunkByName(System.IO.StreamWriter writer, FileChunkGen.Chunk chunk)
         {
             switch (chunk.Name)
             {

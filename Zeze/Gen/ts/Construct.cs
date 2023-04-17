@@ -1,20 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Zeze.Gen.Types;
+﻿using Zeze.Gen.Types;
 
 namespace Zeze.Gen.ts
 {
-    public class Construct : Types.Visitor
+    public class Construct : Visitor
     {
 		private System.IO.StreamWriter sw;
-		private Types.Variable variable;
+		private Variable variable;
 		private string prefix;
 
-		public static void Make(Types.Bean bean, System.IO.StreamWriter sw, string prefix)
+		public static void Make(Bean bean, System.IO.StreamWriter sw, string prefix)
 		{
 			sw.WriteLine(prefix + "public constructor() {");
-            foreach (Types.Variable var in bean.Variables)
+            foreach (var var in bean.Variables)
             {
                 var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
             }
@@ -22,7 +19,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine();
         }
 
-        public Construct(System.IO.StreamWriter sw, Types.Variable variable, string prefix)
+        public Construct(System.IO.StreamWriter sw, Variable variable, string prefix)
 		{
 			this.sw = sw;
 			this.variable = variable;
@@ -32,11 +29,9 @@ namespace Zeze.Gen.ts
 		private void Initial()
 		{
             string value = variable.Initial;
-			if (value.Length > 0)
-			{
-                string varname = variable.Name;
-				sw.WriteLine(prefix + "this." + varname + " = " + value + ";");
-			}
+            if (value.Length == 0)
+                value = "0";
+			sw.WriteLine(prefix + "this." + variable.Name + " = " + value + ";");
 		}
 
         public void Visit(Bean type)
@@ -68,13 +63,20 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeLong type)
         {
-            long init = variable.Initial.Length > 0 ? long.Parse(variable.Initial) : 0;
-            sw.WriteLine(prefix + "this." + variable.Name + " = " + init + "n;");
+            string value = variable.Initial;
+            if (value.Length == 0)
+                value = "0n";
+            else if (long.TryParse(value, out long v))
+                value = v + "n";
+            sw.WriteLine(prefix + "this." + variable.Name + " = " + value + ";");
         }
 
         public void Visit(TypeBool type)
         {
-            Initial();
+            string value = variable.Initial;
+            if (value.Length == 0)
+                value = "false";
+            sw.WriteLine(prefix + "this." + variable.Name + " = " + value + ";");
         }
 
         public void Visit(TypeBinary type)
@@ -85,8 +87,7 @@ namespace Zeze.Gen.ts
         public void Visit(TypeString type)
         {
             string value = variable.Initial;
-            string varname = variable.Name;
-            sw.WriteLine(prefix + "this." + varname + " = \"" + value + "\";");
+            sw.WriteLine(prefix + "this." + variable.Name + " = \"" + value + "\";");
         }
 
         public void Visit(TypeList type)

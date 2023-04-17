@@ -1,30 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Zeze.Gen.Types;
+﻿using Zeze.Gen.Types;
 
 namespace Zeze.Gen.ts
 {
-    public class Default : Types.Visitor
+    public class Default : Visitor
     {
-        private Types.Variable variable;
+        private readonly Variable variable;
         public string Value { get; private set; }
 
-        public static string GetDefault(Types.Variable var)
+        public static string GetDefault(Variable var)
         {
             Default def = new Default(var);
             var.VariableType.Accept(def);
             return def.Value;
         }
 
-        private Default(Types.Variable var)
+        private Default(Variable var)
         {
-            this.variable = var;
+            variable = var;
         }
 
         private void SetDefaultValue(string def)
         {
-            Value = (variable.Initial.Length > 0) ? variable.Initial : def;
+            Value = variable.Initial.Length > 0 ? variable.Initial : def;
         }
 
         public void Visit(Bean type)

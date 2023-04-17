@@ -58,7 +58,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine($"        throw new Error(\"Unknown Bean! dynamic@{((Bean)v.Bean).FullName}:{v.Name}\");");
             sw.WriteLine($"    }}");
             sw.WriteLine();
-            sw.WriteLine($"    public static CreateBeanFromSpecialTypeId_{v.Id}(typeId: bigint): Zeze.Bean {{");
+            sw.WriteLine($"    public static CreateBeanFromSpecialTypeId_{v.Id}(typeId: bigint): Zeze.Bean | null {{");
             sw.WriteLine($"        switch (typeId) {{");
             //sw.WriteLine($"            case Zeze.EmptyBean.TYPEID: return new Zeze.EmptyBean();");
             foreach (var real in d.RealBeans)

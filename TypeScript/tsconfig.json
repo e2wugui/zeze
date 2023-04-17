@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
+    "incremental": true,
+    "target": "ES2020",
     "module": "commonjs",
-    "target": "ESNext",
+    "strict": true,
+    "strictFunctionTypes": false,
     "sourceMap": true,
     "baseUrl": "."
   },

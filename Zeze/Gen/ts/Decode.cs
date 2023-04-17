@@ -230,7 +230,7 @@ namespace Zeze.Gen.ts
             if (id <= 0)
                 throw new Exception("invalid variable.id");
             Types.Type vt = type.ValueType;
-            sw.WriteLine(prefix + "let _x_ = new " + TypeName.GetName(type) + "();");
+            sw.WriteLine(prefix + "const _x_ = new " + TypeName.GetName(type) + "();");
             sw.WriteLine(prefix + varname + " = _x_;");
             sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.WriteLine(prefix + "    for (let _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--) {");
@@ -255,7 +255,7 @@ namespace Zeze.Gen.ts
             if (id <= 0)
                 throw new Exception("invalid variable.id");
             Types.Type vt = type.ValueType;
-            sw.WriteLine(prefix + "let _x_ = " + varname + ';');
+            sw.WriteLine(prefix + "const _x_ = " + varname + ';');
             sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.WriteLine(prefix + "    for (let _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--) {");
@@ -281,10 +281,10 @@ namespace Zeze.Gen.ts
                 throw new Exception("invalid variable.id");
             Types.Type kt = type.KeyType;
             Types.Type vt = type.ValueType;
-            sw.WriteLine(prefix + "let _x_ = " + varname + ';');
+            sw.WriteLine(prefix + "const _x_ = " + varname + ';');
             sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & Zeze.ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
-            sw.WriteLine(prefix + "    let _s_ = (_t_ = " + bufname + ".ReadByte()) >> Zeze.ByteBuffer.TAG_SHIFT;");
+            sw.WriteLine(prefix + "    const _s_ = (_t_ = " + bufname + ".ReadByte()) >> Zeze.ByteBuffer.TAG_SHIFT;");
             sw.WriteLine(prefix + "    for (let _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
             if (IsOldStyleEncodeDecodeType(kt))
             {
@@ -293,7 +293,7 @@ namespace Zeze.Gen.ts
             }
             else
             {
-                sw.WriteLine(prefix + "        let _k_ = " + DecodeElement(kt, "_s_") + ';');
+                sw.WriteLine(prefix + "        const _k_ = " + DecodeElement(kt, "_s_") + ';');
             }
             if (IsOldStyleEncodeDecodeType(vt))
             {
@@ -302,7 +302,7 @@ namespace Zeze.Gen.ts
             }
             else
             {
-                sw.WriteLine(prefix + "        let _v_ = " + DecodeElement(vt, "_t_") + ';');
+                sw.WriteLine(prefix + "        const _v_ = " + DecodeElement(vt, "_t_") + ';');
             }
             sw.WriteLine(prefix + "        _x_.set(_k_, _v_);");
             sw.WriteLine(prefix + "    }");

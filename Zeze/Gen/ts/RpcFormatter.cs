@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Zeze.Gen.ts
+﻿namespace Zeze.Gen.ts
 {
     public class RpcFormatter
     {
-        global::Zeze.Gen.Rpc rpc;
-        public RpcFormatter(global::Zeze.Gen.Rpc p)
+        Rpc rpc;
+        public RpcFormatter(Rpc p)
         {
-            this.rpc = p;
+            rpc = p;
         }
 
         public void Make(System.IO.StreamWriter sw)

@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Zeze.Gen.Types;
+﻿using Zeze.Gen.Types;
 
 namespace Zeze.Gen.ts
 {
-    public class Define : Types.Visitor
+    public class Define : Visitor
     {
-        private string varname;
-        private System.IO.StreamWriter sw;
-        private string prefix;
+        private readonly string varname;
+        private readonly System.IO.StreamWriter sw;
+        private readonly string prefix;
 
         public Define(string varname, System.IO.StreamWriter sw, string prefix)
         {
@@ -18,13 +15,13 @@ namespace Zeze.Gen.ts
             this.prefix = prefix;
         }
 
-        private void DefineNew(Types.Type type)
+        private void DefineNew(Type type)
         {
             string tName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "let " + varname + ": " + tName + " = new " + tName + "();");
+            sw.WriteLine(prefix + "const " + varname + ": " + tName + " = new " + tName + "();");
         }
 
-        private void DefineStack(Types.Type type)
+        private void DefineStack(Type type)
         {
             string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + "let " + varname + ": " + typeName + ";");
@@ -102,18 +99,18 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeDynamic type)
         {
-            string tName = TypeName.GetName(type);
+            // string tName = TypeName.GetName(type);
             var bean = (Bean)type.Variable.Bean;
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {
-                sw.WriteLine($"{prefix}let {varname} = new Zeze.DynamicBean("
+                sw.WriteLine($"{prefix}const {varname} = new Zeze.DynamicBean("
                 + $"{bean.Space.Path("_", bean.Name)}.GetSpecialTypeIdFromBean_{type.Variable.Id}, "
                 + $"{bean.Space.Path("_", bean.Name)}.CreateBeanFromSpecialTypeId_{type.Variable.Id}"
                 + ");");
             }
             else
             {
-                sw.WriteLine($"{prefix}let {varname} = new Zeze.DynamicBean"
+                sw.WriteLine($"{prefix}const {varname} = new Zeze.DynamicBean"
                     + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBeanCsharp}, {type.DynamicParams.CreateBeanFromSpecialTypeIdCsharp});");
             }
         }
