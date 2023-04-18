@@ -245,8 +245,7 @@ namespace Zeze.Gen.ts
                 sw.WriteLine(prefix + "        _x_.push(" + DecodeElement(vt, "_t_") + ");");
             }
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine(prefix + "else");
+            sw.WriteLine(prefix + "} else");
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
         }
 
@@ -270,8 +269,7 @@ namespace Zeze.Gen.ts
                 sw.WriteLine(prefix + "        _x_.add(" + DecodeElement(vt, "_t_") + ");");
             }
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine(prefix + "else");
+            sw.WriteLine(prefix + "} else");
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
         }
 

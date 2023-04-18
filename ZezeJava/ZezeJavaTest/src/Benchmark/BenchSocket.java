@@ -151,7 +151,7 @@ public class BenchSocket {
 			for (int i = 0; i < count; ++i) {
 				var index = rand.nextInt(src.size());
 				var bb = src.get(index);
-				en.update(bb.Bytes, bb.ReadIndex, bb.Size());
+				en.update(bb.Bytes, bb.ReadIndex, bb.size());
 				en.flush();
 			}
 			var seconds = b.report("encrypt", count);
@@ -189,7 +189,7 @@ public class BenchSocket {
 			for (int i = 0; i < count; ++i) {
 				var index = rand.nextInt(src.size());
 				var bb = src.get(index);
-				en.update(bb.Bytes, bb.ReadIndex, bb.Size());
+				en.update(bb.Bytes, bb.ReadIndex, bb.size());
 				en.flush();
 			}
 			var seconds = b.report("encrypt", count);
@@ -219,7 +219,7 @@ public class BenchSocket {
 			for (int i = 0; i < count; ++i) {
 				var index = rand.nextInt(src.size());
 				var bb = src.get(index);
-				en.update(bb.Bytes, bb.ReadIndex, bb.Size());
+				en.update(bb.Bytes, bb.ReadIndex, bb.size());
 				en.flush();
 			}
 			var seconds = b.report("encrypt2", count);

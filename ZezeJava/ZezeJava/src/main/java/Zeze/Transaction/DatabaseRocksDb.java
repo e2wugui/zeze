@@ -248,7 +248,7 @@ public class DatabaseRocksDb extends Database {
 		@Override
 		public ByteBuffer find(ByteBuffer key) {
 			try {
-				var value = rocksDb.get(columnFamily, RocksDatabase.getDefaultReadOptions(), key.Bytes, key.ReadIndex, key.Size());
+				var value = rocksDb.get(columnFamily, RocksDatabase.getDefaultReadOptions(), key.Bytes, key.ReadIndex, key.size());
 				return value != null ? ByteBuffer.Wrap(value) : null;
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
@@ -429,7 +429,7 @@ public class DatabaseRocksDb extends Database {
 		public synchronized DataWithVersion getDataWithVersion(ByteBuffer key) {
 			try {
 				return DataWithVersion.decode(rocksDb.get(columnFamily,
-						RocksDatabase.getDefaultReadOptions(), key.Bytes, key.ReadIndex, key.Size()));
+						RocksDatabase.getDefaultReadOptions(), key.Bytes, key.ReadIndex, key.size()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -439,7 +439,7 @@ public class DatabaseRocksDb extends Database {
 		public synchronized KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			try {
 				var dv = DataWithVersion.decode(rocksDb.get(columnFamily,
-						RocksDatabase.getDefaultReadOptions(), key.Bytes, key.ReadIndex, key.Size()));
+						RocksDatabase.getDefaultReadOptions(), key.Bytes, key.ReadIndex, key.size()));
 				if (dv.version != version)
 					return KV.create(version, false);
 

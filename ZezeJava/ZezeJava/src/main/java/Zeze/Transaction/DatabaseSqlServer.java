@@ -96,7 +96,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
-			if (key.Size() == 0) {
+			if (key.size() == 0) {
 				throw new IllegalArgumentException("key is empty.");
 			}
 

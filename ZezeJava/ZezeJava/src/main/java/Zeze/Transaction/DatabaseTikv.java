@@ -179,7 +179,7 @@ public class DatabaseTikv extends Database {
 			if (distTxn)
 				((TikvDistTrans)t).put(addKeyPrefixBB(key), value);
 			else
-				((TikvTrans)t).put(addKeyPrefixBS(key), ByteString.copyFrom(value.Bytes, value.ReadIndex, value.Size()));
+				((TikvTrans)t).put(addKeyPrefixBS(key), ByteString.copyFrom(value.Bytes, value.ReadIndex, value.size()));
 		}
 
 		@Override
@@ -282,7 +282,7 @@ public class DatabaseTikv extends Database {
 
 		private ByteString addKeyPrefixBS(ByteBuffer key) {
 			int keyPrefixSize = keyPrefix.length;
-			int keySize = key.Size();
+			int keySize = key.size();
 			var tikvKey = new byte[keyPrefixSize + keySize];
 			System.arraycopy(keyPrefix, 0, tikvKey, 0, keyPrefixSize);
 			System.arraycopy(key.Bytes, key.ReadIndex, tikvKey, keyPrefixSize, keySize);
@@ -291,7 +291,7 @@ public class DatabaseTikv extends Database {
 
 		private ByteBuffer addKeyPrefixBB(ByteBuffer key) {
 			int keyPrefixSize = keyPrefix.length;
-			int keySize = key.Size();
+			int keySize = key.size();
 			var tikvKey = new byte[keyPrefixSize + keySize];
 			System.arraycopy(keyPrefix, 0, tikvKey, 0, keyPrefixSize);
 			System.arraycopy(key.Bytes, key.ReadIndex, tikvKey, keyPrefixSize, keySize);

@@ -28,21 +28,21 @@ public class TestByteBuffer extends TestCase {
 		ByteBuffer bb = ByteBuffer.Allocate();
 		byte[] v = new byte[0];
 		bb.WriteBytes(v);
-		assertEquals(1, bb.Size());
+		assertEquals(1, bb.size());
 		assertEquals("00", bb.toString());
 		assertEquals(BitConverter.toString(v), BitConverter.toString(bb.ReadBytes()));
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = new byte[]{1, 2};
 		bb.WriteBytes(v);
-		assertEquals(3, bb.Size());
+		assertEquals(3, bb.size());
 		assertEquals("02-01-02", bb.toString());
 		assertEquals(BitConverter.toString(v), BitConverter.toString(bb.ReadBytes()));
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		var str = "abc汉字123";
 		bb.WriteString(str);
-		assertEquals(13, bb.Size());
+		assertEquals(13, bb.size());
 		assertEquals("0C-61-62-63-E6-B1-89-E5-AD-97-31-32-33", bb.toString());
 		assertEquals(str, bb.ReadString());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
@@ -66,7 +66,7 @@ public class TestByteBuffer extends TestCase {
 		{
 			boolean v = true;
 			bb.WriteBool(v);
-			assertEquals(1, bb.Size());
+			assertEquals(1, bb.size());
 			assertEquals(1, bb.Bytes[bb.ReadIndex]);
 			assertEquals(v, bb.ReadBool());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
@@ -74,7 +74,7 @@ public class TestByteBuffer extends TestCase {
 		{
 			byte v = 1;
 			bb.WriteByte(v);
-			assertEquals(1, bb.Size());
+			assertEquals(1, bb.size());
 			assertEquals(1, bb.Bytes[bb.ReadIndex]);
 			assertEquals(v, bb.ReadByte());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
@@ -82,7 +82,7 @@ public class TestByteBuffer extends TestCase {
 		{
 			double v = 1.1;
 			bb.WriteDouble(v);
-			assertEquals(8, bb.Size());
+			assertEquals(8, bb.size());
 			assertEquals("9A-99-99-99-99-99-F1-3F", bb.toString());
 			assertEquals(v, bb.ReadDouble());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
@@ -90,7 +90,7 @@ public class TestByteBuffer extends TestCase {
 		{
 			float v = 1.1f;
 			bb.WriteFloat(v);
-			assertEquals(4, bb.Size());
+			assertEquals(4, bb.size());
 			assertEquals("CD-CC-8C-3F", bb.toString());
 			assertEquals(v, bb.ReadFloat());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
@@ -98,7 +98,7 @@ public class TestByteBuffer extends TestCase {
 		{
 			int int4 = 0x12345678;
 			bb.WriteInt4(int4);
-			assertEquals(4, bb.Size());
+			assertEquals(4, bb.size());
 			assertEquals("78-56-34-12", bb.toString());
 			assertEquals(int4, bb.ReadInt4());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
@@ -106,7 +106,7 @@ public class TestByteBuffer extends TestCase {
 		{
 			long long8 = 0x1234567801020304L;
 			bb.WriteLong8(long8);
-			assertEquals(8, bb.Size());
+			assertEquals(8, bb.size());
 			assertEquals("04-03-02-01-78-56-34-12", bb.toString());
 			assertEquals(long8, bb.ReadLong8());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
@@ -114,7 +114,7 @@ public class TestByteBuffer extends TestCase {
 		{
 			long long8 = -12345678;
 			bb.WriteLong8(long8);
-			assertEquals(8, bb.Size());
+			assertEquals(8, bb.size());
 			assertEquals("B2-9E-43-FF-FF-FF-FF-FF", bb.toString());
 			assertEquals(long8, bb.ReadLong8());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
@@ -122,7 +122,7 @@ public class TestByteBuffer extends TestCase {
 		{
 			long long8 = -1;
 			bb.WriteLong8(long8);
-			assertEquals(8, bb.Size());
+			assertEquals(8, bb.size());
 			assertEquals("FF-FF-FF-FF-FF-FF-FF-FF", bb.toString());
 			assertEquals(long8, bb.ReadLong8());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
@@ -135,42 +135,42 @@ public class TestByteBuffer extends TestCase {
 
 		int v = 1;
 		bb.WriteUInt(v);
-		assertEquals(1, bb.Size());
+		assertEquals(1, bb.size());
 		assertEquals("01", bb.toString());
 		assertEquals(v, bb.ReadUInt());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x80;
 		bb.WriteUInt(v);
-		assertEquals(2, bb.Size());
+		assertEquals(2, bb.size());
 		assertEquals("80-80", bb.toString());
 		assertEquals(v, bb.ReadUInt());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x4000;
 		bb.WriteUInt(v);
-		assertEquals(3, bb.Size());
+		assertEquals(3, bb.size());
 		assertEquals("C0-40-00", bb.toString());
 		assertEquals(v, bb.ReadUInt());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x20_0000;
 		bb.WriteUInt(v);
-		assertEquals(4, bb.Size());
+		assertEquals(4, bb.size());
 		assertEquals("E0-20-00-00", bb.toString());
 		assertEquals(v, bb.ReadUInt());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x1000_0000;
 		bb.WriteUInt(v);
-		assertEquals(5, bb.Size());
+		assertEquals(5, bb.size());
 		assertEquals("F0-10-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadUInt());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = -1;
 		bb.WriteUInt(v);
-		assertEquals(5, bb.Size());
+		assertEquals(5, bb.size());
 		assertEquals("F0-FF-FF-FF-FF", bb.toString());
 		assertEquals(v, bb.ReadUInt());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
@@ -182,77 +182,77 @@ public class TestByteBuffer extends TestCase {
 
 		long v = 1;
 		bb.WriteLong(v);
-		assertEquals(1, bb.Size());
+		assertEquals(1, bb.size());
 		assertEquals("01", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x80L;
 		bb.WriteLong(v);
-		assertEquals(2, bb.Size());
+		assertEquals(2, bb.size());
 		assertEquals("40-80", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x4000L;
 		bb.WriteLong(v);
-		assertEquals(3, bb.Size());
+		assertEquals(3, bb.size());
 		assertEquals("60-40-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x20_0000L;
 		bb.WriteLong(v);
-		assertEquals(4, bb.Size());
+		assertEquals(4, bb.size());
 		assertEquals("70-20-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x1000_0000L;
 		bb.WriteLong(v);
-		assertEquals(5, bb.Size());
+		assertEquals(5, bb.size());
 		assertEquals("78-10-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x8_0000_0000L;
 		bb.WriteLong(v);
-		assertEquals(6, bb.Size());
+		assertEquals(6, bb.size());
 		assertEquals("7C-08-00-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x400_0000_0000L;
 		bb.WriteLong(v);
-		assertEquals(7, bb.Size());
+		assertEquals(7, bb.size());
 		assertEquals("7E-04-00-00-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x2_0000_0000_0000L;
 		bb.WriteLong(v);
-		assertEquals(8, bb.Size());
+		assertEquals(8, bb.size());
 		assertEquals("7F-02-00-00-00-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x100_0000_0000_0000L;
 		bb.WriteLong(v);
-		assertEquals(9, bb.Size());
+		assertEquals(9, bb.size());
 		assertEquals("7F-81-00-00-00-00-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = 0x8000_0000_0000_0000L;
 		bb.WriteLong(v);
-		assertEquals(9, bb.Size());
+		assertEquals(9, bb.size());
 		assertEquals("80-00-00-00-00-00-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
 		v = -1;
 		bb.WriteLong(v);
-		assertEquals(1, bb.Size());
+		assertEquals(1, bb.size());
 		assertEquals("FF", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
@@ -413,7 +413,7 @@ public class TestByteBuffer extends TestCase {
 //		System.out.println(v);
 //		System.out.println(v2);
 
-		assertEquals(bb.Size(), bb2.Size());
+		assertEquals(bb.size(), bb2.size());
 		assertEquals(bb, bb2);
 	}
 }

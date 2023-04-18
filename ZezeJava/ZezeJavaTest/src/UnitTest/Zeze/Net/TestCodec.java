@@ -11,10 +11,10 @@ import org.junit.Assert;
 import java.util.*;
 
 public class TestCodec extends TestCase{
-	
+
 	public final void testEncrypt() {
 		BufferCodec b2flush = new BufferCodec();
-		byte[] key = {1}; 
+		byte[] key = {1};
 		{
 			Encrypt en = new Encrypt(b2flush, key);
 			en.update((byte)1);
@@ -22,7 +22,7 @@ public class TestCodec extends TestCase{
 			en.update((byte)2);
 			en.flush();
 		}
-		BufferCodec b1flush = new BufferCodec(); 
+		BufferCodec b1flush = new BufferCodec();
 		{
 			Encrypt en = new Encrypt(b1flush, key);
 			en.update((byte)1);
@@ -33,10 +33,10 @@ public class TestCodec extends TestCase{
 
 		BufferCodec bdecrypt = new BufferCodec(); {
 			Decrypt de = new Decrypt(bdecrypt, key);
-			de.update(b2flush.getBuffer().Bytes, b2flush.getBuffer().ReadIndex, b2flush.getBuffer().Size());
+			de.update(b2flush.getBuffer().Bytes, b2flush.getBuffer().ReadIndex, b2flush.getBuffer().size());
 			de.flush();
 		}
-		Assert.assertEquals(2, bdecrypt.getBuffer().Size());
+		Assert.assertEquals(2, bdecrypt.getBuffer().size());
 		Assert.assertEquals(1, bdecrypt.getBuffer().Bytes[0]);
 		Assert.assertEquals(2, bdecrypt.getBuffer().Bytes[1]);
 	}
@@ -61,7 +61,7 @@ public class TestCodec extends TestCase{
 
 			BufferCodec decrypt = new BufferCodec();
 			Decrypt de = new Decrypt(decrypt, key);
-			de.update(encrypt.getBuffer().Bytes, encrypt.getBuffer().ReadIndex, encrypt.getBuffer().Size());
+			de.update(encrypt.getBuffer().Bytes, encrypt.getBuffer().ReadIndex, encrypt.getBuffer().size());
 			de.flush();
 
 			Assert.assertEquals(ByteBuffer.Wrap(buffer), decrypt.getBuffer());
@@ -84,7 +84,7 @@ public class TestCodec extends TestCase{
 
 			BufferCodec bufdp = new BufferCodec();
 			Decompress dp = new Decompress(bufdp);
-			dp.update(bufcp.getBuffer().Bytes, bufcp.getBuffer().ReadIndex, bufcp.getBuffer().Size());
+			dp.update(bufcp.getBuffer().Bytes, bufcp.getBuffer().ReadIndex, bufcp.getBuffer().size());
 			dp.flush();
 			Assert.assertEquals(ByteBuffer.Wrap(buffer), bufdp.getBuffer());
 		}

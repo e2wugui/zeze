@@ -104,7 +104,7 @@ public class TestNettyHttpServer {
 
 		@Override
 		public void onComplete() {
-			cf.complete(new String(buffer.Bytes, buffer.ReadIndex, buffer.Size(), StandardCharsets.UTF_8));
+			cf.complete(new String(buffer.Bytes, buffer.ReadIndex, buffer.size(), StandardCharsets.UTF_8));
 		}
 
 		@Override

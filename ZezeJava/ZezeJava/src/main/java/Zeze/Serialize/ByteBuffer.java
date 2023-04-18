@@ -37,20 +37,16 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	public int ReadIndex;
 	public int WriteIndex;
 
-	public int Capacity() {
-		return Bytes.length;
-	}
-
 	public int capacity() {
 		return Bytes.length;
 	}
 
-	public int Size() {
+	public int size() {
 		return WriteIndex - ReadIndex;
 	}
 
-	public int size() {
-		return WriteIndex - ReadIndex;
+	public boolean isEmpty() {
+		return ReadIndex >= WriteIndex;
 	}
 
 	public static @NotNull ByteBuffer Wrap(@NotNull ByteBuffer bb) {
@@ -267,19 +263,26 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return size;
 	}
 
+	private void growCapacity(int newSize) {
+		byte[] newBytes = new byte[toPower2(newSize)];
+		System.arraycopy(Bytes, ReadIndex, newBytes, 0, WriteIndex -= ReadIndex);
+		ReadIndex = 0;
+		Bytes = newBytes;
+	}
+
 	public void EnsureWrite(int size) {
 		int newSize = WriteIndex + size;
-		if (newSize > capacity()) {
-			byte[] newBytes = new byte[toPower2(newSize)];
-			System.arraycopy(Bytes, ReadIndex, newBytes, 0, WriteIndex -= ReadIndex);
-			ReadIndex = 0;
-			Bytes = newBytes;
-		}
+		if (newSize > Bytes.length)
+			growCapacity(newSize);
+	}
+
+	private void throwEnsureReadException(int size) {
+		throw new IllegalStateException("ensureRead " + ReadIndex + '+' + size + " > " + WriteIndex);
 	}
 
 	protected void ensureRead(int size) {
 		if (ReadIndex + size > WriteIndex)
-			throw new IllegalStateException("EnsureRead " + ReadIndex + '+' + size + " > " + WriteIndex);
+			throwEnsureReadException(size);
 	}
 
 	public void WriteBool(boolean b) {
@@ -1148,32 +1151,12 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	public static final int TAG_MASK = (1 << TAG_SHIFT) - 1;
 	public static final int ID_MASK = 0xff - TAG_MASK;
 
-	/*
-	// 在生成代码的时候使用这个方法检查。生成后的代码不使用这个方法。
-	// 可以定义的最大 Variable.Id 为 Zeze.Transaction.Bean.MaxVariableId
-	public static int MakeTagId(int tag, int id) {
-	    if (tag < 0 || tag > TAG_MAX)
-	        throw new OverflowException("tag < 0 || tag > TAG_MAX");
-	    if (id < 0 || id > ID_MASK)
-	        throw new OverflowException("id < 0 || id > ID_MASK");
-
-	    return (id << TAG_SHIFT) + tag;
-	}
-
-	public static int GetTag(int tagId) {
-	    return tagId & TAG_MASK;
-	}
-
-	public static int GetId(int tagId) {
-	}
-	*/
-
 	public static void VerifyArrayIndex(byte @NotNull [] bytes, int offset, int length) {
 		int bytesLen = bytes.length;
 		long offsetL = offset & 0xffff_ffffL;
 		long endIndexL = (offset + length) & 0xffff_ffffL;
 		if (endIndexL > bytesLen || offsetL > endIndexL)
-			throw new IllegalArgumentException(String.format("%d,%d,%d", bytesLen, offset, length));
+			throw new IllegalArgumentException(bytesLen + "," + offset + ',' + length);
 	}
 
 	public static @NotNull ByteBuffer encode(@NotNull Serializable sa) {

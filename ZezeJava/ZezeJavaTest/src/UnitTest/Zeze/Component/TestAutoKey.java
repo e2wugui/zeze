@@ -32,7 +32,7 @@ public class TestAutoKey {
 			bb.WriteUInt(serverId);
 		bb.WriteULong(index);
 		Assert.assertTrue(bb.size() <= 8);
-		return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.Size());
+		return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.size());
 	}
 
 	@SuppressWarnings("deprecation")

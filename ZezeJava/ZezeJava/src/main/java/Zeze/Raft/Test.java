@@ -719,7 +719,7 @@ public class Test {
 						logger.info("{} Snapshot Count={}", getRaft().getName(), count);
 						bb.WriteLong(count);
 						try (var file = new FileOutputStream(path)) {
-							file.write(bb.Bytes, bb.ReadIndex, bb.Size());
+							file.write(bb.Bytes, bb.ReadIndex, bb.size());
 						}
 						getRaft().getLogSequence().commitSnapshot(path, result.lastIncludedIndex);
 						result.success = true;

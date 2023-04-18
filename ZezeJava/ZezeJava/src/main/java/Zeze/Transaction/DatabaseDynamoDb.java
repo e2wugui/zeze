@@ -119,14 +119,14 @@ public class DatabaseDynamoDb extends Database {
 
 		void replace(String tableName, ByteBuffer key, ByteBuffer value) {
 			var put = new Put().withTableName(tableName);
-			put.addItemEntry("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.Size())));
-			put.addItemEntry("value", new AttributeValue().withB(java.nio.ByteBuffer.wrap(value.Bytes, value.ReadIndex, value.Size())));
+			put.addItemEntry("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.size())));
+			put.addItemEntry("value", new AttributeValue().withB(java.nio.ByteBuffer.wrap(value.Bytes, value.ReadIndex, value.size())));
 			writes.add(new TransactWriteItem().withPut(put));
 		}
 
 		void remove(String tableName, ByteBuffer key) {
 			var delete = new Delete().withTableName(tableName);
-			delete.addKeyEntry("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.Size())));
+			delete.addKeyEntry("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.size())));
 			writes.add(new TransactWriteItem().withDelete(delete));
 		}
 	}
@@ -168,7 +168,7 @@ public class DatabaseDynamoDb extends Database {
 		@Override
 		public ByteBuffer find(ByteBuffer key) {
 			var keyPrimary = new HashMap<String, AttributeValue>();
-			keyPrimary.put("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.Size())));
+			keyPrimary.put("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.size())));
 			var req = new GetItemRequest(name, keyPrimary);
 			var item = dynamoDbClient.getItem(req).getItem();
 

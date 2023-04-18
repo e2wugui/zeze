@@ -34,7 +34,7 @@ public class TestAsyncSocket extends TestCase {
 
 		@Override
 		public boolean OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) {
-			System.out.println("input size=" + input.Size());
+			System.out.println("input size=" + input.size());
 			System.out.println(new String(input.Bytes, input.ReadIndex, input.size()));
 			input.ReadIndex = input.WriteIndex;
 			Future.setResult(true);
