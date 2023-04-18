@@ -8,6 +8,7 @@ import Zeze.Application;
 import Zeze.Builtin.AutoKey.BSeedKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutLong;
@@ -257,7 +258,7 @@ public class AutoKey {
 						key.setNextId(end);
 						newRange.value = new Range(start, end);
 						return 0;
-					}, "AutoKey.allocateSeeds")).get();
+					}, "AutoKey.allocateSeeds"), DispatchMode.Critical).get();
 					if (ret == Procedure.Success) {
 						range = newRange.value;
 						continue;
