@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import Zeze.Builtin.Dbh2.BBucketMeta;
-import Zeze.Dbh2.Database;
+import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
@@ -33,8 +33,7 @@ public class Dbh2Test {
 			var raftConfig = RaftConfig.loadFromString(raftConfigString);
 			for (var config : raftConfig.getNodes().values())
 				raftNodes.add(start(raftConfigString, config.getName()));
-			var raftConf = RaftConfig.loadFromString(raftConfigString);
-			agent = new Dbh2Agent(raftConf);
+			agent = new Dbh2Agent(raftConfigString);
 		}
 
 		public Dbh2Agent agent() {
@@ -106,36 +105,37 @@ public class Dbh2Test {
 			var value = new Binary(new byte[] { 1 });
 
 			{
-				var batch = new Database.BatchWithTid(db, tb1);
-				batch.put(key, value);
-				var r = bucket1.agent().prepareBatch(batch).get();
-				batch.setTid(r.Result.getTid());
-				bucket1.agent().commitBatch(batch.getTid()).await();
-			}
-			{
-				var kv = bucket1.agent().get(db, tb1, key);
-				Assert.assertTrue(kv.getKey());
-				Assert.assertNotNull(kv.getValue());
-				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
-			}
-			{
-				var batch = new Database.BatchWithTid(db, tb1);
-				batch.put(key, Binary.Empty);
-				var r = bucket1.agent().prepareBatch(batch).get();
-				batch.setTid(r.Result.getTid());
-				bucket1.agent().undoBatch(batch.getTid()).await();
-			}
-			{
-				var kv = bucket1.agent().get(db, tb1, key);
-				Assert.assertTrue(kv.getKey());
-				Assert.assertNotNull(kv.getValue());
-				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
-			}
-			{
-				var batch = new Database.BatchWithTid(db, tb1);
-				batch.delete(key);
+				var batch = new BPrepareBatch.Data(db, tb1);
+				batch.getBatch().getPuts().put(key, value);
+				batch.getBatch().setTid(Zeze.Util.Random.nextBinary(16));
 				bucket1.agent().prepareBatch(batch).await();
-				bucket1.agent().commitBatch(batch.getTid()).await();
+				bucket1.agent().commitBatch(batch.getBatch().getTid()).await();
+			}
+			{
+				var kv = bucket1.agent().get(db, tb1, key);
+				Assert.assertTrue(kv.getKey());
+				Assert.assertNotNull(kv.getValue());
+				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
+			}
+			{
+				var batch = new BPrepareBatch.Data(db, tb1);
+				batch.getBatch().getPuts().put(key, Binary.Empty);
+				batch.getBatch().setTid(Zeze.Util.Random.nextBinary(16));
+				bucket1.agent().prepareBatch(batch).await();
+				bucket1.agent().undoBatch(batch.getBatch().getTid()).await();
+			}
+			{
+				var kv = bucket1.agent().get(db, tb1, key);
+				Assert.assertTrue(kv.getKey());
+				Assert.assertNotNull(kv.getValue());
+				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
+			}
+			{
+				var batch = new BPrepareBatch.Data(db, tb1);
+				batch.getBatch().getDeletes().add(key);
+				batch.getBatch().setTid(Zeze.Util.Random.nextBinary(16));
+				bucket1.agent().prepareBatch(batch).await();
+				bucket1.agent().commitBatch(batch.getBatch().getTid()).await();
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
@@ -145,17 +145,20 @@ public class Dbh2Test {
 
 			// multi-bucket transaction
 			{
-				var batch1 = new Database.BatchWithTid(db, tb1);
-				var batch2 = new Database.BatchWithTid(db, tb2);
+				var batch1 = new BPrepareBatch.Data(db, tb1);
+				var batch2 = new BPrepareBatch.Data(db, tb2);
 
-				batch1.put(key, value);
-				batch2.put(key, value);
+				batch1.getBatch().setTid(Zeze.Util.Random.nextBinary(16));
+				batch2.getBatch().setTid(batch1.getBatch().getTid());
+
+				batch1.getBatch().getPuts().put(key, value);
+				batch2.getBatch().getPuts().put(key, value);
 
 				bucket1.agent().prepareBatch(batch1).await();
 				bucket2.agent().prepareBatch(batch2).await();
 
-				bucket1.agent().commitBatch(batch1.getTid()).await();
-				bucket2.agent().commitBatch(batch2.getTid()).await();
+				bucket1.agent().commitBatch(batch1.getBatch().getTid()).await();
+				bucket2.agent().commitBatch(batch2.getBatch().getTid()).await();
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);

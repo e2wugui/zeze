@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import Zeze.Builtin.Dbh2.Commit.DummyImportBean;
+import Zeze.Builtin.Dbh2.Commit.Prepare;
 import Zeze.Config;
 import org.rocksdb.RocksDBException;
 
@@ -35,15 +37,26 @@ public class Commit extends AbstractCommit {
 
     @Override
     protected long ProcessCommitRequest(Zeze.Builtin.Dbh2.Commit.Commit r) throws Exception {
-        var trans = CommitRocks.decodeTransaction(r.Argument.getTransactionData());
-        rocks.commitTransaction(trans);
+        rocks.commitTransaction(r.Argument.getTid(), r.Argument.getBuckets());
+        r.SendResult();
+        return 0;
+    }
+
+    @Override
+    protected long ProcessDummyImportBean(DummyImportBean p) throws Exception {
+        return 0;
+    }
+
+    @Override
+    protected long ProcessPrepareRequest(Prepare r) throws Exception {
+        r.Result.setTid(rocks.prepare(r.Argument.getBuckets()));
         r.SendResult();
         return 0;
     }
 
     @Override
     protected long ProcessQueryRequest(Zeze.Builtin.Dbh2.Commit.Query r) throws Exception {
-        r.setResultCode(rocks.query(r.Argument.getBucketRaftSortedNames(), r.Argument.getBucketTid()));
+        r.Result.setState(rocks.query(r.Argument.getTid()));
         r.SendResult();
         return 0;
     }

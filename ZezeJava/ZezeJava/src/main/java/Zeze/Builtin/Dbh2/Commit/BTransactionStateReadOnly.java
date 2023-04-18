@@ -1,12 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Dbh2.Commit;
 
-public interface BCommitReadOnly {
+public interface BTransactionStateReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BCommit copy();
+    BTransactionState copy();
 
-    Zeze.Net.Binary getTid();
+    int getState();
     Zeze.Transaction.Collections.PList1ReadOnly<String> getBucketsReadOnly();
 }

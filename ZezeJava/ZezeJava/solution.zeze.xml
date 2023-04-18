@@ -1367,6 +1367,7 @@
 				<variable id="2" name="Deletes" type="set[binary]"/>
 				<variable id="3" name="QueryIp" type="string"/>
 				<variable id="4" name="QueryPort" type="int"/>
+				<variable id="5" name="Tid" type="binary"/>
 			</bean>
 			<bean name="BPrepareBatch">
 				<variable id="1" name="Database" type="string"/> 用来纠错
@@ -1374,26 +1375,34 @@
 				<variable id="3" name="Batch" type="BBatch"/>
 			</bean>
 			<bean name="BBatchTid">
-				<variable id="1" name="Tid" type="long"/>
+				<variable id="1" name="Tid" type="binary"/>
 			</bean>
 			<!-- 桶正在迁移中造成Batch中部分Key失败，整个事务失败。-->
-			<rpc name="PrepareBatch" argument="BPrepareBatch" result="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			<rpc name="PrepareBatch" argument="BPrepareBatch" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			<rpc name="CommitBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			<rpc name="UndoBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			
 			<module name="Commit" id="11028" DefaultTransactionLevel="None">
 				<enum name="eCommitNotExist" value="0"/>
-				<enum name="eCommitPoint" value="1"/>
+				<enum name="ePrepareing" value="1"/>
+				<enum name="eCommitting" value="2"/>
+				<enum name="eCommitDone" value="3"/>
 
-				<bean name="BQuery">
-					<variable id="1" name="BucketRaftSortedNames" type="binary"/>
-					<variable id="2" name="BucketTid" type="long"/>
+				<bean name="BTransactionState">
+					<variable id="1" name="State" type="int"/>
+					<variable id="2" name="Buckets" type="list[string]"/>
 				</bean>
-				<rpc name="Query" argument="BQuery" UseData="true" handle="server"/>
+
+				<rpc name="Query" argument="Zeze.Builtin.Dbh2.BBatchTid" result="BTransactionState" UseData="true" handle="server"/>
+				<rpc name="Prepare" argument="BCommit" result="Zeze.Builtin.Dbh2.BBatchTid" UseData="true" handle="server"/>
+
 				<bean name="BCommit">
-					<variable id="1" name="TransactionData" type="binary"/>
+					<variable id="1" name="Tid" type="binary"/>
+					<variable id="2" name="Buckets" type="list[string]"/>
 				</bean>
 				<rpc name="Commit" argument="BCommit" UseData="true" handle="server"/>
+
+				<protocol name="DummyImportBean" argument="BTransactionState" UseData="true" handle="server"/>
 			</module>
 		</module>
 

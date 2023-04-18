@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Dbh2.Commit;
 
-public class Query extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Commit.BQuery.Data, Zeze.Transaction.EmptyBean.Data> {
+public class Query extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.BBatchTid.Data, Zeze.Builtin.Dbh2.Commit.BTransactionState.Data> {
     public static final int ModuleId_ = 11028;
     public static final int ProtocolId_ = 287502951;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47365186843239
@@ -23,12 +23,12 @@ public class Query extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Commit.BQuery.Data, Ze
     }
 
     public Query() {
-        Argument = new Zeze.Builtin.Dbh2.Commit.BQuery.Data();
-        Result = Zeze.Transaction.EmptyBean.Data.instance;
+        Argument = new Zeze.Builtin.Dbh2.BBatchTid.Data();
+        Result = new Zeze.Builtin.Dbh2.Commit.BTransactionState.Data();
     }
 
-    public Query(Zeze.Builtin.Dbh2.Commit.BQuery.Data arg) {
+    public Query(Zeze.Builtin.Dbh2.BBatchTid.Data arg) {
         Argument = arg;
-        Result = Zeze.Transaction.EmptyBean.Data.instance;
+        Result = new Zeze.Builtin.Dbh2.Commit.BTransactionState.Data();
     }
 }

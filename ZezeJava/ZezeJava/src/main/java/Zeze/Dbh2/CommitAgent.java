@@ -2,7 +2,9 @@ package Zeze.Dbh2;
 
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.Commit.Commit;
+import Zeze.Builtin.Dbh2.Commit.Prepare;
 import Zeze.Builtin.Dbh2.Commit.Query;
 import Zeze.Config;
 import Zeze.IModule;
@@ -53,17 +55,31 @@ public class CommitAgent extends AbstractCommitAgent {
 		service.stop();
 	}
 
-	public long query(String host, int port, Binary sortedNames, long tid) {
+	public int query(String host, int port, Binary tid) {
 		var r = new Query();
-		r.Argument.setBucketRaftSortedNames(sortedNames);
-		r.Argument.setBucketTid(tid);
+		r.Argument.setTid(tid);
 		r.SendForWait(connect(host, port)).await();
-		return r.getResultCode();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("query state error=" + IModule.getErrorCode(r.getResultCode()));
+		return r.Result.getState();
 	}
 
-	public void commit(String host, int port, HashMap<Dbh2Agent, Database.BatchWithTid> trans) {
+	public Binary prepare(String host, int port, HashMap<Dbh2Agent, BPrepareBatch.Data> trans) {
+		var r = new Prepare();
+		// prepare 阶段的桶信息不记录，【算是优化？】
+		//for (var bucket : trans.keySet())
+		//	r.Argument.getBuckets().add(bucket.getRaftConfigString());
+		r.SendForWait(connect(host, port)).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("commit error=" + IModule.getErrorCode(r.getResultCode()));
+		return r.Result.getTid();
+	}
+
+	public void commit(String host, int port, Binary tid, HashMap<Dbh2Agent, BPrepareBatch.Data> trans) {
 		var r = new Commit();
-		r.Argument.setTransactionData(CommitRocks.encodeTransaction(trans));
+		r.Argument.setTid(tid);
+		for (var e : trans.entrySet())
+			r.Argument.getBuckets().add(e.getKey().getRaftConfigString());
 		r.SendForWait(connect(host, port)).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("commit error=" + IModule.getErrorCode(r.getResultCode()));

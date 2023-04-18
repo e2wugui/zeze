@@ -10,7 +10,6 @@ import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -23,7 +22,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private static final Logger logger = LogManager.getLogger(Dbh2StateMachine.class);
 	private Bucket bucket;
 	private TidAllocator tidAllocator;
-	private final ConcurrentHashMap<Long, Dbh2Transaction> transactions = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Binary, Dbh2Transaction> transactions = new ConcurrentHashMap<>();
 	private Future<?> timer;
 	private CommitAgent commitAgent;
 
@@ -43,7 +42,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		return tidAllocator;
 	}
 
-	public ConcurrentHashMap<Long, Dbh2Transaction> getTransactions() {
+	public ConcurrentHashMap<Binary, Dbh2Transaction> getTransactions() {
 		return transactions;
 	}
 
@@ -71,13 +70,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		var period = getRaft().getRaftConfig().getAppendEntriesTimeout() + 200;
 		for (var e : transactions.entrySet()) {
 			var t = e.getValue();
-			if (now - t.getCreateTime() < period)
+			if (now - t.getCreateTime() < period * 2L)
 				continue;
 			var tid = e.getKey();
 			//logger.info("onTimer tid=" + tid);
+			// todo timeout 状态检查需要重新想一下。
 			if (Commit.eCommitNotExist == commitAgent.query(
 					t.getQueryIp(), t.getQueryPort(),
-					getRaft().getRaftConfig().getSortedNamesBinary(), tid)) {
+					tid)) {
 				logger.warn("Undo Timeout " + tid + " " + t);
 				getRaft().appendLog(new LogUndoBatch(tid));
 			}
@@ -107,9 +107,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void prepareBatch(long tid, BBatch.Data bBatch) {
+	public void prepareBatch(BBatch.Data bBatch) {
 		try {
-			var txn = transactions.computeIfAbsent(tid, _tid -> new Dbh2Transaction(bBatch));
+			var txn = transactions.computeIfAbsent(bBatch.getTid(), _tid -> new Dbh2Transaction(bBatch));
 			txn.prepareBatch(bucket, bBatch);
 		} catch (RocksDBException e) {
 			logger.error("", e);
@@ -117,14 +117,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void commitBatch(long tid) {
+	public void commitBatch(Binary tid) {
 		//noinspection EmptyTryBlock
 		try (var ignored = transactions.remove(tid)) {
 			// do nothing
 		}
 	}
 
-	public void undoBatch(long tid) {
+	public void undoBatch(Binary tid) {
 		try (var txn = transactions.remove(tid)) {
 			if (null != txn)
 				txn.undoBatch(bucket);

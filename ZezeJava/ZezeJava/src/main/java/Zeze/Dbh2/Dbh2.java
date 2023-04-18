@@ -105,12 +105,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessPrepareBatchRequest(PrepareBatch r) throws Exception {
-        var tid = stateMachine.getTidAllocator().next(stateMachine);
+        //var tid = stateMachine.getTidAllocator().next(stateMachine);
         // lock
         var txn = new Dbh2Transaction(r.Argument.getBatch());
         try {
             // save txn
-            if (null != stateMachine.getTransactions().putIfAbsent(tid, txn))
+            if (null != stateMachine.getTransactions().putIfAbsent(r.Argument.getBatch().getTid(), txn))
                 return errorCode(eDuplicateTid);
             // check inBucket
             if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
@@ -132,14 +132,13 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
                     return errorCode(eBucketMissmatch);
             }
             // apply to raft
-            getRaft().appendLog(new LogPrepareBatch(tid, r));
-            r.Result.setTid(tid);
+            getRaft().appendLog(new LogPrepareBatch(r));
             r.SendResultCode(0);
             // 操作成功，释放所有权。see finally.
             txn = null;
         } finally {
             if (null != txn) {
-                stateMachine.getTransactions().remove(tid); // undo putIfAbsent
+                stateMachine.getTransactions().remove(r.Argument.getBatch().getTid()); // undo putIfAbsent
                 txn.close();
             }
         }

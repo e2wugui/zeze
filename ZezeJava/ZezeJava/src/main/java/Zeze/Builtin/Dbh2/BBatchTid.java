@@ -7,10 +7,10 @@ import Zeze.Serialize.ByteBuffer;
 public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidReadOnly {
     public static final long TYPEID = -8862994320894252651L;
 
-    private long _Tid;
+    private Zeze.Net.Binary _Tid;
 
     @Override
-    public long getTid() {
+    public Zeze.Net.Binary getTid() {
         if (!isManaged())
             return _Tid;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
@@ -20,7 +20,9 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
         return log != null ? log.value : _Tid;
     }
 
-    public void setTid(long value) {
+    public void setTid(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
         if (!isManaged()) {
             _Tid = value;
             return;
@@ -31,10 +33,13 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
 
     @SuppressWarnings("deprecation")
     public BBatchTid() {
+        _Tid = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BBatchTid(long _Tid_) {
+    public BBatchTid(Zeze.Net.Binary _Tid_) {
+        if (_Tid_ == null)
+            throw new IllegalArgumentException();
         _Tid = _Tid_;
     }
 
@@ -80,8 +85,8 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
         return TYPEID;
     }
 
-    private static final class Log__Tid extends Zeze.Transaction.Logs.LogLong {
-        public Log__Tid(BBatchTid bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__Tid extends Zeze.Transaction.Logs.LogBinary {
+        public Log__Tid(BBatchTid bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
         public void commit() { ((BBatchTid)getBelong())._Tid = value; }
@@ -119,10 +124,10 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            long _x_ = getTid();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
+            var _x_ = getTid();
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -133,20 +138,13 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTid(_o_.ReadLong(_t_));
+            setTid(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-    }
-
-    @Override
-    public boolean negativeCheck() {
-        if (getTid() < 0)
-            return true;
-        return false;
     }
 
     @SuppressWarnings("unchecked")
@@ -158,7 +156,7 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Tid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _Tid = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }
@@ -166,35 +164,42 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setTid(rs.getLong(_parents_name_ + "Tid"));
+        setTid(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Tid")));
+        if (getTid() == null)
+            setTid(Zeze.Net.Binary.Empty);
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "Tid", getTid());
+        st.appendBinary(_parents_name_ + "Tid", getTid());
     }
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -8862994320894252651L;
 
-    private long _Tid;
+    private Zeze.Net.Binary _Tid;
 
-    public long getTid() {
+    public Zeze.Net.Binary getTid() {
         return _Tid;
     }
 
-    public void setTid(long value) {
+    public void setTid(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
         _Tid = value;
     }
 
     @SuppressWarnings("deprecation")
     public Data() {
+        _Tid = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _Tid_) {
+    public Data(Zeze.Net.Binary _Tid_) {
+        if (_Tid_ == null)
+            throw new IllegalArgumentException();
         _Tid = _Tid_;
     }
 
@@ -268,10 +273,10 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            long _x_ = getTid();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
+            var _x_ = getTid();
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -282,7 +287,7 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTid(_o_.ReadLong(_t_));
+            setTid(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
