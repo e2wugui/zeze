@@ -4,32 +4,30 @@ package Zeze.Builtin.Dbh2.Commit;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BCommit extends Zeze.Transaction.Bean implements BCommitReadOnly {
-    public static final long TYPEID = 3148866502298196978L;
+public final class BTransactionState extends Zeze.Transaction.Bean implements BTransactionStateReadOnly {
+    public static final long TYPEID = 7092279656883376454L;
 
-    private Zeze.Net.Binary _Tid;
+    private int _State;
     private final Zeze.Transaction.Collections.PList1<String> _Buckets;
 
     @Override
-    public Zeze.Net.Binary getTid() {
+    public int getState() {
         if (!isManaged())
-            return _Tid;
+            return _State;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _Tid;
-        var log = (Log__Tid)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _Tid;
+            return _State;
+        var log = (Log__State)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _State;
     }
 
-    public void setTid(Zeze.Net.Binary value) {
-        if (value == null)
-            throw new IllegalArgumentException();
+    public void setState(int value) {
         if (!isManaged()) {
-            _Tid = value;
+            _State = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Tid(this, 1, value));
+        txn.putLog(new Log__State(this, 1, value));
     }
 
     public Zeze.Transaction.Collections.PList1<String> getBuckets() {
@@ -42,58 +40,55 @@ public final class BCommit extends Zeze.Transaction.Bean implements BCommitReadO
     }
 
     @SuppressWarnings("deprecation")
-    public BCommit() {
-        _Tid = Zeze.Net.Binary.Empty;
+    public BTransactionState() {
         _Buckets = new Zeze.Transaction.Collections.PList1<>(String.class);
         _Buckets.variableId(2);
     }
 
     @SuppressWarnings("deprecation")
-    public BCommit(Zeze.Net.Binary _Tid_) {
-        if (_Tid_ == null)
-            throw new IllegalArgumentException();
-        _Tid = _Tid_;
+    public BTransactionState(int _State_) {
+        _State = _State_;
         _Buckets = new Zeze.Transaction.Collections.PList1<>(String.class);
         _Buckets.variableId(2);
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.Commit.BCommit.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.Commit.BCommit.Data();
+    public Zeze.Builtin.Dbh2.Commit.BTransactionState.Data toData() {
+        var data = new Zeze.Builtin.Dbh2.Commit.BTransactionState.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.Commit.BCommit.Data)other);
+        assign((Zeze.Builtin.Dbh2.Commit.BTransactionState.Data)other);
     }
 
-    public void assign(BCommit.Data other) {
-        setTid(other.getTid());
+    public void assign(BTransactionState.Data other) {
+        setState(other.getState());
         _Buckets.clear();
         _Buckets.addAll(other.getBuckets());
     }
 
-    public void assign(BCommit other) {
-        setTid(other.getTid());
+    public void assign(BTransactionState other) {
+        setState(other.getState());
         _Buckets.clear();
         _Buckets.addAll(other.getBuckets());
     }
 
-    public BCommit copyIfManaged() {
+    public BTransactionState copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BCommit copy() {
-        var copy = new BCommit();
+    public BTransactionState copy() {
+        var copy = new BTransactionState();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BCommit a, BCommit b) {
-        BCommit save = a.copy();
+    public static void swap(BTransactionState a, BTransactionState b) {
+        BTransactionState save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -103,11 +98,11 @@ public final class BCommit extends Zeze.Transaction.Bean implements BCommitReadO
         return TYPEID;
     }
 
-    private static final class Log__Tid extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Tid(BCommit bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+    private static final class Log__State extends Zeze.Transaction.Logs.LogInt {
+        public Log__State(BTransactionState bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BCommit)getBelong())._Tid = value; }
+        public void commit() { ((BTransactionState)getBelong())._State = value; }
     }
 
     @Override
@@ -119,9 +114,9 @@ public final class BCommit extends Zeze.Transaction.Bean implements BCommitReadO
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Commit.BCommit: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Commit.BTransactionState: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Tid=").append(getTid()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(getState()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Buckets=[");
         if (!_Buckets.isEmpty()) {
             sb.append(System.lineSeparator());
@@ -153,10 +148,10 @@ public final class BCommit extends Zeze.Transaction.Bean implements BCommitReadO
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getTid();
-            if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteBinary(_x_);
+            int _x_ = getState();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
             }
         }
         {
@@ -177,7 +172,7 @@ public final class BCommit extends Zeze.Transaction.Bean implements BCommitReadO
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTid(_o_.ReadBinary(_t_));
+            setState(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
@@ -206,6 +201,13 @@ public final class BCommit extends Zeze.Transaction.Bean implements BCommitReadO
         _Buckets.initRootInfoWithRedo(root, this);
     }
 
+    @Override
+    public boolean negativeCheck() {
+        if (getState() < 0)
+            return true;
+        return false;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {
@@ -215,7 +217,7 @@ public final class BCommit extends Zeze.Transaction.Bean implements BCommitReadO
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Tid = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _State = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 2: _Buckets.followerApply(vlog); break;
             }
         }
@@ -224,34 +226,30 @@ public final class BCommit extends Zeze.Transaction.Bean implements BCommitReadO
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setTid(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Tid")));
-        if (getTid() == null)
-            setTid(Zeze.Net.Binary.Empty);
+        setState(rs.getInt(_parents_name_ + "State"));
         Zeze.Serialize.Helper.decodeJsonList(getBuckets(), String.class, rs.getString(_parents_name_ + "Buckets"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendBinary(_parents_name_ + "Tid", getTid());
+        st.appendInt(_parents_name_ + "State", getState());
         st.appendString(_parents_name_ + "Buckets", Zeze.Serialize.Helper.encodeJson(getBuckets()));
     }
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = 3148866502298196978L;
+    public static final long TYPEID = 7092279656883376454L;
 
-    private Zeze.Net.Binary _Tid;
+    private int _State;
     private java.util.ArrayList<String> _Buckets;
 
-    public Zeze.Net.Binary getTid() {
-        return _Tid;
+    public int getState() {
+        return _State;
     }
 
-    public void setTid(Zeze.Net.Binary value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        _Tid = value;
+    public void setState(int value) {
+        _State = value;
     }
 
     public java.util.ArrayList<String> getBuckets() {
@@ -266,50 +264,47 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @SuppressWarnings("deprecation")
     public Data() {
-        _Tid = Zeze.Net.Binary.Empty;
         _Buckets = new java.util.ArrayList<>();
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Net.Binary _Tid_) {
-        if (_Tid_ == null)
-            throw new IllegalArgumentException();
-        _Tid = _Tid_;
+    public Data(int _State_) {
+        _State = _State_;
         _Buckets = new java.util.ArrayList<>();
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.Commit.BCommit toBean() {
-        var bean = new Zeze.Builtin.Dbh2.Commit.BCommit();
+    public Zeze.Builtin.Dbh2.Commit.BTransactionState toBean() {
+        var bean = new Zeze.Builtin.Dbh2.Commit.BTransactionState();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BCommit)other);
+        assign((BTransactionState)other);
     }
 
-    public void assign(BCommit other) {
-        setTid(other.getTid());
+    public void assign(BTransactionState other) {
+        setState(other.getState());
         _Buckets.clear();
         _Buckets.addAll(other.getBuckets());
     }
 
-    public void assign(BCommit.Data other) {
-        setTid(other.getTid());
+    public void assign(BTransactionState.Data other) {
+        setState(other.getState());
         _Buckets.clear();
         _Buckets.addAll(other.getBuckets());
     }
 
     @Override
-    public BCommit.Data copy() {
-        var copy = new BCommit.Data();
+    public BTransactionState.Data copy() {
+        var copy = new BTransactionState.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BCommit.Data a, BCommit.Data b) {
+    public static void swap(BTransactionState.Data a, BTransactionState.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -329,9 +324,9 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Commit.BCommit: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Commit.BTransactionState: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Tid=").append(getTid()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(getState()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Buckets=[");
         if (!_Buckets.isEmpty()) {
             sb.append(System.lineSeparator());
@@ -363,10 +358,10 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getTid();
-            if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteBinary(_x_);
+            int _x_ = getState();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
             }
         }
         {
@@ -387,7 +382,7 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTid(_o_.ReadBinary(_t_));
+            setState(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {

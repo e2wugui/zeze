@@ -25,10 +25,16 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	private final TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 	private volatile long lastErrorTime;
 	private final Dbh2Config config = new Dbh2Config();
+	private final String raftConfigString;
+
 	private volatile long activeTime = System.currentTimeMillis();
 
 	public RaftConfig getRaftConfig() {
 		return raftClient.getRaftConfig();
+	}
+
+	public String getRaftConfigString() {
+		return raftConfigString;
 	}
 
 	public void setBucketMeta(BBucketMeta.Data meta) {
@@ -61,21 +67,21 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return KV.create(true, bb);
 	}
 
-	public TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BBatchTid.Data>> prepareBatch(Database.BatchWithTid batch) {
+	public TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BBatchTid.Data>> prepareBatch(BPrepareBatch.Data batch) {
 		var r = new PrepareBatch();
-		r.Argument = batch.data;
+		r.Argument = batch;
 		return raftClient.sendForWait(r);
 	}
 
-	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> commitBatch(long batchTid) {
+	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> commitBatch(Binary tid) {
 		var r = new CommitBatch();
-		r.Argument.setTid(batchTid);
+		r.Argument.setTid(tid);
 		return raftClient.sendForWait(r);
 	}
 
-	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> undoBatch(long batchTid) {
+	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> undoBatch(Binary tid) {
 		var r = new UndoBatch();
-		r.Argument.setTid(batchTid);
+		r.Argument.setTid(tid);
 		return raftClient.sendForWait(r);
 	}
 
@@ -102,7 +108,9 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		});
 	}
 
-	public Dbh2Agent(RaftConfig raftConf) throws Exception {
+	public Dbh2Agent(String raftConfigString) throws Exception {
+		this.raftConfigString = raftConfigString;
+		var raftConf = RaftConfig.loadFromString(raftConfigString);
 		raftClient = new Agent("dbh2.raft", raftConf);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		RegisterProtocols(raftClient.getClient());

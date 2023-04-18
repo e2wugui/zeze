@@ -25,6 +25,8 @@ public final class RaftConfig {
 	private final String xmlFileName;
 	private final Element self;
 	private final ConcurrentHashMap<String, Node> nodes = new ConcurrentHashMap<>();
+
+	// 整个node排序编码以后，可以作为key。
 	private final String sortedNames;
 	private final byte[] sortedNamesUtf8;
 	private final Binary sortedNamesBinary;

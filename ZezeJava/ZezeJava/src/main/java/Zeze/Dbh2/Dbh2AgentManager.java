@@ -3,15 +3,19 @@ package Zeze.Dbh2;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Builtin.Dbh2.BPrepareBatch;
+import Zeze.Builtin.Dbh2.Commit.BTransactionState;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Dbh2.Master.MasterTable;
 import Zeze.Net.Binary;
 import Zeze.Net.ServiceConf;
 import Zeze.Raft.RaftConfig;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.OutInt;
 import Zeze.Util.OutObject;
+import com.alibaba.druid.sql.visitor.functions.Bin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -43,14 +47,62 @@ public class Dbh2AgentManager {
 	public Dbh2AgentManager() {
 	}
 
-	public boolean saveCommitPoint(String host, int port, HashMap<Dbh2Agent, Database.BatchWithTid> batches) throws RocksDBException {
+	public Binary preparing(String host, int port, HashMap<Dbh2Agent, BPrepareBatch.Data> batches) throws RocksDBException {
 		if (config.isDbh2LocalCommit()) {
-			commit.getRocks().saveCommitPoint(batches);
+			var state = new BTransactionState.Data();
+			state.setState(Commit.ePrepareing);
+			for (var e : batches.entrySet()) {
+				state.getBuckets().add(e.getKey().getRaftConfigString());
+			}
+			var table = commit.getRocks().getCommitPoint();
+			while (true) {
+				var tid = Zeze.Util.Random.nextBinary(16);
+				if (null != table.get(tid.bytesUnsafe(), tid.getOffset(), tid.size()))
+					continue;
+				var bb = ByteBuffer.Allocate();
+				state.encode(bb);
+				table.put(tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
+				return tid;
+			}
+		}
+
+		// choice CommitServer outside.
+		return commitAgent.prepare(host, port, batches);
+	}
+
+	public boolean committing(String host, int port, Binary tid,
+							  HashMap<Dbh2Agent, BPrepareBatch.Data> batches) throws RocksDBException {
+		if (config.isDbh2LocalCommit()) {
+			var table = commit.getRocks().getCommitPoint();
+			var state = new BTransactionState.Data();
+			state.setState(Commit.eCommitting);
+			for (var e : batches.entrySet()) {
+				state.getBuckets().add(e.getKey().getRaftConfigString());
+			}
+			var bb = ByteBuffer.Allocate();
+			state.encode(bb);
+			table.put(tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
 			return true;
 		}
 		// choice CommitServer outside.
-		commitAgent.commit(host, port, batches);
+		commitAgent.commit(host, port, tid, batches);
 		return false;
+	}
+
+	public void commitDone(Binary tid, HashMap<Dbh2Agent, BPrepareBatch.Data> batches) throws RocksDBException {
+		if (config.isDbh2LocalCommit()) {
+			var table = commit.getRocks().getCommitPoint();
+			var state = new BTransactionState.Data();
+			state.setState(Commit.eCommitDone);
+			for (var e : batches.entrySet()) {
+				state.getBuckets().add(e.getKey().getRaftConfigString());
+			}
+			var bb = ByteBuffer.Allocate();
+			state.encode(bb);
+			table.put(tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
+			return;
+		}
+		throw new RuntimeException("commitDone only used in local.");
 	}
 
 	// Dbh2Agent 嵌入服务器需要初始化；
@@ -150,19 +202,14 @@ public class Dbh2AgentManager {
 		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
 		var table = database.computeIfAbsent(tableName, tbName -> masterAgent.getBuckets(databaseName, tbName));
 		var bucket = table.locate(key);
-		var raftConf = RaftConfig.loadFromString(bucket.getRaftConfig());
-		return start(raftConf);
+		return start(bucket.getRaftConfig());
 	}
 
-	public Dbh2Agent startWithSortedNames(String raftNames) {
-		var raftConf = RaftConfig.loadFromSortedNames(raftNames);
-		return start(raftConf);
-	}
-
-	public Dbh2Agent start(RaftConfig raftConf) {
+	public Dbh2Agent start(String raftString) {
+		var raftConf = RaftConfig.loadFromString(raftString);
 		return agents.computeIfAbsent(raftConf.getSortedNames(), _raft -> {
 			try {
-				return new Dbh2Agent(raftConf);
+				return new Dbh2Agent(raftString);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
