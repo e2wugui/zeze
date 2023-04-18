@@ -40,21 +40,6 @@ public class CommitRocks {
 		return commitPoint;
 	}
 
-	public Binary prepare(java.util.List<String> buckets) throws RocksDBException {
-		var state = new BTransactionState.Data();
-		state.setState(Commit.ePrepareing);
-		state.getBuckets().addAll(buckets);
-		while (true) {
-			var tid = Zeze.Util.Random.nextBinary(16);
-			if (null != commitPoint.get(tid.bytesUnsafe(), tid.getOffset(), tid.size()))
-				continue;
-			var bb = ByteBuffer.Allocate();
-			state.encode(bb);
-			commitPoint.put(tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
-			return tid;
-		}
-	}
-
 	public int query(Binary tid) throws RocksDBException {
 		var value = commitPoint.get(tid.bytesUnsafe(), tid.getOffset(), tid.size());
 		if (null == value)

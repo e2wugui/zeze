@@ -20,13 +20,14 @@ Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concu
 Focus Document
 Dbh2 创建表选择负载低的服务器的策略。
 Dbh2 根据负载或什么策略并发拆分桶。
-Dbh2 【重构】TransactionId：
-1. 使用随机16字节作为TransactionId；本地（CoimmitServer）可发现冲突，异地由于有前缀(ip,port)，允许冲突。
-2. 整个事务和Query模式修改为新的TransactionId模式。
-3. 事务状态（Prepareing, Committing, CommitDone);
 ------------------------------------------------------------------------------------------------------------------------------
 2023/4/21 v1.2.3 Dbh2 CommitServer; 
 ------------------------------------------------------------------------------------------------------------------------------
+【合并分支Dbh2SingleTidMode】
+	Dbh2 【重构】TransactionId：
+	1. 使用随机16字节作为TransactionId；本地（CoimmitServer）可发现冲突，异地由于有前缀(ip,port)，允许冲突。
+	2. 整个事务和Query模式修改为新的TransactionId模式。
+	3. 事务状态（Prepareing, Committing, CommitDone);
 【分支】Dbh2SingleTidMode Agent生成随机Tid，整个事务使用一个Tid。提交多个阶段都分别记录状态。
 Dbh2 Commit中断【结论：开始Commit前，持久化记录保存点，重启以后继续Commit】
 Dbh2 桶在agent.prepare中断后的悬挂事务需要主动探测agent的查询接口并undo掉。

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Dbh2.Dbh2Agent;
+import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.RaftConfig;
@@ -107,7 +108,7 @@ public class Dbh2Test {
 			{
 				var batch = new BPrepareBatch.Data(db, tb1);
 				batch.getBatch().getPuts().put(key, value);
-				batch.getBatch().setTid(Zeze.Util.Random.nextBinary(16));
+				batch.getBatch().setTid(Dbh2AgentManager.getInstance().nextTransactionId());
 				bucket1.agent().prepareBatch(batch).await();
 				bucket1.agent().commitBatch(batch.getBatch().getTid()).await();
 			}
@@ -120,7 +121,7 @@ public class Dbh2Test {
 			{
 				var batch = new BPrepareBatch.Data(db, tb1);
 				batch.getBatch().getPuts().put(key, Binary.Empty);
-				batch.getBatch().setTid(Zeze.Util.Random.nextBinary(16));
+				batch.getBatch().setTid(Dbh2AgentManager.getInstance().nextTransactionId());
 				bucket1.agent().prepareBatch(batch).await();
 				bucket1.agent().undoBatch(batch.getBatch().getTid()).await();
 			}
@@ -133,7 +134,7 @@ public class Dbh2Test {
 			{
 				var batch = new BPrepareBatch.Data(db, tb1);
 				batch.getBatch().getDeletes().add(key);
-				batch.getBatch().setTid(Zeze.Util.Random.nextBinary(16));
+				batch.getBatch().setTid(Dbh2AgentManager.getInstance().nextTransactionId());
 				bucket1.agent().prepareBatch(batch).await();
 				bucket1.agent().commitBatch(batch.getBatch().getTid()).await();
 			}
@@ -148,7 +149,7 @@ public class Dbh2Test {
 				var batch1 = new BPrepareBatch.Data(db, tb1);
 				var batch2 = new BPrepareBatch.Data(db, tb2);
 
-				batch1.getBatch().setTid(Zeze.Util.Random.nextBinary(16));
+				batch1.getBatch().setTid(Dbh2AgentManager.getInstance().nextTransactionId());
 				batch2.getBatch().setTid(batch1.getBatch().getTid());
 
 				batch1.getBatch().getPuts().put(key, value);

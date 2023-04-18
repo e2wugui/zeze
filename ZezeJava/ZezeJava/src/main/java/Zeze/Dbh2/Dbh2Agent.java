@@ -67,7 +67,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return KV.create(true, bb);
 	}
 
-	public TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BBatchTid.Data>> prepareBatch(BPrepareBatch.Data batch) {
+	public TaskCompletionSource<RaftRpc<BPrepareBatch.Data, EmptyBean.Data>> prepareBatch(BPrepareBatch.Data batch) {
 		var r = new PrepareBatch();
 		r.Argument = batch;
 		return raftClient.sendForWait(r);

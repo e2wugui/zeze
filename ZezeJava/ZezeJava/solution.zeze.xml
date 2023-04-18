@@ -1384,9 +1384,8 @@
 			
 			<module name="Commit" id="11028" DefaultTransactionLevel="None">
 				<enum name="eCommitNotExist" value="0"/>
-				<enum name="ePrepareing" value="1"/>
-				<enum name="eCommitting" value="2"/>
-				<enum name="eCommitDone" value="3"/>
+				<enum name="eCommitting" value="1"/>
+				<enum name="eCommitDone" value="2"/>
 
 				<bean name="BTransactionState">
 					<variable id="1" name="State" type="int"/>
@@ -1394,7 +1393,6 @@
 				</bean>
 
 				<rpc name="Query" argument="Zeze.Builtin.Dbh2.BBatchTid" result="BTransactionState" UseData="true" handle="server"/>
-				<rpc name="Prepare" argument="BCommit" result="Zeze.Builtin.Dbh2.BBatchTid" UseData="true" handle="server"/>
 
 				<bean name="BCommit">
 					<variable id="1" name="Tid" type="binary"/>

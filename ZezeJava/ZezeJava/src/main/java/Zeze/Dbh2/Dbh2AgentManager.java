@@ -47,27 +47,8 @@ public class Dbh2AgentManager {
 	public Dbh2AgentManager() {
 	}
 
-	public Binary preparing(String host, int port, HashMap<Dbh2Agent, BPrepareBatch.Data> batches) throws RocksDBException {
-		if (config.isDbh2LocalCommit()) {
-			var state = new BTransactionState.Data();
-			state.setState(Commit.ePrepareing);
-			for (var e : batches.entrySet()) {
-				state.getBuckets().add(e.getKey().getRaftConfigString());
-			}
-			var table = commit.getRocks().getCommitPoint();
-			while (true) {
-				var tid = Zeze.Util.Random.nextBinary(16);
-				if (null != table.get(tid.bytesUnsafe(), tid.getOffset(), tid.size()))
-					continue;
-				var bb = ByteBuffer.Allocate();
-				state.encode(bb);
-				table.put(tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
-				return tid;
-			}
-		}
-
-		// choice CommitServer outside.
-		return commitAgent.prepare(host, port, batches);
+	public Binary nextTransactionId() {
+		return Zeze.Util.Random.nextBinary(16);
 	}
 
 	public boolean committing(String host, int port, Binary tid,

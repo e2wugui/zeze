@@ -12,9 +12,8 @@ public abstract class AbstractCommitAgent implements Zeze.IModule {
     @Override public boolean isBuiltin() { return true; }
 
     public static final int eCommitNotExist = 0;
-    public static final int ePrepareing = 1;
-    public static final int eCommitting = 2;
-    public static final int eCommitDone = 3;
+    public static final int eCommitting = 1;
+    public static final int eCommitDone = 2;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
@@ -24,13 +23,6 @@ public abstract class AbstractCommitAgent implements Zeze.IModule {
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitResponse", Zeze.Transaction.TransactionLevel.None);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47365570898711L, factoryHandle); // 11028, 671558423
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Commit.Prepare.class, Zeze.Builtin.Dbh2.Commit.Prepare.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Dbh2.Commit.Prepare::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessPrepareResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessPrepareResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47367354444202L, factoryHandle); // 11028, -1839863382
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Commit.Query.class, Zeze.Builtin.Dbh2.Commit.Query.TypeId_);
@@ -43,7 +35,6 @@ public abstract class AbstractCommitAgent implements Zeze.IModule {
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47365570898711L);
-        service.getFactorys().remove(47367354444202L);
         service.getFactorys().remove(47365186843239L);
     }
 

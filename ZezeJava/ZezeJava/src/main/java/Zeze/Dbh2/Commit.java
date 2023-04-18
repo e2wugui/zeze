@@ -1,7 +1,6 @@
 package Zeze.Dbh2;
 
 import Zeze.Builtin.Dbh2.Commit.DummyImportBean;
-import Zeze.Builtin.Dbh2.Commit.Prepare;
 import Zeze.Config;
 import org.rocksdb.RocksDBException;
 
@@ -44,13 +43,6 @@ public class Commit extends AbstractCommit {
 
     @Override
     protected long ProcessDummyImportBean(DummyImportBean p) throws Exception {
-        return 0;
-    }
-
-    @Override
-    protected long ProcessPrepareRequest(Prepare r) throws Exception {
-        r.Result.setTid(rocks.prepare(r.Argument.getBuckets()));
-        r.SendResult();
         return 0;
     }
 
