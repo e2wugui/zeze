@@ -114,7 +114,7 @@ public class Dbh2FullTest {
 				table1.replace(trans, key1, value);
 				trans.commitBreakAfterPrepareForDebugOnly();
 			}
-			Thread.sleep(8000);
+			Thread.sleep(13000);
 
 		} finally {
 			master.stop();

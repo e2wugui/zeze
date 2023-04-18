@@ -29,6 +29,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
         return manager;
     }
 
+    public Dbh2Config getConfig() {
+        return config;
+    }
+
     public Dbh2(Dbh2Manager manager, String raftName, RaftConfig raftConf, Config config, boolean writeOptionSync) {
         this.manager = manager;
 
@@ -36,7 +40,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
             config = new Config().addCustomize(this.config).loadAndParse();
 
         try {
-            stateMachine = new Dbh2StateMachine();
+            stateMachine = new Dbh2StateMachine(this);
             raft = new Raft(stateMachine, raftName, raftConf, config, "Zeze.Dbh2.Server", Zeze.Raft.Server::new);
             raftConf.setSnapshotCommitDelayed(true);
             logger.info("newRaft: {}", raft.getName());

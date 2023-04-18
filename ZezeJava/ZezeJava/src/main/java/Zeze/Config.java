@@ -720,6 +720,15 @@ public final class Config {
 		private DynamoConf dynamoConf; // only valid when dynamodb
 		private boolean distTxn; // 是否启用分布式事务(目前仅TiKV支持)
 		private boolean disableOperates;
+		private long prepareMaxTime = 10_000; // 10s
+
+		public long getPrepareMaxTime() {
+			return prepareMaxTime;
+		}
+
+		public void setPrepareMaxTime(long value) {
+			prepareMaxTime = value;
+		}
 
 		public @NotNull String getName() {
 			return name;
@@ -817,6 +826,9 @@ public final class Config {
 			databaseUrl = self.getAttribute("DatabaseUrl").trim();
 			distTxn = "true".equalsIgnoreCase(self.getAttribute("distTxn").trim());
 			disableOperates = "true".equalsIgnoreCase(self.getAttribute("DisableOperates").trim());
+			var attr = self.getAttribute("PrepareMaxTime");
+			if (!attr.isBlank())
+				prepareMaxTime = Long.parseLong(attr);
 
 			if (conf.getDatabaseConfMap().putIfAbsent(getName(), this) != null)
 				throw new IllegalStateException("Duplicate Database '" + getName() + "'");

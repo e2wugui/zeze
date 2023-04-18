@@ -97,12 +97,26 @@ public class Database extends Zeze.Transaction.Database {
 			}
 		}
 
+		private void undo() {
+			// undo
+			var futures = new ArrayList<TaskCompletionSource<?>>();
+			for (var e : batches.entrySet()) {
+				var tid2 = e.getValue().getBatch().getTid();
+				if (tid2.size() == 0)
+					continue; // not prepared
+				futures.add(e.getKey().undoBatch(tid2));
+			}
+			for (var e : futures)
+				e.await();
+		}
+
 		@Override
 		public void commit() {
 			var manager = Dbh2AgentManager.getInstance();
 			var query = manager.choiceCommitServer();
 			boolean localCommit;
 			var tid = manager.nextTransactionId();
+			var prepareTime = System.currentTimeMillis();
 			try {
 				// prepare
 				var futures = new ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, EmptyBean.Data>>>();
@@ -116,19 +130,21 @@ public class Database extends Zeze.Transaction.Database {
 				for (var e : futures) {
 					e.await();
 				}
+			} catch (Throwable ex) {
+				undo();
+				throw new RuntimeException(ex);
+			}
+
+			if (System.currentTimeMillis() - prepareTime > Database.this.getConf().getPrepareMaxTime()) {
+				undo();
+				throw new RuntimeException("max prepare time exceed.");
+			}
+
+			try {
 				// 保存 commit-point，如果失败，则 undo。
 				localCommit = manager.committing(query.getKey(), query.getValue(), tid, batches);
 			} catch (Throwable ex) {
-				// undo
-				var futures = new ArrayList<TaskCompletionSource<?>>();
-				for (var e : batches.entrySet()) {
-					var tid2 = e.getValue().getBatch().getTid();
-					if (tid2.size() == 0)
-						continue; // not prepared
-					futures.add(e.getKey().undoBatch(tid2));
-				}
-				for (var e : futures)
-					e.await();
+				undo();
 				throw new RuntimeException(ex);
 			}
 

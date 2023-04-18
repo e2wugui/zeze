@@ -25,8 +25,11 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private final ConcurrentHashMap<Binary, Dbh2Transaction> transactions = new ConcurrentHashMap<>();
 	private Future<?> timer;
 	private CommitAgent commitAgent;
+	private final Dbh2 dbh2;
 
-	public Dbh2StateMachine() {
+	public Dbh2StateMachine(Dbh2 dbh2) {
+		this.dbh2 = dbh2;
+
 		super.addFactory(LogPrepareBatch.TypeId_, LogPrepareBatch::new);
 		super.addFactory(LogCommitBatch.TypeId_, LogCommitBatch::new);
 		super.addFactory(LogUndoBatch.TypeId_, LogUndoBatch::new);
@@ -67,10 +70,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			return;
 
 		var now = System.currentTimeMillis();
-		var period = getRaft().getRaftConfig().getAppendEntriesTimeout() + 200;
 		for (var e : transactions.entrySet()) {
 			var t = e.getValue();
-			if (now - t.getCreateTime() < period * 2L)
+			if (now - t.getCreateTime() < dbh2.getConfig().getPrepareMaxTime())
 				continue;
 			var tid = e.getKey();
 			var state = commitAgent.query(t.getQueryIp(), t.getQueryPort(), tid);
