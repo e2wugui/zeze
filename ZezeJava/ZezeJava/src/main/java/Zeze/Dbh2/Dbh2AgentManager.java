@@ -15,6 +15,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.OutInt;
 import Zeze.Util.OutObject;
+import Zeze.Util.ShutdownHook;
 import com.alibaba.druid.sql.visitor.functions.Bin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -70,7 +71,7 @@ public class Dbh2AgentManager {
 		return false;
 	}
 
-	public void commitDone(Binary tid, HashMap<Dbh2Agent, BPrepareBatch.Data> batches) throws RocksDBException {
+	public void commitDone(Binary tid, HashMap<Dbh2Agent, BPrepareBatch.Data> batches) {
 		if (config.isDbh2LocalCommit()) {
 			var table = commit.getRocks().getCommitPoint();
 			var state = new BTransactionState.Data();
@@ -80,7 +81,11 @@ public class Dbh2AgentManager {
 			}
 			var bb = ByteBuffer.Allocate();
 			state.encode(bb);
-			table.put(tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
+			try {
+				table.put(tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
+			} catch (RocksDBException e) {
+				throw new RuntimeException(e);
+			}
 			return;
 		}
 		throw new RuntimeException("commitDone only used in local.");
@@ -103,6 +108,7 @@ public class Dbh2AgentManager {
 				commitAgent.startAndWaitConnectionReady();
 			}
 		}
+		ShutdownHook.add(this, this::stop);
 	}
 
 	public KV<String, Integer> choiceCommitServer() {
@@ -187,8 +193,7 @@ public class Dbh2AgentManager {
 	}
 
 	public Dbh2Agent start(String raftString) {
-		var raftConf = RaftConfig.loadFromString(raftString);
-		return agents.computeIfAbsent(raftConf.getSortedNames(), _raft -> {
+		return agents.computeIfAbsent(raftString, _raft -> {
 			try {
 				return new Dbh2Agent(raftString);
 			} catch (Exception e) {
@@ -222,8 +227,7 @@ public class Dbh2AgentManager {
 		for (var bucket : buckets.buckets())
 			oldRaft.remove(bucket.getRaftConfig());
 		for (var raft : oldRaft) {
-			var raftConf = RaftConfig.loadFromString(raft);
-			var agent = agents.remove(raftConf.getSortedNames());
+			var agent = agents.remove(raft);
 			if (null != agent) {
 				try {
 					agent.close();

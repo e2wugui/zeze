@@ -101,8 +101,8 @@ public class Database extends Zeze.Transaction.Database {
 			var manager = Dbh2AgentManager.getInstance();
 			var query = manager.choiceCommitServer();
 			boolean localCommit;
+			var tid = manager.nextTransactionId();
 			try {
-				var tid = manager.nextTransactionId();
 				// prepare
 				var futures = new ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, EmptyBean.Data>>>();
 				for (var e : batches.entrySet()) {
@@ -121,10 +121,10 @@ public class Database extends Zeze.Transaction.Database {
 				// undo
 				var futures = new ArrayList<TaskCompletionSource<?>>();
 				for (var e : batches.entrySet()) {
-					var tid = e.getValue().getBatch().getTid();
-					if (tid.size() == 0)
+					var tid2 = e.getValue().getBatch().getTid();
+					if (tid2.size() == 0)
 						continue; // not prepared
-					futures.add(e.getKey().undoBatch(tid));
+					futures.add(e.getKey().undoBatch(tid2));
 				}
 				for (var e : futures)
 					e.await();
@@ -139,6 +139,7 @@ public class Database extends Zeze.Transaction.Database {
 				}
 				for (var e : futures)
 					e.await();
+				//manager.commitDone(tid, batches);
 			}
 		}
 
