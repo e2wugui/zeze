@@ -307,6 +307,10 @@ public class RocksDatabase implements Closeable {
 	public final class Batch implements Closeable {
 		private final WriteBatch batch = new WriteBatch();
 
+		public @NotNull WriteBatch getBatch() {
+			return batch;
+		}
+
 		public void put(@NotNull ColumnFamilyHandle columnFamily, byte[] key, byte[] value) throws RocksDBException {
 			batch.put(columnFamily, key, value);
 		}
@@ -331,6 +335,11 @@ public class RocksDatabase implements Closeable {
 
 		public void commit(@NotNull WriteOptions options) throws RocksDBException {
 			rocksDb.write(options, batch);
+		}
+
+		// clear后可以再次put,delete,commit. 复用Batch性能更高
+		public void clear() {
+			batch.clear();
 		}
 
 		@Override

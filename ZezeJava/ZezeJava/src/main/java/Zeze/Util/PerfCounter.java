@@ -46,6 +46,19 @@ public final class PerfCounter {
 		}
 	}
 
+	private static final class CountInfo {
+		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
+
+		final @NotNull String name;
+		final LongAdder count = new LongAdder(); // 次数
+		long lastCount;
+		int idleCount; // 没收集到信息的轮数
+
+		CountInfo(String name) {
+			this.name = name;
+		}
+	}
+
 	public static final int PERF_COUNT = Integer.parseInt(System.getProperty("perfCount", "20")); // 输出条目数
 	public static final int PERF_PERIOD = Integer.parseInt(System.getProperty("perfPeriod", "100")); // 输出周期(秒)
 	public static final boolean ENABLE_PERF = PERF_COUNT > 0;
@@ -53,6 +66,7 @@ public final class PerfCounter {
 
 	private final ConcurrentHashMap<Object, RunInfo> runInfoMap = new ConcurrentHashMap<>(); // key: Class or others
 	private final LongConcurrentHashMap<ProtocolInfo> protocolInfoMap = new LongConcurrentHashMap<>(); // key: typeId
+	private final ConcurrentHashMap<String, CountInfo> countInfoMap = new ConcurrentHashMap<>();
 	private final HashSet<Object> excludeRunKeys = new HashSet<>(); // value: Class or others
 	private final LongHashSet excludeProtocolTypeIds = new LongHashSet(); // value: typeId
 	private final DecimalFormat numFormatter = new DecimalFormat("#,###");
@@ -167,6 +181,17 @@ public final class PerfCounter {
 		}
 	}
 
+	public void addCountInfo(@NotNull String key) {
+		for (; ; ) {
+			var ci = countInfoMap.get(key);
+			if (ci != null) {
+				ci.count.increment();
+				return;
+			}
+			countInfoMap.putIfAbsent(key, new CountInfo(key));
+		}
+	}
+
 	public @NotNull String getLastLog() {
 		return lastLog;
 	}
@@ -197,6 +222,7 @@ public final class PerfCounter {
 	public void resetCounter() {
 		runInfoMap.clear();
 		protocolInfoMap.clear();
+		countInfoMap.clear();
 	}
 
 	public synchronized @NotNull String getLogAndReset() {
@@ -284,6 +310,25 @@ public final class PerfCounter {
 			sb.append(' ').append(' ').append(pi.name).append(':').append(' ').append(pi.lastSendSize / 1_000)
 					.append("K = ").append(pi.lastSendCount).append(" * ")
 					.append(numFormatter.format(perSize)).append('B').append('\n');
+		}
+
+		var cList = new ArrayList<CountInfo>(countInfoMap.size());
+		for (var it = countInfoMap.values().iterator(); it.hasNext(); ) {
+			var ci = it.next();
+			ci.lastCount = ci.count.sumThenReset();
+			if (ci.lastCount == 0) {
+				if (++ci.idleCount >= CountInfo.MAX_IDLE_COUNT)
+					it.remove();
+				continue;
+			}
+			ci.idleCount = 0;
+			cList.add(ci);
+		}
+		if (!cList.isEmpty()) {
+			cList.sort((ci0, ci1) -> Long.signum(ci1.lastCount - ci0.lastCount));
+			sb.append(" [count]\n");
+			for (var ci : cList)
+				sb.append(' ').append(' ').append(ci.name).append(':').append(' ').append(ci.lastCount).append('\n');
 		}
 
 		lastLogTime = curTime;

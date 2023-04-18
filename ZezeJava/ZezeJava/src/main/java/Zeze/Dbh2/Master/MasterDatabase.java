@@ -8,7 +8,6 @@ import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
-import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
 import Zeze.Util.RocksDatabase;

@@ -1,12 +1,12 @@
 package Benchmark;
 
+import java.util.ArrayList;
+import java.util.concurrent.Future;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Util.PerfCounter;
 import demo.App;
 import junit.framework.TestCase;
 import org.junit.Assert;
-
-import java.util.ArrayList;
-import java.util.concurrent.Future;
 
 @SuppressWarnings("NewClassNamingConvention")
 public class CBasicSimpleAddConcurrent extends TestCase {
@@ -33,6 +33,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
 				task.get();
 			}
 			b.report(this.getClass().getName(), AddCount);
+			System.out.println(PerfCounter.instance.getLogAndReset());
 			App.Instance.Zeze.newProcedure(CBasicSimpleAddConcurrent::Check, "check").call();
 			for (long i = 0; i < ConcurrentLevel; ++i) {
 				final long k = i;

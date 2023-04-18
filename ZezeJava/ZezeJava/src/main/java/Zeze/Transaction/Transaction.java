@@ -6,6 +6,7 @@ import java.util.TreeMap;
 import java.util.function.Supplier;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Macro;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -328,8 +329,12 @@ public final class Transaction {
 
 						if (checkResult == CheckResult.RedoAndReleaseLock) {
 							// logger.debug("CheckResult.RedoAndReleaseLock break {}", procedure);
+							if (PerfCounter.ENABLE_PERF)
+								PerfCounter.instance.addCountInfo("Transaction.RedoAndReleaseLock");
 							break;
 						}
+						if (PerfCounter.ENABLE_PERF)
+							PerfCounter.instance.addCountInfo("Transaction.Redo");
 					}
 				} finally {
 					checkpoint.exitFlushReadLock();
