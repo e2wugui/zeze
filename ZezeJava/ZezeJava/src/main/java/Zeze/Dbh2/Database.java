@@ -69,6 +69,7 @@ public class Database extends Zeze.Transaction.Database {
 			var query = manager.choiceCommitServer();
 			try {
 				var tid = manager.nextTransactionId();
+				logger.warn("prepare tid=" + tid);
 				// prepare
 				var futures = new ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, EmptyBean.Data>>>();
 				for (var e : batches.entrySet()) {

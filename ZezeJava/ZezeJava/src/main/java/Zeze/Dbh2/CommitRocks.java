@@ -1,18 +1,17 @@
 package Zeze.Dbh2;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.Commit.BTransactionState;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.TaskCompletionSource;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
 
 public class CommitRocks {
-	private static final Logger logger = LogManager.getLogger(CommitRocks.class);
 	private final Dbh2AgentManager manager;
 	private final RocksDatabase database;
 	private final RocksDatabase.Table commitPoint;
@@ -36,19 +35,51 @@ public class CommitRocks {
 		this.writeOptions = writeOptions;
 	}
 
+	public WriteOptions getWriteOptions() {
+		return writeOptions;
+	}
+
 	public RocksDatabase.Table getCommitPoint() {
 		return commitPoint;
 	}
 
-	public int query(Binary tid) throws RocksDBException {
-		logger.warn("query tid=" + tid);
+	public BTransactionState.Data query(Binary tid) throws RocksDBException {
 		var value = commitPoint.get(tid.bytesUnsafe(), tid.getOffset(), tid.size());
 		if (null == value)
-			return Commit.eCommitNotExist;
+			return null;
 		var state = new BTransactionState.Data();
 		state.decode(ByteBuffer.Wrap(value));
-		logger.warn("query tid=" + tid + " state=" + state.getState());
-		return state.getState();
+		return state;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	// commit local
+	public void committing(Binary tid, HashMap<Dbh2Agent, BPrepareBatch.Data> batches) throws RocksDBException {
+		var state = new BTransactionState.Data();
+		state.setState(Commit.eCommitting);
+		for (var e : batches.entrySet()) {
+			state.getBuckets().add(e.getKey().getRaftConfigString());
+		}
+		var bb = ByteBuffer.Allocate();
+		state.encode(bb);
+		commitPoint.put(writeOptions, tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
+	}
+
+	public void commitDone(Binary tid, HashMap<Dbh2Agent, BPrepareBatch.Data> batches) {
+		// 这里没有使用get-modify-put。
+		// 从效率上来讲，重新构造一次还快。
+		var state = new BTransactionState.Data();
+		state.setState(Commit.eCommitDone);
+		for (var e : batches.entrySet()) {
+			state.getBuckets().add(e.getKey().getRaftConfigString());
+		}
+		var bb = ByteBuffer.Allocate();
+		state.encode(bb);
+		try {
+			commitPoint.put(writeOptions, tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,7 +93,7 @@ public class CommitRocks {
 		}
 		var bb = ByteBuffer.Allocate();
 		state.encode(bb);
-		commitPoint.put(tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
+		commitPoint.put(writeOptions, tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
 
 		// 第二步：先打开Dbh2Agent.
 		var agents = new ArrayList<Dbh2Agent>();

@@ -48,7 +48,11 @@ public class Commit extends AbstractCommit {
 
     @Override
     protected long ProcessQueryRequest(Zeze.Builtin.Dbh2.Commit.Query r) throws Exception {
-        r.Result.setState(rocks.query(r.Argument.getTid()));
+        var state = rocks.query(r.Argument.getTid());
+        if (null == state)
+            r.Result.setState(Commit.eCommitNotExist);
+        else
+            r.Result = state;
         r.SendResult();
         return 0;
     }

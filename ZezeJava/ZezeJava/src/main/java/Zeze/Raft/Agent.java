@@ -125,7 +125,7 @@ public final class Agent {
 		rpc.setResponseHandle(p -> sendHandle(p, rpc));
 		ConnectorEx leader = this.leader;
 		if (!rpc.Send(leader != null ? leader.TryGetReadySocket() : null))
-			logger.warn("Send failed: leader={}, rpc={}", leader, rpc);
+			logger.debug("Send failed: leader={}, rpc={}", leader, rpc);
 	}
 
 	private <TArgument extends Serializable, TResult extends Serializable> long sendHandle(Rpc<TArgument, TResult> p,
@@ -216,7 +216,7 @@ public final class Agent {
 		rpc.setResponseHandle(p -> sendForWaitHandle(p, rpc));
 		ConnectorEx leader = this.leader;
 		if (!rpc.Send(leader != null ? leader.TryGetReadySocket() : null))
-			logger.warn("Send failed: leader={}, rpc={}", leader, rpc);
+			logger.debug("Send failed: leader={}, rpc={}", leader, rpc);
 		return future;
 	}
 

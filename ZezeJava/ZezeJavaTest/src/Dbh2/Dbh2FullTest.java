@@ -104,7 +104,7 @@ public class Dbh2FullTest {
 			Thread.sleep(2000); // leader 重启apply可能时间较长，给它5秒。
 			database = newDatabase("dbh2TestDb");
 			var table1 = (Database.AbstractKVTable)database.openTable("table1");
-			Thread.sleep(3000); // leader 重启apply可能时间较长，给它5秒。
+			Thread.sleep(2000); // leader 重启apply可能时间较长，给它5秒。
 			var key = ByteBuffer.Wrap(new byte[] {});
 			var key1 = ByteBuffer.Wrap(new byte[] { 1 });
 			var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
@@ -114,7 +114,7 @@ public class Dbh2FullTest {
 				table1.replace(trans, key1, value);
 				trans.commitBreakAfterPrepareForDebugOnly();
 			}
-			Thread.sleep(10000);
+			Thread.sleep(8000);
 
 		} finally {
 			master.stop();

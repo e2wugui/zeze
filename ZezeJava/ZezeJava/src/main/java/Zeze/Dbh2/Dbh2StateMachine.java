@@ -73,12 +73,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			if (now - t.getCreateTime() < period * 2L)
 				continue;
 			var tid = e.getKey();
-			//logger.info("onTimer tid=" + tid);
-			// todo timeout 状态检查需要重新想一下。
-			if (Commit.eCommitNotExist == commitAgent.query(
-					t.getQueryIp(), t.getQueryPort(),
-					tid)) {
-				logger.warn("Undo Timeout tid=" + tid);
+			var state = commitAgent.query(t.getQueryIp(), t.getQueryPort(), tid);
+			if (Commit.eCommitNotExist == state.getState()) {
+				logger.warn("timeout undo tid=" + tid + " state=" + state);
 				getRaft().appendLog(new LogUndoBatch(tid));
 			}
 		}

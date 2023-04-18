@@ -3,6 +3,7 @@ package Zeze.Dbh2;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
+import Zeze.Builtin.Dbh2.Commit.BTransactionState;
 import Zeze.Builtin.Dbh2.Commit.Commit;
 import Zeze.Builtin.Dbh2.Commit.Query;
 import Zeze.Config;
@@ -54,13 +55,13 @@ public class CommitAgent extends AbstractCommitAgent {
 		service.stop();
 	}
 
-	public int query(String host, int port, Binary tid) {
+	public BTransactionState.Data query(String host, int port, Binary tid) {
 		var r = new Query();
 		r.Argument.setTid(tid);
 		r.SendForWait(connect(host, port)).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("query state error=" + IModule.getErrorCode(r.getResultCode()));
-		return r.Result.getState();
+		return r.Result;
 	}
 
 	public void commit(String host, int port, Binary tid, HashMap<Dbh2Agent, BPrepareBatch.Data> trans) {

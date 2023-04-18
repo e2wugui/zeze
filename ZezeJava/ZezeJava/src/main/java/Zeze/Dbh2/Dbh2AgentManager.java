@@ -55,15 +55,7 @@ public class Dbh2AgentManager {
 	public boolean committing(String host, int port, Binary tid,
 							  HashMap<Dbh2Agent, BPrepareBatch.Data> batches) throws RocksDBException {
 		if (config.isDbh2LocalCommit()) {
-			var table = commit.getRocks().getCommitPoint();
-			var state = new BTransactionState.Data();
-			state.setState(Commit.eCommitting);
-			for (var e : batches.entrySet()) {
-				state.getBuckets().add(e.getKey().getRaftConfigString());
-			}
-			var bb = ByteBuffer.Allocate();
-			state.encode(bb);
-			table.put(tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
+			commit.getRocks().committing(tid, batches);
 			return true;
 		}
 		// choice CommitServer outside.
@@ -73,19 +65,7 @@ public class Dbh2AgentManager {
 
 	public void commitDone(Binary tid, HashMap<Dbh2Agent, BPrepareBatch.Data> batches) {
 		if (config.isDbh2LocalCommit()) {
-			var table = commit.getRocks().getCommitPoint();
-			var state = new BTransactionState.Data();
-			state.setState(Commit.eCommitDone);
-			for (var e : batches.entrySet()) {
-				state.getBuckets().add(e.getKey().getRaftConfigString());
-			}
-			var bb = ByteBuffer.Allocate();
-			state.encode(bb);
-			try {
-				table.put(tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
-			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
-			}
+			commit.getRocks().commitDone(tid, batches);
 			return;
 		}
 		throw new RuntimeException("commitDone only used in local.");
