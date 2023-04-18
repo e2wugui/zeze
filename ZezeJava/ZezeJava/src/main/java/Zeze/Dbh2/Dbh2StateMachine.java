@@ -78,7 +78,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			if (Commit.eCommitNotExist == commitAgent.query(
 					t.getQueryIp(), t.getQueryPort(),
 					tid)) {
-				logger.warn("Undo Timeout " + tid + " " + t);
+				logger.warn("Undo Timeout tid=" + tid);
 				getRaft().appendLog(new LogUndoBatch(tid));
 			}
 		}

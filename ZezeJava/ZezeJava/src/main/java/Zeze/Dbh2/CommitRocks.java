@@ -41,11 +41,13 @@ public class CommitRocks {
 	}
 
 	public int query(Binary tid) throws RocksDBException {
+		logger.warn("query tid=" + tid);
 		var value = commitPoint.get(tid.bytesUnsafe(), tid.getOffset(), tid.size());
 		if (null == value)
 			return Commit.eCommitNotExist;
 		var state = new BTransactionState.Data();
 		state.decode(ByteBuffer.Wrap(value));
+		logger.warn("query tid=" + tid + " state=" + state.getState());
 		return state.getState();
 	}
 
