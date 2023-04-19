@@ -1384,22 +1384,21 @@
 			
 			<module name="Commit" id="11028" DefaultTransactionLevel="None">
 				<enum name="eCommitNotExist" value="0"/>
-				<enum name="eCommitting" value="1"/>
-				<enum name="eCommitDone" value="2"/>
+				<enum name="ePreparing" value="1"/>
+				<enum name="eCommitting" value="2"/>
 
 				<bean name="BTransactionState">
 					<variable id="1" name="State" type="int"/>
 					<variable id="2" name="Buckets" type="list[string]"/>
 				</bean>
 
-				<rpc name="Query" argument="Zeze.Builtin.Dbh2.BBatchTid" result="BTransactionState" UseData="true" handle="server"/>
-
-				<bean name="BCommit">
-					<variable id="1" name="Tid" type="binary"/>
-					<variable id="2" name="Buckets" type="list[string]"/>
+				<bean name="BPrepareBatches">
+					<variable id="1" name="Datas" type="map[string, Zeze.Builtin.Dbh2.BPrepareBatch]"/>
+					<variable id="2" name="QueryIp" type="string"/> 仅在独立CommitServer时设置，收到方直接使用，不再查询配置。
+					<variable id="3" name="QueryPort" type="int"/>
 				</bean>
-				<rpc name="Commit" argument="BCommit" UseData="true" handle="server"/>
-
+				<rpc name="Query" argument="Zeze.Builtin.Dbh2.BBatchTid" result="BTransactionState" UseData="true" handle="server"/>
+				<rpc name="Commit" argument="BPrepareBatches" UseData="true" handle="server"/>
 				<protocol name="DummyImportBean" argument="BTransactionState" UseData="true" handle="server"/>
 			</module>
 		</module>

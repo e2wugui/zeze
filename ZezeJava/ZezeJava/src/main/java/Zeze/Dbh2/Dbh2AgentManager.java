@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
+import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Dbh2.Master.MasterTable;
@@ -47,28 +48,28 @@ public class Dbh2AgentManager {
 		return Zeze.Util.Random.nextBinary(16);
 	}
 
-	public boolean committing(String host, int port, Binary tid,
-							  HashMap<Dbh2Agent, BPrepareBatch.Data> batches) throws RocksDBException {
+	public void commitBreakAfterPrepareForDebugOnly(BPrepareBatches.Data batches) {
+		var query = choiceCommitServer();
 		if (config.isDbh2LocalCommit()) {
-			commit.getRocks().committing(tid, batches);
-			return true;
+			commit.getRocks().prepare(query.getKey(), query.getValue(), batches);
+			return; // done
 		}
-		// choice CommitServer outside.
-		commitAgent.commit(host, port, tid, batches);
-		return false;
+		// 这个仅仅用来调试，不报错了。
+		// throw new RuntimeException("commitBreakAfterPrepareForDebugOnly only work with local commit.");
 	}
 
-	public void commitDone(Binary tid, HashMap<Dbh2Agent, BPrepareBatch.Data> batches) {
+	public void commit(BPrepareBatches.Data batches) {
+		var query = choiceCommitServer();
 		if (config.isDbh2LocalCommit()) {
-			commit.getRocks().commitDone(tid, batches);
-			return;
+			commit.getRocks().commit(query.getKey(), query.getValue(), batches);
+			return; // done;
 		}
-		throw new RuntimeException("commitDone only used in local.");
+		commitAgent.commit(query.getKey(), query.getValue(), batches);
 	}
 
 	// Dbh2Agent 嵌入服务器需要初始化；
 	// CommitServer 独立服务器需要初始化；
-	public synchronized void start(Config config) throws Exception {
+	public synchronized void locateBucket(Config config) throws Exception {
 		this.config = config;
 
 		// ugly
@@ -156,18 +157,17 @@ public class Dbh2AgentManager {
 
 	// todo Database.Table中缓存MasterTableDaTa，减少map查找。
 	//  难点是信息发生了变更需要刷新Table中缓存的数据。
-	public Dbh2Agent start(
+	public String locateBucket(
 			MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName,
 			Binary key) {
 		var master = buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
 		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
 		var table = database.computeIfAbsent(tableName, tbName -> masterAgent.getBuckets(databaseName, tbName));
-		var bucket = table.locate(key);
-		return start(bucket.getRaftConfig());
+		return table.locate(key).getRaftConfig();
 	}
 
-	public Dbh2Agent start(String raftString) {
+	public Dbh2Agent openBucket(String raftString) {
 		return agents.computeIfAbsent(raftString, _raft -> {
 			try {
 				return new Dbh2Agent(raftString);

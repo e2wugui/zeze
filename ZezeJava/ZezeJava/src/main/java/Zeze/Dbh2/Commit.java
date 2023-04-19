@@ -36,7 +36,7 @@ public class Commit extends AbstractCommit {
 
     @Override
     protected long ProcessCommitRequest(Zeze.Builtin.Dbh2.Commit.Commit r) throws Exception {
-        rocks.commitTransaction(r.Argument.getTid(), r.Argument.getBuckets());
+        rocks.commit(r.Argument.getQueryIp(), r.Argument.getQueryPort(), r.Argument);
         r.SendResult();
         return 0;
     }

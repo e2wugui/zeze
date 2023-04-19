@@ -8,7 +8,7 @@ public class CommitServer {
 	}
 
 	public void start(Config config) throws Exception {
-		Dbh2AgentManager.getInstance().start(config);
+		Dbh2AgentManager.getInstance().locateBucket(config);
 		ShutdownHook.add(this, this::stop);
 	}
 

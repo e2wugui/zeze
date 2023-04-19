@@ -1,8 +1,7 @@
 package Zeze.Dbh2;
 
-import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Builtin.Dbh2.BPrepareBatch;
+import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Builtin.Dbh2.Commit.BTransactionState;
 import Zeze.Builtin.Dbh2.Commit.Commit;
 import Zeze.Builtin.Dbh2.Commit.Query;
@@ -64,11 +63,11 @@ public class CommitAgent extends AbstractCommitAgent {
 		return r.Result;
 	}
 
-	public void commit(String host, int port, Binary tid, HashMap<Dbh2Agent, BPrepareBatch.Data> trans) {
+	public void commit(String host, int port, BPrepareBatches.Data batches) {
 		var r = new Commit();
-		r.Argument.setTid(tid);
-		for (var e : trans.entrySet())
-			r.Argument.getBuckets().add(e.getKey().getRaftConfigString());
+		r.Argument = batches;
+		batches.setQueryIp(host);
+		batches.setQueryPort(port);
 		r.SendForWait(connect(host, port)).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("commit error=" + IModule.getErrorCode(r.getResultCode()));

@@ -12,8 +12,8 @@ public abstract class AbstractCommitAgent implements Zeze.IModule {
     @Override public boolean isBuiltin() { return true; }
 
     public static final int eCommitNotExist = 0;
-    public static final int eCommitting = 1;
-    public static final int eCommitDone = 2;
+    public static final int ePreparing = 1;
+    public static final int eCommitting = 2;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());

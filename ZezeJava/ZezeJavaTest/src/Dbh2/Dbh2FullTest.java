@@ -11,7 +11,6 @@ import Zeze.Util.Task;
 import org.junit.Assert;
 import org.junit.Test;
 import Zeze.Transaction.Database.AbstractKVTable;
-import org.rocksdb.RocksDBException;
 
 // 测试整体结构(Dbh2Manager,Master,Agent)
 public class Dbh2FullTest {
@@ -59,7 +58,7 @@ public class Dbh2FullTest {
 
 		var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
 
-		Dbh2AgentManager.getInstance().start(Config.load());
+		Dbh2AgentManager.getInstance().locateBucket(Config.load());
 		try {
 			Thread.sleep(3000); // leader 重启apply可能时间较长，给它5秒。
 
@@ -93,7 +92,7 @@ public class Dbh2FullTest {
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		Database database = null;
-		Dbh2AgentManager.getInstance().start(Config.load());
+		Dbh2AgentManager.getInstance().locateBucket(Config.load());
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
@@ -133,7 +132,7 @@ public class Dbh2FullTest {
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		Database database = null;
-		Dbh2AgentManager.getInstance().start(Config.load());
+		Dbh2AgentManager.getInstance().locateBucket(Config.load());
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)

@@ -11,6 +11,18 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
     private String _Table; // 用来纠错
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Dbh2.BBatch> _Batch;
 
+    private transient Object __zeze_map_key__;
+
+    @Override
+    public Object mapKey() {
+        return __zeze_map_key__;
+    }
+
+    @Override
+    public void mapKey(Object value) {
+        __zeze_map_key__ = value;
+    }
+
     @Override
     public String getDatabase() {
         if (!isManaged())
