@@ -6,6 +6,8 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import Zeze.Net.Binary;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Str {
 	public static final ParameterizedMessageFactory Formatter = new ParameterizedMessageFactory();
@@ -21,11 +23,11 @@ public final class Str {
 			INDENTS[i] = " ".repeat(i);
 	}
 
-	public static String format(String f, Object... params) {
+	public static @NotNull String format(String f, Object... params) {
 		return Formatter.newMessage(f, params).getFormattedMessage();
 	}
 
-	public static String indent(int n) {
+	public static @NotNull String indent(int n) {
 		if (n <= 0)
 			return "";
 		if (n >= INDENT_MAX)
@@ -33,7 +35,7 @@ public final class Str {
 		return INDENTS[n];
 	}
 
-	public static String[] trim(String[] strs) {
+	public static String @NotNull [] trim(String @Nullable [] strs) {
 		if (strs == null)
 			return EMPTY;
 		int n = 0;
@@ -51,7 +53,7 @@ public final class Str {
 		return newStrs;
 	}
 
-	public static String stacktrace(Throwable ex) {
+	public static @NotNull String stacktrace(@NotNull Throwable ex) {
 		try (var out = new ByteArrayOutputStream();
 			 var ps = new PrintStream(out, false, StandardCharsets.UTF_8)) {
 			ex.printStackTrace(ps);
@@ -61,20 +63,32 @@ public final class Str {
 		}
 	}
 
-	public static String fromBinary(Binary b) {
+	public static @NotNull String fromBinary(@NotNull Binary b) {
 		return new String(b.bytesUnsafe(), b.getOffset(), b.size(), StandardCharsets.UTF_8);
 	}
 
-	public static int parseIntSize(String s) {
+	public static int parseIntSize(@Nullable String s) {
+		return parseIntSize(s, -1);
+	}
+
+	public static int parseIntSize(@Nullable String s, int defSize) {
+		if (s == null)
+			return defSize;
 		if ((s = s.trim()).equalsIgnoreCase("max"))
 			return Integer.MAX_VALUE;
-		long v = parseLongSize(s);
+		long v = parseLongSize(s, defSize);
 		if (v > Integer.MAX_VALUE)
 			throw new NumberFormatException("int overflow for '" + s + "'");
 		return (int)v;
 	}
 
-	public static long parseLongSize(String s) {
+	public static long parseLongSize(@Nullable String s) {
+		return parseLongSize(s, -1);
+	}
+
+	public static long parseLongSize(@Nullable String s, long defSize) {
+		if (s == null)
+			return defSize;
 		if ((s = s.trim()).equalsIgnoreCase("max"))
 			return Long.MAX_VALUE;
 		byte[] buf = new byte[s.length() + 1];

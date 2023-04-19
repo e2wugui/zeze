@@ -13,11 +13,13 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.rocksdb.BackupEngine;
 import org.rocksdb.BackupEngineOptions;
+import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.DBOptions;
 import org.rocksdb.Env;
+import org.rocksdb.LRUCache;
 import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
@@ -25,13 +27,17 @@ import org.rocksdb.RestoreOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.rocksdb.TableFormatConfig;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 public class RocksDatabase implements Closeable {
 	private static final Logger logger = LogManager.getLogger(RocksDatabase.class);
+	private static final LRUCache dbCache = new LRUCache(Str.parseIntSize("rocksdbCache", 64 << 20));
+	private static final TableFormatConfig tableCfg = new BlockBasedTableConfig().setBlockCache(dbCache);
 	private static final Options commonOptions = new Options()
 			.setCreateIfMissing(true)
+			.setTableFormatConfig(tableCfg)
 			.setDbWriteBufferSize(64 << 20) // total write buffer bytes, include all the columns
 			.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
 	private static final DBOptions commonDbOptions = new DBOptions()
@@ -40,7 +46,8 @@ public class RocksDatabase implements Closeable {
 			.setKeepLogFileNum(5) // reserve "LOG.old.*" file count
 			// .setAtomicFlush(true); // atomic batch 独立于这个选项？
 			.setMaxWriteBatchGroupSizeBytes(100 * 1024 * 1024);
-	private static final ColumnFamilyOptions defaultCfOptions = new ColumnFamilyOptions();
+	private static final ColumnFamilyOptions defaultCfOptions = new ColumnFamilyOptions()
+			.setTableFormatConfig(tableCfg);
 	private static final ReadOptions defaultReadOptions = new ReadOptions();
 	private static final WriteOptions defaultWriteOptions = new WriteOptions();
 	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
