@@ -20,7 +20,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 @SuppressWarnings({"unused", "FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class Simulate {
 	static {
-		System.setProperty("log4j.configurationFile", "log4j2.xml");
+		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(Level.INFO);
 	}
 

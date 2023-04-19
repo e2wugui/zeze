@@ -18,7 +18,7 @@ import org.junit.Assert;
 
 public class TestOnline extends TestCase {
 	static {
-		System.setProperty("log4j.configurationFile", "log4j2.xml");
+		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(Level.INFO);
 	}
 

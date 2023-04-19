@@ -61,7 +61,7 @@ public class App extends Zeze.AppBase {
 	}
 
 	public void Start(Config config) throws Exception {
-		System.setProperty("log4j.configurationFile", "log4j2.xml");
+		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
 		// 测试本地事务性能需要容量大一点
 		adjustTableConf(config.getDefaultTableConf());
 		adjustTableConf(config.getTableConfMap().get("demo_Module1_Table1"));

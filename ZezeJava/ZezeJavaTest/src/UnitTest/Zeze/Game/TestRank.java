@@ -12,7 +12,7 @@ import junit.framework.TestCase;
 
 public class TestRank extends TestCase {
 	static {
-		System.setProperty("log4j.configurationFile", "log4j2.xml");
+		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
 	}
 
 	private static final int CONC_LEVEL = 100;

@@ -20,7 +20,7 @@ import org.junit.Test;
 // 测试桶(raft)，在同一个进程内构建3个桶，通过Dbh2Agent访问。
 public class Dbh2Test {
 	static {
-		System.setProperty("log4j.configurationFile", "log4j2.xml");
+		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}

@@ -43,7 +43,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 public class GlobalCacheManagerWithRaft
 		extends AbstractGlobalCacheManagerWithRaft implements Closeable, GlobalCacheManagerConst {
 	static {
-		System.setProperty("log4j.configurationFile", "log4j2.xml");
+		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}
