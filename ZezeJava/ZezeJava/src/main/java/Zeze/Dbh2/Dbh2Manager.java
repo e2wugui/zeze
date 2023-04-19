@@ -130,7 +130,7 @@ public class Dbh2Manager {
 			var bytes = java.nio.file.Files.readAllBytes(raftXml.toPath());
 			var raftStr = new String(bytes, StandardCharsets.UTF_8);
 			var raftConfig = RaftConfig.loadFromString(raftStr);
-			raftConfig.setDbHome(raftXml.getParent()); // todo 这个路径对吗？ 需要调试一下。
+			raftConfig.setDbHome(raftXml.getParent());
 			dbh2s.computeIfAbsent(raftStr,
 					__ -> new Dbh2(this, raftConfig.getName(), raftConfig, null, false));
 		}

@@ -8,8 +8,6 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
     public static final long TYPEID = -2881093366329974312L;
 
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Dbh2.BPrepareBatch> _Datas;
-    private String _QueryIp; // 仅在独立CommitServer时设置，收到方直接使用，不再查询配置。
-    private int _QueryPort;
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Dbh2.BPrepareBatch> getDatas() {
         return _Datas;
@@ -20,63 +18,10 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
         return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Datas);
     }
 
-    @Override
-    public String getQueryIp() {
-        if (!isManaged())
-            return _QueryIp;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _QueryIp;
-        var log = (Log__QueryIp)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _QueryIp;
-    }
-
-    public void setQueryIp(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _QueryIp = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__QueryIp(this, 2, value));
-    }
-
-    @Override
-    public int getQueryPort() {
-        if (!isManaged())
-            return _QueryPort;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _QueryPort;
-        var log = (Log__QueryPort)txn.getLog(objectId() + 3);
-        return log != null ? log.value : _QueryPort;
-    }
-
-    public void setQueryPort(int value) {
-        if (!isManaged()) {
-            _QueryPort = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__QueryPort(this, 3, value));
-    }
-
     @SuppressWarnings("deprecation")
     public BPrepareBatches() {
         _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Dbh2.BPrepareBatch.class);
         _Datas.variableId(1);
-        _QueryIp = "";
-    }
-
-    @SuppressWarnings("deprecation")
-    public BPrepareBatches(String _QueryIp_, int _QueryPort_) {
-        _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Dbh2.BPrepareBatch.class);
-        _Datas.variableId(1);
-        if (_QueryIp_ == null)
-            throw new IllegalArgumentException();
-        _QueryIp = _QueryIp_;
-        _QueryPort = _QueryPort_;
     }
 
     @Override
@@ -98,16 +43,12 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
             data.assign(e.getValue());
             _Datas.put(e.getKey(), data);
         }
-        setQueryIp(other.getQueryIp());
-        setQueryPort(other.getQueryPort());
     }
 
     public void assign(BPrepareBatches other) {
         _Datas.clear();
         for (var e : other.getDatas().entrySet())
             _Datas.put(e.getKey(), e.getValue().copy());
-        setQueryIp(other.getQueryIp());
-        setQueryPort(other.getQueryPort());
     }
 
     public BPrepareBatches copyIfManaged() {
@@ -130,20 +71,6 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__QueryIp extends Zeze.Transaction.Logs.LogString {
-        public Log__QueryIp(BPrepareBatches bean, int varId, String value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BPrepareBatches)getBelong())._QueryIp = value; }
-    }
-
-    private static final class Log__QueryPort extends Zeze.Transaction.Logs.LogInt {
-        public Log__QueryPort(BPrepareBatches bean, int varId, int value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BPrepareBatches)getBelong())._QueryPort = value; }
     }
 
     @Override
@@ -170,9 +97,7 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("QueryIp=").append(getQueryIp()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("QueryPort=").append(getQueryPort()).append(System.lineSeparator());
+        sb.append('}').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -204,20 +129,6 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
                 }
             }
         }
-        {
-            String _x_ = getQueryIp();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
-        }
-        {
-            int _x_ = getQueryPort();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
         _o_.WriteByte(0);
     }
 
@@ -237,14 +148,6 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
                 }
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            setQueryIp(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            setQueryPort(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -269,8 +172,6 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
             if (_v_.negativeCheck())
                 return true;
         }
-        if (getQueryPort() < 0)
-            return true;
         return false;
     }
 
@@ -284,8 +185,6 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Datas.followerApply(vlog); break;
-                case 2: _QueryIp = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _QueryPort = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }
@@ -294,18 +193,12 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         Zeze.Serialize.Helper.decodeJsonMap(this, "Datas", getDatas(), rs.getString(_parents_name_ + "Datas"));
-        setQueryIp(rs.getString(_parents_name_ + "QueryIp"));
-        if (getQueryIp() == null)
-            setQueryIp("");
-        setQueryPort(rs.getInt(_parents_name_ + "QueryPort"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Datas", Zeze.Serialize.Helper.encodeJson(getDatas()));
-        st.appendString(_parents_name_ + "QueryIp", getQueryIp());
-        st.appendInt(_parents_name_ + "QueryPort", getQueryPort());
     }
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
@@ -313,8 +206,6 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -2881093366329974312L;
 
     private java.util.HashMap<String, Zeze.Builtin.Dbh2.BPrepareBatch.Data> _Datas;
-    private String _QueryIp; // 仅在独立CommitServer时设置，收到方直接使用，不再查询配置。
-    private int _QueryPort;
 
     public java.util.HashMap<String, Zeze.Builtin.Dbh2.BPrepareBatch.Data> getDatas() {
         return _Datas;
@@ -326,37 +217,9 @@ public static final class Data extends Zeze.Transaction.Data {
         _Datas = value;
     }
 
-    public String getQueryIp() {
-        return _QueryIp;
-    }
-
-    public void setQueryIp(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        _QueryIp = value;
-    }
-
-    public int getQueryPort() {
-        return _QueryPort;
-    }
-
-    public void setQueryPort(int value) {
-        _QueryPort = value;
-    }
-
     @SuppressWarnings("deprecation")
     public Data() {
         _Datas = new java.util.HashMap<>();
-        _QueryIp = "";
-    }
-
-    @SuppressWarnings("deprecation")
-    public Data(String _QueryIp_, int _QueryPort_) {
-        _Datas = new java.util.HashMap<>();
-        if (_QueryIp_ == null)
-            throw new IllegalArgumentException();
-        _QueryIp = _QueryIp_;
-        _QueryPort = _QueryPort_;
     }
 
     @Override
@@ -378,16 +241,12 @@ public static final class Data extends Zeze.Transaction.Data {
             data.assign(e.getValue());
             _Datas.put(e.getKey(), data);
         }
-        setQueryIp(other.getQueryIp());
-        setQueryPort(other.getQueryPort());
     }
 
     public void assign(BPrepareBatches.Data other) {
         _Datas.clear();
         for (var e : other.getDatas().entrySet())
             _Datas.put(e.getKey(), e.getValue().copy());
-        setQueryIp(other.getQueryIp());
-        setQueryPort(other.getQueryPort());
     }
 
     @Override
@@ -432,9 +291,7 @@ public static final class Data extends Zeze.Transaction.Data {
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("QueryIp=").append(getQueryIp()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("QueryPort=").append(getQueryPort()).append(System.lineSeparator());
+        sb.append('}').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -466,20 +323,6 @@ public static final class Data extends Zeze.Transaction.Data {
                 }
             }
         }
-        {
-            String _x_ = getQueryIp();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
-        }
-        {
-            int _x_ = getQueryPort();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
         _o_.WriteByte(0);
     }
 
@@ -499,14 +342,6 @@ public static final class Data extends Zeze.Transaction.Data {
                 }
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            setQueryIp(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            setQueryPort(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

@@ -1,9 +1,7 @@
 package Zeze.Dbh2;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
@@ -15,7 +13,6 @@ import Zeze.Util.OutObject;
 import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.rocksdb.RocksDBException;
 
 /**
  * 这个类管理到桶的raft-client-agent。
@@ -32,10 +29,15 @@ public class Dbh2AgentManager {
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
 
 	private Config config;
+	private Dbh2Config dbh2Config = new Dbh2Config();
 	private Commit commit;
 	private CommitAgent commitAgent;
 
 	private static final Dbh2AgentManager instance = new Dbh2AgentManager();
+
+	public Dbh2Config getDbh2Config() {
+		return dbh2Config;
+	}
 
 	public static Dbh2AgentManager getInstance() {
 		return instance;
@@ -48,9 +50,21 @@ public class Dbh2AgentManager {
 		return Zeze.Util.Random.nextBinary(16);
 	}
 
+	public KV<String, Integer> commitServiceAcceptor() {
+		var out = new KV<String, Integer>();
+		commit.getService().getConfig().forEachAcceptor2((a) -> {
+			out.setKey(a.getIp());
+			out.setValue(a.getPort());
+			return false;
+		});
+		if (out.getKey() == null || out.getValue() == 0)
+			throw new RuntimeException("Commit Query Acceptor Not Set.");
+		return out;
+	}
+
 	public void commitBreakAfterPrepareForDebugOnly(BPrepareBatches.Data batches) {
-		var query = choiceCommitServer();
 		if (config.isDbh2LocalCommit()) {
+			var query = commitServiceAcceptor();
 			commit.getRocks().prepare(query.getKey(), query.getValue(), batches);
 			return; // done
 		}
@@ -58,18 +72,29 @@ public class Dbh2AgentManager {
 		// throw new RuntimeException("commitBreakAfterPrepareForDebugOnly only work with local commit.");
 	}
 
+	private KV<String, Integer> choiceCommitServer() {
+		throw new UnsupportedOperationException();
+	}
+
 	public void commit(BPrepareBatches.Data batches) {
-		var query = choiceCommitServer();
 		if (config.isDbh2LocalCommit()) {
+			var query = commitServiceAcceptor();
 			commit.getRocks().commit(query.getKey(), query.getValue(), batches);
 			return; // done;
 		}
+		var query = choiceCommitServer();
 		commitAgent.commit(query.getKey(), query.getValue(), batches);
 	}
 
 	// Dbh2Agent 嵌入服务器需要初始化；
 	// CommitServer 独立服务器需要初始化；
-	public synchronized void locateBucket(Config config) throws Exception {
+	public void start() throws Exception {
+		start(null);
+	}
+
+	public synchronized void start(Config config) throws Exception {
+		if (null == config)
+			config = new Config().addCustomize(dbh2Config).loadAndParse();
 		this.config = config;
 
 		// ugly
@@ -85,24 +110,6 @@ public class Dbh2AgentManager {
 			}
 		}
 		ShutdownHook.add(this, this::stop);
-	}
-
-	public KV<String, Integer> choiceCommitServer() {
-		// ugly
-		if (config.isDbh2LocalCommit()) {
-			var out = new KV<String, Integer>();
-			commit.getService().getConfig().forEachAcceptor2((a) -> {
-				out.setKey(a.getIp());
-				out.setValue(a.getPort());
-				return false;
-			});
-			if (out.getKey() == null || out.getValue() == 0)
-				throw new RuntimeException("Commit Query Acceptor Not Set.");
-			return out;
-		}
-
-		// todo 选择独立 CommitServer。
-		return null;
 	}
 
 	public synchronized void stop() throws Exception {

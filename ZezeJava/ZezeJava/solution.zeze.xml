@@ -1394,8 +1394,6 @@
 
 				<bean name="BPrepareBatches">
 					<variable id="1" name="Datas" type="map[string, Zeze.Builtin.Dbh2.BPrepareBatch]"/>
-					<variable id="2" name="QueryIp" type="string"/> 仅在独立CommitServer时设置，收到方直接使用，不再查询配置。
-					<variable id="3" name="QueryPort" type="int"/>
 				</bean>
 				<rpc name="Query" argument="Zeze.Builtin.Dbh2.BBatchTid" result="BTransactionState" UseData="true" handle="server"/>
 				<rpc name="Commit" argument="BPrepareBatches" UseData="true" handle="server"/>

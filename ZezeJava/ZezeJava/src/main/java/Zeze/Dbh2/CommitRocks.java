@@ -96,8 +96,7 @@ public class CommitRocks {
 			throw new RuntimeException(ex);
 		}
 
-		// todo config
-		if (System.currentTimeMillis() - prepareTime > 10_000) {
+		if (System.currentTimeMillis() - prepareTime > manager.getDbh2Config().getPrepareMaxTime()) {
 			undo(batches);
 			removeCommitIndex(tid);
 			throw new RuntimeException("max prepare time exceed.");

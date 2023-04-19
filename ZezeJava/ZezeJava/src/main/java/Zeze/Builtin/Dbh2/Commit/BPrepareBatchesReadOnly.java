@@ -8,6 +8,4 @@ public interface BPrepareBatchesReadOnly {
     BPrepareBatches copy();
 
     Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Dbh2.BPrepareBatch, Zeze.Builtin.Dbh2.BPrepareBatchReadOnly> getDatasReadOnly();
-    String getQueryIp();
-    int getQueryPort();
 }

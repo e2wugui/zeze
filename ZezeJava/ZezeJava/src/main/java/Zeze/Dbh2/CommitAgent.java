@@ -66,8 +66,6 @@ public class CommitAgent extends AbstractCommitAgent {
 	public void commit(String host, int port, BPrepareBatches.Data batches) {
 		var r = new Commit();
 		r.Argument = batches;
-		batches.setQueryIp(host);
-		batches.setQueryPort(port);
 		r.SendForWait(connect(host, port)).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("commit error=" + IModule.getErrorCode(r.getResultCode()));

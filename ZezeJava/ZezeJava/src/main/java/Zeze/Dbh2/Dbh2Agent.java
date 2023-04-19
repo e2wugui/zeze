@@ -86,13 +86,13 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	}
 
 	private void verifyFastFail() {
-		if (System.currentTimeMillis() - lastErrorTime < config.serverFastErrorPeriod)
+		if (System.currentTimeMillis() - lastErrorTime < config.getServerFastErrorPeriod())
 			throw new RuntimeException("FastErrorPeriod");
 	}
 
 	private void setFastFail() {
 		var now = System.currentTimeMillis();
-		if (now - lastErrorTime > config.serverFastErrorPeriod)
+		if (now - lastErrorTime > config.getServerFastErrorPeriod())
 			lastErrorTime = now;
 	}
 
