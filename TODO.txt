@@ -11,17 +11,82 @@ c# fresh 有bug？
 DatabaseDynamoDb 还需测试。
 负载均衡；全面审核。
 过载保护；更多。
-c# 并发比冲突还慢
-	Benchmark.ABasicSimpleAddOneThread tasks/s=209874.71 time=4.76 cpu=0.00 concurrent=0.00
-	Benchmark.BBasicSimpleAddConcurrentWithConflict tasks/s=217785.84 time=4.59 cpu=0.00 concurrent=0.00
-	Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concurrent=9.70
-	【基本判断，Redo超多，效率极低】
-	【可能原因，c#版是async，一下子提交的所有任务都会触发执行起来，所有的执行又比较均匀，导致冲突大增】
+c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，等c#自己的async-lock】
 Focus Document
 Dbh2 创建表选择负载低的服务器的策略。
 Dbh2 根据负载或什么策略并发拆分桶。
+Dbh2 undo中断重启继续。
+1. 方案一，完备状态。
+a) 事务提交流程：
+try
+{
+save_preparing_state_and_index;
+prepare();
+save_committing_state_and_index;
+}
+catch (any error)
+{
+undo(); // 这里简化了错误处理。
+remove_index();
+throw;
+}
+commit();
+remove_index();
+b) 事务继续流程：
+foreach(var index)
+{
+	switch  (index.state)
+	{
+	case preparing:
+		undo();
+		remove_index();
+		breadk;
+	case committing:
+		commit();
+		remove_index();
+		break;
+	}
+}
+2. 方案二，完备状态，独立CommitServer，有点像事务管理器。
+a) agent事务提交流程：
+try
+{
+var cs = choiceCommitServer(); // 分布是多个。
+cs.save_preparing_state_and_index; // 网络rpc。
+prepare();
+cs.commit(); // cs接管了后续操作。
+}
+catch (any error)
+{
+undo(); // 这里简化了错误处理。
+cs.remove_index(); // ugly
+throw;
+}
+b) CommitServer流程：
+commit_implement()
+{
+save_commtting_state_and_index;
+commit();
+remove_index;
+}
+c) CommitServer重启继续流程，同方案一的foreach。
+  由于undo可能在agent那边执行，这边又可能执行，所以这里需要一个prepareMaxTime控制CommitServer可以undo流程。
+3. 方案三，完备状态，独立CommitServer，完全接管所有的事务处理流程。
+相当于把agent的事务数据全部发送到CommitServer，全部由CommitServer处理。
+缺点是数据需要在网络上完整的再传输一次，有点浪费带宽。
+具体伪码就是方案一换个地方实现。
+意见
+张路:
+我建议方案2, commit server比agent更稳定些, 事务流程和回查状态更可靠些.
+
+李成华:
+我是觉得结构上方案三优雅一点，除了带宽这个问题。
+---
+实际上方案一agent完全本地处理commit流程也是要实现的，作为可选方案。
+问题就是独立CommitServer方案采用哪套交互手段。
+
 ------------------------------------------------------------------------------------------------------------------------------
-2023/4/21 v1.2.3 Dbh2 CommitServer; 
+2023/4/21 v1.2.3 Dbh2 CommitServer; Online Kick BUG; 
 ------------------------------------------------------------------------------------------------------------------------------
 Dbh2 CommitServer Query 超时。
 Dbh2 CommitServer Query 调试。【OK】
