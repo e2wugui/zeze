@@ -17,7 +17,7 @@ Dbh2 创建表选择负载低的服务器的策略。
 Dbh2 根据负载或什么策略并发拆分桶。
 Dbh2 undo中断重启继续。
 1. 方案一，完备状态。
-a) 事务提交流程：
+a) agent事务提交流程：
 try
 {
 save_preparing_state_and_index;
