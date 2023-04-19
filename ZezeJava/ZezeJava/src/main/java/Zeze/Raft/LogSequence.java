@@ -55,7 +55,8 @@ public class LogSequence {
 	private RocksDB logs;
 	private RocksDatabase database;
 	private RocksDatabase.Table rafts;
-	private final ConcurrentHashMap<String, UniqueRequestSet> uniqueRequestSets = new ConcurrentHashMap<>();
+	private final LongConcurrentHashMap<UniqueRequestSet> uniqueRequestSets = new LongConcurrentHashMap<>();
+	private final SimpleDateFormat uniqueDateFormat = new SimpleDateFormat("yyyy.M.d");
 
 	private final byte[] raftsTermKey;
 	private final byte[] raftsVoteForKey;
@@ -325,17 +326,18 @@ public class LogSequence {
 		deletedDirectoryAndCheck(path, 10);
 	}
 
-	public void removeExpiredUniqueRequestSet() throws ParseException, RocksDBException {
+	void removeExpiredUniqueRequestSet() throws ParseException, RocksDBException {
 		RaftConfig raftConf = raft.getRaftConfig();
 		long expired = System.currentTimeMillis() - (raftConf.getUniqueRequestExpiredDays() + 1) * 86400_000L;
-		SimpleDateFormat format = new SimpleDateFormat("yyyy.M.d");
 
 		for (var tableName : database.getColumnFamilies().keySet()) {
 			if (!tableName.startsWith("unique."))
 				continue;
-			var db = format.parse(tableName.substring("unique.".length()));
+			var db = uniqueDateFormat.parse(tableName.substring("unique.".length()));
 			if (db.getTime() < expired) {
-				var opened = uniqueRequestSets.remove(tableName);
+				@SuppressWarnings("deprecation")
+				var key = ((db.getYear() + 1900L) << 16) + ((db.getMonth() + 1) << 8) + db.getDate();
+				var opened = uniqueRequestSets.remove(key);
 				if (null != opened)
 					opened.table.drop(); // 包含opened.close。
 				else
@@ -479,8 +481,9 @@ public class LogSequence {
 	private UniqueRequestSet openUniqueRequests(long time) {
 		var dateTime = new Date(time);
 		@SuppressWarnings("deprecation")
-		var dbName = String.format("unique.%d.%d.%d", dateTime.getYear() + 1900, dateTime.getMonth() + 1, dateTime.getDate());
-		return uniqueRequestSets.computeIfAbsent(dbName, UniqueRequestSet::new);
+		var key = ((dateTime.getYear() + 1900L) << 16) + ((dateTime.getMonth() + 1) << 8) + dateTime.getDate();
+		return uniqueRequestSets.computeIfAbsent(key,
+				k -> new UniqueRequestSet("unique." + (k >> 16) + '.' + ((k >> 8) & 0xff) + '.' + (k & 0xff)));
 	}
 
 	public WriteOptions getWriteOptions() {
