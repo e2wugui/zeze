@@ -32,17 +32,22 @@ import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 public class RocksDatabase implements Closeable {
+	static {
+		RocksDB.loadLibrary();
+	}
+
 	private static final Logger logger = LogManager.getLogger(RocksDatabase.class);
-	private static final LRUCache dbCache = new LRUCache(Str.parseIntSize("rocksdbCache", 64 << 20));
+	private static final LRUCache dbCache = new LRUCache(Str.parseLongSize(System.getProperty("rocksdbCache"), 64 << 20));
 	private static final TableFormatConfig tableCfg = new BlockBasedTableConfig().setBlockCache(dbCache);
+	private static final long dbBuffer = Str.parseLongSize(System.getProperty("rocksdbBuffer"), 64 << 20);
 	private static final Options commonOptions = new Options()
 			.setCreateIfMissing(true)
 			.setTableFormatConfig(tableCfg)
-			.setDbWriteBufferSize(64 << 20) // total write buffer bytes, include all the columns
+			.setDbWriteBufferSize(dbBuffer) // total write buffer bytes, include all the columns
 			.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
 	private static final DBOptions commonDbOptions = new DBOptions()
 			.setCreateIfMissing(true)
-			.setDbWriteBufferSize(64 << 20) // total write buffer bytes, include all the columns
+			.setDbWriteBufferSize(dbBuffer) // total write buffer bytes, include all the columns
 			.setKeepLogFileNum(5) // reserve "LOG.old.*" file count
 			// .setAtomicFlush(true); // atomic batch 独立于这个选项？
 			.setMaxWriteBatchGroupSizeBytes(100 * 1024 * 1024);
@@ -74,10 +79,6 @@ public class RocksDatabase implements Closeable {
 
 	public static @NotNull WriteOptions getSyncWriteOptions() {
 		return syncWriteOptions;
-	}
-
-	static {
-		RocksDB.loadLibrary();
 	}
 
 	private final @NotNull String home;
@@ -226,53 +227,73 @@ public class RocksDatabase implements Closeable {
 		}
 
 		public byte[] get(byte[] key) throws RocksDBException {
-			return rocksDb.get(columnFamily, defaultReadOptions, key);
+			return get(defaultReadOptions, key);
 		}
 
 		public byte[] get(byte[] key, int offset, int size) throws RocksDBException {
-			return rocksDb.get(columnFamily, defaultReadOptions, key, offset, size);
+			return get(defaultReadOptions, key, offset, size);
 		}
 
 		public byte[] get(@NotNull ReadOptions options, byte[] key) throws RocksDBException {
-			return rocksDb.get(columnFamily, options, key);
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var r = rocksDb.get(columnFamily, options, key);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDB.get", System.nanoTime() - timeBegin);
+			return r;
 		}
 
 		public byte[] get(@NotNull ReadOptions options, byte[] key, int offset, int size) throws RocksDBException {
-			return rocksDb.get(columnFamily, options, key, offset, size);
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var r = rocksDb.get(columnFamily, options, key, offset, size);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDB.get", System.nanoTime() - timeBegin);
+			return r;
 		}
 
 		public void put(byte[] key, byte[] value) throws RocksDBException {
-			rocksDb.put(columnFamily, defaultWriteOptions, key, value);
+			put(defaultWriteOptions, key, value);
 		}
 
 		public void put(byte[] key, int keyOff, int keyLen,
 						byte[] value, int valueOff, int valueLen) throws RocksDBException {
-			rocksDb.put(columnFamily, defaultWriteOptions, key, keyOff, keyLen, value, valueOff, valueLen);
+			put(defaultWriteOptions, key, keyOff, keyLen, value, valueOff, valueLen);
 		}
 
 		public void delete(byte[] key) throws RocksDBException {
-			rocksDb.delete(columnFamily, defaultWriteOptions, key);
+			delete(defaultWriteOptions, key);
 		}
 
 		public void delete(byte[] key, int keyOff, int keyLen) throws RocksDBException {
-			rocksDb.delete(columnFamily, defaultWriteOptions, key, keyOff, keyLen);
+			delete(defaultWriteOptions, key, keyOff, keyLen);
 		}
 
 		public void put(@NotNull WriteOptions options, byte[] key, byte[] value) throws RocksDBException {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.put(columnFamily, options, key, value);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDB.put", System.nanoTime() - timeBegin);
 		}
 
 		public void put(@NotNull WriteOptions options, byte[] key, int keyOff, int keyLen,
 						byte[] value, int valueOff, int valueLen) throws RocksDBException {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.put(columnFamily, options, key, keyOff, keyLen, value, valueOff, valueLen);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDB.put", System.nanoTime() - timeBegin);
 		}
 
 		public void delete(@NotNull WriteOptions options, byte[] key) throws RocksDBException {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.delete(columnFamily, options, key);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDB.delete", System.nanoTime() - timeBegin);
 		}
 
 		public void delete(@NotNull WriteOptions options, byte[] key, int keyOff, int keyLen) throws RocksDBException {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.delete(columnFamily, options, key, keyOff, keyLen);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDB.delete", System.nanoTime() - timeBegin);
 		}
 
 		public void put(@NotNull Batch batch, @NotNull Binary key, @NotNull Binary value) throws RocksDBException {
@@ -337,11 +358,14 @@ public class RocksDatabase implements Closeable {
 		}
 
 		public void commit() throws RocksDBException {
-			rocksDb.write(syncWriteOptions, batch);
+			commit(syncWriteOptions);
 		}
 
 		public void commit(@NotNull WriteOptions options) throws RocksDBException {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.write(options, batch);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDB.write", System.nanoTime() - timeBegin);
 		}
 
 		// clear后可以再次put,delete,commit. 复用Batch性能更高
