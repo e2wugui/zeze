@@ -16,6 +16,7 @@ namespace Zeze.Gen.java
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             var sw1 = new StringWriter();
+            sw1.NewLine = "\n";
             foreach (Variable var in bean.Variables)
             {
                 if (var.AllowNegative)
