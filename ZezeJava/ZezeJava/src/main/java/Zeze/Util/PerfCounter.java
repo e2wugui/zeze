@@ -182,10 +182,14 @@ public final class PerfCounter {
 	}
 
 	public void addCountInfo(@NotNull String key) {
+		addCountInfo(key, 1);
+	}
+
+	public void addCountInfo(@NotNull String key, long count) {
 		for (; ; ) {
 			var ci = countInfoMap.get(key);
 			if (ci != null) {
-				ci.count.increment();
+				ci.count.add(count);
 				return;
 			}
 			countInfoMap.putIfAbsent(key, new CountInfo(key));
