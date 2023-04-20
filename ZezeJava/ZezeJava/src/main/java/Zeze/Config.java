@@ -332,6 +332,8 @@ public final class Config {
 			if (!zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isBlank())
 				throw new IllegalStateException("RocksDb Can Not Work With GlobalCacheManager.");
 			return new DatabaseRocksDb(zeze, conf);
+		case Dbh2:
+			return new Zeze.Dbh2.Database(zeze, conf);
 		default:
 			throw new UnsupportedOperationException("unknown database type.");
 		}
@@ -819,6 +821,9 @@ public final class Config {
 			case "DynamoDB":
 				databaseType = DbType.DynamoDb;
 				dynamoConf = new DynamoConf(self);
+				break;
+			case "Dbh2":
+				databaseType = DbType.Dbh2;
 				break;
 			default:
 				throw new UnsupportedOperationException("unknown database type.");

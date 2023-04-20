@@ -322,19 +322,7 @@ namespace Zeze.Gen.java
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
                 {
-                    if (module.MultiInstance)
-                    {
-                        sw.WriteLine($"        {{");
-                        sw.WriteLine($"            var _table_ = new {table.FullName}(multiInstanceName);");
-                        sw.WriteLine($"            _{table.Name}Map.put(multiInstanceName, _table_);");
-                        sw.WriteLine($"            {zezeVar}.addTable({zezeVar}.getConfig().getTableConf(_table_.getOriginName()).getDatabaseName(), _table_);");
-                        sw.WriteLine($"            ");
-                        sw.WriteLine($"        }}");
-                    }
-                    else
-                    {
-                        sw.WriteLine($"        {zezeVar}.addTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
-                    }
+                    sw.WriteLine($"        {zezeVar}.addTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
                 }
             }
         }
@@ -369,18 +357,7 @@ namespace Zeze.Gen.java
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
                 {
-                    if (module.MultiInstance)
-                    {
-                        sw.WriteLine($"        if (multiInstanceName.isEmpty()) {{");
-                        sw.WriteLine($"            for (var table : _{table.Name}Map.values())");
-                        sw.WriteLine($"                {zezeVar}.removeTable({zezeVar}.getConfig().getTableConf(table.getOriginName()).getDatabaseName(), table);");
-                        sw.WriteLine($"            _{table.Name}Map.clear();");
-                        sw.WriteLine($"        }}");
-                    }
-                    else
-                    {
-                        sw.WriteLine($"        {zezeVar}.removeTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
-                    }
+                    sw.WriteLine($"        {zezeVar}.removeTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
                 }
             }
         }
@@ -448,17 +425,6 @@ namespace Zeze.Gen.java
             if (module.MultiInstance)
             {
                 sw.WriteLine($"    protected String multiInstanceName = \"\";");
-                foreach (Table table in module.Tables.Values)
-                {
-                    sw.WriteLine($"    protected java.util.HashMap<String, {table.FullName}> _{table.Name}Map;");
-                }
-                foreach (Table table in module.Tables.Values)
-                {
-                    sw.WriteLine($"    protected {table.FullName} _{table.Name}(String instanceName) {{");
-                    sw.WriteLine($"        return _{table.Name}Map.get(instanceName);");
-                    sw.WriteLine($"    }}");
-                }
-                return;
             }
 
             bool written = false;

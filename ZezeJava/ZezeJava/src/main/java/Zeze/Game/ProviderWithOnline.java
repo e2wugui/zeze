@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import java.util.HashMap;
 import Zeze.AppBase;
 import Zeze.Arch.ProviderImplement;
 import Zeze.Arch.ProviderService;
@@ -13,6 +14,12 @@ public class ProviderWithOnline extends ProviderImplement {
 
 	public Online getOnline() {
 		return online;
+	}
+
+	private final HashMap<String, Online> onlineSetMap = new HashMap<>();
+
+	HashMap<String, Online> getOnlineSetMap() {
+		return onlineSetMap;
 	}
 
 	@Override

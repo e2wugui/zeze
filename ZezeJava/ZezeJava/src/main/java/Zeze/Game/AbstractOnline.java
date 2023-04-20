@@ -20,18 +20,10 @@ public abstract class AbstractOnline implements Zeze.IModule {
     public static final int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
     public static final int ResultCodeNotLogin = 7;
     protected String multiInstanceName = "";
-    protected java.util.HashMap<String, Zeze.Builtin.Game.Online.tlocal> _tlocalMap;
-    protected java.util.HashMap<String, Zeze.Builtin.Game.Online.tonline> _tonlineMap;
-    protected java.util.HashMap<String, Zeze.Builtin.Game.Online.tversion> _tversionMap;
-    protected Zeze.Builtin.Game.Online.tlocal _tlocal(String instanceName) {
-        return _tlocalMap.get(instanceName);
-    }
-    protected Zeze.Builtin.Game.Online.tonline _tonline(String instanceName) {
-        return _tonlineMap.get(instanceName);
-    }
-    protected Zeze.Builtin.Game.Online.tversion _tversion(String instanceName) {
-        return _tversionMap.get(instanceName);
-    }
+
+    protected final Zeze.Builtin.Game.Online.tlocal _tlocal = new Zeze.Builtin.Game.Online.tlocal();
+    protected final Zeze.Builtin.Game.Online.tonline _tonline = new Zeze.Builtin.Game.Online.tonline();
+    protected final Zeze.Builtin.Game.Online.tversion _tversion = new Zeze.Builtin.Game.Online.tversion();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
@@ -77,42 +69,15 @@ public abstract class AbstractOnline implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        {
-            var _table_ = new Zeze.Builtin.Game.Online.tlocal(multiInstanceName);
-            _tlocalMap.put(multiInstanceName, _table_);
-            zeze.addTable(zeze.getConfig().getTableConf(_table_.getOriginName()).getDatabaseName(), _table_);
-            
-        }
-        {
-            var _table_ = new Zeze.Builtin.Game.Online.tonline(multiInstanceName);
-            _tonlineMap.put(multiInstanceName, _table_);
-            zeze.addTable(zeze.getConfig().getTableConf(_table_.getOriginName()).getDatabaseName(), _table_);
-            
-        }
-        {
-            var _table_ = new Zeze.Builtin.Game.Online.tversion(multiInstanceName);
-            _tversionMap.put(multiInstanceName, _table_);
-            zeze.addTable(zeze.getConfig().getTableConf(_table_.getOriginName()).getDatabaseName(), _table_);
-            
-        }
+        zeze.addTable(zeze.getConfig().getTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
+        zeze.addTable(zeze.getConfig().getTableConf(_tonline.getName()).getDatabaseName(), _tonline);
+        zeze.addTable(zeze.getConfig().getTableConf(_tversion.getName()).getDatabaseName(), _tversion);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        if (multiInstanceName.isEmpty()) {
-            for (var table : _tlocalMap.values())
-                zeze.removeTable(zeze.getConfig().getTableConf(table.getOriginName()).getDatabaseName(), table);
-            _tlocalMap.clear();
-        }
-        if (multiInstanceName.isEmpty()) {
-            for (var table : _tonlineMap.values())
-                zeze.removeTable(zeze.getConfig().getTableConf(table.getOriginName()).getDatabaseName(), table);
-            _tonlineMap.clear();
-        }
-        if (multiInstanceName.isEmpty()) {
-            for (var table : _tversionMap.values())
-                zeze.removeTable(zeze.getConfig().getTableConf(table.getOriginName()).getDatabaseName(), table);
-            _tversionMap.clear();
-        }
+        zeze.removeTable(zeze.getConfig().getTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tonline.getName()).getDatabaseName(), _tonline);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tversion.getName()).getDatabaseName(), _tversion);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
