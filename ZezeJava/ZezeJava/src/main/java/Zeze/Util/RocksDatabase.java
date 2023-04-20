@@ -166,8 +166,8 @@ public class RocksDatabase implements Closeable {
 		return home;
 	}
 
-	public @NotNull Batch beginBatch() {
-		return new Batch();
+	public boolean isClosed() {
+		return !rocksDb.isOwningHandle();
 	}
 
 	public synchronized @NotNull Table openTable(@NotNull String name) {
@@ -337,6 +337,10 @@ public class RocksDatabase implements Closeable {
 
 		public @NotNull WriteBatch getBatch() {
 			return batch;
+		}
+
+		public boolean isClosed() {
+			return !batch.isOwningHandle();
 		}
 
 		public void put(@NotNull ColumnFamilyHandle columnFamily, byte[] key, byte[] value) throws RocksDBException {

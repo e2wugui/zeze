@@ -78,7 +78,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 				String sql = "SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?";
 				try (var cmd = connection.prepareStatement(sql)) {
-					cmd.setBytes(1, key.Copy());
+					cmd.setBytes(1, key.CopyIf());
 					try (var reader = cmd.executeQuery()) {
 						if (reader.next()) {
 							var result = new DataWithVersion();
@@ -103,8 +103,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeSaveDataWithSameVersion_(?, ?, ?)}")) {
-					cmd.setBytes(1, key.Copy());
-					cmd.setBytes(2, data.Copy());
+					cmd.setBytes(1, key.CopyIf());
+					cmd.setBytes(2, data.CopyIf());
 					cmd.registerOutParameter(3, Types.BIGINT);
 					cmd.setLong(3, version);
 					cmd.registerOutParameter(4, Types.INTEGER); // return code
@@ -353,7 +353,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				String sql = "SELECT value FROM " + getName() + " WHERE id = ?";
 				// 是否可以重用 SqlCommand
 				try (var cmd = connection.prepareStatement(sql)) {
-					cmd.setBytes(1, key.Copy());
+					cmd.setBytes(1, key.CopyIf());
 					try (var reader = cmd.executeQuery()) {
 						if (reader.next()) {
 							byte[] value = reader.getBytes(1);
@@ -372,7 +372,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			var my = (JdbcTrans)t;
 			String sql = "DELETE FROM " + getName() + " WHERE id=?";
 			try (var cmd = my.Connection.prepareStatement(sql)) {
-				cmd.setBytes(1, key.Copy());
+				cmd.setBytes(1, key.CopyIf());
 				cmd.executeUpdate();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
@@ -385,8 +385,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			//noinspection SpellCheckingInspection
 			String sql = "update " + getName() + " set value=? where id=?" + " if @@rowcount = 0 and @@error = 0 insert into " + getName() + " values(?,?)";
 			try (var cmd = my.Connection.prepareStatement(sql)) {
-				var keyCopy = key.Copy();
-				var valueCopy = value.Copy();
+				var keyCopy = key.CopyIf();
+				var valueCopy = value.CopyIf();
 				cmd.setBytes(1, valueCopy);
 				cmd.setBytes(2, keyCopy); // 传两次，使用存储过程优化？
 				cmd.setBytes(3, keyCopy);

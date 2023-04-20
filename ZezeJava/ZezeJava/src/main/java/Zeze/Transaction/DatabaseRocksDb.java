@@ -257,12 +257,12 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public void remove(Transaction txn, ByteBuffer key) {
-			((RocksDbTrans)txn).remove(key.Copy(), columnFamily);
+			((RocksDbTrans)txn).remove(key.CopyIf(), columnFamily);
 		}
 
 		@Override
 		public void replace(Transaction txn, ByteBuffer key, ByteBuffer value) {
-			((RocksDbTrans)txn).put(key.Copy(), value.Copy(), columnFamily);
+			((RocksDbTrans)txn).put(key.CopyIf(), value.CopyIf(), columnFamily);
 		}
 
 		@Override

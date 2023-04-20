@@ -85,6 +85,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	private final WriteOptions writeOptions;
 	private final RocksMode rocksMode;
 	private RocksDB storage;
+	private final WriteBatch batch = new WriteBatch();
 	private ColumnFamilyHandle atomicLongsColumnFamily;
 	private final Lock mutex = new ReentrantLock();
 
@@ -271,20 +272,25 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public void flush(Iterable<Record<?>> rs, Changes changes, boolean followerApply) {
-		try (WriteBatch batch = new WriteBatch()) {
-			for (var r : rs)
-				r.flush(batch);
-			for (var it = changes.getAtomicLongs().iterator(); it.moveToNext(); ) {
+		try {
+			synchronized (batch) {
+				batch.clear();
+				for (var r : rs)
+					r.flush(batch);
 				var key = ByteBuffer.Allocate(5);
 				var value = ByteBuffer.Allocate(9);
-				key.WriteInt(it.key());
-				value.WriteLong(it.value());
-				batch.put(atomicLongsColumnFamily, key.Copy(), value.Copy());
-				if (followerApply)
-					atomicLongSet(it.key(), it.value());
+				for (var it = changes.getAtomicLongs().iterator(); it.moveToNext(); ) {
+					key.WriteIndex = 0;
+					key.WriteInt(it.key());
+					value.WriteIndex = 0;
+					value.WriteLong(it.value());
+					batch.put(atomicLongsColumnFamily, key.CopyIf(), value.CopyIf());
+					if (followerApply)
+						atomicLongSet(it.key(), it.value());
+				}
+				if (batch.count() > 0)
+					storage.write(writeOptions, batch);
 			}
-			if (batch.count() > 0)
-				storage.write(writeOptions, batch);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -430,6 +436,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				throw new RuntimeException(e);
 			} finally {
 				setRaft(null);
+				batch.close();
 				if (storage != null) {
 					storage.close();
 					storage = null;

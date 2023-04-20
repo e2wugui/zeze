@@ -122,8 +122,8 @@ public final class Record<K> {
 			int size = valueBB.WriteIndex;
 			if (size > preAllocSize)
 				value.preAllocSize(size);
-			batch.put(table.getColumnFamily(), keyBB.Copy(), valueBB.Copy());
+			batch.put(table.getColumnFamily(), keyBB.CopyIf(), valueBB.CopyIf());
 		} else
-			batch.delete(table.getColumnFamily(), keyBB.Copy());
+			batch.delete(table.getColumnFamily(), keyBB.CopyIf());
 	}
 }

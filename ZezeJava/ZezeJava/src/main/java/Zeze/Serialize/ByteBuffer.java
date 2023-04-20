@@ -249,6 +249,10 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return copy;
 	}
 
+	public byte @NotNull [] CopyIf() {
+		return WriteIndex == Bytes.length && ReadIndex == 0 ? Bytes : Copy();
+	}
+
 	public void Reset() {
 		ReadIndex = 0;
 		WriteIndex = 0;

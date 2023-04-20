@@ -66,7 +66,7 @@ public final class AutoKeyOld {
 	}
 
 	public byte[] nextBytes() {
-		return nextByteBuffer().Copy();
+		return nextByteBuffer().CopyIf();
 	}
 
 	public Binary nextBinary() {

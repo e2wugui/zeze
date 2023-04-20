@@ -129,7 +129,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareStatement("SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?")) {
-					cmd.setBytes(1, key.Copy());
+					cmd.setBytes(1, key.CopyIf());
 					try (ResultSet rs = cmd.executeQuery()) {
 						if (rs.next()) {
 							byte[] value = rs.getBytes(1);
@@ -156,8 +156,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeSaveDataWithSameVersion_(?, ?, ?, ?)}")) {
-					cmd.setBytes(1, key.Copy()); // key
-					cmd.setBytes(2, data.Copy()); // data
+					cmd.setBytes(1, key.CopyIf()); // key
+					cmd.setBytes(2, data.CopyIf()); // data
 					cmd.registerOutParameter(3, Types.BIGINT); // version (in | out)
 					cmd.setLong(3, version);
 					cmd.registerOutParameter(4, Types.INTEGER); // return code
@@ -965,7 +965,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				String sql = "SELECT value FROM " + getName() + " WHERE id = ?";
 				// 是否可以重用 SqlCommand
 				try (var cmd = connection.prepareStatement(sql)) {
-					cmd.setBytes(1, key.Copy());
+					cmd.setBytes(1, key.CopyIf());
 					try (var rs = cmd.executeQuery()) {
 						if (rs.next()) {
 							byte[] value = rs.getBytes(1);
@@ -987,7 +987,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			var my = (JdbcTrans)t;
 			String sql = "DELETE FROM " + getName() + " WHERE id=?";
 			try (var cmd = my.Connection.prepareStatement(sql)) {
-				cmd.setBytes(1, key.Copy());
+				cmd.setBytes(1, key.CopyIf());
 				cmd.executeUpdate();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
@@ -1002,8 +1002,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			var my = (JdbcTrans)t;
 			String sql = "REPLACE INTO " + getName() + " values(?, ?)";
 			try (var cmd = my.Connection.prepareStatement(sql)) {
-				cmd.setBytes(1, key.Copy());
-				cmd.setBytes(2, value.Copy());
+				cmd.setBytes(1, key.CopyIf());
+				cmd.setBytes(2, value.CopyIf());
 				cmd.executeUpdate();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);

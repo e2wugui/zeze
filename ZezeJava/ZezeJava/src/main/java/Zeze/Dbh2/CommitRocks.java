@@ -22,6 +22,7 @@ public class CommitRocks {
 	private final RocksDatabase database;
 	private final RocksDatabase.Table commitPoint;
 	private final RocksDatabase.Table commitIndex;
+	private final RocksDatabase.Batch batch;
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
 
 	public CommitRocks(Dbh2AgentManager manager) throws RocksDBException {
@@ -29,6 +30,7 @@ public class CommitRocks {
 		database = new RocksDatabase("CommitRocks");
 		commitPoint = database.openTable("CommitPoint");
 		commitIndex = database.openTable("CommitIndex");
+		batch = database.newBatch();
 	}
 
 	public Dbh2AgentManager getManager() {
@@ -36,7 +38,10 @@ public class CommitRocks {
 	}
 
 	public void close() {
-		database.close();
+		synchronized (batch) {
+			batch.close();
+			database.close();
+		}
 	}
 
 	public void setWriteOptions(WriteOptions writeOptions) {
@@ -131,8 +136,6 @@ public class CommitRocks {
 	}
 
 	private void saveCommitPoint(Binary tid, BPrepareBatches.Data batches, int state) throws RocksDBException {
-		var batch = database.newBatch();
-
 		var bState = new BTransactionState.Data();
 		bState.setState(state);
 		for (var e : batches.getDatas().entrySet()) {
@@ -140,13 +143,16 @@ public class CommitRocks {
 		}
 		var bb = ByteBuffer.Allocate();
 		bState.encode(bb);
-		commitPoint.put(batch, tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
-
 		var bbIndex = ByteBuffer.Allocate();
 		bbIndex.WriteInt(state);
-		commitIndex.put(batch, tid.bytesUnsafe(), tid.getOffset(), tid.size(), bbIndex.Bytes, bbIndex.ReadIndex, bbIndex.size());
-
-		batch.commit(writeOptions);
+		synchronized (batch) {
+			if (batch.isClosed())
+				throw new IllegalStateException("db is closed");
+			batch.clear();
+			commitPoint.put(batch, tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
+			commitIndex.put(batch, tid.bytesUnsafe(), tid.getOffset(), tid.size(), bbIndex.Bytes, bbIndex.ReadIndex, bbIndex.size());
+			batch.commit(writeOptions);
+		}
 	}
 
 	private void removeCommitIndex(Binary tid) {

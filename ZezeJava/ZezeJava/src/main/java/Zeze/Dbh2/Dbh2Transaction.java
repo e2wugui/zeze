@@ -59,7 +59,10 @@ public class Dbh2Transaction implements Closeable {
 	 * @param batch  batch
 	 */
 	public void prepareBatch(Bucket bucket, BBatch.Data batch) throws RocksDBException {
-		try (var b = bucket.getDb().newBatch()) {
+		var b = bucket.getBatch();
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (b) {
+			b.clear();
 			for (var put : batch.getPuts().entrySet()) {
 				var key = put.getKey();
 				var exist = bucket.get(key);
@@ -81,7 +84,10 @@ public class Dbh2Transaction implements Closeable {
 	}
 
 	public void undoBatch(Bucket bucket) throws RocksDBException {
-		try (var b = bucket.getDb().newBatch()) {
+		var b = bucket.getBatch();
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (b) {
+			b.clear();
 			for (var put : logs.getPuts().entrySet()) {
 				bucket.getTData().put(b, put.getKey(), put.getValue());
 			}

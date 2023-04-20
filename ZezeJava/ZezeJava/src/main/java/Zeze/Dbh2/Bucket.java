@@ -6,8 +6,6 @@ import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
 
@@ -15,11 +13,10 @@ import org.rocksdb.WriteOptions;
  * 桶管理一张表的局部范围的记录。
  */
 public class Bucket {
-	private static final Logger logger = LogManager.getLogger(Bucket.class);
-
 	private final RocksDatabase db;
 	private final RocksDatabase.Table tData;
 	private final RocksDatabase.Table tMeta;
+	private final RocksDatabase.Batch batch;
 
 	// private final HashMap<String, ColumnFamilyHandle> cfHandles = new HashMap<>();
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
@@ -44,6 +41,10 @@ public class Bucket {
 		return tData;
 	}
 
+	RocksDatabase.Batch getBatch() {
+		return batch;
+	}
+
 	public Bucket(RaftConfig raftConfig) {
 		try {
 			// 读取meta，meta创建在Bucket创建流程中写入。
@@ -51,6 +52,7 @@ public class Bucket {
 			db = new RocksDatabase(path);
 			tData = db.openTable("data");
 			tMeta = db.openTable("meta");
+			batch = db.newBatch();
 			var metaValue = tMeta.get(metaKey);
 			if (null != metaValue) {
 				var bb = ByteBuffer.Wrap(metaValue);
@@ -110,6 +112,7 @@ public class Bucket {
 	}
 
 	public void close() {
+		batch.close();
 		db.close();
 	}
 

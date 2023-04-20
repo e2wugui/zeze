@@ -379,9 +379,9 @@ public class LogSequence {
 	}
 
 	public static byte[] makeRaftsKey(int key) {
-		var bb = ByteBuffer.Allocate();
+		var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(key));
 		bb.WriteInt(key);
-		return bb.Copy();
+		return bb.CopyIf();
 	}
 
 	public LogSequence(Raft raft) throws RocksDBException {
