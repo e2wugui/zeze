@@ -68,7 +68,7 @@ public abstract class AbstractAgent implements Closeable {
 			handle.run(notify);
 			return true;
 		} catch (Exception ex) {
-			logger.error(ex);
+			logger.error("", ex);
 			return false;
 		}
 	}

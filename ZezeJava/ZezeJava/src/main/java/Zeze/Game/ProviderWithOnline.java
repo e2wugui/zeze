@@ -18,7 +18,7 @@ public class ProviderWithOnline extends ProviderImplement {
 
 	private final HashMap<String, Online> onlineSetMap = new HashMap<>();
 
-	HashMap<String, Online> getOnlineSetMap() {
+	@NotNull HashMap<String, Online> getOnlineSetMap() {
 		return onlineSetMap;
 	}
 

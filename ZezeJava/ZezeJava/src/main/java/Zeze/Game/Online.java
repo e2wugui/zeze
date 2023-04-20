@@ -29,7 +29,6 @@ import Zeze.Builtin.Game.Online.tonline;
 import Zeze.Builtin.Game.Online.tversion;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
-import Zeze.Builtin.Provider.BUserState;
 import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
@@ -68,7 +67,7 @@ public class Online extends AbstractOnline {
 	static @Nullable Online instance;
 
 	public final @NotNull ProviderApp providerApp;
-	private @NotNull ProviderLoad load;
+	private @Nullable ProviderLoad load;
 	private final AtomicLong loginTimes = new AtomicLong();
 
 	private final EventDispatcher loginEvents = new EventDispatcher("Online.Login");
@@ -93,11 +92,11 @@ public class Online extends AbstractOnline {
 		return GenModule.createRedirectModule(Online.class, app).initializeDefault();
 	}
 
-	public static long getSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(@NotNull Bean bean) {
 		return bean.typeId();
 	}
 
-	public @NotNull ProviderLoad getLoad() {
+	public @Nullable ProviderLoad getLoad() {
 		return load;
 	}
 
@@ -113,25 +112,25 @@ public class Online extends AbstractOnline {
 
 	protected Online(@NotNull AppBase app) {
 		providerApp = app.getZeze().redirect.providerApp;
-		instance = this;
 	}
 
-	private Online initializeDefault() {
+	private @NotNull Online initializeDefault() {
 		if (null != getOnlineSetMap().putIfAbsent("", this))
-			throw new RuntimeException("duplicate default");
+			throw new IllegalStateException("duplicate default");
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
 		load = new ProviderLoad(this);
+		instance = this;
 		return this;
 	}
 
-	private HashMap<String, Online> getOnlineSetMap() {
+	private @NotNull HashMap<String, Online> getOnlineSetMap() {
 		return ((ProviderWithOnline)providerApp.providerImplement).getOnlineSetMap();
 	}
 
-	private Online initializeSpecial(String onlineSetName) {
+	private @NotNull Online initializeSpecial(@NotNull String onlineSetName) {
 		if (null != getOnlineSetMap().putIfAbsent(onlineSetName, this))
-			throw new RuntimeException("duplicate name=" + onlineSetName);
+			throw new IllegalStateException("duplicate name=" + onlineSetName);
 		super.multiInstanceName = onlineSetName; // 必须在注册前设置。
 		RegisterZezeTables(providerApp.zeze);
 		//load = new ProviderLoad(this); // todo 需要修改，load报告在多实例下应该不能工作。
@@ -140,17 +139,20 @@ public class Online extends AbstractOnline {
 
 	/**
 	 * 创建新的在线集合，必须在App.Start流程中，紧接着默认Online的创建，马上创建其他的在线集合。
+	 *
 	 * @param name 在线集合名字
 	 * @return 返回新建的在线集合实例。返回值可以保存下来。
 	 */
-	public Online createOnlineSet(AppBase app, String name) {
+	public @NotNull Online createOnlineSet(@NotNull AppBase app, @NotNull String name) {
+		if (name.isEmpty())
+			throw new IllegalArgumentException("empty name");
 		if (!multiInstanceName.isEmpty())
-			throw new UnsupportedOperationException();
+			throw new IllegalStateException("must be called by default online");
 		var multi = GenModule.createRedirectModule(Online.class, app);
 		return multi.initializeSpecial(name);
 	}
 
-	public Online getOnlineSet(String name) {
+	public @Nullable Online getOnlineSet(String name) {
 		return getOnlineSetMap().get(name);
 	}
 
@@ -338,15 +340,18 @@ public class Online extends AbstractOnline {
 		return true;
 	}
 
-	private tversion _tversion(String instanceName) {
+	private @NotNull tversion _tversion(String instanceName) {
+		//noinspection DataFlowIssue
 		return getOnlineSet(instanceName)._tversion;
 	}
 
-	private tonline _tonline(String instanceName) {
+	private @NotNull tonline _tonline(String instanceName) {
+		//noinspection DataFlowIssue
 		return getOnlineSet(instanceName)._tonline;
 	}
 
-	private tlocal _tlocal(String instanceName) {
+	private @NotNull tlocal _tlocal(String instanceName) {
+		//noinspection DataFlowIssue
 		return getOnlineSet(instanceName)._tlocal;
 	}
 

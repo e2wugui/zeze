@@ -424,6 +424,7 @@ namespace Zeze.Gen.java
         {
             if (module.MultiInstance)
             {
+                sw.WriteLine();
                 sw.WriteLine($"    protected String multiInstanceName = \"\";");
             }
 

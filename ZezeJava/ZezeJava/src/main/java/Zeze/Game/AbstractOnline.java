@@ -19,6 +19,7 @@ public abstract class AbstractOnline implements Zeze.IModule {
     public static final int ResultCodeOnlineDataNotFound = 5;
     public static final int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
     public static final int ResultCodeNotLogin = 7;
+
     protected String multiInstanceName = "";
 
     protected final Zeze.Builtin.Game.Online.tlocal _tlocal = new Zeze.Builtin.Game.Online.tlocal();
