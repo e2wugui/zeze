@@ -35,6 +35,14 @@ namespace Zeze.Gen.java
             sw.WriteLine("        super(\"" + table.Space.Path("_", table.Name) + "\");");
             sw.WriteLine("    }");
             sw.WriteLine();
+            sw.WriteLine("    public " + table.Name + "(String suffix) {");
+            sw.WriteLine("        super(\"" + table.Space.Path("_", table.Name) + "\" + suffix);");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public String getOriginName() {");
+            sw.WriteLine("        return \"" + table.Space.Path("_", table.Name) + "\";");
+            sw.WriteLine("    }");
+            sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public int getId() {");
             sw.WriteLine($"        return {table.Id};");

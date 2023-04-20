@@ -13,6 +13,14 @@ public final class tEventClasses extends TableX<Integer, Zeze.Builtin.Game.TaskB
         super("Zeze_Builtin_Game_TaskBase_tEventClasses");
     }
 
+    public tEventClasses(String suffix) {
+        super("Zeze_Builtin_Game_TaskBase_tEventClasses" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Game_TaskBase_tEventClasses";
+    }
+
     @Override
     public int getId() {
         return -1631158308;

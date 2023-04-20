@@ -8,6 +8,5 @@ public interface BSetUserStateReadOnly {
     BSetUserState copy();
 
     long getLinkSid();
-    String getContext();
-    Zeze.Net.Binary getContextx();
+    Zeze.Builtin.Provider.BUserStateReadOnly getUserStateReadOnly();
 }

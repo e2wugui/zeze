@@ -3,11 +3,11 @@ public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
     private final Zeze.Arch.RedirectBase _redirect_;
 
     @Override
-    protected void redirectRemoveLocal(int serverId, long roleId) {
+    protected void redirectRemoveLocal(int serverId, long roleId, String instanceName) {
         var _t_ = _redirect_.choiceServer(this, serverId);
         if (_t_ == null) { // local: loop-back
             _redirect_.runVoid(Zeze.Transaction.TransactionLevel.None,
-                () -> super.redirectRemoveLocal(serverId, roleId));
+                () -> super.redirectRemoveLocal(serverId, roleId, instanceName));
             return;
         }
 
@@ -20,6 +20,7 @@ public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
         _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
         _b_.WriteLong(roleId);
+        _b_.WriteString(instanceName);
         _a_.setParams(new Zeze.Net.Binary(_b_));
 
         _p_.Send(_t_, null);
@@ -33,9 +34,11 @@ public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
         _app_.getZeze().redirect.handles.put("Zeze.Game.Online:redirectRemoveLocal", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.None, (_hash_, _params_) -> {
                 long roleId;
+                String instanceName;
                 var _b_ = _params_.Wrap();
                 roleId = _b_.ReadLong();
-                super.redirectRemoveLocal(_hash_, roleId);
+                instanceName = _b_.ReadString();
+                super.redirectRemoveLocal(_hash_, roleId, instanceName);
                 return null;
             }, null));
     }

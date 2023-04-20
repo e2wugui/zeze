@@ -12,6 +12,14 @@ public final class tAccountTimers extends TableX<String, Zeze.Builtin.Timer.BArc
         super("Zeze_Builtin_Timer_tAccountTimers");
     }
 
+    public tAccountTimers(String suffix) {
+        super("Zeze_Builtin_Timer_tAccountTimers" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Timer_tAccountTimers";
+    }
+
     @Override
     public int getId() {
         return 1803422289;

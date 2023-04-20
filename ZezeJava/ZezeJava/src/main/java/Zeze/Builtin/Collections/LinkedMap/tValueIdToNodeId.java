@@ -12,6 +12,14 @@ public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.Link
         super("Zeze_Builtin_Collections_LinkedMap_tValueIdToNodeId");
     }
 
+    public tValueIdToNodeId(String suffix) {
+        super("Zeze_Builtin_Collections_LinkedMap_tValueIdToNodeId" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Collections_LinkedMap_tValueIdToNodeId";
+    }
+
     @Override
     public int getId() {
         return -1128401683;

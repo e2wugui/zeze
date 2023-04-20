@@ -13,6 +13,14 @@ public final class tCustomClasses extends TableX<Integer, Zeze.Builtin.Timer.BCu
         super("Zeze_Builtin_Timer_tCustomClasses");
     }
 
+    public tCustomClasses(String suffix) {
+        super("Zeze_Builtin_Timer_tCustomClasses" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Timer_tCustomClasses";
+    }
+
     @Override
     public int getId() {
         return -1904799209;

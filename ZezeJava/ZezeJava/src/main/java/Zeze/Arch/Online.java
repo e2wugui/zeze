@@ -22,6 +22,7 @@ import Zeze.Builtin.Online.BVersions;
 import Zeze.Builtin.Online.SReliableNotify;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
+import Zeze.Builtin.Provider.BUserState;
 import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
@@ -557,7 +558,10 @@ public class Online extends AbstractOnline {
 	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, LoginKey> contexts) {
 		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
 			var ctx = contexts.get(sid);
-			return ctx != null ? linkBroken(ctx.account, ctx.clientId, linkName, sid) : 0;
+			if (ctx != null) {
+				return linkBroken(ctx.account, ctx.clientId, linkName, sid);
+			}
+			return 0;
 		}, "Online.triggerLinkBroken").call());
 		return 0;
 	}
@@ -1125,17 +1129,18 @@ public class Online extends AbstractOnline {
 		}
 
 		// 开始登录流程，先准备 link-state。
-		Transaction.whileCommit(() -> {
-			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.setContext(rpc.Argument.getClientId());
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
-		});
-
 		var loginVersionSerialId = version.getLastLoginVersion() + 1;
 		version.setLastLoginVersion(loginVersionSerialId);
 		loginVersion.setLoginVersion(loginVersionSerialId);
 		loginLocal.setLoginVersion(loginVersionSerialId);
+
+		Transaction.whileCommit(() -> {
+			var setUserState = new SetUserState();
+			setUserState.Argument.setLinkSid(session.getLinkSid());
+			//setUserState.Argument.getUserState().setLoginVersion(loginVersionSerialId);
+			setUserState.Argument.getUserState().setContext(rpc.Argument.getClientId());
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
+		});
 
 		/////////////////////////////////////////////////////////////
 		// 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。
@@ -1199,17 +1204,18 @@ public class Online extends AbstractOnline {
 		}
 
 		// 开始登录流程，先准备 link-state。
-		Transaction.whileCommit(() -> {
-			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.setContext(rpc.Argument.getClientId());
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
-		});
-
 		var loginVersionSerialId = version.getLastLoginVersion() + 1;
 		version.setLastLoginVersion(loginVersionSerialId);
 		loginVersion.setLoginVersion(loginVersionSerialId);
 		loginLocal.setLoginVersion(loginVersionSerialId);
+
+		Transaction.whileCommit(() -> {
+			var setUserState = new SetUserState();
+			setUserState.Argument.setLinkSid(session.getLinkSid());
+			//setUserState.Argument.getUserState().setLoginVersion(loginVersionSerialId);
+			setUserState.Argument.getUserState().setContext(rpc.Argument.getClientId());
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
+		});
 
 		/////////////////////////////////////////////////////////////
 		// 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。

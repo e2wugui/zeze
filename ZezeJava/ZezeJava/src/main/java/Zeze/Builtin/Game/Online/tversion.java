@@ -12,6 +12,14 @@ public final class tversion extends TableX<Long, Zeze.Builtin.Game.Online.BVersi
         super("Zeze_Builtin_Game_Online_tversion");
     }
 
+    public tversion(String suffix) {
+        super("Zeze_Builtin_Game_Online_tversion" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Game_Online_tversion";
+    }
+
     @Override
     public int getId() {
         return -1673876055;

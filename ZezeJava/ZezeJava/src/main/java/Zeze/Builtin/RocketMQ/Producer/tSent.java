@@ -12,6 +12,14 @@ public final class tSent extends TableX<String, Zeze.Builtin.RocketMQ.Producer.B
         super("Zeze_Builtin_RocketMQ_Producer_tSent");
     }
 
+    public tSent(String suffix) {
+        super("Zeze_Builtin_RocketMQ_Producer_tSent" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_RocketMQ_Producer_tSent";
+    }
+
     @Override
     public int getId() {
         return 1695098005;

@@ -14,8 +14,8 @@ public class ProviderWithOnline extends ProviderImplement {
 	@Override
 	protected long ProcessLinkBroken(LinkBroken p) throws Exception {
 		// 目前仅需设置online状态。
-		if (!p.Argument.getContext().isEmpty()) {
-			online.linkBroken(p.Argument.getAccount(), p.Argument.getContext(),
+		if (!p.Argument.getUserState().getContext().isEmpty()) {
+			online.linkBroken(p.Argument.getAccount(), p.Argument.getUserState().getContext(),
 					ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;

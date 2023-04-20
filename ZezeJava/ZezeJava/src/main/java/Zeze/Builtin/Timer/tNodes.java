@@ -12,6 +12,14 @@ public final class tNodes extends TableX<Long, Zeze.Builtin.Timer.BNode>
         super("Zeze_Builtin_Timer_tNodes");
     }
 
+    public tNodes(String suffix) {
+        super("Zeze_Builtin_Timer_tNodes" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Timer_tNodes";
+    }
+
     @Override
     public int getId() {
         return 453698467;

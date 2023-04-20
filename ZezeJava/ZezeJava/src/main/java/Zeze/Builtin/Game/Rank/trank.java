@@ -12,6 +12,14 @@ public final class trank extends TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Z
         super("Zeze_Builtin_Game_Rank_trank");
     }
 
+    public trank(String suffix) {
+        super("Zeze_Builtin_Game_Rank_trank" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Game_Rank_trank";
+    }
+
     @Override
     public int getId() {
         return -2043108039;

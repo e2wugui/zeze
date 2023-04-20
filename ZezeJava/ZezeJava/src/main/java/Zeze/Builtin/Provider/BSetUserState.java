@@ -8,8 +8,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
     public static final long TYPEID = -4860388989628287875L;
 
     private long _linkSid;
-    private String _context;
-    private Zeze.Net.Binary _contextx;
+    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Provider.BUserState> _userState;
 
     @Override
     public long getLinkSid() {
@@ -31,71 +30,35 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         txn.putLog(new Log__linkSid(this, 1, value));
     }
 
-    @Override
-    public String getContext() {
-        if (!isManaged())
-            return _context;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _context;
-        var log = (Log__context)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _context;
+    public Zeze.Builtin.Provider.BUserState getUserState() {
+        return _userState.getValue();
     }
 
-    public void setContext(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _context = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__context(this, 2, value));
+    public void setUserState(Zeze.Builtin.Provider.BUserState value) {
+        _userState.setValue(value);
     }
 
     @Override
-    public Zeze.Net.Binary getContextx() {
-        if (!isManaged())
-            return _contextx;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _contextx;
-        var log = (Log__contextx)txn.getLog(objectId() + 3);
-        return log != null ? log.value : _contextx;
-    }
-
-    public void setContextx(Zeze.Net.Binary value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _contextx = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__contextx(this, 3, value));
+    public Zeze.Builtin.Provider.BUserStateReadOnly getUserStateReadOnly() {
+        return _userState.getValue();
     }
 
     @SuppressWarnings("deprecation")
     public BSetUserState() {
-        _context = "";
-        _contextx = Zeze.Net.Binary.Empty;
+        _userState = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BUserState(), Zeze.Builtin.Provider.BUserState.class);
+        _userState.variableId(2);
     }
 
     @SuppressWarnings("deprecation")
-    public BSetUserState(long _linkSid_, String _context_, Zeze.Net.Binary _contextx_) {
+    public BSetUserState(long _linkSid_) {
         _linkSid = _linkSid_;
-        if (_context_ == null)
-            throw new IllegalArgumentException();
-        _context = _context_;
-        if (_contextx_ == null)
-            throw new IllegalArgumentException();
-        _contextx = _contextx_;
+        _userState = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BUserState(), Zeze.Builtin.Provider.BUserState.class);
+        _userState.variableId(2);
     }
 
     public void assign(BSetUserState other) {
         setLinkSid(other.getLinkSid());
-        setContext(other.getContext());
-        setContextx(other.getContextx());
+        _userState.assign(other._userState);
     }
 
     public BSetUserState copyIfManaged() {
@@ -127,20 +90,6 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         public void commit() { ((BSetUserState)getBelong())._linkSid = value; }
     }
 
-    private static final class Log__context extends Zeze.Transaction.Logs.LogString {
-        public Log__context(BSetUserState bean, int varId, String value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BSetUserState)getBelong())._context = value; }
-    }
-
-    private static final class Log__contextx extends Zeze.Transaction.Logs.LogBinary {
-        public Log__contextx(BSetUserState bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BSetUserState)getBelong())._contextx = value; }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -153,8 +102,9 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSetUserState: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("linkSid=").append(getLinkSid()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("context=").append(getContext()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("contextx=").append(getContextx()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("userState=").append(System.lineSeparator());
+        _userState.buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -182,18 +132,14 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
             }
         }
         {
-            String _x_ = getContext();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
-        }
-        {
-            var _x_ = getContextx();
-            if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
-                _o_.WriteBinary(_x_);
-            }
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 2, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            _userState.encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
         }
         _o_.WriteByte(0);
     }
@@ -207,17 +153,23 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setContext(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            setContextx(_o_.ReadBinary(_t_));
+            _o_.ReadBean(_userState, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _userState.initRootInfo(root, this);
+    }
+
+    @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _userState.initRootInfoWithRedo(root, this);
     }
 
     @Override
@@ -237,8 +189,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _linkSid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _context = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _contextx = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 2: _userState.followerApply(vlog); break;
             }
         }
     }
@@ -247,19 +198,17 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setLinkSid(rs.getLong(_parents_name_ + "linkSid"));
-        setContext(rs.getString(_parents_name_ + "context"));
-        if (getContext() == null)
-            setContext("");
-        setContextx(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "contextx")));
-        if (getContextx() == null)
-            setContextx(Zeze.Net.Binary.Empty);
+        parents.add("userState");
+        getUserState().decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "linkSid", getLinkSid());
-        st.appendString(_parents_name_ + "context", getContext());
-        st.appendBinary(_parents_name_ + "contextx", getContextx());
+        parents.add("userState");
+        getUserState().encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
     }
 }

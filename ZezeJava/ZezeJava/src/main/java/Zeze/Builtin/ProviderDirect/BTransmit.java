@@ -11,6 +11,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     private final Zeze.Transaction.Collections.PSet1<Long> _Roles; // 查询目标角色。
     private long _Sender; // 结果发送给Sender。
     private Zeze.Net.Binary _Parameter; // encoded bean
+    private String _OnlineSetName;
 
     @Override
     public String getActionName() {
@@ -85,16 +86,39 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         txn.putLog(new Log__Parameter(this, 4, value));
     }
 
+    @Override
+    public String getOnlineSetName() {
+        if (!isManaged())
+            return _OnlineSetName;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _OnlineSetName;
+        var log = (Log__OnlineSetName)txn.getLog(objectId() + 5);
+        return log != null ? log.value : _OnlineSetName;
+    }
+
+    public void setOnlineSetName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _OnlineSetName = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__OnlineSetName(this, 5, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BTransmit() {
         _ActionName = "";
         _Roles = new Zeze.Transaction.Collections.PSet1<>(Long.class);
         _Roles.variableId(2);
         _Parameter = Zeze.Net.Binary.Empty;
+        _OnlineSetName = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BTransmit(String _ActionName_, long _Sender_, Zeze.Net.Binary _Parameter_) {
+    public BTransmit(String _ActionName_, long _Sender_, Zeze.Net.Binary _Parameter_, String _OnlineSetName_) {
         if (_ActionName_ == null)
             throw new IllegalArgumentException();
         _ActionName = _ActionName_;
@@ -104,6 +128,9 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         if (_Parameter_ == null)
             throw new IllegalArgumentException();
         _Parameter = _Parameter_;
+        if (_OnlineSetName_ == null)
+            throw new IllegalArgumentException();
+        _OnlineSetName = _OnlineSetName_;
     }
 
     public void assign(BTransmit other) {
@@ -112,6 +139,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         _Roles.addAll(other.getRoles());
         setSender(other.getSender());
         setParameter(other.getParameter());
+        setOnlineSetName(other.getOnlineSetName());
     }
 
     public BTransmit copyIfManaged() {
@@ -157,6 +185,13 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         public void commit() { ((BTransmit)getBelong())._Parameter = value; }
     }
 
+    private static final class Log__OnlineSetName extends Zeze.Transaction.Logs.LogString {
+        public Log__OnlineSetName(BTransmit bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BTransmit)getBelong())._OnlineSetName = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -181,7 +216,8 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         }
         sb.append('}').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Sender=").append(getSender()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Parameter=").append(getParameter()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Parameter=").append(getParameter()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OnlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -232,6 +268,13 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
                 _o_.WriteBinary(_x_);
             }
         }
+        {
+            String _x_ = getOnlineSetName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -259,6 +302,10 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         }
         if (_i_ == 4) {
             setParameter(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            setOnlineSetName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -301,6 +348,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
                 case 2: _Roles.followerApply(vlog); break;
                 case 3: _Sender = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 4: _Parameter = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 5: _OnlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -316,6 +364,9 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         setParameter(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Parameter")));
         if (getParameter() == null)
             setParameter(Zeze.Net.Binary.Empty);
+        setOnlineSetName(rs.getString(_parents_name_ + "OnlineSetName"));
+        if (getOnlineSetName() == null)
+            setOnlineSetName("");
     }
 
     @Override
@@ -325,5 +376,6 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         st.appendString(_parents_name_ + "Roles", Zeze.Serialize.Helper.encodeJson(getRoles()));
         st.appendLong(_parents_name_ + "Sender", getSender());
         st.appendBinary(_parents_name_ + "Parameter", getParameter());
+        st.appendString(_parents_name_ + "OnlineSetName", getOnlineSetName());
     }
 }

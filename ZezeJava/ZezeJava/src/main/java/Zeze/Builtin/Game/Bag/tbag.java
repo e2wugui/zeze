@@ -13,6 +13,14 @@ public final class tbag extends TableX<String, Zeze.Builtin.Game.Bag.BBag>
         super("Zeze_Builtin_Game_Bag_tbag");
     }
 
+    public tbag(String suffix) {
+        super("Zeze_Builtin_Game_Bag_tbag" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Game_Bag_tbag";
+    }
+
     @Override
     public int getId() {
         return 863603985;

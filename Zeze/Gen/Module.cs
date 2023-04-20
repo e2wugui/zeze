@@ -12,6 +12,7 @@ namespace Zeze.Gen
 
         public readonly string WebPathBase;
         public readonly string ClassBase;
+        public readonly bool MultiInstance = false;
 
         public void SetReferenceService(Service service)
         {
@@ -57,6 +58,7 @@ namespace Zeze.Gen
             Program.AddNamedObject(Path(".", $"Module{Name}"), this);
             Program.AddNamedObject(Path(".", "AbstractModule"), this);
             WebPathBase = self.GetAttribute("WebPathBase");
+            MultiInstance = self.GetAttribute("MultiInstance").Equals("true");
             ClassBase = self.GetAttribute("base");
             if (WebPathBase.Length > 0 && false == WebPathBase.EndsWith("/"))
                 WebPathBase += "/";

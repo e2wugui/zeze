@@ -12,8 +12,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     private String _account;
     private long _linkSid;
     private int _reason;
-    private String _context; // SetUserState
-    private Zeze.Net.Binary _contextx; // SetUserState
+    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Provider.BUserState> _userState;
 
     @Override
     public String getAccount() {
@@ -77,78 +76,42 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         txn.putLog(new Log__reason(this, 3, value));
     }
 
-    @Override
-    public String getContext() {
-        if (!isManaged())
-            return _context;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _context;
-        var log = (Log__context)txn.getLog(objectId() + 5);
-        return log != null ? log.value : _context;
+    public Zeze.Builtin.Provider.BUserState getUserState() {
+        return _userState.getValue();
     }
 
-    public void setContext(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _context = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__context(this, 5, value));
+    public void setUserState(Zeze.Builtin.Provider.BUserState value) {
+        _userState.setValue(value);
     }
 
     @Override
-    public Zeze.Net.Binary getContextx() {
-        if (!isManaged())
-            return _contextx;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _contextx;
-        var log = (Log__contextx)txn.getLog(objectId() + 6);
-        return log != null ? log.value : _contextx;
-    }
-
-    public void setContextx(Zeze.Net.Binary value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _contextx = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__contextx(this, 6, value));
+    public Zeze.Builtin.Provider.BUserStateReadOnly getUserStateReadOnly() {
+        return _userState.getValue();
     }
 
     @SuppressWarnings("deprecation")
     public BLinkBroken() {
         _account = "";
-        _context = "";
-        _contextx = Zeze.Net.Binary.Empty;
+        _userState = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BUserState(), Zeze.Builtin.Provider.BUserState.class);
+        _userState.variableId(4);
     }
 
     @SuppressWarnings("deprecation")
-    public BLinkBroken(String _account_, long _linkSid_, int _reason_, String _context_, Zeze.Net.Binary _contextx_) {
+    public BLinkBroken(String _account_, long _linkSid_, int _reason_) {
         if (_account_ == null)
             throw new IllegalArgumentException();
         _account = _account_;
         _linkSid = _linkSid_;
         _reason = _reason_;
-        if (_context_ == null)
-            throw new IllegalArgumentException();
-        _context = _context_;
-        if (_contextx_ == null)
-            throw new IllegalArgumentException();
-        _contextx = _contextx_;
+        _userState = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BUserState(), Zeze.Builtin.Provider.BUserState.class);
+        _userState.variableId(4);
     }
 
     public void assign(BLinkBroken other) {
         setAccount(other.getAccount());
         setLinkSid(other.getLinkSid());
         setReason(other.getReason());
-        setContext(other.getContext());
-        setContextx(other.getContextx());
+        _userState.assign(other._userState);
     }
 
     public BLinkBroken copyIfManaged() {
@@ -194,20 +157,6 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         public void commit() { ((BLinkBroken)getBelong())._reason = value; }
     }
 
-    private static final class Log__context extends Zeze.Transaction.Logs.LogString {
-        public Log__context(BLinkBroken bean, int varId, String value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BLinkBroken)getBelong())._context = value; }
-    }
-
-    private static final class Log__contextx extends Zeze.Transaction.Logs.LogBinary {
-        public Log__contextx(BLinkBroken bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BLinkBroken)getBelong())._contextx = value; }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -222,8 +171,9 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         sb.append(Zeze.Util.Str.indent(level)).append("account=").append(getAccount()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("linkSid=").append(getLinkSid()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("reason=").append(getReason()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("context=").append(getContext()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("contextx=").append(getContextx()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("userState=").append(System.lineSeparator());
+        _userState.buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -265,18 +215,14 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
             }
         }
         {
-            String _x_ = getContext();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
-        }
-        {
-            var _x_ = getContextx();
-            if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
-                _o_.WriteBinary(_x_);
-            }
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 4, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            _userState.encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
         }
         _o_.WriteByte(0);
     }
@@ -297,22 +243,24 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
             setReason(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while ((_t_ & 0xff) > 1 && _i_ < 5) {
-            _o_.SkipUnknownField(_t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 5) {
-            setContext(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 6) {
-            setContextx(_o_.ReadBinary(_t_));
+        if (_i_ == 4) {
+            _o_.ReadBean(_userState, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _userState.initRootInfo(root, this);
+    }
+
+    @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _userState.initRootInfoWithRedo(root, this);
     }
 
     @Override
@@ -336,8 +284,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
                 case 1: _account = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 2: _linkSid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 3: _reason = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 5: _context = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 6: _contextx = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 4: _userState.followerApply(vlog); break;
             }
         }
     }
@@ -350,12 +297,9 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
             setAccount("");
         setLinkSid(rs.getLong(_parents_name_ + "linkSid"));
         setReason(rs.getInt(_parents_name_ + "reason"));
-        setContext(rs.getString(_parents_name_ + "context"));
-        if (getContext() == null)
-            setContext("");
-        setContextx(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "contextx")));
-        if (getContextx() == null)
-            setContextx(Zeze.Net.Binary.Empty);
+        parents.add("userState");
+        getUserState().decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
     }
 
     @Override
@@ -364,7 +308,8 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         st.appendString(_parents_name_ + "account", getAccount());
         st.appendLong(_parents_name_ + "linkSid", getLinkSid());
         st.appendInt(_parents_name_ + "reason", getReason());
-        st.appendString(_parents_name_ + "context", getContext());
-        st.appendBinary(_parents_name_ + "contextx", getContextx());
+        parents.add("userState");
+        getUserState().encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
     }
 }

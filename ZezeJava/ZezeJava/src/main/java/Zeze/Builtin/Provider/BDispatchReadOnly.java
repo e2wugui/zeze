@@ -14,4 +14,5 @@ public interface BDispatchReadOnly {
     Zeze.Net.Binary getProtocolData();
     String getContext();
     Zeze.Net.Binary getContextx();
+    String getOnlineSetName();
 }

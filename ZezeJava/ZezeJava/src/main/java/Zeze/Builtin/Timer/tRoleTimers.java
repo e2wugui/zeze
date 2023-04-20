@@ -12,6 +12,14 @@ public final class tRoleTimers extends TableX<String, Zeze.Builtin.Timer.BGameOn
         super("Zeze_Builtin_Timer_tRoleTimers");
     }
 
+    public tRoleTimers(String suffix) {
+        super("Zeze_Builtin_Timer_tRoleTimers" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Timer_tRoleTimers";
+    }
+
     @Override
     public int getId() {
         return -218884023;

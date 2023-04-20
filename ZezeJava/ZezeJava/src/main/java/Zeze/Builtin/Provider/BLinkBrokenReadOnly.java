@@ -10,6 +10,5 @@ public interface BLinkBrokenReadOnly {
     String getAccount();
     long getLinkSid();
     int getReason();
-    String getContext();
-    Zeze.Net.Binary getContextx();
+    Zeze.Builtin.Provider.BUserStateReadOnly getUserStateReadOnly();
 }

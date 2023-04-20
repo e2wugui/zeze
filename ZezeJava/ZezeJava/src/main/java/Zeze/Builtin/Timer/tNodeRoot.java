@@ -13,6 +13,14 @@ public final class tNodeRoot extends TableX<Integer, Zeze.Builtin.Timer.BNodeRoo
         super("Zeze_Builtin_Timer_tNodeRoot");
     }
 
+    public tNodeRoot(String suffix) {
+        super("Zeze_Builtin_Timer_tNodeRoot" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Timer_tNodeRoot";
+    }
+
     @Override
     public int getId() {
         return 1952520306;

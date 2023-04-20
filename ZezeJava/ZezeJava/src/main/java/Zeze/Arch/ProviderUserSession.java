@@ -42,6 +42,10 @@ public class ProviderUserSession {
 		return dispatch.Argument.getContext();
 	}
 
+	public String getOnlineSetName() {
+		return dispatch.Argument.getOnlineSetName();
+	}
+
 	public boolean isLogin() {
 		return getContext().isEmpty();
 	}
@@ -101,7 +105,8 @@ public class ProviderUserSession {
 	protected boolean sendOnline(AsyncSocket link, @NotNull Send send) {
 		var providerImpl = getService().providerApp.providerImplement;
 		if (providerImpl instanceof ProviderWithOnline) {
-			var online = ((ProviderWithOnline)providerImpl).getOnline();
+			var defaultOnline = ((ProviderWithOnline)providerImpl).getOnline();
+			var online = defaultOnline.getOnlineSet(dispatch.Argument.getOnlineSetName());
 			var roleId = getRoleId();
 			if (roleId != null)
 				return online.send(/*List.of(roleId),*/link, Map.of(getLinkSid(), roleId), send);

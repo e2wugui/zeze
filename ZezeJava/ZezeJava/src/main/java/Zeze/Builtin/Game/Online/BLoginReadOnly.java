@@ -9,4 +9,5 @@ public interface BLoginReadOnly {
     BLogin copy();
 
     long getRoleId();
+    String getOnlineSetName();
 }

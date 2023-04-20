@@ -13,6 +13,14 @@ public final class tEdge extends TableX<Zeze.Builtin.Collections.DAG.BDAGEdgeKey
         super("Zeze_Builtin_Collections_DAG_tEdge");
     }
 
+    public tEdge(String suffix) {
+        super("Zeze_Builtin_Collections_DAG_tEdge" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Collections_DAG_tEdge";
+    }
+
     @Override
     public int getId() {
         return 1544681320;

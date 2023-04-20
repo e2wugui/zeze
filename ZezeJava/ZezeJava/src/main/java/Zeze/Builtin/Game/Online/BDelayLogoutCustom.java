@@ -9,6 +9,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
 
     private long _RoleId;
     private long _LoginVersion;
+    private String _OnlineSetName;
 
     @Override
     public long getRoleId() {
@@ -50,19 +51,46 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         txn.putLog(new Log__LoginVersion(this, 2, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BDelayLogoutCustom() {
+    @Override
+    public String getOnlineSetName() {
+        if (!isManaged())
+            return _OnlineSetName;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _OnlineSetName;
+        var log = (Log__OnlineSetName)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _OnlineSetName;
+    }
+
+    public void setOnlineSetName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _OnlineSetName = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__OnlineSetName(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BDelayLogoutCustom(long _RoleId_, long _LoginVersion_) {
+    public BDelayLogoutCustom() {
+        _OnlineSetName = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BDelayLogoutCustom(long _RoleId_, long _LoginVersion_, String _OnlineSetName_) {
         _RoleId = _RoleId_;
         _LoginVersion = _LoginVersion_;
+        if (_OnlineSetName_ == null)
+            throw new IllegalArgumentException();
+        _OnlineSetName = _OnlineSetName_;
     }
 
     public void assign(BDelayLogoutCustom other) {
         setRoleId(other.getRoleId());
         setLoginVersion(other.getLoginVersion());
+        setOnlineSetName(other.getOnlineSetName());
     }
 
     public BDelayLogoutCustom copyIfManaged() {
@@ -101,6 +129,13 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         public void commit() { ((BDelayLogoutCustom)getBelong())._LoginVersion = value; }
     }
 
+    private static final class Log__OnlineSetName extends Zeze.Transaction.Logs.LogString {
+        public Log__OnlineSetName(BDelayLogoutCustom bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BDelayLogoutCustom)getBelong())._OnlineSetName = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -113,7 +148,8 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BDelayLogoutCustom: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("RoleId=").append(getRoleId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion=").append(getLoginVersion()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion=").append(getLoginVersion()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OnlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -147,6 +183,13 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            String _x_ = getOnlineSetName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -160,6 +203,10 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         }
         if (_i_ == 2) {
             setLoginVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setOnlineSetName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -188,6 +235,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
             switch (vlog.getVariableId()) {
                 case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _OnlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -197,6 +245,9 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setRoleId(rs.getLong(_parents_name_ + "RoleId"));
         setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
+        setOnlineSetName(rs.getString(_parents_name_ + "OnlineSetName"));
+        if (getOnlineSetName() == null)
+            setOnlineSetName("");
     }
 
     @Override
@@ -204,5 +255,6 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "RoleId", getRoleId());
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
+        st.appendString(_parents_name_ + "OnlineSetName", getOnlineSetName());
     }
 }

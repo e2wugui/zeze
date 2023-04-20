@@ -13,6 +13,14 @@ public final class tDepartment extends TableX<String, Zeze.Builtin.Collections.D
         super("Zeze_Builtin_Collections_DepartmentTree_tDepartment");
     }
 
+    public tDepartment(String suffix) {
+        super("Zeze_Builtin_Collections_DepartmentTree_tDepartment" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Collections_DepartmentTree_tDepartment";
+    }
+
     @Override
     public int getId() {
         return -1108948075;

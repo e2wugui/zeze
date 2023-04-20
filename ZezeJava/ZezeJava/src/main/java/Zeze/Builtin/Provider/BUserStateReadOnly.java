@@ -1,13 +1,13 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Game.Online;
+package Zeze.Builtin.Provider;
 
-public interface BReLoginReadOnly {
+public interface BUserStateReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BReLogin copy();
+    BUserState copy();
 
-    long getRoleId();
-    long getReliableNotifyConfirmIndex();
+    String getContext();
+    Zeze.Net.Binary getContextx();
     String getOnlineSetName();
 }

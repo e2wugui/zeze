@@ -9,6 +9,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     public static final long TYPEID = 4454573042979027680L;
 
     private long _RoleId;
+    private String _OnlineSetName;
 
     @Override
     public long getRoleId() {
@@ -30,17 +31,44 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         txn.putLog(new Log__RoleId(this, 1, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BLogin() {
+    @Override
+    public String getOnlineSetName() {
+        if (!isManaged())
+            return _OnlineSetName;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _OnlineSetName;
+        var log = (Log__OnlineSetName)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _OnlineSetName;
+    }
+
+    public void setOnlineSetName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _OnlineSetName = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__OnlineSetName(this, 2, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BLogin(long _RoleId_) {
+    public BLogin() {
+        _OnlineSetName = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BLogin(long _RoleId_, String _OnlineSetName_) {
         _RoleId = _RoleId_;
+        if (_OnlineSetName_ == null)
+            throw new IllegalArgumentException();
+        _OnlineSetName = _OnlineSetName_;
     }
 
     public void assign(BLogin other) {
         setRoleId(other.getRoleId());
+        setOnlineSetName(other.getOnlineSetName());
     }
 
     public BLogin copyIfManaged() {
@@ -72,6 +100,13 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         public void commit() { ((BLogin)getBelong())._RoleId = value; }
     }
 
+    private static final class Log__OnlineSetName extends Zeze.Transaction.Logs.LogString {
+        public Log__OnlineSetName(BLogin bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BLogin)getBelong())._OnlineSetName = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -83,7 +118,8 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BLogin: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("RoleId=").append(getRoleId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("RoleId=").append(getRoleId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OnlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -110,6 +146,13 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            String _x_ = getOnlineSetName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -119,6 +162,10 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
             setRoleId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            setOnlineSetName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -144,6 +191,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _OnlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -152,11 +200,15 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setRoleId(rs.getLong(_parents_name_ + "RoleId"));
+        setOnlineSetName(rs.getString(_parents_name_ + "OnlineSetName"));
+        if (getOnlineSetName() == null)
+            setOnlineSetName("");
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "RoleId", getRoleId());
+        st.appendString(_parents_name_ + "OnlineSetName", getOnlineSetName());
     }
 }

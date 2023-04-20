@@ -9,6 +9,7 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
 
     private long _RoleId;
     private long _ReliableNotifyConfirmIndex;
+    private String _OnlineSetName;
 
     @Override
     public long getRoleId() {
@@ -50,19 +51,46 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         txn.putLog(new Log__ReliableNotifyConfirmIndex(this, 2, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BReLogin() {
+    @Override
+    public String getOnlineSetName() {
+        if (!isManaged())
+            return _OnlineSetName;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _OnlineSetName;
+        var log = (Log__OnlineSetName)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _OnlineSetName;
+    }
+
+    public void setOnlineSetName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _OnlineSetName = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__OnlineSetName(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BReLogin(long _RoleId_, long _ReliableNotifyConfirmIndex_) {
+    public BReLogin() {
+        _OnlineSetName = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BReLogin(long _RoleId_, long _ReliableNotifyConfirmIndex_, String _OnlineSetName_) {
         _RoleId = _RoleId_;
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
+        if (_OnlineSetName_ == null)
+            throw new IllegalArgumentException();
+        _OnlineSetName = _OnlineSetName_;
     }
 
     public void assign(BReLogin other) {
         setRoleId(other.getRoleId());
         setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
+        setOnlineSetName(other.getOnlineSetName());
     }
 
     public BReLogin copyIfManaged() {
@@ -101,6 +129,13 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         public void commit() { ((BReLogin)getBelong())._ReliableNotifyConfirmIndex = value; }
     }
 
+    private static final class Log__OnlineSetName extends Zeze.Transaction.Logs.LogString {
+        public Log__OnlineSetName(BReLogin bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BReLogin)getBelong())._OnlineSetName = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -113,7 +148,8 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BReLogin: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("RoleId=").append(getRoleId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyConfirmIndex=").append(getReliableNotifyConfirmIndex()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyConfirmIndex=").append(getReliableNotifyConfirmIndex()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OnlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -147,6 +183,13 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            String _x_ = getOnlineSetName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -160,6 +203,10 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         }
         if (_i_ == 2) {
             setReliableNotifyConfirmIndex(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setOnlineSetName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -188,6 +235,7 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
             switch (vlog.getVariableId()) {
                 case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _OnlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -197,6 +245,9 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setRoleId(rs.getLong(_parents_name_ + "RoleId"));
         setReliableNotifyConfirmIndex(rs.getLong(_parents_name_ + "ReliableNotifyConfirmIndex"));
+        setOnlineSetName(rs.getString(_parents_name_ + "OnlineSetName"));
+        if (getOnlineSetName() == null)
+            setOnlineSetName("");
     }
 
     @Override
@@ -204,5 +255,6 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "RoleId", getRoleId());
         st.appendLong(_parents_name_ + "ReliableNotifyConfirmIndex", getReliableNotifyConfirmIndex());
+        st.appendString(_parents_name_ + "OnlineSetName", getOnlineSetName());
     }
 }

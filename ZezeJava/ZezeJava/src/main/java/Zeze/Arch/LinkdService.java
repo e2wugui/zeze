@@ -222,7 +222,8 @@ public class LinkdService extends HandshakeServer {
 										  int moduleId, int protocolId, ByteBuffer data) {
 		return new Dispatch(new BDispatch(so.getSessionId(), linkSession.getAccount(),
 				Protocol.makeTypeId(moduleId, protocolId), new Binary(data),
-				linkSession.getContext(), linkSession.getContextx()));
+				linkSession.getUserState().getContext(), linkSession.getUserState().getContextx(),
+				linkSession.getUserState().getOnlineSetName()));
 	}
 
 	private boolean tryReportError(LinkdUserSession linkSession, int moduleId, Dispatch dispatch) {

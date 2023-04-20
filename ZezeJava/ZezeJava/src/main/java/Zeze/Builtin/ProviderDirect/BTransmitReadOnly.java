@@ -11,4 +11,5 @@ public interface BTransmitReadOnly {
     Zeze.Transaction.Collections.PSet1ReadOnly<Long> getRolesReadOnly();
     long getSender();
     Zeze.Net.Binary getParameter();
+    String getOnlineSetName();
 }

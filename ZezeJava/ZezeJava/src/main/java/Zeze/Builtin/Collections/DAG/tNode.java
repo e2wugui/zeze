@@ -13,6 +13,14 @@ public final class tNode extends TableX<Zeze.Builtin.Collections.DAG.BDAGNodeKey
         super("Zeze_Builtin_Collections_DAG_tNode");
     }
 
+    public tNode(String suffix) {
+        super("Zeze_Builtin_Collections_DAG_tNode" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Collections_DAG_tNode";
+    }
+
     @Override
     public int getId() {
         return -1059152625;

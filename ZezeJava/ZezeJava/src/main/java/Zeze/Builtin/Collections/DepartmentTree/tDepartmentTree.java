@@ -12,6 +12,14 @@ public final class tDepartmentTree extends TableX<Zeze.Builtin.Collections.Depar
         super("Zeze_Builtin_Collections_DepartmentTree_tDepartmentTree");
     }
 
+    public tDepartmentTree(String suffix) {
+        super("Zeze_Builtin_Collections_DepartmentTree_tDepartmentTree" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Collections_DepartmentTree_tDepartmentTree";
+    }
+
     @Override
     public int getId() {
         return -1578893665;

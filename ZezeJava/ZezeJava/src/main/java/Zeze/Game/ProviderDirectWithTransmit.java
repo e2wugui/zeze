@@ -33,9 +33,8 @@ public class ProviderDirectWithTransmit extends ProviderDirect {
 
 	@Override
 	protected long ProcessTransmit(Transmit p) {
-		((ProviderWithOnline)providerApp.providerImplement).getOnline().processTransmit(
-				p.Argument.getSender(), p.Argument.getActionName(),
-				p.Argument.getRoles(), p.Argument.getParameter());
+		var defaultOnline = ((ProviderWithOnline)providerApp.providerImplement).getOnline();
+		defaultOnline.getOnlineSet(p.Argument.getOnlineSetName()).processTransmit(p.Argument.getSender(), p.Argument.getActionName(), p.Argument.getRoles(), p.Argument.getParameter());
 		return Procedure.Success;
 	}
 }

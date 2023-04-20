@@ -13,6 +13,14 @@ public final class tLinkedMaps extends TableX<String, Zeze.Builtin.Collections.L
         super("Zeze_Builtin_Collections_LinkedMap_tLinkedMaps");
     }
 
+    public tLinkedMaps(String suffix) {
+        super("Zeze_Builtin_Collections_LinkedMap_tLinkedMaps" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Collections_LinkedMap_tLinkedMaps";
+    }
+
     @Override
     public int getId() {
         return -72689413;

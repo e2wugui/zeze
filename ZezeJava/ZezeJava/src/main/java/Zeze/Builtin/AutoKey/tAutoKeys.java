@@ -12,6 +12,14 @@ public final class tAutoKeys extends TableX<Zeze.Builtin.AutoKey.BSeedKey, Zeze.
         super("Zeze_Builtin_AutoKey_tAutoKeys");
     }
 
+    public tAutoKeys(String suffix) {
+        super("Zeze_Builtin_AutoKey_tAutoKeys" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_AutoKey_tAutoKeys";
+    }
+
     @Override
     public int getId() {
         return -716529252;

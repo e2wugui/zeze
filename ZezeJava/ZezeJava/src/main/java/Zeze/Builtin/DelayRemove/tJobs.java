@@ -12,6 +12,14 @@ public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
         super("Zeze_Builtin_DelayRemove_tJobs");
     }
 
+    public tJobs(String suffix) {
+        super("Zeze_Builtin_DelayRemove_tJobs" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_DelayRemove_tJobs";
+    }
+
     @Override
     public int getId() {
         return -582299608;

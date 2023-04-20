@@ -13,6 +13,14 @@ public final class tQueues extends TableX<String, Zeze.Builtin.Collections.Queue
         super("Zeze_Builtin_Collections_Queue_tQueues");
     }
 
+    public tQueues(String suffix) {
+        super("Zeze_Builtin_Collections_Queue_tQueues" + suffix);
+    }
+
+    public String getOriginName() {
+        return "Zeze_Builtin_Collections_Queue_tQueues";
+    }
+
     @Override
     public int getId() {
         return 1005923355;

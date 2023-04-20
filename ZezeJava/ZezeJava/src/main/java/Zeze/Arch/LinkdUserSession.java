@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Builtin.Provider.BLinkBroken;
+import Zeze.Builtin.Provider.BUserState;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -18,8 +19,7 @@ public class LinkdUserSession {
 	protected static final Logger logger = LogManager.getLogger(LinkdUserSession.class);
 
 	protected String account;
-	protected String context = "";
-	protected Binary contextx = Binary.Empty;
+	protected BUserState userState = new BUserState();
 	protected final ReentrantReadWriteLock bindsLock = new ReentrantReadWriteLock();
 	protected IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
 	protected long sessionId; // Linkd.SessionId
@@ -52,21 +52,16 @@ public class LinkdUserSession {
 		return account.equals(newAccount);
 	}
 
-	public String getContext() {
-		return context;
+	public BUserState getUserState() {
+		return userState;
 	}
 
-	public Binary getContextx() {
-		return contextx;
-	}
-
-	public void setUserState(String context, Binary contextx) {
-		this.context = context != null ? context : "";
-		this.contextx = contextx != null ? contextx : Binary.Empty;
+	public void setUserState(BUserState state) {
+		this.userState = state;
 	}
 
 	public Long getRoleId() {
-		return context.isEmpty() ? null : Long.parseLong(context);
+		return userState.getContext().isEmpty() ? null : Long.parseLong(userState.getContext());
 	}
 
 	public long getSessionId() {
@@ -216,8 +211,9 @@ public class LinkdUserSession {
 			bindProviders.add(provider); // 先收集， 去重。
 		}
 		if (!bindProviders.isEmpty()) {
-			var linkBroken = new LinkBroken(new BLinkBroken(account, sessionId, BLinkBroken.REASON_PEERCLOSE, // 这个reason保留吧。现在没什么用。
-					context, contextx));
+			var bLinkBroken = new BLinkBroken(account, sessionId, BLinkBroken.REASON_PEERCLOSE);
+			bLinkBroken.setUserState(userState);
+			var linkBroken = new LinkBroken();
 			for (var provider : bindProviders)
 				provider.Send(linkBroken);
 		}

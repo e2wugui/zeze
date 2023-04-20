@@ -371,10 +371,15 @@
 
 			<protocol name="Broadcast" argument="BBroadcast" handle="client"/>
 
+			<bean name="BUserState">
+				<variable name="context"  id="1" type="string"/>
+				<variable name="contextx" id="2" type="binary"/>
+				<variable name="onlineSetName"  id="3" type="string"/>
+			</bean>
+
 			<bean name="BSetUserState">
 				<variable name="linkSid"  id="1" type="long"/>
-				<variable name="context"  id="2" type="string"/>
-				<variable name="contextx" id="3" type="binary"/>
+				<variable name="userState"  id="2" type="BUserState"/>
 			</bean>
 
 			<protocol name="SetUserState" argument="BSetUserState" handle="client"/>
@@ -392,12 +397,13 @@
 
 			<!-- link to gs -->
 			<bean name="BDispatch">
-				<variable name="linkSid"      id="1" type="long"/>
-				<variable name="account"      id="2" type="string"/>
-				<variable name="protocolType" id="3" type="long"/>
-				<variable name="protocolData" id="4" type="binary"/> 协议打包，不包括 type, size
-				<variable name="context"      id="5" type="string"/> SetUserState
-				<variable name="contextx"     id="6" type="binary"/> SetUserState
+				<variable name="linkSid"                id="1" type="long"/>
+				<variable name="account"              id="2" type="string"/>
+				<variable name="protocolType"     id="3" type="long"/>
+				<variable name="protocolData"     id="4" type="binary"/> 协议打包，不包括 type, size
+				<variable name="context"              id="5" type="string"/> SetUserState
+				<variable name="contextx"            id="6" type="binary"/> SetUserState
+				<variable name="onlineSetName" id="7" type="string"/> SetUserState
 			</bean>
 			<protocol name="Dispatch" argument="BDispatch" handle="server"/>
 
@@ -408,8 +414,7 @@
 				<variable name="linkSid" id="2" type="long"/>
 				<variable name="reason"  id="3" type="int"/>
 
-				<variable name="context"  id="5" type="string"/> SetUserState
-				<variable name="contextx" id="6" type="binary"/> SetUserState
+				<variable name="userState"  id="4" type="BUserState"/>
 			</bean>
 
 			<protocol name="LinkBroken" argument="BLinkBroken" handle="server"/>
@@ -513,6 +518,7 @@
 				<variable name="Roles"      id="2" type="set" value="long"/> 查询目标角色。
 				<variable name="Sender"     id="3" type="long"/> 结果发送给Sender。
 				<variable name="Parameter"  id="4" type="binary"/> encoded bean
+				<variable name="OnlineSetName"  id="5" type="string"/>
 			</bean>
 
 			<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server"/> 默认不启用事务，由协议实现自己控制。
@@ -574,7 +580,7 @@
 		</module>
 
 		<module name="Game" id="11012">
-			<module name="Online" id="11013">
+			<module name="Online" id="11013" MultiInstance="true">
 				<enum value="0" name="ResultCodeSuccess"/>
 				<enum value="1" name="ResultCodeCreateRoleDuplicateRoleName"/>
 				<enum value="2" name="ResultCodeAccountNotExist"/>
@@ -587,10 +593,12 @@
 				<!-- protocols -->
 				<bean name="BLogin">
 					<variable id="1" name="RoleId" type="long"/>
+					<variable id="2" name="OnlineSetName" type="string"/>
 				</bean>
 				<bean name="BReLogin">
 					<variable id="1" name="RoleId" type="long"/>
 					<variable id="2" name="ReliableNotifyConfirmIndex" type="long"/>
+					<variable id="3" name="OnlineSetName" type="string"/>
 				</bean>
 				<bean name="BReliableNotifyConfirm">
 					<variable id="1" name="ReliableNotifyConfirmIndex" type="long"/>
@@ -610,6 +618,7 @@
 				<bean name="BDelayLogoutCustom">
 					<variable id="1" name="RoleId" type="long"/>
 					<variable id="2" name="LoginVersion" type="long"/>
+					<variable id="3" name="OnlineSetName" type="string"/>
 				</bean>
 				<!-- tables -->
 				<bean name="BOnline">

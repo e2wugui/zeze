@@ -14,6 +14,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     private Zeze.Net.Binary _protocolData; // 协议打包，不包括 type, size
     private String _context; // SetUserState
     private Zeze.Net.Binary _contextx; // SetUserState
+    private String _onlineSetName; // SetUserState
 
     @Override
     public long getLinkSid() {
@@ -143,16 +144,39 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         txn.putLog(new Log__contextx(this, 6, value));
     }
 
+    @Override
+    public String getOnlineSetName() {
+        if (!isManaged())
+            return _onlineSetName;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _onlineSetName;
+        var log = (Log__onlineSetName)txn.getLog(objectId() + 7);
+        return log != null ? log.value : _onlineSetName;
+    }
+
+    public void setOnlineSetName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _onlineSetName = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__onlineSetName(this, 7, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BDispatch() {
         _account = "";
         _protocolData = Zeze.Net.Binary.Empty;
         _context = "";
         _contextx = Zeze.Net.Binary.Empty;
+        _onlineSetName = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BDispatch(long _linkSid_, String _account_, long _protocolType_, Zeze.Net.Binary _protocolData_, String _context_, Zeze.Net.Binary _contextx_) {
+    public BDispatch(long _linkSid_, String _account_, long _protocolType_, Zeze.Net.Binary _protocolData_, String _context_, Zeze.Net.Binary _contextx_, String _onlineSetName_) {
         _linkSid = _linkSid_;
         if (_account_ == null)
             throw new IllegalArgumentException();
@@ -167,6 +191,9 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         if (_contextx_ == null)
             throw new IllegalArgumentException();
         _contextx = _contextx_;
+        if (_onlineSetName_ == null)
+            throw new IllegalArgumentException();
+        _onlineSetName = _onlineSetName_;
     }
 
     public void assign(BDispatch other) {
@@ -176,6 +203,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         setProtocolData(other.getProtocolData());
         setContext(other.getContext());
         setContextx(other.getContextx());
+        setOnlineSetName(other.getOnlineSetName());
     }
 
     public BDispatch copyIfManaged() {
@@ -242,6 +270,13 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         public void commit() { ((BDispatch)getBelong())._contextx = value; }
     }
 
+    private static final class Log__onlineSetName extends Zeze.Transaction.Logs.LogString {
+        public Log__onlineSetName(BDispatch bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BDispatch)getBelong())._onlineSetName = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -258,7 +293,8 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         sb.append(Zeze.Util.Str.indent(level)).append("protocolType=").append(getProtocolType()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("protocolData=").append(getProtocolData()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("context=").append(getContext()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("contextx=").append(getContextx()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("contextx=").append(getContextx()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("onlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -320,6 +356,13 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
                 _o_.WriteBinary(_x_);
             }
         }
+        {
+            String _x_ = getOnlineSetName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -349,6 +392,10 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         }
         if (_i_ == 6) {
             setContextx(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            setOnlineSetName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -381,6 +428,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
                 case 4: _protocolData = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
                 case 5: _context = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 6: _contextx = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 7: _onlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -402,6 +450,9 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         setContextx(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "contextx")));
         if (getContextx() == null)
             setContextx(Zeze.Net.Binary.Empty);
+        setOnlineSetName(rs.getString(_parents_name_ + "onlineSetName"));
+        if (getOnlineSetName() == null)
+            setOnlineSetName("");
     }
 
     @Override
@@ -413,5 +464,6 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         st.appendBinary(_parents_name_ + "protocolData", getProtocolData());
         st.appendString(_parents_name_ + "context", getContext());
         st.appendBinary(_parents_name_ + "contextx", getContextx());
+        st.appendString(_parents_name_ + "onlineSetName", getOnlineSetName());
     }
 }
