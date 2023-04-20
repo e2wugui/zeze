@@ -139,7 +139,7 @@ public class LogSequence {
 					if (fileName.endsWith(".commit.delayed")) {
 						var splits = fileName.split("\\.");
 						try {
-							var index = Long.parseLong(splits[0]);
+							var index = Long.parseLong(splits[splits.length - 3]);
 							delayed.put(index, file);
 						} catch (Exception ex) {
 							// skip
@@ -158,7 +158,7 @@ public class LogSequence {
 					Files.deleteIfExists(file.toPath());
 			}
 			// 当前snapshot重命名，带上index信息。等到下一个snapshot发生的时候推进。
-			Files.move(Paths.get(path), Paths.get(newFirstIndex + "." + path + ".commit.delayed"));
+			Files.move(Paths.get(path), Paths.get(path + "." + newFirstIndex + ".commit.delayed"));
 			return;
 		}
 		_commitSnapshot(path, newFirstIndex);
