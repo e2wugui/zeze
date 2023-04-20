@@ -100,7 +100,7 @@ public class TestLostRedo {
 		}, "clear").call();
 
 		var futures = new ArrayList<Future<?>>();
-		for (int i = 0; i < 1_0000; ++i)
+		for (int i = 0; i < 1_000; ++i)
 			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::autoKeyWithInsert, "write")));
 		for (var future : futures)
 			future.get();

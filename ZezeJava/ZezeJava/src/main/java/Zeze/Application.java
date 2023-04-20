@@ -86,13 +86,14 @@ public final class Application {
 
 	@SuppressWarnings("deprecation")
 	public Application(@NotNull String projectName, @Nullable Config config) throws Exception {
+
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
-		conf.createDatabase(this, databases);
 
 		// Start Thread Pool
 		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化
 
+		conf.createDatabase(this, databases);
 		PerfCounter.instance.tryStartScheduledLog();
 
 		switch (conf.getServiceManager()) {

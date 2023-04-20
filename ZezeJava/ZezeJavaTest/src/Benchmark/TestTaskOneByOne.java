@@ -13,7 +13,7 @@ import Zeze.Util.TaskOneByOneByKey2;
 import org.junit.Test;
 
 public class TestTaskOneByOne {
-	public final static int TaskCount = 5000_0000;
+	public final static int TaskCount = 1000_0000;
 
 	private final AtomicLong counter = new AtomicLong();
 

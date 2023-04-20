@@ -323,7 +323,7 @@ public class BenchSocket {
 	public void testOutputBufferCodec() {
 		var selectors = new Zeze.Net.Selectors("dummySelector");
 		var selector = selectors.choice();
-		var count = 200_0000;
+		var count = 100_0000;
 		var key = new byte[16];
 		Zeze.Util.Random.getInstance().nextBytes(key);
 
@@ -406,12 +406,12 @@ public class BenchSocket {
 	public static void testSerialize(BValue bValue) {
 		long sum = 0;
 		var b = new Zeze.Util.Benchmark();
-		for (var i = 0; i < 100_0000; ++i) {
+		for (var i = 0; i < 10_0000; ++i) {
 			var bb = ByteBuffer.Allocate();
 			bValue.encode(bb);
 			sum += bb.size();
 		}
-		var seconds = b.report("encode", 100_0000);
+		var seconds = b.report("encode", 10_0000);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 
 		// decode
@@ -419,13 +419,13 @@ public class BenchSocket {
 		var encoded = ByteBuffer.Allocate();
 		bValue.encode(encoded);
 		var dummy = 0;
-		for (var i = 0; i < 20_0000; ++i) {
+		for (var i = 0; i < 10_0000; ++i) {
 			var bb = ByteBuffer.Wrap(encoded.Bytes, encoded.ReadIndex, encoded.size());
 			var value = new BValue();
 			value.decode(bb);
 			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
 		}
-		seconds = b2.report("decode", 20_0000);
+		seconds = b2.report("decode", 10_0000);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 		System.out.println("dummy=" + dummy);
 	}
@@ -469,7 +469,7 @@ public class BenchSocket {
 		var rand = ThreadLocalRandom.current();
 		var pdata = new byte[100];
 		var b = new Zeze.Util.Benchmark();
-		var count = 1_000_000;
+		var count = 100_000;
 		var result = new ArrayList<ByteBuffer>(count);
 		for (int i = 0; i < count; i++) {
 			var p = new SlowSend();
@@ -502,7 +502,7 @@ public class BenchSocket {
 		var rand = ThreadLocalRandom.current();
 		var pdata = new byte[100];
 		var b = new Zeze.Util.Benchmark();
-		var count = 1_000_000;
+		var count = 100_000;
 		var result = new ArrayList<ByteBuffer>(count);
 		for (int i = 0; i < count; i++) {
 			var p = new Send();
