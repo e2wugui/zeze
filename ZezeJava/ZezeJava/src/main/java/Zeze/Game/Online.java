@@ -90,7 +90,7 @@ public class Online extends AbstractOnline {
 	private Future<?> verifyLocalTimer;
 
 	public static @NotNull Online create(@NotNull AppBase app) {
-		return GenModule.createRedirectModule(Online.class, app);
+		return GenModule.createRedirectModule(Online.class, app).initializeDefault();
 	}
 
 	public static long getSpecialTypeIdFromBean(Bean bean) {
@@ -113,26 +113,30 @@ public class Online extends AbstractOnline {
 
 	protected Online(@NotNull AppBase app) {
 		providerApp = app.getZeze().redirect.providerApp;
+		instance = this;
+	}
+
+	private Online initializeDefault() {
 		super._tlocalMap = new HashMap<>();
 		super._tonlineMap = new HashMap<>();
 		super._tversionMap = new HashMap<>();
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
 		load = new ProviderLoad(this);
-		instance = this;
+		return this;
 	}
 
-	private Online(String onlineSetName, ProviderApp providerApp,
-				   HashMap<String, tlocal> _tlocalMap,
-				   HashMap<String, tonline> _tonlineMap,
-				   HashMap<String, tversion> _tversionMap) {
-		this.providerApp = providerApp;
+	private Online initializeSpecial(String onlineSetName,
+									 HashMap<String, tlocal> _tlocalMap,
+									 HashMap<String, tonline> _tonlineMap,
+									 HashMap<String, tversion> _tversionMap) {
 		super.multiInstanceName = onlineSetName; // 必须在下面注册前设置。
 		RegisterZezeTables(providerApp.zeze);
 		//load = new ProviderLoad(this); // todo 需要修改，load报告在多实例下应该不能工作。
 		super._tlocalMap = _tlocalMap;
 		super._tonlineMap = _tonlineMap;
 		super._tversionMap = _tversionMap;
+		return this;
 	}
 
 	private final HashMap<String, Online> onlineSetMap = new HashMap<>();
@@ -142,13 +146,13 @@ public class Online extends AbstractOnline {
 	 * @param name 在线集合名字
 	 * @return 返回新建的在线集合实例。返回值可以保存下来。
 	 */
-	public Online createOnlineSet(String name) {
+	public Online createOnlineSet(AppBase app, String name) {
 		if (!multiInstanceName.isEmpty())
 			throw new UnsupportedOperationException();
-		var multi = new Online(name, providerApp, _tlocalMap, _tonlineMap, _tversionMap);
+		var multi = GenModule.createRedirectModule(Online.class, app);
 		if (null != onlineSetMap.putIfAbsent(name, multi))
 			throw new RuntimeException("duplicate name=" + name);
-		return multi;
+		return multi.initializeSpecial(name, _tlocalMap, _tonlineMap, _tversionMap);
 	}
 
 	public Online getOnlineSet(String name) {

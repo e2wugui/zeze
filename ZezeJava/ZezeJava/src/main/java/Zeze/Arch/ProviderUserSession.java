@@ -106,11 +106,12 @@ public class ProviderUserSession {
 		var providerImpl = getService().providerApp.providerImplement;
 		if (providerImpl instanceof ProviderWithOnline) {
 			var defaultOnline = ((ProviderWithOnline)providerImpl).getOnline();
-			var online = defaultOnline.getOnlineSet(dispatch.Argument.getOnlineSetName());
 			var roleId = getRoleId();
 			if (roleId != null)
-				return online.send(/*List.of(roleId),*/link, Map.of(getLinkSid(), roleId), send);
-			return online.send(link, Map.of(), send);
+				return defaultOnline.getOnlineSet(dispatch.Argument.getOnlineSetName()).send(link, Map.of(getLinkSid(), roleId), send);
+			// 没有登录的会话不需要转给Online处理。转给Online是为了处理发送失败的结果。
+			// 这种情况下，忽略发送结果。
+			return send.Send(link);
 		}
 		if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {
 			var online = ((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline();
@@ -118,7 +119,9 @@ public class ProviderUserSession {
 			var loginKey = new Online.LoginKey(getAccount(), context);
 			if (context != null && !context.isEmpty())
 				return online.send(List.of(loginKey), link, Map.of(getLinkSid(), loginKey), send);
-			return online.send(link, Map.of(getLinkSid(), loginKey), send);
+			// 没有登录的会话不需要转给Online处理。转给Online是为了处理发送失败的结果。
+			// 这种情况下，忽略发送结果。
+			return send.Send(link);
 		}
 		return send.Send(link);
 	}
