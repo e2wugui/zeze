@@ -20,11 +20,19 @@ public abstract class AbstractOnline implements Zeze.IModule {
     public static final int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
     public static final int ResultCodeNotLogin = 7;
 
-    protected String multiInstanceName = "";
+    protected final String multiInstanceName;
 
-    protected final Zeze.Builtin.Game.Online.tlocal _tlocal = new Zeze.Builtin.Game.Online.tlocal();
-    protected final Zeze.Builtin.Game.Online.tonline _tonline = new Zeze.Builtin.Game.Online.tonline();
-    protected final Zeze.Builtin.Game.Online.tversion _tversion = new Zeze.Builtin.Game.Online.tversion();
+    protected final Zeze.Builtin.Game.Online.tlocal _tlocal;
+    protected final Zeze.Builtin.Game.Online.tonline _tonline;
+    protected final Zeze.Builtin.Game.Online.tversion _tversion;
+
+    protected AbstractOnline(String name) {
+        multiInstanceName = name;
+        var suffix = name.isEmpty() ? name : '.' + name;
+        _tlocal = new Zeze.Builtin.Game.Online.tlocal(suffix);
+        _tonline = new Zeze.Builtin.Game.Online.tonline(suffix);
+        _tversion = new Zeze.Builtin.Game.Online.tversion(suffix);
+    }
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());

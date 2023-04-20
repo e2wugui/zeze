@@ -422,10 +422,12 @@ namespace Zeze.Gen.java
 
         public void DefineZezeTables(StreamWriter sw)
         {
-            if (module.MultiInstance)
+            bool isMultiInstance = module.MultiInstance && project is Component;
+
+            if (isMultiInstance)
             {
                 sw.WriteLine();
-                sw.WriteLine($"    protected String multiInstanceName = \"\";");
+                sw.WriteLine($"    protected final String multiInstanceName;");
             }
 
             bool written = false;
@@ -438,8 +440,26 @@ namespace Zeze.Gen.java
                         written = true;
                         sw.WriteLine();
                     }
-                    sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + " = new " + table.FullName + "();");
+                    if (isMultiInstance)
+                        sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + ";");
+                    else
+                        sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + " = new " + table.FullName + "();");
                 }
+            }
+
+            if (isMultiInstance)
+            {
+                sw.WriteLine();
+                sw.WriteLine($"    protected Abstract{project.Name}(String name) {{");
+                sw.WriteLine($"        multiInstanceName = name;");
+                if (written)
+                    sw.WriteLine("        var suffix = name.isEmpty() ? name : '.' + name;");
+                foreach (Table table in module.Tables.Values)
+                {
+                    if (project.GenTables.Contains(table.Gen) && false == table.IsRocks)
+                        sw.WriteLine($"        _{table.Name} = new {table.FullName}(suffix);");
+                }
+                sw.WriteLine($"    }}");
             }
         }
 

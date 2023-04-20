@@ -111,6 +111,11 @@ public class Online extends AbstractOnline {
 	}
 
 	protected Online(@NotNull AppBase app) {
+		this(app, "");
+	}
+
+	private Online(@NotNull AppBase app, @NotNull String name) {
+		super(name);
 		providerApp = app.getZeze().redirect.providerApp;
 	}
 
@@ -131,7 +136,6 @@ public class Online extends AbstractOnline {
 	private @NotNull Online initializeSpecial(@NotNull String onlineSetName) {
 		if (null != getOnlineSetMap().putIfAbsent(onlineSetName, this))
 			throw new IllegalStateException("duplicate name=" + onlineSetName);
-		super.multiInstanceName = onlineSetName; // 必须在注册前设置。
 		RegisterZezeTables(providerApp.zeze);
 		//load = new ProviderLoad(this); // todo 需要修改，load报告在多实例下应该不能工作。
 		return this;
@@ -148,7 +152,8 @@ public class Online extends AbstractOnline {
 			throw new IllegalArgumentException("empty name");
 		if (!multiInstanceName.isEmpty())
 			throw new IllegalStateException("must be called by default online");
-		var multi = GenModule.createRedirectModule(Online.class, app);
+		// var multi = GenModule.createRedirectModule(Online.class, app);
+		var multi = new Online(app, name);
 		return multi.initializeSpecial(name);
 	}
 
