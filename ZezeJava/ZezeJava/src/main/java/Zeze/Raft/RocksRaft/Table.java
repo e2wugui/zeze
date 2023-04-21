@@ -13,7 +13,6 @@ import Zeze.Util.Reflect;
 import Zeze.Util.RocksDatabase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 
 public final class Table<K, V extends Bean> {
@@ -27,7 +26,7 @@ public final class Table<K, V extends Bean> {
 	private final Function<ByteBuffer, K> keyDecodeFunc;
 	private final MethodHandle valueFactory;
 	private int cacheCapacity = 10000;
-	private ColumnFamilyHandle columnFamily;
+	private RocksDatabase.Table rocksTable;
 	private ConcurrentLruLike<K, Record<K>> lruCache;
 	private BiPredicate<K, Record<K>> lruTryRemoveCallback;
 
@@ -48,7 +47,11 @@ public final class Table<K, V extends Bean> {
 	}
 
 	public void open() {
-		columnFamily = rocks.openFamily(name);
+		try {
+			rocksTable = rocks.openTable(name);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
 		lruCache = new ConcurrentLruLike<>(name, cacheCapacity, lruTryRemoveCallback, 200, 2000, 1024);
 	}
 
@@ -76,8 +79,8 @@ public final class Table<K, V extends Bean> {
 		cacheCapacity = value;
 	}
 
-	public ColumnFamilyHandle getColumnFamily() {
-		return columnFamily;
+	public RocksDatabase.Table getRocksTable() {
+		return rocksTable;
 	}
 
 	public BiPredicate<K, Record<K>> getLruTryRemoveCallback() {
@@ -192,8 +195,7 @@ public final class Table<K, V extends Bean> {
 		keyEncodeFunc.accept(keyBB, key);
 		byte[] valueBytes;
 		try {
-			valueBytes = rocks.getStorage().get(columnFamily, RocksDatabase.getDefaultReadOptions(),
-					keyBB.Bytes, 0, keyBB.WriteIndex);
+			valueBytes = rocksTable.get(keyBB.Bytes, 0, keyBB.WriteIndex);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -265,7 +267,7 @@ public final class Table<K, V extends Bean> {
 	}
 
 	public boolean walk(Func2<K, V, Boolean> callback) throws Exception {
-		try (var it = rocks.getStorage().newIterator(columnFamily, RocksDatabase.getDefaultReadOptions())) {
+		try (var it = rocksTable.iterator()) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));
 				var value = newValue();
@@ -278,7 +280,7 @@ public final class Table<K, V extends Bean> {
 	}
 
 	public boolean walkKey(Func1<K, Boolean> callback) throws Exception {
-		try (var it = rocks.getStorage().newIterator(columnFamily, RocksDatabase.getDefaultReadOptions())) {
+		try (var it = rocksTable.iterator()) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));
 				if (!callback.call(key))

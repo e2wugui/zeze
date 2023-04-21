@@ -15,7 +15,6 @@ import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.rocksdb.Checkpoint;
 import org.rocksdb.RocksDBException;
 
 public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
@@ -77,7 +76,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			var tid = e.getKey();
 			var state = commitAgent.query(t.getQueryIp(), t.getQueryPort(), tid);
 			if (Commit.eCommitNotExist == state.getState()
-				|| Commit.ePreparing == state.getState()) {
+					|| Commit.ePreparing == state.getState()) {
 				logger.warn("timeout undo tid=" + tid + " state=" + state);
 				getRaft().appendLog(new LogUndoBatch(tid));
 			}
@@ -217,7 +216,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			result.lastIncludedIndex = lastAppliedLog.getIndex();
 			result.lastIncludedTerm = lastAppliedLog.getTerm();
 
-			try (var cp = Checkpoint.create(bucket.getDb().getRocksDb())) {
+			try (var cp = bucket.getDb().newCheckpoint()) {
 				cp.createCheckpoint(checkpointDir);
 			}
 		} finally {

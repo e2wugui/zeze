@@ -177,10 +177,7 @@ public class Test {
 			return;
 		if (resultCode == Procedure.RaftApplied)
 			return;
-		if (errors.containsKey(resultCode))
-			errors.put(resultCode, errors.get(resultCode) + 1);
-		else
-			errors.put(resultCode, 1L);
+		errors.compute(resultCode, (__, n) -> n != null ? n + 1 : 1);
 	}
 
 	private long errorsSum() {

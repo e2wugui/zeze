@@ -41,9 +41,9 @@ public abstract class Database {
 	private final @NotNull DatabaseConf conf;
 	private final @NotNull String databaseUrl;
 	private Operates directOperates;
-	private final @NotNull Application zeze;
+	private final Application zeze;
 
-	public Database(@NotNull Application zeze, @NotNull DatabaseConf conf) {
+	public Database(Application zeze, @NotNull DatabaseConf conf) {
 		this.zeze = zeze;
 		this.conf = conf;
 		databaseUrl = conf.getDatabaseUrl();

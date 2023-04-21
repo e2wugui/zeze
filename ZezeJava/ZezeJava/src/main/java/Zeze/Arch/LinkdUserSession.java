@@ -8,7 +8,6 @@ import Zeze.Builtin.Provider.BLinkBroken;
 import Zeze.Builtin.Provider.BUserState;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.Task;

@@ -6,8 +6,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
+import Zeze.Util.RocksDatabase;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.WriteBatch;
 
 public final class Record<K> {
 	public static final class RootInfo {
@@ -112,7 +112,7 @@ public final class Record<K> {
 		timestamp = getNextTimestamp(); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
 	}
 
-	public void flush(WriteBatch batch) throws RocksDBException {
+	public void flush(RocksDatabase.Batch batch) throws RocksDBException {
 		var keyBB = ByteBuffer.Allocate();
 		keyEncodeFunc.accept(keyBB, key);
 		if (value != null) {
@@ -122,8 +122,9 @@ public final class Record<K> {
 			int size = valueBB.WriteIndex;
 			if (size > preAllocSize)
 				value.preAllocSize(size);
-			batch.put(table.getColumnFamily(), keyBB.CopyIf(), valueBB.CopyIf());
+			table.getRocksTable().put(batch, keyBB.Bytes, keyBB.ReadIndex, keyBB.size(),
+					valueBB.Bytes, valueBB.ReadIndex, valueBB.size());
 		} else
-			batch.delete(table.getColumnFamily(), keyBB.CopyIf());
+			table.getRocksTable().delete(batch, keyBB.Bytes, keyBB.ReadIndex, keyBB.size());
 	}
 }

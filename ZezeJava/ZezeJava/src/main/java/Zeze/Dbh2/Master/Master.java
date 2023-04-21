@@ -37,12 +37,9 @@ public class Master extends AbstractMaster {
 
 	private final ArrayList<Manager> managers = new ArrayList<>();
 	private int choiceIndex;
-
 	private final RocksDB masterDb;
-	private final Main main;
 
-	public Master(Main main, String home) throws RocksDBException {
-		this.main = main;
+	public Master(String home) throws RocksDBException {
 		this.home = home;
 
 		masterDb = RocksDatabase.open(RocksDatabase.getCommonOptions(), Path.of(home, MasterDbName).toString());

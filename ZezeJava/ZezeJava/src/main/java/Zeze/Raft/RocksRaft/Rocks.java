@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,16 +41,15 @@ import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.rocksdb.BackupEngine;
 import org.rocksdb.BackupEngineOptions;
-import org.rocksdb.Checkpoint;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.Env;
 import org.rocksdb.RestoreOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 public final class Rocks extends StateMachine implements Closeable {
@@ -81,12 +79,10 @@ public final class Rocks extends StateMachine implements Closeable {
 	private final ConcurrentHashMap<String, Table<?, ? extends Bean>> tables = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<AtomicLong> atomicLongs = new LongConcurrentHashMap<>();
 	private final IntHashMap<Long> lastUpdated = new IntHashMap<>();
-	private final ConcurrentHashMap<String, ColumnFamilyHandle> columns = new ConcurrentHashMap<>();
 	private final WriteOptions writeOptions;
 	private final RocksMode rocksMode;
-	private RocksDB storage;
-	private final WriteBatch batch = new WriteBatch();
-	private ColumnFamilyHandle atomicLongsColumnFamily;
+	private RocksDatabase storage;
+	private RocksDatabase.Table atomicLongsTable;
 	private final Lock mutex = new ReentrantLock();
 
 	public Rocks() throws Exception {
@@ -143,17 +139,9 @@ public final class Rocks extends StateMachine implements Closeable {
 		var dbName = Paths.get(getDbHome(), "statemachine").toString();
 
 		// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
-		var columnFamilies = getColumnFamilies(dbName);
-		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		storage = RocksDatabase.open(RocksDatabase.getCommonDbOptions(), dbName, columnFamilies, outHandles);
+		storage = new RocksDatabase(dbName);
 
-		columns.clear();
-		for (int i = 0; i < columnFamilies.size(); i++) {
-			ColumnFamilyDescriptor col = columnFamilies.get(i);
-			columns.put(new String(col.getName(), StandardCharsets.UTF_8), outHandles.get(i));
-		}
-
-		atomicLongsColumnFamily = openFamily("Zeze.Raft.RocksRaft.AtomicLongs");
+		atomicLongsTable = openTable("Zeze.Raft.RocksRaft.AtomicLongs");
 
 		for (var table : tables.values())
 			table.open();
@@ -164,22 +152,15 @@ public final class Rocks extends StateMachine implements Closeable {
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		if (new File(dir).isDirectory()) {
 			for (var cf : RocksDB.listColumnFamilies(RocksDatabase.getCommonOptions(), dir))
-				columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
+				columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getCommonCfOptions()));
 		}
 		if (columnFamilies.isEmpty())
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), RocksDatabase.getDefaultCfOptions()));
+			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), RocksDatabase.getCommonCfOptions()));
 		return columnFamilies;
 	}
 
-	public ColumnFamilyHandle openFamily(String name) {
-		return columns.computeIfAbsent(name, k -> {
-			try {
-				return storage.createColumnFamily(new ColumnFamilyDescriptor(
-						k.getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
-			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
-			}
-		});
+	public @NotNull RocksDatabase.Table openTable(String name) throws RocksDBException {
+		return storage.getOrAddTable(name);
 	}
 
 	public ConcurrentHashMap<String, TableTemplate<?, ? extends Bean>> getTableTemplates() {
@@ -194,7 +175,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		return rocksMode;
 	}
 
-	public RocksDB getStorage() {
+	public RocksDatabase getStorage() {
 		return storage;
 	}
 
@@ -273,7 +254,7 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	public void flush(Iterable<Record<?>> rs, Changes changes, boolean followerApply) {
 		try {
-			synchronized (batch) {
+			try (var batch = storage.borrowBatch()) {
 				batch.clear();
 				for (var r : rs)
 					r.flush(batch);
@@ -284,12 +265,12 @@ public final class Rocks extends StateMachine implements Closeable {
 					key.WriteInt(it.key());
 					value.WriteIndex = 0;
 					value.WriteLong(it.value());
-					batch.put(atomicLongsColumnFamily, key.CopyIf(), value.CopyIf());
+					atomicLongsTable.put(batch, key.CopyIf(), value.CopyIf());
 					if (followerApply)
 						atomicLongSet(it.key(), it.value());
 				}
-				if (batch.count() > 0)
-					storage.write(writeOptions, batch);
+				if (batch.getCount() > 0)
+					batch.commit(writeOptions);
 			}
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
@@ -307,7 +288,7 @@ public final class Rocks extends StateMachine implements Closeable {
 			result.lastIncludedIndex = lastAppliedLog.getIndex();
 			result.lastIncludedTerm = lastAppliedLog.getTerm();
 
-			try (var cp = Checkpoint.create(storage)) {
+			try (var cp = storage.newCheckpoint()) {
 				cp.createCheckpoint(checkpointDir);
 			}
 		} finally {
@@ -436,7 +417,6 @@ public final class Rocks extends StateMachine implements Closeable {
 				throw new RuntimeException(e);
 			} finally {
 				setRaft(null);
-				batch.close();
 				if (storage != null) {
 					storage.close();
 					storage = null;

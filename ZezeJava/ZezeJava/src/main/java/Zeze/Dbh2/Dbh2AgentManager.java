@@ -29,7 +29,7 @@ public class Dbh2AgentManager {
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
 
 	private Config config;
-	private Dbh2Config dbh2Config = new Dbh2Config();
+	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private Commit commit;
 	private CommitAgent commitAgent;
 
@@ -46,6 +46,7 @@ public class Dbh2AgentManager {
 	public Dbh2AgentManager() {
 	}
 
+	@SuppressWarnings("MethodMayBeStatic")
 	public Binary nextTransactionId() {
 		return Zeze.Util.Random.nextBinary(16);
 	}
@@ -66,12 +67,12 @@ public class Dbh2AgentManager {
 		if (config.isDbh2LocalCommit()) {
 			var query = commitServiceAcceptor();
 			commit.getRocks().prepare(query.getKey(), query.getValue(), batches);
-			return; // done
 		}
 		// 这个仅仅用来调试，不报错了。
-		// throw new RuntimeException("commitBreakAfterPrepareForDebugOnly only work with local commit.");
+		// else throw new RuntimeException("commitBreakAfterPrepareForDebugOnly only work with local commit.");
 	}
 
+	@SuppressWarnings("MethodMayBeStatic")
 	private KV<String, Integer> choiceCommitServer() {
 		throw new UnsupportedOperationException();
 	}

@@ -50,8 +50,8 @@ public class Bucket {
 			// 读取meta，meta创建在Bucket创建流程中写入。
 			var path = Path.of(raftConfig.getDbHome(), "statemachine").toAbsolutePath().toString();
 			db = new RocksDatabase(path);
-			tData = db.openTable("data");
-			tMeta = db.openTable("meta");
+			tData = db.getOrAddTable("data");
+			tMeta = db.getOrAddTable("meta");
 			batch = db.newBatch();
 			var metaValue = tMeta.get(metaKey);
 			if (null != metaValue) {

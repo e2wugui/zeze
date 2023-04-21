@@ -25,7 +25,7 @@ public class Main {
 	public Main(String configXml) throws RocksDBException {
 		var config = Config.load(configXml);
 		service = new MasterService(this, config);
-		master = new Master(this, "master");
+		master = new Master("master");
 		master.RegisterProtocols(service);
 	}
 
@@ -47,7 +47,7 @@ public class Main {
 			var selector = 1;
 
 			for (int i = 1; i < args.length; ++i) {
-				//noinspection SwitchStatementWithTooFewBranches
+				//noinspection SwitchStatementWithTooFewBranches,EnhancedSwitchMigration
 				switch (args[i]) {
 				case "-selector":
 					selector = Integer.parseInt(args[++i]);

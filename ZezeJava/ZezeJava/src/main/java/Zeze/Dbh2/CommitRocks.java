@@ -1,6 +1,7 @@
 package Zeze.Dbh2;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.Future;
 import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
@@ -32,8 +33,8 @@ public class CommitRocks {
 	public CommitRocks(Dbh2AgentManager manager) throws RocksDBException {
 		this.manager = manager;
 		database = new RocksDatabase("CommitRocks");
-		commitPoint = database.openTable("CommitPoint");
-		commitIndex = database.openTable("CommitIndex");
+		commitPoint = database.getOrAddTable("CommitPoint");
+		commitIndex = database.getOrAddTable("CommitIndex");
 
 		try {
 			redoTimer();
@@ -68,7 +69,7 @@ public class CommitRocks {
 	private void redo(byte[] key, Func2<Dbh2Agent, Binary, TaskCompletionSource<
 			RaftRpc<BBatchTid.Data, EmptyBean.Data>>> func) throws RocksDBException {
 
-		var value = commitPoint.get(key);
+		var value = Objects.requireNonNull(commitPoint.get(key));
 		var state = new BTransactionState.Data();
 		state.decode(ByteBuffer.Wrap(value));
 

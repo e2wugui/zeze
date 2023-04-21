@@ -48,7 +48,7 @@ public class RedoQueue extends HandshakeClient {
 		return families.computeIfAbsent(name, key -> {
 			try {
 				return db.createColumnFamily(new ColumnFamilyDescriptor(
-						key.getBytes(StandardCharsets.UTF_8), RocksDatabase.getDefaultCfOptions()));
+						key.getBytes(StandardCharsets.UTF_8), RocksDatabase.getCommonCfOptions()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -63,9 +63,9 @@ public class RedoQueue extends HandshakeClient {
 		var dbHome = super.getName();
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		for (var cf : RocksDB.listColumnFamilies(RocksDatabase.getCommonOptions(), dbHome))
-			columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
+			columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getCommonCfOptions()));
 		if (columnFamilies.isEmpty())
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), RocksDatabase.getDefaultCfOptions()));
+			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), RocksDatabase.getCommonCfOptions()));
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
 		db = RocksDatabase.open(RocksDatabase.getCommonDbOptions(), dbHome, columnFamilies, outHandles);
 		for (int i = 0; i < columnFamilies.size(); ++i) {

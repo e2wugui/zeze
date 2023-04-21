@@ -305,7 +305,7 @@ public class LongHashMap<V> implements Cloneable {
 	}
 
 	public interface LongObjectFunction<V> {
-		@Nullable V apply(long key, @Nullable V value);
+		@Nullable V apply(long key, V value);
 	}
 
 	public V compute(long key, @NotNull LongObjectFunction<V> op) {

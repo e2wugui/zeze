@@ -4,7 +4,9 @@ import java.io.Closeable;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Database;
@@ -15,13 +17,13 @@ import org.jetbrains.annotations.Nullable;
 import org.rocksdb.BackupEngine;
 import org.rocksdb.BackupEngineOptions;
 import org.rocksdb.BlockBasedTableConfig;
+import org.rocksdb.Checkpoint;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.DBOptions;
 import org.rocksdb.Env;
 import org.rocksdb.LRUCache;
-import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RestoreOptions;
@@ -52,7 +54,7 @@ public class RocksDatabase implements Closeable {
 			.setKeepLogFileNum(5) // reserve "LOG.old.*" file count
 			// .setAtomicFlush(true); // atomic batch 独立于这个选项？
 			.setMaxWriteBatchGroupSizeBytes(100 * 1024 * 1024);
-	private static final ColumnFamilyOptions defaultCfOptions = new ColumnFamilyOptions()
+	private static final ColumnFamilyOptions commonCfOptions = new ColumnFamilyOptions()
 			.setTableFormatConfig(tableCfg);
 	private static final ReadOptions defaultReadOptions = new ReadOptions();
 	private static final WriteOptions defaultWriteOptions = new WriteOptions();
@@ -66,8 +68,8 @@ public class RocksDatabase implements Closeable {
 		return commonDbOptions;
 	}
 
-	public static @NotNull ColumnFamilyOptions getDefaultCfOptions() {
-		return defaultCfOptions;
+	public static @NotNull ColumnFamilyOptions getCommonCfOptions() {
+		return commonCfOptions;
 	}
 
 	public static @NotNull ReadOptions getDefaultReadOptions() {
@@ -82,37 +84,38 @@ public class RocksDatabase implements Closeable {
 		return syncWriteOptions;
 	}
 
-	private final @NotNull String home;
+	private final @NotNull String homePath;
 	private final @NotNull RocksDB rocksDb;
-	private final ConcurrentHashMap<String, ColumnFamilyHandle> columnFamilies = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<String, Table> tables = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Table> tableMap = new ConcurrentHashMap<>();
+	private @Nullable Map<String, Table> tableMapView;
 	private @Nullable ArrayList<Batch> batchPool;
 
-	public @NotNull RocksDB getRocksDb() {
-		return rocksDb;
-	}
-
-	public RocksDatabase(@NotNull String home) throws RocksDBException {
-		this.home = home;
-
-		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-		for (var cf : RocksDB.listColumnFamilies(commonOptions, home))
-			columnFamilies.add(new ColumnFamilyDescriptor(cf, defaultCfOptions));
-		if (columnFamilies.isEmpty())
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), defaultCfOptions));
-
-		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		rocksDb = open(getCommonDbOptions(), home, columnFamilies, outHandles);
-
-		for (int i = 0; i < columnFamilies.size(); i++) {
-			var name = new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8);
-			this.columnFamilies.put(name, outHandles.get(i));
+	public RocksDatabase(@NotNull String homePath) throws RocksDBException {
+		this.homePath = homePath;
+		var cfds = getCfDescriptors(homePath);
+		int cfCount = cfds.size();
+		var cfhs = new ArrayList<ColumnFamilyHandle>(cfCount);
+		rocksDb = open(commonDbOptions, homePath, cfds, cfhs);
+		for (int i = 0; i < cfCount; i++) {
+			var name = new String(cfds.get(i).getName(), StandardCharsets.UTF_8);
+			tableMap.put(name, new Table(name, cfhs.get(i)));
 		}
 	}
 
+	public static @NotNull ArrayList<ColumnFamilyDescriptor> getCfDescriptors(@NotNull String homePath)
+			throws RocksDBException {
+		var cfds = new ArrayList<ColumnFamilyDescriptor>();
+		for (byte[] cfn : RocksDB.listColumnFamilies(commonOptions, homePath))
+			cfds.add(new ColumnFamilyDescriptor(cfn, commonCfOptions));
+		if (cfds.isEmpty())
+			cfds.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), commonCfOptions));
+		return cfds;
+	}
+
+	// RocksDB用完时需确保调用close回收堆外内存
 	public static @NotNull RocksDB open(@NotNull DBOptions options, @NotNull String path,
-										@NotNull List<ColumnFamilyDescriptor> columnFamilyDescriptors,
-										@NotNull List<ColumnFamilyHandle> columnFamilyHandles) throws RocksDBException {
+										@NotNull List<ColumnFamilyDescriptor> cfds,
+										@NotNull List<ColumnFamilyHandle> cfhs) throws RocksDBException {
 		logger.info("RocksDB.open: '{}'", path);
 		var file = new File(path);
 		if (!file.isDirectory()) {
@@ -121,7 +124,10 @@ public class RocksDatabase implements Closeable {
 		}
 		for (int i = 0; ; ) {
 			try {
-				return RocksDB.open(options, path, columnFamilyDescriptors, columnFamilyHandles);
+				var rocksDb = RocksDB.open(options, path, cfds, cfhs);
+				if (cfds.size() != cfhs.size())
+					throw new IllegalStateException("RocksDB.open unmatched: " + cfds.size() + " != " + cfhs.size());
+				return rocksDb;
 			} catch (RocksDBException e) {
 				logger.warn("RocksDB.open failed: '{}'", path, e);
 				if (++i >= 10)
@@ -136,6 +142,7 @@ public class RocksDatabase implements Closeable {
 		}
 	}
 
+	// RocksDB用完时需确保调用close回收堆外内存
 	public static @NotNull RocksDB open(@NotNull Options options, @NotNull String path) throws RocksDBException {
 		logger.info("RocksDB.open: '{}'", path);
 		var file = new File(path);
@@ -160,33 +167,91 @@ public class RocksDatabase implements Closeable {
 		}
 	}
 
-	public @NotNull ConcurrentHashMap<String, ColumnFamilyHandle> getColumnFamilies() {
-		return columnFamilies;
+	public @NotNull String getHomePath() {
+		return homePath;
 	}
 
-	public @NotNull String getHome() {
-		return home;
+	public @NotNull RocksDB getRocksDb() {
+		return rocksDb;
 	}
 
-	public boolean isClosed() {
-		return !rocksDb.isOwningHandle();
+	public @NotNull Map<String, Table> getTableMap() {
+		var view = tableMapView;
+		if (view == null)
+			tableMapView = view = Collections.unmodifiableMap(tableMap);
+		return view;
 	}
 
-	public synchronized @NotNull Table openTable(@NotNull String name) {
-		return tables.computeIfAbsent(name, _name -> new Table(_name, openFamily(_name)));
+	public @Nullable Table getTable(@NotNull String name) {
+		return tableMap.get(name);
 	}
 
-	public synchronized boolean dropTable(@NotNull Table table) throws RocksDBException {
-		// dropTable 和 openTable 互斥.
-		if (tables.remove(table.name, table)) {
-			var columnFamily = columnFamilies.remove(table.name);
-			if (columnFamily != null) {
-				rocksDb.dropColumnFamily(columnFamily);
-				rocksDb.destroyColumnFamilyHandle(columnFamily);
-				return true;
+	public @NotNull Table getOrAddTable(@NotNull String name) throws RocksDBException {
+		return getOrAddTable(name, null);
+	}
+
+	public synchronized @NotNull Table getOrAddTable(@NotNull String name, @Nullable OutObject<Boolean> isNew)
+			throws RocksDBException {
+		var table = tableMap.get(name);
+		if (table != null) {
+			if (isNew != null)
+				isNew.value = false;
+			return table;
+		}
+		if (isNew != null)
+			isNew.value = true;
+		table = new Table(name, rocksDb.createColumnFamily(
+				new ColumnFamilyDescriptor(name.getBytes(StandardCharsets.UTF_8), commonCfOptions)));
+		tableMap.put(name, table);
+		return table;
+	}
+
+	public synchronized boolean dropTable(@NotNull String name) throws RocksDBException {
+		var table = tableMap.remove(name);
+		if (table == null)
+			return false;
+		var cfh = table.getCfHandle();
+		rocksDb.dropColumnFamily(cfh);
+		rocksDb.destroyColumnFamilyHandle(cfh);
+		return true;
+	}
+
+	public @NotNull Table @NotNull [] getOrAddTables(String @NotNull [] names) throws RocksDBException {
+		return getOrAddTables(names, null);
+	}
+
+	public synchronized @NotNull Table @NotNull [] getOrAddTables(String @NotNull [] names,
+																  boolean @Nullable [] isNews) throws RocksDBException {
+		var n = names.length;
+		var tables = new Table[n];
+		var newIndexes = new IntList();
+		var newNames = new ArrayList<byte[]>();
+		for (int i = 0; i < n; i++) {
+			var table = tableMap.get(names[i]);
+			if (table != null)
+				tables[i] = table;
+			else {
+				newIndexes.add(i);
+				newNames.add(names[i].getBytes(StandardCharsets.UTF_8));
+			}
+			if (isNews != null && i < isNews.length)
+				isNews[i] = table == null;
+		}
+		n = newIndexes.size();
+		if (n > 0) {
+			var cfhs = rocksDb.createColumnFamilies(commonCfOptions, newNames);
+			if (cfhs.size() != newNames.size()) {
+				throw new IllegalStateException("createColumnFamilies unmatched: "
+						+ cfhs.size() + " != " + newNames.size());
+			}
+			for (int i = 0; i < n; i++) {
+				var idx = newIndexes.get(i);
+				var table = new Table(names[idx], cfhs.get(i));
+				tableMap.put(table.name, table);
+				tables[idx] = table;
 			}
 		}
-		return false;
+		return tables;
 	}
 
 	// Batch用完时需确保调用close回收堆外内存,推荐使用try(var b = newBatch()) {...}
@@ -215,68 +280,81 @@ public class RocksDatabase implements Closeable {
 		};
 	}
 
-	private @NotNull ColumnFamilyHandle openFamily(@NotNull String name) {
-		return columnFamilies.computeIfAbsent(name, key -> {
-			try {
-				return rocksDb.createColumnFamily(new ColumnFamilyDescriptor(
-						key.getBytes(StandardCharsets.UTF_8), getDefaultCfOptions()));
-			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
-			}
-		});
+	// Checkpoint用完时需确保调用close回收堆外内存,推荐使用try(var c = newCheckpoint()) {...}
+	public @NotNull Checkpoint newCheckpoint() {
+		return Checkpoint.create(rocksDb);
+	}
+
+	public boolean isClosed() {
+		return !rocksDb.isOwningHandle();
 	}
 
 	@Override
-	public void close() {
-		synchronized (this) {
-			var bp = batchPool;
-			if (bp != null) {
-				for (var b : bp)
-					b.batch.close();
-				bp.clear();
-			}
+	public synchronized void close() {
+		var bp = batchPool;
+		if (bp != null) {
+			for (var b : bp)
+				b.batch.close();
+			bp.clear();
 		}
-		columnFamilies.clear();
-		tables.clear();
+		tableMap.clear();
 		rocksDb.close();
+	}
+
+	public static void backup(@NotNull String checkpointDir, @NotNull String backupDir) throws RocksDBException {
+		var cfhs = new ArrayList<ColumnFamilyHandle>();
+		try (var src = RocksDB.open(commonDbOptions, checkpointDir, getCfDescriptors(checkpointDir), cfhs);
+			 var backupOptions = new BackupEngineOptions(backupDir);
+			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
+			backup.createNewBackup(src, true);
+		}
+	}
+
+	public static void restore(@NotNull String backupDir, @NotNull String dbName) throws RocksDBException {
+		try (var restoreOptions = new RestoreOptions(false);
+			 var backupOptions = new BackupEngineOptions(backupDir);
+			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
+			backup.restoreDbFromLatestBackup(dbName, dbName, restoreOptions);
+		}
 	}
 
 	public final class Table {
 		private final @NotNull String name;
-		private final @NotNull ColumnFamilyHandle columnFamily;
+		private final @NotNull ColumnFamilyHandle cfHandle;
 
-		public Table(@NotNull String name, @NotNull ColumnFamilyHandle columnFamily) {
+		public Table(@NotNull String name, @NotNull ColumnFamilyHandle cfHandle) {
 			this.name = name;
-			this.columnFamily = columnFamily;
+			this.cfHandle = cfHandle;
 		}
 
 		public @NotNull String getName() {
 			return name;
 		}
 
-		public @NotNull ColumnFamilyHandle getColumnFamily() {
-			return columnFamily;
+		public @NotNull ColumnFamilyHandle getCfHandle() {
+			return cfHandle;
 		}
 
-		public byte[] get(byte[] key) throws RocksDBException {
+		public byte @Nullable [] get(byte[] key) throws RocksDBException {
 			return get(defaultReadOptions, key);
 		}
 
-		public byte[] get(byte[] key, int offset, int size) throws RocksDBException {
+		public byte @Nullable [] get(byte[] key, int offset, int size) throws RocksDBException {
 			return get(defaultReadOptions, key, offset, size);
 		}
 
-		public byte[] get(@NotNull ReadOptions options, byte[] key) throws RocksDBException {
+		public byte @Nullable [] get(@NotNull ReadOptions options, byte[] key) throws RocksDBException {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			var r = rocksDb.get(columnFamily, options, key);
+			var r = rocksDb.get(cfHandle, options, key);
 			if (PerfCounter.ENABLE_PERF)
 				PerfCounter.instance.addRunInfo("RocksDB.get", System.nanoTime() - timeBegin);
 			return r;
 		}
 
-		public byte[] get(@NotNull ReadOptions options, byte[] key, int offset, int size) throws RocksDBException {
+		public byte @Nullable [] get(@NotNull ReadOptions options, byte[] key, int offset, int size)
+				throws RocksDBException {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			var r = rocksDb.get(columnFamily, options, key, offset, size);
+			var r = rocksDb.get(cfHandle, options, key, offset, size);
 			if (PerfCounter.ENABLE_PERF)
 				PerfCounter.instance.addRunInfo("RocksDB.get", System.nanoTime() - timeBegin);
 			return r;
@@ -291,6 +369,21 @@ public class RocksDatabase implements Closeable {
 			put(defaultWriteOptions, key, keyOff, keyLen, value, valueOff, valueLen);
 		}
 
+		public void put(@NotNull WriteOptions options, byte[] key, byte[] value) throws RocksDBException {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			rocksDb.put(cfHandle, options, key, value);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDB.put", System.nanoTime() - timeBegin);
+		}
+
+		public void put(@NotNull WriteOptions options, byte[] key, int keyOff, int keyLen,
+						byte[] value, int valueOff, int valueLen) throws RocksDBException {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			rocksDb.put(cfHandle, options, key, keyOff, keyLen, value, valueOff, valueLen);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDB.put", System.nanoTime() - timeBegin);
+		}
+
 		public void delete(byte[] key) throws RocksDBException {
 			delete(defaultWriteOptions, key);
 		}
@@ -299,98 +392,87 @@ public class RocksDatabase implements Closeable {
 			delete(defaultWriteOptions, key, keyOff, keyLen);
 		}
 
-		public void put(@NotNull WriteOptions options, byte[] key, byte[] value) throws RocksDBException {
-			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			rocksDb.put(columnFamily, options, key, value);
-			if (PerfCounter.ENABLE_PERF)
-				PerfCounter.instance.addRunInfo("RocksDB.put", System.nanoTime() - timeBegin);
-		}
-
-		public void put(@NotNull WriteOptions options, byte[] key, int keyOff, int keyLen,
-						byte[] value, int valueOff, int valueLen) throws RocksDBException {
-			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			rocksDb.put(columnFamily, options, key, keyOff, keyLen, value, valueOff, valueLen);
-			if (PerfCounter.ENABLE_PERF)
-				PerfCounter.instance.addRunInfo("RocksDB.put", System.nanoTime() - timeBegin);
-		}
-
 		public void delete(@NotNull WriteOptions options, byte[] key) throws RocksDBException {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			rocksDb.delete(columnFamily, options, key);
+			rocksDb.delete(cfHandle, options, key);
 			if (PerfCounter.ENABLE_PERF)
 				PerfCounter.instance.addRunInfo("RocksDB.delete", System.nanoTime() - timeBegin);
 		}
 
 		public void delete(@NotNull WriteOptions options, byte[] key, int keyOff, int keyLen) throws RocksDBException {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			rocksDb.delete(columnFamily, options, key, keyOff, keyLen);
+			rocksDb.delete(cfHandle, options, key, keyOff, keyLen);
 			if (PerfCounter.ENABLE_PERF)
 				PerfCounter.instance.addRunInfo("RocksDB.delete", System.nanoTime() - timeBegin);
 		}
 
 		public void put(@NotNull Batch batch, @NotNull Binary key, @NotNull Binary value) throws RocksDBException {
-			batch.put(columnFamily, key.bytesUnsafe(), key.getOffset(), key.size(),
+			batch.put(cfHandle, key.bytesUnsafe(), key.getOffset(), key.size(),
 					value.bytesUnsafe(), value.getOffset(), value.size());
 		}
 
 		public void put(@NotNull Batch batch, byte[] key, byte[] value) throws RocksDBException {
-			batch.put(columnFamily, key, value);
+			batch.put(cfHandle, key, value);
 		}
 
 		public void put(@NotNull Batch batch, byte[] key, int keyOff, int keyLen,
 						byte[] value, int valueOff, int valueLen) throws RocksDBException {
-			batch.put(columnFamily, key, keyOff, keyLen, value, valueOff, valueLen);
+			batch.put(cfHandle, key, keyOff, keyLen, value, valueOff, valueLen);
 		}
 
 		public void delete(@NotNull Batch batch, @NotNull Binary key) throws RocksDBException {
-			batch.delete(columnFamily, key.bytesUnsafe(), key.getOffset(), key.size());
+			batch.delete(cfHandle, key.bytesUnsafe(), key.getOffset(), key.size());
 		}
 
 		public void delete(@NotNull Batch batch, byte[] key) throws RocksDBException {
-			batch.delete(columnFamily, key);
+			batch.delete(cfHandle, key);
 		}
 
 		public void delete(@NotNull Batch batch, byte[] key, int keyOff, int keyLen) throws RocksDBException {
-			batch.delete(columnFamily, key, keyOff, keyLen);
+			batch.delete(cfHandle, key, keyOff, keyLen);
 		}
 
+		// RocksIterator用完时需确保调用close回收堆外内存,推荐使用try(var it = iterator()) {...}
 		public @NotNull RocksIterator iterator() {
-			return rocksDb.newIterator(columnFamily, defaultReadOptions);
+			return rocksDb.newIterator(cfHandle, defaultReadOptions);
 		}
 
 		// 有数据的时候可以直接删除family吧！
 		public void drop() throws RocksDBException {
-			dropTable(this);
+			dropTable(name);
 		}
 	}
 
 	public class Batch implements Closeable {
 		private final WriteBatch batch = new WriteBatch();
 
-		public @NotNull WriteBatch getBatch() {
+		public @NotNull WriteBatch getWriteBatch() {
 			return batch;
+		}
+
+		public int getCount() {
+			return batch.count();
 		}
 
 		public boolean isClosed() {
 			return !batch.isOwningHandle();
 		}
 
-		public void put(@NotNull ColumnFamilyHandle columnFamily, byte[] key, byte[] value) throws RocksDBException {
-			batch.put(columnFamily, key, value);
+		public void put(@NotNull ColumnFamilyHandle cfh, byte[] key, byte[] value) throws RocksDBException {
+			batch.put(cfh, key, value);
 		}
 
-		public void put(@NotNull ColumnFamilyHandle columnFamily, byte[] key, int keyOff, int keyLen,
+		public void put(@NotNull ColumnFamilyHandle cfh, byte[] key, int keyOff, int keyLen,
 						byte[] value, int valueOff, int valueLen) throws RocksDBException {
-			batch.put(columnFamily, Database.copyIf(key, keyOff, keyLen), Database.copyIf(value, valueOff, valueLen));
+			batch.put(cfh, Database.copyIf(key, keyOff, keyLen), Database.copyIf(value, valueOff, valueLen));
 		}
 
-		public void delete(@NotNull ColumnFamilyHandle columnFamily, byte[] key) throws RocksDBException {
-			batch.delete(columnFamily, key);
+		public void delete(@NotNull ColumnFamilyHandle cfh, byte[] key) throws RocksDBException {
+			batch.delete(cfh, key);
 		}
 
-		public void delete(@NotNull ColumnFamilyHandle columnFamily, byte[] key, int off, int len)
-				throws RocksDBException {
-			batch.delete(columnFamily, Database.copyIf(key, off, len));
+		public void delete(@NotNull ColumnFamilyHandle cfh, byte[] key, int off, int len) throws RocksDBException {
+			batch.delete(cfh, Database.copyIf(key, off, len));
 		}
 
 		public void commit() throws RocksDBException {
@@ -412,35 +494,6 @@ public class RocksDatabase implements Closeable {
 		@Override
 		public void close() {
 			batch.close();
-		}
-	}
-
-	public static ArrayList<ColumnFamilyDescriptor> getColumnFamilies(String dir) throws RocksDBException {
-		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-		if (new File(dir).isDirectory()) {
-			for (var cf : OptimisticTransactionDB.listColumnFamilies(RocksDatabase.getCommonOptions(), dir))
-				columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getDefaultCfOptions()));
-		}
-		if (columnFamilies.isEmpty())
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), RocksDatabase.getDefaultCfOptions()));
-		return columnFamilies;
-	}
-
-	public static void backup(String checkpointDir, String backupDir) throws RocksDBException {
-		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		try (var src = RocksDB.open(RocksDatabase.getCommonDbOptions(), checkpointDir,
-				getColumnFamilies(checkpointDir), outHandles);
-			 var backupOptions = new BackupEngineOptions(backupDir);
-			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
-			backup.createNewBackup(src, true);
-		}
-	}
-
-	public static void restore(String backupDir, String dbName) throws RocksDBException {
-		try (var restoreOptions = new RestoreOptions(false);
-			 var backupOptions = new BackupEngineOptions(backupDir);
-			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
-			backup.restoreDbFromLatestBackup(dbName, dbName, restoreOptions);
 		}
 	}
 }

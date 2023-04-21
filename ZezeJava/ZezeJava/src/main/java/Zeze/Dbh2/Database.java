@@ -21,7 +21,7 @@ public class Database extends Zeze.Transaction.Database {
 	private final String databaseName;
 	private final MasterAgent masterAgent;
 
-	public Database(@NotNull Application zeze, Config.DatabaseConf conf) {
+	public Database(Application zeze, Config.DatabaseConf conf) {
 		super(zeze, conf);
 		// dbh2://ip:port/databaseName?user=xxx&passwd=xxx
 		try {

@@ -22,7 +22,6 @@ import Zeze.Builtin.Online.BVersions;
 import Zeze.Builtin.Online.SReliableNotify;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
-import Zeze.Builtin.Provider.BUserState;
 import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;

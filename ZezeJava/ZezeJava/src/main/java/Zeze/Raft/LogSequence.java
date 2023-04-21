@@ -248,7 +248,11 @@ public class LogSequence {
 		private final RocksDatabase.Table table;
 
 		public UniqueRequestSet(String tableName) {
-			table = database.openTable(tableName);
+			try {
+				table = database.getOrAddTable(tableName);
+			} catch (RocksDBException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		private void put(RaftLog log, boolean isApply) throws IOException, RocksDBException {
@@ -330,7 +334,7 @@ public class LogSequence {
 		RaftConfig raftConf = raft.getRaftConfig();
 		long expired = System.currentTimeMillis() - (raftConf.getUniqueRequestExpiredDays() + 1) * 86400_000L;
 
-		for (var tableName : database.getColumnFamilies().keySet()) {
+		for (var tableName : database.getTableMap().keySet()) {
 			if (!tableName.startsWith("unique."))
 				continue;
 			var db = uniqueDateFormat.parse(tableName.substring("unique.".length()));
@@ -341,7 +345,7 @@ public class LogSequence {
 				if (null != opened)
 					opened.table.drop(); // 包含opened.close。
 				else
-					database.openTable(tableName).drop();
+					database.getOrAddTable(tableName).drop();
 			}
 		}
 	}
@@ -388,7 +392,7 @@ public class LogSequence {
 		this.raft = raft;
 
 		database = new RocksDatabase(Paths.get(raft.getRaftConfig().getDbHome(), "rafts").toString());
-		rafts = database.openTable("rafts");
+		rafts = database.getOrAddTable("rafts");
 		{
 			// Read Term
 			raftsTermKey = makeRaftsKey(0);
