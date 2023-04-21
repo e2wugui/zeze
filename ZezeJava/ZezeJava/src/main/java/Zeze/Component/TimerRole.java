@@ -30,7 +30,7 @@ public class TimerRole {
 	//public final static String eTimerHandleName = "Zeze.Component.TimerGameOnline.Handle";
 	public final static String eOnlineTimers = "Zeze.Component.TimerGameOnline";
 
-	TimerRole(@NotNull Online online) {
+	public TimerRole(@NotNull Online online) {
 		this.online = online;
 
 		// online timer 生命期和 Online.Local 一致。
@@ -42,8 +42,7 @@ public class TimerRole {
 	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerName,
 									   long delay, long period, long times, long endTime,
 									   @Nullable TimerHandle handleName, @Nullable Bean customData) {
-		var timer = online.providerApp.zeze.getTimer();
-		var timerId = timer.tRoleTimers().get(timerName);
+		var timerId = online._tRoleTimers().get(timerName);
 		if (null != timerId)
 			return false;
 		var simpleTimer = new BSimpleTimer();
@@ -56,8 +55,7 @@ public class TimerRole {
 	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerName,
 									   @NotNull String cron, long times, long endTime,
 									   @Nullable TimerHandle handleName, @Nullable Bean customData) throws Exception {
-		var timer = online.providerApp.zeze.getTimer();
-		var timerId = timer.tRoleTimers().get(timerName);
+		var timerId = online._tRoleTimers().get(timerName);
 		if (null != timerId)
 			return false;
 		var cronTimer = new BCronTimer();
@@ -83,7 +81,7 @@ public class TimerRole {
 
 		var timer = online.providerApp.zeze.getTimer();
 		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, timer.timerSerialId.nextId());
-		timer.tRoleTimers().put(timerId, onlineTimer);
+		online._tRoleTimers().put(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
@@ -113,7 +111,7 @@ public class TimerRole {
 		var timer = online.providerApp.zeze.getTimer();
 		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, timer.timerSerialId.nextId());
 		onlineTimer.getTimerObj().setBean(cronTimer);
-		timer.tRoleTimers().insert(timerId, onlineTimer);
+		online._tRoleTimers().insert(timerId, onlineTimer);
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
@@ -129,14 +127,14 @@ public class TimerRole {
 		var timer = online.providerApp.zeze.getTimer();
 
 		// remove online timer
-		var bTimer = timer.tRoleTimers().get(timerId);
+		var bTimer = online._tRoleTimers().get(timerId);
 		if (null == bTimer)
 			return false;
 
 		// remove online local
 		var onlineTimers = online.getOrAddLocalBean(bTimer.getRoleId(), eOnlineTimers, new BOnlineTimers());
 		onlineTimers.getTimerIds().remove(timerId);
-		timer.tRoleTimers().remove(timerId);
+		online._tRoleTimers().remove(timerId);
 
 		// cancel future task
 		timer.cancelFuture(timerId);
@@ -165,7 +163,7 @@ public class TimerRole {
 			throw new IllegalStateException("not logout. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var custom = new BOfflineRoleCustom("", roleId, logoutVersion, handleClassName.getName());
+		var custom = new BOfflineRoleCustom("", roleId, logoutVersion, handleClassName.getName(), online.getOnlineSetName());
 
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
@@ -177,7 +175,7 @@ public class TimerRole {
 			timer.register(customData.getClass());
 			custom.getCustomData().setBean(customData);
 		}
-		var offline = timer.tRoleOfflineTimers().getOrAdd(roleId);
+		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit())
 			throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
 
@@ -223,7 +221,7 @@ public class TimerRole {
 			throw new IllegalStateException("not logout. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var custom = new BOfflineRoleCustom("", roleId, logoutVersion, handleClassName.getName());
+		var custom = new BOfflineRoleCustom("", roleId, logoutVersion, handleClassName.getName(), online.getOnlineSetName());
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime);
 		cronTimer.setMissfirePolicy(missFirePolicy);
@@ -233,7 +231,7 @@ public class TimerRole {
 			timer.register(customData.getClass());
 			custom.getCustomData().setBean(customData);
 		}
-		var offline = timer.tRoleOfflineTimers().getOrAdd(roleId);
+		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit())
 			throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
 
@@ -262,7 +260,7 @@ public class TimerRole {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineRoleCustom)context.customData;
-			var loginVersion = context.timer.getRoleTimer().online.getLoginVersion(offlineCustom.getRoleId());
+			var loginVersion = context.timer.getRoleTimer(offlineCustom.getOnlineSetName()).online.getLoginVersion(offlineCustom.getRoleId());
 			// 检查版本号，不正确的登录版本号表示过期的timer，取消掉即可。
 			if (null != loginVersion && loginVersion == offlineCustom.getLoginVersion()) {
 				@SuppressWarnings("unchecked")
@@ -273,7 +271,8 @@ public class TimerRole {
 				handle.onTimer(context);
 			} else {
 				context.timer.cancel(offlineCustom.getTimerName());
-				var offlineTimers = context.timer.tRoleOfflineTimers().get(offlineCustom.getRoleId());
+				var online = context.timer.getDefaultOnline().getOnlineSet(offlineCustom.getOnlineSetName());
+				var offlineTimers = online._tRoleOfflineTimers().get(offlineCustom.getRoleId());
 				offlineTimers.getOfflineTimers().remove(offlineCustom.getTimerName());
 			}
 		}
@@ -286,7 +285,7 @@ public class TimerRole {
 	private long onLoginEvent(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) {
 		var timer = online.providerApp.zeze.getTimer();
 		var loginArg = (LoginArgument)arg;
-		var offlineTimers = timer.tRoleOfflineTimers().get(loginArg.roleId);
+		var offlineTimers = online._tRoleOfflineTimers().get(loginArg.roleId);
 		// X: fix offlineTimers is null
 		if (null == offlineTimers)
 			return 0;
@@ -297,7 +296,7 @@ public class TimerRole {
 		// 删除之后，如果上面的redirectCancel失败，
 		// 那么该timer触发的时候会检测到版本号不一致，
 		// 然后timer最终也会被cancel掉。
-		timer.tRoleOfflineTimers().remove(loginArg.roleId);
+		online._tRoleOfflineTimers().remove(loginArg.roleId);
 		return 0;
 	}
 
@@ -341,7 +340,7 @@ public class TimerRole {
 				return 0; // done
 			}
 
-			var bTimer = timer.tRoleTimers().get(timerId);
+			var bTimer = online._tRoleTimers().get(timerId);
 			if (null == bTimer) {
 				timer.cancelFuture(timerId);
 				return 0; // done
@@ -368,7 +367,7 @@ public class TimerRole {
 				return Procedure.Success;
 			}, "TimerRole.fireOnlineLocalHandle"));
 
-			var bTimerNew = timer.tRoleTimers().get(timerId);
+			var bTimerNew = online._tRoleTimers().get(timerId);
 			if (bTimerNew == null || bTimerNew.getSerialId() != serialSaved)
 				return 0; // canceled or new timer
 
@@ -414,7 +413,7 @@ public class TimerRole {
 				return 0; // done
 			}
 
-			var bTimer = timer.tRoleTimers().get(timerId);
+			var bTimer = online._tRoleTimers().get(timerId);
 			if (null == bTimer) {
 				timer.cancelFuture(timerId);
 				return 0; // done
@@ -441,7 +440,7 @@ public class TimerRole {
 				return Procedure.Success;
 			}, "TimerRole.fireOnlineLocalHandle"));
 
-			var bTimerNew = timer.tRoleTimers().get(timerId);
+			var bTimerNew = online._tRoleTimers().get(timerId);
 			if (bTimerNew == null || bTimerNew.getSerialId() != serialSaved)
 				return 0; // canceled or new timer
 

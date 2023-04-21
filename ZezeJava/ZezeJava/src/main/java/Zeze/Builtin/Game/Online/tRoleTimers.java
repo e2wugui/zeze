@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Timer;
+package Zeze.Builtin.Game.Online;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
@@ -9,20 +9,20 @@ import Zeze.Transaction.TableReadOnly;
 public final class tRoleTimers extends TableX<String, Zeze.Builtin.Timer.BGameOnlineTimer>
         implements TableReadOnly<String, Zeze.Builtin.Timer.BGameOnlineTimer, Zeze.Builtin.Timer.BGameOnlineTimerReadOnly> {
     public tRoleTimers() {
-        super("Zeze_Builtin_Timer_tRoleTimers");
+        super("Zeze_Builtin_Game_Online_tRoleTimers");
     }
 
     public tRoleTimers(String suffix) {
-        super("Zeze_Builtin_Timer_tRoleTimers" + suffix);
+        super("Zeze_Builtin_Game_Online_tRoleTimers" + suffix);
     }
 
     public String getOriginName() {
-        return "Zeze_Builtin_Timer_tRoleTimers";
+        return "Zeze_Builtin_Game_Online_tRoleTimers";
     }
 
     @Override
     public int getId() {
-        return -218884023;
+        return 1198700620;
     }
 
     @Override

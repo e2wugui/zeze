@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Timer;
+package Zeze.Builtin.Game.Online;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
@@ -9,20 +9,20 @@ import Zeze.Transaction.TableReadOnly;
 public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BOfflineTimers>
         implements TableReadOnly<Long, Zeze.Builtin.Timer.BOfflineTimers, Zeze.Builtin.Timer.BOfflineTimersReadOnly> {
     public tRoleOfflineTimers() {
-        super("Zeze_Builtin_Timer_tRoleOfflineTimers");
+        super("Zeze_Builtin_Game_Online_tRoleOfflineTimers");
     }
 
     public tRoleOfflineTimers(String suffix) {
-        super("Zeze_Builtin_Timer_tRoleOfflineTimers" + suffix);
+        super("Zeze_Builtin_Game_Online_tRoleOfflineTimers" + suffix);
     }
 
     public String getOriginName() {
-        return "Zeze_Builtin_Timer_tRoleOfflineTimers";
+        return "Zeze_Builtin_Game_Online_tRoleOfflineTimers";
     }
 
     @Override
     public int getId() {
-        return 987199499;
+        return 689434588;
     }
 
     public static final int VAR_OfflineTimers = 1;

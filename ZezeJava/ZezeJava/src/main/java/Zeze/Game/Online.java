@@ -24,6 +24,8 @@ import Zeze.Builtin.Game.Online.BOnline;
 import Zeze.Builtin.Game.Online.BReliableNotify;
 import Zeze.Builtin.Game.Online.BVersion;
 import Zeze.Builtin.Game.Online.SReliableNotify;
+import Zeze.Builtin.Game.Online.tRoleOfflineTimers;
+import Zeze.Builtin.Game.Online.tRoleTimers;
 import Zeze.Builtin.Game.Online.tlocal;
 import Zeze.Builtin.Game.Online.tonline;
 import Zeze.Builtin.Game.Online.tversion;
@@ -36,6 +38,7 @@ import Zeze.Builtin.ProviderDirect.Transmit;
 import Zeze.Collections.BeanFactory;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
+import Zeze.Component.TimerRole;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -64,11 +67,12 @@ import org.jetbrains.annotations.Nullable;
 
 public class Online extends AbstractOnline {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
-	static @Nullable Online instance;
+	static @Nullable Online instanceDefaultOnline;
 
 	public final @NotNull ProviderApp providerApp;
 	private @Nullable ProviderLoad load;
 	private final AtomicLong loginTimes = new AtomicLong();
+	private final TimerRole timerRole;
 
 	private final EventDispatcher loginEvents = new EventDispatcher("Online.Login");
 	private final EventDispatcher reloginEvents = new EventDispatcher("Online.Relogin");
@@ -101,6 +105,10 @@ public class Online extends AbstractOnline {
 		return load;
 	}
 
+	public @NotNull TimerRole getTimerRole() {
+		return timerRole;
+	}
+
 	public static final BeanFactory beanFactory = new BeanFactory();
 
 	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
@@ -109,6 +117,18 @@ public class Online extends AbstractOnline {
 
 	public static void register(@NotNull Class<? extends Bean> cls) {
 		beanFactory.register(cls);
+	}
+
+	public String getOnlineSetName() {
+		return multiInstanceName;
+	}
+
+	public @NotNull tRoleTimers _tRoleTimers() {
+		return _tRoleTimers;
+	}
+
+	public @NotNull tRoleOfflineTimers _tRoleOfflineTimers() {
+		return _tRoleOfflineTimers;
 	}
 
 	// load redirect 使用这个构造函数。
@@ -124,7 +144,8 @@ public class Online extends AbstractOnline {
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
 		load = new ProviderLoad(this);
-		instance = this;
+		instanceDefaultOnline = this;
+		timerRole = new TimerRole(this);
 	}
 
 	// 创建新的OnlineSet使用这个构造函数。独立OnlineSet不装载redirect子类。
@@ -139,6 +160,7 @@ public class Online extends AbstractOnline {
 
 		RegisterZezeTables(providerApp.zeze);
 		//load = new ProviderLoad(this); // todo 需要修改，load报告在多实例下应该不能工作。
+		timerRole = new TimerRole(this);
 	}
 
 	private @NotNull HashMap<String, Online> getOnlineSetMap() {
@@ -171,7 +193,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void stop() {
-		instance = null;
+		instanceDefaultOnline = null;
 		if (null != load)
 			load.stop();
 		if (null != verifyLocalTimer)
@@ -456,8 +478,11 @@ public class Online extends AbstractOnline {
 	public static class DelayLogout implements TimerHandle {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
-			if (null != instance) {
-				var ret = instance.tryLogout((BDelayLogoutCustom)context.customData);
+			if (null != instanceDefaultOnline) {
+				// 这里虽然调用instanceDefaultOnline，但里面执行会根据context里面OnlineSetName访问的不同的Online数据
+				// 也许这里改成 getOnlineSet(name).tryLogout，tryLogout 就直接访问自身数据比较好。
+				// 能工作，先这样了。
+				var ret = instanceDefaultOnline.tryLogout((BDelayLogoutCustom)context.customData);
 				if (ret != 0)
 					Online.logger.error("tryLogout fail. {}", ret);
 			}

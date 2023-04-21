@@ -21,8 +21,6 @@ public abstract class AbstractTimer implements Zeze.IModule {
     protected final Zeze.Builtin.Timer.tIndexs _tIndexs = new Zeze.Builtin.Timer.tIndexs();
     protected final Zeze.Builtin.Timer.tNodeRoot _tNodeRoot = new Zeze.Builtin.Timer.tNodeRoot();
     protected final Zeze.Builtin.Timer.tNodes _tNodes = new Zeze.Builtin.Timer.tNodes();
-    protected final Zeze.Builtin.Timer.tRoleOfflineTimers _tRoleOfflineTimers = new Zeze.Builtin.Timer.tRoleOfflineTimers();
-    protected final Zeze.Builtin.Timer.tRoleTimers _tRoleTimers = new Zeze.Builtin.Timer.tRoleTimers();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
@@ -37,8 +35,6 @@ public abstract class AbstractTimer implements Zeze.IModule {
         zeze.addTable(zeze.getConfig().getTableConf(_tIndexs.getName()).getDatabaseName(), _tIndexs);
         zeze.addTable(zeze.getConfig().getTableConf(_tNodeRoot.getName()).getDatabaseName(), _tNodeRoot);
         zeze.addTable(zeze.getConfig().getTableConf(_tNodes.getName()).getDatabaseName(), _tNodes);
-        zeze.addTable(zeze.getConfig().getTableConf(_tRoleOfflineTimers.getName()).getDatabaseName(), _tRoleOfflineTimers);
-        zeze.addTable(zeze.getConfig().getTableConf(_tRoleTimers.getName()).getDatabaseName(), _tRoleTimers);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
@@ -48,8 +44,6 @@ public abstract class AbstractTimer implements Zeze.IModule {
         zeze.removeTable(zeze.getConfig().getTableConf(_tIndexs.getName()).getDatabaseName(), _tIndexs);
         zeze.removeTable(zeze.getConfig().getTableConf(_tNodeRoot.getName()).getDatabaseName(), _tNodeRoot);
         zeze.removeTable(zeze.getConfig().getTableConf(_tNodes.getName()).getDatabaseName(), _tNodes);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tRoleOfflineTimers.getName()).getDatabaseName(), _tRoleOfflineTimers);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tRoleTimers.getName()).getDatabaseName(), _tRoleTimers);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

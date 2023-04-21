@@ -12,4 +12,5 @@ public interface BOfflineRoleCustomReadOnly {
     long getLoginVersion();
     String getHandleName();
     Zeze.Transaction.DynamicBeanReadOnly getCustomDataReadOnly();
+    String getOnlineSetName();
 }

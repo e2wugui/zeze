@@ -668,6 +668,9 @@
 
 				<table name="tlocal" key="long" memory="true" value="BLocal"/>
 
+				<table name="tRoleTimers" key="string" value="Zeze.Builtin.Timer.BGameOnlineTimer" memory="true"/>
+				<table name="tRoleOfflineTimers" key="long" value="Zeze.Builtin.Timer.BOfflineTimers"/>
+
 				<!-- interface -->
 				<!--
 				* 事件
@@ -1117,7 +1120,6 @@
 			</bean>
 
 			<table name="tAccountTimers" key="string" value="BArchOnlineTimer" memory="true"/>
-			<table name="tRoleTimers" key="string" value="BGameOnlineTimer" memory="true"/>
 
 			<bean name="BOnlineCustom"> 保存真正的用户自定义数据
 				<variable id="1" name="CustomData" type="dynamic">
@@ -1150,12 +1152,12 @@
 					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
 					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
 				</variable>
+				<variable id="6" name="OnlineSetName"   type="string"/>
 			</bean>
 			<bean name="BOfflineTimers">
 				key是timerId，value是注册离线定时器的ServerId。
 				<variable id="1" name="OfflineTimers" type="map[string, int]"/>
 			</bean>
-			<table name="tRoleOfflineTimers" key="long" value="BOfflineTimers"/>
 
 			<beankey name="BAccountClientId">
 				<variable id="1" name="Account" type="string"/>

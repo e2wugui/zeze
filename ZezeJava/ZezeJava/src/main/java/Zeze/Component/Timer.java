@@ -14,6 +14,7 @@ import Zeze.Arch.ProviderWithOnline;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.Timer.*;
 import Zeze.Collections.BeanFactory;
+import Zeze.Game.Online;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
@@ -110,7 +111,7 @@ public class Timer extends AbstractTimer {
 			if (impl instanceof ProviderWithOnline)
 				timerAccount = new TimerAccount(((ProviderWithOnline)impl).getOnline());
 			else if (impl instanceof Zeze.Game.ProviderWithOnline)
-				timerRole = new TimerRole(((Zeze.Game.ProviderWithOnline)impl).getOnline());
+				defaultOnline = ((Zeze.Game.ProviderWithOnline)impl).getOnline();
 		}
 	}
 
@@ -649,27 +650,27 @@ public class Timer extends AbstractTimer {
 		return _tIndexs;
 	}
 
-	@NotNull tRoleTimers tRoleTimers() {
-		return _tRoleTimers;
-	}
-
 	@NotNull tAccountOfflineTimers tAccountOfflineTimers() {
 		return _tAccountOfflineTimers;
 	}
 
-	@NotNull tRoleOfflineTimers tRoleOfflineTimers() {
-		return _tRoleOfflineTimers;
-	}
-
 	private TimerAccount timerAccount;
-	private TimerRole timerRole;
+	private Online defaultOnline;
 
 	public TimerAccount getAccountTimer() {
 		return timerAccount;
 	}
 
+	public Online getDefaultOnline() {
+		return defaultOnline;
+	}
+
 	public TimerRole getRoleTimer() {
-		return timerRole;
+		return defaultOnline.getTimerRole();
+	}
+
+	public TimerRole getRoleTimer(String onlineSetName) {
+		return defaultOnline.getOnlineSet(onlineSetName).getTimerRole();
 	}
 
 	/////////////////////////////////////////////////////////////

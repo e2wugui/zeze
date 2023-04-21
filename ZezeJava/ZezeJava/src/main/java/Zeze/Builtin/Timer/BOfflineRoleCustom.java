@@ -25,6 +25,8 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
     }
 
+    private String _OnlineSetName;
+
     @Override
     public String getTimerName() {
         if (!isManaged())
@@ -118,16 +120,39 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         return _CustomData;
     }
 
+    @Override
+    public String getOnlineSetName() {
+        if (!isManaged())
+            return _OnlineSetName;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _OnlineSetName;
+        var log = (Log__OnlineSetName)txn.getLog(objectId() + 6);
+        return log != null ? log.value : _OnlineSetName;
+    }
+
+    public void setOnlineSetName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _OnlineSetName = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__OnlineSetName(this, 6, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BOfflineRoleCustom() {
         _TimerName = "";
         _LoginVersion = -1;
         _HandleName = "";
         _CustomData = newDynamicBean_CustomData();
+        _OnlineSetName = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BOfflineRoleCustom(String _TimerName_, long _RoleId_, long _LoginVersion_, String _HandleName_) {
+    public BOfflineRoleCustom(String _TimerName_, long _RoleId_, long _LoginVersion_, String _HandleName_, String _OnlineSetName_) {
         if (_TimerName_ == null)
             throw new IllegalArgumentException();
         _TimerName = _TimerName_;
@@ -137,6 +162,9 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
             throw new IllegalArgumentException();
         _HandleName = _HandleName_;
         _CustomData = newDynamicBean_CustomData();
+        if (_OnlineSetName_ == null)
+            throw new IllegalArgumentException();
+        _OnlineSetName = _OnlineSetName_;
     }
 
     public void assign(BOfflineRoleCustom other) {
@@ -145,6 +173,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         setLoginVersion(other.getLoginVersion());
         setHandleName(other.getHandleName());
         _CustomData.assign(other.getCustomData());
+        setOnlineSetName(other.getOnlineSetName());
     }
 
     public BOfflineRoleCustom copyIfManaged() {
@@ -197,6 +226,13 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         public void commit() { ((BOfflineRoleCustom)getBelong())._HandleName = value; }
     }
 
+    private static final class Log__OnlineSetName extends Zeze.Transaction.Logs.LogString {
+        public Log__OnlineSetName(BOfflineRoleCustom bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BOfflineRoleCustom)getBelong())._OnlineSetName = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -214,7 +250,8 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         sb.append(Zeze.Util.Str.indent(level)).append("HandleName=").append(getHandleName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("CustomData=").append(System.lineSeparator());
         _CustomData.getBean().buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
+        sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OnlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -269,6 +306,13 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
                 _x_.encode(_o_);
             }
         }
+        {
+            String _x_ = getOnlineSetName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -294,6 +338,10 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         }
         if (_i_ == 5) {
             _o_.ReadDynamic(_CustomData, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 6) {
+            setOnlineSetName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -335,6 +383,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
                 case 3: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 4: _HandleName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 5: _CustomData.followerApply(vlog); break;
+                case 6: _OnlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -351,6 +400,9 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         if (getHandleName() == null)
             setHandleName("");
         Zeze.Serialize.Helper.decodeJsonDynamic(getCustomData(), rs.getString(_parents_name_ + "CustomData"));
+        setOnlineSetName(rs.getString(_parents_name_ + "OnlineSetName"));
+        if (getOnlineSetName() == null)
+            setOnlineSetName("");
     }
 
     @Override
@@ -361,5 +413,6 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
         st.appendString(_parents_name_ + "HandleName", getHandleName());
         st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(getCustomData()));
+        st.appendString(_parents_name_ + "OnlineSetName", getOnlineSetName());
     }
 }
