@@ -99,13 +99,14 @@ public class TestLostRedo {
 			return 0;
 		}, "clear").call();
 
+		var count = 1000;
 		var futures = new ArrayList<Future<?>>();
-		for (int i = 0; i < 1_000; ++i)
+		for (int i = 0; i < count; ++i)
 			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::autoKeyWithInsert, "write")));
 		for (var future : futures)
 			future.get();
 
-		Assert.assertEquals(insertOks.get(), 1_0000);
+		Assert.assertEquals(insertOks.get(), count);
 		System.out.println("insert funTimes=" + runTimes.get());
 	}
 
