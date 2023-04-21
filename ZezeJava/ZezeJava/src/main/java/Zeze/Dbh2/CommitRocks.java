@@ -84,11 +84,8 @@ public class CommitRocks {
 	}
 
 	public void close() {
-		synchronized (batch) {
-			redoTimer.cancel(false);
-			batch.close();
-			database.close();
-		}
+		redoTimer.cancel(false);
+		database.close();
 	}
 
 	public void setWriteOptions(WriteOptions writeOptions) {
