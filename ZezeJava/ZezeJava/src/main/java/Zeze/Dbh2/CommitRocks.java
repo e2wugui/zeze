@@ -1,6 +1,8 @@
 package Zeze.Dbh2;
 
 import java.util.ArrayList;
+import java.util.concurrent.Future;
+import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Builtin.Dbh2.Commit.BTransactionState;
@@ -8,7 +10,9 @@ import Zeze.Net.Binary;
 import Zeze.Raft.RaftRpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
+import Zeze.Util.Func2;
 import Zeze.Util.RocksDatabase;
+import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,20 +27,68 @@ public class CommitRocks {
 	private final RocksDatabase.Table commitPoint;
 	private final RocksDatabase.Table commitIndex;
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
+	private final Future<?> redoTimer;
 
 	public CommitRocks(Dbh2AgentManager manager) throws RocksDBException {
 		this.manager = manager;
 		database = new RocksDatabase("CommitRocks");
 		commitPoint = database.openTable("CommitPoint");
 		commitIndex = database.openTable("CommitIndex");
+
+		redoTimer();
+		// 1 minute?
+		redoTimer = Task.scheduleUnsafe(60000, 60000, this::redoTimer);
 	}
 
 	public Dbh2AgentManager getManager() {
 		return manager;
 	}
 
+	private void redoTimer() throws RocksDBException {
+		try (var it = commitIndex.iterator()) {
+			for (it.seekToFirst(); it.isValid(); it.next()) {
+				var value = it.value();
+				var state = ByteBuffer.Wrap(value).ReadInt();
+				switch (state) {
+				case Commit.eCommitting:
+					redo(it.key(), Dbh2Agent::commitBatch);
+					break;
+				case Commit.ePreparing:
+					redo(it.key(), Dbh2Agent::undoBatch);
+					break;
+				}
+			}
+		}
+	}
+
+	private void redo(byte[] key, Func2<Dbh2Agent, Binary, TaskCompletionSource<
+			RaftRpc<BBatchTid.Data, EmptyBean.Data>>> func) throws RocksDBException {
+
+		var value = commitPoint.get(key);
+		var state = new BTransactionState.Data();
+		state.decode(ByteBuffer.Wrap(value));
+
+		var tid = new Binary(key);
+		try {
+			var futures = new ArrayList<TaskCompletionSource<?>>();
+			for (var e : state.getBuckets()) {
+				futures.add(func.call(manager.openBucket(e), tid));
+			}
+			for (var e : futures)
+				e.await();
+			removeCommitIndex(tid);
+		} catch (Throwable ex) {
+			// timer will redo
+			logger.error("", ex);
+		}
+	}
+
 	public void close() {
-		database.close();
+		synchronized (batch) {
+			redoTimer.cancel(false);
+			batch.close();
+			database.close();
+		}
 	}
 
 	public void setWriteOptions(WriteOptions writeOptions) {
@@ -126,7 +178,8 @@ public class CommitRocks {
 				e.await();
 			removeCommitIndex(tid);
 		} catch (Throwable ex) {
-			// todo timer will redo
+			// timer will redo
+			logger.error("", ex);
 		}
 	}
 
