@@ -37,7 +37,7 @@ public class TestOnline extends TestCase {
 		for (int i = 0; i < LinkCount; ++i)
 			links.get(i).Start(-(i+1), 10000 + i, 15000 + i);
 		for (int i = 0; i < ServerCount; ++i)
-			servers.get(i).Start(i, 20000 + i);
+			servers.get(i).Start(i + 50, 20000 + i);
 		Thread.sleep(2000); // wait server ready
 		for (int i = 0; i < ClientCount; ++i) {
 			var link = links.get(i % LinkCount); // 按顺序选择link
