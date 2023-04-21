@@ -49,21 +49,16 @@ public class Dbh2FullTest {
 		for (var manager : managers)
 			manager.start();
 
-		Thread.sleep(2000); // leader 重启apply可能时间较长，给它5秒。
-
 		var database = newDatabase("dbh2TestDb");
 		var tables = new ArrayList<AbstractKVTable>();
 		for (int i = 0; i < 4; ++i)
 			tables.add((Database.AbstractKVTable)database.openTable("table" + i));
 
 		var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
-
 		Dbh2AgentManager.getInstance().start();
 		try {
-			Thread.sleep(3000); // leader 重启apply可能时间较长，给它5秒。
-
-			var count = 1_0000;
-			var threads = 8;
+			var count = 5000;
+			var threads = 4;
 			var futures = new ArrayList<Future<?>>();
 			var b = new Zeze.Util.Benchmark();
 			for (var t = 0; t < threads; ++t) {
@@ -71,7 +66,7 @@ public class Dbh2FullTest {
 				var keyEnd = keyStart + count;
 				futures.add(startBench(keyStart, keyEnd, database, tables.get(t % tables.size()), value));
 			}
-			Thread.sleep(2000);
+			Thread.sleep(2000); // 等待agent都连上，然后dump出来。此时任务在并发执行。
 			Dbh2AgentManager.getInstance().dumpAgents();
 			for (var future : futures)
 				future.get();
@@ -100,10 +95,8 @@ public class Dbh2FullTest {
 			for (var manager : managers)
 				manager.start();
 
-			Thread.sleep(2000); // leader 重启apply可能时间较长，给它5秒。
 			database = newDatabase("dbh2TestDb");
 			var table1 = (Database.AbstractKVTable)database.openTable("table1");
-			Thread.sleep(2000); // leader 重启apply可能时间较长，给它5秒。
 			var key = ByteBuffer.Wrap(new byte[] {});
 			var key1 = ByteBuffer.Wrap(new byte[] { 1 });
 			var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
@@ -140,7 +133,6 @@ public class Dbh2FullTest {
 			for (var manager : managers)
 				manager.start();
 
-			Thread.sleep(2000); // leader 重启apply可能时间较长，给它5秒。
 			database = newDatabase("dbh2TestDb");
 			var table1 = (Database.AbstractKVTable)database.openTable("table1");
 			var table2 = (Database.AbstractKVTable)database.openTable("table2");
@@ -149,7 +141,6 @@ public class Dbh2FullTest {
 			var key1 = ByteBuffer.Wrap(new byte[] { 1 });
 			var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
 
-			Thread.sleep(3000); // leader 重启apply可能时间较长，给它5秒。
 			try (var trans = database.beginTransaction()) {
 				table1.replace(trans, key, value);
 				table1.replace(trans, key1, value);

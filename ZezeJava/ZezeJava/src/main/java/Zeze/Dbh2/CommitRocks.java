@@ -35,7 +35,11 @@ public class CommitRocks {
 		commitPoint = database.openTable("CommitPoint");
 		commitIndex = database.openTable("CommitIndex");
 
-		redoTimer();
+		try {
+			redoTimer();
+		} catch (Exception ex) {
+			logger.error("first try.", ex);
+		}
 		// 1 minute?
 		redoTimer = Task.scheduleUnsafe(60000, 60000, this::redoTimer);
 	}

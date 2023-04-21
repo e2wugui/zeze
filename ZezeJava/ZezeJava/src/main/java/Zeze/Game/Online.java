@@ -193,11 +193,19 @@ public class Online extends AbstractOnline {
 	}
 
 	public void stop() {
-		instanceDefaultOnline = null;
-		if (null != load)
-			load.stop();
-		if (null != verifyLocalTimer)
-			verifyLocalTimer.cancel(false);
+		// default online 负责停止所有的online set。
+		if (multiInstanceName.isEmpty()) {
+			for (var online : getOnlineSetMap().values()) {
+				if (!online.getOnlineSetName().isEmpty())
+					online.stop();
+			}
+			getOnlineSetMap().clear();
+			instanceDefaultOnline = null;
+			if (null != load)
+				load.stop();
+			if (null != verifyLocalTimer)
+				verifyLocalTimer.cancel(false);
+		}
 	}
 
 	@Override
