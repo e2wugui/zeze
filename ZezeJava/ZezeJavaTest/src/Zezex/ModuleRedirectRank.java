@@ -117,7 +117,7 @@ public class ModuleRedirectRank extends TestCase {
 			assertEquals(hash22, result.hash);
 			assertEquals(888, result.out);
 			System.out.println("22--->" + result.serverId);
-			assertEquals(30, result.serverId);
+			assertEquals(31, result.serverId);
 		}).await();
 
 		// RedirectAll

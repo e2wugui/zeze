@@ -36,9 +36,9 @@ public class TestGameTimer {
 
 		for (int i = 0; i < linkCount; ++i)
 			links.get(i).Start(-(i+1), 10000 + i, 15000 + i);
-		for (int i = 0; i < serverCount; ++i) {
-			servers.get(i).Start(i, 20000 + i);
-			servers.get(i).getZeze().getTimer().start();
+		for (int i = 40; i < serverCount + 40; ++i) {
+			servers.get(i - 40).Start(i, 20000 + i - 40);
+			servers.get(i - 40).getZeze().getTimer().start();
 		}
 		Thread.sleep(2000);
 		for (int i = 0; i < clientCount; ++i) {
