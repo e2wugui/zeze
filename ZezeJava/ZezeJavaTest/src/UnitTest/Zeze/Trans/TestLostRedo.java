@@ -23,7 +23,7 @@ public class TestLostRedo {
 
 	@After
 	public void after() throws Exception {
-		App.Instance.Stop();
+		//App.Instance.Stop();
 	}
 
 	ConcurrentHashSet<Long> keys = new ConcurrentHashSet<>();

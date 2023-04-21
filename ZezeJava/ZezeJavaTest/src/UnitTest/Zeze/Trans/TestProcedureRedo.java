@@ -24,7 +24,7 @@ public class TestProcedureRedo {
 
     @After
     public final void testCleanup() throws Exception {
-        App.getInstance().Stop();
+        //App.getInstance().Stop();
     }
 
     private static int counter = 0;

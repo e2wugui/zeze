@@ -33,7 +33,7 @@ public class App extends Zeze.AppBase {
 				System.err.println(i + "-" + result);
 			}
 		}
-		Instance.Stop();
+		//Instance.Stop();
 	}
 
 	public static final App Instance = new App();

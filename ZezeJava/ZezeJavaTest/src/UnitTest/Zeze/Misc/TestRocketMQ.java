@@ -22,7 +22,7 @@ public class TestRocketMQ {
 
 	@After
 	public void after() throws Exception {
-		App.Instance.Stop();
+		//App.Instance.Stop();
 	}
 
 	@Test

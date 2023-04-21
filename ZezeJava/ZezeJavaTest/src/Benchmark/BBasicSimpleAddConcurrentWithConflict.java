@@ -31,7 +31,7 @@ public class BBasicSimpleAddConcurrentWithConflict extends TestCase {
 			App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Check, "check").call();
 			App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Remove, "remove").call();
 		} finally {
-			App.Instance.Stop();
+			//App.Instance.Stop();
 		}
 	}
 

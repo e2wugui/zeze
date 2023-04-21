@@ -39,7 +39,7 @@ public class CheckpointFlush {
 			var name = "flush " + mode + " threads=" + cfg.getCheckpointModeTableFlushConcurrent();
 			b.report(name, count);
 		} finally {
-			App.Instance.Stop();
+			//App.Instance.Stop();
 		}
 
 	}

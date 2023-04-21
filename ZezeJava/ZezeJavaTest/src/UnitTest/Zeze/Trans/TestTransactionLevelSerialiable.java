@@ -17,7 +17,7 @@ public class TestTransactionLevelSerialiable {
 
 	@After
 	public final void testCleanup() throws Exception {
-		demo.App.getInstance().Stop();
+		//demo.App.getInstance().Stop();
 	}
 
 	private volatile boolean InTest = true;

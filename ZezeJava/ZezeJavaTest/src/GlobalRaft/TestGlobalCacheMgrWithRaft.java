@@ -105,8 +105,8 @@ public class TestGlobalCacheMgrWithRaft {
 		try {
 			RunTrace();
 		} finally {
-			App1.Stop();
-			App2.Stop();
+			//App1.Stop();
+			//App2.Stop();
 			for (var globalRaft : GlobalRafts.values())
 				globalRaft.Stop();
 		}

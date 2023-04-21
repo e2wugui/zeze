@@ -32,7 +32,7 @@ public class TestServiceManager {
 
 	@After
 	public void after() throws Exception {
-		App.Instance.Stop();
+		//App.Instance.Stop();
 	}
 
 	TaskCompletionSource<Integer> future;

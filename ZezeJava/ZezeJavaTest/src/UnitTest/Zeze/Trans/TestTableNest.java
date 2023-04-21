@@ -16,7 +16,7 @@ public class TestTableNest {
 
 	@After
 	public final void testCleanup() throws Exception {
-		demo.App.getInstance().Stop();
+		//demo.App.getInstance().Stop();
 	}
 
 	@Test

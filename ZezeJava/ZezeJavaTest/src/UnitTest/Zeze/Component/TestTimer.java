@@ -23,8 +23,8 @@ public class TestTimer {
 
 	@After
 	public final void testCleanup() throws Exception {
-		System.out.println("Timer Test Cleanup");
-		demo.App.getInstance().Stop();
+		//System.out.println("Timer Test Cleanup");
+		//demo.App.getInstance().Stop();
 	}
 
 	public static class TestTimerHandle1 implements TimerHandle {

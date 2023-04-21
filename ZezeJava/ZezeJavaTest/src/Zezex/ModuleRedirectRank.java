@@ -17,7 +17,7 @@ public class ModuleRedirectRank extends TestCase {
 		app2 = new App();
 
 		try {
-			app1.Start(new String[]{"-ServerId", "0"});
+			app1.Start(new String[]{"-ServerId", "30"});
 
 			System.out.println("Begin Thread.sleep");
 			Thread.sleep(2000); // wait connected
@@ -33,7 +33,7 @@ public class ModuleRedirectRank extends TestCase {
 		}
 
 		try {
-			app2.Start(new String[]{"-ServerId", "1", "-ProviderDirectPort", "20002"});
+			app2.Start(new String[]{"-ServerId", "31", "-ProviderDirectPort", "20002"});
 
 			System.out.println("Begin Thread.sleep");
 			Thread.sleep(2000); // wait connected
@@ -63,24 +63,24 @@ public class ModuleRedirectRank extends TestCase {
 
 	public void testRedirect() throws Exception {
 		// RedirectToServer
-		app1.Game_Rank.TestToServer(0, 111).then(result -> {
+		app1.Game_Rank.TestToServer(30, 111).then(result -> {
 			assertEquals(111, result.out);
-			assertEquals(0, result.serverId);
+			assertEquals(30, result.serverId);
 		}).await();
 
-		app1.Game_Rank.TestToServer(1, 222).then(result -> {
+		app1.Game_Rank.TestToServer(31, 222).then(result -> {
 			assertEquals(222, result.out);
-			assertEquals(1, result.serverId);
+			assertEquals(31, result.serverId);
 		}).await();
 
-		app2.Game_Rank.TestToServer(0, 333).then(result -> {
+		app2.Game_Rank.TestToServer(30, 333).then(result -> {
 			assertEquals(333, result.out);
-			assertEquals(0, result.serverId);
+			assertEquals(30, result.serverId);
 		}).await();
 
-		app2.Game_Rank.TestToServer(1, 444).then(result -> {
+		app2.Game_Rank.TestToServer(31, 444).then(result -> {
 			assertEquals(444, result.out);
-			assertEquals(1, result.serverId);
+			assertEquals(31, result.serverId);
 		}).await();
 
 		// RedirectHash
@@ -90,7 +90,7 @@ public class ModuleRedirectRank extends TestCase {
 			assertEquals(hash11, result.hash);
 			assertEquals(555, result.out);
 			System.out.println("11--->" + result.serverId);
-			assertEquals(1, result.serverId);
+			assertEquals(30, result.serverId);
 		}).await();
 
 		var hash12 = Zeze.Serialize.ByteBuffer.calc_hashnr(100);
@@ -99,7 +99,7 @@ public class ModuleRedirectRank extends TestCase {
 			assertEquals(hash12, result.hash);
 			assertEquals(666, result.out);
 			System.out.println("12--->" + result.serverId);
-			assertEquals(0, result.serverId);
+			assertEquals(30, result.serverId);
 		}).await();
 
 		var hash21 = Zeze.Serialize.ByteBuffer.calc_hashnr(127366);
@@ -108,7 +108,7 @@ public class ModuleRedirectRank extends TestCase {
 			assertEquals(hash21, result.hash);
 			assertEquals(777, result.out);
 			System.out.println("21--->" + result.serverId);
-			assertEquals(1, result.serverId);
+			assertEquals(31, result.serverId);
 		}).await();
 
 		var hash22 = Zeze.Serialize.ByteBuffer.calc_hashnr(100);
@@ -117,7 +117,7 @@ public class ModuleRedirectRank extends TestCase {
 			assertEquals(hash22, result.hash);
 			assertEquals(888, result.out);
 			System.out.println("22--->" + result.serverId);
-			assertEquals(0, result.serverId);
+			assertEquals(30, result.serverId);
 		}).await();
 
 		// RedirectAll

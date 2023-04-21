@@ -40,7 +40,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
 				App.Instance.Zeze.newProcedure(() -> Remove(k), "remove").call();
 			}
 		} finally {
-			App.Instance.Stop();
+			//App.Instance.Stop();
 		}
 	}
 

@@ -62,9 +62,10 @@ public class TestGlobal extends TestCase {
 	}
 
 	public final void test2App() throws Exception {
-		demo.App app1 = demo.App.getInstance();
+		demo.App app1 = new demo.App();
 		demo.App app2 = new demo.App();
 		var config1 = Config.load("zeze.xml");
+		config1.setServerId(config1.getServerId() + 1);
 		var config2 = Config.load("zeze.xml");
 		config2.setServerId(config1.getServerId() + 1);
 		config1.getServiceConfMap().remove("TestServer");
@@ -103,8 +104,8 @@ public class TestGlobal extends TestCase {
 				return Procedure.Success;
 			}, "CheckResult2").call());
 		} finally {
-			app1.Stop();
-			app2.Stop();
+			//app1.Stop();
+			//app2.Stop();
 		}
 	}
 

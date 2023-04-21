@@ -8,7 +8,7 @@ public class DemoMain {
 				Thread.currentThread().wait();
 			}
 		} finally {
-			demo.App.getInstance().Stop();
+			//demo.App.getInstance().Stop();
 		}
 	}
 }

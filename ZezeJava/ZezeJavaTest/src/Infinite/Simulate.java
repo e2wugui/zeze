@@ -47,7 +47,7 @@ public final class Simulate {
 	@Before
 	public void Before() throws Exception {
 		After();
-		for (int serverId = 0; serverId < AppCount; serverId++)
+		for (int serverId = 10; serverId < AppCount + 10; serverId++)
 			Apps.add(new App(serverId));
 
 		for (var app : Apps)

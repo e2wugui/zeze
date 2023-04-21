@@ -21,7 +21,7 @@ public class ABasicSimpleAddOneThread extends TestCase {
 			App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Check, "check").call();
 			App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Remove, "remove").call();
 		} finally {
-			App.Instance.Stop();
+			//App.Instance.Stop();
 		}
 	}
 

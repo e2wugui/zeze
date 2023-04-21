@@ -15,13 +15,14 @@ public class TestAutoKey {
 	@Before
 	public final void testInit() throws Exception {
 		System.out.println("testInit");
+		demo.App.getInstance().Stop();
 		demo.App.getInstance().Start();
 	}
 
 	@After
 	public final void testCleanup() throws Exception {
-		System.out.println("testCleanup");
-		demo.App.getInstance().Stop();
+		//System.out.println("testCleanup");
+		//demo.App.getInstance().Stop();
 	}
 
 	private static long makeId(long index) {

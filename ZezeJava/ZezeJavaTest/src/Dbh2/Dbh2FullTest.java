@@ -42,21 +42,23 @@ public class Dbh2FullTest {
 		Zeze.Net.Selectors.getInstance().add(7);
 
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
-		master.start();
 		var managers = new ArrayList<Dbh2Manager>();
-		for (int i = 0; i < 3; ++i)
-			managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
-		for (var manager : managers)
-			manager.start();
-
-		var database = newDatabase("dbh2TestDb");
-		var tables = new ArrayList<AbstractKVTable>();
-		for (int i = 0; i < 4; ++i)
-			tables.add((Database.AbstractKVTable)database.openTable("table" + i));
 
 		var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
-		Dbh2AgentManager.getInstance().start();
+		Database database = null;
 		try {
+			master.start();
+			for (int i = 0; i < 3; ++i)
+				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
+			for (var manager : managers)
+				manager.start();
+			Dbh2AgentManager.getInstance().start();
+
+			database = newDatabase("dbh2TestDb");
+			var tables = new ArrayList<AbstractKVTable>();
+			for (int i = 0; i < 4; ++i)
+				tables.add((Database.AbstractKVTable)database.openTable("table" + i));
+
 			var count = 5000;
 			var threads = 4;
 			var futures = new ArrayList<Future<?>>();
@@ -87,13 +89,13 @@ public class Dbh2FullTest {
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		Database database = null;
-		Dbh2AgentManager.getInstance().start();
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
 				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
 			for (var manager : managers)
 				manager.start();
+			Dbh2AgentManager.getInstance().start();
 
 			database = newDatabase("dbh2TestDb");
 			var table1 = (Database.AbstractKVTable)database.openTable("table1");
@@ -125,13 +127,13 @@ public class Dbh2FullTest {
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		Database database = null;
-		Dbh2AgentManager.getInstance().start();
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
 				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
 			for (var manager : managers)
 				manager.start();
+			Dbh2AgentManager.getInstance().start();
 
 			database = newDatabase("dbh2TestDb");
 			var table1 = (Database.AbstractKVTable)database.openTable("table1");

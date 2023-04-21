@@ -18,7 +18,7 @@ public class TestCheckpointModeTable{
 
 	@After
 	public final void testCleanup() throws Exception {
-		demo.App.getInstance().Stop();
+		//demo.App.getInstance().Stop();
 	}
 
 	private static void Check(int expect) throws Exception {
