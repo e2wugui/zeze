@@ -19,6 +19,7 @@ Arch.Online selectDirty 去掉事务发送。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/4/21 v1.2.3 Dbh2 CommitServer; Online Kick BUG; Game.OnlineSetName; Raft; TimeRole;
 ------------------------------------------------------------------------------------------------------------------------------
+UnitTest 去掉不必要的demo.App.Start/Stop。加快测试速度。
 Dbh2 Commit/Undo RedoTimer.
 TimerRole 和 OnlineSet 匹配。
 Raft.commitSnapshot 延迟提交文件名命名规则修改：原来构造的时候，信息加到path前面不对，应该加到文件名中间。
