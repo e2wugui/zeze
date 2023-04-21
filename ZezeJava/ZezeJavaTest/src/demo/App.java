@@ -12,6 +12,7 @@ import Zeze.Game.Bag;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderWithOnline;
 import Zeze.Services.RocketMQ.Producer;
+import Zeze.Util.ShutdownHook;
 
 public class App extends Zeze.AppBase {
 	public static void main(String[] args) throws Exception {
@@ -60,7 +61,11 @@ public class App extends Zeze.AppBase {
 		}
 	}
 
+	private boolean started = false;
 	public void Start(Config config) throws Exception {
+		if (started)
+			return;
+		started = true;
 		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
 		// 测试本地事务性能需要容量大一点
 		adjustTableConf(config.getDefaultTableConf());
@@ -81,9 +86,14 @@ public class App extends Zeze.AppBase {
 		startModules(); // 启动模块，装载配置什么的
 		Zeze.endStart();
 		startService(); // 启动网络
+
+		ShutdownHook.add(this, this::Stop);
 	}
 
 	public void Stop() throws Exception {
+		if (!started)
+			return;
+		started = false;
 		stopService(); // 关闭网络
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null) {
