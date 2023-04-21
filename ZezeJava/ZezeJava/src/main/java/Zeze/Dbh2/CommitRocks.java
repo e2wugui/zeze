@@ -22,7 +22,6 @@ public class CommitRocks {
 	private final RocksDatabase database;
 	private final RocksDatabase.Table commitPoint;
 	private final RocksDatabase.Table commitIndex;
-	private final RocksDatabase.Batch batch;
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
 
 	public CommitRocks(Dbh2AgentManager manager) throws RocksDBException {
@@ -30,7 +29,6 @@ public class CommitRocks {
 		database = new RocksDatabase("CommitRocks");
 		commitPoint = database.openTable("CommitPoint");
 		commitIndex = database.openTable("CommitIndex");
-		batch = database.newBatch();
 	}
 
 	public Dbh2AgentManager getManager() {
@@ -38,10 +36,7 @@ public class CommitRocks {
 	}
 
 	public void close() {
-		synchronized (batch) {
-			batch.close();
-			database.close();
-		}
+		database.close();
 	}
 
 	public void setWriteOptions(WriteOptions writeOptions) {
@@ -145,10 +140,7 @@ public class CommitRocks {
 		bState.encode(bb);
 		var bbIndex = ByteBuffer.Allocate();
 		bbIndex.WriteInt(state);
-		synchronized (batch) {
-			if (batch.isClosed())
-				throw new IllegalStateException("db is closed");
-			batch.clear();
+		try (var batch = database.borrowBatch()) {
 			commitPoint.put(batch, tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
 			commitIndex.put(batch, tid.bytesUnsafe(), tid.getOffset(), tid.size(), bbIndex.Bytes, bbIndex.ReadIndex, bbIndex.size());
 			batch.commit(writeOptions);

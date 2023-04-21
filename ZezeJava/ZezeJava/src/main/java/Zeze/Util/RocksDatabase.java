@@ -11,6 +11,7 @@ import Zeze.Transaction.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.rocksdb.BackupEngine;
 import org.rocksdb.BackupEngineOptions;
 import org.rocksdb.BlockBasedTableConfig;
@@ -85,6 +86,7 @@ public class RocksDatabase implements Closeable {
 	private final @NotNull RocksDB rocksDb;
 	private final ConcurrentHashMap<String, ColumnFamilyHandle> columnFamilies = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Table> tables = new ConcurrentHashMap<>();
+	private @Nullable ArrayList<Batch> batchPool;
 
 	public @NotNull RocksDB getRocksDb() {
 		return rocksDb;
@@ -187,8 +189,30 @@ public class RocksDatabase implements Closeable {
 		return false;
 	}
 
+	// Batch用完时需确保调用close回收堆外内存,推荐使用try(var b = newBatch()) {...}
 	public @NotNull Batch newBatch() {
 		return new Batch();
+	}
+
+	// Batch用完时需确保调用close归还pool,推荐使用try(var b = borrowBatch()) {...}
+	public @NotNull Batch borrowBatch() {
+		synchronized (this) {
+			var bp = batchPool;
+			if (bp == null)
+				batchPool = bp = new ArrayList<>();
+			int n = bp.size();
+			if (n > 0)
+				return bp.remove(n - 1);
+		}
+		return new Batch() {
+			@Override
+			public void close() {
+				synchronized (RocksDatabase.this) {
+					clear();
+					batchPool.add(this);
+				}
+			}
+		};
 	}
 
 	private @NotNull ColumnFamilyHandle openFamily(@NotNull String name) {
@@ -204,6 +228,14 @@ public class RocksDatabase implements Closeable {
 
 	@Override
 	public void close() {
+		synchronized (this) {
+			var bp = batchPool;
+			if (bp != null) {
+				for (var b : bp)
+					b.batch.close();
+				bp.clear();
+			}
+		}
 		columnFamilies.clear();
 		tables.clear();
 		rocksDb.close();
@@ -332,7 +364,7 @@ public class RocksDatabase implements Closeable {
 		}
 	}
 
-	public final class Batch implements Closeable {
+	public class Batch implements Closeable {
 		private final WriteBatch batch = new WriteBatch();
 
 		public @NotNull WriteBatch getBatch() {
