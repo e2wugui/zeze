@@ -87,9 +87,10 @@ public class Online extends AbstractOnline {
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
 	private Future<?> verifyLocalTimer;
+	private final Online defaultOnline;
 
 	public static @NotNull Online create(@NotNull AppBase app) {
-		return GenModule.createRedirectModule(Online.class, app).initializeDefault();
+		return GenModule.createRedirectModule(Online.class, app);
 	}
 
 	public static long getSpecialTypeIdFromBean(@NotNull Bean bean) {
@@ -110,35 +111,38 @@ public class Online extends AbstractOnline {
 		beanFactory.register(cls);
 	}
 
+	// load redirect 使用这个构造函数。
 	protected Online(@NotNull AppBase app) {
-		this(app, "");
-	}
+		super("");
 
-	private Online(@NotNull AppBase app, @NotNull String name) {
-		super(name);
+		this.defaultOnline = null;
 		providerApp = app.getZeze().redirect.providerApp;
-	}
 
-	private @NotNull Online initializeDefault() {
 		if (null != getOnlineSetMap().putIfAbsent("", this))
 			throw new IllegalStateException("duplicate default");
+
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
 		load = new ProviderLoad(this);
 		instance = this;
-		return this;
+	}
+
+	// 创建新的OnlineSet使用这个构造函数。独立OnlineSet不装载redirect子类。
+	private Online(@NotNull AppBase app, Online defaultOnline, @NotNull String name) {
+		super(name);
+
+		this.defaultOnline = defaultOnline;
+		providerApp = app.getZeze().redirect.providerApp;
+
+		if (null != getOnlineSetMap().putIfAbsent(name, this))
+			throw new IllegalStateException("duplicate name=" + name);
+
+		RegisterZezeTables(providerApp.zeze);
+		//load = new ProviderLoad(this); // todo 需要修改，load报告在多实例下应该不能工作。
 	}
 
 	private @NotNull HashMap<String, Online> getOnlineSetMap() {
 		return ((ProviderWithOnline)providerApp.providerImplement).getOnlineSetMap();
-	}
-
-	private @NotNull Online initializeSpecial(@NotNull String onlineSetName) {
-		if (null != getOnlineSetMap().putIfAbsent(onlineSetName, this))
-			throw new IllegalStateException("duplicate name=" + onlineSetName);
-		RegisterZezeTables(providerApp.zeze);
-		//load = new ProviderLoad(this); // todo 需要修改，load报告在多实例下应该不能工作。
-		return this;
 	}
 
 	/**
@@ -152,9 +156,7 @@ public class Online extends AbstractOnline {
 			throw new IllegalArgumentException("empty name");
 		if (!multiInstanceName.isEmpty())
 			throw new IllegalStateException("must be called by default online");
-		// var multi = GenModule.createRedirectModule(Online.class, app);
-		var multi = new Online(app, name);
-		return multi.initializeSpecial(name);
+		return new Online(app, this, name);
 	}
 
 	public @Nullable Online getOnlineSet(String name) {
@@ -1129,8 +1131,12 @@ public class Online extends AbstractOnline {
 
 	private void tryRedirectRemoveLocal(String instanceName, int serverId, long roleId) {
 		if (providerApp.zeze.getConfig().getServerId() != serverId
-				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId))
-			redirectRemoveLocal(serverId, roleId, instanceName);
+				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId)) {
+			if (null != defaultOnline)
+				defaultOnline.redirectRemoveLocal(serverId, roleId, instanceName);
+			else
+				redirectRemoveLocal(serverId, roleId, instanceName);
+		}
 	}
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
