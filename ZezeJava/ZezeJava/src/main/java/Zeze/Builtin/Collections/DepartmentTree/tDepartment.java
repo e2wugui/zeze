@@ -17,7 +17,8 @@ public final class tDepartment extends TableX<String, Zeze.Builtin.Collections.D
         super("Zeze_Builtin_Collections_DepartmentTree_tDepartment" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Collections_DepartmentTree_tDepartment";
     }
 

@@ -16,7 +16,8 @@ public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.TaskBase.BRo
         super("Zeze_Builtin_Game_TaskBase_tRoleTask" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Game_TaskBase_tRoleTask";
     }
 

@@ -81,8 +81,9 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	}
 
 	public void dropTable() {
-		var databaseTable = getStorage().getDatabaseTable();
-		if (databaseTable instanceof DatabaseMySql.TableMysql) {
+		Database.Table databaseTable;
+		var storage = getStorage();
+		if (storage != null && (databaseTable = storage.getDatabaseTable()) instanceof DatabaseMySql.TableMysql) {
 			var tableMysql = (DatabaseMySql.TableMysql)databaseTable;
 			tableMysql.drop();
 			return; // done

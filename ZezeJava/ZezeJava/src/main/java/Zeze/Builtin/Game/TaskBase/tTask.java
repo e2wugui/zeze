@@ -17,7 +17,8 @@ public final class tTask extends TableX<Zeze.Builtin.Game.TaskBase.BTaskKey, Zez
         super("Zeze_Builtin_Game_TaskBase_tTask" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Game_TaskBase_tTask";
     }
 

@@ -17,7 +17,8 @@ public final class tItemClasses extends TableX<Integer, Zeze.Builtin.Game.Bag.BI
         super("Zeze_Builtin_Game_Bag_tItemClasses" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Game_Bag_tItemClasses";
     }
 

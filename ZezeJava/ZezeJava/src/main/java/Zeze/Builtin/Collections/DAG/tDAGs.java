@@ -17,7 +17,8 @@ public final class tDAGs extends TableX<String, Zeze.Builtin.Collections.DAG.BDA
         super("Zeze_Builtin_Collections_DAG_tDAGs" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Collections_DAG_tDAGs";
     }
 

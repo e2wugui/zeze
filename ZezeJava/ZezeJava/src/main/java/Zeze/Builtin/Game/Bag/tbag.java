@@ -17,7 +17,8 @@ public final class tbag extends TableX<String, Zeze.Builtin.Game.Bag.BBag>
         super("Zeze_Builtin_Game_Bag_tbag" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Game_Bag_tbag";
     }
 

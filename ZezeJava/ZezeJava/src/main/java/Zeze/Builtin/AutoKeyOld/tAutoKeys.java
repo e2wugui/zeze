@@ -16,7 +16,8 @@ public final class tAutoKeys extends TableX<Zeze.Builtin.AutoKeyOld.BSeedKey, Ze
         super("Zeze_Builtin_AutoKeyOld_tAutoKeys" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_AutoKeyOld_tAutoKeys";
     }
 

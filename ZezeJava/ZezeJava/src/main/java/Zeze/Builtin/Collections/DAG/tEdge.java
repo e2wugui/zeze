@@ -17,7 +17,8 @@ public final class tEdge extends TableX<Zeze.Builtin.Collections.DAG.BDAGEdgeKey
         super("Zeze_Builtin_Collections_DAG_tEdge" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Collections_DAG_tEdge";
     }
 

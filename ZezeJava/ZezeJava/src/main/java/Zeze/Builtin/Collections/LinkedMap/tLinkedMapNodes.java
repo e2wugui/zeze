@@ -16,7 +16,8 @@ public final class tLinkedMapNodes extends TableX<Zeze.Builtin.Collections.Linke
         super("Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes";
     }
 

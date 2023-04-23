@@ -16,7 +16,8 @@ public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
         super("Zeze_Builtin_DelayRemove_tJobs" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_DelayRemove_tJobs";
     }
 

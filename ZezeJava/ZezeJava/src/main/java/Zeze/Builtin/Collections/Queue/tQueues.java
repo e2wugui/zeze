@@ -17,7 +17,8 @@ public final class tQueues extends TableX<String, Zeze.Builtin.Collections.Queue
         super("Zeze_Builtin_Collections_Queue_tQueues" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Collections_Queue_tQueues";
     }
 

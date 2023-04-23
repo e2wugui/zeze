@@ -16,7 +16,8 @@ public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
         super("Zeze_Builtin_Timer_tIndexs" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Timer_tIndexs";
     }
 

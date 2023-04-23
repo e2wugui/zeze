@@ -16,7 +16,8 @@ public final class tlocal extends TableX<String, Zeze.Builtin.Online.BLocals>
         super("Zeze_Builtin_Online_tlocal" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Online_tlocal";
     }
 

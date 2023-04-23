@@ -16,7 +16,8 @@ public final class tonline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline
         super("Zeze_Builtin_Game_Online_tonline" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Game_Online_tonline";
     }
 

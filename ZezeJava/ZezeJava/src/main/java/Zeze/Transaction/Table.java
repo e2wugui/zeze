@@ -29,6 +29,10 @@ public abstract class Table {
 		return name;
 	}
 
+	public String getOriginalName() {
+		return name;
+	}
+
 	public final ChangeListenerMap getChangeListenerMap() {
 		return changeListenerMap;
 	}

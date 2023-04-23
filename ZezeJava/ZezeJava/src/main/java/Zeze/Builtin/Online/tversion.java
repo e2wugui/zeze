@@ -16,7 +16,8 @@ public final class tversion extends TableX<String, Zeze.Builtin.Online.BVersions
         super("Zeze_Builtin_Online_tversion" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Online_tversion";
     }
 

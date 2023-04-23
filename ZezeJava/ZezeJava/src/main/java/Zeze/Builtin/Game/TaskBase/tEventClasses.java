@@ -17,7 +17,8 @@ public final class tEventClasses extends TableX<Integer, Zeze.Builtin.Game.TaskB
         super("Zeze_Builtin_Game_TaskBase_tEventClasses" + suffix);
     }
 
-    public String getOriginName() {
+    @Override
+    public String getOriginalName() {
         return "Zeze_Builtin_Game_TaskBase_tEventClasses";
     }
 
