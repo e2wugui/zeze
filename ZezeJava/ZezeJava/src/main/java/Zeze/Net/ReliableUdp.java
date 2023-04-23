@@ -125,9 +125,9 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 	}
 
 	public static class Control implements Serializable {
-		public final static int Ack = 1;
-		public final static int Resend = 2;
-		public final static int NoSession = 3;
+		public static final int Ack = 1;
+		public static final int Resend = 2;
+		public static final int NoSession = 3;
 
 		public int command;
 		public final LongHashSet serialIds = new LongHashSet();

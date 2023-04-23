@@ -244,6 +244,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			// 需要同步删除OldTable，否则下一次查找又会找到。
 			// 这个违背了OldTable不修改的原则，但没办法了。
 			if (null != getDatabaseTransactionOldTmp()) {
+				//noinspection DataFlowIssue
 				table.getOldTable().remove(getDatabaseTransactionOldTmp(), snapshotKey);
 			}
 		}

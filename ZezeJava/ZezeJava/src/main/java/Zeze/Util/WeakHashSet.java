@@ -3,7 +3,6 @@ package Zeze.Util;
 import java.lang.ref.WeakReference;
 
 public final class WeakHashSet<K> {
-
 	/**
 	 * The default initial capacity -- MUST be a power of two.
 	 */
@@ -63,7 +62,7 @@ public final class WeakHashSet<K> {
 			capacity <<= 1;
 		table = new Entry[capacity];
 		this.loadFactor = loadFactor;
-		threshold = (int) (capacity * loadFactor);
+		threshold = (int)(capacity * loadFactor);
 	}
 
 	/**
@@ -231,13 +230,12 @@ public final class WeakHashSet<K> {
 	 * Rehashes the contents of this set into a new array with a larger capacity.
 	 * This method is called automatically when the number of keys in this set
 	 * reaches its threshold.
-	 *
+	 * <p>
 	 * If current capacity is MAXIMUM_CAPACITY, this method does not resize the set,
 	 * but sets threshold to Integer.MAX_VALUE. This has the effect of preventing
 	 * future calls.
-	 *
 	 */
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	private void resize() {
 		int n = table.length;
 		if (n == MAXIMUM_CAPACITY) {
@@ -264,14 +262,14 @@ public final class WeakHashSet<K> {
 			}
 		}
 		table = dest;
-		threshold = (int) (n2 * loadFactor);
+		threshold = (int)(n2 * loadFactor);
 	}
 
 	/**
 	 * The entries in this hash set extend WeakReference using its main ref field as
 	 * the key
 	 */
-	private final static class Entry<K> extends WeakReference<K> {
+	private static final class Entry<K> extends WeakReference<K> {
 		private final int hash;
 		private Entry<K> next;
 
@@ -283,7 +281,5 @@ public final class WeakHashSet<K> {
 			this.hash = hash;
 			this.next = next;
 		}
-
 	}
-
 }

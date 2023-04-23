@@ -554,7 +554,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
-				String sql = getDatabase().getTable(name).getRelationalTable().createTableSql();
+				var table = getDatabase().getTable(name);
+				if (table == null)
+					throw new IllegalStateException("not found table: " + name);
+				String sql = table.getRelationalTable().createTableSql();
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.executeUpdate();
 					isNew = !tableAlreadyExistsWarning(cmd.getWarnings());
@@ -575,7 +578,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (isNew)
 				return; // 已经是最新的表。不需要alter。
 
-			var r = getDatabase().getTable(name).getRelationalTable();
+			var table = getDatabase().getTable(name);
+			if (table == null)
+				throw new IllegalStateException("not found table: " + name);
+			var r = table.getRelationalTable();
 			if (r.add.isEmpty() && r.remove.isEmpty() && r.change.isEmpty())
 				return; // do nothing
 

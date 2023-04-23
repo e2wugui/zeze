@@ -180,7 +180,9 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 				} else {
 					logger.info("remain {} records when clean oldest lruNode", node.size());
 					// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
-					table.getZeze().getCheckpoint().runOnce();
+					var checkpoint = table.getZeze().getCheckpoint();
+					if (checkpoint != null)
+						checkpoint.runOnce();
 					//noinspection BusyWait
 					Thread.sleep(table.getTableConf().getCacheCleanPeriodWhenExceedCapacity());
 				}

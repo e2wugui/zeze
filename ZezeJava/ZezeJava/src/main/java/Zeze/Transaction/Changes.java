@@ -153,6 +153,7 @@ public final class Changes {
 			var r = records.get(recent.tableKey());
 			if (r == null) {
 				r = new Record(recent.rootInfo.getRecord().getTable());
+				//noinspection DataFlowIssue
 				records.put(recent.tableKey(), r);
 			}
 			r.logBeans.put(recent, (LogBean)log);
@@ -184,6 +185,7 @@ public final class Changes {
 		if (r == null) {
 			// put record only
 			r = new Record(ar.atomicTupleRecord.record.getTable());
+			//noinspection DataFlowIssue
 			records.put(tkey, r);
 		}
 

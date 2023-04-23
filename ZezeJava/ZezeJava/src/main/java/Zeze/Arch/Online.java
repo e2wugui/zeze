@@ -217,6 +217,8 @@ public class Online extends AbstractOnline {
 
 	private long removeLocalAndTrigger(String account, String clientId) throws Exception {
 		var bLocals = _tlocal.get(account);
+		if (bLocals == null)
+			return 0;
 		var localData = bLocals.getLogins().remove(clientId);
 		if (bLocals.getLogins().isEmpty())
 			_tlocal.remove(account); // remove first
@@ -235,17 +237,19 @@ public class Online extends AbstractOnline {
 
 	private long logoutTrigger(String account, String clientId) throws Exception {
 		var bOnline = _tonline.get(account);
-		bOnline.getLogins().remove(clientId);
+		if (bOnline != null)
+			bOnline.getLogins().remove(clientId);
 		var arg = new LogoutEventArgument(account, clientId);
 
 		var version = _tversion.get(account);
-		var loginVersion = version.getLogins().get(clientId);
+		var loginVersion = version != null ? version.getLogins().get(clientId) : null;
 
-		if (bOnline.getLogins().isEmpty())
+		if (bOnline != null && bOnline.getLogins().isEmpty())
 			_tonline.remove(account); // remove first
 
 		// 总是尝试通知上一次登录的服务器，里面会忽略本机。
-		tryRedirectRemoveLocal(loginVersion.getServerId(), account);
+		if (loginVersion != null)
+			tryRedirectRemoveLocal(loginVersion.getServerId(), account);
 		// 总是删除
 		removeLocalAndTrigger(account, clientId);
 
@@ -331,6 +335,8 @@ public class Online extends AbstractOnline {
 		long currentLoginVersion;
 		{
 			var online = _tonline.get(account);
+			if (online == null)
+				return 0;
 			var loginOnline = online.getLogins().get(clientId);
 			if (loginOnline == null)
 				return 0;
@@ -1088,7 +1094,7 @@ public class Online extends AbstractOnline {
 			redirectRemoveLocal(serverId, account);
 	}
 
-	@TransactionLevelAnnotation(Level=TransactionLevel.None)
+	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessLoginRequest(Zeze.Builtin.Online.Login rpc) throws Exception {
 		var done = new OutObject<>(false);
@@ -1163,7 +1169,7 @@ public class Online extends AbstractOnline {
 		return loginTrigger(session.getAccount(), rpc.Argument.getClientId());
 	}
 
-	@TransactionLevelAnnotation(Level=TransactionLevel.None)
+	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc) throws Exception {
 		var done = new OutObject<>(false);

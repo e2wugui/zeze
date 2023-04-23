@@ -28,7 +28,7 @@ public abstract class Database {
 
 	// 当数据库对Key长度有限制时，使用这个常量。这个数字来自 PolarDb-X。其中MySql 8是3072.
 	// 以后需要升级时，修改这个常量。但是对于已经存在的表，需要自己完成Alter。
-	public final static int eMaxKeyLength = 3070;
+	public static final int eMaxKeyLength = 3070;
 
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 

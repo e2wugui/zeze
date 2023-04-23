@@ -93,7 +93,9 @@ public final class RelativeRecordSet {
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately:
 			commit.run();
-			procedure.getZeze().getCheckpoint().flush(trans);
+			var checkpoint = procedure.getZeze().getCheckpoint();
+			if (checkpoint != null)
+				checkpoint.flush(trans);
 			// 这种模式下 RelativeRecordSet 都是空的。
 			return;
 
@@ -137,7 +139,9 @@ public final class RelativeRecordSet {
 			// CheckpointMode.Period上面已经处理了，此时不会是它。
 			// 【优化】，事务内访问的所有记录都是Immediately的，马上提交，不需要更新关联记录集合。
 			commit.run();
-			procedure.getZeze().getCheckpoint().flush(trans);
+			var checkpoint = procedure.getZeze().getCheckpoint();
+			if (checkpoint != null)
+				checkpoint.flush(trans);
 			// 这种情况下 RelativeRecordSet 都是空的。
 			//logger.Debug($"allCheckpointWhenCommit AccessedCount={trans.AccessedRecords.Count}");
 			return;
@@ -150,13 +154,17 @@ public final class RelativeRecordSet {
 				var mergedSet = _merge_(locked, trans, allRead);
 				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
 				if (needFlushNow) {
-					procedure.getZeze().getCheckpoint().flush(mergedSet);
+					var checkpoint = procedure.getZeze().getCheckpoint();
+					if (checkpoint != null)
+						checkpoint.flush(mergedSet);
 					mergedSet.delete();
 					//logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
 				} else if (mergedSet.recordSet != null) {
 					// mergedSet 合并结果是孤立的，不需要Flush。
 					// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
-					procedure.getZeze().getCheckpoint().relativeRecordSetMap.add(mergedSet);
+					var checkpoint = procedure.getZeze().getCheckpoint();
+					if (checkpoint != null)
+						checkpoint.relativeRecordSetMap.add(mergedSet);
 				}
 			}
 			// else

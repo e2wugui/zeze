@@ -126,7 +126,7 @@ public class Helper {
 		});
 	}
 
-	public static void decodeJsonDynamic(DynamicBean bean, String jsonStr) throws SQLException {
+	public static void decodeJsonDynamic(DynamicBean bean, String jsonStr) {
 		if (jsonStr == null)
 			bean.reset();
 		else {
@@ -138,7 +138,7 @@ public class Helper {
 		}
 	}
 
-	public static <T> void decodeJsonList(List<T> list, Class<T> valueClass, String jsonStr) throws SQLException {
+	public static <T> void decodeJsonList(List<T> list, Class<T> valueClass, String jsonStr) {
 		list.clear();
 		if (jsonStr != null) {
 			try {
@@ -149,7 +149,7 @@ public class Helper {
 		}
 	}
 
-	public static <T> void decodeJsonSet(Set<T> set, Class<T> valueClass, String jsonStr) throws SQLException {
+	public static <T> void decodeJsonSet(Set<T> set, Class<T> valueClass, String jsonStr) {
 		set.clear();
 		if (jsonStr != null) {
 			try {
@@ -161,8 +161,7 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void decodeJsonMap(Bean parentBean, String fieldName, Map<?, ?> map, String jsonStr)
-			throws SQLException {
+	public static void decodeJsonMap(Bean parentBean, String fieldName, Map<?, ?> map, String jsonStr) {
 		map.clear();
 		if (jsonStr != null) {
 			try {

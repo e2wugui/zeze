@@ -3,10 +3,12 @@ package Zeze.Game;
 import Zeze.Arch.ProviderDirect;
 import Zeze.Builtin.ProviderDirect.Transmit;
 import Zeze.Transaction.Procedure;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ProviderDirectWithTransmit extends ProviderDirect {
-	/*
 	private static final Logger logger = LogManager.getLogger(ProviderDirectWithTransmit.class);
+	/*
 	private static final MethodHandles.Lookup lookup = MethodHandles.lookup();
 	private static final MethodType voidType = MethodType.methodType(void.class);
 
@@ -34,7 +36,12 @@ public class ProviderDirectWithTransmit extends ProviderDirect {
 	@Override
 	protected long ProcessTransmit(Transmit p) {
 		var defaultOnline = ((ProviderWithOnline)providerApp.providerImplement).getOnline();
-		defaultOnline.getOnlineSet(p.Argument.getOnlineSetName()).processTransmit(p.Argument.getSender(), p.Argument.getActionName(), p.Argument.getRoles(), p.Argument.getParameter());
+		var name = p.Argument.getOnlineSetName();
+		var online = defaultOnline.getOnlineSet(name);
+		if (online != null)
+			online.processTransmit(p.Argument.getSender(), p.Argument.getActionName(), p.Argument.getRoles(), p.Argument.getParameter());
+		else
+			logger.error("unknown onlineSetName: {}", name);
 		return Procedure.Success;
 	}
 }

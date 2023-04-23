@@ -45,13 +45,13 @@ public class DepartmentTree<
 				TDepartmentMember extends Bean,
 				TGroupData extends Bean,
 				TDepartmentData extends Bean>
-				DepartmentTree<TManager, TMember, TDepartmentMember, TGroupData, TDepartmentData>
-			open(String name,
-				 Class<TManager> managerClass,
-				 Class<TMember> memberClass,
-				 Class<TDepartmentMember> departmentMemberClass,
-				 Class<TGroupData> groupDataClass,
-				 Class<TDepartmentData> departmentDataClass) {
+		DepartmentTree<TManager, TMember, TDepartmentMember, TGroupData, TDepartmentData>
+		open(String name,
+			 Class<TManager> managerClass,
+			 Class<TMember> memberClass,
+			 Class<TDepartmentMember> departmentMemberClass,
+			 Class<TGroupData> groupDataClass,
+			 Class<TDepartmentData> departmentDataClass) {
 			return (DepartmentTree<
 					TManager,
 					TMember,
@@ -59,12 +59,12 @@ public class DepartmentTree<
 					TGroupData,
 					TDepartmentData>)
 					Trees.computeIfAbsent(name,
-					k -> new DepartmentTree<>(this, k,
-							managerClass,
-							memberClass,
-							departmentMemberClass,
-							groupDataClass,
-							departmentDataClass));
+							k -> new DepartmentTree<>(this, k,
+									managerClass,
+									memberClass,
+									departmentMemberClass,
+									groupDataClass,
+									departmentDataClass));
 		}
 
 	}
@@ -222,7 +222,7 @@ public class DepartmentTree<
 		return 0;
 	}
 
-	@SuppressWarnings ("unchecked")
+	@SuppressWarnings("unchecked")
 	private TManager getOrAddRootManager() {
 		var dRoot = module._tDepartment.getOrAdd(name);
 		return (TManager)dRoot.getManagers().computeIfAbsent(name, key -> {
@@ -232,7 +232,7 @@ public class DepartmentTree<
 		}).getBean();
 	}
 
-	@SuppressWarnings ("unchecked")
+	@SuppressWarnings("unchecked")
 	public TManager getOrAddManager(long departmentId, String name) {
 		if (departmentId == 0)
 			return getOrAddRootManager();
@@ -245,7 +245,7 @@ public class DepartmentTree<
 		}).getBean();
 	}
 
-	@SuppressWarnings ("unchecked")
+	@SuppressWarnings("unchecked")
 	private TManager deleteRootManager(String name) {
 		var dRoot = module._tDepartment.getOrAdd(name);
 		var m = dRoot.getManagers().remove(name);
@@ -254,14 +254,14 @@ public class DepartmentTree<
 		return (TManager)m.getBean();
 	}
 
-	@SuppressWarnings ("unchecked")
+	@SuppressWarnings("unchecked")
 	public TManager deleteManager(long departmentId, String name) {
 		if (departmentId == 0)
 			return deleteRootManager(name);
 
 		var d = getDepartmentTreeNode(departmentId);
 		var m = d.getManagers().remove(name);
-		return (TManager)m.getBean();
+		return m != null ? (TManager)m.getBean() : null;
 	}
 
 	public long createDepartment(long departmentParent, String dName, int childrenLimit, OutLong outDepartmentId) {
@@ -302,7 +302,8 @@ public class DepartmentTree<
 		}
 		if (department.getParentDepartment() == 0) {
 			var root = module._tDepartment.get(name);
-			root.getChilds().remove(department.getName());
+			if (root != null)
+				root.getChilds().remove(department.getName());
 		} else {
 			var parent = getDepartmentTreeNode(department.getParentDepartment());
 			parent.getChilds().remove(department.getName());

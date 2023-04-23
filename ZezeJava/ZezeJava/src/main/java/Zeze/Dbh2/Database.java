@@ -55,7 +55,6 @@ public class Database extends Zeze.Transaction.Database {
 	}
 
 	public class Dbh2Transaction implements Zeze.Transaction.Database.Transaction {
-
 		private final BPrepareBatches.Data batches = new BPrepareBatches.Data();
 
 		public void commitBreakAfterPrepareForDebugOnly() {
@@ -67,7 +66,7 @@ public class Database extends Zeze.Transaction.Database {
 			Dbh2AgentManager.getInstance().commit(batches);
 		}
 
-		public void replace(String tableName, ByteBuffer key, ByteBuffer value) throws Exception {
+		public void replace(String tableName, ByteBuffer key, ByteBuffer value) {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
 			var manager = Dbh2AgentManager.getInstance();
@@ -76,7 +75,7 @@ public class Database extends Zeze.Transaction.Database {
 			batch.getBatch().getPuts().put(bKey, bValue);
 		}
 
-		public void remove(String tableName, ByteBuffer key) throws Exception {
+		public void remove(String tableName, ByteBuffer key) {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			var manager = Dbh2AgentManager.getInstance();
 			var agent = manager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);

@@ -26,8 +26,8 @@ import Zeze.Util.Task;
 public class TimerAccount {
 	final Online online;
 
-	//public final static String eTimerHandleName = "Zeze.Component.TimerArchOnline.Handle";
-	public final static String eOnlineTimers = "Zeze.Component.TimerArchOnline";
+	//public static final String eTimerHandleName = "Zeze.Component.TimerArchOnline.Handle";
+	public static final String eOnlineTimers = "Zeze.Component.TimerArchOnline";
 
 	TimerAccount(Online online) {
 		this.online = online;

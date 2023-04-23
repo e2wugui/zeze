@@ -942,7 +942,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	public void tryAlter() {
-		var dbTable = storage.getDatabaseTable();
+		var dbTable = storage != null ? storage.getDatabaseTable() : null;
 		if (dbTable instanceof DatabaseMySql.TableMysqlRelational)
 			((DatabaseMySql.TableMysqlRelational)dbTable).tryAlter();
 	}

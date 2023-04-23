@@ -12,6 +12,8 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,6 +22,8 @@ import org.jetbrains.annotations.Nullable;
  * 记录账号，roleId，LinkName，SessionId等信息。
  */
 public class ProviderUserSession {
+	private static final Logger logger = LogManager.getLogger(ProviderUserSession.class);
+
 	protected final @NotNull Dispatch dispatch;
 
 	public ProviderUserSession(@NotNull Dispatch dispatch) {
@@ -107,8 +111,13 @@ public class ProviderUserSession {
 		if (providerImpl instanceof ProviderWithOnline) {
 			var defaultOnline = ((ProviderWithOnline)providerImpl).getOnline();
 			var roleId = getRoleId();
-			if (roleId != null)
-				return defaultOnline.getOnlineSet(dispatch.Argument.getOnlineSetName()).send(link, Map.of(getLinkSid(), roleId), send);
+			if (roleId != null) {
+				var name = dispatch.Argument.getOnlineSetName();
+				var online = defaultOnline.getOnlineSet(name);
+				if (online != null)
+					return online.send(link, Map.of(getLinkSid(), roleId), send);
+				logger.error("unknown onlineSetName: {}", name);
+			}
 			// 没有登录的会话不需要转给Online处理。转给Online是为了处理发送失败的结果。
 			// 这种情况下，忽略发送结果。
 			return send.Send(link);

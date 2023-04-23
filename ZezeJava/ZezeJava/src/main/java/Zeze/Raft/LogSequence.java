@@ -255,7 +255,7 @@ public class LogSequence {
 			}
 		}
 
-		private void put(RaftLog log, boolean isApply) throws IOException, RocksDBException {
+		private void put(RaftLog log, boolean isApply) throws RocksDBException {
 			var key = ByteBuffer.Allocate(32);
 			log.getLog().getUnique().encode(key);
 
@@ -276,21 +276,21 @@ public class LogSequence {
 			table.put(writeOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 		}
 
-		public void save(RaftLog log) throws IOException, RocksDBException {
+		public void save(RaftLog log) throws RocksDBException {
 			put(log, false);
 		}
 
-		public void apply(RaftLog log) throws IOException, RocksDBException {
+		public void apply(RaftLog log) throws RocksDBException {
 			put(log, true);
 		}
 
-		public void remove(RaftLog log) throws IOException, RocksDBException {
+		public void remove(RaftLog log) throws RocksDBException {
 			var key = ByteBuffer.Allocate(32);
 			log.getLog().getUnique().encode(key);
 			table.delete(writeOptions, key.Bytes, 0, key.WriteIndex);
 		}
 
-		public UniqueRequestState getRequestState(IRaftRpc raftRpc) throws IOException, RocksDBException {
+		public UniqueRequestState getRequestState(IRaftRpc raftRpc) throws RocksDBException {
 			var key = ByteBuffer.Allocate(32);
 			raftRpc.getUnique().encode(key);
 			var val = table.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
@@ -469,7 +469,7 @@ public class LogSequence {
 		rafts.put(writeOptions, raftsNodeReadyKey, 0, raftsNodeReadyKey.length, value.Bytes, 0, value.WriteIndex);
 	}
 
-	public UniqueRequestState tryGetRequestState(Protocol<?> p) throws IOException, RocksDBException {
+	public UniqueRequestState tryGetRequestState(Protocol<?> p) throws RocksDBException {
 		var raftRpc = (IRaftRpc)p;
 
 		var create = raftRpc.getCreateTime();
@@ -1076,7 +1076,7 @@ public class LogSequence {
 		return RaftLog.decodeTermIndex(readLogBytes(lastIndex));
 	}
 
-	private void removeLogAndCancelStart(long startIndex, long endIndex) throws IOException, RocksDBException {
+	private void removeLogAndCancelStart(long startIndex, long endIndex) throws RocksDBException {
 		for (long index = startIndex; index <= endIndex; index++) {
 			RaftLog raftLog;
 			if (index > lastApplied && (raftLog = leaderAppendLogs.remove(index)) != null) {
@@ -1093,7 +1093,7 @@ public class LogSequence {
 		}
 	}
 
-	private void removeLog(long index) throws IOException, RocksDBException {
+	private void removeLog(long index) throws RocksDBException {
 		var raftLog = readLog(index);
 		if (raftLog != null) {
 			var key = ByteBuffer.Allocate(9);

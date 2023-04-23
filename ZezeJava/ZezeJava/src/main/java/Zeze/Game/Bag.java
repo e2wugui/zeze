@@ -22,7 +22,7 @@ public class Bag {
 	// 物品加入包裹时，自动注册；
 	// 注册的Bean.ClassName会被持久化保存下来。
 	// Module.Start的时候自动装载注册的ClassName。
-	private final static BeanFactory beanFactory = new BeanFactory();
+	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);

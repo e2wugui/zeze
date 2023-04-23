@@ -104,9 +104,11 @@ public class DelayRemove extends AbstractDelayRemove {
 			// 修改数据表中的状态。
 			var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
 			var bJob = jobs.getJobs().get(jobId);
-			var bb = ByteBuffer.Allocate();
-			state.encode(bb);
-			bJob.setJobState(new Binary(bb));
+			if (bJob != null) {
+				var bb = ByteBuffer.Allocate();
+				state.encode(bb);
+				bJob.setJobState(new Binary(bb));
+			}
 			return;
 		}
 

@@ -482,6 +482,7 @@ public final class Transaction {
 	}
 
 	public void verifyRecordForWrite(@NotNull Bean bean) {
+		//noinspection DataFlowIssue
 		if (bean.rootInfo.getRecord().getState() == GlobalCacheManagerConst.StateRemoved) {
 			throwRedo(); // 这个错误需要redo。不是逻辑错误。
 		}

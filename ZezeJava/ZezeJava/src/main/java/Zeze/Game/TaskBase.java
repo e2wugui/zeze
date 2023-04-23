@@ -148,7 +148,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 	// @formatter:off
-	private final static BeanFactory beanFactory = new BeanFactory();
+	private static final BeanFactory beanFactory = new BeanFactory();
 	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
 	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
 	@SuppressWarnings("unchecked")

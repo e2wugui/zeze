@@ -27,8 +27,8 @@ import org.jetbrains.annotations.Nullable;
 public class TimerRole {
 	final @NotNull Online online;
 
-	//public final static String eTimerHandleName = "Zeze.Component.TimerGameOnline.Handle";
-	public final static String eOnlineTimers = "Zeze.Component.TimerGameOnline";
+	//public static final String eTimerHandleName = "Zeze.Component.TimerGameOnline.Handle";
+	public static final String eOnlineTimers = "Zeze.Component.TimerGameOnline";
 
 	public TimerRole(@NotNull Online online) {
 		this.online = online;
@@ -272,8 +272,11 @@ public class TimerRole {
 			} else {
 				context.timer.cancel(offlineCustom.getTimerName());
 				var online = context.timer.getDefaultOnline().getOnlineSet(offlineCustom.getOnlineSetName());
-				var offlineTimers = online._tRoleOfflineTimers().get(offlineCustom.getRoleId());
-				offlineTimers.getOfflineTimers().remove(offlineCustom.getTimerName());
+				if (online != null) {
+					var offlineTimers = online._tRoleOfflineTimers().get(offlineCustom.getRoleId());
+					if (offlineTimers != null)
+						offlineTimers.getOfflineTimers().remove(offlineCustom.getTimerName());
+				}
 			}
 		}
 
@@ -353,10 +356,16 @@ public class TimerRole {
 			}
 
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
-			var customData = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers)
-					.getTimerIds().get(timerId).getCustomData().getBean();
-			if (customData.typeId() == EmptyBean.TYPEID)
-				customData = null;
+			Bean customData = null;
+			var localBean = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers);
+			if (localBean != null) {
+				var onlineCustom = localBean.getTimerIds().get(timerId);
+				if (onlineCustom != null) {
+					customData = onlineCustom.getCustomData().getBean();
+					if (customData.typeId() == EmptyBean.TYPEID)
+						customData = null;
+				}
+			}
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(),
 					cronTimer.getExpectedTime());
@@ -428,10 +437,16 @@ public class TimerRole {
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			var serialSaved = bTimer.getSerialId();
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
-				var customData = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers)
-						.getTimerIds().get(timerId).getCustomData().getBean();
-				if (customData.typeId() == EmptyBean.TYPEID)
-					customData = null;
+				Bean customData = null;
+				var localBean = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers);
+				if (localBean != null) {
+					var onlineCustom = localBean.getTimerIds().get(timerId);
+					if (onlineCustom != null) {
+						customData = onlineCustom.getCustomData().getBean();
+						if (customData.typeId() == EmptyBean.TYPEID)
+							customData = null;
+					}
+				}
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),
 						simpleTimer.getExpectedTime());

@@ -32,7 +32,7 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 	@SuppressWarnings("unchecked")
 	public ConditionBean getExtendedBean() { return (ConditionBean)bean.getExtendedData().getBean(); }
-	private final static BeanFactory beanFactory = new BeanFactory();
+	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
 

@@ -948,7 +948,7 @@ public class Schemas implements Serializable {
 	public static class RelationalTable {
 		public final @NotNull String tableName;
 		public final ArrayList<Column> current = new ArrayList<>();
-		public @Nullable String currentKeyColumns;
+		public String currentKeyColumns;
 		public final ArrayList<Column> previous = new ArrayList<>();
 
 		// diff 结果
