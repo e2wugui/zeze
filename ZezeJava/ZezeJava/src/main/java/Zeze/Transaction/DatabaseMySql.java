@@ -360,7 +360,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var conn = dataSource.getConnection()) {
 				try (var pre = conn.prepareStatement(createRecord)) {
 					pre.setBytes(1, keyOfLock);
-					pre.setBytes(2, new byte[0]);
+					pre.setBytes(2, ByteBuffer.Empty);
 					pre.setLong(3, 0);
 					pre.executeUpdate();
 				}

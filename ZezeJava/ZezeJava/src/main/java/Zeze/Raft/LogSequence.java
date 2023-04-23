@@ -423,8 +423,7 @@ public class LogSequence {
 			lastSnapshotIndex = lastSnapshotIndexValue != null ? ByteBuffer.Wrap(lastSnapshotIndexValue).ReadLong() : 0;
 		}
 
-		logs = RocksDatabase.open(RocksDatabase.getCommonOptions(),
-				Path.of(raft.getRaftConfig().getDbHome(), "logs").toString());
+		logs = RocksDatabase.open(Path.of(raft.getRaftConfig().getDbHome(), "logs").toString());
 		{
 			// Read Last Log Index
 			try (var itLast = logs.newIterator(RocksDatabase.getDefaultReadOptions())) {
@@ -842,7 +841,7 @@ public class LogSequence {
 				cancelPendingAppendLogFutures();
 				var logsDir = Paths.get(raft.getRaftConfig().getDbHome(), "logs").toString();
 				deletedDirectoryAndCheck(new File(logsDir), 10000);
-				logs = RocksDatabase.open(RocksDatabase.getCommonOptions(), logsDir);
+				logs = RocksDatabase.open(logsDir);
 				var lastIncludedLog = RaftLog.decode(r.Argument.getLastIncludedLog(),
 						raft.getStateMachine()::logFactory);
 				saveLog(lastIncludedLog);

@@ -44,11 +44,8 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.rocksdb.BackupEngine;
 import org.rocksdb.BackupEngineOptions;
-import org.rocksdb.ColumnFamilyDescriptor;
-import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.Env;
 import org.rocksdb.RestoreOptions;
-import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
 
@@ -145,18 +142,6 @@ public final class Rocks extends StateMachine implements Closeable {
 
 		for (var table : tables.values())
 			table.open();
-	}
-
-	private static ArrayList<ColumnFamilyDescriptor> getColumnFamilies(String dir) throws RocksDBException {
-		// 参考 Zeze.Transaction.RocksDatabase
-		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-		if (new File(dir).isDirectory()) {
-			for (var cf : RocksDB.listColumnFamilies(RocksDatabase.getCommonOptions(), dir))
-				columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getCommonCfOptions()));
-		}
-		if (columnFamilies.isEmpty())
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), RocksDatabase.getCommonCfOptions()));
-		return columnFamilies;
 	}
 
 	public @NotNull RocksDatabase.Table openTable(String name) throws RocksDBException {
@@ -297,16 +282,6 @@ public final class Rocks extends StateMachine implements Closeable {
 		return checkpointDir;
 	}
 
-	public static void backup(String checkpointDir, String backupDir) throws RocksDBException {
-		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		try (var src = RocksDatabase.open(RocksDatabase.getCommonDbOptions(), checkpointDir,
-				getColumnFamilies(checkpointDir), outHandles);
-			 var backupOptions = new BackupEngineOptions(backupDir);
-			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
-			backup.createNewBackup(src, true);
-		}
-	}
-
 	public void restore(String backupDir) throws RocksDBException {
 		getRaft().lock();
 		try {
@@ -376,7 +351,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		var backupFile = new File(backupDir);
 		if (!backupFile.isDirectory() && !backupFile.mkdirs())
 			logger.error("create backup directory failed: {}", backupDir);
-		backup(cpHome, backupDir);
+		RocksDatabase.backup(cpHome, backupDir);
 
 		long t2 = System.nanoTime();
 		LogSequence.deleteDirectory(new File(cpHome));

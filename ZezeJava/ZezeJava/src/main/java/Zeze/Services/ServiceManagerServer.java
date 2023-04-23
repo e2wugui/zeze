@@ -760,8 +760,7 @@ public final class ServiceManagerServer implements Closeable {
 			});
 		}
 
-		autoKeysDb = RocksDatabase.open(RocksDatabase.getCommonOptions(),
-				Path.of(this.config.dbHome, "autokeys").toString());
+		autoKeysDb = RocksDatabase.open(Path.of(this.config.dbHome, "autokeys").toString());
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		serverSocket = server.newServerSocket(ipaddress, port,

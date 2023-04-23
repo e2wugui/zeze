@@ -2,14 +2,16 @@ package Zeze.Util;
 
 import java.io.Closeable;
 import java.io.File;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Binary;
-import Zeze.Transaction.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -59,6 +61,26 @@ public class RocksDatabase implements Closeable {
 	private static final ReadOptions defaultReadOptions = new ReadOptions();
 	private static final WriteOptions defaultWriteOptions = new WriteOptions();
 	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
+	private static final MethodHandle mhWriteBatchPutCf;
+	private static final MethodHandle mhWriteBatchDeleteCf;
+
+	static {
+		try {
+			var lookup = MethodHandles.lookup();
+			var clsWriteBatch = WriteBatch.class;
+			// final native void put(long handle, byte[] key, int keyLen, byte[] value, int valueLen, long cfHandle);
+			var m = clsWriteBatch.getDeclaredMethod("put",
+					long.class, byte[].class, int.class, byte[].class, int.class, long.class);
+			m.setAccessible(true);
+			mhWriteBatchPutCf = lookup.unreflect(m);
+			// final native void delete(long handle, byte[] key, int keyLen, long cfHandle);
+			m = clsWriteBatch.getDeclaredMethod("delete", long.class, byte[].class, int.class, long.class);
+			m.setAccessible(true);
+			mhWriteBatchDeleteCf = lookup.unreflect(m);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	public static @NotNull Options getCommonOptions() {
 		return commonOptions;
@@ -140,6 +162,11 @@ public class RocksDatabase implements Closeable {
 				}
 			}
 		}
+	}
+
+	// RocksDB用完时需确保调用close回收堆外内存
+	public static @NotNull RocksDB open(@NotNull String path) throws RocksDBException {
+		return open(commonOptions, path);
 	}
 
 	// RocksDB用完时需确保调用close回收堆外内存
@@ -407,7 +434,7 @@ public class RocksDatabase implements Closeable {
 		}
 
 		public void put(@NotNull Batch batch, @NotNull Binary key, @NotNull Binary value) throws RocksDBException {
-			batch.put(cfHandle, key.bytesUnsafe(), key.getOffset(), key.size(),
+			put(batch, key.bytesUnsafe(), key.getOffset(), key.size(),
 					value.bytesUnsafe(), value.getOffset(), value.size());
 		}
 
@@ -415,21 +442,37 @@ public class RocksDatabase implements Closeable {
 			batch.put(cfHandle, key, value);
 		}
 
+		public void put(@NotNull Batch batch, byte[] key, int keyLen, byte[] value, int valueLen)
+				throws RocksDBException {
+			batch.put(cfHandle, key, keyLen, value, valueLen);
+		}
+
 		public void put(@NotNull Batch batch, byte[] key, int keyOff, int keyLen,
 						byte[] value, int valueOff, int valueLen) throws RocksDBException {
-			batch.put(cfHandle, key, keyOff, keyLen, value, valueOff, valueLen);
+			if (keyOff != 0)
+				key = Arrays.copyOfRange(key, keyOff, keyOff + keyLen);
+			if (valueOff != 0)
+				value = Arrays.copyOfRange(value, valueOff, valueOff + valueLen);
+			batch.put(cfHandle, key, keyLen, value, valueLen);
 		}
 
 		public void delete(@NotNull Batch batch, @NotNull Binary key) throws RocksDBException {
-			batch.delete(cfHandle, key.bytesUnsafe(), key.getOffset(), key.size());
+			delete(batch, key.bytesUnsafe(), key.getOffset(), key.size());
 		}
 
 		public void delete(@NotNull Batch batch, byte[] key) throws RocksDBException {
 			batch.delete(cfHandle, key);
 		}
 
+		public void delete(@NotNull Batch batch, byte[] key, int keyLen) throws RocksDBException {
+			batch.delete(cfHandle, key, keyLen);
+		}
+
 		public void delete(@NotNull Batch batch, byte[] key, int keyOff, int keyLen) throws RocksDBException {
-			batch.delete(cfHandle, key, keyOff, keyLen);
+			if (keyOff == 0)
+				batch.delete(cfHandle, key, keyLen);
+			else
+				batch.delete(cfHandle, Arrays.copyOfRange(key, keyOff, keyOff + keyLen));
 		}
 
 		// RocksIterator用完时需确保调用close回收堆外内存,推荐使用try(var it = iterator()) {...}
@@ -462,17 +505,30 @@ public class RocksDatabase implements Closeable {
 			batch.put(cfh, key, value);
 		}
 
-		public void put(@NotNull ColumnFamilyHandle cfh, byte[] key, int keyOff, int keyLen,
-						byte[] value, int valueOff, int valueLen) throws RocksDBException {
-			batch.put(cfh, Database.copyIf(key, keyOff, keyLen), Database.copyIf(value, valueOff, valueLen));
+		public void put(@NotNull ColumnFamilyHandle cfh, byte[] key, int keyLen, byte[] value, int valueLen)
+				throws RocksDBException {
+			try {
+				mhWriteBatchPutCf.invokeExact(batch, batch.getNativeHandle(), key, keyLen, value, valueLen,
+						cfh.getNativeHandle());
+			} catch (RocksDBException | RuntimeException e) {
+				throw e;
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void delete(@NotNull ColumnFamilyHandle cfh, byte[] key) throws RocksDBException {
 			batch.delete(cfh, key);
 		}
 
-		public void delete(@NotNull ColumnFamilyHandle cfh, byte[] key, int off, int len) throws RocksDBException {
-			batch.delete(cfh, Database.copyIf(key, off, len));
+		public void delete(@NotNull ColumnFamilyHandle cfh, byte[] key, int keyLen) throws RocksDBException {
+			try {
+				mhWriteBatchDeleteCf.invokeExact(batch, batch.getNativeHandle(), key, keyLen, cfh.getNativeHandle());
+			} catch (RocksDBException | RuntimeException e) {
+				throw e;
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void commit() throws RocksDBException {

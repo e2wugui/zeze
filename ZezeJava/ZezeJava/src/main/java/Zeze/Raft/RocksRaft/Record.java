@@ -122,9 +122,8 @@ public final class Record<K> {
 			int size = valueBB.WriteIndex;
 			if (size > preAllocSize)
 				value.preAllocSize(size);
-			table.getRocksTable().put(batch, keyBB.Bytes, keyBB.ReadIndex, keyBB.size(),
-					valueBB.Bytes, valueBB.ReadIndex, valueBB.size());
+			table.getRocksTable().put(batch, keyBB.Bytes, keyBB.WriteIndex, valueBB.Bytes, size);
 		} else
-			table.getRocksTable().delete(batch, keyBB.Bytes, keyBB.ReadIndex, keyBB.size());
+			table.getRocksTable().delete(batch, keyBB.Bytes, keyBB.WriteIndex);
 	}
 }

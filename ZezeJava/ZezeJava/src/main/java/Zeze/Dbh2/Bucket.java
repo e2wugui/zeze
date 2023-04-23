@@ -17,13 +17,11 @@ public class Bucket {
 	private final RocksDatabase.Table tData;
 	private final RocksDatabase.Table tMeta;
 	private final RocksDatabase.Batch batch;
-
-	// private final HashMap<String, ColumnFamilyHandle> cfHandles = new HashMap<>();
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
 	private volatile BBucketMeta.Data meta;
 	private long tid;
 	private final byte[] metaKey = new byte[]{1};
-	private final byte[] metaTid = new byte[0];
+	private final byte[] metaTid = ByteBuffer.Empty;
 
 	public WriteOptions getWriteOptions() {
 		return writeOptions;
@@ -72,14 +70,14 @@ public class Bucket {
 	public void setMeta(BBucketMeta.Data meta) throws RocksDBException {
 		var bb = ByteBuffer.Allocate(32);
 		meta.encode(bb);
-		tMeta.put(writeOptions, metaKey, 0, metaKey.length, bb.Bytes, bb.ReadIndex, bb.size());
+		tMeta.put(writeOptions, metaKey, 0, metaKey.length, bb.Bytes, 0, bb.WriteIndex);
 		this.meta = meta;
 	}
 
 	public void setTid(long tid) throws RocksDBException {
 		var bb = ByteBuffer.Allocate(9);
 		bb.WriteLong(tid);
-		tMeta.put(writeOptions, metaTid, 0, metaTid.length, bb.Bytes, bb.ReadIndex, bb.size());
+		tMeta.put(writeOptions, metaTid, 0, metaTid.length, bb.Bytes, 0, bb.WriteIndex);
 		this.tid = tid;
 	}
 

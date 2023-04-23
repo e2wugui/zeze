@@ -103,7 +103,7 @@ public class HandshakeBase extends Service {
 		try {
 			byte[] inputKey = null;
 			byte[] outputKey = null;
-			byte[] response = new byte[0];
+			byte[] response = ByteBuffer.Empty;
 			int group = 1;
 			if (p.Argument.encryptType == Constant.eEncryptTypeAes) {
 				// 当group采用客户端参数时需要检查参数正确性，现在统一采用了1，不需要检查了。
@@ -237,7 +237,7 @@ public class HandshakeBase extends Service {
 			cHandShake.Argument.encryptType = arg.encryptType;
 			cHandShake.Argument.encryptParam = arg.encryptType == Constant.eEncryptTypeAes
 					? Helper.generateDHResponse(1, ctx.dhRandom).toByteArray()
-					: new byte[0];
+					: ByteBuffer.Empty;
 			cHandShake.Argument.compressS2c = clientCompress(arg.compressS2c);
 			cHandShake.Argument.compressC2s = clientCompress(arg.compressC2s);
 			cHandShake.Send(so);

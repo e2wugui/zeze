@@ -81,7 +81,7 @@ public class CommitRocks {
 			}
 			for (var e : futures)
 				e.await();
-			removeCommitIndex(tid);
+			removeCommitIndex(key);
 		} catch (Throwable ex) {
 			// timer will redo
 			logger.error("", ex);
@@ -127,18 +127,19 @@ public class CommitRocks {
 			e.await();
 	}
 
-	public Binary prepare(String queryHost, int queryPort, BPrepareBatches.Data batches) {
-		var tid = manager.nextTransactionId();
+	public byte[] prepare(String queryHost, int queryPort, BPrepareBatches.Data batches) {
+		var tid = Dbh2AgentManager.nextTransactionId();
 		var prepareTime = System.currentTimeMillis();
 		try {
 			// prepare
 			saveCommitPoint(tid, batches, Commit.ePreparing);
 			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, EmptyBean.Data>>>();
+			var tidBinary = new Binary(tid);
 			for (var e : batches.getDatas().entrySet()) {
 				var batch = e.getValue();
 				batch.getBatch().setQueryIp(queryHost);
 				batch.getBatch().setQueryPort(queryPort);
-				batch.getBatch().setTid(tid);
+				batch.getBatch().setTid(tidBinary);
 				futures.add(manager.openBucket(e.getKey()).prepareBatch(batch));
 			}
 			for (var e : futures) {
@@ -185,7 +186,7 @@ public class CommitRocks {
 		}
 	}
 
-	private void saveCommitPoint(Binary tid, BPrepareBatches.Data batches, int state) throws RocksDBException {
+	private void saveCommitPoint(byte[] tid, BPrepareBatches.Data batches, int state) throws RocksDBException {
 		var bState = new BTransactionState.Data();
 		bState.setState(state);
 		for (var e : batches.getDatas().entrySet()) {
@@ -193,18 +194,18 @@ public class CommitRocks {
 		}
 		var bb = ByteBuffer.Allocate();
 		bState.encode(bb);
-		var bbIndex = ByteBuffer.Allocate();
+		var bbIndex = ByteBuffer.Allocate(5);
 		bbIndex.WriteInt(state);
 		try (var batch = database.borrowBatch()) {
-			commitPoint.put(batch, tid.bytesUnsafe(), tid.getOffset(), tid.size(), bb.Bytes, bb.ReadIndex, bb.size());
-			commitIndex.put(batch, tid.bytesUnsafe(), tid.getOffset(), tid.size(), bbIndex.Bytes, bbIndex.ReadIndex, bbIndex.size());
+			commitPoint.put(batch, tid, tid.length, bb.Bytes, bb.WriteIndex);
+			commitIndex.put(batch, tid, tid.length, bbIndex.Bytes, bbIndex.WriteIndex);
 			batch.commit(writeOptions);
 		}
 	}
 
-	private void removeCommitIndex(Binary tid) {
+	private void removeCommitIndex(byte[] tid) {
 		try {
-			commitIndex.delete(tid.bytesUnsafe(), tid.getOffset(), tid.size());
+			commitIndex.delete(tid);
 		} catch (RocksDBException e) {
 			// 这个错误仅仅记录日志，所有没有删除的index，以后重启和Timer会尝试重做。
 			logger.error("", e);

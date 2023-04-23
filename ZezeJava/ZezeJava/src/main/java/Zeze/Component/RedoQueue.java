@@ -1,8 +1,6 @@
 package Zeze.Component;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.RedoQueue.BQueueTask;
 import Zeze.Builtin.RedoQueue.BTaskId;
 import Zeze.Builtin.RedoQueue.RunTask;
@@ -14,9 +12,6 @@ import Zeze.Serialize.Serializable;
 import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
-import org.rocksdb.ColumnFamilyDescriptor;
-import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 /**
@@ -26,63 +21,34 @@ import org.rocksdb.RocksDBException;
  * 3.【可选】使用ServiceManager动态发现zeze-server。感觉没有必要。
  */
 public class RedoQueue extends HandshakeClient {
-	private RocksDB db;
-	private final ConcurrentHashMap<String, ColumnFamilyHandle> families = new ConcurrentHashMap<>();
-	private ColumnFamilyHandle familyLastDoneTaskId;
-	private ColumnFamilyHandle familyTaskQueue;
+	private RocksDatabase db;
+	private RocksDatabase.Table tableLastDoneTaskId;
+	private RocksDatabase.Table tableTaskQueue;
 	private long lastTaskId;
 	private long lastDoneTaskId;
 	private final byte[] lastDoneTaskIdKey = "LastDoneTaskId".getBytes(StandardCharsets.UTF_8);
 	private RunTask pending;
 	private AsyncSocket socket;
 
-	static {
-		RocksDB.loadLibrary();
-	}
-
 	public RedoQueue(String name, Config config) {
 		super(name, config);
-	}
-
-	private ColumnFamilyHandle getOrAddFamily(String name) {
-		return families.computeIfAbsent(name, key -> {
-			try {
-				return db.createColumnFamily(new ColumnFamilyDescriptor(
-						key.getBytes(StandardCharsets.UTF_8), RocksDatabase.getCommonCfOptions()));
-			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
-			}
-		});
 	}
 
 	@Override
 	public synchronized void start() throws Exception {
 		if (db != null)
 			return;
-
-		var dbHome = super.getName();
-		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-		for (var cf : RocksDB.listColumnFamilies(RocksDatabase.getCommonOptions(), dbHome))
-			columnFamilies.add(new ColumnFamilyDescriptor(cf, RocksDatabase.getCommonCfOptions()));
-		if (columnFamilies.isEmpty())
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), RocksDatabase.getCommonCfOptions()));
-		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		db = RocksDatabase.open(RocksDatabase.getCommonDbOptions(), dbHome, columnFamilies, outHandles);
-		for (int i = 0; i < columnFamilies.size(); ++i) {
-			var cf = columnFamilies.get(i);
-			var str = new String(cf.getName(), StandardCharsets.UTF_8);
-			families.put(str, outHandles.get(i));
-		}
-		familyLastDoneTaskId = getOrAddFamily("FamilyLastDoneTaskId");
-		familyTaskQueue = getOrAddFamily("FamilyTaskQueue");
-		try (var qit = db.newIterator(familyTaskQueue, RocksDatabase.getDefaultReadOptions())) {
+		db = new RocksDatabase(getName());
+		tableLastDoneTaskId = db.getOrAddTable("FamilyLastDoneTaskId");
+		tableTaskQueue = db.getOrAddTable("FamilyTaskQueue");
+		try (var qit = tableTaskQueue.iterator()) {
 			qit.seekToLast();
 			if (qit.isValid()) {
 				var last = ByteBuffer.Wrap(qit.key());
 				lastTaskId = last.ReadLong();
 			}
 		}
-		var done = db.get(familyLastDoneTaskId, RocksDatabase.getDefaultReadOptions(), lastDoneTaskIdKey);
+		var done = tableLastDoneTaskId.get(lastDoneTaskIdKey);
 		if (done != null)
 			lastDoneTaskId = ByteBuffer.Wrap(done).ReadLong();
 		super.start();
@@ -94,12 +60,14 @@ public class RedoQueue extends HandshakeClient {
 		if (db != null) {
 			db.close();
 			db = null;
+			tableLastDoneTaskId = null;
+			tableTaskQueue = null;
 		}
 	}
 
 	public synchronized void add(int taskType, Serializable taskParam) {
 		try {
-			var key = ByteBuffer.Allocate(16);
+			var key = ByteBuffer.Allocate(9);
 			key.WriteLong(++lastTaskId);
 
 			var task = new BQueueTask();
@@ -111,8 +79,7 @@ public class RedoQueue extends HandshakeClient {
 			task.encode(value);
 
 			// 保存完整的rpc请求，重新发送的时候不用再次打包。
-			db.put(familyTaskQueue, RocksDatabase.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex,
-					value.Bytes, 0, value.WriteIndex);
+			tableTaskQueue.put(key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 			tryStartSendNextTask(task, null);
 		} catch (RocksDBException ex) {
 			throw new RuntimeException(ex);
@@ -130,10 +97,9 @@ public class RedoQueue extends HandshakeClient {
 				rpc.Argument = add; // 最近加入的就是要发送的。优化！
 			else {
 				// 最近加入的不是要发送的，从Db中读取。
-				var key = ByteBuffer.Allocate(16);
+				var key = ByteBuffer.Allocate(9);
 				key.WriteLong(taskId);
-				var value = db.get(familyTaskQueue, RocksDatabase.getDefaultReadOptions(),
-						key.Bytes, 0, key.WriteIndex);
+				var value = tableTaskQueue.get(key.Bytes, 0, key.WriteIndex);
 				if (value == null)
 					return; // error
 				rpc.Argument.decode(ByteBuffer.Wrap(value));
@@ -160,8 +126,7 @@ public class RedoQueue extends HandshakeClient {
 			lastDoneTaskId = rpc.Result.getTaskId();
 			var value = ByteBuffer.Allocate(9);
 			value.WriteLong(lastDoneTaskId);
-			db.put(familyLastDoneTaskId, RocksDatabase.getDefaultWriteOptions(),
-					lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
+			tableLastDoneTaskId.put(lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
 			tryStartSendNextTask(null, rpc.getSender());
 			return 0L;
 		}
@@ -181,8 +146,8 @@ public class RedoQueue extends HandshakeClient {
 	public void OnSocketClose(AsyncSocket so, Throwable ex) throws Exception {
 		super.OnSocketClose(so, ex);
 		synchronized (this) {
-			if (this.socket == so)
-				this.socket = null;
+			if (socket == so)
+				socket = null;
 		}
 	}
 }

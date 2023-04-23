@@ -26,7 +26,7 @@ public class TestByteBuffer extends TestCase {
 
 	public void testBytes() {
 		ByteBuffer bb = ByteBuffer.Allocate();
-		byte[] v = new byte[0];
+		byte[] v = ByteBuffer.Empty;
 		bb.WriteBytes(v);
 		assertEquals(1, bb.size());
 		assertEquals("00", bb.toString());

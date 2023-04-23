@@ -42,7 +42,7 @@ public class Master extends AbstractMaster {
 	public Master(String home) throws RocksDBException {
 		this.home = home;
 
-		masterDb = RocksDatabase.open(RocksDatabase.getCommonOptions(), Path.of(home, MasterDbName).toString());
+		masterDb = RocksDatabase.open(Path.of(home, MasterDbName).toString());
 
 		var dbs = new File(home).listFiles();
 		if (null != dbs) {

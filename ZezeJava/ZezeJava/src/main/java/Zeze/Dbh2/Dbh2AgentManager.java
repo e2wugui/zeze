@@ -10,6 +10,7 @@ import Zeze.Net.Binary;
 import Zeze.Net.ServiceConf;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
+import Zeze.Util.Random;
 import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,9 +47,8 @@ public class Dbh2AgentManager {
 	public Dbh2AgentManager() {
 	}
 
-	@SuppressWarnings("MethodMayBeStatic")
-	public Binary nextTransactionId() {
-		return Zeze.Util.Random.nextBinary(16);
+	public static byte[] nextTransactionId() {
+		return Random.nextBytes(16);
 	}
 
 	public KV<String, Integer> commitServiceAcceptor() {

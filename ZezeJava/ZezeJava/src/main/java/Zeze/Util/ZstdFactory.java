@@ -107,7 +107,7 @@ public final class ZstdFactory {
 				setLevel(compressLevel);
 				if (windowLog >= 0)
 					setLong(windowLog);
-				int r = (int)mhResetCStream.invoke(this, ctxPtr);
+				int r = (int)mhResetCStream.invokeExact((ZstdOutputStreamNoFinalizer)this, ctxPtr);
 				if (r != 0)
 					throw new IllegalStateException("mhResetCStream = " + r);
 			} catch (RuntimeException | Error e) {
@@ -123,7 +123,8 @@ public final class ZstdFactory {
 			try {
 				fCSrcPos.set(this, srcPos);
 				while (srcPos < srcEnd) {
-					int r = (int)mhCompressStream.invoke(this, ctxPtr, dstBuf, dstBuf.length, src, srcEnd);
+					int r = (int)mhCompressStream.invokeExact((ZstdOutputStreamNoFinalizer)this,
+							ctxPtr, dstBuf, dstBuf.length, src, srcEnd);
 					if (r < 0)
 						throw new IllegalStateException("mhCompressStream = " + r);
 					dst.Append(dstBuf, 0, (int)fCDstPos.getLong(this));
@@ -142,7 +143,8 @@ public final class ZstdFactory {
 			try {
 				fCSrcPos.set(this, srcPos);
 				while (srcPos < srcEnd) {
-					int r = (int)mhCompressStream.invoke(this, ctxPtr, dstBuf, dstBuf.length, src, srcEnd);
+					int r = (int)mhCompressStream.invokeExact((ZstdOutputStreamNoFinalizer)this,
+							ctxPtr, dstBuf, dstBuf.length, src, srcEnd);
 					if (r < 0)
 						throw new IllegalStateException("mhCompressStream = " + r);
 					dst.update(dstBuf, 0, (int)fCDstPos.getLong(this));
@@ -161,7 +163,8 @@ public final class ZstdFactory {
 			try {
 				int r;
 				do {
-					r = (int)mhFlushStream.invoke(this, ctxPtr, dstBuf, dstBuf.length);
+					r = (int)mhFlushStream.invokeExact((ZstdOutputStreamNoFinalizer)this,
+							ctxPtr, dstBuf, dstBuf.length);
 					if (r < 0)
 						throw new IllegalStateException("mhFlushStream = " + r);
 					dst.Append(dstBuf, 0, (int)fCDstPos.getLong(this));
@@ -179,7 +182,8 @@ public final class ZstdFactory {
 			try {
 				int r;
 				do {
-					r = (int)mhFlushStream.invoke(this, ctxPtr, dstBuf, dstBuf.length);
+					r = (int)mhFlushStream.invokeExact((ZstdOutputStreamNoFinalizer)this,
+							ctxPtr, dstBuf, dstBuf.length);
 					if (r < 0)
 						throw new IllegalStateException("mhFlushStream = " + r);
 					dst.update(dstBuf, 0, (int)fCDstPos.getLong(this));
@@ -244,7 +248,8 @@ public final class ZstdFactory {
 						dstBytes = dst.Bytes;
 						dstEnd = dstBytes.length;
 					}
-					r = (int)mhDecompressStream.invoke(this, ctxPtr, dstBytes, dstEnd, src, srcEnd);
+					r = (int)mhDecompressStream.invokeExact((ZstdInputStreamNoFinalizer)this,
+							ctxPtr, dstBytes, dstEnd, src, srcEnd);
 					if (r < 0)
 						throw new IllegalStateException("mhDecompressStream = " + r);
 					srcPos = (int)fDSrcPos.getLong(this);
@@ -267,7 +272,8 @@ public final class ZstdFactory {
 				fDSrcPos.set(this, srcPos);
 				while (srcPos < srcEnd) {
 					fDDstPos.set(this, 0);
-					int r = (int)mhDecompressStream.invoke(this, ctxPtr, dstBuf, dstBuf.length, src, srcEnd);
+					int r = (int)mhDecompressStream.invokeExact((ZstdInputStreamNoFinalizer)this,
+							ctxPtr, dstBuf, dstBuf.length, src, srcEnd);
 					if (r < 0)
 						throw new IllegalStateException("mhDecompressStream = " + r);
 					dst.update(dstBuf, 0, (int)fDDstPos.getLong(this));

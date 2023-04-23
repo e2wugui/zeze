@@ -102,13 +102,13 @@ public class Dbh2Test {
 			meta2.setKeyLast(Binary.Empty);
 			bucket2.agent().setBucketMeta(meta2); // 这个meta必须第一个设置。由于测试的meta一样，第二次运行重复设置是可以的。
 
-			var key = new Binary(new byte[] { 1 });
-			var value = new Binary(new byte[] { 1 });
+			var key = new Binary(new byte[]{1});
+			var value = new Binary(new byte[]{1});
 
 			{
 				var batch = new BPrepareBatch.Data(db, tb1);
 				batch.getBatch().getPuts().put(key, value);
-				batch.getBatch().setTid(Dbh2AgentManager.getInstance().nextTransactionId());
+				batch.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
 				bucket1.agent().prepareBatch(batch).await();
 				bucket1.agent().commitBatch(batch.getBatch().getTid()).await();
 			}
@@ -121,7 +121,7 @@ public class Dbh2Test {
 			{
 				var batch = new BPrepareBatch.Data(db, tb1);
 				batch.getBatch().getPuts().put(key, Binary.Empty);
-				batch.getBatch().setTid(Dbh2AgentManager.getInstance().nextTransactionId());
+				batch.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
 				bucket1.agent().prepareBatch(batch).await();
 				bucket1.agent().undoBatch(batch.getBatch().getTid()).await();
 			}
@@ -134,7 +134,7 @@ public class Dbh2Test {
 			{
 				var batch = new BPrepareBatch.Data(db, tb1);
 				batch.getBatch().getDeletes().add(key);
-				batch.getBatch().setTid(Dbh2AgentManager.getInstance().nextTransactionId());
+				batch.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
 				bucket1.agent().prepareBatch(batch).await();
 				bucket1.agent().commitBatch(batch.getBatch().getTid()).await();
 			}
@@ -149,7 +149,7 @@ public class Dbh2Test {
 				var batch1 = new BPrepareBatch.Data(db, tb1);
 				var batch2 = new BPrepareBatch.Data(db, tb2);
 
-				batch1.getBatch().setTid(Dbh2AgentManager.getInstance().nextTransactionId());
+				batch1.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
 				batch2.getBatch().setTid(batch1.getBatch().getTid());
 
 				batch1.getBatch().getPuts().put(key, value);

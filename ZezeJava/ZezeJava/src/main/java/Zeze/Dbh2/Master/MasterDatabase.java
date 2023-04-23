@@ -28,10 +28,9 @@ public class MasterDatabase {
 		try {
 			this.master = master;
 			this.databaseName = databaseName;
-			this.db = RocksDatabase.open(RocksDatabase.getCommonOptions(),
-					Path.of(master.getHome(), databaseName).toString());
+			db = RocksDatabase.open(Path.of(master.getHome(), databaseName).toString());
 
-			try (var it = this.db.newIterator(RocksDatabase.getDefaultReadOptions())) {
+			try (var it = db.newIterator(RocksDatabase.getDefaultReadOptions())) {
 				it.seekToFirst();
 				while (it.isValid()) {
 					var tableName = new String(it.key(), StandardCharsets.UTF_8);
@@ -70,7 +69,7 @@ public class MasterDatabase {
 
 	public MasterTable.Data createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
 		outIsNew.value = false;
-		var table = this.tables.computeIfAbsent(tableName, __ -> new MasterTable.Data());
+		var table = tables.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 		if (table.created)
 			return table;
 
@@ -141,10 +140,10 @@ public class MasterDatabase {
 			var bbValue = ByteBuffer.Allocate();
 			table.encode(bbValue);
 			var key = tableName.getBytes(StandardCharsets.UTF_8);
-			this.db.put(RocksDatabase.getDefaultWriteOptions(), key, 0, key.length, bbValue.Bytes, 0, bbValue.WriteIndex);
+			db.put(RocksDatabase.getDefaultWriteOptions(), key, 0, key.length, bbValue.Bytes, 0, bbValue.WriteIndex);
 
 			// 保存在内存中，用来快速查询。
-			this.tables.put(tableName, table);
+			tables.put(tableName, table);
 
 		}
 		return table;
