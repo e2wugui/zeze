@@ -15,6 +15,8 @@ import org.jetbrains.annotations.Nullable;
 
 public final class Transaction {
 	private static final Logger logger = LogManager.getLogger(Transaction.class);
+	private static final int perfIndexTransactionRedo = PerfCounter.instance.registerCountIndex("Transaction.Redo");
+	private static final int perfIndexTransactionRedoAndReleaseLock = PerfCounter.instance.registerCountIndex("Transaction.RedoAndReleaseLock");
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
 
 	public static @NotNull Transaction create(@NotNull Locks locks) {
@@ -330,11 +332,11 @@ public final class Transaction {
 						if (checkResult == CheckResult.RedoAndReleaseLock) {
 							// logger.debug("CheckResult.RedoAndReleaseLock break {}", procedure);
 							if (PerfCounter.ENABLE_PERF)
-								PerfCounter.instance.addCountInfo("Transaction.RedoAndReleaseLock");
+								PerfCounter.instance.addCountInfo(perfIndexTransactionRedoAndReleaseLock);
 							break;
 						}
 						if (PerfCounter.ENABLE_PERF)
-							PerfCounter.instance.addCountInfo("Transaction.Redo");
+							PerfCounter.instance.addCountInfo(perfIndexTransactionRedo);
 					}
 				} finally {
 					checkpoint.exitFlushReadLock();
@@ -483,6 +485,7 @@ public final class Transaction {
 		if (bean.rootInfo.getRecord().getState() == GlobalCacheManagerConst.StateRemoved) {
 			throwRedo(); // 这个错误需要redo。不是逻辑错误。
 		}
+		//noinspection DataFlowIssue
 		var ra = getRecordAccessed(bean.tableKey());
 		if (ra == null) {
 			throw new IllegalStateException("VerifyRecordAccessed: Record Not Control Under Current Transaction. " + bean.tableKey());

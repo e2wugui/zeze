@@ -4,23 +4,24 @@ import java.lang.ref.SoftReference;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Services.GlobalCacheManagerConst;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class Record {
 	public static final class RootInfo {
-		private final Record record;
-		private final TableKey tableKey;
+		private final @NotNull Record record;
+		private final @NotNull TableKey tableKey;
 
-		public RootInfo(Record record, TableKey tableKey) {
+		public RootInfo(@NotNull Record record, @NotNull TableKey tableKey) {
 			this.record = record;
 			this.tableKey = tableKey;
 		}
 
-		public Record getRecord() {
+		public @NotNull Record getRecord() {
 			return record;
 		}
 
-		public TableKey getTableKey() {
+		public @NotNull TableKey getTableKey() {
 			return tableKey;
 		}
 	}
@@ -157,7 +158,7 @@ public abstract class Record {
 		databaseTransactionOldTmp = value;
 	}
 
-	public final RootInfo createRootInfoIfNeed(TableKey tkey) {
+	public final @NotNull RootInfo createRootInfoIfNeed(@NotNull TableKey tkey) {
 		var strongRef = getSoftValue();
 		var cur = strongRef != null ? strongRef.rootInfo : null;
 		return cur != null ? cur : new RootInfo(this, tkey);

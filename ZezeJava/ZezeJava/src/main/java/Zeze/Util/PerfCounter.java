@@ -47,12 +47,9 @@ public final class PerfCounter {
 	}
 
 	private static final class CountInfo {
-		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
-
 		final @NotNull String name;
 		final LongAdder count = new LongAdder(); // 次数
 		long lastCount;
-		int idleCount; // 没收集到信息的轮数
 
 		CountInfo(String name) {
 			this.name = name;
@@ -66,13 +63,22 @@ public final class PerfCounter {
 
 	private final ConcurrentHashMap<Object, RunInfo> runInfoMap = new ConcurrentHashMap<>(); // key: Class or others
 	private final LongConcurrentHashMap<ProtocolInfo> protocolInfoMap = new LongConcurrentHashMap<>(); // key: typeId
-	private final ConcurrentHashMap<String, CountInfo> countInfoMap = new ConcurrentHashMap<>();
+	private CountInfo[] countInfos = new CountInfo[0];
 	private final HashSet<Object> excludeRunKeys = new HashSet<>(); // value: Class or others
 	private final LongHashSet excludeProtocolTypeIds = new LongHashSet(); // value: typeId
 	private final DecimalFormat numFormatter = new DecimalFormat("#,###");
 	private @NotNull String lastLog = "";
 	private long lastLogTime = System.currentTimeMillis();
 	private @Nullable ScheduledFuture<?> scheduleFuture;
+
+	public synchronized int registerCountIndex(String name) {
+		int n = countInfos.length;
+		var cis = new CountInfo[n + 1];
+		cis[n] = new CountInfo(name);
+		System.arraycopy(countInfos, 0, cis, 0, n);
+		countInfos = cis;
+		return n;
+	}
 
 	// 只能在启动统计前调用
 	public synchronized boolean addExcludeRunKey(@NotNull String key) {
@@ -181,19 +187,12 @@ public final class PerfCounter {
 		}
 	}
 
-	public void addCountInfo(@NotNull String key) {
-		addCountInfo(key, 1);
+	public void addCountInfo(int index) {
+		addCountInfo(index, 1);
 	}
 
-	public void addCountInfo(@NotNull String key, long count) {
-		for (; ; ) {
-			var ci = countInfoMap.get(key);
-			if (ci != null) {
-				ci.count.add(count);
-				return;
-			}
-			countInfoMap.putIfAbsent(key, new CountInfo(key));
-		}
+	public void addCountInfo(int index, long count) {
+		countInfos[index].count.add(count);
 	}
 
 	public @NotNull String getLastLog() {
@@ -226,7 +225,10 @@ public final class PerfCounter {
 	public void resetCounter() {
 		runInfoMap.clear();
 		protocolInfoMap.clear();
-		countInfoMap.clear();
+		for (var ci : countInfos) {
+			ci.count.reset();
+			ci.lastCount = 0;
+		}
 	}
 
 	public synchronized @NotNull String getLogAndReset() {
@@ -316,17 +318,11 @@ public final class PerfCounter {
 					.append(numFormatter.format(perSize)).append('B').append('\n');
 		}
 
-		var cList = new ArrayList<CountInfo>(countInfoMap.size());
-		for (var it = countInfoMap.values().iterator(); it.hasNext(); ) {
-			var ci = it.next();
+		var cList = new ArrayList<CountInfo>(countInfos.length);
+		for (var ci : countInfos) {
 			ci.lastCount = ci.count.sumThenReset();
-			if (ci.lastCount == 0) {
-				if (++ci.idleCount >= CountInfo.MAX_IDLE_COUNT)
-					it.remove();
-				continue;
-			}
-			ci.idleCount = 0;
-			cList.add(ci);
+			if (ci.lastCount != 0)
+				cList.add(ci);
 		}
 		if (!cList.isEmpty()) {
 			cList.sort((ci0, ci1) -> Long.signum(ci1.lastCount - ci0.lastCount));

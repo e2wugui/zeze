@@ -13,6 +13,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
+import Zeze.Util.PerfCounter;
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
@@ -620,6 +621,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return null;
 
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			var st = new SQLStatement();
 			table.encodeKeySQLStatement(st, key);
 			var sql = "SELECT * FROM " + name + " WHERE " + buildKeyWhere(st);
@@ -638,6 +640,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				}
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
+			} finally {
+				if (PerfCounter.ENABLE_PERF)
+					PerfCounter.instance.addRunInfo("MySQL.select", System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -646,6 +651,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return;
 
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			var stKey = (SQLStatement)key;
 			var stValue = (SQLStatement)value;
 			var sql = "REPLACE " + name + " SET " + stKey.sql + ", " + stValue.sql;
@@ -656,6 +662,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				pre.executeUpdate();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
+			} finally {
+				if (PerfCounter.ENABLE_PERF)
+					PerfCounter.instance.addRunInfo("MySQL.replace", System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -664,6 +673,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return;
 
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			var stKey = (SQLStatement)key;
 			var sql = "DELETE FROM " + name + " WHERE " + buildKeyWhere(stKey);
 			var my = (JdbcTrans)t;
@@ -672,6 +682,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				pre.executeUpdate();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
+			} finally {
+				if (PerfCounter.ENABLE_PERF)
+					PerfCounter.instance.addRunInfo("MySQL.delete", System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -959,6 +972,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return null;
 
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -976,6 +990,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				}
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
+			} finally {
+				if (PerfCounter.ENABLE_PERF)
+					PerfCounter.instance.addRunInfo("MySQL.select", System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -984,6 +1001,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return;
 
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			var my = (JdbcTrans)t;
 			String sql = "DELETE FROM " + getName() + " WHERE id=?";
 			try (var cmd = my.Connection.prepareStatement(sql)) {
@@ -991,6 +1009,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				cmd.executeUpdate();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
+			} finally {
+				if (PerfCounter.ENABLE_PERF)
+					PerfCounter.instance.addRunInfo("MySQL.delete", System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -999,6 +1020,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return;
 
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			var my = (JdbcTrans)t;
 			String sql = "REPLACE INTO " + getName() + " values(?, ?)";
 			try (var cmd = my.Connection.prepareStatement(sql)) {
@@ -1007,6 +1029,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				cmd.executeUpdate();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
+			} finally {
+				if (PerfCounter.ENABLE_PERF)
+					PerfCounter.instance.addRunInfo("MySQL.replace", System.nanoTime() - timeBegin);
 			}
 		}
 
