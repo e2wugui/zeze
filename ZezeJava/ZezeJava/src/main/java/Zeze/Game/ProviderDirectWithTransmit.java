@@ -35,13 +35,12 @@ public class ProviderDirectWithTransmit extends ProviderDirect {
 
 	@Override
 	protected long ProcessTransmit(Transmit p) {
-		var defaultOnline = ((ProviderWithOnline)providerApp.providerImplement).getOnline();
 		var name = p.Argument.getOnlineSetName();
-		var online = defaultOnline.getOnlineSet(name);
+		var online = ((ProviderWithOnline)providerApp.providerImplement).getOnline(name);
 		if (online != null)
 			online.processTransmit(p.Argument.getSender(), p.Argument.getActionName(), p.Argument.getRoles(), p.Argument.getParameter());
 		else
-			logger.error("unknown onlineSetName: {}", name);
+			logger.error("unknown onlineSetName: '{}'", name);
 		return Procedure.Success;
 	}
 }

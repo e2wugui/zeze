@@ -109,11 +109,10 @@ public class ProviderUserSession {
 	protected boolean sendOnline(AsyncSocket link, @NotNull Send send) {
 		var providerImpl = getService().providerApp.providerImplement;
 		if (providerImpl instanceof ProviderWithOnline) {
-			var defaultOnline = ((ProviderWithOnline)providerImpl).getOnline();
 			var roleId = getRoleId();
 			if (roleId != null) {
 				var name = dispatch.Argument.getOnlineSetName();
-				var online = defaultOnline.getOnlineSet(name);
+				var online = ((ProviderWithOnline)providerImpl).getOnline(name);
 				if (online != null)
 					return online.send(link, Map.of(getLinkSid(), roleId), send);
 				logger.error("unknown onlineSetName: {}", name);
@@ -156,7 +155,7 @@ public class ProviderUserSession {
 			var roleId = getRoleId();
 			if (roleId == null)
 				roleId = -getLinkSid();
-			AsyncSocket.log("Send", roleId, p);
+			AsyncSocket.log("Send", roleId, dispatch.Argument.getOnlineSetName(), p);
 		}
 	}
 

@@ -94,8 +94,9 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	@Override
 	protected long ProcessDispatch(Dispatch p) {
 		var sender = p.getSender();
-		var linkSid = p.Argument.getLinkSid();
-		var typeId = p.Argument.getProtocolType();
+		var arg = p.Argument;
+		var linkSid = arg.getLinkSid();
+		var typeId = arg.getProtocolType();
 		Protocol<?> p2 = null;
 		try {
 			var factoryHandle = providerApp.providerService.findProtocolFactoryHandle(typeId);
@@ -104,7 +105,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				return Procedure.LogicError;
 			}
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			int psize = p.Argument.getProtocolData().size();
+			int psize = arg.getProtocolData().size();
 			var session = newSession(p);
 			var zeze = sender.getService().getZeze();
 			var txn = Transaction.getCurrent();
@@ -115,18 +116,18 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					var t = Transaction.getCurrent();
 					//noinspection DataFlowIssue
 					t.getTopProcedure().setActionName(p3.getClass().getName());
-					p3.decode(ByteBuffer.Wrap(p.Argument.getProtocolData()));
-					p3.setSender(p.getSender());
+					p3.decode(ByteBuffer.Wrap(arg.getProtocolData()));
+					p3.setSender(sender);
 					p3.setUserState(session);
 					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p3.getTypeId())
 							&& outProtocol.value == null) { // redo后不再输出日志
 						var roleId = session.getRoleId();
 						if (roleId == null)
-							roleId = -p.Argument.getLinkSid();
-						AsyncSocket.log("Recv", roleId, p3);
+							roleId = -arg.getLinkSid();
+						AsyncSocket.log("Recv", roleId, arg.getOnlineSetName(), p3);
 					}
 					outProtocol.value = p3;
-					t.runWhileCommit(() -> p.Argument.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
+					t.runWhileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 					var handler = factoryHandle.Handle;
 					return handler != null ? handler.handleProtocol(p3) : Procedure.NotImplement;
 				}, null, factoryHandle.Level, session), outProtocol, (p4, code) -> {
@@ -136,23 +137,23 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			}
 
 			p2 = factoryHandle.Factory.create();
-			p2.decode(ByteBuffer.Wrap(p.Argument.getProtocolData()));
+			p2.decode(ByteBuffer.Wrap(arg.getProtocolData()));
 			p2.setSender(sender);
 			p2.setUserState(session);
 			if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 				var roleId = session.getRoleId();
 				if (roleId == null)
 					roleId = -linkSid;
-				AsyncSocket.log("Recv", roleId, p2);
+				AsyncSocket.log("Recv", roleId, arg.getOnlineSetName(), p2);
 			}
 			if (txn != null) { // 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
 				var proc = txn.getTopProcedure();
 				//noinspection ConstantConditions
 				proc.setActionName(p2.getClass().getName());
 				proc.setUserState(session);
-				txn.runWhileCommit(() -> p.Argument.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
+				txn.runWhileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 			} else // 应用框架不支持事务或者协议配置了"不需要事务”
-				p.Argument.setProtocolData(Binary.Empty); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
+				arg.setProtocolData(Binary.Empty); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 			var p3 = p2;
 			var r = Task.call(() -> {
 				var handler = factoryHandle.Handle;

@@ -42,7 +42,6 @@ import Zeze.Component.TimerRole;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
-import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
@@ -67,10 +66,11 @@ import org.jetbrains.annotations.Nullable;
 
 public class Online extends AbstractOnline {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
-	static @Nullable Online instanceDefaultOnline;
+	protected static final BeanFactory beanFactory = new BeanFactory();
+	protected static @Nullable Online defaultInstance; // 默认Online实例,stop后会置null
 
 	public final @NotNull ProviderApp providerApp;
-	private @Nullable ProviderLoad load;
+	private final @Nullable ProviderLoad load;
 	private final AtomicLong loginTimes = new AtomicLong();
 	private final TimerRole timerRole;
 
@@ -91,14 +91,21 @@ public class Online extends AbstractOnline {
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
 	private Future<?> verifyLocalTimer;
-	private final Online defaultOnline;
 
-	public static @NotNull Online create(@NotNull AppBase app) {
+	protected static @NotNull Online create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Online.class, app);
+	}
+
+	public static void register(@NotNull Class<? extends Bean> cls) {
+		beanFactory.register(cls);
 	}
 
 	public static long getSpecialTypeIdFromBean(@NotNull Bean bean) {
 		return bean.typeId();
+	}
+
+	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
+		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
 	public @Nullable ProviderLoad getLoad() {
@@ -107,16 +114,6 @@ public class Online extends AbstractOnline {
 
 	public @NotNull TimerRole getTimerRole() {
 		return timerRole;
-	}
-
-	public static final BeanFactory beanFactory = new BeanFactory();
-
-	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
-		return beanFactory.createBeanFromSpecialTypeId(typeId);
-	}
-
-	public static void register(@NotNull Class<? extends Bean> cls) {
-		beanFactory.register(cls);
 	}
 
 	public String getOnlineSetName() {
@@ -134,37 +131,21 @@ public class Online extends AbstractOnline {
 	// load redirect 使用这个构造函数。
 	protected Online(@NotNull AppBase app) {
 		super("");
-
-		this.defaultOnline = null;
 		providerApp = app.getZeze().redirect.providerApp;
-
-		if (null != getOnlineSetMap().putIfAbsent("", this))
-			throw new IllegalStateException("duplicate default");
-
+		defaultInstance = this;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
 		load = new ProviderLoad(this);
-		instanceDefaultOnline = this;
 		timerRole = new TimerRole(this);
 	}
 
 	// 创建新的OnlineSet使用这个构造函数。独立OnlineSet不装载redirect子类。
-	private Online(@NotNull AppBase app, Online defaultOnline, @NotNull String name) {
+	private Online(@NotNull AppBase app, @NotNull String name) {
 		super(name);
-
-		this.defaultOnline = defaultOnline;
 		providerApp = app.getZeze().redirect.providerApp;
-
-		if (null != getOnlineSetMap().putIfAbsent(name, this))
-			throw new IllegalStateException("duplicate name=" + name);
-
 		RegisterZezeTables(providerApp.zeze);
-		//load = new ProviderLoad(this); // todo 需要修改，load报告在多实例下应该不能工作。
+		load = null; // new ProviderLoad(this); // todo 需要修改，load报告在多实例下应该不能工作。
 		timerRole = new TimerRole(this);
-	}
-
-	private @NotNull HashMap<String, Online> getOnlineSetMap() {
-		return ((ProviderWithOnline)providerApp.providerImplement).getOnlineSetMap();
 	}
 
 	/**
@@ -173,38 +154,50 @@ public class Online extends AbstractOnline {
 	 * @param name 在线集合名字
 	 * @return 返回新建的在线集合实例。返回值可以保存下来。
 	 */
-	public @NotNull Online createOnlineSet(@NotNull AppBase app, @NotNull String name) {
+	protected @NotNull Online createOnlineSet(@NotNull AppBase app, @NotNull String name) {
 		if (name.isEmpty())
 			throw new IllegalArgumentException("empty name");
-		if (!multiInstanceName.isEmpty())
+		if (this != defaultInstance)
 			throw new IllegalStateException("must be called by default online");
-		return new Online(app, this, name);
+		var online = new Online(app, name);
+		online.Initialize(app);
+		return online;
 	}
 
-	public @Nullable Online getOnlineSet(String name) {
-		return getOnlineSetMap().get(name);
+	public @NotNull ProviderWithOnline getProviderWithOnline() {
+		return (ProviderWithOnline)providerApp.providerImplement;
+	}
+
+	public @Nullable Online getOnlineSet(@Nullable String name) {
+		return getProviderWithOnline().getOnline(name);
 	}
 
 	public void start() {
-		if (null != load)
-			load.start();
-		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
-		providerApp.builtinModules.put(this.getFullName(), this);
+		// default online 负责启动所有的online set。
+		if (defaultInstance == this) {
+			if (load != null)
+				load.start();
+			verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
+			providerApp.builtinModules.put(this.getFullName(), this);
+			getProviderWithOnline().foreachOnline(online -> {
+				if (online != this)
+					online.start();
+			});
+		}
 	}
 
 	public void stop() {
 		// default online 负责停止所有的online set。
-		if (multiInstanceName.isEmpty()) {
-			for (var online : getOnlineSetMap().values()) {
-				if (!online.getOnlineSetName().isEmpty())
+		if (defaultInstance == this) {
+			getProviderWithOnline().foreachOnline(online -> {
+				if (online != this)
 					online.stop();
-			}
-			getOnlineSetMap().clear();
-			instanceDefaultOnline = null;
-			if (null != load)
+			});
+			if (load != null)
 				load.stop();
-			if (null != verifyLocalTimer)
+			if (verifyLocalTimer != null)
 				verifyLocalTimer.cancel(false);
+			defaultInstance = null;
 		}
 	}
 
@@ -486,11 +479,11 @@ public class Online extends AbstractOnline {
 	public static class DelayLogout implements TimerHandle {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
-			if (null != instanceDefaultOnline) {
+			if (null != defaultInstance) {
 				// 这里虽然调用instanceDefaultOnline，但里面执行会根据context里面OnlineSetName访问的不同的Online数据
 				// 也许这里改成 getOnlineSet(name).tryLogout，tryLogout 就直接访问自身数据比较好。
 				// 能工作，先这样了。
-				var ret = instanceDefaultOnline.tryLogout((BDelayLogoutCustom)context.customData);
+				var ret = defaultInstance.tryLogout((BDelayLogoutCustom)context.customData);
 				if (ret != 0)
 					Online.logger.error("tryLogout fail. {}", ret);
 			}
@@ -529,18 +522,24 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
+	// 在指定Online上发送
 	public void send(long roleId, @NotNull Protocol<?> p) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-			AsyncSocket.log("Send", roleId, p);
-		sendDirect(roleId, typeId, new Binary(p.encode()));
+			AsyncSocket.log("Send", roleId, multiInstanceName, p);
+		sendDirect(roleId, typeId, new Binary(p.encode()), false);
 	}
 
-	public void sendResponse(long roleId, @NotNull Rpc<?, ?> r) {
-		r.setRequest(false);
-		send(roleId, r);
+	// 尝试给所有Onlines发送,可在任意Online上执行
+	public void sendAllOnlines(long roleId, @NotNull Protocol<?> p) {
+		var typeId = p.getTypeId();
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+			AsyncSocket.log("Send", roleId, "*", p);
+		var data = new Binary(p.encode());
+		getProviderWithOnline().foreachOnline(online -> online.sendDirect(roleId, typeId, data, true));
 	}
 
+	// 在指定Online上发送
 	public void send(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		if (roleIds.isEmpty())
 			return;
@@ -552,33 +551,70 @@ public class Online extends AbstractOnline {
 			int n = sb.length();
 			if (n > 0)
 				sb.setLength(n - 1);
+			if (!multiInstanceName.isEmpty())
+				sb.append('@').append(multiInstanceName);
 			var idsStr = sb.toString();
 			AsyncSocket.log("Send", idsStr, p);
 		}
 		send(roleIds, typeId, new Binary(p.encode()));
 	}
 
+	// 尝试给所有Onlines发送,可在任意Online上执行
+	public void sendAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		if (roleIds.isEmpty())
+			return;
+		var typeId = p.getTypeId();
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
+			var sb = new StringBuilder();
+			for (var roleId : roleIds)
+				sb.append(roleId).append(',');
+			int n = sb.length();
+			if (n > 0)
+				sb.setLength(n - 1);
+			var idsStr = sb.append('@').append('*').toString();
+			AsyncSocket.log("Send", idsStr, p);
+		}
+		sendAllOnlines(roleIds, typeId, new Binary(p.encode()));
+	}
+
+	// 在指定Online上发送
 	public void sendWhileCommit(long roleId, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> send(roleId, p));
 	}
 
+	// 尝试给所有Onlines发送,可在任意Online上执行
+	public void sendWhileCommitAllOnlines(long roleId, @NotNull Protocol<?> p) {
+		Transaction.whileCommit(() -> sendAllOnlines(roleId, p));
+	}
+
+	// 在指定Online上发送
 	public void sendWhileCommit(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> send(roleIds, p));
 	}
 
-	public void sendResponseWhileCommit(long roleId, @NotNull Rpc<?, ?> r) {
-		Transaction.whileCommit(() -> {
-			r.setRequest(false);
-			send(roleId, r);
-		});
+	// 尝试给所有Onlines发送,可在任意Online上执行
+	public void sendWhileCommitAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		Transaction.whileCommit(() -> sendAllOnlines(roleIds, p));
 	}
 
+	// 在指定Online上发送
 	public void sendWhileRollback(long roleId, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> send(roleId, p));
 	}
 
+	// 尝试给所有Onlines发送,可在任意Online上执行
+	public void sendWhileRollbackAllOnlines(long roleId, @NotNull Protocol<?> p) {
+		Transaction.whileRollback(() -> sendAllOnlines(roleId, p));
+	}
+
+	// 在指定Online上发送
 	public void sendWhileRollback(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> send(roleIds, p));
+	}
+
+	// 尝试给所有Onlines发送,可在任意Online上执行
+	public void sendWhileRollbackAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		Transaction.whileRollback(() -> sendAllOnlines(roleIds, p));
 	}
 
 //	public void send(long roleId, long typeId, Binary fullEncodedProtocol) {
@@ -590,20 +626,32 @@ public class Online extends AbstractOnline {
 //				}, "Online.send")), DispatchMode.Normal);
 //	}
 
-	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
+	// 在指定Online上发送
+	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
+					boolean trySend) {
 		int roleCount = roleIds.size();
 		if (roleCount == 1) {
 			var it = roleIds.iterator();
 			if (it.hasNext()) // 不确定roleIds是否稳定,所以还是判断一下保险
-				return sendDirect(it.next(), typeId, fullEncodedProtocol) ? 1 : 0;
+				return sendDirect(it.next(), typeId, fullEncodedProtocol, trySend) ? 1 : 0;
 		} else if (roleCount > 1) {
-			return sendDirect(roleIds, typeId, fullEncodedProtocol);
+			return sendDirect(roleIds, typeId, fullEncodedProtocol, trySend);
 //			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(roleIds, providerApp.zeze.newProcedure(() -> {
 //				sendEmbed(roleIds, typeId, fullEncodedProtocol);
 //				return Procedure.Success;
 //			}, "Online.send"), null, DispatchMode.Normal);
 		}
 		return 0;
+	}
+
+	// 在指定Online上发送
+	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
+		return send(roleIds, typeId, fullEncodedProtocol, false);
+	}
+
+	// 尝试给所有Onlines发送,可在任意Online上执行
+	public void sendAllOnlines(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
+		getProviderWithOnline().foreachOnline(online -> online.send(roleIds, typeId, fullEncodedProtocol, true));
 	}
 
 //	public void sendNoBarrier(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
@@ -698,7 +746,8 @@ public class Online extends AbstractOnline {
 	}
 
 	// 可在事务外执行
-	public int sendDirect(@NotNull Iterable<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
+	public int sendDirect(@NotNull Iterable<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
+						  boolean trySend) {
 		var roleIdSet = new LongHashSet();
 		for (var roleId : roleIds)
 			roleIdSet.add(roleId); // 去重
@@ -710,7 +759,8 @@ public class Online extends AbstractOnline {
 			var roleId = it.value();
 			var online = _tonline.selectDirty(roleId);
 			if (online == null) {
-				logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
+				if (!trySend)
+					logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
 				continue;
 			}
 			var link = online.getLink();
@@ -756,10 +806,11 @@ public class Online extends AbstractOnline {
 	}
 
 	// 可在事务外执行
-	public boolean sendDirect(long roleId, long typeId, @NotNull Binary fullEncodedProtocol) {
+	public boolean sendDirect(long roleId, long typeId, @NotNull Binary fullEncodedProtocol, boolean trySend) {
 		var online = _tonline.selectDirty(roleId);
 		if (online == null) {
-			logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
+			if (!trySend)
+				logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
 			return false;
 		}
 		var link = online.getLink();
@@ -915,7 +966,7 @@ public class Online extends AbstractOnline {
 			Transaction.whileCommit(() -> {
 				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 					AsyncSocket.log("Send", roleId + ":" + listenerName, notify);
-				sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode()));
+				sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode()), false);
 			});
 //			sendEmbed(List.of(roleId), notify.getTypeId(), new Binary(notify.encode()));
 			return Procedure.Success;
@@ -1165,10 +1216,10 @@ public class Online extends AbstractOnline {
 	private void tryRedirectRemoveLocal(String instanceName, int serverId, long roleId) {
 		if (providerApp.zeze.getConfig().getServerId() != serverId
 				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId)) {
-			if (null != defaultOnline)
-				defaultOnline.redirectRemoveLocal(serverId, roleId, instanceName);
-			else
+			if (this == defaultInstance)
 				redirectRemoveLocal(serverId, roleId, instanceName);
+			else if (defaultInstance != null)
+				defaultInstance.redirectRemoveLocal(serverId, roleId, instanceName);
 		}
 	}
 

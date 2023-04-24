@@ -565,6 +565,29 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
+	public static void log(@NotNull String action, long id, String platform, @NotNull Protocol<?> p) {
+		var sb = new StringBuilder(64);
+		sb.append(action).append(':').append(id);
+		if (platform != null && !platform.isEmpty())
+			sb.append('@').append(platform);
+		sb.append(' ').append(p.getClass().getSimpleName());
+		boolean logResultCode;
+		Object bean;
+		if (p instanceof Rpc) {
+			var rpc = ((Rpc<?, ?>)p);
+			sb.append(':').append(rpc.getSessionId());
+			logResultCode = !rpc.isRequest();
+			bean = logResultCode ? rpc.Result : rpc.Argument;
+		} else {
+			logResultCode = p.resultCode != 0;
+			bean = p.Argument;
+		}
+		if (logResultCode)
+			sb.append('>').append(p.resultCode);
+		sb.append(' ').append(toStr(bean));
+		logger.log(PROTOCOL_LOG_LEVEL, sb);
+	}
+
 	public static void log(@NotNull String action, @NotNull String id, @NotNull Protocol<?> p) {
 		var sb = new StringBuilder(64);
 		sb.append(action).append(':').append(id).append(' ').append(p.getClass().getSimpleName());

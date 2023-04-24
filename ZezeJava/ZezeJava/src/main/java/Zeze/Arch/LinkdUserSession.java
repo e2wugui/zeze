@@ -162,7 +162,7 @@ public class LinkdUserSession {
 		});
 	}
 
-	private void updateLinkSessionId(LinkdProviderService linkdProviderService, long newSessionId) {
+	protected void updateLinkSessionId(LinkdProviderService linkdProviderService, long newSessionId) {
 		var writeLock = bindsLock.writeLock();
 		writeLock.lock();
 		try {
