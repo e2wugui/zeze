@@ -10,30 +10,57 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class Table {
+	private final int originalId;
+	private final int id;
+	private final @NotNull String originalName;
 	private final @NotNull String name;
+	private final @NotNull String suffix;
 	private final ChangeListenerMap changeListenerMap = new ChangeListenerMap();
 	private Application zeze;
 	private Config.TableConf tableConf;
 	private Database database;
 
-	public Table(@NotNull String name) {
-		this.name = name;
+	public Table(int id, @NotNull String name) {
+		this(id, name, null);
+	}
 
-		// 新增属性Id，为了影响最小，采用virtual方式定义。
+	public Table(int id, @NotNull String name, @Nullable String suffix) {
+		this.originalId = id;
+		this.originalName = name;
+		if (suffix != null && !suffix.isEmpty()) {
+			id ^= Bean.hash32(suffix);
+			name = name + '.' + suffix;
+		}
+		this.id = id;
+		this.name = name;
+		this.suffix = suffix != null ? suffix : "";
+
 		// AddTable不能在这里调用。
 		// 该调用移到Application.AddTable。
 		// 影响：允许Table.Id重复，只要它没有加入zeze-app。
 	}
 
-	public final String getName() {
+	public final int getOriginalId() {
+		return originalId;
+	}
+
+	public final int getId() {
+		return id;
+	}
+
+	public final @NotNull String getOriginalName() {
+		return originalName;
+	}
+
+	public final @NotNull String getName() {
 		return name;
 	}
 
-	public String getOriginalName() {
-		return name;
+	public @NotNull String getSuffix() {
+		return suffix;
 	}
 
-	public final ChangeListenerMap getChangeListenerMap() {
+	public final @NotNull ChangeListenerMap getChangeListenerMap() {
 		return changeListenerMap;
 	}
 
@@ -81,8 +108,6 @@ public abstract class Table {
 	public boolean isAutoKey() {
 		return false;
 	}
-
-	public abstract int getId();
 
 	public abstract int reduceShare(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey);
 

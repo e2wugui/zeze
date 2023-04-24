@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tQueueLastTaskId extends TableX<String, Zeze.Builtin.RedoQueue.BTaskId>
         implements TableReadOnly<String, Zeze.Builtin.RedoQueue.BTaskId, Zeze.Builtin.RedoQueue.BTaskIdReadOnly> {
     public tQueueLastTaskId() {
-        super("Zeze_Builtin_RedoQueue_tQueueLastTaskId");
+        super(-1495051256, "Zeze_Builtin_RedoQueue_tQueueLastTaskId");
     }
 
     public tQueueLastTaskId(String suffix) {
-        super("Zeze_Builtin_RedoQueue_tQueueLastTaskId" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_RedoQueue_tQueueLastTaskId";
-    }
-
-    @Override
-    public int getId() {
-        return -1495051256;
+        super(-1495051256, "Zeze_Builtin_RedoQueue_tQueueLastTaskId", suffix);
     }
 
     public static final int VAR_TaskId = 1;

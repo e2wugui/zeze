@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
         implements TableReadOnly<Integer, Zeze.Builtin.DelayRemove.BJobs, Zeze.Builtin.DelayRemove.BJobsReadOnly> {
     public tJobs() {
-        super("Zeze_Builtin_DelayRemove_tJobs");
+        super(-582299608, "Zeze_Builtin_DelayRemove_tJobs");
     }
 
     public tJobs(String suffix) {
-        super("Zeze_Builtin_DelayRemove_tJobs" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_DelayRemove_tJobs";
-    }
-
-    @Override
-    public int getId() {
-        return -582299608;
+        super(-582299608, "Zeze_Builtin_DelayRemove_tJobs", suffix);
     }
 
     public static final int VAR_Jobs = 1;

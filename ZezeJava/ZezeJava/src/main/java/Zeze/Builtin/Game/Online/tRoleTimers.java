@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tRoleTimers extends TableX<String, Zeze.Builtin.Timer.BGameOnlineTimer>
         implements TableReadOnly<String, Zeze.Builtin.Timer.BGameOnlineTimer, Zeze.Builtin.Timer.BGameOnlineTimerReadOnly> {
     public tRoleTimers() {
-        super("Zeze_Builtin_Game_Online_tRoleTimers");
+        super(1198700620, "Zeze_Builtin_Game_Online_tRoleTimers");
     }
 
     public tRoleTimers(String suffix) {
-        super("Zeze_Builtin_Game_Online_tRoleTimers" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Game_Online_tRoleTimers";
-    }
-
-    @Override
-    public int getId() {
-        return 1198700620;
+        super(1198700620, "Zeze_Builtin_Game_Online_tRoleTimers", suffix);
     }
 
     @Override

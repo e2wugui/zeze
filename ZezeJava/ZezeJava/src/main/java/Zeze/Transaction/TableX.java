@@ -33,8 +33,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private DatabaseRocksDb.Table localRocksCacheTable;
 	private boolean useRelationalMapping;
 
-	public TableX(@NotNull String name) {
-		super(name);
+	public TableX(int id, @NotNull String name) {
+		super(id, name);
+	}
+
+	public TableX(int id, @NotNull String name, @Nullable String suffix) {
+		super(id, name, suffix);
 	}
 
 	TableCache<K, V> getCache() {

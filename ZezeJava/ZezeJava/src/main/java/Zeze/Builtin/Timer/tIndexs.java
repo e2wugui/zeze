@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
         implements TableReadOnly<String, Zeze.Builtin.Timer.BIndex, Zeze.Builtin.Timer.BIndexReadOnly> {
     public tIndexs() {
-        super("Zeze_Builtin_Timer_tIndexs");
+        super(833718, "Zeze_Builtin_Timer_tIndexs");
     }
 
     public tIndexs(String suffix) {
-        super("Zeze_Builtin_Timer_tIndexs" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Timer_tIndexs";
-    }
-
-    @Override
-    public int getId() {
-        return 833718;
+        super(833718, "Zeze_Builtin_Timer_tIndexs", suffix);
     }
 
     public static final int VAR_ServerId = 1;

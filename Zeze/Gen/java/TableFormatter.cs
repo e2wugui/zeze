@@ -32,21 +32,11 @@ namespace Zeze.Gen.java
             sw.WriteLine("public final class " + table.Name + $" extends TableX<{keyboxing}, {value}>");
             sw.WriteLine($"        implements TableReadOnly<{keyboxing}, {value}, {value}ReadOnly> {{");
             sw.WriteLine("    public " + table.Name + "() {");
-            sw.WriteLine("        super(\"" + table.Space.Path("_", table.Name) + "\");");
+            sw.WriteLine($"        super({table.Id}, \"{table.Space.Path("_", table.Name)}\");");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public " + table.Name + "(String suffix) {");
-            sw.WriteLine("        super(\"" + table.Space.Path("_", table.Name) + "\" + suffix);");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    @Override");
-            sw.WriteLine("    public String getOriginalName() {");
-            sw.WriteLine("        return \"" + table.Space.Path("_", table.Name) + "\";");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    @Override");
-            sw.WriteLine("    public int getId() {");
-            sw.WriteLine($"        return {table.Id};");
+            sw.WriteLine($"        super({table.Id}, \"{table.Space.Path("_", table.Name)}\", suffix);");
             sw.WriteLine("    }");
             if (table.IsMemory) // 需要保证基类返回false
             {

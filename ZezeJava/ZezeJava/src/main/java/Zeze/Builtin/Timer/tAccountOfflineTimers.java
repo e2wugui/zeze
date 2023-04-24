@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tAccountOfflineTimers extends TableX<Zeze.Builtin.Timer.BAccountClientId, Zeze.Builtin.Timer.BOfflineTimers>
         implements TableReadOnly<Zeze.Builtin.Timer.BAccountClientId, Zeze.Builtin.Timer.BOfflineTimers, Zeze.Builtin.Timer.BOfflineTimersReadOnly> {
     public tAccountOfflineTimers() {
-        super("Zeze_Builtin_Timer_tAccountOfflineTimers");
+        super(-865861330, "Zeze_Builtin_Timer_tAccountOfflineTimers");
     }
 
     public tAccountOfflineTimers(String suffix) {
-        super("Zeze_Builtin_Timer_tAccountOfflineTimers" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Timer_tAccountOfflineTimers";
-    }
-
-    @Override
-    public int getId() {
-        return -865861330;
+        super(-865861330, "Zeze_Builtin_Timer_tAccountOfflineTimers", suffix);
     }
 
     public static final int VAR_OfflineTimers = 1;

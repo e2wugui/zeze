@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tAutoKeys extends TableX<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey>
         implements TableReadOnly<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey, Zeze.Builtin.AutoKey.BAutoKeyReadOnly> {
     public tAutoKeys() {
-        super("Zeze_Builtin_AutoKey_tAutoKeys");
+        super(-716529252, "Zeze_Builtin_AutoKey_tAutoKeys");
     }
 
     public tAutoKeys(String suffix) {
-        super("Zeze_Builtin_AutoKey_tAutoKeys" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_AutoKey_tAutoKeys";
-    }
-
-    @Override
-    public int getId() {
-        return -716529252;
+        super(-716529252, "Zeze_Builtin_AutoKey_tAutoKeys", suffix);
     }
 
     public static final int VAR_NextId = 1;

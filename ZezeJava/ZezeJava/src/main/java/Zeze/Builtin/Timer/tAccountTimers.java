@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tAccountTimers extends TableX<String, Zeze.Builtin.Timer.BArchOnlineTimer>
         implements TableReadOnly<String, Zeze.Builtin.Timer.BArchOnlineTimer, Zeze.Builtin.Timer.BArchOnlineTimerReadOnly> {
     public tAccountTimers() {
-        super("Zeze_Builtin_Timer_tAccountTimers");
+        super(1803422289, "Zeze_Builtin_Timer_tAccountTimers");
     }
 
     public tAccountTimers(String suffix) {
-        super("Zeze_Builtin_Timer_tAccountTimers" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Timer_tAccountTimers";
-    }
-
-    @Override
-    public int getId() {
-        return 1803422289;
+        super(1803422289, "Zeze_Builtin_Timer_tAccountTimers", suffix);
     }
 
     @Override

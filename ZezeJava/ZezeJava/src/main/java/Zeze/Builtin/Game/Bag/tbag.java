@@ -10,21 +10,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tbag extends TableX<String, Zeze.Builtin.Game.Bag.BBag>
         implements TableReadOnly<String, Zeze.Builtin.Game.Bag.BBag, Zeze.Builtin.Game.Bag.BBagReadOnly> {
     public tbag() {
-        super("Zeze_Builtin_Game_Bag_tbag");
+        super(863603985, "Zeze_Builtin_Game_Bag_tbag");
     }
 
     public tbag(String suffix) {
-        super("Zeze_Builtin_Game_Bag_tbag" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Game_Bag_tbag";
-    }
-
-    @Override
-    public int getId() {
-        return 863603985;
+        super(863603985, "Zeze_Builtin_Game_Bag_tbag", suffix);
     }
 
     public static final int VAR_Capacity = 1;

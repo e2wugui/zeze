@@ -10,21 +10,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tNodeRoot extends TableX<Integer, Zeze.Builtin.Timer.BNodeRoot>
         implements TableReadOnly<Integer, Zeze.Builtin.Timer.BNodeRoot, Zeze.Builtin.Timer.BNodeRootReadOnly> {
     public tNodeRoot() {
-        super("Zeze_Builtin_Timer_tNodeRoot");
+        super(1952520306, "Zeze_Builtin_Timer_tNodeRoot");
     }
 
     public tNodeRoot(String suffix) {
-        super("Zeze_Builtin_Timer_tNodeRoot" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Timer_tNodeRoot";
-    }
-
-    @Override
-    public int getId() {
-        return 1952520306;
+        super(1952520306, "Zeze_Builtin_Timer_tNodeRoot", suffix);
     }
 
     public static final int VAR_HeadNodeId = 1;

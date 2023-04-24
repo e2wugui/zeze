@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tlocal extends TableX<Long, Zeze.Builtin.Game.Online.BLocal>
         implements TableReadOnly<Long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly> {
     public tlocal() {
-        super("Zeze_Builtin_Game_Online_tlocal");
+        super(-1657900798, "Zeze_Builtin_Game_Online_tlocal");
     }
 
     public tlocal(String suffix) {
-        super("Zeze_Builtin_Game_Online_tlocal" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Game_Online_tlocal";
-    }
-
-    @Override
-    public int getId() {
-        return -1657900798;
+        super(-1657900798, "Zeze_Builtin_Game_Online_tlocal", suffix);
     }
 
     @Override

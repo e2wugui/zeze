@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class trank extends TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList>
         implements TableReadOnly<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList, Zeze.Builtin.Game.Rank.BRankListReadOnly> {
     public trank() {
-        super("Zeze_Builtin_Game_Rank_trank");
+        super(-2043108039, "Zeze_Builtin_Game_Rank_trank");
     }
 
     public trank(String suffix) {
-        super("Zeze_Builtin_Game_Rank_trank" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Game_Rank_trank";
-    }
-
-    @Override
-    public int getId() {
-        return -2043108039;
+        super(-2043108039, "Zeze_Builtin_Game_Rank_trank", suffix);
     }
 
     public static final int VAR_RankList = 1;

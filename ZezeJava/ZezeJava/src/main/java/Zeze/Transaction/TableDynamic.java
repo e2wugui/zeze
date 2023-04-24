@@ -9,7 +9,6 @@ import Zeze.Util.Factory;
 import Zeze.Serialize.ByteBuffer;
 
 public class TableDynamic<K extends Comparable<K>, V extends Bean> extends TableX<K, V> {
-	private final int id;
 	private final Function<K, ByteBuffer> keyEncoder;
 	private final Function<ByteBuffer, K> keyDecoder;
 	private final Factory<V> valueFactory;
@@ -33,9 +32,8 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 						Factory<V> valueFactory,
 						boolean isAutoKey,
 						String confTableName) {
-		super(tableName);
+		super(Bean.hash32(tableName), tableName);
 
-		id = Bean.hash32(tableName);
 		this.keyEncoder = keyEncoder;
 		this.keyDecoder = keyDecoder;
 		this.valueFactory = valueFactory;
@@ -68,11 +66,6 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	@Override
 	public V newValue() {
 		return valueFactory.create();
-	}
-
-	@Override
-	public int getId() {
-		return id;
 	}
 
 	@Override

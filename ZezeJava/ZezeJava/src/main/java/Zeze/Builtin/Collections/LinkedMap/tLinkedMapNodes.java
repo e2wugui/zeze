@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tLinkedMapNodes extends TableX<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode>
         implements TableReadOnly<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeReadOnly> {
     public tLinkedMapNodes() {
-        super("Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes");
+        super(-1295098614, "Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes");
     }
 
     public tLinkedMapNodes(String suffix) {
-        super("Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes";
-    }
-
-    @Override
-    public int getId() {
-        return -1295098614;
+        super(-1295098614, "Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes", suffix);
     }
 
     public static final int VAR_PrevNodeId = 1;

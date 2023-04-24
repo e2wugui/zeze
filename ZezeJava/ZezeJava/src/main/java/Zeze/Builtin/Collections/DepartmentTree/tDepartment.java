@@ -10,21 +10,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tDepartment extends TableX<String, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot>
         implements TableReadOnly<String, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly> {
     public tDepartment() {
-        super("Zeze_Builtin_Collections_DepartmentTree_tDepartment");
+        super(-1108948075, "Zeze_Builtin_Collections_DepartmentTree_tDepartment");
     }
 
     public tDepartment(String suffix) {
-        super("Zeze_Builtin_Collections_DepartmentTree_tDepartment" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Collections_DepartmentTree_tDepartment";
-    }
-
-    @Override
-    public int getId() {
-        return -1108948075;
+        super(-1108948075, "Zeze_Builtin_Collections_DepartmentTree_tDepartment", suffix);
     }
 
     public static final int VAR_Root = 1;

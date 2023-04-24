@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tNodes extends TableX<Long, Zeze.Builtin.Timer.BNode>
         implements TableReadOnly<Long, Zeze.Builtin.Timer.BNode, Zeze.Builtin.Timer.BNodeReadOnly> {
     public tNodes() {
-        super("Zeze_Builtin_Timer_tNodes");
+        super(453698467, "Zeze_Builtin_Timer_tNodes");
     }
 
     public tNodes(String suffix) {
-        super("Zeze_Builtin_Timer_tNodes" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Timer_tNodes";
-    }
-
-    @Override
-    public int getId() {
-        return 453698467;
+        super(453698467, "Zeze_Builtin_Timer_tNodes", suffix);
     }
 
     public static final int VAR_PrevNodeId = 1;

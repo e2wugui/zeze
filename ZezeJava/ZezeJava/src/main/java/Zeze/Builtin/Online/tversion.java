@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tversion extends TableX<String, Zeze.Builtin.Online.BVersions>
         implements TableReadOnly<String, Zeze.Builtin.Online.BVersions, Zeze.Builtin.Online.BVersionsReadOnly> {
     public tversion() {
-        super("Zeze_Builtin_Online_tversion");
+        super(-1179546366, "Zeze_Builtin_Online_tversion");
     }
 
     public tversion(String suffix) {
-        super("Zeze_Builtin_Online_tversion" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Online_tversion";
-    }
-
-    @Override
-    public int getId() {
-        return -1179546366;
+        super(-1179546366, "Zeze_Builtin_Online_tversion", suffix);
     }
 
     public static final int VAR_Logins = 1;

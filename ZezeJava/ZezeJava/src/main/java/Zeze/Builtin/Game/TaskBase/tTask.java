@@ -10,21 +10,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tTask extends TableX<Zeze.Builtin.Game.TaskBase.BTaskKey, Zeze.Builtin.Game.TaskBase.BTask>
         implements TableReadOnly<Zeze.Builtin.Game.TaskBase.BTaskKey, Zeze.Builtin.Game.TaskBase.BTask, Zeze.Builtin.Game.TaskBase.BTaskReadOnly> {
     public tTask() {
-        super("Zeze_Builtin_Game_TaskBase_tTask");
+        super(-563139393, "Zeze_Builtin_Game_TaskBase_tTask");
     }
 
     public tTask(String suffix) {
-        super("Zeze_Builtin_Game_TaskBase_tTask" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Game_TaskBase_tTask";
-    }
-
-    @Override
-    public int getId() {
-        return -563139393;
+        super(-563139393, "Zeze_Builtin_Game_TaskBase_tTask", suffix);
     }
 
     public static final int VAR_roleId = 1;

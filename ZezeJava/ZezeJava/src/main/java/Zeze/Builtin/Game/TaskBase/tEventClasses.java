@@ -10,21 +10,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tEventClasses extends TableX<Integer, Zeze.Builtin.Game.TaskBase.BEventClasses>
         implements TableReadOnly<Integer, Zeze.Builtin.Game.TaskBase.BEventClasses, Zeze.Builtin.Game.TaskBase.BEventClassesReadOnly> {
     public tEventClasses() {
-        super("Zeze_Builtin_Game_TaskBase_tEventClasses");
+        super(-1631158308, "Zeze_Builtin_Game_TaskBase_tEventClasses");
     }
 
     public tEventClasses(String suffix) {
-        super("Zeze_Builtin_Game_TaskBase_tEventClasses" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Game_TaskBase_tEventClasses";
-    }
-
-    @Override
-    public int getId() {
-        return -1631158308;
+        super(-1631158308, "Zeze_Builtin_Game_TaskBase_tEventClasses", suffix);
     }
 
     public static final int VAR_EventClasses = 1;

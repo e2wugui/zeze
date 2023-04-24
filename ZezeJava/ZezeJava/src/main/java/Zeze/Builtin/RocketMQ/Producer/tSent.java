@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tSent extends TableX<String, Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult>
         implements TableReadOnly<String, Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult, Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResultReadOnly> {
     public tSent() {
-        super("Zeze_Builtin_RocketMQ_Producer_tSent");
+        super(1695098005, "Zeze_Builtin_RocketMQ_Producer_tSent");
     }
 
     public tSent(String suffix) {
-        super("Zeze_Builtin_RocketMQ_Producer_tSent" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_RocketMQ_Producer_tSent";
-    }
-
-    @Override
-    public int getId() {
-        return 1695098005;
+        super(1695098005, "Zeze_Builtin_RocketMQ_Producer_tSent", suffix);
     }
 
     public static final int VAR_Result = 1;

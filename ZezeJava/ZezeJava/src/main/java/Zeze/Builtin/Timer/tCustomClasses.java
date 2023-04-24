@@ -10,21 +10,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tCustomClasses extends TableX<Integer, Zeze.Builtin.Timer.BCustomClasses>
         implements TableReadOnly<Integer, Zeze.Builtin.Timer.BCustomClasses, Zeze.Builtin.Timer.BCustomClassesReadOnly> {
     public tCustomClasses() {
-        super("Zeze_Builtin_Timer_tCustomClasses");
+        super(-1904799209, "Zeze_Builtin_Timer_tCustomClasses");
     }
 
     public tCustomClasses(String suffix) {
-        super("Zeze_Builtin_Timer_tCustomClasses" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Timer_tCustomClasses";
-    }
-
-    @Override
-    public int getId() {
-        return -1904799209;
+        super(-1904799209, "Zeze_Builtin_Timer_tCustomClasses", suffix);
     }
 
     public static final int VAR_CustomClasses = 1;

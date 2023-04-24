@@ -10,21 +10,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tQueues extends TableX<String, Zeze.Builtin.Collections.Queue.BQueue>
         implements TableReadOnly<String, Zeze.Builtin.Collections.Queue.BQueue, Zeze.Builtin.Collections.Queue.BQueueReadOnly> {
     public tQueues() {
-        super("Zeze_Builtin_Collections_Queue_tQueues");
+        super(1005923355, "Zeze_Builtin_Collections_Queue_tQueues");
     }
 
     public tQueues(String suffix) {
-        super("Zeze_Builtin_Collections_Queue_tQueues" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Collections_Queue_tQueues";
-    }
-
-    @Override
-    public int getId() {
-        return 1005923355;
+        super(1005923355, "Zeze_Builtin_Collections_Queue_tQueues", suffix);
     }
 
     public static final int VAR_HeadNodeId = 1;

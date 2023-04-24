@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tDepartmentTree extends TableX<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode>
         implements TableReadOnly<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly> {
     public tDepartmentTree() {
-        super("Zeze_Builtin_Collections_DepartmentTree_tDepartmentTree");
+        super(-1578893665, "Zeze_Builtin_Collections_DepartmentTree_tDepartmentTree");
     }
 
     public tDepartmentTree(String suffix) {
-        super("Zeze_Builtin_Collections_DepartmentTree_tDepartmentTree" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Collections_DepartmentTree_tDepartmentTree";
-    }
-
-    @Override
-    public int getId() {
-        return -1578893665;
+        super(-1578893665, "Zeze_Builtin_Collections_DepartmentTree_tDepartmentTree", suffix);
     }
 
     public static final int VAR_ParentDepartment = 1;

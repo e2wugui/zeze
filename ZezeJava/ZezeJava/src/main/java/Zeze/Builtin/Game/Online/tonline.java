@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tonline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline>
         implements TableReadOnly<Long, Zeze.Builtin.Game.Online.BOnline, Zeze.Builtin.Game.Online.BOnlineReadOnly> {
     public tonline() {
-        super("Zeze_Builtin_Game_Online_tonline");
+        super(-1571889602, "Zeze_Builtin_Game_Online_tonline");
     }
 
     public tonline(String suffix) {
-        super("Zeze_Builtin_Game_Online_tonline" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Game_Online_tonline";
-    }
-
-    @Override
-    public int getId() {
-        return -1571889602;
+        super(-1571889602, "Zeze_Builtin_Game_Online_tonline", suffix);
     }
 
     public static final int VAR_Link = 3;

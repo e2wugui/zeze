@@ -9,21 +9,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BOfflineTimers>
         implements TableReadOnly<Long, Zeze.Builtin.Timer.BOfflineTimers, Zeze.Builtin.Timer.BOfflineTimersReadOnly> {
     public tRoleOfflineTimers() {
-        super("Zeze_Builtin_Game_Online_tRoleOfflineTimers");
+        super(689434588, "Zeze_Builtin_Game_Online_tRoleOfflineTimers");
     }
 
     public tRoleOfflineTimers(String suffix) {
-        super("Zeze_Builtin_Game_Online_tRoleOfflineTimers" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Game_Online_tRoleOfflineTimers";
-    }
-
-    @Override
-    public int getId() {
-        return 689434588;
+        super(689434588, "Zeze_Builtin_Game_Online_tRoleOfflineTimers", suffix);
     }
 
     public static final int VAR_OfflineTimers = 1;

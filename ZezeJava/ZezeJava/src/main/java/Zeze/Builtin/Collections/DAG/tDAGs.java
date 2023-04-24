@@ -10,21 +10,11 @@ import Zeze.Transaction.TableReadOnly;
 public final class tDAGs extends TableX<String, Zeze.Builtin.Collections.DAG.BDAG>
         implements TableReadOnly<String, Zeze.Builtin.Collections.DAG.BDAG, Zeze.Builtin.Collections.DAG.BDAGReadOnly> {
     public tDAGs() {
-        super("Zeze_Builtin_Collections_DAG_tDAGs");
+        super(1716762493, "Zeze_Builtin_Collections_DAG_tDAGs");
     }
 
     public tDAGs(String suffix) {
-        super("Zeze_Builtin_Collections_DAG_tDAGs" + suffix);
-    }
-
-    @Override
-    public String getOriginalName() {
-        return "Zeze_Builtin_Collections_DAG_tDAGs";
-    }
-
-    @Override
-    public int getId() {
-        return 1716762493;
+        super(1716762493, "Zeze_Builtin_Collections_DAG_tDAGs", suffix);
     }
 
     public static final int VAR_NodeSum = 1;
