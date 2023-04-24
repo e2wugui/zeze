@@ -21,9 +21,11 @@ import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class ProviderImplement extends AbstractProviderImplement {
 	private static final Logger logger = LogManager.getLogger(ProviderImplement.class);
+	private static final ThreadLocal<Dispatch> localDispatch = new ThreadLocal<>();
 
 	protected ProviderApp providerApp;
 
@@ -49,6 +51,10 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var pending = subState.getServiceInfosPending();
 		if (pending != null && pending.getServiceName().startsWith(providerApp.serverServiceNamePrefix))
 			providerApp.providerDirectService.tryConnectAndSetReady(subState, pending);
+	}
+
+	public static @Nullable Dispatch localDispatch() {
+		return localDispatch.get();
 	}
 
 	/**
@@ -105,6 +111,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				return Procedure.LogicError;
 			}
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			localDispatch.set(p);
 			int psize = arg.getProtocolData().size();
 			var session = newSession(p);
 			var zeze = sender.getService().getZeze();
@@ -172,6 +179,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			logger.error(desc, ex);
 			sendKick(sender, linkSid, BKick.ErrorProtocolException, desc + ' ' + ex);
 			return Procedure.Success;
+		} finally {
+			localDispatch.remove();
 		}
 	}
 

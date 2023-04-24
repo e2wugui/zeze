@@ -271,7 +271,7 @@ public class TimerRole {
 				handle.onTimer(context);
 			} else {
 				context.timer.cancel(offlineCustom.getTimerName());
-				var online = context.timer.getDefaultOnline().getOnlineSet(offlineCustom.getOnlineSetName());
+				var online = context.timer.getDefaultOnline().getOnline(offlineCustom.getOnlineSetName());
 				if (online != null) {
 					var offlineTimers = online._tRoleOfflineTimers().get(offlineCustom.getRoleId());
 					if (offlineTimers != null)

@@ -12,6 +12,7 @@ import Zeze.AppBase;
 import Zeze.Arch.Beans.BSend;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
+import Zeze.Arch.ProviderImplement;
 import Zeze.Arch.ProviderService;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectToServer;
@@ -168,8 +169,16 @@ public class Online extends AbstractOnline {
 		return (ProviderWithOnline)providerApp.providerImplement;
 	}
 
-	public @Nullable Online getOnlineSet(@Nullable String name) {
+	public @Nullable Online getOnline(@Nullable String name) {
 		return getProviderWithOnline().getOnline(name);
+	}
+
+	// 优先获取上下文中的Online
+	public @NotNull Online getOnlineByContext() {
+		var dispatch = ProviderImplement.localDispatch();
+		var online = dispatch != null ? getProviderWithOnline().getOnline(dispatch.Argument.getOnlineSetName())
+				: defaultInstance;
+		return online != null ? online : this;
 	}
 
 	public void start() {
@@ -372,17 +381,17 @@ public class Online extends AbstractOnline {
 
 	private @NotNull tversion _tversion(String instanceName) {
 		//noinspection DataFlowIssue
-		return getOnlineSet(instanceName)._tversion;
+		return getOnline(instanceName)._tversion;
 	}
 
 	private @NotNull tonline _tonline(String instanceName) {
 		//noinspection DataFlowIssue
-		return getOnlineSet(instanceName)._tonline;
+		return getOnline(instanceName)._tonline;
 	}
 
 	private @NotNull tlocal _tlocal(String instanceName) {
 		//noinspection DataFlowIssue
-		return getOnlineSet(instanceName)._tlocal;
+		return getOnline(instanceName)._tlocal;
 	}
 
 	private long logoutTrigger(String instanceName, long roleId, @NotNull LogoutReason logoutReason) throws Exception {
@@ -522,8 +531,13 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	// 在指定Online上发送
+	// 优先在上下文中的Online上发送
 	public void send(long roleId, @NotNull Protocol<?> p) {
+		getOnlineByContext().sendOnline(roleId, p);
+	}
+
+	// 在指定Online上发送
+	public void sendOnline(long roleId, @NotNull Protocol<?> p) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId, multiInstanceName, p);
@@ -539,8 +553,13 @@ public class Online extends AbstractOnline {
 		getProviderWithOnline().foreachOnline(online -> online.sendDirect(roleId, typeId, data, true));
 	}
 
-	// 在指定Online上发送
+	// 优先在上下文中的Online上发送
 	public void send(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		getOnlineByContext().sendOnline(roleIds, p);
+	}
+
+	// 在指定Online上发送
+	public void sendOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		if (roleIds.isEmpty())
 			return;
 		var typeId = p.getTypeId();
@@ -556,7 +575,7 @@ public class Online extends AbstractOnline {
 			var idsStr = sb.toString();
 			AsyncSocket.log("Send", idsStr, p);
 		}
-		send(roleIds, typeId, new Binary(p.encode()));
+		sendOnline(roleIds, typeId, new Binary(p.encode()));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
@@ -577,9 +596,14 @@ public class Online extends AbstractOnline {
 		sendAllOnlines(roleIds, typeId, new Binary(p.encode()));
 	}
 
-	// 在指定Online上发送
+	// 优先在上下文中的Online上发送
 	public void sendWhileCommit(long roleId, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> send(roleId, p));
+	}
+
+	// 在指定Online上发送
+	public void sendWhileCommitOnline(long roleId, @NotNull Protocol<?> p) {
+		Transaction.whileCommit(() -> sendOnline(roleId, p));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
@@ -587,9 +611,14 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> sendAllOnlines(roleId, p));
 	}
 
-	// 在指定Online上发送
+	// 优先在上下文中的Online上发送
 	public void sendWhileCommit(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> send(roleIds, p));
+	}
+
+	// 在指定Online上发送
+	public void sendWhileCommitOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		Transaction.whileCommit(() -> sendOnline(roleIds, p));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
@@ -597,9 +626,14 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> sendAllOnlines(roleIds, p));
 	}
 
-	// 在指定Online上发送
+	// 优先在上下文中的Online上发送
 	public void sendWhileRollback(long roleId, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> send(roleId, p));
+	}
+
+	// 在指定Online上发送
+	public void sendWhileRollbackOnline(long roleId, @NotNull Protocol<?> p) {
+		Transaction.whileRollback(() -> sendOnline(roleId, p));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
@@ -607,9 +641,14 @@ public class Online extends AbstractOnline {
 		Transaction.whileRollback(() -> sendAllOnlines(roleId, p));
 	}
 
-	// 在指定Online上发送
+	// 优先在上下文中的Online上发送
 	public void sendWhileRollback(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> send(roleIds, p));
+	}
+
+	// 在指定Online上发送
+	public void sendWhileRollbackOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		Transaction.whileRollback(() -> sendOnline(roleIds, p));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
@@ -626,9 +665,15 @@ public class Online extends AbstractOnline {
 //				}, "Online.send")), DispatchMode.Normal);
 //	}
 
-	// 在指定Online上发送
+	// 优先在上下文中的Online上发送
 	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
 					boolean trySend) {
+		return getOnlineByContext().sendOnline(roleIds, typeId, fullEncodedProtocol, trySend);
+	}
+
+	// 在指定Online上发送
+	public int sendOnline(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
+						  boolean trySend) {
 		int roleCount = roleIds.size();
 		if (roleCount == 1) {
 			var it = roleIds.iterator();
@@ -644,14 +689,19 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	// 在指定Online上发送
+	// 优先在上下文中的Online上发送
 	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
-		return send(roleIds, typeId, fullEncodedProtocol, false);
+		return getOnlineByContext().sendOnline(roleIds, typeId, fullEncodedProtocol);
+	}
+
+	// 在指定Online上发送
+	public int sendOnline(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
+		return sendOnline(roleIds, typeId, fullEncodedProtocol, false);
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendAllOnlines(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
-		getProviderWithOnline().foreachOnline(online -> online.send(roleIds, typeId, fullEncodedProtocol, true));
+		getProviderWithOnline().foreachOnline(online -> online.sendOnline(roleIds, typeId, fullEncodedProtocol, true));
 	}
 
 //	public void sendNoBarrier(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
@@ -1237,6 +1287,9 @@ public class Online extends AbstractOnline {
 
 		var instanceName = rpc.Argument.getOnlineSetName();
 		var session = ProviderUserSession.get(rpc);
+		var dispatch = ProviderImplement.localDispatch();
+		if (dispatch != null)
+			dispatch.Argument.setOnlineSetName(instanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
 		var online = _tonline(instanceName).getOrAdd(rpc.Argument.getRoleId());
 		var local = _tlocal(instanceName).getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion(instanceName).getOrAdd(rpc.Argument.getRoleId());
@@ -1301,6 +1354,9 @@ public class Online extends AbstractOnline {
 
 		var instanceName = rpc.Argument.getOnlineSetName();
 		var session = ProviderUserSession.get(rpc);
+		var dispatch = ProviderImplement.localDispatch();
+		if (dispatch != null)
+			dispatch.Argument.setOnlineSetName(instanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
 		var online = _tonline(instanceName).getOrAdd(rpc.Argument.getRoleId());
 		var local = _tlocal(instanceName).getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion(instanceName).getOrAdd(rpc.Argument.getRoleId());

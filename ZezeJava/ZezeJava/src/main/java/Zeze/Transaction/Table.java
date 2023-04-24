@@ -29,7 +29,7 @@ public abstract class Table {
 		this.originalName = name;
 		if (suffix != null && !suffix.isEmpty()) {
 			id ^= Bean.hash32(suffix);
-			name = name + '.' + suffix;
+			name += suffix;
 		}
 		this.id = id;
 		this.name = name;

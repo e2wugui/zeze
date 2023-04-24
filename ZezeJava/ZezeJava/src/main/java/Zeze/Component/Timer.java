@@ -670,7 +670,7 @@ public class Timer extends AbstractTimer {
 	}
 
 	public TimerRole getRoleTimer(String onlineSetName) {
-		return defaultOnline.getOnlineSet(onlineSetName).getTimerRole();
+		return defaultOnline.getOnline(onlineSetName).getTimerRole();
 	}
 
 	/////////////////////////////////////////////////////////////
