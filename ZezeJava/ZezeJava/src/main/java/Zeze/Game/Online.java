@@ -176,8 +176,7 @@ public class Online extends AbstractOnline {
 	// 优先获取上下文中的Online
 	public @NotNull Online getOnlineByContext() {
 		var dispatch = ProviderImplement.localDispatch();
-		var online = dispatch != null ? getProviderWithOnline().getOnline(dispatch.Argument.getOnlineSetName())
-				: defaultInstance;
+		var online = dispatch != null ? getProviderWithOnline().getOnline(dispatch.Argument.getOnlineSetName()) : null;
 		return online != null ? online : this;
 	}
 
@@ -1294,10 +1293,14 @@ public class Online extends AbstractOnline {
 		var local = _tlocal(instanceName).getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion(instanceName).getOrAdd(rpc.Argument.getRoleId());
 		var link = online.getLink();
+		if (((ProviderWithOnline)providerApp.providerImplement).getOnline(instanceName) == null) {
+			providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
+					BKick.ErrorOnlineSetName, "unknown OnlineSetName: '" + instanceName + '\'');
+			return 0;
+		}
 
 		// login exist
 		if (assignLogoutVersion(version)) {
-
 			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
 				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 						BKick.ErrorDuplicateLogin, "duplicate role login");
@@ -1361,6 +1364,11 @@ public class Online extends AbstractOnline {
 		var local = _tlocal(instanceName).getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion(instanceName).getOrAdd(rpc.Argument.getRoleId());
 		var link = online.getLink();
+		if (((ProviderWithOnline)providerApp.providerImplement).getOnline(instanceName) == null) {
+			providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
+					BKick.ErrorOnlineSetName, "unknown OnlineSetName: '" + instanceName + '\'');
+			return 0;
+		}
 
 		// login exist
 		if (assignLogoutVersion(version)) {

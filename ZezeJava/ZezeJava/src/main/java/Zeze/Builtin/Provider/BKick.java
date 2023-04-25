@@ -12,6 +12,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
     public static final int ErrorProtocolException = 3;
     public static final int ErrorDuplicateLogin = 4;
     public static final int ErrorSeeDescription = 5;
+    public static final int ErrorOnlineSetName = 6;
 
     private long _linksid;
     private int _code;

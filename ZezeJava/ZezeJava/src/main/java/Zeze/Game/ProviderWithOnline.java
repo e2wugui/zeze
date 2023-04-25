@@ -37,18 +37,13 @@ public class ProviderWithOnline extends ProviderImplement {
 		return Procedure.Success;
 	}
 
-	// 创建默认的Online,重复创建会抛异常
-	public synchronized void create(@NotNull AppBase app) {
+	// 创建默认的Online和指定name的若干Online,重复创建会抛异常
+	public synchronized void create(@NotNull AppBase app, @NotNull String... names) {
 		if (online != null)
 			throw new IllegalStateException("duplicate default");
 		online = Online.create(app);
 		online.Initialize(app);
 		onlineSetMap.put("", online);
-	}
-
-	// 创建默认的Online和指定name的若干Online,重复创建会抛异常
-	public synchronized void create(@NotNull AppBase app, @NotNull String... names) {
-		create(app);
 		for (var name : names) {
 			if (onlineSetMap.containsKey(name))
 				throw new IllegalStateException("duplicate name='" + name + '\'');

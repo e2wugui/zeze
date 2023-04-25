@@ -343,6 +343,7 @@
 				<enum name="ErrorProtocolException" value="3"/>
 				<enum name="ErrorDuplicateLogin"    value="4"/>
 				<enum name="ErrorSeeDescription"    value="5"/>
+				<enum name="ErrorOnlineSetName"     value="6"/>
 
 				<variable name="linksid" id="1" type="long"/>
 				<variable name="code"    id="2" type="int"/>
