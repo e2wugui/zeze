@@ -364,6 +364,47 @@ public class RocksDatabase implements Closeable {
 		}
 	}
 
+	private static void writeVarInt(@NotNull ByteBuffer bb, int i) {
+		long v = i & 0xffff_ffffL;
+		if (v < (1 << 7))
+			bb.WriteByte((byte)v);
+		else if (v < (1 << 14)) {
+			bb.EnsureWrite(2);
+			var bytes = bb.Bytes;
+			var wi = bb.WriteIndex;
+			bytes[wi] = (byte)(v | 0x80);
+			bytes[wi + 1] = (byte)(v >> 7);
+			bb.WriteIndex = wi + 2;
+		} else if (v < (1 << 21)) {
+			bb.EnsureWrite(3);
+			var bytes = bb.Bytes;
+			var wi = bb.WriteIndex;
+			bytes[wi] = (byte)(v | 0x80);
+			bytes[wi + 1] = (byte)((v >> 7) | 0x80);
+			bytes[wi + 2] = (byte)(v >> 14);
+			bb.WriteIndex = wi + 3;
+		} else if (v < (1 << 28)) {
+			bb.EnsureWrite(4);
+			var bytes = bb.Bytes;
+			var wi = bb.WriteIndex;
+			bytes[wi] = (byte)(v | 0x80);
+			bytes[wi + 1] = (byte)((v >> 7) | 0x80);
+			bytes[wi + 2] = (byte)((v >> 14) | 0x80);
+			bytes[wi + 3] = (byte)(v >> 21);
+			bb.WriteIndex = wi + 4;
+		} else {
+			bb.EnsureWrite(5);
+			var bytes = bb.Bytes;
+			var wi = bb.WriteIndex;
+			bytes[wi] = (byte)(v | 0x80);
+			bytes[wi + 1] = (byte)((v >> 7) | 0x80);
+			bytes[wi + 2] = (byte)((v >> 14) | 0x80);
+			bytes[wi + 3] = (byte)((v >> 21) | 0x80);
+			bytes[wi + 4] = (byte)(v >> 28);
+			bb.WriteIndex = wi + 5;
+		}
+	}
+
 	public final class Table {
 		private final @NotNull String name;
 		private final @NotNull ColumnFamilyHandle cfHandle;
@@ -498,47 +539,6 @@ public class RocksDatabase implements Closeable {
 				batch.delete(cfHandle, key, keyLen);
 			else
 				batch.delete(cfHandle, Arrays.copyOfRange(key, keyOff, keyOff + keyLen));
-		}
-
-		private static void writeVarInt(@NotNull ByteBuffer bb, int i) {
-			long v = i & 0xffff_ffffL;
-			if (v < (1 << 7))
-				bb.WriteByte((byte)v);
-			else if (v < (1 << 14)) {
-				bb.EnsureWrite(2);
-				var bytes = bb.Bytes;
-				var wi = bb.WriteIndex;
-				bytes[wi] = (byte)(v | 0x80);
-				bytes[wi + 1] = (byte)(v >> 7);
-				bb.WriteIndex = wi + 2;
-			} else if (v < (1 << 21)) {
-				bb.EnsureWrite(3);
-				var bytes = bb.Bytes;
-				var wi = bb.WriteIndex;
-				bytes[wi] = (byte)(v | 0x80);
-				bytes[wi + 1] = (byte)((v >> 7) | 0x80);
-				bytes[wi + 2] = (byte)(v >> 14);
-				bb.WriteIndex = wi + 3;
-			} else if (v < (1 << 28)) {
-				bb.EnsureWrite(4);
-				var bytes = bb.Bytes;
-				var wi = bb.WriteIndex;
-				bytes[wi] = (byte)(v | 0x80);
-				bytes[wi + 1] = (byte)((v >> 7) | 0x80);
-				bytes[wi + 2] = (byte)((v >> 14) | 0x80);
-				bytes[wi + 3] = (byte)(v >> 21);
-				bb.WriteIndex = wi + 4;
-			} else {
-				bb.EnsureWrite(5);
-				var bytes = bb.Bytes;
-				var wi = bb.WriteIndex;
-				bytes[wi] = (byte)(v | 0x80);
-				bytes[wi + 1] = (byte)((v >> 7) | 0x80);
-				bytes[wi + 2] = (byte)((v >> 14) | 0x80);
-				bytes[wi + 3] = (byte)((v >> 21) | 0x80);
-				bytes[wi + 4] = (byte)(v >> 28);
-				bb.WriteIndex = wi + 5;
-			}
 		}
 
 		public void put(@NotNull Batch2 batch, byte[] key, int keyOff, int keyLen,
