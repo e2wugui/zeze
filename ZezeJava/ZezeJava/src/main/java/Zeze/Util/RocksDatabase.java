@@ -503,7 +503,7 @@ public class RocksDatabase implements Closeable {
 		private static void writeVarInt(@NotNull ByteBuffer bb, int i) {
 			long v = i & 0xffff_ffffL;
 			if (v < (1 << 7))
-				bb.Append((byte)v);
+				bb.WriteByte((byte)v);
 			else if (v < (1 << 14)) {
 				bb.EnsureWrite(2);
 				var bytes = bb.Bytes;
@@ -650,7 +650,7 @@ public class RocksDatabase implements Closeable {
 
 	// 在JVM堆内收集批量操作,只在提交时调用native方法,减少native调用的次数,性能会提高一些,但会多占用一些JVM堆
 	// 这里不提供put和delete方法,只能在Table内调用
-	public class Batch2 implements Closeable {
+	public class Batch2 {
 		private final ByteBuffer bb;
 		private int count;
 
@@ -683,7 +683,7 @@ public class RocksDatabase implements Closeable {
 				PerfCounter.instance.addRunInfo("RocksDB.write", System.nanoTime() - timeBegin);
 		}
 
-		public byte[] data() {
+		public byte[] copy() {
 			return Arrays.copyOf(bb.Bytes, bb.WriteIndex);
 		}
 
@@ -691,10 +691,6 @@ public class RocksDatabase implements Closeable {
 		public void clear() {
 			bb.WriteIndex = 12;
 			count = 0;
-		}
-
-		@Override
-		public void close() {
 		}
 	}
 }

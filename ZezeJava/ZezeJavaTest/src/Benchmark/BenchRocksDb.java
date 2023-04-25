@@ -158,7 +158,7 @@ public class BenchRocksDb {
 			}
 			batch.commit(RocksDatabase.getDefaultWriteOptions());
 			System.out.println("batch2All.put: " + (System.nanoTime() - t) / 1_000_000 + " ms");
-			byte[] data2 = batch.data();
+			byte[] data2 = batch.copy();
 			System.out.println("data  = " + data.length);
 			System.out.println("data2 = " + data2.length);
 			ByteBuffer.longLeHandler.set(data, 0, 0); // clear serial number

@@ -108,11 +108,6 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteIndex = offset + length;
 	}
 
-	public void Append(byte b) {
-		EnsureWrite(1);
-		Bytes[WriteIndex++] = b;
-	}
-
 	public void Append(byte @NotNull [] bs) {
 		Append(bs, 0, bs.length);
 	}

@@ -24,7 +24,7 @@ public final class BufferCodec extends ByteBuffer implements Codec {
 
 	@Override
 	public void update(byte c) {
-		Append(c);
+		WriteByte(c);
 	}
 
 	@Override
