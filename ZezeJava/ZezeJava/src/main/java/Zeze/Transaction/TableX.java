@@ -158,6 +158,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				r.setFreshAcquire();
 				var beforeTimestamp = r.getTimestamp();
 
+				var storage = this.storage;
 				if (storage != null) {
 					if (Macro.enableStatistics) {
 						TableStatistics.getInstance().getOrAdd(getId()).getStorageFindCount().increment();

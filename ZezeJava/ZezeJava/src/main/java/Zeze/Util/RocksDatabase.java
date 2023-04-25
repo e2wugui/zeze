@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -63,6 +64,8 @@ public class RocksDatabase implements Closeable {
 	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
 	private static final MethodHandle mhWriteBatchPutCf;
 	private static final MethodHandle mhWriteBatchDeleteCf;
+	private static final MethodHandle mhWriteBatchNativeNew;
+	private static final MethodHandle mhWriteBatchNew;
 
 	static {
 		try {
@@ -77,6 +80,14 @@ public class RocksDatabase implements Closeable {
 			m = clsWriteBatch.getDeclaredMethod("delete", long.class, byte[].class, int.class, long.class);
 			m.setAccessible(true);
 			mhWriteBatchDeleteCf = lookup.unreflect(m);
+			// native static long newWriteBatch(byte[] serialized, int serializedLength)
+			m = clsWriteBatch.getDeclaredMethod("newWriteBatch", byte[].class, int.class);
+			m.setAccessible(true);
+			mhWriteBatchNativeNew = lookup.unreflect(m);
+			// WriteBatch(long nativeHandle, boolean owningNativeHandle)
+			var c = clsWriteBatch.getDeclaredConstructor(long.class, boolean.class);
+			c.setAccessible(true);
+			mhWriteBatchNew = lookup.unreflectConstructor(c);
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
@@ -307,6 +318,14 @@ public class RocksDatabase implements Closeable {
 		};
 	}
 
+	public @NotNull Batch2 newBatch2() {
+		return new Batch2();
+	}
+
+	public @NotNull Batch2 newBatch2(int capacity) {
+		return new Batch2(capacity);
+	}
+
 	// Checkpoint用完时需确保调用close回收堆外内存,推荐使用try(var c = newCheckpoint()) {...}
 	public @NotNull Checkpoint newCheckpoint() {
 		return Checkpoint.create(rocksDb);
@@ -348,10 +367,12 @@ public class RocksDatabase implements Closeable {
 	public final class Table {
 		private final @NotNull String name;
 		private final @NotNull ColumnFamilyHandle cfHandle;
+		private final int id;
 
 		public Table(@NotNull String name, @NotNull ColumnFamilyHandle cfHandle) {
 			this.name = name;
 			this.cfHandle = cfHandle;
+			id = cfHandle.getID();
 		}
 
 		public @NotNull String getName() {
@@ -360,6 +381,10 @@ public class RocksDatabase implements Closeable {
 
 		public @NotNull ColumnFamilyHandle getCfHandle() {
 			return cfHandle;
+		}
+
+		public int getId() {
+			return id;
 		}
 
 		public byte @Nullable [] get(byte[] key) throws RocksDBException {
@@ -475,6 +500,76 @@ public class RocksDatabase implements Closeable {
 				batch.delete(cfHandle, Arrays.copyOfRange(key, keyOff, keyOff + keyLen));
 		}
 
+		private static void writeVarInt(@NotNull ByteBuffer bb, int i) {
+			long v = i & 0xffff_ffffL;
+			if (v < (1 << 7))
+				bb.Append((byte)v);
+			else if (v < (1 << 14)) {
+				bb.EnsureWrite(2);
+				var bytes = bb.Bytes;
+				var wi = bb.WriteIndex;
+				bytes[wi] = (byte)(v | 0x80);
+				bytes[wi + 1] = (byte)(v >> 7);
+				bb.WriteIndex = wi + 2;
+			} else if (v < (1 << 21)) {
+				bb.EnsureWrite(3);
+				var bytes = bb.Bytes;
+				var wi = bb.WriteIndex;
+				bytes[wi] = (byte)(v | 0x80);
+				bytes[wi + 1] = (byte)((v >> 7) | 0x80);
+				bytes[wi + 2] = (byte)(v >> 14);
+				bb.WriteIndex = wi + 3;
+			} else if (v < (1 << 28)) {
+				bb.EnsureWrite(4);
+				var bytes = bb.Bytes;
+				var wi = bb.WriteIndex;
+				bytes[wi] = (byte)(v | 0x80);
+				bytes[wi + 1] = (byte)((v >> 7) | 0x80);
+				bytes[wi + 2] = (byte)((v >> 14) | 0x80);
+				bytes[wi + 3] = (byte)(v >> 21);
+				bb.WriteIndex = wi + 4;
+			} else {
+				bb.EnsureWrite(5);
+				var bytes = bb.Bytes;
+				var wi = bb.WriteIndex;
+				bytes[wi] = (byte)(v | 0x80);
+				bytes[wi + 1] = (byte)((v >> 7) | 0x80);
+				bytes[wi + 2] = (byte)((v >> 14) | 0x80);
+				bytes[wi + 3] = (byte)((v >> 21) | 0x80);
+				bytes[wi + 4] = (byte)(v >> 28);
+				bb.WriteIndex = wi + 5;
+			}
+		}
+
+		public void put(@NotNull Batch2 batch, byte[] key, int keyOff, int keyLen,
+						byte[] value, int valueOff, int valueLen) {
+			var bb = batch.bb;
+			if (id == 0)
+				bb.WriteByte(1); // kTypeValue
+			else {
+				bb.WriteByte(5); // kTypeColumnFamilyValue
+				writeVarInt(bb, id);
+			}
+			writeVarInt(bb, keyLen);
+			bb.Append(key, keyOff, keyLen);
+			writeVarInt(bb, valueLen);
+			bb.Append(value, valueOff, valueLen);
+			batch.count++;
+		}
+
+		public void delete(@NotNull Batch2 batch, byte[] key, int keyOff, int keyLen) {
+			var bb = batch.bb;
+			if (id == 0)
+				bb.WriteByte(0); // kTypeDeletion
+			else {
+				bb.WriteByte(4); // kTypeColumnFamilyDeletion
+				writeVarInt(bb, id);
+			}
+			writeVarInt(bb, keyLen);
+			bb.Append(key, keyOff, keyLen);
+			batch.count++;
+		}
+
 		// RocksIterator用完时需确保调用close回收堆外内存,推荐使用try(var it = iterator()) {...}
 		public @NotNull RocksIterator iterator() {
 			return rocksDb.newIterator(cfHandle, defaultReadOptions);
@@ -550,6 +645,56 @@ public class RocksDatabase implements Closeable {
 		@Override
 		public void close() {
 			batch.close();
+		}
+	}
+
+	// 在JVM堆内收集批量操作,只在提交时调用native方法,减少native调用的次数,性能会提高一些,但会多占用一些JVM堆
+	// 这里不提供put和delete方法,只能在Table内调用
+	public class Batch2 implements Closeable {
+		private final ByteBuffer bb;
+		private int count;
+
+		public Batch2() {
+			this(32);
+		}
+
+		public Batch2(int capacity) {
+			bb = ByteBuffer.Allocate(capacity);
+			bb.EnsureWrite(12);
+			bb.WriteIndex = 12;
+		}
+
+		public void commit() throws RocksDBException {
+			commit(syncWriteOptions);
+		}
+
+		public void commit(@NotNull WriteOptions options) throws RocksDBException {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			ByteBuffer.intLeHandler.set(bb.Bytes, 8, count);
+			try (var wb = (WriteBatch)mhWriteBatchNew.invokeExact(
+					(long)mhWriteBatchNativeNew.invokeExact(bb.Bytes, bb.WriteIndex), true)) {
+				rocksDb.write(options, wb);
+			} catch (RocksDBException | RuntimeException e) {
+				throw e;
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDB.write", System.nanoTime() - timeBegin);
+		}
+
+		public byte[] data() {
+			return Arrays.copyOf(bb.Bytes, bb.WriteIndex);
+		}
+
+		// clear后可以再次put,delete,commit. 复用Batch性能更高
+		public void clear() {
+			bb.WriteIndex = 12;
+			count = 0;
+		}
+
+		@Override
+		public void close() {
 		}
 	}
 }
