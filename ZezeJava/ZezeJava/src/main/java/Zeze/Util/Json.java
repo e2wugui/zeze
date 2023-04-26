@@ -300,7 +300,7 @@ public final class Json implements Cloneable {
 					if (offset != (int)offset)
 						throw new IllegalStateException("unexpected offset(" + offset + ") from field: "
 								+ fieldName + " in " + klass.getName());
-					final var fieldNameFilter = json.fieldNameFilter;
+					final BiFunction<Class<?>, Field, String> fieldNameFilter = json.fieldNameFilter;
 					final String fn = fieldNameFilter != null ? fieldNameFilter.apply(c, field) : fieldName;
 					put(j++, new FieldMeta(type, (int)offset, fn != null ? fn : fieldName, fieldClass, fieldCtor,
 							keyReader));
@@ -381,7 +381,7 @@ public final class Json implements Cloneable {
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
 	public Json clone() {
-		var json = new Json();
+		Json json = new Json();
 		json.classMetas.putAll(classMetas);
 		json.fieldNameFilter = fieldNameFilter;
 		return json;
@@ -472,7 +472,7 @@ public final class Json implements Cloneable {
 
 	@SuppressWarnings("unchecked")
 	public <T> @NotNull ClassMeta<T> getClassMeta(@NotNull Class<T> klass) {
-		var cm = classMetas.get(klass);
+		ClassMeta<?> cm = classMetas.get(klass);
 		if (cm == null)
 			cm = classMetas.computeIfAbsent(klass, c -> new ClassMeta<>(this, c));
 		return (ClassMeta<T>)cm;
@@ -483,7 +483,7 @@ public final class Json implements Cloneable {
 	}
 
 	static {
-		var json = instance;
+		Json json = instance;
 
 		json.fieldNameFilter = (klass, field) -> {
 			final String fn = field.getName();
@@ -507,7 +507,7 @@ public final class Json implements Cloneable {
 			if (obj == null)
 				writer.write(json, null);
 			else {
-				var s = obj.toString();
+				String s = obj.toString();
 				writer.ensure(s.length() + 2);
 				writer.write(s, false);
 				// writer.ensure(obj.size() * 6 + 2);
@@ -516,14 +516,14 @@ public final class Json implements Cloneable {
 		});
 
 		json.getClassMeta(Binary.class).setParser((reader, classMeta, obj, parent) -> {
-			var s = reader.parseByteString();
+			byte[] s = reader.parseByteString();
 			return s != null ? new Binary(s) : Binary.Empty;
 		});
 		json.getClassMeta(Binary.class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)
 				writer.write(json, null);
 			else {
-				var s = obj.toString();
+				String s = obj.toString();
 				writer.ensure(s.length() + 2);
 				writer.write(s, false);
 				// writer.ensure(obj.size() * 6 + 2);

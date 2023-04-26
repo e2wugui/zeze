@@ -29,7 +29,7 @@ public final class TestJson5 extends TestCase {
 	}
 
 	public static void main(String[] args) throws ReflectiveOperationException {
-		var t = new TestJson5();
+		TestJson5 t = new TestJson5();
 		t.testAll();
 		System.out.println(t.getClass().getSimpleName() + ": " + t.checkCount + " tests OK!");
 	}

@@ -32,6 +32,7 @@ public final class TestJson extends TestCase {
 	static class C {
 		A a = new B();
 		C c;
+		Map<A, Integer> m = new HashMap<>();
 	}
 
 	public void test1() throws ReflectiveOperationException {
@@ -60,7 +61,7 @@ public final class TestJson extends TestCase {
 		assertEquals(A.class, c.a.getClass());
 		assertEquals(5, c.a.a);
 
-		Json.instance.getClassMeta(A.class).setParser((Json, __, ___, ____) -> Json.parse(B.class));
+		Json.instance.getClassMeta(A.class).setParser((json, __, ___, ____) -> json.parse(B.class));
 		c.a = null;
 		c = JsonReader.local().buf("{a:{a:7,b:8}}").parse(c);
 		assertNotNull(c);
@@ -73,20 +74,21 @@ public final class TestJson extends TestCase {
 		C c = new C();
 		c.a.a = 1;
 		((B)c.a).b = -1;
-		var json = JsonWriter.local().clear().setNoQuoteKey(false).write(c).toString();
-		assertEquals("{\"a\":{\"a\":1,\"b\":-1}}", json);
+		String json = JsonWriter.local().clear().setNoQuoteKey(false).write(c).toString();
+		assertEquals("{\"a\":{\"a\":1,\"b\":-1},\"m\":{}}", json);
 	}
 
 	public void test4() {
 		C c = new C();
 		c.a.a = 1;
 		((B)c.a).b = -1;
-		var json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_PRETTY_FORMAT).write(c).toString();
+		String json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_PRETTY_FORMAT).write(c).toString();
 		assertEquals("{\n" +
 				"\t\"a\": {\n" +
 				"\t\t\"a\": 1,\n" +
 				"\t\t\"b\": -1\n" +
-				"\t}\n" +
+				"\t},\n" +
+				"\t\"m\": {}\n" +
 				"}", json);
 	}
 
@@ -94,16 +96,16 @@ public final class TestJson extends TestCase {
 		C c = new C();
 		c.a.a = 1;
 		((B)c.a).b = -1;
-		var json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_NO_QUOTE_KEY).write(c).toString();
-		assertEquals("{a:{a:1,b:-1}}", json);
+		String json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_NO_QUOTE_KEY).write(c).toString();
+		assertEquals("{a:{a:1,b:-1},m:{}}", json);
 	}
 
 	public void test6() {
 		C c = new C();
 		c.a.a = 1;
 		((B)c.a).b = -1;
-		var json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_WRITE_NULL).write(c).toString();
-		assertEquals("{\"a\":{\"a\":1,\"b\":-1},\"c\":null}", json);
+		String json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_WRITE_NULL).write(c).toString();
+		assertEquals("{\"a\":{\"a\":1,\"b\":-1},\"c\":null,\"m\":{}}", json);
 	}
 
 	public void test7() {
@@ -136,16 +138,14 @@ public final class TestJson extends TestCase {
 		E e = new E();
 		e.a = 123;
 		e.e = e;
-		var json = JsonWriter.local().clear().setDepthLimit(4).write(e).toString();
-		assertEquals("{\"a\":123,\"e\":{\"a\":123,\"e\":{\"a\":123,\"e\":{\"a\":123,\"e\":\"!OVERDEPTH!\"}}}}",
-				json);
+		String json = JsonWriter.local().clear().setDepthLimit(4).write(e).toString();
+		assertEquals("{\"a\":123,\"e\":{\"a\":123,\"e\":{\"a\":123,\"e\":{\"a\":123,\"e\":\"!OVERDEPTH!\"}}}}", json);
 	}
 
 	abstract static class F1 {
 		int f;
 	}
 
-	@SuppressWarnings({"serial", "RedundantSuppression"})
 	static class F2 extends ArrayList<Object> {
 		private F2() {
 		}
@@ -231,7 +231,7 @@ public final class TestJson extends TestCase {
 	}
 
 	public void testC() {
-		var s = String.format("%X", JsonWriter.umulHigh(0x8000_0000_0000_0001L, 0x8000_0000_0000_0000L));
+		String s = String.format("%X", JsonWriter.umulHigh(0x8000_0000_0000_0001L, 0x8000_0000_0000_0000L));
 		assertEquals("3FFFFFFFFFFFFFFF", s);
 		if (Integer.parseInt(System.getProperty("java.version").replaceFirst("^1\\.", "").replaceFirst("\\D.*", "")) > 8) {
 			s = String.format("%X", JsonWriter.umulHigh9(0x8000_0000_0000_0001L, 0x8000_0000_0000_0000L));
@@ -240,17 +240,17 @@ public final class TestJson extends TestCase {
 	}
 
 	public void testD() throws ReflectiveOperationException {
-		var v = new BValue();
-		var db = new DynamicBean(0, BValue::getSpecialTypeIdFromBean_26, BValue::createBeanFromSpecialTypeId_26);
-		var s = new BSimple();
+		BValue v = new BValue();
+		DynamicBean db = new DynamicBean(0, BValue::getSpecialTypeIdFromBean_26, BValue::createBeanFromSpecialTypeId_26);
+		BSimple s = new BSimple();
 		s.setInt_1(456);
 		db.setBean(s);
 		v.getMap26().put(new Key((short)123, ""), db);
-		var j = JsonWriter.local().clear().setPrettyFormat(true).setWriteNull(true).setDepthLimit(9).write(v).toString();
-		var v2 = JsonReader.local().buf(j).parse(new BValue());
+		String j = JsonWriter.local().clear().setPrettyFormat(true).setWriteNull(true).setDepthLimit(9).write(v).toString();
+		BValue v2 = JsonReader.local().buf(j).parse(new BValue());
 		assertNotNull(v2);
 		assertEquals(1, v2.getMap26().size());
-		var e = v2.getMap26().iterator().next();
+		Map.Entry<Key, DynamicBean> e = v2.getMap26().iterator().next();
 		assertEquals(Key.class, e.getKey().getClass());
 		assertEquals(123, e.getKey().getS());
 		assertEquals(BSimple.TYPEID, e.getValue().typeId());
@@ -259,9 +259,9 @@ public final class TestJson extends TestCase {
 	}
 
 	public void testE() throws ReflectiveOperationException {
-		var b = JsonReader.local().buf("'\\u001F\\u03A0\\u9abf\\uD955\\udeaa'").parseByteString();
+		byte[] b = JsonReader.local().buf("'\\u001F\\u03A0\\u9abf\\uD955\\udeaa'").parseByteString();
 		assertNotNull(b);
-		var s = new String(b, StandardCharsets.UTF_8);
+		String s = new String(b, StandardCharsets.UTF_8);
 		assertEquals(10, b.length);
 		assertEquals(5, s.length());
 		assertEquals(0x1f, s.charAt(0));
@@ -289,7 +289,7 @@ public final class TestJson extends TestCase {
 		assertEquals(0xdeaa, s.charAt(4));
 
 		JsonWriter.local().clear().write(s, true);
-		var c = JsonWriter.local().toChars();
+		char[] c = JsonWriter.local().toChars();
 		assertEquals(15, JsonWriter.local().size()); // 6+2+3+4
 		assertEquals(10, c.length); // 6+1+1+2
 		assertEquals("\\u001F", new String(c, 0, 6));
@@ -300,7 +300,7 @@ public final class TestJson extends TestCase {
 	}
 
 	public static void main(String[] args) throws ReflectiveOperationException {
-		var t = new TestJson();
+		TestJson t = new TestJson();
 		t.test1();
 		t.test2();
 		t.test3();

@@ -62,21 +62,21 @@ public class RocksDatabase implements Closeable {
 	private static final ReadOptions defaultReadOptions = new ReadOptions();
 	private static final WriteOptions defaultWriteOptions = new WriteOptions();
 	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
-	private static final MethodHandle mhWriteBatchPutCf;
-	private static final MethodHandle mhWriteBatchDeleteCf;
-	private static final MethodHandle mhWriteBatchNativeNew;
-	private static final MethodHandle mhWriteBatchNew;
+	private static final @NotNull MethodHandle mhWriteBatchPutCf;
+	private static final @NotNull MethodHandle mhWriteBatchDeleteCf;
+	private static final @NotNull MethodHandle mhWriteBatchNativeNew;
+	private static final @NotNull MethodHandle mhWriteBatchNew;
 
 	static {
 		try {
 			var lookup = MethodHandles.lookup();
 			var clsWriteBatch = WriteBatch.class;
-			// final native void put(long handle, byte[] key, int keyLen, byte[] value, int valueLen, long cfHandle);
+			// native void put(long handle, byte[] key, int keyLen, byte[] value, int valueLen, long cfHandle);
 			var m = clsWriteBatch.getDeclaredMethod("put",
 					long.class, byte[].class, int.class, byte[].class, int.class, long.class);
 			m.setAccessible(true);
 			mhWriteBatchPutCf = lookup.unreflect(m);
-			// final native void delete(long handle, byte[] key, int keyLen, long cfHandle);
+			// native void delete(long handle, byte[] key, int keyLen, long cfHandle);
 			m = clsWriteBatch.getDeclaredMethod("delete", long.class, byte[].class, int.class, long.class);
 			m.setAccessible(true);
 			mhWriteBatchDeleteCf = lookup.unreflect(m);
@@ -244,16 +244,6 @@ public class RocksDatabase implements Closeable {
 		return table;
 	}
 
-	public synchronized boolean dropTable(@NotNull String name) throws RocksDBException {
-		var table = tableMap.remove(name);
-		if (table == null)
-			return false;
-		var cfh = table.getCfHandle();
-		rocksDb.dropColumnFamily(cfh);
-		rocksDb.destroyColumnFamilyHandle(cfh);
-		return true;
-	}
-
 	public @NotNull Table @NotNull [] getOrAddTables(String @NotNull [] names) throws RocksDBException {
 		return getOrAddTables(names, null);
 	}
@@ -290,6 +280,31 @@ public class RocksDatabase implements Closeable {
 			}
 		}
 		return tables;
+	}
+
+	public synchronized boolean dropTable(@NotNull String name) throws RocksDBException {
+		var table = tableMap.remove(name);
+		if (table == null)
+			return false;
+		var cfh = table.getCfHandle();
+		rocksDb.dropColumnFamily(cfh);
+		rocksDb.destroyColumnFamilyHandle(cfh);
+		return true;
+	}
+
+	public synchronized int dropTables(String @NotNull [] names) throws RocksDBException {
+		var cfhs = new ArrayList<ColumnFamilyHandle>();
+		for (var name : names) {
+			var table = tableMap.remove(name);
+			if (table != null)
+				cfhs.add(table.getCfHandle());
+		}
+		if (cfhs.isEmpty())
+			return 0;
+		rocksDb.dropColumnFamilies(cfhs);
+		for (var cfh : cfhs)
+			rocksDb.destroyColumnFamilyHandle(cfh);
+		return cfhs.size();
 	}
 
 	// Batch用完时需确保调用close回收堆外内存,推荐使用try(var b = newBatch()) {...}
@@ -648,7 +663,7 @@ public class RocksDatabase implements Closeable {
 		}
 	}
 
-	// 在JVM堆内收集批量操作,只在提交时调用native方法,减少native调用的次数,性能会提高一些,但会多占用一些JVM堆
+	// 在JVM堆内收集批量操作,只在提交时调用native方法,减少native调用的次数,批量多时性能会提高一些,但会多占用一些JVM堆
 	// 这里不提供put和delete方法,只能在Table内调用
 	public class Batch2 {
 		private final ByteBuffer bb;

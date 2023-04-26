@@ -186,7 +186,7 @@ public class TestJsonWriter extends TestCase {
 	}
 
 	public static void main(String[] args) {
-		var t = new TestJsonWriter();
+		TestJsonWriter t = new TestJsonWriter();
 		t.testAll();
 		System.out.println(t.getClass().getSimpleName() + ": " + t.count + " tests OK!");
 	}
