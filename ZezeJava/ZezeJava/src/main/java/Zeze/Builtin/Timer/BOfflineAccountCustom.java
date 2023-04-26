@@ -178,7 +178,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         setClientId(other.getClientId());
         setLoginVersion(other.getLoginVersion());
         setHandleName(other.getHandleName());
-        _CustomData.assign(other.getCustomData());
+        _CustomData.assign(other._CustomData);
     }
 
     public BOfflineAccountCustom copyIfManaged() {
@@ -407,7 +407,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         setHandleName(rs.getString(_parents_name_ + "HandleName"));
         if (getHandleName() == null)
             setHandleName("");
-        Zeze.Serialize.Helper.decodeJsonDynamic(getCustomData(), rs.getString(_parents_name_ + "CustomData"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_CustomData, rs.getString(_parents_name_ + "CustomData"));
     }
 
     @Override
@@ -418,6 +418,6 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         st.appendString(_parents_name_ + "ClientId", getClientId());
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
         st.appendString(_parents_name_ + "HandleName", getHandleName());
-        st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(getCustomData()));
+        st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(_CustomData));
     }
 }

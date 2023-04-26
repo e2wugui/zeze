@@ -42,8 +42,8 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.TestRocks.BeanKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Name=").append(getName()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(_Id).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Name=").append(_Name).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -64,14 +64,14 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            int _x_ = getId();
+            int _x_ = _Id;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
-            String _x_ = getName();
+            String _x_ = _Name;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
@@ -106,9 +106,9 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BeanKey)_o_;
-        if (getId() != _b_.getId())
+        if (_Id != _b_._Id)
             return false;
-        if (!getName().equals(_b_.getName()))
+        if (!_Name.equals(_b_._Name))
             return false;
         return true;
     }
@@ -117,8 +117,8 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + Integer.hashCode(getId());
-        _h_ = _h_ * _p_ + getName().hashCode();
+        _h_ = _h_ * _p_ + Integer.hashCode(_Id);
+        _h_ = _h_ * _p_ + _Name.hashCode();
         return _h_;
     }
 
@@ -150,14 +150,14 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _Id = rs.getInt(_parents_name_ + "Id");
         _Name = rs.getString(_parents_name_ + "Name");
-        if (getName() == null)
+        if (_Name == null)
             _Name = "";
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "Id", getId());
-        st.appendString(_parents_name_ + "Name", getName());
+        st.appendInt(_parents_name_ + "Id", _Id);
+        st.appendString(_parents_name_ + "Name", _Name);
     }
 }

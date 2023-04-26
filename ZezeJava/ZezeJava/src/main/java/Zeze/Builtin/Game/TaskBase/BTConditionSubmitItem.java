@@ -39,9 +39,9 @@ public final class BTConditionSubmitItem extends Zeze.Transaction.Bean implement
 
     public void assign(BTConditionSubmitItem other) {
         _items.clear();
-        _items.putAll(other.getItems());
+        _items.putAll(other._items);
         _itemsSubmitted.clear();
-        _itemsSubmitted.putAll(other.getItemsSubmitted());
+        _itemsSubmitted.putAll(other._itemsSubmitted);
     }
 
     public BTConditionSubmitItem copyIfManaged() {
@@ -228,14 +228,14 @@ public final class BTConditionSubmitItem extends Zeze.Transaction.Bean implement
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "items", getItems(), rs.getString(_parents_name_ + "items"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "itemsSubmitted", getItemsSubmitted(), rs.getString(_parents_name_ + "itemsSubmitted"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "items", _items, rs.getString(_parents_name_ + "items"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "itemsSubmitted", _itemsSubmitted, rs.getString(_parents_name_ + "itemsSubmitted"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "items", Zeze.Serialize.Helper.encodeJson(getItems()));
-        st.appendString(_parents_name_ + "itemsSubmitted", Zeze.Serialize.Helper.encodeJson(getItemsSubmitted()));
+        st.appendString(_parents_name_ + "items", Zeze.Serialize.Helper.encodeJson(_items));
+        st.appendString(_parents_name_ + "itemsSubmitted", Zeze.Serialize.Helper.encodeJson(_itemsSubmitted));
     }
 }

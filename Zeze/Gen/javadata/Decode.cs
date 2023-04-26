@@ -15,7 +15,6 @@ namespace Zeze.Gen.javadata
         readonly string prefix;
         readonly string typeVarName;
 
-        string Getter => var != null ? var.Getter : tmpvarname;
         string NamePrivate => var != null ? var.NamePrivate : tmpvarname;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
@@ -141,7 +140,7 @@ namespace Zeze.Gen.javadata
         string AssignText(string value)
         {
             if (var != null)
-                return var.Bean.IsNormalBean ? var.Setter(value) : $"{var.NamePrivate} = {value}";
+                return $"{var.NamePrivate} = {value}";
             return $"{tmpvarname} = {value}";
         }
 
@@ -353,9 +352,9 @@ namespace Zeze.Gen.javadata
         public void Visit(BeanKey type)
         {
             if (id > 0)
-                sw.WriteLine(prefix + bufname + ".ReadBean(" + Getter + ", _t_);");
+                sw.WriteLine(prefix + bufname + ".ReadBean(" + NamePrivate + ", _t_);");
             else
-                sw.WriteLine(prefix + Getter + ".decode(" + bufname + ");");
+                sw.WriteLine(prefix + NamePrivate + ".decode(" + bufname + ");");
         }
 
         public void Visit(TypeDynamic type)

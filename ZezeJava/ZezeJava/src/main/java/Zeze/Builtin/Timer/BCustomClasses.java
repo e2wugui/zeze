@@ -26,7 +26,7 @@ public final class BCustomClasses extends Zeze.Transaction.Bean implements BCust
 
     public void assign(BCustomClasses other) {
         _CustomClasses.clear();
-        _CustomClasses.addAll(other.getCustomClasses());
+        _CustomClasses.addAll(other._CustomClasses);
     }
 
     public BCustomClasses copyIfManaged() {
@@ -152,12 +152,12 @@ public final class BCustomClasses extends Zeze.Transaction.Bean implements BCust
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonSet(getCustomClasses(), String.class, rs.getString(_parents_name_ + "CustomClasses"));
+        Zeze.Serialize.Helper.decodeJsonSet(_CustomClasses, String.class, rs.getString(_parents_name_ + "CustomClasses"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "CustomClasses", Zeze.Serialize.Helper.encodeJson(getCustomClasses()));
+        st.appendString(_parents_name_ + "CustomClasses", Zeze.Serialize.Helper.encodeJson(_CustomClasses));
     }
 }

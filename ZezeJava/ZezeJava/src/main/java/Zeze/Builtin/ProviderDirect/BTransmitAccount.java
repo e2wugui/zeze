@@ -142,7 +142,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         setActionName(other.getActionName());
         setParameter(other.getParameter());
         _TargetAccounts.clear();
-        _TargetAccounts.addAll(other.getTargetAccounts());
+        _TargetAccounts.addAll(other._TargetAccounts);
         setSenderAccount(other.getSenderAccount());
         setSenderClientId(other.getSenderClientId());
     }
@@ -356,7 +356,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         setParameter(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Parameter")));
         if (getParameter() == null)
             setParameter(Zeze.Net.Binary.Empty);
-        Zeze.Serialize.Helper.decodeJsonSet(getTargetAccounts(), String.class, rs.getString(_parents_name_ + "TargetAccounts"));
+        Zeze.Serialize.Helper.decodeJsonSet(_TargetAccounts, String.class, rs.getString(_parents_name_ + "TargetAccounts"));
         setSenderAccount(rs.getString(_parents_name_ + "SenderAccount"));
         if (getSenderAccount() == null)
             setSenderAccount("");
@@ -370,7 +370,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "ActionName", getActionName());
         st.appendBinary(_parents_name_ + "Parameter", getParameter());
-        st.appendString(_parents_name_ + "TargetAccounts", Zeze.Serialize.Helper.encodeJson(getTargetAccounts()));
+        st.appendString(_parents_name_ + "TargetAccounts", Zeze.Serialize.Helper.encodeJson(_TargetAccounts));
         st.appendString(_parents_name_ + "SenderAccount", getSenderAccount());
         st.appendString(_parents_name_ + "SenderClientId", getSenderClientId());
     }

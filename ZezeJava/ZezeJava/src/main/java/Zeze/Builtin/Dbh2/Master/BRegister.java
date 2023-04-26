@@ -56,7 +56,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     public void assign(BRegister.Data other) {
-        setDbh2RaftAcceptorName(other.getDbh2RaftAcceptorName());
+        setDbh2RaftAcceptorName(other._Dbh2RaftAcceptorName);
     }
 
     public void assign(BRegister other) {
@@ -216,11 +216,11 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BRegister other) {
-        setDbh2RaftAcceptorName(other.getDbh2RaftAcceptorName());
+        _Dbh2RaftAcceptorName = other.getDbh2RaftAcceptorName();
     }
 
     public void assign(BRegister.Data other) {
-        setDbh2RaftAcceptorName(other.getDbh2RaftAcceptorName());
+        _Dbh2RaftAcceptorName = other._Dbh2RaftAcceptorName;
     }
 
     @Override
@@ -252,7 +252,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BRegister: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Dbh2RaftAcceptorName=").append(getDbh2RaftAcceptorName()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Dbh2RaftAcceptorName=").append(_Dbh2RaftAcceptorName).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -273,7 +273,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getDbh2RaftAcceptorName();
+            String _x_ = _Dbh2RaftAcceptorName;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
@@ -287,7 +287,7 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setDbh2RaftAcceptorName(_o_.ReadString(_t_));
+            _Dbh2RaftAcceptorName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

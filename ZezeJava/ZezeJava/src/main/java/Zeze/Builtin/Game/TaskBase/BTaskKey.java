@@ -32,7 +32,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTaskKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskId=").append(getTaskId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskId=").append(_TaskId).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -53,7 +53,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            long _x_ = getTaskId();
+            long _x_ = _TaskId;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
@@ -84,7 +84,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BTaskKey)_o_;
-        if (getTaskId() != _b_.getTaskId())
+        if (_TaskId != _b_._TaskId)
             return false;
         return true;
     }
@@ -93,7 +93,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + Long.hashCode(getTaskId());
+        _h_ = _h_ * _p_ + Long.hashCode(_TaskId);
         return _h_;
     }
 
@@ -126,6 +126,6 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "TaskId", getTaskId());
+        st.appendLong(_parents_name_ + "TaskId", _TaskId);
     }
 }

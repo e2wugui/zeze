@@ -15,7 +15,6 @@ namespace Zeze.Gen.javadata
         readonly StreamWriter sw;
         readonly string prefix;
 
-        string Getter => var != null ? var.Getter : varname;
         string NamePrivate => var != null ? var.NamePrivate : varname;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
@@ -106,126 +105,126 @@ namespace Zeze.Gen.javadata
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "boolean _x_ = " + Getter + ';');
+                sw.WriteLine(prefix + "boolean _x_ = " + NamePrivate + ';');
                 sw.WriteLine(prefix + "if (_x_) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteByte(1);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteBool(" + Getter + ");");
+                sw.WriteLine(prefix + bufname + ".WriteBool(" + NamePrivate + ");");
         }
 
         public void Visit(TypeByte type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "int _x_ = " + Getter + ';');
+                sw.WriteLine(prefix + "int _x_ = " + NamePrivate + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteInt(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteInt(" + Getter + ");");
+                sw.WriteLine(prefix + bufname + ".WriteInt(" + NamePrivate + ");");
         }
 
         public void Visit(TypeShort type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "int _x_ = " + Getter + ';');
+                sw.WriteLine(prefix + "int _x_ = " + NamePrivate + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteInt(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteInt(" + Getter + ");");
+                sw.WriteLine(prefix + bufname + ".WriteInt(" + NamePrivate + ");");
         }
 
         public void Visit(TypeInt type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "int _x_ = " + Getter + ';');
+                sw.WriteLine(prefix + "int _x_ = " + NamePrivate + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteInt(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteInt(" + Getter + ");");
+                sw.WriteLine(prefix + bufname + ".WriteInt(" + NamePrivate + ");");
         }
 
         public void Visit(TypeLong type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "long _x_ = " + Getter + ';');
+                sw.WriteLine(prefix + "long _x_ = " + NamePrivate + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteLong(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteLong(" + Getter + ");");
+                sw.WriteLine(prefix + bufname + ".WriteLong(" + NamePrivate + ");");
         }
 
         public void Visit(TypeFloat type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "float _x_ = " + Getter + ';');
+                sw.WriteLine(prefix + "float _x_ = " + NamePrivate + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteFloat(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteFloat(" + Getter + ");");
+                sw.WriteLine(prefix + bufname + ".WriteFloat(" + NamePrivate + ");");
         }
 
         public void Visit(TypeDouble type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "double _x_ = " + Getter + ';');
+                sw.WriteLine(prefix + "double _x_ = " + NamePrivate + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteDouble(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteDouble(" + Getter + ");");
+                sw.WriteLine(prefix + bufname + ".WriteDouble(" + NamePrivate + ");");
         }
 
         public void Visit(TypeBinary type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "var _x_ = " + Getter + ';');
+                sw.WriteLine(prefix + "var _x_ = " + NamePrivate + ';');
                 sw.WriteLine(prefix + "if (_x_.size() != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteBinary(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteBinary(" + Getter + ");");
+                sw.WriteLine(prefix + bufname + ".WriteBinary(" + NamePrivate + ");");
         }
 
         public void Visit(TypeString type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "String _x_ = " + Getter + ';');
+                sw.WriteLine(prefix + "String _x_ = " + NamePrivate + ';');
                 sw.WriteLine(prefix + "if (!_x_.isEmpty()) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteString(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteString(" + Getter + ");");
+                sw.WriteLine(prefix + bufname + ".WriteString(" + NamePrivate + ");");
         }
 
         void EncodeElement(Type type, string prefix, string varName)
@@ -371,14 +370,14 @@ namespace Zeze.Gen.javadata
                 sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + Getter + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + NamePrivate + ".encode(" + bufname + ");");
                 sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
                 sw.WriteLine(prefix + "else");
                 sw.WriteLine(prefix + "    _i_ = _j_;");
             }
             else
-                sw.WriteLine(prefix + Getter + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + NamePrivate + ".encode(" + bufname + ");");
         }
 
         public void Visit(TypeDynamic type)
@@ -401,14 +400,14 @@ namespace Zeze.Gen.javadata
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "var _x_ = " + Getter + ';');
+                sw.WriteLine(prefix + "var _x_ = " + NamePrivate + ';');
                 sw.WriteLine(prefix + "if (_x_ != null && !_x_.isZero()) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".Write" + typeName + "(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + Getter + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + NamePrivate + ".encode(" + bufname + ");");
         }
 
         public void Visit(TypeQuaternion type)

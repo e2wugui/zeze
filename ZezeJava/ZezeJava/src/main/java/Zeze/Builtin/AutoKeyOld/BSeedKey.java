@@ -42,8 +42,8 @@ public final class BSeedKey implements Serializable, Comparable<BSeedKey> {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.AutoKeyOld.BSeedKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("KeyName=").append(getKeyName()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(_ServerId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("KeyName=").append(_KeyName).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -64,14 +64,14 @@ public final class BSeedKey implements Serializable, Comparable<BSeedKey> {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            int _x_ = getServerId();
+            int _x_ = _ServerId;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
-            String _x_ = getKeyName();
+            String _x_ = _KeyName;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
@@ -106,9 +106,9 @@ public final class BSeedKey implements Serializable, Comparable<BSeedKey> {
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BSeedKey)_o_;
-        if (getServerId() != _b_.getServerId())
+        if (_ServerId != _b_._ServerId)
             return false;
-        if (!getKeyName().equals(_b_.getKeyName()))
+        if (!_KeyName.equals(_b_._KeyName))
             return false;
         return true;
     }
@@ -117,8 +117,8 @@ public final class BSeedKey implements Serializable, Comparable<BSeedKey> {
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + Integer.hashCode(getServerId());
-        _h_ = _h_ * _p_ + getKeyName().hashCode();
+        _h_ = _h_ * _p_ + Integer.hashCode(_ServerId);
+        _h_ = _h_ * _p_ + _KeyName.hashCode();
         return _h_;
     }
 
@@ -150,14 +150,14 @@ public final class BSeedKey implements Serializable, Comparable<BSeedKey> {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _ServerId = rs.getInt(_parents_name_ + "ServerId");
         _KeyName = rs.getString(_parents_name_ + "KeyName");
-        if (getKeyName() == null)
+        if (_KeyName == null)
             _KeyName = "";
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "ServerId", getServerId());
-        st.appendString(_parents_name_ + "KeyName", getKeyName());
+        st.appendInt(_parents_name_ + "ServerId", _ServerId);
+        st.appendString(_parents_name_ + "KeyName", _KeyName);
     }
 }

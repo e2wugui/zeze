@@ -213,13 +213,13 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     }
 
     public void assign(BBucketMeta.Data other) {
-        setDatabaseName(other.getDatabaseName());
-        setTableName(other.getTableName());
-        setKeyFirst(other.getKeyFirst());
-        setKeyLast(other.getKeyLast());
-        setRaftConfig(other.getRaftConfig());
-        setMoving(other.isMoving());
-        setKeyMoving(other.getKeyMoving());
+        setDatabaseName(other._DatabaseName);
+        setTableName(other._TableName);
+        setKeyFirst(other._KeyFirst);
+        setKeyLast(other._KeyLast);
+        setRaftConfig(other._RaftConfig);
+        setMoving(other._Moving);
+        setKeyMoving(other._KeyMoving);
     }
 
     public void assign(BBucketMeta other) {
@@ -612,23 +612,23 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BBucketMeta other) {
-        setDatabaseName(other.getDatabaseName());
-        setTableName(other.getTableName());
-        setKeyFirst(other.getKeyFirst());
-        setKeyLast(other.getKeyLast());
-        setRaftConfig(other.getRaftConfig());
-        setMoving(other.isMoving());
-        setKeyMoving(other.getKeyMoving());
+        _DatabaseName = other.getDatabaseName();
+        _TableName = other.getTableName();
+        _KeyFirst = other.getKeyFirst();
+        _KeyLast = other.getKeyLast();
+        _RaftConfig = other.getRaftConfig();
+        _Moving = other.isMoving();
+        _KeyMoving = other.getKeyMoving();
     }
 
     public void assign(BBucketMeta.Data other) {
-        setDatabaseName(other.getDatabaseName());
-        setTableName(other.getTableName());
-        setKeyFirst(other.getKeyFirst());
-        setKeyLast(other.getKeyLast());
-        setRaftConfig(other.getRaftConfig());
-        setMoving(other.isMoving());
-        setKeyMoving(other.getKeyMoving());
+        _DatabaseName = other._DatabaseName;
+        _TableName = other._TableName;
+        _KeyFirst = other._KeyFirst;
+        _KeyLast = other._KeyLast;
+        _RaftConfig = other._RaftConfig;
+        _Moving = other._Moving;
+        _KeyMoving = other._KeyMoving;
     }
 
     @Override
@@ -660,13 +660,13 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBucketMeta: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("DatabaseName=").append(getDatabaseName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TableName=").append(getTableName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("KeyFirst=").append(getKeyFirst()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("KeyLast=").append(getKeyLast()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("RaftConfig=").append(getRaftConfig()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Moving=").append(isMoving()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("KeyMoving=").append(getKeyMoving()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("DatabaseName=").append(_DatabaseName).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TableName=").append(_TableName).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("KeyFirst=").append(_KeyFirst).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("KeyLast=").append(_KeyLast).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("RaftConfig=").append(_RaftConfig).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Moving=").append(_Moving).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("KeyMoving=").append(_KeyMoving).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -687,49 +687,49 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getDatabaseName();
+            String _x_ = _DatabaseName;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            String _x_ = getTableName();
+            String _x_ = _TableName;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            var _x_ = getKeyFirst();
+            var _x_ = _KeyFirst;
             if (_x_.size() != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
         {
-            var _x_ = getKeyLast();
+            var _x_ = _KeyLast;
             if (_x_.size() != 0) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
         {
-            String _x_ = getRaftConfig();
+            String _x_ = _RaftConfig;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            boolean _x_ = isMoving();
+            boolean _x_ = _Moving;
             if (_x_) {
                 _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.INTEGER);
                 _o_.WriteByte(1);
             }
         }
         {
-            var _x_ = getKeyMoving();
+            var _x_ = _KeyMoving;
             if (_x_.size() != 0) {
                 _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
@@ -743,31 +743,31 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setDatabaseName(_o_.ReadString(_t_));
+            _DatabaseName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setTableName(_o_.ReadString(_t_));
+            _TableName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setKeyFirst(_o_.ReadBinary(_t_));
+            _KeyFirst = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
-            setKeyLast(_o_.ReadBinary(_t_));
+            _KeyLast = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 5) {
-            setRaftConfig(_o_.ReadString(_t_));
+            _RaftConfig = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 6) {
-            setMoving(_o_.ReadBool(_t_));
+            _Moving = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 7) {
-            setKeyMoving(_o_.ReadBinary(_t_));
+            _KeyMoving = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

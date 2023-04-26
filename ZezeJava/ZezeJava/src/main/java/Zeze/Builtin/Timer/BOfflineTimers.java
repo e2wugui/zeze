@@ -26,7 +26,7 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
 
     public void assign(BOfflineTimers other) {
         _OfflineTimers.clear();
-        _OfflineTimers.putAll(other.getOfflineTimers());
+        _OfflineTimers.putAll(other._OfflineTimers);
     }
 
     public BOfflineTimers copyIfManaged() {
@@ -168,12 +168,12 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "OfflineTimers", getOfflineTimers(), rs.getString(_parents_name_ + "OfflineTimers"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "OfflineTimers", _OfflineTimers, rs.getString(_parents_name_ + "OfflineTimers"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "OfflineTimers", Zeze.Serialize.Helper.encodeJson(getOfflineTimers()));
+        st.appendString(_parents_name_ + "OfflineTimers", Zeze.Serialize.Helper.encodeJson(_OfflineTimers));
     }
 }

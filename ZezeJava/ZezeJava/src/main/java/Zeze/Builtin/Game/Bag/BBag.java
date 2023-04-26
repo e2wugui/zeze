@@ -55,7 +55,7 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     public void assign(BBag other) {
         setCapacity(other.getCapacity());
         _Items.clear();
-        for (var e : other.getItems().entrySet())
+        for (var e : other._Items.entrySet())
             _Items.put(e.getKey(), e.getValue().copy());
     }
 
@@ -223,13 +223,13 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setCapacity(rs.getInt(_parents_name_ + "Capacity"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Items", getItems(), rs.getString(_parents_name_ + "Items"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Items", _Items, rs.getString(_parents_name_ + "Items"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendInt(_parents_name_ + "Capacity", getCapacity());
-        st.appendString(_parents_name_ + "Items", Zeze.Serialize.Helper.encodeJson(getItems()));
+        st.appendString(_parents_name_ + "Items", Zeze.Serialize.Helper.encodeJson(_Items));
     }
 }

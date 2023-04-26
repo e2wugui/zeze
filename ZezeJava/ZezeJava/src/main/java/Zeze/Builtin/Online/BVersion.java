@@ -155,7 +155,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
     public void assign(BVersion other) {
         setLoginVersion(other.getLoginVersion());
         _ReliableNotifyMark.clear();
-        _ReliableNotifyMark.addAll(other.getReliableNotifyMark());
+        _ReliableNotifyMark.addAll(other._ReliableNotifyMark);
         setReliableNotifyIndex(other.getReliableNotifyIndex());
         setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
         setServerId(other.getServerId());
@@ -401,7 +401,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
-        Zeze.Serialize.Helper.decodeJsonSet(getReliableNotifyMark(), String.class, rs.getString(_parents_name_ + "ReliableNotifyMark"));
+        Zeze.Serialize.Helper.decodeJsonSet(_ReliableNotifyMark, String.class, rs.getString(_parents_name_ + "ReliableNotifyMark"));
         setReliableNotifyIndex(rs.getLong(_parents_name_ + "ReliableNotifyIndex"));
         setReliableNotifyConfirmIndex(rs.getLong(_parents_name_ + "ReliableNotifyConfirmIndex"));
         setServerId(rs.getInt(_parents_name_ + "ServerId"));
@@ -412,7 +412,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
-        st.appendString(_parents_name_ + "ReliableNotifyMark", Zeze.Serialize.Helper.encodeJson(getReliableNotifyMark()));
+        st.appendString(_parents_name_ + "ReliableNotifyMark", Zeze.Serialize.Helper.encodeJson(_ReliableNotifyMark));
         st.appendLong(_parents_name_ + "ReliableNotifyIndex", getReliableNotifyIndex());
         st.appendLong(_parents_name_ + "ReliableNotifyConfirmIndex", getReliableNotifyConfirmIndex());
         st.appendInt(_parents_name_ + "ServerId", getServerId());

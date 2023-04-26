@@ -79,7 +79,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
         setPrevNodeId(other.getPrevNodeId());
         setNextNodeId(other.getNextNodeId());
         _Values.clear();
-        for (var e : other.getValues())
+        for (var e : other._Values)
             _Values.add(e.copy());
     }
 
@@ -259,7 +259,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setPrevNodeId(rs.getLong(_parents_name_ + "PrevNodeId"));
         setNextNodeId(rs.getLong(_parents_name_ + "NextNodeId"));
-        Zeze.Serialize.Helper.decodeJsonList(getValues(), Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue.class, rs.getString(_parents_name_ + "Values"));
+        Zeze.Serialize.Helper.decodeJsonList(_Values, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue.class, rs.getString(_parents_name_ + "Values"));
     }
 
     @Override
@@ -267,6 +267,6 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "PrevNodeId", getPrevNodeId());
         st.appendLong(_parents_name_ + "NextNodeId", getNextNodeId());
-        st.appendString(_parents_name_ + "Values", Zeze.Serialize.Helper.encodeJson(getValues()));
+        st.appendString(_parents_name_ + "Values", Zeze.Serialize.Helper.encodeJson(_Values));
     }
 }

@@ -78,7 +78,7 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
         setPrevNodeId(other.getPrevNodeId());
         setNextNodeId(other.getNextNodeId());
         _Timers.clear();
-        for (var e : other.getTimers().entrySet())
+        for (var e : other._Timers.entrySet())
             _Timers.put(e.getKey(), e.getValue().copy());
     }
 
@@ -269,7 +269,7 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setPrevNodeId(rs.getLong(_parents_name_ + "PrevNodeId"));
         setNextNodeId(rs.getLong(_parents_name_ + "NextNodeId"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Timers", getTimers(), rs.getString(_parents_name_ + "Timers"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Timers", _Timers, rs.getString(_parents_name_ + "Timers"));
     }
 
     @Override
@@ -277,6 +277,6 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "PrevNodeId", getPrevNodeId());
         st.appendLong(_parents_name_ + "NextNodeId", getNextNodeId());
-        st.appendString(_parents_name_ + "Timers", Zeze.Serialize.Helper.encodeJson(getTimers()));
+        st.appendString(_parents_name_ + "Timers", Zeze.Serialize.Helper.encodeJson(_Timers));
     }
 }

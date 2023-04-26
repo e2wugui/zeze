@@ -26,7 +26,7 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
 
     public void assign(BSubscribe other) {
         _modules.clear();
-        for (var e : other.getModules().entrySet())
+        for (var e : other._modules.entrySet())
             _modules.put(e.getKey(), e.getValue().copy());
     }
 
@@ -171,12 +171,12 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "modules", getModules(), rs.getString(_parents_name_ + "modules"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "modules", _modules, rs.getString(_parents_name_ + "modules"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "modules", Zeze.Serialize.Helper.encodeJson(getModules()));
+        st.appendString(_parents_name_ + "modules", Zeze.Serialize.Helper.encodeJson(_modules));
     }
 }

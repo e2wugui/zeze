@@ -78,7 +78,7 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         setEverydayTaskCount(other.getEverydayTaskCount());
         setFlushTime(other.getFlushTime());
         _todayTaskPhaseIds.clear();
-        _todayTaskPhaseIds.addAll(other.getTodayTaskPhaseIds());
+        _todayTaskPhaseIds.addAll(other._todayTaskPhaseIds);
     }
 
     public BDailyTask copyIfManaged() {
@@ -259,7 +259,7 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setEverydayTaskCount(rs.getInt(_parents_name_ + "everydayTaskCount"));
         setFlushTime(rs.getLong(_parents_name_ + "flushTime"));
-        Zeze.Serialize.Helper.decodeJsonList(getTodayTaskPhaseIds(), Long.class, rs.getString(_parents_name_ + "todayTaskPhaseIds"));
+        Zeze.Serialize.Helper.decodeJsonList(_todayTaskPhaseIds, Long.class, rs.getString(_parents_name_ + "todayTaskPhaseIds"));
     }
 
     @Override
@@ -267,6 +267,6 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendInt(_parents_name_ + "everydayTaskCount", getEverydayTaskCount());
         st.appendLong(_parents_name_ + "flushTime", getFlushTime());
-        st.appendString(_parents_name_ + "todayTaskPhaseIds", Zeze.Serialize.Helper.encodeJson(getTodayTaskPhaseIds()));
+        st.appendString(_parents_name_ + "todayTaskPhaseIds", Zeze.Serialize.Helper.encodeJson(_todayTaskPhaseIds));
     }
 }

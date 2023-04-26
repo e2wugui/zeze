@@ -151,7 +151,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
 
     public void assign(BGameOnlineTimer other) {
         setRoleId(other.getRoleId());
-        _TimerObj.assign(other.getTimerObj());
+        _TimerObj.assign(other._TimerObj);
         setLoginVersion(other.getLoginVersion());
         setSerialId(other.getSerialId());
     }
@@ -336,7 +336,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setRoleId(rs.getLong(_parents_name_ + "RoleId"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(getTimerObj(), rs.getString(_parents_name_ + "TimerObj"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_TimerObj, rs.getString(_parents_name_ + "TimerObj"));
         setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
         setSerialId(rs.getLong(_parents_name_ + "SerialId"));
     }
@@ -345,7 +345,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "RoleId", getRoleId());
-        st.appendString(_parents_name_ + "TimerObj", Zeze.Serialize.Helper.encodeJson(getTimerObj()));
+        st.appendString(_parents_name_ + "TimerObj", Zeze.Serialize.Helper.encodeJson(_TimerObj));
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
         st.appendLong(_parents_name_ + "SerialId", getSerialId());
     }

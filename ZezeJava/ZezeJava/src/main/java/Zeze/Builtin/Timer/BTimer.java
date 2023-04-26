@@ -198,8 +198,8 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
     public void assign(BTimer other) {
         setTimerName(other.getTimerName());
         setHandleName(other.getHandleName());
-        _TimerObj.assign(other.getTimerObj());
-        _CustomData.assign(other.getCustomData());
+        _TimerObj.assign(other._TimerObj);
+        _CustomData.assign(other._CustomData);
         setConcurrentFireSerialNo(other.getConcurrentFireSerialNo());
     }
 
@@ -401,8 +401,8 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         setHandleName(rs.getString(_parents_name_ + "HandleName"));
         if (getHandleName() == null)
             setHandleName("");
-        Zeze.Serialize.Helper.decodeJsonDynamic(getTimerObj(), rs.getString(_parents_name_ + "TimerObj"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(getCustomData(), rs.getString(_parents_name_ + "CustomData"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_TimerObj, rs.getString(_parents_name_ + "TimerObj"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_CustomData, rs.getString(_parents_name_ + "CustomData"));
         setConcurrentFireSerialNo(rs.getLong(_parents_name_ + "ConcurrentFireSerialNo"));
     }
 
@@ -411,8 +411,8 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "TimerName", getTimerName());
         st.appendString(_parents_name_ + "HandleName", getHandleName());
-        st.appendString(_parents_name_ + "TimerObj", Zeze.Serialize.Helper.encodeJson(getTimerObj()));
-        st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(getCustomData()));
+        st.appendString(_parents_name_ + "TimerObj", Zeze.Serialize.Helper.encodeJson(_TimerObj));
+        st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(_CustomData));
         st.appendLong(_parents_name_ + "ConcurrentFireSerialNo", getConcurrentFireSerialNo());
     }
 }

@@ -118,7 +118,7 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         setCompleteType(other.getCompleteType());
         setNextSubPhaseId(other.getNextSubPhaseId());
         _conditions.clear();
-        for (var e : other.getConditions())
+        for (var e : other._conditions)
             _conditions.add(e.copy());
     }
 
@@ -321,7 +321,7 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         if (getCompleteType() == null)
             setCompleteType("");
         setNextSubPhaseId(rs.getLong(_parents_name_ + "nextSubPhaseId"));
-        Zeze.Serialize.Helper.decodeJsonList(getConditions(), Zeze.Builtin.Game.TaskBase.BTaskCondition.class, rs.getString(_parents_name_ + "conditions"));
+        Zeze.Serialize.Helper.decodeJsonList(_conditions, Zeze.Builtin.Game.TaskBase.BTaskCondition.class, rs.getString(_parents_name_ + "conditions"));
     }
 
     @Override
@@ -330,6 +330,6 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         st.appendLong(_parents_name_ + "subPhaseId", getSubPhaseId());
         st.appendString(_parents_name_ + "completeType", getCompleteType());
         st.appendLong(_parents_name_ + "nextSubPhaseId", getNextSubPhaseId());
-        st.appendString(_parents_name_ + "conditions", Zeze.Serialize.Helper.encodeJson(getConditions()));
+        st.appendString(_parents_name_ + "conditions", Zeze.Serialize.Helper.encodeJson(_conditions));
     }
 }

@@ -78,8 +78,8 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
     }
 
     public void assign(BGetResult.Data other) {
-        setNull(other.isNull());
-        setValue(other.getValue());
+        setNull(other._Null);
+        setValue(other._Value);
     }
 
     public void assign(BGetResult other) {
@@ -272,13 +272,13 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BGetResult other) {
-        setNull(other.isNull());
-        setValue(other.getValue());
+        _Null = other.isNull();
+        _Value = other.getValue();
     }
 
     public void assign(BGetResult.Data other) {
-        setNull(other.isNull());
-        setValue(other.getValue());
+        _Null = other._Null;
+        _Value = other._Value;
     }
 
     @Override
@@ -310,8 +310,8 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BGetResult: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Null=").append(isNull()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(getValue()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Null=").append(_Null).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_Value).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -332,14 +332,14 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            boolean _x_ = isNull();
+            boolean _x_ = _Null;
             if (_x_) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteByte(1);
             }
         }
         {
-            var _x_ = getValue();
+            var _x_ = _Value;
             if (_x_.size() != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
@@ -353,11 +353,11 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setNull(_o_.ReadBool(_t_));
+            _Null = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setValue(_o_.ReadBinary(_t_));
+            _Value = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

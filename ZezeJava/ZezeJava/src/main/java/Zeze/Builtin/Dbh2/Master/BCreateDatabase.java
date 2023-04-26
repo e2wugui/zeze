@@ -56,7 +56,7 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
     }
 
     public void assign(BCreateDatabase.Data other) {
-        setDatabase(other.getDatabase());
+        setDatabase(other._Database);
     }
 
     public void assign(BCreateDatabase other) {
@@ -216,11 +216,11 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BCreateDatabase other) {
-        setDatabase(other.getDatabase());
+        _Database = other.getDatabase();
     }
 
     public void assign(BCreateDatabase.Data other) {
-        setDatabase(other.getDatabase());
+        _Database = other._Database;
     }
 
     @Override
@@ -252,7 +252,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BCreateDatabase: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(getDatabase()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(_Database).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -273,7 +273,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getDatabase();
+            String _x_ = _Database;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
@@ -287,7 +287,7 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setDatabase(_o_.ReadString(_t_));
+            _Database = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

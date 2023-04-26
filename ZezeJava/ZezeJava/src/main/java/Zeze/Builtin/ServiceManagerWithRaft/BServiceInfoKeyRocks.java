@@ -47,8 +47,8 @@ public final class BServiceInfoKeyRocks implements Serializable, Comparable<BSer
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(getServiceName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceIdentity=").append(getServiceIdentity()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(_ServiceName).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceIdentity=").append(_ServiceIdentity).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -69,14 +69,14 @@ public final class BServiceInfoKeyRocks implements Serializable, Comparable<BSer
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getServiceName();
+            String _x_ = _ServiceName;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            String _x_ = getServiceIdentity();
+            String _x_ = _ServiceIdentity;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
@@ -111,9 +111,9 @@ public final class BServiceInfoKeyRocks implements Serializable, Comparable<BSer
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BServiceInfoKeyRocks)_o_;
-        if (!getServiceName().equals(_b_.getServiceName()))
+        if (!_ServiceName.equals(_b_._ServiceName))
             return false;
-        if (!getServiceIdentity().equals(_b_.getServiceIdentity()))
+        if (!_ServiceIdentity.equals(_b_._ServiceIdentity))
             return false;
         return true;
     }
@@ -122,8 +122,8 @@ public final class BServiceInfoKeyRocks implements Serializable, Comparable<BSer
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + getServiceName().hashCode();
-        _h_ = _h_ * _p_ + getServiceIdentity().hashCode();
+        _h_ = _h_ * _p_ + _ServiceName.hashCode();
+        _h_ = _h_ * _p_ + _ServiceIdentity.hashCode();
         return _h_;
     }
 
@@ -152,17 +152,17 @@ public final class BServiceInfoKeyRocks implements Serializable, Comparable<BSer
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _ServiceName = rs.getString(_parents_name_ + "ServiceName");
-        if (getServiceName() == null)
+        if (_ServiceName == null)
             _ServiceName = "";
         _ServiceIdentity = rs.getString(_parents_name_ + "ServiceIdentity");
-        if (getServiceIdentity() == null)
+        if (_ServiceIdentity == null)
             _ServiceIdentity = "";
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "ServiceName", getServiceName());
-        st.appendString(_parents_name_ + "ServiceIdentity", getServiceIdentity());
+        st.appendString(_parents_name_ + "ServiceName", _ServiceName);
+        st.appendString(_parents_name_ + "ServiceIdentity", _ServiceIdentity);
     }
 }

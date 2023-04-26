@@ -8,15 +8,13 @@ namespace Zeze.Gen.java
         readonly Variable var;
         readonly string another;
         readonly bool isEquals;
+        readonly string getter;
         string text;
 
         /// <summary>
         /// 实际上 BeanKey 很多类型都不支持，下面先尽量实现，以后可能用来实现 Bean 的 Equals.
         /// </summary>
-        /// <param name="bean"></param>
-        /// <param name="sw"></param>
-        /// <param name="prefix"></param>
-        public static void Make(BeanKey bean, StreamWriter sw, string prefix)
+        public static void Make(BeanKey bean, StreamWriter sw, string prefix, bool isData)
         {
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public boolean equals(Object _o_) {");
@@ -30,7 +28,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + $"    var _b_ = ({bean.Name})_o_;");
                 foreach (Variable var in bean.Variables)
                 {
-                    var v = new Equal(var, "_b_", false);
+                    var v = new Equal(var, "_b_", false, isData);
                     var.VariableType.Accept(v);
                     sw.WriteLine(prefix + "    if (" + v.text + ")");
                     sw.WriteLine(prefix + "        return false;");
@@ -62,7 +60,7 @@ namespace Zeze.Gen.java
                 {
                     if (bean.Version.Equals(var.Name))
                         continue;
-                    var v = new Equal(var, "_b_", false);
+                    var v = new Equal(var, "_b_", false, isData);
                     var.VariableType.Accept(v);
                     sw.WriteLine(prefix + "    if (" + v.text + ")");
                     sw.WriteLine(prefix + "        return false;");
@@ -77,17 +75,18 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
-        public Equal(Variable var, string another, bool isEquals)
+        public Equal(Variable var, string another, bool isEquals, bool isData)
         {
             this.var = var;
             this.another = another;
             this.isEquals = isEquals;
+            getter = isData ? var.NamePrivate : var.Getter;
         }
 
         void CommonEquals()
         {
             var eq = isEquals ? "==" : "!=";
-            text = $"{var.Getter} {eq} {another}.{var.Getter}";
+            text = $"{getter} {eq} {another}.{getter}";
         }
 
         public void Visit(TypeBool type)
@@ -127,72 +126,72 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeBinary type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + getter + ".equals(" + another + "." + getter + ")";
         }
 
         public void Visit(TypeString type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + getter + ".equals(" + another + "." + getter + ")";
         }
 
         public void Visit(TypeList type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(TypeSet type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(TypeMap type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(Bean type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(BeanKey type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + getter + ".equals(" + another + "." + getter + ")";
         }
 
         public void Visit(TypeDynamic type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(TypeQuaternion type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + getter + ".equals(" + another + "." + getter + ")";
         }
 
         public void Visit(TypeVector2 type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + getter + ".equals(" + another + "." + getter + ")";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + getter + ".equals(" + another + "." + getter + ")";
         }
 
         public void Visit(TypeVector3 type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + getter + ".equals(" + another + "." + getter + ")";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + getter + ".equals(" + another + "." + getter + ")";
         }
 
         public void Visit(TypeVector4 type)
         {
-            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
+            text = (isEquals ? "" : "!") + getter + ".equals(" + another + "." + getter + ")";
         }
     }
 }

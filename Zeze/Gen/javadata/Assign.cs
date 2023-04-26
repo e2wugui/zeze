@@ -9,6 +9,7 @@ namespace Zeze.Gen.javadata
         readonly Variable var;
         readonly string prefix;
         readonly bool transBean;
+        readonly string transGetter;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
@@ -45,51 +46,52 @@ namespace Zeze.Gen.javadata
             this.sw = sw;
             this.prefix = prefix;
             this.transBean = transBean;
+            transGetter = transBean ? var.Getter : var.NamePrivate;
         }
 
         public void Visit(TypeBool type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeByte type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeShort type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeInt type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeLong type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeFloat type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeDouble type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeBinary type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeString type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeList type)
@@ -99,7 +101,7 @@ namespace Zeze.Gen.javadata
             {
                 if (transBean)
                 {
-                    sw.WriteLine(prefix + "for (var e : other." + var.Getter + ") {");
+                    sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ") {");
                     type.ValueType.Accept(new Define("data", sw, prefix + "    "));
                     sw.WriteLine(prefix + "    data.assign(e);");
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".add(data);");
@@ -107,12 +109,12 @@ namespace Zeze.Gen.javadata
                 }
                 else
                 {
-                    sw.WriteLine(prefix + "for (var e : other." + var.Getter + ")");
+                    sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ")");
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".add(e.copy());");
                 }
             }
             else
-                sw.WriteLine(prefix + var.NamePrivate + ".addAll(other." + var.Getter + ");");
+                sw.WriteLine(prefix + var.NamePrivate + ".addAll(other." + var.NamePrivate + ");");
         }
 
         public void Visit(TypeSet type)
@@ -122,7 +124,7 @@ namespace Zeze.Gen.javadata
             {
                 if (transBean)
                 {
-                    sw.WriteLine(prefix + "for (var e : other." + var.Getter + ") {");
+                    sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ") {");
                     type.ValueType.Accept(new Define("data", sw, prefix + "    "));
                     sw.WriteLine(prefix + "    data.assign(e);");
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".add(data);");
@@ -130,12 +132,12 @@ namespace Zeze.Gen.javadata
                 }
                 else
                 {
-                    sw.WriteLine(prefix + "for (var e : other." + var.Getter + ")");
+                    sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ")");
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".add(e.copy());"); // set 里面现在不让放 bean，先这样写吧。
                 }
             }
             else
-                sw.WriteLine(prefix + var.NamePrivate + ".addAll(other." + var.Getter + ");");
+                sw.WriteLine(prefix + var.NamePrivate + ".addAll(other." + var.NamePrivate + ");");
         }
 
         public void Visit(TypeMap type)
@@ -145,7 +147,7 @@ namespace Zeze.Gen.javadata
             {
                 if (transBean)
                 {
-                    sw.WriteLine(prefix + "for (var e : other." + var.Getter + ".entrySet()) {");
+                    sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ".entrySet()) {");
                     type.ValueType.Accept(new Define("data", sw, prefix + "    "));
                     sw.WriteLine(prefix + "    data.assign(e.getValue());");
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), data);");
@@ -153,57 +155,57 @@ namespace Zeze.Gen.javadata
                 }
                 else
                 {
-                    sw.WriteLine(prefix + "for (var e : other." + var.Getter + ".entrySet())");
+                    sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ".entrySet())");
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), e.getValue().copy());");
                 }
             }
             else
-                sw.WriteLine(prefix + var.NamePrivate + ".putAll(other." + var.Getter + ");");
+                sw.WriteLine(prefix + var.NamePrivate + ".putAll(other." + var.NamePrivate + ");");
         }
 
         public void Visit(Bean type)
         {
-            sw.WriteLine(prefix + var.NamePrivate + ".assign(other." + var.Getter + ");");
+            sw.WriteLine(prefix + var.NamePrivate + ".assign(other." + var.NamePrivate + ");");
         }
 
         public void Visit(BeanKey type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + var.NamePrivate + ".assign(other." + var.Getter + ");");
+            sw.WriteLine(prefix + var.NamePrivate + ".assign(other." + var.NamePrivate + ");");
         }
 
         public void Visit(TypeQuaternion type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeVector2 type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeVector3 type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
 
         public void Visit(TypeVector4 type)
         {
-            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
     }
 }

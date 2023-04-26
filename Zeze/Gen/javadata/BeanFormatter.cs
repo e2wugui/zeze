@@ -144,14 +144,14 @@ namespace Zeze.Gen.javadata
             sw.WriteLine("        return TYPEID;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            java.Tostring.Make(bean, sw, "    ");
+            java.Tostring.Make(bean, sw, "    ", true);
             Encode.Make(bean, sw, "    ");
             Decode.Make(bean, sw, "    ");
             if (bean.Equalable)
             {
                 sw.WriteLine();
                 java.Equal.Make(bean, sw, "    ", true);
-                java.HashCode.Make(bean, sw, "    ");
+                java.HashCode.Make(bean, sw, "    ", true);
             }
             //NegativeCheck.Make(bean, sw, "    ");
         }

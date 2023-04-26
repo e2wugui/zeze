@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Zeze.Builtin.Game.Bag;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
@@ -20,7 +14,7 @@ namespace Zeze.Gen.java
             {
                 if (v.Transient)
                     continue;
-                v.VariableType.Accept(new EncodeSQLStatement(null, v, null, v.Id, "st", sw, prefix + "    ", hasParentName));
+                v.VariableType.Accept(new EncodeSQLStatement(null, v, null, v.Id, "st", sw, prefix + "    ", hasParentName, false));
             }
             sw.WriteLine(prefix + "}");
             // sw.WriteLine();
@@ -35,7 +29,7 @@ namespace Zeze.Gen.java
             {
                 if (v.Transient)
                     continue;
-                v.VariableType.Accept(new EncodeSQLStatement(null, v, null, v.Id, "st", sw, prefix + "    ", hasParentsName));
+                v.VariableType.Accept(new EncodeSQLStatement(null, v, null, v.Id, "st", sw, prefix + "    ", hasParentsName, true));
             }
             sw.WriteLine(prefix + "}");
             // sw.WriteLine();
@@ -107,25 +101,25 @@ namespace Zeze.Gen.java
         public void Visit(TypeList type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({Getter}));");
+            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({NamePrivate}));");
         }
 
         public void Visit(TypeSet type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({Getter}));");
+            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({NamePrivate}));");
         }
 
         public void Visit(TypeMap type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({Getter}));");
+            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({NamePrivate}));");
         }
 
         public void Visit(Bean type)
         {
             sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
-            sw.WriteLine($"{prefix}{Getter}.encodeSQLStatement(parents, {bb});");
+            sw.WriteLine($"{prefix}{NamePrivate}.encodeSQLStatement(parents, {bb});");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
@@ -139,7 +133,7 @@ namespace Zeze.Gen.java
         public void Visit(TypeDynamic type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({Getter}));");
+            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({NamePrivate}));");
         }
 
         public void Visit(TypeQuaternion type)
@@ -192,12 +186,14 @@ namespace Zeze.Gen.java
         readonly StreamWriter sw;
         readonly string prefix;
         readonly bool[] hasParentsName;
+        readonly bool isData;
 
-        string Getter => var != null ? var.Getter : varname;
+        string Getter => var != null ? isData ? var.NamePrivate : var.Getter : varname;
+        string NamePrivate => var != null ? var.NamePrivate : varname;
         string ColumnName => null != columnName ? columnName : var.Name;
         string ParaneName => columnName != null ? "" : "_parents_name_ + ";
 
-        public EncodeSQLStatement(string columnName, Variable var, string varname, int id, string bb, StreamWriter sw, string prefix, bool[] hasParentsName)
+        public EncodeSQLStatement(string columnName, Variable var, string varname, int id, string bb, StreamWriter sw, string prefix, bool[] hasParentsName, bool isData)
         {
             this.columnName = columnName;
             this.var = var;
@@ -207,6 +203,7 @@ namespace Zeze.Gen.java
             this.sw = sw;
             this.prefix = prefix;
             this.hasParentsName = hasParentsName;
+            this.isData = isData;
         }
     }
 }

@@ -42,8 +42,8 @@ public final class BDepartmentKey implements Serializable, Comparable<BDepartmen
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Owner=").append(getOwner()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("DepartmentId=").append(getDepartmentId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Owner=").append(_Owner).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("DepartmentId=").append(_DepartmentId).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -64,14 +64,14 @@ public final class BDepartmentKey implements Serializable, Comparable<BDepartmen
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getOwner();
+            String _x_ = _Owner;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            long _x_ = getDepartmentId();
+            long _x_ = _DepartmentId;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
@@ -106,9 +106,9 @@ public final class BDepartmentKey implements Serializable, Comparable<BDepartmen
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BDepartmentKey)_o_;
-        if (!getOwner().equals(_b_.getOwner()))
+        if (!_Owner.equals(_b_._Owner))
             return false;
-        if (getDepartmentId() != _b_.getDepartmentId())
+        if (_DepartmentId != _b_._DepartmentId)
             return false;
         return true;
     }
@@ -117,8 +117,8 @@ public final class BDepartmentKey implements Serializable, Comparable<BDepartmen
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + getOwner().hashCode();
-        _h_ = _h_ * _p_ + Long.hashCode(getDepartmentId());
+        _h_ = _h_ * _p_ + _Owner.hashCode();
+        _h_ = _h_ * _p_ + Long.hashCode(_DepartmentId);
         return _h_;
     }
 
@@ -149,7 +149,7 @@ public final class BDepartmentKey implements Serializable, Comparable<BDepartmen
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _Owner = rs.getString(_parents_name_ + "Owner");
-        if (getOwner() == null)
+        if (_Owner == null)
             _Owner = "";
         _DepartmentId = rs.getLong(_parents_name_ + "DepartmentId");
     }
@@ -157,7 +157,7 @@ public final class BDepartmentKey implements Serializable, Comparable<BDepartmen
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Owner", getOwner());
-        st.appendLong(_parents_name_ + "DepartmentId", getDepartmentId());
+        st.appendString(_parents_name_ + "Owner", _Owner);
+        st.appendLong(_parents_name_ + "DepartmentId", _DepartmentId);
     }
 }

@@ -56,7 +56,7 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
     }
 
     public void assign(BBatchTid.Data other) {
-        setTid(other.getTid());
+        setTid(other._Tid);
     }
 
     public void assign(BBatchTid other) {
@@ -216,11 +216,11 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BBatchTid other) {
-        setTid(other.getTid());
+        _Tid = other.getTid();
     }
 
     public void assign(BBatchTid.Data other) {
-        setTid(other.getTid());
+        _Tid = other._Tid;
     }
 
     @Override
@@ -252,7 +252,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBatchTid: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Tid=").append(getTid()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Tid=").append(_Tid).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -273,7 +273,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getTid();
+            var _x_ = _Tid;
             if (_x_.size() != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
@@ -287,7 +287,7 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTid(_o_.ReadBinary(_t_));
+            _Tid = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

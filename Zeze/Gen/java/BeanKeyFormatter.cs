@@ -69,8 +69,8 @@ namespace Zeze.Gen.java
             Tostring.Make(beanKey, sw, "    ");
             Encode.Make(beanKey, sw, "    ");
             Decode.Make(beanKey, sw, "    ");
-            Equal.Make(beanKey, sw, "    ");
-            HashCode.Make(beanKey, sw, "    ");
+            Equal.Make(beanKey, sw, "    ", true);
+            HashCode.Make(beanKey, sw, "    ", true);
             Compare.Make(beanKey, sw, "    ");
             NegativeCheck.Make(beanKey, sw, "    ");
             DecodeResultSet.Make(beanKey, sw, "    ");

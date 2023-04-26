@@ -55,7 +55,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
     public void assign(BLocal other) {
         setLoginVersion(other.getLoginVersion());
         _Datas.clear();
-        for (var e : other.getDatas().entrySet())
+        for (var e : other._Datas.entrySet())
             _Datas.put(e.getKey(), e.getValue().copy());
     }
 
@@ -219,13 +219,13 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Datas", getDatas(), rs.getString(_parents_name_ + "Datas"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Datas", _Datas, rs.getString(_parents_name_ + "Datas"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
-        st.appendString(_parents_name_ + "Datas", Zeze.Serialize.Helper.encodeJson(getDatas()));
+        st.appendString(_parents_name_ + "Datas", Zeze.Serialize.Helper.encodeJson(_Datas));
     }
 }

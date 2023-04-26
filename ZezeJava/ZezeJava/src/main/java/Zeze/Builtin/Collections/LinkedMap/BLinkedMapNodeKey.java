@@ -42,8 +42,8 @@ public final class BLinkedMapNodeKey implements Serializable, Comparable<BLinked
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Name=").append(getName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("NodeId=").append(getNodeId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Name=").append(_Name).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("NodeId=").append(_NodeId).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -64,14 +64,14 @@ public final class BLinkedMapNodeKey implements Serializable, Comparable<BLinked
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getName();
+            String _x_ = _Name;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            long _x_ = getNodeId();
+            long _x_ = _NodeId;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
@@ -106,9 +106,9 @@ public final class BLinkedMapNodeKey implements Serializable, Comparable<BLinked
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BLinkedMapNodeKey)_o_;
-        if (!getName().equals(_b_.getName()))
+        if (!_Name.equals(_b_._Name))
             return false;
-        if (getNodeId() != _b_.getNodeId())
+        if (_NodeId != _b_._NodeId)
             return false;
         return true;
     }
@@ -117,8 +117,8 @@ public final class BLinkedMapNodeKey implements Serializable, Comparable<BLinked
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + getName().hashCode();
-        _h_ = _h_ * _p_ + Long.hashCode(getNodeId());
+        _h_ = _h_ * _p_ + _Name.hashCode();
+        _h_ = _h_ * _p_ + Long.hashCode(_NodeId);
         return _h_;
     }
 
@@ -149,7 +149,7 @@ public final class BLinkedMapNodeKey implements Serializable, Comparable<BLinked
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _Name = rs.getString(_parents_name_ + "Name");
-        if (getName() == null)
+        if (_Name == null)
             _Name = "";
         _NodeId = rs.getLong(_parents_name_ + "NodeId");
     }
@@ -157,7 +157,7 @@ public final class BLinkedMapNodeKey implements Serializable, Comparable<BLinked
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Name", getName());
-        st.appendLong(_parents_name_ + "NodeId", getNodeId());
+        st.appendString(_parents_name_ + "Name", _Name);
+        st.appendLong(_parents_name_ + "NodeId", _NodeId);
     }
 }

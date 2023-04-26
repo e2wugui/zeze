@@ -49,7 +49,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
     }
 
     public void assign(BOnlineCustom other) {
-        _CustomData.assign(other.getCustomData());
+        _CustomData.assign(other._CustomData);
     }
 
     public BOnlineCustom copyIfManaged() {
@@ -158,12 +158,12 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonDynamic(getCustomData(), rs.getString(_parents_name_ + "CustomData"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_CustomData, rs.getString(_parents_name_ + "CustomData"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(getCustomData()));
+        st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(_CustomData));
     }
 }

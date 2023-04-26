@@ -152,7 +152,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         setMethodFullName(other.getMethodFullName());
         setSessionId(other.getSessionId());
         _Hashs.clear();
-        for (var e : other.getHashs().entrySet())
+        for (var e : other._Hashs.entrySet())
             _Hashs.put(e.getKey(), e.getValue().copy());
     }
 
@@ -412,7 +412,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         if (getMethodFullName() == null)
             setMethodFullName("");
         setSessionId(rs.getLong(_parents_name_ + "SessionId"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Hashs", getHashs(), rs.getString(_parents_name_ + "Hashs"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Hashs", _Hashs, rs.getString(_parents_name_ + "Hashs"));
     }
 
     @Override
@@ -423,6 +423,6 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         st.appendLong(_parents_name_ + "SourceProvider", getSourceProvider());
         st.appendString(_parents_name_ + "MethodFullName", getMethodFullName());
         st.appendLong(_parents_name_ + "SessionId", getSessionId());
-        st.appendString(_parents_name_ + "Hashs", Zeze.Serialize.Helper.encodeJson(getHashs()));
+        st.appendString(_parents_name_ + "Hashs", Zeze.Serialize.Helper.encodeJson(_Hashs));
     }
 }

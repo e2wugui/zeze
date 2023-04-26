@@ -99,7 +99,7 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     public void assign(BItem other) {
         setId(other.getId());
         setNumber(other.getNumber());
-        _Item.assign(other.getItem());
+        _Item.assign(other._Item);
     }
 
     public BItem copyIfManaged() {
@@ -259,7 +259,7 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setId(rs.getInt(_parents_name_ + "Id"));
         setNumber(rs.getInt(_parents_name_ + "Number"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(getItem(), rs.getString(_parents_name_ + "Item"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_Item, rs.getString(_parents_name_ + "Item"));
     }
 
     @Override
@@ -267,6 +267,6 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendInt(_parents_name_ + "Id", getId());
         st.appendInt(_parents_name_ + "Number", getNumber());
-        st.appendString(_parents_name_ + "Item", Zeze.Serialize.Helper.encodeJson(getItem()));
+        st.appendString(_parents_name_ + "Item", Zeze.Serialize.Helper.encodeJson(_Item));
     }
 }

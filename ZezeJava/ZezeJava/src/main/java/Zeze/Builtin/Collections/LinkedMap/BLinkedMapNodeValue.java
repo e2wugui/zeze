@@ -69,7 +69,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
 
     public void assign(BLinkedMapNodeValue other) {
         setId(other.getId());
-        _Value.assign(other.getValue());
+        _Value.assign(other._Value);
     }
 
     public BLinkedMapNodeValue copyIfManaged() {
@@ -201,13 +201,13 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
         setId(rs.getString(_parents_name_ + "Id"));
         if (getId() == null)
             setId("");
-        Zeze.Serialize.Helper.decodeJsonDynamic(getValue(), rs.getString(_parents_name_ + "Value"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_Value, rs.getString(_parents_name_ + "Value"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Id", getId());
-        st.appendString(_parents_name_ + "Value", Zeze.Serialize.Helper.encodeJson(getValue()));
+        st.appendString(_parents_name_ + "Value", Zeze.Serialize.Helper.encodeJson(_Value));
     }
 }

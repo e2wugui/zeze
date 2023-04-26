@@ -182,10 +182,10 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         setPhaseName(other.getPhaseName());
         setPhaseDescription(other.getPhaseDescription());
         _prePhaseIds.clear();
-        _prePhaseIds.addAll(other.getPrePhaseIds());
+        _prePhaseIds.addAll(other._prePhaseIds);
         setNextPhaseId(other.getNextPhaseId());
         _subPhases.clear();
-        for (var e : other.getSubPhases().entrySet())
+        for (var e : other._subPhases.entrySet())
             _subPhases.put(e.getKey(), e.getValue().copy());
         setCurrentSubPhaseId(other.getCurrentSubPhaseId());
     }
@@ -486,9 +486,9 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         setPhaseDescription(rs.getString(_parents_name_ + "phaseDescription"));
         if (getPhaseDescription() == null)
             setPhaseDescription("");
-        Zeze.Serialize.Helper.decodeJsonList(getPrePhaseIds(), Long.class, rs.getString(_parents_name_ + "prePhaseIds"));
+        Zeze.Serialize.Helper.decodeJsonList(_prePhaseIds, Long.class, rs.getString(_parents_name_ + "prePhaseIds"));
         setNextPhaseId(rs.getLong(_parents_name_ + "nextPhaseId"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "subPhases", getSubPhases(), rs.getString(_parents_name_ + "subPhases"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "subPhases", _subPhases, rs.getString(_parents_name_ + "subPhases"));
         setCurrentSubPhaseId(rs.getLong(_parents_name_ + "currentSubPhaseId"));
     }
 
@@ -498,9 +498,9 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         st.appendLong(_parents_name_ + "phaseId", getPhaseId());
         st.appendString(_parents_name_ + "phaseName", getPhaseName());
         st.appendString(_parents_name_ + "phaseDescription", getPhaseDescription());
-        st.appendString(_parents_name_ + "prePhaseIds", Zeze.Serialize.Helper.encodeJson(getPrePhaseIds()));
+        st.appendString(_parents_name_ + "prePhaseIds", Zeze.Serialize.Helper.encodeJson(_prePhaseIds));
         st.appendLong(_parents_name_ + "nextPhaseId", getNextPhaseId());
-        st.appendString(_parents_name_ + "subPhases", Zeze.Serialize.Helper.encodeJson(getSubPhases()));
+        st.appendString(_parents_name_ + "subPhases", Zeze.Serialize.Helper.encodeJson(_subPhases));
         st.appendLong(_parents_name_ + "currentSubPhaseId", getCurrentSubPhaseId());
     }
 }

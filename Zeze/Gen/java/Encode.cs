@@ -13,8 +13,9 @@ namespace Zeze.Gen.java
         readonly string bufname;
         readonly StreamWriter sw;
         readonly string prefix;
+        readonly bool isData;
 
-        string Getter => var != null ? var.Getter : varname;
+        string Getter => var != null ? isData ? var.NamePrivate : var.Getter : varname;
         string NamePrivate => var != null ? var.NamePrivate : varname;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
@@ -42,7 +43,7 @@ namespace Zeze.Gen.java
                     continue;
 
                 sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Encode(v, null, v.Id, "_o_", sw, prefix + "        "));
+                v.VariableType.Accept(new Encode(v, null, v.Id, "_o_", sw, prefix + "        ", false));
                 sw.WriteLine(prefix + "    }");
             }
 
@@ -82,7 +83,7 @@ namespace Zeze.Gen.java
                     continue;
 
                 sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Encode(v, null, v.Id, "_o_", sw, prefix + "        "));
+                v.VariableType.Accept(new Encode(v, null, v.Id, "_o_", sw, prefix + "        ", true));
                 sw.WriteLine(prefix + "    }");
             }
 
@@ -91,7 +92,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
-        public Encode(Variable var, string varname, int id, string bufname, StreamWriter sw, string prefix)
+        public Encode(Variable var, string varname, int id, string bufname, StreamWriter sw, string prefix, bool isData)
         {
             this.var = var;
             this.varname = varname;
@@ -99,6 +100,7 @@ namespace Zeze.Gen.java
             this.bufname = bufname;
             this.sw = sw;
             this.prefix = prefix;
+            this.isData = isData;
         }
 
         public void Visit(TypeBool type)
@@ -293,7 +295,7 @@ namespace Zeze.Gen.java
             if (Decode.IsOldStyleEncodeDecodeType(vt))
             {
                 sw.WriteLine(prefix + "    for (var _v_ : _x_) {");
-                vt.Accept(new Encode(null, "_v_", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Encode(null, "_v_", 0, bufname, sw, prefix + "        ", isData));
                 sw.WriteLine(prefix + "    }");
             }
             else
@@ -328,7 +330,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    for (var _e_ : _x_.entrySet()) {");
             if (Decode.IsOldStyleEncodeDecodeType(kt))
             {
-                vt.Accept(new Encode(null, "_e_.getKey()", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Encode(null, "_e_.getKey()", 0, bufname, sw, prefix + "        ", isData));
             }
             else
             {
@@ -336,7 +338,7 @@ namespace Zeze.Gen.java
             }
             if (Decode.IsOldStyleEncodeDecodeType(vt))
             {
-                vt.Accept(new Encode(null, "_e_.getValue()", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Encode(null, "_e_.getValue()", 0, bufname, sw, prefix + "        ", isData));
             }
             else
             {

@@ -83,8 +83,8 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
     }
 
     public void assign(BGetBuckets.Data other) {
-        setDatabase(other.getDatabase());
-        setTable(other.getTable());
+        setDatabase(other._Database);
+        setTable(other._Table);
     }
 
     public void assign(BGetBuckets other) {
@@ -284,13 +284,13 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BGetBuckets other) {
-        setDatabase(other.getDatabase());
-        setTable(other.getTable());
+        _Database = other.getDatabase();
+        _Table = other.getTable();
     }
 
     public void assign(BGetBuckets.Data other) {
-        setDatabase(other.getDatabase());
-        setTable(other.getTable());
+        _Database = other._Database;
+        _Table = other._Table;
     }
 
     @Override
@@ -322,8 +322,8 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BGetBuckets: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(getDatabase()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(getTable()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(_Database).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(_Table).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -344,14 +344,14 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getDatabase();
+            String _x_ = _Database;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            String _x_ = getTable();
+            String _x_ = _Table;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
@@ -365,11 +365,11 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setDatabase(_o_.ReadString(_t_));
+            _Database = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setTable(_o_.ReadString(_t_));
+            _Table = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

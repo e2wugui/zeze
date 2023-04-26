@@ -64,7 +64,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
 
     public void assign(BQueueNodeValue other) {
         setTimestamp(other.getTimestamp());
-        _Value.assign(other.getValue());
+        _Value.assign(other._Value);
     }
 
     public BQueueNodeValue copyIfManaged() {
@@ -201,13 +201,13 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setTimestamp(rs.getLong(_parents_name_ + "Timestamp"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(getValue(), rs.getString(_parents_name_ + "Value"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_Value, rs.getString(_parents_name_ + "Value"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "Timestamp", getTimestamp());
-        st.appendString(_parents_name_ + "Value", Zeze.Serialize.Helper.encodeJson(getValue()));
+        st.appendString(_parents_name_ + "Value", Zeze.Serialize.Helper.encodeJson(_Value));
     }
 }

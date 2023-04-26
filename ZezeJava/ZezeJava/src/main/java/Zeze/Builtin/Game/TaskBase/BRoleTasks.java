@@ -39,10 +39,10 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
 
     public void assign(BRoleTasks other) {
         _processingTasks.clear();
-        for (var e : other.getProcessingTasks().entrySet())
+        for (var e : other._processingTasks.entrySet())
             _processingTasks.put(e.getKey(), e.getValue().copy());
         _finishedTaskIds.clear();
-        _finishedTaskIds.addAll(other.getFinishedTaskIds());
+        _finishedTaskIds.addAll(other._finishedTaskIds);
     }
 
     public BRoleTasks copyIfManaged() {
@@ -224,14 +224,14 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "processingTasks", getProcessingTasks(), rs.getString(_parents_name_ + "processingTasks"));
-        Zeze.Serialize.Helper.decodeJsonSet(getFinishedTaskIds(), Long.class, rs.getString(_parents_name_ + "finishedTaskIds"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "processingTasks", _processingTasks, rs.getString(_parents_name_ + "processingTasks"));
+        Zeze.Serialize.Helper.decodeJsonSet(_finishedTaskIds, Long.class, rs.getString(_parents_name_ + "finishedTaskIds"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "processingTasks", Zeze.Serialize.Helper.encodeJson(getProcessingTasks()));
-        st.appendString(_parents_name_ + "finishedTaskIds", Zeze.Serialize.Helper.encodeJson(getFinishedTaskIds()));
+        st.appendString(_parents_name_ + "processingTasks", Zeze.Serialize.Helper.encodeJson(_processingTasks));
+        st.appendString(_parents_name_ + "finishedTaskIds", Zeze.Serialize.Helper.encodeJson(_finishedTaskIds));
     }
 }

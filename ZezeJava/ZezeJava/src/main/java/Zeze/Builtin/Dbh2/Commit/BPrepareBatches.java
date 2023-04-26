@@ -38,7 +38,7 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
 
     public void assign(BPrepareBatches.Data other) {
         _Datas.clear();
-        for (var e : other.getDatas().entrySet()) {
+        for (var e : other._Datas.entrySet()) {
             Zeze.Builtin.Dbh2.BPrepareBatch data = new Zeze.Builtin.Dbh2.BPrepareBatch();
             data.assign(e.getValue());
             _Datas.put(e.getKey(), data);
@@ -47,7 +47,7 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
 
     public void assign(BPrepareBatches other) {
         _Datas.clear();
-        for (var e : other.getDatas().entrySet())
+        for (var e : other._Datas.entrySet())
             _Datas.put(e.getKey(), e.getValue().copy());
     }
 
@@ -192,13 +192,13 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Datas", getDatas(), rs.getString(_parents_name_ + "Datas"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Datas", _Datas, rs.getString(_parents_name_ + "Datas"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Datas", Zeze.Serialize.Helper.encodeJson(getDatas()));
+        st.appendString(_parents_name_ + "Datas", Zeze.Serialize.Helper.encodeJson(_Datas));
     }
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
@@ -236,7 +236,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     public void assign(BPrepareBatches other) {
         _Datas.clear();
-        for (var e : other.getDatas().entrySet()) {
+        for (var e : other._Datas.entrySet()) {
             Zeze.Builtin.Dbh2.BPrepareBatch.Data data = new Zeze.Builtin.Dbh2.BPrepareBatch.Data();
             data.assign(e.getValue());
             _Datas.put(e.getKey(), data);
@@ -245,7 +245,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     public void assign(BPrepareBatches.Data other) {
         _Datas.clear();
-        for (var e : other.getDatas().entrySet())
+        for (var e : other._Datas.entrySet())
             _Datas.put(e.getKey(), e.getValue().copy());
     }
 

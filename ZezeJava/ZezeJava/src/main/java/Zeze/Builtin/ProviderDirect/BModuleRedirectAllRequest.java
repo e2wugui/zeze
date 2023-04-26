@@ -203,7 +203,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         setModuleId(other.getModuleId());
         setHashCodeConcurrentLevel(other.getHashCodeConcurrentLevel());
         _HashCodes.clear();
-        _HashCodes.addAll(other.getHashCodes());
+        _HashCodes.addAll(other._HashCodes);
         setSourceProvider(other.getSourceProvider());
         setSessionId(other.getSessionId());
         setMethodFullName(other.getMethodFullName());
@@ -493,7 +493,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setModuleId(rs.getInt(_parents_name_ + "ModuleId"));
         setHashCodeConcurrentLevel(rs.getInt(_parents_name_ + "HashCodeConcurrentLevel"));
-        Zeze.Serialize.Helper.decodeJsonSet(getHashCodes(), Integer.class, rs.getString(_parents_name_ + "HashCodes"));
+        Zeze.Serialize.Helper.decodeJsonSet(_HashCodes, Integer.class, rs.getString(_parents_name_ + "HashCodes"));
         setSourceProvider(rs.getLong(_parents_name_ + "SourceProvider"));
         setSessionId(rs.getLong(_parents_name_ + "SessionId"));
         setMethodFullName(rs.getString(_parents_name_ + "MethodFullName"));
@@ -512,7 +512,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendInt(_parents_name_ + "ModuleId", getModuleId());
         st.appendInt(_parents_name_ + "HashCodeConcurrentLevel", getHashCodeConcurrentLevel());
-        st.appendString(_parents_name_ + "HashCodes", Zeze.Serialize.Helper.encodeJson(getHashCodes()));
+        st.appendString(_parents_name_ + "HashCodes", Zeze.Serialize.Helper.encodeJson(_HashCodes));
         st.appendLong(_parents_name_ + "SourceProvider", getSourceProvider());
         st.appendLong(_parents_name_ + "SessionId", getSessionId());
         st.appendString(_parents_name_ + "MethodFullName", getMethodFullName());

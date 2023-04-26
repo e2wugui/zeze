@@ -26,7 +26,7 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
 
     public void assign(BJobs other) {
         _Jobs.clear();
-        for (var e : other.getJobs().entrySet())
+        for (var e : other._Jobs.entrySet())
             _Jobs.put(e.getKey(), e.getValue().copy());
     }
 
@@ -162,12 +162,12 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Jobs", getJobs(), rs.getString(_parents_name_ + "Jobs"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Jobs", _Jobs, rs.getString(_parents_name_ + "Jobs"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Jobs", Zeze.Serialize.Helper.encodeJson(getJobs()));
+        st.appendString(_parents_name_ + "Jobs", Zeze.Serialize.Helper.encodeJson(_Jobs));
     }
 }

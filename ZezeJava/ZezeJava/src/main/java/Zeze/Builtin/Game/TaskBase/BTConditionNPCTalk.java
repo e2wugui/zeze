@@ -70,9 +70,9 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
     public void assign(BTConditionNPCTalk other) {
         setNpcId(other.getNpcId());
         _dialogOptions.clear();
-        _dialogOptions.putAll(other.getDialogOptions());
+        _dialogOptions.putAll(other._dialogOptions);
         _dialogSelected.clear();
-        _dialogSelected.putAll(other.getDialogSelected());
+        _dialogSelected.putAll(other._dialogSelected);
     }
 
     public BTConditionNPCTalk copyIfManaged() {
@@ -286,15 +286,15 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setNpcId(rs.getLong(_parents_name_ + "npcId"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "dialogOptions", getDialogOptions(), rs.getString(_parents_name_ + "dialogOptions"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "dialogSelected", getDialogSelected(), rs.getString(_parents_name_ + "dialogSelected"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "dialogOptions", _dialogOptions, rs.getString(_parents_name_ + "dialogOptions"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "dialogSelected", _dialogSelected, rs.getString(_parents_name_ + "dialogSelected"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "npcId", getNpcId());
-        st.appendString(_parents_name_ + "dialogOptions", Zeze.Serialize.Helper.encodeJson(getDialogOptions()));
-        st.appendString(_parents_name_ + "dialogSelected", Zeze.Serialize.Helper.encodeJson(getDialogSelected()));
+        st.appendString(_parents_name_ + "dialogOptions", Zeze.Serialize.Helper.encodeJson(_dialogOptions));
+        st.appendString(_parents_name_ + "dialogSelected", Zeze.Serialize.Helper.encodeJson(_dialogSelected));
     }
 }

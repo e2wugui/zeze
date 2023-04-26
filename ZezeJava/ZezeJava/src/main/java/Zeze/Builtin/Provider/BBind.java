@@ -41,10 +41,10 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
 
     public void assign(BBind other) {
         _modules.clear();
-        for (var e : other.getModules().entrySet())
+        for (var e : other._modules.entrySet())
             _modules.put(e.getKey(), e.getValue().copy());
         _linkSids.clear();
-        _linkSids.addAll(other.getLinkSids());
+        _linkSids.addAll(other._linkSids);
     }
 
     public BBind copyIfManaged() {
@@ -226,14 +226,14 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "modules", getModules(), rs.getString(_parents_name_ + "modules"));
-        Zeze.Serialize.Helper.decodeJsonSet(getLinkSids(), Long.class, rs.getString(_parents_name_ + "linkSids"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "modules", _modules, rs.getString(_parents_name_ + "modules"));
+        Zeze.Serialize.Helper.decodeJsonSet(_linkSids, Long.class, rs.getString(_parents_name_ + "linkSids"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "modules", Zeze.Serialize.Helper.encodeJson(getModules()));
-        st.appendString(_parents_name_ + "linkSids", Zeze.Serialize.Helper.encodeJson(getLinkSids()));
+        st.appendString(_parents_name_ + "modules", Zeze.Serialize.Helper.encodeJson(_modules));
+        st.appendString(_parents_name_ + "linkSids", Zeze.Serialize.Helper.encodeJson(_linkSids));
     }
 }

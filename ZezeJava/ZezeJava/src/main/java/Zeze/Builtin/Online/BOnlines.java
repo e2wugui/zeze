@@ -26,7 +26,7 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
 
     public void assign(BOnlines other) {
         _Logins.clear();
-        for (var e : other.getLogins().entrySet())
+        for (var e : other._Logins.entrySet())
             _Logins.put(e.getKey(), e.getValue().copy());
     }
 
@@ -171,12 +171,12 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Logins", getLogins(), rs.getString(_parents_name_ + "Logins"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Logins", _Logins, rs.getString(_parents_name_ + "Logins"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Logins", Zeze.Serialize.Helper.encodeJson(getLogins()));
+        st.appendString(_parents_name_ + "Logins", Zeze.Serialize.Helper.encodeJson(_Logins));
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Runtime.InteropServices;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
@@ -201,13 +200,13 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             Log.Make(bean, sw, "    ");
-            Tostring.Make(bean, sw, "    ");
+            Tostring.Make(bean, sw, "    ", false);
             Encode.Make(bean, sw, "    ");
             Decode.Make(bean, sw, "    ");
             if (bean.Equalable)
             {
                 Equal.Make(bean, sw, "    ", false);
-                HashCode.Make(bean, sw, "    ");
+                HashCode.Make(bean, sw, "    ", false);
             }
             InitChildrenTableKey.Make(bean, sw, "    ");
             // InitChildrenTableKey.MakeReset(bean, sw, "    ");

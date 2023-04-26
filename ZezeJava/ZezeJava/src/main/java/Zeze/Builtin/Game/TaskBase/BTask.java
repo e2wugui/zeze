@@ -257,12 +257,12 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         setTaskName(other.getTaskName());
         setTaskDescription(other.getTaskDescription());
         _preTaskIds.clear();
-        _preTaskIds.addAll(other.getPreTaskIds());
+        _preTaskIds.addAll(other._preTaskIds);
         setCurrentPhaseId(other.getCurrentPhaseId());
         _taskPhases.clear();
-        for (var e : other.getTaskPhases().entrySet())
+        for (var e : other._taskPhases.entrySet())
             _taskPhases.put(e.getKey(), e.getValue().copy());
-        _extendedData.assign(other.getExtendedData());
+        _extendedData.assign(other._extendedData);
     }
 
     public BTask copyIfManaged() {
@@ -621,10 +621,10 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         setTaskDescription(rs.getString(_parents_name_ + "taskDescription"));
         if (getTaskDescription() == null)
             setTaskDescription("");
-        Zeze.Serialize.Helper.decodeJsonList(getPreTaskIds(), Long.class, rs.getString(_parents_name_ + "preTaskIds"));
+        Zeze.Serialize.Helper.decodeJsonList(_preTaskIds, Long.class, rs.getString(_parents_name_ + "preTaskIds"));
         setCurrentPhaseId(rs.getLong(_parents_name_ + "currentPhaseId"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "taskPhases", getTaskPhases(), rs.getString(_parents_name_ + "taskPhases"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(getExtendedData(), rs.getString(_parents_name_ + "extendedData"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "taskPhases", _taskPhases, rs.getString(_parents_name_ + "taskPhases"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_extendedData, rs.getString(_parents_name_ + "extendedData"));
     }
 
     @Override
@@ -636,9 +636,9 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         st.appendInt(_parents_name_ + "taskState", getTaskState());
         st.appendString(_parents_name_ + "taskName", getTaskName());
         st.appendString(_parents_name_ + "taskDescription", getTaskDescription());
-        st.appendString(_parents_name_ + "preTaskIds", Zeze.Serialize.Helper.encodeJson(getPreTaskIds()));
+        st.appendString(_parents_name_ + "preTaskIds", Zeze.Serialize.Helper.encodeJson(_preTaskIds));
         st.appendLong(_parents_name_ + "currentPhaseId", getCurrentPhaseId());
-        st.appendString(_parents_name_ + "taskPhases", Zeze.Serialize.Helper.encodeJson(getTaskPhases()));
-        st.appendString(_parents_name_ + "extendedData", Zeze.Serialize.Helper.encodeJson(getExtendedData()));
+        st.appendString(_parents_name_ + "taskPhases", Zeze.Serialize.Helper.encodeJson(_taskPhases));
+        st.appendString(_parents_name_ + "extendedData", Zeze.Serialize.Helper.encodeJson(_extendedData));
     }
 }

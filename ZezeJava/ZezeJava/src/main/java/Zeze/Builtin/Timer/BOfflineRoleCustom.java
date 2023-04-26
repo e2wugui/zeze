@@ -172,7 +172,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         setRoleId(other.getRoleId());
         setLoginVersion(other.getLoginVersion());
         setHandleName(other.getHandleName());
-        _CustomData.assign(other.getCustomData());
+        _CustomData.assign(other._CustomData);
         setOnlineSetName(other.getOnlineSetName());
     }
 
@@ -399,7 +399,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         setHandleName(rs.getString(_parents_name_ + "HandleName"));
         if (getHandleName() == null)
             setHandleName("");
-        Zeze.Serialize.Helper.decodeJsonDynamic(getCustomData(), rs.getString(_parents_name_ + "CustomData"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_CustomData, rs.getString(_parents_name_ + "CustomData"));
         setOnlineSetName(rs.getString(_parents_name_ + "OnlineSetName"));
         if (getOnlineSetName() == null)
             setOnlineSetName("");
@@ -412,7 +412,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         st.appendLong(_parents_name_ + "RoleId", getRoleId());
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
         st.appendString(_parents_name_ + "HandleName", getHandleName());
-        st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(getCustomData()));
+        st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(_CustomData));
         st.appendString(_parents_name_ + "OnlineSetName", getOnlineSetName());
     }
 }

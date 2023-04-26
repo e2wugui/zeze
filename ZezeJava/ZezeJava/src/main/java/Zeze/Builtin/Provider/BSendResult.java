@@ -26,7 +26,7 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
 
     public void assign(BSendResult other) {
         _ErrorLinkSids.clear();
-        _ErrorLinkSids.addAll(other.getErrorLinkSids());
+        _ErrorLinkSids.addAll(other._ErrorLinkSids);
     }
 
     public BSendResult copyIfManaged() {
@@ -161,12 +161,12 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(getErrorLinkSids(), Long.class, rs.getString(_parents_name_ + "ErrorLinkSids"));
+        Zeze.Serialize.Helper.decodeJsonList(_ErrorLinkSids, Long.class, rs.getString(_parents_name_ + "ErrorLinkSids"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "ErrorLinkSids", Zeze.Serialize.Helper.encodeJson(getErrorLinkSids()));
+        st.appendString(_parents_name_ + "ErrorLinkSids", Zeze.Serialize.Helper.encodeJson(_ErrorLinkSids));
     }
 }

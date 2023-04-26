@@ -298,7 +298,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         setLinkSid(rs.getLong(_parents_name_ + "linkSid"));
         setReason(rs.getInt(_parents_name_ + "reason"));
         parents.add("userState");
-        getUserState().decodeResultSet(parents, rs);
+        _userState.decodeResultSet(parents, rs);
         parents.remove(parents.size() - 1);
     }
 
@@ -309,7 +309,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         st.appendLong(_parents_name_ + "linkSid", getLinkSid());
         st.appendInt(_parents_name_ + "reason", getReason());
         parents.add("userState");
-        getUserState().encodeSQLStatement(parents, st);
+        _userState.encodeSQLStatement(parents, st);
         parents.remove(parents.size() - 1);
     }
 }

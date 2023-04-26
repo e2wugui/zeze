@@ -48,8 +48,8 @@ public final class BDAGNodeKey implements Serializable, Comparable<BDAGNodeKey> 
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.DAG.BDAGNodeKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Name=").append(getName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ValueId=").append(getValueId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Name=").append(_Name).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ValueId=").append(_ValueId).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -70,14 +70,14 @@ public final class BDAGNodeKey implements Serializable, Comparable<BDAGNodeKey> 
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getName();
+            String _x_ = _Name;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            String _x_ = getValueId();
+            String _x_ = _ValueId;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
@@ -112,9 +112,9 @@ public final class BDAGNodeKey implements Serializable, Comparable<BDAGNodeKey> 
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BDAGNodeKey)_o_;
-        if (!getName().equals(_b_.getName()))
+        if (!_Name.equals(_b_._Name))
             return false;
-        if (!getValueId().equals(_b_.getValueId()))
+        if (!_ValueId.equals(_b_._ValueId))
             return false;
         return true;
     }
@@ -123,8 +123,8 @@ public final class BDAGNodeKey implements Serializable, Comparable<BDAGNodeKey> 
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + getName().hashCode();
-        _h_ = _h_ * _p_ + getValueId().hashCode();
+        _h_ = _h_ * _p_ + _Name.hashCode();
+        _h_ = _h_ * _p_ + _ValueId.hashCode();
         return _h_;
     }
 
@@ -153,17 +153,17 @@ public final class BDAGNodeKey implements Serializable, Comparable<BDAGNodeKey> 
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _Name = rs.getString(_parents_name_ + "Name");
-        if (getName() == null)
+        if (_Name == null)
             _Name = "";
         _ValueId = rs.getString(_parents_name_ + "ValueId");
-        if (getValueId() == null)
+        if (_ValueId == null)
             _ValueId = "";
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Name", getName());
-        st.appendString(_parents_name_ + "ValueId", getValueId());
+        st.appendString(_parents_name_ + "Name", _Name);
+        st.appendString(_parents_name_ + "ValueId", _ValueId);
     }
 }

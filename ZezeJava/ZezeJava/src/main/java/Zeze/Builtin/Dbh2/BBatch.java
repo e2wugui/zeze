@@ -134,19 +134,19 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
 
     public void assign(BBatch.Data other) {
         _Puts.clear();
-        _Puts.putAll(other.getPuts());
+        _Puts.putAll(other._Puts);
         _Deletes.clear();
-        _Deletes.addAll(other.getDeletes());
-        setQueryIp(other.getQueryIp());
-        setQueryPort(other.getQueryPort());
-        setTid(other.getTid());
+        _Deletes.addAll(other._Deletes);
+        setQueryIp(other._QueryIp);
+        setQueryPort(other._QueryPort);
+        setTid(other._Tid);
     }
 
     public void assign(BBatch other) {
         _Puts.clear();
-        _Puts.putAll(other.getPuts());
+        _Puts.putAll(other._Puts);
         _Deletes.clear();
-        _Deletes.addAll(other.getDeletes());
+        _Deletes.addAll(other._Deletes);
         setQueryIp(other.getQueryIp());
         setQueryPort(other.getQueryPort());
         setTid(other.getTid());
@@ -383,8 +383,8 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Puts", getPuts(), rs.getString(_parents_name_ + "Puts"));
-        Zeze.Serialize.Helper.decodeJsonSet(getDeletes(), Zeze.Net.Binary.class, rs.getString(_parents_name_ + "Deletes"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Puts", _Puts, rs.getString(_parents_name_ + "Puts"));
+        Zeze.Serialize.Helper.decodeJsonSet(_Deletes, Zeze.Net.Binary.class, rs.getString(_parents_name_ + "Deletes"));
         setQueryIp(rs.getString(_parents_name_ + "QueryIp"));
         if (getQueryIp() == null)
             setQueryIp("");
@@ -397,8 +397,8 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Puts", Zeze.Serialize.Helper.encodeJson(getPuts()));
-        st.appendString(_parents_name_ + "Deletes", Zeze.Serialize.Helper.encodeJson(getDeletes()));
+        st.appendString(_parents_name_ + "Puts", Zeze.Serialize.Helper.encodeJson(_Puts));
+        st.appendString(_parents_name_ + "Deletes", Zeze.Serialize.Helper.encodeJson(_Deletes));
         st.appendString(_parents_name_ + "QueryIp", getQueryIp());
         st.appendInt(_parents_name_ + "QueryPort", getQueryPort());
         st.appendBinary(_parents_name_ + "Tid", getTid());
@@ -497,22 +497,22 @@ public static final class Data extends Zeze.Transaction.Data {
 
     public void assign(BBatch other) {
         _Puts.clear();
-        _Puts.putAll(other.getPuts());
+        _Puts.putAll(other._Puts);
         _Deletes.clear();
-        _Deletes.addAll(other.getDeletes());
-        setQueryIp(other.getQueryIp());
-        setQueryPort(other.getQueryPort());
-        setTid(other.getTid());
+        _Deletes.addAll(other._Deletes);
+        _QueryIp = other.getQueryIp();
+        _QueryPort = other.getQueryPort();
+        _Tid = other.getTid();
     }
 
     public void assign(BBatch.Data other) {
         _Puts.clear();
-        _Puts.putAll(other.getPuts());
+        _Puts.putAll(other._Puts);
         _Deletes.clear();
-        _Deletes.addAll(other.getDeletes());
-        setQueryIp(other.getQueryIp());
-        setQueryPort(other.getQueryPort());
-        setTid(other.getTid());
+        _Deletes.addAll(other._Deletes);
+        _QueryIp = other._QueryIp;
+        _QueryPort = other._QueryPort;
+        _Tid = other._Tid;
     }
 
     @Override
@@ -567,9 +567,9 @@ public static final class Data extends Zeze.Transaction.Data {
             sb.append(Zeze.Util.Str.indent(level));
         }
         sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("QueryIp=").append(getQueryIp()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("QueryPort=").append(getQueryPort()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Tid=").append(getTid()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("QueryIp=").append(_QueryIp).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("QueryPort=").append(_QueryPort).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Tid=").append(_Tid).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -612,21 +612,21 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
-            String _x_ = getQueryIp();
+            String _x_ = _QueryIp;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            int _x_ = getQueryPort();
+            int _x_ = _QueryPort;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
-            var _x_ = getTid();
+            var _x_ = _Tid;
             if (_x_.size() != 0) {
                 _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
@@ -664,15 +664,15 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setQueryIp(_o_.ReadString(_t_));
+            _QueryIp = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
-            setQueryPort(_o_.ReadInt(_t_));
+            _QueryPort = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 5) {
-            setTid(_o_.ReadBinary(_t_));
+            _Tid = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

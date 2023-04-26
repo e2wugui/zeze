@@ -70,7 +70,7 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
 
     public void assign(BTaskCondition other) {
         setConditionType(other.getConditionType());
-        _extendedData.assign(other.getExtendedData());
+        _extendedData.assign(other._extendedData);
     }
 
     public BTaskCondition copyIfManaged() {
@@ -206,13 +206,13 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         setConditionType(rs.getString(_parents_name_ + "conditionType"));
         if (getConditionType() == null)
             setConditionType("");
-        Zeze.Serialize.Helper.decodeJsonDynamic(getExtendedData(), rs.getString(_parents_name_ + "extendedData"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_extendedData, rs.getString(_parents_name_ + "extendedData"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "conditionType", getConditionType());
-        st.appendString(_parents_name_ + "extendedData", Zeze.Serialize.Helper.encodeJson(getExtendedData()));
+        st.appendString(_parents_name_ + "extendedData", Zeze.Serialize.Helper.encodeJson(_extendedData));
     }
 }

@@ -62,11 +62,11 @@ public final class BConcurrentKey implements Serializable, Comparable<BConcurren
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Rank.BConcurrentKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("RankType=").append(getRankType()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ConcurrentId=").append(getConcurrentId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TimeType=").append(getTimeType()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Year=").append(getYear()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Offset=").append(getOffset()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("RankType=").append(_RankType).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ConcurrentId=").append(_ConcurrentId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TimeType=").append(_TimeType).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Year=").append(_Year).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Offset=").append(_Offset).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -87,35 +87,35 @@ public final class BConcurrentKey implements Serializable, Comparable<BConcurren
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            int _x_ = getRankType();
+            int _x_ = _RankType;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
-            int _x_ = getConcurrentId();
+            int _x_ = _ConcurrentId;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
-            int _x_ = getTimeType();
+            int _x_ = _TimeType;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
-            int _x_ = getYear();
+            int _x_ = _Year;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
-            long _x_ = getOffset();
+            long _x_ = _Offset;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
@@ -162,15 +162,15 @@ public final class BConcurrentKey implements Serializable, Comparable<BConcurren
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BConcurrentKey)_o_;
-        if (getRankType() != _b_.getRankType())
+        if (_RankType != _b_._RankType)
             return false;
-        if (getConcurrentId() != _b_.getConcurrentId())
+        if (_ConcurrentId != _b_._ConcurrentId)
             return false;
-        if (getTimeType() != _b_.getTimeType())
+        if (_TimeType != _b_._TimeType)
             return false;
-        if (getYear() != _b_.getYear())
+        if (_Year != _b_._Year)
             return false;
-        if (getOffset() != _b_.getOffset())
+        if (_Offset != _b_._Offset)
             return false;
         return true;
     }
@@ -179,11 +179,11 @@ public final class BConcurrentKey implements Serializable, Comparable<BConcurren
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + Integer.hashCode(getRankType());
-        _h_ = _h_ * _p_ + Integer.hashCode(getConcurrentId());
-        _h_ = _h_ * _p_ + Integer.hashCode(getTimeType());
-        _h_ = _h_ * _p_ + Integer.hashCode(getYear());
-        _h_ = _h_ * _p_ + Long.hashCode(getOffset());
+        _h_ = _h_ * _p_ + Integer.hashCode(_RankType);
+        _h_ = _h_ * _p_ + Integer.hashCode(_ConcurrentId);
+        _h_ = _h_ * _p_ + Integer.hashCode(_TimeType);
+        _h_ = _h_ * _p_ + Integer.hashCode(_Year);
+        _h_ = _h_ * _p_ + Long.hashCode(_Offset);
         return _h_;
     }
 
@@ -240,10 +240,10 @@ public final class BConcurrentKey implements Serializable, Comparable<BConcurren
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "RankType", getRankType());
-        st.appendInt(_parents_name_ + "ConcurrentId", getConcurrentId());
-        st.appendInt(_parents_name_ + "TimeType", getTimeType());
-        st.appendInt(_parents_name_ + "Year", getYear());
-        st.appendLong(_parents_name_ + "Offset", getOffset());
+        st.appendInt(_parents_name_ + "RankType", _RankType);
+        st.appendInt(_parents_name_ + "ConcurrentId", _ConcurrentId);
+        st.appendInt(_parents_name_ + "TimeType", _TimeType);
+        st.appendInt(_parents_name_ + "Year", _Year);
+        st.appendLong(_parents_name_ + "Offset", _Offset);
     }
 }

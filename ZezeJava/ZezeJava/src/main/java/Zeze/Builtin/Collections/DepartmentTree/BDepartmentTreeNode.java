@@ -133,12 +133,12 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     public void assign(BDepartmentTreeNode other) {
         setParentDepartment(other.getParentDepartment());
         _Childs.clear();
-        _Childs.putAll(other.getChilds());
+        _Childs.putAll(other._Childs);
         setName(other.getName());
         _Managers.clear();
-        for (var e : other.getManagers().entrySet())
+        for (var e : other._Managers.entrySet())
             _Managers.put(e.getKey(), e.getValue().copy());
-        _Data.assign(other.getData());
+        _Data.assign(other._Data);
     }
 
     public BDepartmentTreeNode copyIfManaged() {
@@ -384,21 +384,21 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setParentDepartment(rs.getLong(_parents_name_ + "ParentDepartment"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Childs", getChilds(), rs.getString(_parents_name_ + "Childs"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Childs", _Childs, rs.getString(_parents_name_ + "Childs"));
         setName(rs.getString(_parents_name_ + "Name"));
         if (getName() == null)
             setName("");
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Managers", getManagers(), rs.getString(_parents_name_ + "Managers"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(getData(), rs.getString(_parents_name_ + "Data"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Managers", _Managers, rs.getString(_parents_name_ + "Managers"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_Data, rs.getString(_parents_name_ + "Data"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "ParentDepartment", getParentDepartment());
-        st.appendString(_parents_name_ + "Childs", Zeze.Serialize.Helper.encodeJson(getChilds()));
+        st.appendString(_parents_name_ + "Childs", Zeze.Serialize.Helper.encodeJson(_Childs));
         st.appendString(_parents_name_ + "Name", getName());
-        st.appendString(_parents_name_ + "Managers", Zeze.Serialize.Helper.encodeJson(getManagers()));
-        st.appendString(_parents_name_ + "Data", Zeze.Serialize.Helper.encodeJson(getData()));
+        st.appendString(_parents_name_ + "Managers", Zeze.Serialize.Helper.encodeJson(_Managers));
+        st.appendString(_parents_name_ + "Data", Zeze.Serialize.Helper.encodeJson(_Data));
     }
 }

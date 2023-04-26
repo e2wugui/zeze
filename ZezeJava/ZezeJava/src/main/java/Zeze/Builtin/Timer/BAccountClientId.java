@@ -47,8 +47,8 @@ public final class BAccountClientId implements Serializable, Comparable<BAccount
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BAccountClientId: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Account=").append(getAccount()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ClientId=").append(getClientId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Account=").append(_Account).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ClientId=").append(_ClientId).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -69,14 +69,14 @@ public final class BAccountClientId implements Serializable, Comparable<BAccount
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getAccount();
+            String _x_ = _Account;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            String _x_ = getClientId();
+            String _x_ = _ClientId;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
@@ -111,9 +111,9 @@ public final class BAccountClientId implements Serializable, Comparable<BAccount
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BAccountClientId)_o_;
-        if (!getAccount().equals(_b_.getAccount()))
+        if (!_Account.equals(_b_._Account))
             return false;
-        if (!getClientId().equals(_b_.getClientId()))
+        if (!_ClientId.equals(_b_._ClientId))
             return false;
         return true;
     }
@@ -122,8 +122,8 @@ public final class BAccountClientId implements Serializable, Comparable<BAccount
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + getAccount().hashCode();
-        _h_ = _h_ * _p_ + getClientId().hashCode();
+        _h_ = _h_ * _p_ + _Account.hashCode();
+        _h_ = _h_ * _p_ + _ClientId.hashCode();
         return _h_;
     }
 
@@ -152,17 +152,17 @@ public final class BAccountClientId implements Serializable, Comparable<BAccount
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _Account = rs.getString(_parents_name_ + "Account");
-        if (getAccount() == null)
+        if (_Account == null)
             _Account = "";
         _ClientId = rs.getString(_parents_name_ + "ClientId");
-        if (getClientId() == null)
+        if (_ClientId == null)
             _ClientId = "";
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Account", getAccount());
-        st.appendString(_parents_name_ + "ClientId", getClientId());
+        st.appendString(_parents_name_ + "Account", _Account);
+        st.appendString(_parents_name_ + "ClientId", _ClientId);
     }
 }

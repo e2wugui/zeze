@@ -5,7 +5,7 @@ namespace Zeze.Gen.java
 {
     public class HashCode : Visitor
     {
-		public static void Make(BeanKey bean, StreamWriter sw, string prefix)
+		public static void Make(BeanKey bean, StreamWriter sw, string prefix, bool isData)
 		{
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public int hashCode() {");
@@ -15,7 +15,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "    int _h_ = 0;");
                 foreach (Variable var in bean.Variables)
                 {
-                    HashCode e = new HashCode(var);
+                    HashCode e = new HashCode(var, isData);
                     var.VariableType.Accept(e);
                     sw.WriteLine(prefix + "    _h_ = _h_ * _p_ + " + e.text + ";");
                 }
@@ -27,7 +27,7 @@ namespace Zeze.Gen.java
 			sw.WriteLine();
 		}
 
-        public static void Make(Bean bean, StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix, bool isData)
         {
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public int hashCode() {");
@@ -39,7 +39,7 @@ namespace Zeze.Gen.java
                 {
                     if (bean.Version.Equals(var.Name))
                         continue;
-                    HashCode e = new HashCode(var);
+                    HashCode e = new HashCode(var, isData);
                     var.VariableType.Accept(e);
                     sw.WriteLine(prefix + "    _h_ = _h_ * _p_ + " + e.text + ";");
                 }
@@ -53,115 +53,117 @@ namespace Zeze.Gen.java
 
         readonly Variable var;
         string text;
+        string getter;
 
-        public HashCode(Variable var)
+        public HashCode(Variable var, bool isData)
         {
             this.var = var;
+            getter = isData ? var.NamePrivate : var.Getter;
         }
 
         public void Visit(TypeBool type)
         {
-            text = $"Boolean.hashCode({var.Getter})";
+            text = $"Boolean.hashCode({getter})";
         }
 
         public void Visit(TypeByte type)
         {
-            text = $"Byte.hashCode({var.Getter})";
+            text = $"Byte.hashCode({getter})";
         }
 
         public void Visit(TypeShort type)
         {
-            text = $"Short.hashCode({var.Getter})";
+            text = $"Short.hashCode({getter})";
         }
 
         public void Visit(TypeInt type)
         {
-            text = $"Integer.hashCode({var.Getter})";
+            text = $"Integer.hashCode({getter})";
         }
 
         public void Visit(TypeLong type)
         {
-            text = $"Long.hashCode({var.Getter})";
+            text = $"Long.hashCode({getter})";
         }
 
         public void Visit(TypeFloat type)
         {
-            text = $"Float.hashCode({var.Getter})";
+            text = $"Float.hashCode({getter})";
         }
 
         public void Visit(TypeDouble type)
         {
-            text = $"Double.hashCode({var.Getter})";
+            text = $"Double.hashCode({getter})";
         }
 
         public void Visit(TypeBinary type)
         {
-            text = var.Getter + ".hashCode()";
+            text = getter + ".hashCode()";
         }
 
         public void Visit(TypeString type)
         {
-            text = var.Getter + ".hashCode()";
+            text = getter + ".hashCode()";
         }
 
         public void Visit(TypeList type)
         {
-            text = var.Getter + ".hashCode()";
+            text = var.NamePrivate + ".hashCode()";
         }
 
         public void Visit(TypeSet type)
         {
-            text = var.Getter + ".hashCode()";
+            text = var.NamePrivate + ".hashCode()";
         }
 
         public void Visit(TypeMap type)
         {
-            text = var.Getter + ".hashCode()";
+            text = var.NamePrivate + ".hashCode()";
         }
 
         public void Visit(Bean type)
         {
-            text = var.Getter + ".hashCode()";
+            text = var.NamePrivate + ".hashCode()";
         }
 
         public void Visit(BeanKey type)
         {
-            text = var.Getter + ".hashCode()";
+            text = getter + ".hashCode()";
         }
 
         public void Visit(TypeDynamic type)
         {
-            text = var.Getter + ".hashCode()";
+            text = var.NamePrivate + ".hashCode()";
         }
 
         public void Visit(TypeQuaternion type)
         {
-            text = var.Getter + ".hashCode()";
+            text = getter + ".hashCode()";
         }
 
         public void Visit(TypeVector2 type)
         {
-            text = var.Getter + ".hashCode()";
+            text = getter + ".hashCode()";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            text = var.Getter + ".hashCode()";
+            text = getter + ".hashCode()";
         }
 
         public void Visit(TypeVector3 type)
         {
-            text = var.Getter + ".hashCode()";
+            text = getter + ".hashCode()";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            text = var.Getter + ".hashCode()";
+            text = getter + ".hashCode()";
         }
 
         public void Visit(TypeVector4 type)
         {
-            text = var.Getter + ".hashCode()";
+            text = getter + ".hashCode()";
         }
     }
 }

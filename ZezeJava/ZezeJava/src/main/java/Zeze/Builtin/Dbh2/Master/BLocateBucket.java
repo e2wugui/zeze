@@ -116,9 +116,9 @@ public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocat
     }
 
     public void assign(BLocateBucket.Data other) {
-        setDatabase(other.getDatabase());
-        setTable(other.getTable());
-        setKey(other.getKey());
+        setDatabase(other._Database);
+        setTable(other._Table);
+        setKey(other._Key);
     }
 
     public void assign(BLocateBucket other) {
@@ -364,15 +364,15 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BLocateBucket other) {
-        setDatabase(other.getDatabase());
-        setTable(other.getTable());
-        setKey(other.getKey());
+        _Database = other.getDatabase();
+        _Table = other.getTable();
+        _Key = other.getKey();
     }
 
     public void assign(BLocateBucket.Data other) {
-        setDatabase(other.getDatabase());
-        setTable(other.getTable());
-        setKey(other.getKey());
+        _Database = other._Database;
+        _Table = other._Table;
+        _Key = other._Key;
     }
 
     @Override
@@ -404,9 +404,9 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BLocateBucket: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(getDatabase()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(getTable()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(getKey()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(_Database).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(_Table).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_Key).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -427,21 +427,21 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getDatabase();
+            String _x_ = _Database;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            String _x_ = getTable();
+            String _x_ = _Table;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            var _x_ = getKey();
+            var _x_ = _Key;
             if (_x_.size() != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
@@ -455,15 +455,15 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setDatabase(_o_.ReadString(_t_));
+            _Database = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setTable(_o_.ReadString(_t_));
+            _Table = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setKey(_o_.ReadBinary(_t_));
+            _Key = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

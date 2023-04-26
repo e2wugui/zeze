@@ -26,7 +26,7 @@ public final class BTConditionSubmitItemEvent extends Zeze.Transaction.Bean impl
 
     public void assign(BTConditionSubmitItemEvent other) {
         _items.clear();
-        _items.putAll(other.getItems());
+        _items.putAll(other._items);
     }
 
     public BTConditionSubmitItemEvent copyIfManaged() {
@@ -168,12 +168,12 @@ public final class BTConditionSubmitItemEvent extends Zeze.Transaction.Bean impl
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "items", getItems(), rs.getString(_parents_name_ + "items"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "items", _items, rs.getString(_parents_name_ + "items"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "items", Zeze.Serialize.Helper.encodeJson(getItems()));
+        st.appendString(_parents_name_ + "items", Zeze.Serialize.Helper.encodeJson(_items));
     }
 }

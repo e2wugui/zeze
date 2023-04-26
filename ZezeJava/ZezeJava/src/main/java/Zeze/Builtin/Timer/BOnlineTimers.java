@@ -27,7 +27,7 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
 
     public void assign(BOnlineTimers other) {
         _TimerIds.clear();
-        for (var e : other.getTimerIds().entrySet())
+        for (var e : other._TimerIds.entrySet())
             _TimerIds.put(e.getKey(), e.getValue().copy());
     }
 
@@ -163,12 +163,12 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "TimerIds", getTimerIds(), rs.getString(_parents_name_ + "TimerIds"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "TimerIds", _TimerIds, rs.getString(_parents_name_ + "TimerIds"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "TimerIds", Zeze.Serialize.Helper.encodeJson(getTimerIds()));
+        st.appendString(_parents_name_ + "TimerIds", Zeze.Serialize.Helper.encodeJson(_TimerIds));
     }
 }

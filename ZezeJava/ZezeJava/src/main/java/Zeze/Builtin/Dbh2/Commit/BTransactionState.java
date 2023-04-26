@@ -65,15 +65,15 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
     }
 
     public void assign(BTransactionState.Data other) {
-        setState(other.getState());
+        setState(other._State);
         _Buckets.clear();
-        _Buckets.addAll(other.getBuckets());
+        _Buckets.addAll(other._Buckets);
     }
 
     public void assign(BTransactionState other) {
         setState(other.getState());
         _Buckets.clear();
-        _Buckets.addAll(other.getBuckets());
+        _Buckets.addAll(other._Buckets);
     }
 
     public BTransactionState copyIfManaged() {
@@ -227,14 +227,14 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setState(rs.getInt(_parents_name_ + "State"));
-        Zeze.Serialize.Helper.decodeJsonList(getBuckets(), String.class, rs.getString(_parents_name_ + "Buckets"));
+        Zeze.Serialize.Helper.decodeJsonList(_Buckets, String.class, rs.getString(_parents_name_ + "Buckets"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendInt(_parents_name_ + "State", getState());
-        st.appendString(_parents_name_ + "Buckets", Zeze.Serialize.Helper.encodeJson(getBuckets()));
+        st.appendString(_parents_name_ + "Buckets", Zeze.Serialize.Helper.encodeJson(_Buckets));
     }
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
@@ -286,15 +286,15 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BTransactionState other) {
-        setState(other.getState());
+        _State = other.getState();
         _Buckets.clear();
-        _Buckets.addAll(other.getBuckets());
+        _Buckets.addAll(other._Buckets);
     }
 
     public void assign(BTransactionState.Data other) {
-        setState(other.getState());
+        _State = other._State;
         _Buckets.clear();
-        _Buckets.addAll(other.getBuckets());
+        _Buckets.addAll(other._Buckets);
     }
 
     @Override
@@ -326,7 +326,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Commit.BTransactionState: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(getState()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(_State).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Buckets=[");
         if (!_Buckets.isEmpty()) {
             sb.append(System.lineSeparator());
@@ -358,7 +358,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            int _x_ = getState();
+            int _x_ = _State;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
@@ -382,7 +382,7 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setState(_o_.ReadInt(_t_));
+            _State = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {

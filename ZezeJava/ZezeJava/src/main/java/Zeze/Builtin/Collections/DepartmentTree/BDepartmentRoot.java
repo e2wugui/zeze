@@ -133,12 +133,12 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     public void assign(BDepartmentRoot other) {
         setRoot(other.getRoot());
         _Managers.clear();
-        for (var e : other.getManagers().entrySet())
+        for (var e : other._Managers.entrySet())
             _Managers.put(e.getKey(), e.getValue().copy());
         setNextDepartmentId(other.getNextDepartmentId());
         _Childs.clear();
-        _Childs.putAll(other.getChilds());
-        _Data.assign(other.getData());
+        _Childs.putAll(other._Childs);
+        _Data.assign(other._Data);
     }
 
     public BDepartmentRoot copyIfManaged() {
@@ -386,19 +386,19 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         setRoot(rs.getString(_parents_name_ + "Root"));
         if (getRoot() == null)
             setRoot("");
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Managers", getManagers(), rs.getString(_parents_name_ + "Managers"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Managers", _Managers, rs.getString(_parents_name_ + "Managers"));
         setNextDepartmentId(rs.getLong(_parents_name_ + "NextDepartmentId"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Childs", getChilds(), rs.getString(_parents_name_ + "Childs"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(getData(), rs.getString(_parents_name_ + "Data"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Childs", _Childs, rs.getString(_parents_name_ + "Childs"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_Data, rs.getString(_parents_name_ + "Data"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Root", getRoot());
-        st.appendString(_parents_name_ + "Managers", Zeze.Serialize.Helper.encodeJson(getManagers()));
+        st.appendString(_parents_name_ + "Managers", Zeze.Serialize.Helper.encodeJson(_Managers));
         st.appendLong(_parents_name_ + "NextDepartmentId", getNextDepartmentId());
-        st.appendString(_parents_name_ + "Childs", Zeze.Serialize.Helper.encodeJson(getChilds()));
-        st.appendString(_parents_name_ + "Data", Zeze.Serialize.Helper.encodeJson(getData()));
+        st.appendString(_parents_name_ + "Childs", Zeze.Serialize.Helper.encodeJson(_Childs));
+        st.appendString(_parents_name_ + "Data", Zeze.Serialize.Helper.encodeJson(_Data));
     }
 }

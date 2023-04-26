@@ -171,8 +171,8 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
 
     public void assign(BTaskEvent other) {
         setRoleId(other.getRoleId());
-        _eventType.assign(other.getEventType());
-        _eventBean.assign(other.getEventBean());
+        _eventType.assign(other._eventType);
+        _eventBean.assign(other._eventBean);
     }
 
     public BTaskEvent copyIfManaged() {
@@ -328,15 +328,15 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setRoleId(rs.getLong(_parents_name_ + "roleId"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(getEventType(), rs.getString(_parents_name_ + "eventType"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(getEventBean(), rs.getString(_parents_name_ + "eventBean"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_eventType, rs.getString(_parents_name_ + "eventType"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_eventBean, rs.getString(_parents_name_ + "eventBean"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "roleId", getRoleId());
-        st.appendString(_parents_name_ + "eventType", Zeze.Serialize.Helper.encodeJson(getEventType()));
-        st.appendString(_parents_name_ + "eventBean", Zeze.Serialize.Helper.encodeJson(getEventBean()));
+        st.appendString(_parents_name_ + "eventType", Zeze.Serialize.Helper.encodeJson(_eventType));
+        st.appendString(_parents_name_ + "eventBean", Zeze.Serialize.Helper.encodeJson(_eventBean));
     }
 }

@@ -184,7 +184,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     public void assign(BArchOnlineTimer other) {
         setAccount(other.getAccount());
         setClientId(other.getClientId());
-        _TimerObj.assign(other.getTimerObj());
+        _TimerObj.assign(other._TimerObj);
         setLoginVersion(other.getLoginVersion());
         setSerialId(other.getSerialId());
     }
@@ -392,7 +392,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         setClientId(rs.getString(_parents_name_ + "ClientId"));
         if (getClientId() == null)
             setClientId("");
-        Zeze.Serialize.Helper.decodeJsonDynamic(getTimerObj(), rs.getString(_parents_name_ + "TimerObj"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_TimerObj, rs.getString(_parents_name_ + "TimerObj"));
         setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
         setSerialId(rs.getLong(_parents_name_ + "SerialId"));
     }
@@ -402,7 +402,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Account", getAccount());
         st.appendString(_parents_name_ + "ClientId", getClientId());
-        st.appendString(_parents_name_ + "TimerObj", Zeze.Serialize.Helper.encodeJson(getTimerObj()));
+        st.appendString(_parents_name_ + "TimerObj", Zeze.Serialize.Helper.encodeJson(_TimerObj));
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
         st.appendLong(_parents_name_ + "SerialId", getSerialId());
     }

@@ -26,7 +26,7 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
 
     public void assign(BRankList other) {
         _RankList.clear();
-        for (var e : other.getRankList())
+        for (var e : other._RankList)
             _RankList.add(e.copy());
     }
 
@@ -164,12 +164,12 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(getRankList(), Zeze.Builtin.Game.Rank.BRankValue.class, rs.getString(_parents_name_ + "RankList"));
+        Zeze.Serialize.Helper.decodeJsonList(_RankList, Zeze.Builtin.Game.Rank.BRankValue.class, rs.getString(_parents_name_ + "RankList"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "RankList", Zeze.Serialize.Helper.encodeJson(getRankList()));
+        st.appendString(_parents_name_ + "RankList", Zeze.Serialize.Helper.encodeJson(_RankList));
     }
 }

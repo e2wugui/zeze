@@ -136,7 +136,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     public void assign(BTransmit other) {
         setActionName(other.getActionName());
         _Roles.clear();
-        _Roles.addAll(other.getRoles());
+        _Roles.addAll(other._Roles);
         setSender(other.getSender());
         setParameter(other.getParameter());
         setOnlineSetName(other.getOnlineSetName());
@@ -359,7 +359,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         setActionName(rs.getString(_parents_name_ + "ActionName"));
         if (getActionName() == null)
             setActionName("");
-        Zeze.Serialize.Helper.decodeJsonSet(getRoles(), Long.class, rs.getString(_parents_name_ + "Roles"));
+        Zeze.Serialize.Helper.decodeJsonSet(_Roles, Long.class, rs.getString(_parents_name_ + "Roles"));
         setSender(rs.getLong(_parents_name_ + "Sender"));
         setParameter(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Parameter")));
         if (getParameter() == null)
@@ -373,7 +373,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "ActionName", getActionName());
-        st.appendString(_parents_name_ + "Roles", Zeze.Serialize.Helper.encodeJson(getRoles()));
+        st.appendString(_parents_name_ + "Roles", Zeze.Serialize.Helper.encodeJson(_Roles));
         st.appendLong(_parents_name_ + "Sender", getSender());
         st.appendBinary(_parents_name_ + "Parameter", getParameter());
         st.appendString(_parents_name_ + "OnlineSetName", getOnlineSetName());
