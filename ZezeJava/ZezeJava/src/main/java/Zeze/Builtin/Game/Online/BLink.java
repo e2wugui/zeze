@@ -117,8 +117,8 @@ public final class BLink implements Serializable, Comparable<BLink> {
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + _LinkName.hashCode();
-        _h_ = _h_ * _p_ + Long.hashCode(_LinkSid);
+        _h_ = _h_ * _p_ + getLinkName().hashCode();
+        _h_ = _h_ * _p_ + Long.hashCode(getLinkSid());
         return _h_;
     }
 

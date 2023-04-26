@@ -122,8 +122,8 @@ public final class BLinkedMapKey implements Serializable, Comparable<BLinkedMapK
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + _Name.hashCode();
-        _h_ = _h_ * _p_ + _ValueId.hashCode();
+        _h_ = _h_ * _p_ + getName().hashCode();
+        _h_ = _h_ * _p_ + getValueId().hashCode();
         return _h_;
     }
 

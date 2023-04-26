@@ -43,18 +43,20 @@ public final class ProcedureStatistics {
 			sorted.put(null == statResult ? 0L : statResult.sum(), e);
 		}
 		var sb = new StringBuilder();
-		sb.append("ProcedureStatistics:\n");
 		var it = sorted.descendingMap().entrySet().iterator();
 		for (int i = 0; i < 20 && it.hasNext(); ++i) {
 			var e = it.next();
 			if (e.getKey() == 0)
 				break;
 			var stat = e.getValue();
-			sb.append("\t").append(stat.getProcedureName());
-			stat.buildString(",", sb, "");
-			sb.append("\n");
+			if (sb.length() == 0)
+				sb.append("ProcedureStatistics:\n");
+			sb.append('\t').append(stat.getProcedureName());
+			stat.buildString(", ", sb, "");
+			sb.append('\n');
 		}
-		logger.info(sb.toString());
+		if (sb.length() > 0)
+			logger.info(sb.toString());
 	}
 
 	public synchronized void stop() {

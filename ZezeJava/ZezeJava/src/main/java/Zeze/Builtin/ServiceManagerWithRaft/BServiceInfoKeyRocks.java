@@ -122,8 +122,8 @@ public final class BServiceInfoKeyRocks implements Serializable, Comparable<BSer
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + _ServiceName.hashCode();
-        _h_ = _h_ * _p_ + _ServiceIdentity.hashCode();
+        _h_ = _h_ * _p_ + getServiceName().hashCode();
+        _h_ = _h_ * _p_ + getServiceIdentity().hashCode();
         return _h_;
     }
 

@@ -72,6 +72,8 @@ namespace Zeze.Gen.javadata
                     sw.WriteLine($"{prefix}    if (typeId == {real.Key}L)");
                     sw.WriteLine($"{prefix}        return new {real.Value.FullName}.Data();");
                 }
+                sw.WriteLine($"{prefix}    if (typeId == Zeze.Transaction.EmptyBean.Data.TYPEID)");
+                sw.WriteLine($"{prefix}        return new Zeze.Transaction.EmptyBean.Data();");
                 sw.WriteLine($"{prefix}    return null;");
             }
             else

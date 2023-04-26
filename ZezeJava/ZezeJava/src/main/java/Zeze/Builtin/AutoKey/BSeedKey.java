@@ -117,8 +117,8 @@ public final class BSeedKey implements Serializable, Comparable<BSeedKey> {
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + Integer.hashCode(_ServerId);
-        _h_ = _h_ * _p_ + _KeyName.hashCode();
+        _h_ = _h_ * _p_ + Integer.hashCode(getServerId());
+        _h_ = _h_ * _p_ + getKeyName().hashCode();
         return _h_;
     }
 

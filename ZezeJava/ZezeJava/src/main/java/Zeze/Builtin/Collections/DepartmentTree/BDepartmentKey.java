@@ -117,8 +117,8 @@ public final class BDepartmentKey implements Serializable, Comparable<BDepartmen
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + _Owner.hashCode();
-        _h_ = _h_ * _p_ + Long.hashCode(_DepartmentId);
+        _h_ = _h_ * _p_ + getOwner().hashCode();
+        _h_ = _h_ * _p_ + Long.hashCode(getDepartmentId());
         return _h_;
     }
 

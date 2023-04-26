@@ -17,8 +17,8 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		super(variableId);
 		bean = new EmptyBean();
 		typeId = EmptyBean.TYPEID;
-		this.getBean = get;
-		this.createBean = create;
+		getBean = get;
+		createBean = create;
 	}
 
 	@Override
@@ -33,23 +33,26 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return log != null ? log.value : bean;
 	}
 
+	public final void setBean(@Nullable Bean bean) {
+		if (bean == null)
+			bean = new EmptyBean();
+		setBeanWithSpecialTypeId(getBean.applyAsLong(bean), bean);
+	}
+
 	@SuppressWarnings("deprecation")
-	public final void setBean(@NotNull Bean value) {
-		//noinspection ConstantValue
-		if (value == null)
-			throw new IllegalArgumentException("null value");
+	private void setBeanWithSpecialTypeId(long specialTypeId, @NotNull Bean bean) {
 		if (!isManaged()) {
-			typeId = getBean.applyAsLong(value);
-			bean = value;
+			typeId = specialTypeId;
+			this.bean = bean;
 			return;
 		}
 		//noinspection DataFlowIssue
-		value.initRootInfoWithRedo(rootInfo, this);
-		value.variableId(1); // 只有一个变量
+		bean.initRootInfoWithRedo(rootInfo, this);
+		bean.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
 		//noinspection DataFlowIssue
 		var log = (LogDynamic)txn.logGetOrAdd(parent().objectId() + variableId(), this::createLogBean);
-		log.setValue(value);
+		log.setValue(specialTypeId, bean);
 	}
 
 	@Override
@@ -79,10 +82,15 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	public @NotNull Bean newBean(long typeId) {
-		bean = createBean.apply(typeId);
-		if (bean == null)
-			bean = new EmptyBean();
-		this.typeId = typeId != 0 ? typeId : getBean.applyAsLong(bean);
+		var bean = createBean.apply(typeId);
+		if (bean == null) {
+			if (typeId == EmptyBean.TYPEID)
+				bean = new EmptyBean();
+			else
+				throw new IllegalStateException("incompatible DynamicBean typeId=" + typeId);
+		} else if (typeId == EmptyBean.TYPEID && !(bean instanceof EmptyBean))
+			typeId = getBean.applyAsLong(bean); // 再确认一下真正的typeId
+		setBeanWithSpecialTypeId(typeId, bean);
 		return bean;
 	}
 
@@ -90,13 +98,21 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		setBean(other.getBean().copy());
 	}
 
+	public final void assign(@NotNull DynamicBeanData other) {
+		setBean(other.getBean().toBean());
+	}
+
+	@Override
+	public void assign(@NotNull Data data) {
+		assign((DynamicBeanData)data);
+	}
+
 	public final boolean isEmpty() {
-		return typeId == EmptyBean.TYPEID && bean.getClass() == EmptyBean.class;
+		return getTypeId() == EmptyBean.TYPEID && getBean().getClass() == EmptyBean.class;
 	}
 
 	public final void reset() {
-		bean = new EmptyBean();
-		typeId = EmptyBean.TYPEID;
+		setBeanWithSpecialTypeId(EmptyBean.TYPEID, new EmptyBean());
 	}
 
 	@Override
@@ -112,41 +128,22 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return copy;
 	}
 
-	public void assign(@NotNull DynamicBeanData other) {
-		var bean = createBean.apply(other.typeId());
-		bean.assign(other.getBean());
-		setBean(bean);
-	}
-
-	@SuppressWarnings("deprecation")
-	private void setBeanWithSpecialTypeId(long specialTypeId, @NotNull Bean bean) {
-		if (!isManaged()) {
-			typeId = specialTypeId;
-			this.bean = bean;
-			return;
-		}
-		//noinspection DataFlowIssue
-		bean.initRootInfoWithRedo(rootInfo, this);
-		bean.variableId(1); // 只有一个变量
-		var txn = Transaction.getCurrentVerifyWrite(this);
-		//noinspection DataFlowIssue
-		var log = (LogDynamic)txn.logGetOrAdd(parent().objectId() + variableId(), this::createLogBean);
-		log.setValue(bean);
-	}
-
 	@Override
 	public void decode(@NotNull ByteBuffer bb) {
 		// 由于可能在事务中执行，这里仅修改Bean
 		// TypeId 在 Bean 提交时才修改，但是要在事务中读到最新值，参见 TypeId 的 getter 实现。
-		long typeId = bb.ReadLong();
-		Bean real = createBean.apply(typeId);
-		if (real != null) {
-			real.decode(bb);
-			setBeanWithSpecialTypeId(typeId, real);
-		} else {
-			bb.SkipUnknownField(ByteBuffer.BEAN);
-			setBeanWithSpecialTypeId(EmptyBean.TYPEID, new EmptyBean());
-		}
+		var typeId = bb.ReadLong();
+		var real = createBean.apply(typeId);
+		if (real == null) {
+			if (ByteBuffer.IGNORE_INCOMPATIBLE_FIELD || typeId == EmptyBean.TYPEID) {
+				typeId = EmptyBean.TYPEID;
+				real = new EmptyBean();
+			} else
+				throw new IllegalStateException("incompatible DynamicBean typeId=" + typeId);
+		} else if (typeId == EmptyBean.TYPEID && !(real instanceof EmptyBean))
+			typeId = getBean.applyAsLong(real); // 再确认一下真正的typeId
+		real.decode(bb);
+		setBeanWithSpecialTypeId(typeId, real);
 	}
 
 	@Override
@@ -177,7 +174,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 
 	@Override
 	public void mapKey(@NotNull Object mapKey) {
-		bean.mapKey(mapKey);
+		getBean().mapKey(mapKey);
 	}
 
 	@Override
@@ -202,7 +199,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 
 	@Override
 	public int hashCode() {
-		return Long.hashCode(typeId) ^ bean.hashCode();
+		return Long.hashCode(getTypeId()) ^ getBean().hashCode();
 	}
 
 	@Override
@@ -212,6 +209,6 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		if (o == null || getClass() != o.getClass())
 			return false;
 		var that = (DynamicBean)o;
-		return typeId == that.typeId && bean.equals(that.bean);
+		return getTypeId() == that.getTypeId() && getBean().equals(that.getBean());
 	}
 }

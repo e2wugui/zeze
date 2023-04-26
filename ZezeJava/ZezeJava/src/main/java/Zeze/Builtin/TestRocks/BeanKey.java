@@ -117,8 +117,8 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + Integer.hashCode(_Id);
-        _h_ = _h_ * _p_ + _Name.hashCode();
+        _h_ = _h_ * _p_ + Integer.hashCode(getId());
+        _h_ = _h_ * _p_ + getName().hashCode();
         return _h_;
     }
 

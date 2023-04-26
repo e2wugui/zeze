@@ -93,7 +93,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + Long.hashCode(_TaskId);
+        _h_ = _h_ * _p_ + Long.hashCode(getTaskId());
         return _h_;
     }
 

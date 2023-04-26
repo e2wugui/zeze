@@ -50,10 +50,9 @@ public class LogDynamic extends LogBean {
 		}
 	}
 
-	public void setValue(Bean bean) {
+	void setValue(long typeId, Bean bean) {
+		specialTypeId = typeId;
 		value = bean;
-		var self = (DynamicBean)getThis();
-		specialTypeId = self.getBean.applyAsLong(bean);
 	}
 
 	@Override

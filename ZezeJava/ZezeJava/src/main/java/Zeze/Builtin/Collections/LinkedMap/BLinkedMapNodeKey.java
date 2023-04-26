@@ -117,8 +117,8 @@ public final class BLinkedMapNodeKey implements Serializable, Comparable<BLinked
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + _Name.hashCode();
-        _h_ = _h_ * _p_ + Long.hashCode(_NodeId);
+        _h_ = _h_ * _p_ + getName().hashCode();
+        _h_ = _h_ * _p_ + Long.hashCode(getNodeId());
         return _h_;
     }
 

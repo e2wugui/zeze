@@ -7,29 +7,32 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class DynamicBeanData extends Data {
-	@NotNull Data bean;
+	@NotNull Data data;
 	long typeId;
 	transient final @NotNull ToLongFunction<Data> getData;
 	transient final @NotNull LongFunction<Data> createData;
 
 	public DynamicBeanData(int variableId, @NotNull ToLongFunction<Data> get, @NotNull LongFunction<Data> create) {
 		super(variableId);
-		bean = new EmptyBean.Data();
+		data = new EmptyBean.Data();
 		typeId = EmptyBean.Data.TYPEID;
 		getData = get;
 		createData = create;
 	}
 
 	public final @NotNull Data getBean() {
-		return bean;
+		return data;
 	}
 
-	public final void setBean(@NotNull Data value) {
-		//noinspection ConstantValue
-		if (value == null)
-			throw new IllegalArgumentException("null value");
-		typeId = getData.applyAsLong(value);
-		bean = value;
+	public final void setBean(@Nullable Data data) {
+		if (data == null)
+			data = new EmptyBean.Data();
+		setBeanWithSpecialTypeId(getData.applyAsLong(data), data);
+	}
+
+	private void setBeanWithSpecialTypeId(long specialTypeId, @NotNull Data data) {
+		typeId = specialTypeId;
+		this.data = data;
 	}
 
 	public long getTypeId() {
@@ -49,19 +52,30 @@ public class DynamicBeanData extends Data {
 		return createData;
 	}
 
+	public @NotNull Data newData(long typeId) {
+		var data = createData.apply(typeId);
+		if (data == null) {
+			if (typeId == EmptyBean.Data.TYPEID)
+				data = new EmptyBean.Data();
+			else
+				throw new IllegalStateException("incompatible DynamicBeanData typeId=" + typeId);
+		} else if (typeId == EmptyBean.Data.TYPEID && !(data instanceof EmptyBean.Data))
+			typeId = getData.applyAsLong(data); // 再确认一下真正的typeId
+		setBeanWithSpecialTypeId(typeId, data);
+		return data;
+	}
+
 	public final void assign(@NotNull DynamicBeanData other) {
 		setBean(other.getBean().copy());
 	}
 
 	public final void assign(@NotNull DynamicBean other) {
-		var data = createData.apply(other.typeId());
-		data.assign(other.getBean());
-		setBean(data);
+		setBean(other.getBean().toData());
 	}
 
 	@Override
-	public void assign(@NotNull Bean o) {
-		assign((DynamicBean)o);
+	public void assign(@NotNull Bean bean) {
+		assign((DynamicBean)bean);
 	}
 
 	@Deprecated // unsupported
@@ -71,35 +85,36 @@ public class DynamicBeanData extends Data {
 	}
 
 	public final boolean isEmpty() {
-		return typeId == EmptyBean.TYPEID && bean.getClass() == EmptyBean.Data.class;
+		return typeId == EmptyBean.Data.TYPEID && data.getClass() == EmptyBean.Data.class;
+	}
+
+	public final void reset() {
+		data = new EmptyBean.Data();
+		typeId = EmptyBean.Data.TYPEID;
 	}
 
 	@Override
 	public @NotNull DynamicBeanData copy() {
 		var copy = new DynamicBeanData(variableId(), getData, createData);
-		copy.bean = getBean().copy();
+		copy.data = getBean().copy();
 		copy.typeId = getTypeId();
 		return copy;
 	}
 
-	private void setBeanWithSpecialTypeId(long specialTypeId, @NotNull Data bean) {
-		typeId = specialTypeId;
-		this.bean = bean;
-	}
-
 	@Override
 	public void decode(@NotNull ByteBuffer bb) {
-		// 由于可能在事务中执行，这里仅修改Bean
-		// TypeId 在 Bean 提交时才修改，但是要在事务中读到最新值，参见 TypeId 的 getter 实现。
-		long typeId = bb.ReadLong();
+		var typeId = bb.ReadLong();
 		var real = createData.apply(typeId);
-		if (real != null) {
-			real.decode(bb);
-			setBeanWithSpecialTypeId(typeId, real);
-		} else {
-			bb.SkipUnknownField(ByteBuffer.BEAN);
-			setBeanWithSpecialTypeId(EmptyBean.TYPEID, new EmptyBean.Data());
-		}
+		if (real == null) {
+			if (ByteBuffer.IGNORE_INCOMPATIBLE_FIELD || typeId == EmptyBean.Data.TYPEID) {
+				typeId = EmptyBean.Data.TYPEID;
+				real = new EmptyBean.Data();
+			} else
+				throw new IllegalStateException("incompatible DynamicBeanData typeId=" + typeId);
+		} else if (typeId == EmptyBean.Data.TYPEID && !(real instanceof EmptyBean.Data))
+			typeId = getData.applyAsLong(real); // 再确认一下真正的typeId
+		real.decode(bb);
+		setBeanWithSpecialTypeId(typeId, real);
 	}
 
 	@Override
@@ -120,7 +135,7 @@ public class DynamicBeanData extends Data {
 
 	@Override
 	public int hashCode() {
-		return Long.hashCode(typeId) ^ bean.hashCode();
+		return Long.hashCode(typeId) ^ data.hashCode();
 	}
 
 	@Override
@@ -130,6 +145,6 @@ public class DynamicBeanData extends Data {
 		if (o == null || getClass() != o.getClass())
 			return false;
 		var that = (DynamicBeanData)o;
-		return typeId == that.typeId && bean.equals(that.bean);
+		return typeId == that.typeId && data.equals(that.data);
 	}
 }

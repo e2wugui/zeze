@@ -122,8 +122,8 @@ public final class BAccountClientId implements Serializable, Comparable<BAccount
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + _Account.hashCode();
-        _h_ = _h_ * _p_ + _ClientId.hashCode();
+        _h_ = _h_ * _p_ + getAccount().hashCode();
+        _h_ = _h_ * _p_ + getClientId().hashCode();
         return _h_;
     }
 

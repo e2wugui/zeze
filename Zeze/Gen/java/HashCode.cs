@@ -15,7 +15,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "    int _h_ = 0;");
                 foreach (Variable var in bean.Variables)
                 {
-                    HashCode e = new HashCode(var.NamePrivate);
+                    HashCode e = new HashCode(var);
                     var.VariableType.Accept(e);
                     sw.WriteLine(prefix + "    _h_ = _h_ * _p_ + " + e.text + ";");
                 }
@@ -39,7 +39,7 @@ namespace Zeze.Gen.java
                 {
                     if (bean.Version.Equals(var.Name))
                         continue;
-                    HashCode e = new HashCode(var.NamePrivate);
+                    HashCode e = new HashCode(var);
                     var.VariableType.Accept(e);
                     sw.WriteLine(prefix + "    _h_ = _h_ * _p_ + " + e.text + ";");
                 }
@@ -51,117 +51,117 @@ namespace Zeze.Gen.java
             // sw.WriteLine();
         }
 
-        readonly string varname;
+        readonly Variable var;
         string text;
 
-        public HashCode(string varname)
+        public HashCode(Variable var)
         {
-            this.varname = varname;
+            this.var = var;
         }
 
         public void Visit(TypeBool type)
         {
-            text = $"Boolean.hashCode({varname})";
+            text = $"Boolean.hashCode({var.Getter})";
         }
 
         public void Visit(TypeByte type)
         {
-            text = $"Byte.hashCode({varname})";
+            text = $"Byte.hashCode({var.Getter})";
         }
 
         public void Visit(TypeShort type)
         {
-            text = $"Short.hashCode({varname})";
+            text = $"Short.hashCode({var.Getter})";
         }
 
         public void Visit(TypeInt type)
         {
-            text = $"Integer.hashCode({varname})";
+            text = $"Integer.hashCode({var.Getter})";
         }
 
         public void Visit(TypeLong type)
         {
-            text = $"Long.hashCode({varname})";
+            text = $"Long.hashCode({var.Getter})";
         }
 
         public void Visit(TypeFloat type)
         {
-            text = $"Float.hashCode({varname})";
+            text = $"Float.hashCode({var.Getter})";
         }
 
         public void Visit(TypeDouble type)
         {
-            text = $"Double.hashCode({varname})";
+            text = $"Double.hashCode({var.Getter})";
         }
 
         public void Visit(TypeBinary type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(TypeString type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(TypeList type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(TypeSet type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(TypeMap type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(Bean type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(BeanKey type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(TypeDynamic type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(TypeQuaternion type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(TypeVector2 type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(TypeVector3 type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
 
         public void Visit(TypeVector4 type)
         {
-            text = varname + ".hashCode()";
+            text = var.Getter + ".hashCode()";
         }
     }
 }

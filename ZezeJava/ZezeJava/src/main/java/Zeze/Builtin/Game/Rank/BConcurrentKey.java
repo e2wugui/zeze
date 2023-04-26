@@ -179,11 +179,11 @@ public final class BConcurrentKey implements Serializable, Comparable<BConcurren
     public int hashCode() {
         final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _p_ + Integer.hashCode(_RankType);
-        _h_ = _h_ * _p_ + Integer.hashCode(_ConcurrentId);
-        _h_ = _h_ * _p_ + Integer.hashCode(_TimeType);
-        _h_ = _h_ * _p_ + Integer.hashCode(_Year);
-        _h_ = _h_ * _p_ + Long.hashCode(_Offset);
+        _h_ = _h_ * _p_ + Integer.hashCode(getRankType());
+        _h_ = _h_ * _p_ + Integer.hashCode(getConcurrentId());
+        _h_ = _h_ * _p_ + Integer.hashCode(getTimeType());
+        _h_ = _h_ * _p_ + Integer.hashCode(getYear());
+        _h_ = _h_ * _p_ + Long.hashCode(getOffset());
         return _h_;
     }
 
