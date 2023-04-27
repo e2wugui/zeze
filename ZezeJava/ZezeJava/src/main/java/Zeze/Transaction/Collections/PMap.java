@@ -147,7 +147,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 			public Iterator<Entry<K, V>> iterator() {
 				return new Iterator<>() {
 					private final Iterator<Map.Entry<K, V>> it = getMap().entrySet().iterator();
-					Map.Entry<K, V> next;
+					private Map.Entry<K, V> next;
 
 					@Override
 					public boolean hasNext() {

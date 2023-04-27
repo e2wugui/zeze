@@ -1,5 +1,7 @@
 package Zeze.Transaction.Collections;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -111,7 +113,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 	public @NotNull Iterator<V> iterator() {
 		return new Iterator<>() {
 			private final Iterator<V> it = getList().iterator();
-			private V next;
+			private int index;
 
 			@Override
 			public boolean hasNext() {
@@ -120,12 +122,85 @@ public abstract class PList<V> extends Collection implements List<V> {
 
 			@Override
 			public V next() {
-				return next = it.next();
+				var v = it.next();
+				index = Math.abs(index) + 1;
+				return v;
 			}
 
 			@Override
 			public void remove() {
-				PList.this.remove(next);
+				int i = index;
+				if (i <= 0)
+					throw new IllegalStateException(); // removed or not next
+				PList.this.remove(--i);
+				index = -i;
+			}
+		};
+	}
+
+	@Override
+	public @NotNull ListIterator<V> listIterator() {
+		return listIterator(0);
+	}
+
+	@Override
+	public @NotNull ListIterator<V> listIterator(int index) {
+		return new ListIterator<>() {
+			private final Iterator<V> it = getList().iterator();
+			private int index;
+
+			@Override
+			public boolean hasNext() {
+				return it.hasNext();
+			}
+
+			@Override
+			public V next() {
+				var v = it.next();
+				index = Math.abs(index) + 1;
+				return v;
+			}
+
+			@Override
+			public boolean hasPrevious() {
+				throw new UnsupportedOperationException();
+			}
+
+			@Override
+			public V previous() {
+				throw new UnsupportedOperationException();
+			}
+
+			@Override
+			public int nextIndex() {
+				throw new UnsupportedOperationException();
+			}
+
+			@Override
+			public int previousIndex() {
+				throw new UnsupportedOperationException();
+			}
+
+			@Override
+			public void remove() {
+				int i = index;
+				if (i <= 0)
+					throw new IllegalStateException(); // removed or not next
+				PList.this.remove(--i);
+				index = -i;
+			}
+
+			@Override
+			public void set(V v) {
+				int i = index;
+				if (i <= 0)
+					throw new IllegalStateException(); // removed or not next
+				PList.this.set(i - 1, v);
+			}
+
+			@Override
+			public void add(V v) {
+				throw new UnsupportedOperationException();
 			}
 		};
 	}
@@ -158,27 +233,26 @@ public abstract class PList<V> extends Collection implements List<V> {
 		throw new UnsupportedOperationException();
 	}
 
-	@Deprecated // unsupported
 	@Override
 	public void replaceAll(@NotNull UnaryOperator<V> operator) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Deprecated // unsupported
-	@Override
-	public @NotNull ListIterator<V> listIterator() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Deprecated // unsupported
-	@Override
-	public @NotNull ListIterator<V> listIterator(int index) {
-		throw new UnsupportedOperationException();
+		var list = new ArrayList<V>(size());
+		for (V v : this)
+			list.add(operator.apply(v));
+		clear();
+		addAll(list);
 	}
 
 	@Deprecated // unsupported
 	@Override
 	public @NotNull List<V> subList(int fromIndex, int toIndex) {
 		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public void sort(@NotNull Comparator<? super V> c) {
+		var list = new ArrayList<>(this);
+		list.sort(c);
+		clear();
+		addAll(list);
 	}
 }
