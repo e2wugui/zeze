@@ -38,7 +38,7 @@ namespace Zeze {
 		Vector2Int(const Vector2& v) : x((int)v.x), y((int)v.y) {}
 		Vector2Int(const Vector2Int& v) : x(v.x), y(v.y) {}
 
-		virtual int CompareTo(const Vector2Int& other) const {
+		int CompareTo(const Vector2Int& other) const {
 			if (&other == this)
 				return 0;
 			int c;
@@ -97,11 +97,11 @@ namespace Zeze {
 		Vector3Int(const Vector3& v) : Vector2Int((int)v.x, (int)v.y), z((int)v.z) {}
 		Vector3Int(const Vector3Int& v) : Vector2Int(v.x, v.y), z(v.z) {}
 
-		virtual bool isZero() const {
+		virtual bool isZero() const override {
 			return x == 0 && y == 0 && z == 0;
 		}
 
-		virtual int CompareTo(const Vector3Int& other) const {
+		int CompareTo(const Vector3Int& other) const {
 			if (&other == this)
 				return 0;
 			int c;

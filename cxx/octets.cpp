@@ -50,10 +50,9 @@ namespace limax {
 				memcpy(data, src.data, len);
 		}
 
-
 		~Rep()
 		{
-			delete data;
+			delete[] data;
 		}
 
 		inline void* GetData()

@@ -45,17 +45,13 @@ namespace Zeze {
 
 	public:
 		DynamicBean()
-			: bean(new EmptyBean())
+			: bean(new EmptyBean()), typeId(EmptyBean::TYPEID)
 		{
-			typeId = EmptyBean::TYPEID;
 		}
 
 		DynamicBean(std::function<int64_t(Bean*)> get, std::function<Bean*(int64_t)> create)
-			: bean(new EmptyBean())
+			: bean(new EmptyBean()), typeId(EmptyBean::TYPEID), getBean(get), createBean(create)
 		{
-			typeId = EmptyBean::TYPEID;
-			getBean = get;
-			createBean = create;
 		}
 
 		virtual int64_t TypeId() const {
