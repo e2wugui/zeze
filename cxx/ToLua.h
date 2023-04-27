@@ -79,7 +79,9 @@ namespace Net
 		}
 
 		ToLua(const ToLua&) = delete;
+		ToLua(const ToLua&&) = delete;
 		ToLua& operator=(const ToLua&) = delete;
+		ToLua& operator=(const ToLua&&) = delete;
 
 		void LoadMeta(lua_State* L)
 		{

@@ -307,7 +307,9 @@ namespace limax {
 	public:
 		explicit BlockingQueue() {}
 		BlockingQueue(const BlockingQueue&) = delete;
-		BlockingQueue& operator =(const BlockingQueue&) = delete;
+		BlockingQueue(const BlockingQueue&&) = delete;
+		BlockingQueue& operator=(const BlockingQueue&) = delete;
+		BlockingQueue& operator=(const BlockingQueue&&) = delete;
 		void put(T element)
 		{
 			std::lock_guard<std::mutex> l(mutex);

@@ -17,6 +17,7 @@ namespace Zeze
 		ByteBuffer(const ByteBuffer&) = delete;
 		ByteBuffer(const ByteBuffer&&) = delete;
 		ByteBuffer& operator=(const ByteBuffer&) = delete;
+		ByteBuffer& operator=(const ByteBuffer&&) = delete;
 
 	public:
 		unsigned char* Bytes;
