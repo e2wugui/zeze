@@ -132,15 +132,34 @@ public class Reflect {
 		if (files != null) {
 			for (var file : files) {
 				var fn = file.getName();
-				if (file.isDirectory())
-					collectClassFromPath(parent + fn + '.', file, classNames);
-				else if (fn.endsWith(".class"))
+				if (file.isDirectory()) {
+					if (!fn.equals("META-INF"))
+						collectClassFromPath(parent + fn + '.', file, classNames);
+				} else if (fn.endsWith(".class") && !fn.equals("module-info.class"))
 					classNames.add(parent + fn.substring(0, fn.length() - 6));
 			}
 		}
 	}
 
-	public static @NotNull ArrayList<String> collectAllClassName(@Nullable Predicate<String> cpFilter) {
+	public static @NotNull ArrayList<String> collectClassNamesFromPath(String path) throws IOException {
+		var classNames = new ArrayList<String>();
+		collectClassFromPath("", new File(path), classNames);
+		return classNames;
+	}
+
+	public static @NotNull ArrayList<String> collectClassNamesFromJar(String jarFile) throws IOException {
+		var classNames = new ArrayList<String>();
+		try (var jf = new JarFile(jarFile)) {
+			for (var e = jf.entries(); e.hasMoreElements(); ) {
+				var fn = e.nextElement().getName();
+				if (fn.endsWith(".class") && !fn.startsWith("META-INF/") && !fn.endsWith("module-info.class"))
+					classNames.add(fn.substring(0, fn.length() - 6).replace('/', '.'));
+			}
+		}
+		return classNames;
+	}
+
+	public static @NotNull ArrayList<String> collectAllClassNames(@Nullable Predicate<String> cpFilter) {
 		var isWin = System.getProperty("os.name").toLowerCase().startsWith("win");
 		var classNames = new ArrayList<String>();
 		for (var cp : System.getProperty("java.class.path").split(isWin ? ";" : ":")) {
@@ -152,7 +171,7 @@ public class Reflect {
 					try (var jf = new JarFile(file)) {
 						for (var e = jf.entries(); e.hasMoreElements(); ) {
 							var fn = e.nextElement().getName();
-							if (fn.endsWith(".class"))
+							if (fn.endsWith(".class") && !fn.startsWith("META-INF/") && !fn.endsWith("module-info.class"))
 								classNames.add(fn.substring(0, fn.length() - 6).replace('/', '.'));
 						}
 					} catch (IOException ignored) {

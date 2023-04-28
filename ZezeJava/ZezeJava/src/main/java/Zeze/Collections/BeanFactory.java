@@ -1,5 +1,6 @@
 package Zeze.Collections;
 
+import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import Zeze.Transaction.Bean;
 import Zeze.Util.LongHashMap;
@@ -16,29 +17,115 @@ public final class BeanFactory {
 	private final LongHashMap<MethodHandle> writingFactory = new LongHashMap<>();
 	private volatile @Nullable LongHashMap<MethodHandle> readingFactory;
 
-	public static Class<?> findClass(long typeId) {
+	/**
+	 * 手动加载所有类路径以classPrefix前缀的全类名
+	 *
+	 * @param initClasses 是否初始化类
+	 * @return 本次加载数量
+	 */
+	public static int loadAllClasses(@NotNull String classPrefix, boolean initClasses) {
+		var timeBegin = System.nanoTime();
+		int n = 0;
+		synchronized (allClassNameMap) {
+			for (var cn : Reflect.collectAllClassNames(null)) {
+				if (cn.startsWith(classPrefix) && (initClasses ? loadClass(cn) : loadClassName(cn)))
+					n++;
+			}
+		}
+		logger.info("loaded {} {} for prefix '{}' ({} ms)",
+				n, initClasses ? "classes" : "class names", classPrefix, (System.nanoTime() - timeBegin) / 1_000_000);
+		return n;
+	}
+
+	public static int loadClassesFromPath(@NotNull String path, boolean initClasses) throws IOException {
+		var timeBegin = System.nanoTime();
+		int n = 0;
+		synchronized (allClassNameMap) {
+			for (var cn : Reflect.collectClassNamesFromPath(path)) {
+				if (initClasses ? loadClass(cn) : loadClassName(cn))
+					n++;
+			}
+		}
+		logger.info("loaded {} {} from path '{}' ({} ms)",
+				n, initClasses ? "classes" : "class names", path, (System.nanoTime() - timeBegin) / 1_000_000);
+		return n;
+	}
+
+	public static int loadClassesFromJar(@NotNull String jarFile, boolean initClasses) throws IOException {
+		var timeBegin = System.nanoTime();
+		int n = 0;
+		synchronized (allClassNameMap) {
+			for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
+				if (initClasses ? loadClass(cn) : loadClassName(cn))
+					n++;
+			}
+		}
+		logger.info("loaded {} {} from jar '{}' ({} ms)",
+				n, initClasses ? "classes" : "class names", jarFile, (System.nanoTime() - timeBegin) / 1_000_000);
+		return n;
+	}
+
+	public static boolean loadClass(String className) {
+		try {
+			var cls = Class.forName(className);
+			if (Bean.class.isAssignableFrom(cls)) {
+				//noinspection deprecation
+				var typeId = ((Bean)cls.newInstance()).typeId();
+				var oldObj = allClassNameMap.put(typeId, cls);
+				if (oldObj != null && (oldObj instanceof String ? !oldObj.equals(className) : oldObj != cls)) {
+					throw new AssertionError("duplicate typeId=" + typeId
+							+ " for '" + oldObj + "' and '" + className + '\'');
+				}
+				return !(oldObj instanceof Class);
+			}
+		} catch (Exception | LinkageError e) {
+			logger.warn("load class failed: '{}'", className, e);
+		}
+		return false;
+	}
+
+	public static boolean loadClassName(String className) {
+		var typeId = Bean.hash64(className);
+		var oldObj = allClassNameMap.put(typeId, className);
+		if (oldObj != null) {
+			var oldCn = oldObj instanceof Class ? ((Class<?>)oldObj).getName() : (String)oldObj;
+			if (!oldCn.equals(className)) {
+				throw new AssertionError("duplicate typeId=" + typeId
+						+ " for '" + oldCn + "' and '" + className + '\'');
+			}
+			if (oldObj instanceof Class) {
+				allClassNameMap.put(typeId, oldObj);
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * 获取指定typeId的Bean类,如果之前未用loadClasses加载过,会自动加载所有类路径中的所有类(不初始化类)
+	 */
+	@SuppressWarnings("unchecked")
+	public static @Nullable Class<? extends Bean> findClass(long typeId) {
 		synchronized (allClassNameMap) {
 			var obj = allClassNameMap.get(typeId);
 			if (obj instanceof Class)
-				return (Class<?>)obj;
+				return (Class<? extends Bean>)obj;
 			if (obj instanceof String) {
 				try {
 					var cls = Class.forName((String)obj);
-					allClassNameMap.put(typeId, cls);
-					return cls;
-				} catch (ClassNotFoundException e) {
-					throw new RuntimeException(e);
+					if (Bean.class.isAssignableFrom(cls))
+						allClassNameMap.put(typeId, cls);
+					else {
+						allClassNameMap.remove(typeId);
+						cls = null;
+					}
+					return (Class<? extends Bean>)cls;
+				} catch (ClassNotFoundException | NoClassDefFoundError e) {
+					throw new RuntimeException("load class failed: '" + obj + '\'', e);
 				}
 			}
-			if (allClassNameMap.isEmpty()) {
-				var timeBegin = System.nanoTime();
-				for (var cn : Reflect.collectAllClassName(null))
-					allClassNameMap.put(Bean.hash64(cn), cn);
-				logger.info("collected all {} classes ({} ms)",
-						allClassNameMap.size(), (System.nanoTime() - timeBegin) / 1_000_000);
-				if (!allClassNameMap.isEmpty())
-					return findClass(typeId);
-			}
+			if (allClassNameMap.isEmpty() && loadAllClasses("", false) != 0)
+				return findClass(typeId);
 		}
 		return null;
 	}
@@ -80,13 +167,20 @@ public final class BeanFactory {
 		return beanCtor;
 	}
 
+	private void register(long typeId, @NotNull MethodHandle beanCtor) {
+		synchronized (writingFactory) {
+			if (writingFactory.putIfAbsent(typeId, beanCtor) == null)
+				readingFactory = null;
+		}
+	}
+
 	public static long getSpecialTypeIdFromBean(@NotNull Bean bean) {
 		return bean.typeId();
 	}
 
 	public @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
 		try {
-			LongHashMap<MethodHandle> factory = readingFactory;
+			var factory = readingFactory;
 			if (factory == null) {
 				synchronized (writingFactory) {
 					factory = readingFactory;
@@ -95,14 +189,18 @@ public final class BeanFactory {
 				}
 			}
 			var beanCtor = factory.get(typeId);
-			if (beanCtor == null) {
-				var cls = findClass(typeId);
-				if (cls == null || !Bean.class.isAssignableFrom(cls))
-					throw new UnsupportedOperationException("Unknown Bean TypeId=" + typeId);
-				@SuppressWarnings({"unchecked", "unused"})
-				var __ = beanCtor = register((Class<? extends Bean>)cls);
-			}
-			return (Bean)beanCtor.invoke();
+			if (beanCtor != null)
+				return (Bean)beanCtor.invoke();
+			var cls = findClass(typeId);
+			if (cls == null)
+				throw new UnsupportedOperationException("unknown bean typeId=" + typeId);
+			beanCtor = Reflect.getDefaultConstructor(cls);
+			var bean = (Bean)beanCtor.invoke();
+			var beanTypeId = bean.typeId();
+			if (beanTypeId != typeId)
+				throw new UnsupportedOperationException("unmatched bean typeId: " + beanTypeId + " != " + typeId);
+			register(beanTypeId, beanCtor);
+			return bean;
 		} catch (RuntimeException | Error e) {
 			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
