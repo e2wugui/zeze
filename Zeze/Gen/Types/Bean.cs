@@ -148,6 +148,7 @@ namespace Zeze.Gen.Types
 		public string Version { get; private set; }
 		public bool MappingClass { get; private set; }
 		public bool UseData { get; private set; }
+		public bool CustomTypeId { get; private set; }
 
         public static void BeautifulVariableId(XmlElement self)
 		{
@@ -191,7 +192,9 @@ namespace Zeze.Gen.Types
 			Base = self.GetAttribute("base");
 			if (Base != "" && !Base.Contains('.'))
 				Base = Space.Path(".", Base);
-			TypeId = attr.Length > 0 ? int.Parse(attr) : Util.FixedHash.Hash64(space.Path(".", _name));
+			var hashTypeId = Util.FixedHash.Hash64(space.Path(".", _name));
+			TypeId = attr.Length > 0 ? int.Parse(attr) : hashTypeId;
+			CustomTypeId = TypeId != hashTypeId;
 			if (false == Program.BeanTypeIdDuplicateChecker.Add(TypeId))
 				throw new Exception("duplicate Bean.TypeId, please choice one.");
 			Comment = GetComment(self);

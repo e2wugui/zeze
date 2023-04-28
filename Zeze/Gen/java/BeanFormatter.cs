@@ -1,5 +1,8 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Zeze.Gen.Types;
+using Enum = Zeze.Gen.Types.Enum;
+using Type = Zeze.Gen.Types.Type;
 
 namespace Zeze.Gen.java
 {
@@ -113,6 +116,8 @@ namespace Zeze.Gen.java
 
         public void WriteDefine(StreamWriter sw, Project project)
         {
+            if (bean.CustomTypeId)
+                throw new Exception("custom TypeId is NOT allowed for java: " + bean.Name);
             sw.WriteLine("    public static final long TYPEID = " + bean.TypeId + "L;");
             sw.WriteLine();
             // declare enums
