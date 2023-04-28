@@ -1,12 +1,17 @@
 package Zeze.Util;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.jar.JarFile;
 import Zeze.Net.Binary;
 import Zeze.Serialize.Quaternion;
 import Zeze.Serialize.Serializable;
@@ -18,6 +23,7 @@ import Zeze.Serialize.Vector4;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Reflect {
 	public static final boolean inDebugMode = !"true".equalsIgnoreCase(System.getProperty("noDebugMode")) &&
@@ -118,5 +124,42 @@ public class Reflect {
 	@SuppressWarnings("unchecked")
 	public static <T> T cast(Object obj) {
 		return (T)obj;
+	}
+
+	private static void collectClassFromPath(@NotNull String parent, @NotNull File path,
+											 @NotNull ArrayList<String> classNames) {
+		var files = path.listFiles();
+		if (files != null) {
+			for (var file : files) {
+				var fn = file.getName();
+				if (file.isDirectory())
+					collectClassFromPath(parent + fn + '.', file, classNames);
+				else if (fn.endsWith(".class"))
+					classNames.add(parent + fn.substring(0, fn.length() - 6));
+			}
+		}
+	}
+
+	public static @NotNull ArrayList<String> collectAllClassName(@Nullable Predicate<String> cpFilter) {
+		var isWin = System.getProperty("os.name").toLowerCase().startsWith("win");
+		var classNames = new ArrayList<String>();
+		for (var cp : System.getProperty("java.class.path").split(isWin ? ";" : ":")) {
+			if (cpFilter == null || cpFilter.test(cp)) {
+				var file = new File(cp);
+				if (file.isDirectory())
+					collectClassFromPath("", file, classNames);
+				else {
+					try (var jf = new JarFile(file)) {
+						for (var e = jf.entries(); e.hasMoreElements(); ) {
+							var fn = e.nextElement().getName();
+							if (fn.endsWith(".class"))
+								classNames.add(fn.substring(0, fn.length() - 6).replace('/', '.'));
+						}
+					} catch (IOException ignored) {
+					}
+				}
+			}
+		}
+		return classNames;
 	}
 }
