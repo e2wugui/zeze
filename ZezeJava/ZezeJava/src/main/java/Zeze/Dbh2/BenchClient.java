@@ -17,12 +17,12 @@ import org.apache.logging.log4j.Logger;
 public class BenchClient {
 	private static final Logger logger = LogManager.getLogger(BenchClient.class);
 
-	private static Database newDatabase(String masterIp, int masterPort) {
+	private static Database newDatabase(Dbh2AgentManager dbh2AgentManager, String masterIp, int masterPort) {
 		var databaseConf = new Config.DatabaseConf();
 		databaseConf.setDatabaseType(Config.DbType.Dbh2);
 		databaseConf.setDatabaseUrl("dbh2://" + masterIp + ":" + masterPort + "/dbh2TestDb");
 		databaseConf.setName("dbh2");
-		return new Database(null, databaseConf);
+		return new Database(null, dbh2AgentManager, databaseConf);
 	}
 
 	public static void main(String[] args) {
@@ -68,9 +68,9 @@ public class BenchClient {
 			Zeze.Net.Selectors.getInstance().add(selector - 1);
 			PerfCounter.instance.tryStartScheduledLog();
 
-			Dbh2AgentManager.getInstance().start();
+			var dbh2AgentManager = new Dbh2AgentManager(null);
 			var tableAccessFinal = tableAccess;
-			var database = newDatabase(masterIp, masterPort);
+			var database = newDatabase(dbh2AgentManager, masterIp, masterPort);
 			var tables = new ArrayList<Zeze.Transaction.Database.AbstractKVTable>();
 			for (int i = 0; i < tableNumber; ++i)
 				tables.add((Database.AbstractKVTable)database.openTable("table" + i));

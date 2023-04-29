@@ -19,6 +19,7 @@ import com.amazonaws.regions.Regions;
 import org.apache.logging.log4j.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.rocksdb.RocksDBException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -318,7 +319,7 @@ public final class Config {
 		return databaseConfMap;
 	}
 
-	private static Database createDatabase(@NotNull Application zeze, @NotNull DatabaseConf conf) {
+	private static Database createDatabase(@NotNull Application zeze, @NotNull DatabaseConf conf) throws RocksDBException {
 		switch (conf.databaseType) {
 		case Memory:
 			return new DatabaseMemory(zeze, conf);
@@ -333,19 +334,19 @@ public final class Config {
 				throw new IllegalStateException("RocksDb Can Not Work With GlobalCacheManager.");
 			return new DatabaseRocksDb(zeze, conf);
 		case Dbh2:
-			return new Zeze.Dbh2.Database(zeze, conf);
+			return new Zeze.Dbh2.Database(zeze, zeze.tryNewDbh2AgentManager(), conf);
 		default:
 			throw new UnsupportedOperationException("unknown database type.");
 		}
 	}
 
-	public void createDatabase(@NotNull Application zeze, @NotNull HashMap<String, Database> map) {
+	public void createDatabase(@NotNull Application zeze, @NotNull HashMap<String, Database> map) throws RocksDBException {
 		// add other database
 		for (var db : getDatabaseConfMap().values())
 			map.put(db.name, createDatabase(zeze, db));
 	}
 
-	public void clearInUseAndIAmSureAppStopped(@NotNull Application zeze, @Nullable HashMap<String, Database> databases) {
+	public void clearInUseAndIAmSureAppStopped(@NotNull Application zeze, @Nullable HashMap<String, Database> databases) throws RocksDBException {
 		if (databases == null) {
 			databases = new HashMap<>();
 			createDatabase(zeze, databases);

@@ -28,14 +28,20 @@ public class CommitRocks {
 	private final RocksDatabase.Table commitPoint;
 	private final RocksDatabase.Table commitIndex;
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
-	private final Future<?> redoTimer;
+	private Future<?> redoTimer;
 
 	public CommitRocks(Dbh2AgentManager manager) throws RocksDBException {
 		this.manager = manager;
 		database = new RocksDatabase("CommitRocks");
 		commitPoint = database.getOrAddTable("CommitPoint");
 		commitIndex = database.getOrAddTable("CommitIndex");
+	}
 
+	public Dbh2AgentManager getManager() {
+		return manager;
+	}
+
+	public void start() {
 		try {
 			redoTimer();
 		} catch (Exception ex) {
@@ -43,10 +49,6 @@ public class CommitRocks {
 		}
 		// 1 minute?
 		redoTimer = Task.scheduleUnsafe(60000, 60000, this::redoTimer);
-	}
-
-	public Dbh2AgentManager getManager() {
-		return manager;
 	}
 
 	private void redoTimer() throws RocksDBException {

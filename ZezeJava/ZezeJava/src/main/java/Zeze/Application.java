@@ -12,6 +12,7 @@ import Zeze.Component.AutoKey;
 import Zeze.Component.AutoKeyOld;
 import Zeze.Component.DelayRemove;
 import Zeze.Component.Timer;
+import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Daemon;
 import Zeze.Services.GlobalCacheManagerWithRaftAgent;
@@ -45,6 +46,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.rocksdb.RocksDBException;
 
 public final class Application {
 	static final Logger logger = LogManager.getLogger(Application.class);
@@ -79,6 +81,18 @@ public final class Application {
 	 * 3. Flush的时候特殊处理。see Checkpoint。
 	 */
 	private DatabaseRocksDb LocalRocksCacheDb;
+
+	private Dbh2AgentManager dbh2AgentManager;
+
+	public Dbh2AgentManager getDbh2AgentManager() {
+		return dbh2AgentManager;
+	}
+
+	public Dbh2AgentManager tryNewDbh2AgentManager() throws RocksDBException {
+		if (null == dbh2AgentManager)
+			dbh2AgentManager = new Dbh2AgentManager(null);
+		return dbh2AgentManager;
+	}
 
 	public Application(@NotNull String solutionName) throws Exception {
 		this(solutionName, null);

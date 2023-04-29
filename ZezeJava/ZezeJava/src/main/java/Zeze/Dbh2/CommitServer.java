@@ -11,7 +11,8 @@ public class CommitServer {
 //				break;
 //			}
 //		}
-		Dbh2AgentManager.getInstance().start();
+		var dbh2AgentManager = new Dbh2AgentManager(null);
+		dbh2AgentManager.start();
 		synchronized (Thread.currentThread()) {
 			Thread.currentThread().wait();
 		}

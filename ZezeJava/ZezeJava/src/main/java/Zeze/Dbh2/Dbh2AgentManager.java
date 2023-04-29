@@ -14,6 +14,7 @@ import Zeze.Util.Random;
 import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.rocksdb.RocksDBException;
 
 /**
  * 这个类管理到桶的raft-client-agent。
@@ -29,22 +30,29 @@ public class Dbh2AgentManager {
 	// agent 不同 master 也装在一起。
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
 
-	private Config config;
+	private final Config config;
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private Commit commit;
 	private CommitAgent commitAgent;
-
-	private static final Dbh2AgentManager instance = new Dbh2AgentManager();
 
 	public Dbh2Config getDbh2Config() {
 		return dbh2Config;
 	}
 
-	public static Dbh2AgentManager getInstance() {
-		return instance;
-	}
-
-	public Dbh2AgentManager() {
+	public Dbh2AgentManager(Config config) throws RocksDBException {
+		if (null == config)
+			config = new Config().addCustomize(dbh2Config).loadAndParse();
+		this.config = config;
+		// ugly
+		if (config.isDbh2LocalCommit()) {
+			if (null == commit) {
+				commit = new Commit(this, config);
+			}
+		} else {
+			if (null == commitAgent) {
+				commitAgent = new CommitAgent();
+			}
+		}
 	}
 
 	public static byte[] nextTransactionId() {
@@ -90,25 +98,11 @@ public class Dbh2AgentManager {
 	// Dbh2Agent 嵌入服务器需要初始化；
 	// CommitServer 独立服务器需要初始化；
 	public void start() throws Exception {
-		start(null);
-	}
-
-	public synchronized void start(Config config) throws Exception {
-		if (null == config)
-			config = new Config().addCustomize(dbh2Config).loadAndParse();
-		this.config = config;
-
 		// ugly
 		if (config.isDbh2LocalCommit()) {
-			if (null == commit) {
-				commit = new Commit(this, config);
-				commit.start();
-			}
+			commit.start();
 		} else {
-			if (null == commitAgent) {
-				commitAgent = new CommitAgent();
-				commitAgent.startAndWaitConnectionReady();
-			}
+			commitAgent.startAndWaitConnectionReady();
 		}
 		ShutdownHook.add(this, this::stop);
 	}

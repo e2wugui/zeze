@@ -11,6 +11,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
 import Zeze.Util.KV;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 适配zeze-Database
@@ -19,9 +20,12 @@ public class Database extends Zeze.Transaction.Database {
 	private final String masterName;
 	private final String databaseName;
 	private final MasterAgent masterAgent;
+	private final Dbh2AgentManager dbh2AgentManager;
 
-	public Database(Application zeze, Config.DatabaseConf conf) {
+	public Database(@Nullable Application zeze, Dbh2AgentManager dbh2AgentManager, Config.DatabaseConf conf) {
 		super(zeze, conf);
+
+		this.dbh2AgentManager = dbh2AgentManager;
 		// dbh2://ip:port/databaseName?user=xxx&passwd=xxx
 		try {
 			var url = new URI(getDatabaseUrl());
@@ -39,7 +43,7 @@ public class Database extends Zeze.Transaction.Database {
 		}
 		setDirectOperates(new NullOperates()); // todo operates
 
-		masterAgent = Dbh2AgentManager.getInstance().openDatabase(masterName, databaseName);
+		masterAgent = dbh2AgentManager.openDatabase(masterName, databaseName);
 	}
 
 	@Override
@@ -58,27 +62,25 @@ public class Database extends Zeze.Transaction.Database {
 		private final BPrepareBatches.Data batches = new BPrepareBatches.Data();
 
 		public void commitBreakAfterPrepareForDebugOnly() {
-			Dbh2AgentManager.getInstance().commitBreakAfterPrepareForDebugOnly(batches);
+			dbh2AgentManager.commitBreakAfterPrepareForDebugOnly(batches);
 		}
 
 		@Override
 		public void commit() {
-			Dbh2AgentManager.getInstance().commit(batches);
+			dbh2AgentManager.commit(batches);
 		}
 
 		public void replace(String tableName, ByteBuffer key, ByteBuffer value) {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
-			var manager = Dbh2AgentManager.getInstance();
-			var agent = manager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);
+			var agent = dbh2AgentManager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);
 			var batch = batches.getDatas().computeIfAbsent(agent, _agent_ -> new BPrepareBatch.Data(databaseName, tableName));
 			batch.getBatch().getPuts().put(bKey, bValue);
 		}
 
 		public void remove(String tableName, ByteBuffer key) {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
-			var manager = Dbh2AgentManager.getInstance();
-			var agent = manager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);
+			var agent = dbh2AgentManager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);
 			var batch = batches.getDatas().computeIfAbsent(agent, _agent_ -> new BPrepareBatch.Data(databaseName, tableName));
 			batch.getBatch().getDeletes().add(bKey);
 		}
@@ -98,7 +100,7 @@ public class Database extends Zeze.Transaction.Database {
 
 		public Dbh2Table(String tableName) {
 			this.name = tableName;
-			isNew = Dbh2AgentManager.getInstance().createTable(
+			isNew = dbh2AgentManager.createTable(
 					Database.this.masterAgent, Database.this.masterName,
 					Database.this.databaseName, tableName);
 		}
@@ -119,21 +121,20 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public ByteBuffer find(ByteBuffer key) {
-			var manager = Dbh2AgentManager.getInstance();
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			// 最多执行两次。
 			for (int i = 0; i < 2; ++i) {
-				var raft = manager.locateBucket(
+				var raft = dbh2AgentManager.locateBucket(
 						Database.this.masterAgent, Database.this.masterName,
 						Database.this.databaseName, name,
 						bKey);
-				var agent = manager.openBucket(raft);
+				var agent = dbh2AgentManager.openBucket(raft);
 				var kv = agent.get(Database.this.databaseName, name, bKey);
 				if (kv.getKey())
 					return kv.getValue();
 
 				// miss match bucket
-				manager.reload(
+				dbh2AgentManager.reload(
 						Database.this.masterAgent, Database.this.masterName,
 						Database.this.databaseName, name);
 			}

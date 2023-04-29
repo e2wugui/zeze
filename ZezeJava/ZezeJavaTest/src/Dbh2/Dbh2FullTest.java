@@ -15,12 +15,12 @@ import Zeze.Transaction.Database.AbstractKVTable;
 // 测试整体结构(Dbh2Manager,Master,Agent)
 public class Dbh2FullTest {
 
-	private Database newDatabase(String dbName) {
+	private Database newDatabase(Dbh2AgentManager dbh2AgentManager, String dbName) {
 		var databaseConf = new Config.DatabaseConf();
 		databaseConf.setDatabaseType(Config.DbType.Dbh2);
 		databaseConf.setDatabaseUrl("dbh2://127.0.0.1:10999/" + dbName);
 		databaseConf.setName("dbh2");
-		return new Database(null, databaseConf);
+		return new Database(null, dbh2AgentManager, databaseConf);
 	}
 
 	private Future<?> startBench(int keyStart, int keyEnd, Database database, AbstractKVTable table, ByteBuffer value) {
@@ -46,15 +46,16 @@ public class Dbh2FullTest {
 
 		var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
 		Database database = null;
+		var dbh2AgentManager = new Dbh2AgentManager(null);
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
 				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
 			for (var manager : managers)
 				manager.start();
-			Dbh2AgentManager.getInstance().start();
+			dbh2AgentManager.start();
 
-			database = newDatabase("dbh2TestDb");
+			database = newDatabase(dbh2AgentManager,"dbh2TestDb");
 			var tables = new ArrayList<AbstractKVTable>();
 			for (int i = 0; i < 4; ++i)
 				tables.add((Database.AbstractKVTable)database.openTable("table" + i));
@@ -69,7 +70,7 @@ public class Dbh2FullTest {
 				futures.add(startBench(keyStart, keyEnd, database, tables.get(t % tables.size()), value));
 			}
 			Thread.sleep(2000); // 等待agent都连上，然后dump出来。此时任务在并发执行。
-			Dbh2AgentManager.getInstance().dumpAgents();
+			dbh2AgentManager.dumpAgents();
 			for (var future : futures)
 				future.get();
 			b.report("Bench Dbh2 Full Transaction", count * threads);
@@ -78,7 +79,7 @@ public class Dbh2FullTest {
 			for (var manager : managers)
 				manager.stop();
 			database.close();
-			Dbh2AgentManager.getInstance().stop();
+			dbh2AgentManager.stop();
 		}
 	}
 
@@ -89,15 +90,16 @@ public class Dbh2FullTest {
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		Database database = null;
+		var dbh2AgentManager = new Dbh2AgentManager(null);
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
 				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
 			for (var manager : managers)
 				manager.start();
-			Dbh2AgentManager.getInstance().start();
+			dbh2AgentManager.start();
 
-			database = newDatabase("dbh2TestDb");
+			database = newDatabase(dbh2AgentManager, "dbh2TestDb");
 			var table1 = (Database.AbstractKVTable)database.openTable("table1");
 			var key = ByteBuffer.Wrap(new byte[] {});
 			var key1 = ByteBuffer.Wrap(new byte[] { 1 });
@@ -116,7 +118,7 @@ public class Dbh2FullTest {
 				manager.stop();
 			if (null != database)
 				database.close();
-			Dbh2AgentManager.getInstance().stop();
+			dbh2AgentManager.stop();
 		}
 	}
 
@@ -127,15 +129,16 @@ public class Dbh2FullTest {
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		Database database = null;
+		var dbh2AgentManager = new Dbh2AgentManager(null);
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
 				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
 			for (var manager : managers)
 				manager.start();
-			Dbh2AgentManager.getInstance().start();
+			dbh2AgentManager.start();
 
-			database = newDatabase("dbh2TestDb");
+			database = newDatabase(dbh2AgentManager, "dbh2TestDb");
 			var table1 = (Database.AbstractKVTable)database.openTable("table1");
 			var table2 = (Database.AbstractKVTable)database.openTable("table2");
 
@@ -175,7 +178,7 @@ public class Dbh2FullTest {
 				manager.stop();
 			if (null != database)
 				database.close();
-			Dbh2AgentManager.getInstance().stop();
+			dbh2AgentManager.stop();
 		}
 	}
 }

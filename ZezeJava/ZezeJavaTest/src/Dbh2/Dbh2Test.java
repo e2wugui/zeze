@@ -105,10 +105,12 @@ public class Dbh2Test {
 			var key = new Binary(new byte[]{1});
 			var value = new Binary(new byte[]{1});
 
+			var dbh2AgentManager = new Dbh2AgentManager(null);
+			dbh2AgentManager.start();
 			{
 				var batch = new BPrepareBatch.Data(db, tb1);
 				batch.getBatch().getPuts().put(key, value);
-				batch.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
+				batch.getBatch().setTid(dbh2AgentManager.nextTransactionId());
 				bucket1.agent().prepareBatch(batch).await();
 				bucket1.agent().commitBatch(batch.getBatch().getTid()).await();
 			}
@@ -121,7 +123,7 @@ public class Dbh2Test {
 			{
 				var batch = new BPrepareBatch.Data(db, tb1);
 				batch.getBatch().getPuts().put(key, Binary.Empty);
-				batch.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
+				batch.getBatch().setTid(dbh2AgentManager.nextTransactionId());
 				bucket1.agent().prepareBatch(batch).await();
 				bucket1.agent().undoBatch(batch.getBatch().getTid()).await();
 			}
@@ -134,7 +136,7 @@ public class Dbh2Test {
 			{
 				var batch = new BPrepareBatch.Data(db, tb1);
 				batch.getBatch().getDeletes().add(key);
-				batch.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
+				batch.getBatch().setTid(dbh2AgentManager.nextTransactionId());
 				bucket1.agent().prepareBatch(batch).await();
 				bucket1.agent().commitBatch(batch.getBatch().getTid()).await();
 			}
@@ -149,7 +151,7 @@ public class Dbh2Test {
 				var batch1 = new BPrepareBatch.Data(db, tb1);
 				var batch2 = new BPrepareBatch.Data(db, tb2);
 
-				batch1.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
+				batch1.getBatch().setTid(dbh2AgentManager.nextTransactionId());
 				batch2.getBatch().setTid(batch1.getBatch().getTid());
 
 				batch1.getBatch().getPuts().put(key, value);

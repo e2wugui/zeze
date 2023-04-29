@@ -16,6 +16,7 @@ public class Commit extends AbstractCommit {
 
     public void start() throws Exception {
         service.start();
+        rocks.start();
     }
 
     public synchronized void stop() throws Exception {

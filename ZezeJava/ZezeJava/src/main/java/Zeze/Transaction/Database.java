@@ -43,7 +43,7 @@ public abstract class Database {
 	private Operates directOperates;
 	private final Application zeze;
 
-	public Database(Application zeze, @NotNull DatabaseConf conf) {
+	public Database(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		this.zeze = zeze;
 		this.conf = conf;
 		databaseUrl = conf.getDatabaseUrl();
