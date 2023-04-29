@@ -55,7 +55,7 @@ public class Dbh2AgentManager {
 		}
 	}
 
-	public static byte[] nextTransactionId() {
+	public byte[] nextTransactionId() {
 		return Random.nextBytes(16);
 	}
 

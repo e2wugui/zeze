@@ -130,7 +130,7 @@ public class CommitRocks {
 	}
 
 	public byte[] prepare(String queryHost, int queryPort, BPrepareBatches.Data batches) {
-		var tid = Dbh2AgentManager.nextTransactionId();
+		var tid = manager.nextTransactionId();
 		var prepareTime = System.currentTimeMillis();
 		try {
 			// prepare
