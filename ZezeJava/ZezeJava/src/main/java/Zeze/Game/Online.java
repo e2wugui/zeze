@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -378,36 +379,21 @@ public class Online extends AbstractOnline {
 		return true;
 	}
 
-	private @NotNull tversion _tversion(String instanceName) {
-		//noinspection DataFlowIssue
-		return getOnline(instanceName)._tversion;
-	}
-
-	private @NotNull tonline _tonline(String instanceName) {
-		//noinspection DataFlowIssue
-		return getOnline(instanceName)._tonline;
-	}
-
-	private @NotNull tlocal _tlocal(String instanceName) {
-		//noinspection DataFlowIssue
-		return getOnline(instanceName)._tlocal;
-	}
-
-	private long logoutTrigger(String instanceName, long roleId, @NotNull LogoutReason logoutReason) throws Exception {
+	private long logoutTrigger(long roleId, @NotNull LogoutReason logoutReason) throws Exception {
 		var arg = new LogoutEventArgument();
 		arg.online = this;
 		arg.roleId = roleId;
 		arg.logoutReason = logoutReason;
 
-		var version = _tversion(instanceName).get(roleId);
+		var version = _tversion.get(roleId);
 
 		// 提前删除，可能事件里面需要使用这个判断已经登出。
 		// 外面补发logoutTrigger之后需要重新getOrAdd一次。
-		_tonline(instanceName).remove(roleId); // remove first
+		_tonline.remove(roleId); // remove first
 
 		// 总是尝试通知上一次登录的服务器，里面会忽略本机。
 		if (version != null)
-			tryRedirectRemoveLocal(instanceName, version.getServerId(), roleId);
+			tryRedirectRemoveLocal(multiInstanceName, version.getServerId(), roleId);
 		// 总是删除
 		removeLocalAndTrigger(roleId);
 
@@ -433,7 +419,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long loginTrigger(@NotNull String instanceName, @NotNull String account, long roleId) throws Exception {
+	private long loginTrigger(@NotNull String account, long roleId) throws Exception {
 		var arg = new LoginArgument();
 		arg.online = this;
 		arg.roleId = roleId;
@@ -448,7 +434,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long reloginTrigger(@NotNull String instanceName, @NotNull String account, long roleId) throws Exception {
+	private long reloginTrigger(@NotNull String account, long roleId) throws Exception {
 		var arg = new LoginArgument();
 		arg.online = this;
 		arg.roleId = roleId;
@@ -467,17 +453,17 @@ public class Online extends AbstractOnline {
 		var roleId = custom.getRoleId();
 		var currentLoginVersion = custom.getLoginVersion();
 		// local online 独立判断version分别尝试删除。
-		var local = _tlocal(custom.getOnlineSetName()).get(roleId);
+		var local = _tlocal.get(roleId);
 		if (null != local && local.getLoginVersion() == currentLoginVersion) {
 			var ret = removeLocalAndTrigger(roleId);
 			if (0 != ret)
 				return ret;
 		}
 		// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-		var online = _tonline(custom.getOnlineSetName()).get(roleId);
-		var version = _tversion(custom.getOnlineSetName()).getOrAdd(roleId);
+		var online = _tonline.get(roleId);
+		var version = _tversion.getOrAdd(roleId);
 		if (null != online && version.getLoginVersion() == currentLoginVersion && assignLogoutVersion(version)) {
-			var ret = logoutTrigger(custom.getOnlineSetName(), roleId, LogoutReason.LOGOUT);
+			var ret = logoutTrigger(roleId, LogoutReason.LOGOUT);
 			if (0 != ret)
 				return ret;
 		}
@@ -491,9 +477,13 @@ public class Online extends AbstractOnline {
 				// 这里虽然调用instanceDefaultOnline，但里面执行会根据context里面OnlineSetName访问的不同的Online数据
 				// 也许这里改成 getOnlineSet(name).tryLogout，tryLogout 就直接访问自身数据比较好。
 				// 能工作，先这样了。
-				var ret = defaultInstance.tryLogout((BDelayLogoutCustom)context.customData);
-				if (ret != 0)
-					Online.logger.error("tryLogout fail. {}", ret);
+				var custom = (BDelayLogoutCustom)context.customData;
+				var onlineSet = defaultInstance.getOnline(custom.getOnlineSetName());
+				if (null != onlineSet) {
+					var ret = onlineSet.tryLogout(custom);
+					if (ret != 0)
+						Online.logger.error("tryLogout fail. {}", ret);
+				}
 			}
 		}
 
@@ -502,16 +492,16 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	public long linkBroken(@NotNull String account, long roleId, @NotNull String linkName, long linkSid, String onlineSetName) throws Exception {
+	public long linkBroken(@NotNull String account, long roleId, @NotNull String linkName, long linkSid) throws Exception {
 		long currentLoginVersion;
 		{
-			var online = _tonline(onlineSetName).get(roleId);
+			var online = _tonline.get(roleId);
 			// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 			if (online == null || !online.getLink().getLinkName().equals(linkName)
 					|| online.getLink().getLinkSid() != linkSid)
 				return 0;
-			var version = _tversion(onlineSetName).getOrAdd(roleId);
-			var local = _tlocal(onlineSetName).get(roleId);
+			var version = _tversion.getOrAdd(roleId);
+			var local = _tlocal.get(roleId);
 			if (local == null)
 				return 0; // 不在本机登录。
 
@@ -526,7 +516,7 @@ public class Online extends AbstractOnline {
 		// for shorter use
 		var zeze = providerApp.zeze;
 		var delay = zeze.getConfig().getOnlineLogoutDelay();
-		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(roleId, currentLoginVersion, onlineSetName));
+		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(roleId, currentLoginVersion, multiInstanceName));
 		return 0;
 	}
 
@@ -716,7 +706,7 @@ public class Online extends AbstractOnline {
 		errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
 			var roleId = context.get(linkSid);
 			// 补发的linkBroken没有account上下文。
-			return roleId != null ? linkBroken("", roleId, linkName, linkSid, multiInstanceName) : 0;
+			return roleId != null ? linkBroken("", roleId, linkName, linkSid) : 0;
 		}, "Online.triggerLinkBroken").call());
 		return 0;
 	}
@@ -845,7 +835,7 @@ public class Online extends AbstractOnline {
 					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 					// 补发的linkBroken没有account上下文
 					return idx >= 0 ? linkBroken("", group.roleIds.get(idx),
-							ProviderService.getLinkName(group.linkSocket), linkSid, multiInstanceName) : 0;
+							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
 				}, "Online.triggerLinkBroken2").call());
 				return Procedure.Success;
 			}))
@@ -885,7 +875,7 @@ public class Online extends AbstractOnline {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
 				// 补发的linkBroken没有account上下文
-				providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, linkSid, multiInstanceName),
+				providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, linkSid),
 						"Online.triggerLinkBroken1").call();
 			}
 			return Procedure.Success;
@@ -1230,7 +1220,7 @@ public class Online extends AbstractOnline {
 			// 锁外执行事务
 			try {
 				providerApp.zeze.newProcedure(() -> {
-					tryRemoveLocal(multiInstanceName, roleId.value);
+					tryRemoveLocal(roleId.value);
 					return 0L;
 				}, "Online.verifyLocal:" + roleId.value).call();
 			} catch (Exception e) {
@@ -1241,16 +1231,16 @@ public class Online extends AbstractOnline {
 		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 	}
 
-	private long tryRemoveLocal(String instanceName, long roleId) throws Exception {
-		var online = _tonline(instanceName).get(roleId);
-		var local = _tlocal(instanceName).get(roleId);
+	private long tryRemoveLocal(long roleId) throws Exception {
+		var online = _tonline.get(roleId);
+		var local = _tlocal.get(roleId);
 
 		if (null == local)
 			return 0;
 		// null == online && null == local -> do nothing
 		// null != online && null == local -> do nothing
 
-		var version = _tversion(instanceName).getOrAdd(roleId);
+		var version = _tversion.getOrAdd(roleId);
 		if ((null == online) || (version.getLoginVersion() != local.getLoginVersion()))
 			return removeLocalAndTrigger(roleId);
 		return 0;
@@ -1259,7 +1249,12 @@ public class Online extends AbstractOnline {
 	@RedirectToServer
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	protected void redirectRemoveLocal(int serverId, long roleId, String instanceName) {
-		providerApp.zeze.newProcedure(() -> tryRemoveLocal(instanceName, roleId), "Online.redirectRemoveLocal").call();
+		if (null != defaultInstance) {
+			// 能收到redirect的肯定是defaultOnline，这里为了保险期间和代码更清楚，直接使用defaultInstance。
+			var onlineSet = defaultInstance.getOnline(instanceName);
+			if (null != onlineSet)
+				providerApp.zeze.newProcedure(() -> onlineSet.tryRemoveLocal(roleId), "Online.redirectRemoveLocal").call();
+		}
 	}
 
 	private void tryRedirectRemoveLocal(String instanceName, int serverId, long roleId) {
@@ -1275,6 +1270,17 @@ public class Online extends AbstractOnline {
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) throws Exception {
+		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
+		if (null == onlineSet) {
+			var session = ProviderUserSession.get(rpc);
+			providerApp.providerService.kick(session.getLinkName(), session.getLinkSid(),
+					BKick.ErrorOnlineSetName, "unknown OnlineSetName: '" + rpc.Argument.getOnlineSetName() + '\'');
+			return 0;
+		}
+		return onlineSet.ProcessLoginRequestOnlineSet(rpc);
+	}
+
+	private long ProcessLoginRequestOnlineSet(Zeze.Builtin.Game.Online.Login rpc) throws Exception {
 		var done = new OutObject<>(false);
 		while (!done.value)
 			Task.call(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest"));
@@ -1284,20 +1290,14 @@ public class Online extends AbstractOnline {
 	private long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc, OutObject<Boolean> done) throws Exception {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
-		var instanceName = rpc.Argument.getOnlineSetName();
 		var session = ProviderUserSession.get(rpc);
 		var dispatch = ProviderImplement.localDispatch();
 		if (dispatch != null)
-			dispatch.Argument.setOnlineSetName(instanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
-		var online = _tonline(instanceName).getOrAdd(rpc.Argument.getRoleId());
-		var local = _tlocal(instanceName).getOrAdd(rpc.Argument.getRoleId());
-		var version = _tversion(instanceName).getOrAdd(rpc.Argument.getRoleId());
+			dispatch.Argument.setOnlineSetName(multiInstanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
+		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
+		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
+		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
 		var link = online.getLink();
-		if (((ProviderWithOnline)providerApp.providerImplement).getOnline(instanceName) == null) {
-			providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
-					BKick.ErrorOnlineSetName, "unknown OnlineSetName: '" + instanceName + '\'');
-			return 0;
-		}
 
 		// login exist
 		if (assignLogoutVersion(version)) {
@@ -1305,7 +1305,7 @@ public class Online extends AbstractOnline {
 				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 						BKick.ErrorDuplicateLogin, "duplicate role login");
 			}
-			var ret = logoutTrigger(instanceName, rpc.Argument.getRoleId(), LogoutReason.LOGIN);
+			var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.LOGIN);
 			if (0 != ret)
 				return ret;
 			// 发生了补Logout事件，重做Login。
@@ -1322,7 +1322,7 @@ public class Online extends AbstractOnline {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			//setUserState.Argument.getUserState().setLoginVersion(loginVersion);
-			setUserState.Argument.getUserState().setOnlineSetName(instanceName);
+			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
 			setUserState.Argument.getUserState().setContext(String.valueOf(rpc.Argument.getRoleId()));
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
@@ -1340,12 +1340,23 @@ public class Online extends AbstractOnline {
 
 		// Login的结果先提交进事务，然后再触发loginTrigger，这样loginTrigger中发送的协议排在后面。
 		session.sendResponseWhileCommit(rpc);
-		return loginTrigger(instanceName, session.getAccount(), rpc.Argument.getRoleId());
+		return loginTrigger(session.getAccount(), rpc.Argument.getRoleId());
 	}
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc) throws Exception {
+		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
+		if (null == onlineSet) {
+			var session = ProviderUserSession.get(rpc);
+			providerApp.providerService.kick(session.getLinkName(), session.getLinkSid(),
+					BKick.ErrorOnlineSetName, "unknown OnlineSetName: '" + rpc.Argument.getOnlineSetName() + '\'');
+			return 0;
+		}
+		return onlineSet.ProcessReLoginRequestOnlineSet(rpc);
+	}
+
+	protected long ProcessReLoginRequestOnlineSet(Zeze.Builtin.Game.Online.ReLogin rpc) throws Exception {
 		var done = new OutObject<>(false);
 		while (!done.value)
 			Task.call(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest"));
@@ -1355,20 +1366,14 @@ public class Online extends AbstractOnline {
 	private long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc, OutObject<Boolean> done) throws Exception {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
-		var instanceName = rpc.Argument.getOnlineSetName();
 		var session = ProviderUserSession.get(rpc);
 		var dispatch = ProviderImplement.localDispatch();
 		if (dispatch != null)
-			dispatch.Argument.setOnlineSetName(instanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
-		var online = _tonline(instanceName).getOrAdd(rpc.Argument.getRoleId());
-		var local = _tlocal(instanceName).getOrAdd(rpc.Argument.getRoleId());
-		var version = _tversion(instanceName).getOrAdd(rpc.Argument.getRoleId());
+			dispatch.Argument.setOnlineSetName(multiInstanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
+		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
+		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
+		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
 		var link = online.getLink();
-		if (((ProviderWithOnline)providerApp.providerImplement).getOnline(instanceName) == null) {
-			providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
-					BKick.ErrorOnlineSetName, "unknown OnlineSetName: '" + instanceName + '\'');
-			return 0;
-		}
 
 		// login exist
 		if (assignLogoutVersion(version)) {
@@ -1376,7 +1381,7 @@ public class Online extends AbstractOnline {
 				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 						BKick.ErrorDuplicateLogin, "duplicate role login");
 			}
-			var ret = logoutTrigger(instanceName, rpc.Argument.getRoleId(), LogoutReason.RE_LOGIN);
+			var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.RE_LOGIN);
 			if (0 != ret)
 				return ret;
 			// 发生了补Logout事件，重做ReLogin。
@@ -1393,7 +1398,7 @@ public class Online extends AbstractOnline {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			//setUserState.Argument.getUserState().setLoginVersion(loginVersion);
-			setUserState.Argument.getUserState().setOnlineSetName(instanceName);
+			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
 			setUserState.Argument.getUserState().setContext(String.valueOf(rpc.Argument.getRoleId()));
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
@@ -1405,11 +1410,11 @@ public class Online extends AbstractOnline {
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
 		session.sendResponseWhileCommit(rpc);
 
-		var ret = reloginTrigger(instanceName, session.getAccount(), rpc.Argument.getRoleId());
+		var ret = reloginTrigger(session.getAccount(), rpc.Argument.getRoleId());
 		if (0 != ret)
 			return ret;
 
-		var syncResultCode = reliableNotifySync(instanceName, rpc.Argument.getRoleId(), session,
+		var syncResultCode = reliableNotifySync(rpc.Argument.getRoleId(), session,
 				rpc.Argument.getReliableNotifyConfirmIndex());
 		if (syncResultCode != ResultCodeSuccess)
 			return errorCode(syncResultCode);
@@ -1420,17 +1425,25 @@ public class Online extends AbstractOnline {
 	@Override
 	protected long ProcessLogoutRequest(Zeze.Builtin.Game.Online.Logout rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
+		var onlineSet = getOnline(session.getOnlineSetName());
+		if (null == onlineSet) {
+			return 0; // skip logout error
+		}
+		return onlineSet.ProcessLogoutRequestOnlineSet(rpc);
+	}
+
+	protected long ProcessLogoutRequestOnlineSet(Zeze.Builtin.Game.Online.Logout rpc) throws Exception {
+		var session = ProviderUserSession.get(rpc);
 		if (session.getRoleId() == null)
 			return errorCode(ResultCodeNotLogin);
 
-		var instanceName = session.getOnlineSetName();
 		//var local = _tlocal.get(session.getRoleId());
-		var online = _tonline(instanceName).get(session.getRoleId());
-		var version = _tversion(instanceName).getOrAdd(session.getRoleId());
+		var online = _tonline.get(session.getRoleId());
+		var version = _tversion.getOrAdd(session.getRoleId());
 
 		if (null != online) {
 			if (assignLogoutVersion(version)) {
-				var ret = logoutTrigger(instanceName, session.getRoleId(), LogoutReason.LOGOUT);
+				var ret = logoutTrigger(session.getRoleId(), LogoutReason.LOGOUT);
 				if (0 != ret)
 					return ret;
 				// 到这里online被删除了。
@@ -1448,12 +1461,12 @@ public class Online extends AbstractOnline {
 		return Procedure.Success;
 	}
 
-	private int reliableNotifySync(@NotNull String instanceName, long roleId, @NotNull ProviderUserSession session, long reliableNotifyConfirmCount) {
-		return reliableNotifySync(instanceName, roleId, session, reliableNotifyConfirmCount, true);
+	private int reliableNotifySync(long roleId, @NotNull ProviderUserSession session, long reliableNotifyConfirmCount) {
+		return reliableNotifySync(roleId, session, reliableNotifyConfirmCount, true);
 	}
 
-	private int reliableNotifySync(@NotNull String instanceName, long roleId, @NotNull ProviderUserSession session, long index, boolean sync) {
-		var version = _tversion(instanceName).getOrAdd(roleId);
+	private int reliableNotifySync(long roleId, @NotNull ProviderUserSession session, long index, boolean sync) {
+		var version = _tversion.getOrAdd(roleId);
 		var queue = openQueue(roleId);
 		if (index < version.getReliableNotifyConfirmIndex()
 				|| index > version.getReliableNotifyIndex()
@@ -1480,16 +1493,25 @@ public class Online extends AbstractOnline {
 	@Override
 	protected long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Game.Online.ReliableNotifyConfirm rpc) {
 		var session = ProviderUserSession.get(rpc);
+		var onlineSet = getOnline(session.getOnlineSetName());
+		if (null == onlineSet) {
+			logger.warn("ProcessReliableNotifyConfirmRequest online set not found {}", session.getOnlineSetName());
+			return 0;
+		}
+		return onlineSet.ProcessReliableNotifyConfirmRequestOnlineSet(rpc);
+	}
 
-		var instanceName = session.getOnlineSetName();
+	protected long ProcessReliableNotifyConfirmRequestOnlineSet(Zeze.Builtin.Game.Online.ReliableNotifyConfirm rpc) {
+		var session = ProviderUserSession.get(rpc);
+
 		var roleId = session.getRoleId();
-		var online = roleId != null ? _tonline(instanceName).get(roleId) : null;
+		var online = roleId != null ? _tonline.get(roleId) : null;
 		if (online == null)
 			return errorCode(ResultCodeOnlineDataNotFound);
 
 		session.sendResponseWhileCommit(rpc); // 同步前提交。
 
-		var syncResultCode = reliableNotifySync(instanceName, session.getRoleId(), session,
+		var syncResultCode = reliableNotifySync(session.getRoleId(), session,
 				rpc.Argument.getReliableNotifyConfirmIndex(), rpc.Argument.isSync());
 		if (syncResultCode != ResultCodeSuccess)
 			return errorCode(syncResultCode);

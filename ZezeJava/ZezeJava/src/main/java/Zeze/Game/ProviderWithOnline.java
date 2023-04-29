@@ -1,6 +1,7 @@
 package Zeze.Game;
 
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.function.Consumer;
 import Zeze.AppBase;
 import Zeze.Arch.ProviderImplement;
@@ -31,8 +32,10 @@ public class ProviderWithOnline extends ProviderImplement {
 		// 目前仅需设置online状态。
 		if (!p.Argument.getUserState().getContext().isEmpty()) {
 			var roleId = Long.parseLong(p.Argument.getUserState().getContext());
-			online.linkBroken(p.Argument.getAccount(), roleId, ProviderService.getLinkName(p.getSender()),
-					p.Argument.getLinkSid(), p.Argument.getUserState().getOnlineSetName());
+			var onlineSet = online.getOnline(p.Argument.getUserState().getOnlineSetName());
+			if (null != onlineSet)
+				onlineSet.linkBroken(p.Argument.getAccount(), roleId,
+						ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;
 	}
