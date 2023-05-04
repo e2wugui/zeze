@@ -93,6 +93,24 @@ public final class Config {
 
 	private int offlineTimerLimit = 200;
 	private boolean dbh2LocalCommit = true;
+	private int providerThreshold = 3000;
+	private int providerOverload = 5000;
+
+	public int getProviderThreshold() {
+		return providerThreshold;
+	}
+
+	public void setProviderThreshold(int value) {
+		providerThreshold = value;
+	}
+
+	public int getProviderOverload() {
+		return providerOverload;
+	}
+
+	public void setProviderOverload(int value) {
+		providerOverload = value;
+	}
 
 	public Config() {
 	}

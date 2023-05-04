@@ -100,10 +100,13 @@ public class Online extends AbstractOnline {
 	}
 
 	protected Online(AppBase app) {
-		providerApp = app.getZeze().redirect.providerApp;
+		var zeze = app.getZeze();
+		providerApp = zeze.redirect.providerApp;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
 		load = new ProviderLoad(this);
+		var config = zeze.getConfig();
+		load.getOverload().register(Task.getThreadPool(), config.getProviderThreshold(), config.getProviderOverload());
 	}
 
 	public void start() {

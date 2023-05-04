@@ -129,11 +129,14 @@ public class Online extends AbstractOnline {
 	// load redirect 使用这个构造函数。
 	protected Online(@NotNull AppBase app) {
 		super("");
-		providerApp = app.getZeze().redirect.providerApp;
+		var zeze = app.getZeze();
+		providerApp = zeze.redirect.providerApp;
 		defaultInstance = this;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
 		load = new ProviderLoad(this);
+		var config = zeze.getConfig();
+		load.getOverload().register(Task.getThreadPool(), config.getProviderThreshold(), config.getProviderOverload());
 		timerRole = new TimerRole(this);
 	}
 
@@ -142,7 +145,10 @@ public class Online extends AbstractOnline {
 		super(name);
 		providerApp = app.getZeze().redirect.providerApp;
 		RegisterZezeTables(providerApp.zeze);
-		load = null; // new ProviderLoad(this); // todo 需要修改，load报告在多实例下应该不能工作。
+		// load报告仅定义在默认online实例中，OnlineSet不报告load，
+		// 【以后考虑改造定义方式】
+		// 即，OnlineSet的Load不独立报告，会单独定义但被综合以后，由默认Load统一报告。
+		load = null; // new ProviderLoad(this);
 		timerRole = new TimerRole(this);
 	}
 

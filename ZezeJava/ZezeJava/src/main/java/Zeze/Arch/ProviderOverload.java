@@ -1,13 +1,14 @@
 package Zeze.Arch;
 
 import java.util.HashSet;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import Zeze.Builtin.Provider.BLoad;
 
 public class ProviderOverload {
 	private final HashSet<ThreadPoolMonitor> threadPools = new HashSet<>();
 
-	public void register(ThreadPoolExecutor threadPool, int threshold, int overload) {
+	public void register(ExecutorService threadPool, int threshold, int overload) {
 		threadPools.add(new ThreadPoolMonitor(threadPool, threshold, overload));
 	}
 
@@ -22,22 +23,27 @@ public class ProviderOverload {
 	}
 
 	public static class ThreadPoolMonitor {
-		final ThreadPoolExecutor threadPool;
+		final ExecutorService threadPool;
 		final int threshold;
 		final int overload;
 
-		public ThreadPoolMonitor(ThreadPoolExecutor threadPool, int threshold, int overload) {
+		public ThreadPoolMonitor(ExecutorService threadPool, int threshold, int overload) {
 			this.threadPool = threadPool;
 			this.threshold = threshold;
 			this.overload = overload;
 		}
 
 		public int overload() {
-			var elementSize = threadPool.getQueue().size();
-			if (elementSize > overload)
-				return BLoad.eOverload;
-			if (elementSize > threshold)
-				return BLoad.eThreshold;
+			if (threadPool instanceof ThreadPoolExecutor) {
+				var pool = (ThreadPoolExecutor)threadPool;
+				var elementSize = pool.getQueue().size();
+				if (elementSize > overload)
+					return BLoad.eOverload;
+				if (elementSize > threshold)
+					return BLoad.eThreshold;
+				return BLoad.eWorkFine;
+			}
+			// todo 虚拟线程需要使用TaskCount/n，再来比较。
 			return BLoad.eWorkFine;
 		}
 
