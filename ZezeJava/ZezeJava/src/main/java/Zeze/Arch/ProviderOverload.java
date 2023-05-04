@@ -14,12 +14,15 @@ public class ProviderOverload {
 
 	// 由LoadReporter读取报告。
 	public int getOverload() {
+		var result = BLoad.eWorkFine;
 		for (var threadPool : threadPools) {
 			var overload = threadPool.overload();
-			if (overload != BLoad.eWorkFine)
+			if (overload == BLoad.eOverload)
 				return overload;
+			if (overload == BLoad.eThreshold)
+				result = BLoad.eThreshold;
 		}
-		return BLoad.eWorkFine;
+		return result;
 	}
 
 	public static class ThreadPoolMonitor {
