@@ -296,6 +296,7 @@
 				<enum name="ChoiceTypeHashAccount" value="1"/>
 				<enum name="ChoiceTypeHashRoleId"  value="2"/>
 				<enum name="ChoiceTypeFeedFullOneByOne" value="3"/>
+				<enum name="ChoiceTypeHashSourceAddress" value="4"/>
 
 				<variable name="ChoiceType" id="1" type="int"/>
 

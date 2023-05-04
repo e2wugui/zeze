@@ -120,6 +120,14 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				return false;
 			break; // bind static later
 
+		case BModule.ChoiceTypeHashSourceAddress:
+			var remoteAddress = link.getRemoteAddress();
+			if (null == remoteAddress)
+				return false;
+			if (!distribute.choiceHash(providers, remoteAddress.hashCode(), provider))
+				return false;
+			break; // bind static later
+
 		default:
 			if (!distribute.choiceLoad(providers, provider))
 				return false;

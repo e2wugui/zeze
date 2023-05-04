@@ -10,14 +10,20 @@ c# fresh 有bug？
 c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，等c#自己的async-lock】
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
-负载均衡；全面审核。
-过载保护；更多。
+【过载保护；更多。】目测目前做的很简陋，可能远远不足。
+
 Dbh2 创建表选择负载低的服务器的策略。
 Dbh2 根据负载或什么策略并发拆分桶。
 Dbh2 启动 redo timeout。启动顺序有问题？【张路那测试又没有问题，先观察一阵。】
 ------------------------------------------------------------------------------------------------------------------------------
-2023/5/19 v1.2.4 
+2023/5/19 v1.2.4 Arch.Online.selectDirty; 
 ------------------------------------------------------------------------------------------------------------------------------
+【负载均衡；全面审核。】
+Linkd以模块为单位进行负载派发。可配置。
+0. choiceLoad 负载低的provider优先分配。
+1. ChoiceTypeHashAccount 根据账号的hash进行一致性hash选择provider。
+2. ChoiceTypeHashRoleId 根据roleid的hash进行一致性hash选择provider。
+3. ChoiceTypeFeedFullOneByOne 根据配置的值，按轮询的方式优先喂饱一台算一台的方式分配，对于游戏，当玩家较少时，把玩家集中到一起可能更优。
 Arch.Online selectDirty 去掉事务发送。【@张路】
 Dbh2 Tid 改成 long，master 分配?【决定采用随机20字节】
 

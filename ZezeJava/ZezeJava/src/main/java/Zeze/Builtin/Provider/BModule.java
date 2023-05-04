@@ -12,6 +12,7 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
     public static final int ChoiceTypeHashAccount = 1;
     public static final int ChoiceTypeHashRoleId = 2;
     public static final int ChoiceTypeFeedFullOneByOne = 3;
+    public static final int ChoiceTypeHashSourceAddress = 4;
     public static final int ConfigTypeDefault = 0;
     public static final int ConfigTypeSpecial = 1;
     public static final int ConfigTypeDynamic = 2;
