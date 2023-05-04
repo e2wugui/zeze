@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.lang.management.ManagementFactory;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -10,6 +11,7 @@ import Zeze.Builtin.Provider.Send;
 import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
+import com.sun.management.OperatingSystemMXBean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -59,6 +61,7 @@ public final class PerfCounter {
 	public static final int PERF_COUNT = Integer.parseInt(System.getProperty("perfCount", "20")); // 输出条目数
 	public static final int PERF_PERIOD = Integer.parseInt(System.getProperty("perfPeriod", "100")); // 输出周期(秒)
 	public static final boolean ENABLE_PERF = PERF_COUNT > 0;
+	private static final OperatingSystemMXBean osBean = (OperatingSystemMXBean)ManagementFactory.getOperatingSystemMXBean();
 	public static final PerfCounter instance = new PerfCounter(); // 通常用全局单例就够用了,也可以创建新实例
 
 	private final ConcurrentHashMap<Object, RunInfo> runInfoMap = new ConcurrentHashMap<>(); // key: Class or others
@@ -69,6 +72,7 @@ public final class PerfCounter {
 	private final DecimalFormat numFormatter = new DecimalFormat("#,###");
 	private @NotNull String lastLog = "";
 	private long lastLogTime = System.currentTimeMillis();
+	private long lastCpuTime = osBean.getProcessCpuTime();
 	private @Nullable ScheduledFuture<?> scheduleFuture;
 
 	public synchronized int registerCountIndex(String name) {
@@ -236,6 +240,10 @@ public final class PerfCounter {
 			return lastLog = "";
 		var curTime = System.currentTimeMillis();
 		var time = curTime - lastLogTime;
+		lastLogTime = curTime;
+		var curCpuTime = osBean.getProcessCpuTime();
+		var cpuTime = curCpuTime - lastCpuTime;
+		lastCpuTime = curCpuTime;
 
 		var procCountAll = 0L;
 		var procTimeAll = 0L;
@@ -254,7 +262,18 @@ public final class PerfCounter {
 			ri.idleCount = 0;
 			rList.add(ri);
 		}
+		var runtime = Runtime.getRuntime();
+		@SuppressWarnings("deprecation")
 		var sb = new StringBuilder(100 + 50 * 3 * PERF_COUNT).append("count last ").append(time).append("ms:\n")
+				.append(" [load: ").append(cpuTime / 1_000_000).append("ms ")
+				.append(String.format("%.2f%%", osBean.getProcessCpuLoad() * 100))
+				.append(" free/total/max: ").append(runtime.freeMemory() >> 20)
+				.append('/').append(runtime.totalMemory() >> 20).append('/').append(runtime.maxMemory() >> 20)
+				.append("M committed/free/all: ").append(osBean.getCommittedVirtualMemorySize() >> 20).append('/')
+				.append(osBean.getFreePhysicalMemorySize() >> 20).append('+')
+				.append(osBean.getFreeSwapSpaceSize() >> 20).append('/')
+				.append(osBean.getTotalPhysicalMemorySize() >> 20).append('+')
+				.append(osBean.getTotalSwapSpaceSize() >> 20).append("M]\n")
 				.append(" [run: ").append(procCountAll).append(',').append(' ')
 				.append(procTimeAll / 1_000_000).append("ms]\n");
 		rList.sort((ri0, ri1) -> Long.signum(ri1.lastProcTime - ri0.lastProcTime));
@@ -331,7 +350,6 @@ public final class PerfCounter {
 				sb.append(' ').append(' ').append(ci.name).append(':').append(' ').append(ci.lastCount).append('\n');
 		}
 
-		lastLogTime = curTime;
 		return lastLog = sb.toString();
 	}
 }

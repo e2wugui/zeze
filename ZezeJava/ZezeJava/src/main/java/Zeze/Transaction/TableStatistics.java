@@ -121,17 +121,17 @@ public final class TableStatistics {
 
 		public double getTableCacheHit() {
 			double total = getTableFindCount();
-			return (total - getStorageFindCount().sum()) / total;
+			return total != 0 ? (total - getStorageFindCount().sum()) / total : 0;
 		}
 
 		public double getGlobalAcquireShareHit() {
 			double total = getTableFindCount();
-			return (total - getGlobalAcquireShare().sum()) / total;
+			return total != 0 ? (total - getGlobalAcquireShare().sum()) / total : 0;
 		}
 
 		public double getGlobalAcquireModifyHit() {
 			double total = getTableFindCount();
-			return (total - getGlobalAcquireModify().sum()) / total;
+			return total != 0 ? (total - getGlobalAcquireModify().sum()) / total : 0;
 		}
 
 		public Statistics(long tableId) {
@@ -147,9 +147,9 @@ public final class TableStatistics {
 		}
 
 		public void buildString(String prefix, StringBuilder sb, String end) {
-			sb.append(prefix).append("CacheHit=").append(getTableCacheHit()).append(end);
-			sb.append(prefix).append("AcquireShare=").append(getGlobalAcquireShareHit()).append(end);
-			sb.append(prefix).append("AcquireShare=").append(getGlobalAcquireModifyHit()).append(end);
+			sb.append(prefix).append("CacheHit=").append(String.format("%.2f%%", getTableCacheHit() * 100)).append(end);
+			sb.append(prefix).append("AcquireShareHit=").append(String.format("%.2f%%", getGlobalAcquireShareHit() * 100)).append(end);
+			sb.append(prefix).append("AcquireModifyHit=").append(String.format("%.2f%%", getGlobalAcquireModifyHit() * 100)).append(end);
 
 			sb.append(prefix).append("AcquireShare=").append(getGlobalAcquireShare().sum()).append(end);
 			sb.append(prefix).append("AcquireModify=").append(getGlobalAcquireModify().sum()).append(end);
