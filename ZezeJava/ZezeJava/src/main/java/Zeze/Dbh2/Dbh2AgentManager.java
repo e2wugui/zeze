@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
@@ -10,7 +11,6 @@ import Zeze.Net.Binary;
 import Zeze.Net.ServiceConf;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
-import Zeze.Util.Random;
 import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -55,8 +55,12 @@ public class Dbh2AgentManager {
 		}
 	}
 
-	public byte[] nextTransactionId() {
-		return Random.nextBytes(16);
+	private static final SecureRandom secureRandom = new SecureRandom();
+
+	public static byte[] nextTransactionId() {
+		var tid = new byte[20];
+		secureRandom.nextBytes(tid);
+		return tid;
 	}
 
 	public KV<String, Integer> commitServiceAcceptor() {
