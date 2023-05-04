@@ -65,11 +65,11 @@ public final class BeanFactory {
 		return n;
 	}
 
+	@SuppressWarnings("deprecation")
 	public static boolean loadClass(String className) {
 		try {
 			var cls = Class.forName(className);
 			if (Bean.class.isAssignableFrom(cls)) {
-				//noinspection deprecation
 				var typeId = ((Bean)cls.newInstance()).typeId();
 				var oldObj = allClassNameMap.put(typeId, cls);
 				if (oldObj != null && (oldObj instanceof String ? !oldObj.equals(className) : oldObj != cls)) {

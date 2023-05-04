@@ -61,7 +61,7 @@ public class ModuleMessage extends AbstractModule {
             group.getGroupMembers().walk((key, member) -> {
                 Program.counters.increment("GroupBroadcastMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
                 if (!session.getAccount().equals((key)))
-                    App.Provider.getOnline().sendAccountWhileCommit(key, notify, null);
+                    App.Provider.getOnline().sendAccountWhileCommit(key, notify);
                 return true;
             });
         } else {
@@ -69,7 +69,7 @@ public class ModuleMessage extends AbstractModule {
             group.getDepartmentMembers(r.Argument.getDepartmentId()).walk((key, member) -> {
                 Program.counters.increment("GroupBroadcastMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
                 if (!session.getAccount().equals((key)))
-                    App.Provider.getOnline().sendAccountWhileCommit(key, notify, null);
+                    App.Provider.getOnline().sendAccountWhileCommit(key, notify);
                 return true;
             });
         }
@@ -112,7 +112,7 @@ public class ModuleMessage extends AbstractModule {
         if (!self) {
             var notify = new NotifyMessage();
             notify.Argument = r.Argument.getMessage();
-            App.Provider.getOnline().sendAccountWhileCommit(r.Argument.getFriend(), notify, null);
+            App.Provider.getOnline().sendAccountWhileCommit(r.Argument.getFriend(), notify);
         }
         session.sendResponseWhileCommit(r);
         Program.counters.increment("FriendMessage");

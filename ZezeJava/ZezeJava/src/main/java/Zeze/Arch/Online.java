@@ -1,10 +1,12 @@
 package Zeze.Arch;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -36,7 +38,6 @@ import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
@@ -50,6 +51,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class Online extends AbstractOnline {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
@@ -442,9 +444,12 @@ public class Online extends AbstractOnline {
 			login.setReliableNotifyIndex(login.getReliableNotifyIndex() + 1); // after set notify.Argument
 			notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-			if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-				AsyncSocket.log("Send", account + ',' + clientId + ':' + listenerName, notify);
-			sendEmbed(List.of(new LoginKey(account, clientId)), notify.getTypeId(), new Binary(notify.encode()));
+			Transaction.whileCommit(() -> {
+				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+					AsyncSocket.log("Send", account + ',' + clientId + ':' + listenerName, notify);
+				sendDirect(account, clientId, notify.getTypeId(), new Binary(notify.encode()), false);
+			});
+//			sendEmbed(List.of(new LoginKey(account, clientId)), notify.getTypeId(), new Binary(notify.encode()));
 			return Procedure.Success;
 		});
 	}
@@ -515,50 +520,50 @@ public class Online extends AbstractOnline {
 		return online.getLogins().size();
 	}
 
-	public Collection<LoginOnLink> groupByLink(Iterable<LoginKey> logins) {
-		var groups = new HashMap<String, LoginOnLink>();
-		var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
-		groups.put(groupNotOnline.linkName, groupNotOnline);
-
-		for (var alogin : logins) {
-			var online = _tonline.get(alogin.account);
-			if (online == null) {
-				groupNotOnline.logins.putIfAbsent(alogin, 0L);
-				logger.warn("groupByLink: not found account={} in _tonline", alogin.account);
-				continue;
-			}
-			var login = online.getLogins().get(alogin.clientId);
-			if (login == null) {
-				logger.warn("groupByLink: not found login for clientId={} account={}", alogin.clientId, alogin.account);
-				groupNotOnline.logins.putIfAbsent(alogin, 0L);
-				continue;
-			}
-			var connector = providerApp.providerService.getLinks().get(login.getLinkName());
-			if (connector == null) {
-				logger.warn("groupByLink: not found connector for linkName={} account={}",
-						login.getLinkName(), alogin.account);
-				groupNotOnline.logins.putIfAbsent(alogin, 0L);
-				continue;
-			}
-
-			if (!connector.isHandshakeDone()) {
-				logger.warn("groupByLink: not isHandshakeDone for linkName={} account={}",
-						login.getLinkName(), alogin.account);
-				groupNotOnline.logins.putIfAbsent(alogin, 0L);
-				continue;
-			}
-			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
-			var group = groups.get(login.getLinkName());
-			if (group == null) {
-				group = new LoginOnLink();
-				group.linkName = login.getLinkName();
-				group.linkSocket = connector.getSocket();
-				groups.putIfAbsent(group.linkName, group);
-			}
-			group.logins.putIfAbsent(alogin, login.getLinkSid());
-		}
-		return groups.values();
-	}
+//	public Collection<LoginOnLink> groupByLink(Iterable<LoginKey> loginKeys) {
+//		var groups = new HashMap<String, LoginOnLink>();
+//		var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
+//		groups.put(groupNotOnline.linkName, groupNotOnline);
+//
+//		for (var loginKey : loginKeys) {
+//			var online = _tonline.get(loginKey.account);
+//			if (online == null) {
+//				groupNotOnline.logins.putIfAbsent(loginKey, 0L);
+//				logger.warn("groupByLink: not found account={} in _tonline", loginKey.account);
+//				continue;
+//			}
+//			var login = online.getLogins().get(loginKey.clientId);
+//			if (login == null) {
+//				logger.warn("groupByLink: not found login for clientId={} account={}", loginKey.clientId, loginKey.account);
+//				groupNotOnline.logins.putIfAbsent(loginKey, 0L);
+//				continue;
+//			}
+//			var connector = providerApp.providerService.getLinks().get(login.getLinkName());
+//			if (connector == null) {
+//				logger.warn("groupByLink: not found connector for linkName={} account={}",
+//						login.getLinkName(), loginKey.account);
+//				groupNotOnline.logins.putIfAbsent(loginKey, 0L);
+//				continue;
+//			}
+//
+//			if (!connector.isHandshakeDone()) {
+//				logger.warn("groupByLink: not isHandshakeDone for linkName={} account={}",
+//						login.getLinkName(), loginKey.account);
+//				groupNotOnline.logins.putIfAbsent(loginKey, 0L);
+//				continue;
+//			}
+//			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
+//			var group = groups.get(login.getLinkName());
+//			if (group == null) {
+//				group = new LoginOnLink();
+//				group.linkName = login.getLinkName();
+//				group.linkSocket = connector.getSocket();
+//				groups.putIfAbsent(group.linkName, group);
+//			}
+//			group.logins.putIfAbsent(loginKey, login.getLinkSid());
+//		}
+//		return groups.values();
+//	}
 
 	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, LoginKey> contexts) {
 		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
@@ -598,30 +603,154 @@ public class Online extends AbstractOnline {
 		return send(link, loginKey != null ? Map.of(linkSid, loginKey) : Map.of(), send);
 	}
 
-	public boolean send(Collection<LoginKey> keys, AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
-		if (keys.size() > 1) {
-			return send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
-					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+//	public boolean send(Collection<LoginKey> keys, AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
+//		if (keys.size() > 1) {
+//			return send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
+//					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+//		}
+//		//noinspection CodeBlock2Expr
+//		providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
+//			send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
+//					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+//		}, null, DispatchMode.Normal);
+//		return true;
+//	}
+
+//	private void sendEmbed(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
+//		var groups = groupByLink(logins);
+//		Transaction.whileCommit(() -> {
+//			for (var group : groups) {
+//				if (group.linkSocket == null)
+//					continue; // skip not online
+//
+//				var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
+//				send.Argument.getLinkSids().addAll(group.logins.values());
+//				send(group.linkSocket, group.contexts, send);
+//			}
+//		});
+//	}
+
+	public static final class LinkRoles {
+		final @NotNull AsyncSocket linkSocket;
+		final @NotNull Send send;
+		final ArrayList<LoginKey> accounts = new ArrayList<>();
+
+		public LinkRoles(@NotNull AsyncSocket linkSocket, long typeId, @NotNull Binary fullEncodedProtocol) {
+			this.linkSocket = linkSocket;
+			send = new Send(new BSend(typeId, fullEncodedProtocol));
 		}
-		//noinspection CodeBlock2Expr
-		providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
-			send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
-					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
-		}, null, DispatchMode.Normal);
-		return true;
 	}
 
-	private void sendEmbed(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
-		var groups = groupByLink(logins);
-		Transaction.whileCommit(() -> {
-			for (var group : groups) {
-				if (group.linkSocket == null)
-					continue; // skip not online
-
-				var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
-				send.Argument.getLinkSids().addAll(group.logins.values());
-				send(group.linkSocket, group.contexts, send);
+	// 可在事务外执行
+	public int sendDirect(@NotNull Set<LoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
+						  boolean trySend) {
+		if (loginKeys.isEmpty())
+			return 0;
+		var groups = new HashMap<String, LinkRoles>();
+		var links = providerApp.providerService.getLinks();
+		for (var loginKey : loginKeys) {
+			var account = loginKey.account;
+			var clientId = loginKey.clientId;
+			var online = _tonline.selectDirty(account);
+			if (online == null) {
+				if (!trySend)
+					logger.warn("sendDirect: not found account={} in _tonline", account);
+				continue;
 			}
+			var login = online.getLogins().get(clientId);
+			if (login == null) {
+				if (!trySend)
+					logger.warn("sendDirect: not found login for clientId={} account={}", clientId, account);
+				continue;
+			}
+			var linkName = login.getLinkName();
+			var connector = links.get(linkName);
+			if (connector == null) {
+				logger.warn("sendDirect: not found connector for linkName={} clientId={} account={}",
+						linkName, account, clientId);
+				continue;
+			}
+			if (!connector.isHandshakeDone()) {
+				logger.warn("sendDirect: not isHandshakeDone for linkName={} clientId={} account={}",
+						linkName, account, clientId);
+				continue;
+			}
+			// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
+			var group = groups.get(linkName);
+			if (group == null) {
+				var linkSocket = connector.getSocket();
+				if (linkSocket == null) {
+					logger.warn("sendDirect: closed connector for linkName={} clientId={} account={}",
+							linkName, account, clientId);
+					continue;
+				}
+				groups.put(linkName, group = new LinkRoles(linkSocket, typeId, fullEncodedProtocol));
+			}
+			group.send.Argument.getLinkSids().add(login.getLinkSid());
+			group.accounts.add(loginKey);
+		}
+		int sendCount = 0;
+		for (var group : groups.values()) {
+			if (group.send.Send(group.linkSocket, rpc -> {
+				var send = group.send;
+				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
+				errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
+					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
+					var loginKey = group.accounts.get(idx);
+					return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId,
+							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
+				}, "Online.triggerLinkBroken2").call());
+				return Procedure.Success;
+			}))
+				sendCount++;
+		}
+		return sendCount;
+	}
+
+	// 可在事务外执行
+	public boolean sendDirect(String account, String clientId, long typeId, @NotNull Binary fullEncodedProtocol,
+							  boolean trySend) {
+		var online = _tonline.selectDirty(account);
+		if (online == null) {
+			if (!trySend)
+				logger.warn("sendDirect: not found account={} in _tonline", account);
+			return false;
+		}
+		var login = online.getLogins().get(clientId);
+		if (login == null) {
+			if (!trySend)
+				logger.warn("sendDirect: not found login for clientId={} account={}", clientId, account);
+			return false;
+		}
+
+		var linkName = login.getLinkName();
+		var connector = providerApp.providerService.getLinks().get(linkName);
+		if (connector == null) {
+			logger.warn("sendDirect: not found connector for linkName={} account={} clientId={}",
+					linkName, account, clientId);
+			return false;
+		}
+		if (!connector.isHandshakeDone()) {
+			logger.warn("sendDirect: not isHandshakeDone for linkName={} account={} clientId={}",
+					linkName, account, clientId);
+			return false;
+		}
+		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
+		var linkSocket = connector.getSocket();
+		if (linkSocket == null) {
+			logger.warn("sendDirect: closed connector for linkName={} account={} clientId={}",
+					linkName, account, clientId);
+			return false;
+		}
+		var send = new Send(new BSend(typeId, fullEncodedProtocol));
+		send.Argument.getLinkSids().add(login.getLinkSid());
+		return send.Send(linkSocket, rpc -> {
+			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
+				var linkSid = send.Argument.getLinkSids().get(0);
+				providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, linkSid),
+						"Online.triggerLinkBroken1").call();
+			}
+			return Procedure.Success;
 		});
 	}
 
@@ -663,32 +792,42 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	public void send(String account, String clientId, long typeId, Binary fullEncodedProtocol) {
-		var login = new LoginKey(account, clientId);
-		providerApp.zeze.runTaskOneByOneByKey(login, "Online.send", () -> {
-			sendEmbed(List.of(login), typeId, fullEncodedProtocol);
-			return Procedure.Success;
-		});
-	}
+//	public void send(String account, String clientId, long typeId, Binary fullEncodedProtocol) {
+//		var login = new LoginKey(account, clientId);
+//		providerApp.zeze.runTaskOneByOneByKey(login, "Online.send", () -> {
+//			sendEmbed(List.of(login), typeId, fullEncodedProtocol);
+//			return Procedure.Success;
+//		});
+//	}
 
-	public void send(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
-		var p = providerApp.zeze.newProcedure(() -> {
-			sendEmbed(logins, typeId, fullEncodedProtocol);
-			return Procedure.Success;
-		}, "Online.send");
-
-		if (logins.size() > 1) {
-			Task.runUnsafe(p);
-		} else {
-			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(logins, p, null, DispatchMode.Normal);
+	public int send(Collection<LoginKey> loginKeys, long typeId, Binary fullEncodedProtocol, boolean trySend) {
+		int loginCount = loginKeys.size();
+		if (loginCount == 1) {
+			var it = loginKeys.iterator();
+			if (it.hasNext()) { // 不确定loginKeys是否稳定,所以还是判断一下保险
+				var loginKey = it.next();
+				return sendDirect(loginKey.account, loginKey.clientId, typeId, fullEncodedProtocol, trySend) ? 1 : 0;
+			}
+		} else if (loginCount > 1) {
+			return sendDirect(loginKeys instanceof Set ? (Set<LoginKey>)loginKeys : new HashSet<>(loginKeys),
+					typeId, fullEncodedProtocol, trySend);
+//			var p = providerApp.zeze.newProcedure(() -> {
+//				sendEmbed(loginKeys, typeId, fullEncodedProtocol);
+//				return Procedure.Success;
+//			}, "Online.send");
+//			if (loginKeys.size() > 1)
+//				Task.runUnsafe(p);
+//			else
+//				providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(loginKeys, p, null, DispatchMode.Normal);
 		}
+		return 0;
 	}
 
 	public void send(String account, String clientId, Protocol<?> p) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", account + ',' + clientId, p);
-		send(account, clientId, typeId, new Binary(p.encode()));
+		sendDirect(account, clientId, typeId, new Binary(p.encode()), false);
 	}
 
 	public void sendResponse(String account, String clientId, Rpc<?, ?> r) {
@@ -710,7 +849,7 @@ public class Online extends AbstractOnline {
 			var idsStr = sb.toString();
 			AsyncSocket.log("Send", idsStr, p);
 		}
-		send(logins, typeId, new Binary(p.encode()));
+		send(logins, typeId, new Binary(p.encode()), false);
 	}
 
 	public void sendWhileCommit(String account, String clientId, Protocol<?> p) {
@@ -736,98 +875,203 @@ public class Online extends AbstractOnline {
 		Transaction.whileRollback(() -> send(logins, p));
 	}
 
-	public Collection<LoginOnLink> groupAccountsByLink(Collection<String> accounts) {
-		var groups = new HashMap<String, LoginOnLink>();
-		var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
-		groups.put(groupNotOnline.linkName, groupNotOnline);
+//	public Collection<LoginOnLink> groupAccountsByLink(Collection<String> accounts) {
+//		var groups = new HashMap<String, LoginOnLink>();
+//		var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
+//		groups.put(groupNotOnline.linkName, groupNotOnline);
+//
+//		for (var account : accounts) {
+//			var online = _tonline.get(account);
+//			if (online == null) {
+//				groupNotOnline.logins.putIfAbsent(new LoginKey(account, ""), 0L);
+//				continue;
+//			}
+//			for (var e : online.getLogins().entrySet()) {
+//				var login = new LoginKey(account, e.getKey());
+//				var connector = providerApp.providerService.getLinks().get(e.getValue().getLinkName());
+//				if (connector == null) {
+//					groupNotOnline.logins.putIfAbsent(login, 0L);
+//					continue;
+//				}
+//				if (!connector.isHandshakeDone()) {
+//					groupNotOnline.logins.putIfAbsent(login, 0L);
+//					continue;
+//				}
+//				// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
+//				var group = groups.get(e.getValue().getLinkName());
+//				if (group == null) {
+//					group = new LoginOnLink();
+//					group.linkName = e.getValue().getLinkName();
+//					group.linkSocket = connector.getSocket();
+//					groups.putIfAbsent(group.linkName, group);
+//				}
+//				group.logins.putIfAbsent(login, e.getValue().getLinkSid());
+//				group.contexts.putIfAbsent(e.getValue().getLinkSid(), login);
+//			}
+//		}
+//		return groups.values();
+//	}
 
+//	public void sendAccountsEmbed(Collection<String> accounts, long typeId, Binary fullEncodedProtocol,
+//								  OnlineSend sender) {
+//		var groups = groupAccountsByLink(accounts);
+//		Transaction.whileCommit(() -> {
+//			if (sender == null) {
+//				for (var group : groups) {
+//					if (group.linkSocket == null)
+//						continue; // skip not online
+//					var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
+//					send.Argument.getLinkSids().addAll(group.logins.values());
+//					send(group.linkSocket, group.contexts, send);
+//				}
+//			} else {
+//				for (var group : groups) {
+//					if (!sender.send(group))
+//						break;
+//				}
+//			}
+//		});
+//	}
+
+	// 可在事务外执行
+	public int sendAccountDirect(@NotNull String account, long typeId, @NotNull Binary fullEncodedProtocol,
+								 boolean trySend) {
+		var groups = new HashMap<String, LinkRoles>();
+		var links = providerApp.providerService.getLinks();
+		var online = _tonline.selectDirty(account);
+		if (online == null) {
+			if (!trySend)
+				logger.warn("sendAccountDirect: not found account={} in _tonline", account);
+			return 0;
+		}
+		for (var e : online.getLogins()) {
+			var login = e.getValue();
+			var linkName = login.getLinkName();
+			var connector = links.get(linkName);
+			if (connector == null || !connector.isHandshakeDone())
+				continue;
+			// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
+			var group = groups.get(linkName);
+			if (group == null) {
+				var linkSocket = connector.getSocket();
+				if (linkSocket == null)
+					continue;
+				groups.put(linkName, group = new LinkRoles(linkSocket, typeId, fullEncodedProtocol));
+			}
+			group.send.Argument.getLinkSids().add(login.getLinkSid());
+			group.accounts.add(new LoginKey(account, e.getKey()));
+		}
+		int sendCount = 0;
+		for (var group : groups.values()) {
+			if (group.send.Send(group.linkSocket, rpc -> {
+				var send = group.send;
+				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
+				errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
+					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
+					var loginKey = group.accounts.get(idx);
+					return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId,
+							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
+				}, "Online.triggerLinkBroken3").call());
+				return Procedure.Success;
+			}))
+				sendCount++;
+		}
+		return sendCount;
+	}
+
+	// 可在事务外执行
+	public int sendAccountsDirect(@NotNull Set<String> accounts, long typeId, @NotNull Binary fullEncodedProtocol,
+								  boolean trySend) {
+		if (accounts.isEmpty())
+			return 0;
+		var groups = new HashMap<String, LinkRoles>();
+		var links = providerApp.providerService.getLinks();
 		for (var account : accounts) {
-			var online = _tonline.get(account);
+			var online = _tonline.selectDirty(account);
 			if (online == null) {
-				groupNotOnline.logins.putIfAbsent(new LoginKey(account, ""), 0L);
+				if (!trySend)
+					logger.warn("sendAccountsDirect: not found account={} in _tonline", account);
 				continue;
 			}
-			for (var e : online.getLogins().entrySet()) {
-				var login = new LoginKey(account, e.getKey());
-				var connector = providerApp.providerService.getLinks().get(e.getValue().getLinkName());
-				if (connector == null) {
-					groupNotOnline.logins.putIfAbsent(login, 0L);
+			for (var e : online.getLogins()) {
+				var login = e.getValue();
+				var linkName = login.getLinkName();
+				var connector = links.get(linkName);
+				if (connector == null || !connector.isHandshakeDone())
 					continue;
-				}
-				if (!connector.isHandshakeDone()) {
-					groupNotOnline.logins.putIfAbsent(login, 0L);
-					continue;
-				}
-				// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
-				var group = groups.get(e.getValue().getLinkName());
+				// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
+				var group = groups.get(linkName);
 				if (group == null) {
-					group = new LoginOnLink();
-					group.linkName = e.getValue().getLinkName();
-					group.linkSocket = connector.getSocket();
-					groups.putIfAbsent(group.linkName, group);
+					var linkSocket = connector.getSocket();
+					if (linkSocket == null)
+						continue;
+					groups.put(linkName, group = new LinkRoles(linkSocket, typeId, fullEncodedProtocol));
 				}
-				group.logins.putIfAbsent(login, e.getValue().getLinkSid());
-				group.contexts.putIfAbsent(e.getValue().getLinkSid(), login);
+				group.send.Argument.getLinkSids().add(login.getLinkSid());
+				group.accounts.add(new LoginKey(account, e.getKey()));
 			}
 		}
-		return groups.values();
-	}
-
-	public void sendAccountsEmbed(Collection<String> accounts, long typeId, Binary fullEncodedProtocol,
-								  OnlineSend sender) {
-		var groups = groupAccountsByLink(accounts);
-		Transaction.whileCommit(() -> {
-			if (sender == null) {
-				for (var group : groups) {
-					if (group.linkSocket == null)
-						continue; // skip not online
-					var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
-					send.Argument.getLinkSids().addAll(group.logins.values());
-					send(group.linkSocket, group.contexts, send);
-				}
-			} else {
-				for (var group : groups) {
-					if (!sender.send(group))
-						break;
-				}
-			}
-		});
-	}
-
-	public void sendAccount(String account, long typeId, Binary fullEncodedProtocol, OnlineSend sender) {
-		providerApp.zeze.runTaskOneByOneByKey(account, "Online.sendAccount", () -> {
-			sendAccountsEmbed(List.of(account), typeId, fullEncodedProtocol, sender);
-			return Procedure.Success;
-		});
-	}
-
-	public void sendAccounts(Collection<String> accounts, long typeId, Binary fullEncodedProtocol, OnlineSend sender) {
-		var p = providerApp.zeze.newProcedure(() -> {
-			sendAccountsEmbed(accounts, typeId, fullEncodedProtocol, sender);
-			return Procedure.Success;
-		}, "Online.sendAccounts");
-
-		if (accounts.size() > 1) {
-			Task.runUnsafe(p);
-		} else {
-			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(accounts, p, null, DispatchMode.Normal);
+		int sendCount = 0;
+		for (var group : groups.values()) {
+			if (group.send.Send(group.linkSocket, rpc -> {
+				var send = group.send;
+				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
+				errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
+					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
+					var loginKey = group.accounts.get(idx);
+					return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId,
+							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
+				}, "Online.triggerLinkBroken4").call());
+				return Procedure.Success;
+			}))
+				sendCount++;
 		}
+		return sendCount;
+	}
+
+	public void sendAccount(@NotNull String account, long typeId, @NotNull Binary fullEncodedProtocol) { // OnlineSend sender
+		sendAccountDirect(account, typeId, fullEncodedProtocol, false);
+//		providerApp.zeze.runTaskOneByOneByKey(account, "Online.sendAccount", () -> {
+//			sendAccountsEmbed(List.of(account), typeId, fullEncodedProtocol, sender);
+//			return Procedure.Success;
+//		});
+	}
+
+	public int sendAccounts(Collection<String> accounts, long typeId, Binary fullEncodedProtocol) { // OnlineSend sender
+		int accountCount = accounts.size();
+		if (accountCount == 1) {
+			var it = accounts.iterator();
+			if (it.hasNext()) // 不确定accounts是否稳定,所以还是判断一下保险
+				return sendAccountDirect(it.next(), typeId, fullEncodedProtocol, false);
+		} else if (accountCount > 1) {
+			return sendAccountsDirect(accounts instanceof Set ? (Set<String>)accounts : new HashSet<>(accounts),
+					typeId, fullEncodedProtocol, false);
+//			var p = providerApp.zeze.newProcedure(() -> {
+//				sendAccountsEmbed(accounts, typeId, fullEncodedProtocol, sender);
+//				return Procedure.Success;
+//			}, "Online.sendAccounts");
+//			if (accounts.size() > 1)
+//				Task.runUnsafe(p);
+//			else
+//				providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(accounts, p, null, DispatchMode.Normal);
+		}
+		return 0;
 	}
 
 	/**
 	 * 给账号所有的登录终端发送消息。
 	 */
-	public void sendAccount(String account, Protocol<?> p, OnlineSend sender) {
+	public void sendAccount(@NotNull String account, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", account, p);
-		sendAccount(account, typeId, new Binary(p.encode()), sender);
+		sendAccountDirect(account, typeId, new Binary(p.encode()), false);
 	}
 
 	/**
 	 * 给账号所有的登录终端发送消息。
 	 */
-	public void sendAccounts(Collection<String> accounts, Protocol<?> p, OnlineSend sender) {
+	public void sendAccounts(Collection<String> accounts, Protocol<?> p/*, OnlineSend sender*/) {
 		if (accounts.size() <= 0)
 			return;
 		var typeId = p.getTypeId();
@@ -841,23 +1085,23 @@ public class Online extends AbstractOnline {
 			var idsStr = sb.toString();
 			AsyncSocket.log("Send", idsStr, p);
 		}
-		sendAccounts(accounts, typeId, new Binary(p.encode()), sender);
+		sendAccounts(accounts, typeId, new Binary(p.encode())/*, sender*/);
 	}
 
-	public void sendAccountWhileCommit(String account, Protocol<?> p, OnlineSend sender) {
-		Transaction.whileCommit(() -> sendAccount(account, p, sender));
+	public void sendAccountWhileCommit(String account, Protocol<?> p/*, OnlineSend sender*/) {
+		Transaction.whileCommit(() -> sendAccount(account, p/*, sender*/));
 	}
 
-	public void sendAccountsWhileCommit(Collection<String> accounts, Protocol<?> p, OnlineSend sender) {
-		Transaction.whileCommit(() -> sendAccounts(accounts, p, sender));
+	public void sendAccountsWhileCommit(Collection<String> accounts, Protocol<?> p/*, OnlineSend sender*/) {
+		Transaction.whileCommit(() -> sendAccounts(accounts, p/*, sender*/));
 	}
 
-	public void sendAccountWhileRollback(String account, Protocol<?> p, OnlineSend sender) {
-		Transaction.whileRollback(() -> sendAccount(account, p, sender));
+	public void sendAccountWhileRollback(String account, Protocol<?> p/*, OnlineSend sender*/) {
+		Transaction.whileRollback(() -> sendAccount(account, p/*, sender*/));
 	}
 
-	public void sendAccountsWhileRollback(Collection<String> accounts, Protocol<?> p, OnlineSend sender) {
-		Transaction.whileRollback(() -> sendAccounts(accounts, p, sender));
+	public void sendAccountsWhileRollback(Collection<String> accounts, Protocol<?> p/*, OnlineSend sender*/) {
+		Transaction.whileRollback(() -> sendAccounts(accounts, p/*, sender*/));
 	}
 
 	/**

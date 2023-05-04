@@ -1,6 +1,5 @@
 package Zeze.Arch;
 
-import java.util.List;
 import java.util.Map;
 import Zeze.Arch.Beans.BSend;
 import Zeze.Builtin.Provider.Dispatch;
@@ -126,7 +125,7 @@ public class ProviderUserSession {
 			var context = getContext();
 			var loginKey = new Online.LoginKey(getAccount(), context);
 			if (context != null && !context.isEmpty())
-				return online.send(List.of(loginKey), link, Map.of(getLinkSid(), loginKey), send);
+				return online.send(link, Map.of(getLinkSid(), loginKey), send);
 			// 没有登录的会话不需要转给Online处理。转给Online是为了处理发送失败的结果。
 			// 这种情况下，忽略发送结果。
 			return send.Send(link);

@@ -25,7 +25,7 @@ public class ModuleFriend extends AbstractModule {
 		var notify = new FriendNodeLogBeanNotify();
 		var encoded = App.LinkedMaps.encodeChangeListenerWithSpecialName(nodeKey.getName(), key, r);
 		notify.Argument.setChangeLog(new Binary(encoded));
-		App.Provider.getOnline().sendAccount(account, notify, null); // TODO online sender
+		App.Provider.getOnline().sendAccount(account, notify); // TODO online sender
 	}
 
 	public void Start(Zege.App app) throws Exception {
