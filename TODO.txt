@@ -11,7 +11,32 @@ c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，等c#自己的asy
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 Dbh2 创建表选择负载低的服务器的策略。
+          创建表负载。不能用分桶的load，否则批量创建都会创建到同一个manager。这里可用的策略是完全轮询manager，或者按load=manager中的桶数量的方式定义。
 Dbh2 根据负载或什么策略并发拆分桶。
+          put count； delete count；get count；db file size / disk size；一天的统计；
+          达到阀值（单桶并发的80%），在找得到能接收的manager（单桶并发✖️cpu✖️80%）时开始分桶。
+          单桶并发的80%不能是一天的平均，应该是10分钟的平均。
+	void bucketLoadMonitorTimer()
+	{
+		loadAvg10Minute = (putCount + deleteCount) * m% + getCount * n% + (diskSize - dbFileSize) * k%
+		loadMaxBucket 配置，最好能自动跑分得出，或者给一个按机器配置对应的合适的默认配置。
+		if (loadAvg10Minute > loadMaxBucket * 80%)
+		{
+			var managerTarget = findIdleManager();
+			if (null != managerTarget)
+				this.splitTo(managerTarget);
+			// else 忽略这次过载报告。
+		}
+	}
+	Manager findIdleManager()
+	{
+		if (managers.isEmpty())
+			return null;
+		sort manager by load;
+		if (managerMinLoad.load < loadMaxBucket * Cpu * 80%)
+			return managerMinLoad;
+		return null;
+	}
 Dbh2 启动 redo timeout。启动顺序有问题？【张路那测试又没有问题，先观察一阵。】
 ------------------------------------------------------------------------------------------------------------------------------
 2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; 
