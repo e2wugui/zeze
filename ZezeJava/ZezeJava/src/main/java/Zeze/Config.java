@@ -545,6 +545,14 @@ public final class Config {
 		if (!attr.isBlank())
 			dbh2LocalCommit = Boolean.parseBoolean(attr);
 
+		attr = self.getAttribute("ProviderThreshold");
+		if (!attr.isBlank())
+			providerThreshold = Integer.parseInt(attr);
+
+		attr = self.getAttribute("ProviderOverload");
+		if (!attr.isBlank())
+			providerOverload = Integer.parseInt(attr);
+
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {
 			Node node = childNodes.item(i);
