@@ -8,9 +8,13 @@ import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Builtin.Dbh2.UndoBatch;
 import Zeze.Config;
+import Zeze.Net.Protocol;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Action0;
+import Zeze.Util.Func0;
 import Zeze.Util.RocksDatabase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,6 +26,18 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     private final Raft raft;
     private final Dbh2StateMachine stateMachine;
     private final Dbh2Manager manager;
+
+    public class Dbh2RaftServer extends Zeze.Raft.Server {
+        public Dbh2RaftServer(Raft raft, String name, Config config) {
+            super(raft, name, config);
+        }
+
+        @Override
+        public void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel,
+                                                     DispatchMode mode) throws Exception {
+            func.call();
+        }
+    }
 
     public Raft getRaft() {
         return raft;

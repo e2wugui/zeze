@@ -48,8 +48,8 @@ public final class Raft {
 	private final RaftConfig raftConfig;
 	private final LogSequence logSequence;
 	private final Server server;
-	private final ExecutorService importantThreadPool;
-	private final ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor();
+	private final ExecutorService doubleImportantThreadExecutor = Executors.newFixedThreadPool(2);
+	private final ExecutorService singleUserThreadExecutor = Executors.newSingleThreadExecutor();
 
 	private final StateMachine stateMachine;
 	public volatile boolean isShutdown = false;
@@ -162,12 +162,12 @@ public final class Raft {
 		return isLeader() && !isShutdown;
 	}
 
-	public ExecutorService getImportantThreadPool() {
-		return importantThreadPool;
+	public ExecutorService getDoubleImportantThreadExecutor() {
+		return doubleImportantThreadExecutor;
 	}
 
-	public ExecutorService getSingleThreadExecutor() {
-		return singleThreadExecutor;
+	public ExecutorService getSingleUserThreadExecutor() {
+		return singleUserThreadExecutor;
 	}
 
 	public StateMachine getStateMachine() {
@@ -288,8 +288,8 @@ public final class Raft {
 		} finally {
 			unlock();
 		}
-		importantThreadPool.shutdown(); // 需要停止线程。
-		singleThreadExecutor.shutdown();
+		doubleImportantThreadExecutor.shutdown(); // 需要停止线程。
+		singleUserThreadExecutor.shutdown();
 	}
 
 	public Raft(StateMachine sm) throws Exception {
@@ -341,7 +341,6 @@ public final class Raft {
 		if (raftConfig.getNodes().size() < 3)
 			throw new IllegalStateException("Startup Nodes.Count Must >= 3.");
 
-		importantThreadPool = Task.newCriticalThreadPool("Raft-" + threadPoolCounter.incrementAndGet());
 		Server.createAcceptor(server, raftConf);
 		Server.createConnector(server, raftConf);
 
