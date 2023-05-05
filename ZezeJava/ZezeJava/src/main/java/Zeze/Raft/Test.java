@@ -498,7 +498,7 @@ public class Test {
 		}
 	}
 
-	private void randomTriggerFailActions() throws InterruptedException {
+	private void randomTriggerFailActions() throws Exception {
 		while (running) {
 			var fa = failActions.get(Random.getInstance().nextInt(failActions.size()));
 			// for (var fa : FailActions)

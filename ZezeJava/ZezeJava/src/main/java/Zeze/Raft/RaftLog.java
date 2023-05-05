@@ -4,7 +4,8 @@ import java.util.function.IntFunction;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
-import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.Action2;
+import Zeze.Util.LongConcurrentHashMap;
 
 public final class RaftLog implements Serializable {
 	private long term;
@@ -12,7 +13,7 @@ public final class RaftLog implements Serializable {
 	private Log log;
 
 	private IntFunction<Log> logFactory; // 不会被序列化。Local Only.
-	private TaskCompletionSource<Integer> leaderFuture;
+	private Action2<RaftLog, Boolean> leaderCallback;
 
 	public RaftLog(long term, long index, Log log) {
 		this.term = term;
@@ -40,12 +41,22 @@ public final class RaftLog implements Serializable {
 		return logFactory;
 	}
 
-	public TaskCompletionSource<Integer> getLeaderFuture() {
-		return leaderFuture;
+	public void invokeCallback() throws Exception {
+		if (null != leaderCallback)
+			leaderCallback.run(this, true);
 	}
 
-	public void setLeaderFuture(TaskCompletionSource<Integer> leaderFuture) {
-		this.leaderFuture = leaderFuture;
+	public void cancelCallback() throws Exception {
+		if (null != leaderCallback)
+			leaderCallback.run(this, false);
+	}
+
+	public boolean isLeaderRequest() {
+		return null != leaderCallback;
+	}
+
+	public void setLeaderCallback(Action2<RaftLog, Boolean> leaderCallback) {
+		this.leaderCallback = leaderCallback;
 	}
 
 	@Override

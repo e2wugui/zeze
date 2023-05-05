@@ -18,6 +18,7 @@ import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Action2;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -350,13 +351,13 @@ public class LogSequence {
 		}
 	}
 
-	void cancelPendingAppendLogFutures() {
+	void cancelPendingAppendLogFutures() throws Exception {
 		for (var job : leaderAppendLogs)
-			job.getLeaderFuture().cancel(false);
+			job.cancelCallback();
 		leaderAppendLogs.clear();
 	}
 
-	void close() {
+	void close() throws Exception {
 		// must after set Raft.IsShutdown = false;
 		cancelPendingAppendLogFutures();
 
@@ -669,9 +670,7 @@ public class LogSequence {
 						getTestStateMachineCount());
 			}
 			// */
-			var future = raftLog.getLeaderFuture();
-			if (future != null)
-				future.setResult(0);
+			raftLog.invokeCallback();
 		}
 		// if (isDebugEnabled)
 		// logger.debug($"{Raft.Name}-{Raft.IsLeader} CommitIndex={CommitIndex} RequestId={lastApplicableLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
@@ -741,17 +740,27 @@ public class LogSequence {
 		}
 	}
 
-	public void appendLog(Log log, boolean WaitApply) throws Exception {
-		appendLog(log, WaitApply, null);
-	}
-
 	public static final class AppendLogResult {
 		public long term;
 		public long index;
 	}
 
-	public void appendLog(Log log, boolean WaitApply, AppendLogResult result) throws Exception {
-		TaskCompletionSource<Integer> future = null;
+	public AppendLogResult appendLog(Log log) throws Exception {
+		var future = new TaskCompletionSource<RaftLog>();
+		var result = appendLog(log, (raftLog, success) -> {
+			if (success)
+				future.setResult(raftLog);
+			else
+				future.cancel(false);
+		});
+		if (!future.await(raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000)) {
+			leaderAppendLogs.remove(result.index);
+			throw new RaftRetryException("timeout or canceled");
+		}
+		return result;
+	}
+
+	public AppendLogResult appendLog(Log log, Action2<RaftLog, Boolean> callback) throws Exception {
 		raft.lock();
 		try {
 			if (!raft.isLeader())
@@ -763,8 +772,8 @@ public class LogSequence {
 			saveLog(raftLog);
 
 			// 容易出错的放到前面。
-			if (WaitApply) {
-				raftLog.setLeaderFuture(future = new TaskCompletionSource<>());
+			if (null != callback) {
+				raftLog.setLeaderCallback(callback);
 				if (leaderAppendLogs.putIfAbsent(raftLog.getIndex(), raftLog) != null) {
 					logger.fatal("LeaderAppendLogs.TryAdd Fail. Index={}", raftLog.getIndex(), new Exception());
 					raft.fatalKill();
@@ -778,21 +787,16 @@ public class LogSequence {
 			} catch (Throwable e) { // rollback. 必须捕捉所有异常。rethrow
 				lastIndex--;
 				// 只有下面这个需要回滚，日志(SaveLog, OpenUniqueRequests(...).Save)以后根据LastIndex覆盖。
-				if (WaitApply)
+				if (null != callback)
 					leaderAppendLogs.remove(raftLog.getIndex());
 				throw e;
 			}
-			if (result != null) {
-				result.term = term;
-				result.index = lastIndex;
-			}
+			var result = new AppendLogResult();
+			result.term = term;
+			result.index = lastIndex;
+			return result;
 		} finally {
 			raft.unlock();
-		}
-
-		if (WaitApply && !future.await(raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000)) {
-			leaderAppendLogs.remove(lastIndex);
-			throw new RaftRetryException("timeout or canceled");
 		}
 	}
 
@@ -1076,7 +1080,7 @@ public class LogSequence {
 		return RaftLog.decodeTermIndex(readLogBytes(lastIndex));
 	}
 
-	private void removeLogAndCancelStart(long startIndex, long endIndex) throws RocksDBException {
+	private void removeLogAndCancelStart(long startIndex, long endIndex) throws Exception {
 		for (long index = startIndex; index <= endIndex; index++) {
 			RaftLog raftLog;
 			if (index > lastApplied && (raftLog = leaderAppendLogs.remove(index)) != null) {
@@ -1085,9 +1089,7 @@ public class LogSequence {
 				// 需要取消。
 				// 其中判断：index > LastApplied 不是必要的。
 				// Apply的时候已经TryRemove了，仅会成功一次。
-				var future = raftLog.getLeaderFuture();
-				if (future != null)
-					future.cancel(false);
+				raftLog.cancelCallback();
 			}
 			removeLog(index);
 		}

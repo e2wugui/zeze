@@ -9,6 +9,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -25,6 +26,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
+import Zeze.Util.Action2;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Func3;
 import Zeze.Util.ShutdownHook;
@@ -47,6 +49,8 @@ public final class Raft {
 	private final LogSequence logSequence;
 	private final Server server;
 	private final ExecutorService importantThreadPool;
+	private final ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor();
+
 	private final StateMachine stateMachine;
 	public volatile boolean isShutdown = false;
 	private final Lock receiveSnapshottingLock = new ReentrantLock();
@@ -162,6 +166,10 @@ public final class Raft {
 		return importantThreadPool;
 	}
 
+	public ExecutorService getSingleThreadExecutor() {
+		return singleThreadExecutor;
+	}
+
 	public StateMachine getStateMachine() {
 		return stateMachine;
 	}
@@ -189,20 +197,40 @@ public final class Raft {
 		} finally {
 			atFatalKillsLock.unlock();
 		}
-		logSequence.close();
+		try {
+			logSequence.close();
+		} catch (Exception e) {
+			logger.error("", e);
+		}
 		LogManager.shutdown();
 		Runtime.getRuntime().halt(-1);
 	}
 
+	public void appendLog(Log log, Action2<RaftLog, Boolean> callback) {
+		appendLog(log, null, callback);
+	}
+
+	public void appendLog(Log log, Serializable result, Action2<RaftLog, Boolean> callback) {
+		if (result != null)
+			log.setRpcResult(new Binary(ByteBuffer.encode(result)));
+		try {
+			logSequence.appendLog(log, callback);
+		} catch (RaftRetryException | TaskCanceledException er) {
+			throw er;
+		} catch (Throwable ex) { // rethrow RaftRetryException
+			throw new RaftRetryException("Inner Exception", ex);
+		}
+	}
+
 	public void appendLog(Log log) {
-		appendLog(log, null);
+		appendLog(log, (Serializable)null);
 	}
 
 	public void appendLog(Log log, Serializable result) {
 		if (result != null)
 			log.setRpcResult(new Binary(ByteBuffer.encode(result)));
 		try {
-			logSequence.appendLog(log, true);
+			logSequence.appendLog(log);
 		} catch (RaftRetryException | TaskCanceledException er) {
 			throw er;
 		} catch (Throwable ex) { // rethrow RaftRetryException
@@ -261,6 +289,7 @@ public final class Raft {
 			unlock();
 		}
 		importantThreadPool.shutdown(); // 需要停止线程。
+		singleThreadExecutor.shutdown();
 	}
 
 	public Raft(StateMachine sm) throws Exception {
@@ -767,8 +796,7 @@ public final class Raft {
 			// send initial empty AppendEntries RPCs
 			// (heartbeat)to each server; repeat during
 			// idle periods to prevent election timeouts(§5.2)
-			LogSequence.AppendLogResult result = new LogSequence.AppendLogResult();
-			logSequence.appendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent, getName()), false, result);
+			var result = logSequence.appendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent, getName()), null);
 			leaderWaitReadyIndex = result.index;
 			leaderWaitReadyTerm = result.term;
 		}

@@ -10,6 +10,7 @@ import Zeze.Builtin.Dbh2.UndoBatch;
 import Zeze.Config;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -70,8 +71,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     @Override
     protected long ProcessSetBucketMetaRequest(SetBucketMeta r) throws Exception {
         var log = new LogSetBucketMeta(r);
-        raft.appendLog(log, r.Result); // result is empty
-        r.SendResult();
+        raft.appendLog(log, r.Result, (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException)); // result is empty
         return 0;
     }
 
@@ -136,8 +136,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
                     return errorCode(eBucketMissmatch);
             }
             // apply to raft
-            getRaft().appendLog(new LogPrepareBatch(r));
-            r.SendResultCode(0);
+            getRaft().appendLog(new LogPrepareBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
             // 操作成功，释放所有权。see finally.
             txn = null;
         } finally {
@@ -151,15 +150,13 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessCommitBatchRequest(CommitBatch r) throws Exception {
-        getRaft().appendLog(new LogCommitBatch(r));
-        r.SendResult();
+        getRaft().appendLog(new LogCommitBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
         return 0;
     }
 
     @Override
     protected long ProcessUndoBatchRequest(UndoBatch r) throws Exception {
-        getRaft().appendLog(new LogUndoBatch(r));
-        r.SendResult();
+        getRaft().appendLog(new LogUndoBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
         return 0;
     }
 }
