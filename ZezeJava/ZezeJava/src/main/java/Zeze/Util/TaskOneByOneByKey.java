@@ -380,23 +380,23 @@ public final class TaskOneByOneByKey {
 		Execute(Long.hashCode(key), action, name, cancel, mode);
 	}
 
-	public void Execute(long key, @NotNull Func0<?> func) {
+	public void Execute(long key, @NotNull FuncLong func) {
 		Execute(Long.hashCode(key), func, DispatchMode.Normal);
 	}
 
-	public void Execute(long key, @NotNull Func0<?> func, DispatchMode mode) {
+	public void Execute(long key, @NotNull FuncLong func, DispatchMode mode) {
 		Execute(Long.hashCode(key), func, mode);
 	}
 
-	public void Execute(long key, @NotNull Func0<?> func, String name) {
+	public void Execute(long key, @NotNull FuncLong func, String name) {
 		Execute(Long.hashCode(key), func, name, DispatchMode.Normal);
 	}
 
-	public void Execute(long key, @NotNull Func0<?> func, String name, DispatchMode mode) {
+	public void Execute(long key, @NotNull FuncLong func, String name, DispatchMode mode) {
 		Execute(Long.hashCode(key), func, name, mode);
 	}
 
-	public void Execute(long key, @NotNull Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+	public void Execute(long key, @NotNull FuncLong func, String name, Action0 cancel, DispatchMode mode) {
 		Execute(Long.hashCode(key), func, name, cancel, mode);
 	}
 

@@ -23,7 +23,6 @@ import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Action0;
-import Zeze.Util.Func0;
 import Zeze.Util.FuncLong;
 import Zeze.Util.KV;
 import Zeze.Util.PerfCounter;

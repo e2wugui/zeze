@@ -5,7 +5,6 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Action2;
-import Zeze.Util.LongConcurrentHashMap;
 
 public final class RaftLog implements Serializable {
 	private long term;
