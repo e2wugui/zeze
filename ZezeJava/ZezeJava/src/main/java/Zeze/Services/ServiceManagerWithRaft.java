@@ -24,6 +24,7 @@ import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Action0;
 import Zeze.Util.Func0;
+import Zeze.Util.FuncLong;
 import Zeze.Util.KV;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
@@ -113,14 +114,14 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 
 		@Override
-		public synchronized void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel,
+		public synchronized void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
 													 DispatchMode mode) {
 			if (logger.isDebugEnabled()) {
 				var netSession = (Session)p.getSender().getUserState();
 				var ssName = null != netSession ? netSession.name : "";
 				logger.debug("dispatchRaftRequest: " + p.getClass().getName() + "@" + ssName + p);
 			}
-			var procedure = new Procedure(rocks, func::call);
+			var procedure = new Procedure(rocks, func);
 			Task.call(procedure::call, p, Protocol::SendResultCode);
 		}
 

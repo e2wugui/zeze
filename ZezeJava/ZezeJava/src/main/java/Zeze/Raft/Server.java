@@ -14,6 +14,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.Func0;
+import Zeze.Util.FuncLong;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.LogManager;
@@ -234,7 +235,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	@SuppressWarnings("RedundantThrows")
-	public void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel, DispatchMode mode)
+	public void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel, DispatchMode mode)
 			throws Exception {
 		taskOneByOne.Execute(((IRaftRpc)p).getUnique(), func, name, cancel, mode);
 	}

@@ -15,7 +15,9 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.Func0;
+import Zeze.Util.FuncLong;
 import Zeze.Util.RocksDatabase;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -33,9 +35,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
         }
 
         @Override
-        public void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel,
-                                                     DispatchMode mode) throws Exception {
-            func.call();
+        public void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
+                                        DispatchMode mode) throws Exception {
+            Task.call(func, p);
         }
     }
 

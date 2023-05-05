@@ -266,23 +266,23 @@ public final class TaskOneByOneByKey {
 		Execute(key.hashCode(), action, name, cancel, mode);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func) {
+	public void Execute(@NotNull Object key, @NotNull FuncLong func) {
 		Execute(key.hashCode(), func, DispatchMode.Normal);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func, DispatchMode mode) {
+	public void Execute(@NotNull Object key, @NotNull FuncLong func, DispatchMode mode) {
 		Execute(key.hashCode(), func, mode);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func, String name) {
+	public void Execute(@NotNull Object key, @NotNull FuncLong func, String name) {
 		Execute(key.hashCode(), func, name, DispatchMode.Normal);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func, String name, DispatchMode mode) {
+	public void Execute(@NotNull Object key, @NotNull FuncLong func, String name, DispatchMode mode) {
 		Execute(key.hashCode(), func, name, mode);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+	public void Execute(@NotNull Object key, @NotNull FuncLong func, String name, Action0 cancel, DispatchMode mode) {
 		Execute(key.hashCode(), func, name, cancel, mode);
 	}
 
