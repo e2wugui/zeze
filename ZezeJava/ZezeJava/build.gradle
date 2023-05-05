@@ -6,7 +6,7 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.20.0'
     implementation 'org.jetbrains:annotations:24.0.1'
     implementation 'org.pcollections:pcollections:4.0.1'
-    implementation 'org.rocksdb:rocksdbjni:7.10.2'
+    implementation 'org.rocksdb:rocksdbjni:8.1.1.1'
     implementation 'io.netty:netty-codec-http:4.1.90.Final'
     implementation 'io.netty:netty-transport-native-epoll:4.1.90.Final:linux-x86_64'
 
@@ -32,7 +32,7 @@ dependencies {
     compileOnly 'com.opencsv:opencsv:5.7.1'
 
     // for new Compress/Decompress Codec in Zeze.Net
-    compileOnly 'com.github.luben:zstd-jni:1.5.4-2'
+    compileOnly 'com.github.luben:zstd-jni:1.5.5-2'
 }
 
 tasks.withType(JavaCompile) {

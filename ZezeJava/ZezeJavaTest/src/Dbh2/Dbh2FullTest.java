@@ -1,7 +1,9 @@
 package Dbh2;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
+import Zeze.Application;
 import Zeze.Config;
 import Zeze.Dbh2.Database;
 import Zeze.Dbh2.Dbh2AgentManager;
@@ -14,8 +16,7 @@ import Zeze.Transaction.Database.AbstractKVTable;
 
 // 测试整体结构(Dbh2Manager,Master,Agent)
 public class Dbh2FullTest {
-
-	private Database newDatabase(Dbh2AgentManager dbh2AgentManager, String dbName) {
+	private static Database newDatabase(Dbh2AgentManager dbh2AgentManager, @SuppressWarnings("SameParameterValue") String dbName) {
 		var databaseConf = new Config.DatabaseConf();
 		databaseConf.setDatabaseType(Config.DbType.Dbh2);
 		databaseConf.setDatabaseUrl("dbh2://127.0.0.1:10999/" + dbName);
@@ -23,7 +24,7 @@ public class Dbh2FullTest {
 		return new Database(null, dbh2AgentManager, databaseConf);
 	}
 
-	private Future<?> startBench(int keyStart, int keyEnd, Database database, AbstractKVTable table, ByteBuffer value) {
+	private static Future<?> startBench(int keyStart, int keyEnd, Database database, AbstractKVTable table, ByteBuffer value) {
 		return Task.runUnsafe(() -> {
 			for (int i = keyStart; i < keyEnd; ++i) {
 				try (var trans = database.beginTransaction()) {
@@ -44,8 +45,9 @@ public class Dbh2FullTest {
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 
-		var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
+		var value = ByteBuffer.Wrap(new byte[]{1, 2, 3, 4});
 		Database database = null;
+		Application.renameAndDeleteDirectory(new File("CommitRocks"));
 		var dbh2AgentManager = new Dbh2AgentManager(null);
 		try {
 			master.start();
@@ -55,7 +57,7 @@ public class Dbh2FullTest {
 				manager.start();
 			dbh2AgentManager.start();
 
-			database = newDatabase(dbh2AgentManager,"dbh2TestDb");
+			database = newDatabase(dbh2AgentManager, "dbh2TestDb");
 			var tables = new ArrayList<AbstractKVTable>();
 			for (int i = 0; i < 4; ++i)
 				tables.add((Database.AbstractKVTable)database.openTable("table" + i));
@@ -78,7 +80,8 @@ public class Dbh2FullTest {
 			master.stop();
 			for (var manager : managers)
 				manager.stop();
-			database.close();
+			if (database != null)
+				database.close();
 			dbh2AgentManager.stop();
 		}
 	}
@@ -90,6 +93,7 @@ public class Dbh2FullTest {
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		Database database = null;
+		Application.renameAndDeleteDirectory(new File("CommitRocks"));
 		var dbh2AgentManager = new Dbh2AgentManager(null);
 		try {
 			master.start();
@@ -101,9 +105,9 @@ public class Dbh2FullTest {
 
 			database = newDatabase(dbh2AgentManager, "dbh2TestDb");
 			var table1 = (Database.AbstractKVTable)database.openTable("table1");
-			var key = ByteBuffer.Wrap(new byte[] {});
-			var key1 = ByteBuffer.Wrap(new byte[] { 1 });
-			var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
+			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
+			var key1 = ByteBuffer.Wrap(new byte[]{1});
+			var value = ByteBuffer.Wrap(new byte[]{1, 2, 3, 4});
 			try (var _trans = database.beginTransaction()) {
 				var trans = (Database.Dbh2Transaction)_trans;
 				table1.replace(trans, key, value);
@@ -111,7 +115,6 @@ public class Dbh2FullTest {
 				trans.commitBreakAfterPrepareForDebugOnly();
 			}
 			Thread.sleep(13000);
-
 		} finally {
 			master.stop();
 			for (var manager : managers)
@@ -129,6 +132,7 @@ public class Dbh2FullTest {
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		Database database = null;
+		Application.renameAndDeleteDirectory(new File("CommitRocks"));
 		var dbh2AgentManager = new Dbh2AgentManager(null);
 		try {
 			master.start();
@@ -142,9 +146,9 @@ public class Dbh2FullTest {
 			var table1 = (Database.AbstractKVTable)database.openTable("table1");
 			var table2 = (Database.AbstractKVTable)database.openTable("table2");
 
-			var key = ByteBuffer.Wrap(new byte[] {});
-			var key1 = ByteBuffer.Wrap(new byte[] { 1 });
-			var value = ByteBuffer.Wrap(new byte[] { 1, 2, 3, 4 });
+			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
+			var key1 = ByteBuffer.Wrap(new byte[]{1});
+			var value = ByteBuffer.Wrap(new byte[]{1, 2, 3, 4});
 
 			try (var trans = database.beginTransaction()) {
 				table1.replace(trans, key, value);
@@ -171,7 +175,6 @@ public class Dbh2FullTest {
 				Assert.assertNotNull(valueFindKey1);
 				Assert.assertEquals(valueFindKey1, value);
 			}
-
 		} finally {
 			master.stop();
 			for (var manager : managers)

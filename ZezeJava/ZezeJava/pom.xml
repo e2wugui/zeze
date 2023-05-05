@@ -94,7 +94,7 @@
 		<log4j-core.version>2.20.0</log4j-core.version>
 		<annotations.version>24.0.1</annotations.version>
 		<pcollectons.version>4.0.1</pcollectons.version>
-		<rocksdbjni.version>7.10.2</rocksdbjni.version>
+		<rocksdbjni.version>8.1.1.1</rocksdbjni.version>
 		<netty.version>4.1.90.Final</netty.version>
 		<tikv.version>3.3.3</tikv.version>
 		<druid.version>1.2.16</druid.version>
@@ -104,7 +104,7 @@
 		<javaee-api.version>8.0.1</javaee-api.version>
 		<jgrapht-core.version>1.5.1</jgrapht-core.version>
 		<opencsv.version>5.7.1</opencsv.version>
-		<zstd-jni.version>1.5.4-2</zstd-jni.version>
+		<zstd-jni.version>1.5.5-2</zstd-jni.version>
 		<junit.version>4.13.2</junit.version>
 	</properties>
 

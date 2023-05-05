@@ -3,6 +3,7 @@ package Dbh2;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import Zeze.Application;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Dbh2.Dbh2Agent;
@@ -26,7 +27,6 @@ public class Dbh2Test {
 	}
 
 	public static class Bucket {
-
 		private final ArrayList<Zeze.Dbh2.Dbh2> raftNodes = new ArrayList<>();
 		private final Dbh2Agent agent;
 
@@ -78,8 +78,9 @@ public class Dbh2Test {
 					<node Host="127.0.0.1" Port="10005"/>
 				</raft>
 				""");
+		Application.renameAndDeleteDirectory(new File("CommitRocks"));
+		var dbh2AgentManager = new Dbh2AgentManager(null);
 		try {
-
 			final var db = "database";
 			final var tb1 = "table1";
 			final var tb2 = "table2";
@@ -105,7 +106,6 @@ public class Dbh2Test {
 			var key = new Binary(new byte[]{1});
 			var value = new Binary(new byte[]{1});
 
-			var dbh2AgentManager = new Dbh2AgentManager(null);
 			dbh2AgentManager.start();
 			{
 				var batch = new BPrepareBatch.Data(db, tb1);
@@ -175,10 +175,10 @@ public class Dbh2Test {
 				Assert.assertNotNull(kv.getValue());
 				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
 			}
-
 		} finally {
 			bucket1.close();
 			bucket2.close();
+			dbh2AgentManager.stop();
 		}
 	}
 
