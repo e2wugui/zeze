@@ -28,7 +28,7 @@ public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.TaskBase.BRo
 
     @Override
     public ByteBuffer encodeKey(Long _v_) {
-        ByteBuffer _os_ = ByteBuffer.Allocate(16);
+        ByteBuffer _os_ = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(_v_));
         _os_.WriteLong(_v_);
         return _os_;
     }

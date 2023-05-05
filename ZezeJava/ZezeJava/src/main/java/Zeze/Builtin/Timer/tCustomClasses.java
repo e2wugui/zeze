@@ -28,7 +28,7 @@ public final class tCustomClasses extends TableX<Integer, Zeze.Builtin.Timer.BCu
 
     @Override
     public ByteBuffer encodeKey(Integer _v_) {
-        ByteBuffer _os_ = ByteBuffer.Allocate(16);
+        ByteBuffer _os_ = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(_v_));
         _os_.WriteInt(_v_);
         return _os_;
     }

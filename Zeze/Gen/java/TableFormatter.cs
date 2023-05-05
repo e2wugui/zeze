@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
@@ -103,7 +104,9 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public ByteBuffer encodeKey(" + keyboxing + " _v_) {");
-            sw.WriteLine("        ByteBuffer _os_ = ByteBuffer.Allocate(16);");
+            sw.WriteLine(table.KeyType is TypeLong or TypeInt
+                ? "        ByteBuffer _os_ = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(_v_));"
+                : "        ByteBuffer _os_ = ByteBuffer.Allocate(16);");
             table.KeyType.Accept(new Encode(null, "_v_", -1, "_os_", sw, "        ", true));
             sw.WriteLine("        return _os_;");
             sw.WriteLine("    }");
