@@ -325,23 +325,23 @@ public final class TaskOneByOneByKey {
 		return concurrency[hash(key.hashCode()) & hashMask];
 	}
 
-	public void Execute(int key, @NotNull Func0<?> func) {
+	public void Execute(int key, @NotNull FuncLong func) {
 		Execute(key, func, null, null, DispatchMode.Normal);
 	}
 
-	public void Execute(int key, @NotNull Func0<?> func, DispatchMode mode) {
+	public void Execute(int key, @NotNull FuncLong func, DispatchMode mode) {
 		Execute(key, func, null, null, mode);
 	}
 
-	public void Execute(int key, @NotNull Func0<?> func, String name) {
+	public void Execute(int key, @NotNull FuncLong func, String name) {
 		Execute(key, func, name, null, DispatchMode.Normal);
 	}
 
-	public void Execute(int key, @NotNull Func0<?> func, String name, DispatchMode mode) {
+	public void Execute(int key, @NotNull FuncLong func, String name, DispatchMode mode) {
 		Execute(key, func, name, null, mode);
 	}
 
-	public void Execute(int key, @NotNull Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+	public void Execute(int key, @NotNull FuncLong func, String name, Action0 cancel, DispatchMode mode) {
 		//noinspection ConstantValue
 		if (func == null)
 			throw new IllegalArgumentException("null func");
@@ -494,9 +494,9 @@ public final class TaskOneByOneByKey {
 	}
 
 	static final class TaskFunc extends Task {
-		private final Func0<?> func;
+		private final FuncLong func;
 
-		TaskFunc(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+		TaskFunc(FuncLong func, String name, Action0 cancel, DispatchMode mode) {
 			super(name, cancel, mode);
 			this.func = func;
 		}
@@ -570,7 +570,7 @@ public final class TaskOneByOneByKey {
 			execute(new TaskAction(action, name, cancel, mode));
 		}
 
-		void execute(@NotNull Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+		void execute(@NotNull FuncLong func, String name, Action0 cancel, DispatchMode mode) {
 			execute(new TaskFunc(func, name, cancel, mode));
 		}
 

@@ -60,7 +60,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
         try {
             stateMachine = new Dbh2StateMachine(this);
-            raft = new Raft(stateMachine, raftName, raftConf, config, "Zeze.Dbh2.Server", Zeze.Raft.Server::new);
+            raft = new Raft(stateMachine, raftName, raftConf, config, "Zeze.Dbh2.Server", Dbh2RaftServer::new);
             raftConf.setSnapshotCommitDelayed(true);
             logger.info("newRaft: {}", raft.getName());
             stateMachine.openBucket();
