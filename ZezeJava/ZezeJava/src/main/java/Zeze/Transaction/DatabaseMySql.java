@@ -494,7 +494,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	}
 
 	public final class TableMysqlRelational implements Database.Table {
-
 		private final String name;
 		private boolean isNew;
 		private boolean dropped = false;
@@ -769,9 +768,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
-		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
-				  TableWalkKey<K> callback, Runnable afterLock,
-				  String orderBy) {
+		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback,
+				  Runnable afterLock, String orderBy) {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
@@ -895,12 +893,12 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		@Override
 		public void close() {
-
 		}
 	}
 
 	public final class TableMysql extends Database.AbstractKVTable {
 		private final String name;
+		private final String sqlFind, sqlRemove, sqlReplace;
 		private boolean isNew;
 		private boolean dropped = false;
 
@@ -954,10 +952,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
-				String sql = "CREATE TABLE IF NOT EXISTS " + getName()
-						+ "(id VARBINARY("
-						+ eMaxKeyLength
-						+ ") NOT NULL PRIMARY KEY, value LONGBLOB NOT NULL)";
+				String sql = "CREATE TABLE IF NOT EXISTS " + name
+						+ "(id VARBINARY(" + eMaxKeyLength + ") NOT NULL PRIMARY KEY, value LONGBLOB NOT NULL)";
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.executeUpdate();
 					isNew = !tableAlreadyExistsWarning(cmd.getWarnings());
@@ -967,6 +963,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					throw new RuntimeException(e);
 				isNew = false;
 			}
+
+			sqlFind = "SELECT value FROM " + name + " WHERE id=?";
+			sqlRemove = "DELETE FROM " + name + " WHERE id=?";
+			sqlReplace = "REPLACE INTO " + name + " values(?,?)";
 		}
 
 		@Override
@@ -982,16 +982,11 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				String sql = "SELECT value FROM " + getName() + " WHERE id = ?";
 				// 是否可以重用 SqlCommand
-				try (var cmd = connection.prepareStatement(sql)) {
+				try (var cmd = connection.prepareStatement(sqlFind)) {
 					cmd.setBytes(1, key.CopyIf());
 					try (var rs = cmd.executeQuery()) {
-						if (rs.next()) {
-							byte[] value = rs.getBytes(1);
-							return ByteBuffer.Wrap(value);
-						}
-						return null;
+						return rs.next() ? ByteBuffer.Wrap(rs.getBytes(1)) : null;
 					}
 				}
 			} catch (SQLException e) {
@@ -1008,9 +1003,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				return;
 
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			var my = (JdbcTrans)t;
-			String sql = "DELETE FROM " + getName() + " WHERE id=?";
-			try (var cmd = my.Connection.prepareStatement(sql)) {
+			try (var cmd = ((JdbcTrans)t).Connection.prepareStatement(sqlRemove)) {
 				cmd.setBytes(1, key.CopyIf());
 				cmd.executeUpdate();
 			} catch (SQLException e) {
@@ -1027,9 +1020,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				return;
 
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			var my = (JdbcTrans)t;
-			String sql = "REPLACE INTO " + getName() + " values(?, ?)";
-			try (var cmd = my.Connection.prepareStatement(sql)) {
+			try (var cmd = ((JdbcTrans)t).Connection.prepareStatement(sqlReplace)) {
 				cmd.setBytes(1, key.CopyIf());
 				cmd.setBytes(2, value.CopyIf());
 				cmd.executeUpdate();
@@ -1068,7 +1059,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				String sql = "SELECT id,value FROM " + getName();
+				String sql = "SELECT id,value FROM " + name;
 				if (!asc)
 					sql += " ORDER BY id DESC";
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -1097,7 +1088,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				String sql = "SELECT id FROM " + getName();
+				String sql = "SELECT id FROM " + name;
 				if (!asc)
 					sql += " ORDER BY id DESC";
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -1126,7 +1117,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				String sql = "SELECT id,value FROM " + getName()
+				String sql = "SELECT id,value FROM " + name
 						+ (exclusiveStartKey != null ? " WHERE id > ?" : "") + " LIMIT ?";
 				try (var cmd = connection.prepareStatement(sql)) {
 					var index = 1;
@@ -1156,7 +1147,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				String sql = "SELECT id FROM " + getName()
+				String sql = "SELECT id FROM " + name
 						+ (exclusiveStartKey != null ? " WHERE id > ?" : "") + " LIMIT ?";
 				try (var cmd = connection.prepareStatement(sql)) {
 					var index = 1;
@@ -1186,7 +1177,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				String sql = "SELECT id,value FROM " + getName()
+				String sql = "SELECT id,value FROM " + name
 						+ (exclusiveStartKey != null ? " WHERE id < ?" : "")
 						+ " ORDER BY id DESC LIMIT ?";
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -1217,7 +1208,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				String sql = "SELECT id FROM " + getName()
+				String sql = "SELECT id FROM " + name
 						+ (exclusiveStartKey != null ? " WHERE id < ?" : "")
 						+ " ORDER BY id DESC LIMIT ?";
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -1239,6 +1230,5 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				throw new RuntimeException(e);
 			}
 		}
-
 	}
 }

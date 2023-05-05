@@ -1,5 +1,8 @@
 package UnitTest.Zeze.Trans;
 
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import Zeze.Config;
 import Zeze.Config.DatabaseConf;
 import Zeze.Config.DbType;
@@ -9,11 +12,7 @@ import Zeze.Transaction.DatabaseMySql;
 import junit.framework.TestCase;
 import org.junit.Assert;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
 public class TestDatabaseMySql extends TestCase {
-
 	public static boolean checkDriverClassExist(String driverClassName) {
 		try {
 			Class.forName(driverClassName);
@@ -24,25 +23,41 @@ public class TestDatabaseMySql extends TestCase {
 		}
 	}
 
+	public static boolean checkTcpPort(String host, int port) {
+		try {
+			new Socket(host, port).close();
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
 	private static String getPersonalUrl() throws UnknownHostException {
 		var hostName = InetAddress.getLocalHost().getHostName();
 		System.out.println("hostName=" + hostName);
 		switch (hostName) {
 		case "doudouwang": // lichenghua's computer 2
 			return "jdbc:mysql://localhost/devtest?user=dev&password=devtest12345&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+		case "DESKTOP-VVU42V2":
+			return checkTcpPort(null, 3306)
+					? "jdbc:mysql://localhost/devtest?user=root&password=&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+					: null;
 		default:
-			return null; // 默认不测试mysql。
 			//return "jdbc:mysql://localhost:3306/mysql?user=root&password=123&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+			return null; // 默认不测试mysql。
 		}
 	}
 
 	public final void test1() throws Exception {
 		if (!checkDriverClassExist("com.mysql.cj.jdbc.Driver")) {
+			System.out.println("skip mysql test: not found mysql driver");
 			return;
 		}
 		String url = getPersonalUrl();
-		if (url == null)
+		if (url == null) {
+			System.out.println("skip mysql test: not found url");
 			return;
+		}
 		DatabaseConf databaseConf = new DatabaseConf();
 		databaseConf.setDatabaseType(DbType.MySql);
 		databaseConf.setDatabaseUrl(url);

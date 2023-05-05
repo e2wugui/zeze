@@ -1,6 +1,10 @@
 package Zeze.Transaction.Collections;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.SQLStatement;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
@@ -121,5 +125,15 @@ public class CollOne<V extends Bean> extends Collection {
 	@Override
 	public @NotNull String toString() {
 		return getValue().toString();
+	}
+
+	@Override
+	public void encodeSQLStatement(ArrayList<String> parents, SQLStatement st) {
+		_Value.encodeSQLStatement(parents, st);
+	}
+
+	@Override
+	public void decodeResultSet(ArrayList<String> parents, ResultSet rs) throws SQLException {
+		_Value.decodeResultSet(parents, rs);
 	}
 }
