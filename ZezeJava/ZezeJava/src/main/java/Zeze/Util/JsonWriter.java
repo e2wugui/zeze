@@ -729,7 +729,10 @@ public final class JsonWriter {
 		long c1 = t & 0xffff_ffffL;
 		long c0 = t >> 32;
 		c1 += a2 * b1;
-		return a1 * b1 + c0 + (c1 >> 32);
+		long mh = a1 * b1 + c0 + (c1 >> 32);
+		mh += (b & (a >> 63));
+		mh += (a & (b >> 63));
+		return mh;
 	}
 
 	public static long umulHigh9(long a, long b) { // for JDK9+
@@ -738,6 +741,10 @@ public final class JsonWriter {
 		r += (a & (b >> 63));
 		return r;
 	}
+
+//	public static long umulHigh18(long a, long b) { // for JDK18+
+//		return Math.unsignedMultiplyHigh(a, b);
+//	}
 
 	void grisuRound(final int len, final long delta, long rest, final long tenKappa, final long mpf) {
 		while (Long.compareUnsigned(rest, mpf) < 0 && Long.compareUnsigned(delta - rest, tenKappa) >= 0
