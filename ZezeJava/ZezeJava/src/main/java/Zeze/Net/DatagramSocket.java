@@ -39,9 +39,10 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 				so.setSendBufferSize(sendBufSize);
 			datagramChannel.bind(local);
 			selector = service.getSelectors().choice();
-			selectionKey = selector.register(datagramChannel, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
+			selectionKey = selector.register(datagramChannel, 0, this); // 先获取key,因为有小概率出现事件处理比赋值selectionKey和addSocket更先执行
 			service.addSocket(this);
-			selector.register(datagramChannel, SelectionKey.OP_READ, this);
+			selectionKey.interestOps(SelectionKey.OP_READ);
+			selector.wakeup();
 		} catch (Throwable e) { // rethrow
 			try {
 				if (selectionKey != null)

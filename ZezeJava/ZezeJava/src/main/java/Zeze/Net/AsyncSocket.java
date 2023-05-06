@@ -240,7 +240,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			inputBuffer = null;
 			outputBuffer = null;
 			selectionKey = selector.register(ssc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
-			selector.register(ssc, SelectionKey.OP_ACCEPT, this);
+			interestOps(0, SelectionKey.OP_ACCEPT);
+			selector.wakeup();
 		} catch (IOException e) {
 			if (ssc != null) {
 				try {
@@ -268,7 +269,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				sc = ((ServerSocketChannel)channel).accept();
 				if (sc != null) {
 					//noinspection DataFlowIssue
-					service.OnSocketAccept(new AsyncSocket(service, sc, (Acceptor)acceptorOrConnector));
+					new AsyncSocket(service, sc, (Acceptor)acceptorOrConnector);
 				}
 			} catch (Exception e) {
 				if (sc != null)
@@ -302,7 +303,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 * use inner. create when accepted;
 	 */
 	private AsyncSocket(@NotNull Service service, @NotNull SocketChannel sc, @NotNull Acceptor acceptor)
-			throws IOException {
+			throws Exception {
 		this.service = service;
 		this.acceptorOrConnector = acceptor;
 
@@ -325,16 +326,18 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		operates = new ConcurrentLinkedQueue<>();
 		inputBuffer = new BufferCodec();
 		outputBuffer = new OutputBuffer(selector);
-		selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
-		selector.register(sc, SelectionKey.OP_READ, this);
+		selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值selectionKey和OnSocketAccept更先执行
 		logger.info("Accept: {} for {}:{} recvBuf={}, sendBuf={}", this, service.getClass().getName(),
 				service.getName(), so.getReceiveBufferSize(), so.getSendBufferSize());
+		service.OnSocketAccept(this);
+		interestOps(0, SelectionKey.OP_READ);
+		selector.wakeup();
 	}
 
 	/**
 	 * for client socket. connect
 	 */
-	private boolean doConnectSuccess(@NotNull SocketChannel sc) throws Exception {
+	private void doConnectSuccess(@NotNull SocketChannel sc) throws Exception {
 		var socket = sc.socket();
 		remoteAddress = socket.getRemoteSocketAddress();
 		logger.info("Connect: {} for {}:{} recvBuf={}, sendBuf={}", this, service.getClass().getName(),
@@ -342,7 +345,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (acceptorOrConnector instanceof Connector)
 			((Connector)acceptorOrConnector).OnSocketConnected(this);
 		service.OnSocketConnected(this);
-		return interestOps(SelectionKey.OP_CONNECT, SelectionKey.OP_READ);
+		interestOps(SelectionKey.OP_CONNECT, SelectionKey.OP_READ);
 	}
 
 	public AsyncSocket(@NotNull Service service, @Nullable String hostNameOrAddress, int port,
@@ -374,12 +377,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			InetAddress address = InetAddress.getByName(hostNameOrAddress); // TODO async dns lookup
 			selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 			// 必须在connect前设置，否则selectionKey没初始化，有可能事件丢失？（现象好像是doHandle触发了）。
-			if (sc.connect(new InetSocketAddress(address, port))) { // 马上成功时，还没有注册到Selector中。
-				selector.register(sc, SelectionKey.OP_READ, this);
-				if (doConnectSuccess(sc))
-					selector.wakeup();
-			} else
-				selector.register(sc, SelectionKey.OP_CONNECT, this);
+			if (sc.connect(new InetSocketAddress(address, port))) // 马上成功时，还没有注册到Selector中。
+				doConnectSuccess(sc);
+			else
+				interestOps(0, SelectionKey.OP_CONNECT);
+			selector.wakeup();
 		} catch (Exception e) {
 			if (sc != null) {
 				try {
