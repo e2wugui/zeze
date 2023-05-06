@@ -48,7 +48,7 @@ public class TimerRole {
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
 	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerName,
 									   long delay, long period, long times, long endTime,
-									   @Nullable TimerHandle handleName, @Nullable Bean customData) {
+									   @NotNull TimerHandle handleName, @Nullable Bean customData) {
 		var timerId = online._tRoleTimers().get(timerName);
 		if (null != timerId)
 			return false;
@@ -72,7 +72,7 @@ public class TimerRole {
 	}
 
 	public @NotNull String scheduleOnline(long roleId, long delay, long period, long times, long endTime,
-										  @Nullable TimerHandle name, @Nullable Bean customData) {
+										  @NotNull TimerHandle name, @Nullable Bean customData) {
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
 		var timer = online.providerApp.zeze.getTimer();
@@ -80,7 +80,7 @@ public class TimerRole {
 	}
 
 	private @NotNull String scheduleOnline(long roleId, @NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
-										   @Nullable TimerHandle name, @Nullable Bean customData) {
+										   @NotNull TimerHandle name, @Nullable Bean customData) {
 		// 去掉下面两行，允许在非登录状态注册timer。现在不允许。
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion) {
