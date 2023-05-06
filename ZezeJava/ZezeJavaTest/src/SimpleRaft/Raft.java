@@ -442,7 +442,7 @@ public class Raft {
 		if (env.appendLog(log)) {
 			final Long oldSerial = appendingLogMap.put(log.index, req.serial);
 			if (oldSerial != null)
-				throw new IllegalStateException("duplicated log index: " + req);
+				throw new IllegalStateException("duplicate log index: " + req);
 			Log[] logs = null;
 			long prevTerm = -2;
 			if (ENABLE_TRACE)

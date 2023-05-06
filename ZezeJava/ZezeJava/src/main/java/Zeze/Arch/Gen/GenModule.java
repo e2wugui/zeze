@@ -218,7 +218,7 @@ public final class GenModule {
 
 				var redirectFullName = moduleFullName + ':' + m.method.getName();
 				if (!redirectFullNames.add(redirectFullName))
-					throw new UnsupportedOperationException("Duplicated redirect method name: " + redirectFullName);
+					throw new UnsupportedOperationException("Duplicate redirect method name: " + redirectFullName);
 
 				sb.appendLine("    @Override");
 				sb.appendLine("    {}{} {}({}) {", modifier, returnName, m.method.getName(), parametersDefine); // m.getThrows() // 继承方法允许不标throws

@@ -97,8 +97,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 
 	protected static void register(long typeId, @NotNull Class<? extends Protocol<?>> cls) {
 		var oldClass = protocolClasses.put(typeId, cls);
-		if (oldClass != null)
-			logger.warn("register: duplicated typeId={}: {} and {}", typeId, oldClass, cls);
+		if (oldClass != null && oldClass != cls)
+			logger.warn("register duplicate typeId={}: {} and {}", typeId, oldClass.getName(), cls.getName());
 	}
 
 	public static @Nullable Class<? extends Protocol<?>> getClassByTypeId(long typeId) {
