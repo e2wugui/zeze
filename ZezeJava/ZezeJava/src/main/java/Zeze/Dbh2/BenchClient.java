@@ -93,6 +93,8 @@ public class BenchClient {
 							}
 							trans.commit();
 							transCounter.incrementAndGet();
+						} catch (Throwable ex) {
+							logger.error("", ex);
 						}
 					}
 				}, "table thread"));
