@@ -1099,6 +1099,21 @@
 
 			<table name="tCustomClasses" key="int" value="BCustomClasses"/> key is 1, only one record
 
+			<bean name="BTransmitCronTimer">
+				<variable id="1" name="TimerId" type="string"/>
+				<variable id="2" name="CronTimer" type="BCronTimer"/>
+				<variable id="3" name="HandleClass" type="string"/>
+				<variable id="4" name="CustomClass" type="string"/>
+				<variable id="5" name="CustomBean" type="binary"/>
+			</bean>
+			<bean name="BTransmitSimpleTimer">
+				<variable id="1" name="TimerId" type="string"/>
+				<variable id="2" name="SimpleTimer" type="BSimpleTimer"/>
+				<variable id="3" name="HandleClass" type="string"/>
+				<variable id="4" name="CustomClass" type="string"/>
+				<variable id="5" name="CustomBean" type="binary"/>
+			</bean>
+
 			<!-- Online Timer -->
 			<bean name="BArchOnlineTimer"> 保存在内存Map中
 				<variable id="1" name="Account" type="string"/>

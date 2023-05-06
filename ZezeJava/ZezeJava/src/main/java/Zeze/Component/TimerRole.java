@@ -2,6 +2,8 @@ package Zeze.Component;
 
 import java.text.ParseException;
 import Zeze.Builtin.Timer.BOfflineRoleCustom;
+import Zeze.Builtin.Timer.BTransmitCronTimer;
+import Zeze.Builtin.Timer.BTransmitSimpleTimer;
 import Zeze.Game.LocalRemoveEventArgument;
 import Zeze.Game.LoginArgument;
 import Zeze.Game.Online;
@@ -9,6 +11,8 @@ import Zeze.Builtin.Timer.BCronTimer;
 import Zeze.Builtin.Timer.BGameOnlineTimer;
 import Zeze.Builtin.Timer.BOnlineTimers;
 import Zeze.Builtin.Timer.BSimpleTimer;
+import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
@@ -17,6 +21,7 @@ import Zeze.Util.EventDispatcher;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import java.util.List;
 
 /**
  * 1. schedule，scheduleNamed 完全重新实现一套基于内存表和内存的。
@@ -33,6 +38,8 @@ public class TimerRole {
 	public TimerRole(@NotNull Online online) {
 		this.online = online;
 
+		online.getTransmitActions().put(eTransmitCronTimer, this::transmitCronTimerHandle);
+		online.getTransmitActions().put(eTransmitSimpleTimer, this::transmitSimpleTimerHandle);
 		// online timer 生命期和 Online.Local 一致。
 		online.getLocalRemoveEvents().getRunEmbedEvents().offer(this::onLocalRemoveEvent);
 		online.getLoginEvents().getRunEmbedEvents().offer(this::onLoginEvent);
@@ -54,7 +61,7 @@ public class TimerRole {
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
 	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerName,
 									   @NotNull String cron, long times, long endTime,
-									   @Nullable TimerHandle handleName, @Nullable Bean customData) throws Exception {
+									   @NotNull TimerHandle handleName, @Nullable Bean customData) throws Exception {
 		var timerId = online._tRoleTimers().get(timerName);
 		if (null != timerId)
 			return false;
@@ -74,10 +81,21 @@ public class TimerRole {
 
 	private @NotNull String scheduleOnline(long roleId, @NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
 										   @Nullable TimerHandle name, @Nullable Bean customData) {
-		// 去掉下面两行，不允许在非登录状态注册timer。现在允许。
+		// 去掉下面两行，允许在非登录状态注册timer。现在不允许。
 		var loginVersion = online.getLocalLoginVersion(roleId);
-		if (null == loginVersion)
-			throw new IllegalStateException("not login. roleId=" + roleId);
+		if (null == loginVersion) {
+			// 参数 timerId, cronTimer, timerHandleClassName, customData
+			var p = new BTransmitSimpleTimer();
+			p.setTimerId(timerId);
+			p.setSimpleTimer(simpleTimer);
+			p.setHandleClass(name.getClass().getName());
+			if (null != customData) {
+				p.setCustomClass(customData.getClass().getName());
+				p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
+			}
+			online.transmitEmbed(roleId, eTransmitSimpleTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)), false);
+			return timerId;
+		}
 
 		var timer = online.providerApp.zeze.getTimer();
 		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, timer.timerSerialId.nextId());
@@ -95,18 +113,72 @@ public class TimerRole {
 	}
 
 	public @NotNull String scheduleOnline(long roleId, @NotNull String cron, long times, long endTime,
-										  @Nullable TimerHandle name, @Nullable Bean customData) throws Exception {
+										  @NotNull TimerHandle name, @Nullable Bean customData) throws Exception {
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime);
 		var timer = online.providerApp.zeze.getTimer();
 		return scheduleOnline(roleId, "@" + timer.timerIdAutoKey.nextString(), cronTimer, name, customData);
 	}
 
+	public final static String eTransmitCronTimer = "Zeze.TimerRole.TransmitCronTimer";
+	public final static String eTransmitSimpleTimer = "Zeze.TimerRole.TransmitSimpleTimer";
+
+	private long transmitCronTimerHandle(long sender, long target, @Nullable Binary parameter) throws Exception {
+		if (null == parameter)
+			return 0;
+
+		var p = new BTransmitSimpleTimer();
+		p.decode(ByteBuffer.Wrap(parameter));
+
+		var handleClass = Class.forName(p.getHandleClass());
+		var handle = handleClass.newInstance();
+		Bean custom = null;
+		if (p.getCustomClass().isEmpty()) {
+			var customClass = Class.forName(p.getCustomClass());
+			custom = (Bean)customClass.newInstance();
+			custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
+		}
+
+		scheduleOnline(sender, p.getTimerId(), p.getSimpleTimer(), (TimerHandle)handle, custom);
+		return 0;
+	}
+
+	private long transmitSimpleTimerHandle(long sender, long target, @Nullable Binary parameter) throws Exception {
+		if (null == parameter)
+			return 0;
+
+		var p = new BTransmitCronTimer();
+		p.decode(ByteBuffer.Wrap(parameter));
+
+		var handleClass = Class.forName(p.getHandleClass());
+		var handle = handleClass.newInstance();
+		Bean custom = null;
+		if (p.getCustomClass().isEmpty()) {
+			var customClass = Class.forName(p.getCustomClass());
+			custom = (Bean)customClass.newInstance();
+			custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
+		}
+
+		scheduleOnline(sender, p.getTimerId(), p.getCronTimer(), (TimerHandle)handle, custom);
+		return 0;
+	}
+
 	private @NotNull String scheduleOnline(long roleId, @NotNull String timerId, @NotNull BCronTimer cronTimer,
-										   @Nullable TimerHandle name, @Nullable Bean customData) {
+										   @NotNull TimerHandle name, @Nullable Bean customData) {
 		var loginVersion = online.getLocalLoginVersion(roleId);
-		if (null == loginVersion)
-			throw new IllegalStateException("not login. roleId=" + roleId);
+		if (null == loginVersion) {
+			// 参数 timerId, cronTimer, timerHandleClassName, customData
+			var p = new BTransmitCronTimer();
+			p.setTimerId(timerId);
+			p.setCronTimer(cronTimer);
+			p.setHandleClass(name.getClass().getName());
+			if (null != customData) {
+				p.setCustomClass(customData.getClass().getName());
+				p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
+			}
+			online.transmitEmbed(roleId, eTransmitCronTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)), false);
+			return timerId;
+		}
 
 		var timer = online.providerApp.zeze.getTimer();
 		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, timer.timerSerialId.nextId());
@@ -318,7 +390,7 @@ public class TimerRole {
 	}
 
 	// 调度 cron 定时器
-	private void scheduleCron(@NotNull String timerId, @NotNull BCronTimer cron, @Nullable TimerHandle name) {
+	private void scheduleCron(@NotNull String timerId, @NotNull BCronTimer cron, @NotNull TimerHandle name) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
 			scheduleCronNext(timerId, delay, name);
@@ -328,20 +400,22 @@ public class TimerRole {
 	}
 
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
-	private void scheduleCronNext(@NotNull String timerId, long delay, @Nullable TimerHandle name) {
+	private void scheduleCronNext(@NotNull String timerId, long delay, @NotNull TimerHandle name) {
 		var timer = online.providerApp.zeze.getTimer();
 		Transaction.whileCommit(
 				() -> timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay,
 						() -> fireCron(timerId, name))));
 	}
 
-	private void fireCron(@NotNull String timerId, @Nullable TimerHandle handle) {
+	private void fireCron(@NotNull String timerId, @NotNull TimerHandle handle) {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
+			/*
 			if (null == handle) {
 				cancel(timerId);
 				return 0; // done
 			}
+			*/
 
 			var bTimer = online._tRoleTimers().get(timerId);
 			if (null == bTimer) {
@@ -406,7 +480,7 @@ public class TimerRole {
 	}
 
 	// 调度 Simple 定时器到ThreadPool中。
-	private void scheduleSimple(@NotNull String timerId, long delay, @Nullable TimerHandle name) {
+	private void scheduleSimple(@NotNull String timerId, long delay, @NotNull TimerHandle name) {
 		var timer = online.providerApp.zeze.getTimer();
 		Transaction.whileCommit(
 				() -> timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay,
@@ -414,13 +488,15 @@ public class TimerRole {
 	}
 
 	// Timer发生，执行回调。
-	private void fireSimple(@NotNull String timerId, @Nullable TimerHandle handle) {
+	private void fireSimple(@NotNull String timerId, @NotNull TimerHandle handle) {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
+			/*
 			if (null == handle) {
 				cancel(timerId);
 				return 0; // done
 			}
+			*/
 
 			var bTimer = online._tRoleTimers().get(timerId);
 			if (null == bTimer) {

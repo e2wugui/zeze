@@ -84,7 +84,7 @@ public class Online extends AbstractOnline {
 		 * @param target 查询目标角色
 		 * @return 按普通事务处理过程返回值处理
 		 */
-		long call(long sender, long target, @Nullable Binary parameter);
+		long call(long sender, long target, @Nullable Binary parameter) throws Exception;
 	}
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
@@ -1043,6 +1043,11 @@ public class Online extends AbstractOnline {
 	public static final class RoleOnServer {
 		int serverId = -1; // providerId
 		final HashSet<Long> roles = new HashSet<>();
+
+		@Override
+		public String toString() {
+			return roles.toString();
+		}
 	}
 
 	public @NotNull IntHashMap<RoleOnServer> groupByServerId(@NotNull Iterable<Long> roleIds) {
@@ -1077,8 +1082,8 @@ public class Online extends AbstractOnline {
 		return current;
 	}
 
-	private void transmitInProcedure(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
-									 @Nullable Binary parameter) {
+	public void transmitEmbed(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
+							   @Nullable Binary parameter, boolean processNotOnline) {
 		if (providerApp.zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(sender, actionName, roleIds, parameter);
@@ -1089,7 +1094,15 @@ public class Online extends AbstractOnline {
 		RoleOnServer groupLocal = null;
 		for (var it = groups.iterator(); it.moveToNext(); ) {
 			var group = it.value();
-			if (group.serverId == -1 || group.serverId == providerApp.zeze.getConfig().getServerId()) {
+			if (group.serverId == -1) {
+				// not online
+				if (processNotOnline)
+					groupLocal = merge(groupLocal, group);
+				else
+					logger.info("transmit not online roles={}", group);
+				continue;
+			}
+			if (group.serverId == providerApp.zeze.getConfig().getServerId()) {
 				// loopback 就是当前gs.
 				groupLocal = merge(groupLocal, group);
 				continue;
@@ -1139,7 +1152,7 @@ public class Online extends AbstractOnline {
 			bb = null;
 		// 发送协议请求在另外的事务中执行。
 		Task.run(providerApp.zeze.newProcedure(() -> {
-			transmitInProcedure(sender, actionName, roleIds, bb != null ? new Binary(bb) : null);
+			transmitEmbed(sender, actionName, roleIds, bb != null ? new Binary(bb) : null, true);
 			return Procedure.Success;
 		}, "Online.transmit"), null, null, DispatchMode.Normal);
 	}
