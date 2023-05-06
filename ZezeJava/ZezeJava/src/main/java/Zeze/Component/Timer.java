@@ -44,7 +44,7 @@ public class Timer extends AbstractTimer {
 	}
 
 	public static @NotNull Bean createOnlineBeanFromSpecialTypeId(long typeId) {
-		throw new UnsupportedOperationException(); // online custom data do not need decode.
+		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
 	public static final int CountPerNode = 200;
