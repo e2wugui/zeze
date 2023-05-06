@@ -131,11 +131,11 @@ public class TimerRole {
 		p.decode(ByteBuffer.Wrap(parameter));
 
 		var handleClass = Class.forName(p.getHandleClass());
-		var handle = handleClass.newInstance();
+		var handle = handleClass.getDeclaredConstructor().newInstance();
 		Bean custom = null;
 		if (p.getCustomClass().isEmpty()) {
 			var customClass = Class.forName(p.getCustomClass());
-			custom = (Bean)customClass.newInstance();
+			custom = (Bean)customClass.getDeclaredConstructor().newInstance();
 			custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
 		}
 
@@ -151,11 +151,11 @@ public class TimerRole {
 		p.decode(ByteBuffer.Wrap(parameter));
 
 		var handleClass = Class.forName(p.getHandleClass());
-		var handle = handleClass.newInstance();
+		var handle = handleClass.getDeclaredConstructor().newInstance();
 		Bean custom = null;
 		if (p.getCustomClass().isEmpty()) {
 			var customClass = Class.forName(p.getCustomClass());
-			custom = (Bean)customClass.newInstance();
+			custom = (Bean)customClass.getDeclaredConstructor().newInstance();
 			custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
 		}
 
