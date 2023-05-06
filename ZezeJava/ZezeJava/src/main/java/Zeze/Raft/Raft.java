@@ -162,11 +162,11 @@ public final class Raft {
 		return isLeader() && !isShutdown;
 	}
 
-	public ExecutorService getDoubleImportantThreadExecutor() {
+	public ExecutorService getImportantThreadExecutor() {
 		return doubleImportantThreadExecutor;
 	}
 
-	public ExecutorService getSingleUserThreadExecutor() {
+	public ExecutorService getUserThreadExecutor() {
 		return singleUserThreadExecutor;
 	}
 

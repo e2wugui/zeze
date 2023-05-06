@@ -616,7 +616,7 @@ public class LogSequence {
 			}
 
 			applyFuture = new TaskCompletionSource<>();
-			raft.getDoubleImportantThreadExecutor().execute(() -> {
+			raft.getImportantThreadExecutor().execute(() -> {
 				try {
 					applyFuture.setResult(Task.call(this::backgroundApply, "BackgroundApply") == 0); // 如果有人等待。
 				} finally {

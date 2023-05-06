@@ -36,7 +36,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		@Override
 		public void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
 										DispatchMode mode) throws Exception {
-			raft.getSingleUserThreadExecutor().execute(() -> Task.call(func, p));
+			raft.getUserThreadExecutor().execute(() -> Task.call(func, p));
 		}
 	}
 

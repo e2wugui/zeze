@@ -105,7 +105,7 @@ public class Server extends HandshakeBoth {
 		@Override
 		public void OnSocketClose(AsyncSocket closed, Throwable e) throws Exception {
 			Raft raft = ((Server)closed.getService()).getRaft();
-			raft.getDoubleImportantThreadExecutor().execute(() -> {
+			raft.getImportantThreadExecutor().execute(() -> {
 				// avoid deadlock: lock(socket), lock (Raft).
 				raft.lock();
 				try {
@@ -124,7 +124,7 @@ public class Server extends HandshakeBoth {
 		public void OnSocketHandshakeDone(AsyncSocket so) {
 			super.OnSocketHandshakeDone(so);
 			Raft raft = ((Server)getService()).getRaft();
-			raft.getDoubleImportantThreadExecutor().execute(() -> Task.call(() -> {
+			raft.getImportantThreadExecutor().execute(() -> Task.call(() -> {
 				raft.lock();
 				try {
 					raft.getLogSequence().trySendAppendEntries(this, null);
@@ -164,7 +164,7 @@ public class Server extends HandshakeBoth {
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			try {
-				raft.getDoubleImportantThreadExecutor().execute(() -> Task.call(() -> responseHandle.handle(p), p));
+				raft.getImportantThreadExecutor().execute(() -> Task.call(() -> responseHandle.handle(p), p));
 			} catch (RejectedExecutionException e) {
 				logger.debug("RejectedExecutionException for {}", p);
 			}
@@ -209,7 +209,7 @@ public class Server extends HandshakeBoth {
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			// 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
-			raft.getDoubleImportantThreadExecutor().execute(() ->
+			raft.getImportantThreadExecutor().execute(() ->
 					Task.call(() -> p.handle(this, factoryHandle), p, null));
 			return;
 		}
