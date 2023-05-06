@@ -340,9 +340,7 @@ public class LogSequence {
 				continue;
 			var db = uniqueDateFormat.parse(tableName.substring("unique.".length()));
 			if (db.getTime() < expired) {
-				@SuppressWarnings("deprecation")
-				var key = ((db.getYear() + 1900L) << 16) + ((db.getMonth() + 1) << 8) + db.getDate();
-				var opened = uniqueRequestSets.remove(key);
+				var opened = uniqueRequestSets.remove(toUniqueRequestKey(db));
 				if (null != opened)
 					opened.table.drop(); // 包含opened.close。
 				else
@@ -483,11 +481,13 @@ public class LogSequence {
 	}
 
 	private UniqueRequestSet openUniqueRequests(long time) {
-		var dateTime = new Date(time);
-		@SuppressWarnings("deprecation")
-		var key = ((dateTime.getYear() + 1900L) << 16) + ((dateTime.getMonth() + 1) << 8) + dateTime.getDate();
-		return uniqueRequestSets.computeIfAbsent(key,
+		return uniqueRequestSets.computeIfAbsent(toUniqueRequestKey(new Date(time)),
 				k -> new UniqueRequestSet("unique." + (k >> 16) + '.' + ((k >> 8) & 0xff) + '.' + (k & 0xff)));
+	}
+
+	@SuppressWarnings("deprecation")
+	private static long toUniqueRequestKey(Date date) {
+		return ((date.getYear() + 1900L) << 16) + ((date.getMonth() + 1) << 8) + date.getDate();
 	}
 
 	public WriteOptions getWriteOptions() {
