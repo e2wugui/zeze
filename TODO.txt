@@ -37,10 +37,12 @@ Dbh2 根据负载或什么策略并发拆分桶。
 			return managerMinLoad;
 		return null;
 	}
-Dbh2 启动 redo timeout。启动顺序有问题？【张路那测试又没有问题，先观察一阵。】
 ------------------------------------------------------------------------------------------------------------------------------
-2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; 
+2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; Raft; Dbh2; 
 ------------------------------------------------------------------------------------------------------------------------------
+Dbh2 启动 redo timeout。启动顺序有问题？【@张路 CommitRocks串测试时导致ip，port不一样，连接不到目的地导致timeout。】
+Dbh2 请求处理异步化。
+Raft appendLog 支持异步。
 【过载保护；更多。】目测目前做的很简陋，可能远远不足。
 1. 判断ThreadPoolExecutor.getQueue().size(); 是否超过配置值overload，threshold。
   【对于虚拟线程需要使用TaskCount并且配置更大的数字，或者虚拟线程非虚拟线程设置一个倍数关系，100倍？】
