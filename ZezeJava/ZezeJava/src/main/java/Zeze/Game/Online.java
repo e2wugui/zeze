@@ -1127,7 +1127,7 @@ public class Online extends AbstractOnline {
 				groupLocal.roles.addAll(group.roles);
 				continue;
 			}
-			transmit.Send(socket);
+			Transaction.whileCommit(() -> transmit.Send(socket));
 		}
 		if (groupLocal != null && !groupLocal.roles.isEmpty())
 			processTransmit(sender, actionName, groupLocal.roles, parameter);
