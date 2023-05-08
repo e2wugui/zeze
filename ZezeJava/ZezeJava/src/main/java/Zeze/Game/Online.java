@@ -1083,7 +1083,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void transmitEmbed(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
-							   @Nullable Binary parameter, boolean processNotOnline) {
+							  @Nullable Binary parameter, boolean processNotOnline) {
 		if (providerApp.zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(sender, actionName, roleIds, parameter);
@@ -1297,8 +1297,11 @@ public class Online extends AbstractOnline {
 
 	private long ProcessLoginRequestOnlineSet(Zeze.Builtin.Game.Online.Login rpc) throws Exception {
 		var done = new OutObject<>(false);
-		while (!done.value)
-			Task.call(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest"));
+		while (!done.value) {
+			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest"));
+			if (r != 0)
+				return r;
+		}
 		return 0;
 	}
 
@@ -1373,8 +1376,11 @@ public class Online extends AbstractOnline {
 
 	protected long ProcessReLoginRequestOnlineSet(Zeze.Builtin.Game.Online.ReLogin rpc) throws Exception {
 		var done = new OutObject<>(false);
-		while (!done.value)
-			Task.call(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest"));
+		while (!done.value) {
+			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest"));
+			if (r != 0)
+				return r;
+		}
 		return 0;
 	}
 

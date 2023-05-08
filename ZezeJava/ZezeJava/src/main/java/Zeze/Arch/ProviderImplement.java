@@ -118,7 +118,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			var txn = Transaction.getCurrent();
 			if (txn == null && zeze != null && factoryHandle.Level != TransactionLevel.None) {
 				var outProtocol = new OutObject<Protocol<?>>();
-				return Task.call(zeze.newProcedure(() -> { // 创建存储过程并且在当前线程中调用。
+				var r = Task.call(zeze.newProcedure(() -> { // 创建存储过程并且在当前线程中调用。
 					var p3 = factoryHandle.Factory.create();
 					var t = Transaction.getCurrent();
 					//noinspection DataFlowIssue
@@ -141,6 +141,11 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					p4.setResultCode(code);
 					session.sendResponse(p4);
 				});
+				if (PerfCounter.ENABLE_PERF) {
+					PerfCounter.instance.addRecvInfo(typeId, factoryHandle.Class,
+							Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
+				}
+				return r;
 			}
 
 			p2 = factoryHandle.Factory.create();
