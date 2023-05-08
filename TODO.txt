@@ -37,9 +37,11 @@ Dbh2 根据负载或什么策略并发拆分桶。
 			return managerMinLoad;
 		return null;
 	}
+Dbh2 线程256不能跑是因为线程饥饿。按理说raft内部有这个处理，可能是线程池设置不对。
 ------------------------------------------------------------------------------------------------------------------------------
-2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; Raft Async; Dbh2 Async; 
+2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; Raft Async; Dbh2 Async; Online;
 ------------------------------------------------------------------------------------------------------------------------------
+Online 状态 eOffline=_tnline.remove, eLinkBroken=link上的连接断开，但逻辑上还处于登录状态，用来处理重连，eLogined=登录状态
 Dbh2 启动 redo timeout。启动顺序有问题？【@张路 CommitRocks串测试时导致ip，port不一样，连接不到目的地导致timeout。】
 Dbh2 请求处理异步化。
 Raft appendLog 支持异步。

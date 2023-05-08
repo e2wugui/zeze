@@ -355,10 +355,7 @@ public final class Agent {
 		}
 		if (isDebugEnabled)
 			logger.debug("Found {} RaftRpc cancel", removed.size());
-		if (dispatchProtocolToInternalThreadPool)
-			Task.getCriticalThreadPool().execute(() -> trigger(removed, "Cancel"));
-		else
-			Task.run(() -> trigger(removed, "Cancel"), "Trigger Timeout RaftRpcs", DispatchMode.Normal);
+		Task.getCriticalThreadPool().execute(() -> trigger(removed, "Cancel"));
 	}
 
 	private void resend(boolean immediately) {
@@ -416,10 +413,7 @@ public final class Agent {
 			if (isDebugEnabled)
 				logger.debug("Found {} RaftRpc timeout", removed.size());
 			var removed0 = removed;
-			if (dispatchProtocolToInternalThreadPool)
-				Task.getCriticalThreadPool().execute(() -> trigger(removed0));
-			else
-				Task.run(() -> trigger(removed0), "Trigger Timeout RaftRpcs", DispatchMode.Normal);
+			Task.getCriticalThreadPool().execute(() -> trigger(removed0));
 		}
 	}
 
