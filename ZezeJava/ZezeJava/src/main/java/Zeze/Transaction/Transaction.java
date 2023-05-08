@@ -418,6 +418,8 @@ public final class Transaction {
 		// 不再支持在回调中再次执行事务。
 		// 在Notify之前设置的。
 		state = TransactionState.Completed;
+		for (var act : logActions)
+			act.run();
 
 		// collect logs and notify listeners
 		try {
