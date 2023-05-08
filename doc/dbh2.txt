@@ -39,14 +39,12 @@ Bucket-Route-Hash（第一版不实现）
 Bucket-Hot-Split(Sort)
 	热点桶二分法拆分，规则和Bucket-Route-Sort一样。
 
-进程
-	MasterService，
-	DatabaseService，
-	Agent，嵌入到dbh2的客户端内执行，
-	AgentService，把Agent的功能包装成服务，无状态的dbh2链接机器，用来提高事务安全性，因为嵌入式受应用影响，可能不够安全。
-		AgentService 可以解决commit中途挂掉。RocksDb Sync。先Commit，后在事务Id的相关桶里面记录。
-		DatabaseService需要能识别出重复的Commit并忽略。
-		有了事务提交中途落地状态，AgentService可以省掉。
+进程（模块）
+	Master，知道所有数据库，所有表，所有桶的分布情况。提供表创建，桶信息查询。
+	Dbh2Manager，桶运行容器，包含多个桶。
+	Dbh2Agent，嵌入到dbh2的客户端内执行。由于嵌入执行，App会影响一点提交安全性。见CommitServer。
+	CommitServer，Dbh2Agent的提交功能移到这里，独立服务器，仅用来提交事务。
+	* Dbh2Agent/CommitServer 二选一，可配置。
 
 ===============================================================
 问题
@@ -70,8 +68,6 @@ foreach (var trans in transList)
 其他多记录写的事务并发由Zeze解决。Zeze保证所有的写事务之间没有交集。
 所以！本系统不需要任何并发控制。【桶的迁移是一个需要锁并且等待的操作，这个待定】
 
-//////////////////////////////////////////////////////////////////////////////////////
-// 新内容。
 3.Raft怎么接入以及完整的事务方案
      RocksDB+Batch
     【确定采用这个方案了，原来麻雀版的基于OptimisticTransactionDB的方案作废】
@@ -144,21 +140,17 @@ LogUndoBatch.apply(tid) {
     又没有可靠性支持（如raft），本来是无状态设计。如果agent所在zeze-server一直没有恢复，
     由于第2点，会造成系统慢慢变得不可用。可以考虑采用把commit流程独立成新的服务，
     这个新的服务更纯粹，更不容易出错，另外这个新的服务可以加入raft，提高可用性。
-    -- 独立先不做，因为嵌入agent可靠性已经不错了。
 4). UndoBatch 可重复，桶忽略重复的。
 5). CommitBatch 可重复，桶忽略重复的。
 6). Raft-Snapshot 截断相关操作。
      PrepareBatch 创建了logs，进行中的操作才可以Undo（Undo的数据来源）。
      如果Snapshot把未完成的事务的PrepareBatch截断了，Undo将无法进行。
-     解决方法，Snapshot截断点往回退一段时间（比如30分钟），不要截断正在进行中的事务操作日志。
-     这个方法虽然不完美，但可用性一般来说足够了。欢迎拍砖。
+     解决方法：raft支持延迟snapshot，本次snapshot时，实际提交的是上一次（如果存在）的snapshot。
 7). PrepareBatch 流程中断造成桶的正在进行的事务一直空悬。
      桶主动查询事务所在的Agent，判断是否（localTransactionFileLog）关键点(isCommtting)，
      if (isCommitting) commit(); else undo(); 查询失败下一次尝试，必须能查询到结果。
      【localTransactionFileLog 在事务成功结束以后不会删除】。
 
-//////////////////////////////////////////////////////////////////////////////////////
-// 旧内容，可快速略过。
 4. 桶按key排序分段，写入是怎么提高并发。
     hash方式看起来具有极大的并发写入速度。
 
@@ -166,105 +158,24 @@ LogUndoBatch.apply(tid) {
 
 6.MapReduce。
 
-7. Bucket-Split需求
-	记录级别并发拆分：正在迁移的记录的访问需要等待。其他并发。
-	问题要点：
-	已经迁移完成的正常访问，迁移未完成按老的方式访问，这两种是否存在什么问题。
-	算法思路要点：
-	[1,2,3,4,5,6,7,8,9]
-	[1,2,3,4,5] [6之后并发迁移到新的桶。]
-	            [6,7*] 假设当前迁移记录是7.
-	void access(key)
-	{
-		var bucket = route(key);
-		if (bucket.moving)
-		{
-			// 【实际上下面没有考虑真正的锁定关系，纯伪码】
-			var movingkey; // 7
-			if (key < movingkey)
-				bucket.normalAccess;
-			if (key == movingkey) {
-				wait;
-				bucket.normalAccess;
-			}
-			bucket.oldbucket.normalAccess; // oldbucket 是拆分前的旧桶。
-		}
-		else
-		{
-			bucket.normalAccess;
-		}
-	}
-
+//////////////////////////////////////////////////////////////////////////////////////
+// 新内容。
+7. Bucket-Split 需求
+	分桶时仍然能提供服务。
+	Master维护所有的桶信息，分桶完成之前，不会route的目标桶。
+	Master拥有正在进行分桶的信息，目前看来，仅仅用来监控。
 8. 并发分桶
-    a) Master维护所有的桶信息，分桶完成之前，不会route的目标桶。
-    b) Master拥有正在进行分桶的信息，目前看来，仅仅用来监控。
-    c) 正在进行分桶的服务器维护记录锁（本进程即可）。
-    d) 所有桶数据操作使用锁如下：
-    Bucket.Get() {
-	lock();
-	return data.copy();
-	unlock();
-    }
-    Bucket.Transaction(): 
-	putOrDelete() {
-		lockAndAddTo(trans); // 事务中操作的key锁住，此时分桶操作等待事务完成。
-		rocksdb.putOrDelete();
-	}
-	commit() {
-		rocksdb.commit();
-		unlockAllLockInTrans();
-	}
-    Bucket.ConcurrentSplit()	
-	{
-		var last = srcBucket.last();
-		while (last != first) {
-			last.lock(); // 一次迁移一条记录。
-			moveRecordToDstBucket();
-			last.unlock();
-		}
-	}
-     e) Bucket.RouteRedirect()
-	上面第7点的补充说明。
-	i. 分桶完成之前，master都是返回srcBucket。
-	ii. srcBucket判断已经分走，redirect到dst桶。dst桶按上面第d)点执行锁操作
-	   虽然目标桶没完全准备好之前，不可能再次被分开，但是锁操作还是统一。
-	iii. srcBucket判断的时候需要锁住，对于正在moving的，会等待锁，然后发现已经被moved，然后被redirect。
-	iiii. srcBucket判断不会分走的，src桶按上面第d)点执行所操作。
-	*. 对于正在moving的记录，有两个事务，会锁柱两个锁。src的，dst的。其中src锁在redirect时可以提前释放掉。
+分桶阶段一（同步数据阶段），
+a)Dbh2Manager找到分桶的中间key。
+b)Dbh2Manager通过Master查找可以创建新桶的manager并创建分桶，此新创建的桶不可见。
+c)Dbh2Manager开始拷贝中间key之后（是否包含？）数据到新桶。维护已经拷贝过去的current-key。
+d)Dbh2Manager此时继续提供服务，如果事务更新的数据在key,current-key之间，这些数据操作马上同步到新桶。
+e)Dbh2Manager当同步拷贝完成，新桶写入Meta，更新Master信息，新桶此时已经开始可以接受服务。旧桶写入新的Meta，代理key之后的事务！。
+   【讨论】【上面的操作最好能原子执行，但涉及多个进程，一般意义上的原子保证可能比较难，是否可以通过执行顺序就保证正确性】
 
-其他细节，不看。
+分桶阶段二（代理？阶段），
+a)Dbh2Manager发现batch中不是本桶的记录，收集以后回退给agent，并报告桶信息需要更新错误码。
+b)Agent收到回退，创建新的Batch，迁移记录到此。
+c)Agent更新桶信息，访问新桶，发送新创建的Batch给它。
+*)【讨论】代理？上面这个流程还有个方案是Dbh2Manager直接分Batch并透明的代理转发给新桶，这个方案结构上复杂了一点，要求Dbh2Manager也需要查询Master。
 
-	并发写？
-	beginTransaction();
-	Transaction { buckets; }
-	put(transaction, key, value)
-	{
-		var bucket = route(key);
-		transaction.add(bucket); // 第一次加入Rocks.beginTransaction
-		bucket.put(); // 迁移中的参考上面一段。
-	}
-	delete(key)
-	{
-		var bucket = route(key);
-		transaction.add(bucket); // 第一次加入Rocks.beginTransaction
-		bucket.delete(); // 迁移中的参考上面一段。
-	}
-
-	Transaction.commit()
-	{
-		for (var bucket : buckets)
-			bucket.commit();
-	}
-
-	Bucket
-	{
-		void put();
-		void delete();
-		void get();
-	}
-
-	并发还是需要锁，模型待定！！！
-	? get总是允许读取，由zeze保证系列化。
-	？put，delete在事务中，rocks保护get可见性，由zeze保证系列化。
-	？剩下的就是迁移中等待（采用bucket本地锁，本地迁移保护，迁移中的记录）
-	总的并发：单个记录级别锁定，get访问结束即可释放锁，事务中的等待事务提交才释放锁。
