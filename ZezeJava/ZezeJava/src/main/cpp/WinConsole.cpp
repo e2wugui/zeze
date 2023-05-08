@@ -12,7 +12,7 @@ static JavaVM* g_jvm = 0;
 static jobject g_handler = 0;
 static jmethodID g_handlerMethdId = 0;
 
-extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM * jvm, void* reserved)
+extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* jvm, void* reserved)
 {
     g_jvm = jvm;
     return JNI_VERSION_1_1;
@@ -75,7 +75,7 @@ static BOOL WINAPI consoleHandler(DWORD event)
 }
 
 // public static native boolean hookCloseConsole(IntPredicate handler);
-extern "C" JNIEXPORT jboolean JNICALL DEF_JAVA(hookCloseConsole)(JNIEnv * jenv, jclass jcls, jobject handler)
+extern "C" JNIEXPORT jboolean JNICALL DEF_JAVA(hookCloseConsole)(JNIEnv* jenv, jclass jcls, jobject handler)
 {
     jobject t_handler = 0;
     jmethodID t_handlerMethdId = 0;
@@ -113,7 +113,7 @@ extern "C" JNIEXPORT jboolean JNICALL DEF_JAVA(hookCloseConsole)(JNIEnv * jenv, 
 }
 
 // public static native int getCloseConsoleTimeout(int event);
-extern "C" JNIEXPORT jint JNICALL DEF_JAVA(getCloseConsoleTimeout)(JNIEnv * jenv, jclass jcls, jint event)
+extern "C" JNIEXPORT jint JNICALL DEF_JAVA(getCloseConsoleTimeout)(JNIEnv* jenv, jclass jcls, jint event)
 {
     UINT action;
     switch (event)
