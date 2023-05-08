@@ -13,6 +13,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.jar.JarFile;
 import Zeze.Net.Binary;
+import Zeze.Net.Protocol;
 import Zeze.Serialize.Quaternion;
 import Zeze.Serialize.Serializable;
 import Zeze.Serialize.Vector2;
@@ -70,7 +71,10 @@ public class Reflect {
 	public Reflect(@NotNull Class<?> cls) {
 		for (var c = cls; c != null; c = c.getSuperclass()) {
 			for (var method : c.getDeclaredMethods()) {
-				if (method.getName().startsWith("Process")) // 只有协议处理函数能配置TransactionLevel
+				// 只有协议处理函数能配置TransactionLevel
+				// 其实这里还不是足够严谨, 手动写了同名方法,都只有1个Protocol子类类型的参数,就可能不生效,除非都加上一样的注解
+				if (method.getName().startsWith("Process") && method.getParameterCount() == 1
+						&& Protocol.class.isAssignableFrom(method.getParameters()[0].getType()))
 					methods.putIfAbsent(method.getName(), method);
 			}
 		}

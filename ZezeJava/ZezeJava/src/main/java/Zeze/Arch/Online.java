@@ -1349,8 +1349,11 @@ public class Online extends AbstractOnline {
 	@Override
 	protected long ProcessLoginRequest(Zeze.Builtin.Online.Login rpc) throws Exception {
 		var done = new OutObject<>(false);
-		while (!done.value)
-			Task.call(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest"));
+		while (!done.value) {
+			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest"));
+			if (r != 0)
+				return r;
+		}
 		return 0;
 	}
 
@@ -1426,8 +1429,11 @@ public class Online extends AbstractOnline {
 	@Override
 	protected long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc) throws Exception {
 		var done = new OutObject<>(false);
-		while (!done.value)
-			Task.call(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest"));
+		while (!done.value) {
+			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest"));
+			if (r != 0)
+				return r;
+		}
 		return 0;
 	}
 
