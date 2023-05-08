@@ -260,6 +260,11 @@ public final class Agent {
 		init(new NetClient(this, name, zeze), raftConf);
 	}
 
+	public Agent(String name, Application zeze, RaftConfig raftConf, NetClient netClient) throws Exception {
+		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + '.' + zeze.getConfig().getServerId());
+		init(netClient, raftConf);
+	}
+
 	public Agent(String name, RaftConfig raftConf) throws Exception {
 		this(name, raftConf, null);
 	}
@@ -270,6 +275,14 @@ public final class Agent {
 
 		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + ',' + config.getServerId());
 		init(new NetClient(this, name, config), raftConf);
+	}
+
+	public Agent(String name, RaftConfig raftConf, Config config, NetClient netClient) throws Exception {
+		if (config == null)
+			config = Config.load();
+
+		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + ',' + config.getServerId());
+		init(netClient, raftConf);
 	}
 
 	private void init(NetClient client, RaftConfig raftConf) throws Exception {
