@@ -592,6 +592,10 @@
 				<enum value="6" name="ResultCodeReliableNotifyConfirmIndexOutOfRange"/>
 				<enum value="7" name="ResultCodeNotLogin"/>
 
+				<enum value="0" name="eOffline"/>
+				<enum value="1" name="eLinkBroken"/>
+				<enum value="2" name="eLogined"/>
+
 				<!-- protocols -->
 				<bean name="BLogin">
 					<variable id="1" name="RoleId" type="long"/>
@@ -652,6 +656,7 @@
 						<GetSpecialTypeIdFromBean value="Zeze.Game.Online::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::createBeanFromSpecialTypeId"/>
 					</variable>
+					<variable id="8" name="State" type="int"/>
 				</bean>
 				<table name="tonline" key="long" value="BOnline"/>
 				<table name="tversion" key="long" value="BVersion"/>
@@ -954,6 +959,10 @@
 			<enum value="6" name="ResultCodeReliableNotifyConfirmIndexOutOfRange"/>
 			<enum value="7" name="ResultCodeNotLogin"/>
 
+			<enum value="0" name="eOffline"/>
+			<enum value="1" name="eLinkBroken"/>
+			<enum value="2" name="eLogined"/>
+
 			<!-- protocols -->
 			<bean name="BLogin">
 				<variable id="1" name="ClientId" type="string" />
@@ -999,6 +1008,7 @@
 				<variable id="4" name="ReliableNotifyConfirmIndex" type="long"/>
 				<variable id="5" name="ServerId"                   type="int"/>
 				<variable id="6" name="LogoutVersion" type="long"/>
+				<variable id="7" name="State" type="int"/>
 			</bean>
 			<bean name="BOnlines">
 				<variable id="1" name="Logins" type="map" key="string" value="BOnline"/> key is ClientId

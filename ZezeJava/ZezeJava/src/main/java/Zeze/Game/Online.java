@@ -233,8 +233,12 @@ public class Online extends AbstractOnline {
 	}
 
 	// 在线异变数据
-	public @Nullable BVersion getData(long roleId) {
-		return _tversion.get(roleId);
+	public @NotNull BVersion getData(long roleId) {
+		return _tversion.getOrAdd(roleId);
+	}
+
+	public int getState(long roleId) {
+		return _tversion.getOrAdd(roleId).getState();
 	}
 
 	public <T extends Bean> void setUserData(long roleId, @NotNull T data) {
@@ -392,6 +396,7 @@ public class Online extends AbstractOnline {
 		// 提前删除，可能事件里面需要使用这个判断已经登出。
 		// 外面补发logoutTrigger之后需要重新getOrAdd一次。
 		_tonline.remove(roleId); // remove first
+		_tversion.getOrAdd(roleId).setState(eOffline);
 
 		// 总是尝试通知上一次登录的服务器，里面会忽略本机。
 		if (version != null)
@@ -506,6 +511,8 @@ public class Online extends AbstractOnline {
 			var local = _tlocal.get(roleId);
 			if (local == null)
 				return 0; // 不在本机登录。
+
+			version.setState(eLinkBroken);
 
 			currentLoginVersion = local.getLoginVersion();
 			if (version.getLoginVersion() != currentLoginVersion) {
@@ -1336,6 +1343,8 @@ public class Online extends AbstractOnline {
 		version.setLoginVersion(loginVersion);
 		local.setLoginVersion(loginVersion);
 
+		version.setState(eLogined);
+
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
@@ -1414,6 +1423,8 @@ public class Online extends AbstractOnline {
 		var loginVersion = version.getLoginVersion() + 1;
 		version.setLoginVersion(loginVersion);
 		local.setLoginVersion(loginVersion);
+
+		version.setState(eLogined);
 
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();

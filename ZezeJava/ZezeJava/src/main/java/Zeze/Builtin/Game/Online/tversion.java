@@ -23,6 +23,7 @@ public final class tversion extends TableX<Long, Zeze.Builtin.Game.Online.BVersi
     public static final int VAR_ServerId = 5;
     public static final int VAR_LogoutVersion = 6;
     public static final int VAR_UserData = 7;
+    public static final int VAR_State = 8;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {

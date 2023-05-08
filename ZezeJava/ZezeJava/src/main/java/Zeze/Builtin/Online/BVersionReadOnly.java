@@ -13,4 +13,5 @@ public interface BVersionReadOnly {
     long getReliableNotifyConfirmIndex();
     int getServerId();
     long getLogoutVersion();
+    int getState();
 }

@@ -19,6 +19,9 @@ public abstract class AbstractOnline implements Zeze.IModule {
     public static final int ResultCodeOnlineDataNotFound = 5;
     public static final int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
     public static final int ResultCodeNotLogin = 7;
+    public static final int eOffline = 0;
+    public static final int eLinkBroken = 1;
+    public static final int eLogined = 2;
 
     protected final Zeze.Builtin.Online.tlocal _tlocal = new Zeze.Builtin.Online.tlocal();
     protected final Zeze.Builtin.Online.tonline _tonline = new Zeze.Builtin.Online.tonline();

@@ -28,6 +28,8 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         return Zeze.Game.Online.createBeanFromSpecialTypeId(typeId);
     }
 
+    private int _State;
+
     @Override
     public long getLoginVersion() {
         if (!isManaged())
@@ -146,6 +148,26 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         return _UserData;
     }
 
+    @Override
+    public int getState() {
+        if (!isManaged())
+            return _State;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _State;
+        var log = (Log__State)txn.getLog(objectId() + 8);
+        return log != null ? log.value : _State;
+    }
+
+    public void setState(int value) {
+        if (!isManaged()) {
+            _State = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__State(this, 8, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BVersion() {
         _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);
@@ -154,7 +176,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
     }
 
     @SuppressWarnings("deprecation")
-    public BVersion(long _LoginVersion_, long _ReliableNotifyConfirmIndex_, long _ReliableNotifyIndex_, int _ServerId_, long _LogoutVersion_) {
+    public BVersion(long _LoginVersion_, long _ReliableNotifyConfirmIndex_, long _ReliableNotifyIndex_, int _ServerId_, long _LogoutVersion_, int _State_) {
         _LoginVersion = _LoginVersion_;
         _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);
         _ReliableNotifyMark.variableId(2);
@@ -163,6 +185,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         _ServerId = _ServerId_;
         _LogoutVersion = _LogoutVersion_;
         _UserData = newDynamicBean_UserData();
+        _State = _State_;
     }
 
     public void assign(BVersion other) {
@@ -174,6 +197,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         setServerId(other.getServerId());
         setLogoutVersion(other.getLogoutVersion());
         _UserData.assign(other._UserData);
+        setState(other.getState());
     }
 
     public BVersion copyIfManaged() {
@@ -233,6 +257,13 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         public void commit() { ((BVersion)getBelong())._LogoutVersion = value; }
     }
 
+    private static final class Log__State extends Zeze.Transaction.Logs.LogInt {
+        public Log__State(BVersion bean, int varId, int value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BVersion)getBelong())._State = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -262,7 +293,8 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         sb.append(Zeze.Util.Str.indent(level)).append("LogoutVersion=").append(getLogoutVersion()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("UserData=").append(System.lineSeparator());
         _UserData.getBean().buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
+        sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(getState()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -334,6 +366,13 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
                 _x_.encode(_o_);
             }
         }
+        {
+            int _x_ = getState();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -375,6 +414,10 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
             _o_.ReadDynamic(_UserData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 8) {
+            setState(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -405,6 +448,8 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
             return true;
         if (getLogoutVersion() < 0)
             return true;
+        if (getState() < 0)
+            return true;
         return false;
     }
 
@@ -424,6 +469,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
                 case 5: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 6: _LogoutVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 7: _UserData.followerApply(vlog); break;
+                case 8: _State = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }
@@ -438,6 +484,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         setServerId(rs.getInt(_parents_name_ + "ServerId"));
         setLogoutVersion(rs.getLong(_parents_name_ + "LogoutVersion"));
         Zeze.Serialize.Helper.decodeJsonDynamic(_UserData, rs.getString(_parents_name_ + "UserData"));
+        setState(rs.getInt(_parents_name_ + "State"));
     }
 
     @Override
@@ -450,5 +497,6 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         st.appendInt(_parents_name_ + "ServerId", getServerId());
         st.appendLong(_parents_name_ + "LogoutVersion", getLogoutVersion());
         st.appendString(_parents_name_ + "UserData", Zeze.Serialize.Helper.encodeJson(_UserData));
+        st.appendInt(_parents_name_ + "State", getState());
     }
 }

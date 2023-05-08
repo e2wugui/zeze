@@ -246,15 +246,16 @@ public class Online extends AbstractOnline {
 			bOnline.getLogins().remove(clientId);
 		var arg = new LogoutEventArgument(account, clientId);
 
-		var version = _tversion.get(account);
-		var loginVersion = version != null ? version.getLogins().get(clientId) : null;
+		var version = _tversion.getOrAdd(account);
+		var loginVersion = version.getLogins().getOrAdd(clientId);
+		loginVersion.setState(eOffline);
 
 		if (bOnline != null && bOnline.getLogins().isEmpty())
 			_tonline.remove(account); // remove first
 
 		// 总是尝试通知上一次登录的服务器，里面会忽略本机。
-		if (loginVersion != null)
-			tryRedirectRemoveLocal(loginVersion.getServerId(), account);
+		tryRedirectRemoveLocal(loginVersion.getServerId(), account);
+
 		// 总是删除
 		removeLocalAndTrigger(account, clientId);
 
@@ -359,6 +360,9 @@ public class Online extends AbstractOnline {
 			var loginVersion = version.getLogins().get(clientId);
 			if (loginVersion == null)
 				return 0; // 不存在登录。
+
+			loginVersion.setState(eLinkBroken);
+
 			currentLoginVersion = loginLocal.getLoginVersion();
 			if (loginVersion.getLoginVersion() != currentLoginVersion) {
 				var ret = removeLocalAndTrigger(account, clientId); // 本机数据已经过时，马上删除。
@@ -1386,6 +1390,8 @@ public class Online extends AbstractOnline {
 		loginVersion.setLoginVersion(loginVersionSerialId);
 		loginLocal.setLoginVersion(loginVersionSerialId);
 
+		loginVersion.setState(eLogined);
+
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
@@ -1460,6 +1466,8 @@ public class Online extends AbstractOnline {
 		version.setLastLoginVersion(loginVersionSerialId);
 		loginVersion.setLoginVersion(loginVersionSerialId);
 		loginLocal.setLoginVersion(loginVersionSerialId);
+
+		loginVersion.setState(eLogined);
 
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
