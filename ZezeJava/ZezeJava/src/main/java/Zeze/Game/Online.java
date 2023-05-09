@@ -329,26 +329,40 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	public @Nullable Long getLogoutVersion(long roleId) {
+	/**
+	 * 返回登出版本号，
+	 * @param roleId roleId
+	 * @return null if not offline
+	 */
+	public Long getLogoutVersion(long roleId) {
 		var version = _tonline.getOrAdd(roleId);
+		if (version.getLink().getState() != eOffline)
+			return null;
 		return version.getLogoutVersion();
 	}
 
+	/**
+	 * 返回登录版本号。
+	 * @param roleId roleId
+	 * @return null if not login
+	 */
 	public @Nullable Long getLoginVersion(long roleId) {
 		var version = _tonline.getOrAdd(roleId);
+		if (version.getLink().getState() != eLogined)
+			return null;
 		return version.getLoginVersion();
 	}
 
+	/**
+	 * 返回本进程局部登录数据里面的版本号。
+	 * @param roleId roleId
+	 * @return null if not found in local
+	 */
 	public @Nullable Long getLocalLoginVersion(long roleId) {
 		var local = _tlocal.get(roleId);
 		if (null == local)
 			return null;
 		return local.getLoginVersion();
-	}
-
-	public @Nullable Long getGlobalLoginVersion(long roleId) {
-		var version = _tonline.getOrAdd(roleId);
-		return version.getLoginVersion();
 	}
 
 	public boolean isLogin(long roleId) {

@@ -448,12 +448,16 @@ public class Online extends AbstractOnline {
 		*/
 		var version = _tonline.getOrAdd(account);
 		var loginVersion = version.getLogins().getOrAdd(clientId);
+		if (loginVersion.getLink().getState() != eOffline)
+			return null;
 		return loginVersion.getLogoutVersion();
 	}
 
 	public Long getLoginVersion(String account, String clientId) {
 		var version = _tonline.getOrAdd(account);
 		var loginVersion = version.getLogins().getOrAdd(clientId);
+		if (loginVersion.getLink().getState() != eLogined)
+			return null;
 		return loginVersion.getLoginVersion();
 	}
 
@@ -464,12 +468,6 @@ public class Online extends AbstractOnline {
 		var login = local.getLogins().get(clientId);
 		if (null == login)
 			return null;
-		return login.getLoginVersion();
-	}
-
-	public Long getGlobalLoginVersion(String account, String clientId) {
-		var version = _tonline.getOrAdd(account);
-		var login = version.getLogins().getOrAdd(clientId);
 		return login.getLoginVersion();
 	}
 

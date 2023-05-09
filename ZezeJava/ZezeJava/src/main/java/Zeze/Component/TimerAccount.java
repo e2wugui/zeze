@@ -332,8 +332,8 @@ public class TimerAccount {
 				return 0; // done
 			}
 
-			var globalLoginVersion = online.getGlobalLoginVersion(bTimer.getAccount(), bTimer.getClientId());
-			if (null == globalLoginVersion || bTimer.getLoginVersion() != globalLoginVersion) {
+			var loginVersion = online.getLoginVersion(bTimer.getAccount(), bTimer.getClientId());
+			if (null == loginVersion || bTimer.getLoginVersion() != loginVersion) {
 				// 已经不是注册定时器时候的登录了。
 				timer.cancelFuture(timerId);
 				return 0; // done
@@ -404,8 +404,8 @@ public class TimerAccount {
 				timer.cancelFuture(timerId);
 				return 0; // done
 			}
-			var globalLoginVersion = online.getGlobalLoginVersion(bTimer.getAccount(), bTimer.getClientId());
-			if (null == globalLoginVersion || bTimer.getLoginVersion() != globalLoginVersion) {
+			var loginVersion = online.getLoginVersion(bTimer.getAccount(), bTimer.getClientId());
+			if (null == loginVersion || bTimer.getLoginVersion() != loginVersion) {
 				// 已经不是注册定时器时候的登录了。
 				timer.cancelFuture(timerId);
 				return 0; // done
