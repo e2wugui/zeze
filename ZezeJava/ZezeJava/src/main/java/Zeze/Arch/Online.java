@@ -15,12 +15,12 @@ import Zeze.Arch.Beans.BSend;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Builtin.Online.BAny;
 import Zeze.Builtin.Online.BDelayLogoutCustom;
+import Zeze.Builtin.Online.BLink;
 import Zeze.Builtin.Online.BLocal;
 import Zeze.Builtin.Online.BLocals;
 import Zeze.Builtin.Online.BNotify;
 import Zeze.Builtin.Online.BOnlines;
 import Zeze.Builtin.Online.BReliableNotify;
-import Zeze.Builtin.Online.BVersions;
 import Zeze.Builtin.Online.SReliableNotify;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
@@ -131,11 +131,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public BOnlines getOnline(String account) {
-		return _tonline.get(account);
-	}
-
-	public BVersions getVersion(String account) {
-		return _tversion.get(account);
+		return _tonline.getOrAdd(account);
 	}
 
 	public int getLocalCount() {
@@ -241,17 +237,12 @@ public class Online extends AbstractOnline {
 	}
 
 	private long logoutTrigger(String account, String clientId) throws Exception {
-		var bOnline = _tonline.get(account);
-		if (bOnline != null)
-			bOnline.getLogins().remove(clientId);
+		var bOnline = _tonline.getOrAdd(account);
+		var bLink = bOnline.getLogins().getOrAdd(clientId).getLink();
+		bOnline.getLogins().getOrAdd(clientId).setLink(new BLink(bLink.getLinkName(), bLink.getLinkSid(), eOffline));
 		var arg = new LogoutEventArgument(account, clientId);
 
-		var version = _tversion.getOrAdd(account);
-		var loginVersion = version.getLogins().getOrAdd(clientId);
-		loginVersion.setState(eOffline);
-
-		if (bOnline != null && bOnline.getLogins().isEmpty())
-			_tonline.remove(account); // remove first
+		var loginVersion = bOnline.getLogins().getOrAdd(clientId);
 
 		// 总是尝试通知上一次登录的服务器，里面会忽略本机。
 		tryRedirectRemoveLocal(loginVersion.getServerId(), account);
@@ -305,16 +296,14 @@ public class Online extends AbstractOnline {
 			}
 		}
 		// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-		var online = _tonline.get(account);
-		var version = _tversion.getOrAdd(account);
-		if (online != null) {
-			var loginVersion = version.getLogins().get(clientId);
-			if (loginVersion != null && loginVersion.getLoginVersion() == currentLoginVersion) {
-				loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
-				var ret = logoutTrigger(account, clientId);
-				if (0 != ret)
-					return ret;
-			}
+		var online = _tonline.getOrAdd(account);
+		var loginVersion = online.getLogins().getOrAdd(clientId);
+		if (loginVersion.getLink().getState() != eOffline
+				&& loginVersion.getLoginVersion() == currentLoginVersion) {
+			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
+			var ret = logoutTrigger(account, clientId);
+			if (0 != ret)
+				return ret;
 		}
 		return Procedure.Success;
 	}
@@ -337,59 +326,49 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	public long linkBroken(String account, String clientId, String linkName, long linkSid) throws Exception {
-		long currentLoginVersion;
-		{
-			var online = _tonline.get(account);
-			if (online == null)
-				return 0;
-			var loginOnline = online.getLogins().get(clientId);
-			if (loginOnline == null)
-				return 0;
-			// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
-			if (!loginOnline.getLinkName().equals(linkName) || loginOnline.getLinkSid() != linkSid)
-				return 0;
+	public long linkBroken(String account, String clientId, String linkName, long linkSid, Long loginVersion) throws Exception {
+		var online = _tonline.getOrAdd(account);
+		var loginOnline = online.getLogins().getOrAdd(clientId);
+		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
+		var link = loginOnline.getLink();
+		if ((loginVersion == null || loginVersion != loginOnline.getLoginVersion())
+				|| !link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid)
+			return 0;
 
-			var version = _tversion.getOrAdd(account);
-			var local = _tlocal.get(account);
-			if (local == null)
-				return 0; // 不在本机登录。
-			var loginLocal = local.getLogins().get(clientId);
-			if (loginLocal == null)
-				return 0; // 不在本机登录。
-			var loginVersion = version.getLogins().get(clientId);
-			if (loginVersion == null)
-				return 0; // 不存在登录。
+		var local = _tlocal.get(account);
+		if (local == null)
+			return 0; // 不在本机登录。
+		var loginLocal = local.getLogins().get(clientId);
+		if (loginLocal == null)
+			return 0; // 不在本机登录。
 
-			loginVersion.setState(eLinkBroken);
+		loginOnline.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
 
-			currentLoginVersion = loginLocal.getLoginVersion();
-			if (loginVersion.getLoginVersion() != currentLoginVersion) {
-				var ret = removeLocalAndTrigger(account, clientId); // 本机数据已经过时，马上删除。
-				if (ret != 0)
-					return ret;
-			}
+		if (loginOnline.getLoginVersion() != loginLocal.getLoginVersion()) {
+			var ret = removeLocalAndTrigger(account, clientId); // 本机数据已经过时，马上删除。
+			if (ret != 0)
+				return ret;
 		}
+
 		// shorter use
 		var zeze = providerApp.zeze;
 		var delay = zeze.getConfig().getOnlineLogoutDelay();
-		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(account, clientId, currentLoginVersion));
+		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(account, clientId, loginVersion));
 		return 0;
 	}
 
 	public void addReliableNotifyMark(String account, String clientId, String listenerName) {
-		var online = _tonline.get(account);
-		if (online == null)
+		var online = _tonline.getOrAdd(account);
+		var loginOnline = online.getLogins().getOrAdd(clientId);
+		if (loginOnline.getLink().getState() != eLogined)
 			throw new IllegalStateException("Not Online. AddReliableNotifyMark: " + listenerName);
-		var version = _tversion.getOrAdd(account);
-		version.getLogins().getOrAdd(clientId).getReliableNotifyMark().add(listenerName);
+		loginOnline.getReliableNotifyMark().add(listenerName);
 	}
 
 	public void removeReliableNotifyMark(String account, String clientId, String listenerName) {
 		// 移除尽量通过，不做任何判断。
-		var login = _tversion.getOrAdd(account).getLogins().get(clientId);
-		if (login != null)
-			login.getReliableNotifyMark().remove(listenerName);
+		var login = _tonline.getOrAdd(account).getLogins().getOrAdd(clientId);
+		login.getReliableNotifyMark().remove(listenerName);
 	}
 
 	public void sendReliableNotifyWhileCommit(String account, String clientId, String listenerName, Protocol<?> p) {
@@ -431,12 +410,9 @@ public class Online extends AbstractOnline {
 	public void sendReliableNotify(String account, String clientId, String listenerName, long typeId,
 								   Binary fullEncodedProtocol) {
 		providerApp.zeze.runTaskOneByOneByKey(listenerName, "Online.sendReliableNotify." + listenerName, () -> {
-			var online = _tonline.get(account);
-			if (online == null) // 完全离线，忽略可靠消息发送：可靠消息仅仅为在线提供服务，并不提供全局可靠消息。
-				return Procedure.Success;
-			var version = _tversion.getOrAdd(account);
-			var login = version.getLogins().get(clientId);
-			if (login == null || !login.getReliableNotifyMark().contains(listenerName))
+			var online = _tonline.getOrAdd(account);
+			var login = online.getLogins().getOrAdd(clientId);
+			if (login.getLink().getState() != eLogined || !login.getReliableNotifyMark().contains(listenerName))
 				return Procedure.Success; // 相关数据装载的时候要同步设置这个。
 
 			// 先保存在再发送，然后客户端还会确认。
@@ -470,22 +446,14 @@ public class Online extends AbstractOnline {
 		if (null == login)
 			return null; // is not login
 		*/
-		var version = _tversion.get(account);
-		if (null == version)
-			return null; // no version
-		var loginVersion = version.getLogins().get(clientId);
-		if (null == loginVersion)
-			return null; // no login version
+		var version = _tonline.getOrAdd(account);
+		var loginVersion = version.getLogins().getOrAdd(clientId);
 		return loginVersion.getLogoutVersion();
 	}
 
 	public Long getLoginVersion(String account, String clientId) {
-		var version = _tversion.get(account);
-		if (null == version)
-			return null; // no version
-		var loginVersion = version.getLogins().get(clientId);
-		if (null == loginVersion)
-			return null; // no login version
+		var version = _tonline.getOrAdd(account);
+		var loginVersion = version.getLogins().getOrAdd(clientId);
 		return loginVersion.getLoginVersion();
 	}
 
@@ -500,20 +468,14 @@ public class Online extends AbstractOnline {
 	}
 
 	public Long getGlobalLoginVersion(String account, String clientId) {
-		var version = _tversion.get(account);
-		if (null == version)
-			return null;
-		var login = version.getLogins().get(clientId);
-		if (null == login)
-			return null;
+		var version = _tonline.getOrAdd(account);
+		var login = version.getLogins().getOrAdd(clientId);
 		return login.getLoginVersion();
 	}
 
 	public boolean isLogin(String account, String clientId) {
-		var online = _tonline.get(account);
-		if (null == online)
-			return false;
-		return online.getLogins().containsKey(clientId);
+		var online = _tonline.getOrAdd(account);
+		return online.getLogins().getOrAdd(clientId).getLink().getState() == eLogined;
 	}
 
 	public boolean isAccountLogin(String account) {
@@ -521,10 +483,13 @@ public class Online extends AbstractOnline {
 	}
 
 	public int getAccountLoginCount(String account) {
-		var online = _tonline.get(account);
-		if (null == online)
-			return 0;
-		return online.getLogins().size();
+		var online = _tonline.getOrAdd(account);
+		int sum = 0;
+		for (var e : online.getLogins().entrySet()) {
+			if (e.getValue().getLink().getState() == eLogined)
+				sum++;
+		}
+		return sum;
 	}
 
 //	public Collection<LoginOnLink> groupByLink(Iterable<LoginKey> loginKeys) {
@@ -576,7 +541,7 @@ public class Online extends AbstractOnline {
 		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
 			var ctx = contexts.get(sid);
 			if (ctx != null) {
-				return linkBroken(ctx.account, ctx.clientId, linkName, sid);
+				return linkBroken(ctx.account, ctx.clientId, linkName, sid, null);
 			}
 			return 0;
 		}, "Online.triggerLinkBroken").call());
@@ -670,7 +635,13 @@ public class Online extends AbstractOnline {
 					logger.warn("sendDirect: not found login for clientId={} account={}", clientId, account);
 				continue;
 			}
-			var linkName = login.getLinkName();
+			var link = login.getLink();
+			if (link.getState() != eLogined) {
+				if (!trySend)
+					logger.warn("sendDirect: not found login for clientId={} account={}", clientId, account);
+				continue;
+			}
+			var linkName = link.getLinkName();
 			var connector = links.get(linkName);
 			if (connector == null) {
 				logger.warn("sendDirect: not found connector for linkName={} clientId={} account={}",
@@ -693,7 +664,7 @@ public class Online extends AbstractOnline {
 				}
 				groups.put(linkName, group = new LinkRoles(linkSocket, typeId, fullEncodedProtocol));
 			}
-			group.send.Argument.getLinkSids().add(login.getLinkSid());
+			group.send.Argument.getLinkSids().add(link.getLinkSid());
 			group.accounts.add(loginKey);
 		}
 		int sendCount = 0;
@@ -705,7 +676,7 @@ public class Online extends AbstractOnline {
 					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 					var loginKey = group.accounts.get(idx);
 					return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId,
-							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
+							ProviderService.getLinkName(group.linkSocket), linkSid, null) : 0;
 				}, "Online.triggerLinkBroken2").call());
 				return Procedure.Success;
 			}))
@@ -730,7 +701,13 @@ public class Online extends AbstractOnline {
 			return false;
 		}
 
-		var linkName = login.getLinkName();
+		var link = login.getLink();
+		if (link.getState() != eLogined) {
+			if (!trySend)
+				logger.warn("sendDirect: not found login for clientId={} account={}", clientId, account);
+			return false;
+		}
+		var linkName = link.getLinkName();
 		var connector = providerApp.providerService.getLinks().get(linkName);
 		if (connector == null) {
 			logger.warn("sendDirect: not found connector for linkName={} account={} clientId={}",
@@ -750,11 +727,11 @@ public class Online extends AbstractOnline {
 			return false;
 		}
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
-		send.Argument.getLinkSids().add(login.getLinkSid());
+		send.Argument.getLinkSids().add(link.getLinkSid());
 		return send.Send(linkSocket, rpc -> {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
-				providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, linkSid),
+				providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, linkSid, null),
 						"Online.triggerLinkBroken1").call();
 			}
 			return Procedure.Success;
@@ -953,7 +930,10 @@ public class Online extends AbstractOnline {
 		}
 		for (var e : online.getLogins()) {
 			var login = e.getValue();
-			var linkName = login.getLinkName();
+			var link = login.getLink();
+			if (link.getState() != eLogined)
+				continue;
+			var linkName = link.getLinkName();
 			var connector = links.get(linkName);
 			if (connector == null || !connector.isHandshakeDone())
 				continue;
@@ -965,7 +945,7 @@ public class Online extends AbstractOnline {
 					continue;
 				groups.put(linkName, group = new LinkRoles(linkSocket, typeId, fullEncodedProtocol));
 			}
-			group.send.Argument.getLinkSids().add(login.getLinkSid());
+			group.send.Argument.getLinkSids().add(link.getLinkSid());
 			group.accounts.add(new LoginKey(account, e.getKey()));
 		}
 		int sendCount = 0;
@@ -977,7 +957,7 @@ public class Online extends AbstractOnline {
 					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 					var loginKey = group.accounts.get(idx);
 					return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId,
-							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
+							ProviderService.getLinkName(group.linkSocket), linkSid, null) : 0;
 				}, "Online.triggerLinkBroken3").call());
 				return Procedure.Success;
 			}))
@@ -1002,7 +982,11 @@ public class Online extends AbstractOnline {
 			}
 			for (var e : online.getLogins()) {
 				var login = e.getValue();
-				var linkName = login.getLinkName();
+
+				var link = login.getLink();
+				if (link.getState() != eLogined)
+					continue;
+				var linkName = link.getLinkName();
 				var connector = links.get(linkName);
 				if (connector == null || !connector.isHandshakeDone())
 					continue;
@@ -1014,7 +998,7 @@ public class Online extends AbstractOnline {
 						continue;
 					groups.put(linkName, group = new LinkRoles(linkSocket, typeId, fullEncodedProtocol));
 				}
-				group.send.Argument.getLinkSids().add(login.getLinkSid());
+				group.send.Argument.getLinkSids().add(link.getLinkSid());
 				group.accounts.add(new LoginKey(account, e.getKey()));
 			}
 		}
@@ -1027,7 +1011,7 @@ public class Online extends AbstractOnline {
 					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 					var loginKey = group.accounts.get(idx);
 					return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId,
-							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
+							ProviderService.getLinkName(group.linkSocket), linkSid, null) : 0;
 				}, "Online.triggerLinkBroken4").call());
 				return Procedure.Success;
 			}))
@@ -1148,19 +1132,15 @@ public class Online extends AbstractOnline {
 		groups.put(groupNotOnline.serverId, groupNotOnline);
 
 		for (var account : accounts) {
-			var online = _tonline.get(account);
-			if (online == null) {
-				groupNotOnline.accounts.add(account);
-				continue;
-			}
-			var version = _tversion.getOrAdd(account);
-			if (version.getLogins().isEmpty()) {
+			var online = _tonline.getOrAdd(account);
+			if (online.getLogins().isEmpty()) {
 				// null != online 意味着这里肯定不为0，不会到达这个分支。
 				// 下面要求Logins.Count必须大于0，判断一下吧。
 				groupNotOnline.accounts.add(account);
 				continue;
 			}
-			var serverId = version.getLogins().iterator().next().getValue().getServerId();
+			// 这里随便找第一个，什么逻辑？
+			var serverId = online.getLogins().iterator().next().getValue().getServerId();
 			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
 			var group = groups.get(serverId);
 			if (group == null) {
@@ -1304,30 +1284,18 @@ public class Online extends AbstractOnline {
 	}
 
 	private long tryRemoveLocal(String account) throws Exception {
-		var version = _tversion.getOrAdd(account);
 		var local = _tlocal.get(account);
 		if (local == null)
 			return 0;
-		// null == online && null == local -> do nothing
-		// null != online && null == local -> do nothing
-
-		var online = _tonline.get(account);
-		if (online == null) {
-			// remove all
-			for (var loginKey : local.getLogins().keySet()) {
-				var ret = removeLocalAndTrigger(account, loginKey);
+		var online = _tonline.getOrAdd(account);
+		// 在全局数据中查找login-local，删除不存在或者版本不匹配的。
+		for (var loginLocal : local.getLogins().entrySet()) {
+			var loginVersion = online.getLogins().getOrAdd(loginLocal.getKey());
+			if (loginVersion.getLink().getState() == eOffline
+					|| loginVersion.getLoginVersion() != loginLocal.getValue().getLoginVersion()) {
+				var ret = removeLocalAndTrigger(account, loginLocal.getKey());
 				if (ret != 0)
 					return ret;
-			}
-		} else {
-			// 在全局数据中查找login-local，删除不存在或者版本不匹配的。
-			for (var loginLocal : local.getLogins().entrySet()) {
-				var loginVersion = version.getLogins().get(loginLocal.getKey());
-				if (loginVersion == null || loginVersion.getLoginVersion() != loginLocal.getValue().getLoginVersion()) {
-					var ret = removeLocalAndTrigger(account, loginLocal.getKey());
-					if (ret != 0)
-						return ret;
-				}
 			}
 		}
 		return 0;
@@ -1364,18 +1332,17 @@ public class Online extends AbstractOnline {
 
 		var online = _tonline.getOrAdd(session.getAccount());
 		var local = _tlocal.getOrAdd(session.getAccount());
-		var version = _tversion.getOrAdd(session.getAccount());
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
-		var loginVersion = version.getLogins().getOrAdd(rpc.Argument.getClientId());
+		var loginVersion = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 
 		if (loginVersion.getLoginVersion() != loginVersion.getLogoutVersion()) {
 			// login exist
 			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
 
-			if (!loginOnline.getLinkName().equals(session.getLinkName())
-					|| loginOnline.getLinkSid() != session.getLinkSid()) {
-				providerApp.providerService.kick(loginOnline.getLinkName(), loginOnline.getLinkSid(),
+			var link = loginOnline.getLink();
+			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
+				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 						BKick.ErrorDuplicateLogin,
 						"duplicate login " + session.getAccount() + ":" + rpc.Argument.getClientId());
 			}
@@ -1388,30 +1355,21 @@ public class Online extends AbstractOnline {
 		}
 
 		// 开始登录流程，先准备 link-state。
-		var loginVersionSerialId = version.getLastLoginVersion() + 1;
-		version.setLastLoginVersion(loginVersionSerialId);
+		var loginVersionSerialId = online.getLastLoginVersion() + 1;
+		online.setLastLoginVersion(loginVersionSerialId);
 		loginVersion.setLoginVersion(loginVersionSerialId);
 		loginLocal.setLoginVersion(loginVersionSerialId);
 
-		loginVersion.setState(eLogined);
+		loginVersion.setLink(new BLink(session.getLinkName(), session.getLinkSid(), eLogined));
 
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			//setUserState.Argument.getUserState().setLoginVersion(loginVersionSerialId);
 			setUserState.Argument.getUserState().setContext(rpc.Argument.getClientId());
+			setUserState.Argument.getUserState().setLoginVersion(loginVersionSerialId);
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
-
-		/////////////////////////////////////////////////////////////
-		// 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。
-		// 因为Online数据可能会被很多地方缓存，写操作会造成缓存失效。
-		// see Linkd.StableLinkSid
-		if (!loginOnline.getLinkName().equals(session.getLinkName()))
-			loginOnline.setLinkName(session.getLinkName());
-		if (loginOnline.getLinkSid() != session.getLinkSid())
-			loginOnline.setLinkSid(session.getLinkSid());
-		/////////////////////////////////////////////////////////////
 
 		loginVersion.setReliableNotifyConfirmIndex(0);
 		loginVersion.setReliableNotifyIndex(0);
@@ -1444,18 +1402,16 @@ public class Online extends AbstractOnline {
 
 		var online = _tonline.getOrAdd(session.getAccount());
 		var local = _tlocal.getOrAdd(session.getAccount());
-		var version = _tversion.getOrAdd(session.getAccount());
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
-		var loginVersion = version.getLogins().getOrAdd(rpc.Argument.getClientId());
+		var loginVersion = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 
 		if (loginVersion.getLoginVersion() != loginVersion.getLogoutVersion()) {
 			// login exist
 			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
-
-			if (!loginOnline.getLinkName().equals(session.getLinkName())
-					|| loginOnline.getLinkSid() != session.getLinkSid()) {
-				providerApp.providerService.kick(loginOnline.getLinkName(), loginOnline.getLinkSid(),
+			var link = loginOnline.getLink();
+			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
+				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 						BKick.ErrorDuplicateLogin,
 						"duplicate login " + session.getAccount() + ":" + rpc.Argument.getClientId());
 			}
@@ -1468,29 +1424,22 @@ public class Online extends AbstractOnline {
 		}
 
 		// 开始登录流程，先准备 link-state。
-		var loginVersionSerialId = version.getLastLoginVersion() + 1;
-		version.setLastLoginVersion(loginVersionSerialId);
+		var loginVersionSerialId = online.getLastLoginVersion() + 1;
+		online.setLastLoginVersion(loginVersionSerialId);
 		loginVersion.setLoginVersion(loginVersionSerialId);
 		loginLocal.setLoginVersion(loginVersionSerialId);
 
-		loginVersion.setState(eLogined);
+		loginVersion.setLink(new BLink(session.getLinkName(), session.getLinkSid(), eLogined));
 
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			//setUserState.Argument.getUserState().setLoginVersion(loginVersionSerialId);
 			setUserState.Argument.getUserState().setContext(rpc.Argument.getClientId());
+			setUserState.Argument.getUserState().setLoginVersion(loginVersionSerialId);
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
-		/////////////////////////////////////////////////////////////
-		// 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。
-		// 因为Online数据可能会被很多地方缓存，写操作会造成缓存失效。
-		// see Linkd.StableLinkSid
-		if (!loginOnline.getLinkName().equals(session.getLinkName()))
-			loginOnline.setLinkName(session.getLinkName());
-		if (loginOnline.getLinkSid() != session.getLinkSid())
-			loginOnline.setLinkSid(session.getLinkSid());
 		/////////////////////////////////////////////////////////////
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
@@ -1517,12 +1466,10 @@ public class Online extends AbstractOnline {
 			return errorCode(ResultCodeNotLogin);
 
 		//var local = _tlocal.get(session.getAccount());
-		var online = _tonline.get(session.getAccount());
-		var version = _tversion.getOrAdd(session.getAccount());
-
+		var online = _tonline.getOrAdd(session.getAccount());
 		var clientId = session.getContext();
-		var loginVersion = version.getLogins().getOrAdd(clientId);
-		if (online != null) {
+		var loginVersion = online.getLogins().getOrAdd(clientId);
+		if (loginVersion.getLink().getState() != eLogined) {
 			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
 			var ret = logoutTrigger(session.getAccount(), clientId);
 			if (0 != ret)
@@ -1543,7 +1490,7 @@ public class Online extends AbstractOnline {
 
 	private int reliableNotifySync(String account, String clientId,
 								   ProviderUserSession session, long index, boolean sync) {
-		var online = _tversion.getOrAdd(account);
+		var online = _tonline.getOrAdd(account);
 		var queue = openQueue(account, clientId);
 		var loginOnline = online.getLogins().getOrAdd(clientId);
 		if (index < loginOnline.getReliableNotifyConfirmIndex()

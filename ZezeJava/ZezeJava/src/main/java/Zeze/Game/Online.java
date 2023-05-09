@@ -474,13 +474,15 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	public long linkBroken(@NotNull String account, long roleId, @NotNull String linkName, long linkSid, Long loginVersion) throws Exception {
+	public long linkBroken(@NotNull String account, long roleId, @NotNull String linkName,
+						   long linkSid, Long loginVersion) throws Exception {
 		var online = _tonline.getOrAdd(roleId);
 		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 		var link = online.getLink();
 
 		// loginVersion == null 表示本地触发的linkBroken，此时登录版本就是当前的。
-		if ((loginVersion == null || loginVersion != online.getLoginVersion()) || !link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid)
+		if ((loginVersion == null || loginVersion != online.getLoginVersion())
+				|| !link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid)
 			return 0;
 
 		var local = _tlocal.get(roleId);

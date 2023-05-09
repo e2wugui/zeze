@@ -17,6 +17,7 @@ public final class tonline extends TableX<String, Zeze.Builtin.Online.BOnlines>
     }
 
     public static final int VAR_Logins = 1;
+    public static final int VAR_LastLoginVersion = 2;
 
     @Override
     public String decodeKey(ByteBuffer _os_) {
