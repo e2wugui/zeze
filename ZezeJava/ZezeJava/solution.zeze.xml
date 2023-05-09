@@ -629,14 +629,14 @@
 				</bean>
 				<!-- tables -->
 				<bean name="BOnline">
-					<variable id="1" name="Link"  type="BLink"/>
-					<variable id="2" name="LoginVersion" type="long"/>
-					<variable id="3" name="ReliableNotifyMark"         type="set" value="string"/>
-					<variable id="4" name="ReliableNotifyConfirmIndex" type="long"/>
-					<variable id="5" name="ReliableNotifyIndex"        type="long"/>
-					<variable id="6" name="ServerId" type="int"/>
-					<variable id="7" name="LogoutVersion" type="long"/>
-					<variable id="8" name="UserData" type="dynamic">
+					<variable id="3" name="Link"  type="BLink"/>
+					<variable id="4" name="LoginVersion" type="long"/>
+					<variable id="5" name="ReliableNotifyMark"         type="set" value="string"/>
+					<variable id="6" name="ReliableNotifyConfirmIndex" type="long"/>
+					<variable id="7" name="ReliableNotifyIndex"        type="long"/>
+					<variable id="8" name="ServerId" type="int"/>
+					<variable id="9" name="LogoutVersion" type="long"/>
+					<variable id="10" name="UserData" type="dynamic">
 						<GetSpecialTypeIdFromBean value="Zeze.Game.Online::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::createBeanFromSpecialTypeId"/>
 					</variable>

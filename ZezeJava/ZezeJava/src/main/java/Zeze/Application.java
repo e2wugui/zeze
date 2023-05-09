@@ -350,7 +350,7 @@ public final class Application {
 						schemasPrevious.compile();
 					} catch (Exception ex) {
 						schemasPrevious = null;
-						logger.error("Schemas Implement Changed?", ex);
+						logger.error("Schemas Implement Changed? serverId={}", serverId, ex);
 					}
 					ResetDB.checkAndRemoveTable(schemasPrevious, this);
 					version = dataVersion.version;

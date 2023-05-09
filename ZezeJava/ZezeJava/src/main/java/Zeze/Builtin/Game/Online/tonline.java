@@ -17,14 +17,14 @@ public final class tonline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline
         super(-1571889602, "Zeze_Builtin_Game_Online_tonline", suffix);
     }
 
-    public static final int VAR_Link = 1;
-    public static final int VAR_LoginVersion = 2;
-    public static final int VAR_ReliableNotifyMark = 3;
-    public static final int VAR_ReliableNotifyConfirmIndex = 4;
-    public static final int VAR_ReliableNotifyIndex = 5;
-    public static final int VAR_ServerId = 6;
-    public static final int VAR_LogoutVersion = 7;
-    public static final int VAR_UserData = 8;
+    public static final int VAR_Link = 3;
+    public static final int VAR_LoginVersion = 4;
+    public static final int VAR_ReliableNotifyMark = 5;
+    public static final int VAR_ReliableNotifyConfirmIndex = 6;
+    public static final int VAR_ReliableNotifyIndex = 7;
+    public static final int VAR_ServerId = 8;
+    public static final int VAR_LogoutVersion = 9;
+    public static final int VAR_UserData = 10;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {
