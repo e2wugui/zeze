@@ -37,11 +37,11 @@ Dbh2 根据负载或什么策略并发拆分桶。
 			return managerMinLoad;
 		return null;
 	}
-Dbh2 线程256不能跑是因为线程饥饿。按理说raft内部有这个处理，可能是线程池设置不对。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; Raft Async; Dbh2 Async; Online;
 ------------------------------------------------------------------------------------------------------------------------------
-Online 1. 合并online,version表。2. BLink中增加State。3. Link Broken 增加 loginVersion 参数，其中本地触发使用当前值（即实际上是无效比较）。
+Arch.Online 1. 合并online,version表。2. BLink中增加State。3. Link Broken 增加 loginVersion 参数，其中本地触发使用当前值（即实际上是无效比较）。
+Game.Online 1. 合并online,version表。2. BLink中增加State。3. Link Broken 增加 loginVersion 参数，其中本地触发使用当前值（即实际上是无效比较）。
 Raft.Agent 允许重载NetClient。
 Raft timeout/cancelPending 使用普通Task.run有可能线程饥饿。这两个操作提升到critical池执行。
 Online 状态 eOffline=_tnline.remove, eLinkBroken=link上的连接断开，但逻辑上还处于登录状态，用来处理重连，eLogined=登录状态
