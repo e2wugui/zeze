@@ -108,11 +108,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return sessionId;
 	}
 
-	public void setSessionId(long newSessionId) {
-		service.changeSocketSessionId(this, newSessionId);
-		sessionId = newSessionId;
-	}
-
 	public @NotNull Service getService() {
 		return service;
 	}

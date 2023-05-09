@@ -40,6 +40,7 @@ Dbh2 根据负载或什么策略并发拆分桶。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; Raft Async; Dbh2 Async; Online;
 ------------------------------------------------------------------------------------------------------------------------------
+Arch.Link 删除StableLinkSid相关功能。
 Arch.Online 1. 合并online,version表。2. BLink中增加State。3. Link Broken 增加 loginVersion 参数，其中本地触发使用当前值（即实际上是无效比较）。
 Game.Online 1. 合并online,version表。2. BLink中增加State。3. Link Broken 增加 loginVersion 参数，其中本地触发使用当前值（即实际上是无效比较）。
 Raft.Agent 允许重载NetClient。

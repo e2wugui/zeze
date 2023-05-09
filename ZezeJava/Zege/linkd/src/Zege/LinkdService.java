@@ -115,7 +115,6 @@ public class LinkdService extends LinkdServiceBase {
     @Override
     public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
         var linkSession = getAuthedSession(so);
-        setStableLinkSid(linkSession, so, moduleId, protocolId, data);
 
         var dispatch = createDispatch(linkSession, so, moduleId, protocolId, data);
 

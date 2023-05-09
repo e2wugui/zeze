@@ -5,7 +5,6 @@ import Zeze.Application;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
 import Zeze.Builtin.Provider.BDispatch;
-import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Dispatch;
@@ -17,53 +16,13 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeServer;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.ConcurrentLruLike;
 import Zeze.Util.OutLong;
 import Zeze.Util.Task;
 
 public class LinkdService extends HandshakeServer {
 	// private static final Logger logger = LogManager.getLogger(LinkdService.class);
 
-	private static final class StableLinkSidKey {
-		// 同一个账号同一个ClientId只允许一个登录。
-		// ClientId 可能的分配方式：每个手机Client分配一个，所有电脑Client分配一个。
-		public final String account;
-		public final String clientId;
-
-		public StableLinkSidKey(String account, String clientId) {
-			this.account = account;
-			this.clientId = clientId;
-		}
-
-		@Override
-		public int hashCode() {
-			final int _prime_ = 31;
-			int _h_ = 0;
-			_h_ = _h_ * _prime_ + account.hashCode();
-			_h_ = _h_ * _prime_ + clientId.hashCode();
-			return _h_;
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (obj == this)
-				return true;
-			if (obj instanceof StableLinkSidKey) {
-				var other = (StableLinkSidKey)obj;
-				return account.equals(other.account) && clientId.equals(other.clientId);
-			}
-			return false;
-		}
-	}
-
-	private static final class StableLinkSid {
-		public boolean removed;
-		public long linkSid;
-		public AsyncSocket authedSocket;
-	}
-
 	protected LinkdApp linkdApp;
-	protected ConcurrentLruLike<StableLinkSidKey, StableLinkSid> stableLinkSids;
 	protected long curSendSpeed; // bytes/sec
 
 	public LinkdService(String name, Application zeze) {
@@ -82,7 +41,6 @@ public class LinkdService extends HandshakeServer {
 
 	@Override
 	public void start() throws Exception {
-		stableLinkSids = new ConcurrentLruLike<>(getName(), 1_000_000, this::tryLruRemove);
 		super.start();
 	}
 
@@ -147,49 +105,6 @@ public class LinkdService extends HandshakeServer {
 		}
 	}
 
-	private boolean tryLruRemove(StableLinkSidKey key, StableLinkSid value) {
-		var exist = stableLinkSids.remove(key);
-		if (exist != null)
-			exist.removed = true;
-		return true;
-	}
-
-	private void setStableLinkSid(String account, String clientId, AsyncSocket client) {
-		var key = new StableLinkSidKey(account, clientId);
-		while (true) {
-			var stable = stableLinkSids.getOrAdd(key, StableLinkSid::new);
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
-			synchronized (stable) {
-				if (stable.removed)
-					continue;
-
-				if (stable.authedSocket == client) // same client
-					return;
-
-				// Must Close Before Reuse LinkSid
-				if (stable.authedSocket != null) {
-					linkdApp.linkdService.reportError(
-							stable.authedSocket.getSessionId(),
-							BReportError.FromLink,
-							BKick.ErrorDuplicateLogin,
-							"kick");
-					stable.authedSocket.close();
-				}
-				if (stable.linkSid != 0) {
-					// Reuse Old LinkSid
-					var linkedUserSession = (LinkdUserSession)client.getUserState();
-					linkedUserSession.setSessionId(linkdApp.linkdProviderService, stable.linkSid);
-					client.setSessionId(stable.linkSid);
-				} else {
-					// first client
-					stable.linkSid = client.getSessionId();
-				}
-				stable.authedSocket = client;
-				//(client.UserState as LinkSession).StableLinkSid = stable;
-			}
-		}
-	}
-
 	public LinkdUserSession getAuthedSession(AsyncSocket socket) {
 		var linkSession = (LinkdUserSession)socket.getUserState();
 		if (linkSession == null || !linkSession.isAuthed()) {
@@ -197,24 +112,6 @@ public class LinkdService extends HandshakeServer {
 			return null;
 		}
 		return linkSession;
-	}
-
-	public void setStableLinkSid(LinkdUserSession linkSession, AsyncSocket so,
-								 int moduleId, int protocolId, ByteBuffer data) {
-		var typeId = Protocol.makeTypeId(moduleId, protocolId);
-		if (typeId == Zeze.Builtin.Game.Online.Login.TypeId_) {
-			var login = new Zeze.Builtin.Game.Online.Login();
-			var beginIndex = data.ReadIndex;
-			login.decode(data);
-			data.ReadIndex = beginIndex;
-			setStableLinkSid(linkSession.getAccount(), String.valueOf(login.Argument.getRoleId()), so);
-		} else if (typeId == Zeze.Builtin.Online.Login.TypeId_) {
-			var login = new Zeze.Builtin.Online.Login();
-			var beginIndex = data.ReadIndex;
-			login.decode(data);
-			data.ReadIndex = beginIndex;
-			setStableLinkSid(linkSession.getAccount(), login.Argument.getClientId(), so);
-		}
 	}
 
 	// 注意这里为了优化拷贝开销,返回的Dispatch引用了参数data中的byte数组,调用者要确保Dispatch用完之前不能修改data数据,否则应该传入data.Copy()
@@ -289,7 +186,6 @@ public class LinkdService extends HandshakeServer {
 		var linkSession = getAuthedSession(so);
 		if (linkSession == null)
 			return;
-		setStableLinkSid(linkSession, so, moduleId, protocolId, data);
 		var dispatch = createDispatch(linkSession, so, moduleId, protocolId, data);
 		if (findSend(linkSession, moduleId, dispatch))
 			return;

@@ -174,24 +174,6 @@ public class Service {
 		return socketMap.putIfAbsent(so.getSessionId(), so) == null;
 	}
 
-	final void changeSocketSessionId(@NotNull AsyncSocket so, long newSessionId) {
-		var oldSessionId = so.getSessionId();
-		if (socketMap.remove(oldSessionId, so)) {
-			if (socketMap.putIfAbsent(newSessionId, so) == null)
-				return;
-			if (socketMap.putIfAbsent(oldSessionId, so) != null) { // rollback
-				closedRecvCountHandle.getAndAdd(this, so.getRecvCount());
-				closedRecvSizeHandle.getAndAdd(this, so.getRecvSize());
-				closedSendCountHandle.getAndAdd(this, so.getSendCount());
-				closedSendSizeHandle.getAndAdd(this, so.getSendSize());
-				closedSendRawSizeHandle.getAndAdd(this, so.getSendRawSize());
-			}
-			throw new IllegalStateException("duplicate sessionId: " + so);
-		}
-		// 为了简化并发问题，只能加入Service以后的Socket的SessionId。
-		throw new IllegalStateException("Not Exist In Service: " + so);
-	}
-
 	public final void updateRecvSendSize() {
 		long rc = 0, rs = 0, sc = 0, ss = 0, sr = 0;
 		for (var socket : socketMap) {
