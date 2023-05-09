@@ -73,7 +73,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		sessionIdGenFunc = seed != null ? seed : sessionIdGen::getAndIncrement;
 	}
 
-	private long sessionId = sessionIdGenFunc.getAsLong(); // 只在setSessionId里修改
+	private final long sessionId = sessionIdGenFunc.getAsLong(); // 只在setSessionId里修改
 	private final @NotNull Service service;
 	private final @Nullable Object acceptorOrConnector;
 	private final @NotNull Selector selector;

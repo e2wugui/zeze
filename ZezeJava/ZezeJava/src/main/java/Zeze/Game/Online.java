@@ -220,17 +220,25 @@ public class Online extends AbstractOnline {
 	// 用户数据
 	@SuppressWarnings("unchecked")
 	public <T extends Bean> @Nullable T getUserData(long roleId) {
-		var version = _tonline.getOrAdd(roleId);
-		return (T)version.getUserData().getBean();
+		var online = getOnline(roleId);
+		return online != null ? (T)online.getUserData().getBean() : null;
 	}
 
-	// 在线状态
-	public @NotNull BOnline getOnline(long roleId) {
+	public @Nullable BOnline getOnline(long roleId) {
+		return _tonline.get(roleId);
+	}
+
+	public @NotNull BOnline getOrAddOnline(long roleId) {
 		return _tonline.getOrAdd(roleId);
 	}
 
+	public @Nullable BOnline getLoginOnline(long roleId) {
+		var online = getOnline(roleId);
+		return online != null && online.getLink().getState() == eLogined ? online : null;
+	}
+
 	public <T extends Bean> void setUserData(long roleId, @NotNull T data) {
-		_tonline.getOrAdd(roleId).getUserData().setBean(data);
+		getOrAddOnline(roleId).getUserData().setBean(data);
 	}
 
 	public int getLocalCount() {
@@ -331,30 +339,33 @@ public class Online extends AbstractOnline {
 
 	/**
 	 * 返回登出版本号，
+	 *
 	 * @param roleId roleId
 	 * @return null if not offline
 	 */
-	public Long getLogoutVersion(long roleId) {
-		var version = _tonline.getOrAdd(roleId);
-		if (version.getLink().getState() != eOffline)
+	public @Nullable Long getLogoutVersion(long roleId) {
+		var online = getOnline(roleId);
+		if (online == null)
+			return 0L;
+		if (online.getLink().getState() != eOffline)
 			return null;
-		return version.getLogoutVersion();
+		return online.getLogoutVersion();
 	}
 
 	/**
 	 * 返回登录版本号。
+	 *
 	 * @param roleId roleId
 	 * @return null if not login
 	 */
 	public @Nullable Long getLoginVersion(long roleId) {
-		var version = _tonline.getOrAdd(roleId);
-		if (version.getLink().getState() != eLogined)
-			return null;
-		return version.getLoginVersion();
+		var online = getLoginOnline(roleId);
+		return online != null ? online.getLoginVersion() : null;
 	}
 
 	/**
 	 * 返回本进程局部登录数据里面的版本号。
+	 *
 	 * @param roleId roleId
 	 * @return null if not found in local
 	 */
@@ -366,14 +377,14 @@ public class Online extends AbstractOnline {
 	}
 
 	public boolean isLogin(long roleId) {
-		return _tonline.getOrAdd(roleId).getLink().getState() == eLogined;
+		return getLoginOnline(roleId) != null;
 	}
 
-	private static boolean assignLogoutVersion(@NotNull BOnline version) {
-		if (version.getLoginVersion() == version.getLogoutVersion()) {
+	private static boolean assignLogoutVersion(@NotNull BOnline online) {
+		if (online.getLoginVersion() == online.getLogoutVersion()) {
 			return false;
 		}
-		version.setLogoutVersion(version.getLoginVersion());
+		online.setLogoutVersion(online.getLoginVersion());
 		return true;
 	}
 
@@ -383,12 +394,12 @@ public class Online extends AbstractOnline {
 		arg.roleId = roleId;
 		arg.logoutReason = logoutReason;
 
-		var version = _tonline.getOrAdd(roleId);
-		var link = version.getLink();
-		version.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eOffline));
+		var online = getOrAddOnline(roleId);
+		var link = online.getLink();
+		online.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eOffline));
 
 		// 总是尝试通知上一次登录的服务器，里面会忽略本机。
-		tryRedirectRemoveLocal(multiInstanceName, version.getServerId(), roleId);
+		tryRedirectRemoveLocal(multiInstanceName, online.getServerId(), roleId);
 		// 总是删除
 		removeLocalAndTrigger(roleId);
 
@@ -455,8 +466,8 @@ public class Online extends AbstractOnline {
 				return ret;
 		}
 		// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-		var online = _tonline.getOrAdd(roleId);
-		if (eOffline != online.getLink().getState()
+		var online = getOnline(roleId);
+		if (online != null && online.getLink().getState() != eOffline
 				&& online.getLoginVersion() == currentLoginVersion
 				&& assignLogoutVersion(online)) {
 			var ret = logoutTrigger(roleId, LogoutReason.LOGOUT);
@@ -490,7 +501,7 @@ public class Online extends AbstractOnline {
 
 	public long linkBroken(@NotNull String account, long roleId, @NotNull String linkName,
 						   long linkSid, Long loginVersion) throws Exception {
-		var online = _tonline.getOrAdd(roleId);
+		var online = getOrAddOnline(roleId);
 		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 		var link = online.getLink();
 
@@ -805,9 +816,10 @@ public class Online extends AbstractOnline {
 				continue;
 			}
 			var link = online.getLink();
-			if (link.getState() != eLogined) {
+			var state = link.getState();
+			if (state != eLogined) {
 				if (!trySend)
-					logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
+					logger.warn("sendDirect: state={} != eLogined for roleId={}", state, roleId);
 				continue;
 			}
 			var linkName = link.getLinkName();
@@ -860,9 +872,10 @@ public class Online extends AbstractOnline {
 			return false;
 		}
 		var link = online.getLink();
-		if (link.getState() != eLogined) {
+		var state = link.getState();
+		if (state != eLogined) {
 			if (!trySend)
-				logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
+				logger.warn("sendDirect: state={} != eLogined for roleId={}", state, roleId);
 			return false;
 		}
 		var linkName = link.getLinkName();
@@ -943,16 +956,17 @@ public class Online extends AbstractOnline {
 //	}
 
 	public void addReliableNotifyMark(long roleId, @NotNull String listenerName) {
-		var online = _tonline.getOrAdd(roleId);
-		if (online.getLink().getState() != eLogined)
+		var online = getLoginOnline(roleId);
+		if (online == null)
 			throw new IllegalStateException("Not Online. AddReliableNotifyMark: " + listenerName);
 		online.getReliableNotifyMark().add(listenerName);
 	}
 
 	public void removeReliableNotifyMark(long roleId, @NotNull String listenerName) {
 		// 移除尽量通过，不做任何判断。
-		var version = _tonline.getOrAdd(roleId);
-		version.getReliableNotifyMark().remove(listenerName);
+		var online = getOnline(roleId);
+		if (online != null)
+			online.getReliableNotifyMark().remove(listenerName);
 	}
 
 	public void sendReliableNotifyWhileCommit(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
@@ -992,8 +1006,8 @@ public class Online extends AbstractOnline {
 	public void sendReliableNotify(long roleId, @NotNull String listenerName, long typeId,
 								   @NotNull Binary fullEncodedProtocol) {
 		providerApp.zeze.runTaskOneByOneByKey(listenerName, "Online.sendReliableNotify." + listenerName, () -> {
-			BOnline online = _tonline.getOrAdd(roleId);
-			if (online.getLink().getState() != eLogined) {
+			var online = getLoginOnline(roleId);
+			if (online == null) {
 				return Procedure.Success;
 			}
 			if (!online.getReliableNotifyMark().contains(listenerName)) {
@@ -1064,8 +1078,8 @@ public class Online extends AbstractOnline {
 		groups.put(-1, groupNotOnline);
 
 		for (var roleId : roleIds) {
-			var online = _tonline.getOrAdd(roleId);
-			if (online.getLink().getState() != eLogined) {
+			var online = getLoginOnline(roleId);
+			if (online == null) {
 				groupNotOnline.roles.add(roleId);
 				continue;
 			}
@@ -1258,8 +1272,8 @@ public class Online extends AbstractOnline {
 		if (null == local)
 			return 0;
 
-		var online = _tonline.getOrAdd(roleId);
-		if ((online.getLink().getState() == eOffline) || (online.getLoginVersion() != local.getLoginVersion()))
+		var online = getOnline(roleId);
+		if (online == null || online.getLink().getState() == eOffline || online.getLoginVersion() != local.getLoginVersion())
 			return removeLocalAndTrigger(roleId);
 		return 0;
 	}
@@ -1315,7 +1329,7 @@ public class Online extends AbstractOnline {
 		var dispatch = ProviderImplement.localDispatch();
 		if (dispatch != null)
 			dispatch.Argument.setOnlineSetName(multiInstanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
-		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
+		var online = getOrAddOnline(rpc.Argument.getRoleId());
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var link = online.getLink();
 
@@ -1348,7 +1362,6 @@ public class Online extends AbstractOnline {
 			setUserState.Argument.getUserState().setLoginVersion(loginVersion);
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
-
 
 		online.getReliableNotifyMark().clear();
 		openQueue(rpc.Argument.getRoleId()).clear();
@@ -1393,7 +1406,7 @@ public class Online extends AbstractOnline {
 		var dispatch = ProviderImplement.localDispatch();
 		if (dispatch != null)
 			dispatch.Argument.setOnlineSetName(multiInstanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
-		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
+		var online = getOrAddOnline(rpc.Argument.getRoleId());
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var link = online.getLink();
 
@@ -1459,8 +1472,8 @@ public class Online extends AbstractOnline {
 			return errorCode(ResultCodeNotLogin);
 
 		//var local = _tlocal.get(session.getRoleId());
-		var online = _tonline.getOrAdd(session.getRoleId());
-		if (eLogined == online.getLink().getState()) {
+		var online = getLoginOnline(session.getRoleId());
+		if (online != null) {
 			if (assignLogoutVersion(online)) {
 				var ret = logoutTrigger(session.getRoleId(), LogoutReason.LOGOUT);
 				if (0 != ret)
@@ -1485,15 +1498,15 @@ public class Online extends AbstractOnline {
 	}
 
 	private int reliableNotifySync(long roleId, @NotNull ProviderUserSession session, long index, boolean sync) {
-		var version = _tonline.getOrAdd(roleId);
+		var online = getOrAddOnline(roleId);
 		var queue = openQueue(roleId);
-		if (index < version.getReliableNotifyConfirmIndex()
-				|| index > version.getReliableNotifyIndex()
-				|| index - version.getReliableNotifyConfirmIndex() > queue.size()) {
+		if (index < online.getReliableNotifyConfirmIndex()
+				|| index > online.getReliableNotifyIndex()
+				|| index - online.getReliableNotifyConfirmIndex() > queue.size()) {
 			return ResultCodeReliableNotifyConfirmIndexOutOfRange;
 		}
 
-		int confirmCount = (int)(index - version.getReliableNotifyConfirmIndex());
+		int confirmCount = (int)(index - online.getReliableNotifyConfirmIndex());
 		for (int i = 0; i < confirmCount; i++)
 			queue.poll();
 		if (sync) {
@@ -1505,7 +1518,7 @@ public class Online extends AbstractOnline {
 			session.sendResponseWhileCommit(notify);
 		}
 		//online.getReliableNotifyQueue().RemoveRange(0, confirmCount);
-		version.setReliableNotifyConfirmIndex(index);
+		online.setReliableNotifyConfirmIndex(index);
 		return ResultCodeSuccess;
 	}
 
@@ -1526,8 +1539,8 @@ public class Online extends AbstractOnline {
 		var roleId = session.getRoleId();
 		if (null == roleId)
 			return errorCode(ResultCodeNotLogin);
-		var online = _tonline.getOrAdd(roleId);
-		if (online.getLink().getState() != eLogined)
+		var online = getLoginOnline(roleId);
+		if (online != null)
 			return errorCode(ResultCodeNotLogin);
 
 		session.sendResponseWhileCommit(rpc); // 同步前提交。
