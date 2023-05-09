@@ -341,7 +341,7 @@ public class TimerAccount {
 
 			var customData = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers)
 					.getTimerIds().get(timerId).getCustomData().getBean();
-			if (customData.typeId() == EmptyBean.TYPEID)
+			if (customData instanceof EmptyBean)
 				customData = null;
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
@@ -416,7 +416,7 @@ public class TimerAccount {
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				var customData = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers)
 						.getTimerIds().get(timerId).getCustomData().getBean();
-				if (customData.typeId() == EmptyBean.TYPEID)
+				if (customData instanceof EmptyBean)
 					customData = null;
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),

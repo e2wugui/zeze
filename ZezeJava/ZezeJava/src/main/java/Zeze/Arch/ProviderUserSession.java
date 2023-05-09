@@ -37,15 +37,15 @@ public class ProviderUserSession {
 		return (ProviderService)dispatch.getSender().getService();
 	}
 
-	public String getAccount() {
+	public @NotNull String getAccount() {
 		return dispatch.Argument.getAccount();
 	}
 
-	public String getContext() {
+	public @NotNull String getContext() {
 		return dispatch.Argument.getContext();
 	}
 
-	public String getOnlineSetName() {
+	public @NotNull String getOnlineSetName() {
 		return dispatch.Argument.getOnlineSetName();
 	}
 
@@ -124,7 +124,7 @@ public class ProviderUserSession {
 			var online = ((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline();
 			var context = getContext();
 			var loginKey = new Online.LoginKey(getAccount(), context);
-			if (context != null && !context.isEmpty())
+			if (!context.isEmpty())
 				return online.send(link, Map.of(getLinkSid(), loginKey), send);
 			// 没有登录的会话不需要转给Online处理。转给Online是为了处理发送失败的结果。
 			// 这种情况下，忽略发送结果。

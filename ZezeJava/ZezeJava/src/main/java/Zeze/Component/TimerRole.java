@@ -436,7 +436,7 @@ public class TimerRole {
 				var onlineCustom = localBean.getTimerIds().get(timerId);
 				if (onlineCustom != null) {
 					customData = onlineCustom.getCustomData().getBean();
-					if (customData.typeId() == EmptyBean.TYPEID)
+					if (customData instanceof EmptyBean)
 						customData = null;
 				}
 			}
@@ -519,7 +519,7 @@ public class TimerRole {
 					var onlineCustom = localBean.getTimerIds().get(timerId);
 					if (onlineCustom != null) {
 						customData = onlineCustom.getCustomData().getBean();
-						if (customData.typeId() == EmptyBean.TYPEID)
+						if (customData instanceof EmptyBean)
 							customData = null;
 					}
 				}
