@@ -176,6 +176,8 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
     public boolean negativeCheck() {
         if (getLinkSid() < 0)
             return true;
+        if (_userState.negativeCheck())
+            return true;
         return false;
     }
 

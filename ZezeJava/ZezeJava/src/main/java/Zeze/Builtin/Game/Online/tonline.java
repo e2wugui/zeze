@@ -5,6 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
+// tables
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tonline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline>
         implements TableReadOnly<Long, Zeze.Builtin.Game.Online.BOnline, Zeze.Builtin.Game.Online.BOnlineReadOnly> {
@@ -16,7 +17,14 @@ public final class tonline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline
         super(-1571889602, "Zeze_Builtin_Game_Online_tonline", suffix);
     }
 
-    public static final int VAR_Link = 3;
+    public static final int VAR_Link = 1;
+    public static final int VAR_LoginVersion = 2;
+    public static final int VAR_ReliableNotifyMark = 3;
+    public static final int VAR_ReliableNotifyConfirmIndex = 4;
+    public static final int VAR_ReliableNotifyIndex = 5;
+    public static final int VAR_ServerId = 6;
+    public static final int VAR_LogoutVersion = 7;
+    public static final int VAR_UserData = 8;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {

@@ -10,6 +10,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
     private String _context;
     private Zeze.Net.Binary _contextx;
     private String _onlineSetName;
+    private long _loginVersion;
 
     @Override
     public String getContext() {
@@ -77,6 +78,26 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         txn.putLog(new Log__onlineSetName(this, 3, value));
     }
 
+    @Override
+    public long getLoginVersion() {
+        if (!isManaged())
+            return _loginVersion;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _loginVersion;
+        var log = (Log__loginVersion)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _loginVersion;
+    }
+
+    public void setLoginVersion(long value) {
+        if (!isManaged()) {
+            _loginVersion = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__loginVersion(this, 4, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BUserState() {
         _context = "";
@@ -85,7 +106,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
     }
 
     @SuppressWarnings("deprecation")
-    public BUserState(String _context_, Zeze.Net.Binary _contextx_, String _onlineSetName_) {
+    public BUserState(String _context_, Zeze.Net.Binary _contextx_, String _onlineSetName_, long _loginVersion_) {
         if (_context_ == null)
             throw new IllegalArgumentException();
         _context = _context_;
@@ -95,12 +116,14 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         if (_onlineSetName_ == null)
             throw new IllegalArgumentException();
         _onlineSetName = _onlineSetName_;
+        _loginVersion = _loginVersion_;
     }
 
     public void assign(BUserState other) {
         setContext(other.getContext());
         setContextx(other.getContextx());
         setOnlineSetName(other.getOnlineSetName());
+        setLoginVersion(other.getLoginVersion());
     }
 
     public BUserState copyIfManaged() {
@@ -146,6 +169,13 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         public void commit() { ((BUserState)getBelong())._onlineSetName = value; }
     }
 
+    private static final class Log__loginVersion extends Zeze.Transaction.Logs.LogLong {
+        public Log__loginVersion(BUserState bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BUserState)getBelong())._loginVersion = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -159,7 +189,8 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("context=").append(getContext()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("contextx=").append(getContextx()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("onlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("onlineSetName=").append(getOnlineSetName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("loginVersion=").append(getLoginVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -200,6 +231,13 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
                 _o_.WriteString(_x_);
             }
         }
+        {
+            long _x_ = getLoginVersion();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -219,10 +257,21 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
             setOnlineSetName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 4) {
+            setLoginVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean negativeCheck() {
+        if (getLoginVersion() < 0)
+            return true;
+        return false;
     }
 
     @SuppressWarnings("unchecked")
@@ -237,6 +286,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
                 case 1: _context = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 2: _contextx = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
                 case 3: _onlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 4: _loginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }
@@ -253,6 +303,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         setOnlineSetName(rs.getString(_parents_name_ + "onlineSetName"));
         if (getOnlineSetName() == null)
             setOnlineSetName("");
+        setLoginVersion(rs.getLong(_parents_name_ + "loginVersion"));
     }
 
     @Override
@@ -261,5 +312,6 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         st.appendString(_parents_name_ + "context", getContext());
         st.appendBinary(_parents_name_ + "contextx", getContextx());
         st.appendString(_parents_name_ + "onlineSetName", getOnlineSetName());
+        st.appendLong(_parents_name_ + "loginVersion", getLoginVersion());
     }
 }

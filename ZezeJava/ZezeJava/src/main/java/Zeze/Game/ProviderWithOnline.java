@@ -34,7 +34,7 @@ public class ProviderWithOnline extends ProviderImplement {
 			var onlineSet = online.getOnline(p.Argument.getUserState().getOnlineSetName());
 			if (null != onlineSet)
 				onlineSet.linkBroken(p.Argument.getAccount(), roleId,
-						ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
+						ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid(), p.Argument.getUserState().getLoginVersion());
 		}
 		return Procedure.Success;
 	}

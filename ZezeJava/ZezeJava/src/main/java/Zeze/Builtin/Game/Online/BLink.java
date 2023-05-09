@@ -8,19 +8,21 @@ import Zeze.Serialize.Serializable;
 public final class BLink implements Serializable, Comparable<BLink> {
     private String _LinkName;
     private long _LinkSid;
+    private int _State;
 
     // for decode only
     public BLink() {
         _LinkName = "";
     }
 
-    public BLink(String _LinkName_, long _LinkSid_) {
+    public BLink(String _LinkName_, long _LinkSid_, int _State_) {
         if (_LinkName_ == null)
             throw new IllegalArgumentException();
         if (_LinkName_.length() > 256)
             throw new IllegalArgumentException();
         this._LinkName = _LinkName_;
         this._LinkSid = _LinkSid_;
+        this._State = _State_;
     }
 
     public String getLinkName() {
@@ -29,6 +31,10 @@ public final class BLink implements Serializable, Comparable<BLink> {
 
     public long getLinkSid() {
         return _LinkSid;
+    }
+
+    public int getState() {
+        return _State;
     }
 
     @Override
@@ -43,7 +49,8 @@ public final class BLink implements Serializable, Comparable<BLink> {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BLink: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("LinkName=").append(_LinkName).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LinkSid=").append(_LinkSid).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LinkSid=").append(_LinkSid).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(_State).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -77,6 +84,13 @@ public final class BLink implements Serializable, Comparable<BLink> {
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            int _x_ = _State;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -90,6 +104,10 @@ public final class BLink implements Serializable, Comparable<BLink> {
         }
         if (_i_ == 2) {
             _LinkSid = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _State = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -110,6 +128,8 @@ public final class BLink implements Serializable, Comparable<BLink> {
             return false;
         if (_LinkSid != _b_._LinkSid)
             return false;
+        if (_State != _b_._State)
+            return false;
         return true;
     }
 
@@ -119,6 +139,7 @@ public final class BLink implements Serializable, Comparable<BLink> {
         int _h_ = 0;
         _h_ = _h_ * _p_ + _LinkName.hashCode();
         _h_ = _h_ * _p_ + Long.hashCode(_LinkSid);
+        _h_ = _h_ * _p_ + Integer.hashCode(_State);
         return _h_;
     }
 
@@ -134,6 +155,9 @@ public final class BLink implements Serializable, Comparable<BLink> {
             _c_ = Long.compare(_LinkSid, _o_._LinkSid);
             if (_c_ != 0)
                 return _c_;
+            _c_ = Integer.compare(_State, _o_._State);
+            if (_c_ != 0)
+                return _c_;
             return _c_;
         }
         throw new NullPointerException("compareTo: another object is null");
@@ -141,6 +165,8 @@ public final class BLink implements Serializable, Comparable<BLink> {
 
     public boolean negativeCheck() {
         if (getLinkSid() < 0)
+            return true;
+        if (getState() < 0)
             return true;
         return false;
     }
@@ -152,6 +178,7 @@ public final class BLink implements Serializable, Comparable<BLink> {
         if (_LinkName == null)
             _LinkName = "";
         _LinkSid = rs.getLong(_parents_name_ + "LinkSid");
+        _State = rs.getInt(_parents_name_ + "State");
     }
 
     @Override
@@ -159,5 +186,6 @@ public final class BLink implements Serializable, Comparable<BLink> {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "LinkName", _LinkName);
         st.appendLong(_parents_name_ + "LinkSid", _LinkSid);
+        st.appendInt(_parents_name_ + "State", _State);
     }
 }

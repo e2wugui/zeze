@@ -9,4 +9,11 @@ public interface BOnlineReadOnly {
     BOnline copy();
 
     Zeze.Builtin.Game.Online.BLink getLink();
+    long getLoginVersion();
+    Zeze.Transaction.Collections.PSet1ReadOnly<String> getReliableNotifyMarkReadOnly();
+    long getReliableNotifyConfirmIndex();
+    long getReliableNotifyIndex();
+    int getServerId();
+    long getLogoutVersion();
+    Zeze.Transaction.DynamicBeanReadOnly getUserDataReadOnly();
 }

@@ -29,7 +29,6 @@ public abstract class AbstractOnline implements Zeze.IModule {
     protected final Zeze.Builtin.Game.Online.tonline _tonline;
     protected final Zeze.Builtin.Game.Online.tRoleOfflineTimers _tRoleOfflineTimers;
     protected final Zeze.Builtin.Game.Online.tRoleTimers _tRoleTimers;
-    protected final Zeze.Builtin.Game.Online.tversion _tversion;
 
     protected AbstractOnline(String name) {
         multiInstanceName = name;
@@ -38,7 +37,6 @@ public abstract class AbstractOnline implements Zeze.IModule {
         _tonline = new Zeze.Builtin.Game.Online.tonline(suffix);
         _tRoleOfflineTimers = new Zeze.Builtin.Game.Online.tRoleOfflineTimers(suffix);
         _tRoleTimers = new Zeze.Builtin.Game.Online.tRoleTimers(suffix);
-        _tversion = new Zeze.Builtin.Game.Online.tversion(suffix);
     }
 
     public void RegisterProtocols(Zeze.Net.Service service) {
@@ -89,7 +87,6 @@ public abstract class AbstractOnline implements Zeze.IModule {
         zeze.addTable(zeze.getConfig().getTableConf(_tonline.getName()).getDatabaseName(), _tonline);
         zeze.addTable(zeze.getConfig().getTableConf(_tRoleOfflineTimers.getName()).getDatabaseName(), _tRoleOfflineTimers);
         zeze.addTable(zeze.getConfig().getTableConf(_tRoleTimers.getName()).getDatabaseName(), _tRoleTimers);
-        zeze.addTable(zeze.getConfig().getTableConf(_tversion.getName()).getDatabaseName(), _tversion);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
@@ -97,7 +94,6 @@ public abstract class AbstractOnline implements Zeze.IModule {
         zeze.removeTable(zeze.getConfig().getTableConf(_tonline.getName()).getDatabaseName(), _tonline);
         zeze.removeTable(zeze.getConfig().getTableConf(_tRoleOfflineTimers.getName()).getDatabaseName(), _tRoleOfflineTimers);
         zeze.removeTable(zeze.getConfig().getTableConf(_tRoleTimers.getName()).getDatabaseName(), _tRoleTimers);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tversion.getName()).getDatabaseName(), _tversion);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
