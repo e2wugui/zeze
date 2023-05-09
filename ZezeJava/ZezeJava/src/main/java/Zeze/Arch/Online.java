@@ -73,7 +73,7 @@ public class Online extends AbstractOnline {
 		 * @param target        查询目标
 		 * @return 按普通事务处理过程返回值处理
 		 */
-		long call(String senderAccount, String senderClientId, String target, Binary parameter);
+		long call(@NotNull String senderAccount, @NotNull String senderClientId, @NotNull String target, Binary parameter);
 	}
 
 	public ProviderLoad getLoad() {
@@ -83,11 +83,11 @@ public class Online extends AbstractOnline {
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
 	private Future<?> verifyLocalTimer;
 
-	public static Online create(AppBase app) {
+	public static @NotNull Online create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Online.class, app);
 	}
 
-	public static long getSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(@NotNull Bean bean) {
 		return bean.typeId();
 	}
 
@@ -97,11 +97,11 @@ public class Online extends AbstractOnline {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
-	public static void register(Class<? extends Bean> cls) {
+	public static void register(@NotNull Class<? extends Bean> cls) {
 		beanFactory.register(cls);
 	}
 
-	protected Online(AppBase app) {
+	protected Online(@NotNull AppBase app) {
 		var zeze = app.getZeze();
 		providerApp = zeze.redirect.providerApp;
 		RegisterProtocols(providerApp.providerService);
@@ -148,11 +148,19 @@ public class Online extends AbstractOnline {
 		return login != null && login.getLink().getState() == eLogined ? login : null;
 	}
 
+	public int getState(@NotNull String account, @NotNull String clientId) {
+		var onlines = getOnline(account);
+		if (onlines == null)
+			return eOffline;
+		var login = onlines.getLogins().get(clientId);
+		return login != null ? login.getLink().getState() : eOffline;
+	}
+
 	public int getLocalCount() {
 		return _tlocal.getCacheSize();
 	}
 
-	public long walkLocal(TableWalkHandle<String, BLocals> walker) {
+	public long walkLocal(@NotNull TableWalkHandle<String, BLocals> walker) {
 		return _tlocal.walkCache(walker);
 	}
 
@@ -160,27 +168,27 @@ public class Online extends AbstractOnline {
 		return loginTimes.get();
 	}
 
-	public EventDispatcher getLoginEvents() {
+	public @NotNull EventDispatcher getLoginEvents() {
 		return loginEvents;
 	}
 
-	public EventDispatcher getReloginEvents() {
+	public @NotNull EventDispatcher getReloginEvents() {
 		return reloginEvents;
 	}
 
-	public EventDispatcher getLogoutEvents() {
+	public @NotNull EventDispatcher getLogoutEvents() {
 		return logoutEvents;
 	}
 
-	public EventDispatcher getLocalRemoveEvents() {
+	public @NotNull EventDispatcher getLocalRemoveEvents() {
 		return localRemoveEvents;
 	}
 
-	public ConcurrentHashMap<String, TransmitAction> getTransmitActions() {
+	public @NotNull ConcurrentHashMap<String, TransmitAction> getTransmitActions() {
 		return transmitActions;
 	}
 
-	public void setLocalBean(String account, String clientId, String key, Bean bean) {
+	public void setLocalBean(@NotNull String account, @NotNull String clientId, @NotNull String key, @NotNull Bean bean) {
 		var bLocals = _tlocal.get(account);
 		if (bLocals == null)
 			throw new IllegalStateException("roleId not online. " + account);
@@ -195,7 +203,7 @@ public class Online extends AbstractOnline {
 		login.getDatas().put(key, bAny);
 	}
 
-	public void removeLocalBean(String account, String clientId, String key) {
+	public void removeLocalBean(@NotNull String account, @NotNull String clientId, @NotNull String key) {
 		var bLocals = _tlocal.get(account);
 		if (null == bLocals)
 			return;
@@ -206,7 +214,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> T getLocalBean(String account, String clientId, String key) {
+	public <T extends Bean> @Nullable T getLocalBean(@NotNull String account, @NotNull String clientId, @NotNull String key) {
 		var bLocals = _tlocal.get(account);
 		if (bLocals == null)
 			return null;
@@ -220,7 +228,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> T getOrAddLocalBean(String account, String clientId, String key, T defaultHint) {
+	public <T extends Bean> T getOrAddLocalBean(@NotNull String account, @NotNull String clientId, String key, @NotNull T defaultHint) {
 		var bLocals = _tlocal.getOrAdd(account);
 		var login = bLocals.getLogins().getOrAdd(clientId);
 		var bAny = login.getDatas().getOrAdd(key);
@@ -230,7 +238,7 @@ public class Online extends AbstractOnline {
 		return defaultHint;
 	}
 
-	private long removeLocalAndTrigger(String account, String clientId) throws Exception {
+	private long removeLocalAndTrigger(@NotNull String account, @NotNull String clientId) throws Exception {
 		var bLocals = _tlocal.get(account);
 		if (bLocals == null)
 			return 0;
@@ -250,7 +258,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long logoutTrigger(String account, String clientId) throws Exception {
+	private long logoutTrigger(@NotNull String account, @NotNull String clientId) throws Exception {
 		var bOnline = getOrAddOnline(account);
 		var bLink = bOnline.getLogins().getOrAdd(clientId).getLink();
 		bOnline.getLogins().getOrAdd(clientId).setLink(new BLink(bLink.getLinkName(), bLink.getLinkSid(), eOffline));
@@ -272,7 +280,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long loginTrigger(String account, String clientId) throws Exception {
+	private long loginTrigger(@NotNull String account, @NotNull String clientId) throws Exception {
 		var arg = new LoginArgument(account, clientId);
 		var ret = loginEvents.triggerEmbed(this, arg);
 		if (0 != ret)
@@ -283,7 +291,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long reloginTrigger(String account, String clientId) throws Exception {
+	private long reloginTrigger(@NotNull String account, @NotNull String clientId) throws Exception {
 		var arg = new LoginArgument(account, clientId);
 		var ret = reloginEvents.triggerEmbed(this, arg);
 		if (0 != ret)
@@ -294,7 +302,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long tryLogout(BDelayLogoutCustom custom) throws Exception {
+	private long tryLogout(@NotNull BDelayLogoutCustom custom) throws Exception {
 		var account = custom.getAccount();
 		var clientId = custom.getClientId();
 		var currentLoginVersion = custom.getLoginVersion();
@@ -325,9 +333,8 @@ public class Online extends AbstractOnline {
 	static Online instance;
 
 	public static class DelayLogout implements TimerHandle {
-
 		@Override
-		public void onTimer(TimerContext context) throws Exception {
+		public void onTimer(@NotNull TimerContext context) throws Exception {
 			if (null != instance) {
 				var ret = instance.tryLogout((BDelayLogoutCustom)context.customData);
 				if (ret != 0)
@@ -340,7 +347,8 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	public long linkBroken(String account, String clientId, String linkName, long linkSid, Long loginVersion) throws Exception {
+	public long linkBroken(@NotNull String account, @NotNull String clientId, @NotNull String linkName, long linkSid,
+						   @Nullable Long loginVersion) throws Exception {
 		var online = getOrAddOnline(account);
 		var loginOnline = online.getLogins().getOrAdd(clientId);
 		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
@@ -371,14 +379,14 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	public void addReliableNotifyMark(String account, String clientId, String listenerName) {
+	public void addReliableNotifyMark(@NotNull String account, @NotNull String clientId, @NotNull String listenerName) {
 		var login = getLogin(account, clientId);
 		if (login == null)
 			throw new IllegalStateException("Not Online. AddReliableNotifyMark: " + listenerName);
 		login.getReliableNotifyMark().add(listenerName);
 	}
 
-	public void removeReliableNotifyMark(String account, String clientId, String listenerName) {
+	public void removeReliableNotifyMark(@NotNull String account, @NotNull String clientId, @NotNull String listenerName) {
 		// 移除尽量通过，不做任何判断。
 		var online = getOnline(account);
 		if (online != null) {
@@ -388,33 +396,38 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	public void sendReliableNotifyWhileCommit(String account, String clientId, String listenerName, Protocol<?> p) {
+	public void sendReliableNotifyWhileCommit(@NotNull String account, @NotNull String clientId,
+											  @NotNull String listenerName, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> sendReliableNotify(account, clientId, listenerName, p));
 	}
 
-	public void SendReliableNotifyWhileCommit(
-			String account, String clientId, String listenerName, int typeId, Binary fullEncodedProtocol) {
+	public void SendReliableNotifyWhileCommit(@NotNull String account, @NotNull String clientId,
+											  @NotNull String listenerName, int typeId,
+											  @NotNull Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendReliableNotify(account, clientId, listenerName, typeId, fullEncodedProtocol));
 	}
 
-	public void sendReliableNotifyWhileRollback(String account, String clientId, String listenerName, Protocol<?> p) {
+	public void sendReliableNotifyWhileRollback(@NotNull String account, @NotNull String clientId,
+												@NotNull String listenerName, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> sendReliableNotify(account, clientId, listenerName, p));
 	}
 
-	public void sendReliableNotifyWhileRollback(
-			String account, String clientId, String listenerName, int typeId, Binary fullEncodedProtocol) {
+	public void sendReliableNotifyWhileRollback(@NotNull String account, @NotNull String clientId,
+												@NotNull String listenerName, int typeId,
+												@NotNull Binary fullEncodedProtocol) {
 		Transaction.whileRollback(() -> sendReliableNotify(
 				account, clientId, listenerName, typeId, fullEncodedProtocol));
 	}
 
-	public void sendReliableNotify(String account, String clientId, String listenerName, Protocol<?> p) {
+	public void sendReliableNotify(@NotNull String account, @NotNull String clientId,
+								   @NotNull String listenerName, @NotNull Protocol<?> p) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", account + ',' + clientId + ':' + listenerName, p);
 		sendReliableNotify(account, clientId, listenerName, typeId, new Binary(p.encode()));
 	}
 
-	private Zeze.Collections.Queue<BNotify> openQueue(String account, String clientId) {
+	private @NotNull Zeze.Collections.Queue<BNotify> openQueue(@NotNull String account, @NotNull String clientId) {
 		return providerApp.zeze.getQueueModule().open(
 				"Zeze.Arch.Online.ReliableNotifyQueue:" + account + ":" + clientId, BNotify.class);
 	}
@@ -424,8 +437,8 @@ public class Online extends AbstractOnline {
 	 *
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
 	 */
-	public void sendReliableNotify(String account, String clientId, String listenerName, long typeId,
-								   Binary fullEncodedProtocol) {
+	public void sendReliableNotify(@NotNull String account, @NotNull String clientId, @NotNull String listenerName,
+								   long typeId, @NotNull Binary fullEncodedProtocol) {
 		providerApp.zeze.runTaskOneByOneByKey(listenerName, "Online.sendReliableNotify." + listenerName, () -> {
 			var login = getLogin(account, clientId);
 			if (login == null || !login.getReliableNotifyMark().contains(listenerName))
@@ -553,7 +566,7 @@ public class Online extends AbstractOnline {
 //		return groups.values();
 //	}
 
-	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, LoginKey> contexts) {
+	private long triggerLinkBroken(@NotNull String linkName, @NotNull LongList errorSids, @NotNull Map<Long, LoginKey> contexts) {
 		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
 			var ctx = contexts.get(sid);
 			if (ctx != null) {
@@ -564,16 +577,16 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	public boolean send(AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
+	public boolean send(@NotNull AsyncSocket to, @NotNull Map<Long, LoginKey> contexts, @NotNull Send send) {
 		return send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
 	}
 
-	public boolean send(String linkName, long linkSid, Protocol<?> p) {
+	public boolean send(@NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
 		return send(null, linkName, linkSid, p);
 	}
 
-	public boolean send(LoginKey loginKey, String linkName, long linkSid, Protocol<?> p) {
+	public boolean send(@Nullable LoginKey loginKey, @NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
 		var connector = providerApp.providerService.getLinks().get(linkName);
 		if (null == connector) {
 			logger.warn("link connector not found. name={}", linkName);
@@ -703,8 +716,8 @@ public class Online extends AbstractOnline {
 	}
 
 	// 可在事务外执行
-	public boolean sendDirect(String account, String clientId, long typeId, @NotNull Binary fullEncodedProtocol,
-							  boolean trySend) {
+	public boolean sendDirect(@NotNull String account, @NotNull String clientId, long typeId,
+							  @NotNull Binary fullEncodedProtocol, boolean trySend) {
 		var online = _tonline.selectDirty(account);
 		if (online == null) {
 			if (!trySend)
@@ -765,10 +778,10 @@ public class Online extends AbstractOnline {
 	}
 
 	public static class LoginKey {
-		public final String account;
-		public final String clientId;
+		public final @NotNull String account;
+		public final @NotNull String clientId;
 
-		public LoginKey(String account, String clientId) {
+		public LoginKey(@NotNull String account, @NotNull String clientId) {
 			this.account = account;
 			this.clientId = clientId;
 		}
@@ -802,7 +815,8 @@ public class Online extends AbstractOnline {
 //		});
 //	}
 
-	public int send(Collection<LoginKey> loginKeys, long typeId, Binary fullEncodedProtocol, boolean trySend) {
+	public int send(@NotNull Collection<LoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
+					boolean trySend) {
 		int loginCount = loginKeys.size();
 		if (loginCount == 1) {
 			var it = loginKeys.iterator();
@@ -825,19 +839,19 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	public void send(String account, String clientId, Protocol<?> p) {
+	public void send(@NotNull String account, @NotNull String clientId, @NotNull Protocol<?> p) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", account + ',' + clientId, p);
 		sendDirect(account, clientId, typeId, new Binary(p.encode()), false);
 	}
 
-	public void sendResponse(String account, String clientId, Rpc<?, ?> r) {
+	public void sendResponse(@NotNull String account, @NotNull String clientId, @NotNull Rpc<?, ?> r) {
 		r.setRequest(false);
 		send(account, clientId, r);
 	}
 
-	public void send(Collection<LoginKey> logins, Protocol<?> p) {
+	public void send(@NotNull Collection<LoginKey> logins, @NotNull Protocol<?> p) {
 		if (logins.size() <= 0)
 			return;
 		var typeId = p.getTypeId();
@@ -854,26 +868,26 @@ public class Online extends AbstractOnline {
 		send(logins, typeId, new Binary(p.encode()), false);
 	}
 
-	public void sendWhileCommit(String account, String clientId, Protocol<?> p) {
+	public void sendWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> send(account, clientId, p));
 	}
 
-	public void sendWhileCommit(Collection<LoginKey> logins, Protocol<?> p) {
+	public void sendWhileCommit(@NotNull Collection<LoginKey> logins, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> send(logins, p));
 	}
 
-	public void sendResponseWhileCommit(String account, String clientId, Rpc<?, ?> r) {
+	public void sendResponseWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull Rpc<?, ?> r) {
 		Transaction.whileCommit(() -> {
 			r.setRequest(false);
 			send(account, clientId, r);
 		});
 	}
 
-	public void sendWhileRollback(String account, String clientId, Protocol<?> p) {
+	public void sendWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> send(account, clientId, p));
 	}
 
-	public void sendWhileRollback(Collection<LoginKey> logins, Protocol<?> p) {
+	public void sendWhileRollback(@NotNull Collection<LoginKey> logins, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> send(logins, p));
 	}
 
@@ -1046,7 +1060,7 @@ public class Online extends AbstractOnline {
 //		});
 	}
 
-	public int sendAccounts(Collection<String> accounts, long typeId, Binary fullEncodedProtocol) { // OnlineSend sender
+	public int sendAccounts(@NotNull Collection<String> accounts, long typeId, @NotNull Binary fullEncodedProtocol) { // OnlineSend sender
 		int accountCount = accounts.size();
 		if (accountCount == 1) {
 			var it = accounts.iterator();
@@ -1080,7 +1094,7 @@ public class Online extends AbstractOnline {
 	/**
 	 * 给账号所有的登录终端发送消息。
 	 */
-	public void sendAccounts(Collection<String> accounts, Protocol<?> p/*, OnlineSend sender*/) {
+	public void sendAccounts(@NotNull Collection<String> accounts, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
 		if (accounts.size() <= 0)
 			return;
 		var typeId = p.getTypeId();
@@ -1097,19 +1111,19 @@ public class Online extends AbstractOnline {
 		sendAccounts(accounts, typeId, new Binary(p.encode())/*, sender*/);
 	}
 
-	public void sendAccountWhileCommit(String account, Protocol<?> p/*, OnlineSend sender*/) {
+	public void sendAccountWhileCommit(@NotNull String account, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
 		Transaction.whileCommit(() -> sendAccount(account, p/*, sender*/));
 	}
 
-	public void sendAccountsWhileCommit(Collection<String> accounts, Protocol<?> p/*, OnlineSend sender*/) {
+	public void sendAccountsWhileCommit(@NotNull Collection<String> accounts, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
 		Transaction.whileCommit(() -> sendAccounts(accounts, p/*, sender*/));
 	}
 
-	public void sendAccountWhileRollback(String account, Protocol<?> p/*, OnlineSend sender*/) {
+	public void sendAccountWhileRollback(@NotNull String account, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
 		Transaction.whileRollback(() -> sendAccount(account, p/*, sender*/));
 	}
 
-	public void sendAccountsWhileRollback(Collection<String> accounts, Protocol<?> p/*, OnlineSend sender*/) {
+	public void sendAccountsWhileRollback(@NotNull Collection<String> accounts, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
 		Transaction.whileRollback(() -> sendAccounts(accounts, p/*, sender*/));
 	}
 
@@ -1120,12 +1134,13 @@ public class Online extends AbstractOnline {
 	 * @param actionName 查询处理的实现
 	 * @param target     目标角色
 	 */
-	public void transmit(String account, String clientId, String actionName, String target, Serializable parameter) {
+	public void transmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
+						 @NotNull String target, @Nullable Serializable parameter) {
 		transmit(account, clientId, actionName, List.of(target), parameter);
 	}
 
-	public void processTransmit(String account, String clientId, String actionName, Collection<String> accounts,
-								Binary parameter) {
+	public void processTransmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
+								@NotNull Collection<String> accounts, @Nullable Binary parameter) {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : accounts) {
@@ -1139,12 +1154,12 @@ public class Online extends AbstractOnline {
 		public int serverId = -1; // empty when not online
 		public final HashSet<String> accounts = new HashSet<>();
 
-		public void addAll(HashSet<String> accounts) {
+		public void addAll(@NotNull HashSet<String> accounts) {
 			this.accounts.addAll(accounts);
 		}
 	}
 
-	public IntHashMap<RoleOnServer> groupByServer(Collection<String> accounts) {
+	public @NotNull IntHashMap<RoleOnServer> groupByServer(@NotNull Collection<String> accounts) {
 		var groups = new IntHashMap<RoleOnServer>();
 		var groupNotOnline = new RoleOnServer(); // LinkName is Empty And Socket is null.
 		groups.put(groupNotOnline.serverId, groupNotOnline);
@@ -1171,15 +1186,15 @@ public class Online extends AbstractOnline {
 		return groups;
 	}
 
-	private static RoleOnServer merge(RoleOnServer current, RoleOnServer m) {
+	private static @NotNull RoleOnServer merge(@Nullable RoleOnServer current, @NotNull RoleOnServer m) {
 		if (current == null)
 			return m;
 		current.addAll(m.accounts);
 		return current;
 	}
 
-	private void transmitInProcedure(String account, String clientId, String actionName, Collection<String> accounts,
-									 Binary parameter) {
+	private void transmitInProcedure(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
+									 @NotNull Collection<String> accounts, @Nullable Binary parameter) {
 		if (providerApp.zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(account, clientId, actionName, accounts, parameter);
@@ -1224,8 +1239,8 @@ public class Online extends AbstractOnline {
 			processTransmit(account, clientId, actionName, groupLocal.accounts, parameter);
 	}
 
-	public void transmit(String account, String clientId, String actionName, Collection<String> targets,
-						 Serializable parameter) {
+	public void transmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
+						 @NotNull Collection<String> targets, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 
@@ -1237,35 +1252,35 @@ public class Online extends AbstractOnline {
 		}, "Online.transmit").call();
 	}
 
-	public void transmitWhileCommit(String account, String clientId, String actionName, String target,
-									Serializable parameter) {
+	public void transmitWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
+									@NotNull String target, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> transmit(account, clientId, actionName, target, parameter));
 	}
 
-	public void transmitWhileCommit(String account, String clientId, String actionName, Collection<String> targets,
-									Serializable parameter) {
+	public void transmitWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
+									@NotNull Collection<String> targets, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> transmit(account, clientId, actionName, targets, parameter));
 	}
 
-	public void transmitWhileRollback(String account, String clientId, String actionName, String target,
-									  Serializable parameter) {
+	public void transmitWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
+									  @NotNull String target, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileRollback(() -> transmit(account, clientId, actionName, target, parameter));
 	}
 
-	public void transmitWhileRollback(String account, String clientId, String actionName, Collection<String> targets,
-									  Serializable parameter) {
+	public void transmitWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
+									  @NotNull Collection<String> targets, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileRollback(() -> transmit(account, clientId, actionName, targets, parameter));
 	}
 
-	private int broadcast(long typeId, Binary fullEncodedProtocol, int time) {
+	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time) {
 		var broadcast = new Broadcast(new BBroadcast(typeId, fullEncodedProtocol, time));
 		var pdata = broadcast.encode();
 		int sendCount = 0;
@@ -1276,7 +1291,7 @@ public class Online extends AbstractOnline {
 		return sendCount;
 	}
 
-	public int broadcast(Protocol<?> p, int time) {
+	public int broadcast(@NotNull Protocol<?> p, int time) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);
@@ -1301,7 +1316,7 @@ public class Online extends AbstractOnline {
 		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal); // at 3:10 - 6:10
 	}
 
-	private long tryRemoveLocal(String account) throws Exception {
+	private long tryRemoveLocal(@NotNull String account) throws Exception {
 		var local = _tlocal.get(account);
 		if (local == null)
 			return 0;
@@ -1322,11 +1337,11 @@ public class Online extends AbstractOnline {
 
 	@RedirectToServer
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
-	protected void redirectRemoveLocal(int serverId, String account) throws Exception {
+	protected void redirectRemoveLocal(int serverId, @NotNull String account) throws Exception {
 		providerApp.zeze.newProcedure(() -> tryRemoveLocal(account), "Online.redirectRemoveLocal").call();
 	}
 
-	private void tryRedirectRemoveLocal(int serverId, String account) throws Exception {
+	private void tryRedirectRemoveLocal(int serverId, @NotNull String account) throws Exception {
 		if (providerApp.zeze.getConfig().getServerId() != serverId
 				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId))
 			redirectRemoveLocal(serverId, account);
@@ -1344,7 +1359,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long ProcessLoginRequest(Zeze.Builtin.Online.Login rpc, OutObject<Boolean> done) throws Exception {
+	private long ProcessLoginRequest(Zeze.Builtin.Online.Login rpc, @NotNull OutObject<Boolean> done) throws Exception {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
 		var session = ProviderUserSession.get(rpc);
@@ -1414,7 +1429,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc, OutObject<Boolean> done) throws Exception {
+	private long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc, @NotNull OutObject<Boolean> done) throws Exception {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
 		var session = ProviderUserSession.get(rpc);
@@ -1507,8 +1522,8 @@ public class Online extends AbstractOnline {
 		return Procedure.Success;
 	}
 
-	private int reliableNotifySync(String account, String clientId,
-								   ProviderUserSession session, long index, boolean sync) {
+	private int reliableNotifySync(@NotNull String account, @NotNull String clientId,
+								   @NotNull ProviderUserSession session, long index, boolean sync) {
 		var online = getOrAddOnline(account);
 		var queue = openQueue(account, clientId);
 		var loginOnline = online.getLogins().getOrAdd(clientId);

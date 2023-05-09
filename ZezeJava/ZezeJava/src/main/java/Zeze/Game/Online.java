@@ -237,6 +237,11 @@ public class Online extends AbstractOnline {
 		return online != null && online.getLink().getState() == eLogined ? online : null;
 	}
 
+	public int getState(long roleId) {
+		var online = getOnline(roleId);
+		return online != null ? online.getLink().getState() : eOffline;
+	}
+
 	public <T extends Bean> void setUserData(long roleId, @NotNull T data) {
 		getOrAddOnline(roleId).getUserData().setBean(data);
 	}
@@ -1280,7 +1285,7 @@ public class Online extends AbstractOnline {
 
 	@RedirectToServer
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
-	protected void redirectRemoveLocal(int serverId, long roleId, String instanceName) {
+	protected void redirectRemoveLocal(int serverId, long roleId, @Nullable String instanceName) {
 		if (null != defaultInstance) {
 			// 能收到redirect的肯定是defaultOnline，这里为了保险期间和代码更清楚，直接使用defaultInstance。
 			var onlineSet = defaultInstance.getOnline(instanceName);
@@ -1322,7 +1327,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc, OutObject<Boolean> done) throws Exception {
+	private long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc, @NotNull OutObject<Boolean> done) throws Exception {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
 		var session = ProviderUserSession.get(rpc);
@@ -1399,7 +1404,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc, OutObject<Boolean> done) throws Exception {
+	private long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc, @NotNull OutObject<Boolean> done) throws Exception {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
 		var session = ProviderUserSession.get(rpc);
