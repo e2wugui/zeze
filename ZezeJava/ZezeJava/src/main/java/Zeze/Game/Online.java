@@ -791,6 +791,11 @@ public class Online extends AbstractOnline {
 				continue;
 			}
 			var link = online.getLink();
+			if (link.getState() != eLogined) {
+				if (!trySend)
+					logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
+				continue;
+			}
 			var linkName = link.getLinkName();
 			var connector = links.get(linkName);
 			if (connector == null) {
@@ -841,6 +846,11 @@ public class Online extends AbstractOnline {
 			return false;
 		}
 		var link = online.getLink();
+		if (link.getState() != eLogined) {
+			if (!trySend)
+				logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
+			return false;
+		}
 		var linkName = link.getLinkName();
 		var connector = providerApp.providerService.getLinks().get(linkName);
 		if (connector == null) {
