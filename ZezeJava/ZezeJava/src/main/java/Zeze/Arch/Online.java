@@ -1467,7 +1467,7 @@ public class Online extends AbstractOnline {
 		var online = _tonline.getOrAdd(session.getAccount());
 		var clientId = session.getContext();
 		var loginVersion = online.getLogins().getOrAdd(clientId);
-		if (loginVersion.getLink().getState() != eLogined) {
+		if (loginVersion.getLink().getState() == eLogined) {
 			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
 			var ret = logoutTrigger(session.getAccount(), clientId);
 			if (0 != ret)
