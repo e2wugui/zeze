@@ -353,8 +353,12 @@ public class Online extends AbstractOnline {
 		var loginOnline = online.getLogins().getOrAdd(clientId);
 		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 		var link = loginOnline.getLink();
-		if ((loginVersion == null || loginVersion != loginOnline.getLoginVersion())
-				|| !link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid)
+		// loginVersion == null 表示本地触发的linkBroken，此时登录版本就是当前的。
+		if (loginVersion == null)
+			loginVersion = loginOnline.getLoginVersion(); // 后面要用，读取一次。
+		if (loginVersion != loginOnline.getLoginVersion()
+				|| !link.getLinkName().equals(linkName)
+				|| link.getLinkSid() != linkSid)
 			return 0;
 
 		var local = _tlocal.get(account);

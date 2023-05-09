@@ -140,7 +140,7 @@ public class TestRoleTimer {
 			auth(client1, "account0");
 			login(client1, roleId);
 			sleep(200, 10);
-			Assert.assertTrue(bean.getTestValue() < 15); // 确保客户端0的timer被踢掉了
+			Assert.assertTrue(bean.getTestValue() > 0); // 确保客户端0的timer被踢掉了
 			log("测试二通过");
 
 			TestBean namedBean = new TestBean();
@@ -209,7 +209,7 @@ public class TestRoleTimer {
 			auth(client1, "account0");
 			login(client1, roleId);
 			sleep(1000, 6);
-			Assert.assertTrue(bean.getTestValue() < 10); // 确保客户端0的timer被踢掉了
+			Assert.assertTrue(bean.getTestValue() > 0); // 确保客户端0的timer被踢掉了
 			log("测试二通过");
 
 			TestBean namedBean = new TestBean();

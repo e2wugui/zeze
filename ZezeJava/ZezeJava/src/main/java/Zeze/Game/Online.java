@@ -511,8 +511,11 @@ public class Online extends AbstractOnline {
 		var link = online.getLink();
 
 		// loginVersion == null 表示本地触发的linkBroken，此时登录版本就是当前的。
-		if ((loginVersion == null || loginVersion != online.getLoginVersion())
-				|| !link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid)
+		if (loginVersion == null)
+			loginVersion = online.getLoginVersion(); // 后面要用，读取一次。
+		if (loginVersion != online.getLoginVersion()
+				|| !link.getLinkName().equals(linkName)
+				|| link.getLinkSid() != linkSid)
 			return 0;
 
 		var local = _tlocal.get(roleId);
