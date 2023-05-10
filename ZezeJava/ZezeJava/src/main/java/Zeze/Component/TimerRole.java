@@ -19,6 +19,8 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.List;
@@ -79,21 +81,28 @@ public class TimerRole {
 		return scheduleOnline(roleId, "@" + timer.timerIdAutoKey.nextString(), simpleTimer, name, customData);
 	}
 
+	private static final Logger logger = LogManager.getLogger(TimerRole.class);
+
 	private @NotNull String scheduleOnline(long roleId, @NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
 										   @NotNull TimerHandle name, @Nullable Bean customData) {
 		// 去掉下面两行，允许在非登录状态注册timer。现在不允许。
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion) {
-			// 参数 timerId, cronTimer, timerHandleClassName, customData
-			var p = new BTransmitSimpleTimer();
-			p.setTimerId(timerId);
-			p.setSimpleTimer(simpleTimer);
-			p.setHandleClass(name.getClass().getName());
-			if (null != customData) {
-				p.setCustomClass(customData.getClass().getName());
-				p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
+			var loginOnline = online.getLoginOnline(roleId);
+			if (null != loginOnline) {
+				// 参数 timerId, cronTimer, timerHandleClassName, customData
+				var p = new BTransmitSimpleTimer();
+				p.setTimerId(timerId);
+				p.setSimpleTimer(simpleTimer);
+				p.setHandleClass(name.getClass().getName());
+				p.setLoginVersion(loginOnline.getLoginVersion());
+				if (null != customData) {
+					p.setCustomClass(customData.getClass().getName());
+					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
+				}
+				online.transmitEmbed(roleId, eTransmitSimpleTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)), false);
 			}
-			online.transmitEmbed(roleId, eTransmitSimpleTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)), false);
+			logger.info("not online {}", roleId);
 			return timerId;
 		}
 
@@ -130,16 +139,19 @@ public class TimerRole {
 		var p = new BTransmitSimpleTimer();
 		p.decode(ByteBuffer.Wrap(parameter));
 
-		var handleClass = Class.forName(p.getHandleClass());
-		var handle = handleClass.getDeclaredConstructor().newInstance();
-		Bean custom = null;
-		if (!p.getCustomClass().isEmpty()) {
-			var customClass = Class.forName(p.getCustomClass());
-			custom = (Bean)customClass.getDeclaredConstructor().newInstance();
-			custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
-		}
+		var loginOnline = online.getLoginOnline(target);
+		if (null != loginOnline && p.getLoginVersion() == loginOnline.getLoginVersion()) {
+			var handleClass = Class.forName(p.getHandleClass());
+			var handle = handleClass.getDeclaredConstructor().newInstance();
+			Bean custom = null;
+			if (!p.getCustomClass().isEmpty()) {
+				var customClass = Class.forName(p.getCustomClass());
+				custom = (Bean)customClass.getDeclaredConstructor().newInstance();
+				custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
+			}
 
-		scheduleOnline(sender, p.getTimerId(), p.getSimpleTimer(), (TimerHandle)handle, custom);
+			scheduleOnline(sender, p.getTimerId(), p.getSimpleTimer(), (TimerHandle)handle, custom);
+		}
 		return 0;
 	}
 
@@ -150,16 +162,19 @@ public class TimerRole {
 		var p = new BTransmitCronTimer();
 		p.decode(ByteBuffer.Wrap(parameter));
 
-		var handleClass = Class.forName(p.getHandleClass());
-		var handle = handleClass.getDeclaredConstructor().newInstance();
-		Bean custom = null;
-		if (!p.getCustomClass().isEmpty()) {
-			var customClass = Class.forName(p.getCustomClass());
-			custom = (Bean)customClass.getDeclaredConstructor().newInstance();
-			custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
-		}
+		var loginOnline = online.getLoginOnline(target);
+		if (null != loginOnline && p.getLoginVersion() == loginOnline.getLoginVersion()) {
+			var handleClass = Class.forName(p.getHandleClass());
+			var handle = handleClass.getDeclaredConstructor().newInstance();
+			Bean custom = null;
+			if (!p.getCustomClass().isEmpty()) {
+				var customClass = Class.forName(p.getCustomClass());
+				custom = (Bean)customClass.getDeclaredConstructor().newInstance();
+				custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
+			}
 
-		scheduleOnline(sender, p.getTimerId(), p.getCronTimer(), (TimerHandle)handle, custom);
+			scheduleOnline(sender, p.getTimerId(), p.getCronTimer(), (TimerHandle)handle, custom);
+		}
 		return 0;
 	}
 
@@ -167,16 +182,21 @@ public class TimerRole {
 										   @NotNull TimerHandle name, @Nullable Bean customData) {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion) {
-			// 参数 timerId, cronTimer, timerHandleClassName, customData
-			var p = new BTransmitCronTimer();
-			p.setTimerId(timerId);
-			p.setCronTimer(cronTimer);
-			p.setHandleClass(name.getClass().getName());
-			if (null != customData) {
-				p.setCustomClass(customData.getClass().getName());
-				p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
+			var loginOnline = online.getLoginOnline(roleId);
+			if (null != loginOnline) {
+				// 参数 timerId, cronTimer, timerHandleClassName, customData
+				var p = new BTransmitCronTimer();
+				p.setTimerId(timerId);
+				p.setCronTimer(cronTimer);
+				p.setHandleClass(name.getClass().getName());
+				p.setLoginVersion(loginOnline.getLoginVersion());
+				if (null != customData) {
+					p.setCustomClass(customData.getClass().getName());
+					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
+				}
+				online.transmitEmbed(roleId, eTransmitCronTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)), false);
 			}
-			online.transmitEmbed(roleId, eTransmitCronTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)), false);
+			logger.info("not online {}", roleId);
 			return timerId;
 		}
 

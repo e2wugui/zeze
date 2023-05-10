@@ -2,6 +2,7 @@ package Zeze.Dbh2;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
@@ -27,6 +28,83 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private final Raft raft;
 	private final Dbh2StateMachine stateMachine;
 	private final Dbh2Manager manager;
+
+	// 性能统计。
+	private final AtomicLong counterGet = new AtomicLong();
+	private final AtomicLong counterPut = new AtomicLong();
+	private final AtomicLong sizeGet = new AtomicLong();
+	private final AtomicLong sizePut = new AtomicLong();
+	private final AtomicLong counterDelete = new AtomicLong();
+	private final AtomicLong counterPrepareBatch = new AtomicLong();
+	private final AtomicLong counterCommitBatch = new AtomicLong();
+	private final AtomicLong counterUndoBatch = new AtomicLong();
+
+	private long lastGet;
+	private long lastPut;
+	private long lastSizeGet;
+	private long lastSizePut;
+	private long lastDelete;
+	private long lastPrepareBatch;
+	private long lastCommitBatch;
+	private long lastUndoBatch;
+	private long lastReportTime = System.currentTimeMillis();
+
+	public double load() {
+		var now = System.currentTimeMillis();
+		var elapse = (now - lastReportTime) / 1000.0f;
+		lastReportTime = now;
+
+		var nowGet = counterGet.get();
+		var nowPut = counterPut.get();
+		var nowSizeGet = sizeGet.get();
+		var nowSizePut = sizePut.get();
+		var nowDelete = counterDelete.get();
+		var nowPrepareBatch = counterPrepareBatch.get();
+		var nowCommitBatch = counterCommitBatch.get();
+		var nowUndoBatch = counterUndoBatch.get();
+
+		var diffGet = nowGet - lastGet;
+		var diffPut = nowPut - lastPut;
+		var diffSizeGet = nowSizeGet - lastSizeGet;
+		var diffSizePut = nowSizePut - lastSizePut;
+		var diffDelete = nowDelete - lastDelete;
+		var diffPrepareBatch = nowPrepareBatch - lastPrepareBatch;
+		var diffCommitBatch = nowCommitBatch - lastCommitBatch;
+		var diffUndoBatch = nowUndoBatch - lastUndoBatch;
+
+		if (diffGet > 0 || diffPut > 0 || diffDelete > 0 || diffSizeGet > 0 || diffSizePut > 0
+				|| diffPrepareBatch > 0 || diffCommitBatch > 0 || diffUndoBatch > 0) {
+			lastGet = nowGet;
+			lastPut = nowPut;
+			lastSizeGet = nowSizeGet;
+			lastSizePut = nowSizePut;
+			lastDelete = nowDelete;
+			lastPrepareBatch = nowPrepareBatch;
+			lastCommitBatch = nowCommitBatch;
+			lastUndoBatch = nowUndoBatch;
+
+			//noinspection StringBufferReplaceableByString
+			var sb = new StringBuilder();
+			var avgGet = diffGet / elapse;
+			var avgPut = diffPut / elapse;
+			var avgDelete = diffDelete / elapse;
+
+			sb.append(" get=").append(avgGet);
+			sb.append(" put=").append(avgPut);
+			sb.append(" getSize=").append(diffSizeGet / elapse);
+			sb.append(" putSize=").append(diffSizePut / elapse);
+			sb.append(" delete=").append(avgDelete);
+			sb.append(" prepare=").append(diffPrepareBatch / elapse);
+			sb.append(" commit=").append(diffCommitBatch / elapse);
+			sb.append(" undo=").append(diffUndoBatch / elapse);
+
+			logger.info(sb.toString());
+
+			// 负载，put，delete全算，get算1%。
+			return (avgPut + avgDelete) + avgGet * 0.01;
+		}
+		return 0.0;
+	}
 
 	public class Dbh2RaftServer extends Zeze.Raft.Server {
 		public Dbh2RaftServer(Raft raft, String name, Config config) {
@@ -95,8 +173,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	@Override
 	protected long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws RocksDBException {
-		if (null != manager)
-			manager.counterGet.incrementAndGet();
+		counterGet.incrementAndGet();
 		var lock = Lock.get(r.Argument.getKey());
 		lock.lock();
 		try {
@@ -109,8 +186,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				r.Result.setNull(true);
 			else {
 				r.Result.setValue(value);
-				if (null != manager)
-					manager.sizeGet.addAndGet(value.size());
+				sizeGet.addAndGet(value.size());
 			}
 			r.SendResult();
 		} finally {
@@ -129,6 +205,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	protected long ProcessPrepareBatchRequest(PrepareBatch r) throws Exception {
 		//var tid = stateMachine.getTidAllocator().next(stateMachine);
 		// lock
+		counterPrepareBatch.incrementAndGet();
 		var txn = new Dbh2Transaction(r.Argument.getBatch());
 		try {
 			// save txn
@@ -140,16 +217,13 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			for (var put : r.Argument.getBatch().getPuts().entrySet()) {
 				var key = put.getKey();
 				var value = put.getValue();
-				if (null != manager) {
-					manager.counterPut.incrementAndGet();
-					manager.sizePut.addAndGet(value.size() + key.size());
-				}
+				counterPut.incrementAndGet();
+				sizePut.addAndGet(value.size() + key.size());
 				if (!stateMachine.getBucket().inBucket(key))
 					return errorCode(eBucketMissmatch);
 			}
 			for (var del : r.Argument.getBatch().getDeletes()) {
-				if (null != manager)
-					manager.counterDelete.incrementAndGet();
+				counterDelete.incrementAndGet();
 				if (!stateMachine.getBucket().inBucket(del))
 					return errorCode(eBucketMissmatch);
 			}
@@ -168,12 +242,14 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	@Override
 	protected long ProcessCommitBatchRequest(CommitBatch r) throws Exception {
+		counterCommitBatch.incrementAndGet();
 		getRaft().appendLog(new LogCommitBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 		return 0;
 	}
 
 	@Override
 	protected long ProcessUndoBatchRequest(UndoBatch r) throws Exception {
+		counterUndoBatch.incrementAndGet();
 		getRaft().appendLog(new LogUndoBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 		return 0;
 	}

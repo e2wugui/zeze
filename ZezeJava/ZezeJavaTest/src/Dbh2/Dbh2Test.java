@@ -89,7 +89,6 @@ public class Dbh2Test {
 			meta1.setDatabaseName(db);
 			meta1.setTableName(tb1);
 			meta1.setRaftConfig("");
-			meta1.setMoving(false);
 			meta1.setKeyFirst(Binary.Empty);
 			meta1.setKeyLast(Binary.Empty);
 			bucket1.agent().setBucketMeta(meta1); // 这个meta必须第一个设置。由于测试的meta一样，第二次运行重复设置是可以的。
@@ -98,7 +97,6 @@ public class Dbh2Test {
 			meta2.setDatabaseName(db);
 			meta2.setTableName(tb2);
 			meta2.setRaftConfig("");
-			meta2.setMoving(false);
 			meta2.setKeyFirst(Binary.Empty);
 			meta2.setKeyLast(Binary.Empty);
 			bucket2.agent().setBucketMeta(meta2); // 这个meta必须第一个设置。由于测试的meta一样，第二次运行重复设置是可以的。

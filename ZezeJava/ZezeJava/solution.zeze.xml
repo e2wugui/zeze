@@ -1105,6 +1105,7 @@
 				<variable id="3" name="HandleClass" type="string"/>
 				<variable id="4" name="CustomClass" type="string"/>
 				<variable id="5" name="CustomBean" type="binary"/>
+				<variable id="6" name="LoginVersion" type="long"/>
 			</bean>
 			<bean name="BTransmitSimpleTimer">
 				<variable id="1" name="TimerId" type="string"/>
@@ -1112,6 +1113,7 @@
 				<variable id="3" name="HandleClass" type="string"/>
 				<variable id="4" name="CustomClass" type="string"/>
 				<variable id="5" name="CustomBean" type="binary"/>
+				<variable id="6" name="LoginVersion" type="long"/>
 			</bean>
 
 			<!-- Online Timer -->
@@ -1371,8 +1373,6 @@
 				<variable id="3" name="KeyFirst" type="binary"/>
 				<variable id="4" name="KeyLast" type="binary"/>
 				<variable id="5" name="RaftConfig" type="string"/>
-				<variable id="6" name="Moving" type="bool"/> 正在迁移中
-				<variable id="7" name="KeyMoving" type="binary"/> 正在迁移中的key
 			</bean>
 
 			<!-- 桶(raftNode)创建出来的第一条操作，以后分桶时也需要重新设置 -->

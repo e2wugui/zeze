@@ -14,23 +14,31 @@ import Zeze.Util.RocksDatabase;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 public class MasterDatabase {
 	private static final Logger logger = LogManager.getLogger(MasterDatabase.class);
 	private final String databaseName;
+	private final RocksDatabase rocksDb;
+
+	// tables
 	private final ConcurrentHashMap<String, MasterTable.Data> tables = new ConcurrentHashMap<>();
-	private final RocksDB db;
+	private final RocksDatabase.Table rocksTables;
+
+	// tables 包含分桶目标。
+	private final ConcurrentHashMap<String, MasterTable.Data> buckets = new ConcurrentHashMap<>();
+	private final RocksDatabase.Table rocksBuckets;
 	private final Master master;
 
 	public MasterDatabase(Master master, String databaseName) {
 		try {
 			this.master = master;
 			this.databaseName = databaseName;
-			db = RocksDatabase.open(Path.of(master.getHome(), databaseName).toString());
+			rocksDb = new RocksDatabase(Path.of(master.getHome(), databaseName).toString());
+			rocksTables = rocksDb.getOrAddTable("tables");
+			rocksBuckets = rocksDb.getOrAddTable("buckets");
 
-			try (var it = db.newIterator(RocksDatabase.getDefaultReadOptions())) {
+			try (var it = rocksTables.iterator()) {
 				it.seekToFirst();
 				while (it.isValid()) {
 					var tableName = new String(it.key(), StandardCharsets.UTF_8);
@@ -38,8 +46,21 @@ public class MasterDatabase {
 					var bb = ByteBuffer.Wrap(it.value());
 					bTable.decode(bb);
 					tables.put(tableName, bTable);
-					logger.info("addTable: {}", tableName);
 					it.next();
+					logger.info("table: {}", bTable);
+				}
+			}
+
+			try (var it = rocksBuckets.iterator()) {
+				it.seekToFirst();
+				while (it.isValid()) {
+					var tableName = new String(it.key(), StandardCharsets.UTF_8);
+					var bTable = new MasterTable.Data();
+					var bb = ByteBuffer.Wrap(it.value());
+					bTable.decode(bb);
+					buckets.put(tableName, bTable);
+					it.next();
+					logger.info("bucket: {}", bTable);
 				}
 			}
 		} catch (RocksDBException ex) {
@@ -64,7 +85,7 @@ public class MasterDatabase {
 
 	public void close() {
 		logger.info("closeDb: {}, {}", master.getHome(), databaseName);
-		db.close();
+		rocksDb.close();
 	}
 
 	public MasterTable.Data createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
@@ -84,68 +105,130 @@ public class MasterDatabase {
 			var bucket = new BBucketMeta.Data();
 			bucket.setDatabaseName(databaseName);
 			bucket.setTableName(tableName);
-			bucket.setMoving(false);
 			bucket.setKeyFirst(Binary.Empty);
 			bucket.setKeyLast(Binary.Empty);
 			table.buckets.put(bucket.getKeyFirst(), bucket);
 
 			// allocate first bucket service and setup table
-
 			var managers = master.choiceManagers();
 			if (managers.size() < 3)
 				return null;
-			// 构建raft-config，基本的用于客户端，用于manager服务器的需要replace RaftName.
-			var sbRaft = new StringBuilder();
-			sbRaft.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
-			sbRaft.append("\n");
-			sbRaft.append("<raft Name=\"RaftName\">\n");
-			var raftNames = new ArrayList<String>(managers.size());
-			for (var e : managers) {
-				sbRaft.append("    <node Host=\"");
-				sbRaft.append(e.data.getDbh2RaftAcceptorName());
-				sbRaft.append("\" Port=\"");
-				var portId = master.nextBucketPortId(e.data.getDbh2RaftAcceptorName());
-				sbRaft.append(portId);
-				sbRaft.append("\"/>\n");
-				raftNames.add(e.data.getDbh2RaftAcceptorName() + ":" + portId);
-			}
-			sbRaft.append("</raft>");
-			bucket.setRaftConfig(sbRaft.toString());
-			//System.out.println(bucket.getRaftConfig());
 
-			var futures = new ArrayList<TaskCompletionSource<?>>();
-			var i = 0;
-			for (var e : managers) {
-				var r = new CreateBucket();
-				r.Argument.assign(bucket);
-				// 用于manager服务器的需要replace RaftName.
-				r.Argument.setRaftConfig(r.Argument.getRaftConfig().replaceAll("RaftName", raftNames.get(i++)));
-				//System.out.println(r.Argument.getRaftConfig());
-				futures.add(r.SendForWait(e.socket));
-			}
-			for (var future : futures)
-				future.await();
-
-			// 第一条Dbh2桶协议，桶必须初始化以后才能使用。
-			var agent = new Dbh2Agent(bucket.getRaftConfig());
-			try {
-				agent.setBucketMeta(bucket);
-			} finally {
-				agent.close();
-			}
-
+			var raftNames = buildRaftConfig(bucket, managers);
+			createBucketRafts(managers, bucket, raftNames);
+			setBucketMeta(bucket);
 			table.created = true;
-
-			// master数据马上存数据库。
-			var bbValue = ByteBuffer.Allocate();
-			table.encode(bbValue);
-			var key = tableName.getBytes(StandardCharsets.UTF_8);
-			db.put(RocksDatabase.getDefaultWriteOptions(), key, 0, key.length, bbValue.Bytes, 0, bbValue.WriteIndex);
-
-			// 保存在内存中，用来快速查询。
-			tables.put(tableName, table);
-
+			saveRocks(rocksTables, tableName, table);
 		}
 		return table;
+	}
+
+	// 构建raft-config，基本的用于客户端，用于manager服务器的需要replace RaftName.
+	private ArrayList<String> buildRaftConfig(BBucketMeta.Data bucket, ArrayList<Master.Manager> managers) throws RocksDBException {
+		var sbRaft = new StringBuilder();
+		sbRaft.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
+		sbRaft.append("\n");
+		sbRaft.append("<raft Name=\"RaftName\">\n");
+		var raftNames = new ArrayList<String>(managers.size());
+		for (var e : managers) {
+			sbRaft.append("    <node Host=\"");
+			sbRaft.append(e.data.getDbh2RaftAcceptorName());
+			sbRaft.append("\" Port=\"");
+			var portId = master.nextBucketPortId(e.data.getDbh2RaftAcceptorName());
+			sbRaft.append(portId);
+			sbRaft.append("\"/>\n");
+			raftNames.add(e.data.getDbh2RaftAcceptorName() + ":" + portId);
+		}
+		sbRaft.append("</raft>");
+		bucket.setRaftConfig(sbRaft.toString());
+		//System.out.println(bucket.getRaftConfig());
+		return raftNames;
+	}
+
+	private static void createBucketRafts(ArrayList<Master.Manager> managers, BBucketMeta.Data bucket, ArrayList<String> raftNames) {
+		var futures = new ArrayList<TaskCompletionSource<?>>();
+		var i = 0;
+		for (var e : managers) {
+			var r = new CreateBucket();
+			r.Argument.assign(bucket);
+			// 用于manager服务器的需要replace RaftName.
+			r.Argument.setRaftConfig(r.Argument.getRaftConfig().replaceAll("RaftName", raftNames.get(i++)));
+			//System.out.println(r.Argument.getRaftConfig());
+			futures.add(r.SendForWait(e.socket));
+		}
+		for (var future : futures)
+			future.await();
+	}
+
+	private static void setBucketMeta(BBucketMeta.Data bucket) throws Exception {
+		// 第一条Dbh2桶协议，桶必须初始化以后才能使用。
+		var agent = new Dbh2Agent(bucket.getRaftConfig());
+		try {
+			agent.setBucketMeta(bucket);
+		} finally {
+			agent.close();
+		}
+	}
+
+	public synchronized void commitBucket(BBucketMeta.Data bucket) {
+		var table = buckets.computeIfAbsent(bucket.getTableName(), __ -> new MasterTable.Data());
+
+	}
+
+	public BBucketMeta.Data prepareBucket(String tableName, Binary first, Binary last) throws Exception {
+		if (null == tables.get(tableName))
+			return null; // table not exist.
+
+		var table = buckets.computeIfAbsent(tableName, __ -> new MasterTable.Data());
+		{
+			// 桶已经存在，一般是分桶中断以后又重新开始，此时继续使用原来创建的桶。
+			// 【需要重置】
+			// 分桶过程中，如果分过去的记录有被删除，中断时，很难可靠的保证删除的记录被同步，
+			// 最简单的办法就是中断以后的分桶重新开始，此时重置目标桶即可。
+			// 【思考】
+			// 要实现中断以后的分桶能断点续传，需要记录（持久化）拷贝中的key，
+			// 并且如果已拷贝记录发生增删的事务也需要持久化，
+			// 所以不是很容易。
+			var bucket = table.locate(first);
+			// 需要精确判断。
+			if (null != bucket && bucket.getKeyFirst().equals(first) && bucket.getKeyLast().equals(last)) {
+				var agent = new Dbh2Agent(bucket.getRaftConfig());
+				try {
+					//agent.resetBucket(bucket);
+				} finally {
+					agent.close();
+				}
+				return bucket;
+			}
+			// 下面将创建新的桶。
+		}
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (table) {
+			var bucket = new BBucketMeta.Data();
+			bucket.setDatabaseName(databaseName);
+			bucket.setTableName(tableName);
+			bucket.setKeyFirst(first);
+			bucket.setKeyLast(last);
+			table.buckets.put(bucket.getKeyFirst(), bucket);
+
+			// allocate first bucket service and setup table
+			var managers = master.choiceSmallLoadManagers();
+			if (managers.size() < 3)
+				return null;
+
+			var raftNames = buildRaftConfig(bucket, managers);
+			createBucketRafts(managers, bucket, raftNames);
+			saveRocks(rocksBuckets, tableName, table);
+			return bucket;
+		}
+	}
+
+	private static void saveRocks(RocksDatabase.Table rocksTable,
+								  String tableName, MasterTable.Data table) throws RocksDBException {
+		// master数据马上存数据库。
+		var bbValue = ByteBuffer.Allocate();
+		table.encode(bbValue);
+		var key = tableName.getBytes(StandardCharsets.UTF_8);
+		rocksTable.put(key, 0, key.length, bbValue.Bytes, 0, bbValue.WriteIndex);
 	}
 }

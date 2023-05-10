@@ -92,6 +92,11 @@ public class Master extends AbstractMaster {
 		}
 	}
 
+	// todo 选择负载小的manager。
+	public ArrayList<Manager> choiceSmallLoadManagers() {
+		return choiceManagers();
+	}
+
 	public synchronized ArrayList<Manager> choiceManagers() {
 		var result = new ArrayList<Manager>();
 		if (managers.size() < 3)

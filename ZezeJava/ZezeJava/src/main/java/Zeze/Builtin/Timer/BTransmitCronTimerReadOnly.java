@@ -12,4 +12,5 @@ public interface BTransmitCronTimerReadOnly {
     String getHandleClass();
     String getCustomClass();
     Zeze.Net.Binary getCustomBean();
+    long getLoginVersion();
 }

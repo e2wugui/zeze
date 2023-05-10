@@ -7,7 +7,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
@@ -37,16 +36,7 @@ public class Dbh2Manager {
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}
 
-	// 性能统计。
-	public final AtomicLong counterGet = new AtomicLong();
-	public final AtomicLong counterPut = new AtomicLong();
-	public final AtomicLong sizeGet = new AtomicLong();
-	public final AtomicLong sizePut = new AtomicLong();
-	public final AtomicLong counterDelete = new AtomicLong();
-	public final AtomicLong counterBeginTransaction = new AtomicLong();
-	public final AtomicLong counterCommitTransaction = new AtomicLong();
-	public final AtomicLong counterRollbackTransaction = new AtomicLong();
-	private Future<?> reportTimer;
+	private Future<?> loadMonitorTimer;
 
 	private final String home;
 
@@ -135,76 +125,28 @@ public class Dbh2Manager {
 					__ -> new Dbh2(this, raftConfig.getName(), raftConfig, null, false));
 		}
 		masterAgent.startAndWaitConnectionReady();
-		reportTimer = Task.scheduleUnsafe(2000, 2000, this::reportLoad);
+
+		loadMonitorTimer = Task.scheduleUnsafe(120_000, 120_000, this::loadMonitor);
+	}
+
+	private void loadMonitor() {
+		for (var dbh2 : dbh2s.values()) {
+			if (dbh2.load() > 8000 * 0.8) {
+				// 达到分桶条件之一：负载高于最大值的80%。
+				// todo 这里可以考虑dbFileSize，当库比较大时也分桶。
+				//masterAgent.createTable()
+			}
+		}
 	}
 
 	public void stop() throws Exception {
+		if (null != loadMonitorTimer)
+			loadMonitorTimer.cancel(true);
 		ShutdownHook.remove(this);
-		if (null != reportTimer)
-			reportTimer.cancel(true);
 		masterAgent.stop();
 		for (var dbh2 : dbh2s.values())
 			dbh2.close();
 		dbh2s.clear();
-	}
-
-	private long lastGet;
-	private long lastPut;
-	private long lastSizeGet;
-	private long lastSizePut;
-	private long lastDelete;
-	private long lastBeginTransaction;
-	private long lastCommitTransaction;
-	private long lastRollbackTransaction;
-	private long lastReportTime = System.currentTimeMillis();
-
-	private void reportLoad() {
-		var now = System.currentTimeMillis();
-		var elapse = (now - lastReportTime) / 1000.0f;
-		lastReportTime = now;
-
-		var nowGet = counterGet.get();
-		var nowPut = counterPut.get();
-		var nowSizeGet = sizeGet.get();
-		var nowSizePut = sizePut.get();
-		var nowDelete = counterDelete.get();
-		var nowBeginTransaction = counterBeginTransaction.get();
-		var nowCommitTransaction = counterCommitTransaction.get();
-		var nowRollbackTransaction = counterRollbackTransaction.get();
-
-		var diffGet = nowGet - lastGet;
-		var diffPut = nowPut - lastPut;
-		var diffSizeGet = nowSizeGet - lastSizeGet;
-		var diffSizePut = nowSizePut - lastSizePut;
-		var diffDelete = nowDelete - lastDelete;
-		var diffBeginTransaction = nowBeginTransaction - lastBeginTransaction;
-		var diffCommitTransaction = nowCommitTransaction - lastCommitTransaction;
-		var diffRollbackTransaction = nowRollbackTransaction - lastRollbackTransaction;
-
-		if (diffGet > 0 || diffPut > 0 || diffDelete > 0 || diffSizeGet > 0 || diffSizePut > 0
-				|| diffBeginTransaction > 0 || diffCommitTransaction > 0 || diffRollbackTransaction > 0) {
-			lastGet = nowGet;
-			lastPut = nowPut;
-			lastSizeGet = nowSizeGet;
-			lastSizePut = nowSizePut;
-			lastDelete = nowDelete;
-			lastBeginTransaction = nowBeginTransaction;
-			lastCommitTransaction = nowCommitTransaction;
-			lastRollbackTransaction = nowRollbackTransaction;
-
-			//noinspection StringBufferReplaceableByString
-			var sb = new StringBuilder();
-			sb.append(" get=").append(diffGet / elapse);
-			sb.append(" put=").append(diffPut / elapse);
-			sb.append(" getSize=").append(diffSizeGet / elapse);
-			sb.append(" putSize=").append(diffSizePut / elapse);
-			sb.append(" delete=").append(diffDelete / elapse);
-			sb.append(" begin=").append(diffBeginTransaction / elapse);
-			sb.append(" commit=").append(diffCommitTransaction / elapse);
-			sb.append(" rollback=").append(diffRollbackTransaction / elapse);
-
-			logger.info(sb.toString());
-		}
 	}
 
 	public static void main(String[] args) {
