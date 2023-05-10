@@ -42,5 +42,11 @@ public class MasterTable {
 				buckets.put(key, value);
 			}
 		}
+
+		public ByteBuffer encode() {
+			var bb = ByteBuffer.Allocate();
+			encode(bb);
+			return bb;
+		}
 	}
 }

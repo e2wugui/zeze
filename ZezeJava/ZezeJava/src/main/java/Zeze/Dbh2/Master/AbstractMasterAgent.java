@@ -14,6 +14,7 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
     public static final int eDatabaseNotFound = 1;
     public static final int eTableNotFound = 2;
     public static final int eTableIsNew = 3;
+    public static final int eSplittingBucketNotFound = 4;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());

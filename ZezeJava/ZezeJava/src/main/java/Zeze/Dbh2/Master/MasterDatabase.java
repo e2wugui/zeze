@@ -26,8 +26,8 @@ public class MasterDatabase {
 	private final RocksDatabase.Table rocksTables;
 
 	// tables 包含分桶目标。
-	private final ConcurrentHashMap<String, MasterTable.Data> buckets = new ConcurrentHashMap<>();
-	private final RocksDatabase.Table rocksBuckets;
+	private final ConcurrentHashMap<String, MasterTable.Data> splitting = new ConcurrentHashMap<>();
+	private final RocksDatabase.Table rocksSplitting;
 	private final Master master;
 
 	public MasterDatabase(Master master, String databaseName) {
@@ -36,7 +36,7 @@ public class MasterDatabase {
 			this.databaseName = databaseName;
 			rocksDb = new RocksDatabase(Path.of(master.getHome(), databaseName).toString());
 			rocksTables = rocksDb.getOrAddTable("tables");
-			rocksBuckets = rocksDb.getOrAddTable("buckets");
+			rocksSplitting = rocksDb.getOrAddTable("splitting");
 
 			try (var it = rocksTables.iterator()) {
 				it.seekToFirst();
@@ -51,14 +51,14 @@ public class MasterDatabase {
 				}
 			}
 
-			try (var it = rocksBuckets.iterator()) {
+			try (var it = rocksSplitting.iterator()) {
 				it.seekToFirst();
 				while (it.isValid()) {
 					var tableName = new String(it.key(), StandardCharsets.UTF_8);
 					var bTable = new MasterTable.Data();
 					var bb = ByteBuffer.Wrap(it.value());
 					bTable.decode(bb);
-					buckets.put(tableName, bTable);
+					splitting.put(tableName, bTable);
 					it.next();
 					logger.info("bucket: {}", bTable);
 				}
@@ -170,22 +170,68 @@ public class MasterDatabase {
 		}
 	}
 
-	public synchronized void commitBucket(BBucketMeta.Data bucket) {
-		var table = buckets.computeIfAbsent(bucket.getTableName(), __ -> new MasterTable.Data());
+	// bucket1 分桶的前半部分，实际是新创建的拷贝目标。
+	// bucket2 分桶的后半部分，实际是保留的一半。
+	public long endSplit(BBucketMeta.Data bucketNew, BBucketMeta.Data bucketRemain) throws Exception {
+		var tableName = bucketNew.getTableName();
+		var table = tables.get(tableName);
+		if (null == table)
+			return master.errorCode(Master.eTableNotFound);
 
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (table) {
+			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
+			var splittingBucket = table.buckets.get(bucketNew.getKeyFirst());
+			if (splittingBucket != null
+					&& splittingBucket.getDatabaseName().equals(bucketNew.getDatabaseName())
+					&& splittingBucket.getTableName().equals(bucketNew.getTableName())
+					&& splittingBucket.getKeyFirst().equals(bucketNew.getKeyFirst())
+				// 进行中的分桶的KeyLast不是真正的，而是一个magic值，不需要比较。
+			) {
+				// set bucket meta, prepare to public.
+				setBucketMeta(bucketNew); // 新桶初始化。
+				splitting.buckets.remove(bucketNew.getKeyFirst());
+				// 保留桶的信息不在这里，不需要remove。
+
+				// todo 确认结束分桶的流程，保留下来的桶信息是否由源manager自己完成，
+				//  这里的流程实际上是分桶的源manager发起的。
+				//  setBucketMeta(bucketRemain); // 保留桶修改Meta。
+
+				// 下面这两步修改了以后，外面就能看到了。
+				// 最好是保存以后外面才能看到，
+				// 一般没问题先这样了。
+				// 【修订方法】复制一份完整的拷贝，修改拷贝，保存，把拷贝引用替换过去，但这里有点问题，这个容器是concurrent的，
+				// 本来就是为了能多线程共享，现在又变成需要加锁了。
+				table.buckets.put(bucketRemain.getKeyFirst(), bucketRemain); // 这里反而是新的项。
+				table.buckets.put(bucketNew.getKeyFirst(), bucketNew); // 这里实际上是replace。
+
+				try (var batch = rocksDb.newBatch()) {
+					var bbTable = table.encode();
+					var bbSplitting = splitting.encode();
+					var key = tableName.getBytes(StandardCharsets.UTF_8);
+					rocksTables.put(batch, key, 0, key.length,
+							bbTable.Bytes, bbTable.ReadIndex, bbTable.size());
+					rocksSplitting.put(batch, key, 0, key.length,
+							bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
+					batch.commit();
+				}
+				return 0;
+			}
+		}
+		return master.errorCode(Master.eSplittingBucketNotFound);
 	}
 
-	public BBucketMeta.Data prepareBucket(String tableName, Binary first, Binary last) throws Exception {
+	public BBucketMeta.Data createBucket(String tableName, Binary first, Binary last) throws Exception {
 		if (null == tables.get(tableName))
 			return null; // table not exist.
 
-		var table = buckets.computeIfAbsent(tableName, __ -> new MasterTable.Data());
+		var table = splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 		{
 			// 桶已经存在，一般是分桶中断以后又重新开始，此时继续使用原来创建的桶。
 			// 【需要重置】
 			// 分桶过程中，如果分过去的记录有被删除，中断时，很难可靠的保证删除的记录被同步，
 			// 最简单的办法就是中断以后的分桶重新开始，此时重置目标桶即可。
-			// 【思考】
+			// 【todo】
 			// 要实现中断以后的分桶能断点续传，需要记录（持久化）拷贝中的key，
 			// 并且如果已拷贝记录发生增删的事务也需要持久化，
 			// 所以不是很容易。
@@ -218,7 +264,7 @@ public class MasterDatabase {
 
 			var raftNames = buildRaftConfig(bucket, managers);
 			createBucketRafts(managers, bucket, raftNames);
-			saveRocks(rocksBuckets, tableName, table);
+			saveRocks(rocksSplitting, tableName, table);
 			return bucket;
 		}
 	}
@@ -226,8 +272,7 @@ public class MasterDatabase {
 	private static void saveRocks(RocksDatabase.Table rocksTable,
 								  String tableName, MasterTable.Data table) throws RocksDBException {
 		// master数据马上存数据库。
-		var bbValue = ByteBuffer.Allocate();
-		table.encode(bbValue);
+		var bbValue = table.encode();
 		var key = tableName.getBytes(StandardCharsets.UTF_8);
 		rocksTable.put(key, 0, key.length, bbValue.Bytes, 0, bbValue.WriteIndex);
 	}
