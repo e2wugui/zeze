@@ -10,5 +10,4 @@ public interface BUserStateReadOnly {
     String getContext();
     Zeze.Net.Binary getContextx();
     String getOnlineSetName();
-    long getLoginVersion();
 }

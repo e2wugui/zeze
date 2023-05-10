@@ -269,8 +269,6 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
             return true;
         if (getReason() < 0)
             return true;
-        if (_userState.negativeCheck())
-            return true;
         return false;
     }
 

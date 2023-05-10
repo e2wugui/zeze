@@ -347,18 +347,13 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	public long linkBroken(@NotNull String account, @NotNull String clientId, @NotNull String linkName, long linkSid,
-						   @Nullable Long loginVersion) throws Exception {
+	public long linkBroken(@NotNull String account, @NotNull String clientId,
+						   @NotNull String linkName, long linkSid) throws Exception {
 		var online = getOrAddOnline(account);
 		var loginOnline = online.getLogins().getOrAdd(clientId);
 		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 		var link = loginOnline.getLink();
-		// loginVersion == null 表示本地触发的linkBroken，此时登录版本就是当前的。
-		if (loginVersion == null)
-			loginVersion = loginOnline.getLoginVersion(); // 后面要用，读取一次。
-		if (loginVersion != loginOnline.getLoginVersion()
-				|| !link.getLinkName().equals(linkName)
-				|| link.getLinkSid() != linkSid)
+		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid)
 			return 0;
 
 		var local = _tlocal.get(account);
@@ -379,7 +374,7 @@ public class Online extends AbstractOnline {
 		// shorter use
 		var zeze = providerApp.zeze;
 		var delay = zeze.getConfig().getOnlineLogoutDelay();
-		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(account, clientId, loginVersion));
+		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(account, clientId, loginOnline.getLoginVersion()));
 		return 0;
 	}
 
@@ -574,7 +569,7 @@ public class Online extends AbstractOnline {
 		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
 			var ctx = contexts.get(sid);
 			if (ctx != null) {
-				return linkBroken(ctx.account, ctx.clientId, linkName, sid, null);
+				return linkBroken(ctx.account, ctx.clientId, linkName, sid);
 			}
 			return 0;
 		}, "Online.triggerLinkBroken").call());
@@ -710,7 +705,7 @@ public class Online extends AbstractOnline {
 					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 					var loginKey = group.accounts.get(idx);
 					return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId,
-							ProviderService.getLinkName(group.linkSocket), linkSid, null) : 0;
+							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
 				}, "Online.triggerLinkBroken2").call());
 				return Procedure.Success;
 			}))
@@ -766,7 +761,7 @@ public class Online extends AbstractOnline {
 		return send.Send(linkSocket, rpc -> {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
-				providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, linkSid, null),
+				providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, linkSid),
 						"Online.triggerLinkBroken1").call();
 			}
 			return Procedure.Success;
@@ -993,7 +988,7 @@ public class Online extends AbstractOnline {
 					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 					var loginKey = group.accounts.get(idx);
 					return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId,
-							ProviderService.getLinkName(group.linkSocket), linkSid, null) : 0;
+							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
 				}, "Online.triggerLinkBroken3").call());
 				return Procedure.Success;
 			}))
@@ -1047,7 +1042,7 @@ public class Online extends AbstractOnline {
 					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 					var loginKey = group.accounts.get(idx);
 					return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId,
-							ProviderService.getLinkName(group.linkSocket), linkSid, null) : 0;
+							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
 				}, "Online.triggerLinkBroken4").call());
 				return Procedure.Success;
 			}))
@@ -1405,7 +1400,6 @@ public class Online extends AbstractOnline {
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			//setUserState.Argument.getUserState().setLoginVersion(loginVersionSerialId);
 			setUserState.Argument.getUserState().setContext(rpc.Argument.getClientId());
-			setUserState.Argument.getUserState().setLoginVersion(loginVersionSerialId);
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
@@ -1474,7 +1468,6 @@ public class Online extends AbstractOnline {
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			//setUserState.Argument.getUserState().setLoginVersion(loginVersionSerialId);
 			setUserState.Argument.getUserState().setContext(rpc.Argument.getClientId());
-			setUserState.Argument.getUserState().setLoginVersion(loginVersionSerialId);
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 

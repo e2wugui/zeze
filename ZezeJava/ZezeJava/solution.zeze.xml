@@ -377,7 +377,6 @@
 				<variable name="context"  id="1" type="string"/>
 				<variable name="contextx" id="2" type="binary"/>
 				<variable name="onlineSetName"  id="3" type="string"/>
-				<variable name="loginVersion"  id="4" type="long"/>
 			</bean>
 
 			<bean name="BSetUserState">

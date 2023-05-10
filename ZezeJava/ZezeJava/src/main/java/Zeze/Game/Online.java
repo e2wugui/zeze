@@ -504,18 +504,12 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	public long linkBroken(@NotNull String account, long roleId, @NotNull String linkName,
-						   long linkSid, Long loginVersion) throws Exception {
+	public long linkBroken(@NotNull String account, long roleId,
+						   @NotNull String linkName, long linkSid) throws Exception {
 		var online = getOrAddOnline(roleId);
 		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 		var link = online.getLink();
-
-		// loginVersion == null 表示本地触发的linkBroken，此时登录版本就是当前的。
-		if (loginVersion == null)
-			loginVersion = online.getLoginVersion(); // 后面要用，读取一次。
-		if (loginVersion != online.getLoginVersion()
-				|| !link.getLinkName().equals(linkName)
-				|| link.getLinkSid() != linkSid)
+		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid)
 			return 0;
 
 		var local = _tlocal.get(roleId);
@@ -523,7 +517,7 @@ public class Online extends AbstractOnline {
 			return 0; // 不在本机登录。
 
 		online.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
-		if (local.getLoginVersion() != loginVersion) {
+		if (local.getLoginVersion() != online.getLoginVersion()) {
 			var ret = removeLocalAndTrigger(roleId); // 本机数据已经过时，马上删除。
 			if (0 != ret)
 				return ret;
@@ -533,7 +527,7 @@ public class Online extends AbstractOnline {
 		// for shorter use
 		var zeze = providerApp.zeze;
 		var delay = zeze.getConfig().getOnlineLogoutDelay();
-		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(roleId, loginVersion, multiInstanceName));
+		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(roleId, online.getLoginVersion(), multiInstanceName));
 		return 0;
 	}
 
@@ -724,7 +718,7 @@ public class Online extends AbstractOnline {
 			var roleId = context.get(linkSid);
 			// 补发的linkBroken没有account上下文。
 			if (roleId != null) {
-				return linkBroken("", roleId, linkName, linkSid, null);
+				return linkBroken("", roleId, linkName, linkSid);
 			}
 			return 0;
 		}, "Online.triggerLinkBroken").call());
@@ -862,7 +856,7 @@ public class Online extends AbstractOnline {
 					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 					// 补发的linkBroken没有account上下文
 					return idx >= 0 ? linkBroken("", group.roleIds.get(idx),
-							ProviderService.getLinkName(group.linkSocket), linkSid, null) : 0;
+							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
 				}, "Online.triggerLinkBroken2").call());
 				return Procedure.Success;
 			}))
@@ -908,7 +902,7 @@ public class Online extends AbstractOnline {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
 				// 补发的linkBroken没有account上下文
-				providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, linkSid, null),
+				providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, linkSid),
 						"Online.triggerLinkBroken1").call();
 			}
 			return Procedure.Success;
@@ -1367,7 +1361,6 @@ public class Online extends AbstractOnline {
 			//setUserState.Argument.getUserState().setLoginVersion(loginVersion);
 			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
 			setUserState.Argument.getUserState().setContext(String.valueOf(rpc.Argument.getRoleId()));
-			setUserState.Argument.getUserState().setLoginVersion(loginVersion);
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
@@ -1444,7 +1437,6 @@ public class Online extends AbstractOnline {
 			//setUserState.Argument.getUserState().setLoginVersion(loginVersion);
 			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
 			setUserState.Argument.getUserState().setContext(String.valueOf(rpc.Argument.getRoleId()));
-			setUserState.Argument.getUserState().setLoginVersion(loginVersion);
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 

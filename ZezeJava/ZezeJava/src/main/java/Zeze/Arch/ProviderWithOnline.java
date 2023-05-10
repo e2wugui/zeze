@@ -16,7 +16,7 @@ public class ProviderWithOnline extends ProviderImplement {
 		// 目前仅需设置online状态。
 		if (!p.Argument.getUserState().getContext().isEmpty()) {
 			online.linkBroken(p.Argument.getAccount(), p.Argument.getUserState().getContext(),
-					ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid(), p.Argument.getUserState().getLoginVersion());
+					ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;
 	}
