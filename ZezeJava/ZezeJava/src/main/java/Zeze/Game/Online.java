@@ -820,29 +820,29 @@ public class Online extends AbstractOnline {
 			var online = _tonline.selectDirty(roleId);
 			if (online == null) {
 				if (!trySend)
-					logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
+					logger.info("sendDirect: not found roleId={} in _tonline", roleId);
 				continue;
 			}
 			var link = online.getLink();
 			var state = link.getState();
 			if (state != eLogined) {
 				if (!trySend)
-					logger.warn("sendDirect: state={} != eLogined for roleId={}", state, roleId);
+					logger.info("sendDirect: state={} != eLogined for roleId={}", state, roleId);
 				continue;
 			}
 			var linkName = link.getLinkName();
-			var connector = links.get(linkName);
-			if (connector == null) {
-				logger.warn("sendDirect: not found connector for linkName={} roleId={}", linkName, roleId);
-				continue;
-			}
-			if (!connector.isHandshakeDone()) {
-				logger.warn("sendDirect: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
-				continue;
-			}
 			// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
 			var group = groups.get(linkName);
 			if (group == null) {
+				var connector = links.get(linkName);
+				if (connector == null) {
+					logger.warn("sendDirect: not found connector for linkName={} roleId={}", linkName, roleId);
+					continue;
+				}
+				if (!connector.isHandshakeDone()) {
+					logger.warn("sendDirect: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
+					continue;
+				}
 				var linkSocket = connector.getSocket();
 				if (linkSocket == null) {
 					logger.warn("sendDirect: closed connector for linkName={} roleId={}", linkName, roleId);
@@ -876,14 +876,14 @@ public class Online extends AbstractOnline {
 		var online = _tonline.selectDirty(roleId);
 		if (online == null) {
 			if (!trySend)
-				logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
+				logger.info("sendDirect: not found roleId={} in _tonline", roleId);
 			return false;
 		}
 		var link = online.getLink();
 		var state = link.getState();
 		if (state != eLogined) {
 			if (!trySend)
-				logger.warn("sendDirect: state={} != eLogined for roleId={}", state, roleId);
+				logger.info("sendDirect: state={} != eLogined for roleId={}", state, roleId);
 			return false;
 		}
 		var linkName = link.getLinkName();
@@ -932,7 +932,7 @@ public class Online extends AbstractOnline {
 //			var online = _tonline.get(roleId);
 //			if (online == null) {
 //				groupNotOnline.roles.putIfAbsent(roleId, null);
-//				logger.warn("groupByLink: not found roleId={} in _tonline", roleId);
+//				logger.info("groupByLink: not found roleId={} in _tonline", roleId);
 //				continue;
 //			}
 //

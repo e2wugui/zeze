@@ -534,12 +534,12 @@ public class Online extends AbstractOnline {
 //			var online = _tonline.get(loginKey.account);
 //			if (online == null) {
 //				groupNotOnline.logins.putIfAbsent(loginKey, 0L);
-//				logger.warn("groupByLink: not found account={} in _tonline", loginKey.account);
+//				logger.info("groupByLink: not found account={} in _tonline", loginKey.account);
 //				continue;
 //			}
 //			var login = online.getLogins().get(loginKey.clientId);
 //			if (login == null) {
-//				logger.warn("groupByLink: not found login for clientId={} account={}", loginKey.clientId, loginKey.account);
+//				logger.info("groupByLink: not found login for clientId={} account={}", loginKey.clientId, loginKey.account);
 //				groupNotOnline.logins.putIfAbsent(loginKey, 0L);
 //				continue;
 //			}
@@ -659,37 +659,37 @@ public class Online extends AbstractOnline {
 			var online = _tonline.selectDirty(account);
 			if (online == null) {
 				if (!trySend)
-					logger.warn("sendDirect: not found account={} in _tonline", account);
+					logger.info("sendDirect: not found account={} in _tonline", account);
 				continue;
 			}
 			var login = online.getLogins().get(clientId);
 			if (login == null) {
 				if (!trySend)
-					logger.warn("sendDirect: not found login for clientId={} account={}", clientId, account);
+					logger.info("sendDirect: not found login for clientId={} account={}", clientId, account);
 				continue;
 			}
 			var link = login.getLink();
 			var state = link.getState();
 			if (state != eLogined) {
 				if (!trySend)
-					logger.warn("sendDirect: state={} != eLogined for clientId={} account={}", state, clientId, account);
+					logger.info("sendDirect: state={} != eLogined for clientId={} account={}", state, clientId, account);
 				continue;
 			}
 			var linkName = link.getLinkName();
-			var connector = links.get(linkName);
-			if (connector == null) {
-				logger.warn("sendDirect: not found connector for linkName={} clientId={} account={}",
-						linkName, account, clientId);
-				continue;
-			}
-			if (!connector.isHandshakeDone()) {
-				logger.warn("sendDirect: not isHandshakeDone for linkName={} clientId={} account={}",
-						linkName, account, clientId);
-				continue;
-			}
 			// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
 			var group = groups.get(linkName);
 			if (group == null) {
+				var connector = links.get(linkName);
+				if (connector == null) {
+					logger.warn("sendDirect: not found connector for linkName={} clientId={} account={}",
+							linkName, account, clientId);
+					continue;
+				}
+				if (!connector.isHandshakeDone()) {
+					logger.warn("sendDirect: not isHandshakeDone for linkName={} clientId={} account={}",
+							linkName, account, clientId);
+					continue;
+				}
 				var linkSocket = connector.getSocket();
 				if (linkSocket == null) {
 					logger.warn("sendDirect: closed connector for linkName={} clientId={} account={}",
@@ -725,13 +725,13 @@ public class Online extends AbstractOnline {
 		var online = _tonline.selectDirty(account);
 		if (online == null) {
 			if (!trySend)
-				logger.warn("sendDirect: not found account={} in _tonline", account);
+				logger.info("sendDirect: not found account={} in _tonline", account);
 			return false;
 		}
 		var login = online.getLogins().get(clientId);
 		if (login == null) {
 			if (!trySend)
-				logger.warn("sendDirect: not found login for clientId={} account={}", clientId, account);
+				logger.info("sendDirect: not found login for clientId={} account={}", clientId, account);
 			return false;
 		}
 
@@ -739,7 +739,7 @@ public class Online extends AbstractOnline {
 		var state = link.getState();
 		if (state != eLogined) {
 			if (!trySend)
-				logger.warn("sendDirect: state={} != eLogined for clientId={} account={}", state, clientId, account);
+				logger.info("sendDirect: state={} != eLogined for clientId={} account={}", state, clientId, account);
 			return false;
 		}
 		var linkName = link.getLinkName();
@@ -961,7 +961,7 @@ public class Online extends AbstractOnline {
 		var online = _tonline.selectDirty(account);
 		if (online == null) {
 			if (!trySend)
-				logger.warn("sendAccountDirect: not found account={} in _tonline", account);
+				logger.info("sendAccountDirect: not found account={} in _tonline", account);
 			return 0;
 		}
 		for (var e : online.getLogins()) {
@@ -1013,7 +1013,7 @@ public class Online extends AbstractOnline {
 			var online = _tonline.selectDirty(account);
 			if (online == null) {
 				if (!trySend)
-					logger.warn("sendAccountsDirect: not found account={} in _tonline", account);
+					logger.info("sendAccountsDirect: not found account={} in _tonline", account);
 				continue;
 			}
 			for (var e : online.getLogins()) {
