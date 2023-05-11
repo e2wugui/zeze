@@ -185,81 +185,23 @@ c)Agent更新桶信息，访问新桶，发送新创建的Batch给它。
 分桶阶段三（删除分走的数据）
 此阶段和阶段二并行。
 
-9. 分桶Detail
-开始实现分桶以后还是碰到了一些问题，跟张路讨论了以后，重新整理一下，分几个方案。
-a) 【原思路】
-
-kv.record.lock 事务进行中会锁住，悬挂的时候阻止后续的写，符合zeze事务系列化要求。最终事务系列化安全保证。
-
-i. 复制流程
-var it = data.iterator(tailing); // tailing 表示这个itertor遍历的时候能看到后面的新加入的记录。
+9. 分桶阶段一详细设计
+a) special.deleted.record 删除的记录不会真正删除，而是保留value为空的记录，正常数据value不能为空。
+对于分桶完成，已经公开的桶，这个特殊记录可以用垃圾回收的方案删掉。
+b) 事务同步流程
+源桶收到的事务提交的时候把修改的记录落到需要拷贝的key区间，马上复制一份到目标桶。
+c) 复制流程
 var count = rocks.getKeyNumber() / 2;
-it.seekTo(share.saved.currentKey); // 第一次拷贝需要seekToFirst()；断点续传时从上次拷贝完成的记录之后开始。
-count -= saved.copyed.count;
-for (int i = 0; i < count && it.isValid(); ++i) {
-	var key = it.key();
-	var lock = Locks.get(key);
-	lock.lock();
-	try {
-		copy to new split bucket;
-		share.saved.currentKey = it.key();
-		saved.copyed.count = i + 1; // 先不考虑效率，每个记录保存一次。
-	} finally {
-		lock.unlock();
-	}
+var it = rocks.iterator();
+for (it.seekToFirst(); it.isValid() && count > 0; it.next(), --count) {
 }
-ii. 事务同步流程
-// lock
-onPrepareBatch() {
-	// 这里会lock住所有的记录。如果记录正在拷贝（see i. 复制流程中的lock），会同步等待一下。
+if (!it.isValid())
+	return; // must empty. impossible
+for (; it.isValid(); it.next()) {
+	// 【关键点 putIfAbsent】复制流程级别低，
+	// 如果存在事务同步过来的结果，由于special.deleted.record，这个结果包含了所有最新的信息。
+	targetBucket.rocksdb.putIfAbsent(it.key(), it.value());
 }
-
-// under lock
-onCommitBatch() {
-	var sync = new list();
-	for (var r : updatedRecordsInBatch)
-		if (r.key <= share.saved.currentKey)
-			sync.add(r);
-	sync to new split bucket;
-	unlockAll();
-}
-
-b) 【新思路】
-
-几乎无锁，kv.record.lock 还是用来保护zeze事务系列化，但是和分桶复制无关了。
-
-i. kv表删除的记录重新定义
-记录删除的时候，不会真正删除，而是会留下一个特殊值的记录。
-
-ii. 事务同步流程
-如果分桶同步中，所有的将要分桶的记录都同步。所以这个方案需要先确定分桶的last记录。
-注意，上面的原思路只需要count，last可以在最后知道。这个last使用见下面。
-share.last = calculateSplitLastKey();
-
-onCommitBatch() {
-	var sync = new list();
-	for (var r : updatedRecordsInBatch)
-		if (r.key <= share.last)
-			sync.add(r);
-	sync to new split bucket;
-	unlockAll(); // 这里仅仅保护进行中的事务不能并发。和复制流程无关。
-}
-
-iii. 复制流程
-for (var first = getFirst(); first != share.last; ++first) {
-	copy first to new split bucket;
-}
-
-onCopySplitRecord(key, value) {
-	rocksdb.putIfAbsent(key, value); // 【关键点】putIfAbsent, 复制流程级别低，如果存在事务同步过来的结果，copy的丢弃。
-}
-
-iv. 总结
-【kv.deleted.record 特殊值留存】
-【copy.putIfAbsent】
-
-c) a-b 差异总结
-i. 存储差异，deleted.record是否真的删除。
-ii. 复制流程对last的定位方式不同，b方案需要先遍历一次。
-iii. 复制流程当复制记录时是否加锁。
-iv. 事务同步范围不同，a方案范围逐步变大，b方案总是同步。
+d) 错误处理总则
+i. 事务同步流程采用异步接口，发生错误，重新开始复制流程c)。基本原则是不影响正常事务的处理。
+ii. 复制流程采用异步接口，发生错误，不断重试当前key。
