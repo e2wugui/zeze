@@ -163,6 +163,8 @@ public class BenchRocksDb {
 			System.out.println("data2 = " + data2.length);
 			ByteBuffer.longLeHandler.set(data, 0, 0); // clear serial number
 			System.out.println("check data: " + Arrays.compare(data, data2));
+
+			System.out.println("keyNum = " + testTable.getKeyNumbers());
 		}
 		System.out.println("end");
 	}
