@@ -1322,6 +1322,9 @@
 				<enum name="eTableNotFound" value="2"/>
 				<enum name="eTableIsNew" value="3"/>
 				<enum name="eSplittingBucketNotFound" value="4"/>
+				<enum name="eManagerNotFound" value="5"/>
+				<enum name="eSplittingBucketExist" value="6"/>
+				<enum name="eTooFewManager" value="7"/>
 				
 				<!--
 				Dbh2发现桶没找到错误时，使用GetBuckets得到完整的信息。
@@ -1356,11 +1359,17 @@
 
 				<!-- 下面是Master跟Dbh2Manager通讯的协议，也包装在MasterAgent中 -->
 				<rpc name="CreateBucket" argument="Zeze.Builtin.Dbh2.BBucketMeta" UseData="true" handle="client"/>
+				<rpc name="CreateSplitBucket" argument="Zeze.Builtin.Dbh2.BBucketMeta" result="Zeze.Builtin.Dbh2.BBucketMeta" UseData="true" handle="server"/>
 
 				<bean name="BRegister">
 					<variable id="1" name="Dbh2RaftAcceptorName" type="string"/>
 				</bean>
 				<rpc name="Register" argument="BRegister" UseData="true" handle="server"/>
+
+				<bean name="BLoad">
+					<variable id="1" name="Load" type="double"/>
+				</bean>
+				<rpc name="ReportLoad" argument="BLoad" UseData="true" handle="server"/>
 			</module>
 
 			<enum name="eBucketNotFound" value="1"/>
@@ -1378,6 +1387,7 @@
 			<!-- 桶(raftNode)创建出来的第一条操作，以后分桶时也需要重新设置 -->
 			<rpc name="SetBucketMeta" argument="BBucketMeta" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			<rpc name="SplitPut" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
 			<bean name="BGetArgument">
 				<variable id="1" name="Database" type="string"/> 用来纠错

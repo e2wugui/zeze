@@ -1,10 +1,13 @@
 package Zeze.Dbh2.Master;
 
+import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
+import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.Register;
+import Zeze.Builtin.Dbh2.Master.ReportLoad;
 import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Net.Connector;
@@ -49,6 +52,8 @@ public class MasterAgent extends AbstractMasterAgent {
 		var r = new CreateDatabase();
 		r.Argument.setDatabase(database);
 		r.SendForWait(service.GetSocket()).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("createDatabase error=" + IModule.getErrorCode(r.getResultCode()));
 	}
 
 	public boolean createTable(String database, String table, OutObject<MasterTable.Data> out) {
@@ -68,6 +73,8 @@ public class MasterAgent extends AbstractMasterAgent {
 		r.Argument.setDatabase(database);
 		r.Argument.setTable(table);
 		r.SendForWait(service.GetSocket()).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("getBuckets error=" + IModule.getErrorCode(r.getResultCode()));
 		return r.Result;
 	}
 
@@ -88,5 +95,22 @@ public class MasterAgent extends AbstractMasterAgent {
 		public Service(Config config) {
 			super(eServiceName, config);
 		}
+	}
+
+	public void reportLoad(double load) {
+		var r = new ReportLoad();
+		r.Argument.setLoad(load);
+		r.SendForWait(service.GetSocket()).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("reportLoad error=" + IModule.getErrorCode(r.getResultCode()));
+	}
+
+	public BBucketMeta.Data createSplitBucket(BBucketMeta.Data bucket) {
+		var r = new CreateSplitBucket();
+		r.Argument = bucket;
+		r.SendForWait(service.GetSocket()).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("createBucket error=" + IModule.getErrorCode(r.getResultCode()));
+		return r.Result;
 	}
 }

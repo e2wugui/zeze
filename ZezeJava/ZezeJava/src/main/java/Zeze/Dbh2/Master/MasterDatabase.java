@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
+import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -221,51 +222,43 @@ public class MasterDatabase {
 		return master.errorCode(Master.eSplittingBucketNotFound);
 	}
 
-	public BBucketMeta.Data createBucket(String tableName, Binary first, Binary last) throws Exception {
-		if (null == tables.get(tableName))
-			return null; // table not exist.
+	public long createSplitBucket(CreateSplitBucket r) throws Exception {
+		String tableName = r.Argument.getTableName();
+		if (null == tables.get(tableName)) {
+			logger.error("createBucket but table not found. database=" + databaseName + " table=" + tableName);
+			return master.errorCode(Master.eTableNotFound);
+		}
 
 		var table = splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-		{
-			// 桶已经存在，一般是分桶中断以后又重新开始，此时继续使用原来创建的桶。
-			// 【需要重置】
-			// 分桶过程中，如果分过去的记录有被删除，中断时，很难可靠的保证删除的记录被同步，
-			// 最简单的办法就是中断以后的分桶重新开始，此时重置目标桶即可。
-			// 【todo】
-			// 要实现中断以后的分桶能断点续传，需要记录（持久化）拷贝中的key，
-			// 并且如果已拷贝记录发生增删的事务也需要持久化，
-			// 所以不是很容易。
-			var bucket = table.locate(first);
-			// 需要精确判断。
-			if (null != bucket && bucket.getKeyFirst().equals(first) && bucket.getKeyLast().equals(last)) {
-				var agent = new Dbh2Agent(bucket.getRaftConfig());
-				try {
-					//agent.resetBucket(bucket);
-				} finally {
-					agent.close();
-				}
-				return bucket;
-			}
-			// 下面将创建新的桶。
-		}
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
+			if (table.buckets.get(r.Argument.getKeyFirst()) != null) {
+				// 桶已经存在，断点续传由manager自己负责，不能重复创建桶。
+				logger.info("bucket exist. database=" + databaseName + " table=" + tableName);
+				return master.errorCode(Master.eSplittingBucketExist);
+			}
+
 			var bucket = new BBucketMeta.Data();
 			bucket.setDatabaseName(databaseName);
 			bucket.setTableName(tableName);
-			bucket.setKeyFirst(first);
-			bucket.setKeyLast(last);
+			bucket.setKeyFirst(r.Argument.getKeyFirst());
+			bucket.setKeyLast(r.Argument.getKeyLast());
 			table.buckets.put(bucket.getKeyFirst(), bucket);
 
 			// allocate first bucket service and setup table
 			var managers = master.choiceSmallLoadManagers();
-			if (managers.size() < 3)
-				return null;
+			if (managers.size() < 3) {
+				logger.info("too few small load manager. database=" + databaseName + " table=" + tableName);
+				return master.errorCode(Master.eTooFewManager);
+			}
 
 			var raftNames = buildRaftConfig(bucket, managers);
 			createBucketRafts(managers, bucket, raftNames);
 			saveRocks(rocksSplitting, tableName, table);
-			return bucket;
+
+			r.Result = bucket;
+			r.SendResult();
+			return 0;
 		}
 	}
 

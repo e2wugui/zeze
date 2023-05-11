@@ -22,6 +22,7 @@ public class Bucket {
 	private long tid;
 	private final byte[] metaKey = new byte[]{1};
 	private final byte[] metaTid = ByteBuffer.Empty;
+	private final byte[] metaSplittingKey = new byte[]{2};
 
 	public WriteOptions getWriteOptions() {
 		return writeOptions;
@@ -37,6 +38,18 @@ public class Bucket {
 
 	public RocksDatabase.Table getTData() {
 		return tData;
+	}
+
+	public byte[] getMetaSplittingKey() throws RocksDBException {
+		return tMeta.get(metaSplittingKey);
+	}
+
+	public void setMetaSplittingKey(byte[] key) throws RocksDBException {
+		tMeta.put(metaSplittingKey, key);
+	}
+
+	public void deleteMetaSplittingKey() throws RocksDBException {
+		tMeta.delete(metaSplittingKey);
 	}
 
 	RocksDatabase.Batch getBatch() {

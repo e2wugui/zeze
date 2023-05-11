@@ -12,35 +12,15 @@ ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 Dbh2 创建表选择负载低的服务器的策略。
           创建表负载。不能用分桶的load，否则批量创建都会创建到同一个manager。这里可用的策略是完全轮询manager，或者按load=manager中的桶数量的方式定义。
+
+------------------------------------------------------------------------------------------------------------------------------
+2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; Raft Async; Dbh2 Async; Online;
+------------------------------------------------------------------------------------------------------------------------------
 Dbh2 根据负载或什么策略并发拆分桶。
           统计：put count； delete count；get count；db file size
           达到阀值（单桶并发的80%），在找得到能接收的manager（单桶并发✖️max_cpu✖️80%）时开始分桶。
           max_cpu：最大并发是cpu核数，但是瓶颈在io，所以这里max_cpu会小一些，经验值是4。
-          单桶并发的80%不能是一天的平均，应该是10分钟的平均。
-	void bucketLoadMonitorTimer()
-	{
-		loadAvg10Minute = (putCount + deleteCount) * m% + getCount * n% + dbFileSize * k%
-		loadMaxBucket 配置，最好能自动跑分得出，或者给一个按机器配置对应的合适的默认配置。
-		if (loadAvg10Minute > loadMaxBucket * 80%)
-		{
-			var managerTarget = findIdleManager();
-			if (null != managerTarget)
-				this.splitTo(managerTarget);
-			// else 忽略这次过载报告。
-		}
-	}
-	Manager findIdleManager()
-	{
-		if (managers.isEmpty())
-			return null;
-		sort manager by load;
-		if (managerMinLoad.load < loadMaxBucket * Cpu * 80%)
-			return managerMinLoad;
-		return null;
-	}
-------------------------------------------------------------------------------------------------------------------------------
-2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; Raft Async; Dbh2 Async; Online;
-------------------------------------------------------------------------------------------------------------------------------
+          单桶并发的80%不能是一天的平均，应该是2分钟的平均。TimerRole.transmit 带上调用时的LoginVersion，接收方判断是否当时的登录。缩小当前登录这个条件的时间窗口。
 TimerRole.transmit 判断customData.class是否存在反了。
 Arch.Link 删除StableLinkSid相关功能。
 Arch.Online 1. 合并online,version表。2. BLink中增加State。

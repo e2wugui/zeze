@@ -4,13 +4,17 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.Master.BRegister;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
+import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.LocateBucket;
 import Zeze.Builtin.Dbh2.Master.Register;
+import Zeze.Builtin.Dbh2.Master.ReportLoad;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
@@ -28,6 +32,7 @@ public class Master extends AbstractMaster {
 	public static class Manager {
 		public final AsyncSocket socket;
 		public final BRegister.Data data;
+		public double load;
 
 		public Manager(AsyncSocket socket, BRegister.Data data) {
 			this.socket = socket;
@@ -92,9 +97,30 @@ public class Master extends AbstractMaster {
 		}
 	}
 
-	// todo 选择负载小的manager。
+	static class ManagerLoadComparator implements Comparator<Manager> {
+
+		@Override
+		public int compare(Manager o1, Manager o2) {
+			return Double.compare(o1.load, o2.load);
+		}
+	}
 	public ArrayList<Manager> choiceSmallLoadManagers() {
-		return choiceManagers();
+		Manager[] shadow;
+		synchronized (this) {
+			shadow = new Manager[managers.size()];
+			managers.toArray(shadow);
+		}
+		Arrays.sort(shadow, new ManagerLoadComparator());
+		var result = new ArrayList<Manager>();
+		var count = 0;
+		for (var manager : shadow) {
+			if (manager.load < 5000 * 4 * 0.8) {
+				result.add(manager);
+				if (++count >= 3)
+					break;
+			}
+		}
+		return result;
 	}
 
 	public synchronized ArrayList<Manager> choiceManagers() {
@@ -171,5 +197,30 @@ public class Master extends AbstractMaster {
 		managers.add(new Manager(r.getSender(), r.Argument));
 		r.SendResult();
 		return 0;
+	}
+
+	private Manager findManager(AsyncSocket sender) {
+		for (var manager : managers)
+			if (manager.socket == sender)
+				return manager;
+		return null;
+	}
+
+	@Override
+	protected synchronized long ProcessReportLoadRequest(ReportLoad r) throws Exception {
+		var manager = findManager(r.getSender());
+		if (null == manager)
+			return errorCode(eManagerNotFound);
+		manager.load = r.Argument.getLoad();
+		r.SendResult();
+		return 0;
+	}
+
+	@Override
+	protected long ProcessCreateSplitBucketRequest(CreateSplitBucket r) throws Exception {
+		var database = databases.get(r.Argument.getDatabaseName());
+		if (null == database)
+			return errorCode(eDatabaseNotFound);
+		return database.createSplitBucket(r);
 	}
 }

@@ -3,15 +3,21 @@ package Zeze.Dbh2;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Builtin.Dbh2.UndoBatch;
 import Zeze.Config;
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolHandle;
+import Zeze.Raft.Agent;
+import Zeze.Raft.LeaderIs;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
@@ -21,6 +27,7 @@ import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 
 public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private static final Logger logger = LogManager.getLogger(Dbh2.class);
@@ -253,4 +260,67 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		getRaft().appendLog(new LogUndoBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 		return 0;
 	}
+
+	class RaftAgentNetClient extends Agent.NetClient {
+
+		public RaftAgentNetClient(Agent agent, String name, Config config) {
+			super(agent, name, config);
+		}
+
+		@Override
+		public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+																ProtocolFactoryHandle<?> factoryHandle) {
+			raft.getUserThreadExecutor().execute(() -> {
+				try {
+					responseHandle.handle(rpc);
+				} catch (Throwable e) { // run handle. 必须捕捉所有异常。logger.error
+					logger.error("Agent.NetClient.dispatchRpcResponse", e);
+				}
+			});
+		}
+
+		@Override
+		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+			var p = decodeProtocol(typeId, bb, factoryHandle, so);
+			// 虚拟线程创建太多Critical线程反而容易卡,以后考虑跑另个虚拟线程池里
+			if (p.getTypeId() == Zeze.Raft.LeaderIs.TypeId_) {
+				Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), "InternalRequest"));
+			} else {
+				raft.getUserThreadExecutor().execute(() -> Task.runUnsafe(
+						() -> p.handle(this, factoryHandle),
+						p,
+						null,
+						null,
+						DispatchMode.Normal));
+			}
+		}
+
+	}
+
+	public void tryStartSplit() throws Exception {
+		var bucket = stateMachine.getBucket();
+		var splittingKey = bucket.getMetaSplittingKey();
+		var meta = bucket.getMeta();
+		if (null != splittingKey) {
+			logger.info("start but splitting found. database={} table={}", meta.getDatabaseName(), meta.getTableName());
+			return; // splitting
+		}
+
+		// start
+		/*
+		var bucketSplit = manager.getMasterAgent().createSplitBucket(meta);
+		var dbh2Split = new Dbh2Agent(bucketSplit.getRaftConfig(), RaftAgentNetClient::new);
+		var raft = dbh2Split.getRaftAgent();
+		var it = bucket.getTData().iterator();
+		it.seekToFirst();
+		var put = new SplitPut();
+
+		raft.send(put, (p) -> splitPutNext((SplitPut)p, raft, it));
+		*/
+	}
+	/*
+	public synchronized void splitPutNext(SplitPut put, Agent raft, RocksIterator it) {
+
+	}
+	*/
 }

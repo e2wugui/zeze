@@ -173,9 +173,93 @@ e)Dbh2Managerµ±Í¬²½¿½±´Íê³É£¬ĞÂÍ°Ğ´ÈëMeta£¬¸üĞÂMasterĞÅÏ¢£¬ĞÂÍ°´ËÊ±ÒÑ¾­¿ªÊ¼¿ÉÒÔ½
    ¡¾ÌÖÂÛ¡¿ÉÏÃæµÄ²Ù×÷×îºÃÄÜÔ­×ÓÖ´ĞĞ£¬µ«Éæ¼°¶à¸ö½ø³Ì£¬Ò»°ãÒâÒåÉÏµÄÔ­×Ó±£Ö¤¿ÉÄÜ±È½ÏÄÑ£¬ÊÇ·ñ¿ÉÒÔÍ¨¹ıÖ´ĞĞË³Ğò¾Í±£Ö¤ÕıÈ·ĞÔ¡£
    ¡¾ĞŞ¶©¡¿rocksdb²éÑ¯µÃµ½tableµÄ´ó¸ÅkeyµÄÊıÁ¿¡£ÉÏÃæµÄ·½·¨ÊÇ´Ó×îºóÒ»¸ö¼ÇÂ¼µ¹Ğò±éÀúkey-count/2Ìõ¼ÇÂ¼¡£
                 ÓÉÓÚµ¹Ğò±éÀúĞ§ÂÊ±ÈÕıĞòÂı£¬ËùÒÔ¿½±´Ç°Ò»°ëµ½ĞÂµÄ·ÖÍ°Ğ§ÂÊ¸ü¸ß¡£ÉÏÃæµÄÃèÊöĞèÒªĞŞ¶©¡£
+   ¡¾¶ÏµãĞø´«¡¿
+                ·ÖÍ°¹ı³ÌÖĞ£¬¼ÇÂ¼×îºó¸´ÖÆµÄkeyÓÃÓÚĞø´«¡£
+                ·ÖÍ°¹ı³ÌÖĞ£¬·¢Éú[first,current-key]Ö®¼äµÄÊÂÎñ²Ù×÷ÂíÉÏÍ¬²½µ½Ä¿±êÍ°¡£
 
 ·ÖÍ°½×¶Î¶ş£¨»ØÍË½×¶Î£©£¬
 a)Dbh2Manager·¢ÏÖbatchÖĞ²»ÊÇ±¾Í°µÄ¼ÇÂ¼£¬ÊÕ¼¯ÒÔºó»ØÍË¸øagent£¬²¢±¨¸æÍ°ĞÅÏ¢ĞèÒª¸üĞÂ´íÎóÂë¡£
 b)AgentÊÕµ½»ØÍË£¬´´½¨ĞÂµÄBatch£¬Ç¨ÒÆ¼ÇÂ¼µ½´Ë¡£
 c)Agent¸üĞÂÍ°ĞÅÏ¢£¬·ÃÎÊĞÂÍ°£¬·¢ËÍĞÂ´´½¨µÄBatch¸øËü¡£
 
+·ÖÍ°½×¶ÎÈı£¨É¾³ı·Ö×ßµÄÊı¾İ£©
+´Ë½×¶ÎºÍ½×¶Î¶ş²¢ĞĞ¡£
+
+9. ·ÖÍ°Detail
+¿ªÊ¼ÊµÏÖ·ÖÍ°ÒÔºó»¹ÊÇÅöµ½ÁËÒ»Ğ©ÎÊÌâ£¬¸úÕÅÂ·ÌÖÂÛÁËÒÔºó£¬ÖØĞÂÕûÀíÒ»ÏÂ£¬·Ö¼¸¸ö·½°¸¡£
+a) ¡¾Ô­Ë¼Â·¡¿
+
+kv.record.lock ÊÂÎñ½øĞĞÖĞ»áËø×¡£¬Ğü¹ÒµÄÊ±ºò×èÖ¹ºóĞøµÄĞ´£¬·ûºÏzezeÊÂÎñÏµÁĞ»¯ÒªÇó¡£×îÖÕÊÂÎñÏµÁĞ»¯°²È«±£Ö¤¡£
+
+i. ¸´ÖÆÁ÷³Ì
+var it = data.iterator(tailing); // tailing ±íÊ¾Õâ¸öitertor±éÀúµÄÊ±ºòÄÜ¿´µ½ºóÃæµÄĞÂ¼ÓÈëµÄ¼ÇÂ¼¡£
+var count = rocks.getKeyNumber() / 2;
+it.seekTo(share.saved.currentKey); // µÚÒ»´Î¿½±´ĞèÒªseekToFirst()£»¶ÏµãĞø´«Ê±´ÓÉÏ´Î¿½±´Íê³ÉµÄ¼ÇÂ¼Ö®ºó¿ªÊ¼¡£
+count -= saved.copyed.count;
+for (int i = 0; i < count && it.isValid(); ++i) {
+	var key = it.key();
+	var lock = Locks.get(key);
+	lock.lock();
+	try {
+		copy to new split bucket;
+		share.saved.currentKey = it.key();
+		saved.copyed.count = i + 1; // ÏÈ²»¿¼ÂÇĞ§ÂÊ£¬Ã¿¸ö¼ÇÂ¼±£´æÒ»´Î¡£
+	} finally {
+		lock.unlock();
+	}
+}
+ii. ÊÂÎñÍ¬²½Á÷³Ì
+// lock
+onPrepareBatch() {
+	// ÕâÀï»álock×¡ËùÓĞµÄ¼ÇÂ¼¡£Èç¹û¼ÇÂ¼ÕıÔÚ¿½±´£¨see i. ¸´ÖÆÁ÷³ÌÖĞµÄlock£©£¬»áÍ¬²½µÈ´ıÒ»ÏÂ¡£
+}
+
+// under lock
+onCommitBatch() {
+	var sync = new list();
+	for (var r : updatedRecordsInBatch)
+		if (r.key <= share.saved.currentKey)
+			sync.add(r);
+	sync to new split bucket;
+	unlockAll();
+}
+
+b) ¡¾ĞÂË¼Â·¡¿
+
+¼¸ºõÎŞËø£¬kv.record.lock »¹ÊÇÓÃÀ´±£»¤zezeÊÂÎñÏµÁĞ»¯£¬µ«ÊÇºÍ·ÖÍ°¸´ÖÆÎŞ¹ØÁË¡£
+
+i. kv±íÉ¾³ıµÄ¼ÇÂ¼ÖØĞÂ¶¨Òå
+¼ÇÂ¼É¾³ıµÄÊ±ºò£¬²»»áÕæÕıÉ¾³ı£¬¶øÊÇ»áÁôÏÂÒ»¸öÌØÊâÖµµÄ¼ÇÂ¼¡£
+
+ii. ÊÂÎñÍ¬²½Á÷³Ì
+Èç¹û·ÖÍ°Í¬²½ÖĞ£¬ËùÓĞµÄ½«Òª·ÖÍ°µÄ¼ÇÂ¼¶¼Í¬²½¡£ËùÒÔÕâ¸ö·½°¸ĞèÒªÏÈÈ·¶¨·ÖÍ°µÄlast¼ÇÂ¼¡£
+×¢Òâ£¬ÉÏÃæµÄÔ­Ë¼Â·Ö»ĞèÒªcount£¬last¿ÉÒÔÔÚ×îºóÖªµÀ¡£Õâ¸ölastÊ¹ÓÃ¼ûÏÂÃæ¡£
+share.last = calculateSplitLastKey();
+
+onCommitBatch() {
+	var sync = new list();
+	for (var r : updatedRecordsInBatch)
+		if (r.key <= share.last)
+			sync.add(r);
+	sync to new split bucket;
+	unlockAll(); // ÕâÀï½ö½ö±£»¤½øĞĞÖĞµÄÊÂÎñ²»ÄÜ²¢·¢¡£ºÍ¸´ÖÆÁ÷³ÌÎŞ¹Ø¡£
+}
+
+iii. ¸´ÖÆÁ÷³Ì
+for (var first = getFirst(); first != share.last; ++first) {
+	copy first to new split bucket;
+}
+
+onCopySplitRecord(key, value) {
+	rocksdb.putIfAbsent(key, value); // ¡¾¹Ø¼üµã¡¿putIfAbsent, ¸´ÖÆÁ÷³Ì¼¶±ğµÍ£¬Èç¹û´æÔÚÊÂÎñÍ¬²½¹ıÀ´µÄ½á¹û£¬copyµÄ¶ªÆú¡£
+}
+
+iv. ×Ü½á
+¡¾kv.deleted.record ÌØÊâÖµÁô´æ¡¿
+¡¾copy.putIfAbsent¡¿
+
+c) a-b ²îÒì×Ü½á
+i. ´æ´¢²îÒì£¬deleted.recordÊÇ·ñÕæµÄÉ¾³ı¡£
+ii. ¸´ÖÆÁ÷³Ì¶ÔlastµÄ¶¨Î»·½Ê½²»Í¬£¬b·½°¸ĞèÒªÏÈ±éÀúÒ»´Î¡£
+iii. ¸´ÖÆÁ÷³Ìµ±¸´ÖÆ¼ÇÂ¼Ê±ÊÇ·ñ¼ÓËø¡£
+iv. ÊÂÎñÍ¬²½·¶Î§²»Í¬£¬a·½°¸·¶Î§Öğ²½±ä´ó£¬b·½°¸×ÜÊÇÍ¬²½¡£

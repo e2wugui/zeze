@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import Zeze.Application;
 import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
@@ -9,6 +10,7 @@ import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Builtin.Dbh2.UndoBatch;
+import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
@@ -16,6 +18,7 @@ import Zeze.Raft.RaftRpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Func3;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
 
@@ -117,10 +120,23 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		raftClient.getClient().start();
 	}
 
+	public Dbh2Agent(String raftConfigString, Func3<Agent, String, Config, Agent.NetClient> netClientFactory) throws Exception {
+		this.raftConfigString = raftConfigString;
+		var raftConf = RaftConfig.loadFromString(raftConfigString);
+		raftClient = new Agent("dbh2.raft", raftConf, null, netClientFactory);
+		raftClient.setOnSetLeader(this::raftOnSetLeader);
+		RegisterProtocols(raftClient.getClient());
+		raftClient.getClient().start();
+	}
+
 	private void raftOnSetLeader(Agent agent) {
 	}
 
 	public final void close() throws Exception {
 		raftClient.stop();
+	}
+
+	public Agent getRaftAgent() {
+		return raftClient;
 	}
 }

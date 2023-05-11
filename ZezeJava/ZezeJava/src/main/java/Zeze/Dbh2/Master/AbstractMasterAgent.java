@@ -15,6 +15,9 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
     public static final int eTableNotFound = 2;
     public static final int eTableIsNew = 3;
     public static final int eSplittingBucketNotFound = 4;
+    public static final int eManagerNotFound = 5;
+    public static final int eSplittingBucketExist = 6;
+    public static final int eTooFewManager = 7;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
@@ -32,6 +35,13 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessCreateDatabaseResponse", Zeze.Transaction.TransactionLevel.None);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessCreateDatabaseResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47361973054464L, factoryHandle); // 11027, 1368681472
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.CreateSplitBucket.class, Zeze.Builtin.Dbh2.Master.CreateSplitBucket.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.CreateSplitBucket::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCreateSplitBucketResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCreateSplitBucketResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47362664777370L, factoryHandle); // 11027, 2060404378
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.CreateTable.class, Zeze.Builtin.Dbh2.Master.CreateTable.TypeId_);
@@ -61,15 +71,24 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessRegisterResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47364347310157L, factoryHandle); // 11027, -552030131
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.ReportLoad.class, Zeze.Builtin.Dbh2.Master.ReportLoad.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.ReportLoad::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReportLoadResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReportLoadResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47363711595808L, factoryHandle); // 11027, -1187744480
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47364327162209L);
         service.getFactorys().remove(47361973054464L);
+        service.getFactorys().remove(47362664777370L);
         service.getFactorys().remove(47363344664675L);
         service.getFactorys().remove(47363118214025L);
         service.getFactorys().remove(47363709711447L);
         service.getFactorys().remove(47364347310157L);
+        service.getFactorys().remove(47363711595808L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {

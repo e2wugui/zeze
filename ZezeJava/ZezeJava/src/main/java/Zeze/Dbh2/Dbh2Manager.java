@@ -10,6 +10,7 @@ import java.util.concurrent.Future;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
+import Zeze.Dbh2.Master.MasterTable;
 import Zeze.Net.AsyncSocket;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.OutObject;
@@ -20,6 +21,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.rocksdb.RocksDBException;
 
 /**
  * Dbh2管理器，管理Dbh2(Raft桶)的创建。
@@ -41,6 +43,10 @@ public class Dbh2Manager {
 	private final String home;
 
 	private final ConcurrentHashMap<String, Dbh2> dbh2s = new ConcurrentHashMap<>();
+
+	public MasterAgent getMasterAgent() {
+		return masterAgent;
+	}
 
 	void register(String acceptor) {
 		masterAgent.register(acceptor);
@@ -129,14 +135,21 @@ public class Dbh2Manager {
 		loadMonitorTimer = Task.scheduleUnsafe(120_000, 120_000, this::loadMonitor);
 	}
 
-	private void loadMonitor() {
+	private void loadMonitor() throws Exception {
+		var loadManager = 0.0;
+		var willSplit = new ArrayList<Dbh2>();
 		for (var dbh2 : dbh2s.values()) {
-			if (dbh2.load() > 8000 * 0.8) {
-				// 达到分桶条件之一：负载高于最大值的80%。
-				// todo 这里可以考虑dbFileSize，当库比较大时也分桶。
-				//masterAgent.createTable()
-			}
+			var load = dbh2.load();
+			loadManager += load;
+
+			// 达到分桶条件之一：负载高于最大值的80%。
+			// todo 这里可以考虑dbFileSize(min,max)，当库比较大时也分桶，另外库很小时即使负载高也不分桶。
+			if (load > 5000 * 0.8)
+				willSplit.add(dbh2);
 		}
+		masterAgent.reportLoad(loadManager);
+		for (var split : willSplit)
+			split.tryStartSplit(); // 允许重复调用，里面需要去重。
 	}
 
 	public void stop() throws Exception {

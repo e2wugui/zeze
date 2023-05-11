@@ -20,6 +20,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
+import Zeze.Util.Func3;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.PersistentAtomicLong;
@@ -260,9 +261,10 @@ public final class Agent {
 		init(new NetClient(this, name, zeze), raftConf);
 	}
 
-	public Agent(String name, Application zeze, RaftConfig raftConf, NetClient netClient) throws Exception {
+	public Agent(String name, Application zeze, RaftConfig raftConf,
+				 Func3<Agent, String, Application, NetClient> netClientFactory) throws Exception {
 		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + '.' + zeze.getConfig().getServerId());
-		init(netClient, raftConf);
+		init(netClientFactory.call(this, name, zeze), raftConf);
 	}
 
 	public Agent(String name, RaftConfig raftConf) throws Exception {
@@ -277,12 +279,13 @@ public final class Agent {
 		init(new NetClient(this, name, config), raftConf);
 	}
 
-	public Agent(String name, RaftConfig raftConf, Config config, NetClient netClient) throws Exception {
+	public Agent(String name, RaftConfig raftConf, Config config,
+				 Func3<Agent, String, Config, NetClient> netClientFactory) throws Exception {
 		if (config == null)
 			config = Config.load();
 
 		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + ',' + config.getServerId());
-		init(netClient, raftConf);
+		init(netClientFactory.call(this, name, config), raftConf);
 	}
 
 	private void init(NetClient client, RaftConfig raftConf) throws Exception {
@@ -472,7 +475,7 @@ public final class Agent {
 		}
 	}
 
-	public static final class NetClient extends HandshakeClient {
+	public static class NetClient extends HandshakeClient {
 		private final Agent agent;
 
 		public NetClient(Agent agent, String name, Application zeze) {
@@ -504,10 +507,15 @@ public final class Agent {
 		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			// 虚拟线程创建太多Critical线程反而容易卡,以后考虑跑另个虚拟线程池里
-			if (p.getTypeId() == LeaderIs.TypeId_ || agent.dispatchProtocolToInternalThreadPool)
+			if (p.getTypeId() == LeaderIs.TypeId_ || agent.dispatchProtocolToInternalThreadPool) {
 				Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), "InternalRequest"));
-			else
-				Task.runUnsafe(() -> p.handle(this, factoryHandle), p, null, null, DispatchMode.Normal);
+			} else {
+				Task.runUnsafe(() -> p.handle(this, factoryHandle),
+						p,
+						null,
+						null,
+						DispatchMode.Normal);
+			}
 		}
 	}
 }
