@@ -53,6 +53,13 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
             service.AddFactoryHandle(47356909547647L, factoryHandle); // 11026, 600141951
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.SplitPut.class, Zeze.Builtin.Dbh2.SplitPut.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.SplitPut::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSplitPutResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSplitPutResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47359148214035L, factoryHandle); // 11026, -1456158957
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.UndoBatch.class, Zeze.Builtin.Dbh2.UndoBatch.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.UndoBatch::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessUndoBatchResponse", Zeze.Transaction.TransactionLevel.None);
@@ -67,6 +74,7 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
         service.getFactorys().remove(47358800944088L);
         service.getFactorys().remove(47360344602230L);
         service.getFactorys().remove(47356909547647L);
+        service.getFactorys().remove(47359148214035L);
         service.getFactorys().remove(47357555155327L);
     }
 

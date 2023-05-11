@@ -8,9 +8,14 @@ import org.rocksdb.RocksDBException;
 public class Dbh2Transaction implements Closeable {
 	private final HashMap<Lock, Lock> locks = new HashMap<>();
 	private final BBatch.Data logs = new BBatch.Data();
+	private final BBatch.Data batch;
 	private final String queryIp;
 	private final int queryPort;
 	private final long createTime;
+
+	public BBatch.Data getBatch() {
+		return batch;
+	}
 
 	@Override
 	public String toString() {
@@ -35,6 +40,7 @@ public class Dbh2Transaction implements Closeable {
 	 * @param batch batch parameter
 	 */
 	public Dbh2Transaction(BBatch.Data batch) {
+		this.batch = batch;
 		this.queryIp = batch.getQueryIp();
 		this.queryPort = batch.getQueryPort();
 		this.createTime = System.currentTimeMillis();

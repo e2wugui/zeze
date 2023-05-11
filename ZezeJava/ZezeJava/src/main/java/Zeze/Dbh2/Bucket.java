@@ -40,15 +40,22 @@ public class Bucket {
 		return tData;
 	}
 
-	public byte[] getMetaSplittingKey() throws RocksDBException {
-		return tMeta.get(metaSplittingKey);
+	public BBucketMeta.Data getMetaSplitting() throws RocksDBException {
+		var value = tMeta.get(metaSplittingKey);
+		if (null == value)
+			return null;
+		var meta = new BBucketMeta.Data();
+		meta.decode(ByteBuffer.Wrap(value));
+		return meta;
 	}
 
-	public void setMetaSplittingKey(byte[] key) throws RocksDBException {
-		tMeta.put(metaSplittingKey, key);
+	public void setMetaSplitting(BBucketMeta.Data meta) throws RocksDBException {
+		var bbMeta = ByteBuffer.Allocate();
+		meta.encode(bbMeta);
+		tMeta.put(metaSplittingKey, 0, metaSplittingKey.length, bbMeta.Bytes, bbMeta.ReadIndex, bbMeta.size());
 	}
 
-	public void deleteMetaSplittingKey() throws RocksDBException {
+	public void deleteMetaSplitting() throws RocksDBException {
 		tMeta.delete(metaSplittingKey);
 	}
 

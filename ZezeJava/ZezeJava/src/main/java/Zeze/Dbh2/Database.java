@@ -71,6 +71,8 @@ public class Database extends Zeze.Transaction.Database {
 		}
 
 		public void replace(String tableName, ByteBuffer key, ByteBuffer value) {
+			if (value.size() <= 0)
+				throw new RuntimeException("value.size <= 0.");
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
 			var agent = dbh2AgentManager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);

@@ -7,12 +7,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Builtin.Dbh2.BSplitPut;
+import Zeze.Builtin.Dbh2.SplitPut;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
+import com.alibaba.druid.sql.visitor.functions.Bin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -118,8 +121,29 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void commitBatch(Binary tid) {
 		//noinspection EmptyTryBlock
-		try (var ignored = transactions.remove(tid)) {
-			// do nothing
+		try (var txn = transactions.remove(tid)) {
+			try {
+				// todo 这里判断是否分桶需要考虑效率，raft.leader 等。这里先写出流程。
+				var stateMachine = (Dbh2StateMachine)dbh2.getRaft().getStateMachine();
+				var splitting = stateMachine.getBucket().getMetaSplitting();
+				if (splitting != null) {
+					var r = new SplitPut();
+					r.Argument.setFromTransaction(true);
+					r.Argument.getPuts().putAll(txn.getBatch().getPuts());
+					for (var delete : txn.getBatch().getDeletes())
+						r.Argument.getPuts().put(delete, Binary.Empty);
+					var agent = new Dbh2Agent(splitting.getRaftConfig());
+					agent.getRaftAgent().send(r, (p) -> {
+						if (r.getResultCode() != 0)
+							;
+						// todo mark and restart.
+						//  事务同步流程不能重试，因为提交之后就有新的并发事务过来，而这里是异步的，重试结果就不正确了。
+						return 0;
+					});
+				}
+			} catch (Exception ex) {
+				dbh2.getRaft().fatalKill();
+			}
 		}
 	}
 
@@ -234,6 +258,39 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			openBucket(); // reopen
 		} finally {
 			getRaft().unlock();
+		}
+	}
+
+	public void applySplitPut(BSplitPut.Data puts) {
+		try {
+			var table = bucket.getTData();
+			if (puts.isFromTransaction()) {
+				// 事务同步流程
+				for (var e : puts.getPuts().entrySet()) {
+					var key = e.getKey();
+					var value = e.getValue();
+
+					// replace
+					table.put(key.bytesUnsafe(), key.getOffset(), key.size(),
+							value.bytesUnsafe(), value.getOffset(), value.size());
+				}
+				return; // done;
+			}
+
+			// 数据复制流程
+			for (var e : puts.getPuts().entrySet()) {
+				var key = e.getKey();
+				var value = e.getValue();
+
+				// putIfAbsent
+				if (table.get(key.bytesUnsafe(), key.getOffset(), key.size()) == null) {
+					table.put(key.bytesUnsafe(), key.getOffset(), key.size(),
+							value.bytesUnsafe(), value.getOffset(), value.size());
+				}
+			}
+		} catch (RocksDBException ex) {
+			logger.error("", ex);
+			getRaft().fatalKill();
 		}
 	}
 }

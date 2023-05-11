@@ -1384,10 +1384,14 @@
 				<variable id="5" name="RaftConfig" type="string"/>
 			</bean>
 
+			<bean name="BSplitPut">
+				<variable id="1" name="fromTransaction" type="bool"/>
+				<variable id="2" name="Puts" type="map[binary, binary]"/> 包含delete，用Binary.Empty表示。
+			</bean>
 			<!-- 桶(raftNode)创建出来的第一条操作，以后分桶时也需要重新设置 -->
 			<rpc name="SetBucketMeta" argument="BBucketMeta" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
-			<rpc name="SplitPut" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			<rpc name="SplitPut" argument="BSplitPut" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
 			<bean name="BGetArgument">
 				<variable id="1" name="Database" type="string"/> 用来纠错

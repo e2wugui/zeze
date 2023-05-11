@@ -58,6 +58,14 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
             service.AddFactoryHandle(47356909547647L, factoryHandle); // 11026, 600141951
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.SplitPut.class, Zeze.Builtin.Dbh2.SplitPut.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.SplitPut::new;
+            factoryHandle.Handle = this::ProcessSplitPutRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSplitPutRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSplitPutRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47359148214035L, factoryHandle); // 11026, -1456158957
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.UndoBatch.class, Zeze.Builtin.Dbh2.UndoBatch.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.UndoBatch::new;
             factoryHandle.Handle = this::ProcessUndoBatchRequest;
@@ -73,6 +81,7 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
         service.getFactorys().remove(47358800944088L);
         service.getFactorys().remove(47360344602230L);
         service.getFactorys().remove(47356909547647L);
+        service.getFactorys().remove(47359148214035L);
         service.getFactorys().remove(47357555155327L);
     }
 
@@ -90,5 +99,6 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
     protected abstract long ProcessKeepAliveRequest(Zeze.Builtin.Dbh2.KeepAlive r) throws Exception;
     protected abstract long ProcessPrepareBatchRequest(Zeze.Builtin.Dbh2.PrepareBatch r) throws Exception;
     protected abstract long ProcessSetBucketMetaRequest(Zeze.Builtin.Dbh2.SetBucketMeta r) throws Exception;
+    protected abstract long ProcessSplitPutRequest(Zeze.Builtin.Dbh2.SplitPut r) throws Exception;
     protected abstract long ProcessUndoBatchRequest(Zeze.Builtin.Dbh2.UndoBatch r) throws Exception;
 }

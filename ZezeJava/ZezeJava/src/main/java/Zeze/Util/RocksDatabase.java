@@ -431,6 +431,10 @@ public class RocksDatabase implements Closeable {
 			id = cfHandle.getID();
 		}
 
+		public int getKeyNumbers() throws RocksDBException {
+			return Integer.parseInt(rocksDb.getProperty(cfHandle, "rocksdb.estimate-num-keys"));
+		}
+
 		public @NotNull String getName() {
 			return name;
 		}

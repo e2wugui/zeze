@@ -3,18 +3,18 @@ package Zeze.Dbh2;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
+import Zeze.Builtin.Dbh2.SplitPut;
 import Zeze.Builtin.Dbh2.UndoBatch;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Raft.Agent;
-import Zeze.Raft.LeaderIs;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
@@ -294,12 +294,18 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 						DispatchMode.Normal));
 			}
 		}
-
 	}
 
 	public void tryStartSplit() throws Exception {
+		if (!raft.isLeader())
+			return;
+		// todo raft leader
+		//  以及 leader 失败需要详细考虑。
+		//  以及 正在分桶的状态数据需要raft支持。
+		//  以及 正在分桶raft同时往新桶拷贝问题的处理。
+
 		var bucket = stateMachine.getBucket();
-		var splittingKey = bucket.getMetaSplittingKey();
+		var splittingKey = bucket.getMetaSplitting();
 		var meta = bucket.getMeta();
 		if (null != splittingKey) {
 			logger.info("start but splitting found. database={} table={}", meta.getDatabaseName(), meta.getTableName());
@@ -307,20 +313,57 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		}
 
 		// start
-		/*
 		var bucketSplit = manager.getMasterAgent().createSplitBucket(meta);
 		var dbh2Split = new Dbh2Agent(bucketSplit.getRaftConfig(), RaftAgentNetClient::new);
 		var raft = dbh2Split.getRaftAgent();
 		var it = bucket.getTData().iterator();
-		it.seekToFirst();
-		var put = new SplitPut();
+		var count = bucket.getTData().getKeyNumbers() / 2;
+		for (it.seekToFirst(); it.isValid() && count > 0; it.next(), --count) {
+			// searching middle
+		}
 
-		raft.send(put, (p) -> splitPutNext((SplitPut)p, raft, it));
-		*/
+		if (it.isValid()) {
+			// start.
+			bucketSplit.setKeyFirst(new Binary(it.key()));
+			bucket.setMetaSplitting(bucketSplit);
+			var puts = buildSplitPut(it);
+			raft.send(puts, (p) -> splitPutNext((SplitPut)p, raft, it));
+			return; // done.
+		}
+		it.close();
 	}
-	/*
-	public synchronized void splitPutNext(SplitPut put, Agent raft, RocksIterator it) {
 
+	private static SplitPut buildSplitPut(RocksIterator it) {
+		var r = new SplitPut();
+		r.Argument.setFromTransaction(false);
+		var count = 100;
+		for (; it.isValid() && count > 0; it.next(), --count) {
+			r.Argument.getPuts().put(new Binary(it.key()), new Binary(it.value()));
+		}
+		return r;
 	}
-	*/
+
+	public long splitPutNext(SplitPut r, Agent agent, RocksIterator it) {
+		if (!raft.isLeader()) {
+			it.close();
+			return 0;
+		}
+
+		var puts = buildSplitPut(it);
+		if (puts.Argument.getPuts().isEmpty()) {
+			it.close();
+			// todo 结束分桶
+			return 0; // split finish.
+		}
+		agent.send(puts, (p) -> splitPutNext((SplitPut)p, agent, it));
+		return 0;
+	}
+
+	@Override
+	protected long ProcessSplitPutRequest(SplitPut r) throws Exception {
+		raft.appendLog(new LogSplitPut(r),
+				(raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
+		return 0;
+	}
+
 }
