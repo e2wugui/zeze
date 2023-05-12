@@ -9,6 +9,7 @@ import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.PublishSplitBucketNew;
 import Zeze.Builtin.Dbh2.Master.PublishSplitBucketOld;
 import Zeze.Builtin.Dbh2.Master.Register;
+import Zeze.Builtin.Dbh2.Master.ReportBucketCount;
 import Zeze.Builtin.Dbh2.Master.ReportLoad;
 import Zeze.Config;
 import Zeze.IModule;
@@ -80,9 +81,10 @@ public class MasterAgent extends AbstractMasterAgent {
 		return r.Result;
 	}
 
-	public void register(String dbh2RaftAcceptorName) {
+	public void register(String dbh2RaftAcceptorName, int bucketCount) {
 		var r = new Register();
 		r.Argument.setDbh2RaftAcceptorName(dbh2RaftAcceptorName);
+		r.Argument.setBucketCount(bucketCount);
 		r.SendForWait(service.GetSocket()); // 这里不能等待，现在直接在网络线程中运行。
 	}
 
@@ -127,6 +129,14 @@ public class MasterAgent extends AbstractMasterAgent {
 	public void publishSplitBucketOld(BBucketMeta.Data bucket) {
 		var r = new PublishSplitBucketOld();
 		r.Argument = bucket;
+		r.SendForWait(service.GetSocket()).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
+	}
+
+	public void reportBucketCount(int count) {
+		var r= new ReportBucketCount();
+		r.Argument.setCount(count);
 		r.SendForWait(service.GetSocket()).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));

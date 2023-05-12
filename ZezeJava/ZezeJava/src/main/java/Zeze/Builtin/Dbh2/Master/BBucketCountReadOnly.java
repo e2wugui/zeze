@@ -1,12 +1,11 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Dbh2.Master;
 
-public interface BRegisterReadOnly {
+public interface BBucketCountReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BRegister copy();
+    BBucketCount copy();
 
-    String getDbh2RaftAcceptorName();
-    int getBucketCount();
+    int getCount();
 }

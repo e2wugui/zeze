@@ -10,12 +10,12 @@ c# fresh 有bug？
 c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，等c#自己的async-lock】
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
-Dbh2 创建表选择负载低的服务器的策略。
-          创建表负载。不能用分桶的load，否则批量创建都会创建到同一个manager。这里可用的策略是完全轮询manager，或者按load=manager中的桶数量的方式定义。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; Raft Async; Dbh2 Async; Online;
 ------------------------------------------------------------------------------------------------------------------------------
+Dbh2 创建表选择负载低的服务器的策略。
+          创建表负载。不能用分桶的load，否则批量创建都会创建到同一个manager。这里可用的策略是完全轮询manager，或者按load=manager中的桶数量的方式定义。
 Dbh2 分桶阶段二，1. refused 服务器已处理。2. refused Agent todo
 Dbh2 endSplit 【原子化】
 Dbh2 根据负载或什么策略并发拆分桶。

@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
-import Zeze.Dbh2.Master.MasterTable;
 import Zeze.Net.AsyncSocket;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.OutObject;
@@ -22,7 +21,6 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.rocksdb.RocksDBException;
 
 /**
  * Dbh2管理器，管理Dbh2(Raft桶)的创建。
@@ -50,8 +48,8 @@ public class Dbh2Manager {
 		return masterAgent;
 	}
 
-	void register(String acceptor) {
-		masterAgent.register(acceptor);
+	void register(String acceptor, int bucketCount) {
+		masterAgent.register(acceptor, bucketCount);
 	}
 
 	protected long ProcessCreateBucketRequest(CreateBucket r) throws Exception {
@@ -75,6 +73,7 @@ public class Dbh2Manager {
 		dbh2s.computeIfAbsent(r.Argument.getRaftConfig(),
 				__ -> new Dbh2(this, raftConfig.getName(), raftConfig, null, false));
 		r.SendResult();
+		masterAgent.reportBucketCount(dbh2s.size());
 		return 0;
 	}
 
@@ -97,7 +96,7 @@ public class Dbh2Manager {
 		@Override
 		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
-			Dbh2Manager.this.register(getOneAcceptorIp());
+			Dbh2Manager.this.register(getOneAcceptorIp(), Dbh2Manager.this.dbh2s.size());
 		}
 	}
 

@@ -93,6 +93,14 @@ public abstract class AbstractMaster implements Zeze.IModule {
             service.AddFactoryHandle(47364347310157L, factoryHandle); // 11027, -552030131
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.ReportBucketCount.class, Zeze.Builtin.Dbh2.Master.ReportBucketCount.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.ReportBucketCount::new;
+            factoryHandle.Handle = this::ProcessReportBucketCountRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReportBucketCountRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReportBucketCountRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47360684865688L, factoryHandle); // 11027, 80492696
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.ReportLoad.class, Zeze.Builtin.Dbh2.Master.ReportLoad.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.ReportLoad::new;
             factoryHandle.Handle = this::ProcessReportLoadRequest;
@@ -112,6 +120,7 @@ public abstract class AbstractMaster implements Zeze.IModule {
         service.getFactorys().remove(47360811265817L);
         service.getFactorys().remove(47363412974522L);
         service.getFactorys().remove(47364347310157L);
+        service.getFactorys().remove(47360684865688L);
         service.getFactorys().remove(47363711595808L);
     }
 
@@ -132,5 +141,6 @@ public abstract class AbstractMaster implements Zeze.IModule {
     protected abstract long ProcessPublishSplitBucketNewRequest(Zeze.Builtin.Dbh2.Master.PublishSplitBucketNew r) throws Exception;
     protected abstract long ProcessPublishSplitBucketOldRequest(Zeze.Builtin.Dbh2.Master.PublishSplitBucketOld r) throws Exception;
     protected abstract long ProcessRegisterRequest(Zeze.Builtin.Dbh2.Master.Register r) throws Exception;
+    protected abstract long ProcessReportBucketCountRequest(Zeze.Builtin.Dbh2.Master.ReportBucketCount r) throws Exception;
     protected abstract long ProcessReportLoadRequest(Zeze.Builtin.Dbh2.Master.ReportLoad r) throws Exception;
 }

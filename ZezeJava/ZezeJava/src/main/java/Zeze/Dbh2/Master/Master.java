@@ -16,6 +16,7 @@ import Zeze.Builtin.Dbh2.Master.LocateBucket;
 import Zeze.Builtin.Dbh2.Master.PublishSplitBucketNew;
 import Zeze.Builtin.Dbh2.Master.PublishSplitBucketOld;
 import Zeze.Builtin.Dbh2.Master.Register;
+import Zeze.Builtin.Dbh2.Master.ReportBucketCount;
 import Zeze.Builtin.Dbh2.Master.ReportLoad;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
@@ -30,7 +31,6 @@ public class Master extends AbstractMaster {
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
 	private final String home;
 
-	// todo 可用Dbh2Manager的数据结构。
 	public static class Manager {
 		public final AsyncSocket socket;
 		public final BRegister.Data data;
@@ -43,7 +43,6 @@ public class Master extends AbstractMaster {
 	}
 
 	private final ArrayList<Manager> managers = new ArrayList<>();
-	private int choiceIndex;
 	private final RocksDB masterDb;
 
 	public Master(String home) throws RocksDBException {
@@ -100,47 +99,51 @@ public class Master extends AbstractMaster {
 	}
 
 	static class ManagerLoadComparator implements Comparator<Manager> {
-
 		@Override
 		public int compare(Manager o1, Manager o2) {
 			return Double.compare(o1.load, o2.load);
 		}
 	}
-	public ArrayList<Manager> choiceSmallLoadManagers() {
+
+	public Manager[] shadowManager() {
 		Manager[] shadow;
 		synchronized (this) {
 			shadow = new Manager[managers.size()];
 			managers.toArray(shadow);
 		}
+		return shadow;
+	}
+
+	public ArrayList<Manager> choiceSmallLoadManagers() {
+		Manager[] shadow = shadowManager();
 		Arrays.sort(shadow, new ManagerLoadComparator());
+		return choiceSmallLoadManagers(shadow);
+	}
+
+	static class ManagerBucketCountComparator implements Comparator<Manager> {
+		@Override
+		public int compare(Manager o1, Manager o2) {
+			return Integer.compare(o1.data.getBucketCount(), o2.data.getBucketCount());
+		}
+	}
+
+	// small load & small bucket count
+	public synchronized ArrayList<Manager> choiceManagers() {
+		Manager[] shadow = shadowManager();
+		Arrays.sort(shadow, new ManagerBucketCountComparator());
+		return choiceSmallLoadManagers(shadow);
+	}
+
+	public static ArrayList<Manager> choiceSmallLoadManagers(Manager[] managers) {
 		var result = new ArrayList<Manager>();
 		var count = 0;
-		for (var manager : shadow) {
+		for (var manager : managers) {
+			// todo config
 			if (manager.load < 5000 * 4 * 0.8) {
 				result.add(manager);
 				if (++count >= 3)
 					break;
 			}
-		}
-		return result;
-	}
-
-	public synchronized ArrayList<Manager> choiceManagers() {
-		var result = new ArrayList<Manager>();
-		if (managers.size() < 3)
-			return result;
-
-		var last = choiceIndex;
-		var c = 0;
-		while (c < 3) {
-			var m = managers.get(choiceIndex);
-			result.add(m);
-			++c;
-
-			// 先推进到下一个，并且判断是否绕回到开始的索引。
-			choiceIndex = (choiceIndex + 1) % managers.size();
-			if (choiceIndex == last)
-				break; // 绕回来了。
 		}
 		return result;
 	}
@@ -240,5 +243,15 @@ public class Master extends AbstractMaster {
 		if (null == database)
 			return errorCode(eDatabaseNotFound);
 		return database.publishSplitBucketOld(r);
+	}
+
+	@Override
+	protected synchronized long ProcessReportBucketCountRequest(ReportBucketCount r) throws Exception {
+		var manager = findManager(r.getSender());
+		if (null == manager)
+			return errorCode(eManagerNotFound);
+		manager.data.setBucketCount(r.Argument.getCount());
+		r.SendResult();
+		return 0;
 	}
 }
