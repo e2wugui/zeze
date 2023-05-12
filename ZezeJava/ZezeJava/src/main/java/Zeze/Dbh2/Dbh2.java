@@ -364,12 +364,11 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 第一次开始分桶，准备阶段。
 				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
 				var metaCopy = bucket.getMeta().copy();
+				// todo 先去manager查一下可用的manager是否够，简单判断，不原子化。
 				it = locateMiddle();
 				metaCopy.setKeyFirst(new Binary(it.key()));
 				metaCopy.setRaftConfig("");
-				logger.info("splitting metas={}", metaCopy);
 				splitting = manager.getMasterAgent().createSplitBucket(metaCopy);
-				logger.info("splitting metas={}", splitting);
 
 				// 设置分桶meta，即标记到raft集群中。
 				getRaft().appendLog(new LogSetSplittingMeta(splitting));

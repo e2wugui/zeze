@@ -199,8 +199,6 @@ public class MasterDatabase {
 		synchronized (table) {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 			var bucket = splitting.buckets.get(bucketNew.getKeyFirst());
-			logger.info("bucketNew={}", bucketNew);
-			logger.info("bucketExist={}", bucket);
 			if (bucket != null
 					&& bucket.getDatabaseName().equals(bucketNew.getDatabaseName())
 					&& bucket.getTableName().equals(bucketNew.getTableName())
