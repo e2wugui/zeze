@@ -444,7 +444,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		manager.getMasterAgent().publishSplitBucketNew(splittingMeta);
 
 		// 【时间窗口】【需要仔细考虑一下】
-		// 此时，本Dbh2还以为自己是分之前桶，所以事务还在进行，会被同步到新桶。
+		// 此时，本Dbh2还以为自己是分之前桶，所以对已分走部分的事务访问还在进行，还会被同步到新桶。
+		// todo 这些同步操作必须成功，否则它尝试重新开始就会造成错误。
 
 		// 第二步
 		// 修改源桶的meta。
