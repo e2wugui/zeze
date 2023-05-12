@@ -165,7 +165,10 @@ namespace Zeze.Gen.javadata
 
         public void Visit(Bean type)
         {
-            sw.WriteLine(prefix + var.NamePrivate + ".assign(other." + var.NamePrivate + ");");
+            if (transBean)
+                sw.WriteLine(prefix + var.NamePrivate + ".assign(other." + var.NamePrivate + ".getValue());");
+            else
+                sw.WriteLine(prefix + var.NamePrivate + ".assign(other." + var.NamePrivate + ");");
         }
 
         public void Visit(BeanKey type)
