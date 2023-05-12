@@ -7,22 +7,16 @@ import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
 
-public class LogSetBucketMeta extends Log {
-	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogSetBucketMeta.class.getName());
+public class LogSetSplittingMeta extends Log {
+	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogSetSplittingMeta.class.getName());
 
 	private BBucketMeta.Data argument;
 
-	public LogSetBucketMeta() {
-		this((SetBucketMeta)null);
+	public LogSetSplittingMeta() {
+		this(null);
 	}
 
-	public LogSetBucketMeta(SetBucketMeta req) {
-		super(req);
-		if (null != req)
-			argument = req.Argument;
-	}
-
-	public LogSetBucketMeta(BBucketMeta.Data meta) {
+	public LogSetSplittingMeta(BBucketMeta.Data meta) {
 		super(null);
 		argument = meta;
 	}
@@ -35,7 +29,7 @@ public class LogSetBucketMeta extends Log {
 	@Override
 	public void apply(RaftLog holder, StateMachine stateMachine) throws Exception {
 		var sm = (Dbh2StateMachine)stateMachine;
-		sm.setBucketMeta(argument);
+		sm.setSplittingMeta(argument);
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package Zeze.Dbh2;
 
 import Zeze.Application;
+import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
@@ -70,7 +71,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return KV.create(true, bb);
 	}
 
-	public TaskCompletionSource<RaftRpc<BPrepareBatch.Data, EmptyBean.Data>> prepareBatch(BPrepareBatch.Data batch) {
+	public TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BBatch.Data>> prepareBatch(BPrepareBatch.Data batch) {
 		var r = new PrepareBatch();
 		r.Argument = batch;
 		return raftClient.sendForWait(r);

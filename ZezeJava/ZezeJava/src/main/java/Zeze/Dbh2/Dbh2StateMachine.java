@@ -95,6 +95,24 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
+	public void setSplittingMeta(BBucketMeta.Data argument) {
+		try {
+			bucket.setMetaSplitting(argument);
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
+		}
+	}
+
+	public void deleteSplittingMeta() {
+		try {
+			bucket.deleteMetaSplitting();
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
+		}
+	}
+
 	/////////////////////////////////////////////////////////////////////
 	// 下面这些方法用于Log.apply，不能失败，失败将停止程序。
 	public void allocateTid(long range) {
@@ -120,30 +138,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void commitBatch(Binary tid) {
-		//noinspection EmptyTryBlock
 		try (var txn = transactions.remove(tid)) {
-			try {
-				// todo 这里判断是否分桶需要考虑效率，raft.leader 等。这里先写出流程。
-				var stateMachine = (Dbh2StateMachine)dbh2.getRaft().getStateMachine();
-				var splitting = stateMachine.getBucket().getMetaSplitting();
-				if (splitting != null) {
-					var r = new SplitPut();
-					r.Argument.setFromTransaction(true);
-					r.Argument.getPuts().putAll(txn.getBatch().getPuts());
-					for (var delete : txn.getBatch().getDeletes())
-						r.Argument.getPuts().put(delete, Binary.Empty);
-					var agent = new Dbh2Agent(splitting.getRaftConfig());
-					agent.getRaftAgent().send(r, (p) -> {
-						if (r.getResultCode() != 0)
-							;
-						// todo mark and restart.
-						//  事务同步流程不能重试，因为提交之后就有新的并发事务过来，而这里是异步的，重试结果就不正确了。
-						return 0;
-					});
-				}
-			} catch (Exception ex) {
-				dbh2.getRaft().fatalKill();
-			}
+			if (null != txn)
+				dbh2.onCommitBatch(txn);
 		}
 	}
 

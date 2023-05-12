@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
+import Zeze.Builtin.Dbh2.Master.PublishSplitBucketNew;
+import Zeze.Builtin.Dbh2.Master.PublishSplitBucketOld;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -171,9 +173,23 @@ public class MasterDatabase {
 		}
 	}
 
-	// bucket1 分桶的前半部分，实际是新创建的拷贝目标。
-	// bucket2 分桶的后半部分，实际是保留的一半。
-	public long endSplit(BBucketMeta.Data bucketNew, BBucketMeta.Data bucketRemain) throws Exception {
+	public long publishSplitBucketOld(PublishSplitBucketOld r) throws Exception {
+		var bucketOld = r.Argument;
+		var tableName = bucketOld.getTableName();
+		var table = tables.get(tableName);
+		if (null == table)
+			return master.errorCode(Master.eTableNotFound);
+
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (table) {
+			table.buckets.put(bucketOld.getKeyFirst(), bucketOld);
+		}
+		r.SendResult();
+		return 0;
+	}
+
+	public long publishSplitBucketNew(PublishSplitBucketNew r) throws Exception {
+		var bucketNew = r.Argument;
 		var tableName = bucketNew.getTableName();
 		var table = tables.get(tableName);
 		if (null == table)
@@ -182,30 +198,15 @@ public class MasterDatabase {
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-			var splittingBucket = table.buckets.get(bucketNew.getKeyFirst());
-			if (splittingBucket != null
-					&& splittingBucket.getDatabaseName().equals(bucketNew.getDatabaseName())
-					&& splittingBucket.getTableName().equals(bucketNew.getTableName())
-					&& splittingBucket.getKeyFirst().equals(bucketNew.getKeyFirst())
-				// 进行中的分桶的KeyLast不是真正的，而是一个magic值，不需要比较。
+			var bucket = table.buckets.get(bucketNew.getKeyFirst());
+			if (bucket != null
+					&& bucket.getDatabaseName().equals(bucketNew.getDatabaseName())
+					&& bucket.getTableName().equals(bucketNew.getTableName())
+					&& bucket.getKeyFirst().equals(bucketNew.getKeyFirst())
+					&& bucket.getKeyLast().equals(bucketNew.getKeyLast())
 			) {
-				// set bucket meta, prepare to public.
-				setBucketMeta(bucketNew); // 新桶初始化。
 				splitting.buckets.remove(bucketNew.getKeyFirst());
-				// 保留桶的信息不在这里，不需要remove。
-
-				// todo 确认结束分桶的流程，保留下来的桶信息是否由源manager自己完成，
-				//  这里的流程实际上是分桶的源manager发起的。
-				//  setBucketMeta(bucketRemain); // 保留桶修改Meta。
-
-				// 下面这两步修改了以后，外面就能看到了。
-				// 最好是保存以后外面才能看到，
-				// 一般没问题先这样了。
-				// 【修订方法】复制一份完整的拷贝，修改拷贝，保存，把拷贝引用替换过去，但这里有点问题，这个容器是concurrent的，
-				// 本来就是为了能多线程共享，现在又变成需要加锁了。
-				table.buckets.put(bucketRemain.getKeyFirst(), bucketRemain); // 这里反而是新的项。
 				table.buckets.put(bucketNew.getKeyFirst(), bucketNew); // 这里实际上是replace。
-
 				try (var batch = rocksDb.newBatch()) {
 					var bbTable = table.encode();
 					var bbSplitting = splitting.encode();
@@ -216,6 +217,7 @@ public class MasterDatabase {
 							bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
 					batch.commit();
 				}
+				r.SendResult();
 				return 0;
 			}
 		}

@@ -7,6 +7,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
@@ -39,6 +40,7 @@ public class Dbh2Manager {
 	}
 
 	private Future<?> loadMonitorTimer;
+	AtomicLong atomicSerialNo = new AtomicLong();
 
 	private final String home;
 

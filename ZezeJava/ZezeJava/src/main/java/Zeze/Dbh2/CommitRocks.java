@@ -3,6 +3,7 @@ package Zeze.Dbh2;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.Future;
+import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
@@ -135,7 +136,7 @@ public class CommitRocks {
 		try {
 			// prepare
 			saveCommitPoint(tid, batches, Commit.ePreparing);
-			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, EmptyBean.Data>>>();
+			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BBatch.Data>>>();
 			var tidBinary = new Binary(tid);
 			for (var e : batches.getDatas().entrySet()) {
 				var batch = e.getValue();
@@ -145,7 +146,10 @@ public class CommitRocks {
 				futures.add(manager.openBucket(e.getKey()).prepareBatch(batch));
 			}
 			for (var e : futures) {
-				e.await();
+				var refused = e.get();
+				if (!refused.Result.getDeletes().isEmpty() || !refused.Result.getPuts().isEmpty()) {
+					logger.info("todo process refused. "); // todo process refused
+				}
 			}
 		} catch (Throwable ex) {
 			undo(batches);

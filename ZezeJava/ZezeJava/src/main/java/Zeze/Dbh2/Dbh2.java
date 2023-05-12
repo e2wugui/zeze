@@ -3,6 +3,8 @@ package Zeze.Dbh2;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Builtin.Dbh2.BBatch;
+import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
@@ -221,19 +223,30 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			// check inBucket
 			if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
 				return errorCode(eBucketMissmatch);
-			for (var put : r.Argument.getBatch().getPuts().entrySet()) {
-				var key = put.getKey();
-				var value = put.getValue();
+
+			var refused = r.Result; // 对于puts可以考虑只传key，网络占用少一些。
+			for (var e : r.Argument.getBatch().getPuts().entrySet()) {
+				var key = e.getKey();
+				var value = e.getValue();
 				counterPut.incrementAndGet();
 				sizePut.addAndGet(value.size() + key.size());
-				if (!stateMachine.getBucket().inBucket(key))
-					return errorCode(eBucketMissmatch);
+				if (!stateMachine.getBucket().inBucket(key)) {
+					refused.getPuts().put(key, value);
+				}
 			}
 			for (var del : r.Argument.getBatch().getDeletes()) {
 				counterDelete.incrementAndGet();
-				if (!stateMachine.getBucket().inBucket(del))
-					return errorCode(eBucketMissmatch);
+				if (!stateMachine.getBucket().inBucket(del)) {
+					refused.getDeletes().add(del);
+				}
 			}
+
+			// 移除拒绝的数据。
+			for (var e : refused.getPuts().entrySet())
+				r.Argument.getBatch().getPuts().remove(e.getKey());
+			for (var e : refused.getDeletes())
+				r.Argument.getBatch().getDeletes().remove(e);
+
 			// apply to raft
 			getRaft().appendLog(new LogPrepareBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 			// 操作成功，释放所有权。see finally.
@@ -299,64 +312,194 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	public void tryStartSplit() throws Exception {
 		if (!raft.isLeader())
 			return;
-		// todo raft leader
-		//  以及 leader 失败需要详细考虑。
-		//  以及 正在分桶的状态数据需要raft支持。
-		//  以及 正在分桶raft同时往新桶拷贝问题的处理。
-
 		var bucket = stateMachine.getBucket();
-		var splittingKey = bucket.getMetaSplitting();
-		var meta = bucket.getMeta();
-		if (null != splittingKey) {
+		var splitting = bucket.getMetaSplitting();
+		if (null != splitting) {
+			var meta = bucket.getMeta();
 			logger.info("start but splitting found. database={} table={}", meta.getDatabaseName(), meta.getTableName());
 			return; // splitting
 		}
 
-		// start
-		var bucketSplit = manager.getMasterAgent().createSplitBucket(meta);
-		var dbh2Split = new Dbh2Agent(bucketSplit.getRaftConfig(), RaftAgentNetClient::new);
-		var raft = dbh2Split.getRaftAgent();
+		startSplit();
+	}
+
+	private volatile long splitSerialNo;
+	private volatile Dbh2Agent dbh2Splitting;
+	private volatile BBucketMeta.Data splittingMeta;
+
+	private RocksIterator locateMiddle() throws RocksDBException {
+		var bucket = stateMachine.getBucket();
 		var it = bucket.getTData().iterator();
 		var count = bucket.getTData().getKeyNumbers() / 2;
 		for (it.seekToFirst(); it.isValid() && count > 0; it.next(), --count) {
 			// searching middle
 		}
-
-		if (it.isValid()) {
-			// start.
-			bucketSplit.setKeyFirst(new Binary(it.key()));
-			bucket.setMetaSplitting(bucketSplit);
-			var puts = buildSplitPut(it);
-			raft.send(puts, (p) -> splitPutNext((SplitPut)p, raft, it));
-			return; // done.
+		if (!it.isValid()) {
+			it.close();
+			throw new RocksDBException("middle key not found.");
 		}
-		it.close();
+		return it;
+	}
+
+	private RocksIterator locateMiddle(Binary middleKey) throws RocksDBException {
+		var it = stateMachine.getBucket().getTData().iterator();
+		it.seek(Database.copyIf(middleKey.bytesUnsafe(), middleKey.getOffset(), middleKey.size()));
+		if (!it.isValid()) {
+			it.close();
+			throw new RocksDBException("middle key not found.");
+		}
+		return it;
+	}
+
+	// 开始分桶流程有两个线程需要访问：timer & raft.UserThreadExecutor
+	private synchronized void startSplit() throws Exception {
+		// 后面需要在lambda中传递系列号作为上下文，使用成员变量是不是会跟随变化？
+		var serialNo = manager.atomicSerialNo.incrementAndGet();
+		splitSerialNo = serialNo;
+		var bucket = stateMachine.getBucket();
+		RocksIterator it = null;
+		var splitting = bucket.getMetaSplitting(); // 对于timer，这个会调用两次，先这样。
+		try {
+			if (null == splitting) {
+				// 第一次开始分桶，准备阶段。
+				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
+				var metaCopy = bucket.getMeta().copy();
+				it = locateMiddle();
+				splitting.setKeyFirst(new Binary(it.key()));
+				splitting.setKeyLast(metaCopy.getKeyLast());
+				// 以当前的Meta拿去创建分桶目标。所以，分桶目标开始是以源桶的FirstKey为索引。
+				// 目标分桶并不会保存Meta，以后分桶完成，会设置正确的Meta。
+				// see Master.MasterDatabase.createSplitBucket
+				splitting = manager.getMasterAgent().createSplitBucket(metaCopy);
+
+				// 设置分桶meta，即标记到raft集群中。
+				getRaft().appendLog(new LogSetSplittingMeta(splitting));
+				// 创建到分桶目标的客户端。
+				dbh2Splitting = new Dbh2Agent(splitting.getRaftConfig(), RaftAgentNetClient::new);
+				splittingMeta = splitting;
+				logger.info("splitting start... {}@{}", splitting.getTableName(), splitting.getDatabaseName());
+			}
+			if (null == it) {
+				// 重新开始分桶时走这个分支，根据上次找到的middle，定位it。
+				it = locateMiddle(splitting.getKeyFirst());
+				logger.info("splitting restart... {}@{}", splitting.getTableName(), splitting.getDatabaseName());
+			}
+
+			// 开始同步数据，这个阶段对于rocks时同步访问的，对于网络是异步的。
+			var puts = buildSplitPut(it);
+			var fit = it;
+			dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext((SplitPut)p, fit, serialNo));
+			it = null;
+		} finally {
+			if (null != it)
+				it.close();
+		}
 	}
 
 	private static SplitPut buildSplitPut(RocksIterator it) {
 		var r = new SplitPut();
 		r.Argument.setFromTransaction(false);
-		var count = 100;
+		var count = 100; // todo config
 		for (; it.isValid() && count > 0; it.next(), --count) {
 			r.Argument.getPuts().put(new Binary(it.key()), new Binary(it.value()));
 		}
 		return r;
 	}
 
-	public long splitPutNext(SplitPut r, Agent agent, RocksIterator it) {
-		if (!raft.isLeader()) {
-			it.close();
-			return 0;
+	public long splitPutNext(SplitPut r, RocksIterator it, long serialNo) {
+		try {
+			if (!raft.isLeader() || dbh2Splitting == null || serialNo != splitSerialNo) {
+				it.close();
+				dbh2Splitting.close();
+				return 0;
+			}
+
+			if (r.getResultCode() != 0) {
+				startSplit();
+				return 0;
+			}
+
+			var puts = buildSplitPut(it);
+			if (puts.Argument.getPuts().isEmpty()) {
+				it.close();
+
+				// 启动新的线程执行结束任务，需要多次同步调用。
+				Task.run(this::endSplit, "endSplit");
+				return 0; // split done.
+			}
+
+			dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext((SplitPut)p, it, serialNo));
+		} catch (Exception ex) {
+			logger.error("", ex);
+		}
+		return 0;
+	}
+
+	private synchronized void endSplit() throws Exception {
+		logger.info("splitting end... {}@{}", splittingMeta.getTableName(), splittingMeta.getDatabaseName());
+
+		// 第一步
+		// 设置目标桶的meta
+		dbh2Splitting.setBucketMeta(stateMachine.getBucket().getMetaSplitting());
+		// 公布新桶信息。新桶已经准备好，可以使用了。
+		manager.getMasterAgent().publishSplitBucketNew(splittingMeta);
+
+		// 【时间窗口】【需要仔细考虑一下】
+		// 此时，本Dbh2还以为自己是分之前桶，所以事务还在进行，会被同步到新桶。
+
+		// 第二步
+		// 修改源桶的meta。
+		// 源桶信息修改后，本Dbh2就进入拒绝模式。
+		var copy = stateMachine.getBucket().getMeta().copy();
+		copy.setKeyLast(splittingMeta.getKeyFirst());
+		getRaft().appendLog(new LogSetBucketMeta(copy));
+		manager.getMasterAgent().publishSplitBucketOld(copy);
+
+		// 第四步
+		// 清除raft集群分桶标志。
+		getRaft().appendLog(new LogDeleteSplittingMeta());
+		// 切换回主线程清除进程内标记，防止将要清除的变量还被使用中。特别是dbh2Splitting。
+		getRaft().getUserThreadExecutor().execute(this::clearSplitting);
+	}
+
+	private void clearSplitting() {
+		try {
+			dbh2Splitting.close();
+		} catch (Exception ex) {
+			logger.error("", ex);
+		}
+		dbh2Splitting = null;
+		splittingMeta = null;
+	}
+
+	public void onCommitBatch(Dbh2Transaction txn) {
+		if (splittingMeta == null || dbh2Splitting == null)
+			return;
+
+		var r = new SplitPut();
+		r.Argument.setFromTransaction(true);
+
+		// 如果修改的记录落在分桶目标桶中，则同步过去。
+		for (var e : txn.getBatch().getPuts().entrySet()) {
+			if (splittingMeta.getKeyFirst().compareTo(e.getKey()) <= 0)
+				r.Argument.getPuts().put(e.getKey(), e.getValue());
+		}
+		for (var delete : txn.getBatch().getDeletes()) {
+			if (splittingMeta.getKeyFirst().compareTo(delete) <= 0)
+				r.Argument.getPuts().put(delete, Binary.Empty);
 		}
 
-		var puts = buildSplitPut(it);
-		if (puts.Argument.getPuts().isEmpty()) {
-			it.close();
-			// todo 结束分桶
-			return 0; // split finish.
-		}
-		agent.send(puts, (p) -> splitPutNext((SplitPut)p, agent, it));
-		return 0;
+		// 事务同步流程不能重试，因为提交之后就有新的并发事务过来，而这里是异步的，重试时数据可能不是最新的了。
+		dbh2Splitting.getRaftAgent().send(r, (p) -> {
+			try {
+				if (r.getResultCode() != 0)
+					startSplit(); // restart split.
+				return 0;
+			} catch (Exception ex) {
+				logger.error("", ex);
+				return Procedure.Exception;
+			}
+		});
 	}
 
 	@Override

@@ -6,6 +6,8 @@ import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
+import Zeze.Builtin.Dbh2.Master.PublishSplitBucketNew;
+import Zeze.Builtin.Dbh2.Master.PublishSplitBucketOld;
 import Zeze.Builtin.Dbh2.Master.Register;
 import Zeze.Builtin.Dbh2.Master.ReportLoad;
 import Zeze.Config;
@@ -110,7 +112,23 @@ public class MasterAgent extends AbstractMasterAgent {
 		r.Argument = bucket;
 		r.SendForWait(service.GetSocket()).await();
 		if (r.getResultCode() != 0)
-			throw new RuntimeException("createBucket error=" + IModule.getErrorCode(r.getResultCode()));
+			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
 		return r.Result;
+	}
+
+	public void publishSplitBucketNew(BBucketMeta.Data bucket) {
+		var r = new PublishSplitBucketNew();
+		r.Argument = bucket;
+		r.SendForWait(service.GetSocket()).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
+	}
+
+	public void publishSplitBucketOld(BBucketMeta.Data bucket) {
+		var r = new PublishSplitBucketOld();
+		r.Argument = bucket;
+		r.SendForWait(service.GetSocket()).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
 	}
 }
