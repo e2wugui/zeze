@@ -365,17 +365,17 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
 				var metaCopy = bucket.getMeta().copy();
 				it = locateMiddle();
-				splitting.setKeyFirst(new Binary(it.key()));
-				splitting.setKeyLast(metaCopy.getKeyLast());
-				// 以当前的Meta拿去创建分桶目标。所以，分桶目标开始是以源桶的FirstKey为索引。
-				// 目标分桶并不会保存Meta，以后分桶完成，会设置正确的Meta。
-				// see Master.MasterDatabase.createSplitBucket
+				metaCopy.setKeyFirst(new Binary(it.key()));
+				metaCopy.setRaftConfig("");
+				logger.info("splitting metas={}", metaCopy);
 				splitting = manager.getMasterAgent().createSplitBucket(metaCopy);
+				logger.info("splitting metas={}", splitting);
 
 				// 设置分桶meta，即标记到raft集群中。
 				getRaft().appendLog(new LogSetSplittingMeta(splitting));
 				// 创建到分桶目标的客户端。
 				dbh2Splitting = new Dbh2Agent(splitting.getRaftConfig(), RaftAgentNetClient::new);
+				dbh2Splitting.getRaftAgent().setPendingLimit(Integer.MAX_VALUE);
 				splittingMeta = splitting;
 				logger.info("splitting start... {}@{}", splitting.getTableName(), splitting.getDatabaseName());
 			}

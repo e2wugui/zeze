@@ -198,7 +198,9 @@ public class MasterDatabase {
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-			var bucket = table.buckets.get(bucketNew.getKeyFirst());
+			var bucket = splitting.buckets.get(bucketNew.getKeyFirst());
+			logger.info("bucketNew={}", bucketNew);
+			logger.info("bucketExist={}", bucket);
 			if (bucket != null
 					&& bucket.getDatabaseName().equals(bucketNew.getDatabaseName())
 					&& bucket.getTableName().equals(bucketNew.getTableName())
@@ -225,7 +227,8 @@ public class MasterDatabase {
 	}
 
 	public long createSplitBucket(CreateSplitBucket r) throws Exception {
-		String tableName = r.Argument.getTableName();
+		var bucket = r.Argument;
+		String tableName = bucket.getTableName();
 		if (null == tables.get(tableName)) {
 			logger.error("createBucket but table not found. database=" + databaseName + " table=" + tableName);
 			return master.errorCode(Master.eTableNotFound);
@@ -234,17 +237,12 @@ public class MasterDatabase {
 		var table = splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
-			if (table.buckets.get(r.Argument.getKeyFirst()) != null) {
+			if (table.buckets.get(bucket.getKeyFirst()) != null) {
 				// 桶已经存在，断点续传由manager自己负责，不能重复创建桶。
 				logger.info("bucket exist. database=" + databaseName + " table=" + tableName);
 				return master.errorCode(Master.eSplittingBucketExist);
 			}
 
-			var bucket = new BBucketMeta.Data();
-			bucket.setDatabaseName(databaseName);
-			bucket.setTableName(tableName);
-			bucket.setKeyFirst(r.Argument.getKeyFirst());
-			bucket.setKeyLast(r.Argument.getKeyLast());
 			table.buckets.put(bucket.getKeyFirst(), bucket);
 
 			// allocate first bucket service and setup table

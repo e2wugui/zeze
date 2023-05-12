@@ -148,7 +148,7 @@ public class CommitRocks {
 			for (var e : futures) {
 				var refused = e.get();
 				if (!refused.Result.getDeletes().isEmpty() || !refused.Result.getPuts().isEmpty()) {
-					logger.info("todo process refused. "); // todo process refused
+					//logger.info("todo process refused. "); // todo process refused
 				}
 			}
 		} catch (Throwable ex) {
