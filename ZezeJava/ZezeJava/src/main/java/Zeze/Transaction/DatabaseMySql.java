@@ -786,6 +786,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						while (rs.next()) {
 							if (!invokeKeyCallback(table, rs, callback, lastKey))
 								break;
+							if (null != afterLock)
+								afterLock.run();
 						}
 					}
 					return lastKey.value;

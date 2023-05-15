@@ -64,12 +64,12 @@ public class ReplayAttackGrowRange implements ReplayAttack {
 			}
 			return false; // allow
 		}
-		if (increase <= -range.length)
+		if (increase <= -range.length * 8)
 			return true; // 过期的，拒绝掉。
 
 		var pos = this.position + increase;
 		if (pos < 0) // 有范围检查，只需要加一次，否则用while
-			pos += range.length;
+			pos += range.length * 8;
 
 		var index = pos / 8;
 		var bit = 1 << (pos % 8);

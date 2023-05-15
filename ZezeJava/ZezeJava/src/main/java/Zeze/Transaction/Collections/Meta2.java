@@ -50,7 +50,7 @@ public final class Meta2<K, V> {
 	@SuppressWarnings("unchecked")
 	static <K, V> @NotNull Meta2<K, V> getMap1Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		var map = map1Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
-		var r = map.get(keyClass);
+		var r = map.get(valueClass);
 		if (r != null)
 			return (Meta2<K, V>)r;
 		return (Meta2<K, V>)map.computeIfAbsent(valueClass, vc -> new Meta2<>(map1HeadHash, keyClass, (Class<V>)vc));
@@ -60,7 +60,7 @@ public final class Meta2<K, V> {
 	static <K, V extends Bean> @NotNull Meta2<K, V> getMap2Meta(@NotNull Class<K> keyClass,
 																@NotNull Class<V> valueClass) {
 		var map = map2Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
-		var r = map.get(keyClass);
+		var r = map.get(valueClass);
 		if (r != null)
 			return (Meta2<K, V>)r;
 		return (Meta2<K, V>)map.computeIfAbsent(valueClass, vc -> new Meta2<>(map2HeadHash, keyClass, (Class<V>)vc));

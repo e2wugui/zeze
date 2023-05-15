@@ -157,7 +157,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (linkSessionIds) {
 			for (var it = linkSessionIds.iterator(); it.moveToNext(); ) {
-				for (var it2 = it.value().iterator(); it.moveToNext(); ) {
+				for (var it2 = it.value().iterator(); it2.moveToNext(); ) {
 					var link = linkdApp.linkdService.GetSocket(it2.value());
 					if (link != null) {
 						var linkSession = (LinkdUserSession)link.getUserState();

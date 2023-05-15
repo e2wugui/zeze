@@ -136,29 +136,6 @@ public class TimerRole {
 		if (null == parameter)
 			return 0;
 
-		var p = new BTransmitSimpleTimer();
-		p.decode(ByteBuffer.Wrap(parameter));
-
-		var loginOnline = online.getLoginOnline(target);
-		if (null != loginOnline && p.getLoginVersion() == loginOnline.getLoginVersion()) {
-			var handleClass = Class.forName(p.getHandleClass());
-			var handle = handleClass.getDeclaredConstructor().newInstance();
-			Bean custom = null;
-			if (!p.getCustomClass().isEmpty()) {
-				var customClass = Class.forName(p.getCustomClass());
-				custom = (Bean)customClass.getDeclaredConstructor().newInstance();
-				custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
-			}
-
-			scheduleOnline(sender, p.getTimerId(), p.getSimpleTimer(), (TimerHandle)handle, custom);
-		}
-		return 0;
-	}
-
-	private long transmitSimpleTimerHandle(long sender, long target, @Nullable Binary parameter) throws Exception {
-		if (null == parameter)
-			return 0;
-
 		var p = new BTransmitCronTimer();
 		p.decode(ByteBuffer.Wrap(parameter));
 
@@ -174,6 +151,29 @@ public class TimerRole {
 			}
 
 			scheduleOnline(sender, p.getTimerId(), p.getCronTimer(), (TimerHandle)handle, custom);
+		}
+		return 0;
+	}
+
+	private long transmitSimpleTimerHandle(long sender, long target, @Nullable Binary parameter) throws Exception {
+		if (null == parameter)
+			return 0;
+
+		var p = new BTransmitSimpleTimer();
+		p.decode(ByteBuffer.Wrap(parameter));
+
+		var loginOnline = online.getLoginOnline(target);
+		if (null != loginOnline && p.getLoginVersion() == loginOnline.getLoginVersion()) {
+			var handleClass = Class.forName(p.getHandleClass());
+			var handle = handleClass.getDeclaredConstructor().newInstance();
+			Bean custom = null;
+			if (!p.getCustomClass().isEmpty()) {
+				var customClass = Class.forName(p.getCustomClass());
+				custom = (Bean)customClass.getDeclaredConstructor().newInstance();
+				custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
+			}
+
+			scheduleOnline(sender, p.getTimerId(), p.getSimpleTimer(), (TimerHandle)handle, custom);
 		}
 		return 0;
 	}

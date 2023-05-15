@@ -90,6 +90,9 @@ public class TestDatagram {
 		Assert.assertFalse(r.replay(19));
 		Assert.assertEquals("1001111110000001 pos=3 max=19", r.toString());
 		System.out.println(r);
+		Assert.assertFalse(r.replay(14));
+		Assert.assertEquals("1001111110000011 pos=3 max=19", r.toString());
+		System.out.println(r);
 		Assert.assertTrue(r.replay(3));
 	}
 
