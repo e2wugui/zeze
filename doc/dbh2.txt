@@ -170,12 +170,23 @@ b)Dbh2Manager通过Master查找可以创建新桶的manager并创建分桶，此新创建的桶不可见。
 c)Dbh2Manager开始拷贝中间key之后（是否包含？）数据到新桶。维护已经拷贝过去的current-key。
 d)Dbh2Manager此时继续提供服务，如果事务更新的数据在key,current-key之间，这些数据操作马上同步到新桶。
 e)Dbh2Manager当同步拷贝完成，新桶写入Meta，更新Master信息，新桶此时已经开始可以接受服务。旧桶写入新的Meta，回退key之后的事务！。
-   【讨论】上面的操作最好能原子执行，但涉及多个进程，一般意义上的原子保证可能比较难，是否可以通过执行顺序就保证正确性。
-   【修订】rocksdb查询得到table的大概key的数量。上面的方法是从最后一个记录倒序遍历key-count/2条记录。
-                由于倒序遍历效率比正序慢，所以拷贝前一半到新的分桶效率更高。上面的描述需要修订。
-   【断点续传】
-                分桶过程中，记录最后复制的key用于续传。
-                分桶过程中，发生[first,current-key]之间的事务操作马上同步到目标桶。
+【分桶完成发布原子化】
+  1. 每个桶记住自己分出去的所有新桶的Meta(SplitMetaAll)。
+  2. 源桶在一个RaftLog中设置新的Meta和保存新桶的Meta到SplitMetaAll并进入拒绝模式。【原子化！】
+  3.1 拒绝模式中，对没有落在桶最新范围的所有记录，去SplitMeta中locate得到目标桶信息，一起返回给Agent。
+  3.2 向Master发布新桶和旧桶信息。
+ 【分析】
+ 【SplitMetaAll例子】
+  tableCreate: [empty,empty) - 初始桶
+  firstSplit: [empty, first)[first, empty)
+  secondSplit: [empty, second)[second, first)[first, empty)
+  * 总是从当前桶分割，所以，第一个总是empty。
+ 【firstSplit 目标桶进行自己的分桶的例子】
+  firstSplit: [first, empty) - 初始桶，分桶不需要记录更早的历史。
+  secondSplit: [first, second)[second, empty)
+  *** 桶能收到记录范围是自己第一次创建以后的，加上又记录了以后所有分桶的目标信息，
+  *** 所以在拒绝模式时，总是能得到正确的目标桶，不管此时Master发布信息是否更新。
+  *** 上面第2步还可以删除描述分桶进行中的状态信息（deleteSplittingMeta)，这个不是原子化的一部分，一个操作里面完成，算优化。
 
 分桶阶段二（回退阶段），
 a)Dbh2Manager发现batch中不是本桶的记录，收集以后回退给agent，并报告桶信息需要更新错误码。
@@ -204,4 +215,4 @@ for (; it.isValid(); it.next()) {
 }
 d) 错误处理总则
 i. 事务同步流程采用异步接口，发生错误，重新开始复制流程c)。基本原则是不影响正常事务的处理。
-ii. 复制流程采用异步接口，发生错误，不断重试当前key。
+ii. 复制流程采用异步接口，发生错误，不断重试当前key。【也处理成重启复制流程了】
