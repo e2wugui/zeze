@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import java.util.function.ToLongFunction;
 import Zeze.Application;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBatchTid;
@@ -13,6 +14,7 @@ import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Builtin.Dbh2.UndoBatch;
 import Zeze.Config;
 import Zeze.Net.Binary;
+import Zeze.Net.Protocol;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RaftRpc;
@@ -47,6 +49,12 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		raftClient.sendForWait(r).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("fail! code=" + r.getResultCode());
+	}
+
+	public void setBucketMetaAsync(BBucketMeta.Data meta, ToLongFunction<Protocol<?>> handle) {
+		var r = new SetBucketMeta();
+		r.Argument = meta;
+		raftClient.send(r, handle);
 	}
 
 	public KV<Boolean, ByteBuffer> get(String databaseName, String tableName, Binary key) {

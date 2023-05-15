@@ -2,8 +2,8 @@ package Zeze.Dbh2;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.KeepAlive;
@@ -12,15 +12,19 @@ import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Builtin.Dbh2.SplitPut;
 import Zeze.Builtin.Dbh2.UndoBatch;
 import Zeze.Config;
+import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
+import Zeze.Net.Rpc;
 import Zeze.Raft.Agent;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
+import Zeze.Raft.RaftLog;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.FuncLong;
@@ -120,10 +124,44 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			super(raft, name, config);
 		}
 
+		private ConcurrentLinkedQueue<Action0> transactionQueue;
+
+		public synchronized void setupTransactionQueue() {
+			transactionQueue = new ConcurrentLinkedQueue<>();
+		}
+
+		public synchronized ConcurrentLinkedQueue<Action0> takeTransactionQueue() {
+			var tmp = transactionQueue;
+			transactionQueue = null;
+			return tmp;
+		}
+
 		@Override
-		public void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
+		public <P extends Protocol<?>> void dispatchRaftRpcResponse(P p, ProtocolHandle<P> responseHandle,
+																	ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+			raft.getImportantThreadExecutor().execute(() -> {
+				try {
+					responseHandle.handleProtocol(p);
+				} catch (Exception e) {
+					logger.error("", e);
+				}
+			});
+		}
+
+		private static boolean isTransactionRequest(long typeId) {
+			return typeId == PrepareBatch.TypeId_
+					|| typeId == CommitBatch.TypeId_
+					|| typeId == UndoBatch.TypeId_;
+		}
+
+		@Override
+		public synchronized void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
 										DispatchMode mode) throws Exception {
-			raft.getUserThreadExecutor().execute(() -> Task.call(func, p));
+			if (null != transactionQueue && isTransactionRequest(p.getTypeId())) {
+				transactionQueue.add(() -> Task.call(func, p));
+			} else {
+				raft.getUserThreadExecutor().execute(() -> Task.call(func, p));
+			}
 		}
 	}
 
@@ -351,6 +389,18 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		return it;
 	}
 
+	private static void performTransactionQueue(ConcurrentLinkedQueue<Action0> tmpQueue) {
+		if (null != tmpQueue) {
+			for (var trans : tmpQueue) {
+				try {
+					trans.run();
+				} catch (Exception e) {
+					logger.error("", e);
+				}
+			}
+		}
+	}
+
 	// 开始分桶流程有两个线程需要访问：timer & raft.UserThreadExecutor
 	private synchronized void startSplit() throws Exception {
 		// 后面需要在lambda中传递系列号作为上下文，使用成员变量是不是会跟随变化？
@@ -378,6 +428,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				splittingMeta = splitting;
 				logger.info("splitting start... {}@{}", splitting.getTableName(), splitting.getDatabaseName());
 			}
+
+			var server = (Dbh2RaftServer)getRaft().getServer();
+			performTransactionQueue(server.takeTransactionQueue());
+
 			if (null == it) {
 				// 重新开始分桶时走这个分支，根据上次找到的middle，定位it。
 				it = locateMiddle(splitting.getKeyFirst());
@@ -422,8 +476,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (puts.Argument.getPuts().isEmpty()) {
 				it.close();
 
-				// 启动新的线程执行结束任务，需要多次同步调用。
-				Task.run(this::endSplit, "endSplit");
+				// 有好几个步骤，采用异步方式。
+				logger.info("splitting end... {}@{}", splittingMeta.getTableName(), splittingMeta.getDatabaseName());
+				endSplit0();
 				return 0; // split done.
 			}
 
@@ -434,42 +489,117 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		return 0;
 	}
 
-	private synchronized void endSplit() throws Exception {
-		logger.info("splitting end... {}@{}", splittingMeta.getTableName(), splittingMeta.getDatabaseName());
-
-		// 第一步
+	private void endSplit0() throws Exception {
 		// 设置目标桶的meta
-		dbh2Splitting.setBucketMeta(stateMachine.getBucket().getMetaSplitting());
-		// 公布新桶信息。新桶已经准备好，可以使用了。
-		manager.getMasterAgent().publishSplitBucketNew(splittingMeta);
-
-		// 【时间窗口】【需要仔细考虑一下】
-		// 此时，本Dbh2还以为自己是分之前桶，所以对已分走部分的事务访问还在进行，还会被同步到新桶。
-		// todo 这些同步操作必须成功，否则它尝试重新开始就会造成错误。
-
-		// 第二步
-		// 修改源桶的meta。
-		// 源桶信息修改后，本Dbh2就进入拒绝模式。
-		var copy = stateMachine.getBucket().getMeta().copy();
-		copy.setKeyLast(splittingMeta.getKeyFirst());
-		getRaft().appendLog(new LogSetBucketMeta(copy));
-		manager.getMasterAgent().publishSplitBucketOld(copy);
-
-		// 第四步
-		// 清除raft集群分桶标志。
-		getRaft().appendLog(new LogDeleteSplittingMeta());
-		// 切换回主线程清除进程内标记，防止将要清除的变量还被使用中。特别是dbh2Splitting。
-		getRaft().getUserThreadExecutor().execute(this::clearSplitting);
+		dbh2Splitting.setBucketMetaAsync(splittingMeta, this::endSplit1);
 	}
 
-	private void clearSplitting() {
-		try {
-			dbh2Splitting.close();
-		} catch (Exception ex) {
-			logger.error("", ex);
+	private long endSplit1(Protocol<?> p) {
+		var r = (SetBucketMeta)p;
+		if (r.getResultCode() != 0) {
+			try {
+				startSplit();
+			} catch (Exception e) {
+				logger.error("", e);
+			}
+			return 0;
 		}
-		dbh2Splitting = null;
-		splittingMeta = null;
+
+		// 公布新桶信息。新桶已经准备好，可以使用了。
+		var serialNo = splitSerialNo;
+		manager.getMasterAgent().publishSplitBucketNewAsync(splittingMeta, (p2) -> endSplit2(serialNo, p2));
+		return 0;
+	}
+
+	private long endSplit2(long serialNo, Rpc<BBucketMeta.Data, EmptyBean.Data> p) {
+		if (p.getResultCode() != 0) {
+			try {
+				startSplit();
+			} catch (Exception e) {
+				logger.error("", e);
+			}
+			return 0;
+		}
+
+		// 【时间窗口】
+		// 1. 新桶已经发布，可能有地方得到新桶信息，会发送事务给新桶，所以新桶发布不能取消。
+		// 2. 此时旧桶Meta没有修改，仍有可能还在提供服务。在这个窗口，其中新桶部分的记录修改需要继续拷贝到新桶。
+		// 3. 此时如果拷贝事务数据失败，需要重启startSplit，进行完整的拷贝。（注意，此时新桶已经在工作）。
+
+		// 原子化！
+		// 当新桶发布出去，旧桶还在服务，这个时候到达的事务请求也需要同步到新桶，
+		// 但此时如果发生错误，而导致拷贝操作重新开始，逻辑上非常难以处理。
+		// 所以最简单的做法是设置一个事务队列，把请求全部缓存下来，
+		// 当endSplit全部结束的时候，再处理这些事务。
+		// endSplit结束的时候，本桶进入拒绝模式，会正确的处理非本桶的请求，此时不会同步到新桶。
+		var server = (Dbh2RaftServer)getRaft().getServer();
+		server.setupTransactionQueue();
+		// 【时间窗口】
+		// 1. 到达这里，所有的本桶数据修改事务会被拦截。
+		// 2. 下面检查是否发生了新的startSplit。
+		if (splitSerialNo != serialNo) {
+			// cancel setup
+			performTransactionQueue(server.takeTransactionQueue());
+			return 0; // done;
+		}
+		var copy = stateMachine.getBucket().getMeta().copy();
+		copy.setKeyLast(splittingMeta.getKeyFirst());
+		// 两步操作合并是为了优化。也有点原子的意思。
+		getRaft().appendLog(new LogSetBucketAndDeleteSplittingMeta(copy), this::endSplit3);
+		return 0;
+	}
+
+	private void endSplit3(RaftLog raftLog, Boolean result) {
+		if (!result) {
+			try {
+				startSplit();
+			} catch (Exception e) {
+				logger.error("", e);
+			}
+			return;
+		}
+		// 清除raft集群分桶标志。
+		// 切换回主线程清除进程内标记，防止将要清除的变量还被使用中。特别是dbh2Splitting。
+		endSplit4();
+	}
+
+	private void endSplit4() {
+		// clear split state
+		var server = (Dbh2RaftServer)getRaft().getServer();
+		var tmpQueue = server.takeTransactionQueue();
+		try {
+			try {
+				dbh2Splitting.close();
+			} catch (Exception ex) {
+				logger.error("", ex);
+			}
+			dbh2Splitting = null;
+			splittingMeta = null;
+
+			endSpit5();
+		} finally {
+			performTransactionQueue(tmpQueue);
+		}
+	}
+
+	private void endSpit5() {
+		// 最后发布源桶，减少【时间窗口时间】。
+		// 分桶工作状态已经清除。这一步不能出错！！！
+		// 如果发生错误，将出现Meta信息不正确，但由于分桶已经创建，bucket.locate能正确工作。
+		manager.getMasterAgent().publishSplitBucketOldAsync(stateMachine.getBucket().getMeta(), this::endSplit5Handle);
+	}
+
+	private long endSplit5Handle(Rpc<BBucketMeta.Data, EmptyBean.Data> p) {
+		if (p.getResultCode() != 0) {
+			var meta = stateMachine.getBucket().getMeta();
+			logger.error("publishSplitBucketOld error={} database={}, table={}",
+					IModule.getErrorCode(p.getResultCode()),
+					meta.getDatabaseName(), meta.getTableName());
+			Task.schedule(60_000, this::endSpit5); // 一分钟以后继续尝试。
+			// 不断重试报告最新Meta，配合启动的时候也报告一次??????????
+			// 暂时忽略这个问题，否则Dbh2启动的时候，调用一次endSplit5即可。
+		}
+		return 0;
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {

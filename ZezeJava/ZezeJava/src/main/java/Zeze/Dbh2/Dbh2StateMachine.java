@@ -8,14 +8,12 @@ import java.util.concurrent.Future;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BSplitPut;
-import Zeze.Builtin.Dbh2.SplitPut;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
-import com.alibaba.druid.sql.visitor.functions.Bin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -38,7 +36,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogSetBucketMeta.TypeId_, LogSetBucketMeta::new);
 		super.addFactory(LogAllocateTid.TypeId_, LogAllocateTid::new);
 
-		super.addFactory(LogDeleteSplittingMeta.TypeId_, LogDeleteSplittingMeta::new);
+		super.addFactory(LogSetBucketAndDeleteSplittingMeta.TypeId_, LogSetBucketAndDeleteSplittingMeta::new);
 		super.addFactory(LogSetSplittingMeta.TypeId_, LogSetSplittingMeta::new);
 		super.addFactory(LogSplitPut.TypeId_, LogSplitPut::new);
 	}
@@ -108,8 +106,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void deleteSplittingMeta() {
+	public void setBucketAndDeleteSplittingMeta(BBucketMeta.Data argument) {
 		try {
+			bucket.setMeta(argument);
 			bucket.deleteMetaSplitting();
 		} catch (RocksDBException e) {
 			logger.error("", e);

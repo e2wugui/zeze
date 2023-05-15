@@ -15,6 +15,8 @@ import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Net.Connector;
 import Zeze.Net.ProtocolHandle;
+import Zeze.Net.Rpc;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
 
@@ -126,12 +128,18 @@ public class MasterAgent extends AbstractMasterAgent {
 			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
 	}
 
-	public void publishSplitBucketOld(BBucketMeta.Data bucket) {
+	public void publishSplitBucketNewAsync(BBucketMeta.Data bucket,
+										   ProtocolHandle<Rpc<BBucketMeta.Data, EmptyBean.Data>> handle) {
+		var r = new PublishSplitBucketNew();
+		r.Argument = bucket;
+		r.Send(service.GetSocket(), handle);
+	}
+
+	public void publishSplitBucketOldAsync(BBucketMeta.Data bucket,
+										   ProtocolHandle<Rpc<BBucketMeta.Data, EmptyBean.Data>> handle) {
 		var r = new PublishSplitBucketOld();
 		r.Argument = bucket;
-		r.SendForWait(service.GetSocket()).await();
-		if (r.getResultCode() != 0)
-			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
+		r.Send(service.GetSocket(), handle);
 	}
 
 	public void reportBucketCount(int count) {
