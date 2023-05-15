@@ -154,7 +154,10 @@ namespace Zeze.Builtin.Online
                     {
                         _o_.WriteString(_e_.Key);
                         _e_.Value.Encode(_o_);
+                        _n_--;
                     }
+                    if (_n_ != 0)
+                        throw new System.Exception(_n_.ToString());
                 }
             }
             _o_.WriteByte(0);

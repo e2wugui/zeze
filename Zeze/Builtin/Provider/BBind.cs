@@ -124,7 +124,10 @@ namespace Zeze.Builtin.Provider
                     {
                         _o_.WriteLong(_e_.Key);
                         _e_.Value.Encode(_o_);
+                        _n_--;
                     }
+                    if (_n_ != 0)
+                        throw new System.Exception(_n_.ToString());
                 }
             }
             {
@@ -137,7 +140,10 @@ namespace Zeze.Builtin.Provider
                     foreach (var _v_ in _x_)
                     {
                         _o_.WriteLong(_v_);
+                        _n_--;
                     }
+                    if (_n_ != 0)
+                        throw new System.Exception(_n_.ToString());
                 }
             }
             _o_.WriteByte(0);

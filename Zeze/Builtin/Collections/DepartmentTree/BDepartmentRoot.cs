@@ -231,7 +231,10 @@ namespace Zeze.Builtin.Collections.DepartmentTree
                     {
                         _o_.WriteString(_e_.Key);
                         _x_.Encode(_o_);
+                        _n_--;
                     }
+                    if (_n_ != 0)
+                        throw new System.Exception(_n_.ToString());
                 }
             }
             {
@@ -253,7 +256,10 @@ namespace Zeze.Builtin.Collections.DepartmentTree
                     {
                         _o_.WriteString(_e_.Key);
                         _o_.WriteLong(_e_.Value);
+                        _n_--;
                     }
+                    if (_n_ != 0)
+                        throw new System.Exception(_n_.ToString());
                 }
             }
             _o_.WriteByte(0);

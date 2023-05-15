@@ -376,7 +376,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void assign(BPrepareBatch other) {
         _Database = other.getDatabase();
         _Table = other.getTable();
-        _Batch.assign(other._Batch);
+        _Batch.assign(other._Batch.getValue());
     }
 
     public void assign(BPrepareBatch.Data other) {

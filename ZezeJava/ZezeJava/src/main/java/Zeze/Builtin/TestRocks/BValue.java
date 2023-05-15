@@ -408,8 +408,12 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.INTEGER);
-                for (var _v_ : _x_)
+                for (var _v_ : _x_) {
                     _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         {
@@ -418,8 +422,12 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.BEAN);
-                for (var _v_ : _x_)
+                for (var _v_ : _x_) {
                     _v_.encode(_o_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         {
@@ -431,7 +439,10 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteLong(_e_.getKey());
                     _o_.WriteLong(_e_.getValue());
+                    _n_--;
                 }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         {
@@ -443,7 +454,10 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteLong(_e_.getKey());
                     _e_.getValue().encode(_o_);
+                    _n_--;
                 }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         {

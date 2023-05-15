@@ -126,7 +126,12 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                     _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
                     _o_.WriteListType(_n_, ByteBuffer.INTEGER);
                     foreach (var _v_ in _x_)
+                    {
                         _o_.WriteLong(_v_);
+                        _n_--;
+                    }
+                    if (_n_ != 0)
+                        throw new System.Exception(_n_.ToString());
                 }
             }
             _o_.WriteByte(0);

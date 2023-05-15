@@ -394,7 +394,12 @@ namespace Zeze.Builtin.TestRocks
                     _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.LIST);
                     _o_.WriteListType(_n_, ByteBuffer.INTEGER);
                     foreach (var _v_ in _x_)
+                    {
                         _o_.WriteLong(_v_);
+                        _n_--;
+                    }
+                    if (_n_ != 0)
+                        throw new System.Exception(_n_.ToString());
                 }
             }
             {
@@ -405,7 +410,12 @@ namespace Zeze.Builtin.TestRocks
                     _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.LIST);
                     _o_.WriteListType(_n_, ByteBuffer.BEAN);
                     foreach (var _v_ in _x_)
+                    {
                         _v_.Encode(_o_);
+                        _n_--;
+                    }
+                    if (_n_ != 0)
+                        throw new System.Exception(_n_.ToString());
                 }
             }
             {
@@ -419,7 +429,10 @@ namespace Zeze.Builtin.TestRocks
                     {
                         _o_.WriteLong(_e_.Key);
                         _o_.WriteLong(_e_.Value);
+                        _n_--;
                     }
+                    if (_n_ != 0)
+                        throw new System.Exception(_n_.ToString());
                 }
             }
             {
@@ -433,7 +446,10 @@ namespace Zeze.Builtin.TestRocks
                     {
                         _o_.WriteLong(_e_.Key);
                         _e_.Value.Encode(_o_);
+                        _n_--;
                     }
+                    if (_n_ != 0)
+                        throw new System.Exception(_n_.ToString());
                 }
             }
             {

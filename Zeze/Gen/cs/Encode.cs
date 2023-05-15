@@ -277,14 +277,13 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    foreach (var _v_ in _x_)");
             sw.WriteLine(prefix + "    {");
             if (Decode.IsOldStyleEncodeDecodeType(vt))
-            {
                 vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        ", varUpperName1));
-            }
             else
-            {
                 EncodeElement(vt, prefix + "        ", "_v_");
-            }
+            sw.WriteLine(prefix + "        _n_--;");
             sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw new System.Exception(_n_.ToString());");
             sw.WriteLine(prefix + "}");
         }
 
@@ -313,22 +312,17 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    foreach (var _e_ in _x_)");
             sw.WriteLine(prefix + "    {");
             if (Decode.IsOldStyleEncodeDecodeType(kt))
-            {
                 vt.Accept(new Encode("_e_.Key", 0, bufname, sw, prefix + "        ", varUpperName1));
-            }
             else
-            {
                 EncodeElement(kt, prefix + "        ", "_e_.Key");
-            }
             if (Decode.IsOldStyleEncodeDecodeType(vt))
-            {
                 vt.Accept(new Encode("_e_.Value", 0, bufname, sw, prefix + "        ", varUpperName1));
-            }
             else
-            {
                 EncodeElement(vt, prefix + "        ", "_e_.Value");
-            }
+            sw.WriteLine(prefix + "        _n_--;");
             sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw new System.Exception(_n_.ToString());");
             sw.WriteLine(prefix + "}");
         }
 

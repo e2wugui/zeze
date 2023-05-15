@@ -453,7 +453,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"    protected Abstract{project.Name}(String name) {{");
                 sw.WriteLine($"        multiInstanceName = name;");
                 if (written)
-                    sw.WriteLine("        var suffix = name.isEmpty() ? name : '.' + name;");
+                    sw.WriteLine("        var suffix = name.isEmpty() ? name : \"__\" + name;");
                 foreach (Table table in module.Tables.Values)
                 {
                     if (project.GenTables.Contains(table.Gen) && false == table.IsRocks)

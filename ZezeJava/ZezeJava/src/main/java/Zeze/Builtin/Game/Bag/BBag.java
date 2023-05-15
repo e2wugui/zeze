@@ -149,7 +149,10 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteLong(_e_.getKey());
                     _e_.getValue().encode(_o_);
+                    _n_--;
                 }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         _o_.WriteByte(0);

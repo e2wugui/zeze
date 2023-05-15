@@ -32,7 +32,7 @@ public abstract class AbstractOnline implements Zeze.IModule {
 
     protected AbstractOnline(String name) {
         multiInstanceName = name;
-        var suffix = name.isEmpty() ? name : '.' + name;
+        var suffix = name.isEmpty() ? name : "__" + name;
         _tlocal = new Zeze.Builtin.Game.Online.tlocal(suffix);
         _tonline = new Zeze.Builtin.Game.Online.tonline(suffix);
         _tRoleOfflineTimers = new Zeze.Builtin.Game.Online.tRoleOfflineTimers(suffix);

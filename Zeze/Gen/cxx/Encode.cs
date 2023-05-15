@@ -212,7 +212,10 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    for (auto it = _x_.begin(); it != _x_.end(); ++it) {");
             vt.Accept(new Encode(null, "(*it)", 0, bufname, sw, prefix + "        "));
+            sw.WriteLine(prefix + "        _n_--;");
             sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw std::exception();");
             sw.WriteLine(prefix + "}");
         }
 
@@ -240,7 +243,10 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "    for (auto it = _x_.begin(); it != _x_.end(); ++it) {");
             kt.Accept(new Encode(null, "it->first", 0, bufname, sw, prefix + "        "));
             vt.Accept(new Encode(null, "it->second", 0, bufname, sw, prefix + "        "));
+            sw.WriteLine(prefix + "        _n_--;");
             sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw std::exception();");
             sw.WriteLine(prefix + "}");
         }
 

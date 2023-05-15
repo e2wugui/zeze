@@ -1,9 +1,7 @@
 package Zeze.Dbh2;
 
 import Zeze.Builtin.Dbh2.BSplitPut;
-import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.SplitPut;
-import Zeze.Net.Binary;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;

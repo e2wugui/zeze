@@ -38,7 +38,7 @@ public class Dbh2Manager {
 	}
 
 	private Future<?> loadMonitorTimer;
-	AtomicLong atomicSerialNo = new AtomicLong();
+	final AtomicLong atomicSerialNo = new AtomicLong();
 
 	private final String home;
 
@@ -170,7 +170,7 @@ public class Dbh2Manager {
 			var selector = 1;
 
 			for (int i = 2; i < args.length; ++i) {
-				//noinspection SwitchStatementWithTooFewBranches
+				//noinspection SwitchStatementWithTooFewBranches,EnhancedSwitchMigration
 				switch (args[i]) {
 				case "-selector":
 					selector = Integer.parseInt(args[++i]);

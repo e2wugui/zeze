@@ -240,7 +240,12 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    foreach (var _v_ in _x_)");
+            sw.WriteLine(prefix + "    {");
             EncodeElement(vt, prefix + "        ", "_v_");
+            sw.WriteLine(prefix + "        _n_--;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw new System.Exception(_n_.ToString());");
             sw.WriteLine(prefix + "}");
         }
 
@@ -270,7 +275,10 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + "    {");
             EncodeElement(kt, prefix + "        ", "_e_.Key");
             EncodeElement(vt, prefix + "        ", "_e_.Value");
+            sw.WriteLine(prefix + "        _n_--;");
             sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw new System.Exception(_n_.ToString());");
             sw.WriteLine(prefix + "}");
         }
 

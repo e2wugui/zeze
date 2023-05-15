@@ -365,7 +365,10 @@ namespace Zeze.Builtin.ProviderDirect
                     foreach (var _v_ in _x_)
                     {
                         _o_.WriteLong(_v_);
+                        _n_--;
                     }
+                    if (_n_ != 0)
+                        throw new System.Exception(_n_.ToString());
                 }
             }
             {

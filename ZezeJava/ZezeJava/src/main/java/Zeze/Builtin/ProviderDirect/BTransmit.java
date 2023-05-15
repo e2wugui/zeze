@@ -250,8 +250,12 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.INTEGER);
-                for (var _v_ : _x_)
+                for (var _v_ : _x_) {
                     _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         {

@@ -245,8 +245,12 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "if (_n_ != 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
-            sw.WriteLine(prefix + "    for (var _v_ : _x_)");
+            sw.WriteLine(prefix + "    for (var _v_ : _x_) {");
             EncodeElement(vt, prefix + "        ", "_v_");
+            sw.WriteLine(prefix + "        _n_--;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw new java.util.ConcurrentModificationException(String.valueOf(_n_));");
             sw.WriteLine(prefix + "}");
         }
 
@@ -274,7 +278,10 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "    for (var _e_ : _x_.entrySet()) {");
             EncodeElement(kt, prefix + "        ", "_e_.getKey()");
             EncodeElement(vt, prefix + "        ", "_e_.getValue()");
+            sw.WriteLine(prefix + "        _n_--;");
             sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw new java.util.ConcurrentModificationException(String.valueOf(_n_));");
             sw.WriteLine(prefix + "}");
         }
 

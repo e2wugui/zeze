@@ -254,7 +254,10 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteString(_e_.getKey());
                     _o_.WriteLong(_e_.getValue());
+                    _n_--;
                 }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         {
@@ -273,7 +276,10 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteString(_e_.getKey());
                     _e_.getValue().encode(_o_);
+                    _n_--;
                 }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         {

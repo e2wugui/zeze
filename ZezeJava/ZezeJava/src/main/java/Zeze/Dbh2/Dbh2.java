@@ -148,21 +148,21 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			});
 		}
 
-		private static boolean isTransactionRequest(long typeId) {
-			return typeId == PrepareBatch.TypeId_
-					|| typeId == CommitBatch.TypeId_
-					|| typeId == UndoBatch.TypeId_;
-		}
-
 		@Override
 		public synchronized void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
-										DispatchMode mode) throws Exception {
+													 DispatchMode mode) throws Exception {
 			if (null != transactionQueue && isTransactionRequest(p.getTypeId())) {
 				transactionQueue.add(() -> Task.call(func, p));
 			} else {
 				raft.getUserThreadExecutor().execute(() -> Task.call(func, p));
 			}
 		}
+	}
+
+	private static boolean isTransactionRequest(long typeId) {
+		return typeId == PrepareBatch.TypeId_
+				|| typeId == CommitBatch.TypeId_
+				|| typeId == UndoBatch.TypeId_;
 	}
 
 	public Raft getRaft() {

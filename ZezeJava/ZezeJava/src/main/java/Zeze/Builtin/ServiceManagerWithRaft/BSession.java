@@ -216,7 +216,10 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteString(_e_.getKey());
                     _e_.getValue().encode(_o_);
+                    _n_--;
                 }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         {
@@ -228,7 +231,10 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
                 for (var _e_ : _x_.entrySet()) {
                     _e_.getKey().encode(_o_);
                     _e_.getValue().encode(_o_);
+                    _n_--;
                 }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         {
@@ -240,7 +246,10 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteString(_e_.getKey());
                     _e_.getValue().encode(_o_);
+                    _n_--;
                 }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         _o_.WriteByte(0);

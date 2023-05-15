@@ -238,8 +238,12 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.BEAN);
-                for (var _v_ : _x_)
+                for (var _v_ : _x_) {
                     _v_.encode(_o_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         _o_.WriteByte(0);

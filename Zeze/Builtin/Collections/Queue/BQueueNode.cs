@@ -144,7 +144,10 @@ namespace Zeze.Builtin.Collections.Queue
                     foreach (var _v_ in _x_)
                     {
                         _v_.Encode(_o_);
+                        _n_--;
                     }
+                    if (_n_ != 0)
+                        throw new System.Exception(_n_.ToString());
                 }
             }
             _o_.WriteByte(0);
