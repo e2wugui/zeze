@@ -3,7 +3,7 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnly {
     public static final long TYPEID = -2614323448581124612L;
 
@@ -411,7 +411,6 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         st.appendBinary(_parents_name_ + "Tid", getTid());
     }
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -2614323448581124612L;
 

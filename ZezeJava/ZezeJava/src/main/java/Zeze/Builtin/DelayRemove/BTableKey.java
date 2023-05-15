@@ -3,7 +3,7 @@ package Zeze.Builtin.DelayRemove;
 
 import Zeze.Serialize.ByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyReadOnly {
     public static final long TYPEID = 6060766480176216446L;
 

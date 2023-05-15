@@ -8,7 +8,7 @@ import Zeze.Serialize.ByteBuffer;
 				链表结构: (NewStackNode -＞) Head -＞ ... -＞ Tail (-＞ NewQueueNode)。
 				第一个用户是Table.GC，延迟删除记录。
 */
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnly {
     public static final long TYPEID = -4684745065046332255L;
 

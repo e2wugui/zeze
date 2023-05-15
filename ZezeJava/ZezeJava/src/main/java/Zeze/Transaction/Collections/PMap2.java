@@ -1,10 +1,12 @@
 package Zeze.Transaction.Collections;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
@@ -217,5 +219,20 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
+	}
+
+	public <D extends Data> void putAllData(@NotNull Map<K, D> dataMap) {
+		Bean.toBeanMap(dataMap, this);
+	}
+
+	public <D extends Data> void toDataMap(@NotNull Map<K, D> dataList) {
+		Bean.toDataMap(getMap(), dataList);
+	}
+
+	public <D extends Data> @NotNull HashMap<K, D> toDataMap() {
+		var beanMap = getMap();
+		var dataMap = new HashMap<K, D>(((beanMap.size() + 2) / 3) * 4);
+		Bean.toDataMap(beanMap, dataMap);
+		return dataMap;
 	}
 }

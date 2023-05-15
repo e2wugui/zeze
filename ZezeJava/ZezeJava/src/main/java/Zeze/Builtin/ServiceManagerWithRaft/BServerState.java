@@ -4,7 +4,7 @@ package Zeze.Builtin.ServiceManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 
 // service(server state)
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
     public static final long TYPEID = 8043107371087898459L;
 

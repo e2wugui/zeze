@@ -3,7 +3,7 @@ package Zeze.Builtin.Dbh2.Master;
 
 import Zeze.Serialize.ByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BBucketCount extends Zeze.Transaction.Bean implements BBucketCountReadOnly {
     public static final long TYPEID = 2147869342393134029L;
 
@@ -175,7 +175,6 @@ public final class BBucketCount extends Zeze.Transaction.Bean implements BBucket
         st.appendInt(_parents_name_ + "Count", getCount());
     }
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 2147869342393134029L;
 

@@ -3,7 +3,7 @@ package Zeze.Builtin.Online;
 
 import Zeze.Serialize.ByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BReliableNotify extends Zeze.Transaction.Bean implements BReliableNotifyReadOnly {
     public static final long TYPEID = -8784206618120085556L;
 

@@ -23,9 +23,8 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine();
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
-            // sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
-            sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\"})");
-            sw.WriteLine($"public final class {bean.Name} extends Zeze.Raft.RocksRaft.Bean {{");
+            sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\", \"NullableProblems\", \"SuspiciousNameCombination\"})");
+            sw.WriteLine($"public final class {bean.Name} extends Zeze.Raft.RocksRaft.Bean {{"); // extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly
             WriteDefine(sw);
             sw.WriteLine("}");
         }

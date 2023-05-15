@@ -3,7 +3,7 @@ package Zeze.Builtin.RedoQueue;
 
 import Zeze.Serialize.ByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTaskReadOnly {
     public static final long TYPEID = 3220291684741669511L;
 

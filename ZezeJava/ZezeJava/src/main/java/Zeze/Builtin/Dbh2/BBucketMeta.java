@@ -3,7 +3,7 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketMetaReadOnly {
     public static final long TYPEID = 8589859502117192635L;
 
@@ -387,7 +387,6 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         st.appendString(_parents_name_ + "RaftConfig", getRaftConfig());
     }
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8589859502117192635L;
 

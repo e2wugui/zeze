@@ -3,7 +3,7 @@ package Zeze.Builtin.TestRocks;
 
 import Zeze.Serialize.ByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     public static final long TYPEID = -7620770686653123067L;
 

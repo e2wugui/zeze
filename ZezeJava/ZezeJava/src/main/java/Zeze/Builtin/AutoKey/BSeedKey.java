@@ -4,7 +4,7 @@ package Zeze.Builtin.AutoKey;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
 public final class BSeedKey implements Serializable, Comparable<BSeedKey> {
     private int _ServerId;
     private String _KeyName;

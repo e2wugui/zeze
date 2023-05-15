@@ -4,7 +4,7 @@ package Zeze.Builtin.LinkdBase;
 import Zeze.Serialize.ByteBuffer;
 
 // linkd to client
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BReportError extends Zeze.Transaction.Bean implements BReportErrorReadOnly {
     public static final long TYPEID = -947669033141460287L;
 

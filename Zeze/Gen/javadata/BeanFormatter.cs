@@ -17,7 +17,6 @@ namespace Zeze.Gen.javadata
             sw.WriteLine();
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
-            sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\"})");
             var final = bean.Extendable ? "" : "final ";
             sw.WriteLine($"public static {final}class Data extends Zeze.Transaction.Data {{");
             WriteDefine(sw);

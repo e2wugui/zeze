@@ -3,7 +3,7 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutReadOnly {
     public static final long TYPEID = 5420980520394401381L;
 
@@ -240,7 +240,6 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
         st.appendString(_parents_name_ + "Puts", Zeze.Serialize.Helper.encodeJson(_Puts));
     }
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5420980520394401381L;
 

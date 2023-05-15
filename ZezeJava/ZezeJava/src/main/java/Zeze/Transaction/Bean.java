@@ -1,6 +1,8 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Collections.LogBean;
@@ -118,6 +120,34 @@ public abstract class Bean implements Serializable {
 
 	public @NotNull Data toData() {
 		throw new UnsupportedOperationException();
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <B extends Bean, D extends Data> void toBeanList(@NotNull Collection<D> fromDataList,
+																   @NotNull Collection<B> toBeanList) {
+		for (var data : fromDataList)
+			toBeanList.add((B)data.toBean());
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <B extends Bean, D extends Data> void toDataList(@NotNull Collection<B> fromBeanList,
+																   @NotNull Collection<D> toDataList) {
+		for (var bean : fromBeanList)
+			toDataList.add((D)bean.toData());
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <K, B extends Bean, D extends Data> void toBeanMap(@NotNull Map<K, D> fromDataMap,
+																	 @NotNull Map<K, B> toBeanMap) {
+		for (var e : fromDataMap.entrySet())
+			toBeanMap.put(e.getKey(), (B)e.getValue().toBean());
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <K, B extends Bean, D extends Data> void toDataMap(@NotNull Map<K, B> fromBeanMap,
+																	 @NotNull Map<K, D> toDataMap) {
+		for (var e : fromBeanMap.entrySet())
+			toDataMap.put(e.getKey(), (D)e.getValue().toData());
 	}
 
 	public void buildString(@NotNull StringBuilder sb, int level) {

@@ -4,7 +4,7 @@ package Zeze.Builtin.Collections.Queue;
 import Zeze.Serialize.ByteBuffer;
 
 // 一个节点可以存多个KeyValue对，
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNodeReadOnly {
     public static final long TYPEID = 400956918018571167L;
 

@@ -4,7 +4,7 @@ package Zeze.Builtin.Collections.DAG;
 import Zeze.Serialize.ByteBuffer;
 
 // 有向图的结点类型（如：一个任务Task）
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeReadOnly {
     public static final long TYPEID = -4514731368266918897L;
 

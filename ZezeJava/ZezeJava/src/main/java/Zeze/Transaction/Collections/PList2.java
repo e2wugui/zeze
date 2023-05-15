@@ -1,10 +1,12 @@
 package Zeze.Transaction.Collections;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
@@ -246,5 +248,20 @@ public class PList2<V extends Bean> extends PList<V> {
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
+	}
+
+	public <D extends Data> void addAllData(@NotNull Collection<D> dataList) {
+		Bean.toBeanList(dataList, this);
+	}
+
+	public <D extends Data> void toDataList(@NotNull Collection<D> dataList) {
+		Bean.toDataList(getList(), dataList);
+	}
+
+	public <D extends Data> @NotNull ArrayList<D> toDataList() {
+		var beanList = getList();
+		var dataList = new ArrayList<D>(beanList.size());
+		Bean.toDataList(beanList, dataList);
+		return dataList;
 	}
 }

@@ -3,7 +3,7 @@ package Zeze.Builtin.AutoKey;
 
 import Zeze.Serialize.ByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyReadOnly {
     public static final long TYPEID = 3694349315876280858L;
 

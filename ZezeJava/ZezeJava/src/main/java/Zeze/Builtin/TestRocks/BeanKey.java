@@ -4,7 +4,7 @@ package Zeze.Builtin.TestRocks;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
 public final class BeanKey implements Serializable, Comparable<BeanKey> {
     private int _Id;
     private String _Name;

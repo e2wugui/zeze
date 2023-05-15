@@ -3,7 +3,7 @@ package Zeze.Builtin.Dbh2.Commit;
 
 import Zeze.Serialize.ByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPrepareBatchesReadOnly {
     public static final long TYPEID = -2881093366329974312L;
 
@@ -204,7 +204,6 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
         st.appendString(_parents_name_ + "Datas", Zeze.Serialize.Helper.encodeJson(_Datas));
     }
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -2881093366329974312L;
 

@@ -3,7 +3,7 @@ package Zeze.Builtin.Game.Rank;
 
 import Zeze.Serialize.ByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BRankList extends Zeze.Transaction.Bean implements BRankListReadOnly {
     public static final long TYPEID = -1625874326687776700L;
 
