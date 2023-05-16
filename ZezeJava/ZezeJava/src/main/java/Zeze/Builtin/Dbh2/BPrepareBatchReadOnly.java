@@ -7,6 +7,7 @@ public interface BPrepareBatchReadOnly {
     boolean negativeCheck();
     BPrepareBatch copy();
 
+    String getMaster();
     String getDatabase();
     String getTable();
     Zeze.Builtin.Dbh2.BBatchReadOnly getBatchReadOnly();

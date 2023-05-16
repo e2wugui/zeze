@@ -3,6 +3,7 @@ package Zeze.Dbh2;
 import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
@@ -12,6 +13,7 @@ import Zeze.Net.ServiceConf;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import Zeze.Util.ShutdownHook;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -34,6 +36,19 @@ public class Dbh2AgentManager {
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private Commit commit;
 	private CommitAgent commitAgent;
+	private Future<?> refreshMasterTableTask;
+
+	public synchronized void startRefreshMasterTable(
+			String masterName, String databaseName, String tableName) {
+		if (null != refreshMasterTableTask)
+			return;
+
+		refreshMasterTableTask = Task.scheduleUnsafe(200,
+				() -> {
+					reload(openMasterAgent(masterName), masterName, databaseName, tableName);
+					refreshMasterTableTask = null;
+				});
+	}
 
 	public Dbh2Config getDbh2Config() {
 		return dbh2Config;
@@ -129,19 +144,23 @@ public class Dbh2AgentManager {
 		}
 	}
 
-	public MasterAgent openDatabase(
-			String masterName,
-			String databaseName) {
-		var master = masterAgent.computeIfAbsent(masterName, _masterName -> {
-			var config = new Config();
+	public MasterAgent openMasterAgent(String masterName) {
+		return masterAgent.computeIfAbsent(masterName, _masterName -> {
+			var config1 = new Config();
 			var serviceConf = new ServiceConf();
 			var ipPort = _masterName.split(":");
-			config.getServiceConfMap().put(MasterAgent.eServiceName, serviceConf);
+			config1.getServiceConfMap().put(MasterAgent.eServiceName, serviceConf);
 			serviceConf.tryGetOrAddConnector(ipPort[0], Integer.parseInt(ipPort[1]), true, null);
-			var m = new MasterAgent(config);
+			var m = new MasterAgent(config1);
 			m.startAndWaitConnectionReady();
 			return m;
 		});
+	}
+
+	public MasterAgent openDatabase(
+			String masterName,
+			String databaseName) {
+		var master = openMasterAgent(masterName);
 		master.createDatabase(databaseName);
 		return master;
 	}

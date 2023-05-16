@@ -565,7 +565,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		var endSplit = (LogEndSplit)raftLog.getLog();
 		manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo());
 		var meta = stateMachine.getBucket().getMeta();
-		logger.info("splitting end... {}@{}", meta.getTableName(), meta.getDatabaseName());
+		logger.info("splitting end done. {}@{}", meta.getTableName(), meta.getDatabaseName());
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {

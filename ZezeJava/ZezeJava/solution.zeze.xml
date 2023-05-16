@@ -1424,9 +1424,10 @@
 				<variable id="5" name="Tid" type="binary"/>
 			</bean>
 			<bean name="BPrepareBatch">
-				<variable id="1" name="Database" type="string"/> 用来纠错
-				<variable id="2" name="Table" type="string"/> 用来纠错
-				<variable id="3" name="Batch" type="BBatch"/>
+				<variable id="1" name="Master" type="string"/> 用来纠错
+				<variable id="2" name="Database" type="string"/> 用来纠错
+				<variable id="3" name="Table" type="string"/> 用来纠错
+				<variable id="4" name="Batch" type="BBatch"/>
 			</bean>
 			<bean name="BBatchTid">
 				<variable id="1" name="Tid" type="binary"/>

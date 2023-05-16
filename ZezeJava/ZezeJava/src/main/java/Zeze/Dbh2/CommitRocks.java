@@ -2,8 +2,8 @@ package Zeze.Dbh2;
 
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.BRefused;
@@ -131,6 +131,32 @@ public class CommitRocks {
 			e.await();
 	}
 
+	private ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> processPrepareFutures(
+			Binary tid, String queryHost, int queryPort,
+			ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> futures)
+			throws ExecutionException, InterruptedException {
+
+		var futuresRedirect = new ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
+		for (var e : futures) {
+			var r = e.get();
+			// 【dbh2 拒绝模式结果处理】
+			var refused = r.Result.getRefused();
+			if (!refused.isEmpty()) {
+				manager.startRefreshMasterTable(r.Argument.getMaster(), r.Argument.getDatabase(), r.Argument.getTable());
+				for (var eRefuse : refused.entrySet()) {
+					var batch = new BPrepareBatch.Data();
+					batch.getBatch().setQueryIp(queryHost);
+					batch.getBatch().setQueryPort(queryPort);
+					batch.getBatch().setTid(tid);
+					batch.getBatch().setPuts(eRefuse.getValue().getPuts());
+					batch.getBatch().setDeletes(eRefuse.getValue().getDeletes());
+					futuresRedirect.add(manager.openBucket(eRefuse.getKey()).prepareBatch(batch));
+				}
+			}
+		}
+		return futuresRedirect;
+	}
+
 	public byte[] prepare(String queryHost, int queryPort, BPrepareBatches.Data batches) {
 		var tid = Dbh2AgentManager.nextTransactionId();
 		var prepareTime = System.currentTimeMillis();
@@ -146,12 +172,11 @@ public class CommitRocks {
 				batch.getBatch().setTid(tidBinary);
 				futures.add(manager.openBucket(e.getKey()).prepareBatch(batch));
 			}
-			for (var e : futures) {
-				var refused = e.get();
-				if (!refused.Result.getRefused().isEmpty()) {
-					//logger.info("todo process refused. "); // todo process refused
-				}
-			}
+
+			// 处理prepare结果，碰到【拒绝模式重定向】的请求，需要循环处理。
+			while (!futures.isEmpty())
+				futures = processPrepareFutures(tidBinary, queryHost, queryPort, futures);
+
 		} catch (Throwable ex) {
 			undo(batches);
 			removeCommitIndex(tid);
