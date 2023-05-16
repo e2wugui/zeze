@@ -11,10 +11,9 @@ import Zeze.Builtin.Dbh2.Master.BRegister;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
+import Zeze.Builtin.Dbh2.Master.EndSplit;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.LocateBucket;
-import Zeze.Builtin.Dbh2.Master.PublishSplitBucketNew;
-import Zeze.Builtin.Dbh2.Master.PublishSplitBucketOld;
 import Zeze.Builtin.Dbh2.Master.Register;
 import Zeze.Builtin.Dbh2.Master.ReportBucketCount;
 import Zeze.Builtin.Dbh2.Master.ReportLoad;
@@ -230,19 +229,11 @@ public class Master extends AbstractMaster {
 	}
 
 	@Override
-	protected long ProcessPublishSplitBucketNewRequest(PublishSplitBucketNew r) throws Exception {
-		var database = databases.get(r.Argument.getDatabaseName());
+	protected long ProcessEndSplitRequest(EndSplit r) throws Exception {
+		var database = databases.get(r.Argument.getFrom().getDatabaseName());
 		if (null == database)
 			return errorCode(eDatabaseNotFound);
-		return database.publishSplitBucketNew(r);
-	}
-
-	@Override
-	protected long ProcessPublishSplitBucketOldRequest(PublishSplitBucketOld r) throws Exception {
-		var database = databases.get(r.Argument.getDatabaseName());
-		if (null == database)
-			return errorCode(eDatabaseNotFound);
-		return database.publishSplitBucketOld(r);
+		return database.endSplit(r);
 	}
 
 	@Override

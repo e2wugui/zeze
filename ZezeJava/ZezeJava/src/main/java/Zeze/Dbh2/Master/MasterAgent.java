@@ -5,9 +5,8 @@ import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
+import Zeze.Builtin.Dbh2.Master.EndSplit;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
-import Zeze.Builtin.Dbh2.Master.PublishSplitBucketNew;
-import Zeze.Builtin.Dbh2.Master.PublishSplitBucketOld;
 import Zeze.Builtin.Dbh2.Master.Register;
 import Zeze.Builtin.Dbh2.Master.ReportBucketCount;
 import Zeze.Builtin.Dbh2.Master.ReportLoad;
@@ -15,10 +14,9 @@ import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Net.Connector;
 import Zeze.Net.ProtocolHandle;
-import Zeze.Net.Rpc;
-import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
+import Zeze.Util.Task;
 
 public class MasterAgent extends AbstractMasterAgent {
 	public static final String eServiceName = "Zeze.Dbh2.Master.Agent";
@@ -120,33 +118,25 @@ public class MasterAgent extends AbstractMasterAgent {
 		return r.Result;
 	}
 
-	public void publishSplitBucketNew(BBucketMeta.Data bucket) {
-		var r = new PublishSplitBucketNew();
-		r.Argument = bucket;
-		r.SendForWait(service.GetSocket()).await();
-		if (r.getResultCode() != 0)
-			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
-	}
-
-	public void publishSplitBucketNewAsync(BBucketMeta.Data bucket,
-										   ProtocolHandle<Rpc<BBucketMeta.Data, EmptyBean.Data>> handle) {
-		var r = new PublishSplitBucketNew();
-		r.Argument = bucket;
-		r.Send(service.GetSocket(), handle);
-	}
-
-	public void publishSplitBucketOldAsync(BBucketMeta.Data bucket,
-										   ProtocolHandle<Rpc<BBucketMeta.Data, EmptyBean.Data>> handle) {
-		var r = new PublishSplitBucketOld();
-		r.Argument = bucket;
-		r.Send(service.GetSocket(), handle);
-	}
-
 	public void reportBucketCount(int count) {
-		var r= new ReportBucketCount();
+		var r = new ReportBucketCount();
 		r.Argument.setCount(count);
 		r.SendForWait(service.GetSocket()).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
+	}
+
+	public void endSplitWithRetryAsync(BBucketMeta.Data from, BBucketMeta.Data to) {
+		var r = new EndSplit();
+		r.Argument.setFrom(from);
+		r.Argument.setTo(to);
+		if (!r.Send(service.GetSocket(), (p) -> {
+			if (p.getResultCode() != 0) {
+				Task.schedule(30_000, () -> endSplitWithRetryAsync(from,to));
+			}
+			return 0;
+		})) {
+			Task.schedule(30_000, () -> endSplitWithRetryAsync(from,to));
+		}
 	}
 }

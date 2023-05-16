@@ -6,6 +6,7 @@ import java.util.concurrent.Future;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
+import Zeze.Builtin.Dbh2.BRefused;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Builtin.Dbh2.Commit.BTransactionState;
 import Zeze.Net.Binary;
@@ -136,7 +137,7 @@ public class CommitRocks {
 		try {
 			// prepare
 			saveCommitPoint(tid, batches, Commit.ePreparing);
-			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BBatch.Data>>>();
+			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
 			var tidBinary = new Binary(tid);
 			for (var e : batches.getDatas().entrySet()) {
 				var batch = e.getValue();
@@ -147,7 +148,7 @@ public class CommitRocks {
 			}
 			for (var e : futures) {
 				var refused = e.get();
-				if (!refused.Result.getDeletes().isEmpty() || !refused.Result.getPuts().isEmpty()) {
+				if (!refused.Result.getRefused().isEmpty()) {
 					//logger.info("todo process refused. "); // todo process refused
 				}
 			}

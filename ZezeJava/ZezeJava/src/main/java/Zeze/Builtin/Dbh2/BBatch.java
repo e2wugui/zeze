@@ -13,6 +13,18 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     private int _QueryPort;
     private Zeze.Net.Binary _Tid;
 
+    private transient Object __zeze_map_key__;
+
+    @Override
+    public Object mapKey() {
+        return __zeze_map_key__;
+    }
+
+    @Override
+    public void mapKey(Object value) {
+        __zeze_map_key__ = value;
+    }
+
     public Zeze.Transaction.Collections.PMap1<Zeze.Net.Binary, Zeze.Net.Binary> getPuts() {
         return _Puts;
     }

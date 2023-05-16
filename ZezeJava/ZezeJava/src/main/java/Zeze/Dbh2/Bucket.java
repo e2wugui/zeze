@@ -2,6 +2,7 @@ package Zeze.Dbh2;
 
 import java.nio.file.Path;
 import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Dbh2.Master.MasterTable;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
@@ -19,10 +20,13 @@ public class Bucket {
 	private final RocksDatabase.Batch batch;
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
 	private volatile BBucketMeta.Data meta;
+	private volatile BBucketMeta.Data splittingMeta;
+	private volatile MasterTable.Data splitMetaHistory;
 	private long tid;
 	private final byte[] metaKey = new byte[]{1};
 	private final byte[] metaTid = ByteBuffer.Empty;
 	private final byte[] metaSplittingKey = new byte[]{2};
+	private final byte[] metaSplitKeyHistory = new byte[]{3};
 
 	public WriteOptions getWriteOptions() {
 		return writeOptions;
@@ -40,23 +44,13 @@ public class Bucket {
 		return tData;
 	}
 
-	public BBucketMeta.Data getMetaSplitting() throws RocksDBException {
-		var value = tMeta.get(metaSplittingKey);
-		if (null == value)
-			return null;
-		var meta = new BBucketMeta.Data();
-		meta.decode(ByteBuffer.Wrap(value));
-		return meta;
+	public BBucketMeta.Data getSplittingMeta() {
+		return splittingMeta;
 	}
 
-	public void setMetaSplitting(BBucketMeta.Data meta) throws RocksDBException {
-		var bbMeta = ByteBuffer.Allocate();
-		meta.encode(bbMeta);
-		tMeta.put(metaSplittingKey, 0, metaSplittingKey.length, bbMeta.Bytes, bbMeta.ReadIndex, bbMeta.size());
-	}
-
-	public void deleteMetaSplitting() throws RocksDBException {
+	public void deleteSplittingMeta() throws RocksDBException {
 		tMeta.delete(metaSplittingKey);
+		splittingMeta = null;
 	}
 
 	RocksDatabase.Batch getBatch() {
@@ -77,6 +71,20 @@ public class Bucket {
 				this.meta = new BBucketMeta.Data();
 				this.meta.decode(bb);
 			}
+			var splittingMetaValue = tMeta.get(metaSplittingKey);
+			if (null != splittingMetaValue) {
+				var bb = ByteBuffer.Wrap(splittingMetaValue);
+				this.splittingMeta = new BBucketMeta.Data();
+				this.splittingMeta.decode(bb);
+			}
+			var splitMetaHistoryValue = tMeta.get(metaSplitKeyHistory);
+			if (null != splitMetaHistoryValue) {
+				var bb = ByteBuffer.Wrap(splitMetaHistoryValue);
+				this.splitMetaHistory = new MasterTable.Data();
+				this.splitMetaHistory.decode(bb);
+			} else {
+				this.splitMetaHistory = new MasterTable.Data();
+			}
 			var tidValue = tMeta.get(metaTid);
 			if (null != tidValue) {
 				var bb = ByteBuffer.Wrap(tidValue);
@@ -92,6 +100,25 @@ public class Bucket {
 		meta.encode(bb);
 		tMeta.put(writeOptions, metaKey, 0, metaKey.length, bb.Bytes, 0, bb.WriteIndex);
 		this.meta = meta;
+	}
+
+	public void setSplittingMeta(BBucketMeta.Data meta) throws RocksDBException {
+		var bb = ByteBuffer.Allocate(32);
+		meta.encode(bb);
+		tMeta.put(writeOptions, metaSplittingKey, 0, metaSplittingKey.length, bb.Bytes, 0, bb.WriteIndex);
+		this.splittingMeta = meta;
+	}
+
+	public void addSplitMetaHistory(BBucketMeta.Data from, BBucketMeta.Data to) throws RocksDBException {
+		this.splitMetaHistory.getBuckets().put(from.getKeyFirst(), from);
+		this.splitMetaHistory.getBuckets().put(to.getKeyFirst(), to);
+		var bb = ByteBuffer.Allocate();
+		this.splitMetaHistory.encode(bb);
+		tMeta.put(writeOptions, metaSplitKeyHistory, 0, metaSplitKeyHistory.length, bb.Bytes, 0, bb.WriteIndex);
+	}
+
+	public MasterTable.Data getSplitMetaHistory() {
+		return splitMetaHistory;
 	}
 
 	public void setTid(long tid) throws RocksDBException {

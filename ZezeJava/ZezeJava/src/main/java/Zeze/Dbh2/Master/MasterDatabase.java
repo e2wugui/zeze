@@ -7,8 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
-import Zeze.Builtin.Dbh2.Master.PublishSplitBucketNew;
-import Zeze.Builtin.Dbh2.Master.PublishSplitBucketOld;
+import Zeze.Builtin.Dbh2.Master.EndSplit;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -173,24 +172,8 @@ public class MasterDatabase {
 		}
 	}
 
-	public long publishSplitBucketOld(PublishSplitBucketOld r) throws Exception {
-		var bucketOld = r.Argument;
-		var tableName = bucketOld.getTableName();
-		var table = tables.get(tableName);
-		if (null == table)
-			return master.errorCode(Master.eTableNotFound);
-
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (table) {
-			table.buckets.put(bucketOld.getKeyFirst(), bucketOld);
-		}
-		r.SendResult();
-		return 0;
-	}
-
-	public long publishSplitBucketNew(PublishSplitBucketNew r) throws Exception {
-		var bucketNew = r.Argument;
-		var tableName = bucketNew.getTableName();
+	public long endSplit(EndSplit r) throws Exception {
+		var tableName = r.Argument.getFrom().getTableName();
 		var table = tables.get(tableName);
 		if (null == table)
 			return master.errorCode(Master.eTableNotFound);
@@ -198,6 +181,7 @@ public class MasterDatabase {
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
+			var bucketNew = r.Argument.getTo();
 			var bucket = splitting.buckets.get(bucketNew.getKeyFirst());
 			if (bucket != null
 					&& bucket.getDatabaseName().equals(bucketNew.getDatabaseName())
@@ -206,7 +190,9 @@ public class MasterDatabase {
 					&& bucket.getKeyLast().equals(bucketNew.getKeyLast())
 			) {
 				splitting.buckets.remove(bucketNew.getKeyFirst());
-				table.buckets.put(bucketNew.getKeyFirst(), bucketNew); // 这里实际上是replace。
+				table.buckets.put(bucketNew.getKeyFirst(), bucketNew);
+				table.buckets.put(r.Argument.getFrom().getKeyFirst(), r.Argument.getFrom()); // replace
+
 				try (var batch = rocksDb.newBatch()) {
 					var bbTable = table.encode();
 					var bbSplitting = splitting.encode();

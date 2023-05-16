@@ -36,7 +36,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogSetBucketMeta.TypeId_, LogSetBucketMeta::new);
 		super.addFactory(LogAllocateTid.TypeId_, LogAllocateTid::new);
 
-		super.addFactory(LogSetBucketAndDeleteSplittingMeta.TypeId_, LogSetBucketAndDeleteSplittingMeta::new);
+		super.addFactory(LogEndSplit.TypeId_, LogEndSplit::new);
 		super.addFactory(LogSetSplittingMeta.TypeId_, LogSetSplittingMeta::new);
 		super.addFactory(LogSplitPut.TypeId_, LogSplitPut::new);
 	}
@@ -99,17 +99,17 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void setSplittingMeta(BBucketMeta.Data argument) {
 		try {
-			bucket.setMetaSplitting(argument);
+			bucket.setSplittingMeta(argument);
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
 		}
 	}
 
-	public void setBucketAndDeleteSplittingMeta(BBucketMeta.Data argument) {
+	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
 		try {
-			bucket.setMeta(argument);
-			bucket.deleteMetaSplitting();
+			bucket.addSplitMetaHistory(from, to);
+			bucket.deleteSplittingMeta();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();

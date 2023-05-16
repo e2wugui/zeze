@@ -1377,8 +1377,11 @@
 				</bean>
 				<rpc name="ReportBucketCount" argument="BBucketCount" UseData="true" handle="server"/>
 				
-				<rpc name="PublishSplitBucketNew" argument="Zeze.Builtin.Dbh2.BBucketMeta" UseData="true" handle="server"/>
-				<rpc name="PublishSplitBucketOld" argument="Zeze.Builtin.Dbh2.BBucketMeta" UseData="true" handle="server"/>
+				<bean name="BEndSplit">
+					<variable id="1" name="From" type="Zeze.Builtin.Dbh2.BBucketMeta"/>
+					<variable id="2" name="To" type="Zeze.Builtin.Dbh2.BBucketMeta"/>
+				</bean>
+				<rpc name="EndSplit" argument="BEndSplit" UseData="true" handle="server"/>
 			</module>
 
 			<enum name="eBucketNotFound" value="1"/>
@@ -1428,8 +1431,11 @@
 			<bean name="BBatchTid">
 				<variable id="1" name="Tid" type="binary"/>
 			</bean>
+			<bean name="BRefused">
+				<variable id="1" name="Refused" type="map[string, BBatch]"/>
+			</bean>
 			<!-- 桶正在迁移中造成Batch中部分Key失败，整个事务失败。-->
-			<rpc name="PrepareBatch" argument="BPrepareBatch" result="BBatch" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			<rpc name="PrepareBatch" argument="BPrepareBatch" result="BRefused" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			<rpc name="CommitBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			<rpc name="UndoBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			

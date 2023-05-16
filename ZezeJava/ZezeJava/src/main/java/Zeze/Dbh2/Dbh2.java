@@ -4,7 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
@@ -12,19 +12,16 @@ import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Builtin.Dbh2.SplitPut;
 import Zeze.Builtin.Dbh2.UndoBatch;
 import Zeze.Config;
-import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
-import Zeze.Net.Rpc;
 import Zeze.Raft.Agent;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RaftLog;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
-import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.FuncLong;
@@ -263,27 +260,42 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				return errorCode(eBucketMissmatch);
 
 			var refused = r.Result; // 对于puts可以考虑只传key，网络占用少一些。
+			var splitHistory = stateMachine.getBucket().getSplitMetaHistory();
 			for (var e : r.Argument.getBatch().getPuts().entrySet()) {
 				var key = e.getKey();
 				var value = e.getValue();
 				counterPut.incrementAndGet();
 				sizePut.addAndGet(value.size() + key.size());
 				if (!stateMachine.getBucket().inBucket(key)) {
-					refused.getPuts().put(key, value);
+					var locate = splitHistory.locate(key);
+
+					if (null == locate || locate.getKeyFirst().equals(stateMachine.getBucket().getMeta().getKeyFirst()))
+						return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
+
+					var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
+					batches.getPuts().put(key, value);
 				}
 			}
 			for (var del : r.Argument.getBatch().getDeletes()) {
 				counterDelete.incrementAndGet();
 				if (!stateMachine.getBucket().inBucket(del)) {
-					refused.getDeletes().add(del);
+					var locate = splitHistory.locate(del);
+
+					if (null == locate || locate.getKeyFirst().equals(stateMachine.getBucket().getMeta().getKeyFirst()))
+						return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
+
+					var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
+					batches.getDeletes().add(del);
 				}
 			}
 
 			// 移除拒绝的数据。
-			for (var e : refused.getPuts().entrySet())
-				r.Argument.getBatch().getPuts().remove(e.getKey());
-			for (var e : refused.getDeletes())
-				r.Argument.getBatch().getDeletes().remove(e);
+			for (var e : refused.getRefused().values()) {
+				for (var p : e.getPuts().entrySet())
+					r.Argument.getBatch().getPuts().remove(p.getKey());
+				for (var d : e.getDeletes())
+					r.Argument.getBatch().getDeletes().remove(d);
+			}
 
 			// apply to raft
 			getRaft().appendLog(new LogPrepareBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
@@ -351,10 +363,11 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		if (!raft.isLeader())
 			return;
 		var bucket = stateMachine.getBucket();
-		var splitting = bucket.getMetaSplitting();
+		var splitting = bucket.getSplittingMeta();
 		if (null != splitting) {
-			var meta = bucket.getMeta();
-			logger.info("start but splitting found. database={} table={}", meta.getDatabaseName(), meta.getTableName());
+			logger.info("start but splitting found. database={} table={}",
+					splitting.getDatabaseName(),
+					splitting.getTableName());
 			return; // splitting
 		}
 
@@ -363,7 +376,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	private volatile long splitSerialNo;
 	private volatile Dbh2Agent dbh2Splitting;
-	private volatile BBucketMeta.Data splittingMeta;
 
 	private RocksIterator locateMiddle() throws RocksDBException {
 		var bucket = stateMachine.getBucket();
@@ -408,8 +420,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		splitSerialNo = serialNo;
 		var bucket = stateMachine.getBucket();
 		RocksIterator it = null;
-		var splitting = bucket.getMetaSplitting(); // 对于timer，这个会调用两次，先这样。
 		try {
+			var splitting = bucket.getSplittingMeta(); // 对于timer，这个会调用两次。
 			if (null == splitting) {
 				// 第一次开始分桶，准备阶段。
 				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
@@ -420,13 +432,16 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				metaCopy.setRaftConfig("");
 				splitting = manager.getMasterAgent().createSplitBucket(metaCopy);
 
-				// 设置分桶meta，即标记到raft集群中。
+				// 设置分桶进行中的标记到raft集群中。
 				getRaft().appendLog(new LogSetSplittingMeta(splitting));
 				// 创建到分桶目标的客户端。
+				logger.info("splitting start... {}@{}", splitting.getTableName(), splitting.getDatabaseName());
+			}
+
+			// 重启的时候，需要重建到分桶的连接。
+			if (null == dbh2Splitting) {
 				dbh2Splitting = new Dbh2Agent(splitting.getRaftConfig(), RaftAgentNetClient::new);
 				dbh2Splitting.getRaftAgent().setPendingLimit(Integer.MAX_VALUE);
-				splittingMeta = splitting;
-				logger.info("splitting start... {}@{}", splitting.getTableName(), splitting.getDatabaseName());
 			}
 
 			var server = (Dbh2RaftServer)getRaft().getServer();
@@ -476,6 +491,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (puts.Argument.getPuts().isEmpty()) {
 				it.close();
 
+				var splittingMeta = stateMachine.getBucket().getSplittingMeta();
 				// 有好几个步骤，采用异步方式。
 				logger.info("splitting end... {}@{}", splittingMeta.getTableName(), splittingMeta.getDatabaseName());
 				endSplit0();
@@ -490,8 +506,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	private void endSplit0() throws Exception {
-		// 设置目标桶的meta
-		dbh2Splitting.setBucketMetaAsync(splittingMeta, this::endSplit1);
+		// 第一步，设置新桶的meta
+		dbh2Splitting.setBucketMetaAsync(stateMachine.getBucket().getSplittingMeta(), this::endSplit1);
 	}
 
 	private long endSplit1(Protocol<?> p) {
@@ -505,51 +521,17 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			return 0;
 		}
 
-		// 公布新桶信息。新桶已经准备好，可以使用了。
-		var serialNo = splitSerialNo;
-		manager.getMasterAgent().publishSplitBucketNewAsync(splittingMeta, (p2) -> endSplit2(serialNo, p2));
+		// 【原子化】设置源桶状态（修改源桶Meta；保存新桶Meta到历史中；删除分桶Meta）。
+		var bucket = stateMachine.getBucket();
+		var from = bucket.getMeta().copy();
+		var to = bucket.getSplittingMeta();
+		from.setKeyLast(to.getKeyFirst());
+
+		getRaft().appendLog(new LogEndSplit(from, to), this::endSplit2);
 		return 0;
 	}
 
-	private long endSplit2(long serialNo, Rpc<BBucketMeta.Data, EmptyBean.Data> p) {
-		if (p.getResultCode() != 0) {
-			try {
-				startSplit();
-			} catch (Exception e) {
-				logger.error("", e);
-			}
-			return 0;
-		}
-
-		// 【时间窗口】
-		// 1. 新桶已经发布，可能有地方得到新桶信息，会发送事务给新桶，所以新桶发布不能取消。
-		// 2. 此时旧桶Meta没有修改，仍有可能还在提供服务。在这个窗口，其中新桶部分的记录修改需要继续拷贝到新桶。
-		// 3. 此时如果拷贝事务数据失败，需要重启startSplit，进行完整的拷贝。（注意，此时新桶已经在工作）。
-
-		// 原子化！
-		// 当新桶发布出去，旧桶还在服务，这个时候到达的事务请求也需要同步到新桶，
-		// 但此时如果发生错误，而导致拷贝操作重新开始，逻辑上非常难以处理。
-		// 所以最简单的做法是设置一个事务队列，把请求全部缓存下来，
-		// 当endSplit全部结束的时候，再处理这些事务。
-		// endSplit结束的时候，本桶进入拒绝模式，会正确的处理非本桶的请求，此时不会同步到新桶。
-		var server = (Dbh2RaftServer)getRaft().getServer();
-		server.setupTransactionQueue();
-		// 【时间窗口】
-		// 1. 到达这里，所有的本桶数据修改事务会被拦截。
-		// 2. 下面检查是否发生了新的startSplit。
-		if (splitSerialNo != serialNo) {
-			// cancel setup
-			performTransactionQueue(server.takeTransactionQueue());
-			return 0; // done;
-		}
-		var copy = stateMachine.getBucket().getMeta().copy();
-		copy.setKeyLast(splittingMeta.getKeyFirst());
-		// 两步操作合并是为了优化。也有点原子的意思。
-		getRaft().appendLog(new LogSetBucketAndDeleteSplittingMeta(copy), this::endSplit3);
-		return 0;
-	}
-
-	private void endSplit3(RaftLog raftLog, Boolean result) {
+	private void endSplit2(RaftLog raftLog, Boolean result) {
 		if (!result) {
 			try {
 				startSplit();
@@ -558,51 +540,24 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			}
 			return;
 		}
-		// 清除raft集群分桶标志。
-		// 切换回主线程清除进程内标记，防止将要清除的变量还被使用中。特别是dbh2Splitting。
-		endSplit4();
-	}
 
-	private void endSplit4() {
-		// clear split state
-		var server = (Dbh2RaftServer)getRaft().getServer();
-		var tmpQueue = server.takeTransactionQueue();
+		// 【进入拒绝模式】
+		// 关闭到新桶连接。
 		try {
-			try {
-				dbh2Splitting.close();
-			} catch (Exception ex) {
-				logger.error("", ex);
-			}
-			dbh2Splitting = null;
-			splittingMeta = null;
-
-			endSpit5();
-		} finally {
-			performTransactionQueue(tmpQueue);
+			dbh2Splitting.close();
+		} catch (Exception ex) {
+			logger.error("", ex);
 		}
-	}
+		dbh2Splitting = null;
 
-	private void endSpit5() {
-		// 最后发布源桶，减少【时间窗口时间】。
-		// 分桶工作状态已经清除。这一步不能出错！！！
-		// 如果发生错误，将出现Meta信息不正确，但由于分桶已经创建，bucket.locate能正确工作。
-		manager.getMasterAgent().publishSplitBucketOldAsync(stateMachine.getBucket().getMeta(), this::endSplit5Handle);
-	}
-
-	private long endSplit5Handle(Rpc<BBucketMeta.Data, EmptyBean.Data> p) {
-		if (p.getResultCode() != 0) {
-			var meta = stateMachine.getBucket().getMeta();
-			logger.error("publishSplitBucketOld error={} database={}, table={}",
-					IModule.getErrorCode(p.getResultCode()),
-					meta.getDatabaseName(), meta.getTableName());
-			Task.schedule(60_000, this::endSpit5); // 一分钟以后继续尝试。
-			// 不断重试报告最新Meta，配合启动的时候也报告一次??????????
-			// 暂时忽略这个问题，否则Dbh2启动的时候，调用一次endSplit5即可。
-		}
-		return 0;
+		// 可以安全的发布新旧桶的信息到Master了。
+		var endSplit = (LogEndSplit)raftLog.getLog();
+		manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo());
+		return;
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {
+		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
 		if (splittingMeta == null || dbh2Splitting == null)
 			return;
 

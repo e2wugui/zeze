@@ -53,6 +53,14 @@ public abstract class AbstractMaster implements Zeze.IModule {
             service.AddFactoryHandle(47363344664675L, factoryHandle); // 11027, -1554675613
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.EndSplit.class, Zeze.Builtin.Dbh2.Master.EndSplit.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.EndSplit::new;
+            factoryHandle.Handle = this::ProcessEndSplitRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessEndSplitRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessEndSplitRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47363904457956L, factoryHandle); // 11027, -994882332
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.GetBuckets.class, Zeze.Builtin.Dbh2.Master.GetBuckets.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.GetBuckets::new;
             factoryHandle.Handle = this::ProcessGetBucketsRequest;
@@ -67,22 +75,6 @@ public abstract class AbstractMaster implements Zeze.IModule {
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessLocateBucketRequest", Zeze.Transaction.TransactionLevel.None);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessLocateBucketRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47363709711447L, factoryHandle); // 11027, -1189628841
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.PublishSplitBucketNew.class, Zeze.Builtin.Dbh2.Master.PublishSplitBucketNew.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.PublishSplitBucketNew::new;
-            factoryHandle.Handle = this::ProcessPublishSplitBucketNewRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessPublishSplitBucketNewRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessPublishSplitBucketNewRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47360811265817L, factoryHandle); // 11027, 206892825
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.PublishSplitBucketOld.class, Zeze.Builtin.Dbh2.Master.PublishSplitBucketOld.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.PublishSplitBucketOld::new;
-            factoryHandle.Handle = this::ProcessPublishSplitBucketOldRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessPublishSplitBucketOldRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessPublishSplitBucketOldRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47363412974522L, factoryHandle); // 11027, -1486365766
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.Register.class, Zeze.Builtin.Dbh2.Master.Register.TypeId_);
@@ -115,10 +107,9 @@ public abstract class AbstractMaster implements Zeze.IModule {
         service.getFactorys().remove(47361973054464L);
         service.getFactorys().remove(47362664777370L);
         service.getFactorys().remove(47363344664675L);
+        service.getFactorys().remove(47363904457956L);
         service.getFactorys().remove(47363118214025L);
         service.getFactorys().remove(47363709711447L);
-        service.getFactorys().remove(47360811265817L);
-        service.getFactorys().remove(47363412974522L);
         service.getFactorys().remove(47364347310157L);
         service.getFactorys().remove(47360684865688L);
         service.getFactorys().remove(47363711595808L);
@@ -136,10 +127,9 @@ public abstract class AbstractMaster implements Zeze.IModule {
     protected abstract long ProcessCreateDatabaseRequest(Zeze.Builtin.Dbh2.Master.CreateDatabase r) throws Exception;
     protected abstract long ProcessCreateSplitBucketRequest(Zeze.Builtin.Dbh2.Master.CreateSplitBucket r) throws Exception;
     protected abstract long ProcessCreateTableRequest(Zeze.Builtin.Dbh2.Master.CreateTable r) throws Exception;
+    protected abstract long ProcessEndSplitRequest(Zeze.Builtin.Dbh2.Master.EndSplit r) throws Exception;
     protected abstract long ProcessGetBucketsRequest(Zeze.Builtin.Dbh2.Master.GetBuckets r) throws Exception;
     protected abstract long ProcessLocateBucketRequest(Zeze.Builtin.Dbh2.Master.LocateBucket r) throws Exception;
-    protected abstract long ProcessPublishSplitBucketNewRequest(Zeze.Builtin.Dbh2.Master.PublishSplitBucketNew r) throws Exception;
-    protected abstract long ProcessPublishSplitBucketOldRequest(Zeze.Builtin.Dbh2.Master.PublishSplitBucketOld r) throws Exception;
     protected abstract long ProcessRegisterRequest(Zeze.Builtin.Dbh2.Master.Register r) throws Exception;
     protected abstract long ProcessReportBucketCountRequest(Zeze.Builtin.Dbh2.Master.ReportBucketCount r) throws Exception;
     protected abstract long ProcessReportLoadRequest(Zeze.Builtin.Dbh2.Master.ReportLoad r) throws Exception;
