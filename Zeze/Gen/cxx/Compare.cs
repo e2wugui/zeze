@@ -11,8 +11,8 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "int CompareTo(const " + bean.Name + "& _o_) const {");
             sw.WriteLine(prefix + "    if (&_o_ == this)");
             sw.WriteLine(prefix + "        return 0;");
-            sw.WriteLine(prefix + "    int _c_" + (bean.Variables.Count > 0 ? ";" : " = 0;"));
-            foreach (Variable var in bean.Variables)
+            sw.WriteLine(prefix + "    int _c_" + (bean.VariablesIdOrder.Count > 0 ? ";" : " = 0;"));
+            foreach (Variable var in bean.VariablesIdOrder)
             {
                 Compare e = new Compare(var, "_o_");
                 var.VariableType.Accept(e);

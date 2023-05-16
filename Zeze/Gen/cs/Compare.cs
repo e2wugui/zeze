@@ -13,8 +13,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    if (_o1_ == this) return 0;");
             sw.WriteLine(prefix + "    if (_o1_ is " + bean.Name + " _o_)");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        int _c_" + (bean.Variables.Count > 0 ? ";" : " = 0;"));
-            foreach (Variable var in bean.Variables)
+            sw.WriteLine(prefix + "        int _c_" + (bean.VariablesIdOrder.Count > 0 ? ";" : " = 0;"));
+            foreach (Variable var in bean.VariablesIdOrder)
 			{
                 Compare e = new Compare(var, "_o_");
 				var.VariableType.Accept(e);

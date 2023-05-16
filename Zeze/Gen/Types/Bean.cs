@@ -150,7 +150,23 @@ namespace Zeze.Gen.Types
 		public bool UseData { get; private set; }
 		public bool CustomTypeId { get; private set; }
 
-        public static void BeautifulVariableId(XmlElement self)
+		private List<Variable> VariablesIdOrder_;
+		public List<Variable> VariablesIdOrder
+		{
+			get
+			{
+				if (VariablesIdOrder_ == null)
+				{
+					var list = new List<Variable>();
+					list.AddRange(Variables);
+					list.Sort((a, b) => a.Id - b.Id);
+					VariablesIdOrder_ = list;
+				}
+				return VariablesIdOrder_;
+			}
+		}
+
+		public static void BeautifulVariableId(XmlElement self)
 		{
             XmlNodeList childNodes = self.ChildNodes;
             var varId = 1;
@@ -344,7 +360,7 @@ namespace Zeze.Gen.Types
             return null;
         }
 
-        public bool RecursiveCheckDynamicCountLessthanOrEqual(int n)
+        public bool RecursiveCheckDynamicCountLessThanOrEqual(int n)
 		{
 			var dynamicCount = 0;
             foreach (var var in Variables)
@@ -356,7 +372,7 @@ namespace Zeze.Gen.Types
 					{
                         var beanWithSpecialTypeIdArray = bean.Split(':');
                         var dBean = Type.Compile(Space, beanWithSpecialTypeIdArray[0]) as Bean;
-						if (false == dBean.RecursiveCheckDynamicCountLessthanOrEqual(n))
+						if (false == dBean.RecursiveCheckDynamicCountLessThanOrEqual(n))
 							return false;
 					}
 				}

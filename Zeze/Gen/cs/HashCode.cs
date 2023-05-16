@@ -9,15 +9,20 @@ namespace Zeze.Gen.cs
 		{
 			sw.WriteLine(prefix + "public override int GetHashCode()");
 			sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    const int _p_ = 31;"); // prime number
-            sw.WriteLine(prefix + "    int _h_ = 0;");
-            foreach (Variable var in bean.Variables)
-			{
-				HashCode e = new HashCode(sw, prefix + "    ", var.NamePrivate);
-				var.VariableType.Accept(e);
-			}
-			sw.WriteLine(prefix + "    return _h_;");
-			sw.WriteLine(prefix + "}");
+            if (bean.VariablesIdOrder.Count > 0)
+            {
+                sw.WriteLine(prefix + "    const int _p_ = 31;"); // prime number
+                sw.WriteLine(prefix + "    int _h_ = 0;");
+                foreach (Variable var in bean.VariablesIdOrder)
+                {
+                    HashCode e = new HashCode(sw, prefix + "    ", var.NamePrivate);
+                    var.VariableType.Accept(e);
+                }
+                sw.WriteLine(prefix + "    return _h_;");
+            }
+            else
+                sw.WriteLine(prefix + "    return 0;");
+            sw.WriteLine(prefix + "}");
 			sw.WriteLine();
 		}
 
@@ -25,16 +30,21 @@ namespace Zeze.Gen.cs
         {
             sw.WriteLine(prefix + "public override int GetHashCode()");
             sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    const int _p_ = 31;"); // prime number
-            sw.WriteLine(prefix + "    int _h_ = 0;");
-            foreach (Variable var in bean.Variables)
+            if (bean.VariablesIdOrder.Count > 0)
             {
-                if (bean.Version.Equals(var.Name))
-                    continue;
-                HashCode e = new HashCode(sw, prefix + "    ", var.NamePrivate);
-                var.VariableType.Accept(e);
+                sw.WriteLine(prefix + "    const int _p_ = 31;"); // prime number
+                sw.WriteLine(prefix + "    int _h_ = 0;");
+                foreach (Variable var in bean.VariablesIdOrder)
+                {
+                    if (bean.Version.Equals(var.Name))
+                        continue;
+                    HashCode e = new HashCode(sw, prefix + "    ", var.NamePrivate);
+                    var.VariableType.Accept(e);
+                }
+                sw.WriteLine(prefix + "    return _h_;");
             }
-            sw.WriteLine(prefix + "    return _h_;");
+            else
+                sw.WriteLine(prefix + "    return 0;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

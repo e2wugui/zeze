@@ -131,7 +131,6 @@ namespace Zeze.Gen.java
             }
 
             // declare variables
-            bean.Variables.Sort((a, b) => a.Id - b.Id);
             bool addBlankLine = false;
             foreach (Variable v in bean.Variables)
             {

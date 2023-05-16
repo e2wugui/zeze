@@ -48,7 +48,6 @@ namespace Zeze.Gen.confcs
                 sw.WriteLine();
 
             // declare variables
-            bean.Variables.Sort((a, b) => a.Id - b.Id);
             foreach (Variable v in bean.Variables)
                 sw.WriteLine("        public " + TypeName.GetName(v.VariableType) + " " + v.NameUpper1 + ";" + v.Comment);
             sw.WriteLine();
@@ -75,7 +74,6 @@ namespace Zeze.Gen.confcs
             sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");
             sw.WriteLine("        public override long TypeId => " + bean.TypeId + ";");
             sw.WriteLine();
-            cs.Decode.Make(bean, sw, "        ", true);
             var macro = project.MacroEditor;
             if (false == string.IsNullOrEmpty(macro))
                 sw.WriteLine($"#if {macro}");
@@ -86,6 +84,7 @@ namespace Zeze.Gen.confcs
             }
             if (false == string.IsNullOrEmpty(macro))
                 sw.WriteLine($"#endif // {macro}");
+            cs.Decode.Make(bean, sw, "        ", true);
             if (followerApply)
                 FollowerApply.Make(bean, sw, "        ");
         }

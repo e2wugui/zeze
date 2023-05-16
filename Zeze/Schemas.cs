@@ -311,7 +311,7 @@ namespace Zeze
         {
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-            public Dictionary<int, Variable> Variables { get; } = new Dictionary<int, Variable>();
+            public SortedDictionary<int, Variable> Variables { get; } = new SortedDictionary<int, Variable>();
             public bool IsBeanKey { get; set; } = false;
             public int KeyRefCount { get; set; } = 0;
             // 这个变量当前是不需要的，作为额外的属性记录下来，以后可能要用。

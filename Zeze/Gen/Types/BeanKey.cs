@@ -140,6 +140,22 @@ namespace Zeze.Gen.Types
 		public string Comment { get; private set; }
 		public string FullName => Space.Path(".", Name);
 		public long TypeId { get; private set; }
+		
+		private List<Variable> VariablesIdOrder_;
+		public List<Variable> VariablesIdOrder
+		{
+			get
+			{
+				if (VariablesIdOrder_ == null)
+				{
+					var list = new List<Variable>();
+					list.AddRange(Variables);
+					list.Sort((a, b) => a.Id - b.Id);
+					VariablesIdOrder_ = list;
+				}
+				return VariablesIdOrder_;
+			}
+		}
 
         // ///////////////////////////////////////////
         public static void BeautifulVariableId(XmlElement self)

@@ -16,15 +16,18 @@ namespace Zeze.Gen.rrcs
         {
             sw.WriteLine(prefix + "public override void Encode(ByteBuffer _o_)");
             sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    int _i_ = 0;");
-            foreach (Variable v in bean.Variables)
+            if (bean.VariablesIdOrder.Count > 0)
             {
-                if (v.Transient)
-                    continue;
+                sw.WriteLine(prefix + "    int _i_ = 0;");
+                foreach (Variable v in bean.VariablesIdOrder)
+                {
+                    if (v.Transient)
+                        continue;
 
-                sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Encode(v.NameUpper1, v.Id, "_o_", sw, prefix + "        "));
-                sw.WriteLine(prefix + "    }");
+                    sw.WriteLine(prefix + "    {");
+                    v.VariableType.Accept(new Encode(v.NameUpper1, v.Id, "_o_", sw, prefix + "        "));
+                    sw.WriteLine(prefix + "    }");
+                }
             }
             sw.WriteLine(prefix + "    _o_.WriteByte(0);");
             sw.WriteLine(prefix + "}");
@@ -35,12 +38,15 @@ namespace Zeze.Gen.rrcs
         {
             sw.WriteLine(prefix + "public void Encode(ByteBuffer _o_)");
             sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    int _i_ = 0;");
-            foreach (Variable v in bean.Variables)
+            if (bean.VariablesIdOrder.Count > 0)
             {
-                sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Encode(v.NamePrivate, v.Id, "_o_", sw, prefix + "        "));
-                sw.WriteLine(prefix + "    }");
+                sw.WriteLine(prefix + "    int _i_ = 0;");
+                foreach (Variable v in bean.VariablesIdOrder)
+                {
+                    sw.WriteLine(prefix + "    {");
+                    v.VariableType.Accept(new Encode(v.NamePrivate, v.Id, "_o_", sw, prefix + "        "));
+                    sw.WriteLine(prefix + "    }");
+                }
             }
             sw.WriteLine(prefix + "    _o_.WriteByte(0);");
             sw.WriteLine(prefix + "}");

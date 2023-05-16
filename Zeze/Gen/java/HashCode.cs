@@ -9,11 +9,11 @@ namespace Zeze.Gen.java
 		{
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public int hashCode() {");
-            if (bean.Variables.Count > 0)
+            if (bean.VariablesIdOrder.Count > 0)
             {
                 sw.WriteLine(prefix + "    final int _p_ = 31;"); // prime number
                 sw.WriteLine(prefix + "    int _h_ = 0;");
-                foreach (Variable var in bean.Variables)
+                foreach (Variable var in bean.VariablesIdOrder)
                 {
                     HashCode e = new HashCode(var, isData);
                     var.VariableType.Accept(e);
@@ -31,11 +31,11 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public int hashCode() {");
-            if (bean.Variables.Count > 0)
+            if (bean.VariablesIdOrder.Count > 0)
             {
                 sw.WriteLine(prefix + "    final int _p_ = 31;"); // prime number
                 sw.WriteLine(prefix + "    int _h_ = 0;");
-                foreach (Variable var in bean.Variables)
+                foreach (Variable var in bean.VariablesIdOrder)
                 {
                     if (bean.Version.Equals(var.Name))
                         continue;

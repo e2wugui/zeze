@@ -29,17 +29,18 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void encode(ByteBuffer _o_) {");
-            sw.WriteLine(prefix + "    int _i_ = 0;");
-
-            foreach (Variable v in bean.Variables)
+            if (bean.VariablesIdOrder.Count > 0)
             {
-                if (v.Transient)
-                    continue;
-                sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Encode(v.Getter, v.Id, "_o_", sw, prefix + "        "));
-                sw.WriteLine(prefix + "    }");
+                sw.WriteLine(prefix + "    int _i_ = 0;");
+                foreach (Variable v in bean.VariablesIdOrder)
+                {
+                    if (v.Transient)
+                        continue;
+                    sw.WriteLine(prefix + "    {");
+                    v.VariableType.Accept(new Encode(v.Getter, v.Id, "_o_", sw, prefix + "        "));
+                    sw.WriteLine(prefix + "    }");
+                }
             }
-
             sw.WriteLine(prefix + "    _o_.WriteByte(0);");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -49,17 +50,18 @@ namespace Zeze.Gen.rrjava
         {
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void encode(ByteBuffer _o_) {");
-            sw.WriteLine(prefix + "    int _i_ = 0;");
-
-            foreach (Variable v in bean.Variables)
+            if (bean.VariablesIdOrder.Count > 0)
             {
-                if (v.Transient)
-                    continue;
-                sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Encode(v.Getter, v.Id, "_o_", sw, prefix + "        "));
-                sw.WriteLine(prefix + "    }");
+                sw.WriteLine(prefix + "    int _i_ = 0;");
+                foreach (Variable v in bean.VariablesIdOrder)
+                {
+                    if (v.Transient)
+                        continue;
+                    sw.WriteLine(prefix + "    {");
+                    v.VariableType.Accept(new Encode(v.Getter, v.Id, "_o_", sw, prefix + "        "));
+                    sw.WriteLine(prefix + "    }");
+                }
             }
-
             sw.WriteLine(prefix + "    _o_.WriteByte(0);");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();

@@ -33,10 +33,10 @@ namespace Zeze.Gen.javadata
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void encode(ByteBuffer _o_) {");
-            if (bean.Variables.Count > 0)
+            if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = 0;");
 
-            foreach (Variable v in bean.Variables)
+            foreach (Variable v in bean.VariablesIdOrder)
             {
                 if (v.Transient)
                     continue;
@@ -73,10 +73,10 @@ namespace Zeze.Gen.javadata
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void encode(ByteBuffer _o_) {");
-            if (bean.Variables.Count > 0)
+            if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = 0;");
 
-            foreach (Variable v in bean.Variables)
+            foreach (Variable v in bean.VariablesIdOrder)
             {
                 if (v.Transient)
                     continue;

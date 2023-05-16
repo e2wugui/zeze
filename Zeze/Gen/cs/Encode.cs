@@ -17,9 +17,9 @@ namespace Zeze.Gen.cs
         {
             sw.WriteLine(prefix + "public override void Encode(ByteBuffer _o_)");
             sw.WriteLine(prefix + "{");
-            if (bean.Variables.Count > 0)
+            if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = 0;");
-            foreach (Variable v in bean.Variables)
+            foreach (Variable v in bean.VariablesIdOrder)
             {
                 if (v.Transient)
                     continue;
@@ -43,9 +43,9 @@ namespace Zeze.Gen.cs
         {
             sw.WriteLine(prefix + "public void Encode(ByteBuffer _o_)");
             sw.WriteLine(prefix + "{");
-            if (bean.Variables.Count > 0)
+            if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = 0;");
-            foreach (Variable v in bean.Variables)
+            foreach (Variable v in bean.VariablesIdOrder)
             {
                 if (v.Transient)
                     continue;

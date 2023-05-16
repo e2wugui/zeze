@@ -19,10 +19,10 @@ namespace Zeze.Gen.cxx
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "virtual void Encode(Zeze::ByteBuffer& _o_) const override {");
-            if (bean.Variables.Count > 0)
+            if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = 0;");
 
-            foreach (Variable v in bean.Variables)
+            foreach (Variable v in bean.VariablesIdOrder)
             {
                 if (v.Transient)
                     continue;
@@ -46,10 +46,10 @@ namespace Zeze.Gen.cxx
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "virtual void Encode(Zeze::ByteBuffer& _o_) const override {");
-            if (bean.Variables.Count > 0)
+            if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = 0;");
 
-            foreach (Variable v in bean.Variables)
+            foreach (Variable v in bean.VariablesIdOrder)
             {
                 if (v.Transient)
                     continue;

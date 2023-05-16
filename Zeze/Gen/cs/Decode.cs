@@ -19,13 +19,13 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "public override void Decode(ByteBuffer _o_)");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
-            if (bean.Variables.Count > 0)
+            if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
             else
                 sw.WriteLine(prefix + "    _o_.ReadTagSize(_t_);");
 
             int lastId = 0;
-            foreach (Variable v in bean.Variables)
+            foreach (Variable v in bean.VariablesIdOrder)
             {
                 if (v.Transient)
                     continue;
@@ -74,13 +74,13 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "public void Decode(ByteBuffer _o_)");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
-            if (bean.Variables.Count > 0)
+            if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
             else
                 sw.WriteLine(prefix + "    _o_.ReadTagSize(_t_);");
 
             int lastId = 0;
-            foreach (Variable v in bean.Variables)
+            foreach (Variable v in bean.VariablesIdOrder)
             {
                 if (v.Transient)
                     continue;

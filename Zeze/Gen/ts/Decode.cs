@@ -16,10 +16,13 @@ namespace Zeze.Gen.ts
         {
             sw.WriteLine(prefix + "public Decode(_o_: Zeze.ByteBuffer) {");
             sw.WriteLine(prefix + "    let _t_ = _o_.ReadByte();");
-            sw.WriteLine(prefix + "    let _i_ = _o_.ReadTagSize(_t_);");
+            if (bean.VariablesIdOrder.Count > 0)
+                sw.WriteLine(prefix + "    let _i_ = _o_.ReadTagSize(_t_);");
+            else
+                sw.WriteLine(prefix + "    _o_.ReadTagSize(_t_);");
 
             int lastId = 0;
-            foreach (Variable v in bean.Variables)
+            foreach (Variable v in bean.VariablesIdOrder)
             {
                 if (v.Transient)
                     continue;
@@ -57,9 +60,12 @@ namespace Zeze.Gen.ts
         {
             sw.WriteLine(prefix + "public Decode(_o_: Zeze.ByteBuffer) {");
             sw.WriteLine(prefix + "    let _t_ = _o_.ReadByte();");
-            sw.WriteLine(prefix + "    let _i_ = _o_.ReadTagSize(_t_);");
+            if (bean.VariablesIdOrder.Count > 0)
+                sw.WriteLine(prefix + "    let _i_ = _o_.ReadTagSize(_t_);");
+            else
+                sw.WriteLine(prefix + "    _o_.ReadTagSize(_t_);");
 
-            foreach (Variable v in bean.Variables)
+            foreach (Variable v in bean.VariablesIdOrder)
             {
                 if (v.Transient)
                     continue;

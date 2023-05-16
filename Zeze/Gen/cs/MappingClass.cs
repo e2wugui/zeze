@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Threading.Tasks;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
@@ -24,7 +21,7 @@ namespace Zeze.Gen.cs
 
         public void Make()
         {
-            if (null == Bean.GetFirstDynamicVariable() || false == Bean.RecursiveCheckDynamicCountLessthanOrEqual(1))
+            if (null == Bean.GetFirstDynamicVariable() || false == Bean.RecursiveCheckDynamicCountLessThanOrEqual(1))
             {
                 Console.WriteLine($"WARNING: Mapping Class {Bean.FullName}. Invalid Dynamic Variable Count.");
                 return;
