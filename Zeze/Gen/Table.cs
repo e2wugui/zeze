@@ -32,7 +32,7 @@ namespace Zeze.Gen
         {
             Space = space;
             Name = self.GetAttribute("name").Trim();
-            Program.CheckReserveName(Name);
+            Program.CheckReserveName(Name, space.Path());
             space.Add(this);
 
             Key = self.GetAttribute("key");

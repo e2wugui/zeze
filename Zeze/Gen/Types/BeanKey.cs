@@ -167,7 +167,7 @@ namespace Zeze.Gen.Types
 			Space = space;
 			_name = self.GetAttribute("name").Trim();
 			Kind = "beankey";
-			Program.CheckReserveName(_name);
+			Program.CheckReserveName(_name, space.Path());
 			Type.Add(space, this);
 			space.Add(this);
 

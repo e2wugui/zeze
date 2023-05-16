@@ -117,7 +117,7 @@ namespace Zeze.Gen.Types
 		{
 			Bean = bean;
 			Name = self.GetAttribute("name").Trim();
-			Program.CheckReserveName(Name);
+			Program.CheckValidName(Name, bean is Bean ? ((Bean)bean).FullName : bean.Name);
 			Id = int.Parse(self.GetAttribute("id"));
 			if (Id <= 0 || Id > global::Zeze.Transaction.Bean.MaxVariableId)
 				throw new Exception("variable id invalid. range [1, " + global::Zeze.Transaction.Bean.MaxVariableId + "] @" + GetBeanFullName());

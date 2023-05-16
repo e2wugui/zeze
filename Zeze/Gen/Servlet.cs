@@ -18,7 +18,8 @@ namespace Zeze.Gen
         public Servlet(ModuleSpace space, XmlElement self)
         {
             Space = space;
-            Name= self.GetAttribute("name");
+            Name= self.GetAttribute("name").Trim();
+            Program.CheckReserveName(Name, space.Path());
 
             var tLength = self.GetAttribute("MaxContentLength");
             if (tLength.Length > 0)

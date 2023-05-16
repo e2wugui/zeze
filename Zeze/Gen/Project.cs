@@ -76,6 +76,7 @@ namespace Zeze.Gen
             Solution = solution;
 
             Name = self.GetAttribute("name").Trim();
+            Program.CheckReserveName(Name, solution.Name);
             Platform = self.GetAttribute("platform").Trim();
             GenDir = self.GetAttribute("gendir").Trim();
             if (GenDir.Length == 0)

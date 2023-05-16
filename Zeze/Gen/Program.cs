@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using Zeze.Gen.Types;
@@ -13,11 +14,61 @@ namespace Zeze.Gen
     {
         public static Dictionary<string, Solution> Solutions { get; } = new Dictionary<string, Solution>();
         public static Zeze.Util.AtomicLong IdGen = new Zeze.Util.AtomicLong();
+        public static readonly Regex namePattern = new Regex("^[\\w_]+$");
+        public static readonly Regex fullNamePattern = new Regex("^[\\w_.]+$");
 
-        public static void CheckReserveName(string name)
+        // 收集了Java,C#,C++,Javascript,Typescript,Lua的保留字(不能用作变量名)
+        public static readonly HashSet<string> reservedNames = new HashSet<string> {
+            "abstract", "alignas", "alignof", "and", "and_eq", "arguments", "as", "asm", "assert", "atomic_cancel",
+            "atomic_commit", "atomic_noexcept", "auto", "await", "base", "bitand", "bitor", "bool", "boolean", "break",
+            "byte", "case", "catch", "char", "char16_t", "char32_t", "char8_t", "checked", "class", "co_await",
+            "co_return", "co_yield", "compl", "concept", "const", "const_cast", "consteval", "constexpr", "constinit",
+            "continue", "debugger", "decimal", "decltype", "default", "delegate", "delete", "do", "double",
+            "dynamic_cast", "else", "elseif", "end", "enum", "eval", "event", "explicit", "export", "extends", "extern",
+            "false", "final", "finally", "fixed", "float", "for", "foreach", /*"friend",*/ "function", "goto", "if",
+            "implements", "implicit", "import", "in", "inline", "instanceof", "int", "interface", "internal", "is",
+            "let", "local", "lock", "long", "mutable", "namespace", "native", "new", "nil", "noexcept", "not", "not_eq",
+            "null", "nullptr", "object", "operator", "or", "or_eq", "out", "override", "package", "params", "private",
+            "protected", "public", "readonly", "ref", "reflexpr", "register", "reinterpret_cast", "repeat", "requires",
+            "return", "sbyte", "sealed", "short", "signed", "sizeof", "stackalloc", "static", "static_assert",
+            "static_cast", "strictfp", "string", "struct", "super", "switch", "synchronized", "template", "then",
+            "this", "thread_local", "throw", "throws", "transient", "true", "try", "typedef", "typeid", "typename",
+            "typeof", "uint", "ulong", "unchecked", "union", "unsafe", "unsigned", "until", "ushort", "using", "var",
+            "virtual", "void", "volatile", "wchar_t", "while", "with", "xor", "xor_eq", "yield"
+        };
+
+        public static void CheckReserveName(string name, string path)
         {
             if (name.StartsWith("_"))
-                throw new Exception($"Name Can Not Starts With '_' name={name}");
+                throw new Exception($"Name Can Not Starts With '_': name='{name}' in '{path ?? ""}'");
+            if (name.EndsWith("_"))
+                throw new Exception($"Name Can Not Ends With '_': name='{name}' in '{path ?? ""}'");
+            if (!namePattern.IsMatch(name))
+                throw new Exception($"Name Can Not Contains Invalid Chars: name='{name}' in '{path ?? ""}'");
+            if (reservedNames.Contains(name))
+                throw new Exception($"Name Can Not Be Reserved Keyword: name='{name}' in '{path ?? ""}'");
+        }
+
+        public static void CheckReserveFullName(string name, string path)
+        {
+            if (name.StartsWith("_"))
+                throw new Exception($"Name Can Not Starts With '_': name='{name}' in '{path ?? ""}'");
+            if (name.EndsWith("_"))
+                throw new Exception($"Name Can Not Ends With '_': name='{name}' in '{path ?? ""}'");
+            if (!fullNamePattern.IsMatch(name))
+                throw new Exception($"Name Can Not Contains Invalid Chars: name='{name}' in '{path ?? ""}'");
+            if (reservedNames.Contains(name))
+                throw new Exception($"Name Can Not Be Reserved Keyword: name='{name}' in '{path ?? ""}'");
+        }
+
+        public static void CheckValidName(string name, string path)
+        {
+            if (name.StartsWith("_"))
+                throw new Exception($"Name Can Not Starts With '_': name='{name}' in '{path ?? ""}'");
+            if (name.EndsWith("_"))
+                throw new Exception($"Name Can Not Ends With '_': name='{name}' in '{path ?? ""}'");
+            if (!namePattern.IsMatch(name))
+                throw new Exception($"Name Can Not Contains Invalid Chars: name='{name}' in '{path ?? ""}'");
         }
 
         public static string GenUniqVarName()

@@ -182,7 +182,7 @@ namespace Zeze.Gen.Types
 			Kind = self.GetAttribute("kind").Trim();
 			if (string.IsNullOrEmpty(Kind))
 				Kind = "bean"; // default
-			Program.CheckReserveName(_name);
+			Program.CheckReserveName(_name, space.Path());
 			Type.Add(space, this);
 			space.Add(this);
 

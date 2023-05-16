@@ -17,7 +17,8 @@ namespace Zeze.Gen
         public ServletStream(ModuleSpace space, XmlElement self)
         {
             Space = space;
-            Name = self.GetAttribute("name");
+            Name = self.GetAttribute("name").Trim();
+            Program.CheckReserveName(Name, space.Path());
 
             var tlevel = self.GetAttribute("TransactionLevel");
             if (tlevel.Length > 0)

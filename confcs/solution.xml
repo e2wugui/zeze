@@ -24,7 +24,7 @@
 			<variable id="3" name="localId" type="long"/>
 		</bean>
 
-		<table name="Autokey_" key="AutoKey" value="AutoValue"/>
+		<table name="tAutokey" key="AutoKey" value="AutoValue"/>
 
 		<bean name="Removed2">
 			<variable id="1" name="int1" type="int"/> com aa

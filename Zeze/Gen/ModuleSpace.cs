@@ -156,7 +156,7 @@ namespace Zeze.Gen
 
             Parent = parent;
             Name = self.GetAttribute("name").Trim();
-            Program.CheckReserveName(Name);
+            Program.CheckReserveName(Name, parent?.Path());
             DefaultTransactionLevel = self.GetAttribute("DefaultTransactionLevel").Trim();
             Equalable = parent != null && parent.Equalable || self.GetAttribute("equals") == "true";
             UseData = self.GetAttribute("UseData") switch

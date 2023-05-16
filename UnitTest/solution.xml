@@ -30,7 +30,7 @@
 			</variable>
 		</bean>
 
-		<table name="Autokey_" key="AutoKey" value="AutoValue" />
+		<table name="tAutokey" key="AutoKey" value="AutoValue" />
 
 		<bean name="Removed2">
 			<variable id="1" name="int_1" type="int" /> com aa
@@ -158,7 +158,7 @@
 		</service>
 	</project>
 
-	<project name="zeze-unity" gendir="../.." scriptdir="ts" platform="cs+ts">
+	<project name="ZezeUnity" gendir="../.." scriptdir="ts" platform="cs+ts">
 		<service name="Client" handle="clientscript">
 			<module ref="Module1" />
 		</service>

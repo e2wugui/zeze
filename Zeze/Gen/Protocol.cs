@@ -34,6 +34,7 @@ namespace Zeze.Gen
         {
             Space = space;
             Name = self.GetAttribute("name").Trim();
+            Program.CheckReserveName(Name, space.Path());
             space.Add(this);
 
             string attr = self.GetAttribute("id");

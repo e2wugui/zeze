@@ -42,6 +42,8 @@ namespace Zeze.Gen
             this.self = self;
             Project = project;
             Name = self.GetAttribute("name").Trim();
+            if (Name.Length > 0)
+                Program.CheckReserveName(Name, project.Name);
             Handle = self.GetAttribute("handle");
             HandleFlags = Program.ToHandleFlags(Handle);
             if (HandleFlags == 0)

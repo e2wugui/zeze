@@ -21,7 +21,7 @@ namespace Zeze.Gen.Types
             Kind = self.GetAttribute("kind");
             if (string.IsNullOrEmpty(Kind))
                 Kind = "bean"; // default
-            Program.CheckReserveName(_name);
+            Program.CheckReserveFullName(_name, sol.Path());
 
             if (Types.ContainsKey(_name))
                 throw new Exception("duplicate type: " + _name);

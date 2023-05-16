@@ -18,6 +18,7 @@ namespace Zeze.Gen.Types
 		public Enum(XmlElement self)
 		{
 			Name = self.GetAttribute("name").Trim();
+			Program.CheckReserveName(Name, null);
 			Value = self.GetAttribute("value").Trim();
 			Comment = self.GetAttribute("description").Trim();
 			Type = self.GetAttribute("type").Trim();
