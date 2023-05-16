@@ -3,6 +3,6 @@ setlocal
 pushd %~dp0
 
 rem -ea -XX:NativeMemoryTracking=detail
-java -Dlogname=Simulate -cp .;..\..\ZezeJavaTest\lib\*;..\..\ZezeJava\build\libs\ZezeJava-1.2.9-SNAPSHOT.jar;..\..\ZezeJavaTest\build\libs\ZezeJavaTest-1.2.9-SNAPSHOT.jar Infinite.Simulate
+java -Dlogname=Simulate -cp .;..\..\ZezeJavaTest\lib\*;..\..\ZezeJava\build\libs\ZezeJava-1.2.10-SNAPSHOT.jar;..\..\ZezeJavaTest\build\libs\ZezeJavaTest-1.2.10-SNAPSHOT.jar Infinite.Simulate
 
 pause
