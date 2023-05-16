@@ -5,9 +5,11 @@ namespace Zeze.Net
 {
     public abstract class Protocol : Serializable
     {
-		public interface IDecodeAndDispatch
-		{
-			bool DecodeAndDispatch(Service service, long sessionId, long typeId, ByteBuffer _os_);
+        public const int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
+
+        public interface IDecodeAndDispatch
+        {
+            bool DecodeAndDispatch(Service service, long sessionId, long typeId, ByteBuffer _os_);
         }
 
 #if HAS_NLOG
@@ -19,117 +21,117 @@ namespace Zeze.Net
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }
 
-		public long TypeId => (long)ModuleId << 32 | (uint)ProtocolId;
-		public virtual int FamilyClass => Zeze.Net.FamilyClass.Protocol;
+        public long TypeId => (long)ModuleId << 32 | (uint)ProtocolId;
+        public virtual int FamilyClass => Zeze.Net.FamilyClass.Protocol;
 
 #if USE_CONFCS
-		public virtual Zeze.Util.ConfBean ResultBean { get; }
-		public virtual Zeze.Util.ConfBean ArgumentBean { get; }
+        public virtual Zeze.Util.ConfBean ResultBean { get; }
+        public virtual Zeze.Util.ConfBean ArgumentBean { get; }
 #else
         public virtual Zeze.Transaction.Bean ResultBean { get; }
-		public virtual Zeze.Transaction.Bean ArgumentBean { get; }
+        public virtual Zeze.Transaction.Bean ArgumentBean { get; }
 #endif
-		public static int GetModuleId(long typeId)
+        public static int GetModuleId(long typeId)
         {
-			return (int)(typeId >> 32);
+            return (int)(typeId >> 32);
         }
 
-		public static int GetProtocolId(long typeId)
+        public static int GetProtocolId(long typeId)
         {
-			return (int)typeId;
+            return (int)typeId;
         }
 
-		public static long MakeTypeId(int moduleId, int protocolId)
+        public static long MakeTypeId(int moduleId, int protocolId)
         {
-			return (long)moduleId << 32 | (uint)protocolId;
+            return (long)moduleId << 32 | (uint)protocolId;
         }
 
-		public Service Service { get; set; }
+        public Service Service { get; set; }
 
-		public AsyncSocket Sender { get; set; }
+        public AsyncSocket Sender { get; set; }
 
-		public object UserState { get; set; }
+        public object UserState { get; set; }
 
-		internal virtual void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
-		{
-			service.DispatchProtocol(this, factoryHandle);
-		}
-
-		public abstract void Decode(ByteBuffer bb);
-
-		public abstract void Encode(ByteBuffer bb);
-
-		public static T Decode<T>(ByteBuffer bb, T p)
-			where T : Protocol
-		{
-			var mid = bb.ReadInt4();
-			var pid = bb.ReadInt4();
-			if (MakeTypeId(mid, pid) != p.TypeId)
-				throw new Exception($"mid:pid={mid}:{pid} mismatch {p.ModuleId}:{p.ProtocolId}");
-			var size = bb.ReadInt4();
-			if (size > bb.Size)
-				throw new Exception($"protocol data not enough.");
-			p.Decode(bb);
-			return p;
-		}
-
-		public ByteBuffer Encode()
+        internal virtual void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
         {
-			ByteBuffer bb = ByteBuffer.Allocate(1024);
+            service.DispatchProtocol(this, factoryHandle);
+        }
 
-			bb.WriteInt4(ModuleId);
-			bb.WriteInt4(ProtocolId);
+        public abstract void Decode(ByteBuffer bb);
 
-			bb.BeginWriteWithSize4(out var state);
-			this.Encode(bb);
-			bb.EndWriteWithSize4(state);
-			return bb;
-		}
+        public abstract void Encode(ByteBuffer bb);
 
-		public virtual bool Send(AsyncSocket so)
-		{
-			if (null == so)
-				return false;
-			Sender = so;
-			Service = Sender.Service;
+        public static T Decode<T>(ByteBuffer bb, T p)
+            where T : Protocol
+        {
+            var mid = bb.ReadInt4();
+            var pid = bb.ReadInt4();
+            if (MakeTypeId(mid, pid) != p.TypeId)
+                throw new Exception($"mid:pid={mid}:{pid} mismatch {p.ModuleId}:{p.ProtocolId}");
+            var size = bb.ReadInt4();
+            if (size > bb.Size)
+                throw new Exception($"protocol data not enough.");
+            p.Decode(bb);
+            return p;
+        }
+
+        public ByteBuffer Encode()
+        {
+            ByteBuffer bb = ByteBuffer.Allocate(1024);
+
+            bb.WriteInt4(ModuleId);
+            bb.WriteInt4(ProtocolId);
+
+            bb.BeginWriteWithSize4(out var state);
+            this.Encode(bb);
+            bb.EndWriteWithSize4(state);
+            return bb;
+        }
+
+        public virtual bool Send(AsyncSocket so)
+        {
+            if (null == so)
+                return false;
+            Sender = so;
+            Service = Sender.Service;
 #if HAS_NLOG || HAS_MYLOG
-			logger.Debug($"Send {this}");
+            logger.Debug($"Send {this}");
 #endif
             return so.Send(Encode());
-		}
+        }
 
-		public virtual bool Send(Service service)
-		{
-			AsyncSocket so = service.GetSocket();
-			if (null != so)
-				return Send(so);
-			return false;
-		}
-
-		// 用于Rpc自动发送结果。
-		// Rpc会重载实现。
-		public virtual void SendResult(Binary result = null)
-		{
-		}
-
-		public void SendResultCode(long code, Binary result = null)
+        public virtual bool Send(Service service)
         {
-			ResultCode = code;
-			SendResult(result);
-		}
+            AsyncSocket so = service.GetSocket();
+            if (null != so)
+                return Send(so);
+            return false;
+        }
 
-		// 用于Rpc发送结果。
-		// Rpc会重载实现。
-		public virtual bool TrySendResultCode(long code)
-		{
-			return false;
-		}
+        // 用于Rpc自动发送结果。
+        // Rpc会重载实现。
+        public virtual void SendResult(Binary result = null)
+        {
+        }
 
-		// always true for Protocol, Rpc Will setup
-		public bool IsRequest { get; set; } = true;
-		public long ResultCode { get; set; }
+        public void SendResultCode(long code, Binary result = null)
+        {
+            ResultCode = code;
+            SendResult(result);
+        }
 
-		/// <summary>
+        // 用于Rpc发送结果。
+        // Rpc会重载实现。
+        public virtual bool TrySendResultCode(long code)
+        {
+            return false;
+        }
+
+        // always true for Protocol, Rpc Will setup
+        public bool IsRequest { get; set; } = true;
+        public long ResultCode { get; set; }
+
+        /// <summary>
         /// 单个协议解码。输入是一个完整的协议包，返回解出的协议。如果没有找到解码存根，返回null。
         /// </summary>
         /// <param name="service">服务，用来查找协议存根。</param>
@@ -157,103 +159,77 @@ namespace Zeze.Net
             return p;
         }
 
-		/// <summary>
-        /// Id + size + protocol.bytes
+        /// <summary>
+        /// moduleId[4] + protocolId[4] + size[4] + protocol.bytes[size]
         /// </summary>
-        /// <param name="bb"></param>
-        /// <returns></returns>
-        internal static void Decode(Service service, AsyncSocket so, ByteBuffer os, IDecodeAndDispatch toLua = null)
+        internal static void Decode(Service service, AsyncSocket so, ByteBuffer bb, IDecodeAndDispatch toLua = null)
         {
-			while (os.Size > 0)
-			{
-				// 尝试读取协议类型和大小
-				int moduleId;
-				int protocolId;
-				int size;
-				int readIndexSaved = os.ReadIndex;
+            while (bb.Size >= HEADER_SIZE) // 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
+            {
+                // 读取协议类型和大小
+                var bytes = bb.Bytes;
+                int beginReadIndex = bb.ReadIndex;
+                int moduleId = BitConverter.ToInt32(bytes, beginReadIndex);
+                int protocolId = BitConverter.ToInt32(bytes, beginReadIndex + 4);
+                int size = BitConverter.ToInt32(bytes, beginReadIndex + 8);
 
-				if (os.Size >= 12) // protocl header size.
-				{
-					moduleId = os.ReadInt4();
-					protocolId = os.ReadInt4();
-					size = os.ReadInt4();
-				}
-				else
-				{
-					return;
-				}
-
-				// 以前写过的实现在数据不够之前会根据type检查size是否太大。
-				// 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
-				// 参考 AsyncSocket
-				long type = MakeTypeId(moduleId, protocolId);
-				if (size < 0 || size > os.Size)
+                // 以前写过的实现在数据不够之前会根据type检查size是否太大。
+                // 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
+                // 参考 AsyncSocket
+                long typeId = MakeTypeId(moduleId, protocolId);
+                long longSize = (uint)size;
+                if (HEADER_SIZE + longSize > bb.Size)
                 {
-					// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
-					if (size < 0 || size > service.SocketOptions.InputBufferMaxProtocolSize)
+                    // 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
+                    int maxSize = service.SocketOptions.InputBufferMaxProtocolSize;
+                    if (longSize > maxSize)
                     {
-						var pName = service.FindProtocolFactoryHandle(type)?.Factory().GetType().FullName;
-						throw new Exception($"Decode InputBufferMaxProtocolSize '{service.Name}' p='{pName}' type={type} size={size}");
-					}
+                        var factoryHandle = service.FindProtocolFactoryHandle(typeId);
+                        var pName = factoryHandle?.Factory != null ? factoryHandle.Factory().GetType().FullName : "?";
+                        throw new Exception($"protocol '{pName}' in '{service.Name}' module={moduleId} " +
+                                            $"protocol={protocolId} size={longSize}>{maxSize} too large!");
+                    }
+                    // not enough data. try next time.
+                    return;
+                }
+                bb.ReadIndex = beginReadIndex += HEADER_SIZE;
+                int endReadIndex = beginReadIndex + size;
+                int savedWriteIndex = bb.WriteIndex;
+                bb.WriteIndex = endReadIndex;
 
-					// not enough data. try next time.
-					os.ReadIndex = readIndexSaved;
-					return;
-				}
-
-				var savedWriteIndex = os.WriteIndex;
-                var protocolEndIndex = os.WriteIndex = os.ReadIndex + size; // 修改WriteIndex，限定当前协议可用数据。
-
-				if (service.CheckThrottle(so, moduleId, protocolId, size) && false == service.Discard(so, moduleId, protocolId, size))
-				{
-                    var factoryHandle = service.FindProtocolFactoryHandle(type);
-                    if (null != factoryHandle)
+                if (service.CheckThrottle(so, moduleId, protocolId, size)
+                    && !service.Discard(so, moduleId, protocolId, size)) // 默认超速是丢弃请求
+                {
+                    var factoryHandle = service.FindProtocolFactoryHandle(typeId);
+                    if (factoryHandle?.Factory != null)
                     {
                         Protocol p = factoryHandle.Factory();
                         p.Service = service;
-                        p.Decode(os);
-						os.ReadIndex = protocolEndIndex; // 协议完整解析完成，这里是相等的。
-                        os.WriteIndex = savedWriteIndex;
+                        p.Decode(bb);
                         // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
-                        /*
-                        if (pBuffer.ReadIndex != pBuffer.WriteIndex)
-                        {
-                            throw new Exception($"p=({moduleId},{protocolId}) size={size} too many data");
-                        }
-                        */
+                        // if (bb.ReadIndex != bb.WriteIndex)
+                        //    throw new Exception($"p=({moduleId},{protocolId}) size={size} too many data");
                         p.Sender = so;
                         p.UserState = so.UserState;
                         p.Dispatch(service, factoryHandle);
-                        continue;
                     }
-
-                    // 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
-                    if (null != toLua)
+                    else if (toLua != null && toLua.DecodeAndDispatch(service, so.SessionId, typeId, bb)) // 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
                     {
-                        if (toLua.DecodeAndDispatch(service, so.SessionId, type, os))
-                        {
-                            os.ReadIndex = protocolEndIndex; // 协议完整解析完成，这里是相等的。
-							os.WriteIndex = savedWriteIndex;
-                            // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
-                            /*
-                            if (pBuffer.ReadIndex != pBuffer.WriteIndex)
-                            {
-                                throw new Exception($"toLua p=({moduleId},{protocolId}) size={size} too many data");
-                            }
-                            */
-                            continue;
-                        }
+                        // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
+                        // if (bb.ReadIndex != bb.WriteIndex)
+                        //    throw new Exception($"toLua p=({moduleId},{protocolId}) size={size} too many data");
                     }
-                    service.DispatchUnknownProtocol(so, moduleId, protocolId, os);
-					os.ReadIndex = protocolEndIndex;
-					os.WriteIndex = savedWriteIndex;
+                    else
+                        service.DispatchUnknownProtocol(so, moduleId, protocolId, bb);
+                    bb.ReadIndex = endReadIndex;
+                    bb.WriteIndex = savedWriteIndex;
                 }
             }
-		}
+        }
 
-		public override string ToString()
+        public override string ToString()
         {
-			return $"{GetType().FullName}({ModuleId},{ProtocolId})";
+            return $"{GetType().FullName}({ModuleId},{ProtocolId})";
         }
     }
 
@@ -274,9 +250,9 @@ namespace Zeze.Net
             //FamilyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
             ResultCode = ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0;
             Argument.Decode(bb);
-		}
+        }
 
-		public override void Encode(ByteBuffer bb)
+        public override void Encode(ByteBuffer bb)
         {
             var compress = FamilyClass; // is Protocol(2)
             if (ResultCode != 0)
