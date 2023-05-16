@@ -22,6 +22,13 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.CheckFreeManager.class, Zeze.Builtin.Dbh2.Master.CheckFreeManager.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.CheckFreeManager::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCheckFreeManagerResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCheckFreeManagerResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47364210591783L, factoryHandle); // 11027, -688748505
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.CreateBucket.class, Zeze.Builtin.Dbh2.Master.CreateBucket.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.CreateBucket::new;
             factoryHandle.Handle = this::ProcessCreateBucketRequest;
@@ -95,6 +102,7 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47364210591783L);
         service.getFactorys().remove(47364327162209L);
         service.getFactorys().remove(47361973054464L);
         service.getFactorys().remove(47362664777370L);

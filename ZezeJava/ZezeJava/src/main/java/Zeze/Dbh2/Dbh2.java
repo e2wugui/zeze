@@ -61,6 +61,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private long lastReportTime = System.currentTimeMillis();
 
 	private static String formatMeta(BBucketMeta.Data meta) {
+		//noinspection StringBufferReplaceableByString
 		var sb = new StringBuilder();
 		sb.append(meta.getTableName()).append("@").append(meta.getDatabaseName());
 		sb.append("[").append(meta.getKeyFirst()).append(", ").append(meta.getKeyLast()).append(")");
@@ -101,11 +102,11 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			lastCommitBatch = nowCommitBatch;
 			lastUndoBatch = nowUndoBatch;
 
-			//noinspection StringBufferReplaceableByString
 			var avgGet = diffGet / elapse;
 			var avgPut = diffPut / elapse;
 			var avgDelete = diffDelete / elapse;
 
+			//noinspection StringBufferReplaceableByString
 			var sb = new StringBuilder();
 			sb.append(formatMeta(stateMachine.getBucket().getMeta()));
 			sb.append(" get=").append(avgGet);
@@ -430,8 +431,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (null == splitting) {
 				// 第一次开始分桶，准备阶段。
 				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
+				// 先去manager查一下可用的manager是否够，简单判断，不原子化。
+				if (manager.getMasterAgent().checkFreeManager() < config.getRaftClusterCount()) {
+					logger.warn("not enough free manager.");
+					return;
+				}
 				var metaCopy = bucket.getMeta().copy();
-				// todo 先去manager查一下可用的manager是否够，简单判断，不原子化。
 				it = locateMiddle();
 				metaCopy.setKeyFirst(new Binary(it.key()));
 				metaCopy.setRaftConfig("");
@@ -469,10 +474,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		}
 	}
 
-	private static SplitPut buildSplitPut(RocksIterator it) {
+	private SplitPut buildSplitPut(RocksIterator it) {
 		var r = new SplitPut();
 		r.Argument.setFromTransaction(false);
-		var count = 100; // todo config
+		var count = config.getSplitPutCount();
 		for (; it.isValid() && count > 0; it.next(), --count) {
 			r.Argument.getPuts().put(new Binary(it.key()), new Binary(it.value()));
 		}

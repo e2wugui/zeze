@@ -1382,6 +1382,8 @@
 					<variable id="2" name="To" type="Zeze.Builtin.Dbh2.BBucketMeta"/>
 				</bean>
 				<rpc name="EndSplit" argument="BEndSplit" UseData="true" handle="server"/>
+				
+				<rpc name="CheckFreeManager" result="BBucketCount" UseData="true" handle="server"/>
 			</module>
 
 			<enum name="eBucketNotFound" value="1"/>

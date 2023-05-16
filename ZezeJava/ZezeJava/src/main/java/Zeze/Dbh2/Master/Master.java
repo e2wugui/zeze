@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.Master.BRegister;
+import Zeze.Builtin.Dbh2.Master.CheckFreeManager;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
@@ -17,6 +18,8 @@ import Zeze.Builtin.Dbh2.Master.LocateBucket;
 import Zeze.Builtin.Dbh2.Master.Register;
 import Zeze.Builtin.Dbh2.Master.ReportBucketCount;
 import Zeze.Builtin.Dbh2.Master.ReportLoad;
+import Zeze.Config;
+import Zeze.Dbh2.Dbh2Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
@@ -43,10 +46,20 @@ public class Master extends AbstractMaster {
 
 	private final ArrayList<Manager> managers = new ArrayList<>();
 	private final RocksDB masterDb;
+	private final Dbh2Config config = new Dbh2Config();
+	private final Config zezeConfig;
+
+	public Dbh2Config getConfig() {
+		return config;
+	}
+
+	public Config getZezeConfig() {
+		return zezeConfig;
+	}
 
 	public Master(String home) throws RocksDBException {
 		this.home = home;
-
+		zezeConfig = new Config().addCustomize(config).loadAndParse();
 		masterDb = RocksDatabase.open(Path.of(home, MasterDbName).toString());
 
 		var dbs = new File(home).listFiles();
@@ -133,14 +146,13 @@ public class Master extends AbstractMaster {
 		return choiceSmallLoadManagers(shadow);
 	}
 
-	public static ArrayList<Manager> choiceSmallLoadManagers(Manager[] managers) {
+	public ArrayList<Manager> choiceSmallLoadManagers(Manager[] managers) {
 		var result = new ArrayList<Manager>();
 		var count = 0;
 		for (var manager : managers) {
-			// todo config
-			if (manager.load < 5000 * 4 * 0.8) {
+			if (manager.load < config.getSplitMaxManagerLoad()) {
 				result.add(manager);
-				if (++count >= 3)
+				if (++count >= config.getRaftClusterCount())
 					break;
 			}
 		}
@@ -242,6 +254,14 @@ public class Master extends AbstractMaster {
 		if (null == manager)
 			return errorCode(eManagerNotFound);
 		manager.data.setBucketCount(r.Argument.getCount());
+		r.SendResult();
+		return 0;
+	}
+
+	@Override
+	protected long ProcessCheckFreeManagerRequest(CheckFreeManager r) {
+		var managers = choiceSmallLoadManagers();
+		r.Result.setCount(managers.size());
 		r.SendResult();
 		return 0;
 	}

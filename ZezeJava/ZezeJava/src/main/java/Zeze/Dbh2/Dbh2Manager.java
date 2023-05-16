@@ -145,7 +145,7 @@ public class Dbh2Manager {
 
 			// 达到分桶条件之一：负载高于最大值的80%。
 			// todo 这里可以考虑dbFileSize(min,max)，当库比较大时也分桶，另外库很小时即使负载高也不分桶。
-			if (load > 5000 * 0.8)
+			if (load > dbh2.getConfig().getSplitLoad())
 				willSplit.add(dbh2);
 		}
 		masterAgent.reportLoad(loadManager);

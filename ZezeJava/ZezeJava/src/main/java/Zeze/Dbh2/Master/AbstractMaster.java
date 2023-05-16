@@ -22,6 +22,14 @@ public abstract class AbstractMaster implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.CheckFreeManager.class, Zeze.Builtin.Dbh2.Master.CheckFreeManager.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.CheckFreeManager::new;
+            factoryHandle.Handle = this::ProcessCheckFreeManagerRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCheckFreeManagerRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCheckFreeManagerRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47364210591783L, factoryHandle); // 11027, -688748505
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.CreateBucket.class, Zeze.Builtin.Dbh2.Master.CreateBucket.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.CreateBucket::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessCreateBucketResponse", Zeze.Transaction.TransactionLevel.None);
@@ -103,6 +111,7 @@ public abstract class AbstractMaster implements Zeze.IModule {
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47364210591783L);
         service.getFactorys().remove(47364327162209L);
         service.getFactorys().remove(47361973054464L);
         service.getFactorys().remove(47362664777370L);
@@ -124,6 +133,7 @@ public abstract class AbstractMaster implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
+    protected abstract long ProcessCheckFreeManagerRequest(Zeze.Builtin.Dbh2.Master.CheckFreeManager r) throws Exception;
     protected abstract long ProcessCreateDatabaseRequest(Zeze.Builtin.Dbh2.Master.CreateDatabase r) throws Exception;
     protected abstract long ProcessCreateSplitBucketRequest(Zeze.Builtin.Dbh2.Master.CreateSplitBucket r) throws Exception;
     protected abstract long ProcessCreateTableRequest(Zeze.Builtin.Dbh2.Master.CreateTable r) throws Exception;

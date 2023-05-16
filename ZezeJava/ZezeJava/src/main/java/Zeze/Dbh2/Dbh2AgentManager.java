@@ -180,7 +180,7 @@ public class Dbh2AgentManager {
 			System.out.println(e);
 	}
 
-	// todo Database.Table中缓存MasterTableDaTa，减少map查找。
+	// Database.Table中缓存MasterTableDaTa，减少map查找。
 	//  难点是信息发生了变更需要刷新Table中缓存的数据。
 	public String locateBucket(
 			MasterAgent masterAgent, String masterName,

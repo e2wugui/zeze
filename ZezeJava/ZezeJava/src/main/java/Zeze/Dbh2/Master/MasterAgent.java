@@ -1,6 +1,7 @@
 package Zeze.Dbh2.Master;
 
 import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Builtin.Dbh2.Master.CheckFreeManager;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
@@ -138,5 +139,13 @@ public class MasterAgent extends AbstractMasterAgent {
 		})) {
 			Task.schedule(30_000, () -> endSplitWithRetryAsync(from,to));
 		}
+	}
+
+	public int checkFreeManager() {
+		var r = new CheckFreeManager();
+		r.SendForWait(service.GetSocket()).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
+		return r.Result.getCount();
 	}
 }
