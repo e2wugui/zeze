@@ -11,6 +11,7 @@ import Zeze.Builtin.Dbh2.BSplitPut;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
+import Zeze.Util.Action0;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -26,6 +27,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private Future<?> timer;
 	private CommitAgent commitAgent;
 	private final Dbh2 dbh2;
+	private Runnable noTransactionHandle;
 
 	public Dbh2StateMachine(Dbh2 dbh2) {
 		this.dbh2 = dbh2;
@@ -39,6 +41,20 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogEndSplit.TypeId_, LogEndSplit::new);
 		super.addFactory(LogSetSplittingMeta.TypeId_, LogSetSplittingMeta::new);
 		super.addFactory(LogSplitPut.TypeId_, LogSplitPut::new);
+	}
+
+	public void setupHandleIfNoTransaction(Runnable handle) {
+		if (transactions.isEmpty())
+			handle.run();
+		else
+			noTransactionHandle = handle;
+	}
+
+	private void triggerNoTransactionIf() {
+		if (transactions.isEmpty() && null != noTransactionHandle) {
+			noTransactionHandle.run();
+			noTransactionHandle = null;
+		}
 	}
 
 	public Bucket getBucket() {
@@ -144,6 +160,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		try (var txn = transactions.remove(tid)) {
 			if (null != txn)
 				dbh2.onCommitBatch(txn);
+			triggerNoTransactionIf();
 		}
 	}
 
@@ -151,6 +168,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		try (var txn = transactions.remove(tid)) {
 			if (null != txn)
 				txn.undoBatch(bucket);
+			triggerNoTransactionIf();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();

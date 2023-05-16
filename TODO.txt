@@ -14,9 +14,10 @@ DatabaseDynamoDb 还需测试。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; Raft Async; Dbh2 Async; Online;
 ------------------------------------------------------------------------------------------------------------------------------
+Dbh2 dbh2Splitting 生命期管理：endSplit可以阻止新的需要拷贝的事务，但是进行中事务需要等待完成。
 Dbh2 创建表选择负载低的服务器的策略。
           创建表负载。不能用分桶的load，否则批量创建都会创建到同一个manager。这里可用的策略是完全轮询manager，或者按load=manager中的桶数量的方式定义。
-Dbh2 分桶阶段二，1. refused 服务器已处理。2. refused Agent todo
+Dbh2 分桶阶段二，1. refused 服务器已处理。2. refused Agent
 Dbh2 endSplit 【原子化】
 Dbh2 根据负载或什么策略并发拆分桶。
           统计：put count； delete count；get count；db file size

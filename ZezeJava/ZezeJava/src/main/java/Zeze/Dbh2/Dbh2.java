@@ -121,15 +121,15 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			super(raft, name, config);
 		}
 
-		private ConcurrentLinkedQueue<Action0> transactionQueue;
+		private ConcurrentLinkedQueue<Action0> prepareQueue;
 
-		public synchronized void setupTransactionQueue() {
-			transactionQueue = new ConcurrentLinkedQueue<>();
+		public synchronized void setupPrepareQueue() {
+			prepareQueue = new ConcurrentLinkedQueue<>();
 		}
 
-		public synchronized ConcurrentLinkedQueue<Action0> takeTransactionQueue() {
-			var tmp = transactionQueue;
-			transactionQueue = null;
+		public synchronized ConcurrentLinkedQueue<Action0> takePrepareQueue() {
+			var tmp = prepareQueue;
+			prepareQueue = null;
 			return tmp;
 		}
 
@@ -148,18 +148,16 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		@Override
 		public synchronized void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
 													 DispatchMode mode) throws Exception {
-			if (null != transactionQueue && isTransactionRequest(p.getTypeId())) {
-				transactionQueue.add(() -> Task.call(func, p));
+			if (null != prepareQueue && isPrepareRequest(p.getTypeId())) {
+				prepareQueue.add(() -> Task.call(func, p));
 			} else {
 				raft.getUserThreadExecutor().execute(() -> Task.call(func, p));
 			}
 		}
 	}
 
-	private static boolean isTransactionRequest(long typeId) {
-		return typeId == PrepareBatch.TypeId_
-				|| typeId == CommitBatch.TypeId_
-				|| typeId == UndoBatch.TypeId_;
+	private static boolean isPrepareRequest(long typeId) {
+		return typeId == PrepareBatch.TypeId_;
 	}
 
 	public Raft getRaft() {
@@ -401,7 +399,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		return it;
 	}
 
-	private static void performTransactionQueue(ConcurrentLinkedQueue<Action0> tmpQueue) {
+	private static void performPrepareQueue(ConcurrentLinkedQueue<Action0> tmpQueue) {
 		if (null != tmpQueue) {
 			for (var trans : tmpQueue) {
 				try {
@@ -445,7 +443,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			}
 
 			var server = (Dbh2RaftServer)getRaft().getServer();
-			performTransactionQueue(server.takeTransactionQueue());
+			performPrepareQueue(server.takePrepareQueue());
 
 			if (null == it) {
 				// 重新开始分桶时走这个分支，根据上次找到的middle，定位it。
@@ -478,7 +476,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		try {
 			if (!raft.isLeader() || dbh2Splitting == null || serialNo != splitSerialNo) {
 				it.close();
-				dbh2Splitting.close();
 				return 0;
 			}
 
@@ -494,7 +491,16 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				var splittingMeta = stateMachine.getBucket().getSplittingMeta();
 				// 有好几个步骤，采用异步方式。
 				logger.info("splitting end... {}@{}", splittingMeta.getTableName(), splittingMeta.getDatabaseName());
-				endSplit0();
+
+				// 截住新的事务请求。
+				var server = (Dbh2RaftServer)getRaft().getServer();
+				server.setupPrepareQueue();
+
+				// 在队列中增加endSplit启动任务，先要处理完队列中的请求。
+				// 此时PrepareBatch已经被拦截，但是还有CommitBatch,UndoBatch等其他请求在处理。
+				// setupHandleIfNoTransaction 将在没有进行中的事务时触发。
+				getRaft().getUserThreadExecutor().execute(() ->
+						stateMachine.setupHandleIfNoTransaction(this::endSplit0));
 				return 0; // split done.
 			}
 
@@ -505,7 +511,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		return 0;
 	}
 
-	private void endSplit0() throws Exception {
+	private void endSplit0() {
 		// 第一步，设置新桶的meta
 		dbh2Splitting.setBucketMetaAsync(stateMachine.getBucket().getSplittingMeta(), this::endSplit1);
 	}
@@ -541,7 +547,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			return;
 		}
 
-		// 【进入拒绝模式】
+		// 【此时进入拒绝模式】
+		// 【此时进入拒绝模式】
+		// 【此时进入拒绝模式】
+		var server = (Dbh2RaftServer)getRaft().getServer();
+		performPrepareQueue(server.takePrepareQueue());
+
 		// 关闭到新桶连接。
 		try {
 			dbh2Splitting.close();
@@ -553,7 +564,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		// 可以安全的发布新旧桶的信息到Master了。
 		var endSplit = (LogEndSplit)raftLog.getLog();
 		manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo());
-		return;
+		var meta = stateMachine.getBucket().getMeta();
+		logger.info("splitting end... {}@{}", meta.getTableName(), meta.getDatabaseName());
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {
