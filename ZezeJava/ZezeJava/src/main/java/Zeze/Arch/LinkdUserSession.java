@@ -212,7 +212,7 @@ public class LinkdUserSession {
 		if (!bindProviders.isEmpty()) {
 			var bLinkBroken = new BLinkBroken(account, sessionId, BLinkBroken.REASON_PEERCLOSE);
 			bLinkBroken.setUserState(userState);
-			var linkBroken = new LinkBroken();
+			var linkBroken = new LinkBroken(bLinkBroken);
 			for (var provider : bindProviders)
 				provider.Send(linkBroken);
 		}
