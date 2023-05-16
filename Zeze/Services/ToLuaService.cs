@@ -887,16 +887,30 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
-        Dictionary<long, ByteBuffer> ToLuaBuffer = new();
-        Dictionary<long, IFromLua> ToLuaHandshakeDone = new();
-        Dictionary<long, IFromLua> ToLuaSocketClose = new();
-        HashSet<long> ToLuaRpcTimeout = new();
+        class ToLuaVariable
+        {
+            public Dictionary<long, ByteBuffer> ToLuaBuffer = new();
+            public Dictionary<long, IFromLua> ToLuaHandshakeDone = new();
+            public Dictionary<long, IFromLua> ToLuaSocketClose = new();
+            public HashSet<long> ToLuaRpcTimeout = new();
+
+            public void Clear()
+            {
+                ToLuaBuffer.Clear();
+                ToLuaHandshakeDone.Clear();
+                ToLuaSocketClose.Clear();
+                ToLuaRpcTimeout.Clear();
+            }
+        }
+
+        private ToLuaVariable toLuaVariableUpdatting = new ToLuaVariable();
+        private ToLuaVariable toLuaVariable = new ToLuaVariable();
 
         internal void SetRpcTimeout(long sid)
         {
             lock (this)
             {
-                ToLuaRpcTimeout.Add(sid);
+                toLuaVariable.ToLuaRpcTimeout.Add(sid);
             }
         }
 
@@ -904,7 +918,7 @@ namespace Zeze.Services.ToLuaService
         {
             lock (this)
             {
-                ToLuaHandshakeDone[socketSessionId] = service;
+                toLuaVariable.ToLuaHandshakeDone[socketSessionId] = service;
             }
         }
 
@@ -912,7 +926,7 @@ namespace Zeze.Services.ToLuaService
         {
             lock (this)
             {
-                ToLuaSocketClose[socketSessionId] = service;
+                toLuaVariable.ToLuaSocketClose[socketSessionId] = service;
             }
         }
 
@@ -920,45 +934,37 @@ namespace Zeze.Services.ToLuaService
         {
             lock (this)
             {
-                if (ToLuaBuffer.TryGetValue(socketSessionId, out var exist))
+                if (toLuaVariable.ToLuaBuffer.TryGetValue(socketSessionId, out var exist))
                 {
                     exist.Append(buffer.Bytes, buffer.ReadIndex, buffer.Size);
                     return;
                 }
                 ByteBuffer newBuffer = ByteBuffer.Allocate();
-                ToLuaBuffer.Add(socketSessionId, newBuffer);
+                toLuaVariable.ToLuaBuffer.Add(socketSessionId, newBuffer);
                 newBuffer.Append(buffer.Bytes, buffer.ReadIndex, buffer.Size);
             }
         }
 
         public void Update(Service service)
         {
-            Dictionary<long, IFromLua> handshakeTmp;
-            Dictionary<long, IFromLua> socketCloseTmp;
-            Dictionary<long, ByteBuffer> inputTmp;
-            HashSet<long> rpcTimeout;
             lock (this)
             {
-                handshakeTmp = ToLuaHandshakeDone;
-                socketCloseTmp = ToLuaSocketClose;
-                inputTmp = ToLuaBuffer;
-                rpcTimeout = ToLuaRpcTimeout;
-                ToLuaBuffer = new Dictionary<long, ByteBuffer>();
-                ToLuaHandshakeDone = new Dictionary<long, IFromLua>();
-                ToLuaSocketClose = new Dictionary<long, IFromLua>();
-                ToLuaRpcTimeout = new HashSet<long>();
+                // swap
+                var tmp = toLuaVariable;
+                toLuaVariable = toLuaVariableUpdatting;
+                toLuaVariableUpdatting = tmp;
             }
 
-            foreach (var e in socketCloseTmp)
+            foreach (var e in toLuaVariableUpdatting.ToLuaSocketClose)
                 CallSocketClose(e.Value, e.Key);
 
-            foreach (var e in handshakeTmp)
+            foreach (var e in toLuaVariableUpdatting.ToLuaHandshakeDone)
                 CallHandshakeDone(e.Value, e.Key);
 
-            foreach (var sid in rpcTimeout)
+            foreach (var sid in toLuaVariableUpdatting.ToLuaRpcTimeout)
                 CallRpcTimeout(sid);
 
-            foreach (var e in inputTmp)
+            foreach (var e in toLuaVariableUpdatting.ToLuaBuffer)
             {
                 AsyncSocket sender = service.GetSocket(e.Key);
                 if (null == sender)
@@ -969,25 +975,27 @@ namespace Zeze.Services.ToLuaService
 
             lock (this)
             {
-                foreach (var e in inputTmp)
+                foreach (var e in toLuaVariableUpdatting.ToLuaBuffer)
                 {
                     if (e.Value.Size <= 0)
                         continue; // 数据全部处理完成。
 
                     e.Value.Campact();
-                    if (ToLuaBuffer.TryGetValue(e.Key, out var exist))
+                    if (toLuaVariable.ToLuaBuffer.TryGetValue(e.Key, out var exist))
                     {
                         // 处理过程中有新数据到来，加到当前剩余数据后面，然后覆盖掉buffer。
                         e.Value.Append(exist.Bytes, exist.ReadIndex, exist.Size);
-                        ToLuaBuffer[e.Key] = e.Value;
+                        toLuaVariable.ToLuaBuffer[e.Key] = e.Value;
                     }
                     else
                     {
                         // 没有新数据到来，有剩余，加回去。下一次update再处理。
-                        ToLuaBuffer.Add(e.Key, e.Value);
+                        toLuaVariable.ToLuaBuffer.Add(e.Key, e.Value);
                     }
                 }
             }
+
+            toLuaVariableUpdatting.Clear();
         }
     }
 }

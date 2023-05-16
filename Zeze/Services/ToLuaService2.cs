@@ -1137,15 +1137,28 @@ namespace Zeze.Services.ToLuaService2
             }
         }
 
-        private Dictionary<long, ByteBuffer> _toLuaBuffer = new Dictionary<long, ByteBuffer>();
-        private Dictionary<long, IFromLua2> _toLuaHandshakeDone = new Dictionary<long, IFromLua2>();
-        private Dictionary<long, IFromLua2> _toLuaSocketClose = new Dictionary<long, IFromLua2>();
+        class ToLuaVariable
+        {
+            public Dictionary<long, ByteBuffer> _toLuaBuffer = new Dictionary<long, ByteBuffer>();
+            public Dictionary<long, IFromLua2> _toLuaHandshakeDone = new Dictionary<long, IFromLua2>();
+            public Dictionary<long, IFromLua2> _toLuaSocketClose = new Dictionary<long, IFromLua2>();
+
+            public void Clear()
+            { 
+                _toLuaBuffer.Clear();
+                _toLuaHandshakeDone.Clear();
+                _toLuaSocketClose.Clear();
+            }
+        }
+
+        private ToLuaVariable toLuaVariableUpdatting = new ToLuaVariable();
+        private ToLuaVariable toLuaVariable = new ToLuaVariable();
 
         internal void SetHandshakeDone(long socketSessionId, IFromLua2 service)
         {
             lock (this)
             {
-                _toLuaHandshakeDone[socketSessionId] = service;
+                toLuaVariable._toLuaHandshakeDone[socketSessionId] = service;
             }
         }
 
@@ -1153,7 +1166,7 @@ namespace Zeze.Services.ToLuaService2
         {
             lock (this)
             {
-                _toLuaSocketClose[socketSessionId] = service;
+                toLuaVariable._toLuaSocketClose[socketSessionId] = service;
             }
         }
 
@@ -1161,45 +1174,41 @@ namespace Zeze.Services.ToLuaService2
         {
             lock (this)
             {
-                if (_toLuaBuffer.TryGetValue(socketSessionId, out var exist))
+                if (toLuaVariable._toLuaBuffer.TryGetValue(socketSessionId, out var exist))
                 {
                     exist.Append(buffer.Bytes, buffer.ReadIndex, buffer.Size);
                     return;
                 }
 
                 ByteBuffer newBuffer = ByteBuffer.Allocate();
-                _toLuaBuffer.Add(socketSessionId, newBuffer);
+                toLuaVariable._toLuaBuffer.Add(socketSessionId, newBuffer);
                 newBuffer.Append(buffer.Bytes, buffer.ReadIndex, buffer.Size);
             }
         }
 
         public void Update(IntPtr luaState, Service service)
         {
-            Dictionary<long, IFromLua2> handshakeTmp;
-            Dictionary<long, IFromLua2> socketCloseTmp;
-            Dictionary<long, ByteBuffer> inputTmp;
             lock (this)
             {
-                handshakeTmp = _toLuaHandshakeDone;
-                socketCloseTmp = _toLuaSocketClose;
-                inputTmp = _toLuaBuffer;
-                _toLuaBuffer = new Dictionary<long, ByteBuffer>();
-                _toLuaHandshakeDone = new Dictionary<long, IFromLua2>();
-                _toLuaSocketClose = new Dictionary<long, IFromLua2>();
+                // swap
+                var tmp = toLuaVariable;
+                toLuaVariable = toLuaVariableUpdatting;
+                toLuaVariableUpdatting = tmp;
             }
 
-            foreach (var e in socketCloseTmp)
+            // updatting without lock.
+            foreach (var e in toLuaVariableUpdatting._toLuaSocketClose)
             {
                 CallSocketClose(luaState, e.Value, e.Key);
             }
 
-            foreach (var e in handshakeTmp)
+            foreach (var e in toLuaVariableUpdatting._toLuaHandshakeDone)
             {
                 CallHandshakeDone(luaState, e.Value, e.Key);
             }
 
             _updateLuaState = luaState;
-            foreach (var e in inputTmp)
+            foreach (var e in toLuaVariableUpdatting._toLuaBuffer)
             {
                 AsyncSocket sender = service.GetSocket(e.Key);
                 if (null == sender)
@@ -1209,27 +1218,30 @@ namespace Zeze.Services.ToLuaService2
             }
             _updateLuaState = default;
 
+            // process remain buffer
             lock (this)
             {
-                foreach (var e in inputTmp)
+                foreach (var e in toLuaVariableUpdatting._toLuaBuffer)
                 {
                     if (e.Value.Size <= 0)
                         continue; // 数据全部处理完成。
 
                     e.Value.Campact();
-                    if (_toLuaBuffer.TryGetValue(e.Key, out var exist))
+                    if (toLuaVariable._toLuaBuffer.TryGetValue(e.Key, out var exist))
                     {
                         // 处理过程中有新数据到来，加到当前剩余数据后面，然后覆盖掉buffer。
                         e.Value.Append(exist.Bytes, exist.ReadIndex, exist.Size);
-                        _toLuaBuffer[e.Key] = e.Value;
+                        toLuaVariable._toLuaBuffer[e.Key] = e.Value;
                     }
                     else
                     {
                         // 没有新数据到来，有剩余，加回去。下一次update再处理。
-                        _toLuaBuffer.Add(e.Key, e.Value);
+                        toLuaVariable._toLuaBuffer.Add(e.Key, e.Value);
                     }
                 }
             }
+
+            toLuaVariableUpdatting.Clear();
         }
 
         private IntPtr _updateLuaState;

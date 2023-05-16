@@ -162,9 +162,8 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="bb"></param>
         /// <returns></returns>
-        internal static void Decode(Service service, AsyncSocket so, ByteBuffer bb, IDecodeAndDispatch toLua = null)
+        internal static void Decode(Service service, AsyncSocket so, ByteBuffer os, IDecodeAndDispatch toLua = null)
         {
-			ByteBuffer os = ByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.Size); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
 			while (os.Size > 0)
 			{
 				// 尝试读取协议类型和大小
@@ -181,7 +180,6 @@ namespace Zeze.Net
 				}
 				else
 				{
-					bb.ReadIndex = readIndexSaved;
 					return;
 				}
 
@@ -199,12 +197,13 @@ namespace Zeze.Net
 					}
 
 					// not enough data. try next time.
-					bb.ReadIndex = readIndexSaved;
+					os.ReadIndex = readIndexSaved;
 					return;
 				}
 
-				var pBuffer = ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size);
-				os.ReadIndex += size;
+				var savedWriteIndex = os.WriteIndex;
+                var protocolEndIndex = os.WriteIndex = os.ReadIndex + size; // 修改WriteIndex，限定当前协议可用数据。
+
 				if (service.CheckThrottle(so, moduleId, protocolId, size) && false == service.Discard(so, moduleId, protocolId, size))
 				{
                     var factoryHandle = service.FindProtocolFactoryHandle(type);
@@ -212,7 +211,9 @@ namespace Zeze.Net
                     {
                         Protocol p = factoryHandle.Factory();
                         p.Service = service;
-                        p.Decode(pBuffer);
+                        p.Decode(os);
+						os.ReadIndex = protocolEndIndex; // 协议完整解析完成，这里是相等的。
+                        os.WriteIndex = savedWriteIndex;
                         // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
                         /*
                         if (pBuffer.ReadIndex != pBuffer.WriteIndex)
@@ -229,8 +230,10 @@ namespace Zeze.Net
                     // 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
                     if (null != toLua)
                     {
-                        if (toLua.DecodeAndDispatch(service, so.SessionId, type, pBuffer))
+                        if (toLua.DecodeAndDispatch(service, so.SessionId, type, os))
                         {
+                            os.ReadIndex = protocolEndIndex; // 协议完整解析完成，这里是相等的。
+							os.WriteIndex = savedWriteIndex;
                             // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
                             /*
                             if (pBuffer.ReadIndex != pBuffer.WriteIndex)
@@ -241,10 +244,11 @@ namespace Zeze.Net
                             continue;
                         }
                     }
-                    service.DispatchUnknownProtocol(so, moduleId, protocolId, pBuffer);
+                    service.DispatchUnknownProtocol(so, moduleId, protocolId, os);
+					os.ReadIndex = protocolEndIndex;
+					os.WriteIndex = savedWriteIndex;
                 }
             }
-			bb.ReadIndex = os.ReadIndex;
 		}
 
 		public override string ToString()
