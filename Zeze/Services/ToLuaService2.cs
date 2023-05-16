@@ -1139,9 +1139,9 @@ namespace Zeze.Services.ToLuaService2
 
         class ToLuaVariable
         {
-            public Dictionary<long, ByteBuffer> _toLuaBuffer = new Dictionary<long, ByteBuffer>();
-            public Dictionary<long, IFromLua2> _toLuaHandshakeDone = new Dictionary<long, IFromLua2>();
-            public Dictionary<long, IFromLua2> _toLuaSocketClose = new Dictionary<long, IFromLua2>();
+            public readonly Dictionary<long, ByteBuffer> _toLuaBuffer = new Dictionary<long, ByteBuffer>();
+            public readonly Dictionary<long, IFromLua2> _toLuaHandshakeDone = new Dictionary<long, IFromLua2>();
+            public readonly Dictionary<long, IFromLua2> _toLuaSocketClose = new Dictionary<long, IFromLua2>();
 
             public void Clear()
             { 
@@ -1151,7 +1151,7 @@ namespace Zeze.Services.ToLuaService2
             }
         }
 
-        private ToLuaVariable toLuaVariableUpdatting = new ToLuaVariable();
+        private ToLuaVariable toLuaVariableUpdating = new ToLuaVariable();
         private ToLuaVariable toLuaVariable = new ToLuaVariable();
 
         internal void SetHandshakeDone(long socketSessionId, IFromLua2 service)
@@ -1192,23 +1192,23 @@ namespace Zeze.Services.ToLuaService2
             {
                 // swap
                 var tmp = toLuaVariable;
-                toLuaVariable = toLuaVariableUpdatting;
-                toLuaVariableUpdatting = tmp;
+                toLuaVariable = toLuaVariableUpdating;
+                toLuaVariableUpdating = tmp;
             }
 
-            // updatting without lock.
-            foreach (var e in toLuaVariableUpdatting._toLuaSocketClose)
+            // updating without lock.
+            foreach (var e in toLuaVariableUpdating._toLuaSocketClose)
             {
                 CallSocketClose(luaState, e.Value, e.Key);
             }
 
-            foreach (var e in toLuaVariableUpdatting._toLuaHandshakeDone)
+            foreach (var e in toLuaVariableUpdating._toLuaHandshakeDone)
             {
                 CallHandshakeDone(luaState, e.Value, e.Key);
             }
 
             _updateLuaState = luaState;
-            foreach (var e in toLuaVariableUpdatting._toLuaBuffer)
+            foreach (var e in toLuaVariableUpdating._toLuaBuffer)
             {
                 AsyncSocket sender = service.GetSocket(e.Key);
                 if (null == sender)
@@ -1221,7 +1221,7 @@ namespace Zeze.Services.ToLuaService2
             // process remain buffer
             lock (this)
             {
-                foreach (var e in toLuaVariableUpdatting._toLuaBuffer)
+                foreach (var e in toLuaVariableUpdating._toLuaBuffer)
                 {
                     if (e.Value.Size <= 0)
                         continue; // 数据全部处理完成。
@@ -1241,7 +1241,7 @@ namespace Zeze.Services.ToLuaService2
                 }
             }
 
-            toLuaVariableUpdatting.Clear();
+            toLuaVariableUpdating.Clear();
         }
 
         private IntPtr _updateLuaState;

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Serialize;
 
@@ -889,10 +888,10 @@ namespace Zeze.Services.ToLuaService
 
         class ToLuaVariable
         {
-            public Dictionary<long, ByteBuffer> ToLuaBuffer = new();
-            public Dictionary<long, IFromLua> ToLuaHandshakeDone = new();
-            public Dictionary<long, IFromLua> ToLuaSocketClose = new();
-            public HashSet<long> ToLuaRpcTimeout = new();
+            public readonly Dictionary<long, ByteBuffer> ToLuaBuffer = new();
+            public readonly Dictionary<long, IFromLua> ToLuaHandshakeDone = new();
+            public readonly Dictionary<long, IFromLua> ToLuaSocketClose = new();
+            public readonly HashSet<long> ToLuaRpcTimeout = new();
 
             public void Clear()
             {
@@ -903,8 +902,8 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
-        private ToLuaVariable toLuaVariableUpdatting = new ToLuaVariable();
-        private ToLuaVariable toLuaVariable = new ToLuaVariable();
+        private ToLuaVariable toLuaVariableUpdating = new();
+        private ToLuaVariable toLuaVariable = new();
 
         internal void SetRpcTimeout(long sid)
         {
@@ -951,20 +950,20 @@ namespace Zeze.Services.ToLuaService
             {
                 // swap
                 var tmp = toLuaVariable;
-                toLuaVariable = toLuaVariableUpdatting;
-                toLuaVariableUpdatting = tmp;
+                toLuaVariable = toLuaVariableUpdating;
+                toLuaVariableUpdating = tmp;
             }
 
-            foreach (var e in toLuaVariableUpdatting.ToLuaSocketClose)
+            foreach (var e in toLuaVariableUpdating.ToLuaSocketClose)
                 CallSocketClose(e.Value, e.Key);
 
-            foreach (var e in toLuaVariableUpdatting.ToLuaHandshakeDone)
+            foreach (var e in toLuaVariableUpdating.ToLuaHandshakeDone)
                 CallHandshakeDone(e.Value, e.Key);
 
-            foreach (var sid in toLuaVariableUpdatting.ToLuaRpcTimeout)
+            foreach (var sid in toLuaVariableUpdating.ToLuaRpcTimeout)
                 CallRpcTimeout(sid);
 
-            foreach (var e in toLuaVariableUpdatting.ToLuaBuffer)
+            foreach (var e in toLuaVariableUpdating.ToLuaBuffer)
             {
                 AsyncSocket sender = service.GetSocket(e.Key);
                 if (null == sender)
@@ -975,7 +974,7 @@ namespace Zeze.Services.ToLuaService
 
             lock (this)
             {
-                foreach (var e in toLuaVariableUpdatting.ToLuaBuffer)
+                foreach (var e in toLuaVariableUpdating.ToLuaBuffer)
                 {
                     if (e.Value.Size <= 0)
                         continue; // 数据全部处理完成。
@@ -995,7 +994,7 @@ namespace Zeze.Services.ToLuaService
                 }
             }
 
-            toLuaVariableUpdatting.Clear();
+            toLuaVariableUpdating.Clear();
         }
     }
 }
