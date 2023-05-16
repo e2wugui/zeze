@@ -124,6 +124,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
 		try {
+			bucket.setMeta(from);
 			bucket.addSplitMetaHistory(from, to);
 			bucket.deleteSplittingMeta();
 		} catch (RocksDBException e) {

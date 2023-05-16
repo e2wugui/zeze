@@ -205,8 +205,9 @@ public class Dbh2AgentManager {
 	public synchronized void reload(
 			MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName) {
-		//System.out.println("reload ..." + tableName);
-		putBuckets(masterAgent.getBuckets(databaseName, tableName), masterName, databaseName, tableName);
+		var masterTable = masterAgent.getBuckets(databaseName, tableName);
+		logger.info("reload ... {}", masterTable);
+		putBuckets(masterTable, masterName, databaseName, tableName);
 	}
 
 	public synchronized void putBuckets(

@@ -9,6 +9,7 @@ import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.BRefused;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Builtin.Dbh2.Commit.BTransactionState;
+import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftRpc;
 import Zeze.Serialize.ByteBuffer;
@@ -139,6 +140,8 @@ public class CommitRocks {
 		var futuresRedirect = new ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
 		for (var e : futures) {
 			var r = e.get();
+			if (r.getResultCode() != 0)
+				throw new RuntimeException("prepare error=" + IModule.getErrorCode(r.getResultCode()));
 			// 【dbh2 拒绝模式结果处理】
 			var refused = r.Result.getRefused();
 			if (!refused.isEmpty()) {

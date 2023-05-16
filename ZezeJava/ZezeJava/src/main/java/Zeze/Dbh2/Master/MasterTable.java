@@ -27,6 +27,11 @@ public class MasterTable {
 		}
 
 		@Override
+		public String toString() {
+			return buckets.values().toString();
+		}
+
+		@Override
 		public void encode(ByteBuffer bb) {
 			bb.WriteBool(created);
 			bb.WriteInt(buckets.size());

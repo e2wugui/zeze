@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.BBatch;
+import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
@@ -59,6 +60,13 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private long lastUndoBatch;
 	private long lastReportTime = System.currentTimeMillis();
 
+	private static String formatMeta(BBucketMeta.Data meta) {
+		var sb = new StringBuilder();
+		sb.append(meta.getTableName()).append("@").append(meta.getDatabaseName());
+		sb.append("[").append(meta.getKeyFirst()).append(", ").append(meta.getKeyLast()).append(")");
+		return sb.toString();
+	}
+
 	public double load() {
 		var now = System.currentTimeMillis();
 		var elapse = (now - lastReportTime) / 1000.0f;
@@ -94,11 +102,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			lastUndoBatch = nowUndoBatch;
 
 			//noinspection StringBufferReplaceableByString
-			var sb = new StringBuilder();
 			var avgGet = diffGet / elapse;
 			var avgPut = diffPut / elapse;
 			var avgDelete = diffDelete / elapse;
 
+			var sb = new StringBuilder();
+			sb.append(formatMeta(stateMachine.getBucket().getMeta()));
 			sb.append(" get=").append(avgGet);
 			sb.append(" put=").append(avgPut);
 			sb.append(" getSize=").append(diffSizeGet / elapse);
@@ -363,9 +372,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		var bucket = stateMachine.getBucket();
 		var splitting = bucket.getSplittingMeta();
 		if (null != splitting) {
-			logger.info("start but splitting found. database={} table={}",
-					splitting.getDatabaseName(),
-					splitting.getTableName());
+			logger.info("start but splitting found. meta={}", formatMeta(splitting));
 			return; // splitting
 		}
 
@@ -433,7 +440,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 设置分桶进行中的标记到raft集群中。
 				getRaft().appendLog(new LogSetSplittingMeta(splitting));
 				// 创建到分桶目标的客户端。
-				logger.info("splitting start... {}@{}", splitting.getTableName(), splitting.getDatabaseName());
+				logger.info("splitting start... {}", formatMeta(splitting));
 			}
 
 			// 重启的时候，需要重建到分桶的连接。
@@ -448,7 +455,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (null == it) {
 				// 重新开始分桶时走这个分支，根据上次找到的middle，定位it。
 				it = locateMiddle(splitting.getKeyFirst());
-				logger.info("splitting restart... {}@{}", splitting.getTableName(), splitting.getDatabaseName());
+				logger.info("splitting restart... {}", formatMeta(splitting));
 			}
 
 			// 开始同步数据，这个阶段对于rocks时同步访问的，对于网络是异步的。
@@ -490,7 +497,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 				var splittingMeta = stateMachine.getBucket().getSplittingMeta();
 				// 有好几个步骤，采用异步方式。
-				logger.info("splitting end... {}@{}", splittingMeta.getTableName(), splittingMeta.getDatabaseName());
+				logger.info("splitting end ... {}}", formatMeta(splittingMeta));
 
 				// 截住新的事务请求。
 				var server = (Dbh2RaftServer)getRaft().getServer();
@@ -565,7 +572,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		var endSplit = (LogEndSplit)raftLog.getLog();
 		manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo());
 		var meta = stateMachine.getBucket().getMeta();
-		logger.info("splitting end done. {}@{}", meta.getTableName(), meta.getDatabaseName());
+		logger.info("splitting end done. {}", formatMeta(meta));
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {
