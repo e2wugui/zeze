@@ -386,13 +386,7 @@ namespace Zeze.Net
                     if (null == _ProtocolPool)
                     {
                         var tmp = new ProtocolPool(Handle);
-                        Handle = async (p) =>
-                        {
-                            var result = await tmp.Handle(p);
-                            if (result == 0 && p.Recyle)
-                                tmp.Pool.Enqueue(p);
-                            return result;
-                        };
+                        Handle = tmp.Process;
                         _ProtocolPool = tmp;
                     }
                 }
