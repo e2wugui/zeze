@@ -36,6 +36,7 @@ public class BenchClient {
 			var masterPort = 30000;
 			var tableAccess = 2;
 			var selector = Runtime.getRuntime().availableProcessors();
+			var get = false;
 
 			for (int i = 0; i < args.length; ++i) {
 				switch (args[i]) {
@@ -60,6 +61,9 @@ public class BenchClient {
 				case "-selector":
 					selector = Integer.parseInt(args[++i]);
 					break;
+				case "-get":
+					get = true;
+					break;
 				default:
 					throw new RuntimeException("unknown option: " + args[i]);
 				}
@@ -69,35 +73,18 @@ public class BenchClient {
 			PerfCounter.instance.tryStartScheduledLog();
 
 			var dbh2AgentManager = new Dbh2AgentManager(null);
-			var tableAccessFinal = tableAccess;
 			var database = newDatabase(dbh2AgentManager, masterIp, masterPort);
 			var tables = new ArrayList<Zeze.Transaction.Database.AbstractKVTable>();
 			for (int i = 0; i < tableNumber; ++i)
 				tables.add((Database.AbstractKVTable)database.openTable("table" + i));
 
-			var value = ByteBuffer.Wrap(Zeze.Util.Random.nextBinary(valueSize));
 			var running = new OutObject<>(true);
 			var futures = new ArrayList<Future<?>>();
 			var transCounter = new AtomicLong();
 			for (int i = 0; i < threadNumber; ++i) {
-				futures.add(Task.runUnsafe(() -> {
-					while (Boolean.TRUE.equals(running.value)) {
-						// 限制所有key的范围，防止服务器占用太大硬盘。
-						try (var trans = database.beginTransaction()) {
-							for (int a = 0; a < tableAccessFinal; ++a) {
-								var key = (Zeze.Util.Random.getInstance().nextLong() + 1) % 1000_00000;
-								var keyBb = ByteBuffer.Allocate(9);
-								keyBb.WriteLong(key);
-								var table = tables.get(Zeze.Util.Random.getInstance().nextInt(tables.size()));
-								table.replace(trans, keyBb, value);
-							}
-							trans.commit();
-							transCounter.incrementAndGet();
-						} catch (Throwable ex) {
-							logger.error("", ex);
-						}
-					}
-				}, "table thread"));
+				futures.add(get
+						? startGetTask(running, tables, transCounter)
+						: startPutTask(running, database, tableAccess, tables, valueSize, transCounter));
 			}
 			var lastReportTime = new OutLong(System.currentTimeMillis());
 			var lastReportCount = new OutLong();
@@ -125,5 +112,53 @@ public class BenchClient {
 		} catch (Exception e) {
 			logger.error("", e);
 		}
+	}
+
+	static Future<?> startGetTask(OutObject<Boolean> running,
+								  ArrayList<Zeze.Transaction.Database.AbstractKVTable> tables,
+								  AtomicLong transCounter) {
+
+		return Task.runUnsafe(() -> {
+			while (Boolean.TRUE.equals(running.value)) {
+				// 限制所有key的范围，防止服务器占用太大硬盘。
+				try {
+					var key = (Zeze.Util.Random.getInstance().nextLong() + 1) % 1000_00000;
+					var keyBb = ByteBuffer.Allocate(9);
+					keyBb.WriteLong(key);
+					var table = tables.get(Zeze.Util.Random.getInstance().nextInt(tables.size()));
+					table.find(keyBb);
+					transCounter.incrementAndGet();
+				} catch (Throwable ex) {
+					logger.error("", ex);
+				}
+			}
+		}, "table get thread");
+	}
+
+	static Future<?> startPutTask(OutObject<Boolean> running,
+								  Database database,
+								  int tableAccess,
+								  ArrayList<Zeze.Transaction.Database.AbstractKVTable> tables,
+								  int valueSize,
+								  AtomicLong transCounter) {
+		var value = ByteBuffer.Wrap(Zeze.Util.Random.nextBinary(valueSize));
+		return Task.runUnsafe(() -> {
+			while (Boolean.TRUE.equals(running.value)) {
+				// 限制所有key的范围，防止服务器占用太大硬盘。
+				try (var trans = database.beginTransaction()) {
+					for (int a = 0; a < tableAccess; ++a) {
+						var key = (Zeze.Util.Random.getInstance().nextLong() + 1) % 1000_00000;
+						var keyBb = ByteBuffer.Allocate(9);
+						keyBb.WriteLong(key);
+						var table = tables.get(Zeze.Util.Random.getInstance().nextInt(tables.size()));
+						table.replace(trans, keyBb, value);
+					}
+					trans.commit();
+					transCounter.incrementAndGet();
+				} catch (Throwable ex) {
+					logger.error("", ex);
+				}
+			}
+		}, "table put thread");
 	}
 }

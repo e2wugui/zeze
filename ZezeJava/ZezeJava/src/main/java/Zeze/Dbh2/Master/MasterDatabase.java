@@ -93,14 +93,18 @@ public class MasterDatabase {
 	public MasterTable.Data createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
 		outIsNew.value = false;
 		var table = tables.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-		if (table.created)
+		if (table.created) {
+			logger.info("create table exist: {}.{}", databaseName, tableName);
 			return table;
+		}
 
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			// 加锁后再次检查一次。
-			if (table.created)
+			if (table.created) {
+				logger.info("create table exist: {}.{}", databaseName, tableName);
 				return table;
+			}
 
 			outIsNew.value = true;
 
@@ -122,6 +126,7 @@ public class MasterDatabase {
 			table.created = true;
 			saveRocks(rocksTables, tableName, table);
 		}
+		logger.info("create table new: {}.{}", databaseName, tableName);
 		return table;
 	}
 

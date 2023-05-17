@@ -62,6 +62,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		r.Argument.setDatabase(databaseName);
 		r.Argument.setTable(tableName);
 		r.Argument.setKey(key);
+		r.setTimeout(10_000);
 		raftClient.sendForWait(r).await();
 
 		if (r.getResultCode() == errorCode(eBucketMissmatch))
@@ -70,12 +71,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("fail! code=" + r.getResultCode());
 
-		var bb = r.Result.isNull()
-				? null
-				: ByteBuffer.Wrap(
-				r.Result.getValue().bytesUnsafe(),
-				r.Result.getValue().getOffset(),
-				r.Result.getValue().size());
+		var bb = r.Result.isNull() ? null : ByteBuffer.Wrap(r.Result.getValue());
 		return KV.create(true, bb);
 	}
 

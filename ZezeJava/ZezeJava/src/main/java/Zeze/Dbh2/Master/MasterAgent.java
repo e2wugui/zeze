@@ -64,7 +64,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		var r = new CreateTable();
 		r.Argument.setDatabase(database);
 		r.Argument.setTable(table);
-		r.SendForWait(service.GetSocket()).await();
+		r.SendForWait(service.GetSocket(), 30_000).await();
 		out.value = r.Result;
 		var rc = r.getResultCode();
 		if (rc != 0 && rc != errorCode(eTableIsNew))

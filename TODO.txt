@@ -11,10 +11,10 @@ c# fresh 有bug？
 c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，等c#自己的async-lock】
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
-
 ------------------------------------------------------------------------------------------------------------------------------
-2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; Raft Async; Dbh2 Async; Online;
+2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; Raft Async; Dbh2 1.0; Online;
 ------------------------------------------------------------------------------------------------------------------------------
+Dbh2 Get Benchmark. （直接运行UnitTest.CheckpointFlush只有80/s）直接client.bat "-get"有5w左右。
 Dbh2 dbh2Splitting 生命期管理：endSplit可以阻止新的需要拷贝的事务，但是进行中事务需要等待完成。
 Dbh2 创建表选择负载低的服务器的策略。
           创建表负载。不能用分桶的load，否则批量创建都会创建到同一个manager。这里可用的策略是完全轮询manager，或者按load=manager中的桶数量的方式定义。

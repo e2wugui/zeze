@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.CommitBatch;
+import Zeze.Builtin.Dbh2.Get;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
@@ -18,6 +19,7 @@ import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Raft.Agent;
+import Zeze.Raft.IRaftRpc;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RaftLog;
@@ -63,7 +65,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private static String formatMeta(BBucketMeta.Data meta) {
 		//noinspection StringBufferReplaceableByString
 		var sb = new StringBuilder();
-		sb.append(meta.getTableName()).append("@").append(meta.getDatabaseName());
+		sb.append(meta.getDatabaseName()).append(".").append(meta.getTableName());
 		sb.append("[").append(meta.getKeyFirst()).append(", ").append(meta.getKeyLast()).append(")");
 		return sb.toString();
 	}
@@ -108,6 +110,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 			//noinspection StringBufferReplaceableByString
 			var sb = new StringBuilder();
+			sb.append("load: ");
 			sb.append(formatMeta(stateMachine.getBucket().getMeta()));
 			sb.append(" get=").append(avgGet);
 			sb.append(" put=").append(avgPut);
@@ -160,6 +163,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 													 DispatchMode mode) throws Exception {
 			if (null != prepareQueue && isPrepareRequest(p.getTypeId())) {
 				prepareQueue.add(() -> Task.call(func, p));
+			} else if (p.getTypeId() == Get.TypeId_) {
+				super.dispatchRaftRequest(p, func, name, cancel, mode);
 			} else {
 				raft.getUserThreadExecutor().execute(() -> Task.call(func, p));
 			}
