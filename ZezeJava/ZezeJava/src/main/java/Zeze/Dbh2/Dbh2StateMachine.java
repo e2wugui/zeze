@@ -11,7 +11,6 @@ import Zeze.Builtin.Dbh2.BSplitPut;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
-import Zeze.Util.Action0;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;

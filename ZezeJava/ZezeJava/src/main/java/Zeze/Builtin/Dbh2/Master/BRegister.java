@@ -306,6 +306,11 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
+    public BRegister.Data clone() {
+        return (BRegister.Data)super.clone();
+    }
+
+    @Override
     public String toString() {
         var sb = new StringBuilder();
         buildString(sb, 0);

@@ -556,6 +556,11 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
+    public BBatch.Data clone() {
+        return (BBatch.Data)super.clone();
+    }
+
+    @Override
     public String toString() {
         var sb = new StringBuilder();
         buildString(sb, 0);

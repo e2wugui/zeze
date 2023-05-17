@@ -277,6 +277,11 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
+    public BRefused.Data clone() {
+        return (BRefused.Data)super.clone();
+    }
+
+    @Override
     public String toString() {
         var sb = new StringBuilder();
         buildString(sb, 0);

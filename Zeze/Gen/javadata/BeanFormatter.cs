@@ -142,6 +142,11 @@ namespace Zeze.Gen.javadata
             sw.WriteLine("        return TYPEID;");
             sw.WriteLine("    }");
             sw.WriteLine();
+            sw.WriteLine("    @Override");
+            sw.WriteLine($"    public {bean.Name}.Data clone() {{");
+            sw.WriteLine($"        return ({bean.Name}.Data)super.clone();");
+            sw.WriteLine("    }");
+            sw.WriteLine();
             java.Tostring.Make(bean, sw, "    ", true);
             Encode.Make(bean, sw, "    ");
             Decode.Make(bean, sw, "    ");

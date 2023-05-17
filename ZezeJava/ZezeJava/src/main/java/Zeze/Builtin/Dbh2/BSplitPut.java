@@ -320,6 +320,11 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
+    public BSplitPut.Data clone() {
+        return (BSplitPut.Data)super.clone();
+    }
+
+    @Override
     public String toString() {
         var sb = new StringBuilder();
         buildString(sb, 0);

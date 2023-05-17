@@ -1,7 +1,6 @@
 package Zeze.Dbh2;
 
 import java.util.function.ToLongFunction;
-import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;

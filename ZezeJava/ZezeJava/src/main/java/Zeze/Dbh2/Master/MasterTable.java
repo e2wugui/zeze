@@ -6,7 +6,6 @@ import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
-import org.antlr.v4.runtime.tree.Tree;
 
 public class MasterTable {
 	public static class Data implements Serializable {

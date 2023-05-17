@@ -19,7 +19,6 @@ import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Raft.Agent;
-import Zeze.Raft.IRaftRpc;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RaftLog;
