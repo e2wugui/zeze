@@ -91,7 +91,7 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         _from = _from_;
         _code = _code_;
         if (_desc_ == null)
-            throw new IllegalArgumentException();
+            _desc_ = "";
         _desc = _desc_;
     }
 

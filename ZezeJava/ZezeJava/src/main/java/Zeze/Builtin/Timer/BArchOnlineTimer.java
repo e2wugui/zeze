@@ -171,10 +171,10 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     @SuppressWarnings("deprecation")
     public BArchOnlineTimer(String _Account_, String _ClientId_, long _LoginVersion_, long _SerialId_) {
         if (_Account_ == null)
-            throw new IllegalArgumentException();
+            _Account_ = "";
         _Account = _Account_;
         if (_ClientId_ == null)
-            throw new IllegalArgumentException();
+            _ClientId_ = "";
         _ClientId = _ClientId_;
         _TimerObj = newDynamicBean_TimerObj();
         _LoginVersion = _LoginVersion_;

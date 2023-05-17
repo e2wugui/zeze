@@ -106,7 +106,7 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
     public BSubPhase(long _subPhaseId_, String _completeType_, long _nextSubPhaseId_) {
         _subPhaseId = _subPhaseId_;
         if (_completeType_ == null)
-            throw new IllegalArgumentException();
+            _completeType_ = "";
         _completeType = _completeType_;
         _nextSubPhaseId = _nextSubPhaseId_;
         _conditions = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.TaskBase.BTaskCondition.class);

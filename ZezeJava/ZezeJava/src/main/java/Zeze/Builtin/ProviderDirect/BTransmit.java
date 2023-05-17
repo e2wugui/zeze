@@ -120,16 +120,16 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     @SuppressWarnings("deprecation")
     public BTransmit(String _ActionName_, long _Sender_, Zeze.Net.Binary _Parameter_, String _OnlineSetName_) {
         if (_ActionName_ == null)
-            throw new IllegalArgumentException();
+            _ActionName_ = "";
         _ActionName = _ActionName_;
         _Roles = new Zeze.Transaction.Collections.PSet1<>(Long.class);
         _Roles.variableId(2);
         _Sender = _Sender_;
         if (_Parameter_ == null)
-            throw new IllegalArgumentException();
+            _Parameter_ = Zeze.Net.Binary.Empty;
         _Parameter = _Parameter_;
         if (_OnlineSetName_ == null)
-            throw new IllegalArgumentException();
+            _OnlineSetName_ = "";
         _OnlineSetName = _OnlineSetName_;
     }
 

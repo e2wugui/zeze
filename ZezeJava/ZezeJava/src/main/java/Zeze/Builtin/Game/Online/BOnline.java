@@ -180,7 +180,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     @SuppressWarnings("deprecation")
     public BOnline(Zeze.Builtin.Game.Online.BLink _Link_, long _LoginVersion_, long _ReliableNotifyConfirmIndex_, long _ReliableNotifyIndex_, int _ServerId_, long _LogoutVersion_) {
         if (_Link_ == null)
-            throw new IllegalArgumentException();
+            _Link_ = new Zeze.Builtin.Game.Online.BLink();
         _Link = _Link_;
         _LoginVersion = _LoginVersion_;
         _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);

@@ -185,10 +185,10 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
     @SuppressWarnings("deprecation")
     public BTimer(String _TimerName_, String _HandleName_, long _ConcurrentFireSerialNo_) {
         if (_TimerName_ == null)
-            throw new IllegalArgumentException();
+            _TimerName_ = "";
         _TimerName = _TimerName_;
         if (_HandleName_ == null)
-            throw new IllegalArgumentException();
+            _HandleName_ = "";
         _HandleName = _HandleName_;
         _TimerObj = newDynamicBean_TimerObj();
         _CustomData = newDynamicBean_CustomData();

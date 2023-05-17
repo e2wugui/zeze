@@ -60,7 +60,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
     @SuppressWarnings("deprecation")
     public BReduceParam(Zeze.Net.Binary _GlobalKey_, int _State_) {
         if (_GlobalKey_ == null)
-            throw new IllegalArgumentException();
+            _GlobalKey_ = Zeze.Net.Binary.Empty;
         _GlobalKey = _GlobalKey_;
         _State = _State_;
     }

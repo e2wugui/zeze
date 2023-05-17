@@ -115,13 +115,13 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
     @SuppressWarnings("deprecation")
     public BPrepareBatch(String _Master_, String _Database_, String _Table_) {
         if (_Master_ == null)
-            throw new IllegalArgumentException();
+            _Master_ = "";
         _Master = _Master_;
         if (_Database_ == null)
-            throw new IllegalArgumentException();
+            _Database_ = "";
         _Database = _Database_;
         if (_Table_ == null)
-            throw new IllegalArgumentException();
+            _Table_ = "";
         _Table = _Table_;
         _Batch = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBatch(), Zeze.Builtin.Dbh2.BBatch.class);
         _Batch.variableId(4);
@@ -410,22 +410,22 @@ public static final class Data extends Zeze.Transaction.Data {
         _Database = "";
         _Table = "";
         _Batch = new Zeze.Builtin.Dbh2.BBatch.Data();
-        _Batch.variableId(4);
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Master_, String _Database_, String _Table_) {
+    public Data(String _Master_, String _Database_, String _Table_, Zeze.Builtin.Dbh2.BBatch.Data _Batch_) {
         if (_Master_ == null)
-            throw new IllegalArgumentException();
+            _Master_ = "";
         _Master = _Master_;
         if (_Database_ == null)
-            throw new IllegalArgumentException();
+            _Database_ = "";
         _Database = _Database_;
         if (_Table_ == null)
-            throw new IllegalArgumentException();
+            _Table_ = "";
         _Table = _Table_;
-        _Batch = new Zeze.Builtin.Dbh2.BBatch.Data();
-        _Batch.variableId(4);
+        if (_Batch_ == null)
+            _Batch_ = new Zeze.Builtin.Dbh2.BBatch.Data();
+        _Batch = _Batch_;
     }
 
     @Override

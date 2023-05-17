@@ -73,7 +73,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
     public BModuleRedirectAllHash(long _ReturnCode_, Zeze.Net.Binary _Params_) {
         _ReturnCode = _ReturnCode_;
         if (_Params_ == null)
-            throw new IllegalArgumentException();
+            _Params_ = Zeze.Net.Binary.Empty;
         _Params = _Params_;
     }
 

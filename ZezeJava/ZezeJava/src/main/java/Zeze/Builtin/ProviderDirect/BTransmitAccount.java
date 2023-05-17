@@ -123,18 +123,18 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     @SuppressWarnings("deprecation")
     public BTransmitAccount(String _ActionName_, Zeze.Net.Binary _Parameter_, String _SenderAccount_, String _SenderClientId_) {
         if (_ActionName_ == null)
-            throw new IllegalArgumentException();
+            _ActionName_ = "";
         _ActionName = _ActionName_;
         if (_Parameter_ == null)
-            throw new IllegalArgumentException();
+            _Parameter_ = Zeze.Net.Binary.Empty;
         _Parameter = _Parameter_;
         _TargetAccounts = new Zeze.Transaction.Collections.PSet1<>(String.class);
         _TargetAccounts.variableId(3);
         if (_SenderAccount_ == null)
-            throw new IllegalArgumentException();
+            _SenderAccount_ = "";
         _SenderAccount = _SenderAccount_;
         if (_SenderClientId_ == null)
-            throw new IllegalArgumentException();
+            _SenderClientId_ = "";
         _SenderClientId = _SenderClientId_;
     }
 

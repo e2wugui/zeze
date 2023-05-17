@@ -39,7 +39,7 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
     @SuppressWarnings("deprecation")
     public BCreateDatabase(String _Database_) {
         if (_Database_ == null)
-            throw new IllegalArgumentException();
+            _Database_ = "";
         _Database = _Database_;
     }
 
@@ -198,7 +198,7 @@ public static final class Data extends Zeze.Transaction.Data {
     @SuppressWarnings("deprecation")
     public Data(String _Database_) {
         if (_Database_ == null)
-            throw new IllegalArgumentException();
+            _Database_ = "";
         _Database = _Database_;
     }
 

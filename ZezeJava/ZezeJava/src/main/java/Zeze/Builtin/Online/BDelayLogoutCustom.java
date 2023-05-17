@@ -84,10 +84,10 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
     @SuppressWarnings("deprecation")
     public BDelayLogoutCustom(String _Account_, String _ClientId_, long _LoginVersion_) {
         if (_Account_ == null)
-            throw new IllegalArgumentException();
+            _Account_ = "";
         _Account = _Account_;
         if (_ClientId_ == null)
-            throw new IllegalArgumentException();
+            _ClientId_ = "";
         _ClientId = _ClientId_;
         _LoginVersion = _LoginVersion_;
     }

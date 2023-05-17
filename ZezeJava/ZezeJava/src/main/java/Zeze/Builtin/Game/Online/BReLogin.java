@@ -83,7 +83,7 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         _RoleId = _RoleId_;
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
         if (_OnlineSetName_ == null)
-            throw new IllegalArgumentException();
+            _OnlineSetName_ = "";
         _OnlineSetName = _OnlineSetName_;
     }
 

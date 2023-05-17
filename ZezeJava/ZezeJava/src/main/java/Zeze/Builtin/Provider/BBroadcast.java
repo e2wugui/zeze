@@ -82,7 +82,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
     public BBroadcast(long _protocolType_, Zeze.Net.Binary _protocolWholeData_, int _time_) {
         _protocolType = _protocolType_;
         if (_protocolWholeData_ == null)
-            throw new IllegalArgumentException();
+            _protocolWholeData_ = Zeze.Net.Binary.Empty;
         _protocolWholeData = _protocolWholeData_;
         _time = _time_;
     }

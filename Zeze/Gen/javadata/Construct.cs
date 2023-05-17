@@ -5,32 +5,33 @@ namespace Zeze.Gen.javadata
 {
     public class Construct : Visitor
     {
-		readonly StreamWriter sw;
-		readonly Variable variable;
-		readonly string prefix;
-        readonly string beanName;
+        readonly StreamWriter sw;
+        readonly Variable variable;
+        readonly string prefix;
+        readonly string varName;
 
-		public static void Make(Bean bean, StreamWriter sw, string prefix)
-		{
-			sw.WriteLine(prefix + "@SuppressWarnings(\"deprecation\")");
-			sw.WriteLine(prefix + "public Data() {");
-            var hasImmutable = false;
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
+        {
+            sw.WriteLine(prefix + "@SuppressWarnings(\"deprecation\")");
+            sw.WriteLine(prefix + "public Data() {");
+            var hasCtorParam = false;
             foreach (var var in bean.Variables)
             {
-                if (var.VariableType.IsImmutable && false == bean.Version.Equals(var.Name))
-                    hasImmutable = true;
-                var.VariableType.Accept(new Construct(sw, var, prefix + "    ", bean.Name));
+                if (!bean.Version.Equals(var.Name))
+                    hasCtorParam = true;
+                var.VariableType.Accept(new Construct(sw, var, prefix + "    ", var.NamePrivate));
             }
+
             sw.WriteLine(prefix + "}");
-			sw.WriteLine();
-            if (hasImmutable)
+            sw.WriteLine();
+            if (hasCtorParam)
             {
                 sw.WriteLine(prefix + "@SuppressWarnings(\"deprecation\")");
                 sw.Write(prefix + "public Data(");
                 var first = true;
                 foreach (var var in bean.Variables)
                 {
-                    if (var.VariableType.IsImmutable && false == bean.Version.Equals(var.Name))
+                    if (!bean.Version.Equals(var.Name))
                     {
                         if (first)
                             first = false;
@@ -43,20 +44,15 @@ namespace Zeze.Gen.javadata
                 sw.WriteLine(") {");
                 foreach (var var in bean.Variables)
                 {
-                    if (var.VariableType.IsImmutable)
+                    if (!bean.Version.Equals(var.Name))
                     {
-                        if (false == bean.Version.Equals(var.Name))
+                        if (!var.VariableType.IsJavaPrimitive)
                         {
-                            if (!var.VariableType.IsJavaPrimitive)
-                            {
-                                sw.WriteLine($"{prefix}    if ({var.NamePrivate}_ == null)");
-                                sw.WriteLine($"{prefix}        throw new IllegalArgumentException();");
-                            }
-                            sw.WriteLine($"{prefix}    {var.NamePrivate} = {var.NamePrivate}_;");
+                            sw.WriteLine($"{prefix}    if ({var.NamePrivate}_ == null)");
+                            var.VariableType.Accept(new Construct(sw, var, prefix + "        ", var.NamePrivate + '_'));
                         }
+                        sw.WriteLine($"{prefix}    {var.NamePrivate} = {var.NamePrivate}_;");
                     }
-                    else
-                        var.VariableType.Accept(new Construct(sw, var, prefix + "    ", bean.Name));
                 }
 
                 sw.WriteLine(prefix + "}");
@@ -69,28 +65,25 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "// for decode only");
             sw.WriteLine(prefix + "public " + bean.Name + "() {");
             foreach (Variable var in bean.Variables)
-                var.VariableType.Accept(new Construct(sw, var, prefix + "    ", bean.Name));
+                var.VariableType.Accept(new Construct(sw, var, prefix + "    ", var.NamePrivate));
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
 
-        public Construct(StreamWriter sw, Variable variable, string prefix, string beanName)
-		{
-			this.sw = sw;
-			this.variable = variable;
-			this.prefix = prefix;
-            this.beanName = beanName;
+        public Construct(StreamWriter sw, Variable variable, string prefix, string varName)
+        {
+            this.sw = sw;
+            this.variable = variable;
+            this.prefix = prefix;
+            this.varName = varName;
         }
 
-		void Initial()
-		{
+        void Initial()
+        {
             string value = variable.Initial;
-			if (value.Length > 0)
-			{
-                string varname = variable.NamePrivate;
-				sw.WriteLine(prefix + varname + " = " + value + ";");
-			}
-		}
+            if (value.Length > 0)
+                sw.WriteLine(prefix + varName + " = " + value + ";");
+        }
 
         public void Visit(TypeBool type)
         {
@@ -129,89 +122,73 @@ namespace Zeze.Gen.javadata
 
         public void Visit(TypeBinary type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = Zeze.Net.Binary.Empty;");
+            sw.WriteLine(prefix + varName + " = Zeze.Net.Binary.Empty;");
         }
 
         public void Visit(TypeString type)
         {
-            string value = variable.Initial;
-            string varname = variable.NamePrivate;
-            sw.WriteLine(prefix + varname + " = \"" + value + "\";");
+            sw.WriteLine(prefix + varName + " = \"" + variable.Initial + "\";");
         }
 
         public void Visit(TypeList type)
         {
-            string typeName = TypeName.GetNameOmitted(type) + "<>";
-            if (type.ValueType is TypeDynamic valueType)
-                sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}();");
-            else
-                sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}();");
+            sw.WriteLine(prefix + varName + $" = new {TypeName.GetNameOmitted(type)}<>();");
         }
 
         public void Visit(TypeSet type)
         {
-            string typeName = TypeName.GetNameOmitted(type) + "<>";
-            if (type.ValueType is TypeDynamic valueType)
-                sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}();");
-            else
-                sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}();");
+            sw.WriteLine(prefix + varName + $" = new {TypeName.GetNameOmitted(type)}<>();");
         }
 
         public void Visit(TypeMap type)
         {
-            string typeName = TypeName.GetNameOmitted(type) + "<>";
-            if (type.ValueType is TypeDynamic valueType)
-                sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}();");
-            else
-                sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}();");
+            sw.WriteLine(prefix + varName + $" = new {TypeName.GetNameOmitted(type)}<>();");
         }
 
         public void Visit(Bean type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}();");
-            sw.WriteLine(prefix + variable.NamePrivate + $".variableId({variable.Id});");
+            sw.WriteLine(prefix + varName + $" = new {TypeName.GetName(type)}();");
+            // sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
         }
 
         public void Visit(BeanKey type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            sw.WriteLine(prefix + varName + " = new " + TypeName.GetName(type) + "();");
         }
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = newDynamicBean_" + variable.NameUpper1 + "();");
+            sw.WriteLine(prefix + varName + " = newDynamicBean_" + variable.NameUpper1 + "();");
         }
 
         public void Visit(TypeQuaternion type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
+            sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector2 type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
+            sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
+            sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector3 type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
+            sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
+            sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector4 type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
+            sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
         }
     }
 }

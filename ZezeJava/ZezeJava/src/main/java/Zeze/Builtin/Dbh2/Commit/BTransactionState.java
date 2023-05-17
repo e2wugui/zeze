@@ -271,9 +271,11 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _State_) {
+    public Data(int _State_, java.util.ArrayList<String> _Buckets_) {
         _State = _State_;
-        _Buckets = new java.util.ArrayList<>();
+        if (_Buckets_ == null)
+            _Buckets_ = new java.util.ArrayList<>();
+        _Buckets = _Buckets_;
     }
 
     @Override

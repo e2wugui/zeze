@@ -39,7 +39,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     @SuppressWarnings("deprecation")
     public BLogin(String _SessionName_) {
         if (_SessionName_ == null)
-            throw new IllegalArgumentException();
+            _SessionName_ = "";
         _SessionName = _SessionName_;
     }
 

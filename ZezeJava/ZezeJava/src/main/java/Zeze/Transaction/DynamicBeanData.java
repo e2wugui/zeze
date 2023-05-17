@@ -7,13 +7,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class DynamicBeanData extends Data {
-	@NotNull Data data;
-	long typeId;
-	transient final @NotNull ToLongFunction<Data> getData;
-	transient final @NotNull LongFunction<Data> createData;
+	private @NotNull Data data;
+	private long typeId;
+	private transient final @NotNull ToLongFunction<Data> getData;
+	private transient final @NotNull LongFunction<Data> createData;
 
-	public DynamicBeanData(int variableId, @NotNull ToLongFunction<Data> get, @NotNull LongFunction<Data> create) {
-		super(variableId);
+	public DynamicBeanData(@NotNull ToLongFunction<Data> get, @NotNull LongFunction<Data> create) {
 		data = new EmptyBean.Data();
 		typeId = EmptyBean.Data.TYPEID;
 		getData = get;
@@ -95,7 +94,7 @@ public class DynamicBeanData extends Data {
 
 	@Override
 	public @NotNull DynamicBeanData copy() {
-		var copy = new DynamicBeanData(variableId(), getData, createData);
+		var copy = new DynamicBeanData(getData, createData);
 		copy.data = getBean().copy();
 		copy.typeId = getTypeId();
 		return copy;

@@ -154,16 +154,16 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
     @SuppressWarnings("deprecation")
     public BOfflineRoleCustom(String _TimerName_, long _RoleId_, long _LoginVersion_, String _HandleName_, String _OnlineSetName_) {
         if (_TimerName_ == null)
-            throw new IllegalArgumentException();
+            _TimerName_ = "";
         _TimerName = _TimerName_;
         _RoleId = _RoleId_;
         _LoginVersion = _LoginVersion_;
         if (_HandleName_ == null)
-            throw new IllegalArgumentException();
+            _HandleName_ = "";
         _HandleName = _HandleName_;
         _CustomData = newDynamicBean_CustomData();
         if (_OnlineSetName_ == null)
-            throw new IllegalArgumentException();
+            _OnlineSetName_ = "";
         _OnlineSetName = _OnlineSetName_;
     }
 

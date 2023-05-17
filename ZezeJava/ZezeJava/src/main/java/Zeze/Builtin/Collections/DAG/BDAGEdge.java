@@ -64,10 +64,10 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
     @SuppressWarnings("deprecation")
     public BDAGEdge(Zeze.Builtin.Collections.DAG.BDAGNodeKey _From_, Zeze.Builtin.Collections.DAG.BDAGNodeKey _To_) {
         if (_From_ == null)
-            throw new IllegalArgumentException();
+            _From_ = new Zeze.Builtin.Collections.DAG.BDAGNodeKey();
         _From = _From_;
         if (_To_ == null)
-            throw new IllegalArgumentException();
+            _To_ = new Zeze.Builtin.Collections.DAG.BDAGNodeKey();
         _To = _To_;
     }
 

@@ -103,12 +103,12 @@ namespace Zeze.Gen.javadata
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {
                 sw.WriteLine($"{prefix}var {varname} = new Zeze.Transaction.DynamicBeanData"
-                    + $"(0, {type.Variable.Bean.Name}.Data::getSpecialTypeIdFromBean_{type.Variable.Id}, {type.Variable.Bean.Name}.Data::createBeanFromSpecialTypeId_{type.Variable.Id});");
+                    + $"({type.Variable.Bean.Name}.Data::getSpecialTypeIdFromBean_{type.Variable.Id}, {type.Variable.Bean.Name}.Data::createBeanFromSpecialTypeId_{type.Variable.Id});");
             }
             else
             {
                 sw.WriteLine($"{prefix}var {varname} = new Zeze.Transaction.DynamicBeanData"
-                    + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
+                    + $"({type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
             }
         }
 

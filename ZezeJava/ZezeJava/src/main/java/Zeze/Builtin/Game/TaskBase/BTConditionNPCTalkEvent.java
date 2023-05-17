@@ -82,7 +82,7 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
     public BTConditionNPCTalkEvent(boolean _finished_, String _dialogId_, int _dialogOption_) {
         _finished = _finished_;
         if (_dialogId_ == null)
-            throw new IllegalArgumentException();
+            _dialogId_ = "";
         _dialogId = _dialogId_;
         _dialogOption = _dialogOption_;
     }

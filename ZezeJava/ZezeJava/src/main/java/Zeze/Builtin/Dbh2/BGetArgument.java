@@ -87,13 +87,13 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
     @SuppressWarnings("deprecation")
     public BGetArgument(String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
         if (_Database_ == null)
-            throw new IllegalArgumentException();
+            _Database_ = "";
         _Database = _Database_;
         if (_Table_ == null)
-            throw new IllegalArgumentException();
+            _Table_ = "";
         _Table = _Table_;
         if (_Key_ == null)
-            throw new IllegalArgumentException();
+            _Key_ = Zeze.Net.Binary.Empty;
         _Key = _Key_;
     }
 
@@ -328,13 +328,13 @@ public static final class Data extends Zeze.Transaction.Data {
     @SuppressWarnings("deprecation")
     public Data(String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
         if (_Database_ == null)
-            throw new IllegalArgumentException();
+            _Database_ = "";
         _Database = _Database_;
         if (_Table_ == null)
-            throw new IllegalArgumentException();
+            _Table_ = "";
         _Table = _Table_;
         if (_Key_ == null)
-            throw new IllegalArgumentException();
+            _Key_ = Zeze.Net.Binary.Empty;
         _Key = _Key_;
     }
 

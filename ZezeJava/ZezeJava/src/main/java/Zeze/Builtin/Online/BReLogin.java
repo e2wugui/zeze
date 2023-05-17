@@ -60,7 +60,7 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
     @SuppressWarnings("deprecation")
     public BReLogin(String _ClientId_, long _ReliableNotifyConfirmIndex_) {
         if (_ClientId_ == null)
-            throw new IllegalArgumentException();
+            _ClientId_ = "";
         _ClientId = _ClientId_;
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
     }

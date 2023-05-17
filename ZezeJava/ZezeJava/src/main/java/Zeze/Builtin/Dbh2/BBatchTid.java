@@ -39,7 +39,7 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
     @SuppressWarnings("deprecation")
     public BBatchTid(Zeze.Net.Binary _Tid_) {
         if (_Tid_ == null)
-            throw new IllegalArgumentException();
+            _Tid_ = Zeze.Net.Binary.Empty;
         _Tid = _Tid_;
     }
 
@@ -198,7 +198,7 @@ public static final class Data extends Zeze.Transaction.Data {
     @SuppressWarnings("deprecation")
     public Data(Zeze.Net.Binary _Tid_) {
         if (_Tid_ == null)
-            throw new IllegalArgumentException();
+            _Tid_ = Zeze.Net.Binary.Empty;
         _Tid = _Tid_;
     }
 

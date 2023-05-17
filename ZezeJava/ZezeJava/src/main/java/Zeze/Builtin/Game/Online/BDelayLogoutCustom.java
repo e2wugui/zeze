@@ -83,7 +83,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         _RoleId = _RoleId_;
         _LoginVersion = _LoginVersion_;
         if (_OnlineSetName_ == null)
-            throw new IllegalArgumentException();
+            _OnlineSetName_ = "";
         _OnlineSetName = _OnlineSetName_;
     }
 

@@ -62,7 +62,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
     @SuppressWarnings("deprecation")
     public BLinkedMapNodeValue(String _Id_) {
         if (_Id_ == null)
-            throw new IllegalArgumentException();
+            _Id_ = "";
         _Id = _Id_;
         _Value = newDynamicBean_Value();
     }

@@ -164,10 +164,10 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
     public BTaskPhase(long _phaseId_, String _phaseName_, String _phaseDescription_, long _nextPhaseId_, long _currentSubPhaseId_) {
         _phaseId = _phaseId_;
         if (_phaseName_ == null)
-            throw new IllegalArgumentException();
+            _phaseName_ = "";
         _phaseName = _phaseName_;
         if (_phaseDescription_ == null)
-            throw new IllegalArgumentException();
+            _phaseDescription_ = "";
         _phaseDescription = _phaseDescription_;
         _prePhaseIds = new Zeze.Transaction.Collections.PList1<>(Long.class);
         _prePhaseIds.variableId(5);

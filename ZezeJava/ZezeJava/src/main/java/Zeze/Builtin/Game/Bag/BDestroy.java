@@ -60,7 +60,7 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
     @SuppressWarnings("deprecation")
     public BDestroy(String _BagName_, int _Position_) {
         if (_BagName_ == null)
-            throw new IllegalArgumentException();
+            _BagName_ = "";
         _BagName = _BagName_;
         _Position = _Position_;
     }

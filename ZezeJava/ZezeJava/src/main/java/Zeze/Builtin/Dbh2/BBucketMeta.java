@@ -135,19 +135,19 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     @SuppressWarnings("deprecation")
     public BBucketMeta(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_, String _RaftConfig_) {
         if (_DatabaseName_ == null)
-            throw new IllegalArgumentException();
+            _DatabaseName_ = "";
         _DatabaseName = _DatabaseName_;
         if (_TableName_ == null)
-            throw new IllegalArgumentException();
+            _TableName_ = "";
         _TableName = _TableName_;
         if (_KeyFirst_ == null)
-            throw new IllegalArgumentException();
+            _KeyFirst_ = Zeze.Net.Binary.Empty;
         _KeyFirst = _KeyFirst_;
         if (_KeyLast_ == null)
-            throw new IllegalArgumentException();
+            _KeyLast_ = Zeze.Net.Binary.Empty;
         _KeyLast = _KeyLast_;
         if (_RaftConfig_ == null)
-            throw new IllegalArgumentException();
+            _RaftConfig_ = "";
         _RaftConfig = _RaftConfig_;
     }
 
@@ -458,19 +458,19 @@ public static final class Data extends Zeze.Transaction.Data {
     @SuppressWarnings("deprecation")
     public Data(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_, String _RaftConfig_) {
         if (_DatabaseName_ == null)
-            throw new IllegalArgumentException();
+            _DatabaseName_ = "";
         _DatabaseName = _DatabaseName_;
         if (_TableName_ == null)
-            throw new IllegalArgumentException();
+            _TableName_ = "";
         _TableName = _TableName_;
         if (_KeyFirst_ == null)
-            throw new IllegalArgumentException();
+            _KeyFirst_ = Zeze.Net.Binary.Empty;
         _KeyFirst = _KeyFirst_;
         if (_KeyLast_ == null)
-            throw new IllegalArgumentException();
+            _KeyLast_ = Zeze.Net.Binary.Empty;
         _KeyLast = _KeyLast_;
         if (_RaftConfig_ == null)
-            throw new IllegalArgumentException();
+            _RaftConfig_ = "";
         _RaftConfig = _RaftConfig_;
     }
 

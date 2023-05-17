@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Xml;
 
 namespace Zeze.Gen.Types
 {
@@ -40,7 +38,7 @@ namespace Zeze.Gen.Types
             }
         }
         
-		private TypeMap(global::Zeze.Gen.ModuleSpace space, string key, string value, Variable var)
+		private TypeMap(ModuleSpace space, string key, string value, Variable var)
 		{
 			Variable = var;
 			if (key.Length == 0)
@@ -69,7 +67,7 @@ namespace Zeze.Gen.Types
 
         public override bool IsImmutable => false;
 		public override bool IsCollection => true;
+		public override bool IsJavaPrimitive => false;
 		public override bool IsNeedNegativeCheck => ValueType.IsNeedNegativeCheck;
-
 	}
 }

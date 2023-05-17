@@ -224,6 +224,13 @@ public static final class Data extends Zeze.Transaction.Data {
         _Refused = new java.util.HashMap<>();
     }
 
+    @SuppressWarnings("deprecation")
+    public Data(java.util.HashMap<String, Zeze.Builtin.Dbh2.BBatch.Data> _Refused_) {
+        if (_Refused_ == null)
+            _Refused_ = new java.util.HashMap<>();
+        _Refused = _Refused_;
+    }
+
     @Override
     public Zeze.Builtin.Dbh2.BRefused toBean() {
         var bean = new Zeze.Builtin.Dbh2.BRefused();

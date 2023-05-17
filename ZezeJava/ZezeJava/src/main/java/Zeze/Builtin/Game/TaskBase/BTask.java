@@ -232,14 +232,14 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         _roleId = _roleId_;
         _taskId = _taskId_;
         if (_taskType_ == null)
-            throw new IllegalArgumentException();
+            _taskType_ = "";
         _taskType = _taskType_;
         _taskState = _taskState_;
         if (_taskName_ == null)
-            throw new IllegalArgumentException();
+            _taskName_ = "";
         _taskName = _taskName_;
         if (_taskDescription_ == null)
-            throw new IllegalArgumentException();
+            _taskDescription_ = "";
         _taskDescription = _taskDescription_;
         _preTaskIds = new Zeze.Transaction.Collections.PList1<>(Long.class);
         _preTaskIds.variableId(7);

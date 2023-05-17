@@ -1,25 +1,11 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.Serializable;
+import Zeze.Util.Str;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class Data implements Serializable {
-	private transient int variableId;
-
 	public Data() {
-	}
-
-	public Data(int varId) {
-		variableId = varId;
-	}
-
-	public final int variableId() {
-		return variableId;
-	}
-
-	// 这个方法应该仅用于内部。
-	public final void variableId(int value) {
-		variableId = value;
 	}
 
 	// 必须兼容旧的Bean，
@@ -35,5 +21,6 @@ public abstract class Data implements Serializable {
 	public abstract @NotNull Data copy();
 
 	public void buildString(@NotNull StringBuilder sb, int level) {
+		sb.append(Str.indent(level)).append('{').append(this).append('}');
 	}
 }

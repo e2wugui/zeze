@@ -270,9 +270,11 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(boolean _fromTransaction_) {
+    public Data(boolean _fromTransaction_, java.util.HashMap<Zeze.Net.Binary, Zeze.Net.Binary> _Puts_) {
         _fromTransaction = _fromTransaction_;
-        _Puts = new java.util.HashMap<>();
+        if (_Puts_ == null)
+            _Puts_ = new java.util.HashMap<>();
+        _Puts = _Puts_;
     }
 
     @Override

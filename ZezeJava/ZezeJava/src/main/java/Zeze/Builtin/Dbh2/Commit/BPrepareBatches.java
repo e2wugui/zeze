@@ -224,6 +224,13 @@ public static final class Data extends Zeze.Transaction.Data {
         _Datas = new java.util.HashMap<>();
     }
 
+    @SuppressWarnings("deprecation")
+    public Data(java.util.HashMap<String, Zeze.Builtin.Dbh2.BPrepareBatch.Data> _Datas_) {
+        if (_Datas_ == null)
+            _Datas_ = new java.util.HashMap<>();
+        _Datas = _Datas_;
+    }
+
     @Override
     public Zeze.Builtin.Dbh2.Commit.BPrepareBatches toBean() {
         var bean = new Zeze.Builtin.Dbh2.Commit.BPrepareBatches();

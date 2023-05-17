@@ -40,7 +40,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     @SuppressWarnings("deprecation")
     public BLogin(String _ClientId_) {
         if (_ClientId_ == null)
-            throw new IllegalArgumentException();
+            _ClientId_ = "";
         _ClientId = _ClientId_;
     }
 

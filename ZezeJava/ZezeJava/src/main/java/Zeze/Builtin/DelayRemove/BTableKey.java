@@ -84,10 +84,10 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     @SuppressWarnings("deprecation")
     public BTableKey(String _TableName_, Zeze.Net.Binary _EncodedKey_, long _EnqueueTime_) {
         if (_TableName_ == null)
-            throw new IllegalArgumentException();
+            _TableName_ = "";
         _TableName = _TableName_;
         if (_EncodedKey_ == null)
-            throw new IllegalArgumentException();
+            _EncodedKey_ = Zeze.Net.Binary.Empty;
         _EncodedKey = _EncodedKey_;
         _EnqueueTime = _EnqueueTime_;
     }

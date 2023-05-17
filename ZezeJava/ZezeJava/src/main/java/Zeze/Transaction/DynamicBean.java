@@ -10,8 +10,8 @@ import org.jetbrains.annotations.Nullable;
 public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	@NotNull Bean bean;
 	long typeId;
-	transient final @NotNull ToLongFunction<Bean> getBean;
-	transient final @NotNull LongFunction<Bean> createBean;
+	private transient final @NotNull ToLongFunction<Bean> getBean;
+	private transient final @NotNull LongFunction<Bean> createBean;
 
 	public DynamicBean(int variableId, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
 		super(variableId);

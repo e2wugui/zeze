@@ -102,7 +102,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     @SuppressWarnings("deprecation")
     public BMove(String _BagName_, int _PositionFrom_, int _PositionTo_, int _number_) {
         if (_BagName_ == null)
-            throw new IllegalArgumentException();
+            _BagName_ = "";
         _BagName = _BagName_;
         _PositionFrom = _PositionFrom_;
         _PositionTo = _PositionTo_;

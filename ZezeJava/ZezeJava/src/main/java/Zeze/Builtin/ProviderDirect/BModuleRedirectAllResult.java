@@ -138,7 +138,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         _ServerId = _ServerId_;
         _SourceProvider = _SourceProvider_;
         if (_MethodFullName_ == null)
-            throw new IllegalArgumentException();
+            _MethodFullName_ = "";
         _MethodFullName = _MethodFullName_;
         _SessionId = _SessionId_;
         _Hashs = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.class);

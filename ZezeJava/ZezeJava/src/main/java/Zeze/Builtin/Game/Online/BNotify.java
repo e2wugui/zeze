@@ -39,7 +39,7 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
     @SuppressWarnings("deprecation")
     public BNotify(Zeze.Net.Binary _FullEncodedProtocol_) {
         if (_FullEncodedProtocol_ == null)
-            throw new IllegalArgumentException();
+            _FullEncodedProtocol_ = Zeze.Net.Binary.Empty;
         _FullEncodedProtocol = _FullEncodedProtocol_;
     }
 

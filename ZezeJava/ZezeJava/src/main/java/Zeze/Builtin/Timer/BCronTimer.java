@@ -165,7 +165,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
     @SuppressWarnings("deprecation")
     public BCronTimer(String _CronExpression_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_, long _RemainTimes_, long _EndTime_, int _MissfirePolicy_) {
         if (_CronExpression_ == null)
-            throw new IllegalArgumentException();
+            _CronExpression_ = "";
         _CronExpression = _CronExpression_;
         _NextExpectedTime = _NextExpectedTime_;
         _ExpectedTime = _ExpectedTime_;

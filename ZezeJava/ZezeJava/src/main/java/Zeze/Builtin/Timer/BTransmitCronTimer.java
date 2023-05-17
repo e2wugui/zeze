@@ -148,18 +148,18 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
     @SuppressWarnings("deprecation")
     public BTransmitCronTimer(String _TimerId_, String _HandleClass_, String _CustomClass_, Zeze.Net.Binary _CustomBean_, long _LoginVersion_) {
         if (_TimerId_ == null)
-            throw new IllegalArgumentException();
+            _TimerId_ = "";
         _TimerId = _TimerId_;
         _CronTimer = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Timer.BCronTimer(), Zeze.Builtin.Timer.BCronTimer.class);
         _CronTimer.variableId(2);
         if (_HandleClass_ == null)
-            throw new IllegalArgumentException();
+            _HandleClass_ = "";
         _HandleClass = _HandleClass_;
         if (_CustomClass_ == null)
-            throw new IllegalArgumentException();
+            _CustomClass_ = "";
         _CustomClass = _CustomClass_;
         if (_CustomBean_ == null)
-            throw new IllegalArgumentException();
+            _CustomBean_ = Zeze.Net.Binary.Empty;
         _CustomBean = _CustomBean_;
         _LoginVersion = _LoginVersion_;
     }

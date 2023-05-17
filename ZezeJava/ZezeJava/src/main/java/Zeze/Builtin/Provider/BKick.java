@@ -90,7 +90,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         _linksid = _linksid_;
         _code = _code_;
         if (_desc_ == null)
-            throw new IllegalArgumentException();
+            _desc_ = "";
         _desc = _desc_;
     }
 

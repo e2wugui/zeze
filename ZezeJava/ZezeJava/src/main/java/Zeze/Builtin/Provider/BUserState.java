@@ -87,13 +87,13 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
     @SuppressWarnings("deprecation")
     public BUserState(String _context_, Zeze.Net.Binary _contextx_, String _onlineSetName_) {
         if (_context_ == null)
-            throw new IllegalArgumentException();
+            _context_ = "";
         _context = _context_;
         if (_contextx_ == null)
-            throw new IllegalArgumentException();
+            _contextx_ = Zeze.Net.Binary.Empty;
         _contextx = _contextx_;
         if (_onlineSetName_ == null)
-            throw new IllegalArgumentException();
+            _onlineSetName_ = "";
         _onlineSetName = _onlineSetName_;
     }
 

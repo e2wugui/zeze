@@ -106,7 +106,7 @@ public class Dbh2Test {
 
 			dbh2AgentManager.start();
 			{
-				var batch = new BPrepareBatch.Data("", db, tb1);
+				var batch = new BPrepareBatch.Data("", db, tb1, null);
 				batch.getBatch().getPuts().put(key, value);
 				batch.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
 				bucket1.agent().prepareBatch(batch).await();
@@ -119,7 +119,7 @@ public class Dbh2Test {
 				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
 			}
 			{
-				var batch = new BPrepareBatch.Data("", db, tb1);
+				var batch = new BPrepareBatch.Data("", db, tb1, null);
 				batch.getBatch().getPuts().put(key, Binary.Empty);
 				batch.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
 				bucket1.agent().prepareBatch(batch).await();
@@ -132,7 +132,7 @@ public class Dbh2Test {
 				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
 			}
 			{
-				var batch = new BPrepareBatch.Data("", db, tb1);
+				var batch = new BPrepareBatch.Data("", db, tb1, null);
 				batch.getBatch().getDeletes().add(key);
 				batch.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
 				bucket1.agent().prepareBatch(batch).await();
@@ -146,8 +146,8 @@ public class Dbh2Test {
 
 			// multi-bucket transaction
 			{
-				var batch1 = new BPrepareBatch.Data("", db, tb1);
-				var batch2 = new BPrepareBatch.Data("", db, tb2);
+				var batch1 = new BPrepareBatch.Data("", db, tb1, null);
+				var batch2 = new BPrepareBatch.Data("", db, tb2, null);
 
 				batch1.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
 				batch2.getBatch().setTid(batch1.getBatch().getTid());

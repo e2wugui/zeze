@@ -120,7 +120,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     @SuppressWarnings("deprecation")
     public BDepartmentRoot(String _Root_, long _NextDepartmentId_) {
         if (_Root_ == null)
-            throw new IllegalArgumentException();
+            _Root_ = "";
         _Root = _Root_;
         _Managers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
         _Managers.variableId(2);

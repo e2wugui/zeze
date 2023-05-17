@@ -107,10 +107,10 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         _NodeSum = _NodeSum_;
         _EdgeSum = _EdgeSum_;
         if (_StartNode_ == null)
-            throw new IllegalArgumentException();
+            _StartNode_ = "";
         _StartNode = _StartNode_;
         if (_EndNode_ == null)
-            throw new IllegalArgumentException();
+            _EndNode_ = "";
         _EndNode = _EndNode_;
     }
 

@@ -75,7 +75,7 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
         _linkSids.variableId(1);
         _protocolType = _protocolType_;
         if (_protocolWholeData_ == null)
-            throw new IllegalArgumentException();
+            _protocolWholeData_ = Zeze.Net.Binary.Empty;
         _protocolWholeData = _protocolWholeData_;
     }
 

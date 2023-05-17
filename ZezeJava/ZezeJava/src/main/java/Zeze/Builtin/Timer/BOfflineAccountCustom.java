@@ -157,17 +157,17 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
     @SuppressWarnings("deprecation")
     public BOfflineAccountCustom(String _TimerName_, String _Account_, String _ClientId_, long _LoginVersion_, String _HandleName_) {
         if (_TimerName_ == null)
-            throw new IllegalArgumentException();
+            _TimerName_ = "";
         _TimerName = _TimerName_;
         if (_Account_ == null)
-            throw new IllegalArgumentException();
+            _Account_ = "";
         _Account = _Account_;
         if (_ClientId_ == null)
-            throw new IllegalArgumentException();
+            _ClientId_ = "";
         _ClientId = _ClientId_;
         _LoginVersion = _LoginVersion_;
         if (_HandleName_ == null)
-            throw new IllegalArgumentException();
+            _HandleName_ = "";
         _HandleName = _HandleName_;
         _CustomData = newDynamicBean_CustomData();
     }

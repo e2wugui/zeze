@@ -75,10 +75,10 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
     @SuppressWarnings("deprecation")
     public BJob(String _JobHandleName_, Zeze.Net.Binary _JobState_) {
         if (_JobHandleName_ == null)
-            throw new IllegalArgumentException();
+            _JobHandleName_ = "";
         _JobHandleName = _JobHandleName_;
         if (_JobState_ == null)
-            throw new IllegalArgumentException();
+            _JobState_ = Zeze.Net.Binary.Empty;
         _JobState = _JobState_;
     }
 

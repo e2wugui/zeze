@@ -62,7 +62,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     public BLogin(long _RoleId_, String _OnlineSetName_) {
         _RoleId = _RoleId_;
         if (_OnlineSetName_ == null)
-            throw new IllegalArgumentException();
+            _OnlineSetName_ = "";
         _OnlineSetName = _OnlineSetName_;
     }
 

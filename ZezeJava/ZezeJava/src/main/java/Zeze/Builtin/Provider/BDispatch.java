@@ -179,20 +179,20 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     public BDispatch(long _linkSid_, String _account_, long _protocolType_, Zeze.Net.Binary _protocolData_, String _context_, Zeze.Net.Binary _contextx_, String _onlineSetName_) {
         _linkSid = _linkSid_;
         if (_account_ == null)
-            throw new IllegalArgumentException();
+            _account_ = "";
         _account = _account_;
         _protocolType = _protocolType_;
         if (_protocolData_ == null)
-            throw new IllegalArgumentException();
+            _protocolData_ = Zeze.Net.Binary.Empty;
         _protocolData = _protocolData_;
         if (_context_ == null)
-            throw new IllegalArgumentException();
+            _context_ = "";
         _context = _context_;
         if (_contextx_ == null)
-            throw new IllegalArgumentException();
+            _contextx_ = Zeze.Net.Binary.Empty;
         _contextx = _contextx_;
         if (_onlineSetName_ == null)
-            throw new IllegalArgumentException();
+            _onlineSetName_ = "";
         _onlineSetName = _onlineSetName_;
     }
 

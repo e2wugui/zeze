@@ -82,7 +82,7 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
     public BAchillesHeel(int _ServerId_, String _SecureKey_, int _GlobalCacheManagerHashIndex_) {
         _ServerId = _ServerId_;
         if (_SecureKey_ == null)
-            throw new IllegalArgumentException();
+            _SecureKey_ = "";
         _SecureKey = _SecureKey_;
         _GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex_;
     }

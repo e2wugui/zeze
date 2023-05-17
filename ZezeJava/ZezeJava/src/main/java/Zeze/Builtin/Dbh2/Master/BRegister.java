@@ -60,7 +60,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     @SuppressWarnings("deprecation")
     public BRegister(String _Dbh2RaftAcceptorName_, int _BucketCount_) {
         if (_Dbh2RaftAcceptorName_ == null)
-            throw new IllegalArgumentException();
+            _Dbh2RaftAcceptorName_ = "";
         _Dbh2RaftAcceptorName = _Dbh2RaftAcceptorName_;
         _BucketCount = _BucketCount_;
     }
@@ -260,7 +260,7 @@ public static final class Data extends Zeze.Transaction.Data {
     @SuppressWarnings("deprecation")
     public Data(String _Dbh2RaftAcceptorName_, int _BucketCount_) {
         if (_Dbh2RaftAcceptorName_ == null)
-            throw new IllegalArgumentException();
+            _Dbh2RaftAcceptorName_ = "";
         _Dbh2RaftAcceptorName = _Dbh2RaftAcceptorName_;
         _BucketCount = _BucketCount_;
     }

@@ -83,7 +83,7 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
         _RoleId = _RoleId_;
         _Value = _Value_;
         if (_ValueEx_ == null)
-            throw new IllegalArgumentException();
+            _ValueEx_ = Zeze.Net.Binary.Empty;
         _ValueEx = _ValueEx_;
     }
 

@@ -35,9 +35,9 @@ namespace Zeze.Gen.javadata
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static Zeze.Transaction.DynamicBeanData newDynamicBean_{var.NameUpper1}() {{");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
-                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBeanData({var.Id}, {bean.Name}.Data::getSpecialTypeIdFromBean_{var.Id}, {bean.Name}.Data::createBeanFromSpecialTypeId_{var.Id});");
+                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBeanData({bean.Name}.Data::getSpecialTypeIdFromBean_{var.Id}, {bean.Name}.Data::createBeanFromSpecialTypeId_{var.Id});");
             else
-                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBeanData({var.Id}, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
+                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBeanData({type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static long getSpecialTypeIdFromBean_{var.Id}(Zeze.Transaction.Data bean) {{");

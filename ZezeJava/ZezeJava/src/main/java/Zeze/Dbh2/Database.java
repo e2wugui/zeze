@@ -77,7 +77,7 @@ public class Database extends Zeze.Transaction.Database {
 			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
 			var agent = dbh2AgentManager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);
 			var batch = batches.getDatas().computeIfAbsent(agent,
-					_agent_ -> new BPrepareBatch.Data(masterName, databaseName, tableName));
+					_agent_ -> new BPrepareBatch.Data(masterName, databaseName, tableName, null));
 			batch.getBatch().getPuts().put(bKey, bValue);
 		}
 
@@ -85,7 +85,7 @@ public class Database extends Zeze.Transaction.Database {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			var agent = dbh2AgentManager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);
 			var batch = batches.getDatas().computeIfAbsent(agent,
-					_agent_ -> new BPrepareBatch.Data(masterName, databaseName, tableName));
+					_agent_ -> new BPrepareBatch.Data(masterName, databaseName, tableName, null));
 			batch.getBatch().getDeletes().add(bKey);
 		}
 

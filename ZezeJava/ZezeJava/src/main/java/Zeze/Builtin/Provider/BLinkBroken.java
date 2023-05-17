@@ -99,7 +99,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     @SuppressWarnings("deprecation")
     public BLinkBroken(String _account_, long _linkSid_, int _reason_) {
         if (_account_ == null)
-            throw new IllegalArgumentException();
+            _account_ = "";
         _account = _account_;
         _linkSid = _linkSid_;
         _reason = _reason_;

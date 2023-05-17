@@ -124,11 +124,11 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         _Deletes = new Zeze.Transaction.Collections.PSet1<>(Zeze.Net.Binary.class);
         _Deletes.variableId(2);
         if (_QueryIp_ == null)
-            throw new IllegalArgumentException();
+            _QueryIp_ = "";
         _QueryIp = _QueryIp_;
         _QueryPort = _QueryPort_;
         if (_Tid_ == null)
-            throw new IllegalArgumentException();
+            _Tid_ = Zeze.Net.Binary.Empty;
         _Tid = _Tid_;
     }
 
@@ -489,15 +489,19 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _QueryIp_, int _QueryPort_, Zeze.Net.Binary _Tid_) {
-        _Puts = new java.util.HashMap<>();
-        _Deletes = new java.util.HashSet<>();
+    public Data(java.util.HashMap<Zeze.Net.Binary, Zeze.Net.Binary> _Puts_, java.util.HashSet<Zeze.Net.Binary> _Deletes_, String _QueryIp_, int _QueryPort_, Zeze.Net.Binary _Tid_) {
+        if (_Puts_ == null)
+            _Puts_ = new java.util.HashMap<>();
+        _Puts = _Puts_;
+        if (_Deletes_ == null)
+            _Deletes_ = new java.util.HashSet<>();
+        _Deletes = _Deletes_;
         if (_QueryIp_ == null)
-            throw new IllegalArgumentException();
+            _QueryIp_ = "";
         _QueryIp = _QueryIp_;
         _QueryPort = _QueryPort_;
         if (_Tid_ == null)
-            throw new IllegalArgumentException();
+            _Tid_ = Zeze.Net.Binary.Empty;
         _Tid = _Tid_;
     }
 

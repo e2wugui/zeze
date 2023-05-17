@@ -83,7 +83,7 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         _HeadNodeId = _HeadNodeId_;
         _TailNodeId = _TailNodeId_;
         if (_LinkedMapName_ == null)
-            throw new IllegalArgumentException();
+            _LinkedMapName_ = "";
         _LinkedMapName = _LinkedMapName_;
     }
 

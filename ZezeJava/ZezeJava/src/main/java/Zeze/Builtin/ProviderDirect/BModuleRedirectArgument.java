@@ -153,13 +153,13 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         _HashCode = _HashCode_;
         _RedirectType = _RedirectType_;
         if (_MethodFullName_ == null)
-            throw new IllegalArgumentException();
+            _MethodFullName_ = "";
         _MethodFullName = _MethodFullName_;
         if (_Params_ == null)
-            throw new IllegalArgumentException();
+            _Params_ = Zeze.Net.Binary.Empty;
         _Params = _Params_;
         if (_ServiceNamePrefix_ == null)
-            throw new IllegalArgumentException();
+            _ServiceNamePrefix_ = "";
         _ServiceNamePrefix = _ServiceNamePrefix_;
     }
 

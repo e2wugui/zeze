@@ -63,7 +63,7 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
     @SuppressWarnings("deprecation")
     public BTaskCondition(String _conditionType_) {
         if (_conditionType_ == null)
-            throw new IllegalArgumentException();
+            _conditionType_ = "";
         _conditionType = _conditionType_;
         _extendedData = newDynamicBean_ExtendedData();
     }

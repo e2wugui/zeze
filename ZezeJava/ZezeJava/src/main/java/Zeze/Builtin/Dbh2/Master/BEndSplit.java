@@ -245,9 +245,17 @@ public static final class Data extends Zeze.Transaction.Data {
     @SuppressWarnings("deprecation")
     public Data() {
         _From = new Zeze.Builtin.Dbh2.BBucketMeta.Data();
-        _From.variableId(1);
         _To = new Zeze.Builtin.Dbh2.BBucketMeta.Data();
-        _To.variableId(2);
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(Zeze.Builtin.Dbh2.BBucketMeta.Data _From_, Zeze.Builtin.Dbh2.BBucketMeta.Data _To_) {
+        if (_From_ == null)
+            _From_ = new Zeze.Builtin.Dbh2.BBucketMeta.Data();
+        _From = _From_;
+        if (_To_ == null)
+            _To_ = new Zeze.Builtin.Dbh2.BBucketMeta.Data();
+        _To = _To_;
     }
 
     @Override

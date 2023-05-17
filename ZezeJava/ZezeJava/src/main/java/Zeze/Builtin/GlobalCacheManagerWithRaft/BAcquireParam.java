@@ -61,7 +61,7 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
     @SuppressWarnings("deprecation")
     public BAcquireParam(Zeze.Net.Binary _GlobalKey_, int _State_) {
         if (_GlobalKey_ == null)
-            throw new IllegalArgumentException();
+            _GlobalKey_ = Zeze.Net.Binary.Empty;
         _GlobalKey = _GlobalKey_;
         _State = _State_;
     }

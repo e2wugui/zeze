@@ -61,7 +61,7 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
     public BGetResult(boolean _Null_, Zeze.Net.Binary _Value_) {
         _Null = _Null_;
         if (_Value_ == null)
-            throw new IllegalArgumentException();
+            _Value_ = Zeze.Net.Binary.Empty;
         _Value = _Value_;
     }
 
@@ -254,7 +254,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public Data(boolean _Null_, Zeze.Net.Binary _Value_) {
         _Null = _Null_;
         if (_Value_ == null)
-            throw new IllegalArgumentException();
+            _Value_ = Zeze.Net.Binary.Empty;
         _Value = _Value_;
     }
 
