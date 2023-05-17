@@ -31,6 +31,8 @@ namespace Zeze.Net
         public virtual Zeze.Transaction.Bean ResultBean { get; }
         public virtual Zeze.Transaction.Bean ArgumentBean { get; }
 #endif
+        public bool Recyle { get; set; } = true;
+
         public static int GetModuleId(long typeId)
         {
             return (int)(typeId >> 32);
@@ -203,7 +205,10 @@ namespace Zeze.Net
                     var factoryHandle = service.FindProtocolFactoryHandle(typeId);
                     if (factoryHandle?.Factory != null)
                     {
-                        Protocol p = factoryHandle.Factory();
+                        factoryHandle.RecvCount.IncrementAndGet();
+
+                        var pool = factoryHandle.ProtocolPool;
+                        Protocol p = pool == null ? factoryHandle.Factory() : pool.Acquire(factoryHandle);
                         p.Service = service;
                         p.Decode(bb);
                         // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。

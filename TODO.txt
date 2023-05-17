@@ -14,6 +14,7 @@ DatabaseDynamoDb 还需测试。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/5/19 v1.2.4 Arch.Online.selectDirty; Load Balance & Overload; Raft Async; Dbh2 1.0; Online;
 ------------------------------------------------------------------------------------------------------------------------------
+c# ProtocolPool
 Dbh2 Get Benchmark. （直接运行UnitTest.CheckpointFlush只有80/s）直接client.bat "-get"有5w左右。
 Dbh2 dbh2Splitting 生命期管理：endSplit可以阻止新的需要拷贝的事务，但是进行中事务需要等待完成。
 Dbh2 创建表选择负载低的服务器的策略。

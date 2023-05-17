@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Zeze.Transaction;
 using NLog;
 using NLog.Fluent;
+using System.Threading;
 
 namespace Zeze.Net
 {
@@ -371,6 +372,39 @@ namespace Zeze.Net
             /////////////////////////////////////////////////////////////////////////////////////////////
             // 由于c#只有一个线程池，所以默认情况下，没有使用线程派发模式，需要的应用重载下面的方法，自行使用Mode配置。
             // DispatchProtocol,DispatchProtocol2,DispatchRpcResponse
+
+            // 收到的协议计数
+            public AtomicLong RecvCount { get; } = new AtomicLong();
+            private volatile ProtocolPool _ProtocolPool;
+
+            public ProtocolPool ProtocolPool => _ProtocolPool;
+
+            public void SetupProtocolPool()
+            {
+                lock (this)
+                {
+                    if (null == _ProtocolPool)
+                    {
+                        var tmp = new ProtocolPool(Handle);
+                        Handle = async (p) =>
+                        {
+                            var result = await tmp.Handle(p);
+                            if (result == 0 && p.Recyle)
+                                tmp.Pool.Enqueue(p);
+                            return result;
+                        };
+                        _ProtocolPool = tmp;
+                    }
+                }
+            }
+
+            public void RemoveProtocolPool()
+            {
+                lock (this)
+                {
+                    _ProtocolPool = null;
+                }
+            }
         }
 
         public ConcurrentDictionary<long, ProtocolFactoryHandle> Factorys { get; }
