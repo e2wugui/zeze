@@ -429,5 +429,11 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
+        public override void ClearParameters()
+        {
+            MethodFullName = "";
+            Hashs.Clear();
+        }
+
     }
 }

@@ -901,6 +901,16 @@ namespace Zeze.Raft
         public long LastLogTerm { get; set; }
         public bool NodeReady { get; set; }
 
+
+        public override void ClearParameters()
+        {
+            Term = 0;
+            CandidateId = null;
+            LastLogIndex = 0;
+            LastLogTerm = 0;
+            NodeReady = false;
+        }
+
         public override void Decode(ByteBuffer bb)
         {
             Term = bb.ReadLong();
@@ -929,6 +939,12 @@ namespace Zeze.Raft
     {
         public long Term { get; set; }
         public bool VoteGranted { get; set; }
+
+        public override void ClearParameters()
+        {
+            Term = 0;
+            VoteGranted = false;
+        }
 
         public override void Decode(ByteBuffer bb)
         {
@@ -1006,6 +1022,16 @@ namespace Zeze.Raft
         {
             return $"(Term={Term} LeaderId={LeaderId} PrevLogIndex={PrevLogIndex} PrevLogTerm={PrevLogTerm} LeaderCommit={LeaderCommit})";
         }
+
+        public override void ClearParameters()
+        {
+            Term = 0;
+            LeaderId = null;
+            PrevLogIndex = 0;
+            PrevLogTerm = 0;
+            Entries.Clear();
+            LeaderCommit = 0;
+        }
     }
 
     public sealed class AppendEntriesResult : Bean
@@ -1031,6 +1057,13 @@ namespace Zeze.Raft
         public override string ToString()
         {
             return $"(Term={Term} Success={Success})";
+        }
+
+        public override void ClearParameters()
+        {
+            Term = 0;
+            Success = false;
+            NextIndex = 0;
         }
     }
 
@@ -1084,6 +1117,18 @@ namespace Zeze.Raft
             bb.WriteBinary(LastIncludedLog);
         }
 
+        public override void ClearParameters()
+        {
+            Term = 0;
+            LeaderId = null;
+            LastIncludedIndex = 0;
+            LastIncludedTerm = 0;
+            Offset = 0;
+            Data = null;
+            Done = false;
+            LastIncludedLog = Binary.Empty;
+        }
+
         public override string ToString()
         {
             return $"(Term={Term} LeaderId={LeaderId} LastIncludedIndex={LastIncludedIndex} LastIncludedTerm={LastIncludedTerm} Offset={Offset} Done={Done})";
@@ -1113,6 +1158,12 @@ namespace Zeze.Raft
         public override string ToString()
         {
             return $"(Term={Term} Offset={Offset})";
+        }
+
+        public override void ClearParameters()
+        {
+            Term = 0;
+            Offset = -1;
         }
     }
 
@@ -1155,6 +1206,13 @@ namespace Zeze.Raft
         public override string ToString()
         {
             return $"(Term={Term} LeaderId={LeaderId} IsLeader={IsLeader})";
+        }
+
+        public override void ClearParameters()
+        {
+            Term = 0;
+            LeaderId = null;
+            IsLeader = false;
         }
 
         public override bool Equals(object obj)

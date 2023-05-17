@@ -231,5 +231,11 @@ namespace Zeze.Builtin.Provider
             }
         }
 
+        public override void ClearParameters()
+        {
+            Modules.Clear();
+            LinkSids.Clear();
+        }
+
     }
 }

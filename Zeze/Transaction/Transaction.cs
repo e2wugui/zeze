@@ -473,6 +473,11 @@ namespace Zeze.Transaction
             public long Timestamp { get; }
             public bool Dirty { get; set; }
 
+            public override void ClearParameters()
+            {
+                throw new NotImplementedException();
+            }
+
             public Bean NewestValue()
             {
                 PutLog log = (PutLog)Current.GetLog(ObjectId);

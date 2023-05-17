@@ -250,5 +250,10 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             }
         }
 
+        public override void ClearParameters()
+        {
+            SecureKey = "";
+        }
+
     }
 }

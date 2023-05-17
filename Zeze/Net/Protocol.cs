@@ -161,6 +161,8 @@ namespace Zeze.Net
             return p;
         }
 
+        public abstract void ClearParameters();
+
         /// <summary>
         /// moduleId[4] + protocolId[4] + size[4] + protocol.bytes[size]
         /// </summary>
@@ -271,6 +273,11 @@ namespace Zeze.Net
         public override string ToString()
         {
             return $"{GetType().FullName} ResultCode={ResultCode}{Environment.NewLine}  Argument={Argument}";
+        }
+
+        public override void ClearParameters()
+        {
+            Argument.ClearParameters();
         }
     }
 }

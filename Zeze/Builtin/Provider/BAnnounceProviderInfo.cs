@@ -303,5 +303,12 @@ namespace Zeze.Builtin.Provider
             }
         }
 
+        public override void ClearParameters()
+        {
+            ServiceNamePrefix = "";
+            ServiceIndentity = "";
+            ProviderDirectIp = "";
+        }
+
     }
 }

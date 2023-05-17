@@ -148,5 +148,10 @@ namespace Zeze.Builtin.Online
             }
         }
 
+        public override void ClearParameters()
+        {
+            Any.ClearParameters();
+        }
+
     }
 }

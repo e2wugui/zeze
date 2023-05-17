@@ -31,6 +31,11 @@ namespace Zeze.Transaction.Collections
 			}
 		}
 
+        public override void ClearParameters()
+        {
+			Clear();
+        }
+        
 		public override bool Remove(V item)
 		{
 			if (IsManaged)

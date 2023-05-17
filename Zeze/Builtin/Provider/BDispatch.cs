@@ -404,5 +404,13 @@ namespace Zeze.Builtin.Provider
             }
         }
 
+        public override void ClearParameters()
+        {
+            Account = "";
+            ProtocolData = Zeze.Net.Binary.Empty;
+            Context = "";
+            Contextx = Zeze.Net.Binary.Empty;
+        }
+
     }
 }

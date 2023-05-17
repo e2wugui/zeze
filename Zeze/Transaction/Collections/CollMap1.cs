@@ -32,6 +32,11 @@ namespace Zeze.Transaction.Collections
 			}
 		}
 
+        public override void ClearParameters()
+        {
+			Clear();
+        }
+
         public override void Add(K key, V value)
 		{
 			if (key == null)

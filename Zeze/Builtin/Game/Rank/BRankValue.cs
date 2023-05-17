@@ -250,5 +250,10 @@ namespace Zeze.Builtin.Game.Rank
             }
         }
 
+        public override void ClearParameters()
+        {
+            ValueEx = Zeze.Net.Binary.Empty;
+        }
+
     }
 }

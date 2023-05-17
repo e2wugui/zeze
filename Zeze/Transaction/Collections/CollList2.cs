@@ -122,7 +122,12 @@ namespace Zeze.Transaction.Collections
 			}
 		}
 
-		public override void Insert(int index, E item)
+        public override void ClearParameters()
+        {
+			Clear();
+        }
+
+        public override void Insert(int index, E item)
 		{
 			if (item == null)
 				throw new ArgumentNullException(); 

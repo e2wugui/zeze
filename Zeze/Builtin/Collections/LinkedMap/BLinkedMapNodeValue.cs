@@ -202,5 +202,11 @@ namespace Zeze.Builtin.Collections.LinkedMap
             }
         }
 
+        public override void ClearParameters()
+        {
+            Id = "";
+            Value.ClearParameters();
+        }
+
     }
 }

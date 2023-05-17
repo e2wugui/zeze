@@ -201,5 +201,10 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             }
         }
 
+        public override void ClearParameters()
+        {
+            GlobalKey = Zeze.Net.Binary.Empty;
+        }
+
     }
 }

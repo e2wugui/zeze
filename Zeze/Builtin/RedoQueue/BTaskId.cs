@@ -149,5 +149,9 @@ namespace Zeze.Builtin.RedoQueue
             }
         }
 
+        public override void ClearParameters()
+        {
+        }
+
     }
 }

@@ -13,6 +13,12 @@ namespace UnitTest.Zeze.Trans
     {
         public class MyBean : Bean
         {
+
+            public override void ClearParameters()
+            {
+                I = 0;
+            }
+
             public override void Decode(ByteBuffer bb)
             {
                 throw new NotImplementedException();

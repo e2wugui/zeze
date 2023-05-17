@@ -61,6 +61,11 @@ namespace UnitTest.Zeze.Net
         {
             public string Name { get; set; }
 
+            public override void ClearParameters()
+            {
+                Name = null;
+            }
+
             public override void Decode(ByteBuffer bb)
             {
                 Name = bb.ReadString();

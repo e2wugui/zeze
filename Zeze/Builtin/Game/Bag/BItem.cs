@@ -253,5 +253,10 @@ namespace Zeze.Builtin.Game.Bag
             }
         }
 
+        public override void ClearParameters()
+        {
+            Item.ClearParameters();
+        }
+
     }
 }

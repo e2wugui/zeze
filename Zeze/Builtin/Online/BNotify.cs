@@ -150,5 +150,10 @@ namespace Zeze.Builtin.Online
             }
         }
 
+        public override void ClearParameters()
+        {
+            FullEncodedProtocol = Zeze.Net.Binary.Empty;
+        }
+
     }
 }

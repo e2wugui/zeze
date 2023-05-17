@@ -217,5 +217,10 @@ namespace Zeze.Builtin.Collections.Queue
             }
         }
 
+        public override void ClearParameters()
+        {
+            Values.Clear();
+        }
+
     }
 }

@@ -386,7 +386,7 @@ namespace Zeze.Net
                     if (null == _ProtocolPool)
                     {
                         var tmp = new ProtocolPool(Handle);
-                        Handle = tmp.Process;
+                        Handle = tmp.Process; // 先设置，拦截处理。
                         _ProtocolPool = tmp;
                     }
                 }

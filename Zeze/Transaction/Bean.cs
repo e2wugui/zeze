@@ -1,3 +1,4 @@
+using Org.BouncyCastle.Math.EC;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -100,6 +101,8 @@ namespace Zeze.Transaction
         {
         }
 
+        public abstract void ClearParameters();
+
         public abstract void Decode(global::Zeze.Serialize.ByteBuffer bb);
         public abstract void Encode(global::Zeze.Serialize.ByteBuffer bb);
 
@@ -181,6 +184,10 @@ namespace Zeze.Transaction
         }
 
         public readonly static EmptyBean Instance = new();
+
+        public override void ClearParameters()
+        {
+        }
     }
 
     public interface DynamicBeanReadOnly
@@ -243,6 +250,11 @@ namespace Zeze.Transaction
         }
 
         internal Bean Bean_;
+
+        public override void ClearParameters()
+        {
+            Bean.ClearParameters();
+        }
 
         internal void SetTypeId(long typeId)
         {

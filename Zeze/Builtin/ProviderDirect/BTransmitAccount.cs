@@ -364,5 +364,14 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
+        public override void ClearParameters()
+        {
+            ActionName = "";
+            Parameter = Zeze.Net.Binary.Empty;
+            TargetAccounts.Clear();
+            SenderAccount = "";
+            SenderClientId = "";
+        }
+
     }
 }

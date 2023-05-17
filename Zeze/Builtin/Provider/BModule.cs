@@ -260,5 +260,9 @@ namespace Zeze.Builtin.Provider
             }
         }
 
+        public override void ClearParameters()
+        {
+        }
+
     }
 }

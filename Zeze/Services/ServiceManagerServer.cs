@@ -865,6 +865,14 @@ namespace Zeze.Services
             public long NotifySerialId { get; set; } // context 如果够用就直接用这个，
             public byte[] NotifyContext { get; set; } // context 扩展context。
 
+            public override void ClearParameters()
+            {
+                ServerId = 0;
+                NotifyId = null;
+                NotifySerialId = 0;
+                NotifyContext = null;
+            }
+
             public BOfflineNotify() {}
 
             public BOfflineNotify(int serverId, string notifyId) {
@@ -1769,6 +1777,13 @@ namespace Zeze.Services.ServiceManager
         {
             return $"Ip={Ip} Port={Port} Param={BitConverter.ToString(Param.Bytes, Param.Offset, Param.Count)}";
         }
+
+        public override void ClearParameters()
+        {
+            Ip = null;
+            Port = 0;
+            Param = Binary.Empty;
+        }
     }
 
     public sealed class ServiceInfo : Bean
@@ -1831,6 +1846,15 @@ namespace Zeze.Services.ServiceManager
             bb.WriteString(PassiveIp);
             bb.WriteInt(PassivePort);
             bb.WriteBinary(ExtraInfo);
+        }
+
+        public override void ClearParameters()
+        {
+            ServiceName = null;
+            ServiceIdentity = null;
+            PassiveIp = "";
+            PassivePort = 0;
+            ExtraInfo = Binary.Empty;
         }
 
         public override int GetHashCode()
@@ -1916,6 +1940,13 @@ namespace Zeze.Services.ServiceManager
         // 目前这个用来给LinkdApp用来保存订阅的状态，不系列化。
         public object LocalState { get; set; }
 
+
+        public override void ClearParameters()
+        {
+            ServiceName = null;
+            SubscribeType = 0;
+        }
+
         public override void Decode(ByteBuffer bb)
         {
             ServiceName = bb.ReadString();
@@ -1967,6 +1998,13 @@ namespace Zeze.Services.ServiceManager
         public long SerialId { get; set; }
 
         private readonly static ServiceIdentityComparer Comparer = new();
+
+        public override void ClearParameters()
+        {
+            ServiceName = null;
+            SortedIdentity_.Clear();
+            SerialId = 0;
+        }
 
         public ServiceInfo Insert(ServiceInfo info)
         {
@@ -2090,6 +2128,12 @@ namespace Zeze.Services.ServiceManager
         public string ServiceName { get; set; }
         public long SerialId { get; set; }
 
+        public override void ClearParameters()
+        {
+            ServiceName = null;
+            SerialId = 0;
+        }
+
         public override void Decode(ByteBuffer bb)
         {
             ServiceName = bb.ReadString();
@@ -2186,6 +2230,12 @@ namespace Zeze.Services.ServiceManager
             bb.WriteString(Name);
             bb.WriteInt(Count);
         }
+
+        public override void ClearParameters()
+        {
+            Name = null;
+            Count = 0;
+        }
     }
 
     public sealed class AllocateIdResult : Bean
@@ -2206,6 +2256,13 @@ namespace Zeze.Services.ServiceManager
             bb.WriteString(Name);
             bb.WriteLong(StartId);
             bb.WriteInt(Count);
+        }
+
+        public override void ClearParameters()
+        {
+            Name = null;
+            StartId = 0;
+            Count = 0;
         }
     }
 

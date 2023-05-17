@@ -412,5 +412,10 @@ namespace Zeze.Builtin.Online
             }
         }
 
+        public override void ClearParameters()
+        {
+            ReliableNotifyMark.Clear();
+        }
+
     }
 }

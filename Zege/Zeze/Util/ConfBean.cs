@@ -46,6 +46,8 @@ namespace Zeze.Util
         public virtual void FollowerApply(Zeze.Transaction.Log log)
         { 
         }
+
+        public abstract void ClearParameters();
     }
 
     public class ConfEmptyBean : ConfBean
@@ -73,6 +75,10 @@ namespace Zeze.Util
         }
 
         public readonly static ConfEmptyBean Instance = new();
+
+        public override void ClearParameters()
+        {
+        }
     }
 
     public class ConfDynamicBean : ConfBean
@@ -178,6 +184,11 @@ namespace Zeze.Util
                 // 内部Bean发生了改变。
                 _Bean.FollowerApply(dlog.LogBean);
             }
+        }
+
+        public override void ClearParameters()
+        {
+            Bean.ClearParameters();
         }
     }
 

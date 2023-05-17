@@ -151,5 +151,10 @@ namespace Zeze.Builtin.Online
             }
         }
 
+        public override void ClearParameters()
+        {
+            ClientId = "";
+        }
+
     }
 }

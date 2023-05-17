@@ -402,5 +402,12 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
+        public override void ClearParameters()
+        {
+            MethodFullName = "";
+            Params = Zeze.Net.Binary.Empty;
+            ServiceNamePrefix = "";
+        }
+
     }
 }

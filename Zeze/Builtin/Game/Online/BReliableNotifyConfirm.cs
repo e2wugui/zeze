@@ -198,5 +198,9 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
+        public override void ClearParameters()
+        {
+        }
+
     }
 }

@@ -161,5 +161,10 @@ namespace Zeze.Builtin.Game.Rank
             }
         }
 
+        public override void ClearParameters()
+        {
+            RankList.Clear();
+        }
+
     }
 }

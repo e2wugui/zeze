@@ -282,5 +282,11 @@ namespace Zeze.Net
         {
             return $"{GetType().FullName} SessionId={SessionId} ResultCode={ResultCode}{Environment.NewLine}  Argument={Argument}{Environment.NewLine}  Result={Result}";
         }
+
+        public override void ClearParameters()
+        {
+            Argument.ClearParameters();
+            Result.ClearParameters();
+        }
     }
 }

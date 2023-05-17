@@ -31,7 +31,10 @@ namespace Zeze.Net
         {
             var result = await Handle(p);
             if (result == 0 && p.Recyle && Pool.Count < 10000)
+            {
+                p.ClearParameters();
                 Pool.Enqueue(p);
+            }
             return result;
         }
     }

@@ -316,5 +316,12 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
+        public override void ClearParameters()
+        {
+            ActionName = "";
+            Roles.Clear();
+            Parameter = Zeze.Net.Binary.Empty;
+        }
+
     }
 }

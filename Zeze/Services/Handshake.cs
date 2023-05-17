@@ -587,6 +587,14 @@ namespace Zeze.Services.Handshake
             bb.WriteInt(CompressS2c);
             bb.WriteInt(CompressC2s);
         }
+
+        public override void ClearParameters()
+        {
+            EncryptType = 0;
+            EncryptParam = null;
+            CompressS2c = 0;
+            CompressC2s = 0;
+        }
     }
 
 #if USE_CONFCS
@@ -601,6 +609,14 @@ namespace Zeze.Services.Handshake
         public int CompressS2c;
         public int CompressC2s;
         public int EncryptType;
+
+        public override void ClearParameters()
+        {
+            EncryptParam = null;
+            CompressS2c = 0;
+            CompressC2s = 0;
+            EncryptType = 0;
+        }
 
         public override void Decode(ByteBuffer bb)
         {
@@ -661,6 +677,15 @@ namespace Zeze.Services.Handshake
         public int CompressC2s { get; set; }
         public List<int> SupportedCompressList { get; set; } = new();
 
+
+        public override void ClearParameters()
+        {
+            EncryptType = 0;
+            SupportedEncryptList.Clear();
+            CompressS2c = 0;
+            CompressC2s = 0;
+            SupportedCompressList.Clear();
+        }
 
         public override void Decode(ByteBuffer bb)
         {

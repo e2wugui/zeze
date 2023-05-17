@@ -41,6 +41,11 @@ namespace Zeze.Transaction.Collections
 			PropertyMapKey = typeof(V).GetProperty($"_zeze_map_key_{Util.Reflect.GetStableName(typeof(K))}_");
 		}
 
+        public override void ClearParameters()
+        {
+			Clear();
+        }
+       
 		public override void Add(K key, V value)
 		{
 			if (key == null)

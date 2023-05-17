@@ -45,6 +45,11 @@ namespace Zeze.Transaction.Collections
             }
         }
 
+        public override void ClearParameters()
+        {
+            Value.ClearParameters();
+        }
+
         public void Assign(CollOne<V> other)
         {
             Value = (V)other.Value.Copy();

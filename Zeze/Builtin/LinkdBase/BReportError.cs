@@ -257,5 +257,10 @@ namespace Zeze.Builtin.LinkdBase
             }
         }
 
+        public override void ClearParameters()
+        {
+            Desc = "";
+        }
+
     }
 }

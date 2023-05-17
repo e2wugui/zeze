@@ -299,5 +299,9 @@ namespace Zeze.Builtin.Collections.LinkedMap
             }
         }
 
+        public override void ClearParameters()
+        {
+        }
+
     }
 }

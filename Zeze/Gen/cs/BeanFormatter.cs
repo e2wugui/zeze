@@ -180,6 +180,7 @@ namespace Zeze.Gen.cs
             // InitChildrenTableKey.MakeReset(bean, sw, "        ");
             NegativeCheck.Make(bean, sw, "        ");
             FollowerApply.Make(bean, sw, "        ");
+            ClearParameters.Make(bean, sw, "        ");
         }
     }
 }

@@ -517,5 +517,13 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
+        public override void ClearParameters()
+        {
+            HashCodes.Clear();
+            MethodFullName = "";
+            Params = Zeze.Net.Binary.Empty;
+            ServiceNamePrefix = "";
+        }
+
     }
 }

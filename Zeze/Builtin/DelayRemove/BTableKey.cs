@@ -251,5 +251,11 @@ namespace Zeze.Builtin.DelayRemove
             }
         }
 
+        public override void ClearParameters()
+        {
+            TableName = "";
+            EncodedKey = Zeze.Net.Binary.Empty;
+        }
+
     }
 }

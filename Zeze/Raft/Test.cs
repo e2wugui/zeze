@@ -720,6 +720,11 @@ namespace Zeze.Raft
         {
             public long Count { get; set; }
 
+            public override void ClearParameters()
+            {
+                Count = 0;
+            }
+
             public override void Decode(ByteBuffer bb)
             {
                 Count = bb.ReadLong();

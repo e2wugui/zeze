@@ -1089,6 +1089,12 @@ namespace Zeze.Services.GlobalCacheManager
         {
             return GlobalKey + ":" + State;
         }
+
+        public override void ClearParameters()
+        {
+            GlobalKey = null;
+            State = 0;
+        }
     }
 
     public sealed class Acquire : Rpc<GlobalKeyState, GlobalKeyState>
@@ -1151,6 +1157,13 @@ namespace Zeze.Services.GlobalCacheManager
             bb.WriteInt(GlobalCacheManagerHashIndex);
             bb.WriteBool(DebugMode);
         }
+
+        public override void ClearParameters()
+        {
+            ServerId = 0;
+            GlobalCacheManagerHashIndex = 0;
+            DebugMode = false;
+        }
     }
 
     public sealed class AchillesHeelConfigFromGlobal : Bean
@@ -1171,6 +1184,13 @@ namespace Zeze.Services.GlobalCacheManager
             bb.WriteInt(MaxNetPing);
             bb.WriteInt(ServerProcessTime);
             bb.WriteInt(ServerReleaseTimeout);
+        }
+
+        public override void ClearParameters()
+        {
+            MaxNetPing = 0;
+            ServerProcessTime = 0;
+            ServerReleaseTimeout = 0;
         }
     }
 
@@ -1235,6 +1255,13 @@ namespace Zeze.Services.GlobalCacheManager
             bb.WriteInt(ServerId);
             bb.WriteString(SecureKey);
             bb.WriteInt(GlobalCacheManagerHashIndex);
+        }
+
+        public override void ClearParameters()
+        {
+            ServerId = 0;
+            SecureKey = null;
+            GlobalCacheManagerHashIndex = 0;
         }
     }
 

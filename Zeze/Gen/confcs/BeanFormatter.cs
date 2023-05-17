@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using Zeze.Gen.cs;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.confcs
@@ -87,6 +88,8 @@ namespace Zeze.Gen.confcs
             cs.Decode.Make(bean, sw, "        ", true);
             if (followerApply)
                 FollowerApply.Make(bean, sw, "        ");
+
+            ClearParameters.Make(bean, sw, "        ");
         }
     }
 }

@@ -360,5 +360,12 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             }
         }
 
+        public override void ClearParameters()
+        {
+            Childs.Clear();
+            Name = "";
+            Managers.Clear();
+        }
+
     }
 }
