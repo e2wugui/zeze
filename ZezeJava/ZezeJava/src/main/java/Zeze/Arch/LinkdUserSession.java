@@ -153,7 +153,7 @@ public class LinkdUserSession {
 	public void keepAlive(Service linkdService) {
 		if (keepAliveTask != null)
 			keepAliveTask.cancel(false);
-		keepAliveTask = Task.scheduleUnsafe(3000_000, () -> {
+		keepAliveTask = Task.scheduleUnsafe(600_000, () -> {
 			var link = linkdService.GetSocket(sessionId);
 			if (link != null) {
 				logger.warn("KeepAlive timeout: {}", link);
