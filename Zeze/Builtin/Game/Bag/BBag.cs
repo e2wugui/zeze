@@ -230,8 +230,8 @@ namespace Zeze.Builtin.Game.Bag
 
         public override void ClearParameters()
         {
+            Capacity = 0;
             Items.Clear();
         }
-
     }
 }

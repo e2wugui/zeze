@@ -250,7 +250,9 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 
         public override void ClearParameters()
         {
+            ServerId = 0;
+            GlobalCacheManagerHashIndex = 0;
+            DebugMode = false;
         }
-
     }
 }

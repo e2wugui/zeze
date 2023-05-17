@@ -203,8 +203,8 @@ namespace Zeze.Builtin.Collections.Queue
 
         public override void ClearParameters()
         {
+            Timestamp = 0;
             Value.ClearParameters();
         }
-
     }
 }

@@ -78,23 +78,18 @@ namespace Zeze.Gen.cs
 		{
             string value = variable.Initial;
 			if (value.Length > 0)
-			{
-                string varname = variable.NamePrivate;
-				sw.WriteLine(prefix + varname + " = " + value + ";");
-			}
+				sw.WriteLine(prefix + variable.NamePrivate + " = " + value + ";");
 		}
 
         public void Visit(Bean type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + $" = new Zeze.Transaction.Collections.CollOne<{typeName}>();");
+            sw.WriteLine(prefix + variable.NamePrivate + $" = new Zeze.Transaction.Collections.CollOne<{TypeName.GetName(type)}>({variable.Initial});");
             sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
         }
 
         public void Visit(BeanKey type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            sw.WriteLine(prefix + variable.NamePrivate + $" = new {TypeName.GetName(type)}({variable.Initial});");
         }
 
         public void Visit(TypeByte type)
@@ -129,9 +124,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeString type)
         {
-            string value = variable.Initial;
-            string varname = variable.NamePrivate;
-            sw.WriteLine(prefix + varname + " = \"" + value + "\";");
+            sw.WriteLine(prefix + variable.NamePrivate + " = \"" + variable.Initial + "\";");
         }
 
         public void Visit(TypeList type)
@@ -182,40 +175,39 @@ namespace Zeze.Gen.cs
             }
         }
 
-        public void Visit(TypeQuaternion type)
+        public void InitialVector(Type type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            sw.WriteLine($"{prefix}{variable.NamePrivate} = new {TypeName.GetName(type)}({variable.Initial});");
         }
 
         public void Visit(TypeVector2 type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            InitialVector(type);
         }
 
         public void Visit(TypeVector2Int type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            InitialVector(type);
         }
 
         public void Visit(TypeVector3 type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            InitialVector(type);
         }
 
         public void Visit(TypeVector3Int type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            InitialVector(type);
         }
 
         public void Visit(TypeVector4 type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            InitialVector(type);
+        }
+
+        public void Visit(TypeQuaternion type)
+        {
+            InitialVector(type);
         }
     }
 }

@@ -320,8 +320,8 @@ namespace Zeze.Builtin.ProviderDirect
         {
             ActionName = "";
             Roles.Clear();
+            Sender = 0;
             Parameter = Zeze.Net.Binary.Empty;
         }
-
     }
 }

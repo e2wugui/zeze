@@ -255,8 +255,9 @@ namespace Zeze.Builtin.Game.Bag
 
         public override void ClearParameters()
         {
+            Id = 0;
+            Number = 0;
             Item.ClearParameters();
         }
-
     }
 }

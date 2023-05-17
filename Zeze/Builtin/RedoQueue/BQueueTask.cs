@@ -354,8 +354,10 @@ namespace Zeze.Builtin.RedoQueue
         public override void ClearParameters()
         {
             QueueName = "";
+            TaskType = 0;
+            TaskId = 0;
             TaskParam = Zeze.Net.Binary.Empty;
+            PrevTaskId = 0;
         }
-
     }
 }

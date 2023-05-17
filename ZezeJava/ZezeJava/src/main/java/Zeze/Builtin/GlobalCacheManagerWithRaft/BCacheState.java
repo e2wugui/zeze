@@ -162,7 +162,8 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
         if (_i_ == 2) {
             _Modify = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Modify = 0;
         if (_i_ == 3) {
             var _x_ = getShare();
             _x_.clear();

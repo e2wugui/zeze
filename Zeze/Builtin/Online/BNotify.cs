@@ -154,6 +154,5 @@ namespace Zeze.Builtin.Online
         {
             FullEncodedProtocol = Zeze.Net.Binary.Empty;
         }
-
     }
 }

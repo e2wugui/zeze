@@ -255,7 +255,7 @@ namespace Zeze.Builtin.Online
         {
             Account = "";
             ClientId = "";
+            LoginVersion = 0;
         }
-
     }
 }

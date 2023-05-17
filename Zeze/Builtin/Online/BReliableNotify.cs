@@ -213,7 +213,7 @@ namespace Zeze.Builtin.Online
         public override void ClearParameters()
         {
             Notifies.Clear();
+            ReliableNotifyIndex = 0;
         }
-
     }
 }

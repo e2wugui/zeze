@@ -340,7 +340,8 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         if (_i_ == 4) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLoginVersion(0);
         if (_i_ == 5) {
             setHandleName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

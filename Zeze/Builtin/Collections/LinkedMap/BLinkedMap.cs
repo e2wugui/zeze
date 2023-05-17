@@ -301,7 +301,10 @@ namespace Zeze.Builtin.Collections.LinkedMap
 
         public override void ClearParameters()
         {
+            HeadNodeId = 0;
+            TailNodeId = 0;
+            Count = 0;
+            LastNodeId = 0;
         }
-
     }
 }

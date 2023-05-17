@@ -519,11 +519,14 @@ namespace Zeze.Builtin.ProviderDirect
 
         public override void ClearParameters()
         {
+            ModuleId = 0;
+            HashCodeConcurrentLevel = 0;
             HashCodes.Clear();
+            SourceProvider = 0;
+            SessionId = 0;
             MethodFullName = "";
             Params = Zeze.Net.Binary.Empty;
             ServiceNamePrefix = "";
         }
-
     }
 }

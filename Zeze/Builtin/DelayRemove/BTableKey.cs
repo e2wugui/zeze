@@ -255,7 +255,7 @@ namespace Zeze.Builtin.DelayRemove
         {
             TableName = "";
             EncodedKey = Zeze.Net.Binary.Empty;
+            EnqueueTime = 0;
         }
-
     }
 }

@@ -372,6 +372,5 @@ namespace Zeze.Builtin.ProviderDirect
             SenderAccount = "";
             SenderClientId = "";
         }
-
     }
 }

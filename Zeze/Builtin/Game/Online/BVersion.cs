@@ -413,8 +413,12 @@ namespace Zeze.Builtin.Game.Online
 
         public override void ClearParameters()
         {
+            LoginVersion = 0;
             ReliableNotifyMark.Clear();
+            ReliableNotifyConfirmIndex = 0;
+            ReliableNotifyIndex = 0;
+            ServerId = 0;
+            LogoutVersion = 0;
         }
-
     }
 }

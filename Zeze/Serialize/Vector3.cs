@@ -29,6 +29,12 @@ namespace Zeze.Serialize
             y = v.y;
         }
 
+        public void Set(float x, float y)
+        {
+            this.x = x;
+            this.y = y;
+        }
+
         public virtual void Decode(ByteBuffer bb)
         {
             x = bb.ReadFloat();
@@ -90,6 +96,12 @@ namespace Zeze.Serialize
         public Vector3(Vector3Int v) : base(v)
         {
             z = v.z;
+        }
+
+        public void Set(float x, float y, float z)
+        {
+            base.Set(x, y);
+            this.z = z;
         }
 
         public override void Decode(ByteBuffer bb)
@@ -156,6 +168,12 @@ namespace Zeze.Serialize
 
         public Vector4(Vector3Int v) : base(v)
         {
+        }
+
+        public void Set(float x, float y, float z, float w)
+        {
+            base.Set(x, y, z);
+            this.w = w;
         }
 
         public override void Decode(ByteBuffer bb)
@@ -248,6 +266,12 @@ namespace Zeze.Serialize
             y = (int)v.y;
         }
 
+        public void Set(int x, int y)
+        {
+            this.x = x;
+            this.y = y;
+        }
+
         public virtual void Decode(ByteBuffer bb)
         {
             x = bb.ReadInt();
@@ -309,6 +333,12 @@ namespace Zeze.Serialize
         public Vector3Int(Vector3 v) : base(v)
         {
             z = (int)v.z;
+        }
+
+        public void Set(int x, int y, int z)
+        {
+            base.Set(x, y);
+            this.z = z;
         }
 
         public override void Decode(ByteBuffer bb)

@@ -252,8 +252,9 @@ namespace Zeze.Builtin.Game.Rank
 
         public override void ClearParameters()
         {
+            RoleId = 0;
+            Value = 0;
             ValueEx = Zeze.Net.Binary.Empty;
         }
-
     }
 }

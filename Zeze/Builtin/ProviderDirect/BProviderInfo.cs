@@ -253,7 +253,8 @@ namespace Zeze.Builtin.ProviderDirect
         public override void ClearParameters()
         {
             Ip = "";
+            Port = 0;
+            ServerId = 0;
         }
-
     }
 }

@@ -226,8 +226,8 @@ namespace Zeze.Builtin.Game.Online
 
         public override void ClearParameters()
         {
+            LoginVersion = 0;
             Datas.Clear();
         }
-
     }
 }

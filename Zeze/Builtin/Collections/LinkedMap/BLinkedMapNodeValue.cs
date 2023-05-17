@@ -207,6 +207,5 @@ namespace Zeze.Builtin.Collections.LinkedMap
             Id = "";
             Value.ClearParameters();
         }
-
     }
 }

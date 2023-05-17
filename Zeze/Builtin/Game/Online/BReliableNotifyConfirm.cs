@@ -200,7 +200,8 @@ namespace Zeze.Builtin.Game.Online
 
         public override void ClearParameters()
         {
+            ReliableNotifyConfirmIndex = 0;
+            Sync = false;
         }
-
     }
 }

@@ -252,7 +252,8 @@ namespace Zeze.Builtin.Online
         public override void ClearParameters()
         {
             ClientId = "";
+            ReliableNotifyConfirmIndex = 0;
+            Sync = false;
         }
-
     }
 }

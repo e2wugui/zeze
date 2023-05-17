@@ -303,7 +303,9 @@ namespace Zeze.Builtin.Game.Bag
         public override void ClearParameters()
         {
             BagName = "";
+            PositionFrom = 0;
+            PositionTo = 0;
+            Number = 0;
         }
-
     }
 }

@@ -159,6 +159,5 @@ namespace Zeze.Builtin.Game.Bag
         {
             ItemClasses.Clear();
         }
-
     }
 }

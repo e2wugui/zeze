@@ -219,8 +219,8 @@ namespace Zeze.Builtin.Collections.Queue
 
         public override void ClearParameters()
         {
+            NextNodeId = 0;
             Values.Clear();
         }
-
     }
 }

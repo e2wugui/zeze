@@ -308,7 +308,7 @@ namespace Zeze.Builtin.Provider
             ServiceNamePrefix = "";
             ServiceIndentity = "";
             ProviderDirectIp = "";
+            ProviderDirectPort = 0;
         }
-
     }
 }

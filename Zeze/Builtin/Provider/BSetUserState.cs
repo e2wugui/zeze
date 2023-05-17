@@ -253,9 +253,9 @@ namespace Zeze.Builtin.Provider
 
         public override void ClearParameters()
         {
+            LinkSid = 0;
             Context = "";
             Contextx = Zeze.Net.Binary.Empty;
         }
-
     }
 }

@@ -98,15 +98,7 @@ namespace Zeze.Gen.cxx
 		void Initial(string def)
 		{
             string value = variable.Initial;
-            string varname = variable.NameUpper1;
-            if (value.Length > 0)
-			{
-				sw.WriteLine(prefix + varname + " = " + value + ";");
-			}
-            else
-            {
-                sw.WriteLine(prefix + varname + $" = {def};");
-            }
+            sw.WriteLine(prefix + variable.NameUpper1 + $" = {(value.Length > 0 ? value : def)};");
         }
 
         public void Visit(TypeBool type)
@@ -150,6 +142,9 @@ namespace Zeze.Gen.cxx
 
         public void Visit(TypeString type)
         {
+            string value = variable.Initial;
+            if (value.Length > 0)
+                sw.WriteLine(prefix + variable.NameUpper1 + " = \"" + value + "\";");
         }
 
         public void Visit(TypeList type)
@@ -166,38 +161,57 @@ namespace Zeze.Gen.cxx
 
         public void Visit(Bean type)
         {
+            var value = variable.Initial;
+            if (value.Length > 0)
+                sw.WriteLine($"{prefix}{variable.NamePrivate} = {TypeName.GetName(type)}({value});");
         }
 
         public void Visit(BeanKey type)
         {
+            var value = variable.Initial;
+            if (value.Length > 0)
+                sw.WriteLine($"{prefix}{variable.NamePrivate} = {TypeName.GetName(type)}({value});");
         }
 
         public void Visit(TypeDynamic type)
         {
         }
 
-        public void Visit(TypeQuaternion type)
+        public void InitialVector(Type type)
         {
+            var value = variable.Initial;
+            if (value.Length > 0)
+                sw.WriteLine($"{prefix}{variable.NamePrivate} = {TypeName.GetName(type)}({value});");
         }
 
         public void Visit(TypeVector2 type)
         {
+            InitialVector(type);
         }
 
         public void Visit(TypeVector2Int type)
         {
+            InitialVector(type);
         }
 
         public void Visit(TypeVector3 type)
         {
+            InitialVector(type);
         }
 
         public void Visit(TypeVector3Int type)
         {
+            InitialVector(type);
         }
 
         public void Visit(TypeVector4 type)
         {
+            InitialVector(type);
+        }
+
+        public void Visit(TypeQuaternion type)
+        {
+            InitialVector(type);
         }
     }
 }

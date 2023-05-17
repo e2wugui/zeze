@@ -51,8 +51,18 @@ namespace Zeze.Gen.javadata
                     sw.WriteLine(prefix + "    {");
                 v.VariableType.Accept(new Decode(v, v.Id, "_o_", sw, prefix + "        "));
                 if (v.Id > 0)
+                {
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                sw.WriteLine(prefix + "    }");
+                    if (v.Initial.Length > 0)
+                    {
+                        sw.WriteLine(prefix + "    } else");
+                        sw.WriteLine(prefix + "        " + Initial(v) + ";");
+                    }
+                    else
+                        sw.WriteLine(prefix + "    }");
+                }
+                else
+                    sw.WriteLine(prefix + "    }");
             }
 
             sw.WriteLine(prefix + "    while (_t_ != 0) {");
@@ -103,8 +113,18 @@ namespace Zeze.Gen.javadata
                     sw.WriteLine(prefix + "    {");
                 v.VariableType.Accept(new Decode(v, v.Id, "_o_", sw, prefix + "        "));
                 if (v.Id > 0)
+                {
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                sw.WriteLine(prefix + "    }");
+                    if (v.Initial.Length > 0)
+                    {
+                        sw.WriteLine(prefix + "    } else");
+                        sw.WriteLine(prefix + "        " + Initial(v) + ";");
+                    }
+                    else
+                        sw.WriteLine(prefix + "    }");
+                }
+                else
+                    sw.WriteLine(prefix + "    }");
             }
 
             sw.WriteLine(prefix + "    while (_t_ != 0) {");
@@ -113,6 +133,36 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
+        }
+
+        static string Initial(Variable var)
+        {
+            var type = var.VariableType;
+            switch (type)
+            {
+                case TypeBool:
+                    return $"{var.NamePrivate} = false";
+                case TypeByte:
+                case TypeShort:
+                case TypeInt:
+                case TypeLong:
+                case TypeFloat:
+                case TypeDouble:
+                    return $"{var.NamePrivate} = 0";
+                case TypeString:
+                    return $"{var.NamePrivate} = \"\"";
+                case Bean:
+                case BeanKey:
+                case TypeVector2:
+                case TypeVector2Int:
+                case TypeVector3:
+                case TypeVector3Int:
+                case TypeVector4:
+                case TypeQuaternion:
+                    return $"{var.NamePrivate} = {TypeName.GetName(type)}.ZERO";
+                default:
+                    throw new Exception("unsupported initial type: " + var.VariableType);
+            }
         }
 
         public Decode(Variable var, int id, string bufname, StreamWriter sw, string prefix)

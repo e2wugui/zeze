@@ -265,8 +265,9 @@ namespace Zeze.Builtin.Collections.LinkedMap
 
         public override void ClearParameters()
         {
+            PrevNodeId = 0;
+            NextNodeId = 0;
             Values.Clear();
         }
-
     }
 }

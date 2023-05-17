@@ -364,8 +364,8 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         {
             Root = "";
             Managers.Clear();
+            NextDepartmentId = 0;
             Childs.Clear();
         }
-
     }
 }

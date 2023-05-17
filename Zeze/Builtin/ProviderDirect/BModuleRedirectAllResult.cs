@@ -431,9 +431,12 @@ namespace Zeze.Builtin.ProviderDirect
 
         public override void ClearParameters()
         {
+            ModuleId = 0;
+            ServerId = 0;
+            SourceProvider = 0;
             MethodFullName = "";
+            SessionId = 0;
             Hashs.Clear();
         }
-
     }
 }

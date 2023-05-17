@@ -268,8 +268,8 @@ namespace Zeze.Builtin.Provider
         public override void ClearParameters()
         {
             LinkSids.Clear();
+            ProtocolType = 0;
             ProtocolWholeData = Zeze.Net.Binary.Empty;
         }
-
     }
 }

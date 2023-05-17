@@ -147,13 +147,13 @@ namespace Zeze.Gen.javadata
 
         public void Visit(Bean type)
         {
-            sw.WriteLine(prefix + varName + $" = new {TypeName.GetName(type)}();");
+            sw.WriteLine(prefix + varName + $" = new {TypeName.GetName(type)}({variable.Initial});");
             // sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
         }
 
         public void Visit(BeanKey type)
         {
-            sw.WriteLine(prefix + varName + " = new " + TypeName.GetName(type) + "();");
+            sw.WriteLine(prefix + varName + $" = new {TypeName.GetName(type)}({variable.Initial});");
         }
 
         public void Visit(TypeDynamic type)
@@ -161,34 +161,42 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + varName + " = newDynamicBean_" + variable.NameUpper1 + "();");
         }
 
-        public void Visit(TypeQuaternion type)
+        void InitialVector(Type type)
         {
-            sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
+            if (variable.Initial.Length > 0)
+                sw.WriteLine(prefix + varName + " = new " + TypeName.GetName(type) + "(" + variable.Initial + ");");
+            else
+                sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector2 type)
         {
-            sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
+            InitialVector(type);
         }
 
         public void Visit(TypeVector2Int type)
         {
-            sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
+            InitialVector(type);
         }
 
         public void Visit(TypeVector3 type)
         {
-            sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
+            InitialVector(type);
         }
 
         public void Visit(TypeVector3Int type)
         {
-            sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
+            InitialVector(type);
         }
 
         public void Visit(TypeVector4 type)
         {
-            sw.WriteLine(prefix + varName + " = " + TypeName.GetName(type) + ".ZERO;");
+            InitialVector(type);
+        }
+
+        public void Visit(TypeQuaternion type)
+        {
+            InitialVector(type);
         }
     }
 }

@@ -151,7 +151,7 @@ namespace Zeze.Builtin.AutoKey
 
         public override void ClearParameters()
         {
+            NextId = 0;
         }
-
     }
 }

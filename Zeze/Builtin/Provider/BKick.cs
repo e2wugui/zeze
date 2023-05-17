@@ -258,8 +258,9 @@ namespace Zeze.Builtin.Provider
 
         public override void ClearParameters()
         {
+            Linksid = 0;
+            Code = 0;
             Desc = "";
         }
-
     }
 }

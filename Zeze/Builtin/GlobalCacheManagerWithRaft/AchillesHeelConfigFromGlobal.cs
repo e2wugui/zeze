@@ -251,7 +251,9 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 
         public override void ClearParameters()
         {
+            MaxNetPing = 0;
+            ServerProcessTime = 0;
+            ServerReleaseTimeout = 0;
         }
-
     }
 }

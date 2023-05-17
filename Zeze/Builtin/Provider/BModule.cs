@@ -262,7 +262,9 @@ namespace Zeze.Builtin.Provider
 
         public override void ClearParameters()
         {
+            ChoiceType = 0;
+            ConfigType = 0;
+            SubscribeType = 0;
         }
-
     }
 }

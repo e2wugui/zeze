@@ -252,8 +252,9 @@ namespace Zeze.Builtin.ProviderDirect
 
         public override void ClearParameters()
         {
+            ModuleId = 0;
+            ServerId = 0;
             Params = Zeze.Net.Binary.Empty;
         }
-
     }
 }

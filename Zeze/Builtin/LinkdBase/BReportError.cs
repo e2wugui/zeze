@@ -259,8 +259,9 @@ namespace Zeze.Builtin.LinkdBase
 
         public override void ClearParameters()
         {
+            From = 0;
+            Code = 0;
             Desc = "";
         }
-
     }
 }

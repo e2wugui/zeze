@@ -1,14 +1,15 @@
-﻿using Zeze.Gen.Types;
+﻿using System.IO;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.ts
 {
     public class Construct : Visitor
     {
-		private System.IO.StreamWriter sw;
-		private Variable variable;
-		private string prefix;
+		private StreamWriter sw;
+		private readonly Variable variable;
+		private readonly string prefix;
 
-		public static void Make(Bean bean, System.IO.StreamWriter sw, string prefix)
+		public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
 			sw.WriteLine(prefix + "public constructor() {");
             foreach (var var in bean.Variables)
@@ -19,7 +20,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine();
         }
 
-        public Construct(System.IO.StreamWriter sw, Variable variable, string prefix)
+        public Construct(StreamWriter sw, Variable variable, string prefix)
 		{
 			this.sw = sw;
 			this.variable = variable;
@@ -36,14 +37,12 @@ namespace Zeze.Gen.ts
 
         public void Visit(Bean type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "this." + variable.Name + " = new " + typeName + "();");
+            sw.WriteLine(prefix + "this." + variable.Name + " = new " + TypeName.GetName(type) + "(" + variable.Initial + ");");
         }
 
         public void Visit(BeanKey type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "this." + variable.Name + " = new " + typeName + "();");
+            sw.WriteLine(prefix + "this." + variable.Name + " = new " + TypeName.GetName(type) + "(" + variable.Initial + ");");
         }
 
         public void Visit(TypeByte type)
@@ -86,8 +85,7 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeString type)
         {
-            string value = variable.Initial;
-            sw.WriteLine(prefix + "this." + variable.Name + " = \"" + value + "\";");
+            sw.WriteLine(prefix + "this." + variable.Name + " = \"" + variable.Initial + "\";");
         }
 
         public void Visit(TypeList type)
@@ -97,14 +95,12 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeSet type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "this." + variable.Name + " = new " + typeName + "();");
+            sw.WriteLine(prefix + "this." + variable.Name + " = new " + TypeName.GetName(type) + "();");
         }
 
         public void Visit(TypeMap type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "this." + variable.Name + " = new " + typeName + "();");
+            sw.WriteLine(prefix + "this." + variable.Name + " = new " + TypeName.GetName(type) + "();");
         }
 
         public void Visit(TypeFloat type)
@@ -119,41 +115,48 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeDynamic type)
         {
-            var bean = variable.Bean as Bean;
+            var bean = (Bean)variable.Bean;
             sw.WriteLine(prefix + "this." + variable.Name + " = new Zeze.DynamicBean("
                 + $"{bean.Space.Path("_", bean.Name)}.GetSpecialTypeIdFromBean_{variable.Id}, "
                 + $"{bean.Space.Path("_", bean.Name)}.CreateBeanFromSpecialTypeId_{variable.Id}"
                 + ");");
         }
 
+        public void InitialVector(Type type, string def)
+        {
+            string value = variable.Initial;
+            value = value.Length > 0 ? value : def;
+            sw.WriteLine($"{prefix}this.{variable.Name} = new {TypeName.GetName(type)}({value});");
+        }
+
         public void Visit(TypeVector2 type)
         {
-            sw.WriteLine(prefix + "this." + variable.Name + " = new Zeze.Vector2(0, 0);");
+            InitialVector(type, "0, 0");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            sw.WriteLine(prefix + "this." + variable.Name + " = new Zeze.Vector2(0, 0);");
+            InitialVector(type, "0, 0");
         }
 
         public void Visit(TypeVector3 type)
         {
-            sw.WriteLine(prefix + "this." + variable.Name + " = new Zeze.Vector3(0, 0, 0);");
+            InitialVector(type, "0, 0, 0");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            sw.WriteLine(prefix + "this." + variable.Name + " = new Zeze.Vector3(0, 0, 0);");
+            InitialVector(type, "0, 0, 0");
         }
 
         public void Visit(TypeVector4 type)
         {
-            sw.WriteLine(prefix + "this." + variable.Name + " = new Zeze.Vector4(0, 0, 0, 0);");
+            InitialVector(type, "0, 0, 0, 0");
         }
 
         public void Visit(TypeQuaternion type)
         {
-            sw.WriteLine(prefix + "this." + variable.Name + " = new Zeze.Vector4(0, 0, 0, 0);");
+            InitialVector(type, "0, 0, 0, 0");
         }
     }
 }

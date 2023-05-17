@@ -406,11 +406,12 @@ namespace Zeze.Builtin.Provider
 
         public override void ClearParameters()
         {
+            LinkSid = 0;
             Account = "";
+            ProtocolType = 0;
             ProtocolData = Zeze.Net.Binary.Empty;
             Context = "";
             Contextx = Zeze.Net.Binary.Empty;
         }
-
     }
 }

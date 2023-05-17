@@ -305,7 +305,10 @@ namespace Zeze.Builtin.Provider
 
         public override void ClearParameters()
         {
+            Online = 0;
+            ProposeMaxOnline = 0;
+            OnlineNew = 0;
+            Overload = 0;
         }
-
     }
 }

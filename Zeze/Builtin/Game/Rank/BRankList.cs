@@ -165,6 +165,5 @@ namespace Zeze.Builtin.Game.Rank
         {
             RankList.Clear();
         }
-
     }
 }

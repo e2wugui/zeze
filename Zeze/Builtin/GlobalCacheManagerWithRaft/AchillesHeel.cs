@@ -252,8 +252,9 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 
         public override void ClearParameters()
         {
+            ServerId = 0;
             SecureKey = "";
+            GlobalCacheManagerHashIndex = 0;
         }
-
     }
 }

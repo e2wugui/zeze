@@ -45,40 +45,24 @@ namespace Zeze.Gen.confcs
 		{
             string value = variable.Initial;
 			if (value.Length > 0)
-			{
-                string varname = variable.NameUpper1;
-				sw.WriteLine(prefix + varname + " = " + value + ";");
-			}
+				sw.WriteLine(prefix + variable.NameUpper1 + " = " + value + ";");
 		}
 
         void InitialNew(Type type)
         {
             string value = variable.Initial;
             if (value.Length > 0)
-            {
-                string varname = variable.NameUpper1;
-                sw.WriteLine($"{prefix}{varname} = new {TypeName.GetName(type)}({value});");
-            }
+                sw.WriteLine($"{prefix}{variable.NameUpper1} = new {TypeName.GetName(type)}({value});");
         }
 
         public void Visit(Bean type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NameUpper1 + " = new " + typeName + "();");
+            sw.WriteLine($"{prefix}{variable.NameUpper1} = new {TypeName.GetName(type)}({variable.Initial});");
         }
 
         public void Visit(BeanKey type)
         {
-            string value = variable.Initial;
-            if (value.Length > 0)
-            {
-                string varname = variable.NameUpper1;
-                sw.WriteLine($"{prefix}{varname} = new {TypeName.GetName(type)}({value});");
-            }
-            else
-            {
-                sw.WriteLine($"{prefix}{variable.NameUpper1} = new {TypeName.GetName(type)}();");
-            }
+            sw.WriteLine($"{prefix}{variable.NameUpper1} = new {TypeName.GetName(type)}({variable.Initial});");
         }
 
         public void Visit(TypeByte type)
@@ -113,9 +97,7 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeString type)
         {
-            string value = variable.Initial;
-            string varname = variable.NameUpper1;
-            sw.WriteLine(prefix + varname + " = \"" + value + "\";");
+            sw.WriteLine(prefix + variable.NameUpper1 + " = \"" + variable.Initial + "\";");
         }
 
         public void Visit(TypeList type)
