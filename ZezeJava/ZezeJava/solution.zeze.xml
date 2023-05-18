@@ -820,8 +820,8 @@
 					<variable id="2" name="eventType" type="dynamic">
 						<value bean="BAcceptTaskEvent"/> 接任务专用Bean
 						<value bean="BSubmitTaskEvent"/> 交任务专用Bean
-                        <value bean="BSpecificTaskEvent"/> 交给特定任务的事件（如NPC对话选择任务）
-                        <value bean="BBroadcastTaskEvent"/> 广播给所有任务的事件（如击杀怪物的任务）
+						<value bean="BSpecificTaskEvent"/> 交给特定任务的事件（如NPC对话选择任务）
+						<value bean="BBroadcastTaskEvent"/> 广播给所有任务的事件（如击杀怪物的任务）
 					</variable>
 					<variable id="3" name="eventBean" type="dynamic"> 用于携带各种不同的TaskEvent/PhaseEvent/ConditionEvent，TriggerTaskEvent这个rpc会自动转发
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
@@ -835,10 +835,10 @@
 					<variable id="1" name="taskId" type="long"/>
 				</bean>
 				<bean name="BSpecificTaskEvent">
-                    <variable id="1" name="taskId" type="long"/>
+					<variable id="1" name="taskId" type="long"/>
 				</bean>
 				<bean name="BBroadcastTaskEvent">
-                    <variable id="1" name="isBreakIfAccepted" type="bool"/>
+					<variable id="1" name="isBreakIfAccepted" type="bool"/>
 				</bean>
 				<enum name="TaskResultFailure" value="0"/> 使用二进制bit返回值，允许多重result返回。 1代表执行成功。
 				<enum name="TaskResultSuccess" value="1"/>
@@ -908,11 +908,11 @@
 					<variable id="5" name="radius" type="double"/>
 					<variable id="6" name="Reached" type="bool"/>
 				</bean>
-                <bean name="BTConditionReachPositionEvent">
+				<bean name="BTConditionReachPositionEvent">
 					<variable id="1" name="x" type="double"/>
 					<variable id="2" name="y" type="double"/>
 					<variable id="3" name="z" type="double"/>
-                </bean>
+				</bean>
 				<!-- 内置条件类型：NPC对话-->
 				<bean name="BTConditionNPCTalk">
 					<variable id="3" name="npcId" type="long"/>
@@ -1325,7 +1325,7 @@
 				<enum name="eManagerNotFound" value="5"/>
 				<enum name="eSplittingBucketExist" value="6"/>
 				<enum name="eTooFewManager" value="7"/>
-				
+
 				<!--
 				Dbh2发现桶没找到错误时，使用GetBuckets得到完整的信息。
 				因为只LocateBucket最新的桶信息虽然能用，但是出现桶没找到错误时，通常意味着前一个桶的信息也需要更新。
@@ -1345,7 +1345,7 @@
 				</bean>
 				<external bean="Zeze.Dbh2.Master.MasterTable" />
 				<rpc name="GetBuckets" argument="BGetBuckets" result="Zeze.Dbh2.Master.MasterTable" UseData="true" handle="server"/>
-				
+
 				<bean name="BCreateDatabase">
 					<variable id="1" name="Database" type="string"/>
 				</bean>
@@ -1376,13 +1376,13 @@
 					<variable id="1" name="Count" type="int"/>
 				</bean>
 				<rpc name="ReportBucketCount" argument="BBucketCount" UseData="true" handle="server"/>
-				
+
 				<bean name="BEndSplit">
 					<variable id="1" name="From" type="Zeze.Builtin.Dbh2.BBucketMeta"/>
 					<variable id="2" name="To" type="Zeze.Builtin.Dbh2.BBucketMeta"/>
 				</bean>
 				<rpc name="EndSplit" argument="BEndSplit" UseData="true" handle="server"/>
-				
+
 				<rpc name="CheckFreeManager" result="BBucketCount" UseData="true" handle="server"/>
 			</module>
 
@@ -1441,7 +1441,7 @@
 			<rpc name="PrepareBatch" argument="BPrepareBatch" result="BRefused" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			<rpc name="CommitBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			<rpc name="UndoBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
-			
+
 			<module name="Commit" id="11028" DefaultTransactionLevel="None">
 				<enum name="eCommitNotExist" value="0"/>
 				<enum name="ePreparing" value="1"/>
@@ -1461,8 +1461,31 @@
 			</module>
 		</module>
 
+		<module name="Token" id="11029" UseData="true" DefaultTransactionLevel="None">
+			<bean name="BNewTokenArg">
+				<variable id="1" name="context" type="binary"/> token绑定的自定义上下文
+				<variable id="2" name="ttl"     type="long"/> 存活时长(毫秒). 超时会被自动清除token及绑定的所有状态
+			</bean>
+			<bean name="BNewTokenRes">
+				<variable id="1" name="token" type="string"/> 新分配的token. RPC回复成功时有效,否则返回空串
+			</bean>
+
+			<bean name="BGetTokenArg">
+				<variable id="1" name="token"    type="string"/> 请求token
+				<variable id="2" name="maxCount" type="long"/> 此值＞0且请求token次数(包括当前请求)≥此值时,服务器会清除此token及绑定的所有状态(当前请求仍然能正常获得)
+			</bean>
+			<bean name="BGetTokenRes">
+				<variable id="1" name="context" type="binary"/> token绑定的自定义上下文. token已失效(状态已清除)时为空
+				<variable id="2" name="count"   type="long"/> 此token已被GetToken访问的次数(包括当前访问). token已失效(状态已清除)时为0
+				<variable id="3" name="time"    type="long"/> 此token已存活时间(毫秒). token已失效(状态已清除)时为-1
+			</bean>
+
+			<rpc name="NewToken" argument="BNewTokenArg" result="BNewTokenRes" handle="server"/> 申请新token
+			<rpc name="GetToken" argument="BGetTokenArg" result="BGetTokenRes" handle="server"/> 获取token状态(也可用于验证和删除token)
+		</module>
+
 		<!--
-		可用id范围 [11029, 11100) [11102, 11999]
+		可用id范围 [11030, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
@@ -1666,4 +1689,9 @@
 		</service>
 	</component>
 
+	<component name="Token" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Token"/>
+		</service>
+	</component>
 </solution>
