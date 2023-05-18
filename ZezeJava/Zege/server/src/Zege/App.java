@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
+import javax.faces.component.html.HtmlPanelGrid;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderDirect;
@@ -108,6 +109,7 @@ public class App extends Zeze.AppBase {
 	public void Stop() throws Exception {
 		if (Provider != null)
 			Provider.stop();
+		HttpServer.close();
 		stopService(); // 关闭网络
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null)

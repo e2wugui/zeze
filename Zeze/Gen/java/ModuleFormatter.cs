@@ -579,21 +579,22 @@ namespace Zeze.Gen.java
                 return;
 
             var httpVar = writtenHeader ? "App.HttpServer" : "httpServer";
+
+            if (!writtenHeader)
+            {
+                writtenHeader = true;
+                sw.WriteLine();
+                sw.WriteLine("    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {");
+                sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
+            }
+            else if (!defReflect)
+            {
+                defReflect = true;
+                sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
+            }
+
             foreach (var s in module.Servlets.Values)
             {
-                if (!writtenHeader)
-                {
-                    writtenHeader = true;
-                    sw.WriteLine();
-                    sw.WriteLine("    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {");
-                    sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
-                    defReflect = true;
-                }
-                else if (!defReflect)
-                {
-                    defReflect = true;
-                    sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
-                }
                 var path = module.WebPathBase.Length > 0 ? module.WebPathBase + s.Name : "/" + module.Path("/", s.Name);
                 sw.WriteLine($"        {httpVar}.addHandler(\"{path}\", {s.MaxContentLength},");
                 sw.WriteLine($"                _reflect.getTransactionLevel(\"OnServlet{s.Name}\", Zeze.Transaction.TransactionLevel.{s.TransactionLevel}),");

@@ -68,10 +68,19 @@ public class HttpExchange {
 	private short idleTime; // 当前统计的idle时间(秒)
 	private boolean willCloseConnection; // true表示close时会关闭连接
 	private boolean inStreamMode; // 是否在流/WebSocket模式过程中
+	private Object userState;
 
 	public HttpExchange(HttpServer server, ChannelHandlerContext context) {
 		this.server = server;
 		this.context = context;
+	}
+
+	public Object getUserState() {
+		return userState;
+	}
+
+	public void setUserState(Object userState) {
+		this.userState = userState;
 	}
 
 	public boolean isActive() {
