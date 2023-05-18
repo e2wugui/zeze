@@ -18,7 +18,12 @@ namespace Zeze {
 		Vector2(const Vector2& v) : x(v.x), y(v.y) {}
 		Vector2(const Vector2Int& v);
 
-		virtual bool isZero() const {
+		void Set(float x_, float y_) {
+			x = x_;
+			y = y_;
+		}
+
+		virtual bool IsZero() const {
 			return x == 0 && y == 0;
 		}
 
@@ -38,6 +43,11 @@ namespace Zeze {
 		Vector2Int(const Vector2& v) : x((int)v.x), y((int)v.y) {}
 		Vector2Int(const Vector2Int& v) : x(v.x), y(v.y) {}
 
+		void Set(int x_, int y_) {
+			x = x_;
+			y = y_;
+		}
+
 		int CompareTo(const Vector2Int& other) const {
 			if (&other == this)
 				return 0;
@@ -53,7 +63,7 @@ namespace Zeze {
 			return CompareTo(other) < 0;
 		}
 
-		virtual bool isZero() const {
+		virtual bool IsZero() const {
 			return x == 0 && y == 0;
 		}
 
@@ -76,7 +86,13 @@ namespace Zeze {
 		Vector3(const Vector3& v) : Vector3(v.x, v.y, v.z) {}
 		Vector3(const Vector3Int& v);
 
-		virtual bool isZero() const override {
+		void Set(float x_, float y_, float z_) {
+			x = x_;
+			y = y_;
+			z = z_;
+		}
+
+		virtual bool IsZero() const override {
 			return x == 0 && y == 0 && z == 0;
 		}
 
@@ -97,8 +113,10 @@ namespace Zeze {
 		Vector3Int(const Vector3& v) : Vector2Int((int)v.x, (int)v.y), z((int)v.z) {}
 		Vector3Int(const Vector3Int& v) : Vector2Int(v.x, v.y), z(v.z) {}
 
-		virtual bool isZero() const override {
-			return x == 0 && y == 0 && z == 0;
+		void Set(int x_, int y_, int z_) {
+			x = x_;
+			y = y_;
+			z = z_;
 		}
 
 		int CompareTo(const Vector3Int& other) const {
@@ -119,6 +137,10 @@ namespace Zeze {
 			return CompareTo(other) < 0;
 		}
 
+		virtual bool IsZero() const override {
+			return x == 0 && y == 0 && z == 0;
+		}
+
 		virtual void Encode(ByteBuffer& bb) const override;
 		virtual void Decode(ByteBuffer& bb) override;
 	};
@@ -137,7 +159,14 @@ namespace Zeze {
 		Vector4(const Vector3Int& v) : Vector3((float)v.x, (float)v.y, (float)v.z), w(0) {}
 		Vector4(const Vector4& v) : Vector3(v.x, v.y, v.z), w(v.w) {}
 
-		virtual bool isZero() const override {
+		void Set(float x_, float y_, float z_, float w_) {
+			x = x_;
+			y = y_;
+			z = z_;
+			w = w_;
+		}
+
+		virtual bool IsZero() const override {
 			return x == 0 && y == 0 && z == 0 && w == 0;
 		}
 

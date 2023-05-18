@@ -300,7 +300,7 @@ namespace Zeze.Gen.java
                         if (!defReflect && isFirst)
                         {
                             defReflect = true;
-                            sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(this.getClass());");
+                            sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
                         }
                         string fullName = p.Space.Path(".", p.Name);
                         sw.WriteLine("        {");
@@ -587,6 +587,7 @@ namespace Zeze.Gen.java
                     sw.WriteLine();
                     sw.WriteLine("    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {");
                     sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
+                    defReflect = true;
                 }
                 else if (!defReflect)
                 {

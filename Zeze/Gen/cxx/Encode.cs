@@ -305,7 +305,7 @@ namespace Zeze.Gen.cxx
             if (id > 0)
             {
                 sw.WriteLine(prefix + "const auto& _x_ = " + var.NameUpper1 + ';');
-                sw.WriteLine(prefix + "if (!_x_.isZero()) {");
+                sw.WriteLine(prefix + "if (!_x_.IsZero()) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".Write" + typeName + "(_x_);");
                 sw.WriteLine(prefix + "}");

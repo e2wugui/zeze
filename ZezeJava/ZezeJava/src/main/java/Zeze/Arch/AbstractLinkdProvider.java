@@ -12,7 +12,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
     @Override public boolean isBuiltin() { return true; }
 
     public void RegisterProtocols(Zeze.Net.Service service) {
-        var _reflect = new Zeze.Util.Reflect(this.getClass());
+        var _reflect = new Zeze.Util.Reflect(getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.AnnounceProviderInfo.class, Zeze.Builtin.Provider.AnnounceProviderInfo.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.AnnounceProviderInfo::new;
