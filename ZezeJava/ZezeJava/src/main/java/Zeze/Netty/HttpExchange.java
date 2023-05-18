@@ -241,8 +241,10 @@ public class HttpExchange {
 				handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
 				return Procedure.Success;
 			}, "fireBeginStream"), null, null, handler.Mode);
-		} else
-			handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
+		} else {
+			Task.run(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]),
+					"fireBeginStream", handler.Mode);
+		}
 	}
 
 	private void fireStreamContentHandle(HttpContent c) throws Exception {
@@ -259,8 +261,9 @@ public class HttpExchange {
 				}
 				return Procedure.Success;
 			}, "fireStreamContentHandle"), null, null, handler.Mode);
-		} else
-			handle.onStreamContent(this, c);
+		} else {
+			Task.run(() -> handle.onStreamContent(this, c), "fireStreamContentHandle", handler.Mode);
+		}
 	}
 
 	@SuppressWarnings("ConstantConditions")
@@ -270,8 +273,9 @@ public class HttpExchange {
 				handler.EndStreamHandle.onEndStream(this);
 				return Procedure.Success;
 			}, "fireEndStreamHandle"), null, null, handler.Mode);
-		} else
-			handler.EndStreamHandle.onEndStream(this);
+		} else {
+			Task.run(() -> handler.EndStreamHandle.onEndStream(this), "fireEndStreamHandle", handler.Mode);
+		}
 	}
 
 	private void fireWebSocket(WebSocketFrame frame) throws Exception {
@@ -285,8 +289,9 @@ public class HttpExchange {
 				}
 				return Procedure.Success;
 			}, "fireWebSocket"), null, null, handler.Mode);
-		} else
-			fireWebSocket0(frame);
+		} else {
+			Task.run(() -> fireWebSocket0(frame), "fireWebSocket", handler.Mode);
+		}
 	}
 
 	@SuppressWarnings("ConstantConditions")

@@ -257,13 +257,14 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
         }
 
+        bool defReflect = false; // 是否定义了_reflect变量。
+
         public void RegisterProtocols(StreamWriter sw, bool isFirst = true, string serviceVarName = null)
         {
             Service serv = module.ReferenceService;
             if (serv != null)
             {
                 var serviceVar = string.IsNullOrEmpty(serviceVarName) ? $"App.{serv.Name}" : serviceVarName;
-                bool defReflect = false;
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
                 foreach (Protocol p in module.Protocols.Values)
                 {
@@ -585,6 +586,11 @@ namespace Zeze.Gen.java
                     writtenHeader = true;
                     sw.WriteLine();
                     sw.WriteLine("    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {");
+                    sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
+                }
+                else if (!defReflect)
+                {
+                    defReflect = true;
                     sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
                 }
                 var path = module.WebPathBase.Length > 0 ? module.WebPathBase + s.Name : "/" + module.Path("/", s.Name);
