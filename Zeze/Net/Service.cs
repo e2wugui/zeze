@@ -379,13 +379,13 @@ namespace Zeze.Net
 
             public ProtocolPool ProtocolPool => _ProtocolPool;
 
-            public void SetupProtocolPool()
+            public void SetupProtocolPool(ProtocolPool.ReuseLevel level)
             {
                 lock (this)
                 {
                     if (null == _ProtocolPool)
                     {
-                        var tmp = new ProtocolPool(Handle);
+                        var tmp = new ProtocolPool(Handle, level);
                         Handle = tmp.Process; // 先设置，拦截处理。
                         _ProtocolPool = tmp;
                     }

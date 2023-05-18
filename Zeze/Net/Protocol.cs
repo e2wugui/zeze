@@ -161,7 +161,7 @@ namespace Zeze.Net
             return p;
         }
 
-        public abstract void ClearParameters();
+        public abstract void ClearParameters(ProtocolPool.ReuseLevel level);
 
         /// <summary>
         /// moduleId[4] + protocolId[4] + size[4] + protocol.bytes[size]
@@ -275,9 +275,18 @@ namespace Zeze.Net
             return $"{GetType().FullName} ResultCode={ResultCode}{Environment.NewLine}  Argument={Argument}";
         }
 
-        public override void ClearParameters()
+        public override void ClearParameters(ProtocolPool.ReuseLevel level)
         {
-            Argument.ClearParameters();
+            switch (level)
+            {
+                case ProtocolPool.ReuseLevel.Protocol:
+                    Argument = new TArgument();
+                    break;
+
+                case ProtocolPool.ReuseLevel.Bean:
+                    Argument.ClearParameters();
+                    break;
+            }
         }
     }
 }

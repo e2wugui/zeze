@@ -283,10 +283,20 @@ namespace Zeze.Net
             return $"{GetType().FullName} SessionId={SessionId} ResultCode={ResultCode}{Environment.NewLine}  Argument={Argument}{Environment.NewLine}  Result={Result}";
         }
 
-        public override void ClearParameters()
+        public override void ClearParameters(ProtocolPool.ReuseLevel level)
         {
-            Argument.ClearParameters();
-            Result.ClearParameters();
+            switch (level)
+            {
+                case ProtocolPool.ReuseLevel.Protocol:
+                    Argument = new TArgument();
+                    Result = new TResult();
+                    break;
+
+                case ProtocolPool.ReuseLevel.Bean:
+                    Argument.ClearParameters();
+                    Result.ClearParameters();
+                    break;
+            }
         }
     }
 }
