@@ -580,17 +580,20 @@ namespace Zeze.Gen.java
 
             var httpVar = writtenHeader ? "App.HttpServer" : "httpServer";
 
-            if (!writtenHeader)
+            if (module.Servlets.Count > 0 || module.ServletStreams.Count > 0)
             {
-                writtenHeader = true;
-                sw.WriteLine();
-                sw.WriteLine("    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {");
-                sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
-            }
-            else if (!defReflect)
-            {
-                defReflect = true;
-                sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
+                if (!writtenHeader)
+                {
+                    writtenHeader = true;
+                    sw.WriteLine();
+                    sw.WriteLine("    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {");
+                    sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
+                }
+                else if (!defReflect)
+                {
+                    defReflect = true;
+                    sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
+                }
             }
 
             foreach (var s in module.Servlets.Values)
