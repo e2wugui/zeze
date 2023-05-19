@@ -260,7 +260,7 @@ public class HttpExchange {
 				server.task11Executor.Execute(context.channel().id(), p,null, handler.Mode);
 		} else {
 			if (handler.Mode == DispatchMode.Direct)
-				handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
+				Task.call(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]), "fireBeginStream");
 			else
 				server.task11Executor.Execute(context.channel().id(),
 					() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]),
