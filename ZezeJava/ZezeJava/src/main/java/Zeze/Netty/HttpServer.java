@@ -17,6 +17,7 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.ChannelInputShutdownEvent;
 import io.netty.channel.socket.ChannelInputShutdownReadComplete;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.util.ReferenceCountUtil;
@@ -109,7 +110,12 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		try {
-			exchanges.computeIfAbsent(ctx, this::createHttpExchange).channelRead(msg);
+			HttpExchange exchange;
+			if (msg instanceof HttpRequest)
+				exchanges.put(ctx, exchange = createHttpExchange(ctx));
+			else
+				exchange = exchanges.computeIfAbsent(ctx, this::createHttpExchange);
+			exchange.channelRead(msg);
 		} finally {
 			ReferenceCountUtil.release(msg);
 		}
