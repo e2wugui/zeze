@@ -3,6 +3,8 @@ package Zeze.Transaction;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Collections.CollOne;
+import Zeze.Transaction.Collections.Collection;
 import Zeze.Transaction.Collections.LogBean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -41,6 +43,14 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 
 	@SuppressWarnings("deprecation")
 	private void setBeanWithSpecialTypeId(long specialTypeId, @NotNull Bean bean) {
+		if (bean instanceof DynamicBean) // 不允许嵌套放入DynamicBean,否则序列化会输出错误的数据流
+			bean = ((DynamicBean)bean).getBean();
+		if (bean instanceof Collection) {
+			if (bean instanceof CollOne)
+				bean = ((CollOne<?>)bean).getValue();
+			else
+				throw new IllegalStateException("can not set Collection Bean into DynamicBean");
+		}
 		if (!isManaged()) {
 			typeId = specialTypeId;
 			this.bean = bean;

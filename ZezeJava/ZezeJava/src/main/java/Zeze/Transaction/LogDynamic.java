@@ -1,14 +1,16 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Collections.CollOne;
+import Zeze.Transaction.Collections.Collection;
 import Zeze.Transaction.Collections.LogBean;
 
 public class LogDynamic extends LogBean {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.LogDynamic");
 
-	public long specialTypeId;
-	public Bean value;
-	public LogBean logBean;
+	long specialTypeId;
+	Bean value;
+	LogBean logBean;
 
 	@Override
 	public int getTypeId() {
@@ -87,8 +89,17 @@ public class LogDynamic extends LogBean {
 			try {
 				var parentType = Class.forName(parentTypeName);
 				var factory = parentType.getMethod("CreateBeanFromSpecialTypeId_" + varId, Long.class);
-				value = (Bean)factory.invoke(null, new Object[]{specialTypeId});
-				value.decode(bb);
+				var bean = (Bean)factory.invoke(null, new Object[]{specialTypeId});
+				if (bean instanceof DynamicBean)
+					bean = ((DynamicBean)bean).getBean();
+				if (bean instanceof Collection) {
+					if (bean instanceof CollOne)
+						bean = ((CollOne<?>)bean).getValue();
+					else
+						throw new IllegalStateException("can not set Collection Bean into LogDynamic");
+				}
+				bean.decode(bb);
+				value = bean;
 			} catch (Exception ex) {
 				throw new RuntimeException(ex);
 			}

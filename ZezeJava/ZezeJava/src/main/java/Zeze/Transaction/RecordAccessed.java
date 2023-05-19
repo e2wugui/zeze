@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
 
 public final class RecordAccessed extends Bean {
 	public static final class PutLog extends Log1<RecordAccessed, Bean> {
@@ -47,10 +48,12 @@ public final class RecordAccessed extends Bean {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
+		bb.WriteByte(0);
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
+		bb.SkipUnknownField(ByteBuffer.BEAN);
 	}
 }
