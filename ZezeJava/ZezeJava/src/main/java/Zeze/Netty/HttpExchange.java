@@ -300,7 +300,7 @@ public class HttpExchange {
 			server.task11Executor.Execute(context.channel().id(),
 					() -> {
 						try {
-							handler.EndStreamHandle.onEndStream(this)
+							handler.EndStreamHandle.onEndStream(this);
 						} finally {
 							if (!detached)
 								close(null);
