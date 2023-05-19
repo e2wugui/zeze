@@ -114,11 +114,12 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		try {
+			var channelId = ctx.channel().id();
 			HttpExchange x;
 			if (msg instanceof HttpRequest)
-				exchanges.put(ctx.channel().id(), x = createHttpExchange(ctx));
-			else
-				x = exchanges.computeIfAbsent(ctx.channel().id(), (id) -> createHttpExchange(ctx));
+				exchanges.put(channelId, x = createHttpExchange(ctx));
+			else if ((x = exchanges.get(channelId)) == null)
+				return;
 			x.channelRead(msg);
 		} finally {
 			ReferenceCountUtil.release(msg);

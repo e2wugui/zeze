@@ -1,6 +1,8 @@
 package Zeze.Netty;
 
 import java.io.File;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.net.URLDecoder;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
@@ -59,6 +61,15 @@ public class HttpExchange {
 
 	private static final Pattern rangePattern = Pattern.compile("[ =\\-/]");
 	private static final OpenOption[] emptyOpenOptions = new OpenOption[0];
+	private static final VarHandle detachedHandle;
+
+	static {
+		try {
+			detachedHandle = MethodHandles.lookup().findVarHandle(HttpExchange.class, "detached", int.class);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	private final HttpServer server; // 所属的HttpServer对象,每个对象管理监听端口的所有连接
 	private ChannelHandlerContext context; // netty的连接上下文,每个连接可能会依次绑定到多个HttpExchange对象
@@ -70,7 +81,7 @@ public class HttpExchange {
 	private boolean willCloseConnection; // true表示close时会关闭连接
 	private boolean inStreamMode; // 是否在流/WebSocket模式过程中
 	private Object userState;
-	private boolean detached = false;
+	private volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
 
 	public HttpExchange(HttpServer server, ChannelHandlerContext context) {
 		this.server = server;
@@ -86,8 +97,7 @@ public class HttpExchange {
 	}
 
 	public boolean isActive() {
-		return server.exchanges.get(this.context.channel().id()) != null;
-		// return server.exchanges.contains(this); // 效率？
+		return request != null;
 	}
 
 	// 通常不需要获取context,只给特殊需要时使用netty内部的方法
@@ -253,16 +263,14 @@ public class HttpExchange {
 				handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
 				return Procedure.Success;
 			}, "fireBeginStream");
-
 			if (handler.Mode == DispatchMode.Direct)
 				Task.call(p);
 			else
-				server.task11Executor.Execute(context.channel().id(), p,null, handler.Mode);
+				server.task11Executor.Execute(context.channel().id(), p, null, handler.Mode);
+		} else if (handler.Mode == DispatchMode.Direct) {
+			Task.call(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]), "fireBeginStream");
 		} else {
-			if (handler.Mode == DispatchMode.Direct)
-				Task.call(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]), "fireBeginStream");
-			else
-				server.task11Executor.Execute(context.channel().id(),
+			server.task11Executor.Execute(context.channel().id(),
 					() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]),
 					"fireBeginStream", handler.Mode);
 		}
@@ -275,83 +283,129 @@ public class HttpExchange {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			c.retain();
 			var p = server.zeze.newProcedure(() -> {
+				handle.onStreamContent(this, c);
+				return Procedure.Success;
+			}, "fireStreamContentHandle");
+			if (handler.Mode == DispatchMode.Direct) {
+				try {
+					Task.call(p);
+				} finally {
+					c.release();
+				}
+			} else {
+				server.task11Executor.Execute(context.channel().id(), () -> {
+					try {
+						return p.call();
+					} finally {
+						c.release();
+					}
+				}, p.getActionName(), handler.Mode);
+			}
+		} else if (handler.Mode == DispatchMode.Direct) {
+			Task.call(() -> handle.onStreamContent(this, c), "fireStreamContentHandle");
+		} else {
+			c.retain();
+			server.task11Executor.Execute(context.channel().id(), () -> {
 				try {
 					handle.onStreamContent(this, c);
 				} finally {
 					c.release();
 				}
-				return Procedure.Success;
-			}, "fireStreamContentHandle");
-			if (handler.Mode == DispatchMode.Direct)
-				Task.call(p);
-			else
-				server.task11Executor.Execute(context.channel().id(), p, null, handler.Mode);
-		} else {
-			if (handler.Mode == DispatchMode.Direct)
-				Task.call(() -> handle.onStreamContent(this, c), "fireStreamContentHandle");
-			else {
-				c.retain();
-				server.task11Executor.Execute(context.channel().id(),
-						() -> {
-							try {
-								handle.onStreamContent(this, c);
-							} finally {
-								c.release();
-							}
-						}, "fireStreamContentHandle", handler.Mode);
-			}
+			}, "fireStreamContentHandle", handler.Mode);
 		}
 	}
 
 	public HttpExchange detach() {
-		detached = true;
+		detachedHandle.compareAndSet(this, 0, 1);
 		return this;
 	}
 
-	private long invokeEndStream() throws Exception {
+	private void invokeEndStream() throws Exception {
 		try {
-			if (handler.EndStreamHandle != null) {
-				handler.EndStreamHandle.onEndStream(this);
-			}
+			var handle = handler.EndStreamHandle;
+			if (handle != null)
+				handle.onEndStream(this);
 		} finally {
-			if (!detached)
+			if (detached == 0)
 				close(null);
 		}
-		return Procedure.Success;
 	}
 
 	@SuppressWarnings("ConstantConditions")
 	private void fireEndStreamHandle() throws Exception {
+		var handle = handler.EndStreamHandle;
+		if (handle == null) {
+			if (detached == 0)
+				close(null);
+			return;
+		}
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
-			var p = server.zeze.newProcedure(this::invokeEndStream, "fireEndStreamHandle");
-			if (handler.Mode == DispatchMode.Direct)
-				Task.call(p);
-			else
-				server.task11Executor.Execute(context.channel().id(), p, null, handler.Mode);
-		} else {
+			var p = server.zeze.newProcedure(() -> {
+				handle.onEndStream(this);
+				return Procedure.Success;
+			}, "fireEndStreamHandle");
 			if (handler.Mode == DispatchMode.Direct) {
-				Task.call(this::invokeEndStream, "fireEndStreamHandle");
+				try {
+					Task.call(p);
+				} finally {
+					if (detached == 0)
+						close(null);
+				}
 			} else {
-				server.task11Executor.Execute(context.channel().id(), this::invokeEndStream,
-						"fireEndStreamHandle", handler.Mode);
+				server.task11Executor.Execute(context.channel().id(), () -> {
+					try {
+						return p.call();
+					} finally {
+						if (detached == 0)
+							close(null);
+					}
+				}, p.getActionName(), handler.Mode);
 			}
+		} else if (handler.Mode == DispatchMode.Direct) {
+			Task.call(this::invokeEndStream, "fireEndStreamHandle");
+		} else {
+			server.task11Executor.Execute(context.channel().id(), this::invokeEndStream,
+					"fireEndStreamHandle", handler.Mode);
 		}
 	}
 
 	private void fireWebSocket(WebSocketFrame frame) throws Exception {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			frame.retain();
-			server.task11Executor.Execute(context.channel().id(), server.zeze.newProcedure(() -> {
+			var p = server.zeze.newProcedure(() -> {
 				try {
 					fireWebSocket0(frame);
 				} finally {
 					frame.release();
 				}
 				return Procedure.Success;
-			}, "fireWebSocket"), null, handler.Mode);
+			}, "fireWebSocket");
+			if (handler.Mode == DispatchMode.Direct) {
+				try {
+					Task.call(p);
+				} finally {
+					frame.release();
+				}
+			} else {
+				server.task11Executor.Execute(context.channel().id(), () -> {
+					try {
+						return p.call();
+					} finally {
+						frame.release();
+					}
+				}, p.getActionName(), handler.Mode);
+			}
+		} else if (handler.Mode == DispatchMode.Direct) {
+			Task.call(() -> fireWebSocket0(frame), "fireWebSocket");
 		} else {
-			server.task11Executor.Execute(context.channel().id(),
-					() -> fireWebSocket0(frame), "fireWebSocket", handler.Mode);
+			frame.retain();
+			server.task11Executor.Execute(context.channel().id(), () -> {
+				try {
+					fireWebSocket0(frame);
+				} finally {
+					frame.release();
+				}
+			}, "fireWebSocket", handler.Mode);
 		}
 	}
 
@@ -473,7 +527,9 @@ public class HttpExchange {
 	}
 
 	void close(int method, ChannelFuture cf) {
-		var removed = server.exchanges.remove(context.channel().id(), this); // 尝试删除,避免继续接收当前请求的消息
+		if ((int)detachedHandle.getAndSet(this, 2) == 2)
+			return;
+		server.exchanges.remove(context.channel().id(), this); // 尝试删除,避免继续接收当前请求的消息
 		if (method != CLOSE_FINISH) {
 			willCloseConnection = true;
 			Netty.logger.info("close({}): {}", method, context.channel().remoteAddress());

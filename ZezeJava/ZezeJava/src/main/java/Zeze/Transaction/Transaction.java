@@ -63,7 +63,6 @@ public final class Transaction {
 	private boolean alwaysReleaseLockWhenRedo;
 	private final ArrayList<Bean> redoBeans = new ArrayList<>();
 	private final ArrayList<Runnable> redoActions = new ArrayList<>();
-	private final ArrayList<Runnable> doneActions = new ArrayList<>();
 
 	private Transaction() {
 	}
@@ -98,7 +97,6 @@ public final class Transaction {
 		alwaysReleaseLockWhenRedo = false;
 		redoBeans.clear();
 		redoActions.clear();
-		doneActions.clear();
 	}
 
 	public void begin() {
@@ -151,20 +149,10 @@ public final class Transaction {
 		redoActions.forEach(Runnable::run); // redo action 不能抛出异常，否则终止事务。
 	}
 
-	private void triggerDoneActions() {
-		doneActions.forEach(Runnable::run);
-	}
-
 	public static void tryWhileRedo(@NotNull Runnable action) {
 		var txn = getCurrent();
 		if (null != txn)
 			txn.redoActions.add(action);
-	}
-
-	public static void tryWhileDone(@NotNull Runnable action) {
-		var txn = getCurrent();
-		if (null != txn)
-			txn.doneActions.add(action);
 	}
 
 	static void whileRedo(@NotNull Bean b) {
@@ -234,7 +222,6 @@ public final class Transaction {
 								if (checkResult == CheckResult.Success) {
 									if (result == Procedure.Success) {
 										finalCommit(procedure);
-										triggerDoneActions();
 										// 正常一次成功的不统计，用来观察redo多不多。
 										// 失败在 Procedure.cs 中的统计。
 										if (tryCount > 0) {
@@ -323,7 +310,6 @@ public final class Transaction {
 							actions.clear();
 							redoBeans.clear();
 							redoActions.clear();
-							doneActions.clear();
 							logActions.clear(); // retry 中间的日志不记录。
 
 							state = TransactionState.Running; // prepare to retry
