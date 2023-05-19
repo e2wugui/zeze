@@ -60,7 +60,7 @@ public class HttpExchange {
 	private static final OpenOption[] emptyOpenOptions = new OpenOption[0];
 
 	private final HttpServer server; // 所属的HttpServer对象,每个对象管理监听端口的所有连接
-	private final ChannelHandlerContext context; // netty的连接上下文,每个连接可能会依次绑定到多个HttpExchange对象
+	private ChannelHandlerContext context; // netty的连接上下文,每个连接可能会依次绑定到多个HttpExchange对象
 	private HttpRequest request; // 收到完整HTTP header部分会赋值
 	private HttpHandler handler; // 收到完整HTTP header部分会查找对应handler并赋值
 	private ByteBuf content = Unpooled.EMPTY_BUFFER; // 当前收集的HTTP body部分, 只用于非流模式
@@ -414,17 +414,23 @@ public class HttpExchange {
 			ReferenceCountUtil.release(request);
 			request = null;
 		}
-		if (willCloseConnection)
+		if (willCloseConnection && context != null) {
 			context.close();
+			context = null;
+		}
 	}
 
 	void close(int method, ChannelFuture cf) {
-		var removed = server.exchanges.remove(context, this);
+		server.exchanges.remove(context, this); // 尝试删除,避免继续接收当前请求的消息
 		if (method != CLOSE_FINISH) {
 			willCloseConnection = true;
 			Netty.logger.info("close({}): {}", method, context.channel().remoteAddress());
 		}
-		if (method >= CLOSE_FORCE) { // or CLOSE_TIMEOUT or CLOSE_PASSIVE
+		if (method <= CLOSE_ON_FLUSH) { // CLOSE_FINISH | CLOSE_ON_FLUSH
+			if (cf == null)
+				cf = context.writeAndFlush(Unpooled.EMPTY_BUFFER);
+			cf.addListener(__ -> closeInEventLoop());
+		} else {
 			var eventLoop = context.channel().eventLoop();
 			if (eventLoop.inEventLoop()) {
 				context.flush();
@@ -435,10 +441,7 @@ public class HttpExchange {
 					closeInEventLoop();
 				});
 			}
-		} else if (removed)
-			(cf != null ? cf : context.writeAndFlush(Unpooled.EMPTY_BUFFER)).addListener(__ -> closeInEventLoop());
-		else if (method == CLOSE_ON_FLUSH)
-			(cf != null ? cf : context.writeAndFlush(Unpooled.EMPTY_BUFFER)).addListener(__ -> context.close());
+		}
 	}
 
 	// 正常结束HttpExchange,不关闭连接
