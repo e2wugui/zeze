@@ -69,6 +69,7 @@ public class HttpExchange {
 	private boolean willCloseConnection; // true表示close时会关闭连接
 	private boolean inStreamMode; // 是否在流/WebSocket模式过程中
 	private Object userState;
+	private boolean detached = false;
 
 	public HttpExchange(HttpServer server, ChannelHandlerContext context) {
 		this.server = server;
@@ -278,16 +279,33 @@ public class HttpExchange {
 		}
 	}
 
+	public HttpExchange detach() {
+		detached = true;
+		return this;
+	}
+
 	@SuppressWarnings("ConstantConditions")
 	private void fireEndStreamHandle() throws Exception {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			server.task11Executor.Execute(context.channel().id(), server.zeze.newProcedure(() -> {
-				handler.EndStreamHandle.onEndStream(this);
+				try {
+					handler.EndStreamHandle.onEndStream(this);
+				} finally {
+					if (!detached)
+						close(null);
+				}
 				return Procedure.Success;
 			}, "fireEndStreamHandle"), null, handler.Mode);
 		} else {
 			server.task11Executor.Execute(context.channel().id(),
-					() -> handler.EndStreamHandle.onEndStream(this), "fireEndStreamHandle", handler.Mode);
+					() -> {
+						try {
+							handler.EndStreamHandle.onEndStream(this)
+						} finally {
+							if (!detached)
+								close(null);
+						}
+					}, "fireEndStreamHandle", handler.Mode);
 		}
 	}
 

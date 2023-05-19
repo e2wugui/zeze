@@ -58,6 +58,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 
 	@Override
 	public synchronized void close() {
+		task11Executor.shutdown(true);
 		if (scheduler == null)
 			return;
 		Netty.logger.info("close {}", getClass().getName());
