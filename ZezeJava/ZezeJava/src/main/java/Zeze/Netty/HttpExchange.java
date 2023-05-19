@@ -294,7 +294,7 @@ public class HttpExchange {
 				server.task11Executor.Execute(context.channel().id(),
 						() -> {
 							try {
-								handle.onStreamContent(this, c)
+								handle.onStreamContent(this, c);
 							} finally {
 								c.release();
 							}
@@ -310,7 +310,9 @@ public class HttpExchange {
 
 	private long invokeEndStream() throws Exception {
 		try {
-			handler.EndStreamHandle.onEndStream(this);
+			if (handler.EndStreamHandle != null) {
+				handler.EndStreamHandle.onEndStream(this);
+			}
 		} finally {
 			if (!detached)
 				close(null);
