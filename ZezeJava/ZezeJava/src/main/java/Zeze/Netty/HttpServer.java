@@ -117,8 +117,8 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 			if (msg instanceof HttpRequest)
 				exchanges.put(ctx.channel().id(), x = createHttpExchange(ctx));
 			else
-				exchange = exchanges.computeIfAbsent(ctx.channel().id(), (id) -> createHttpExchange(ctx));
-			exchange.channelRead(msg);
+				x = exchanges.computeIfAbsent(ctx.channel().id(), (id) -> createHttpExchange(ctx));
+			x.channelRead(msg);
 		} finally {
 			ReferenceCountUtil.release(msg);
 		}
