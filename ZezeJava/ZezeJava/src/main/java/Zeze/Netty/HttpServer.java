@@ -8,11 +8,13 @@ import Zeze.Application;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.FewModifyMap;
+import Zeze.Util.TaskOneByOneByKey;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelId;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.ChannelInputShutdownEvent;
 import io.netty.channel.socket.ChannelInputShutdownReadComplete;
@@ -30,7 +32,8 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	final String fileHome;
 	final int fileCacheSeconds;
 	final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
-	final ConcurrentHashMap<ChannelHandlerContext, HttpExchange> exchanges = new ConcurrentHashMap<>();
+	final ConcurrentHashMap<ChannelId, HttpExchange> exchanges = new ConcurrentHashMap<>();
+	final TaskOneByOneByKey task11Executor = new TaskOneByOneByKey();
 	private Future<?> scheduler;
 	private ChannelFuture channelFuture;
 
@@ -112,10 +115,10 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		try {
 			HttpExchange x;
 			if (msg instanceof HttpRequest)
-				exchanges.put(ctx, x = createHttpExchange(ctx));
-			else if ((x = exchanges.get(ctx)) == null)
-				return;
-			x.channelRead(msg);
+				exchanges.put(ctx.channel().id(), x = createHttpExchange(ctx));
+			else
+				exchange = exchanges.computeIfAbsent(ctx.channel().id(), (id) -> createHttpExchange(ctx));
+			exchange.channelRead(msg);
 		} finally {
 			ReferenceCountUtil.release(msg);
 		}
@@ -124,7 +127,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	@Override
 	public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
 		if (evt == ChannelInputShutdownEvent.INSTANCE) {
-			var x = exchanges.get(ctx);
+			var x = exchanges.get(ctx.channel().id());
 			if (x != null)
 				x.close(HttpExchange.CLOSE_PASSIVE, null);
 			else if (!ctx.channel().closeFuture().isDone()) {
@@ -133,7 +136,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 			}
 		} else if (evt == ChannelInputShutdownReadComplete.INSTANCE && !ctx.channel().closeFuture().isDone()) {
 			Netty.logger.info("inputClose: {}", ctx.channel().remoteAddress());
-			var x = exchanges.get(ctx);
+			var x = exchanges.get(ctx.channel().id());
 			if (x != null)
 				x.channelReadClosed();
 			else
@@ -156,7 +159,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
 		try {
 			Netty.logger.error("exceptionCaught from {}", ctx.channel().remoteAddress(), cause);
-			var x = exchanges.get(ctx);
+			var x = exchanges.get(ctx.channel().id());
 			if (x != null)
 				x.send500(cause); // 需要可配置，或者根据Debug|Release选择。
 		} finally {

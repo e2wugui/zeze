@@ -84,7 +84,8 @@ public class HttpExchange {
 	}
 
 	public boolean isActive() {
-		return server.exchanges.contains(this);
+		return server.exchanges.get(this.context.channel().id()) != null;
+		// return server.exchanges.contains(this); // 效率？
 	}
 
 	// 通常不需要获取context,只给特殊需要时使用netty内部的方法
@@ -246,12 +247,13 @@ public class HttpExchange {
 	private void fireBeginStream() throws Exception {
 		var r = parseRange(HttpHeaderNames.CONTENT_RANGE);
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
-			Task.run(server.zeze.newProcedure(() -> {
+			server.task11Executor.Execute(context.channel().id(), server.zeze.newProcedure(() -> {
 				handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
 				return Procedure.Success;
-			}, "fireBeginStream"), null, null, handler.Mode);
+			}, "fireBeginStream"),null, handler.Mode);
 		} else {
-			Task.run(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]),
+			server.task11Executor.Execute(context.channel().id(),
+					() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]),
 					"fireBeginStream", handler.Mode);
 		}
 	}
@@ -262,44 +264,47 @@ public class HttpExchange {
 			return;
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			c.retain();
-			Task.run(server.zeze.newProcedure(() -> {
+			server.task11Executor.Execute(context.channel().id(), server.zeze.newProcedure(() -> {
 				try {
 					handle.onStreamContent(this, c);
 				} finally {
 					c.release();
 				}
 				return Procedure.Success;
-			}, "fireStreamContentHandle"), null, null, handler.Mode);
+			}, "fireStreamContentHandle"), null, handler.Mode);
 		} else {
-			Task.run(() -> handle.onStreamContent(this, c), "fireStreamContentHandle", handler.Mode);
+			server.task11Executor.Execute(context.channel().id(),
+					() -> handle.onStreamContent(this, c), "fireStreamContentHandle", handler.Mode);
 		}
 	}
 
 	@SuppressWarnings("ConstantConditions")
 	private void fireEndStreamHandle() throws Exception {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
-			Task.run(server.zeze.newProcedure(() -> {
+			server.task11Executor.Execute(context.channel().id(), server.zeze.newProcedure(() -> {
 				handler.EndStreamHandle.onEndStream(this);
 				return Procedure.Success;
-			}, "fireEndStreamHandle"), null, null, handler.Mode);
+			}, "fireEndStreamHandle"), null, handler.Mode);
 		} else {
-			Task.run(() -> handler.EndStreamHandle.onEndStream(this), "fireEndStreamHandle", handler.Mode);
+			server.task11Executor.Execute(context.channel().id(),
+					() -> handler.EndStreamHandle.onEndStream(this), "fireEndStreamHandle", handler.Mode);
 		}
 	}
 
 	private void fireWebSocket(WebSocketFrame frame) throws Exception {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			frame.retain();
-			Task.run(server.zeze.newProcedure(() -> {
+			server.task11Executor.Execute(context.channel().id(), server.zeze.newProcedure(() -> {
 				try {
 					fireWebSocket0(frame);
 				} finally {
 					frame.release();
 				}
 				return Procedure.Success;
-			}, "fireWebSocket"), null, null, handler.Mode);
+			}, "fireWebSocket"), null, handler.Mode);
 		} else {
-			Task.run(() -> fireWebSocket0(frame), "fireWebSocket", handler.Mode);
+			server.task11Executor.Execute(context.channel().id(),
+					() -> fireWebSocket0(frame), "fireWebSocket", handler.Mode);
 		}
 	}
 
@@ -421,7 +426,7 @@ public class HttpExchange {
 	}
 
 	void close(int method, ChannelFuture cf) {
-		server.exchanges.remove(context, this); // 尝试删除,避免继续接收当前请求的消息
+		var removed = server.exchanges.remove(context.channel().id(), this); // 尝试删除,避免继续接收当前请求的消息
 		if (method != CLOSE_FINISH) {
 			willCloseConnection = true;
 			Netty.logger.info("close({}): {}", method, context.channel().remoteAddress());
