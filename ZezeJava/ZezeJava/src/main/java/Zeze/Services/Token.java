@@ -26,6 +26,12 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.Nullable;
 
+/*
+TODO:
+1. 避免token过多导致内存占用过高. 数据库化? 淘汰机制?
+2. token续期服务. 跟初始设置的ttl如何兼顾? 覆盖还是选最大值?
+3. 给客户端提供Agent封装方便使用.
+*/
 public final class Token extends AbstractToken {
 	static {
 		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
@@ -35,7 +41,36 @@ public final class Token extends AbstractToken {
 
 	private static final Logger logger = LogManager.getLogger(Token.class);
 	private static final int DEFAULT_PORT = 5003;
+	private static final int TOKEN_CHAR_USED = 62; // 10+26+26
+	private static final byte[] tokenCharTable = new byte[TOKEN_CHAR_USED];
 	private static final Token instance = new Token();
+
+	static {
+		int i = 0;
+		for (int b = '0'; b <= '9'; b++)
+			tokenCharTable[i++] = (byte)b;
+		for (int b = 'A'; b <= 'Z'; b++)
+			tokenCharTable[i++] = (byte)b;
+		for (int b = 'a'; b <= 'z'; b++)
+			tokenCharTable[i++] = (byte)b;
+	}
+
+	// 生成24个字符的Token字符串. 每个字符只会出现半角的数字和字母共62种. 24个半角字符的字符串正好占满3个64位,内存利用率高.
+	private String genToken() {
+		var tokenBytes = new byte[24];
+		var v = System.currentTimeMillis() / 1000;
+		for (int i = 0; i < 5; i++, v /= TOKEN_CHAR_USED)
+			tokenBytes[4 - i] = tokenCharTable[(int)(v % TOKEN_CHAR_USED)]; // 前5字节用来存秒单位的时间戳,避免过期后生成重复token的风险,29年内不会重复
+		var tmp16 = new byte[16];
+		tokenRandom.nextBytes(tmp16); // 一次生成16字节的安全随机数,下面分成2个64位整数使用
+		v = ByteBuffer.ToLong(tmp16, 0) & Long.MAX_VALUE;
+		for (int i = 0; i < 10; i++, v /= TOKEN_CHAR_USED)
+			tokenBytes[5 + i] = tokenCharTable[(int)(v % TOKEN_CHAR_USED)]; // 接下来10字节存第1个64位整数
+		v = ByteBuffer.ToLong(tmp16, 8) & Long.MAX_VALUE;
+		for (int i = 0; i < 9; i++, v /= TOKEN_CHAR_USED)
+			tokenBytes[15 + i] = tokenCharTable[(int)(v % TOKEN_CHAR_USED)]; // 最后9字节存第2个64位整数
+		return new String(tokenBytes, StandardCharsets.ISO_8859_1);
+	}
 
 	public static Token getInstance() {
 		return instance;
@@ -142,41 +177,6 @@ public final class Token extends AbstractToken {
 			service.stop();
 			service = null;
 		}
-	}
-
-	private static final int tokenCharCount = 62; // 10+26+26
-	private static final byte[] tokenCharTable = new byte[tokenCharCount];
-
-	static {
-		int i = 0;
-		for (int b = '0'; b <= '9'; b++)
-			tokenCharTable[i++] = (byte)b;
-		for (int b = 'A'; b <= 'Z'; b++)
-			tokenCharTable[i++] = (byte)b;
-		for (int b = 'a'; b <= 'z'; b++)
-			tokenCharTable[i++] = (byte)b;
-	}
-
-	private static void genToken5(byte[] out, @SuppressWarnings("SameParameterValue") int outIdx) {
-		var v = System.currentTimeMillis() / 1000;
-		for (int i = 0; i < 5; i++, v /= tokenCharCount)
-			out[outIdx++] = tokenCharTable[(int)(v % tokenCharCount)];
-	}
-
-	private void genToken10(byte[] tmp8, byte[] out, int outIdx) {
-		tokenRandom.nextBytes(out);
-		var v = ByteBuffer.ToLong(tmp8, 0) & Long.MAX_VALUE;
-		for (int i = 0; i < 10; i++, v /= tokenCharCount)
-			out[outIdx++] = tokenCharTable[(int)(v % tokenCharCount)];
-	}
-
-	private String genToken() {
-		var tokenBytes = new byte[25];
-		var tmp8 = new byte[8];
-		genToken5(tokenBytes, 0);
-		genToken10(tmp8, tokenBytes, 5);
-		genToken10(tmp8, tokenBytes, 15);
-		return new String(tokenBytes, StandardCharsets.ISO_8859_1);
 	}
 
 	@Override

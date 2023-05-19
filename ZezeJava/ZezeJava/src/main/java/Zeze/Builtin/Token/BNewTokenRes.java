@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTokenResReadOnly {
     public static final long TYPEID = 4376622442286005260L;
 
-    private String _token; // 新分配的token. RPC回复成功时有效,否则返回空串. 目前的设计是25个半角字符(大小写字母和数字组合)
+    private String _token; // 新分配的token. RPC回复成功时有效,否则返回空串. 目前的设计是24个半角字符(大小写字母和数字组合)
 
     @Override
     public String getToken() {
@@ -178,7 +178,7 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4376622442286005260L;
 
-    private String _token; // 新分配的token. RPC回复成功时有效,否则返回空串. 目前的设计是25个半角字符(大小写字母和数字组合)
+    private String _token; // 新分配的token. RPC回复成功时有效,否则返回空串. 目前的设计是24个半角字符(大小写字母和数字组合)
 
     public String getToken() {
         return _token;

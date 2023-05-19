@@ -1467,7 +1467,7 @@
 				<variable id="2" name="ttl"     type="long"/> 存活时长(毫秒). 超时会被自动清除token及绑定的所有状态
 			</bean>
 			<bean name="BNewTokenRes">
-				<variable id="1" name="token" type="string"/> 新分配的token. RPC回复成功时有效,否则返回空串. 目前的设计是25个半角字符(大小写字母和数字组合)
+				<variable id="1" name="token" type="string"/> 新分配的token. RPC回复成功时有效,否则返回空串. 目前的设计是24个半角字符(大小写字母和数字组合)
 			</bean>
 
 			<bean name="BGetTokenArg">
