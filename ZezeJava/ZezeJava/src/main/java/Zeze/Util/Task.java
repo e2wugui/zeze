@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Task {
 	public interface ILogAction {
@@ -99,8 +100,8 @@ public final class Task {
 		threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
 	}
 
-	public static synchronized boolean tryInitThreadPool(Application app, ExecutorService pool,
-														 ScheduledExecutorService scheduled) {
+	public static synchronized boolean tryInitThreadPool(@Nullable Application app, @Nullable ExecutorService pool,
+														 @Nullable ScheduledExecutorService scheduled) {
 		if (threadPoolDefault != null || threadPoolScheduled != null)
 			return false;
 

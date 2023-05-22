@@ -1477,7 +1477,7 @@
 			<bean name="BGetTokenRes">
 				<variable id="1" name="context" type="binary"/> token绑定的自定义上下文. token已失效(状态已清除)时为空
 				<variable id="2" name="count"   type="long"/> 此token已被GetToken访问的次数(包括当前访问). token已失效(状态已清除)时为0
-				<variable id="3" name="time"    type="long"/> 此token已存活时间(毫秒). token已失效(状态已清除)时为-1
+				<variable id="3" name="time"    type="long"/> 此token已存活时间(毫秒). token已失效(状态已清除)时为负值
 			</bean>
 
 			<rpc name="NewToken" argument="BNewTokenArg" result="BNewTokenRes" handle="server"/> 申请新token

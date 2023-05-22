@@ -227,7 +227,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				ss.setReceiveBufferSize(recvBufSize);
 			ss.bind(localEP, service.getSocketOptions().getBacklog());
 			service.onServerSocketBind(ss);
-			logger.info("Listen: {} for {}:{}", localEP, service.getClass().getName(), service.getName());
+			logger.info("Listen: [{}] {} for {}:{}", sessionId, localEP, service.getClass().getName(), service.getName());
 
 			timeThrottle = null;
 			selector = service.getSelectors().choice();
@@ -322,7 +322,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		inputBuffer = new BufferCodec();
 		outputBuffer = new OutputBuffer(selector);
 		selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值selectionKey和OnSocketAccept更先执行
-		logger.info("Accept: {} for {}:{} recvBuf={}, sendBuf={}", this, service.getClass().getName(),
+		logger.info("Accepted: {} for {}:{} recvBuf={}, sendBuf={}", this, service.getClass().getName(),
 				service.getName(), so.getReceiveBufferSize(), so.getSendBufferSize());
 		service.OnSocketAccept(this);
 		interestOps(0, SelectionKey.OP_READ);
@@ -335,7 +335,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private void doConnectSuccess(@NotNull SocketChannel sc) throws Exception {
 		var socket = sc.socket();
 		remoteAddress = socket.getRemoteSocketAddress();
-		logger.info("Connect: {} for {}:{} recvBuf={}, sendBuf={}", this, service.getClass().getName(),
+		logger.info("Connected: {} for {}:{} recvBuf={}, sendBuf={}", this, service.getClass().getName(),
 				service.getName(), socket.getReceiveBufferSize(), socket.getSendBufferSize());
 		if (acceptorOrConnector instanceof Connector)
 			((Connector)acceptorOrConnector).OnSocketConnected(this);
@@ -363,6 +363,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			Boolean noDelay = this.service.getSocketOptions().getNoDelay();
 			if (noDelay != null)
 				so.setTcpNoDelay(noDelay);
+			logger.info("Connect: [{}] {}:{} for {}:{}", sessionId,
+					hostNameOrAddress, port, service.getClass().getName(), service.getName());
 
 			timeThrottle = TimeThrottle.create(this.service.getSocketOptions());
 			selector = service.getSelectors().choice();
@@ -436,7 +438,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			inputCodecChain = chain;
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 1;
-			logger.info("SetInputSecurityCodec: {} decrypt={} decompress={}", this, encryptType, compressType);
+			logger.info("setInputSecurityCodec: {} decrypt={} decompress={}", this, encryptType, compressType);
 		});
 	}
 
@@ -470,7 +472,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			outputCodecChain = chain;
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 2;
-			logger.info("SetOutputSecurityCodec: {} compress={} encrypt={}", this, compressType, encryptType);
+			logger.info("setOutputSecurityCodec: {} compress={} encrypt={}", this, compressType, encryptType);
 		});
 	}
 

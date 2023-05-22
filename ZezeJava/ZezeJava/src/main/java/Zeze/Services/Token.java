@@ -6,31 +6,42 @@ import java.security.SecureRandom;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import Zeze.Builtin.Token.BGetTokenArg;
+import Zeze.Builtin.Token.BGetTokenRes;
+import Zeze.Builtin.Token.BNewTokenArg;
+import Zeze.Builtin.Token.BNewTokenRes;
+import Zeze.Builtin.Token.GetToken;
+import Zeze.Builtin.Token.NewToken;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
+import Zeze.Net.Rpc;
 import Zeze.Net.Selectors;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.ThreadFactoryWithName;
 import Zeze.Util.TimerFuture;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /*
 TODO:
 1. 避免token过多导致内存占用过高. 数据库化? 淘汰机制?
 2. token续期服务. 跟初始设置的ttl如何兼顾? 覆盖还是选最大值?
-3. 给客户端提供Agent封装方便使用.
 */
 public final class Token extends AbstractToken {
 	static {
@@ -43,7 +54,6 @@ public final class Token extends AbstractToken {
 	private static final int DEFAULT_PORT = 5003;
 	private static final int TOKEN_CHAR_USED = 62; // 10+26+26
 	private static final byte[] tokenCharTable = new byte[TOKEN_CHAR_USED];
-	private static final Token instance = new Token();
 
 	static {
 		int i = 0;
@@ -72,15 +82,69 @@ public final class Token extends AbstractToken {
 		return new String(tokenBytes, StandardCharsets.ISO_8859_1);
 	}
 
-	public static Token getInstance() {
-		return instance;
+	public static final class TokenClient extends Service {
+		private Connector connector;
+
+		public TokenClient(@Nullable Config config) {
+			super("TokenClient", config);
+			AddFactoryHandle(NewToken.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(NewToken::new, null,
+					TransactionLevel.None, DispatchMode.Direct)); // 11029, -633142956
+			AddFactoryHandle(GetToken.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(GetToken::new, null,
+					TransactionLevel.None, DispatchMode.Direct)); // 11029, -1570200909
+		}
+
+		@Override
+		public synchronized void start() throws Exception {
+			if (connector != null)
+				stop();
+			super.start();
+		}
+
+		public synchronized TokenClient start(@NotNull String host, int port) {
+			if (connector != null)
+				stop();
+			connector = new Connector(host, port, true);
+			connector.SetService(this);
+			connector.start();
+			return this;
+		}
+
+		@Override
+		public synchronized void stop() {
+			if (connector != null) {
+				connector.stop();
+				connector = null;
+			}
+		}
+
+		public void waitReady() {
+			connector.WaitReady();
+		}
+
+		public TaskCompletionSource<BNewTokenRes.Data> newToken(@Nullable Binary context, long ttl) {
+			return new NewToken(new BNewTokenArg.Data(context, ttl)).SendForWait(connector.getSocket());
+		}
+
+		public boolean newToken(@Nullable Binary context, long ttl,
+								ProtocolHandle<Rpc<BNewTokenArg.Data, BNewTokenRes.Data>> handler) {
+			return new NewToken(new BNewTokenArg.Data(context, ttl)).Send(connector.getSocket(), handler);
+		}
+
+		public TaskCompletionSource<BGetTokenRes.Data> getToken(@NotNull String token, long maxCount) {
+			return new GetToken(new BGetTokenArg.Data(token, maxCount)).SendForWait(connector.getSocket());
+		}
+
+		public boolean getToken(@NotNull String token, long maxCount,
+								ProtocolHandle<Rpc<BGetTokenArg.Data, BGetTokenRes.Data>> handler) {
+			return new GetToken(new BGetTokenArg.Data(token, maxCount)).Send(connector.getSocket(), handler);
+		}
 	}
 
-	private static final class TokenService extends Service {
+	private static final class TokenServer extends Service {
 		private AsyncSocket socket;
 
-		TokenService(Config config) {
-			super("TokenService", config);
+		TokenServer(Config config) {
+			super("TokenServer", config);
 		}
 
 		@Override
@@ -103,18 +167,6 @@ public final class Token extends AbstractToken {
 					so.close();
 				socketMap.clear();
 			}
-		}
-
-		@Override
-		public void OnSocketAccept(AsyncSocket so) throws Exception {
-			logger.info("OnSocketAccept: {}", so);
-			super.OnSocketAccept(so);
-		}
-
-		@Override
-		public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
-			logger.info("OnSocketClose: {}", so);
-			super.OnSocketClose(so, e);
 		}
 
 		@Override
@@ -154,20 +206,21 @@ public final class Token extends AbstractToken {
 
 	private final Random tokenRandom = new SecureRandom();
 	private final ConcurrentHashMap<String, TokenState> tokenMap = new ConcurrentHashMap<>();
-	private TokenService service;
+	private TokenServer service;
 	private TimerFuture<?> cleanTokenMapFuture;
 
-	public synchronized void start(@Nullable InetAddress addr, int port) {
+	public synchronized Token start(@Nullable InetAddress addr, int port) {
 		if (service != null)
-			return;
+			return this;
 
 		PerfCounter.instance.tryStartScheduledLog();
 
-		service = new TokenService(new Config().loadAndParse());
+		service = new TokenServer(new Config().loadAndParse());
 		RegisterProtocols(service);
 		service.start(addr, port);
 
 		cleanTokenMapFuture = Task.scheduleUnsafe(1000, 1000, this::cleanTokenMap);
+		return this;
 	}
 
 	public synchronized void stop() {
@@ -176,6 +229,15 @@ public final class Token extends AbstractToken {
 			tokenMap.clear();
 			service.stop();
 			service = null;
+		}
+	}
+
+	private void cleanTokenMap() {
+		var time = System.currentTimeMillis();
+		for (var e : tokenMap.entrySet()) {
+			var state = e.getValue();
+			if (time >= state.endTime)
+				tokenMap.remove(e.getKey(), state);
 		}
 	}
 
@@ -213,11 +275,11 @@ public final class Token extends AbstractToken {
 			var time = System.currentTimeMillis();
 			if (time >= state.endTime) {
 				tokenMap.remove(token, state);
-				res.setTime(-1);
+				res.setTime(-2);
 			} else {
 				var count = state.count + 1;
 				if (maxCount > 0 && count >= maxCount && !tokenMap.remove(token, state))
-					res.setTime(-1);
+					res.setTime(-3);
 				else {
 					state.count = count;
 					res.setContext(state.context);
@@ -228,15 +290,6 @@ public final class Token extends AbstractToken {
 		}
 		r.SendResultCode(0);
 		return Procedure.Success;
-	}
-
-	private void cleanTokenMap() {
-		var time = System.currentTimeMillis();
-		for (var e : tokenMap.entrySet()) {
-			var state = e.getValue();
-			if (time >= state.endTime)
-				tokenMap.remove(e.getKey(), state);
-		}
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -275,7 +328,7 @@ public final class Token extends AbstractToken {
 			Selectors.getInstance().add(threadCount - Selectors.getInstance().getCount());
 
 		logger.info("Token service start at {}:{}", ip != null ? ip : "", port);
-		instance.start(ip != null ? InetAddress.getByName(ip) : null, port);
+		new Token().start(ip != null ? InetAddress.getByName(ip) : null, port);
 		synchronized (Thread.currentThread()) {
 			Thread.currentThread().wait();
 		}

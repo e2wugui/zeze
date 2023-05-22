@@ -9,7 +9,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
 
     private Zeze.Net.Binary _context; // token绑定的自定义上下文. token已失效(状态已清除)时为空
     private long _count; // 此token已被GetToken访问的次数(包括当前访问). token已失效(状态已清除)时为0
-    private long _time; // 此token已存活时间(毫秒). token已失效(状态已清除)时为-1
+    private long _time; // 此token已存活时间(毫秒). token已失效(状态已清除)时为负值
 
     @Override
     public Zeze.Net.Binary getContext() {
@@ -281,7 +281,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private Zeze.Net.Binary _context; // token绑定的自定义上下文. token已失效(状态已清除)时为空
     private long _count; // 此token已被GetToken访问的次数(包括当前访问). token已失效(状态已清除)时为0
-    private long _time; // 此token已存活时间(毫秒). token已失效(状态已清除)时为-1
+    private long _time; // 此token已存活时间(毫秒). token已失效(状态已清除)时为负值
 
     public Zeze.Net.Binary getContext() {
         return _context;
