@@ -281,18 +281,14 @@ public class HttpExchange {
 		if (handle == null)
 			return;
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
-			c.retain();
 			var p = server.zeze.newProcedure(() -> {
 				handle.onStreamContent(this, c);
 				return Procedure.Success;
 			}, "fireStreamContentHandle");
-			if (handler.Mode == DispatchMode.Direct) {
-				try {
-					Task.call(p);
-				} finally {
-					c.release();
-				}
-			} else {
+			if (handler.Mode == DispatchMode.Direct)
+				Task.call(p);
+			else {
+				c.retain();
 				server.task11Executor.Execute(context.channel().id(), () -> {
 					try {
 						return p.call();
@@ -333,15 +329,11 @@ public class HttpExchange {
 
 	@SuppressWarnings("ConstantConditions")
 	private void fireEndStreamHandle() throws Exception {
-		var handle = handler.EndStreamHandle;
-		if (handle == null) {
-			if (detached == 0)
-				close(null);
-			return;
-		}
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			var p = server.zeze.newProcedure(() -> {
-				handle.onEndStream(this);
+				var handle = handler.EndStreamHandle;
+				if (handle != null)
+					handle.onEndStream(this);
 				return Procedure.Success;
 			}, "fireEndStreamHandle");
 			if (handler.Mode == DispatchMode.Direct) {
