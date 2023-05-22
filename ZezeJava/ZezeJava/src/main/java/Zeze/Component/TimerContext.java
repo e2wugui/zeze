@@ -2,6 +2,7 @@ package Zeze.Component;
 
 import Zeze.Builtin.Timer.*;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.EmptyBean;
 
 public class TimerContext {
 	public final Timer timer;
@@ -25,6 +26,8 @@ public class TimerContext {
 		timerId = bTimer.getTimerName();
 		timerName = bTimer.getHandleName();
 		customData = bTimer.getCustomData().getBean();
+		if (customData instanceof EmptyBean)
+			customData = null;
 		curTimeMills = cur;
 		nextExpectedTimeMills = next;
 		expectedTimeMills = expected;

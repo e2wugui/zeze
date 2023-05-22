@@ -1,14 +1,15 @@
 package UnitTest.Zeze.Component;
 
-import Zeze.Transaction.DynamicBean;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
+import org.jetbrains.annotations.NotNull;
 
-public class TestBean extends DynamicBean {
+public class TestBean extends Bean {
 	private boolean isServerLiving = true; // 模拟服务器连接是否存活
 
 	private int testValue;
 
 	public TestBean() {
-		super(0, value -> 0, value -> null);
 		testValue = 0;
 	}
 
@@ -26,5 +27,15 @@ public class TestBean extends DynamicBean {
 
 	public void loseConnection() {
 		isServerLiving = false;
+	}
+
+	@Override
+	public void encode(@NotNull ByteBuffer bb) {
+		bb.WriteInt(testValue);
+	}
+
+	@Override
+	public void decode(@NotNull ByteBuffer bb) {
+		testValue = bb.ReadInt();
 	}
 }
