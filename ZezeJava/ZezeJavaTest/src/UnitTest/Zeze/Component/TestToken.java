@@ -5,10 +5,18 @@ import java.util.concurrent.ExecutionException;
 import Zeze.Net.Binary;
 import Zeze.Services.Token;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class TestToken {
+	static {
+		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
+	}
+
+	private static final Logger logger = LogManager.getLogger(TestToken.class);
+
 	@Test
 	public void testToken() throws ExecutionException, InterruptedException {
 		Task.tryInitThreadPool(null, null, null);
@@ -18,6 +26,7 @@ public class TestToken {
 			tokenClient.waitReady();
 
 			var token = tokenClient.newToken(new Binary("abc"), 5000).get().getToken();
+			logger.info("token: '{}'", token);
 			Assert.assertEquals(24, token.length());
 
 			var res = tokenClient.getToken(token, 1).get();

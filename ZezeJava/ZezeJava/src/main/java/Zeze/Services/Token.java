@@ -66,7 +66,7 @@ public final class Token extends AbstractToken {
 	}
 
 	// 生成24个字符的Token字符串. 每个字符只会出现半角的数字和字母共62种. 24个半角字符的字符串正好占满3个64位,内存利用率高.
-	private String genToken() {
+	private @NotNull String genToken() {
 		var tokenBytes = new byte[24];
 		var v = System.currentTimeMillis() / 1000;
 		for (int i = 0; i < 5; i++, v /= TOKEN_CHAR_USED)
@@ -97,6 +97,11 @@ public final class Token extends AbstractToken {
 		public synchronized void start() throws Exception {
 			if (connector != null)
 				stop();
+			var cfg = getConfig();
+			int n = cfg.connectorCount();
+			if (n != 1)
+				throw new IllegalStateException("connectorCount = " + n + " != 1");
+			cfg.forEachConnector(c -> this.connector = c);
 			super.start();
 		}
 
@@ -121,27 +126,27 @@ public final class Token extends AbstractToken {
 			connector.WaitReady();
 		}
 
-		public TaskCompletionSource<BNewTokenRes.Data> newToken(@Nullable Binary context, long ttl) {
+		public @NotNull TaskCompletionSource<BNewTokenRes.Data> newToken(@Nullable Binary context, long ttl) {
 			return new NewToken(new BNewTokenArg.Data(context, ttl)).SendForWait(connector.getSocket());
 		}
 
 		public boolean newToken(@Nullable Binary context, long ttl,
-								ProtocolHandle<Rpc<BNewTokenArg.Data, BNewTokenRes.Data>> handler) {
+								@NotNull ProtocolHandle<Rpc<BNewTokenArg.Data, BNewTokenRes.Data>> handler) {
 			return new NewToken(new BNewTokenArg.Data(context, ttl)).Send(connector.getSocket(), handler);
 		}
 
-		public TaskCompletionSource<BGetTokenRes.Data> getToken(@NotNull String token, long maxCount) {
+		public @NotNull TaskCompletionSource<BGetTokenRes.Data> getToken(@NotNull String token, long maxCount) {
 			return new GetToken(new BGetTokenArg.Data(token, maxCount)).SendForWait(connector.getSocket());
 		}
 
 		public boolean getToken(@NotNull String token, long maxCount,
-								ProtocolHandle<Rpc<BGetTokenArg.Data, BGetTokenRes.Data>> handler) {
+								@NotNull ProtocolHandle<Rpc<BGetTokenArg.Data, BGetTokenRes.Data>> handler) {
 			return new GetToken(new BGetTokenArg.Data(token, maxCount)).Send(connector.getSocket(), handler);
 		}
 	}
 
 	private static final class TokenServer extends Service {
-		private AsyncSocket socket;
+		private @Nullable AsyncSocket socket;
 
 		TokenServer(Config config) {
 			super("TokenServer", config);
@@ -192,12 +197,12 @@ public final class Token extends AbstractToken {
 	}
 
 	private static final class TokenState {
-		final Binary context; // 绑定的上下文
+		final @NotNull Binary context; // 绑定的上下文
 		final long createTime; // 创建时间戳(毫秒)
 		final long endTime; // 失效时间戳(毫秒)
 		long count; // 已访问次数
 
-		TokenState(Binary context, long ttl) {
+		TokenState(@NotNull Binary context, long ttl) {
 			this.context = context;
 			this.createTime = System.currentTimeMillis();
 			this.endTime = createTime + ttl;
