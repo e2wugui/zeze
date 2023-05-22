@@ -8,6 +8,22 @@ public final class BitConverter {
 		return n + '0' + (((9 - n) >> 31) & ('A' - '9' - 1)); // 无分支,比查表快
 	}
 
+	public static @NotNull String toHexString(byte @NotNull [] bytes) {
+		return toHexString(bytes, 0, bytes.length);
+	}
+
+	public static @NotNull String toHexString(byte @NotNull [] bytes, int offset, int len) {
+		if (len <= 0)
+			return "";
+		var str = new byte[len * 2];
+		for (int i = 0, j = 0; i < len; i++) {
+			int b = bytes[offset + i];
+			str[j++] = (byte)BitConverter.num2Hex((b >> 4) & 0xf);
+			str[j++] = (byte)BitConverter.num2Hex(b & 0xf);
+		}
+		return new String(str, StandardCharsets.ISO_8859_1);
+	}
+
 	public static @NotNull String toString(byte @NotNull [] bytes, int offset, int len) {
 		if (len <= 0)
 			return "";

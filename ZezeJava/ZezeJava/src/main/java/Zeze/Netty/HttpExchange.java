@@ -92,6 +92,10 @@ public class HttpExchange {
 		return userState;
 	}
 
+	public boolean isClosed() {
+		return detached == 2;
+	}
+
 	public void setUserState(Object userState) {
 		this.userState = userState;
 	}
