@@ -9,7 +9,7 @@ import Zeze.Transaction.Collections.LogBean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class DynamicBean extends Bean implements DynamicBeanReadOnly {
+public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	@NotNull Bean bean;
 	long typeId;
 	private transient final @NotNull ToLongFunction<Bean> getBean;
@@ -24,7 +24,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public final @NotNull Bean getBean() {
+	public @NotNull Bean getBean() {
 		if (!isManaged())
 			return bean;
 		var txn = Transaction.getCurrentVerifyRead(this);
@@ -35,7 +35,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return log != null ? log.value : bean;
 	}
 
-	public final void setBean(@Nullable Bean bean) {
+	public void setBean(@Nullable Bean bean) {
 		if (bean == null)
 			bean = new EmptyBean();
 		setBeanWithSpecialTypeId(getBean.applyAsLong(bean), bean);
@@ -83,11 +83,11 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return getTypeId();
 	}
 
-	public final @NotNull ToLongFunction<Bean> getGetBean() {
+	public @NotNull ToLongFunction<Bean> getGetBean() {
 		return getBean;
 	}
 
-	public final @NotNull LongFunction<Bean> getCreateBean() {
+	public @NotNull LongFunction<Bean> getCreateBean() {
 		return createBean;
 	}
 
@@ -104,11 +104,11 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return bean;
 	}
 
-	public final void assign(@NotNull DynamicBean other) {
+	public void assign(@NotNull DynamicBean other) {
 		setBean(other.getBean().copy());
 	}
 
-	public final void assign(@NotNull DynamicBeanData other) {
+	public void assign(@NotNull DynamicBeanData other) {
 		setBean(other.getBean().toBean());
 	}
 
@@ -117,11 +117,11 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		assign((DynamicBeanData)data);
 	}
 
-	public final boolean isEmpty() {
+	public boolean isEmpty() {
 		return getTypeId() == EmptyBean.TYPEID && getBean().getClass() == EmptyBean.class;
 	}
 
-	public final void reset() {
+	public void reset() {
 		setBeanWithSpecialTypeId(EmptyBean.TYPEID, new EmptyBean());
 	}
 

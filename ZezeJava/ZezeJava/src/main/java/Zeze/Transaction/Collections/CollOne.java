@@ -12,7 +12,7 @@ import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class CollOne<V extends Bean> extends Collection {
+public final class CollOne<V extends Bean> extends Collection {
 	@NotNull V _Value;
 
 	public CollOne(@NotNull V init, @Nullable Class<V> valueClass) {

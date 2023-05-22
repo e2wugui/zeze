@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class DynamicBeanData extends Data {
+public final class DynamicBeanData extends Data {
 	private @NotNull Data data;
 	private long typeId;
 	private transient final @NotNull ToLongFunction<Data> getData;
@@ -19,11 +19,11 @@ public class DynamicBeanData extends Data {
 		createData = create;
 	}
 
-	public final @NotNull Data getBean() {
+	public @NotNull Data getBean() {
 		return data;
 	}
 
-	public final void setBean(@Nullable Data data) {
+	public void setBean(@Nullable Data data) {
 		if (data == null)
 			data = new EmptyBean.Data();
 		setBeanWithSpecialTypeId(getData.applyAsLong(data), data);
@@ -43,11 +43,11 @@ public class DynamicBeanData extends Data {
 		return getTypeId();
 	}
 
-	public final @NotNull ToLongFunction<Data> getGetData() {
+	public @NotNull ToLongFunction<Data> getGetData() {
 		return getData;
 	}
 
-	public final @NotNull LongFunction<Data> getCreateData() {
+	public @NotNull LongFunction<Data> getCreateData() {
 		return createData;
 	}
 
@@ -64,11 +64,11 @@ public class DynamicBeanData extends Data {
 		return data;
 	}
 
-	public final void assign(@NotNull DynamicBeanData other) {
+	public void assign(@NotNull DynamicBeanData other) {
 		setBean(other.getBean().copy());
 	}
 
-	public final void assign(@NotNull DynamicBean other) {
+	public void assign(@NotNull DynamicBean other) {
 		setBean(other.getBean().toData());
 	}
 
@@ -83,11 +83,11 @@ public class DynamicBeanData extends Data {
 		throw new UnsupportedOperationException();
 	}
 
-	public final boolean isEmpty() {
+	public boolean isEmpty() {
 		return typeId == EmptyBean.Data.TYPEID && data.getClass() == EmptyBean.Data.class;
 	}
 
-	public final void reset() {
+	public void reset() {
 		data = new EmptyBean.Data();
 		typeId = EmptyBean.Data.TYPEID;
 	}
