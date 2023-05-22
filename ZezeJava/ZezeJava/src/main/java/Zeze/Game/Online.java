@@ -1167,7 +1167,7 @@ public class Online extends AbstractOnline {
 		ByteBuffer bb;
 		if (parameter != null) {
 			int preSize = parameter.preAllocSize();
-			bb = ByteBuffer.Allocate(preSize);
+			bb = ByteBuffer.Allocate(Math.min(preSize, 65536));
 			parameter.encode(bb);
 			if (bb.WriteIndex > preSize)
 				parameter.preAllocSize(bb.WriteIndex);

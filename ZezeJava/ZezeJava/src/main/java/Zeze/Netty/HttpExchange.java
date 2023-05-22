@@ -92,16 +92,16 @@ public class HttpExchange {
 		return userState;
 	}
 
-	public boolean isClosed() {
-		return detached == 2;
-	}
-
 	public void setUserState(Object userState) {
 		this.userState = userState;
 	}
 
 	public boolean isActive() {
 		return request != null;
+	}
+
+	public boolean isClosed() {
+		return detached == 2;
 	}
 
 	// 通常不需要获取context,只给特殊需要时使用netty内部的方法

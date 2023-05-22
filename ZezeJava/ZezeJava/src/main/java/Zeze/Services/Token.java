@@ -105,7 +105,7 @@ public final class Token extends AbstractToken {
 			super.start();
 		}
 
-		public synchronized TokenClient start(@NotNull String host, int port) {
+		public synchronized @NotNull TokenClient start(@NotNull String host, int port) {
 			if (connector != null)
 				stop();
 			connector = new Connector(host, port, true);

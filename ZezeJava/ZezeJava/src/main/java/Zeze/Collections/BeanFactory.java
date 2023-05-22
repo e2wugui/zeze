@@ -215,8 +215,9 @@ public final class BeanFactory {
 		var bb = ByteBuffer.Allocate(Math.min(8 + preAllocSize, 65536));
 		bb.WriteLong8(bean.typeId());
 		bean.encode(bb);
-		if (bb.WriteIndex > 8 + preAllocSize)
-			bean.preAllocSize(bb.WriteIndex - 8);
+		int size = bb.WriteIndex - 8;
+		if (size > preAllocSize)
+			bean.preAllocSize(size);
 		return new Binary(bb);
 	}
 

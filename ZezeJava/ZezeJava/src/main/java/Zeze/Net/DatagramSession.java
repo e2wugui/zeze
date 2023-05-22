@@ -92,17 +92,17 @@ public class DatagramSession {
 		var serialId = serialIdGen.incrementAndGet();
 		ByteBuffer bb;
 		if (encrypt == null) {
-			bb = ByteBuffer.Allocate(8 + 8 + Protocol.HEADER_SIZE + preAllocSize);
+			bb = ByteBuffer.Allocate(Math.min(8 + 8 + Protocol.HEADER_SIZE + preAllocSize, 65536));
 			bb.WriteLong8(sessionId);
 			bb.WriteLong8(serialId);
 			p.encodeWithHead(bb);
 		} else {
-			var bc = new BufferCodec(8 + 8 + 8 + Protocol.HEADER_SIZE + preAllocSize);
+			var bc = new BufferCodec(Math.min(8 + 8 + 8 + Protocol.HEADER_SIZE + preAllocSize, 65536));
 			bc.WriteLong8(sessionId);
 			bc.WriteLong8(serialId);
 			// 下面的数据需要加密
 			encrypt.reset(bc, bc.Bytes);
-			var tmp = ByteBuffer.Allocate(Protocol.HEADER_SIZE + preAllocSize);
+			var tmp = ByteBuffer.Allocate(Math.min(Protocol.HEADER_SIZE + preAllocSize, 65536));
 			p.encodeWithHead(tmp);
 			encrypt.update(tmp.Bytes, 0, tmp.WriteIndex);
 			encrypt.update(bc.Bytes, 0, 16); // [8]sessionId | [8]serialId

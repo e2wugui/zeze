@@ -18,8 +18,8 @@ public final class BitConverter {
 		var str = new byte[len * 2];
 		for (int i = 0, j = 0; i < len; i++) {
 			int b = bytes[offset + i];
-			str[j++] = (byte)BitConverter.num2Hex((b >> 4) & 0xf);
-			str[j++] = (byte)BitConverter.num2Hex(b & 0xf);
+			str[j++] = (byte)num2Hex((b >> 4) & 0xf);
+			str[j++] = (byte)num2Hex(b & 0xf);
 		}
 		return new String(str, StandardCharsets.ISO_8859_1);
 	}
