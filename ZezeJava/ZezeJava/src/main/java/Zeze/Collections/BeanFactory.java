@@ -2,6 +2,8 @@ package Zeze.Collections;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
+import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
@@ -206,5 +208,23 @@ public final class BeanFactory {
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
+	}
+
+	public static @NotNull Binary toBinary(@NotNull Bean bean) {
+		var preAllocSize = bean.preAllocSize();
+		var bb = ByteBuffer.Allocate(Math.min(8 + preAllocSize, 65536));
+		bb.WriteLong8(bean.typeId());
+		bean.encode(bb);
+		if (bb.WriteIndex > 8 + preAllocSize)
+			bean.preAllocSize(bb.WriteIndex - 8);
+		return new Binary(bb);
+	}
+
+	public @NotNull Bean toBean(@NotNull Binary data) {
+		var bb = data.Wrap();
+		var typeId = bb.ReadLong8();
+		var bean = createBeanFromSpecialTypeId(typeId);
+		bean.decode(bb);
+		return bean;
 	}
 }
