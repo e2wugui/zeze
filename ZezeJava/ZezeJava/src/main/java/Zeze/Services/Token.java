@@ -1,6 +1,5 @@
 package Zeze.Services;
 
-import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Random;
@@ -146,32 +145,8 @@ public final class Token extends AbstractToken {
 	}
 
 	private static final class TokenServer extends Service {
-		private @Nullable AsyncSocket socket;
-
 		TokenServer(Config config) {
 			super("TokenServer", config);
-		}
-
-		@Override
-		public void start() throws Exception {
-			start(null, DEFAULT_PORT);
-		}
-
-		public synchronized void start(@Nullable InetAddress addr, int port) {
-			if (socket != null)
-				stop();
-			socket = newServerSocket(addr, port, new Acceptor(port, addr != null ? addr.getHostAddress() : null));
-		}
-
-		@Override
-		public synchronized void stop() {
-			if (socket != null) {
-				socket.close();
-				socket = null;
-				for (var so : socketMap)
-					so.close();
-				socketMap.clear();
-			}
 		}
 
 		@Override
@@ -214,21 +189,34 @@ public final class Token extends AbstractToken {
 	private TokenServer service;
 	private TimerFuture<?> cleanTokenMapFuture;
 
-	public synchronized Token start(@Nullable InetAddress addr, int port) {
+	// 参数host,port优先; 如果传null/<=0则以conf为准; 如果conf也没配置则用默认值null/DEFAULT_PORT
+	public synchronized Token start(@Nullable Config conf, @Nullable String host, int port) throws Exception {
 		if (service != null)
 			return this;
 
 		PerfCounter.instance.tryStartScheduledLog();
 
-		service = new TokenServer(new Config().loadAndParse());
+		service = new TokenServer(conf != null ? conf : new Config().loadAndParse());
 		RegisterProtocols(service);
-		service.start(addr, port);
+		var sc = service.getConfig();
+		if (sc.acceptorCount() == 0)
+			sc.addAcceptor(new Acceptor(port > 0 ? port : DEFAULT_PORT, host));
+		else {
+			sc.forEachAcceptor2(acceptor -> {
+				if (host != null)
+					acceptor.setIp(host);
+				if (port > 0)
+					acceptor.setPort(port);
+				return false;
+			});
+		}
+		service.start();
 
 		cleanTokenMapFuture = Task.scheduleUnsafe(1000, 1000, this::cleanTokenMap);
 		return this;
 	}
 
-	public synchronized void stop() {
+	public synchronized void stop() throws Exception {
 		if (service != null) {
 			cleanTokenMapFuture.cancel(true);
 			tokenMap.clear();
@@ -303,16 +291,16 @@ public final class Token extends AbstractToken {
 			logger.error("uncaught exception in {}:", t, e);
 		});
 
-		String ip = null;
-		int port = DEFAULT_PORT;
+		String host = null;
+		int port = 0;
 		int threadCount = 0;
 
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
-			case "-ip":
-				ip = args[++i];
-				if (ip.isBlank())
-					ip = null;
+			case "-host":
+				host = args[++i];
+				if (host.isBlank())
+					host = null;
 				break;
 			case "-port":
 				port = Integer.parseInt(args[++i]);
@@ -332,8 +320,7 @@ public final class Token extends AbstractToken {
 		if (Selectors.getInstance().getCount() < threadCount)
 			Selectors.getInstance().add(threadCount - Selectors.getInstance().getCount());
 
-		logger.info("Token service start at {}:{}", ip != null ? ip : "", port);
-		new Token().start(ip != null ? InetAddress.getByName(ip) : null, port);
+		new Token().start(null, host, port);
 		synchronized (Thread.currentThread()) {
 			Thread.currentThread().wait();
 		}

@@ -1,7 +1,6 @@
 package UnitTest.Zeze.Component;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ExecutionException;
 import Zeze.Net.Binary;
 import Zeze.Services.Token;
 import Zeze.Util.Task;
@@ -18,9 +17,9 @@ public class TestToken {
 	private static final Logger logger = LogManager.getLogger(TestToken.class);
 
 	@Test
-	public void testToken() throws ExecutionException, InterruptedException {
+	public void testToken() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
-		var tokenServer = new Token().start(null, 5003);
+		var tokenServer = new Token().start(null, null, 5003);
 		try {
 			var tokenClient = new Token.TokenClient(null).start("127.0.0.1", 5003);
 			tokenClient.waitReady();

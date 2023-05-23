@@ -1,10 +1,11 @@
 package Zeze.Net;
 
 import java.net.InetSocketAddress;
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
 public class Acceptor {
-	private String Ip;
+	private @NotNull String Ip;
 	private int Port;
 	private Service Service;
 	private AsyncSocket Socket;
@@ -25,7 +26,7 @@ public class Acceptor {
 	}
 
 	public final void setIp(String ip) {
-		Ip = ip;
+		Ip = ip != null ? ip : "";
 	}
 
 	public final int getPort() {

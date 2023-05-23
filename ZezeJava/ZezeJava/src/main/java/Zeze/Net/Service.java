@@ -788,8 +788,8 @@ public class Service {
 			long sendSize = this.sendSize;
 			long sendRawSize = this.sendRawSize;
 			if (lastSizes[0] != -1) {
-				var sn = (selectCount - lastSizes[0]) / periodSec;
-				var rc = (recvCount - lastSizes[1]) / periodSec;
+				long sn = (selectCount - lastSizes[0]) / periodSec;
+				long rc = (recvCount - lastSizes[1]) / periodSec;
 				long rs = (recvSize - lastSizes[2]) / periodSec;
 				long sc = (sendCount - lastSizes[3]) / periodSec;
 				long ss = (sendSize - lastSizes[4]) / periodSec;
