@@ -42,90 +42,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private final Dbh2Manager manager;
 
 	// 性能统计。
-	private final AtomicLong counterGet = new AtomicLong();
-	private final AtomicLong counterPut = new AtomicLong();
-	private final AtomicLong sizeGet = new AtomicLong();
-	private final AtomicLong sizePut = new AtomicLong();
-	private final AtomicLong counterDelete = new AtomicLong();
-	private final AtomicLong counterPrepareBatch = new AtomicLong();
-	private final AtomicLong counterCommitBatch = new AtomicLong();
-	private final AtomicLong counterUndoBatch = new AtomicLong();
-
-	private long lastGet;
-	private long lastPut;
-	private long lastSizeGet;
-	private long lastSizePut;
-	private long lastDelete;
-	private long lastPrepareBatch;
-	private long lastCommitBatch;
-	private long lastUndoBatch;
-	private long lastReportTime = System.currentTimeMillis();
-
-	private static String formatMeta(BBucketMeta.Data meta) {
+	public static String formatMeta(BBucketMeta.Data meta) {
 		//noinspection StringBufferReplaceableByString
 		var sb = new StringBuilder();
 		sb.append(meta.getDatabaseName()).append(".").append(meta.getTableName());
 		sb.append("[").append(meta.getKeyFirst()).append(", ").append(meta.getKeyLast()).append(")");
 		return sb.toString();
-	}
-
-	public double load() {
-		var now = System.currentTimeMillis();
-		var elapse = (now - lastReportTime) / 1000.0f;
-		lastReportTime = now;
-
-		var nowGet = counterGet.get();
-		var nowPut = counterPut.get();
-		var nowSizeGet = sizeGet.get();
-		var nowSizePut = sizePut.get();
-		var nowDelete = counterDelete.get();
-		var nowPrepareBatch = counterPrepareBatch.get();
-		var nowCommitBatch = counterCommitBatch.get();
-		var nowUndoBatch = counterUndoBatch.get();
-
-		var diffGet = nowGet - lastGet;
-		var diffPut = nowPut - lastPut;
-		var diffSizeGet = nowSizeGet - lastSizeGet;
-		var diffSizePut = nowSizePut - lastSizePut;
-		var diffDelete = nowDelete - lastDelete;
-		var diffPrepareBatch = nowPrepareBatch - lastPrepareBatch;
-		var diffCommitBatch = nowCommitBatch - lastCommitBatch;
-		var diffUndoBatch = nowUndoBatch - lastUndoBatch;
-
-		if (diffGet > 0 || diffPut > 0 || diffDelete > 0 || diffSizeGet > 0 || diffSizePut > 0
-				|| diffPrepareBatch > 0 || diffCommitBatch > 0 || diffUndoBatch > 0) {
-			lastGet = nowGet;
-			lastPut = nowPut;
-			lastSizeGet = nowSizeGet;
-			lastSizePut = nowSizePut;
-			lastDelete = nowDelete;
-			lastPrepareBatch = nowPrepareBatch;
-			lastCommitBatch = nowCommitBatch;
-			lastUndoBatch = nowUndoBatch;
-
-			var avgGet = diffGet / elapse;
-			var avgPut = diffPut / elapse;
-			var avgDelete = diffDelete / elapse;
-
-			//noinspection StringBufferReplaceableByString
-			var sb = new StringBuilder();
-			sb.append("load: ");
-			sb.append(formatMeta(stateMachine.getBucket().getMeta()));
-			sb.append(" get=").append(avgGet);
-			sb.append(" put=").append(avgPut);
-			sb.append(" getSize=").append(diffSizeGet / elapse);
-			sb.append(" putSize=").append(diffSizePut / elapse);
-			sb.append(" delete=").append(avgDelete);
-			sb.append(" prepare=").append(diffPrepareBatch / elapse);
-			sb.append(" commit=").append(diffCommitBatch / elapse);
-			sb.append(" undo=").append(diffUndoBatch / elapse);
-
-			logger.info(sb.toString());
-
-			// 负载，put，delete全算，get算1%。
-			return (avgPut + avgDelete) + avgGet * 0.01;
-		}
-		return 0.0;
 	}
 
 	public class Dbh2RaftServer extends Zeze.Raft.Server {
@@ -179,6 +101,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		return raft;
 	}
 
+	public Dbh2StateMachine getStateMachine() {
+		return stateMachine;
+	}
+
 	public Dbh2Manager getManager() {
 		return manager;
 	}
@@ -230,7 +156,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	@Override
 	protected long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws RocksDBException {
-		counterGet.incrementAndGet();
+		stateMachine.counterGet.incrementAndGet();
 		var lock = Lock.get(r.Argument.getKey());
 		lock.lock();
 		try {
@@ -243,7 +169,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				r.Result.setNull(true);
 			else {
 				r.Result.setValue(value);
-				sizeGet.addAndGet(value.size());
+				stateMachine.sizeGet.addAndGet(value.size());
 			}
 			r.SendResult();
 		} finally {
@@ -262,7 +188,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	protected long ProcessPrepareBatchRequest(PrepareBatch r) throws Exception {
 		//var tid = stateMachine.getTidAllocator().next(stateMachine);
 		// lock
-		counterPrepareBatch.incrementAndGet();
 		var txn = new Dbh2Transaction(r.Argument.getBatch());
 		try {
 			// save txn
@@ -277,8 +202,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			for (var e : r.Argument.getBatch().getPuts().entrySet()) {
 				var key = e.getKey();
 				var value = e.getValue();
-				counterPut.incrementAndGet();
-				sizePut.addAndGet(value.size() + key.size());
 				if (!stateMachine.getBucket().inBucket(key)) {
 					var locate = splitHistory.locate(key);
 
@@ -290,7 +213,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				}
 			}
 			for (var del : r.Argument.getBatch().getDeletes()) {
-				counterDelete.incrementAndGet();
 				if (!stateMachine.getBucket().inBucket(del)) {
 					var locate = splitHistory.locate(del);
 
@@ -325,14 +247,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	@Override
 	protected long ProcessCommitBatchRequest(CommitBatch r) throws Exception {
-		counterCommitBatch.incrementAndGet();
 		getRaft().appendLog(new LogCommitBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 		return 0;
 	}
 
 	@Override
 	protected long ProcessUndoBatchRequest(UndoBatch r) throws Exception {
-		counterUndoBatch.incrementAndGet();
 		getRaft().appendLog(new LogUndoBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 		return 0;
 	}

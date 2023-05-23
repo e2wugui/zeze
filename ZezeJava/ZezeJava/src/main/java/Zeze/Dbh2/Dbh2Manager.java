@@ -140,7 +140,7 @@ public class Dbh2Manager {
 		var loadManager = 0.0;
 		var willSplit = new ArrayList<Dbh2>();
 		for (var dbh2 : dbh2s.values()) {
-			var load = dbh2.load();
+			var load = dbh2.getStateMachine().load();
 			loadManager += load;
 
 			// 达到分桶条件之一：负载高于最大值的80%。

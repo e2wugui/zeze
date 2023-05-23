@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BSplitPut;
@@ -27,6 +28,84 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private CommitAgent commitAgent;
 	private final Dbh2 dbh2;
 	private Runnable noTransactionHandle;
+
+	final AtomicLong counterGet = new AtomicLong();
+	private final AtomicLong counterPut = new AtomicLong();
+	final AtomicLong sizeGet = new AtomicLong();
+	private final AtomicLong sizePut = new AtomicLong();
+	private final AtomicLong counterDelete = new AtomicLong();
+	private final AtomicLong counterPrepareBatch = new AtomicLong();
+	private final AtomicLong counterCommitBatch = new AtomicLong();
+	private final AtomicLong counterUndoBatch = new AtomicLong();
+
+	private long lastGet;
+	private long lastPut;
+	private long lastSizeGet;
+	private long lastSizePut;
+	private long lastDelete;
+	private long lastPrepareBatch;
+	private long lastCommitBatch;
+	private long lastUndoBatch;
+	private long lastReportTime = System.currentTimeMillis();
+
+	public double load() {
+		var now = System.currentTimeMillis();
+		var elapse = (now - lastReportTime) / 1000.0f;
+		lastReportTime = now;
+
+		var nowGet = counterGet.get();
+		var nowPut = counterPut.get();
+		var nowSizeGet = sizeGet.get();
+		var nowSizePut = sizePut.get();
+		var nowDelete = counterDelete.get();
+		var nowPrepareBatch = counterPrepareBatch.get();
+		var nowCommitBatch = counterCommitBatch.get();
+		var nowUndoBatch = counterUndoBatch.get();
+
+		var diffGet = nowGet - lastGet;
+		var diffPut = nowPut - lastPut;
+		var diffSizeGet = nowSizeGet - lastSizeGet;
+		var diffSizePut = nowSizePut - lastSizePut;
+		var diffDelete = nowDelete - lastDelete;
+		var diffPrepareBatch = nowPrepareBatch - lastPrepareBatch;
+		var diffCommitBatch = nowCommitBatch - lastCommitBatch;
+		var diffUndoBatch = nowUndoBatch - lastUndoBatch;
+
+		if (diffGet > 0 || diffPut > 0 || diffDelete > 0 || diffSizeGet > 0 || diffSizePut > 0
+				|| diffPrepareBatch > 0 || diffCommitBatch > 0 || diffUndoBatch > 0) {
+			lastGet = nowGet;
+			lastPut = nowPut;
+			lastSizeGet = nowSizeGet;
+			lastSizePut = nowSizePut;
+			lastDelete = nowDelete;
+			lastPrepareBatch = nowPrepareBatch;
+			lastCommitBatch = nowCommitBatch;
+			lastUndoBatch = nowUndoBatch;
+
+			var avgGet = diffGet / elapse;
+			var avgPut = diffPut / elapse;
+			var avgDelete = diffDelete / elapse;
+
+			//noinspection StringBufferReplaceableByString
+			var sb = new StringBuilder();
+			sb.append("load: ");
+			sb.append(Dbh2.formatMeta(getBucket().getMeta()));
+			sb.append(" get=").append(avgGet);
+			sb.append(" put=").append(avgPut);
+			sb.append(" getSize=").append(diffSizeGet / elapse);
+			sb.append(" putSize=").append(diffSizePut / elapse);
+			sb.append(" delete=").append(avgDelete);
+			sb.append(" prepare=").append(diffPrepareBatch / elapse);
+			sb.append(" commit=").append(diffCommitBatch / elapse);
+			sb.append(" undo=").append(diffUndoBatch / elapse);
+
+			logger.info(sb.toString());
+
+			// 负载，put，delete全算，get算1%。
+			return (avgPut + avgDelete) + avgGet * 0.01;
+		}
+		return 0.0;
+	}
 
 	public Dbh2StateMachine(Dbh2 dbh2) {
 		this.dbh2 = dbh2;
@@ -148,7 +227,16 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void prepareBatch(BBatch.Data bBatch) {
 		try {
+			counterPrepareBatch.incrementAndGet();
 			var txn = transactions.computeIfAbsent(bBatch.getTid(), _tid -> new Dbh2Transaction(bBatch));
+			counterPut.addAndGet(txn.getBatch().getPuts().size());
+			var totalPutValueSize = 0;
+			for (var e : txn.getBatch().getPuts().entrySet()) {
+				totalPutValueSize += e.getKey().size();
+				totalPutValueSize += e.getValue().size();
+			}
+			sizePut.addAndGet(totalPutValueSize);
+			counterDelete.addAndGet(txn.getBatch().getDeletes().size());
 			txn.prepareBatch(bucket, bBatch);
 		} catch (RocksDBException e) {
 			logger.error("", e);
@@ -158,6 +246,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void commitBatch(Binary tid) {
 		try (var txn = transactions.remove(tid)) {
+			counterCommitBatch.incrementAndGet();
 			if (null != txn)
 				dbh2.onCommitBatch(txn);
 			triggerNoTransactionIf();
@@ -166,6 +255,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void undoBatch(Binary tid) {
 		try (var txn = transactions.remove(tid)) {
+			counterUndoBatch.incrementAndGet();
 			if (null != txn)
 				txn.undoBatch(bucket);
 			triggerNoTransactionIf();
