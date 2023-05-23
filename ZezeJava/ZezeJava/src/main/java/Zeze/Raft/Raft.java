@@ -274,15 +274,16 @@ public final class Raft {
 		if (applyFuture != null)
 			applyFuture.await();
 
+		if (timerTask != null) {
+			timerTask.cancel(false);
+			timerTask = null;
+		}
+
 		lock();
 		try {
 			logSequence.cancelAllInstallSnapshot();
 			cancelAllReceiveSnapshotting();
 
-			if (timerTask != null) {
-				timerTask.cancel(false);
-				timerTask = null;
-			}
 			convertStateTo(RaftState.Follower);
 			logSequence.close();
 		} finally {
