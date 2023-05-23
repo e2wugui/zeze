@@ -788,18 +788,20 @@ public class Service {
 			long sendSize = this.sendSize;
 			long sendRawSize = this.sendRawSize;
 			if (lastSizes[0] != -1) {
-				long sn = selectCount - lastSizes[0];
-				long rc = recvCount - lastSizes[1];
-				long rs = recvSize - lastSizes[2];
-				long sc = sendCount - lastSizes[3];
-				long ss = sendSize - lastSizes[4];
-				long sr = sendRawSize - lastSizes[5];
+				var sn = (selectCount - lastSizes[0]) / periodSec;
+				var rc = (recvCount - lastSizes[1]) / periodSec;
+				long rs = (recvSize - lastSizes[2]) / periodSec;
+				long sc = (sendCount - lastSizes[3]) / periodSec;
+				long ss = (sendSize - lastSizes[4]) / periodSec;
+				long sr = (sendRawSize - lastSizes[5]) / periodSec;
 				var operates = new OutLong();
 				var outBufSize = new OutLong();
 				foreach(socket -> {
 					operates.value += socket.getOperateSize();
 					outBufSize.value += socket.getOutputBufferSize();
 				});
+				operates.value /= periodSec;
+				outBufSize.value /= periodSec;
 				logger.info("{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
 						getClass().getName(), sn, selectors.getCount(), rs, rc, ss, sc, sr, getSocketCount(),
 						operates.value, outBufSize.value);
