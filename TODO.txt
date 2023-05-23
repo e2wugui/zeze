@@ -11,10 +11,11 @@ c# fresh 有bug？
 c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，等c#自己的async-lock】
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
-Dbh2 分桶不均匀。
+Dbh2 分桶不均匀。【换成正数看看】
 Dbh2 超时事务回查超时。
+Zeze.Component 里面用到的DynamicBean注册class不需要了。
 ------------------------------------------------------------------------------------------------------------------------------
-2023/6/2 v1.2.5 Netty DispatchMode; 
+2023/6/2 v1.2.5 Netty DispatchMode; Dbh2;
 ------------------------------------------------------------------------------------------------------------------------------
 Dbh2 性能统计移到StateMachine中，Raft.Follower也需要计算性能。
 Dbh2: 分桶服务器测试，出现client timeout【新的Batch漏了设置Master,Database,Table参数】，并且后来再次启动，性能很低。

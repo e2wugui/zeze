@@ -147,7 +147,7 @@ public class BenchClient {
 				// 限制所有key的范围，防止服务器占用太大硬盘。
 				try (var trans = database.beginTransaction()) {
 					for (int a = 0; a < tableAccess; ++a) {
-						var key = (Zeze.Util.Random.getInstance().nextLong() + 1) % 1000_00000;
+						var key = Zeze.Util.Random.getInstance().nextLong(10000_0000);
 						var keyBb = ByteBuffer.Allocate(9);
 						keyBb.WriteLong(key);
 						var table = tables.get(Zeze.Util.Random.getInstance().nextInt(tables.size()));
