@@ -119,6 +119,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogEndSplit.TypeId_, LogEndSplit::new);
 		super.addFactory(LogSetSplittingMeta.TypeId_, LogSetSplittingMeta::new);
 		super.addFactory(LogSplitPut.TypeId_, LogSplitPut::new);
+
+		super.addFactory(LogCleanEndSplit.TypeId_, LogCleanEndSplit::new);
+		super.addFactory(LogClearEndSplitCleanKey.TypeId_, LogClearEndSplitCleanKey::new);
 	}
 
 	public void setupHandleIfNoTransaction(Runnable handle) {
@@ -182,6 +185,27 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
+	public void clearEndSplitCleanKey() {
+		try {
+			bucket.clearEndSplitCleanKey();
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
+		}
+	}
+
+	public void cleanEndSplit(byte[] key) {
+		try (var it = bucket.getTData().iterator()) {
+			it.seek(key);
+			for (var n = 20; n > 0 && it.isValid(); --n, it.next()) {
+				bucket.getTData().delete(it.key());
+			}
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
+		}
+	}
+
 	public void setBucketMeta(BBucketMeta.Data argument) {
 		try {
 			bucket.setMeta(argument);
@@ -202,6 +226,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
 		try {
+			bucket.setEndSplitCleanKey(from.getKeyLast());
 			bucket.setMeta(from);
 			bucket.addSplitMetaHistory(from, to);
 			bucket.deleteSplittingMeta();

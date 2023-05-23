@@ -3,7 +3,6 @@ package Zeze.Dbh2;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.CommitBatch;
@@ -130,6 +129,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			stateMachine.getBucket().setWriteOptions(writeOptions);
 
 			RegisterProtocols(raft.getServer());
+			raft.setOnSetLeader(this::recoverSplitting);
 			raft.getServer().start();
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
@@ -297,12 +297,23 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			return;
 		var bucket = stateMachine.getBucket();
 		var splitting = bucket.getSplittingMeta();
-		if (null != splitting) {
-			logger.info("start but splitting found. meta={}", formatMeta(splitting));
+		if (null != splitting || null != bucket.getEndSplitCleanKey()) {
+			logger.info("start but in splitting. meta={}", splitting != null ? formatMeta(splitting) : "ending");
 			return; // splitting
 		}
 
 		startSplit();
+	}
+
+	private void recoverSplitting() throws Exception {
+		if (!raft.isLeader())
+			return;
+
+		var bucket = stateMachine.getBucket();
+		if (null != bucket.getSplittingMeta())
+			startSplit();
+		else if (null != bucket.getEndSplitCleanKey())
+			cleanEndSplit();
 	}
 
 	private volatile long splitSerialNo;
@@ -507,6 +518,26 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo());
 		var meta = stateMachine.getBucket().getMeta();
 		logger.info("splitting end done. {}", formatMeta(meta));
+		cleanEndSplit();
+	}
+
+	private void cleanEndSplit() {
+		var cleanKey = stateMachine.getBucket().getEndSplitCleanKey();
+		var it = stateMachine.getBucket().getTData().iterator();
+		it.seek(Database.copyIf(cleanKey.bytesUnsafe(), cleanKey.getOffset(), cleanKey.size()));
+		if (it.isValid()) {
+			getRaft().appendLog(new LogCleanEndSplit(it.key()), (raftLog, result) -> {
+				if (result)
+					cleanEndSplit();
+				else
+					logger.error("LogCleanEndSplit error");
+			});
+		} else {
+			getRaft().appendLog(new LogClearEndSplitCleanKey(), (raftLog, result) -> {
+				if (!result)
+					logger.error("LogClearCleanEndSplitKey error.");
+			});
+		}
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {

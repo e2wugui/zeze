@@ -76,6 +76,12 @@ public final class Raft {
 	private final Lock mutex = new ReentrantLock();
 	private final Condition condition = mutex.newCondition();
 
+	private Action0 onSetLeader;
+
+	public void setOnSetLeader(Action0 action) {
+		onSetLeader = action;
+	}
+
 	public String getName() {
 		return raftConfig.getName();
 	}
@@ -608,6 +614,8 @@ public final class Raft {
 					r.Send(allSocket); // skip response.
 				}
 			});
+			if (onSetLeader != null)
+				onSetLeader.run();
 		}
 	}
 
