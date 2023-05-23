@@ -136,7 +136,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		private ConcurrentLinkedQueue<Action0> prepareQueue;
 
 		public synchronized void setupPrepareQueue() {
-			prepareQueue = new ConcurrentLinkedQueue<>();
+			if (null == prepareQueue)
+				prepareQueue = new ConcurrentLinkedQueue<>();
 		}
 
 		public synchronized ConcurrentLinkedQueue<Action0> takePrepareQueue() {

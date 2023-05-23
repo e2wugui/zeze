@@ -148,6 +148,10 @@ public class CommitRocks {
 				manager.startRefreshMasterTable(r.Argument.getMaster(), r.Argument.getDatabase(), r.Argument.getTable());
 				for (var eRefuse : refused.entrySet()) {
 					var batch = new BPrepareBatch.Data();
+					batch.setMaster(r.Argument.getMaster());
+					batch.setDatabase(r.Argument.getDatabase());
+					batch.setTable(r.Argument.getTable());
+
 					batch.getBatch().setQueryIp(queryHost);
 					batch.getBatch().setQueryPort(queryPort);
 					batch.getBatch().setTid(tid);
