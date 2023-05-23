@@ -311,7 +311,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private RocksIterator locateMiddle() throws RocksDBException {
 		var bucket = stateMachine.getBucket();
 		var it = bucket.getTData().iterator();
-		var count = bucket.getTData().getKeyNumbers() / 2;
+		var keyNumbers = bucket.getTData().getKeyNumbers();
+		var count = keyNumbers / 2;
 		for (it.seekToFirst(); it.isValid() && count > 0; it.next(), --count) {
 			// searching middle
 		}
@@ -319,6 +320,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			it.close();
 			throw new RocksDBException("middle key not found.");
 		}
+		logger.info("splitting start locateMiddle keyNumbers={} middle={} {}",
+				keyNumbers, new Binary(it.key()),
+				formatMeta(stateMachine.getBucket().getMeta()));
 		return it;
 	}
 

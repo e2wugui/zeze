@@ -4,12 +4,8 @@ import Zeze.Serialize.ByteBuffer;
 
 public class TmpMain {
 	public static void main(String [] args) {
-		byte[] key1 = new byte[] { 0x73, (byte)0xF5, (byte)0x98, 0x6D };
-		byte[] key2 = new byte[] { 0x74, (byte)0xB3, (byte)0xA1, (byte)0xEC };
-		byte[] key3 = new byte[] { (byte)0x8A, 0x0A, 0x38, (byte)0xED };
-
-		System.out.println(ByteBuffer.Wrap(key1).ReadLong());
-		System.out.println(ByteBuffer.Wrap(key2).ReadLong());
-		System.out.println(ByteBuffer.Wrap(key3).ReadLong());
+		System.out.println(ByteBuffer.Wrap(new byte[] { (byte)0x71, (byte)0xF9, (byte)0xC6, (byte)0xE0 }).ReadLong());
+		System.out.println(ByteBuffer.Wrap(new byte[] { (byte)0x72, (byte)0x58, (byte)0x96, (byte)0x1E }).ReadLong());
+		System.out.println(ByteBuffer.Wrap(new byte[] { (byte)0x72, (byte)0xFC, (byte)0xA2, (byte)0x39 }).ReadLong());
 	}
 }
