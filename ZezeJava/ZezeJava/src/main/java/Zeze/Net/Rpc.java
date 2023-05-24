@@ -66,6 +66,10 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		this.isTimeout = isTimeout;
 	}
 
+	public void setIsRequest(boolean isRequest) {
+		this.isRequest = isRequest;
+	}
+
 	@Override
 	public final boolean isRequest() {
 		return isRequest;
@@ -81,7 +85,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		return Result;
 	}
 
-	private void schedule(@NotNull Service service, long sessionId, int millisecondsTimeout) {
+	public void schedule(@NotNull Service service, long sessionId, int millisecondsTimeout) {
 		long timeout = Math.max(millisecondsTimeout, 0);
 		if (Reflect.inDebugMode)
 			timeout += 10 * 60 * 1000; // 调试状态下RPC超时放宽到至少10分钟,方便调试时不容易超时
@@ -244,22 +248,39 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		}
 
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
-		Rpc<TArgument, TResult> context = service.removeRpcContext(sessionId);
-		if (context == null) {
+		var ctx = service.removeRpcContext(sessionId);
+		if (ctx == null) {
 			logger.warn("rpc response: lost context, maybe timeout. {}", this);
 			return;
 		}
+		var context = setupRpcResponseContext(ctx);
+		if (context.future != null)
+			context.future.setResult(context.Result); // SendForWait，设置结果唤醒等待者。
+		else if (context.responseHandle != null)
+			service.dispatchRpcResponse(context, context.responseHandle, factoryHandle);
+	}
 
+	public Rpc<TArgument, TResult> setupRpcResponseContext(Protocol<?> ctx) {
+		@SuppressWarnings("unchecked") var context = (Rpc<TArgument, TResult>)ctx;
 		context.setSender(getSender());
 		context.resultCode = resultCode;
 		context.Result = Result;
 		context.isTimeout = false; // not need
 		context.isRequest = false;
+		return context;
+	}
 
-		if (context.future != null)
-			context.future.setResult(context.Result); // SendForWait，设置结果唤醒等待者。
-		else if (context.responseHandle != null)
-			service.dispatchRpcResponse(context, context.responseHandle, factoryHandle);
+	public long setFutureOrHandle() throws Exception {
+		if (future != null) {
+			future.setResult(Result);
+			return 0;
+		}
+
+		if (responseHandle != null)
+			return responseHandle.handleProtocol(this);
+
+		logger.error("rpc response handle miss. {}", this);
+		return 0;
 	}
 
 	@Override

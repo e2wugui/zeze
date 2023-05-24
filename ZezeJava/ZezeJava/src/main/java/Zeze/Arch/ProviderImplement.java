@@ -7,6 +7,7 @@ import Zeze.Builtin.Provider.Kick;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
+import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
@@ -116,13 +117,15 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			var session = newSession(p);
 			var zeze = sender.getService().getZeze();
 			var txn = Transaction.getCurrent();
+			var outRpcContext = new OutObject<Rpc<?, ?>>();
 			if (txn == null && zeze != null && factoryHandle.Level != TransactionLevel.None) {
 				var outProtocol = new OutObject<Protocol<?>>();
 				var r = Task.call(zeze.newProcedure(() -> { // 创建存储过程并且在当前线程中调用。
 					var p3 = factoryHandle.Factory.create();
+					var isRpcResponse = p3 instanceof Rpc && !p3.isRequest();
 					var t = Transaction.getCurrent();
 					//noinspection DataFlowIssue
-					t.getTopProcedure().setActionName(p3.getClass().getName());
+					t.getTopProcedure().setActionName(p3.getClass().getName() + (isRpcResponse ? ":Response" : ""));
 					p3.decode(ByteBuffer.Wrap(arg.getProtocolData()));
 					p3.setSender(sender);
 					p3.setUserState(session);
@@ -135,6 +138,11 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					}
 					outProtocol.value = p3;
 					t.runWhileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
+
+					if (isRpcResponse)
+						return processRpcResponse(outRpcContext, p3);
+
+					// protocol or rpc request
 					var handler = factoryHandle.Handle;
 					return handler != null ? handler.handleProtocol(p3) : Procedure.NotImplement;
 				}, null, factoryHandle.Level, session), outProtocol, (p4, code) -> {
@@ -168,6 +176,10 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				arg.setProtocolData(Binary.Empty); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 			var p3 = p2;
 			var r = Task.call(() -> {
+				var isRpcResponse = p3 instanceof Rpc && !p3.isRequest();
+				if (isRpcResponse)
+					return processRpcResponse(outRpcContext, p3);
+
 				var handler = factoryHandle.Handle;
 				return handler != null ? handler.handleProtocol(p3) : Procedure.NotImplement;
 			}, p3, (p4, code) -> {
@@ -187,6 +199,23 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		} finally {
 			localDispatch.remove();
 		}
+	}
+
+	private long processRpcResponse(OutObject<Rpc<?, ?>> outRpcContext, Protocol<?> p3) throws Exception {
+		// 获取context并保存下来，redo的时候继续使用。
+		if (outRpcContext.value == null)
+			outRpcContext.value = providerApp.providerService.removeRpcContext(((Rpc<?, ?>)p3).getSessionId());
+
+		// 再次检查，因为context可能丢失
+		if (outRpcContext.value == null) {
+			logger.warn("rpc response: lost context, maybe timeout. {}", p3);
+			return Procedure.Unknown;
+		}
+
+		var context = outRpcContext.value;
+		var res = (Rpc<?, ?>)p3;
+		res.setupRpcResponseContext(context);
+		return context.setFutureOrHandle();
 	}
 
 	@Override

@@ -39,6 +39,8 @@ import Zeze.Component.TimerRole;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolHandle;
+import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
@@ -536,8 +538,29 @@ public class Online extends AbstractOnline {
 		getOnlineByContext().sendOnline(roleId, p);
 	}
 
+	public <A extends Serializable, R extends Serializable> void sendOnlineRpc(
+			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
+		sendOnlineRpc(roleId, rpc, responseHandle, 5000);
+	}
+
+	public <A extends Serializable, R extends Serializable> void sendOnlineRpc(
+			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs) {
+		var service = providerApp.providerService;
+		// try remove. 只维护一个上下文。多次发送相同rpc会如此，这个应该最好报错。沿用老的逻辑吧。see Rpc.Send
+		service.removeRpcContext(rpc.getSessionId(), rpc);
+		rpc.setResponseHandle(responseHandle);
+		var sessionId = service.addRpcContext(rpc);
+		rpc.setTimeout(timeoutMs);
+		rpc.setIsTimeout(false);
+		rpc.setIsRequest(true);
+		rpc.schedule(service, sessionId, timeoutMs);
+		sendDirect(roleId, rpc.getTypeId(), new Binary(rpc.encode()), false);
+	}
+
 	// 在指定Online上发送
 	public void sendOnline(long roleId, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId, multiInstanceName, p);
@@ -546,6 +569,8 @@ public class Online extends AbstractOnline {
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendAllOnlines(long roleId, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId, "*", p);
@@ -555,11 +580,16 @@ public class Online extends AbstractOnline {
 
 	// 优先在上下文中的Online上发送
 	public void send(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		getOnlineByContext().sendOnline(roleIds, p);
 	}
 
 	// 在指定Online上发送
 	public void sendOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
+
 		if (roleIds.isEmpty())
 			return;
 		var typeId = p.getTypeId();
@@ -580,6 +610,9 @@ public class Online extends AbstractOnline {
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
+
 		if (roleIds.isEmpty())
 			return;
 		var typeId = p.getTypeId();
@@ -598,61 +631,85 @@ public class Online extends AbstractOnline {
 
 	// 优先在上下文中的Online上发送
 	public void sendWhileCommit(long roleId, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileCommit(() -> send(roleId, p));
 	}
 
 	// 在指定Online上发送
 	public void sendWhileCommitOnline(long roleId, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileCommit(() -> sendOnline(roleId, p));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendWhileCommitAllOnlines(long roleId, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileCommit(() -> sendAllOnlines(roleId, p));
 	}
 
 	// 优先在上下文中的Online上发送
 	public void sendWhileCommit(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileCommit(() -> send(roleIds, p));
 	}
 
 	// 在指定Online上发送
 	public void sendWhileCommitOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileCommit(() -> sendOnline(roleIds, p));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendWhileCommitAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileCommit(() -> sendAllOnlines(roleIds, p));
 	}
 
 	// 优先在上下文中的Online上发送
 	public void sendWhileRollback(long roleId, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileRollback(() -> send(roleId, p));
 	}
 
 	// 在指定Online上发送
 	public void sendWhileRollbackOnline(long roleId, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileRollback(() -> sendOnline(roleId, p));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendWhileRollbackAllOnlines(long roleId, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileRollback(() -> sendAllOnlines(roleId, p));
 	}
 
 	// 优先在上下文中的Online上发送
 	public void sendWhileRollback(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileRollback(() -> send(roleIds, p));
 	}
 
 	// 在指定Online上发送
 	public void sendWhileRollbackOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileRollback(() -> sendOnline(roleIds, p));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendWhileRollbackAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileRollback(() -> sendAllOnlines(roleIds, p));
 	}
 
@@ -744,6 +801,8 @@ public class Online extends AbstractOnline {
 	}
 
 	public boolean send(@Nullable Long roleId, @NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		var connector = providerApp.providerService.getLinks().get(linkName);
 		if (null == connector) {
 			logger.warn("link connector not found. name={}", linkName);
@@ -972,6 +1031,8 @@ public class Online extends AbstractOnline {
 	}
 
 	public void sendReliableNotifyWhileCommit(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileCommit(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
@@ -981,6 +1042,8 @@ public class Online extends AbstractOnline {
 	}
 
 	public void sendReliableNotifyWhileRollback(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		Transaction.whileRollback(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
@@ -990,6 +1053,8 @@ public class Online extends AbstractOnline {
 	}
 
 	public void sendReliableNotify(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId + ":" + listenerName, p);
@@ -1242,6 +1307,8 @@ public class Online extends AbstractOnline {
 	}
 
 	public int broadcast(@NotNull Protocol<?> p, int time) {
+		if (p instanceof Rpc)
+			throw new RuntimeException("is rpc. please use sendOnlineRpc");
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);
