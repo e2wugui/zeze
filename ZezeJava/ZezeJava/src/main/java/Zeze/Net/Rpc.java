@@ -66,10 +66,6 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		this.isTimeout = isTimeout;
 	}
 
-	public void setIsRequest(boolean isRequest) {
-		this.isRequest = isRequest;
-	}
-
 	@Override
 	public final boolean isRequest() {
 		return isRequest;
@@ -261,7 +257,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	public Rpc<TArgument, TResult> setupRpcResponseContext(Protocol<?> ctx) {
-		@SuppressWarnings("unchecked") var context = (Rpc<TArgument, TResult>)ctx;
+		@SuppressWarnings("unchecked")
+		var context = (Rpc<TArgument, TResult>)ctx;
 		context.setSender(getSender());
 		context.resultCode = resultCode;
 		context.Result = Result;
