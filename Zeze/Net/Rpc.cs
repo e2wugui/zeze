@@ -227,7 +227,6 @@ namespace Zeze.Net
             context.Result = Result;
             context.Sender = Sender;
             context.ResultCode = ResultCode;
-            context.UserState = UserState;
 
             if (context.Future != null)
             {

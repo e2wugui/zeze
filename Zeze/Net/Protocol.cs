@@ -217,7 +217,6 @@ namespace Zeze.Net
                         // if (bb.ReadIndex != bb.WriteIndex)
                         //    throw new Exception($"p=({moduleId},{protocolId}) size={size} too many data");
                         p.Sender = so;
-                        p.UserState = so.UserState;
                         p.Dispatch(service, factoryHandle);
                     }
                     else if (toLua != null && toLua.DecodeAndDispatch(service, so.SessionId, typeId, bb)) // 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。

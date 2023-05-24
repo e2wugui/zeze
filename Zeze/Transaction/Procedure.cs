@@ -24,7 +24,7 @@ namespace Zeze.Transaction
             Zeze = app;
         }
 
-        public object UserState { get; set; }
+        private object UserState { get; set; }
         public Action RunWhileCommitAction { get; set; }
 
         public Procedure(Application app, Func<Task<long>> action, string actionName, TransactionLevel level, object userState)
@@ -34,8 +34,6 @@ namespace Zeze.Transaction
             ActionName = actionName;
             TransactionLevel = level;
             UserState = userState;
-            if (null == UserState) // 没指定，就从当前存储过程继承。嵌套时发生。
-                UserState = Transaction.Current?.TopProcedure?.UserState;
         }
 
         public static volatile Action<Exception, long, Procedure, string> LogAction = DefaultLogAction;
@@ -51,7 +49,7 @@ namespace Zeze.Transaction
             if (result > 0)
                 module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
 
-            logger.Log(ll, ex, $"Procedure={p} Return={result}{module} {message} UserState={p.UserState}");
+            logger.Log(ll, ex, $"Procedure={p} Return={result}{module} {message}");
 #endif
         }
 
@@ -83,7 +81,7 @@ namespace Zeze.Transaction
                 try
                 {
                     // 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
-                    return await Transaction.Create(Zeze.Locks).Perform(this);
+                    return await Transaction.Create(Zeze.Locks, UserState).Perform(this);
                 }
                 finally
                 {

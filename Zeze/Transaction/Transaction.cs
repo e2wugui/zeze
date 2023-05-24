@@ -25,6 +25,8 @@ namespace Zeze.Transaction
 
         public Procedure TopProcedure => ProcedureStack.Count == 0 ? null : ProcedureStack[^1];
 
+        public object UserState { get; set; }
+
         /*
         private void ReuseTransaction()
         {
@@ -41,7 +43,7 @@ namespace Zeze.Transaction
 
         private Locks Locks;
 
-        public static Transaction Create(Locks locks)
+        public static Transaction Create(Locks locks, object userState = null)
         {
             if (null == asyncLocal.Value)
             {
@@ -50,6 +52,7 @@ namespace Zeze.Transaction
                     Locks = locks
                 };
                 asyncLocal.Value = tmp;
+                tmp.UserState = userState;
                 return tmp;
             }
             throw new Exception("Transaction Has Created!");

@@ -118,7 +118,7 @@ namespace Zeze.Arch
                 {
                     // 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
                     Transaction.Transaction.Current.TopProcedure.ActionName = p2.GetType().FullName;
-                    Transaction.Transaction.Current.TopProcedure.UserState = p2.UserState;
+                    Transaction.Transaction.Current.UserState = session;
                     return await Zeze.Util.Mission.CallAsync(
                         factoryHandle.Handle,
                         p2,
@@ -140,7 +140,7 @@ namespace Zeze.Arch
                         () => factoryHandle.Handle(p2),
                         p2.GetType().FullName,
                         factoryHandle.TransactionLevel,
-                        p2.UserState),
+                        session),
                     p2,
                     (p, code) => { p.ResultCode = code; session.SendResponse(p); }
                     );
