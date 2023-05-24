@@ -139,7 +139,7 @@ public class Connector {
 		try {
 			return futureSocket.get(READY_TIMEOUT, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
-			throw new RuntimeException(e);
+			throw new RuntimeException(getName(), e);
 		}
 	}
 
