@@ -434,8 +434,6 @@ public class Service {
 							bb.ReadIndex - beginReadIndex, size));
 		*/
 		p.setSender(so);
-		if (so != null)
-			p.setUserState(so.getUserState());
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId) && needLog)
 			AsyncSocket.log("RECV", so == null ? 0 : so.getSessionId(), p);
 		return p;

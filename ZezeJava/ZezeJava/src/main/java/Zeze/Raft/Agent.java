@@ -141,7 +141,6 @@ public final class Agent {
 			rpc.Result = net.Result;
 			rpc.setSender(net.getSender());
 			rpc.setResultCode(net.getResultCode());
-			rpc.setUserState(net.getUserState());
 
 			if (rpc.getResultCode() == Procedure.RaftApplied)
 				rpc.setIsTimeout(false);
@@ -172,7 +171,6 @@ public final class Agent {
 			rpc.Result = net.Result;
 			rpc.setSender(net.getSender());
 			rpc.setResultCode(net.getResultCode());
-			rpc.setUserState(net.getUserState());
 
 			if (rpc.getResultCode() == Procedure.RaftApplied)
 				rpc.setIsTimeout(false);

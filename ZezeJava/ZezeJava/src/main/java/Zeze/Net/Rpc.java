@@ -251,7 +251,6 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		}
 
 		context.setSender(getSender());
-		context.setUserState(getUserState());
 		context.resultCode = resultCode;
 		context.Result = Result;
 		context.isTimeout = false; // not need
@@ -279,7 +278,6 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		Transaction.tryWhileRedo(() -> service.addRpcContext(sessionId, context));
 
 		context.setSender(getSender());
-		context.setUserState(getUserState());
 		context.resultCode = resultCode;
 		context.Result = Result;
 		context.isTimeout = false; // not need
