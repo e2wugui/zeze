@@ -9,12 +9,20 @@ namespace Zeze.Net
 {
     public class ProtocolPool
     {
-        private ConcurrentQueue<Protocol> Pool = new ConcurrentQueue<Protocol>();
-        private Func<Protocol, Task<long>> Handle;
+        public enum ReuseLevel
+        {
+            Protocol,
+            Bean
+        }
 
-        public ProtocolPool(Func<Protocol, Task<long>> handle)
+        private readonly ConcurrentQueue<Protocol> Pool = new ConcurrentQueue<Protocol>();
+        private readonly Func<Protocol, Task<long>> Handle;
+        private readonly ReuseLevel Level;
+
+        public ProtocolPool(Func<Protocol, Task<long>> handle, ReuseLevel level)
         {
             Handle = handle;
+            Level = level;
         }
 
         // see Protocol.Decode
@@ -32,7 +40,7 @@ namespace Zeze.Net
             var result = await Handle(p);
             if (result == 0 && p.Recyle && Pool.Count < 10000)
             {
-                p.ClearParameters();
+                p.ClearParameters(Level);
                 Pool.Enqueue(p);
             }
             return result;

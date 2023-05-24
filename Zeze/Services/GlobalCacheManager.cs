@@ -244,7 +244,7 @@ namespace Zeze.Services
 
         private Task<long> ProcessKeepAlive(Protocol p)
         {
-            var session = (CacheHolder)p.UserState;
+            var session = (CacheHolder)p.Sender?.UserState;
             if (null == session)
             {
                 p.SendResultCode(AcquireNotLogin);

@@ -161,7 +161,7 @@ namespace Zeze.Net
             return p;
         }
 
-        public abstract void ClearParameters();
+        public abstract void ClearParameters(ProtocolPool.ReuseLevel level);
 
         /// <summary>
         /// moduleId[4] + protocolId[4] + size[4] + protocol.bytes[size]
@@ -217,7 +217,6 @@ namespace Zeze.Net
                         // if (bb.ReadIndex != bb.WriteIndex)
                         //    throw new Exception($"p=({moduleId},{protocolId}) size={size} too many data");
                         p.Sender = so;
-                        p.UserState = so.UserState;
                         p.Dispatch(service, factoryHandle);
                     }
                     else if (toLua != null && toLua.DecodeAndDispatch(service, so.SessionId, typeId, bb)) // 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
@@ -275,9 +274,18 @@ namespace Zeze.Net
             return $"{GetType().FullName} ResultCode={ResultCode}{Environment.NewLine}  Argument={Argument}";
         }
 
-        public override void ClearParameters()
+        public override void ClearParameters(ProtocolPool.ReuseLevel level)
         {
-            Argument.ClearParameters();
+            switch (level)
+            {
+                case ProtocolPool.ReuseLevel.Protocol:
+                    Argument = new TArgument();
+                    break;
+
+                case ProtocolPool.ReuseLevel.Bean:
+                    Argument.ClearParameters();
+                    break;
+            }
         }
     }
 }

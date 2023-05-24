@@ -657,7 +657,7 @@ namespace Zeze.Services
 
         protected override Task<long> ProcessKeepAliveRequest(Zeze.Net.Protocol p)
         {
-            var session = (CacheHolder)p.UserState;
+            var session = (CacheHolder)p.Sender?.UserState;
             if (null == session)
             {
                 p.SendResultCode(GlobalCacheManagerServer.AcquireNotLogin);

@@ -276,7 +276,7 @@ namespace Zeze.Net
             if (null != Zeze && Transaction.TransactionLevel.None != factoryHandle.TransactionLevel)
             {
                 _ = Mission.CallAsync(Zeze.NewProcedure(async () => await responseHandle(rpc),
-                    rpc.GetType().FullName + ":Response", factoryHandle.TransactionLevel, rpc.UserState), rpc, null);
+                    rpc.GetType().FullName + ":Response", factoryHandle.TransactionLevel, rpc.Sender?.UserState), rpc, null);
             }
             else
 #endif
@@ -294,7 +294,7 @@ namespace Zeze.Net
                 {
                     Zeze.TaskOneByOneByKey.Execute(key, Zeze.NewProcedure(
                             () => factoryHandle.Handle(p), p.GetType().FullName,
-                            factoryHandle.TransactionLevel, p.UserState),
+                            factoryHandle.TransactionLevel, p.Sender?.UserState),
                             p, (p, code) => p.TrySendResultCode(code)
                         );
                 }
@@ -334,7 +334,7 @@ namespace Zeze.Net
                 else if (null != Zeze && Transaction.TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
                     _ = Mission.CallAsync(Zeze.NewProcedure(() => factoryHandle.Handle(p),
-                        p.GetType().FullName, factoryHandle.TransactionLevel, p.UserState), p, null);
+                        p.GetType().FullName, factoryHandle.TransactionLevel, p.Sender?.UserState), p, null);
                 }
 #endif
                 else
@@ -379,13 +379,13 @@ namespace Zeze.Net
 
             public ProtocolPool ProtocolPool => _ProtocolPool;
 
-            public void SetupProtocolPool()
+            public void SetupProtocolPool(ProtocolPool.ReuseLevel level)
             {
                 lock (this)
                 {
                     if (null == _ProtocolPool)
                     {
-                        var tmp = new ProtocolPool(Handle);
+                        var tmp = new ProtocolPool(Handle, level);
                         Handle = tmp.Process; // 先设置，拦截处理。
                         _ProtocolPool = tmp;
                     }
