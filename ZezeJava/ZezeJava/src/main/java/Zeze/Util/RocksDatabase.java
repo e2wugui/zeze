@@ -17,25 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.rocksdb.BackupEngine;
-import org.rocksdb.BackupEngineOptions;
-import org.rocksdb.BlockBasedTableConfig;
-import org.rocksdb.Checkpoint;
-import org.rocksdb.ColumnFamilyDescriptor;
-import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ColumnFamilyOptions;
-import org.rocksdb.DBOptions;
-import org.rocksdb.Env;
-import org.rocksdb.LRUCache;
-import org.rocksdb.Options;
-import org.rocksdb.ReadOptions;
-import org.rocksdb.RestoreOptions;
-import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
-import org.rocksdb.RocksIterator;
-import org.rocksdb.TableFormatConfig;
-import org.rocksdb.WriteBatch;
-import org.rocksdb.WriteOptions;
+import org.rocksdb.*;
 
 public class RocksDatabase implements Closeable {
 	static {
@@ -608,6 +590,10 @@ public class RocksDatabase implements Closeable {
 		// 有数据的时候可以直接删除family吧！
 		public void drop() throws RocksDBException {
 			dropTable(name);
+		}
+
+		public void compact() throws RocksDBException {
+			rocksDb.compactRange(cfHandle);
 		}
 	}
 

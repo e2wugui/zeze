@@ -377,6 +377,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 					return;
 				}
 				var metaCopy = bucket.getMeta().copy();
+				bucket.getTData().compact(); // 上一次分桶结束的deleteRange可能还没compact，此时keyNumbers不准确，这里总是执行一次。
 				it = locateMiddle();
 				metaCopy.setKeyFirst(new Binary(it.key()));
 				metaCopy.setRaftConfig("");
@@ -526,6 +527,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				(raftLog, result) -> {
 					if (!result)
 						logger.error("LogCleanEndSplit error");
+					logger.info("splitting end clean done. {}", result);
 				});
 	}
 
