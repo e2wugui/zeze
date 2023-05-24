@@ -297,8 +297,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			return;
 		var bucket = stateMachine.getBucket();
 		var splitting = bucket.getSplittingMeta();
-		if (null != splitting || null != bucket.getEndSplitCleanKey()) {
-			logger.info("start but in splitting. meta={}", splitting != null ? formatMeta(splitting) : "ending");
+		if (null != splitting) {
+			logger.info("start but in splitting. meta={}", formatMeta(splitting));
 			return; // splitting
 		}
 
@@ -312,8 +312,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		var bucket = stateMachine.getBucket();
 		if (null != bucket.getSplittingMeta())
 			startSplit();
-		else if (null != bucket.getEndSplitCleanKey())
-			cleanEndSplit();
 	}
 
 	private volatile long splitSerialNo;
@@ -519,16 +517,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo());
 		var meta = stateMachine.getBucket().getMeta();
 		logger.info("splitting end done. {}", formatMeta(meta));
-		cleanEndSplit();
-	}
-
-	private void cleanEndSplit() {
-		getRaft().appendLog(new LogCleanEndSplit(),
-				(raftLog, result) -> {
-					if (!result)
-						logger.error("LogCleanEndSplit error");
-					logger.info("splitting end clean done. {}", result);
-				});
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {

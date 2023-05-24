@@ -120,8 +120,6 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogEndSplit.TypeId_, LogEndSplit::new);
 		super.addFactory(LogSetSplittingMeta.TypeId_, LogSetSplittingMeta::new);
 		super.addFactory(LogSplitPut.TypeId_, LogSplitPut::new);
-
-		super.addFactory(LogCleanEndSplit.TypeId_, LogCleanEndSplit::new);
 	}
 
 	public void setupHandleIfNoTransaction(Runnable handle) {
@@ -185,38 +183,6 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void clearEndSplitCleanKey() {
-		try {
-			bucket.clearEndSplitCleanKey();
-		} catch (RocksDBException e) {
-			logger.error("", e);
-			getRaft().fatalKill();
-		}
-	}
-
-	public void cleanEndSplit() {
-		try (var it = bucket.getTData().iterator()) {
-			it.seek(bucket.getEndSplitCleanKey().copyIf());
-			if (!it.isValid())
-				return;
-			var first = it.key();
-
-			it.seekToLast();
-			if (!it.isValid())
-				return;
-			var last = it.key();
-
-			// deleteRange 不包含last，需要制造一个比当前last后面的key。
-			last = Arrays.copyOf(last, last.length + 1);
-			bucket.getTData().deleteRange(first, last);
-
-			bucket.clearEndSplitCleanKey();
-		} catch (RocksDBException e) {
-			logger.error("", e);
-			getRaft().fatalKill();
-		}
-	}
-
 	public void setBucketMeta(BBucketMeta.Data argument) {
 		try {
 			bucket.setMeta(argument);
@@ -236,8 +202,21 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
-		try {
-			bucket.setEndSplitCleanKey(from.getKeyLast());
+		try (var it = bucket.getTData().iterator()) {
+			it.seek(from.getKeyLast().copyIf());
+			if (!it.isValid())
+				return;
+			var first = it.key();
+
+			it.seekToLast();
+			if (!it.isValid())
+				return;
+			var last = it.key();
+
+			// deleteRange 不包含last，需要制造一个比当前last后面的key。
+			last = Arrays.copyOf(last, last.length + 1);
+			bucket.getTData().deleteRange(first, last);
+
 			bucket.setMeta(from);
 			bucket.addSplitMetaHistory(from, to);
 			bucket.deleteSplittingMeta();
