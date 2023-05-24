@@ -404,7 +404,7 @@ public class Service {
 			Task.runRpcResponseUnsafe(
 					zeze.newProcedure(
 							() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response",
-							factoryHandle.Level, rpc.getUserState()),
+							factoryHandle.Level, null != rpc.getSender() ? rpc.getSender().getUserState() : null),
 					factoryHandle.Mode);
 		} else
 			Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
@@ -456,7 +456,7 @@ public class Service {
 		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
 		if (zeze != null && level != TransactionLevel.None) {
 			Task.runUnsafe(zeze.newProcedure(() -> p.handle(this, factoryHandle), p.getClass().getName(), level,
-					p.getUserState()), p, Protocol::trySendResultCode, factoryHandle.Mode);
+					null != p.getSender() ? p.getSender().getUserState() : null), p, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
 			Task.runUnsafe(() -> p.handle(this, factoryHandle),
 					p, Protocol::trySendResultCode, null, factoryHandle.Mode);

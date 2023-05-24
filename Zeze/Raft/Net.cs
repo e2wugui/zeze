@@ -517,7 +517,6 @@ namespace Zeze.Raft
                 rpc.Result = net.Result;
                 rpc.Sender = net.Sender;
                 rpc.ResultCode = net.ResultCode;
-                rpc.UserState = net.UserState;
 
                 if (rpc.ResultCode == ResultCode.RaftApplied)
                 {
@@ -558,7 +557,6 @@ namespace Zeze.Raft
                 rpc.Result = net.Result;
                 rpc.Sender = net.Sender;
                 rpc.ResultCode = net.ResultCode;
-                rpc.UserState = net.UserState;
 
                 if (rpc.ResultCode == ResultCode.RaftApplied)
                 {
