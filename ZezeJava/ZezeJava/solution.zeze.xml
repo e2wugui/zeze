@@ -437,7 +437,7 @@
 		</module>
 
 		<!-- gs 之间直连的服务: 即时客户端也是服务器 -->
-		<module name="ProviderDirect" id="11009">
+		<module name="ProviderDirect" id="11009" UseData="true">
 			<enum name="ErrorTransmitParameterFactoryNotFound" value="1" />
 
 			<bean name="BModuleRedirectArgument">
@@ -561,7 +561,7 @@
 			<table name="tQueueLastTaskId" key="string" value="BTaskId" />
 		</module>
 
-		<module name="LinkdBase" id="11011">
+		<module name="LinkdBase" id="11011" UseData="true">
 			<!-- linkd to client -->
 			<bean name="BReportError">
 				<enum name="FromLink"     value="0"/>

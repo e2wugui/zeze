@@ -163,6 +163,27 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         _ServiceNamePrefix = _ServiceNamePrefix_;
     }
 
+    @Override
+    public Zeze.Builtin.ProviderDirect.BModuleRedirectArgument.Data toData() {
+        var data = new Zeze.Builtin.ProviderDirect.BModuleRedirectArgument.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.ProviderDirect.BModuleRedirectArgument.Data)other);
+    }
+
+    public void assign(BModuleRedirectArgument.Data other) {
+        setModuleId(other._ModuleId);
+        setHashCode(other._HashCode);
+        setRedirectType(other._RedirectType);
+        setMethodFullName(other._MethodFullName);
+        setParams(other._Params);
+        setServiceNamePrefix(other._ServiceNamePrefix);
+    }
+
     public void assign(BModuleRedirectArgument other) {
         setModuleId(other.getModuleId());
         setHashCode(other.getHashCode());
@@ -408,4 +429,260 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         st.appendBinary(_parents_name_ + "Params", getParams());
         st.appendString(_parents_name_ + "ServiceNamePrefix", getServiceNamePrefix());
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = -5561456902586805165L;
+
+    private int _ModuleId;
+    private int _HashCode; // server 计算。see BBind.ChoiceType。
+    private int _RedirectType; // 如果是ToServer，ServerId存在HashCode中。
+    private String _MethodFullName; // format="ModuleFullName:MethodName"
+    private Zeze.Net.Binary _Params;
+    private String _ServiceNamePrefix;
+
+    public int getModuleId() {
+        return _ModuleId;
+    }
+
+    public void setModuleId(int value) {
+        _ModuleId = value;
+    }
+
+    public int getHashCode() {
+        return _HashCode;
+    }
+
+    public void setHashCode(int value) {
+        _HashCode = value;
+    }
+
+    public int getRedirectType() {
+        return _RedirectType;
+    }
+
+    public void setRedirectType(int value) {
+        _RedirectType = value;
+    }
+
+    public String getMethodFullName() {
+        return _MethodFullName;
+    }
+
+    public void setMethodFullName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _MethodFullName = value;
+    }
+
+    public Zeze.Net.Binary getParams() {
+        return _Params;
+    }
+
+    public void setParams(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Params = value;
+    }
+
+    public String getServiceNamePrefix() {
+        return _ServiceNamePrefix;
+    }
+
+    public void setServiceNamePrefix(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _ServiceNamePrefix = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _MethodFullName = "";
+        _Params = Zeze.Net.Binary.Empty;
+        _ServiceNamePrefix = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(int _ModuleId_, int _HashCode_, int _RedirectType_, String _MethodFullName_, Zeze.Net.Binary _Params_, String _ServiceNamePrefix_) {
+        _ModuleId = _ModuleId_;
+        _HashCode = _HashCode_;
+        _RedirectType = _RedirectType_;
+        if (_MethodFullName_ == null)
+            _MethodFullName_ = "";
+        _MethodFullName = _MethodFullName_;
+        if (_Params_ == null)
+            _Params_ = Zeze.Net.Binary.Empty;
+        _Params = _Params_;
+        if (_ServiceNamePrefix_ == null)
+            _ServiceNamePrefix_ = "";
+        _ServiceNamePrefix = _ServiceNamePrefix_;
+    }
+
+    @Override
+    public Zeze.Builtin.ProviderDirect.BModuleRedirectArgument toBean() {
+        var bean = new Zeze.Builtin.ProviderDirect.BModuleRedirectArgument();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BModuleRedirectArgument)other);
+    }
+
+    public void assign(BModuleRedirectArgument other) {
+        _ModuleId = other.getModuleId();
+        _HashCode = other.getHashCode();
+        _RedirectType = other.getRedirectType();
+        _MethodFullName = other.getMethodFullName();
+        _Params = other.getParams();
+        _ServiceNamePrefix = other.getServiceNamePrefix();
+    }
+
+    public void assign(BModuleRedirectArgument.Data other) {
+        _ModuleId = other._ModuleId;
+        _HashCode = other._HashCode;
+        _RedirectType = other._RedirectType;
+        _MethodFullName = other._MethodFullName;
+        _Params = other._Params;
+        _ServiceNamePrefix = other._ServiceNamePrefix;
+    }
+
+    @Override
+    public BModuleRedirectArgument.Data copy() {
+        var copy = new BModuleRedirectArgument.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BModuleRedirectArgument.Data a, BModuleRedirectArgument.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BModuleRedirectArgument.Data clone() {
+        return (BModuleRedirectArgument.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectArgument: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ModuleId=").append(_ModuleId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("HashCode=").append(_HashCode).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("RedirectType=").append(_RedirectType).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("MethodFullName=").append(_MethodFullName).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Params=").append(_Params).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceNamePrefix=").append(_ServiceNamePrefix).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            int _x_ = _ModuleId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _HashCode;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _RedirectType;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            String _x_ = _MethodFullName;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            var _x_ = _Params;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
+        {
+            String _x_ = _ServiceNamePrefix;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _ModuleId = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _HashCode = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _RedirectType = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _MethodFullName = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            _Params = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 6) {
+            _ServiceNamePrefix = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

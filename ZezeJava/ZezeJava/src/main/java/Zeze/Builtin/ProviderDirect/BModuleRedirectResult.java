@@ -87,6 +87,24 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         _Params = _Params_;
     }
 
+    @Override
+    public Zeze.Builtin.ProviderDirect.BModuleRedirectResult.Data toData() {
+        var data = new Zeze.Builtin.ProviderDirect.BModuleRedirectResult.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.ProviderDirect.BModuleRedirectResult.Data)other);
+    }
+
+    public void assign(BModuleRedirectResult.Data other) {
+        setModuleId(other._ModuleId);
+        setServerId(other._ServerId);
+        setParams(other._Params);
+    }
+
     public void assign(BModuleRedirectResult other) {
         setModuleId(other.getModuleId());
         setServerId(other.getServerId());
@@ -257,4 +275,178 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         st.appendInt(_parents_name_ + "ServerId", getServerId());
         st.appendBinary(_parents_name_ + "Params", getParams());
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = 6325051164605397555L;
+
+    private int _ModuleId;
+    private int _ServerId; // 目标server的id。
+    private Zeze.Net.Binary _Params;
+
+    public int getModuleId() {
+        return _ModuleId;
+    }
+
+    public void setModuleId(int value) {
+        _ModuleId = value;
+    }
+
+    public int getServerId() {
+        return _ServerId;
+    }
+
+    public void setServerId(int value) {
+        _ServerId = value;
+    }
+
+    public Zeze.Net.Binary getParams() {
+        return _Params;
+    }
+
+    public void setParams(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Params = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _Params = Zeze.Net.Binary.Empty;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(int _ModuleId_, int _ServerId_, Zeze.Net.Binary _Params_) {
+        _ModuleId = _ModuleId_;
+        _ServerId = _ServerId_;
+        if (_Params_ == null)
+            _Params_ = Zeze.Net.Binary.Empty;
+        _Params = _Params_;
+    }
+
+    @Override
+    public Zeze.Builtin.ProviderDirect.BModuleRedirectResult toBean() {
+        var bean = new Zeze.Builtin.ProviderDirect.BModuleRedirectResult();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BModuleRedirectResult)other);
+    }
+
+    public void assign(BModuleRedirectResult other) {
+        _ModuleId = other.getModuleId();
+        _ServerId = other.getServerId();
+        _Params = other.getParams();
+    }
+
+    public void assign(BModuleRedirectResult.Data other) {
+        _ModuleId = other._ModuleId;
+        _ServerId = other._ServerId;
+        _Params = other._Params;
+    }
+
+    @Override
+    public BModuleRedirectResult.Data copy() {
+        var copy = new BModuleRedirectResult.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BModuleRedirectResult.Data a, BModuleRedirectResult.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BModuleRedirectResult.Data clone() {
+        return (BModuleRedirectResult.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectResult: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ModuleId=").append(_ModuleId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(_ServerId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Params=").append(_Params).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            int _x_ = _ModuleId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _ServerId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            var _x_ = _Params;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _ModuleId = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _ServerId = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _Params = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

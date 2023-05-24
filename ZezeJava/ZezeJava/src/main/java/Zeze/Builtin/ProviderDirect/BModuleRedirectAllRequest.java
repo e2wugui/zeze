@@ -199,6 +199,30 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         _ServiceNamePrefix = _ServiceNamePrefix_;
     }
 
+    @Override
+    public Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest.Data toData() {
+        var data = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest.Data)other);
+    }
+
+    public void assign(BModuleRedirectAllRequest.Data other) {
+        setModuleId(other._ModuleId);
+        setHashCodeConcurrentLevel(other._HashCodeConcurrentLevel);
+        _HashCodes.clear();
+        _HashCodes.addAll(other._HashCodes);
+        setSourceProvider(other._SourceProvider);
+        setSessionId(other._SessionId);
+        setMethodFullName(other._MethodFullName);
+        setParams(other._Params);
+        setServiceNamePrefix(other._ServiceNamePrefix);
+    }
+
     public void assign(BModuleRedirectAllRequest other) {
         setModuleId(other.getModuleId());
         setHashCodeConcurrentLevel(other.getHashCodeConcurrentLevel());
@@ -523,4 +547,338 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         st.appendBinary(_parents_name_ + "Params", getParams());
         st.appendString(_parents_name_ + "ServiceNamePrefix", getServiceNamePrefix());
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = -1938324199607833342L;
+
+    private int _ModuleId;
+    private int _HashCodeConcurrentLevel; // 总的并发分组数量
+    private java.util.HashSet<Integer> _HashCodes; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+    private long _SourceProvider; // linkd 转发的时候填写本地provider的sessionId。
+    private long _SessionId; // 发起请求者初始化，返回结果时带回。
+    private String _MethodFullName; // format="ModuleFullName:MethodName"
+    private Zeze.Net.Binary _Params;
+    private String _ServiceNamePrefix;
+
+    public int getModuleId() {
+        return _ModuleId;
+    }
+
+    public void setModuleId(int value) {
+        _ModuleId = value;
+    }
+
+    public int getHashCodeConcurrentLevel() {
+        return _HashCodeConcurrentLevel;
+    }
+
+    public void setHashCodeConcurrentLevel(int value) {
+        _HashCodeConcurrentLevel = value;
+    }
+
+    public java.util.HashSet<Integer> getHashCodes() {
+        return _HashCodes;
+    }
+
+    public void setHashCodes(java.util.HashSet<Integer> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _HashCodes = value;
+    }
+
+    public long getSourceProvider() {
+        return _SourceProvider;
+    }
+
+    public void setSourceProvider(long value) {
+        _SourceProvider = value;
+    }
+
+    public long getSessionId() {
+        return _SessionId;
+    }
+
+    public void setSessionId(long value) {
+        _SessionId = value;
+    }
+
+    public String getMethodFullName() {
+        return _MethodFullName;
+    }
+
+    public void setMethodFullName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _MethodFullName = value;
+    }
+
+    public Zeze.Net.Binary getParams() {
+        return _Params;
+    }
+
+    public void setParams(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Params = value;
+    }
+
+    public String getServiceNamePrefix() {
+        return _ServiceNamePrefix;
+    }
+
+    public void setServiceNamePrefix(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _ServiceNamePrefix = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _HashCodes = new java.util.HashSet<>();
+        _MethodFullName = "";
+        _Params = Zeze.Net.Binary.Empty;
+        _ServiceNamePrefix = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(int _ModuleId_, int _HashCodeConcurrentLevel_, java.util.HashSet<Integer> _HashCodes_, long _SourceProvider_, long _SessionId_, String _MethodFullName_, Zeze.Net.Binary _Params_, String _ServiceNamePrefix_) {
+        _ModuleId = _ModuleId_;
+        _HashCodeConcurrentLevel = _HashCodeConcurrentLevel_;
+        if (_HashCodes_ == null)
+            _HashCodes_ = new java.util.HashSet<>();
+        _HashCodes = _HashCodes_;
+        _SourceProvider = _SourceProvider_;
+        _SessionId = _SessionId_;
+        if (_MethodFullName_ == null)
+            _MethodFullName_ = "";
+        _MethodFullName = _MethodFullName_;
+        if (_Params_ == null)
+            _Params_ = Zeze.Net.Binary.Empty;
+        _Params = _Params_;
+        if (_ServiceNamePrefix_ == null)
+            _ServiceNamePrefix_ = "";
+        _ServiceNamePrefix = _ServiceNamePrefix_;
+    }
+
+    @Override
+    public Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest toBean() {
+        var bean = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BModuleRedirectAllRequest)other);
+    }
+
+    public void assign(BModuleRedirectAllRequest other) {
+        _ModuleId = other.getModuleId();
+        _HashCodeConcurrentLevel = other.getHashCodeConcurrentLevel();
+        _HashCodes.clear();
+        _HashCodes.addAll(other._HashCodes);
+        _SourceProvider = other.getSourceProvider();
+        _SessionId = other.getSessionId();
+        _MethodFullName = other.getMethodFullName();
+        _Params = other.getParams();
+        _ServiceNamePrefix = other.getServiceNamePrefix();
+    }
+
+    public void assign(BModuleRedirectAllRequest.Data other) {
+        _ModuleId = other._ModuleId;
+        _HashCodeConcurrentLevel = other._HashCodeConcurrentLevel;
+        _HashCodes.clear();
+        _HashCodes.addAll(other._HashCodes);
+        _SourceProvider = other._SourceProvider;
+        _SessionId = other._SessionId;
+        _MethodFullName = other._MethodFullName;
+        _Params = other._Params;
+        _ServiceNamePrefix = other._ServiceNamePrefix;
+    }
+
+    @Override
+    public BModuleRedirectAllRequest.Data copy() {
+        var copy = new BModuleRedirectAllRequest.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BModuleRedirectAllRequest.Data a, BModuleRedirectAllRequest.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BModuleRedirectAllRequest.Data clone() {
+        return (BModuleRedirectAllRequest.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ModuleId=").append(_ModuleId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("HashCodeConcurrentLevel=").append(_HashCodeConcurrentLevel).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("HashCodes={");
+        if (!_HashCodes.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _HashCodes) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("SourceProvider=").append(_SourceProvider).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("SessionId=").append(_SessionId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("MethodFullName=").append(_MethodFullName).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Params=").append(_Params).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceNamePrefix=").append(_ServiceNamePrefix).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            int _x_ = _ModuleId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _HashCodeConcurrentLevel;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            var _x_ = _HashCodes;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_) {
+                    _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        {
+            long _x_ = _SourceProvider;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            long _x_ = _SessionId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            String _x_ = _MethodFullName;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            var _x_ = _Params;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
+        {
+            String _x_ = _ServiceNamePrefix;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _ModuleId = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _HashCodeConcurrentLevel = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            var _x_ = _HashCodes;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadInt(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _SourceProvider = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            _SessionId = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 6) {
+            _MethodFullName = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            _Params = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 8) {
+            _ServiceNamePrefix = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

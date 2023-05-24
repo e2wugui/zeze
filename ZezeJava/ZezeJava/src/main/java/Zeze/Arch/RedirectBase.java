@@ -85,9 +85,7 @@ public class RedirectBase {
 	}
 
 	private static void addMiss(@NotNull ModuleRedirectAllResult miss, int i, @SuppressWarnings("SameParameterValue") long rc) {
-		var hashResult = new BModuleRedirectAllHash();
-		hashResult.setReturnCode(rc);
-		miss.Argument.getHashs().put(i, hashResult);
+		miss.Argument.getHashs().put(i, new BModuleRedirectAllHash.Data(rc, null));
 	}
 
 	private static void addTransmits(@NotNull LongHashMap<ModuleRedirectAllRequest> transmits, long provider, int index,
@@ -158,9 +156,8 @@ public class RedirectBase {
 					}
 				} else {
 					for (var hashIndex : request.Argument.getHashCodes()) {
-						BModuleRedirectAllHash hashResult = new BModuleRedirectAllHash();
-						hashResult.setReturnCode(Procedure.ErrorSendFail);
-						miss.Argument.getHashs().put(hashIndex, hashResult);
+						miss.Argument.getHashs().put(hashIndex,
+								new BModuleRedirectAllHash.Data(Procedure.ErrorSendFail, null));
 					}
 				}
 			}

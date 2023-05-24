@@ -145,6 +145,32 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         _Hashs.variableId(6);
     }
 
+    @Override
+    public Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult.Data toData() {
+        var data = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult.Data)other);
+    }
+
+    public void assign(BModuleRedirectAllResult.Data other) {
+        setModuleId(other._ModuleId);
+        setServerId(other._ServerId);
+        setSourceProvider(other._SourceProvider);
+        setMethodFullName(other._MethodFullName);
+        setSessionId(other._SessionId);
+        _Hashs.clear();
+        for (var e : other._Hashs.entrySet()) {
+            Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash data = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash();
+            data.assign(e.getValue());
+            _Hashs.put(e.getKey(), data);
+        }
+    }
+
     public void assign(BModuleRedirectAllResult other) {
         setModuleId(other.getModuleId());
         setServerId(other.getServerId());
@@ -428,4 +454,293 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         st.appendLong(_parents_name_ + "SessionId", getSessionId());
         st.appendString(_parents_name_ + "Hashs", Zeze.Serialize.Helper.encodeJson(_Hashs));
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = -6979067915808179070L;
+
+    private int _ModuleId;
+    private int _ServerId; // 目标server的id。
+    private long _SourceProvider; // 从BModuleRedirectAllRequest里面得到。
+    private String _MethodFullName; // format="ModuleFullName:MethodName"
+    private long _SessionId; // 发起请求者初始化，返回结果时带回。
+    private java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> _Hashs; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+
+    public int getModuleId() {
+        return _ModuleId;
+    }
+
+    public void setModuleId(int value) {
+        _ModuleId = value;
+    }
+
+    public int getServerId() {
+        return _ServerId;
+    }
+
+    public void setServerId(int value) {
+        _ServerId = value;
+    }
+
+    public long getSourceProvider() {
+        return _SourceProvider;
+    }
+
+    public void setSourceProvider(long value) {
+        _SourceProvider = value;
+    }
+
+    public String getMethodFullName() {
+        return _MethodFullName;
+    }
+
+    public void setMethodFullName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _MethodFullName = value;
+    }
+
+    public long getSessionId() {
+        return _SessionId;
+    }
+
+    public void setSessionId(long value) {
+        _SessionId = value;
+    }
+
+    public java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> getHashs() {
+        return _Hashs;
+    }
+
+    public void setHashs(java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Hashs = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _MethodFullName = "";
+        _Hashs = new java.util.HashMap<>();
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(int _ModuleId_, int _ServerId_, long _SourceProvider_, String _MethodFullName_, long _SessionId_, java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> _Hashs_) {
+        _ModuleId = _ModuleId_;
+        _ServerId = _ServerId_;
+        _SourceProvider = _SourceProvider_;
+        if (_MethodFullName_ == null)
+            _MethodFullName_ = "";
+        _MethodFullName = _MethodFullName_;
+        _SessionId = _SessionId_;
+        if (_Hashs_ == null)
+            _Hashs_ = new java.util.HashMap<>();
+        _Hashs = _Hashs_;
+    }
+
+    @Override
+    public Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult toBean() {
+        var bean = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BModuleRedirectAllResult)other);
+    }
+
+    public void assign(BModuleRedirectAllResult other) {
+        _ModuleId = other.getModuleId();
+        _ServerId = other.getServerId();
+        _SourceProvider = other.getSourceProvider();
+        _MethodFullName = other.getMethodFullName();
+        _SessionId = other.getSessionId();
+        _Hashs.clear();
+        for (var e : other._Hashs.entrySet()) {
+            Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data data = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data();
+            data.assign(e.getValue());
+            _Hashs.put(e.getKey(), data);
+        }
+    }
+
+    public void assign(BModuleRedirectAllResult.Data other) {
+        _ModuleId = other._ModuleId;
+        _ServerId = other._ServerId;
+        _SourceProvider = other._SourceProvider;
+        _MethodFullName = other._MethodFullName;
+        _SessionId = other._SessionId;
+        _Hashs.clear();
+        for (var e : other._Hashs.entrySet())
+            _Hashs.put(e.getKey(), e.getValue().copy());
+    }
+
+    @Override
+    public BModuleRedirectAllResult.Data copy() {
+        var copy = new BModuleRedirectAllResult.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BModuleRedirectAllResult.Data a, BModuleRedirectAllResult.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BModuleRedirectAllResult.Data clone() {
+        return (BModuleRedirectAllResult.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ModuleId=").append(_ModuleId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(_ServerId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("SourceProvider=").append(_SourceProvider).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("MethodFullName=").append(_MethodFullName).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("SessionId=").append(_SessionId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Hashs={");
+        if (!_Hashs.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _kv_ : _Hashs.entrySet()) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
+                _kv_.getValue().buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append('}').append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            int _x_ = _ModuleId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _ServerId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            long _x_ = _SourceProvider;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            String _x_ = _MethodFullName;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            long _x_ = _SessionId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            var _x_ = _Hashs;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.MAP);
+                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
+                for (var _e_ : _x_.entrySet()) {
+                    _o_.WriteLong(_e_.getKey());
+                    _e_.getValue().encode(_o_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _ModuleId = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _ServerId = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _SourceProvider = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _MethodFullName = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            _SessionId = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 6) {
+            var _x_ = _Hashs;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadInt(_s_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data(), _t_);
+                    _x_.put(_k_, _v_);
+                }
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

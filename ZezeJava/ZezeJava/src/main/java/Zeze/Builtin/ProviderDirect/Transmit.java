@@ -2,7 +2,7 @@
 package Zeze.Builtin.ProviderDirect;
 
 // 默认不启用事务，由协议实现自己控制。
-public class Transmit extends Zeze.Net.Protocol<Zeze.Builtin.ProviderDirect.BTransmit> {
+public class Transmit extends Zeze.Net.Protocol<Zeze.Builtin.ProviderDirect.BTransmit.Data> {
     public static final int ModuleId_ = 11009;
     public static final int ProtocolId_ = 902147088;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47284197108752
@@ -24,10 +24,10 @@ public class Transmit extends Zeze.Net.Protocol<Zeze.Builtin.ProviderDirect.BTra
     }
 
     public Transmit() {
-        Argument = new Zeze.Builtin.ProviderDirect.BTransmit();
+        Argument = new Zeze.Builtin.ProviderDirect.BTransmit.Data();
     }
 
-    public Transmit(Zeze.Builtin.ProviderDirect.BTransmit arg) {
+    public Transmit(Zeze.Builtin.ProviderDirect.BTransmit.Data arg) {
         Argument = arg;
     }
 }

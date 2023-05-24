@@ -77,6 +77,23 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
         _Params = _Params_;
     }
 
+    @Override
+    public Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data toData() {
+        var data = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data)other);
+    }
+
+    public void assign(BModuleRedirectAllHash.Data other) {
+        setReturnCode(other._ReturnCode);
+        setParams(other._Params);
+    }
+
     public void assign(BModuleRedirectAllHash other) {
         setReturnCode(other.getReturnCode());
         setParams(other.getParams());
@@ -222,4 +239,154 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
         st.appendLong(_parents_name_ + "ReturnCode", getReturnCode());
         st.appendBinary(_parents_name_ + "Params", getParams());
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = 5611412794338295457L;
+
+    private long _ReturnCode;
+    private Zeze.Net.Binary _Params;
+
+    public long getReturnCode() {
+        return _ReturnCode;
+    }
+
+    public void setReturnCode(long value) {
+        _ReturnCode = value;
+    }
+
+    public Zeze.Net.Binary getParams() {
+        return _Params;
+    }
+
+    public void setParams(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Params = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _Params = Zeze.Net.Binary.Empty;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(long _ReturnCode_, Zeze.Net.Binary _Params_) {
+        _ReturnCode = _ReturnCode_;
+        if (_Params_ == null)
+            _Params_ = Zeze.Net.Binary.Empty;
+        _Params = _Params_;
+    }
+
+    @Override
+    public Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash toBean() {
+        var bean = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BModuleRedirectAllHash)other);
+    }
+
+    public void assign(BModuleRedirectAllHash other) {
+        _ReturnCode = other.getReturnCode();
+        _Params = other.getParams();
+    }
+
+    public void assign(BModuleRedirectAllHash.Data other) {
+        _ReturnCode = other._ReturnCode;
+        _Params = other._Params;
+    }
+
+    @Override
+    public BModuleRedirectAllHash.Data copy() {
+        var copy = new BModuleRedirectAllHash.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BModuleRedirectAllHash.Data a, BModuleRedirectAllHash.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BModuleRedirectAllHash.Data clone() {
+        return (BModuleRedirectAllHash.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ReturnCode=").append(_ReturnCode).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Params=").append(_Params).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            long _x_ = _ReturnCode;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            var _x_ = _Params;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _ReturnCode = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _Params = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

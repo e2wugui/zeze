@@ -95,6 +95,24 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         _desc = _desc_;
     }
 
+    @Override
+    public Zeze.Builtin.LinkdBase.BReportError.Data toData() {
+        var data = new Zeze.Builtin.LinkdBase.BReportError.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.LinkdBase.BReportError.Data)other);
+    }
+
+    public void assign(BReportError.Data other) {
+        setFrom(other._from);
+        setCode(other._code);
+        setDesc(other._desc);
+    }
+
     public void assign(BReportError other) {
         setFrom(other.getFrom());
         setCode(other.getCode());
@@ -265,4 +283,186 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         st.appendInt(_parents_name_ + "code", getCode());
         st.appendString(_parents_name_ + "desc", getDesc());
     }
+
+// linkd to client
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = -947669033141460287L;
+
+    public static final int FromLink = 0;
+    public static final int FromProvider = 1;
+    public static final int CodeMuteKick = 0; // 只断客户端连接，不发送消息给客户端，用于重连时确保旧的连接快速断开
+    public static final int CodeNotAuthed = 1;
+    public static final int CodeNoProvider = 2;
+    public static final int CodeProviderBusy = 3;
+
+    private int _from;
+    private int _code;
+    private String _desc;
+
+    public int getFrom() {
+        return _from;
+    }
+
+    public void setFrom(int value) {
+        _from = value;
+    }
+
+    public int getCode() {
+        return _code;
+    }
+
+    public void setCode(int value) {
+        _code = value;
+    }
+
+    public String getDesc() {
+        return _desc;
+    }
+
+    public void setDesc(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _desc = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _desc = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(int _from_, int _code_, String _desc_) {
+        _from = _from_;
+        _code = _code_;
+        if (_desc_ == null)
+            _desc_ = "";
+        _desc = _desc_;
+    }
+
+    @Override
+    public Zeze.Builtin.LinkdBase.BReportError toBean() {
+        var bean = new Zeze.Builtin.LinkdBase.BReportError();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BReportError)other);
+    }
+
+    public void assign(BReportError other) {
+        _from = other.getFrom();
+        _code = other.getCode();
+        _desc = other.getDesc();
+    }
+
+    public void assign(BReportError.Data other) {
+        _from = other._from;
+        _code = other._code;
+        _desc = other._desc;
+    }
+
+    @Override
+    public BReportError.Data copy() {
+        var copy = new BReportError.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BReportError.Data a, BReportError.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BReportError.Data clone() {
+        return (BReportError.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LinkdBase.BReportError: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("from=").append(_from).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("code=").append(_code).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("desc=").append(_desc).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            int _x_ = _from;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _code;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            String _x_ = _desc;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _from = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _code = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _desc = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

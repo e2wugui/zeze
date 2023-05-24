@@ -121,8 +121,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		resArg.setSessionId(pa.getSessionId());
 		resArg.setMethodFullName(pa.getMethodFullName());
 
-		var hashResult = new BModuleRedirectAllHash();
-		hashResult.setReturnCode(Procedure.Success);
+		var hashResult = new BModuleRedirectAllHash.Data(Procedure.Success, null);
 		var re = handle.resultEncoder;
 		if (re != null)
 			hashResult.setParams(re.apply(result));
@@ -146,11 +145,8 @@ public class ProviderDirect extends AbstractProviderDirect {
 		if (handle == null) {
 			res.setResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
 			// 失败了，需要把hash返回。此时是没有处理结果的。
-			for (var hash : pa.getHashCodes()) {
-				var hashResult = new BModuleRedirectAllHash();
-				hashResult.setReturnCode(Procedure.NotImplement);
-				resArg.getHashs().put(hash, hashResult);
-			}
+			for (var hash : pa.getHashCodes())
+				resArg.getHashs().put(hash, new BModuleRedirectAllHash.Data(Procedure.NotImplement, null));
 			sendResult(p.getSender(), res);
 			return Procedure.LogicError;
 		}
@@ -158,7 +154,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 
 		for (var hash : pa.getHashCodes()) {
 			// 嵌套存储过程，某个分组处理失败不影响其他分组。
-			var hashResult = new BModuleRedirectAllHash();
+			var hashResult = new BModuleRedirectAllHash.Data();
 			RedirectAllFuture<?> future;
 			switch (handle.requestTransactionLevel) {
 			case Serializable:

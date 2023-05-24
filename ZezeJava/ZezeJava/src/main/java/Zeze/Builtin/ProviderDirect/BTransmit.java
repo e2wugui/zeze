@@ -133,6 +133,27 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         _OnlineSetName = _OnlineSetName_;
     }
 
+    @Override
+    public Zeze.Builtin.ProviderDirect.BTransmit.Data toData() {
+        var data = new Zeze.Builtin.ProviderDirect.BTransmit.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.ProviderDirect.BTransmit.Data)other);
+    }
+
+    public void assign(BTransmit.Data other) {
+        setActionName(other._ActionName);
+        _Roles.clear();
+        _Roles.addAll(other._Roles);
+        setSender(other._Sender);
+        setParameter(other._Parameter);
+        setOnlineSetName(other._OnlineSetName);
+    }
+
     public void assign(BTransmit other) {
         setActionName(other.getActionName());
         _Roles.clear();
@@ -382,4 +403,266 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         st.appendBinary(_parents_name_ + "Parameter", getParameter());
         st.appendString(_parents_name_ + "OnlineSetName", getOnlineSetName());
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = 7395081565293443928L;
+
+    private String _ActionName;
+    private java.util.HashSet<Long> _Roles; // 查询目标角色。
+    private long _Sender; // 结果发送给Sender。
+    private Zeze.Net.Binary _Parameter; // encoded bean
+    private String _OnlineSetName;
+
+    public String getActionName() {
+        return _ActionName;
+    }
+
+    public void setActionName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _ActionName = value;
+    }
+
+    public java.util.HashSet<Long> getRoles() {
+        return _Roles;
+    }
+
+    public void setRoles(java.util.HashSet<Long> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Roles = value;
+    }
+
+    public long getSender() {
+        return _Sender;
+    }
+
+    public void setSender(long value) {
+        _Sender = value;
+    }
+
+    public Zeze.Net.Binary getParameter() {
+        return _Parameter;
+    }
+
+    public void setParameter(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Parameter = value;
+    }
+
+    public String getOnlineSetName() {
+        return _OnlineSetName;
+    }
+
+    public void setOnlineSetName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _OnlineSetName = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _ActionName = "";
+        _Roles = new java.util.HashSet<>();
+        _Parameter = Zeze.Net.Binary.Empty;
+        _OnlineSetName = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(String _ActionName_, java.util.HashSet<Long> _Roles_, long _Sender_, Zeze.Net.Binary _Parameter_, String _OnlineSetName_) {
+        if (_ActionName_ == null)
+            _ActionName_ = "";
+        _ActionName = _ActionName_;
+        if (_Roles_ == null)
+            _Roles_ = new java.util.HashSet<>();
+        _Roles = _Roles_;
+        _Sender = _Sender_;
+        if (_Parameter_ == null)
+            _Parameter_ = Zeze.Net.Binary.Empty;
+        _Parameter = _Parameter_;
+        if (_OnlineSetName_ == null)
+            _OnlineSetName_ = "";
+        _OnlineSetName = _OnlineSetName_;
+    }
+
+    @Override
+    public Zeze.Builtin.ProviderDirect.BTransmit toBean() {
+        var bean = new Zeze.Builtin.ProviderDirect.BTransmit();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BTransmit)other);
+    }
+
+    public void assign(BTransmit other) {
+        _ActionName = other.getActionName();
+        _Roles.clear();
+        _Roles.addAll(other._Roles);
+        _Sender = other.getSender();
+        _Parameter = other.getParameter();
+        _OnlineSetName = other.getOnlineSetName();
+    }
+
+    public void assign(BTransmit.Data other) {
+        _ActionName = other._ActionName;
+        _Roles.clear();
+        _Roles.addAll(other._Roles);
+        _Sender = other._Sender;
+        _Parameter = other._Parameter;
+        _OnlineSetName = other._OnlineSetName;
+    }
+
+    @Override
+    public BTransmit.Data copy() {
+        var copy = new BTransmit.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BTransmit.Data a, BTransmit.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BTransmit.Data clone() {
+        return (BTransmit.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BTransmit: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ActionName=").append(_ActionName).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Roles={");
+        if (!_Roles.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _Roles) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Sender=").append(_Sender).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Parameter=").append(_Parameter).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OnlineSetName=").append(_OnlineSetName).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            String _x_ = _ActionName;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            var _x_ = _Roles;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_) {
+                    _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        {
+            long _x_ = _Sender;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            var _x_ = _Parameter;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
+        {
+            String _x_ = _OnlineSetName;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _ActionName = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            var _x_ = _Roles;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadLong(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _Sender = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _Parameter = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            _OnlineSetName = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

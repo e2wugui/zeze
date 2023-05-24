@@ -78,7 +78,7 @@ public class LinkdService extends HandshakeServer {
 	private void reportError(long linkSid, int from, int code, String desc, boolean closeLink) {
 		var link = GetSocket(linkSid);
 		if (link != null) {
-			new ReportError(new BReportError(from, code, desc)).Send(link);
+			new ReportError(new BReportError.Data(from, code, desc)).Send(link);
 
 			switch (from) {
 			case BReportError.FromLink:
