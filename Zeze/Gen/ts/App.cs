@@ -66,7 +66,7 @@ namespace Zeze.Gen.ts
 
         private void ImportGen(System.IO.StreamWriter sw)
         {
-            sw.WriteLine("import { Zeze } from 'zeze/zeze';");
+            sw.WriteLine("import { Zeze } from 'Zeze/zeze';");
             foreach (Module m in project.AllOrderDefineModules)
             {
                 var clsName = "Module" + Program.Upper1(m.Name);

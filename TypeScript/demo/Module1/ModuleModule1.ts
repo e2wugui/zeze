@@ -1,6 +1,6 @@
 /* eslint-disable camelcase, class-methods-use-this, import/no-cycle, new-cap, no-unused-vars, no-useless-constructor, prettier/prettier */
 // ZEZE_FILE_CHUNK {{{ IMPORT GEN
-import { Zeze } from 'zeze/zeze';
+import { Zeze } from 'Zeze/zeze';
 import { demo_Module1_Protocol1, demo_Module1_Protocol3, demo_Module1_Rpc1, demo_Module1_Rpc2 } from 'demo/gen';
 import App from 'demo/App';
 // ZEZE_FILE_CHUNK }}} IMPORT GEN

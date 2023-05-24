@@ -117,10 +117,11 @@ namespace Zeze.Gen.ts
                 case TypeByte:
                 case TypeShort:
                 case TypeInt:
-                case TypeLong:
                 case TypeFloat:
                 case TypeDouble:
                     return $"this.{var.Name} = 0";
+                case TypeLong:
+                    return $"this.{var.Name} = 0n";
                 case TypeString:
                     return $"this.{var.Name} = \"\"";
                 case Bean:

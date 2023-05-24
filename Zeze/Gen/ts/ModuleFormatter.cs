@@ -42,7 +42,7 @@ namespace Zeze.Gen.ts
 
         private void Import(System.IO.StreamWriter sw)
         {
-            sw.WriteLine("import { Zeze } from 'zeze/zeze';");
+            sw.WriteLine("import { Zeze } from 'Zeze/zeze';");
             var needp = NeedRegisterProtocol();
             if (needp.Count > 0)
             {
@@ -53,9 +53,9 @@ namespace Zeze.Gen.ts
                 }
                 if (needp.Count > 0)
                     importp.Length -= 2;
-                sw.WriteLine($"import {{ {importp} }} from '{module.Solution.Name}/gen';");
+                sw.WriteLine($"import {{ {importp} }} from '{Project.MakingInstance.Solution.Name}/gen';");
             }
-            sw.WriteLine($"import App from '{module.Solution.Name}/App';");
+            sw.WriteLine($"import App from '{Project.MakingInstance.Solution.Name}/App';");
         }
 
         private List<Protocol> NeedRegisterProtocol()
@@ -135,7 +135,7 @@ namespace Zeze.Gen.ts
                 // new file
                 FileSystem.CreateDirectory(fullDir);
                 using System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
-                sw.WriteLine("/* eslint-disable camelcase, class-methods-use-this, import/no-cycle, new-cap, no-unused-vars, no-useless-constructor, prettier/prettier */");
+                sw.WriteLine("/* eslint-disable camelcase, class-methods-use-this, import/no-cycle, lines-between-class-members, new-cap, no-unused-vars, no-useless-constructor, prettier/prettier */");
                 sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport);
                 Import(sw);
                 sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport);

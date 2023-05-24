@@ -46,7 +46,7 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeInt type)
         {
-            Value = "null";
+            SetDefaultValue("0");
         }
 
         public void Visit(TypeLong type)

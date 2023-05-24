@@ -6,6 +6,7 @@ namespace Zeze.Gen.ts
     public class Construct : Visitor
     {
 		private StreamWriter sw;
+        private readonly Bean bean;
 		private readonly Variable variable;
 		private readonly string prefix;
 
@@ -14,24 +15,27 @@ namespace Zeze.Gen.ts
 			sw.WriteLine(prefix + "public constructor() {");
             foreach (var var in bean.Variables)
             {
-                var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
+                var.VariableType.Accept(new Construct(sw, bean, var, prefix + "    "));
             }
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
 
-        public Construct(StreamWriter sw, Variable variable, string prefix)
+        public Construct(StreamWriter sw, Bean bean, Variable variable, string prefix)
 		{
 			this.sw = sw;
+            this.bean = bean;
 			this.variable = variable;
 			this.prefix = prefix;
-		}
+        }
 
 		private void Initial()
 		{
             string value = variable.Initial;
             if (value.Length == 0)
                 value = "0";
+            else if (!int.TryParse(value, out int v))
+                value = bean.Space.Path("_", bean.Name) + '.' + value;
 			sw.WriteLine(prefix + "this." + variable.Name + " = " + value + ";");
 		}
 
@@ -67,6 +71,8 @@ namespace Zeze.Gen.ts
                 value = "0n";
             else if (long.TryParse(value, out long v))
                 value = v + "n";
+            else
+                value = bean.Space.Path("_", bean.Name) + '.' + value;
             sw.WriteLine(prefix + "this." + variable.Name + " = " + value + ";");
         }
 

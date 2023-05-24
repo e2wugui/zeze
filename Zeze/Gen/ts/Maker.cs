@@ -19,7 +19,7 @@
             using System.IO.StreamWriter sw = Program.OpenWriterNoPath(genDir, Project.Solution.Name + "/gen.ts");
             sw.WriteLine("// auto-generated");
             sw.WriteLine("/* eslint-disable camelcase, class-methods-use-this, lines-between-class-members, max-classes-per-file, new-cap, no-bitwise, no-plusplus, no-underscore-dangle, no-unused-vars, no-use-before-define, prettier/prettier */");
-            sw.WriteLine("import { Zeze } from 'zeze/zeze';");
+            sw.WriteLine("import { Zeze } from 'Zeze/zeze';");
             foreach (Types.Bean bean in Project.AllBeans.Values)
             {
                 new BeanFormatter(bean).Make(sw);
