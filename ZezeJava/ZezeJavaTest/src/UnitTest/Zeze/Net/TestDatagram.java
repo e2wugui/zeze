@@ -29,12 +29,12 @@ public class TestDatagram {
 
 		byte[] securityKey = new byte[]{1, 2, 3, 4};
 		// server
-		var server = service.bind(new InetSocketAddress(4000));
+		var server = service.bind(new InetSocketAddress(4001));
 		server.createSession(null, 1, securityKey, ReplayAttackPolicy.AllowDisorder);
 		// client
 		var session = service.createSession(
 				new InetSocketAddress(0),
-				new InetSocketAddress("127.0.0.1", 4000),
+				new InetSocketAddress("127.0.0.1", 4001),
 				1, securityKey, ReplayAttackPolicy.AllowDisorder);
 		var p = new ProtoValue();
 		p.Argument.setString3("hello");
