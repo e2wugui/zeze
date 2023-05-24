@@ -518,6 +518,17 @@ public class RocksDatabase implements Closeable {
 				PerfCounter.instance.addRunInfo("RocksDB.delete", System.nanoTime() - timeBegin);
 		}
 
+		public void deleteRange(byte[] first, byte[] last) throws RocksDBException {
+			deleteRange(defaultWriteOptions, first, last);
+		}
+
+		public void deleteRange(@NotNull WriteOptions options, byte[] first, byte[] last) throws RocksDBException {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			rocksDb.deleteRange(cfHandle, options, first, last);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDB.deleteRange", System.nanoTime() - timeBegin);
+		}
+
 		public void put(@NotNull Batch batch, @NotNull Binary key, @NotNull Binary value) throws RocksDBException {
 			put(batch, key.bytesUnsafe(), key.getOffset(), key.size(),
 					value.bytesUnsafe(), value.getOffset(), value.size());

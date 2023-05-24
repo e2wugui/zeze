@@ -522,22 +522,11 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	private void cleanEndSplit() {
-		var cleanKey = stateMachine.getBucket().getEndSplitCleanKey();
-		var it = stateMachine.getBucket().getTData().iterator();
-		it.seek(Database.copyIf(cleanKey.bytesUnsafe(), cleanKey.getOffset(), cleanKey.size()));
-		if (it.isValid()) {
-			getRaft().appendLog(new LogCleanEndSplit(it.key()), (raftLog, result) -> {
-				if (result)
-					cleanEndSplit();
-				else
-					logger.error("LogCleanEndSplit error");
-			});
-		} else {
-			getRaft().appendLog(new LogClearEndSplitCleanKey(), (raftLog, result) -> {
-				if (!result)
-					logger.error("LogClearCleanEndSplitKey error.");
-			});
-		}
+		getRaft().appendLog(new LogCleanEndSplit(),
+				(raftLog, result) -> {
+					if (!result)
+						logger.error("LogCleanEndSplit error");
+				});
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {

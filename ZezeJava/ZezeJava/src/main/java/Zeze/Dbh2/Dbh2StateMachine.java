@@ -3,6 +3,7 @@ package Zeze.Dbh2;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -121,7 +122,6 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogSplitPut.TypeId_, LogSplitPut::new);
 
 		super.addFactory(LogCleanEndSplit.TypeId_, LogCleanEndSplit::new);
-		super.addFactory(LogClearEndSplitCleanKey.TypeId_, LogClearEndSplitCleanKey::new);
 	}
 
 	public void setupHandleIfNoTransaction(Runnable handle) {
@@ -194,12 +194,23 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void cleanEndSplit(byte[] key) {
+	public void cleanEndSplit() {
 		try (var it = bucket.getTData().iterator()) {
-			it.seek(key);
-			for (var n = 20; n > 0 && it.isValid(); --n, it.next()) {
-				bucket.getTData().delete(it.key());
-			}
+			it.seek(bucket.getEndSplitCleanKey().copyIf());
+			if (!it.isValid())
+				return;
+			var first = it.key();
+
+			it.seekToLast();
+			if (!it.isValid())
+				return;
+			var last = it.key();
+
+			// deleteRange 不包含last，需要制造一个比当前last后面的key。
+			last = Arrays.copyOf(last, last.length + 1);
+			bucket.getTData().deleteRange(first, last);
+
+			bucket.clearEndSplitCleanKey();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();

@@ -5,6 +5,7 @@ import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import Zeze.Dbh2.Database;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.BitConverter;
@@ -61,6 +62,10 @@ public final class Binary implements Comparable<Binary> {
 
 	public byte @NotNull [] bytesUnsafe() {
 		return bytes;
+	}
+
+	public byte @NotNull [] copyIf() {
+		return Database.copyIf(bytes, offset, count);
 	}
 
 	public byte @NotNull [] toBytes() {

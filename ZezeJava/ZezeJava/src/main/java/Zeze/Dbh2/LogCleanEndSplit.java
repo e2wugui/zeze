@@ -10,15 +10,8 @@ import Zeze.Serialize.ByteBuffer;
 public class LogCleanEndSplit extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogCleanEndSplit.class.getName());
 
-	private byte[] key;
-
 	public LogCleanEndSplit() {
 		super(null);
-	}
-
-	public LogCleanEndSplit(byte[] key) {
-		super(null);
-		this.key = key;
 	}
 
 	@Override
@@ -29,18 +22,16 @@ public class LogCleanEndSplit extends Log {
 	@Override
 	public void apply(RaftLog holder, StateMachine stateMachine) throws Exception {
 		var sm = (Dbh2StateMachine)stateMachine;
-		sm.cleanEndSplit(key);
+		sm.cleanEndSplit();
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
 		super.encode(bb);
-		bb.WriteBytes(key);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
 		super.decode(bb);
-		key = bb.ReadBytes();
 	}
 }
