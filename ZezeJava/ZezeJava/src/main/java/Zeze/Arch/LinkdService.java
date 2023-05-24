@@ -117,10 +117,10 @@ public class LinkdService extends HandshakeServer {
 	// 注意这里为了优化拷贝开销,返回的Dispatch引用了参数data中的byte数组,调用者要确保Dispatch用完之前不能修改data数据,否则应该传入data.Copy()
 	public static Dispatch createDispatch(LinkdUserSession linkSession, AsyncSocket so,
 										  int moduleId, int protocolId, ByteBuffer data) {
-		return new Dispatch(new BDispatch(so.getSessionId(), linkSession.getAccount(),
+		var userState = linkSession.getUserState();
+		return new Dispatch(new BDispatch.Data(so.getSessionId(), linkSession.getAccount(),
 				Protocol.makeTypeId(moduleId, protocolId), new Binary(data),
-				linkSession.getUserState().getContext(), linkSession.getUserState().getContextx(),
-				linkSession.getUserState().getOnlineSetName()));
+				userState.getContext(), userState.getContextx(), userState.getOnlineSetName()));
 	}
 
 	private boolean tryReportError(LinkdUserSession linkSession, int moduleId, Dispatch dispatch) {

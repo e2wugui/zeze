@@ -196,6 +196,28 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         _onlineSetName = _onlineSetName_;
     }
 
+    @Override
+    public Zeze.Builtin.Provider.BDispatch.Data toData() {
+        var data = new Zeze.Builtin.Provider.BDispatch.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Provider.BDispatch.Data)other);
+    }
+
+    public void assign(BDispatch.Data other) {
+        setLinkSid(other._linkSid);
+        setAccount(other._account);
+        setProtocolType(other._protocolType);
+        setProtocolData(other._protocolData);
+        setContext(other._context);
+        setContextx(other._contextx);
+        setOnlineSetName(other._onlineSetName);
+    }
+
     public void assign(BDispatch other) {
         setLinkSid(other.getLinkSid());
         setAccount(other.getAccount());
@@ -466,4 +488,295 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         st.appendBinary(_parents_name_ + "contextx", getContextx());
         st.appendString(_parents_name_ + "onlineSetName", getOnlineSetName());
     }
+
+// link to gs
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = -496680173908943081L;
+
+    private long _linkSid;
+    private String _account;
+    private long _protocolType;
+    private Zeze.Net.Binary _protocolData; // 协议打包，不包括 type, size
+    private String _context; // SetUserState
+    private Zeze.Net.Binary _contextx; // SetUserState
+    private String _onlineSetName; // SetUserState
+
+    public long getLinkSid() {
+        return _linkSid;
+    }
+
+    public void setLinkSid(long value) {
+        _linkSid = value;
+    }
+
+    public String getAccount() {
+        return _account;
+    }
+
+    public void setAccount(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _account = value;
+    }
+
+    public long getProtocolType() {
+        return _protocolType;
+    }
+
+    public void setProtocolType(long value) {
+        _protocolType = value;
+    }
+
+    public Zeze.Net.Binary getProtocolData() {
+        return _protocolData;
+    }
+
+    public void setProtocolData(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _protocolData = value;
+    }
+
+    public String getContext() {
+        return _context;
+    }
+
+    public void setContext(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _context = value;
+    }
+
+    public Zeze.Net.Binary getContextx() {
+        return _contextx;
+    }
+
+    public void setContextx(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _contextx = value;
+    }
+
+    public String getOnlineSetName() {
+        return _onlineSetName;
+    }
+
+    public void setOnlineSetName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _onlineSetName = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _account = "";
+        _protocolData = Zeze.Net.Binary.Empty;
+        _context = "";
+        _contextx = Zeze.Net.Binary.Empty;
+        _onlineSetName = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(long _linkSid_, String _account_, long _protocolType_, Zeze.Net.Binary _protocolData_, String _context_, Zeze.Net.Binary _contextx_, String _onlineSetName_) {
+        _linkSid = _linkSid_;
+        if (_account_ == null)
+            _account_ = "";
+        _account = _account_;
+        _protocolType = _protocolType_;
+        if (_protocolData_ == null)
+            _protocolData_ = Zeze.Net.Binary.Empty;
+        _protocolData = _protocolData_;
+        if (_context_ == null)
+            _context_ = "";
+        _context = _context_;
+        if (_contextx_ == null)
+            _contextx_ = Zeze.Net.Binary.Empty;
+        _contextx = _contextx_;
+        if (_onlineSetName_ == null)
+            _onlineSetName_ = "";
+        _onlineSetName = _onlineSetName_;
+    }
+
+    @Override
+    public Zeze.Builtin.Provider.BDispatch toBean() {
+        var bean = new Zeze.Builtin.Provider.BDispatch();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BDispatch)other);
+    }
+
+    public void assign(BDispatch other) {
+        _linkSid = other.getLinkSid();
+        _account = other.getAccount();
+        _protocolType = other.getProtocolType();
+        _protocolData = other.getProtocolData();
+        _context = other.getContext();
+        _contextx = other.getContextx();
+        _onlineSetName = other.getOnlineSetName();
+    }
+
+    public void assign(BDispatch.Data other) {
+        _linkSid = other._linkSid;
+        _account = other._account;
+        _protocolType = other._protocolType;
+        _protocolData = other._protocolData;
+        _context = other._context;
+        _contextx = other._contextx;
+        _onlineSetName = other._onlineSetName;
+    }
+
+    @Override
+    public BDispatch.Data copy() {
+        var copy = new BDispatch.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BDispatch.Data a, BDispatch.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BDispatch.Data clone() {
+        return (BDispatch.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BDispatch: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("linkSid=").append(_linkSid).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("account=").append(_account).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("protocolType=").append(_protocolType).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("protocolData=").append(_protocolData).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("context=").append(_context).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("contextx=").append(_contextx).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("onlineSetName=").append(_onlineSetName).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            long _x_ = _linkSid;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            String _x_ = _account;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            long _x_ = _protocolType;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            var _x_ = _protocolData;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
+        {
+            String _x_ = _context;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            var _x_ = _contextx;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
+        {
+            String _x_ = _onlineSetName;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _linkSid = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _account = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _protocolType = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _protocolData = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            _context = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 6) {
+            _contextx = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            _onlineSetName = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

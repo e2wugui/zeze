@@ -6,7 +6,7 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 
 public class LinkdProviderSession extends ProviderSession {
-	protected BAnnounceProviderInfo info;
+	protected BAnnounceProviderInfo.Data info;
 
 	/**
 	 * 维护此Provider上绑定的LinkSession，用来在Provider关闭的时候，进行 UnBind。
@@ -27,11 +27,11 @@ public class LinkdProviderSession extends ProviderSession {
 		super.sessionId = ssid;
 	}
 
-	public BAnnounceProviderInfo getInfo() {
+	public BAnnounceProviderInfo.Data getInfo() {
 		return info;
 	}
 
-	public void setInfo(BAnnounceProviderInfo value) {
+	public void setInfo(BAnnounceProviderInfo.Data value) {
 		info = value;
 	}
 

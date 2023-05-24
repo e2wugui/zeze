@@ -39,6 +39,29 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
         _linkSids.variableId(2);
     }
 
+    @Override
+    public Zeze.Builtin.Provider.BBind.Data toData() {
+        var data = new Zeze.Builtin.Provider.BBind.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Provider.BBind.Data)other);
+    }
+
+    public void assign(BBind.Data other) {
+        _modules.clear();
+        for (var e : other._modules.entrySet()) {
+            Zeze.Builtin.Provider.BModule data = new Zeze.Builtin.Provider.BModule();
+            data.assign(e.getValue());
+            _modules.put(e.getKey(), data);
+        }
+        _linkSids.clear();
+        _linkSids.addAll(other._linkSids);
+    }
+
     public void assign(BBind other) {
         _modules.clear();
         for (var e : other._modules.entrySet())
@@ -243,4 +266,225 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
         st.appendString(_parents_name_ + "modules", Zeze.Serialize.Helper.encodeJson(_modules));
         st.appendString(_parents_name_ + "linkSids", Zeze.Serialize.Helper.encodeJson(_linkSids));
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = 318036402741860020L;
+
+    public static final int ResultSuccess = 0;
+    public static final int ResultFailed = 1;
+
+    private java.util.HashMap<Integer, Zeze.Builtin.Provider.BModule.Data> _modules; // moduleId -> BModule
+    private java.util.HashSet<Long> _linkSids;
+
+    public java.util.HashMap<Integer, Zeze.Builtin.Provider.BModule.Data> getModules() {
+        return _modules;
+    }
+
+    public void setModules(java.util.HashMap<Integer, Zeze.Builtin.Provider.BModule.Data> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _modules = value;
+    }
+
+    public java.util.HashSet<Long> getLinkSids() {
+        return _linkSids;
+    }
+
+    public void setLinkSids(java.util.HashSet<Long> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _linkSids = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _modules = new java.util.HashMap<>();
+        _linkSids = new java.util.HashSet<>();
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(java.util.HashMap<Integer, Zeze.Builtin.Provider.BModule.Data> _modules_, java.util.HashSet<Long> _linkSids_) {
+        if (_modules_ == null)
+            _modules_ = new java.util.HashMap<>();
+        _modules = _modules_;
+        if (_linkSids_ == null)
+            _linkSids_ = new java.util.HashSet<>();
+        _linkSids = _linkSids_;
+    }
+
+    @Override
+    public Zeze.Builtin.Provider.BBind toBean() {
+        var bean = new Zeze.Builtin.Provider.BBind();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BBind)other);
+    }
+
+    public void assign(BBind other) {
+        _modules.clear();
+        for (var e : other._modules.entrySet()) {
+            Zeze.Builtin.Provider.BModule.Data data = new Zeze.Builtin.Provider.BModule.Data();
+            data.assign(e.getValue());
+            _modules.put(e.getKey(), data);
+        }
+        _linkSids.clear();
+        _linkSids.addAll(other._linkSids);
+    }
+
+    public void assign(BBind.Data other) {
+        _modules.clear();
+        for (var e : other._modules.entrySet())
+            _modules.put(e.getKey(), e.getValue().copy());
+        _linkSids.clear();
+        _linkSids.addAll(other._linkSids);
+    }
+
+    @Override
+    public BBind.Data copy() {
+        var copy = new BBind.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BBind.Data a, BBind.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BBind.Data clone() {
+        return (BBind.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BBind: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("modules={");
+        if (!_modules.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _kv_ : _modules.entrySet()) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
+                _kv_.getValue().buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("linkSids={");
+        if (!_linkSids.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _linkSids) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append('}').append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            var _x_ = _modules;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
+                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
+                for (var _e_ : _x_.entrySet()) {
+                    _o_.WriteLong(_e_.getKey());
+                    _e_.getValue().encode(_o_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        {
+            var _x_ = _linkSids;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_) {
+                    _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            var _x_ = _modules;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadInt(_s_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.Provider.BModule.Data(), _t_);
+                    _x_.put(_k_, _v_);
+                }
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            var _x_ = _linkSids;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadLong(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

@@ -249,7 +249,7 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	private void setReady(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo server, @NotNull ProviderSession ps,
-						  int mid, @NotNull BModule m) {
+						  int mid, @NotNull BModule.Data m) {
 		var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
 		ps.getOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
 		ss.setServiceIdentityReadyState(server.getServiceIdentity(), pms);

@@ -18,7 +18,7 @@ public class LinkdUserSession {
 	protected static final Logger logger = LogManager.getLogger(LinkdUserSession.class);
 
 	protected String account;
-	protected BUserState userState = new BUserState();
+	protected BUserState.Data userState = new BUserState.Data();
 	protected final ReentrantReadWriteLock bindsLock = new ReentrantReadWriteLock();
 	protected IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
 	protected long sessionId; // Linkd.SessionId
@@ -51,11 +51,11 @@ public class LinkdUserSession {
 		return account.equals(newAccount);
 	}
 
-	public BUserState getUserState() {
+	public BUserState.Data getUserState() {
 		return userState;
 	}
 
-	public void setUserState(BUserState state) {
+	public void setUserState(BUserState.Data state) {
 		this.userState = state;
 	}
 
@@ -210,9 +210,8 @@ public class LinkdUserSession {
 			bindProviders.add(provider); // 先收集， 去重。
 		}
 		if (!bindProviders.isEmpty()) {
-			var bLinkBroken = new BLinkBroken(account, sessionId, BLinkBroken.REASON_PEERCLOSE);
-			bLinkBroken.setUserState(userState);
-			var linkBroken = new LinkBroken(bLinkBroken);
+			var linkBroken = new LinkBroken(new BLinkBroken.Data(
+					account, sessionId, BLinkBroken.REASON_PEERCLOSE, userState));
 			for (var provider : bindProviders)
 				provider.Send(linkBroken);
 		}

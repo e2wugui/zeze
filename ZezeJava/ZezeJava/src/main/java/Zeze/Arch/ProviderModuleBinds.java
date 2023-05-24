@@ -183,7 +183,7 @@ public final class ProviderModuleBinds {
 	// 声明ConfigType="Default"且providers为空的所有providers都会注册
 	// 其它未在绑定配置定义的模块只要不在ProviderNoDefaultModule配置里的providers都会注册
 	public void buildStaticBinds(@NotNull HashMap<String, IModule> AllModules, int serverId,
-								 @NotNull IntHashMap<BModule> out) {
+								 @NotNull IntHashMap<BModule.Data> out) {
 		var noDefaultModule = providerNoDefaultModule.contains(serverId);
 		for (var m : AllModules.values()) {
 			var cm = modules.get(m.getFullName());
@@ -197,8 +197,8 @@ public final class ProviderModuleBinds {
 					continue;
 			} else if (!cm.providers.isEmpty() && !cm.providers.contains(serverId)) // ConfigTypeDefault
 				continue;
-			out.put(m.getId(), cm != null ? new BModule(cm.choiceType, cm.configType, cm.subscribeType)
-					: new BModule(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault,
+			out.put(m.getId(), cm != null ? new BModule.Data(cm.choiceType, cm.configType, cm.subscribeType)
+					: new BModule.Data(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault,
 					BSubscribeInfo.SubscribeTypeReadyCommit));
 		}
 	}
@@ -206,12 +206,12 @@ public final class ProviderModuleBinds {
 	// 动态模块必须在绑定配置里 声明ConfigType="Dynamic" 或 缺省的ConfigType并指定空的providers
 	// 动态模块的providers为空则表示所有providers都可以注册该模块, 否则只有指定的providers可以注册
 	public void buildDynamicBinds(@NotNull HashMap<String, IModule> AllModules, int serverId,
-								  @NotNull IntHashMap<BModule> out) {
+								  @NotNull IntHashMap<BModule.Data> out) {
 		for (var m : AllModules.values()) {
 			var cm = modules.get(m.getFullName());
 			if (cm != null && cm.configType == BModule.ConfigTypeDynamic &&
 					(cm.providers.isEmpty() || cm.providers.contains(serverId)))
-				out.put(m.getId(), new BModule(cm.choiceType, BModule.ConfigTypeDynamic, cm.subscribeType));
+				out.put(m.getId(), new BModule.Data(cm.choiceType, BModule.ConfigTypeDynamic, cm.subscribeType));
 		}
 	}
 }

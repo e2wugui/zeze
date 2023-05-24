@@ -56,6 +56,25 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         _userState.variableId(2);
     }
 
+    @Override
+    public Zeze.Builtin.Provider.BSetUserState.Data toData() {
+        var data = new Zeze.Builtin.Provider.BSetUserState.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Provider.BSetUserState.Data)other);
+    }
+
+    public void assign(BSetUserState.Data other) {
+        setLinkSid(other._linkSid);
+        Zeze.Builtin.Provider.BUserState data_userState = new Zeze.Builtin.Provider.BUserState();
+        data_userState.assign(other._userState);
+        _userState.setValue(data_userState);
+    }
+
     public void assign(BSetUserState other) {
         setLinkSid(other.getLinkSid());
         _userState.assign(other._userState);
@@ -211,4 +230,159 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         _userState.encodeSQLStatement(parents, st);
         parents.remove(parents.size() - 1);
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = -4860388989628287875L;
+
+    private long _linkSid;
+    private Zeze.Builtin.Provider.BUserState.Data _userState;
+
+    public long getLinkSid() {
+        return _linkSid;
+    }
+
+    public void setLinkSid(long value) {
+        _linkSid = value;
+    }
+
+    public Zeze.Builtin.Provider.BUserState.Data getUserState() {
+        return _userState;
+    }
+
+    public void setUserState(Zeze.Builtin.Provider.BUserState.Data value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _userState = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _userState = new Zeze.Builtin.Provider.BUserState.Data();
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(long _linkSid_, Zeze.Builtin.Provider.BUserState.Data _userState_) {
+        _linkSid = _linkSid_;
+        if (_userState_ == null)
+            _userState_ = new Zeze.Builtin.Provider.BUserState.Data();
+        _userState = _userState_;
+    }
+
+    @Override
+    public Zeze.Builtin.Provider.BSetUserState toBean() {
+        var bean = new Zeze.Builtin.Provider.BSetUserState();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BSetUserState)other);
+    }
+
+    public void assign(BSetUserState other) {
+        _linkSid = other.getLinkSid();
+        _userState.assign(other._userState.getValue());
+    }
+
+    public void assign(BSetUserState.Data other) {
+        _linkSid = other._linkSid;
+        _userState.assign(other._userState);
+    }
+
+    @Override
+    public BSetUserState.Data copy() {
+        var copy = new BSetUserState.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BSetUserState.Data a, BSetUserState.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BSetUserState.Data clone() {
+        return (BSetUserState.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSetUserState: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("linkSid=").append(_linkSid).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("userState=").append(System.lineSeparator());
+        _userState.buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            long _x_ = _linkSid;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 2, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            _userState.encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _linkSid = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _o_.ReadBean(_userState, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

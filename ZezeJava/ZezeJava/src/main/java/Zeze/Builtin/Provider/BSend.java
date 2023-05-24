@@ -79,6 +79,25 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
         _protocolWholeData = _protocolWholeData_;
     }
 
+    @Override
+    public Zeze.Builtin.Provider.BSend.Data toData() {
+        var data = new Zeze.Builtin.Provider.BSend.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Provider.BSend.Data)other);
+    }
+
+    public void assign(BSend.Data other) {
+        _linkSids.clear();
+        _linkSids.addAll(other._linkSids);
+        setProtocolType(other._protocolType);
+        setProtocolWholeData(other._protocolWholeData);
+    }
+
     public void assign(BSend other) {
         _linkSids.clear();
         _linkSids.addAll(other._linkSids);
@@ -278,4 +297,208 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
         st.appendLong(_parents_name_ + "protocolType", getProtocolType());
         st.appendBinary(_parents_name_ + "protocolWholeData", getProtocolWholeData());
     }
+
+public static class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = 545774009128015305L;
+
+    private java.util.ArrayList<Long> _linkSids;
+    private long _protocolType;
+    private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
+
+    public java.util.ArrayList<Long> getLinkSids() {
+        return _linkSids;
+    }
+
+    public void setLinkSids(java.util.ArrayList<Long> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _linkSids = value;
+    }
+
+    public long getProtocolType() {
+        return _protocolType;
+    }
+
+    public void setProtocolType(long value) {
+        _protocolType = value;
+    }
+
+    public Zeze.Net.Binary getProtocolWholeData() {
+        return _protocolWholeData;
+    }
+
+    public void setProtocolWholeData(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _protocolWholeData = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _linkSids = new java.util.ArrayList<>();
+        _protocolWholeData = Zeze.Net.Binary.Empty;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(java.util.ArrayList<Long> _linkSids_, long _protocolType_, Zeze.Net.Binary _protocolWholeData_) {
+        if (_linkSids_ == null)
+            _linkSids_ = new java.util.ArrayList<>();
+        _linkSids = _linkSids_;
+        _protocolType = _protocolType_;
+        if (_protocolWholeData_ == null)
+            _protocolWholeData_ = Zeze.Net.Binary.Empty;
+        _protocolWholeData = _protocolWholeData_;
+    }
+
+    @Override
+    public Zeze.Builtin.Provider.BSend toBean() {
+        var bean = new Zeze.Builtin.Provider.BSend();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BSend)other);
+    }
+
+    public void assign(BSend other) {
+        _linkSids.clear();
+        _linkSids.addAll(other._linkSids);
+        _protocolType = other.getProtocolType();
+        _protocolWholeData = other.getProtocolWholeData();
+    }
+
+    public void assign(BSend.Data other) {
+        _linkSids.clear();
+        _linkSids.addAll(other._linkSids);
+        _protocolType = other._protocolType;
+        _protocolWholeData = other._protocolWholeData;
+    }
+
+    @Override
+    public BSend.Data copy() {
+        var copy = new BSend.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BSend.Data a, BSend.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BSend.Data clone() {
+        return (BSend.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSend: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("linkSids=[");
+        if (!_linkSids.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _linkSids) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append(']').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("protocolType=").append(_protocolType).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("protocolWholeData=").append(_protocolWholeData).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            var _x_ = _linkSids;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_) {
+                    _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        {
+            long _x_ = _protocolType;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            var _x_ = _protocolWholeData;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            var _x_ = _linkSids;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadLong(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _protocolType = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _protocolWholeData = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

@@ -1304,7 +1304,7 @@ public class Online extends AbstractOnline {
 
 	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time) {
 //		TaskCompletionSource<Long> future = null;
-		var broadcast = new Broadcast(new BBroadcast(typeId, fullEncodedProtocol, time));
+		var broadcast = new Broadcast(new BBroadcast.Data(typeId, fullEncodedProtocol, time));
 		var pdata = broadcast.encode();
 		int sendCount = 0;
 		for (var link : providerApp.providerService.getLinks().values()) {

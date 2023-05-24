@@ -32,9 +32,9 @@ public class ProviderApp {
 
 	public final @NotNull ProviderDistribute distribute;
 
-	public final IntHashMap<BModule> staticBinds = new IntHashMap<>();
-	public final IntHashMap<BModule> dynamicModules = new IntHashMap<>();
-	public final IntHashMap<BModule> modules = new IntHashMap<>();
+	public final IntHashMap<BModule.Data> staticBinds = new IntHashMap<>();
+	public final IntHashMap<BModule.Data> dynamicModules = new IntHashMap<>();
+	public final IntHashMap<BModule.Data> modules = new IntHashMap<>();
 	public final HashMap<String, IModule> builtinModules = new HashMap<>();
 
 	public ProviderApp(@NotNull Application zeze,
@@ -107,8 +107,8 @@ public class ProviderApp {
 			if (!this.modules.containsKey(module.getId())) { // 补充其它模块的信息
 				var m = binds.getModules().get(module.getFullName());
 				this.modules.put(module.getId(), m != null
-						? new BModule(m.getChoiceType(), m.getConfigType(), m.getSubscribeType())
-						: new BModule(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault,
+						? new BModule.Data(m.getChoiceType(), m.getConfigType(), m.getSubscribeType())
+						: new BModule.Data(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault,
 						BSubscribeInfo.SubscribeTypeReadyCommit));
 			}
 		}

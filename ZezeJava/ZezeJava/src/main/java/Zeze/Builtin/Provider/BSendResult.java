@@ -24,6 +24,23 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
         _ErrorLinkSids.variableId(1);
     }
 
+    @Override
+    public Zeze.Builtin.Provider.BSendResult.Data toData() {
+        var data = new Zeze.Builtin.Provider.BSendResult.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Provider.BSendResult.Data)other);
+    }
+
+    public void assign(BSendResult.Data other) {
+        _ErrorLinkSids.clear();
+        _ErrorLinkSids.addAll(other._ErrorLinkSids);
+    }
+
     public void assign(BSendResult other) {
         _ErrorLinkSids.clear();
         _ErrorLinkSids.addAll(other._ErrorLinkSids);
@@ -173,4 +190,155 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "ErrorLinkSids", Zeze.Serialize.Helper.encodeJson(_ErrorLinkSids));
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = -7186434891670297524L;
+
+    private java.util.ArrayList<Long> _ErrorLinkSids;
+
+    public java.util.ArrayList<Long> getErrorLinkSids() {
+        return _ErrorLinkSids;
+    }
+
+    public void setErrorLinkSids(java.util.ArrayList<Long> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _ErrorLinkSids = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _ErrorLinkSids = new java.util.ArrayList<>();
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(java.util.ArrayList<Long> _ErrorLinkSids_) {
+        if (_ErrorLinkSids_ == null)
+            _ErrorLinkSids_ = new java.util.ArrayList<>();
+        _ErrorLinkSids = _ErrorLinkSids_;
+    }
+
+    @Override
+    public Zeze.Builtin.Provider.BSendResult toBean() {
+        var bean = new Zeze.Builtin.Provider.BSendResult();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BSendResult)other);
+    }
+
+    public void assign(BSendResult other) {
+        _ErrorLinkSids.clear();
+        _ErrorLinkSids.addAll(other._ErrorLinkSids);
+    }
+
+    public void assign(BSendResult.Data other) {
+        _ErrorLinkSids.clear();
+        _ErrorLinkSids.addAll(other._ErrorLinkSids);
+    }
+
+    @Override
+    public BSendResult.Data copy() {
+        var copy = new BSendResult.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BSendResult.Data a, BSendResult.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BSendResult.Data clone() {
+        return (BSendResult.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSendResult: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ErrorLinkSids=[");
+        if (!_ErrorLinkSids.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _ErrorLinkSids) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append(']').append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            var _x_ = _ErrorLinkSids;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_) {
+                    _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            var _x_ = _ErrorLinkSids;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadLong(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

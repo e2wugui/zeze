@@ -288,7 +288,7 @@
 		<!--
 		Linkd - Server 之间通讯的协议定义。
 		-->
-		<module name="Provider" id="11008">
+		<module name="Provider" id="11008" UseData="true">
 			<!-- gs to link -->
 			<bean name="BModule">
 				<!-- ChoiceType -->
@@ -354,8 +354,8 @@
 			<protocol name="Kick" argument="BKick" handle="client"/>
 
 			<bean name="BSend" extendable="true">
-				<variable name="linkSids"     id="1" type="list" value="long"/>
-				<variable name="protocolType" id="2" type="long"/>
+				<variable name="linkSids"          id="1" type="list" value="long"/>
+				<variable name="protocolType"      id="2" type="long"/>
 				<variable name="protocolWholeData" id="3" type="binary"/> 完整的协议打包，包括了 type, size
 			</bean>
 
@@ -363,7 +363,7 @@
 				<variable name="ErrorLinkSids" id="1" type="list" value="long"/>
 			</bean>
 
-			<rpc name="Send" argument="Zeze.Arch.Beans.BSend" result="Zeze.Arch.Beans.BSendResult" handle="client"/>
+			<rpc name="Send" argument="Zeze.Arch.Beans.BSend" result="Zeze.Arch.Beans.BSendResult" UseData="false" handle="client"/>
 
 			<bean name="BBroadcast">
 				<variable name="protocolType"      id="1" type="long"/>
@@ -374,14 +374,14 @@
 			<protocol name="Broadcast" argument="BBroadcast" handle="client"/>
 
 			<bean name="BUserState">
-				<variable name="context"  id="1" type="string"/>
-				<variable name="contextx" id="2" type="binary"/>
-				<variable name="onlineSetName"  id="3" type="string"/>
+				<variable name="context"       id="1" type="string"/>
+				<variable name="contextx"      id="2" type="binary"/>
+				<variable name="onlineSetName" id="3" type="string"/>
 			</bean>
 
 			<bean name="BSetUserState">
-				<variable name="linkSid"  id="1" type="long"/>
-				<variable name="userState"  id="2" type="BUserState"/>
+				<variable name="linkSid"   id="1" type="long"/>
+				<variable name="userState" id="2" type="BUserState"/>
 			</bean>
 
 			<protocol name="SetUserState" argument="BSetUserState" handle="client"/>
@@ -399,12 +399,12 @@
 
 			<!-- link to gs -->
 			<bean name="BDispatch">
-				<variable name="linkSid"                id="1" type="long"/>
-				<variable name="account"              id="2" type="string"/>
-				<variable name="protocolType"     id="3" type="long"/>
-				<variable name="protocolData"     id="4" type="binary"/> 协议打包，不包括 type, size
-				<variable name="context"              id="5" type="string"/> SetUserState
-				<variable name="contextx"            id="6" type="binary"/> SetUserState
+				<variable name="linkSid"       id="1" type="long"/>
+				<variable name="account"       id="2" type="string"/>
+				<variable name="protocolType"  id="3" type="long"/>
+				<variable name="protocolData"  id="4" type="binary"/> 协议打包，不包括 type, size
+				<variable name="context"       id="5" type="string"/> SetUserState
+				<variable name="contextx"      id="6" type="binary"/> SetUserState
 				<variable name="onlineSetName" id="7" type="string"/> SetUserState
 			</bean>
 			<protocol name="Dispatch" argument="BDispatch" handle="server"/>
@@ -412,11 +412,10 @@
 			<bean name="BLinkBroken">
 				<enum name="REASON_PEERCLOSE" value="0"/>
 
-				<variable name="account" id="1" type="string"/>
-				<variable name="linkSid" id="2" type="long"/>
-				<variable name="reason"  id="3" type="int"/>
-
-				<variable name="userState"  id="4" type="BUserState"/>
+				<variable name="account"   id="1" type="string"/>
+				<variable name="linkSid"   id="2" type="long"/>
+				<variable name="reason"    id="3" type="int"/>
+				<variable name="userState" id="4" type="BUserState"/>
 			</bean>
 
 			<protocol name="LinkBroken" argument="BLinkBroken" handle="server"/>

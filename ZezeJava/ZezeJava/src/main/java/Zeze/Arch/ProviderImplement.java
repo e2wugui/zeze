@@ -89,7 +89,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	}
 
 	public static void sendKick(AsyncSocket sender, long linkSid, int code, @NotNull String desc) {
-		new Kick(new BKick(linkSid, code, desc)).Send(sender);
+		new Kick(new BKick.Data(linkSid, code, desc)).Send(sender);
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")

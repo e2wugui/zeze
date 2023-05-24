@@ -94,6 +94,24 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         _desc = _desc_;
     }
 
+    @Override
+    public Zeze.Builtin.Provider.BKick.Data toData() {
+        var data = new Zeze.Builtin.Provider.BKick.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Provider.BKick.Data)other);
+    }
+
+    public void assign(BKick.Data other) {
+        setLinksid(other._linksid);
+        setCode(other._code);
+        setDesc(other._desc);
+    }
+
     public void assign(BKick other) {
         setLinksid(other.getLinksid());
         setCode(other.getCode());
@@ -264,4 +282,185 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         st.appendInt(_parents_name_ + "code", getCode());
         st.appendString(_parents_name_ + "desc", getDesc());
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = -6855697390328479333L;
+
+    public static final int ErrorProtocolUnknown = 1;
+    public static final int ErrorDecode = 2;
+    public static final int ErrorProtocolException = 3;
+    public static final int ErrorDuplicateLogin = 4;
+    public static final int ErrorSeeDescription = 5;
+    public static final int ErrorOnlineSetName = 6;
+
+    private long _linksid;
+    private int _code;
+    private String _desc; // // for debug
+
+    public long getLinksid() {
+        return _linksid;
+    }
+
+    public void setLinksid(long value) {
+        _linksid = value;
+    }
+
+    public int getCode() {
+        return _code;
+    }
+
+    public void setCode(int value) {
+        _code = value;
+    }
+
+    public String getDesc() {
+        return _desc;
+    }
+
+    public void setDesc(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _desc = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _desc = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(long _linksid_, int _code_, String _desc_) {
+        _linksid = _linksid_;
+        _code = _code_;
+        if (_desc_ == null)
+            _desc_ = "";
+        _desc = _desc_;
+    }
+
+    @Override
+    public Zeze.Builtin.Provider.BKick toBean() {
+        var bean = new Zeze.Builtin.Provider.BKick();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BKick)other);
+    }
+
+    public void assign(BKick other) {
+        _linksid = other.getLinksid();
+        _code = other.getCode();
+        _desc = other.getDesc();
+    }
+
+    public void assign(BKick.Data other) {
+        _linksid = other._linksid;
+        _code = other._code;
+        _desc = other._desc;
+    }
+
+    @Override
+    public BKick.Data copy() {
+        var copy = new BKick.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BKick.Data a, BKick.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BKick.Data clone() {
+        return (BKick.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BKick: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("linksid=").append(_linksid).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("code=").append(_code).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("desc=").append(_desc).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            long _x_ = _linksid;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            int _x_ = _code;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            String _x_ = _desc;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _linksid = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _code = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _desc = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

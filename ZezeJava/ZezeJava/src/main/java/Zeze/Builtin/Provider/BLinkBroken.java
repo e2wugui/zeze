@@ -107,6 +107,27 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         _userState.variableId(4);
     }
 
+    @Override
+    public Zeze.Builtin.Provider.BLinkBroken.Data toData() {
+        var data = new Zeze.Builtin.Provider.BLinkBroken.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Provider.BLinkBroken.Data)other);
+    }
+
+    public void assign(BLinkBroken.Data other) {
+        setAccount(other._account);
+        setLinkSid(other._linkSid);
+        setReason(other._reason);
+        Zeze.Builtin.Provider.BUserState data_userState = new Zeze.Builtin.Provider.BUserState();
+        data_userState.assign(other._userState);
+        _userState.setValue(data_userState);
+    }
+
     public void assign(BLinkBroken other) {
         setAccount(other.getAccount());
         setLinkSid(other.getLinkSid());
@@ -312,4 +333,214 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         _userState.encodeSQLStatement(parents, st);
         parents.remove(parents.size() - 1);
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = 1424702393060691138L;
+
+    public static final int REASON_PEERCLOSE = 0;
+
+    private String _account;
+    private long _linkSid;
+    private int _reason;
+    private Zeze.Builtin.Provider.BUserState.Data _userState;
+
+    public String getAccount() {
+        return _account;
+    }
+
+    public void setAccount(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _account = value;
+    }
+
+    public long getLinkSid() {
+        return _linkSid;
+    }
+
+    public void setLinkSid(long value) {
+        _linkSid = value;
+    }
+
+    public int getReason() {
+        return _reason;
+    }
+
+    public void setReason(int value) {
+        _reason = value;
+    }
+
+    public Zeze.Builtin.Provider.BUserState.Data getUserState() {
+        return _userState;
+    }
+
+    public void setUserState(Zeze.Builtin.Provider.BUserState.Data value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _userState = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _account = "";
+        _userState = new Zeze.Builtin.Provider.BUserState.Data();
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(String _account_, long _linkSid_, int _reason_, Zeze.Builtin.Provider.BUserState.Data _userState_) {
+        if (_account_ == null)
+            _account_ = "";
+        _account = _account_;
+        _linkSid = _linkSid_;
+        _reason = _reason_;
+        if (_userState_ == null)
+            _userState_ = new Zeze.Builtin.Provider.BUserState.Data();
+        _userState = _userState_;
+    }
+
+    @Override
+    public Zeze.Builtin.Provider.BLinkBroken toBean() {
+        var bean = new Zeze.Builtin.Provider.BLinkBroken();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BLinkBroken)other);
+    }
+
+    public void assign(BLinkBroken other) {
+        _account = other.getAccount();
+        _linkSid = other.getLinkSid();
+        _reason = other.getReason();
+        _userState.assign(other._userState.getValue());
+    }
+
+    public void assign(BLinkBroken.Data other) {
+        _account = other._account;
+        _linkSid = other._linkSid;
+        _reason = other._reason;
+        _userState.assign(other._userState);
+    }
+
+    @Override
+    public BLinkBroken.Data copy() {
+        var copy = new BLinkBroken.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BLinkBroken.Data a, BLinkBroken.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BLinkBroken.Data clone() {
+        return (BLinkBroken.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BLinkBroken: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("account=").append(_account).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("linkSid=").append(_linkSid).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("reason=").append(_reason).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("userState=").append(System.lineSeparator());
+        _userState.buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            String _x_ = _account;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            long _x_ = _linkSid;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            int _x_ = _reason;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 4, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            _userState.encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _account = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _linkSid = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _reason = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _o_.ReadBean(_userState, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

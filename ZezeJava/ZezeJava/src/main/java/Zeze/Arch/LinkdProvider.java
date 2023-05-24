@@ -179,8 +179,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			for (var e : bind.getModules().entrySet()) {
 				var moduleId = e.getKey();
 				var module = e.getValue();
-				if (firstModuleWithConfigTypeDefault == 0 && module.getConfigType() == BModule.ConfigTypeDefault)
+				if (firstModuleWithConfigTypeDefault == 0 && module.getConfigType() == BModule.ConfigTypeDefault) {
+					//noinspection DataFlowIssue,ConstantValue
 					firstModuleWithConfigTypeDefault = module.getConfigType();
+				}
 				var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
 						moduleId, module.getChoiceType(), module.getConfigType());
 				var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);

@@ -120,6 +120,25 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         _ProviderDirectPort = _ProviderDirectPort_;
     }
 
+    @Override
+    public Zeze.Builtin.Provider.BAnnounceProviderInfo.Data toData() {
+        var data = new Zeze.Builtin.Provider.BAnnounceProviderInfo.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Provider.BAnnounceProviderInfo.Data)other);
+    }
+
+    public void assign(BAnnounceProviderInfo.Data other) {
+        setServiceNamePrefix(other._ServiceNamePrefix);
+        setServiceIndentity(other._ServiceIndentity);
+        setProviderDirectIp(other._ProviderDirectIp);
+        setProviderDirectPort(other._ProviderDirectPort);
+    }
+
     public void assign(BAnnounceProviderInfo other) {
         setServiceNamePrefix(other.getServiceNamePrefix());
         setServiceIndentity(other.getServiceIndentity());
@@ -315,4 +334,213 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         st.appendString(_parents_name_ + "ProviderDirectIp", getProviderDirectIp());
         st.appendInt(_parents_name_ + "ProviderDirectPort", getProviderDirectPort());
     }
+
+// gs to link
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = 4964769950995033065L;
+
+    private String _ServiceNamePrefix;
+    private String _ServiceIndentity;
+    private String _ProviderDirectIp;
+    private int _ProviderDirectPort;
+
+    public String getServiceNamePrefix() {
+        return _ServiceNamePrefix;
+    }
+
+    public void setServiceNamePrefix(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _ServiceNamePrefix = value;
+    }
+
+    public String getServiceIndentity() {
+        return _ServiceIndentity;
+    }
+
+    public void setServiceIndentity(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _ServiceIndentity = value;
+    }
+
+    public String getProviderDirectIp() {
+        return _ProviderDirectIp;
+    }
+
+    public void setProviderDirectIp(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _ProviderDirectIp = value;
+    }
+
+    public int getProviderDirectPort() {
+        return _ProviderDirectPort;
+    }
+
+    public void setProviderDirectPort(int value) {
+        _ProviderDirectPort = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _ServiceNamePrefix = "";
+        _ServiceIndentity = "";
+        _ProviderDirectIp = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(String _ServiceNamePrefix_, String _ServiceIndentity_, String _ProviderDirectIp_, int _ProviderDirectPort_) {
+        if (_ServiceNamePrefix_ == null)
+            _ServiceNamePrefix_ = "";
+        _ServiceNamePrefix = _ServiceNamePrefix_;
+        if (_ServiceIndentity_ == null)
+            _ServiceIndentity_ = "";
+        _ServiceIndentity = _ServiceIndentity_;
+        if (_ProviderDirectIp_ == null)
+            _ProviderDirectIp_ = "";
+        _ProviderDirectIp = _ProviderDirectIp_;
+        _ProviderDirectPort = _ProviderDirectPort_;
+    }
+
+    @Override
+    public Zeze.Builtin.Provider.BAnnounceProviderInfo toBean() {
+        var bean = new Zeze.Builtin.Provider.BAnnounceProviderInfo();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BAnnounceProviderInfo)other);
+    }
+
+    public void assign(BAnnounceProviderInfo other) {
+        _ServiceNamePrefix = other.getServiceNamePrefix();
+        _ServiceIndentity = other.getServiceIndentity();
+        _ProviderDirectIp = other.getProviderDirectIp();
+        _ProviderDirectPort = other.getProviderDirectPort();
+    }
+
+    public void assign(BAnnounceProviderInfo.Data other) {
+        _ServiceNamePrefix = other._ServiceNamePrefix;
+        _ServiceIndentity = other._ServiceIndentity;
+        _ProviderDirectIp = other._ProviderDirectIp;
+        _ProviderDirectPort = other._ProviderDirectPort;
+    }
+
+    @Override
+    public BAnnounceProviderInfo.Data copy() {
+        var copy = new BAnnounceProviderInfo.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BAnnounceProviderInfo.Data a, BAnnounceProviderInfo.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BAnnounceProviderInfo.Data clone() {
+        return (BAnnounceProviderInfo.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BAnnounceProviderInfo: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceNamePrefix=").append(_ServiceNamePrefix).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceIndentity=").append(_ServiceIndentity).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ProviderDirectIp=").append(_ProviderDirectIp).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ProviderDirectPort=").append(_ProviderDirectPort).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            String _x_ = _ServiceNamePrefix;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            String _x_ = _ServiceIndentity;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            String _x_ = _ProviderDirectIp;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            int _x_ = _ProviderDirectPort;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _ServiceNamePrefix = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _ServiceIndentity = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _ProviderDirectIp = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _ProviderDirectPort = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

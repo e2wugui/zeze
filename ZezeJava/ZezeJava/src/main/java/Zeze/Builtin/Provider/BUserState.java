@@ -97,6 +97,24 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         _onlineSetName = _onlineSetName_;
     }
 
+    @Override
+    public Zeze.Builtin.Provider.BUserState.Data toData() {
+        var data = new Zeze.Builtin.Provider.BUserState.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Provider.BUserState.Data)other);
+    }
+
+    public void assign(BUserState.Data other) {
+        setContext(other._context);
+        setContextx(other._contextx);
+        setOnlineSetName(other._onlineSetName);
+    }
+
     public void assign(BUserState other) {
         setContext(other.getContext());
         setContextx(other.getContextx());
@@ -262,4 +280,188 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         st.appendBinary(_parents_name_ + "contextx", getContextx());
         st.appendString(_parents_name_ + "onlineSetName", getOnlineSetName());
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = 5802054934505091577L;
+
+    private String _context;
+    private Zeze.Net.Binary _contextx;
+    private String _onlineSetName;
+
+    public String getContext() {
+        return _context;
+    }
+
+    public void setContext(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _context = value;
+    }
+
+    public Zeze.Net.Binary getContextx() {
+        return _contextx;
+    }
+
+    public void setContextx(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _contextx = value;
+    }
+
+    public String getOnlineSetName() {
+        return _onlineSetName;
+    }
+
+    public void setOnlineSetName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _onlineSetName = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _context = "";
+        _contextx = Zeze.Net.Binary.Empty;
+        _onlineSetName = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(String _context_, Zeze.Net.Binary _contextx_, String _onlineSetName_) {
+        if (_context_ == null)
+            _context_ = "";
+        _context = _context_;
+        if (_contextx_ == null)
+            _contextx_ = Zeze.Net.Binary.Empty;
+        _contextx = _contextx_;
+        if (_onlineSetName_ == null)
+            _onlineSetName_ = "";
+        _onlineSetName = _onlineSetName_;
+    }
+
+    @Override
+    public Zeze.Builtin.Provider.BUserState toBean() {
+        var bean = new Zeze.Builtin.Provider.BUserState();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BUserState)other);
+    }
+
+    public void assign(BUserState other) {
+        _context = other.getContext();
+        _contextx = other.getContextx();
+        _onlineSetName = other.getOnlineSetName();
+    }
+
+    public void assign(BUserState.Data other) {
+        _context = other._context;
+        _contextx = other._contextx;
+        _onlineSetName = other._onlineSetName;
+    }
+
+    @Override
+    public BUserState.Data copy() {
+        var copy = new BUserState.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BUserState.Data a, BUserState.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BUserState.Data clone() {
+        return (BUserState.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BUserState: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("context=").append(_context).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("contextx=").append(_contextx).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("onlineSetName=").append(_onlineSetName).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            String _x_ = _context;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            var _x_ = _contextx;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
+        {
+            String _x_ = _onlineSetName;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _context = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _contextx = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _onlineSetName = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

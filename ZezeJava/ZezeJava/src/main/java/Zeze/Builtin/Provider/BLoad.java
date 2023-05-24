@@ -108,6 +108,25 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         _Overload = _Overload_;
     }
 
+    @Override
+    public Zeze.Builtin.Provider.BLoad.Data toData() {
+        var data = new Zeze.Builtin.Provider.BLoad.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Provider.BLoad.Data)other);
+    }
+
+    public void assign(BLoad.Data other) {
+        setOnline(other._Online);
+        setProposeMaxOnline(other._ProposeMaxOnline);
+        setOnlineNew(other._OnlineNew);
+        setOverload(other._Overload);
+    }
+
     public void assign(BLoad other) {
         setOnline(other.getOnline());
         setProposeMaxOnline(other.getProposeMaxOnline());
@@ -303,4 +322,201 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         st.appendInt(_parents_name_ + "OnlineNew", getOnlineNew());
         st.appendInt(_parents_name_ + "Overload", getOverload());
     }
+
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = 8972064501607813483L;
+
+    public static final int eWorkFine = 0;
+    public static final int eThreshold = 1;
+    public static final int eOverload = 2;
+
+    private int _Online; // 用户数量
+    private int _ProposeMaxOnline; // 建议最大用户数量
+    private int _OnlineNew; // 最近上线用户数量，一般是一秒内的。用来防止短时间内给同一个gs分配太多用户。
+    private int _Overload; // 过载保护类型。参见上面的枚举定义。
+
+    public int getOnline() {
+        return _Online;
+    }
+
+    public void setOnline(int value) {
+        _Online = value;
+    }
+
+    public int getProposeMaxOnline() {
+        return _ProposeMaxOnline;
+    }
+
+    public void setProposeMaxOnline(int value) {
+        _ProposeMaxOnline = value;
+    }
+
+    public int getOnlineNew() {
+        return _OnlineNew;
+    }
+
+    public void setOnlineNew(int value) {
+        _OnlineNew = value;
+    }
+
+    public int getOverload() {
+        return _Overload;
+    }
+
+    public void setOverload(int value) {
+        _Overload = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(int _Online_, int _ProposeMaxOnline_, int _OnlineNew_, int _Overload_) {
+        _Online = _Online_;
+        _ProposeMaxOnline = _ProposeMaxOnline_;
+        _OnlineNew = _OnlineNew_;
+        _Overload = _Overload_;
+    }
+
+    @Override
+    public Zeze.Builtin.Provider.BLoad toBean() {
+        var bean = new Zeze.Builtin.Provider.BLoad();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BLoad)other);
+    }
+
+    public void assign(BLoad other) {
+        _Online = other.getOnline();
+        _ProposeMaxOnline = other.getProposeMaxOnline();
+        _OnlineNew = other.getOnlineNew();
+        _Overload = other.getOverload();
+    }
+
+    public void assign(BLoad.Data other) {
+        _Online = other._Online;
+        _ProposeMaxOnline = other._ProposeMaxOnline;
+        _OnlineNew = other._OnlineNew;
+        _Overload = other._Overload;
+    }
+
+    @Override
+    public BLoad.Data copy() {
+        var copy = new BLoad.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BLoad.Data a, BLoad.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BLoad.Data clone() {
+        return (BLoad.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BLoad: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("Online=").append(_Online).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ProposeMaxOnline=").append(_ProposeMaxOnline).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OnlineNew=").append(_OnlineNew).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Overload=").append(_Overload).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            int _x_ = _Online;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _ProposeMaxOnline;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _OnlineNew;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _Overload;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _Online = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _ProposeMaxOnline = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _OnlineNew = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _Overload = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

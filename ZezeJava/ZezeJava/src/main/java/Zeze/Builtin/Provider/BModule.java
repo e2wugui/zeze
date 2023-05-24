@@ -104,6 +104,24 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         _SubscribeType = _SubscribeType_;
     }
 
+    @Override
+    public Zeze.Builtin.Provider.BModule.Data toData() {
+        var data = new Zeze.Builtin.Provider.BModule.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Provider.BModule.Data)other);
+    }
+
+    public void assign(BModule.Data other) {
+        setChoiceType(other._ChoiceType);
+        setConfigType(other._ConfigType);
+        setSubscribeType(other._SubscribeType);
+    }
+
     public void assign(BModule other) {
         setChoiceType(other.getChoiceType());
         setConfigType(other.getConfigType());
@@ -274,4 +292,183 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         st.appendInt(_parents_name_ + "ConfigType", getConfigType());
         st.appendInt(_parents_name_ + "SubscribeType", getSubscribeType());
     }
+
+// gs to link
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = 5883923521926593765L;
+
+    public static final int ChoiceTypeDefault = 0; // choice by load
+    public static final int ChoiceTypeHashAccount = 1;
+    public static final int ChoiceTypeHashRoleId = 2;
+    public static final int ChoiceTypeFeedFullOneByOne = 3;
+    public static final int ChoiceTypeHashSourceAddress = 4;
+    public static final int ConfigTypeDefault = 0;
+    public static final int ConfigTypeSpecial = 1;
+    public static final int ConfigTypeDynamic = 2;
+
+    private int _ChoiceType;
+    private int _ConfigType;
+    private int _SubscribeType;
+
+    public int getChoiceType() {
+        return _ChoiceType;
+    }
+
+    public void setChoiceType(int value) {
+        _ChoiceType = value;
+    }
+
+    public int getConfigType() {
+        return _ConfigType;
+    }
+
+    public void setConfigType(int value) {
+        _ConfigType = value;
+    }
+
+    public int getSubscribeType() {
+        return _SubscribeType;
+    }
+
+    public void setSubscribeType(int value) {
+        _SubscribeType = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(int _ChoiceType_, int _ConfigType_, int _SubscribeType_) {
+        _ChoiceType = _ChoiceType_;
+        _ConfigType = _ConfigType_;
+        _SubscribeType = _SubscribeType_;
+    }
+
+    @Override
+    public Zeze.Builtin.Provider.BModule toBean() {
+        var bean = new Zeze.Builtin.Provider.BModule();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BModule)other);
+    }
+
+    public void assign(BModule other) {
+        _ChoiceType = other.getChoiceType();
+        _ConfigType = other.getConfigType();
+        _SubscribeType = other.getSubscribeType();
+    }
+
+    public void assign(BModule.Data other) {
+        _ChoiceType = other._ChoiceType;
+        _ConfigType = other._ConfigType;
+        _SubscribeType = other._SubscribeType;
+    }
+
+    @Override
+    public BModule.Data copy() {
+        var copy = new BModule.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BModule.Data a, BModule.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BModule.Data clone() {
+        return (BModule.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BModule: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ChoiceType=").append(_ChoiceType).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ConfigType=").append(_ConfigType).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("SubscribeType=").append(_SubscribeType).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            int _x_ = _ChoiceType;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _ConfigType;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _SubscribeType;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _ChoiceType = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _ConfigType = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _SubscribeType = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

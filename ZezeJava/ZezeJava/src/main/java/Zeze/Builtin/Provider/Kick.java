@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Provider;
 
-public class Kick extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BKick> {
+public class Kick extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BKick.Data> {
     public static final int ModuleId_ = 11008;
     public static final int ProtocolId_ = -73074142; // 4221893154
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47283221887522
@@ -23,10 +23,10 @@ public class Kick extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BKick> {
     }
 
     public Kick() {
-        Argument = new Zeze.Builtin.Provider.BKick();
+        Argument = new Zeze.Builtin.Provider.BKick.Data();
     }
 
-    public Kick(Zeze.Builtin.Provider.BKick arg) {
+    public Kick(Zeze.Builtin.Provider.BKick.Data arg) {
         Argument = arg;
     }
 }
