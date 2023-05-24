@@ -20,7 +20,7 @@ Dbh2 分桶结束需要删除源桶的已经分出去的数据。
 Dbh2 重启服务如果需要需要继续splitting or cleanSplit.
 Dbh2 分桶不均匀。【分桶后旧数据没有删除的原因】
 Dbh2 性能统计移到StateMachine中，Raft.Follower也需要计算性能。
-Dbh2: 分桶服务器测试，出现client timeout【新的Batch漏了设置Master,Database,Table参数】，并且后来再次启动，性能很低。
+Dbh2: 分桶服务器测试，出现client timeout【新的Batch漏了设置Master,Database,Table参数】，并且后来再次启动，性能很低【分桶不均匀BUG导致的】。
 Dbh2: 很多桶的时候，Dbh2RaftServer.Stat 一直打印，并且其中select次数一直很多。【正常的，是Raft.Heartbeat，由于桶多，累计起来有一些】
 Netty DispatchMode 完善，包括事务Redo情况等。
 
