@@ -147,7 +147,7 @@ namespace Zeze.Gen
         {
             if (Solutions.ContainsKey(xmlfile))
                 return;
-            Console.WriteLine($"ImportSolution '{xmlfile}'");
+            // Console.WriteLine($"ImportSolution '{xmlfile}'");
             Solutions.Add(xmlfile, null);
             XmlDocument doc = new XmlDocument();
             doc.Load(xmlfile);
