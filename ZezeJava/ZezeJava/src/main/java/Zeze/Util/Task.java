@@ -199,7 +199,7 @@ public final class Task {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
 				action.run();
-			} catch (Exception e) {
+			} catch (Throwable e) { // logger.error
 				//noinspection ConstantValue
 				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", e);
 			} finally {
@@ -225,7 +225,7 @@ public final class Task {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
 				action.run();
-			} catch (Exception e) {
+			} catch (Throwable e) { // logger.error
 				logger.error("schedule", e);
 			} finally {
 				//noinspection ConstantValue
@@ -240,7 +240,7 @@ public final class Task {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
 				return func.call();
-			} catch (Exception e) {
+			} catch (Throwable e) { // logger.error
 				logger.error("schedule", e);
 				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
 			} finally {
@@ -267,7 +267,8 @@ public final class Task {
 		return scheduleAtUnsafe(hour, minute, -1, action);
 	}
 
-	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period, @NotNull Action0 action) {
+	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
+															   @NotNull Action0 action) {
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, hour);
 		firstTime.set(Calendar.MINUTE, minute);
@@ -299,7 +300,7 @@ public final class Task {
 				var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 				try {
 					action.run();
-				} catch (Exception e) {
+				} catch (Throwable e) { // logger.error
 					logger.error("schedule", e);
 				} finally {
 					//noinspection ConstantValue
@@ -353,7 +354,8 @@ public final class Task {
 		logAndStatistics(ex, result, p, IsRequestSaved, null);
 	}
 
-	public static void logAndStatistics(Throwable ex, long result, Protocol<?> p, boolean IsRequestSaved, String aName) {
+	public static void logAndStatistics(Throwable ex, long result, Protocol<?> p, boolean IsRequestSaved,
+										String aName) {
 		var protocolName = p != null ? p.getClass().getName() : "?";
 		var actionName = null != aName ? aName : IsRequestSaved ? protocolName : protocolName + ":Response";
 		var tmpVolatile = logAction;
@@ -408,7 +410,7 @@ public final class Task {
 				try {
 					actionWhenError.handle(p, errorCode);
 				} catch (Exception e) {
-					logger.error("", e);
+					logger.error("{}", aName != null ? aName : p.getClass().getName(), e);
 				}
 			}
 			logAndStatistics(ex, errorCode, p, p == null || isRequestSaved, aName);
@@ -416,7 +418,7 @@ public final class Task {
 		} finally {
 			//noinspection ConstantValue
 			if (PerfCounter.ENABLE_PERF && func != null) {
-				PerfCounter.instance.addRunInfo(aName != null ? aName : p != null ? p.getClass() : func.getClass(),
+				PerfCounter.instance.addRunInfo(aName != null ? aName : (p != null ? p : func).getClass(),
 						System.nanoTime() - timeBegin);
 			}
 		}
@@ -447,40 +449,46 @@ public final class Task {
 		return runUnsafe(func, p, actionWhenError, null, DispatchMode.Normal);
 	}
 
-	public static void run(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError,
-						   String specialName) {
+	public static void run(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError, specialName));
+			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError, aName));
 		else
-			runUnsafe(func, p, actionWhenError, specialName);
+			runUnsafe(func, p, actionWhenError, aName);
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, Protocol<?> p,
-												  ProtocolErrorHandle actionWhenError, String specialName) {
-		return runUnsafe(func, p, actionWhenError, specialName, DispatchMode.Normal);
+												  ProtocolErrorHandle actionWhenError, String aName) {
+		return runUnsafe(func, p, actionWhenError, aName, DispatchMode.Normal);
 	}
 
-	public static void run(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError,
-						   String specialName, DispatchMode mode) {
+	public static void run(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName,
+						   DispatchMode mode) {
 		Transaction t;
 		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError, specialName, mode));
+			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError, aName, mode));
 		else
-			runUnsafe(func, p, actionWhenError, specialName, mode);
+			runUnsafe(func, p, actionWhenError, aName, mode);
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, Protocol<?> p,
-												  ProtocolErrorHandle actionWhenError, String specialName,
+												  ProtocolErrorHandle actionWhenError, String aName,
 												  DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
-			future.setResult(call(func, p, actionWhenError, specialName));
+			future.setResult(call(func, p, actionWhenError, aName));
 			return future;
 		}
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> call(func, p, actionWhenError, specialName));
+		return pool.submit(() -> {
+			try {
+				return call(func, p, actionWhenError, aName);
+			} catch (Throwable e) { // logger.error
+				logger.error("{}", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
+				return Procedure.Exception;
+			}
+		});
 	}
 
 	public static long call(@NotNull Procedure procedure) {
@@ -491,7 +499,8 @@ public final class Task {
 		return call(procedure, from, null);
 	}
 
-	public static long call(@NotNull Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
+	public static long call(@NotNull Procedure procedure, Protocol<?> from,
+							Action2<Protocol<?>, Long> actionWhenError) {
 		boolean isRequestSaved = from != null && from.isRequest();
 		try {
 			// 日志在Call里面记录。因为要支持嵌套。
@@ -510,7 +519,7 @@ public final class Task {
 					logger.error("ActionWhenError Exception", e);
 				}
 			}
-			logger.error("{}", procedure.getActionName(), ex);
+			logger.error("{}", procedure, ex);
 			return Procedure.Exception;
 		}
 	}
@@ -536,7 +545,7 @@ public final class Task {
 					logger.error("ActionWhenError Exception", e);
 				}
 			}
-			logger.error("{}", procedure.getActionName(), ex);
+			logger.error("{}", procedure, ex);
 			return Procedure.Exception;
 		}
 	}
@@ -573,8 +582,8 @@ public final class Task {
 			runUnsafe(procedure, from, actionWhenError);
 	}
 
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, Protocol<?> from, Action2<Protocol<?>,
-			Long> actionWhenError) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, Protocol<?> from,
+												  Action2<Protocol<?>, Long> actionWhenError) {
 		return runUnsafe(procedure, from, actionWhenError, DispatchMode.Normal);
 	}
 
@@ -591,8 +600,8 @@ public final class Task {
 		return runUnsafe(procedure, (Protocol<?>)null, null, mode);
 	}
 
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, Protocol<?> from, Action2<Protocol<?>,
-			Long> actionWhenError, DispatchMode mode) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, Protocol<?> from,
+												  Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure, from, actionWhenError));
@@ -600,7 +609,14 @@ public final class Task {
 		}
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> call(procedure, from, actionWhenError));
+		return pool.submit(() -> {
+			try {
+				return call(procedure, from, actionWhenError);
+			} catch (Throwable e) { // logger.error
+				logger.error("{}", procedure, e);
+				return Procedure.Exception;
+			}
+		});
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, OutObject<Protocol<?>> outProtocol,
@@ -612,7 +628,14 @@ public final class Task {
 		}
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> call(procedure, outProtocol, actionWhenError));
+		return pool.submit(() -> {
+			try {
+				return call(procedure, outProtocol, actionWhenError);
+			} catch (Throwable e) { // logger.error
+				logger.error("{}", procedure, e);
+				return Procedure.Exception;
+			}
+		});
 	}
 
 	public static void runRpcResponse(@NotNull Procedure procedure) {
@@ -643,7 +666,14 @@ public final class Task {
 		}
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> call(procedure)); // rpcResponseThreadPool
+		return pool.submit(() -> { // rpcResponseThreadPool
+			try {
+				return call(procedure);
+			} catch (Throwable e) { // logger.error
+				logger.error("{}", procedure, e);
+				return Procedure.Exception;
+			}
+		});
 	}
 
 	public static void runRpcResponse(@NotNull FuncLong func, Protocol<?> p) {
@@ -674,7 +704,14 @@ public final class Task {
 		}
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> call(func, p)); // rpcResponseThreadPool
+		return pool.submit(() -> { // rpcResponseThreadPool
+			try {
+				return call(func, p);
+			} catch (Throwable e) { // logger.error
+				logger.error("{}", p != null ? p.getClass().getName() : null, e);
+				return Procedure.Exception;
+			}
+		});
 	}
 
 	public static void waitAll(@NotNull Collection<Future<?>> tasks) {

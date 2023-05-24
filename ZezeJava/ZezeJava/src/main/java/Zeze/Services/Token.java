@@ -64,7 +64,7 @@ public final class Token extends AbstractToken {
 			tokenCharTable[i++] = (byte)b;
 	}
 
-	// 生成24个字符的Token字符串. 每个字符只会出现半角的数字和字母共62种. 24个半角字符的字符串正好占满3个64位,内存利用率高.
+	// 生成24个字符的Token字符串. 每个字符只会出现半角的数字和字母共62种. 24个半角字符的字符串正好对齐64位,内存利用率高.
 	private @NotNull String genToken() {
 		var tokenBytes = new byte[24];
 		var v = System.currentTimeMillis() / 1000;
