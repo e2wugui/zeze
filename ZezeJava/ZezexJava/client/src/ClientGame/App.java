@@ -45,6 +45,7 @@ public class App extends Zeze.AppBase {
     public Zeze.Builtin.LinkdBase.ModuleLinkdBase Zeze_Builtin_LinkdBase;
     public ClientZezex.Linkd.ModuleLinkd ClientZezex_Linkd;
     public ClientGame.Login.ModuleLogin ClientGame_Login;
+    public ClientGame.Fight.ModuleFight ClientGame_Fight;
 
     @Override
     public Zeze.Application getZeze() {
@@ -74,6 +75,7 @@ public class App extends Zeze.AppBase {
             Zeze.Builtin.LinkdBase.ModuleLinkdBase.class,
             ClientZezex.Linkd.ModuleLinkd.class,
             ClientGame.Login.ModuleLogin.class,
+            ClientGame.Fight.ModuleFight.class,
         });
         if (_modules_ == null)
             return;
@@ -103,10 +105,16 @@ public class App extends Zeze.AppBase {
         if (modules.put(ClientGame_Login.getFullName(), ClientGame_Login) != null)
             throw new RuntimeException("duplicate module name: ClientGame_Login");
 
+        ClientGame_Fight = (ClientGame.Fight.ModuleFight)_modules_[5];
+        ClientGame_Fight.Initialize(this);
+        if (modules.put(ClientGame_Fight.getFullName(), ClientGame_Fight) != null)
+            throw new RuntimeException("duplicate module name: ClientGame_Fight");
+
         Zeze.setSchemas(new ClientGame.Schemas());
     }
 
     public synchronized void destroyModules() {
+        ClientGame_Fight = null;
         ClientGame_Login = null;
         ClientZezex_Linkd = null;
         Zeze_Builtin_LinkdBase = null;
@@ -129,9 +137,12 @@ public class App extends Zeze.AppBase {
         Zeze_Builtin_LinkdBase.Start(this);
         ClientZezex_Linkd.Start(this);
         ClientGame_Login.Start(this);
+        ClientGame_Fight.Start(this);
     }
 
     public synchronized void stopModules() throws Exception {
+        if (ClientGame_Fight != null)
+            ClientGame_Fight.Stop(this);
         if (ClientGame_Login != null)
             ClientGame_Login.Stop(this);
         if (ClientZezex_Linkd != null)

@@ -2,19 +2,27 @@ package Game;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import Game.Fight.AreYouFight;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Config;
+import Zeze.Game.LoginArgument;
+import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderWithOnline;
 import Zeze.Game.TaskBase;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
+import Zeze.Util.TaskCompletionSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class App extends Zeze.AppBase {
+	private static final Logger logger = LogManager.getLogger(App.class);
+
 	public static final App Instance = new App();
 
 	public static App getInstance() {
@@ -59,6 +67,8 @@ public final class App extends Zeze.AppBase {
 		Start(serverId, providerDirectPort);
 	}
 
+	public TaskCompletionSource<Boolean> areYouFight = new TaskCompletionSource<>();
+
 	public void Start(int serverId, int providerDirectPort) throws Exception {
 
 		var config = Config.load("server.xml");
@@ -79,6 +89,16 @@ public final class App extends Zeze.AppBase {
 				ProviderDirect, ServerDirect, "Game.Linkd", LoadConfig());
 		Provider.create(this);
 
+		Provider.getOnline().getLoginEvents().getRunEmbedEvents().add((sender, arg) -> {
+			var online = (Online)sender;
+			var login = (LoginArgument)arg;
+			online.sendOnlineRpc(login.roleId, new AreYouFight(), (p) -> {
+				logger.info("AreYouFight done.");
+				areYouFight.setResult(true);
+				return 0;
+			});
+			return 0;
+		});
 		createModules();
 		if (GenModule.instance.genFileSrcRoot != null) {
 			System.out.println("---------------");

@@ -59,6 +59,16 @@ public class TestOnline extends TestCase {
 		logger.info("End Stop");
 	}
 
+	private void areYouFight() throws InterruptedException {
+		while (true) {
+			for (var server : servers) {
+				if (server.areYouFight.isDone())
+					return;
+			}
+			Thread.sleep(1);
+		}
+	}
+
 	public void test3() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
 
@@ -82,6 +92,7 @@ public class TestOnline extends TestCase {
 			var role = getRole(client0);
 			var roleId = null != role ? role.getId() : createRole(client0, "role0");
 			login(client0, roleId);
+			areYouFight();
 
 			// testcase relogin
 			logger.info("=== test3 - 2");

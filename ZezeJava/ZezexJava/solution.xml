@@ -64,6 +64,7 @@
 		</beankey>
 		<table name="tfighters" key="BFighterId" value="BFighter"/> key is fighter id. 战斗属性是计算值，每次登录或改变时重新计算。
 
+		<rpc name="AreYouFight" handle="client"/>
 	</module>
 
 	<module name="Skill" id="5">
@@ -331,6 +332,7 @@
 			<module ref="Zeze.Builtin.LinkdBase"/>
 			<module ref="Zezex.Linkd"/>
 			<module ref="Game.Login"/>
+			<module ref="Game.Fight"/>
 		</service>
 	</project>
 

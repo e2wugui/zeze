@@ -29,7 +29,7 @@ public class ProviderWithOnline extends ProviderImplement {
 	@Override
 	protected long ProcessLinkBroken(LinkBroken p) throws Exception {
 		// 目前仅需设置online状态。
-		if (!p.Argument.getUserState().getContext().isEmpty()) {
+		if (!p.Argument.getUserState().getContext().isEmpty() && online != null) {
 			var roleId = Long.parseLong(p.Argument.getUserState().getContext());
 			var onlineSet = online.getOnline(p.Argument.getUserState().getOnlineSetName());
 			if (null != onlineSet)
