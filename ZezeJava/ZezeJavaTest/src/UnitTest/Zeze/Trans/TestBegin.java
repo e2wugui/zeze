@@ -11,7 +11,7 @@ public class TestBegin extends TestCase {
 	private final Zeze.Transaction.Locks Locks = new Locks();
 
 	public final void testRollback() {
-		Transaction.create(Locks);
+		Transaction.create(Locks, null);
 		try {
 			Transaction.getCurrent().begin();
 
@@ -30,7 +30,7 @@ public class TestBegin extends TestCase {
 	}
 
 	public final void testCommit() {
-		Transaction.create(Locks);
+		Transaction.create(Locks, null);
 		try {
 			Transaction.getCurrent().begin();
 
@@ -59,7 +59,7 @@ public class TestBegin extends TestCase {
 	}
 
 	public final void testNestRollback() {
-		Transaction.create(Locks);
+		Transaction.create(Locks, null);
 		try {
 			Transaction.getCurrent().begin();
 
@@ -90,7 +90,7 @@ public class TestBegin extends TestCase {
 	}
 
 	public final void testNestCommit() {
-		Transaction.create(Locks);
+		Transaction.create(Locks, null);
 		try {
 			Transaction.getCurrent().begin();
 

@@ -56,7 +56,7 @@ public class Procedure {
 			return;
 
 		String module = result > 0 ? "@" + IModule.getModuleId(result) + ":" + IModule.getErrorCode(result) : "";
-		logger.log(level, "Procedure={} Return={}{}{} UserState={}", p, result, module, message, p.userState, ex);
+		logger.log(level, "Procedure={} Return={}{}{}", p, result, module, message, ex);
 	}
 
 	private final @NotNull Application zeze;
@@ -80,16 +80,7 @@ public class Procedure {
 		this.level = level;
 		this.action = action;
 		setActionName(actionName);
-		if (userState != null)
-			this.userState = userState;
-		else { // 没指定，就从当前存储过程继承。嵌套时发生。
-			Transaction currentT = Transaction.getCurrent();
-			if (currentT != null) {
-				Procedure proc = currentT.getTopProcedure();
-				if (proc != null)
-					this.userState = proc.userState;
-			}
-		}
+		this.userState = userState;
 	}
 
 	public final @NotNull Application getZeze() {
@@ -116,14 +107,6 @@ public class Procedure {
 		this.actionName = actionName != null ? actionName : (action != null ? action : this).getClass().getName();
 	}
 
-	public final @Nullable Object getUserState() {
-		return userState;
-	}
-
-	public final void setUserState(@Nullable Object value) {
-		userState = value;
-	}
-
 	/**
 	 * 创建 Savepoint 并执行。
 	 * 嵌套 Procedure 实现，
@@ -136,7 +119,7 @@ public class Procedure {
 			long timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
-				return Transaction.create(zeze.getLocks()).perform(this);
+				return Transaction.create(zeze.getLocks(), userState).perform(this);
 			} finally {
 				Transaction.destroy();
 				if (PerfCounter.ENABLE_PERF)

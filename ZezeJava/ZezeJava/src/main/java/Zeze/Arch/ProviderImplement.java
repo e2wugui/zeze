@@ -162,7 +162,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				var proc = txn.getTopProcedure();
 				//noinspection ConstantConditions
 				proc.setActionName(p2.getClass().getName());
-				proc.setUserState(session);
+				txn.setUserState(session);
 				txn.runWhileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 			} else // 应用框架不支持事务或者协议配置了"不需要事务”
 				arg.setProtocolData(Binary.Empty); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空

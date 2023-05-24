@@ -19,11 +19,12 @@ public final class Transaction {
 	private static final int perfIndexTransactionRedoAndReleaseLock = PerfCounter.instance.registerCountIndex("Transaction.RedoAndReleaseLock");
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
 
-	public static @NotNull Transaction create(@NotNull Locks locks) {
+	public static @NotNull Transaction create(@NotNull Locks locks, @Nullable Object userState) {
 		var t = threadLocal.get();
 		if (t == null)
 			threadLocal.set(t = new Transaction());
 		t.locks = locks;
+		t.userState = userState;
 		t.created = true;
 		return t;
 	}
@@ -58,6 +59,7 @@ public final class Transaction {
 	private final ArrayList<Savepoint.Action> actions = new ArrayList<>();
 	private final TreeMap<TableKey, RecordAccessed> accessedRecords = new TreeMap<>();
 	private Locks locks;
+	private @Nullable Object userState;
 	private @NotNull TransactionState state = TransactionState.Running;
 	private boolean created;
 	private boolean alwaysReleaseLockWhenRedo;
@@ -84,6 +86,21 @@ public final class Transaction {
 		return stackSize > 0 ? procedureStack.get(stackSize - 1) : null;
 	}
 
+	public static @Nullable Object userState() {
+		var t = getCurrent();
+		if (t == null)
+			throw new RuntimeException("not in transaction.");
+		return t.userState;
+	}
+
+	public @Nullable Object getUserState() {
+		return userState;
+	}
+
+	public void setUserState(@Nullable Object userState) {
+		this.userState = userState;
+	}
+
 	private void reuseTransaction() {
 		// holdLocks.Clear(); // 执行完肯定清理了。
 		procedureStack.clear();
@@ -92,6 +109,7 @@ public final class Transaction {
 		actions.clear();
 		accessedRecords.clear();
 		locks = null;
+		userState = null;
 		state = TransactionState.Running;
 		created = false;
 		alwaysReleaseLockWhenRedo = false;

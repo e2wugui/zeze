@@ -359,7 +359,7 @@ public class ModuleRank extends AbstractModule {
 
 	public static int GetChoiceHashCode() {
 		//noinspection ConstantConditions
-		String account = ((ProviderUserSession)Transaction.getCurrent().getTopProcedure().getUserState()).getAccount();
+		String account = ((ProviderUserSession)Transaction.userState()).getAccount();
 		return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
 	}
 
