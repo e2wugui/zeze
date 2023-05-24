@@ -166,17 +166,17 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					roleId = -linkSid;
 				AsyncSocket.log("Recv", roleId, arg.getOnlineSetName(), p2);
 			}
+			var isRpcResponse = p2 instanceof Rpc && !p2.isRequest();
 			if (txn != null) { // 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
 				var proc = txn.getTopProcedure();
 				//noinspection ConstantConditions
-				proc.setActionName(p2.getClass().getName());
+				proc.setActionName(p2.getClass().getName() + (isRpcResponse ? ":Response" : ""));
 				txn.setUserState(session);
 				txn.runWhileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 			} else // 应用框架不支持事务或者协议配置了"不需要事务”
 				arg.setProtocolData(Binary.Empty); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 			var p3 = p2;
 			var r = Task.call(() -> {
-				var isRpcResponse = p3 instanceof Rpc && !p3.isRequest();
 				if (isRpcResponse)
 					return processRpcResponse(outRpcContext, p3);
 
