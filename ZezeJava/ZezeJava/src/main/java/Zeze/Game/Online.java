@@ -572,6 +572,15 @@ public class Online extends AbstractOnline {
 		return sendDirect(roleId, rpc.getTypeId(), new Binary(rpc.encode()), false);
 	}
 
+	public void sendOnline(long roleId, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+		var typeId = p.getTypeId();
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+			AsyncSocket.log("Send", roleId, multiInstanceName, p);
+		sendDirect(roleId, typeId, new Binary(p.encode()), false);
+	}
+
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendAllOnlines(long roleId, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc)

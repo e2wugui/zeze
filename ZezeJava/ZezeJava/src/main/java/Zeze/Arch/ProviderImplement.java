@@ -211,7 +211,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			}
 		}
 
-		return res.setupRpcResponseContext(outRpcContext.value).setFutureOrHandle();
+		return res.setupRpcResponseContext(outRpcContext.value).setFutureResultOrCallHandle();
 	}
 
 	@Override
