@@ -12,16 +12,20 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolHandle;
+import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeServer;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class LinkdService extends HandshakeServer {
-	// private static final Logger logger = LogManager.getLogger(LinkdService.class);
-
+	private static final Logger logger = LogManager.getLogger(LinkdService.class);
 	protected LinkdApp linkdApp;
 	protected long curSendSpeed; // bytes/sec
 
@@ -196,14 +200,30 @@ public class LinkdService extends HandshakeServer {
 	}
 
 	@Override
-	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
+		p.dispatch(this, factoryHandle);
+	}
+
+	@Override
+	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		try {
 			var isRequestSaved = p.isRequest();
 			var result = p.handle(this, factoryHandle); // 不启用新的Task，直接在io-thread里面执行。
 			Task.logAndStatistics(null, result, p, isRequestSaved);
 		} catch (Exception ex) {
 			p.getSender().close(ex); // link 在异常时关闭连接。
+		}
+	}
+
+	@Override
+	public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+															ProtocolFactoryHandle<?> factoryHandle) {
+		// Raft RPC 的回复处理应该都不是block的,直接在IO线程处理,避免线程池堆满等待又无法唤醒导致死锁
+		try {
+			responseHandle.handle(rpc);
+		} catch (Throwable e) { // run handle. 必须捕捉所有异常。logger.error
+			logger.error("", e);
 		}
 	}
 

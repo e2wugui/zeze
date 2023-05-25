@@ -9,6 +9,8 @@ import Zeze.Builtin.Provider.AnnounceLinkInfo;
 import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Subscribe;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeServer;
 import Zeze.Util.Task;
@@ -48,8 +50,14 @@ public class LinkdProviderService extends HandshakeServer {
 
 	// 重载需要的方法。
 	@Override
-	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+		// 不支持事务。
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
+		p.dispatch(this, factoryHandle);
+	}
+
+	@Override
+	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (p.getTypeId() == Bind.TypeId_ || p.getTypeId() == Subscribe.TypeId_) {
 			// Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
 			// 不要直接在io-thread里面执行。
@@ -65,6 +73,13 @@ public class LinkdProviderService extends HandshakeServer {
 				logger.error("Protocol.Handle Exception: {}", p, ex);
 			}
 		}
+	}
+
+	@Override
+	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
+															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+		// 不支持事务
+		Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")

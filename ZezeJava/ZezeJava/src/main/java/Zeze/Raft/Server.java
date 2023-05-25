@@ -212,9 +212,24 @@ public class Server extends HandshakeBoth {
 		}, p, Protocol::trySendResultCode);
 	}
 
+	/**
+	 * Raft.Server的线程派发模式总是完全
+	 * @param typeId typeId
+	 * @param bb bb
+	 * @param factoryHandle factoryHandle
+	 * @param so so
+	 * @throws Exception
+	 * process error.
+	 */
 	@Override
 	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+		// 不支持事务
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
+		p.dispatch(this, factoryHandle);
+	}
+
+	@Override
+	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			// 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。

@@ -3,10 +3,12 @@ package Zeze.Services.ServiceManager;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 
 public final class AgentClient extends HandshakeClient {
 	private final Agent agent;
@@ -55,8 +57,23 @@ public final class AgentClient extends HandshakeClient {
 	}
 
 	@Override
-	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+		// 不支持事务
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
-		Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode);
+		p.dispatch(this, factoryHandle);
+	}
+
+	@Override
+	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+		// 不支持事务
+		Task.runUnsafe(() -> p.handle(this, factoryHandle),
+				p, Protocol::trySendResultCode, null, factoryHandle.Mode);
+	}
+
+	@Override
+	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
+															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+		// 不支持事务
+		Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
 }

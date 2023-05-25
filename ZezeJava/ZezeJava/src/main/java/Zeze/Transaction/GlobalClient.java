@@ -2,12 +2,15 @@ package Zeze.Transaction;
 
 import Zeze.Application;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 
 public final class GlobalClient extends Service {
 	public GlobalClient(GlobalAgent agent, Application zeze) {
@@ -72,9 +75,27 @@ public final class GlobalClient extends Service {
 	}
 
 	@Override
-	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+		// 不支持事务
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
+		p.dispatch(this, factoryHandle);
+	}
+
+	@Override
+	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
 		Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), p));
 	}
+
+	@Override
+	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
+															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+		// global rpc 没有异步调用，仅仅future.setResult。直接io线程调用。
+		try {
+			responseHandle.handle(rpc);
+		} catch (Throwable e) { // run handle. 必须捕捉所有异常。logger.error
+			logger.error("Agent.NetClient.dispatchRpcResponse", e);
+		}
+	}
+
 }

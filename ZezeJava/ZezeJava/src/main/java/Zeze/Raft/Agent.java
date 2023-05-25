@@ -29,6 +29,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public final class Agent {
 	private static final Logger logger = LogManager.getLogger(Agent.class);
@@ -502,17 +503,20 @@ public final class Agent {
 		}
 
 		@Override
-		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+			// 不支持事务
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
+			p.dispatch(this, factoryHandle);
+		}
+
+		@Override
+		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 虚拟线程创建太多Critical线程反而容易卡,以后考虑跑另个虚拟线程池里
 			if (p.getTypeId() == LeaderIs.TypeId_ || agent.dispatchProtocolToInternalThreadPool) {
 				Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), "InternalRequest"));
 			} else {
 				Task.runUnsafe(() -> p.handle(this, factoryHandle),
-						p,
-						null,
-						null,
-						DispatchMode.Normal);
+						p, Protocol::trySendResultCode, null, factoryHandle.Mode);
 			}
 		}
 	}

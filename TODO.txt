@@ -13,13 +13,11 @@ ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 Dbh2 超时事务回查超时。
 Zeze.Component 里面用到的DynamicBean注册class不需要了。
-
 ------------------------------------------------------------------------------------------------------------------------------
 2023/6/2 v1.2.5 Netty DispatchMode; Dbh2; Game.Online.sendOnlineRpc;
 ------------------------------------------------------------------------------------------------------------------------------
-Raft 心跳改成总是间隔发送，不再优化（真的空闲才发送）；原因如下：
-Dbh2 需要识别出LeaderReady。此事件Follower通过心跳判断。这个识别用来设置负载统计开始工作。
-
++++Raft 心跳改成总是间隔发送，不再优化（真的空闲才发送）；原因如下：
++++Dbh2 需要识别出LeaderReady。此事件Follower通过心跳判断。这个识别用来设置负载统计开始工作。
 Game.Online.sendOnlineRpc
 Dbh2 LogCleanEndSplit 操作合并到 LogEndSplit 中。原子的完成删除(deleteRange)操作。
 Dbh2 分桶结束需要删除源桶的已经分出去的数据。

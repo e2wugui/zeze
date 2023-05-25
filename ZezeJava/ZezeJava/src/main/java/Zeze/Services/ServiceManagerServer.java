@@ -867,7 +867,23 @@ public final class ServiceManagerServer implements Closeable {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			oneByOneByKey.Execute(p.getSender(),
 					() -> Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode), factoryHandle.Mode);
+			// 不支持事务，由于这里直接onebyone执行，所以下面两个方法就不重载了。
 		}
+		/*
+		@Override
+		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+			// 不支持事务
+			Task.runUnsafe(() -> p.handle(this, factoryHandle),
+					p, Protocol::trySendResultCode, null, factoryHandle.Mode);
+		}
+
+		@Override
+		public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
+																@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+			// 不支持事务
+			Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+		}
+		*/
 	}
 
 	public static void main(String[] args) throws Exception {

@@ -163,6 +163,8 @@ public final class Token extends AbstractToken {
 		@Override
 		public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 																ProtocolFactoryHandle<?> factoryHandle) {
+			// 在新的decode-dispatch流程中，上面的dispatchProtocol直接执行操作，实际上包含了rpc.handle，
+			// 这个函数不会被触发了。先保留在这里。
 			try {
 				responseHandle.handle(rpc); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
 			} catch (Throwable e) { // logger.error

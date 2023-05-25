@@ -273,8 +273,13 @@ public class ProviderDirectService extends HandshakeBoth {
 
 	@Override
 	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle,
-								 @Nullable AsyncSocket so) {
+								 @Nullable AsyncSocket so) throws Exception {
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
+		p.dispatch(this, factoryHandle);
+	}
+
+	@Override
+	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (p.getTypeId() == ModuleRedirect.TypeId_) {
 			var r = (ModuleRedirect)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
