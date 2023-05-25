@@ -50,6 +50,10 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		return future;
 	}
 
+	public void setFuture(TaskCompletionSource<TResult> future) {
+		this.future = future;
+	}
+
 	public int getTimeout() {
 		return timeout;
 	}
@@ -190,7 +194,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	public final TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout) {
 		future = new TaskCompletionSource<>();
 		if (!Send(so, null, millisecondsTimeout))
-			future.setException(new IllegalStateException("Send Failed."));
+			future.setException(new IllegalStateException("Send Fail."));
 		return future;
 	}
 
@@ -267,7 +271,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		return context;
 	}
 
-	public long setFutureOrHandle() throws Exception {
+	public long setFutureResultOrCallHandle() throws Exception {
 		if (future != null) {
 			future.setResult(Result);
 			return 0;
@@ -276,7 +280,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (responseHandle != null)
 			return responseHandle.handleProtocol(this);
 
-		logger.error("rpc response handle miss. {}", this);
+		logger.debug("rpc response handle miss. {}", this);
 		return 0;
 	}
 

@@ -57,6 +57,7 @@ import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -538,36 +539,26 @@ public class Online extends AbstractOnline {
 		getOnlineByContext().sendOnline(roleId, p);
 	}
 
-	// 在指定Online上发送
-	public void sendOnline(long roleId, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc)
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-			AsyncSocket.log("Send", roleId, multiInstanceName, p);
-		sendDirect(roleId, typeId, new Binary(p.encode()), false);
+	public <A extends Serializable, R extends Serializable> TaskCompletionSource<R> sendOnlineRpcForWait(
+			long roleId, @NotNull Rpc<A, R> rpc) {
+		return sendOnlineRpcForWait(roleId, rpc, 5000);
 	}
 
-	// 优先在上下文中的Online上发送
-	public <A extends Serializable, R extends Serializable> void sendRpc(
+	public <A extends Serializable, R extends Serializable> TaskCompletionSource<R> sendOnlineRpcForWait(
+			long roleId, @NotNull Rpc<A, R> rpc, int timeoutMs) {
+		var future = new TaskCompletionSource<R>();
+		rpc.setFuture(future);
+		if (!sendOnlineRpc(roleId, rpc, null, timeoutMs))
+			future.setException(new IllegalStateException("sendOnlineRpc fail."));
+		return future;
+	}
+
+	public <A extends Serializable, R extends Serializable> boolean sendOnlineRpc(
 			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
-		getOnlineByContext().sendOnlineRpc(roleId, rpc, responseHandle);
+		return sendOnlineRpc(roleId, rpc, responseHandle, 5000);
 	}
 
-	// 优先在上下文中的Online上发送
-	public <A extends Serializable, R extends Serializable> void sendRpc(
-			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs) {
-		getOnlineByContext().sendOnlineRpc(roleId, rpc, responseHandle, timeoutMs);
-	}
-
-	// 在指定Online上发送
-	public <A extends Serializable, R extends Serializable> void sendOnlineRpc(
-			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
-		sendOnlineRpc(roleId, rpc, responseHandle, 5000);
-	}
-
-	// 在指定Online上发送
-	public <A extends Serializable, R extends Serializable> void sendOnlineRpc(
+	public <A extends Serializable, R extends Serializable> boolean sendOnlineRpc(
 			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs) {
 		var service = providerApp.providerService;
 		// try remove. 只维护一个上下文。多次发送相同rpc会如此，这个应该最好报错。沿用老的逻辑吧。see Rpc.Send
@@ -578,7 +569,7 @@ public class Online extends AbstractOnline {
 		rpc.setIsTimeout(false);
 		rpc.setRequest(true);
 		rpc.schedule(service, sessionId, timeoutMs);
-		sendDirect(roleId, rpc.getTypeId(), new Binary(rpc.encode()), false);
+		return sendDirect(roleId, rpc.getTypeId(), new Binary(rpc.encode()), false);
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
