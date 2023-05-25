@@ -539,25 +539,35 @@ public class Online extends AbstractOnline {
 		getOnlineByContext().sendOnline(roleId, p);
 	}
 
-	public <A extends Serializable, R extends Serializable> TaskCompletionSource<R> sendOnlineRpcForWait(
-			long roleId, @NotNull Rpc<A, R> rpc) {
-		return sendOnlineRpcForWait(roleId, rpc, 5000);
+	// 在指定Online上发送
+	public void sendOnline(long roleId, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc)
+			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+		var typeId = p.getTypeId();
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+			AsyncSocket.log("Send", roleId, multiInstanceName, p);
+		sendDirect(roleId, typeId, new Binary(p.encode()), false);
 	}
 
-	public <A extends Serializable, R extends Serializable> TaskCompletionSource<R> sendOnlineRpcForWait(
-			long roleId, @NotNull Rpc<A, R> rpc, int timeoutMs) {
-		var future = new TaskCompletionSource<R>();
-		rpc.setFuture(future);
-		if (!sendOnlineRpc(roleId, rpc, null, timeoutMs))
-			future.setException(new IllegalStateException("sendOnlineRpc fail."));
-		return future;
-	}
-
-	public <A extends Serializable, R extends Serializable> boolean sendOnlineRpc(
+	// 优先在上下文中的Online上发送
+	public <A extends Serializable, R extends Serializable> void sendRpc(
 			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
-		return sendOnlineRpc(roleId, rpc, responseHandle, 5000);
+		getOnlineByContext().sendOnlineRpc(roleId, rpc, responseHandle);
 	}
 
+	// 优先在上下文中的Online上发送
+	public <A extends Serializable, R extends Serializable> void sendRpc(
+			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs) {
+		getOnlineByContext().sendOnlineRpc(roleId, rpc, responseHandle, timeoutMs);
+	}
+
+	// 在指定Online上发送
+	public <A extends Serializable, R extends Serializable> void sendOnlineRpc(
+			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
+		sendOnlineRpc(roleId, rpc, responseHandle, 5000);
+	}
+
+	// 在指定Online上发送
 	public <A extends Serializable, R extends Serializable> boolean sendOnlineRpc(
 			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs) {
 		var service = providerApp.providerService;
@@ -572,13 +582,20 @@ public class Online extends AbstractOnline {
 		return sendDirect(roleId, rpc.getTypeId(), new Binary(rpc.encode()), false);
 	}
 
-	public void sendOnline(long roleId, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc)
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-			AsyncSocket.log("Send", roleId, multiInstanceName, p);
-		sendDirect(roleId, typeId, new Binary(p.encode()), false);
+	// 在指定Online上同步发送
+	public <A extends Serializable, R extends Serializable> TaskCompletionSource<R> sendOnlineRpcForWait(
+			long roleId, @NotNull Rpc<A, R> rpc) {
+		return sendOnlineRpcForWait(roleId, rpc, 5000);
+	}
+
+	// 在指定Online上同步发送
+	public <A extends Serializable, R extends Serializable> TaskCompletionSource<R> sendOnlineRpcForWait(
+			long roleId, @NotNull Rpc<A, R> rpc, int timeoutMs) {
+		var future = new TaskCompletionSource<R>();
+		rpc.setFuture(future);
+		if (!sendOnlineRpc(roleId, rpc, null, timeoutMs))
+			future.setException(new IllegalStateException("sendOnlineRpc fail."));
+		return future;
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
