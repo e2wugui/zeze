@@ -135,11 +135,13 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	 * @param responseHandle response handle for this rpc
 	 * @return true: success
 	 */
-	public final boolean Send(@Nullable AsyncSocket so, @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
+	public final boolean Send(@Nullable AsyncSocket so,
+							  @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
 		return Send(so, responseHandle, timeout);
 	}
 
-	public final boolean Send(@Nullable AsyncSocket so, @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
+	public final boolean Send(@Nullable AsyncSocket so,
+							  @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
 							  int millisecondsTimeout) {
 		if (so == null)
 			return false;
@@ -233,15 +235,15 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public <P extends Protocol<?>> long handle(@NotNull DatagramService service,
-											   @NotNull Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+	public long handle(@NotNull DatagramService service,
+					   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// udp 不支持rpc。
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public <P extends Protocol<?>> void dispatch(@NotNull Service service,
-												 @NotNull Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+	public void dispatch(@NotNull Service service,
+						 @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isRequest) {
 			super.dispatch(service, factoryHandle);
 			return;
@@ -278,15 +280,15 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		}
 
 		if (responseHandle != null)
-			return responseHandle.handleProtocol(this);
+			return responseHandle.handle(this);
 
 		logger.debug("rpc response handle miss. {}", this);
 		return 0;
 	}
 
 	@Override
-	public <P extends Protocol<?>> long handle(@NotNull Service service,
-											   @NotNull Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+	public long handle(@NotNull Service service,
+					   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isRequest)
 			return super.handle(service, factoryHandle);
 
@@ -308,7 +310,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (context.future != null)
 			context.future.setResult(context.Result); // SendForWait，设置结果唤醒等待者。
 		else if (context.responseHandle != null)
-			return context.responseHandle.handleProtocol(context);
+			return context.responseHandle.handle(context);
 
 		return 0;
 	}

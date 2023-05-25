@@ -73,7 +73,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 																	ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			raft.getImportantThreadExecutor().execute(() -> {
 				try {
-					responseHandle.handleProtocol(p);
+					responseHandle.handle(p);
 				} catch (Exception e) {
 					logger.error("", e);
 				}

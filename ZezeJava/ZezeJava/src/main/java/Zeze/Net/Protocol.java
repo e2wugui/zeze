@@ -190,13 +190,13 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		SendResult(result);
 	}
 
-	public <P extends Protocol<?>> void dispatch(@NotNull Service service,
-												 @NotNull Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+	public void dispatch(@NotNull Service service,
+						 @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		service.dispatchProtocol(this, factoryHandle);
 	}
 
-	public <P extends Protocol<?>> long handle(@NotNull Service service,
-											   @NotNull Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+	public long handle(@NotNull Service service,
+					   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		var handle = factoryHandle.Handle;
 		if (handle != null)
 			return handle.handleProtocol(this);
@@ -208,8 +208,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		return 0;
 	}
 
-	public <P extends Protocol<?>> long handle(@NotNull DatagramService service,
-											   @NotNull Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+	public long handle(@NotNull DatagramService service,
+					   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		var handle = factoryHandle.Handle;
 		if (handle != null)
 			return handle.handleProtocol(this);
@@ -262,7 +262,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	/**
 	 * moduleId[4] + protocolId[4] + size[4] + protocol.bytes[size]
 	 */
-	public static void decode(@NotNull Service service, @NotNull AsyncSocket so, @NotNull ByteBuffer bb) throws Exception {
+	public static void decode(@NotNull Service service, @NotNull AsyncSocket so, @NotNull ByteBuffer bb)
+			throws Exception {
 		while (bb.size() >= HEADER_SIZE) { // 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
 			// 读取协议类型和大小
 			var bytes = bb.Bytes;
