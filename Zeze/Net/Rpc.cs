@@ -5,28 +5,56 @@ using Zeze.Util;
 
 namespace Zeze.Net
 {
-#if USE_CONFCS
-    public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>
-        where TArgument: Zeze.Util.ConfBean, new()
-        where TResult: Zeze.Util.ConfBean, new()
-#else
-    public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>
-        where TArgument : Zeze.Transaction.Bean, new()
-        where TResult : Zeze.Transaction.Bean, new()
-#endif
+    public interface Rpc : Serializable
     {
 #if HAS_NLOG
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        protected static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 #elif HAS_MYLOG
-        private static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(Rpc<TArgument, TResult>));
+        protected static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(Rpc<TArgument, TResult>));
 #endif
 
+#if USE_CONFCS
+        public ConfBean ResultBean { get; }
+#else
+        public Transaction.Bean ResultBean { get; }
+#endif
+
+        public Binary ResultEncoded { get; set; } // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
+        public int FamilyClass { get; }
+        public bool IsTimeout { get; }
+        public long SessionId { get; set; }
+        public Func<Protocol, Task<long>> ResponseHandle { get; set; }
+        public int Timeout { get; set; }
+
+        public bool Send(AsyncSocket so);
+        public bool Send(AsyncSocket so, Func<Protocol, Task<long>> responseHandle, int millisecondsTimeout = 5000);
+        public void SendReturnVoid(Service service, AsyncSocket so, Func<Protocol, Task<long>> responseHandle,
+            int millisecondsTimeout = 5000);
+
+        public Task SendAsync(AsyncSocket so, int millisecondsTimeout = 5000);
+        public Task SendAndCheckResultCodeAsync(AsyncSocket so, int millisecondsTimeout = 5000);
+
+        public void SendResult(Binary result = null);
+        public bool TrySendResultCode(long code);
+        public void ClearParameters(ProtocolPool.ReuseLevel level);
+    }
+
+#if USE_CONFCS
+    public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>
+        where TArgument: ConfBean, new()
+        where TResult: ConfBean, new()
+#else
+    public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>, Rpc
+        where TArgument : Transaction.Bean, new()
+        where TResult : Transaction.Bean, new()
+#endif
+    {
         public TResult Result { get; set; } = new TResult();
 
 #if USE_CONFCS
-        public override Zeze.Util.ConfBean ResultBean => Result;
+        public override ConfBean ResultBean => Result;
 #else
-        public override Zeze.Transaction.Bean ResultBean => Result;
+        public override Transaction.Bean ResultBean => Result;
 #endif
         public Binary ResultEncoded { get; set; } // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
         public override int FamilyClass => IsRequest ? Zeze.Net.FamilyClass.Request : Zeze.Net.FamilyClass.Response;
@@ -38,9 +66,9 @@ namespace Zeze.Net
 
         public TaskCompletionSource<TResult> Future { get; internal set; }
 
-        public Rpc()
+        protected Rpc()
         {
-            this.IsTimeout = false;
+            IsTimeout = false;
         }
 
         /// <summary>
@@ -59,7 +87,7 @@ namespace Zeze.Net
 
         private static SchedulerTask Schedule(Service service, long sessionId, int millisecondsTimeout)
         {
-            return Scheduler.Schedule((ThisTask) =>
+            return Scheduler.Schedule(_ =>
             {
                 Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sessionId);
                 if (null == context) // 一般来说，此时结果已经返回。
@@ -101,13 +129,13 @@ namespace Zeze.Net
             if (so == null || so.Service == null)
                 return false;
 
-            this.IsRequest = true;
-            this.ResponseHandle = responseHandle;
-            this.Timeout = millisecondsTimeout;
+            IsRequest = true;
+            ResponseHandle = responseHandle;
+            Timeout = millisecondsTimeout;
 
             // try remove . 只维护一个上下文。
             so.Service.TryRemoveRpcContext(SessionId, this);
-            this.SessionId = so.Service.AddRpcContext(this);
+            SessionId = so.Service.AddRpcContext(this);
 
             var timeoutTask = Schedule(so.Service, SessionId, millisecondsTimeout);
 
@@ -118,7 +146,7 @@ namespace Zeze.Net
             // 其中rpc-trigger-result的原子性由RemoveRpcContext保证。
             // Cancel不是必要的。
             timeoutTask?.Cancel();
-            var ctx = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(this.SessionId);
+            var ctx = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(SessionId);
             // 恢复最初的语义吧：如果ctx已经被并发的Remove，也就是被处理了，这里返回true。
             return null == ctx;
         }
@@ -138,14 +166,14 @@ namespace Zeze.Net
             if (null != so && so.Service != service)
                 throw new Exception("so.Service != service");
 
-            this.IsRequest = true;
-            this.ResponseHandle = responseHandle;
-            this.Timeout = millisecondsTimeout;
-            this.Service = service;
+            IsRequest = true;
+            ResponseHandle = responseHandle;
+            Timeout = millisecondsTimeout;
+            Service = service;
 
             // try remove . 只维护一个上下文。
-            so.Service.TryRemoveRpcContext(SessionId, this);
-            this.SessionId = service.AddRpcContext(this);
+            service.TryRemoveRpcContext(SessionId, this);
+            SessionId = service.AddRpcContext(this);
             Schedule(service, SessionId, millisecondsTimeout);
             base.Send(so);
         }
@@ -167,16 +195,16 @@ namespace Zeze.Net
                 throw new Exception($"Rpc Invalid ResultCode={ResultCode} {this}");
         }
 
-        private bool SendResultDone = false; // XXX ugly
+        private bool SendResultDone; // XXX ugly
 
         public override void SendResult(Binary result = null)
         {
             if (SendResultDone)
             {
 #if HAS_NLOG
-                logger.Log(NLog.LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
+                Rpc.logger.Log(NLog.LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
 #elif HAS_MYLOG
-                logger.Log(Config.LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
+                Rpc.logger.Log(Config.LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
 #endif
                 return;
             }
@@ -187,9 +215,9 @@ namespace Zeze.Net
             if (false == base.Send(Sender))
             {
 #if HAS_NLOG
-                logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), $"Rpc.SendResult Failed {Sender.Socket} {this}");
+                Rpc.logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), $"Rpc.SendResult Failed {Sender.Socket} {this}");
 #elif HAS_MYLOG
-                logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Failed {Sender.Socket} {this}");
+                Rpc.logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Failed {Sender.Socket} {this}");
 #endif
             }
         }
@@ -216,9 +244,9 @@ namespace Zeze.Net
             if (null == context)
             {
 #if HAS_NLOG
-                logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), "rpc response: lost context, maybe timeout. {0}", this);
+                Rpc.logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), "rpc response: lost context, maybe timeout. {0}", this);
 #elif HAS_MYLOG
-                logger.Log(Service.SocketOptions.SocketLogLevel, "rpc response: lost context, maybe timeout. {0}", this);
+                Rpc.logger.Log(Service.SocketOptions.SocketLogLevel, "rpc response: lost context, maybe timeout. {0}", this);
 #endif
                 return;
             }
@@ -245,7 +273,7 @@ namespace Zeze.Net
             var compress = bb.ReadInt();
             var familyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
             IsRequest = familyClass == Zeze.Net.FamilyClass.Request;
-            ResultCode = ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0;
+            ResultCode = (compress & Zeze.Net.FamilyClass.BitResultCode) != 0 ? bb.ReadLong() : 0;
             SessionId = bb.ReadLong();
             if (IsRequest)
                 Argument.Decode(bb);
