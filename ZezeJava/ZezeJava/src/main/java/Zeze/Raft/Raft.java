@@ -76,10 +76,15 @@ public final class Raft {
 	private final Lock mutex = new ReentrantLock();
 	private final Condition condition = mutex.newCondition();
 
-	private Action0 onSetLeader;
+	private Action0 onLeaderReady; // isLeader & isReady
+	Action0 onFollowerReceiveKeepAlive;
 
-	public void setOnSetLeader(Action0 action) {
-		onSetLeader = action;
+	public void setOnLeaderReady(Action0 action) {
+		onLeaderReady = action;
+	}
+
+	public void setOnFollowerReceiveKeepAlive(Action0 action) {
+		onFollowerReceiveKeepAlive = action;
 	}
 
 	public String getName() {
@@ -528,7 +533,7 @@ public final class Raft {
 			case Leader:
 				server.getConfig().forEachConnector(c -> {
 					var cex = (Server.ConnectorEx)c;
-					if (now - cex.getAppendLogActiveTime() > raftConfig.getLeaderHeartbeatTimer())
+					if (now - cex.getHeartbeatTime() > raftConfig.getLeaderHeartbeatTimer())
 						logSequence.sendHeartbeatTo(cex);
 				});
 				break;
@@ -614,8 +619,8 @@ public final class Raft {
 					r.Send(allSocket); // skip response.
 				}
 			});
-			if (onSetLeader != null)
-				onSetLeader.run();
+			if (onLeaderReady != null)
+				onLeaderReady.run();
 		}
 	}
 
@@ -804,7 +809,7 @@ public final class Raft {
 			// send initial empty AppendEntries RPCs
 			// (heartbeat)to each server; repeat during
 			// idle periods to prevent election timeouts(§5.2)
-			var result = logSequence.appendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent, getName()), null);
+			var result = logSequence.appendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent), null);
 			leaderWaitReadyIndex = result.index;
 			leaderWaitReadyTerm = result.term;
 		}

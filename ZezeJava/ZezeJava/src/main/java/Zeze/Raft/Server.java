@@ -56,6 +56,7 @@ public class Server extends HandshakeBoth {
 		private InstallSnapshotState installSnapshotState;
 
 		private long appendLogActiveTime = System.currentTimeMillis();
+		private long heartbeatTime = System.currentTimeMillis();
 
 		public ConnectorEx(String host, int port) {
 			super(host, port);
@@ -100,6 +101,14 @@ public class Server extends HandshakeBoth {
 
 		void setAppendLogActiveTime(long value) {
 			appendLogActiveTime = value;
+		}
+
+		void setHeartbeatTime(long value) {
+			heartbeatTime = value;
+		}
+
+		long getHeartbeatTime() {
+			return heartbeatTime;
 		}
 
 		@Override

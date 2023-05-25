@@ -48,6 +48,11 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private long lastCommitBatch;
 	private long lastUndoBatch;
 	private long lastReportTime = System.currentTimeMillis();
+	private boolean loadSwitch = false;
+
+	public void setLoadSwitch(boolean value) {
+		loadSwitch = value;
+	}
 
 	public double load() {
 		var now = System.currentTimeMillis();
@@ -103,7 +108,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			logger.info(sb.toString());
 
 			// 负载，put，delete全算，get算1%。
-			return (avgPut + avgDelete) + avgGet * 0.01;
+			return loadSwitch ? (avgPut + avgDelete) + avgGet * 0.01 : 0.0;
+			// loadSwitch 没有生效前总是报告负载为0，但是上面的日志还是记录了。
 		}
 		return 0.0;
 	}

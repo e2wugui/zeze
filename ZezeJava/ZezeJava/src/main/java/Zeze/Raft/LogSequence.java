@@ -701,7 +701,9 @@ public class LogSequence {
 	public void sendHeartbeatTo(Server.ConnectorEx connector) {
 		raft.lock();
 		try {
-			connector.setAppendLogActiveTime(System.currentTimeMillis());
+			var now = System.currentTimeMillis();
+			connector.setHeartbeatTime(now);
+			//connector.setAppendLogActiveTime(now);
 
 			if (!raft.isLeader())
 				return; // skip if is not a leader
@@ -1146,6 +1148,8 @@ public class LogSequence {
 		if (r.Argument.getEntries().isEmpty()) {
 			r.Result.setSuccess(true);
 			r.SendResult();
+			if (null != raft.onFollowerReceiveKeepAlive)
+				raft.onFollowerReceiveKeepAlive.run();
 			return Procedure.Success;
 		}
 

@@ -13,20 +13,14 @@ final class HeartbeatLog extends Log {
 	}
 
 	private int operate;
-	private String info;
 
 	public HeartbeatLog() {
-		this(0, null);
+		this(0);
 	}
 
-	public HeartbeatLog(int operate, String info) {
+	public HeartbeatLog(int operate) {
 		super(null);
 		this.operate = operate;
-		this.info = info != null ? info : "";
-	}
-
-	public String getInfo() {
-		return info;
 	}
 
 	@Override
@@ -34,6 +28,9 @@ final class HeartbeatLog extends Log {
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (operate) {
 		case SetLeaderReadyEvent:
+			// 由于这个log会被存储到日志队列中，所以在leader选出来，apply历史日志时，就会触发这个调用。
+			// 但是这个调用真正产生效果，需要是最后一个 HearbeatLog。
+			// 这个条件在setLeaderReady内部检测 leaderWaitReadyTerm，leaderWaitReadyIndex。
 			stateMachine.getRaft().setLeaderReady(holder);
 			break;
 		}
@@ -43,18 +40,16 @@ final class HeartbeatLog extends Log {
 	public void encode(ByteBuffer bb) {
 		super.encode(bb);
 		bb.WriteInt(operate);
-		bb.WriteString(info);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
 		super.decode(bb);
 		operate = bb.ReadInt();
-		info = bb.ReadString();
 	}
 
 	@Override
 	public String toString() {
-		return String.format("(%s Operate=%d Info=%s)", super.toString(), operate, info);
+		return String.format("(%s Operate=%d)", super.toString(), operate);
 	}
 }

@@ -129,7 +129,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			stateMachine.getBucket().setWriteOptions(writeOptions);
 
 			RegisterProtocols(raft.getServer());
-			raft.setOnSetLeader(this::recoverSplitting);
+			raft.setOnLeaderReady(this::recoverSplitting);
+			raft.setOnFollowerReceiveKeepAlive(this::onFollowerReceiveKeepAlive);
 			raft.getServer().start();
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
@@ -295,6 +296,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	public void tryStartSplit() throws Exception {
 		if (!raft.isLeader())
 			return;
+
 		var bucket = stateMachine.getBucket();
 		var splitting = bucket.getSplittingMeta();
 		if (null != splitting) {
@@ -305,10 +307,16 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		startSplit();
 	}
 
+	private void onFollowerReceiveKeepAlive() {
+		// 集群中的leader已经开始工作。自己是follower.
+		stateMachine.setLoadSwitch(true);
+	}
+
 	private void recoverSplitting() throws Exception {
 		if (!raft.isLeader())
 			return;
 
+		stateMachine.setLoadSwitch(true);
 		var bucket = stateMachine.getBucket();
 		if (null != bucket.getSplittingMeta())
 			startSplit();
@@ -359,6 +367,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	// 开始分桶流程有两个线程需要访问：timer & raft.UserThreadExecutor
 	private synchronized void startSplit() throws Exception {
+		if (!getRaft().isLeader())
+			return;
+
 		// 后面需要在lambda中传递系列号作为上下文，使用成员变量是不是会跟随变化？
 		var serialNo = manager.atomicSerialNo.incrementAndGet();
 		splitSerialNo = serialNo;
