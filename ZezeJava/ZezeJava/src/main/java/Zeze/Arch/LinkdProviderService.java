@@ -30,6 +30,7 @@ public class LinkdProviderService extends HandshakeServer {
 
 	public LinkdProviderService(String name, Application zeze) {
 		super(name, zeze);
+		setNoProcedure(true);
 	}
 
 	protected void tryDump(AsyncSocket s, ByteBuffer input) throws IOException {
