@@ -405,16 +405,16 @@ public class Service {
 	// 用来派发异步rpc回调。
 	@SuppressWarnings("RedundantThrows")
 	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
-															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+															@NotNull ProtocolFactoryHandle<?> factoryHandle)
+			throws Exception {
 		// 一般来说到达这个函数，肯定执行非事务分支了，事务分支在下面的dispatchProtocol中就被拦截。
 		// 但为了更具适应性，就是有人重载了下面的dispatchProtocol，然后没有处理事务，直接派发到这里，
 		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
-		if (!noProcedure && zeze != null && factoryHandle.Level != TransactionLevel.None) {
-			Task.runRpcResponseUnsafe(
-					zeze.newProcedure(
-							() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response",
-							factoryHandle.Level, null != rpc.getSender() ? rpc.getSender().getUserState() : null),
-					factoryHandle.Mode);
+		Application zeze;
+		if (!noProcedure && (zeze = this.zeze) != null && factoryHandle.Level != TransactionLevel.None) {
+			Task.runRpcResponseUnsafe(zeze.newProcedure(() -> responseHandle.handle(rpc),
+					rpc.getClass().getName() + ":Response", factoryHandle.Level,
+					null != rpc.getSender() ? rpc.getSender().getUserState() : null), factoryHandle.Mode);
 		} else
 			Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
@@ -423,15 +423,16 @@ public class Service {
 		return false;
 	}
 
-	public final Protocol<?> decodeProtocol(long typeId, @NotNull ByteBuffer bb,
-											@NotNull ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) {
+	public final @NotNull Protocol<?> decodeProtocol(long typeId, @NotNull ByteBuffer bb,
+													 @NotNull ProtocolFactoryHandle<?> factoryHandle,
+													 @Nullable AsyncSocket so) {
 		return decodeProtocol(typeId, bb, factoryHandle, so, true);
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public Protocol<?> decodeProtocol(long typeId, @NotNull ByteBuffer bb,
-									  @NotNull ProtocolFactoryHandle<?> factoryHandle,
-									  @Nullable AsyncSocket so, boolean needLog) {
+	public @NotNull Protocol<?> decodeProtocol(long typeId, @NotNull ByteBuffer bb,
+											   @NotNull ProtocolFactoryHandle<?> factoryHandle,
+											   @Nullable AsyncSocket so, boolean needLog) {
 		var p = factoryHandle.Factory.create();
 		p.decode(bb);
 		// 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
@@ -457,15 +458,16 @@ public class Service {
 			logger.warn("dispatchProtocol: not found protocol factory: {}", p);
 	}
 
-	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
-		var level = factoryHandle.Level;
-		var zeze = this.zeze;
+	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
+			throws Exception {
+		Application zeze;
 		// 一般来说到达这个函数，肯定执行非事务分支了，事务分支在下面的dispatchProtocol中就被拦截。
 		// 但为了更具适应性，就是有人重载了下面的dispatchProtocol，然后没有处理事务，直接派发到这里，
 		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
-		if (!noProcedure && zeze != null && level != TransactionLevel.None) {
-			Task.runUnsafe(zeze.newProcedure(() -> p.handle(this, factoryHandle), p.getClass().getName(), level,
-					null != p.getSender() ? p.getSender().getUserState() : null), p, Protocol::trySendResultCode, factoryHandle.Mode);
+		if (!noProcedure && (zeze = this.zeze) != null && factoryHandle.Level != TransactionLevel.None) {
+			Task.runUnsafe(zeze.newProcedure(() -> p.handle(this, factoryHandle), p.getClass().getName(),
+							factoryHandle.Level, null != p.getSender() ? p.getSender().getUserState() : null),
+					p, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
 			Task.runUnsafe(() -> p.handle(this, factoryHandle),
 					p, Protocol::trySendResultCode, null, factoryHandle.Mode);
@@ -480,9 +482,8 @@ public class Service {
 			Task.call(() -> p.handle(this, factoryHandle), "Service.handleHandshakeProtocol");
 			return;
 		}
-		var level = factoryHandle.Level;
-		var zeze = this.zeze;
-		if (!noProcedure && zeze != null && level != TransactionLevel.None) {
+		Application zeze;
+		if (!noProcedure && (zeze = this.zeze) != null && factoryHandle.Level != TransactionLevel.None) {
 			// 事务模式，需要从decode重启。
 			// 传给事务的buffer可能重做需要重新decode，不能直接引用网络层的buffer，需要copy一次。
 			var bbCopy = ByteBuffer.Wrap(bb.Copy());
@@ -493,7 +494,7 @@ public class Service {
 						var p = decodeProtocol(typeId, bbCopy, factoryHandle, so, needLog);
 						outProtocol.value = p;
 						return p.handle(this, factoryHandle);
-					}, factoryHandle.Class.getName(), level, so != null ? so.getUserState() : null),
+					}, factoryHandle.Class.getName(), factoryHandle.Level, so != null ? so.getUserState() : null),
 					outProtocol, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
@@ -556,13 +557,13 @@ public class Service {
 		}
 
 		public ProtocolFactoryHandle(@NotNull Factory<P> factory, @Nullable ProtocolHandle<P> handle,
-									 TransactionLevel level) {
+									 @NotNull TransactionLevel level) {
 			this(factory, handle, level, DispatchMode.Normal);
 		}
 
 		@SuppressWarnings("unchecked")
 		public ProtocolFactoryHandle(@NotNull Factory<P> factory, @Nullable ProtocolHandle<P> handle,
-									 TransactionLevel level, DispatchMode mode) {
+									 @NotNull TransactionLevel level, @NotNull DispatchMode mode) {
 			P p = factory.create();
 			Class = (Class<P>)p.getClass();
 			TypeId = p.getTypeId();
@@ -607,7 +608,7 @@ public class Service {
 		return (T)rpcContexts.remove(sid);
 	}
 
-	public final <T extends Protocol<?>> boolean removeRpcContext(long sid, @NotNull T ctx) {
+	public final boolean removeRpcContext(long sid, @NotNull Protocol<?> ctx) {
 		return rpcContexts.remove(sid, ctx);
 	}
 

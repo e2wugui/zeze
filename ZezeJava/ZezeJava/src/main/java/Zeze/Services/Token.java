@@ -16,7 +16,6 @@ import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Connector;
-import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.Selectors;
@@ -153,22 +152,9 @@ public final class Token extends AbstractToken {
 		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
 				throws Exception {
 			try {
-				var p = decodeProtocol(typeId, bb, factoryHandle, so);
-				p.handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
+				decodeProtocol(typeId, bb, factoryHandle, so).handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
 			} catch (Throwable e) { // logger.error
 				logger.error("dispatchProtocol exception:", e);
-			}
-		}
-
-		@Override
-		public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
-																ProtocolFactoryHandle<?> factoryHandle) {
-			// 在新的decode-dispatch流程中，上面的dispatchProtocol直接执行操作，实际上包含了rpc.handle，
-			// 这个函数不会被触发了。先保留在这里。
-			try {
-				responseHandle.handle(rpc); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
-			} catch (Throwable e) { // logger.error
-				logger.error("dispatchRpcResponse exception:", e);
 			}
 		}
 	}
