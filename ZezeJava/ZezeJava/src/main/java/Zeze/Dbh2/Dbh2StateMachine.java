@@ -51,6 +51,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private boolean loadSwitch = false;
 
 	public void setLoadSwitch(boolean value) {
+		load(); // 修改loadSwitch强制报告一次，达到清理旧的load的目的。
 		loadSwitch = value;
 	}
 
