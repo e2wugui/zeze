@@ -575,6 +575,7 @@ public class Online extends AbstractOnline {
 		service.removeRpcContext(rpc.getSessionId(), rpc);
 		rpc.setResponseHandle(responseHandle);
 		var sessionId = service.addRpcContext(rpc);
+		rpc.setSessionId(sessionId);
 		rpc.setTimeout(timeoutMs);
 		rpc.setIsTimeout(false);
 		rpc.setRequest(true);

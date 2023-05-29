@@ -122,13 +122,16 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				var outProtocol = new OutObject<Protocol<?>>();
 				var r = Task.call(zeze.newProcedure(() -> { // 创建存储过程并且在当前线程中调用。
 					var p3 = factoryHandle.Factory.create();
-					var isRpcResponse = !p3.isRequest(); // && p3 instanceof Rpc
 					var t = Transaction.getCurrent();
+					var proc = t.getTopProcedure();
 					//noinspection DataFlowIssue
-					t.getTopProcedure().setActionName(p3.getClass().getName() + (isRpcResponse ? ":Response" : ""));
+					proc.setActionName(p3.getClass().getName());
 					p3.decode(ByteBuffer.Wrap(arg.getProtocolData()));
 					p3.setSender(sender);
 					p3.setUserState(session);
+					var isRpcResponse = !p3.isRequest(); // && p3 instanceof Rpc
+					if (isRpcResponse)
+						proc.setActionName(proc.getActionName() + ":Response");
 					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p3.getTypeId())
 							&& outProtocol.value == null) { // redo后不再输出日志
 						var roleId = session.getRoleId();
@@ -166,9 +169,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			}
 			var isRpcResponse = !p2.isRequest(); // && p2 instanceof Rpc
 			if (txn != null) { // 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
-				var proc = txn.getTopProcedure();
 				//noinspection ConstantConditions
-				proc.setActionName(p2.getClass().getName() + (isRpcResponse ? ":Response" : ""));
+				txn.getTopProcedure().setActionName(p2.getClass().getName() + (isRpcResponse ? ":Response" : ""));
 				txn.setUserState(session);
 				txn.runWhileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 			} else // 应用框架不支持事务或者协议配置了"不需要事务”

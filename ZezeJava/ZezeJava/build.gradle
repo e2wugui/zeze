@@ -7,24 +7,24 @@ dependencies {
     implementation 'org.jetbrains:annotations:24.0.1'
     implementation 'org.pcollections:pcollections:4.0.1'
     implementation 'org.rocksdb:rocksdbjni:8.1.1.1'
-    implementation 'io.netty:netty-codec-http:4.1.90.Final'
-    implementation 'io.netty:netty-transport-native-epoll:4.1.90.Final:linux-x86_64'
+    implementation 'io.netty:netty-codec-http:4.1.93.Final'
+    implementation 'io.netty:netty-transport-native-epoll:4.1.93.Final:linux-x86_64'
 
     // optional dependencies
     // for tikv
-    compileOnly 'org.tikv:tikv-client-java:3.3.3'
+    compileOnly 'org.tikv:tikv-client-java:3.3.4'
     // runtimeOnly 'org.slf4j:slf4j-api:2.0.6'
     // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.20.0'
 
     // for jdbc(mysql,sqlserver,tidb)
-    compileOnly 'com.alibaba:druid:1.2.17'
+    compileOnly 'com.alibaba:druid:1.2.18'
     compileOnly 'com.mysql:mysql-connector-j:8.0.33'
 
     // dynamodb
     compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.425'
 
     // for rocketmq
-    compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.5'
+    compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.6'
     compileOnly 'javax:javaee-api:8.0.1'
 
     // for task component
@@ -32,7 +32,7 @@ dependencies {
     compileOnly 'com.opencsv:opencsv:5.7.1'
 
     // for new Compress/Decompress Codec in Zeze.Net
-    compileOnly 'com.github.luben:zstd-jni:1.5.5-2'
+    compileOnly 'com.github.luben:zstd-jni:1.5.5-3'
 }
 
 tasks.withType(JavaCompile) {

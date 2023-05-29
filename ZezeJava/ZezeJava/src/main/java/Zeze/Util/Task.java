@@ -326,11 +326,8 @@ public final class Task {
 			Application zeze;
 			if (p != null && (s = p.getService()) != null && (zeze = s.getZeze()) != null)
 				level = zeze.getConfig().getProcessReturnErrorLogLevel();
-			else {
-				if (!logger.isDebugEnabled())
-					return;
-				level = Level.DEBUG;
-			}
+			else
+				level = Level.INFO;
 		} else {
 			if (!logger.isTraceEnabled())
 				return;
