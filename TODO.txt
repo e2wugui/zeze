@@ -12,12 +12,12 @@ c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，等c#自己的asy
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 Dbh2：超时事务回查超时。
-Dbh2：重启之后splitting restart，但是一段时间后又开启了新的split（怀疑性能统计时机还有问题：开始启动raft的apply已经处理了）。
-Dbh2：splitting end ... 之后没有到达splitting end done。（但是较长时间以后，会重启split），怀疑中间raft出现问题，或者setupPrepareQueue()有问题。
+Dbh2：splitting end ... 之后没有到达splitting end done。（但是较长时间以后，会重启split），怀疑中间raft出现问题或者setupPrepareQueue()有问题。
 Zeze.Component 里面用到的DynamicBean注册class不需要了。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/6/2 v1.2.5 Netty DispatchMode; Dbh2; Game.Online.sendOnlineRpc;
 ------------------------------------------------------------------------------------------------------------------------------
+Dbh2：重启之后splitting restart，但是一段时间后又开启了新的split【性能统计设置loadSwitch时需要清除旧的负载统计】
 +++Raft 心跳改成总是间隔发送，不再优化（真的空闲才发送）；原因如下：
 +++Dbh2 需要识别出LeaderReady。此事件Follower通过心跳判断。这个识别用来设置负载统计开始工作。
 Game.Online.sendOnlineRpc
