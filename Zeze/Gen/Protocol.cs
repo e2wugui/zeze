@@ -103,9 +103,11 @@ namespace Zeze.Gen
             ArgumentType = Argument.Length > 0 ? Types.Type.Compile(Space, Argument) : null;
         }
 
-        public virtual void Depends(HashSet<Types.Type> depends)
+        public virtual void Depends(HashSet<Types.Type> depends, string parent)
         {
-            ArgumentType?.Depends(depends);
+            if (parent != null)
+                parent += ".Protocol(" + FullName + ')';
+            ArgumentType?.Depends(depends, parent);
         }
     }
 }

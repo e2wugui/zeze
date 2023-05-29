@@ -20,12 +20,12 @@ namespace Zeze.Gen.Types
 
 		public override string Name => "map";
 
-		public override void Depends(HashSet<Type> includes)
+		public override void Depends(HashSet<Type> includes, string parent)
 		{
 			if (includes.Add(this))
 			{
-				KeyType.Depends(includes);
-				ValueType.Depends(includes);
+				KeyType.Depends(includes, parent);
+				ValueType.Depends(includes, parent);
 			}
 		}
 

@@ -7,10 +7,10 @@ namespace Zeze.Gen.Types
 	{
 		public Type ValueType { get; protected set; }
 
-		public override void Depends(HashSet<Type> includes)
+		public override void Depends(HashSet<Type> includes, string parent)
 		{
 			if (includes.Add(this))
-				ValueType.Depends(includes);
+				ValueType.Depends(includes, parent);
 		}
 
         public override void DependsIncludesNoRecursive(HashSet<Type> includes)

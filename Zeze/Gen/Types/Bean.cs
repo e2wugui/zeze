@@ -77,13 +77,18 @@ namespace Zeze.Gen.Types
 			includes.Add(this);
         }
 
-        public override void Depends(HashSet<Type> includes)
+        public override void Depends(HashSet<Type> includes, string parent)
 		{
 			if (includes.Add(this))
 			{
-                foreach (Variable var in Variables)
+				if (parent != null)
+				{
+					parent += ".Bean(" + FullName + ')';
+					Console.WriteLine("Depends: " + parent);
+				}
+				foreach (Variable var in Variables)
                 {
-                    var.VariableType.Depends(includes);
+                    var.VariableType.Depends(includes, parent != null ? parent + ".Var(" + var.Name + ')' : null);
                     DependsInitial(var, includes);
                 }
             }

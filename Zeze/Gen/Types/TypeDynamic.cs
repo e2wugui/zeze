@@ -90,12 +90,14 @@ namespace Zeze.Gen.Types
             }
         }
 
-        public override void Depends(HashSet<Type> includes)
+        public override void Depends(HashSet<Type> includes, string parent)
         {
             if (includes.Add(this))
             {
+                if (parent != null)
+                    parent += ".DynamicBean";
                 foreach (var bean in RealBeans.Values)
-                    bean.Depends(includes);
+                    bean.Depends(includes, parent);
             }
         }
 

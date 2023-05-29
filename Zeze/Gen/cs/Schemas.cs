@@ -17,7 +17,7 @@ namespace Zeze.Gen.cs
             foreach (Table table in Project.AllTables.Values)
             {
                 if (Project.GenTables.Contains(table.Gen))
-                    table.Depends(Depends);
+                    table.Depends(Depends, null);
             }
         }
 

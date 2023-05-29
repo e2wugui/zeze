@@ -29,7 +29,7 @@ namespace Zeze.Gen.Types
             //Console.WriteLine($"external {_name}");
         }
 
-        public override void Depends(HashSet<Type> includes)
+        public override void Depends(HashSet<Type> includes, string parent)
         {
         }
     }

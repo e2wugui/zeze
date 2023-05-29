@@ -25,10 +25,12 @@ namespace Zeze.Gen
             ResultType = Result.Length > 0 ? Types.Type.Compile(Space, Result) : null;
         }
 
-        public override void Depends(HashSet<Types.Type> depends)
+        public override void Depends(HashSet<Types.Type> depends, string parent)
         {
-            ArgumentType?.Depends(depends);
-            ResultType?.Depends(depends);
+            if (parent != null)
+                parent += ".Rpc(" + FullName + ')';
+            ArgumentType?.Depends(depends, parent);
+            ResultType?.Depends(depends, parent);
         }
     }
 }

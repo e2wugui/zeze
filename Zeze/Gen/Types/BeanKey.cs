@@ -37,13 +37,18 @@ namespace Zeze.Gen.Types
 			circle.Remove(this);
 		}
 
-		public override void Depends(HashSet<Type> includes)
+		public override void Depends(HashSet<Type> includes, string parent)
 		{
 			if (includes.Add(this))
             {
+	            if (parent != null)
+	            {
+		            parent += ".BeanKey(" + FullName + ')';
+		            Console.WriteLine("Depends: " + parent);
+	            }
 				foreach (Variable var in Variables)
 				{
-					var.VariableType.Depends(includes);
+					var.VariableType.Depends(includes, parent != null ? parent + ".Var(" + var.Name + ')' : null);
 				}
 			}
 		}

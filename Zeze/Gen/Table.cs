@@ -78,10 +78,12 @@ namespace Zeze.Gen
             }
         }
 
-        public void Depends(HashSet<Types.Type> depends)
+        public void Depends(HashSet<Types.Type> depends, string parent)
         {
-            KeyType.Depends(depends);
-            ValueType.Depends(depends);
+            if (parent != null)
+                parent += ".Table(" + FullName + ')';
+            KeyType.Depends(depends, parent);
+            ValueType.Depends(depends, parent);
         }
     }
 }

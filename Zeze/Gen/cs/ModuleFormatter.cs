@@ -56,7 +56,7 @@ namespace Zeze.Gen.cs
                 {
                     var key = TypeName.GetName(table.KeyType);
                     var value = TypeName.GetName(table.ValueType);
-                    table.Depends(depends);
+                    table.Depends(depends, null);
                     sw.WriteLine($"            rocks.RegisterTableTemplate<{key}, {value}>(\"{table.Name}\");");
                 }
             }

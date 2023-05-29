@@ -26,7 +26,7 @@ namespace Zeze.Gen.Types
 			visitor.Visit(this);
 		}
 
-		public override void Depends(HashSet<Type> includes)
+		public override void Depends(HashSet<Type> includes, string parent)
 		{
 			includes.Add(this);
 		}

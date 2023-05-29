@@ -206,34 +206,36 @@ namespace Zeze.Gen
 
             var _AllBeans = new HashSet<Types.Bean>();
             var _AllBeanKeys = new HashSet<Types.BeanKey>();
+            string parent = Program.Debug ? "Project(" + Name + ')' : null;
             {
                 HashSet<Types.Type> depends = new HashSet<Types.Type>();
                 foreach (Protocol protocol in AllProtocols.Values)
                 {
-                    protocol.Depends(depends);
+                    protocol.Depends(depends, parent);
                 }
                 foreach (Table table in AllTables.Values)
                 {
-                    table.Depends(depends);
+                    table.Depends(depends, parent);
                 }
                 // 加入模块中定义的所有bean和beankey。
                 foreach (Module mod in AllOrderDefineModules)
                 {
+                    var parent1 = parent != null ? parent + ".Module(" + mod.FullName + ')' : null;
                     if (mod.FullName.StartsWith("Zeze.Builtin.") && BuiltinNotGen)
                         continue;
                     foreach (var b in mod.BeanKeys.Values)
-                        b.Depends(depends);
+                        b.Depends(depends, parent1);
                     foreach (var b in mod.Beans.Values)
-                        b.Depends(depends);
+                        b.Depends(depends, parent1);
                 }
                 // 加入额外引用的bean,beankey，一般引入定义在不是本项目模块中的。
                 foreach (string n in Program.Refs(Self, "bean"))
                 {
-                    Program.GetNamedObject<Types.Bean>(n).Depends(depends);
+                    Program.GetNamedObject<Types.Bean>(n).Depends(depends, parent);
                 }
                 foreach (string n in Program.Refs(Self, "beankey"))
                 {
-                    Program.GetNamedObject<Types.BeanKey>(n).Depends(depends);
+                    Program.GetNamedObject<Types.BeanKey>(n).Depends(depends, parent);
                 }
                 foreach (Types.Type type in depends)
                 {
@@ -293,12 +295,12 @@ namespace Zeze.Gen
             foreach (var p in AllProtocols.Values)
             {
                 if (p.UseData)
-                    p.Depends(Datas);
+                    p.Depends(Datas, parent);
             }
             foreach (var b in AllBeans.Values)
             {
                 if (b.UseData)
-                    b.Depends(Datas);
+                    b.Depends(Datas, parent);
             }
 
             MakePlatform();
@@ -375,17 +377,18 @@ namespace Zeze.Gen
                     var dependsFollowerApplyTables = new HashSet<Types.Type>();
                     if (FollowerApplyTablesSelf != null)
                     {
+                        string parent = Program.Debug ? "Project(" + Name + ')' : null;
                         var followerApplyTables = Program.Refs(FollowerApplyTablesSelf, "table", "name");
                         foreach (var tFullName in followerApplyTables)
                         {
                             var table = Program.GetNamedObject<Table>(tFullName);
-                            table.Depends(dependsFollowerApplyTables);
+                            table.Depends(dependsFollowerApplyTables, parent);
                         }
                         var refBeans = Program.Refs(FollowerApplyTablesSelf, "bean", "ref");
                         foreach (var refBean in refBeans)
                         {
                             var bean = Program.GetNamedObject<Bean>(refBean);
-                            bean.Depends(dependsFollowerApplyTables);
+                            bean.Depends(dependsFollowerApplyTables, parent);
                         }
                     }
 

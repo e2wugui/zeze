@@ -18,7 +18,7 @@ namespace Zeze.Gen.java
             foreach (Table table in Project.AllTables.Values)
             {
                 if (Project.GenTables.Contains(table.Gen))
-                    table.Depends(Depends);
+                    table.Depends(Depends, null);
             }
         }
 

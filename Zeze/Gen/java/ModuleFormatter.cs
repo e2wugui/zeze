@@ -395,7 +395,7 @@ namespace Zeze.Gen.java
                 {
                     var key = TypeName.GetName(table.KeyType);
                     var value = TypeName.GetName(table.ValueType);
-                    table.ValueType.Depends(depends);
+                    table.ValueType.Depends(depends, null);
                     sw.WriteLine($"        rocks.registerTableTemplate(\"{table.Name}\", {key}.class, {value}.class);");
                 }
             }
