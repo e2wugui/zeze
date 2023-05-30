@@ -168,7 +168,7 @@ public class BenchClient {
 	private java.util.HashSet<TableKey> rrs(ArrayList<Zeze.Transaction.Database.AbstractKVTable> tables, int tableAccess) {
 		var result = new java.util.HashSet<TableKey>();
 		while (tableAccess > 0) {
-			var key = Zeze.Util.Random.getInstance().nextLong(10000_0000);
+			var key = Zeze.Util.Random.getInstance().nextLong(1000_0000_0000L);
 			var table = tables.get(Zeze.Util.Random.getInstance().nextInt(tables.size()));
 			var tkey = new TableKey(table, key);
 			if (rrs.contains(tkey))
