@@ -314,8 +314,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		}
 
 		// no procedure.
-		Task.runUnsafe(() -> Task.call(() -> responseHandle.handle(rpc), rpc),
-				"ProviderDirectService.dispatchRpcResponse", factoryHandle.Mode);
+		Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 		//super.dispatchRpcResponse(rpc, responseHandle, factoryHandle);
 	}
 

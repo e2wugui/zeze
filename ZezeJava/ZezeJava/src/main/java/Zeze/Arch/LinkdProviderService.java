@@ -80,7 +80,7 @@ public class LinkdProviderService extends HandshakeServer {
 	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
 															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// 不支持事务
-		Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+		Task.call(() -> responseHandle.handle(rpc), rpc);
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
