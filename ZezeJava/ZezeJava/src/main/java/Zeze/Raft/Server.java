@@ -40,6 +40,7 @@ public class Server extends HandshakeBoth {
 	public Server(Raft raft, String name, Config config) {
 		super(name, config);
 		this.raft = raft;
+		setNoProcedure(true);
 	}
 
 	public static class ConnectorEx extends Connector {
