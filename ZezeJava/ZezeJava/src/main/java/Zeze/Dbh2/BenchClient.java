@@ -3,6 +3,7 @@ package Zeze.Dbh2;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Config;
@@ -81,10 +82,11 @@ public class BenchClient {
 			var running = new OutObject<>(true);
 			var futures = new ArrayList<Future<?>>();
 			var transCounter = new AtomicLong();
+			var benchClient = new BenchClient();
 			for (int i = 0; i < threadNumber; ++i) {
 				futures.add(get
 						? startGetTask(running, tables, transCounter)
-						: startPutTask(running, database, tableAccess, tables, valueSize, transCounter));
+						: benchClient.startPutTask(running, database, tableAccess, tables, valueSize, transCounter));
 			}
 			var lastReportTime = new OutLong(System.currentTimeMillis());
 			var lastReportCount = new OutLong();
@@ -135,7 +137,50 @@ public class BenchClient {
 		}, "table get thread");
 	}
 
-	static Future<?> startPutTask(OutObject<Boolean> running,
+	public static class TableKey {
+		public TableKey(Zeze.Transaction.Database.AbstractKVTable table, long key) {
+			this.table = table;
+			this.key = key;
+		}
+
+		Zeze.Transaction.Database.AbstractKVTable table;
+		long key;
+
+		@Override
+		public boolean equals(Object other) {
+			if (this == other)
+				return true;
+			if (other instanceof TableKey) {
+				var otk = (TableKey)other;
+				return otk.table == this.table && otk.key == this.key;
+			}
+			return false;
+		}
+
+		@Override
+		public int hashCode() {
+			return table.hashCode() ^ Long.hashCode(key);
+		}
+	}
+
+	private final ConcurrentHashMap<TableKey, TableKey> rrs = new ConcurrentHashMap<>();
+
+	private java.util.HashSet<TableKey> rrs(ArrayList<Zeze.Transaction.Database.AbstractKVTable> tables, int tableAccess) {
+		var result = new java.util.HashSet<TableKey>();
+		while (tableAccess > 0) {
+			var key = Zeze.Util.Random.getInstance().nextLong(10000_0000);
+			var table = tables.get(Zeze.Util.Random.getInstance().nextInt(tables.size()));
+			var tkey = new TableKey(table, key);
+			if (rrs.contains(tkey))
+				continue;
+			tableAccess--;
+			rrs.put(tkey, tkey);
+			result.add(tkey);
+		}
+		return result;
+	}
+
+	Future<?> startPutTask(OutObject<Boolean> running,
 								  Database database,
 								  int tableAccess,
 								  ArrayList<Zeze.Transaction.Database.AbstractKVTable> tables,
@@ -146,14 +191,15 @@ public class BenchClient {
 			while (Boolean.TRUE.equals(running.value)) {
 				// 限制所有key的范围，防止服务器占用太大硬盘。
 				try (var trans = database.beginTransaction()) {
-					for (int a = 0; a < tableAccess; ++a) {
-						var key = Zeze.Util.Random.getInstance().nextLong(10000_0000);
+					var rrs = rrs(tables, tableAccess);
+					for (var r : rrs) {
 						var keyBb = ByteBuffer.Allocate(9);
-						keyBb.WriteLong(key);
-						var table = tables.get(Zeze.Util.Random.getInstance().nextInt(tables.size()));
-						table.replace(trans, keyBb, value);
+						keyBb.WriteLong(r.key);
+						r.table.replace(trans, keyBb, value);
 					}
 					trans.commit();
+					for (var r : rrs)
+						rrs.remove(r);
 					transCounter.incrementAndGet();
 				} catch (Throwable ex) {
 					logger.error("", ex);
