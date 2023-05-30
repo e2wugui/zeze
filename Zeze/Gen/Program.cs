@@ -4,7 +4,6 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
-using System.Xml.Linq;
 using Zeze.Gen.Types;
 using Zeze.Util;
 
@@ -101,6 +100,7 @@ namespace Zeze.Gen
         // key 为全名：包含完整的名字空间。
         public static SortedDictionary<string, object> NamedObjects { get; private set; } = new SortedDictionary<string, object>();
         public static HashSet<long> BeanTypeIdDuplicateChecker { get; } = new HashSet<long>();
+        public static HashSet<Types.Type> DataBeans { get; } = new(); // 所有的UseData的协议以来的类型。生成的时候需要过滤掉不是bean以及不是beankey的。
 
         public static void AddNamedObject(string fullName, object obj)
         {
@@ -213,6 +213,9 @@ namespace Zeze.Gen
                 sol.Compile();
             }
 
+            foreach (Solution sol in Solutions.Values)
+                CollectDataBeans(sol);
+
             foreach (string file in xmlFileList) // make 参数指定的 Solution
             {
                 if (Solutions.TryGetValue(file, out var sol))
@@ -236,6 +239,28 @@ namespace Zeze.Gen
 
             if (DeleteOldFile)
                 DeleteOldFileInGenDirs();
+        }
+
+        private static void CollectDataBeans(ModuleSpace space)
+        {
+            var parent = Debug ? space.Path() : null;
+            foreach (var bean in space.Beans.Values)
+            {
+                if (bean.UseData)
+                    bean.Depends(DataBeans, parent);
+            }
+            foreach (var protocol in space.Protocols.Values)
+            {
+                if (protocol.UseData)
+                    protocol.Depends(DataBeans, parent);
+            }
+            foreach (var module in space.Modules.Values)
+                CollectDataBeans(module);
+        }
+
+        public static bool isData(Types.Type type)
+        {
+            return DataBeans.Contains(type);
         }
 
         public static void Print(object obj)

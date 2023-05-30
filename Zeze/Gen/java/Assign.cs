@@ -13,7 +13,7 @@ namespace Zeze.Gen.java
 
         public static void Make(Bean bean, StreamWriter sw, string prefix, Project project)
         {
-            if (project.isData(bean))
+            if (Program.isData(bean))
             {
                 sw.WriteLine(prefix + "@Override");
                 sw.WriteLine(prefix + $"public {bean.FullName}.Data toData() {{");

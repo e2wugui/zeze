@@ -48,7 +48,7 @@ namespace Zeze.Gen.java
             var final = bean.Extendable ? "" : "final ";
             sw.WriteLine($"public {final}class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
             WriteDefine(sw, project);
-            if (project.isData(bean))
+            if (Program.isData(bean))
                 new javadata.BeanFormatter(bean).Make(sw);
             sw.WriteLine("}");
         }

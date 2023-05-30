@@ -171,13 +171,6 @@ namespace Zeze.Gen
         public SortedDictionary<string, Table> AllTables { get; } = new();
         public SortedDictionary<string, Types.Bean> AllBeans { get; } = new();
         public SortedDictionary<string, Types.BeanKey> AllBeanKeys { get; } = new();
-        // 所有的UseData的协议以来的类型。生成的时候需要过滤掉不是bean以及不是beankey的。
-        public HashSet<Types.Type> Datas { get; } = new();
-
-        public bool isData(Types.Type type)
-        {
-            return Datas.Contains(type);
-        }
 
         public void Make()
         {
@@ -291,17 +284,6 @@ namespace Zeze.Gen
             DeleteBuiltinIf(AllBeans);
             DeleteBuiltinIf(AllProtocols);
             DeleteBuiltinIf(AllTables);
-
-            foreach (var p in AllProtocols.Values)
-            {
-                if (p.UseData)
-                    p.Depends(Datas, parent);
-            }
-            foreach (var b in AllBeans.Values)
-            {
-                if (b.UseData)
-                    b.Depends(Datas, parent);
-            }
 
             MakePlatform();
 
