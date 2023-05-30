@@ -1069,6 +1069,10 @@ public class Timer extends AbstractTimer {
 
 		var now = System.currentTimeMillis();
 		for (var timer : node.getTimers().values()) {
+			var index = _tIndexs.get(timer.getTimerName());
+			if (index == null)
+				continue;
+
 			if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
 				var simpleTimer = (BSimpleTimer)timer.getTimerObj().getBean();
 				if (simpleTimer.getNextExpectedTime() < now) { // missFire found
@@ -1076,7 +1080,7 @@ public class Timer extends AbstractTimer {
 					case eMissfirePolicyRunOnce:
 					case eMissfirePolicyRunOnceOldNext:
 						Task.run(() -> fireSimple(
-								Objects.requireNonNull(_tIndexs.get(timer.getTimerName())).getSerialId(),
+								index.getSerialId(),
 								serverId, timer.getTimerName(),
 								timer.getConcurrentFireSerialNo(), true), "Timer.missFireSimple");
 						continue; // loop done, continue
@@ -1091,7 +1095,7 @@ public class Timer extends AbstractTimer {
 					}
 				}
 				scheduleSimple(
-						Objects.requireNonNull(_tIndexs.get(timer.getTimerName())).getSerialId(),
+						index.getSerialId(),
 						serverId, timer.getTimerName(),
 						simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
 						timer.getConcurrentFireSerialNo());
@@ -1102,7 +1106,7 @@ public class Timer extends AbstractTimer {
 					case eMissfirePolicyRunOnce:
 					case eMissfirePolicyRunOnceOldNext:
 						Task.run(() -> fireCron(
-								Objects.requireNonNull(_tIndexs.get(timer.getTimerName())).getSerialId(),
+								index.getSerialId(),
 								serverId, timer.getTimerName(),
 								timer.getConcurrentFireSerialNo(), true), "Timer.missFireCron");
 						continue; // loop done, continue
@@ -1117,11 +1121,10 @@ public class Timer extends AbstractTimer {
 					}
 				}
 				scheduleCron(
-						Objects.requireNonNull(_tIndexs.get(timer.getTimerName())).getSerialId(),
+						index.getSerialId(),
 						serverId, timer.getTimerName(), cronTimer, timer.getConcurrentFireSerialNo());
 			}
 			if (serverId != zeze.getConfig().getServerId()) {
-				var index = _tIndexs.get(timer.getTimerName());
 				index.setServerId(serverId);
 			}
 		}

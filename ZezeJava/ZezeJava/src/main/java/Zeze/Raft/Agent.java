@@ -515,10 +515,9 @@ public final class Agent {
 			// 虚拟线程创建太多Critical线程反而容易卡,以后考虑跑另个虚拟线程池里
 			if (p.getTypeId() == LeaderIs.TypeId_ || isHandshakeProtocol(p.getTypeId()) || agent.dispatchProtocolToInternalThreadPool) {
 				Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), "InternalRequest"));
-			} else {
+			} else
 				Task.runUnsafe(() -> p.handle(this, factoryHandle),
 						p, Protocol::trySendResultCode, null, factoryHandle.Mode);
-			}
 		}
 	}
 }
