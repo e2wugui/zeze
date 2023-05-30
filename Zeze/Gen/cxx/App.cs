@@ -20,6 +20,8 @@ namespace Zeze.Gen.cxx
         public void Make()
         {
             using StreamWriter sw = project.Solution.OpenWriter(genDir, "App.h");
+            if (sw == null)
+                return;
 
             sw.WriteLine("#pragma once");
             sw.WriteLine();

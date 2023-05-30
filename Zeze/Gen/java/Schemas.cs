@@ -38,6 +38,8 @@ namespace Zeze.Gen.java
         public void Make()
         {
             using StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.java");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + Project.Solution.Path() + ";");

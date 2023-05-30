@@ -15,6 +15,8 @@ namespace Zeze.Gen.java
         public void Make(string baseDir)
         {
             using StreamWriter sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".java");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + beanKey.Space.Path() + ";");

@@ -36,6 +36,8 @@ namespace Zeze.Gen.cs
         public void Make()
         {
             using System.IO.StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.cs");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine();

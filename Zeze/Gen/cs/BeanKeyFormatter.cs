@@ -15,6 +15,8 @@ namespace Zeze.Gen.cs
         public void Make(string baseDir)
         {
             using StreamWriter sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".cs");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("using System;");

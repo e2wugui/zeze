@@ -26,6 +26,8 @@ namespace Zeze.Gen.cs
         public void MakePartialGen(bool isconfcs)
         {
             using StreamWriter sw = project.Solution.OpenWriter(genDir, "App.cs");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine();

@@ -78,6 +78,9 @@ namespace Zeze.Gen.java
             // new file
             FileSystem.CreateDirectory(fullDir);
             using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
+            if (sw == null)
+                return;
+
             sw.WriteLine("package " + module.Path() + ";");
             sw.WriteLine();
             // sw.WriteLine(FileChunkGen.ChunkStartTag + " " + ChunkNameImport);
@@ -515,6 +518,8 @@ namespace Zeze.Gen.java
         public void MakeInterface()
         {
             using StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.java");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + module.Path() + ";");

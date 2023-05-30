@@ -220,6 +220,8 @@ namespace Zeze.Gen
             {
                 if (Solutions.TryGetValue(file, out var sol))
                 {
+                    if (xmlFileList.Count > 1 || Debug)
+                        Console.WriteLine(" Make Solution: " + file);
                     if (BeautifulVariableId)
                     {
                         // 编译对这个操作用户不大，需要编译是为了限制，不去修改定义有问题的配置。
@@ -375,23 +377,37 @@ namespace Zeze.Gen
             if (!exists || overwrite)
             {
                 //Program.Print("file " + (exists ? "overwrite" : "new") + " '" + fullFileName + "'");
-                StreamWriter sw = OpenStreamWriter(fullFileName);
-                return sw;
+                return OpenStreamWriter(fullFileName);
             }
             //Program.Print("file skip '" + fullFileName + "'");
             return null;
         }
 
-        private static Dictionary<string, StreamWriterOverwriteWhenChange> Outputs { get; }
-            = new Dictionary<string, StreamWriterOverwriteWhenChange>();
+        private static Dictionary<string, StreamWriterOverwriteWhenChange> Outputs { get; } = new();
+        private static HashSet<string> GenDirs { get; } = new();
+        private static HashSet<string> OutputsAll { get; } = new();
 
-        private static HashSet<string> GenDirs { get; } = new HashSet<string>();
-        private static HashSet<string> OutputsAll { get; } = new HashSet<string>();
-
-        public static StreamWriter OpenStreamWriter(string file)
+        public static StreamWriter OpenStreamWriter(string file, bool overwrite = false)
         {
-            var sw = new StreamWriterOverwriteWhenChange(file);
-            Outputs.TryAdd(sw.FileName, sw);
+            var fullPath = Path.GetFullPath(file);
+            if (!overwrite && OutputsAll.Contains(fullPath))
+            {
+                if (Debug)
+                    Console.WriteLine("Skip: " + fullPath);
+                return null;
+            }
+            if (Outputs.TryGetValue(fullPath, out var oldWriter))
+            {
+                if (!overwrite)
+                {
+                    if (Debug)
+                        Console.WriteLine("Skip: " + fullPath);
+                    return null;
+                }
+                oldWriter.Close();
+            }
+            var sw = new StreamWriterOverwriteWhenChange(fullPath);
+            Outputs[fullPath] = sw;
             return sw;
         }
 

@@ -26,6 +26,8 @@ namespace Zeze.Gen.confcs
         public void Make()
         {
             using StreamWriter sw = module.OpenWriter(genDir, $"Module{module.Name}.cs");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine();

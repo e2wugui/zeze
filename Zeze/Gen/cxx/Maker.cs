@@ -60,22 +60,25 @@ namespace Zeze.Gen.cxx
             Program.AddGenDir(genDir);
             {
                 using StreamWriter sw = Project.Solution.OpenWriter(genDir, "App.h");
-                sw.WriteLine("// auto-generated");
-                sw.WriteLine();
-                foreach (var m in Project.Services.Values)
-                    sw.WriteLine($"#include \"{Project.Solution.Name}/{m.Name}.h\"");
-                sw.WriteLine();
-                sw.WriteLine($"namespace {Project.Solution.Name}");
-                sw.WriteLine($"{{");
-                sw.WriteLine($"    class App");
-                sw.WriteLine($"    {{");
-                sw.WriteLine($"    public:");
-                sw.WriteLine($"        static App& Instance() {{ static App instance; return instance; }}");
-                sw.WriteLine();
-                foreach (var m in Project.Services.Values)
-                    sw.WriteLine($"        {Project.Solution.Path("::", m.Name)} {m.Name};");
-                sw.WriteLine($"    }};");
-                sw.WriteLine($"}}");
+                if (sw != null)
+                {
+                    sw.WriteLine("// auto-generated");
+                    sw.WriteLine();
+                    foreach (var m in Project.Services.Values)
+                        sw.WriteLine($"#include \"{Project.Solution.Name}/{m.Name}.h\"");
+                    sw.WriteLine();
+                    sw.WriteLine($"namespace {Project.Solution.Name}");
+                    sw.WriteLine($"{{");
+                    sw.WriteLine($"    class App");
+                    sw.WriteLine($"    {{");
+                    sw.WriteLine($"    public:");
+                    sw.WriteLine($"        static App& Instance() {{ static App instance; return instance; }}");
+                    sw.WriteLine();
+                    foreach (var m in Project.Services.Values)
+                        sw.WriteLine($"        {Project.Solution.Path("::", m.Name)} {m.Name};");
+                    sw.WriteLine($"    }};");
+                    sw.WriteLine($"}}");
+                }
             }
 
             foreach (var m in Project.Services.Values)

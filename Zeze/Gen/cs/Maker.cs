@@ -110,6 +110,8 @@ namespace Zeze.Gen.cs
         public void GenFollowerApplyTablesLogFactoryRegister(string genDir, HashSet<Types.Type> dependsFollowerApplyTables)
         {
             using StreamWriter sw = Project.Solution.OpenWriter(genDir, "FollowerApplyTables.cs");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine();

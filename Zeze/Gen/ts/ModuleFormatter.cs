@@ -135,6 +135,9 @@ namespace Zeze.Gen.ts
                 // new file
                 FileSystem.CreateDirectory(fullDir);
                 using System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
+                if (sw == null)
+                    return;
+
                 sw.WriteLine("/* eslint-disable camelcase, class-methods-use-this, import/no-cycle, lines-between-class-members, new-cap, no-unused-vars, no-useless-constructor, prettier/prettier */");
                 sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport);
                 Import(sw);

@@ -81,73 +81,78 @@ namespace Zeze.Gen.cs
             var baseFileName = Path.Combine(srcDir, "Abstract" + Project.Name + ".cs");
             {
                 using StreamWriter sw = Program.OpenStreamWriter(baseFileName);
+                if (sw != null)
+                {
+                    sw.WriteLine("// auto generate");
+                    sw.WriteLine($"namespace {ns}");
+                    sw.WriteLine("{");
+                    sw.WriteLine($"    public abstract class Abstract{Project.Name} : Zeze.IModule ");
+                    sw.WriteLine("    {");
+                    var presentModule = GetPresentModule(mfs);
+                    sw.WriteLine($"        public const int ModuleId = {presentModule.Id};");
+                    sw.WriteLine($"        public override string FullName => \"{ns + "." + Project.Name}\";");
+                    sw.WriteLine($"        public override string Name => \"{Project.Name}\";");
+                    sw.WriteLine($"        public override int Id => ModuleId;");
+                    sw.WriteLine($"        public override bool IsBuiltin => true;");
+                    sw.WriteLine();
 
-                sw.WriteLine("// auto generate");
-                sw.WriteLine($"namespace {ns}");
-                sw.WriteLine("{");
-                sw.WriteLine($"    public abstract class Abstract{Project.Name} : Zeze.IModule ");
-                sw.WriteLine("    {");
-                var presentModule = GetPresentModule(mfs);
-                sw.WriteLine($"        public const int ModuleId = {presentModule.Id};");
-                sw.WriteLine($"        public override string FullName => \"{ns + "." + Project.Name}\";");
-                sw.WriteLine($"        public override string Name => \"{Project.Name}\";");
-                sw.WriteLine($"        public override int Id => ModuleId;");
-                sw.WriteLine($"        public override bool IsBuiltin => true;");
-                sw.WriteLine();
+                    foreach (var mf in mfs) mf.GenEnums(sw);
+                    foreach (var mf in mfs) mf.DefineZezeTables(sw);
+                    sw.WriteLine();
 
-                foreach (var mf in mfs) mf.GenEnums(sw);
-                foreach (var mf in mfs) mf.DefineZezeTables(sw);
-                sw.WriteLine();
+                    sw.WriteLine("        public void RegisterProtocols(Zeze.Net.Service service)");
+                    sw.WriteLine("        {");
+                    for (var i = 0; i < mfs.Count; ++i) mfs[i].RegisterProtocols(sw, i == 0, "service");
+                    sw.WriteLine("        }");
+                    sw.WriteLine();
 
-                sw.WriteLine("        public void RegisterProtocols(Zeze.Net.Service service)");
-                sw.WriteLine("        {");
-                for (var i = 0; i < mfs.Count; ++i) mfs[i].RegisterProtocols(sw, i == 0, "service");
-                sw.WriteLine("        }");
-                sw.WriteLine();
+                    sw.WriteLine("        public void UnRegisterProtocols(Zeze.Net.Service service)");
+                    sw.WriteLine("        {");
+                    foreach (var mf in mfs) mf.UnRegisterProtocols(sw, "service");
+                    sw.WriteLine("        }");
+                    sw.WriteLine();
 
-                sw.WriteLine("        public void UnRegisterProtocols(Zeze.Net.Service service)");
-                sw.WriteLine("        {");
-                foreach (var mf in mfs) mf.UnRegisterProtocols(sw, "service");
-                sw.WriteLine("        }");
-                sw.WriteLine();
+                    sw.WriteLine("        public void RegisterZezeTables(Zeze.Application zeze)");
+                    sw.WriteLine("        {");
+                    foreach (var mf in mfs) mf.RegisterZezeTables(sw, "zeze");
+                    sw.WriteLine("        }");
+                    sw.WriteLine();
 
-                sw.WriteLine("        public void RegisterZezeTables(Zeze.Application zeze)");
-                sw.WriteLine("        {");
-                foreach (var mf in mfs) mf.RegisterZezeTables(sw, "zeze");
-                sw.WriteLine("        }");
-                sw.WriteLine();
+                    sw.WriteLine("        public void UnRegisterZezeTables(Zeze.Application zeze)");
+                    sw.WriteLine("        {");
+                    foreach (var mf in mfs) mf.UnRegisterZezeTables(sw, "zeze");
+                    sw.WriteLine("        }");
+                    sw.WriteLine();
 
-                sw.WriteLine("        public void UnRegisterZezeTables(Zeze.Application zeze)");
-                sw.WriteLine("        {");
-                foreach (var mf in mfs) mf.UnRegisterZezeTables(sw, "zeze");
-                sw.WriteLine("        }");
-                sw.WriteLine();
+                    sw.WriteLine("        public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks)");
+                    sw.WriteLine("        {");
+                    foreach (var mf in mfs) mf.RegisterRocksTables(sw);
+                    sw.WriteLine("        }");
+                    sw.WriteLine();
 
-                sw.WriteLine("        public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks)");
-                sw.WriteLine("        {");
-                foreach (var mf in mfs) mf.RegisterRocksTables(sw);
-                sw.WriteLine("        }");
-                sw.WriteLine();
+                    // gen abstract protocol handles
+                    // 如果模块嵌套，仅传入Module.Name不够。但一般够用了。
+                    foreach (var mf in mfs) mf.GenAbstractProtocolHandles(sw);
 
-                // gen abstract protocol handles
-                // 如果模块嵌套，仅传入Module.Name不够。但一般够用了。
-                foreach (var mf in mfs) mf.GenAbstractProtocolHandles(sw);
-
-                sw.WriteLine("    }");
-                sw.WriteLine("}");
+                    sw.WriteLine("    }");
+                    sw.WriteLine("}");
+                }
             }
             var srcFileName = Path.Combine(srcDir, Project.Name + ".cs");
             if (!File.Exists(srcFileName))
             {
                 using StreamWriter sw = Program.OpenStreamWriter(srcFileName);
-                sw.WriteLine();
-                sw.WriteLine($"namespace {ns}");
-                sw.WriteLine($"{{");
-                sw.WriteLine($"    public class {Project.Name} : Abstract{Project.Name}");
-                sw.WriteLine($"    {{");
-                foreach (var mf in mfs) mf.GenEmptyProtocolHandles(sw, false);
-                sw.WriteLine($"    }}");
-                sw.WriteLine($"}}");
+                if (sw != null)
+                {
+                    sw.WriteLine();
+                    sw.WriteLine($"namespace {ns}");
+                    sw.WriteLine($"{{");
+                    sw.WriteLine($"    public class {Project.Name} : Abstract{Project.Name}");
+                    sw.WriteLine($"    {{");
+                    foreach (var mf in mfs) mf.GenEmptyProtocolHandles(sw, false);
+                    sw.WriteLine($"    }}");
+                    sw.WriteLine($"}}");
+                }
             }
         }
     }

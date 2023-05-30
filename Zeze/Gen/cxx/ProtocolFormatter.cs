@@ -13,6 +13,8 @@ namespace Zeze.Gen.cxx
         public void Make(string baseDir)
         {
             using var sw = p.Space.OpenWriter(baseDir, p.Name + ".hpp");
+            if (sw == null)
+                return;
 
             sw.WriteLine("#pragma once");
             sw.WriteLine();

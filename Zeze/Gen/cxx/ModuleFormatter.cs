@@ -86,6 +86,9 @@ namespace Zeze.Gen.cxx
             string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.h");
             FileSystem.CreateDirectory(fullDir);
             using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
+            if (sw == null)
+                return;
+
             sw.WriteLine("#pragma once");
             sw.WriteLine();
             sw.WriteLine(FileChunkGen.ChunkStartTag + " " + ChunkNameImport);
@@ -123,6 +126,9 @@ namespace Zeze.Gen.cxx
             string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.cpp");
             FileSystem.CreateDirectory(fullDir);
             using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
+            if (sw == null)
+                return;
+
             sw.WriteLine();
             sw.WriteLine(FileChunkGen.ChunkStartTag + " " + ChunkNameImport);
             ImportGen(sw);
@@ -443,6 +449,8 @@ namespace Zeze.Gen.cxx
         {
             // gen AbstractModule.cpp
             using StreamWriter swcpp = module.OpenWriter(genDir, "AbstractModule.cpp");
+            if (swcpp == null)
+                return;
             swcpp.WriteLine($"#include \"AbstractModule.hpp\"");
             swcpp.WriteLine($"#include \"Gen/{project.Solution.Name}/App.h\"");
             swcpp.WriteLine();
@@ -471,6 +479,8 @@ namespace Zeze.Gen.cxx
             }
 
             using StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.hpp");
+            if (sw == null)
+                return;
 
             sw.WriteLine("#pragma once");
             sw.WriteLine();

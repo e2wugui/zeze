@@ -14,6 +14,8 @@ namespace Zeze.Gen.cs
         public void Make(string baseDir, bool isconfcs = false)
         {
             using StreamWriter sw = p.Space.OpenWriter(baseDir, p.Name + ".cs");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated");
             //sw.WriteLine("using Zeze.Serialize;");

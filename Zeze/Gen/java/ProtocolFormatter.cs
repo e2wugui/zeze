@@ -13,6 +13,8 @@ namespace Zeze.Gen.java
         public void Make(string baseDir)
         {
             using var sw = p.Space.OpenWriter(baseDir, p.Name + ".java");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + p.Space.Path() + ";");

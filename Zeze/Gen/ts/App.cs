@@ -109,6 +109,9 @@ namespace Zeze.Gen.ts
             // new file
             FileSystem.CreateDirectory(fullDir);
             using System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
+            if (sw == null)
+                return;
+
             sw.WriteLine("/* eslint-disable import/no-cycle, lines-between-class-members, prettier/prettier */");
             sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImportGen);
             ImportGen(sw);

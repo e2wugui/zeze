@@ -182,6 +182,8 @@ namespace Zeze.Gen.cs
         public void MakePartialImplementInGen()
         {
             using StreamWriter sw = module.OpenWriter(genDir, $"Module{module.Name}Gen.cs");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine();
@@ -310,6 +312,8 @@ namespace Zeze.Gen.cs
         public void MakeInterface()
         {
             using StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.cs");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine();

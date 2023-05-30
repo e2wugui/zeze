@@ -29,6 +29,8 @@ namespace Zeze.Gen.cxx
         public void MakePartialInGen()
         {
             using StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + "Base.hpp");
+            if (sw == null)
+                return;
 
             sw.WriteLine("#include \"zeze/cxx/Net.h\"");
             sw.WriteLine();

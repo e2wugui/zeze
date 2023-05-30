@@ -18,6 +18,8 @@ namespace Zeze.Gen.java
         public void MakeReadOnly(string baseDir)
         {
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + "ReadOnly.java");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + bean.Space.Path() + ";");
@@ -36,6 +38,8 @@ namespace Zeze.Gen.java
             MakeReadOnly(baseDir);
 
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".java");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + bean.Space.Path() + ";");

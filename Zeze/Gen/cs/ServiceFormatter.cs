@@ -29,6 +29,8 @@ namespace Zeze.Gen.cs
         public void MakePartialInGen()
         {
             using StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + ".cs");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine();

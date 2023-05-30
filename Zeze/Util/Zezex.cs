@@ -356,7 +356,7 @@ namespace Zeze.Util
             }
             else
             {
-                using (TextWriter sw = Gen.Program.OpenStreamWriter(targetXmlFile))
+                using (TextWriter sw = Gen.Program.OpenStreamWriter(targetXmlFile, true))
                 {
                     doc.Save(sw);
                 }

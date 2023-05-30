@@ -15,6 +15,8 @@ namespace Zeze.Gen.rrcs
         public void Make(string baseDir)
         {
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".cs");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated rocks");
             sw.WriteLine("using ByteBuffer = Zeze.Serialize.ByteBuffer;");

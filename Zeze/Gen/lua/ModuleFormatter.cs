@@ -30,6 +30,8 @@ namespace Zeze.Gen.lua
             using StreamWriter sw = (module.Parent == null)
                 ? Program.OpenStreamWriter(Path.Combine(genDir, module.Name + ".lua"))
                 : module.Parent.OpenWriter(genDir, module.Name + ".lua");
+            if (sw == null)
+                return;
             MakeGen(sw);
             sw.WriteLine();
             sw.WriteLine("return " + module.Name + "");
@@ -119,6 +121,8 @@ namespace Zeze.Gen.lua
             {
                 FileSystem.CreateDirectory(fullDir);
                 using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
+                if (sw == null)
+                    return;
 
                 sw.WriteLine($"local {module.Name}Impl = {{}}");
                 sw.WriteLine();

@@ -17,6 +17,8 @@ namespace Zeze.Gen.java
         public void Make()
         {
             using StreamWriter sw = table.Space.OpenWriter(genDir, table.Name + ".java");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + table.Space.Path() + ";");

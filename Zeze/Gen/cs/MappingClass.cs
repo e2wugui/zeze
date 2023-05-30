@@ -30,6 +30,8 @@ namespace Zeze.Gen.cs
             inherits.Add(Bean);
             var clsName = Bean.MappingClassName(inherits);
             using var sw = Bean.Space.OpenWriter(GenDir, $"Mapping{clsName}.cs");
+            if (sw == null)
+                return;
             sw.WriteLine("// auto-generated");
             sw.WriteLine("");
             sw.WriteLine("namespace " + Bean.Space.Path());

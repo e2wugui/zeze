@@ -15,6 +15,8 @@ namespace Zeze.Gen.rrjava
         public void Make(string baseDir)
         {
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".java");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated rocks @formatter:off");
             sw.WriteLine("package " + bean.Space.Path() + ";");

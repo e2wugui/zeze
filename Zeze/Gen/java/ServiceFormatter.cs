@@ -29,6 +29,8 @@ namespace Zeze.Gen.java
         public void MakePartialInGen()
         {
             using StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + "Base.java");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + service.Project.Solution.Path() + ";");

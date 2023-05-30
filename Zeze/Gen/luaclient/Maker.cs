@@ -107,8 +107,11 @@ namespace Zeze.Gen.luaClient
 
                 string metaFileName = Path.Combine(genDir, "ZezeMeta.lua");
                 using StreamWriter swMeta = Program.OpenStreamWriter(metaFileName);
-                swMeta.Write(luaMeta);
-                swMeta.Close();
+                if (swMeta != null)
+                {
+                    swMeta.Write(luaMeta);
+                    swMeta.Close();
+                }
             }
 
 
@@ -138,8 +141,11 @@ namespace Zeze.Gen.luaClient
                     });
                     if (fullDir != null) FileSystem.CreateDirectory(fullDir);
                     using var sw = Program.OpenStreamWriter(fullFileName);
-                    sw.Write(luaModule);
-                    sw.Close();
+                    if (sw != null)
+                    {
+                        sw.Write(luaModule);
+                        sw.Close();
+                    }
                 }
             }
 
@@ -169,8 +175,11 @@ namespace Zeze.Gen.luaClient
                     });
                     if (fullDir != null) FileSystem.CreateDirectory(fullDir);
                     using var sw = Program.OpenStreamWriter(fullFileName);
-                    sw.Write(luaModule);
-                    sw.Close();
+                    if (sw != null)
+                    {
+                        sw.Write(luaModule);
+                        sw.Close();
+                    }
                 }
             }
 
@@ -186,8 +195,11 @@ namespace Zeze.Gen.luaClient
                 });
 
                 using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(genDir, "message.lua"));
-                sw.Write(luaRoot);
-                sw.Close();
+                if (sw != null)
+                {
+                    sw.Write(luaRoot);
+                    sw.Close();
+                }
             }
 
             {
@@ -202,8 +214,11 @@ namespace Zeze.Gen.luaClient
                 });
 
                 using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(genDir, "message_init.lua"));
-                sw.Write(luaRoot);
-                sw.Close();
+                if (sw != null)
+                {
+                    sw.Write(luaRoot);
+                    sw.Close();
+                }
             }
 
             {
@@ -233,8 +248,11 @@ namespace Zeze.Gen.luaClient
                         });
                         FileSystem.CreateDirectory(fullDir);
                         using var sw = Program.OpenStreamWriter(fullFileName);
-                        sw.Write(luaModule);
-                        sw.Close();
+                        if (sw != null)
+                        {
+                            sw.Write(luaModule);
+                            sw.Close();
+                        }
                         continue;
                     }
 

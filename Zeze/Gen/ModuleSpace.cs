@@ -88,8 +88,7 @@ namespace Zeze.Gen
             if (!exists || overwrite)
             {
                 //Program.Print("file " + (exists ? "overwrite" : "new") + " '" + fullFileName + "'");
-                StreamWriter sw = Program.OpenStreamWriter(fullFileName);
-                return sw;
+                return Program.OpenStreamWriter(fullFileName);
             }
             //Program.Print("file skip '" + fullFileName + "'");
             return null;

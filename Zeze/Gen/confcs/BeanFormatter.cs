@@ -20,6 +20,9 @@ namespace Zeze.Gen.confcs
         public void Make(string baseDir)
         {
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".cs");
+            if (sw == null)
+                return;
+
             var preClass = bean.Extendable ? "" : "sealed ";
             var baseClass = bean.Base == "" ? "Zeze.Util.ConfBean" : bean.Base;
 

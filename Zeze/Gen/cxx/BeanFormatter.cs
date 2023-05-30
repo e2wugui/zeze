@@ -17,6 +17,8 @@ namespace Zeze.Gen.cxx
         public void Make(string baseDir)
         {
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".hpp");
+            if (sw == null)
+                return;
             sw.WriteLine("#pragma once");
             sw.WriteLine();
             sw.WriteLine("#include \"zeze/cxx/Bean.h\"");

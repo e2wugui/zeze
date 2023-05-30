@@ -16,6 +16,8 @@ namespace Zeze.Gen.cs
         public void Make()
         {
             using StreamWriter sw = table.Space.OpenWriter(genDir, table.Name + ".cs");
+            if (sw == null)
+                return;
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("using Zeze.Serialize;");

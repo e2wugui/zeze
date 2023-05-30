@@ -17,24 +17,27 @@
                 ? System.IO.Path.Combine(projectDir, Project.ScriptDir) : projectDir;
 
             using System.IO.StreamWriter sw = Program.OpenWriterNoPath(genDir, Project.Solution.Name + "/gen.ts");
-            sw.WriteLine("// auto-generated");
-            sw.WriteLine("/* eslint-disable camelcase, class-methods-use-this, lines-between-class-members, max-classes-per-file, new-cap, no-bitwise, no-plusplus, no-underscore-dangle, no-unused-vars, no-use-before-define, prettier/prettier */");
-            sw.WriteLine("import { Zeze } from 'Zeze/zeze';");
-            foreach (Types.Bean bean in Project.AllBeans.Values)
+            if (sw != null)
             {
-                new BeanFormatter(bean).Make(sw);
-            }
-            foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
-            {
-                new BeanKeyFormatter(beanKey).Make(sw);
-            }
-            foreach (Protocol protocol in Project.AllProtocols.Values)
-            {
-                sw.WriteLine();
-                if (protocol is Rpc rpc)
-                    new RpcFormatter(rpc).Make(sw);
-                else
-                    new ProtocolFormatter(protocol).Make(sw);
+                sw.WriteLine("// auto-generated");
+                sw.WriteLine("/* eslint-disable camelcase, class-methods-use-this, lines-between-class-members, max-classes-per-file, new-cap, no-bitwise, no-plusplus, no-underscore-dangle, no-unused-vars, no-use-before-define, prettier/prettier */");
+                sw.WriteLine("import { Zeze } from 'Zeze/zeze';");
+                foreach (Types.Bean bean in Project.AllBeans.Values)
+                {
+                    new BeanFormatter(bean).Make(sw);
+                }
+                foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
+                {
+                    new BeanKeyFormatter(beanKey).Make(sw);
+                }
+                foreach (Protocol protocol in Project.AllProtocols.Values)
+                {
+                    sw.WriteLine();
+                    if (protocol is Rpc rpc)
+                        new RpcFormatter(rpc).Make(sw);
+                    else
+                        new ProtocolFormatter(protocol).Make(sw);
+                }
             }
             foreach (Module mod in Project.AllOrderDefineModules)
             {
