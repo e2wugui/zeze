@@ -15,6 +15,7 @@ import Zeze.Net.Rpc;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Services.HandshakeBase;
 import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
@@ -512,7 +513,7 @@ public final class Agent {
 		@Override
 		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 虚拟线程创建太多Critical线程反而容易卡,以后考虑跑另个虚拟线程池里
-			if (p.getTypeId() == LeaderIs.TypeId_ || agent.dispatchProtocolToInternalThreadPool) {
+			if (p.getTypeId() == LeaderIs.TypeId_ || isHandshakeProtocol(p.getTypeId()) || agent.dispatchProtocolToInternalThreadPool) {
 				Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), "InternalRequest"));
 			} else {
 				Task.runUnsafe(() -> p.handle(this, factoryHandle),

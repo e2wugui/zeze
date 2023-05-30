@@ -19,7 +19,7 @@ Zeze.Component 里面用到的DynamicBean注册class不需要了。
 ------------------------------------------------------------------------------------------------------------------------------
 Dbh2：重启之后splitting restart，但是一段时间后又开启了新的split【性能统计设置loadSwitch时需要清除旧的负载统计】
 +++Raft 心跳改成总是间隔发送，不再优化（真的空闲才发送）；原因如下：
-+++Dbh2 需要识别出LeaderReady。此事件Follower通过心跳判断。这个识别用来设置负载统计开始工作。
++++Dbh2 需要识别出LeaderReady。此事件Follower通过心跳判断。这个识别用来设置Dbh2负载统计开始工作。
 Game.Online.sendOnlineRpc
 Dbh2 LogCleanEndSplit 操作合并到 LogEndSplit 中。原子的完成删除(deleteRange)操作。
 Dbh2 分桶结束需要删除源桶的已经分出去的数据。
