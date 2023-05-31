@@ -1,6 +1,7 @@
 package Zeze.Dbh2;
 
 import Zeze.Builtin.Dbh2.BBatch;
+import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
@@ -10,7 +11,7 @@ import Zeze.Serialize.ByteBuffer;
 public class LogPrepareBatch extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogPrepareBatch.class.getName());
 
-	private BBatch.Data argument;
+	private BPrepareBatch.Data argument;
 
 	public LogPrepareBatch() {
 		this(null);
@@ -19,7 +20,7 @@ public class LogPrepareBatch extends Log {
 	public LogPrepareBatch(PrepareBatch req) {
 		super(null);
 		if (null != req)
-			this.argument = req.Argument.getBatch();
+			this.argument = req.Argument;
 	}
 
 	@Override
@@ -42,7 +43,7 @@ public class LogPrepareBatch extends Log {
 	@Override
 	public void decode(ByteBuffer bb) {
 		super.decode(bb);
-		argument = new BBatch.Data();
+		argument = new BPrepareBatch.Data();
 		argument.decode(bb);
 	}
 }

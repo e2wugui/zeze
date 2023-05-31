@@ -12,6 +12,7 @@ import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
@@ -43,6 +44,11 @@ public class Dbh2Manager {
 	private final String home;
 
 	private final ConcurrentHashMap<String, Dbh2> dbh2s = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Locks> databaseLocks = new ConcurrentHashMap<>();
+
+	public Lockey getLock(String databaseName, String tableName, Binary key) {
+		return databaseLocks.computeIfAbsent(databaseName, __ -> new Locks()).get(new TableKey(tableName, key));
+	}
 
 	public MasterAgent getMasterAgent() {
 		return masterAgent;

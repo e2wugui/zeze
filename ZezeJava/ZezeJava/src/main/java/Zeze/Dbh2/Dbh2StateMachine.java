@@ -9,6 +9,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.BSplitPut;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
@@ -247,19 +248,26 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void prepareBatch(BBatch.Data bBatch) {
+	public void prepareBatch(BPrepareBatch.Data prepare) {
 		try {
 			counterPrepareBatch.incrementAndGet();
-			var txn = transactions.computeIfAbsent(bBatch.getTid(), _tid -> new Dbh2Transaction(bBatch));
-			counterPut.addAndGet(txn.getBatch().getPuts().size());
+			var txn = transactions.computeIfAbsent(prepare.getBatch().getTid(),
+					_tid -> {
+						try {
+							return new Dbh2Transaction(dbh2, prepare);
+						} catch (InterruptedException e) {
+							throw new RuntimeException(e);
+						}
+					});
+			counterPut.addAndGet(txn.getPrepareBatch().getBatch().getPuts().size());
 			var totalPutValueSize = 0;
-			for (var e : txn.getBatch().getPuts().entrySet()) {
+			for (var e : txn.getPrepareBatch().getBatch().getPuts().entrySet()) {
 				totalPutValueSize += e.getKey().size();
 				totalPutValueSize += e.getValue().size();
 			}
 			sizePut.addAndGet(totalPutValueSize);
-			counterDelete.addAndGet(txn.getBatch().getDeletes().size());
-			txn.prepareBatch(bucket, bBatch);
+			counterDelete.addAndGet(txn.getPrepareBatch().getBatch().getDeletes().size());
+			txn.prepareBatch(bucket, prepare);
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();

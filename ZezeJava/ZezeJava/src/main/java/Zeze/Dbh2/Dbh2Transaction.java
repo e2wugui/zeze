@@ -3,31 +3,30 @@ package Zeze.Dbh2;
 import java.io.Closeable;
 import java.util.HashMap;
 import Zeze.Builtin.Dbh2.BBatch;
+import Zeze.Builtin.Dbh2.BPrepareBatch;
 import org.rocksdb.RocksDBException;
 
 public class Dbh2Transaction implements Closeable {
-	private final HashMap<Lock, Lock> locks = new HashMap<>();
+	private final HashMap<Lockey, Lockey> locks = new HashMap<>();
 	private final BBatch.Data logs = new BBatch.Data();
-	private final BBatch.Data batch;
-	private final String queryIp;
-	private final int queryPort;
+	private final BPrepareBatch.Data prepare;
 	private final long createTime;
 
-	public BBatch.Data getBatch() {
-		return batch;
+	public BPrepareBatch.Data getPrepareBatch() {
+		return prepare;
 	}
 
 	@Override
 	public String toString() {
-		return queryIp + ":" + queryPort + " logs=" + logs;
+		return prepare.getBatch().getQueryIp() + ":" + prepare.getBatch().getQueryPort() + " logs=" + logs;
 	}
 
 	public String getQueryIp() {
-		return queryIp;
+		return prepare.getBatch().getQueryIp();
 	}
 
 	public int getQueryPort() {
-		return queryPort;
+		return prepare.getBatch().getQueryPort();
 	}
 
 	public long getCreateTime() {
@@ -37,24 +36,22 @@ public class Dbh2Transaction implements Closeable {
 	/**
 	 * 锁住输入batch中的所有记录。
 	 *
-	 * @param batch batch parameter
+	 * @param prepare prepare batch parameter
 	 */
-	public Dbh2Transaction(BBatch.Data batch) {
-		this.batch = batch;
-		this.queryIp = batch.getQueryIp();
-		this.queryPort = batch.getQueryPort();
+	public Dbh2Transaction(Dbh2 dbh2, BPrepareBatch.Data prepare) throws InterruptedException {
+		this.prepare = prepare;
 		this.createTime = System.currentTimeMillis();
 
-		for (var put : batch.getPuts().entrySet()) {
+		for (var put : prepare.getBatch().getPuts().entrySet()) {
 			var key = put.getKey();
-			var lock = Lock.get(key);
+			var lock = dbh2.getManager().getLock(prepare.getDatabase(), prepare.getTable(), key);
 			if (null == locks.putIfAbsent(lock, lock))
-				lock.lock();
+				lock.lock(dbh2);
 		}
-		for (var del : batch.getDeletes()) {
-			var lock = Lock.get(del);
+		for (var del : prepare.getBatch().getDeletes()) {
+			var lock = dbh2.getManager().getLock(prepare.getDatabase(), prepare.getTable(), del);
 			if (null == locks.putIfAbsent(lock, lock))
-				lock.lock();
+				lock.lock(dbh2);
 		}
 	}
 
@@ -62,14 +59,14 @@ public class Dbh2Transaction implements Closeable {
 	 * 把batch数据写入db，并且构造出undo logs。
 	 *
 	 * @param bucket bucket
-	 * @param batch  batch
+	 * @param prepare prepare batch
 	 */
-	public void prepareBatch(Bucket bucket, BBatch.Data batch) throws RocksDBException {
+	public void prepareBatch(Bucket bucket, BPrepareBatch.Data prepare) throws RocksDBException {
 		var b = bucket.getBatch();
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (b) {
 			b.clear();
-			for (var put : batch.getPuts().entrySet()) {
+			for (var put : prepare.getBatch().getPuts().entrySet()) {
 				var key = put.getKey();
 				var exist = bucket.get(key);
 				if (exist != null)
@@ -78,7 +75,7 @@ public class Dbh2Transaction implements Closeable {
 					logs.getDeletes().add(key);
 				bucket.getTData().put(b, key, put.getValue());
 			}
-			for (var del : batch.getDeletes()) {
+			for (var del : prepare.getBatch().getDeletes()) {
 				var exist = bucket.get(del);
 				if (exist != null)
 					logs.getPuts().put(del, exist);

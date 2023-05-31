@@ -157,10 +157,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	@Override
-	protected long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws RocksDBException {
+	protected long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws RocksDBException, InterruptedException {
 		stateMachine.counterGet.incrementAndGet();
-		var lock = Lock.get(r.Argument.getKey());
-		lock.lock();
+		var lock = manager.getLock(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey());
+		lock.lock(this);
 		try {
 			// 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
 			var bucket = stateMachine.getBucket();
@@ -190,7 +190,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	protected long ProcessPrepareBatchRequest(PrepareBatch r) throws Exception {
 		//var tid = stateMachine.getTidAllocator().next(stateMachine);
 		// lock
-		var txn = new Dbh2Transaction(r.Argument.getBatch());
+		var txn = new Dbh2Transaction(this, r.Argument);
 		try {
 			// save txn
 			if (null != stateMachine.getTransactions().putIfAbsent(r.Argument.getBatch().getTid(), txn))
@@ -546,11 +546,11 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		r.Argument.setFromTransaction(true);
 
 		// 如果修改的记录落在分桶目标桶中，则同步过去。
-		for (var e : txn.getBatch().getPuts().entrySet()) {
+		for (var e : txn.getPrepareBatch().getBatch().getPuts().entrySet()) {
 			if (splittingMeta.getKeyFirst().compareTo(e.getKey()) <= 0)
 				r.Argument.getPuts().put(e.getKey(), e.getValue());
 		}
-		for (var delete : txn.getBatch().getDeletes()) {
+		for (var delete : txn.getPrepareBatch().getBatch().getDeletes()) {
 			if (splittingMeta.getKeyFirst().compareTo(delete) <= 0)
 				r.Argument.getPuts().put(delete, Binary.Empty);
 		}
