@@ -15,7 +15,6 @@ import Zeze.Net.Rpc;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
-import Zeze.Services.HandshakeBase;
 import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;

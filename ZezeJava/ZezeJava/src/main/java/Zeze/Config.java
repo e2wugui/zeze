@@ -85,7 +85,7 @@ public final class Config {
 	private final ConcurrentHashMap<String, ServiceConf> serviceConfMap = new ConcurrentHashMap<>();
 	private @NotNull ServiceConf defaultServiceConf = new ServiceConf();
 
-	private int onlineLogoutDelay = 60 * 10 * 1000; // 10 minutes
+	private int onlineLogoutDelay = 60_000; // 1 minute
 
 	private int delayRemoveHourStart = 3;
 	private int delayRemoveHourEnd = 7;

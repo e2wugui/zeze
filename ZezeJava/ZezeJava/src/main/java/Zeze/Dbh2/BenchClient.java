@@ -143,8 +143,8 @@ public class BenchClient {
 			this.key = key;
 		}
 
-		Zeze.Transaction.Database.AbstractKVTable table;
-		long key;
+		final Zeze.Transaction.Database.AbstractKVTable table;
+		final long key;
 
 		@Override
 		public boolean equals(Object other) {
@@ -181,11 +181,11 @@ public class BenchClient {
 	}
 
 	Future<?> startPutTask(OutObject<Boolean> running,
-								  Database database,
-								  int tableAccess,
-								  ArrayList<Zeze.Transaction.Database.AbstractKVTable> tables,
-								  int valueSize,
-								  AtomicLong transCounter) {
+						   Database database,
+						   int tableAccess,
+						   ArrayList<Zeze.Transaction.Database.AbstractKVTable> tables,
+						   int valueSize,
+						   AtomicLong transCounter) {
 		var value = ByteBuffer.Wrap(Zeze.Util.Random.nextBinary(valueSize));
 		return Task.runUnsafe(() -> {
 			while (Boolean.TRUE.equals(running.value)) {

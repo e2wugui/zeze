@@ -6,6 +6,7 @@ import Zeze.AppBase;
 import Zeze.Arch.ProviderImplement;
 import Zeze.Arch.ProviderService;
 import Zeze.Builtin.Provider.LinkBroken;
+import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Procedure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,6 +29,8 @@ public class ProviderWithOnline extends ProviderImplement {
 
 	@Override
 	protected long ProcessLinkBroken(LinkBroken p) throws Exception {
+		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
+			logger.info("LinkBroken[{}]: {}", p.getSender().getSessionId(), AsyncSocket.toStr(p));
 		// 目前仅需设置online状态。
 		if (!p.Argument.getUserState().getContext().isEmpty() && online != null) {
 			var roleId = Long.parseLong(p.Argument.getUserState().getContext());

@@ -59,6 +59,7 @@ import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TransactionLevelAnnotation;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -426,7 +427,7 @@ public class Online extends AbstractOnline {
 
 		// 由于account可能没有，这里就不传递这个参数了。
 		var ret = linkBrokenEvents.triggerEmbed(this, arg);
-		if (0 != ret)
+		if (ret != 0)
 			return ret;
 		linkBrokenEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> linkBrokenEvents.triggerThread(this, arg));
@@ -494,11 +495,14 @@ public class Online extends AbstractOnline {
 				// 能工作，先这样了。
 				var custom = (BDelayLogoutCustom)context.customData;
 				var onlineSet = defaultInstance.getOnline(custom.getOnlineSetName());
-				if (null != onlineSet) {
+				if (onlineSet != null) {
 					var ret = onlineSet.tryLogout(custom);
-					if (ret != 0)
-						Online.logger.error("tryLogout fail. {}", ret);
-				}
+					logger.log(ret == 0 ? Level.INFO : Level.ERROR,
+							"DelayLogout({}): roleId={}, loginVersion={}, ret={}",
+							custom.getOnlineSetName(), custom.getRoleId(), custom.getLoginVersion(), ret);
+				} else
+					logger.log(Level.ERROR, "DelayLogout({}): roleId={}, loginVersion={}, not found OnlineSetName",
+							custom.getOnlineSetName(), custom.getRoleId(), custom.getLoginVersion());
 			}
 		}
 
@@ -512,25 +516,37 @@ public class Online extends AbstractOnline {
 		var online = getOrAddOnline(roleId);
 		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 		var link = online.getLink();
-		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid)
+		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid) {
+			logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={} != linkName={}, linkSid={}",
+					multiInstanceName, account, roleId, linkName, linkSid, link.getLinkName(), link.getLinkSid());
 			return 0;
+		}
 
 		var local = _tlocal.get(roleId);
-		if (local == null)
+		if (local == null) {
+			logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={}, roleId not found in tlocal",
+					multiInstanceName, account, roleId, linkName, linkSid);
 			return 0; // 不在本机登录。
+		}
 
 		online.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
 		if (local.getLoginVersion() != online.getLoginVersion()) {
 			var ret = removeLocalAndTrigger(roleId); // 本机数据已经过时，马上删除。
-			if (0 != ret)
+			if (ret != 0) {
+				logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={}, removeLocalAndTrigger={}",
+						multiInstanceName, account, roleId, linkName, linkSid, ret);
 				return ret;
+			}
 		}
 
-		linkBrokenTrigger(account, roleId);
+		var ret = linkBrokenTrigger(account, roleId);
 		// for shorter use
 		var zeze = providerApp.zeze;
 		var delay = zeze.getConfig().getOnlineLogoutDelay();
-		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(roleId, online.getLoginVersion(), multiInstanceName));
+		logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}, delay={}",
+				multiInstanceName, account, roleId, linkName, linkSid, ret, delay);
+		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(roleId, online.getLoginVersion(),
+				multiInstanceName));
 		return 0;
 	}
 
@@ -1403,6 +1419,8 @@ public class Online extends AbstractOnline {
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) throws Exception {
+		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
+			logger.info("Loginp[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
 		if (null == onlineSet) {
 			var session = ProviderUserSession.get(rpc);
@@ -1479,6 +1497,8 @@ public class Online extends AbstractOnline {
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc) throws Exception {
+		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
+			logger.info("ReLogin[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
 		if (null == onlineSet) {
 			var session = ProviderUserSession.get(rpc);
@@ -1557,6 +1577,8 @@ public class Online extends AbstractOnline {
 
 	@Override
 	protected long ProcessLogoutRequest(Zeze.Builtin.Game.Online.Logout rpc) throws Exception {
+		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
+			logger.info("Logout[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var session = ProviderUserSession.get(rpc);
 		var onlineSet = getOnline(session.getOnlineSetName());
 		if (null == onlineSet) {

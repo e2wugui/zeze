@@ -1,6 +1,5 @@
 package Zeze.Dbh2;
 
-import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Raft.Log;

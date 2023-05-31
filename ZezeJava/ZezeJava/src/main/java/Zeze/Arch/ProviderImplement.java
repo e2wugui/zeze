@@ -25,7 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class ProviderImplement extends AbstractProviderImplement {
-	private static final Logger logger = LogManager.getLogger(ProviderImplement.class);
+	protected static final Logger logger = LogManager.getLogger(ProviderImplement.class);
 	private static final ThreadLocal<Dispatch> localDispatch = new ThreadLocal<>();
 
 	protected ProviderApp providerApp;
@@ -89,6 +89,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	}
 
 	public static void sendKick(AsyncSocket sender, long linkSid, int code, @NotNull String desc) {
+		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
+			logger.info("sendKick[{}]: linkSid={}, code={}, desc={}", sender.getSessionId(), linkSid, code, desc);
 		new Kick(new BKick.Data(linkSid, code, desc)).Send(sender);
 	}
 
@@ -218,6 +220,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	@Override
 	protected long ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) {
+		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
+			logger.info("AnnounceLinkInfo[{}]: {}", protocol.getSender().getSessionId(), AsyncSocket.toStr(protocol));
 		// var linkSession = (ProviderService.LinkSession)protocol.getSender().getUserState();
 		return Procedure.Success;
 	}
