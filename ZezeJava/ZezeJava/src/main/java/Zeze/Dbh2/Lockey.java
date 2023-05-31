@@ -2,6 +2,7 @@ package Zeze.Dbh2;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import Zeze.Net.Binary;
 import org.jetbrains.annotations.NotNull;
 
 public class Lockey implements Comparable<Lockey>{
