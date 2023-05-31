@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Text;
 using Zeze.Serialize;
 
@@ -31,13 +32,13 @@ namespace Zeze.Gen
                 // 二进制比较，编码不同也认为改变。
                 if (ByteBuffer.Compare(exist, now) != 0)
                 {
-                    Program.Print($"Overwrite File: {FileName}");
+                    Program.Print($"  Overwrite File: {FileName}", ConsoleColor.DarkYellow);
                     File.WriteAllBytes(FileName, now);
                 }
             }
             else
             {
-                Program.Print($"      New File: {FileName}");
+                Program.Print($"        New File: {FileName}", ConsoleColor.Green);
                 File.WriteAllBytes(FileName, Buffered.ToArray());
             }
         }

@@ -9,15 +9,16 @@ using Zeze.Util;
 
 namespace Zeze.Gen
 {
-    public class Program
+    public static class Program
     {
-        public static Dictionary<string, Solution> Solutions { get; } = new Dictionary<string, Solution>();
-        public static Zeze.Util.AtomicLong IdGen = new Zeze.Util.AtomicLong();
-        public static readonly Regex namePattern = new Regex("^[\\w_]+$");
-        public static readonly Regex fullNamePattern = new Regex("^[\\w_.]+$");
+        public static Dictionary<string, Solution> Solutions { get; } = new();
+        public static readonly AtomicLong IdGen = new();
+        public static readonly Regex namePattern = new("^[\\w_]+$");
+        public static readonly Regex fullNamePattern = new("^[\\w_.]+$");
 
         // 收集了Java,C#,C++,Javascript,Typescript,Lua的保留字(不能用作变量名)
-        public static readonly HashSet<string> reservedNames = new HashSet<string> {
+        public static readonly HashSet<string> reservedNames = new()
+        {
             "abstract", "alignas", "alignof", "and", "and_eq", "arguments", "as", "asm", "assert", "atomic_cancel",
             "atomic_commit", "atomic_noexcept", "auto", "await", "base", "bitand", "bitor", "bool", "boolean", "break",
             "byte", "case", "catch", "char", "char16_t", "char32_t", "char8_t", "checked", "class", "co_await",
@@ -88,18 +89,17 @@ namespace Zeze.Gen
             if (lastIndex >= 0)
                 return fullName.Substring(0, lastIndex + 1) + Upper1(fullName.Substring(lastIndex + 1));
             return fullName;
-
         }
 
-        public static global::Zeze.Util.Ranges GlobalModuleIdChecker { get; private set; } = new global::Zeze.Util.Ranges();
+        public static Ranges GlobalModuleIdChecker { get; private set; } = new();
 
-        public static bool Debug { get; private set; } = false;
+        public static bool Debug { get; private set; }
         public static bool DeleteOldFile { get; private set; } = true;
 
         // 用来保存可命名对象（bean,protocol,rpc,table,Project,Service,Module...)，用来 1 检查命名是否重复，2 查找对象。
         // key 为全名：包含完整的名字空间。
-        public static SortedDictionary<string, object> NamedObjects { get; private set; } = new SortedDictionary<string, object>();
-        public static HashSet<long> BeanTypeIdDuplicateChecker { get; } = new HashSet<long>();
+        public static SortedDictionary<string, object> NamedObjects { get; } = new();
+        public static HashSet<long> BeanTypeIdDuplicateChecker { get; } = new();
         public static HashSet<Types.Type> DataBeans { get; } = new(); // 所有的UseData的协议以来的类型。生成的时候需要过滤掉不是bean以及不是beankey的。
 
         public static void AddNamedObject(string fullName, object obj)
@@ -116,8 +116,7 @@ namespace Zeze.Gen
         {
             string lower = fullName.ToLower();
 
-            object value;
-            if (NamedObjects.TryGetValue(lower, out value))
+            if (NamedObjects.TryGetValue(lower, out var value))
             {
                 if (value is T)
                     return (T)value;
@@ -143,28 +142,28 @@ namespace Zeze.Gen
             }
         }
 
-        public static void ImportSolution(string xmlfile)
+        public static void ImportSolution(string xmlFile)
         {
-            if (Solutions.ContainsKey(xmlfile))
+            if (Solutions.ContainsKey(xmlFile))
                 return;
-            // Console.WriteLine($"ImportSolution '{xmlfile}'");
-            Solutions.Add(xmlfile, null);
+            // Console.WriteLine($"ImportSolution '{xmlFile}'");
+            Solutions.Add(xmlFile, null);
             XmlDocument doc = new XmlDocument();
-            doc.Load(xmlfile);
+            doc.Load(xmlFile);
             Solution solution = new Solution(doc.DocumentElement);
             /*
             foreach (KeyValuePair<string, Solution> exist in solutions)
             {
                 if (exist.Value.Name.Equals(solution.Name))
-                    Console.WriteLine("WARN duplicate solution name: " + solution.Name + " in file: " + exist.Key + "," + xmlfile);
+                    Console.WriteLine("WARN duplicate solution name: " + solution.Name + " in file: " + exist.Key + "," + xmlFile);
             }
             */
-            Solutions[xmlfile] = solution;
+            Solutions[xmlFile] = solution;
         }
 
         public static void Main(string[] args)
         {
-            BeanTypeIdDuplicateChecker.Add(Zeze.Transaction.EmptyBean.TYPEID);
+            BeanTypeIdDuplicateChecker.Add(Transaction.EmptyBean.TYPEID);
 
             List<string> xmlFileList = new List<string>();
             var BeautifulVariableId = false;
@@ -192,13 +191,13 @@ namespace Zeze.Gen
             if (xmlFileList.Count == 0)
             {
                 string xmlDefault = "solution.xml";
-                if (System.IO.File.Exists(xmlDefault))
+                if (File.Exists(xmlDefault))
                 {
                     xmlFileList.Add(xmlDefault);
                 }
                 else
                 {
-                    Console.WriteLine(xmlDefault + " not found");
+                    Print(xmlDefault + " not found", ConsoleColor.Red);
                     return;
                 }
             }
@@ -221,12 +220,14 @@ namespace Zeze.Gen
                 if (Solutions.TryGetValue(file, out var sol))
                 {
                     if (xmlFileList.Count > 1 || Debug)
-                        Console.WriteLine(" Make Solution: " + file);
+                        Print("   Make Solution: " + file, ConsoleColor.DarkCyan);
                     if (BeautifulVariableId)
                     {
                         // 编译对这个操作用户不大，需要编译是为了限制，不去修改定义有问题的配置。
-                        XmlDocument doc = new XmlDocument();
-                        doc.PreserveWhitespace = true;
+                        var doc = new XmlDocument
+                        {
+                            PreserveWhitespace = true
+                        };
                         doc.Load(file);
                         Solution.BeautifulVariableId(doc.DocumentElement);
                         using var sw = new StreamWriter(file, false, new UTF8Encoding(false));
@@ -265,9 +266,17 @@ namespace Zeze.Gen
             return DataBeans.Contains(type);
         }
 
-        public static void Print(object obj)
+        public static void Print(object obj, ConsoleColor color)
         {
-            Console.WriteLine(obj);
+            try
+            {
+                Console.ForegroundColor = color;
+                Console.WriteLine(obj);
+            }
+            finally
+            {
+                Console.ResetColor();
+            }
         }
 
         public static List<Module> CompileModuleRef(ICollection<string> fullNames, string context)
@@ -311,17 +320,17 @@ namespace Zeze.Gen
             return fullNames;
         }
 
-        public static List<string> Refs(XmlElement self, string nodename, string refName)
+        public static List<string> Refs(XmlElement self, string nodeName, string refName)
         {
             var refs = new List<string>();
-            XmlNodeList childnodes = self.ChildNodes;
-            foreach (XmlNode node in childnodes)
+            XmlNodeList childNodes = self.ChildNodes;
+            foreach (XmlNode node in childNodes)
             {
                 if (XmlNodeType.Element != node.NodeType)
                     continue;
 
                 XmlElement e = (XmlElement)node;
-                if (e.Name.Equals(nodename))
+                if (e.Name.Equals(nodeName))
                 {
                     var attr = e.GetAttribute(refName);
                     // 由于名字有局部名字和全名区别，这里唯一判断没有意义。
@@ -337,18 +346,18 @@ namespace Zeze.Gen
             return refs;
         }
 
-        public static ICollection<string> Refs(XmlElement self, string nodename)
+        public static ICollection<string> Refs(XmlElement self, string nodeName)
         {
-            return Refs(self, nodename, "ref");
+            return Refs(self, nodeName, "ref");
         }
 
-        public static int HandleServerFlag = 1;
-        public static int HandleClientFlag = 2;
-        public static int HandleScriptServerFlag = 8;
-        public static int HandleScriptClientFlag = 16;
-        public static int HandleServletFlag = 32;
-        public static int HandleCSharpFlags = HandleServerFlag | HandleClientFlag; // 底层语言。如果c++需要生成协议之类的，也是用这个。
-        public static int HandleScriptFlags = HandleScriptServerFlag | HandleScriptClientFlag;
+        public static readonly int HandleServerFlag = 1;
+        public static readonly int HandleClientFlag = 2;
+        public static readonly int HandleScriptServerFlag = 8;
+        public static readonly int HandleScriptClientFlag = 16;
+        public static readonly int HandleServletFlag = 32;
+        public static readonly int HandleCSharpFlags = HandleServerFlag | HandleClientFlag; // 底层语言。如果c++需要生成协议之类的，也是用这个。
+        public static readonly int HandleScriptFlags = HandleScriptServerFlag | HandleScriptClientFlag;
 
         public static int ToHandleFlags(string handle)
         {
@@ -358,11 +367,21 @@ namespace Zeze.Gen
             {
                 switch (h.Trim())
                 {
-                    case "server": f |= HandleServerFlag; break;
-                    case "client": f |= HandleClientFlag; break;
-                    case "serverscript": f |= HandleScriptServerFlag; break;
-                    case "clientscript": f |= HandleScriptClientFlag; break;
-                    case "servlet": f |= HandleServletFlag; break;
+                    case "server":
+                        f |= HandleServerFlag;
+                        break;
+                    case "client":
+                        f |= HandleClientFlag;
+                        break;
+                    case "serverscript":
+                        f |= HandleScriptServerFlag;
+                        break;
+                    case "clientscript":
+                        f |= HandleScriptClientFlag;
+                        break;
+                    case "servlet":
+                        f |= HandleServletFlag;
+                        break;
                     default: throw new Exception("unknown handle: " + handle);
                 }
             }
@@ -393,7 +412,7 @@ namespace Zeze.Gen
             if (!overwrite && OutputsAll.Contains(fullPath))
             {
                 if (Debug)
-                    Console.WriteLine("Skip: " + fullPath);
+                    Print("Skip: " + fullPath, ConsoleColor.Gray);
                 return null;
             }
             if (Outputs.TryGetValue(fullPath, out var oldWriter))
@@ -401,7 +420,7 @@ namespace Zeze.Gen
                 if (!overwrite)
                 {
                     if (Debug)
-                        Console.WriteLine("Skip: " + fullPath);
+                        Print("Skip: " + fullPath, ConsoleColor.Gray);
                     return null;
                 }
                 oldWriter.Close();
@@ -416,7 +435,7 @@ namespace Zeze.Gen
             var full = Path.GetFullPath(dir);
             // gen 目录也是源码，都会加入Project，即使完全没有输出，也应该存在。
             FileSystem.CreateDirectory(full);
-            if (false == Zeze.Util.FileSystem.IsDirectory(full))
+            if (false == FileSystem.IsDirectory(full))
                 throw new Exception($"{dir} Is Not A Directory.");
             GenDirs.Add(full);
         }
@@ -441,15 +460,15 @@ namespace Zeze.Gen
 
         private static void DeleteOldFileInGenDir(string dir)
         {
-            foreach (var subdir in Directory.GetDirectories(dir))
+            foreach (var subDir in Directory.GetDirectories(dir))
             {
-                DeleteOldFileInGenDir(subdir);
-                if (Directory.GetFiles(subdir).Length == 0
-                    && Directory.GetDirectories(subdir).Length == 0)
+                DeleteOldFileInGenDir(subDir);
+                if (Directory.GetFiles(subDir).Length == 0
+                    && Directory.GetDirectories(subDir).Length == 0)
                 {
                     // delete empty dir.
-                    Directory.Delete(subdir);
-                    Console.WriteLine($"Delete Empty Dir: {subdir}");
+                    Directory.Delete(subDir);
+                    Print($"Delete Empty Dir: {subDir}", ConsoleColor.Red);
                 }
             }
             foreach (var file in Directory.GetFiles(dir))
@@ -457,7 +476,7 @@ namespace Zeze.Gen
                 if (OutputsAll.Contains(file))
                     continue;
                 File.Delete(file);
-                Console.WriteLine($"Delete File: {file}");
+                Print($"     Delete File: {file}", ConsoleColor.Red);
             }
         }
 
@@ -488,6 +507,5 @@ namespace Zeze.Gen
             string lastname = name.Substring(index + 1);
             return name + ".Module" + lastname;
         }
-
     }
 }
