@@ -110,11 +110,11 @@ public final class Locks {
 		return segmentFor(lockey).get(lockey);
 	}
 
-	public Lockey get(TableKey tableKey) {
+	public Lockey get(Binary tableKey) {
 		return get(new Lockey(tableKey));
 	}
 
-	public boolean contains(TableKey tableKey) {
+	public boolean contains(Binary tableKey) {
 		return contains(new Lockey(tableKey));
 	}
 }

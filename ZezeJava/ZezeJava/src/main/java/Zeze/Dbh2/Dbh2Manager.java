@@ -44,11 +44,6 @@ public class Dbh2Manager {
 	private final String home;
 
 	private final ConcurrentHashMap<String, Dbh2> dbh2s = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<String, Locks> databaseLocks = new ConcurrentHashMap<>();
-
-	public Lockey getLock(String databaseName, String tableName, Binary key) {
-		return databaseLocks.computeIfAbsent(databaseName, __ -> new Locks()).get(new TableKey(tableName, key));
-	}
 
 	public MasterAgent getMasterAgent() {
 		return masterAgent;

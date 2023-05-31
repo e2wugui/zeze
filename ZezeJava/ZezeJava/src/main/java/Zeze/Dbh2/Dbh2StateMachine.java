@@ -247,26 +247,26 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void prepareBatch(BPrepareBatch.Data prepare) {
+	public void prepareBatch(BBatch.Data batch) {
 		try {
 			counterPrepareBatch.incrementAndGet();
-			var txn = transactions.computeIfAbsent(prepare.getBatch().getTid(),
+			var txn = transactions.computeIfAbsent(batch.getTid(),
 					_tid -> {
 						try {
-							return new Dbh2Transaction(dbh2, prepare);
+							return new Dbh2Transaction(dbh2, batch);
 						} catch (InterruptedException e) {
 							throw new RuntimeException(e);
 						}
 					});
-			counterPut.addAndGet(txn.getPrepareBatch().getBatch().getPuts().size());
+			counterPut.addAndGet(txn.getBatch().getPuts().size());
 			var totalPutValueSize = 0;
-			for (var e : txn.getPrepareBatch().getBatch().getPuts().entrySet()) {
+			for (var e : txn.getBatch().getPuts().entrySet()) {
 				totalPutValueSize += e.getKey().size();
 				totalPutValueSize += e.getValue().size();
 			}
 			sizePut.addAndGet(totalPutValueSize);
-			counterDelete.addAndGet(txn.getPrepareBatch().getBatch().getDeletes().size());
-			txn.prepareBatch(bucket, prepare);
+			counterDelete.addAndGet(txn.getBatch().getDeletes().size());
+			txn.prepareBatch(bucket, batch);
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();

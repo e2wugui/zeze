@@ -6,17 +6,17 @@ import org.jetbrains.annotations.NotNull;
 
 public class Lockey implements Comparable<Lockey>{
 
-	private final TableKey tableKey;
+	private final Binary key;
 	// 超时将抛出异常。
 	private Semaphore semaphore;
 	private boolean locked = false;
 
-	public Lockey(TableKey tableKey) {
-		this.tableKey = tableKey;
+	public Lockey(Binary key) {
+		this.key = key;
 	}
 
-	public TableKey getTableKey() {
-		return tableKey;
+	public Binary getKey() {
+		return key;
 	}
 
 	public Lockey alloc() {
@@ -37,6 +37,6 @@ public class Lockey implements Comparable<Lockey>{
 
 	@Override
 	public int compareTo(@NotNull Lockey o) {
-		return tableKey.compareTo(o.tableKey);
+		return key.compareTo(o.key);
 	}
 }

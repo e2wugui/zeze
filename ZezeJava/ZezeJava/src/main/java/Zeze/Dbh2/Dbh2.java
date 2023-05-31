@@ -40,6 +40,11 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private final Raft raft;
 	private final Dbh2StateMachine stateMachine;
 	private final Dbh2Manager manager;
+	private final Locks locks = new Locks();
+
+	public Locks getLocks() {
+		return locks;
+	}
 
 	// 性能统计。
 	public static String formatMeta(BBucketMeta.Data meta) {
@@ -159,7 +164,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	@Override
 	protected long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws RocksDBException, InterruptedException {
 		stateMachine.counterGet.incrementAndGet();
-		var lock = manager.getLock(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey());
+		var lock = getLocks().get(r.Argument.getKey());
 		lock.lock(this);
 		try {
 			// 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
@@ -190,7 +195,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	protected long ProcessPrepareBatchRequest(PrepareBatch r) throws Exception {
 		//var tid = stateMachine.getTidAllocator().next(stateMachine);
 		// lock
-		var txn = new Dbh2Transaction(this, r.Argument);
+		var txn = new Dbh2Transaction(this, r.Argument.getBatch());
 		try {
 			// save txn
 			if (null != stateMachine.getTransactions().putIfAbsent(r.Argument.getBatch().getTid(), txn))
@@ -546,11 +551,11 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		r.Argument.setFromTransaction(true);
 
 		// 如果修改的记录落在分桶目标桶中，则同步过去。
-		for (var e : txn.getPrepareBatch().getBatch().getPuts().entrySet()) {
+		for (var e : txn.getBatch().getPuts().entrySet()) {
 			if (splittingMeta.getKeyFirst().compareTo(e.getKey()) <= 0)
 				r.Argument.getPuts().put(e.getKey(), e.getValue());
 		}
-		for (var delete : txn.getPrepareBatch().getBatch().getDeletes()) {
+		for (var delete : txn.getBatch().getDeletes()) {
 			if (splittingMeta.getKeyFirst().compareTo(delete) <= 0)
 				r.Argument.getPuts().put(delete, Binary.Empty);
 		}
