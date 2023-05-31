@@ -498,7 +498,7 @@ public class Online extends AbstractOnline {
 				if (onlineSet != null) {
 					var ret = onlineSet.tryLogout(custom);
 					logger.log(ret == 0 ? Level.INFO : Level.ERROR,
-							"DelayLogout({}): roleId={}, loginVersion={}, ret={}",
+							"DelayLogout({}): roleId={}, loginVersion={}, tryLogout={}",
 							custom.getOnlineSetName(), custom.getRoleId(), custom.getLoginVersion(), ret);
 				} else
 					logger.log(Level.ERROR, "DelayLogout({}): roleId={}, loginVersion={}, not found OnlineSetName",

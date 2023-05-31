@@ -119,7 +119,7 @@ namespace Zeze.Gen.cs
         {
             var value = variable.Initial;
             value = value.Length > 0 ? value : def;
-            sw.WriteLine($"{prefix}{variable.NamePrivate}.Set({value});");
+            sw.WriteLine($"{prefix}{variable.NameUpper1}.Set({value});");
         }
 
         public void Visit(TypeVector2 type)
