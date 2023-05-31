@@ -40,7 +40,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 		}
 	}
 
-	protected final @NotNull org.pcollections.PMap<K, V> getMap() {
+	public final @NotNull org.pcollections.PMap<K, V> getMap() {
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
@@ -180,12 +180,12 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 
 	@Override
 	public int hashCode() {
-		return map.hashCode();
+		return getMap().hashCode();
 	}
 
 	@Override
 	public boolean equals(@Nullable Object o) {
-		return o instanceof PMap && map.equals(((PMap<?, ?>)o).map);
+		return o instanceof PMap && getMap().equals(((PMap<?, ?>)o).getMap());
 	}
 
 	@Override

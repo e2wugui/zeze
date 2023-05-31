@@ -187,7 +187,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	@Override
 	public @NotNull PMap2<K, V> copy() {
 		var copy = new PMap2<>(meta);
-		copy.map = map;
+		copy.map = getMap();
 		return copy;
 	}
 

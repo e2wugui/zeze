@@ -47,7 +47,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 		throw new UnsupportedOperationException();
 	}
 
-	protected final @NotNull PVector<V> getList() {
+	public final @NotNull PVector<V> getList() {
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
@@ -207,12 +207,12 @@ public abstract class PList<V> extends Collection implements List<V> {
 
 	@Override
 	public int hashCode() {
-		return list.hashCode();
+		return getList().hashCode();
 	}
 
 	@Override
 	public boolean equals(@Nullable Object o) {
-		return o instanceof PList && list.equals(((PList<?>)o).list);
+		return o instanceof PList && getList().equals(((PList<?>)o).getList());
 	}
 
 	@Override

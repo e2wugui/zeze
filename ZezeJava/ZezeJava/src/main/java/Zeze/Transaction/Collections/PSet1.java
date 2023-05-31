@@ -114,7 +114,7 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public @NotNull PSet1<V> copy() {
 		var copy = new PSet1<>(meta);
-		copy.set = set;
+		copy.set = getSet();
 		return copy;
 	}
 

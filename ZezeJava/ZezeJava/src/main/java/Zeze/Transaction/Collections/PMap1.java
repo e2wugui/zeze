@@ -120,7 +120,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	@Override
 	public @NotNull PMap1<K, V> copy() {
 		var copy = new PMap1<>(meta);
-		copy.map = map;
+		copy.map = getMap();
 		return copy;
 	}
 

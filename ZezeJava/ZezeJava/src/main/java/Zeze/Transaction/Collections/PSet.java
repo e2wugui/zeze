@@ -21,7 +21,7 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 	@Override
 	public abstract void clear();
 
-	protected final @NotNull org.pcollections.PSet<V> getSet() {
+	public final @NotNull org.pcollections.PSet<V> getSet() {
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
@@ -105,12 +105,12 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 
 	@Override
 	public int hashCode() {
-		return set.hashCode();
+		return getSet().hashCode();
 	}
 
 	@Override
 	public boolean equals(@Nullable Object o) {
-		return o instanceof PSet && set.equals(((PSet<?>)o).set);
+		return o instanceof PSet && getSet().equals(((PSet<?>)o).getSet());
 	}
 
 	@Override

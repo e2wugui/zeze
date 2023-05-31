@@ -221,7 +221,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	@Override
 	public @NotNull PList2<V> copy() {
 		var copy = new PList2<>(meta);
-		copy.list = list;
+		copy.list = getList();
 		return copy;
 	}
 

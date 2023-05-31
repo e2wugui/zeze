@@ -175,7 +175,7 @@ public class PList1<V> extends PList<V> {
 	@Override
 	public @NotNull PList1<V> copy() {
 		var copy = new PList1<>(meta);
-		copy.list = list;
+		copy.list = getList();
 		return copy;
 	}
 
