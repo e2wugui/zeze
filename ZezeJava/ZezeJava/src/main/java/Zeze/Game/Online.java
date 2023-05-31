@@ -54,6 +54,7 @@ import Zeze.Util.OutObject;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -389,9 +390,11 @@ public class Online extends AbstractOnline {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			if (null != instance) {
-				var ret = instance.tryLogout((BDelayLogoutCustom)context.customData);
-				if (ret != 0)
-					Online.logger.error("tryLogout fail. {}", ret);
+				var custom = (BDelayLogoutCustom)context.customData;
+				var ret = instance.tryLogout(custom);
+				logger.log(ret == 0 ? Level.INFO : Level.ERROR,
+						"DelayLogout: roleId={}, loginVersion={}, tryLogout={}",
+						custom.getRoleId(), custom.getLoginVersion(), ret);
 			}
 		}
 
@@ -406,24 +409,36 @@ public class Online extends AbstractOnline {
 			var online = _tonline.get(roleId);
 			// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 			if (online == null || !online.getLink().getLinkName().equals(linkName)
-					|| online.getLink().getLinkSid() != linkSid)
+					|| online.getLink().getLinkSid() != linkSid) {
+				logger.info("linkBroken: account={}, roleId={}, linkName={}, linkSid={} != linkName={}, linkSid={}",
+						account, roleId, linkName, linkSid,
+						online != null ? online.getLink().getLinkName() : null,
+						online != null ? online.getLink().getLinkSid() : -1);
 				return 0;
+			}
 			var version = _tversion.getOrAdd(roleId);
 			var local = _tlocal.get(roleId);
-			if (local == null)
+			if (local == null) {
+				logger.info("linkBroken: account={}, roleId={}, linkName={}, linkSid={}, roleId not found in tlocal",
+						account, roleId, linkName, linkSid);
 				return 0; // 不在本机登录。
+			}
 
 			currentLoginVersion = local.getLoginVersion();
 			if (version.getLoginVersion() != currentLoginVersion) {
 				var ret = removeLocalAndTrigger(roleId); // 本机数据已经过时，马上删除。
+				logger.info("linkBroken: account={}, roleId={}, linkName={}, linkSid={}, removeLocalAndTrigger={}",
+						account, roleId, linkName, linkSid, ret);
 				if (0 != ret)
 					return ret;
 			}
 		}
-		linkBrokenTrigger(account, roleId);
+		var ret = linkBrokenTrigger(account, roleId);
 		// for shorter use
 		var zeze = providerApp.zeze;
 		var delay = zeze.getConfig().getOnlineLogoutDelay();
+		logger.info("linkBroken: account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}, delay={}",
+				account, roleId, linkName, linkSid, ret, delay);
 		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(roleId, currentLoginVersion));
 		return 0;
 	}
@@ -1104,7 +1119,6 @@ public class Online extends AbstractOnline {
 			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
-
 
 		var loginVersion = version.getLoginVersion() + 1;
 		version.setLoginVersion(loginVersion);
