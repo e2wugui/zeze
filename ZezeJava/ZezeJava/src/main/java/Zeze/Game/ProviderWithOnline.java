@@ -30,7 +30,7 @@ public class ProviderWithOnline extends ProviderImplement {
 	@Override
 	protected long ProcessLinkBroken(LinkBroken p) throws Exception {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
-			logger.info("LinkBroken[{}]: {}", p.getSender().getSessionId(), AsyncSocket.toStr(p));
+			logger.info("LinkBroken[{}]: {}", p.getSender().getSessionId(), AsyncSocket.toStr(p.Argument));
 		// 目前仅需设置online状态。
 		if (!p.Argument.getUserState().getContext().isEmpty() && online != null) {
 			var roleId = Long.parseLong(p.Argument.getUserState().getContext());
