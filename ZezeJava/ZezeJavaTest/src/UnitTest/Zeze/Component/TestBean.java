@@ -28,7 +28,7 @@ public class TestBean extends Bean {
 
 	public void addValue() {
 		testValue++;
-		if (testValue >= hope)
+		if (testValue >= hope && null != timerFuture2)
 			timerFuture2.setResult(true);
 	}
 
