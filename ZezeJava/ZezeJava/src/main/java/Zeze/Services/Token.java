@@ -44,8 +44,6 @@ TODO:
 public final class Token extends AbstractToken {
 	static {
 		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
-		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
-		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}
 
 	private static final Logger logger = LogManager.getLogger(Token.class);

@@ -242,8 +242,7 @@ public final class Config {
 		return globalCacheManagerHostNameOrAddress;
 	}
 
-	public void setGlobalCacheManagerHostNameOrAddress(@NotNull String value) {
-		//noinspection ConstantValue
+	public void setGlobalCacheManagerHostNameOrAddress(@Nullable String value) {
 		globalCacheManagerHostNameOrAddress = value != null ? value : "";
 	}
 
@@ -464,13 +463,21 @@ public final class Config {
 		if (!name.isBlank())
 			this.name = name;
 
-		setCheckpointPeriod(Integer.parseInt(self.getAttribute("CheckpointPeriod")));
-		setServerId(Integer.parseInt(self.getAttribute("ServerId")));
+		String attr = self.getAttribute("CheckpointPeriod");
+		if (!attr.isBlank())
+			checkpointPeriod = Integer.parseInt(self.getAttribute("CheckpointPeriod"));
+
+		attr = self.getAttribute("ServerId");
+		if (!attr.isBlank())
+			serverId = Integer.parseInt(attr);
+
 		noDatabase = self.getAttribute("NoDatabase").trim().equalsIgnoreCase("true");
 
-		setGlobalCacheManagerHostNameOrAddress(self.getAttribute("GlobalCacheManagerHostNameOrAddress").trim());
-		String attr = self.getAttribute("GlobalCacheManagerPort");
-		setGlobalCacheManagerPort(attr.isBlank() ? 0 : Integer.parseInt(attr));
+		globalCacheManagerHostNameOrAddress = self.getAttribute("GlobalCacheManagerHostNameOrAddress").trim();
+
+		attr = self.getAttribute("GlobalCacheManagerPort");
+		if (!attr.isBlank())
+			globalCacheManagerPort = Integer.parseInt(attr);
 
 		attr = self.getAttribute("OnlineLogoutDelay");
 		if (!attr.isBlank())
