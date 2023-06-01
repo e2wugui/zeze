@@ -35,7 +35,7 @@ public class BenchSocket {
 	@Test
 	public void testCompressRate() {
 		var rand = new java.util.Random(1); // 固定的随机种子。
-		var count = 20 * 1024;
+		var count = 10 * 1024;
 		for (var block = 2048; block <= 4096 + 1024; block += 1024) {
 			var src = new byte[4][];
 			for (int i = 0; i < src.length; ++i) {
@@ -175,7 +175,7 @@ public class BenchSocket {
 	public void testEncryptDecrypt2() {
 		var max = new OutInt(0);
 		var src = prepareDatas(1, max);
-		var count = 100_0000;
+		var count = 20_0000;
 		var rand = new Random();
 		byte[] key = {1, 2, 3, 4, 5};
 
@@ -323,7 +323,7 @@ public class BenchSocket {
 	public void testOutputBufferCodec() {
 		var selectors = new Zeze.Net.Selectors("dummySelector");
 		var selector = selectors.choice();
-		var count = 100_0000;
+		var count = 20_0000;
 		var key = new byte[16];
 		Zeze.Util.Random.getInstance().nextBytes(key);
 
@@ -406,12 +406,13 @@ public class BenchSocket {
 	public static void testSerialize(BValue bValue) {
 		long sum = 0;
 		var b = new Zeze.Util.Benchmark();
-		for (var i = 0; i < 10_0000; ++i) {
+		var count = 5_0000;
+		for (var i = 0; i < count; ++i) {
 			var bb = ByteBuffer.Allocate();
 			bValue.encode(bb);
 			sum += bb.size();
 		}
-		var seconds = b.report("encode", 10_0000);
+		var seconds = b.report("encode", count);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 
 		// decode
@@ -419,13 +420,13 @@ public class BenchSocket {
 		var encoded = ByteBuffer.Allocate();
 		bValue.encode(encoded);
 		var dummy = 0;
-		for (var i = 0; i < 10_0000; ++i) {
+		for (var i = 0; i < count; ++i) {
 			var bb = ByteBuffer.Wrap(encoded.Bytes, encoded.ReadIndex, encoded.size());
 			var value = new BValue();
 			value.decode(bb);
 			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
 		}
-		seconds = b2.report("decode", 10_0000);
+		seconds = b2.report("decode", count);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 		System.out.println("dummy=" + dummy);
 	}
@@ -550,7 +551,7 @@ public class BenchSocket {
 		var client = new ClientService("benchClient", clientConfig);
 		var connector = new Connector("127.0.0.1", 9797);
 		client.getConfig().addConnector(connector);
-		int maxOutputBufferSize = 200 * 1024 * 1024;
+		int maxOutputBufferSize = 100 * 1024 * 1024;
 		client.getSocketOptions().setOutputBufferMaxSize(maxOutputBufferSize);
 		maxOutputBufferSize -= 1024;
 

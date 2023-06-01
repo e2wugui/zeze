@@ -312,7 +312,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		var bucket = stateMachine.getBucket();
 		var splitting = bucket.getSplittingMeta();
 		if (null != splitting) {
-			logger.info("start but in splitting. meta={}", formatMeta(splitting));
+			logger.info("start but in splitting. {}->{}", formatMeta(bucket.getMeta()), formatMeta(splitting));
 			return; // splitting
 		}
 
@@ -407,7 +407,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 设置分桶进行中的标记到raft集群中。
 				getRaft().appendLog(new LogSetSplittingMeta(splitting));
 				// 创建到分桶目标的客户端。
-				logger.info("splitting start... {}", formatMeta(splitting));
+				logger.info("splitting start... {}->{}", formatMeta(bucket.getMeta()), formatMeta(splitting));
 			}
 
 			// 重启的时候，需要重建到分桶的连接。
@@ -422,7 +422,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (null == it) {
 				// 重新开始分桶时走这个分支，根据上次找到的middle，定位it。
 				it = locateMiddle(splitting.getKeyFirst());
-				logger.info("splitting restart... {}", formatMeta(splitting));
+				logger.info("splitting restart... {}->{}", formatMeta(bucket.getMeta()), formatMeta(splitting));
 			}
 
 			// 开始同步数据，这个阶段对于rocks时同步访问的，对于网络是异步的。
@@ -448,12 +448,15 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	public long splitPutNext(SplitPut r, RocksIterator it, long serialNo) {
 		try {
+			var hasError = r.getResultCode() != 0;
 			if (!raft.isLeader() || dbh2Splitting == null || serialNo != splitSerialNo) {
 				it.close();
+				if (hasError)
+					startSplit();
 				return 0;
 			}
 
-			if (r.getResultCode() != 0) {
+			if (hasError) {
 				startSplit();
 				return 0;
 			}
@@ -462,19 +465,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (puts.Argument.getPuts().isEmpty()) {
 				it.close();
 
-				var splittingMeta = stateMachine.getBucket().getSplittingMeta();
-				// 有好几个步骤，采用异步方式。
-				logger.info("splitting end ... {}}", formatMeta(splittingMeta));
-
-				// 截住新的事务请求。
-				var server = (Dbh2RaftServer)getRaft().getServer();
-				server.setupPrepareQueue();
-
-				// 在队列中增加endSplit启动任务，先要处理完队列中的请求。
-				// 此时PrepareBatch已经被拦截，但是还有CommitBatch,UndoBatch等其他请求在处理。
-				// setupHandleIfNoTransaction 将在没有进行中的事务时触发。
-				getRaft().getUserThreadExecutor().execute(() ->
-						stateMachine.setupHandleIfNoTransaction(this::endSplit0));
+				blockPrepareUntilNoTransaction();
 				return 0; // split done.
 			}
 
@@ -483,6 +474,36 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			logger.error("", ex);
 		}
 		return 0;
+	}
+
+	private void blockPrepareUntilNoTransaction() {
+		var meta = stateMachine.getBucket().getMeta();
+		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
+		logger.info("splitting end ... {}->{}", formatMeta(meta), formatMeta(splittingMeta));
+
+		// 截住新的事务请求。
+		var server = (Dbh2RaftServer)getRaft().getServer();
+		server.setupPrepareQueue();
+
+		// 设置一个超时，每秒放行一次。
+		Task.scheduleUnsafe(1000,
+				() -> getRaft().getUserThreadExecutor().execute(this::consumePrepareAndBlockAgain));
+
+		// 在队列中增加endSplit启动任务，先要处理完队列中的请求。
+		// 此时PrepareBatch已经被拦截，但是还有CommitBatch,UndoBatch等其他请求在处理。
+		// setupHandleIfNoTransaction 将在没有进行中的事务时触发。
+		getRaft().getUserThreadExecutor().execute(() ->
+				stateMachine.setupHandleIfNoTransaction(this::endSplit0));
+	}
+
+	private void consumePrepareAndBlockAgain() {
+		if (stateMachine.hasNoTransactionHandle()) {
+			// 还在等待事务清空，此时...
+			// 处理一下累积的Prepare请求，暂时放行一下。
+			var server = (Dbh2RaftServer)getRaft().getServer();
+			performPrepareQueue(server.takePrepareQueue());
+			blockPrepareUntilNoTransaction();
+		}
 	}
 
 	private void endSplit0() {

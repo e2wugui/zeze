@@ -136,6 +136,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			noTransactionHandle = handle;
 	}
 
+	public boolean hasNoTransactionHandle() {
+		return noTransactionHandle != null;
+	}
+
 	private void triggerNoTransactionIf() {
 		if (transactions.isEmpty() && null != noTransactionHandle) {
 			noTransactionHandle.run();
