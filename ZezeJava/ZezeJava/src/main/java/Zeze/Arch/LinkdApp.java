@@ -9,8 +9,13 @@ import Zeze.Net.Selectors;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
+import Zeze.Util.PropertiesHelper;
+import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class LinkdApp {
+	static final Logger logger = LogManager.getLogger(LinkdApp.class);
 	public final String linkdServiceName;
 	public final Application zeze;
 	public final LinkdProvider linkdProvider;
@@ -79,6 +84,20 @@ public class LinkdApp {
 		this.linkdService.setSelectors(selectors);
 
 		this.commandConsoleService = new CommandConsoleService("Zeze.Arch.CommandConsole", zeze.getConfig());
+
+		Task.scheduleUnsafe(PropertiesHelper.getInt("KeepAliveCheckPeriod", 5000), this::keepAliveCheckTimer);
+	}
+
+	private void keepAliveCheckTimer() throws Exception {
+		var now = System.currentTimeMillis();
+		var timeout = PropertiesHelper.getInt("KeepAliveTimeout", 600_000);
+		linkdService.foreach((link) -> {
+			var session = (LinkdUserSession)link.getUserState();
+			if (null != session && session.keepAliveTimeout(now, timeout)) {
+				logger.warn("KeepAlive timeout: {}", link);
+				link.close();
+			}
+		});
 	}
 
 	public String getName() {

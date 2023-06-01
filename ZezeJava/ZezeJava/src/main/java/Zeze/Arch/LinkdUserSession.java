@@ -2,7 +2,6 @@ package Zeze.Arch;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Builtin.Provider.BLinkBroken;
 import Zeze.Builtin.Provider.BUserState;
@@ -10,7 +9,6 @@ import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Util.IntHashMap;
-import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -22,7 +20,7 @@ public class LinkdUserSession {
 	protected final ReentrantReadWriteLock bindsLock = new ReentrantReadWriteLock();
 	protected IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
 	protected long sessionId; // Linkd.SessionId
-	protected Future<?> keepAliveTask; // 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
+	protected long keepAliveTime = System.currentTimeMillis();
 	protected volatile boolean authed;
 
 	public LinkdUserSession(long sessionId) {
@@ -151,15 +149,11 @@ public class LinkdUserSession {
 	}
 
 	public void keepAlive(Service linkdService) {
-		if (keepAliveTask != null)
-			keepAliveTask.cancel(false);
-		keepAliveTask = Task.scheduleUnsafe(600_000, () -> {
-			var link = linkdService.GetSocket(sessionId);
-			if (link != null) {
-				logger.warn("KeepAlive timeout: {}", link);
-				link.close();
-			}
-		});
+		keepAliveTime = System.currentTimeMillis();
+	}
+
+	public boolean keepAliveTimeout(long now, long timeout) {
+		return now - keepAliveTime > timeout;
 	}
 
 	protected void updateLinkSessionId(LinkdProviderService linkdProviderService, long newSessionId) {
@@ -181,9 +175,6 @@ public class LinkdUserSession {
 	}
 
 	public void onClose(LinkdProviderService linkdProviderService) {
-		if (keepAliveTask != null)
-			keepAliveTask.cancel(false);
-
 		if (!isAuthed())
 			return; // 未验证通过的不通告。此时Binds肯定是空的。
 
