@@ -11,13 +11,14 @@ c# fresh 有bug？
 c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，等c#自己的async-lock】
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
-Zeze.Component 里面用到的DynamicBean注册class不需要了。
-LinkdUserSession.keepAlive 机制每次重新调度定时任务比较费。
-	改成集中式或者更高效的方式（TimerWheel）.
-	还有保活时间10m太长了吧。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/6/2 v1.2.5 Netty DispatchMode; Dbh2; Game.Online.sendOnlineRpc;
 ------------------------------------------------------------------------------------------------------------------------------
+Zeze.Component 里面用到的DynamicBean注册class不需要了。
+	【持久化到表的清理，register的调用保留使得beanFactory可以使用局部map，效率更高】
+LinkdUserSession.keepAlive 机制每次重新调度定时任务比较费。
+	改成集中式或者更高效的方式（TimerWheel）.
+	还有保活时间10m太长了吧。
 Dbh2：超时事务回查超时。
 	【重构以后Dbh2AgentManager启动手动start】
 	【Commit.ProcessQueryRequest DispatchMode.Critical，否则可能产生饥饿】

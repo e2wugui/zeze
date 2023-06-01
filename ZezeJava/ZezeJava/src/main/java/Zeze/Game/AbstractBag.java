@@ -17,7 +17,6 @@ public abstract class AbstractBag implements Zeze.IModule {
     public static final int ResultCodeTrySplitButTargetExistDifferenceItem = 4;
 
     protected final Zeze.Builtin.Game.Bag.tbag _tbag = new Zeze.Builtin.Game.Bag.tbag();
-    protected final Zeze.Builtin.Game.Bag.tItemClasses _tItemClasses = new Zeze.Builtin.Game.Bag.tItemClasses();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
@@ -46,12 +45,10 @@ public abstract class AbstractBag implements Zeze.IModule {
 
     public void RegisterZezeTables(Zeze.Application zeze) {
         zeze.addTable(zeze.getConfig().getTableConf(_tbag.getName()).getDatabaseName(), _tbag);
-        zeze.addTable(zeze.getConfig().getTableConf(_tItemClasses.getName()).getDatabaseName(), _tItemClasses);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
         zeze.removeTable(zeze.getConfig().getTableConf(_tbag.getName()).getDatabaseName(), _tbag);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tItemClasses.getName()).getDatabaseName(), _tItemClasses);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

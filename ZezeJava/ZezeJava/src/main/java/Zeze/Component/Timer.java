@@ -78,25 +78,12 @@ public class Timer extends AbstractTimer {
 
 	void register(@NotNull Class<? extends Bean> cls) {
 		beanFactory.register(cls);
-		_tCustomClasses.getOrAdd(1).getCustomClasses().add(cls.getName());
-	}
-
-	@SuppressWarnings("unchecked")
-	private long loadCustomClass() throws ClassNotFoundException {
-		var classes = _tCustomClasses.getOrAdd(1);
-		for (var cls : classes.getCustomClasses()) {
-			beanFactory.register((Class<? extends Bean>)Class.forName(cls));
-		}
-		return 0;
 	}
 
 	public void loadCustomClassAnd() {
 		nodeIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.NodeId");
 		timerIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.TimerId");
 		timerSerialId = zeze.getAutoKey("Zeze.Component.Timer.SerialId");
-		var r = zeze.newProcedure(this::loadCustomClass, "Timer.loadCustomClass").call();
-		if (r != 0)
-			throw new IllegalStateException("loadCustomClassAnd Fail: " + r);
 	}
 
 	/**
@@ -1020,8 +1007,6 @@ public class Timer extends AbstractTimer {
 
 		var result = Task.call(zeze.newProcedure(() -> {
 			// 当接管别的服务器的定时器时，有可能那台服务器有新的CustomData，这个时候重新加载一次。
-			loadCustomClass();
-
 			var src = _tNodeRoot.get(serverId);
 			if (null == src || src.getHeadNodeId() == 0 || src.getTailNodeId() == 0)
 				return 0L; // nothing need to do.

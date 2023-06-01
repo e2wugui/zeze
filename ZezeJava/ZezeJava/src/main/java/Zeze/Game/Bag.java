@@ -348,21 +348,11 @@ public class Bag {
 
 		public void register(Bean bean) {
 			beanFactory.register(bean);
-			_tItemClasses.getOrAdd(1).getItemClasses().add(bean.getClass().getName());
 		}
 
 		@SuppressWarnings("unchecked")
 		public void start(Application zeze) {
 			providerApp.builtinModules.put(this.getFullName(), this);
-			if (0L != zeze.newProcedure(() -> {
-				var classes = _tItemClasses.getOrAdd(1);
-				for (var cls : classes.getItemClasses()) {
-					beanFactory.register((Class<? extends Bean>)Class.forName(cls));
-				}
-				return 0L;
-			}, "Bag.start").call()) {
-				throw new IllegalStateException("Load Item Classes Failed.");
-			}
 		}
 
 		public void stop() {
