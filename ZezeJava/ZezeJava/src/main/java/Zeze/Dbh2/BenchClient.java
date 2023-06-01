@@ -74,6 +74,7 @@ public class BenchClient {
 			PerfCounter.instance.tryStartScheduledLog();
 
 			var dbh2AgentManager = new Dbh2AgentManager(null);
+			dbh2AgentManager.start();
 			var database = newDatabase(dbh2AgentManager, masterIp, masterPort);
 			var tables = new ArrayList<Zeze.Transaction.Database.AbstractKVTable>();
 			for (int i = 0; i < tableNumber; ++i)
