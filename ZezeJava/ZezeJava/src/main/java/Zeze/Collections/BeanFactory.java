@@ -68,7 +68,7 @@ public final class BeanFactory {
 	}
 
 	@SuppressWarnings("deprecation")
-	public static boolean loadClass(String className) {
+	private static boolean loadClass(String className) {
 		try {
 			var cls = Class.forName(className);
 			if (Bean.class.isAssignableFrom(cls)) {
@@ -86,7 +86,7 @@ public final class BeanFactory {
 		return false;
 	}
 
-	public static boolean loadClassName(String className) {
+	private static boolean loadClassName(String className) {
 		var typeId = Bean.hash64(className);
 		var oldObj = allClassNameMap.put(typeId, className);
 		if (oldObj != null) {

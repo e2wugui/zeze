@@ -1,8 +1,8 @@
 /* eslint-disable import/no-cycle, lines-between-class-members, prettier/prettier */
 // ZEZE_FILE_CHUNK {{{ IMPORT GEN
-import { Zeze } from 'Zeze/zeze';
-import ModuleModule1 from 'demo/Module1/ModuleModule1';
-import ModuleModule11 from 'demo/Module1/Module11/ModuleModule11';
+import { Zeze } from '../Zeze/zeze';
+import ModuleModule1 from './Module1/ModuleModule1';
+import ModuleModule11 from './Module1/Module11/ModuleModule11';
 // ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 export default class App {

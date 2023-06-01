@@ -42,7 +42,13 @@ namespace Zeze.Gen.ts
 
         private void Import(System.IO.StreamWriter sw)
         {
-            sw.WriteLine("import { Zeze } from 'Zeze/zeze';");
+            string path = "../../";
+            for (var parent = module.Parent; parent is not Solution; parent = parent.Parent)
+                path += "../";
+            var path1 = module.Solution.Name == "Zeze" ? path[3..] + "zeze" : path + "Zeze/zeze";
+            sw.WriteLine($"import {{ Zeze }} from '{path1}';");
+            path1 = module.Solution.Name == project.Solution.Name
+                ? path.Length > 3 ? path[3..] : "./" : path + project.Solution.Name + '/';
             var needp = NeedRegisterProtocol();
             if (needp.Count > 0)
             {
@@ -53,9 +59,9 @@ namespace Zeze.Gen.ts
                 }
                 if (needp.Count > 0)
                     importp.Length -= 2;
-                sw.WriteLine($"import {{ {importp} }} from '{Project.MakingInstance.Solution.Name}/gen';");
+                sw.WriteLine($"import {{ {importp} }} from '{path1}gen';");
             }
-            sw.WriteLine($"import App from '{Project.MakingInstance.Solution.Name}/App';");
+            sw.WriteLine($"import App from '{path1}App';");
         }
 
         private List<Protocol> NeedRegisterProtocol()
@@ -138,7 +144,7 @@ namespace Zeze.Gen.ts
                 if (sw == null)
                     return;
 
-                sw.WriteLine("/* eslint-disable camelcase, class-methods-use-this, import/no-cycle, lines-between-class-members, new-cap, no-unused-vars, no-useless-constructor, prettier/prettier */");
+                sw.WriteLine("/* eslint-disable camelcase, class-methods-use-this, import/no-cycle, import/order, lines-between-class-members, new-cap, no-unused-vars, no-useless-constructor, prettier/prettier */");
                 sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport);
                 Import(sw);
                 sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport);

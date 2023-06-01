@@ -66,11 +66,16 @@ namespace Zeze.Gen.ts
 
         private void ImportGen(System.IO.StreamWriter sw)
         {
-            sw.WriteLine("import { Zeze } from 'Zeze/zeze';");
+            sw.WriteLine("import { Zeze } from '../Zeze/zeze';");
             foreach (Module m in project.AllOrderDefineModules)
             {
                 var clsName = "Module" + Program.Upper1(m.Name);
-                sw.WriteLine("import " + clsName  + " from '" + m.Path("/", clsName) + "';");
+                var path = m.Path("/", clsName);
+                if (m.Solution.Name == project.Solution.Name)
+                    path = "./" + path[(path.IndexOf('/') + 1)..];
+                else
+                    path = "../" + path;
+                sw.WriteLine("import " + clsName  + " from '" + path + "';");
             }
         }
 

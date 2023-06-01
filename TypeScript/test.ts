@@ -1,4 +1,4 @@
-import { Zeze } from 'Zeze/zeze';
+import { Zeze } from './Zeze/zeze';
 
 function assert(condition: any, msg: string): asserts condition {
 	if (!condition) {
