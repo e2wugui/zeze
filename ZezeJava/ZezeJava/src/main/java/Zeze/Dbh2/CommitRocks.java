@@ -160,7 +160,7 @@ public class CommitRocks {
 					batch.getBatch().setTid(tid);
 					batch.getBatch().setPuts(eRefuse.getValue().getPuts());
 					batch.getBatch().setDeletes(eRefuse.getValue().getDeletes());
-					futuresRedirect.add(manager.openBucket(eRefuse.getKey()).prepareBatch(batch));
+					futuresRedirect.add(manager.openBucket(eRefuse.getKey()).prepareBatch(batch).setContext(eRefuse.getKey()));
 				}
 			}
 		}
@@ -184,8 +184,11 @@ public class CommitRocks {
 			}
 
 			// 处理prepare结果，碰到【拒绝模式重定向】的请求，需要循环处理。
-			while (!futures.isEmpty())
+			while (!futures.isEmpty()) {
 				futures = processPrepareFutures(tidBinary, queryHost, queryPort, futures);
+				if (!futures.isEmpty())
+					modifyCommitPoint(tid, batches, futures);
+			}
 
 		} catch (Throwable ex) {
 			undo(batches);
@@ -238,6 +241,29 @@ public class CommitRocks {
 		bState.encode(bb);
 		var bbIndex = ByteBuffer.Allocate(5);
 		bbIndex.WriteInt(state);
+		try (var batch = database.borrowBatch()) {
+			commitPoint.put(batch, tid, tid.length, bb.Bytes, bb.WriteIndex);
+			commitIndex.put(batch, tid, tid.length, bbIndex.Bytes, bbIndex.WriteIndex);
+			batch.commit(writeOptions);
+		}
+	}
+
+	private void modifyCommitPoint(byte[] tid, BPrepareBatches.Data batches,
+								   ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> futures)
+			throws RocksDBException {
+
+		var bState = new BTransactionState.Data();
+		bState.setState(AbstractCommit.ePreparing);
+		for (var e : batches.getDatas().entrySet()) {
+			bState.getBuckets().add(e.getKey());
+		}
+		for (var future : futures) {
+			bState.getBuckets().add((String)future.getContext());
+		}
+		var bb = ByteBuffer.Allocate();
+		bState.encode(bb);
+		var bbIndex = ByteBuffer.Allocate(5);
+		bbIndex.WriteInt(AbstractCommit.ePreparing);
 		try (var batch = database.borrowBatch()) {
 			commitPoint.put(batch, tid, tid.length, bb.Bytes, bb.WriteIndex);
 			commitIndex.put(batch, tid, tid.length, bbIndex.Bytes, bbIndex.WriteIndex);

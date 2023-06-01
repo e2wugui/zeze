@@ -15,7 +15,9 @@ Zeze.Component 里面用到的DynamicBean注册class不需要了。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/6/2 v1.2.5 Netty DispatchMode; Dbh2; Game.Online.sendOnlineRpc;
 ------------------------------------------------------------------------------------------------------------------------------
-Dbh2：超时事务回查超时。【重构以后Dbh2AgentManager启动手动start】
+Dbh2：超时事务回查超时。
+	【重构以后Dbh2AgentManager启动手动start】
+	【Commit.ProcessQueryRequest DispatchMode.Critical，否则可能产生饥饿】
 Dbh2：splitting end ... 之后没有到达splitting end done。（但是较长时间以后，会重启split），
 	怀疑中间raft出现问题或者setupPrepareQueue()有问题或者有事务一直结束不了。
 	事务一直没有结束问题需要解决一下，它会阻止splitting end导致一直无法进行其他服务。
