@@ -11,11 +11,11 @@ c# fresh 有bug？
 c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，等c#自己的async-lock】
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
-Dbh2：超时事务回查超时。
 Zeze.Component 里面用到的DynamicBean注册class不需要了。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/6/2 v1.2.5 Netty DispatchMode; Dbh2; Game.Online.sendOnlineRpc;
 ------------------------------------------------------------------------------------------------------------------------------
+Dbh2：超时事务回查超时。【重构以后Dbh2AgentManager启动手动start】
 Dbh2：splitting end ... 之后没有到达splitting end done。（但是较长时间以后，会重启split），
 	怀疑中间raft出现问题或者setupPrepareQueue()有问题或者有事务一直结束不了。
 	事务一直没有结束问题需要解决一下，它会阻止splitting end导致一直无法进行其他服务。

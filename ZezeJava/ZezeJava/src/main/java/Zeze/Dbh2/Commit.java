@@ -2,6 +2,8 @@ package Zeze.Dbh2;
 
 import Zeze.Builtin.Dbh2.Commit.DummyImportBean;
 import Zeze.Config;
+import Zeze.Transaction.DispatchMode;
+import Zeze.Util.DispatchModeAnnotation;
 import org.rocksdb.RocksDBException;
 
 public class Commit extends AbstractCommit {
@@ -48,6 +50,7 @@ public class Commit extends AbstractCommit {
         return 0;
     }
 
+    @DispatchModeAnnotation(mode = DispatchMode.Critical)
     @Override
     protected long ProcessQueryRequest(Zeze.Builtin.Dbh2.Commit.Query r) throws Exception {
         var state = rocks.query(r.Argument.getTid());
