@@ -493,7 +493,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		// 此时PrepareBatch已经被拦截，但是还有CommitBatch,UndoBatch等其他请求在处理。
 		// setupHandleIfNoTransaction 将在没有进行中的事务时触发。
 		getRaft().getUserThreadExecutor().execute(() ->
-				stateMachine.setupHandleIfNoTransaction(this::endSplit0));
+				stateMachine.setupOneshotIfNoTransaction(this::endSplit0));
 	}
 
 	private void consumePrepareAndBlockAgain() {

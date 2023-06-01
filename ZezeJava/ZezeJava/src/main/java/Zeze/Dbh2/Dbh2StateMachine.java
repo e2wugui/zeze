@@ -129,7 +129,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogSplitPut.TypeId_, LogSplitPut::new);
 	}
 
-	public void setupHandleIfNoTransaction(Runnable handle) {
+	public void setupOneshotIfNoTransaction(Runnable handle) {
 		if (transactions.isEmpty())
 			handle.run();
 		else
