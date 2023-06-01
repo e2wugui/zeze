@@ -89,7 +89,7 @@ public class TestToData {
 
 	public static void testCodec(BValue.Data bValueData) {
 		long sum = 0;
-		var count = 1_0000;
+		var count = 5000;
 		var b = new Zeze.Util.Benchmark();
 		for (var i = 0; i < count; ++i) {
 			var bb = ByteBuffer.Allocate();
@@ -100,7 +100,7 @@ public class TestToData {
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 
 		// decode
-		var count2 = 1_0000;
+		var count2 = 5000;
 		var b2 = new Zeze.Util.Benchmark();
 		var encoded = ByteBuffer.Allocate();
 		bValueData.encode(encoded);

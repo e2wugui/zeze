@@ -352,14 +352,15 @@ public class TimerRole {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineRoleCustom)context.customData;
-			var loginVersion = context.timer.getRoleTimer(offlineCustom.getOnlineSetName()).online.getLoginVersion(offlineCustom.getRoleId());
+			var loginVersion = context.timer.getRoleTimer(offlineCustom.getOnlineSetName()).online.getLogoutVersion(offlineCustom.getRoleId());
 			// 检查版本号，不正确的登录版本号表示过期的timer，取消掉即可。
 			if (null != loginVersion && loginVersion == offlineCustom.getLoginVersion()) {
 				@SuppressWarnings("unchecked")
 				var handleClass = (Class<? extends TimerHandle>)Class.forName(offlineCustom.getHandleName());
 				final var handle = handleClass.getDeclaredConstructor().newInstance();
 				context.roleId = offlineCustom.getRoleId();
-				context.customData = offlineCustom.getCustomData().getBean();
+				var userCustom = offlineCustom.getCustomData().getBean();
+				context.customData = userCustom instanceof EmptyBean ? null : userCustom;
 				handle.onTimer(context);
 			} else {
 				context.timer.cancel(offlineCustom.getTimerName());

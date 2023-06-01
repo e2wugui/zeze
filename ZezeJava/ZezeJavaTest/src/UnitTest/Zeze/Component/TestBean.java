@@ -2,10 +2,23 @@ package UnitTest.Zeze.Component;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.NotNull;
 
 public class TestBean extends Bean {
 	private boolean isServerLiving = true; // 模拟服务器连接是否存活
+
+	private TaskCompletionSource<Boolean> timerFuture2;
+	private int hope;
+
+	public void resetFuture(int hope) {
+		timerFuture2 = new TaskCompletionSource<>();
+		this.hope = hope;
+	}
+
+	public TaskCompletionSource<Boolean> getFuture() {
+		return timerFuture2;
+	}
 
 	private int testValue;
 
@@ -15,6 +28,8 @@ public class TestBean extends Bean {
 
 	public void addValue() {
 		testValue++;
+		if (testValue >= hope)
+			timerFuture2.setResult(true);
 	}
 
 	public boolean checkLiving() {

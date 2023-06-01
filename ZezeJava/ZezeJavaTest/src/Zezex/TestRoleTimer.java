@@ -129,40 +129,44 @@ public class TestRoleTimer {
 			timerFuture.get();
 			System.out.println("NullCustomDataHandle Done!");
 			TestBean bean = new TestBean();
+			bean.resetFuture(5);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				timerRole0.scheduleOnline(roleId, 200, 200, 15, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), bean);
+				timerRole0.scheduleOnline(roleId, 1, 1, 5, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), bean);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
-			sleep(200, 10);
+			bean.getFuture().await();
 			log("测试一通过");
 
 			log("在客户端1登录role0，踢掉客户端0的登录");
 			auth(client1, "account0");
 			login(client1, roleId);
-			sleep(200, 10);
 			Assert.assertTrue(bean.getTestValue() > 0); // 确保客户端0的timer被踢掉了
 			log("测试二通过");
 
 			TestBean namedBean = new TestBean();
+			namedBean.resetFuture(5);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 200, 200, 10, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), namedBean);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), namedBean);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
 			// 在过程中完后注册同名NamedTimer，应该失败
 			TestBean newNamedBean1 = new TestBean();
+			newNamedBean1.resetFuture(5);
 			Assert.assertEquals(Procedure.Exception, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 200, 200, 10, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), newNamedBean1);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), newNamedBean1);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
-			sleep(200, 20);
+			namedBean.getFuture().await();
+			Assert.assertEquals(0, newNamedBean1.getTestValue());
 
 			// 在执行完后注册同名NamedTimer，应该成功
 			TestBean newNamedBean2 = new TestBean();
+			newNamedBean2.resetFuture(5);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 200, 200, 10, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), newNamedBean2);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), newNamedBean2);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
-			sleep(200, 15);
+			newNamedBean2.getFuture().await();
 			log("测试三通过");
 
 			logout(client1, roleId);
@@ -198,40 +202,44 @@ public class TestRoleTimer {
 			var timerRole0 = timer0.getRoleTimer();
 
 			TestBean bean = new TestBean();
+			bean.resetFuture(2);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				timerRole0.scheduleOnline(roleId, "*/1 * * * * ?", 10, System.currentTimeMillis() + 20000, new TestOnlineTimerHandle(), bean);
+				timerRole0.scheduleOnline(roleId, "*/1 * * * * ?", 2, System.currentTimeMillis() + 20000, new TestOnlineTimerHandle(), bean);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
-			sleep(1000, 5);
+			bean.getFuture().await();
 			log("测试一通过");
 
 			log("在客户端1登录role0，踢掉客户端0的登录");
 			auth(client1, "account0");
 			login(client1, roleId);
-			sleep(1000, 6);
+			sleep(1000, 1);
 			Assert.assertTrue(bean.getTestValue() > 0); // 确保客户端0的timer被踢掉了
 			log("测试二通过");
 
 			TestBean namedBean = new TestBean();
+			namedBean.resetFuture(2);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", "*/1 * * * * ?", 5, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), namedBean);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", "*/1 * * * * ?", 2, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), namedBean);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
 			// 在过程中完后注册同名NamedTimer，应该失败
 			TestBean newNamedBean1 = new TestBean();
+			newNamedBean1.resetFuture(2);
 			Assert.assertEquals(Procedure.Exception, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", "*/1 * * * * ?", 5, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), newNamedBean1);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", "*/1 * * * * ?", 2, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), newNamedBean1);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
-			sleep(1000, 7);
+			namedBean.getFuture().await();
 
 			// 在执行完后注册同名NamedTimer，应该成功
 			TestBean newNamedBean2 = new TestBean();
+			newNamedBean2.resetFuture(2);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 200, 200, 5, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), newNamedBean2);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), newNamedBean2);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
-			sleep(1000, 7);
+			newNamedBean2.getFuture().await();
 			log("测试三通过");
 
 			logout(client1, roleId);
@@ -290,22 +298,22 @@ public class TestRoleTimer {
 			logout(client0, roleId);
 
 			TestBean bean = new TestBean();
+			bean.resetFuture(5);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				timerRole0.scheduleOffline(roleId, 200, 200, 10, System.currentTimeMillis() + 5000, TestOfflineTimerHandle.class, bean);
+				timerRole0.scheduleOffline(roleId, 1, 1, 5, System.currentTimeMillis() + 5000, TestOfflineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "test1").call());
-
-			sleep(200, 5);
+			bean.getFuture().await();
 
 			// 注册登录客户端1，踢掉客户端0的登录
 			log("注册登录客户端1");
 			auth(client1, "account0");
 			login(client1, roleId);
 
-			sleep(200, 5);
+			sleep(200, 1);
 
 			logout(client1, roleId);
-			sleep(200, 5);
+			sleep(200, 1);
 		} finally {
 			stopAll();
 		}
@@ -348,21 +356,21 @@ public class TestRoleTimer {
 			logout(client0, roleId);
 
 			TestBean bean = new TestBean();
+			bean.resetFuture(2);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				timerRole0.scheduleOffline(roleId, "*/1 * * * * ?", 10, System.currentTimeMillis() + 20000, TestOfflineTimerHandle.class, bean);
+				timerRole0.scheduleOffline(roleId, "*/1 * * * * ?", 2, System.currentTimeMillis() + 20000, TestOfflineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "test1").call());
 
-			sleep(1000, 5);
-
+			bean.getFuture().await();
 			// 注册登录客户端1，踢掉客户端0的登录
 			log("注册登录客户端1");
 			auth(client1, "account0");
 			login(client1, roleId);
 
-			sleep(200, 5);
+			sleep(200, 1);
 			logout(client1, roleId);
-			sleep(200, 5);
+			sleep(200, 1);
 		} finally {
 			stopAll();
 		}

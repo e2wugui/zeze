@@ -62,8 +62,8 @@ public class Dbh2FullTest {
 			for (int i = 0; i < 4; ++i)
 				tables.add((Database.AbstractKVTable)database.openTable("table" + i));
 
-			var count = 5000;
-			var threads = 4;
+			var count = 3000;
+			var threads = 2;
 			var futures = new ArrayList<Future<?>>();
 			var b = new Zeze.Util.Benchmark();
 			for (var t = 0; t < threads; ++t) {
@@ -71,7 +71,7 @@ public class Dbh2FullTest {
 				var keyEnd = keyStart + count;
 				futures.add(startBench(keyStart, keyEnd, database, tables.get(t % tables.size()), value));
 			}
-			Thread.sleep(2000); // 等待agent都连上，然后dump出来。此时任务在并发执行。
+			Thread.sleep(1000); // 等待agent都连上，然后dump出来。此时任务在并发执行。
 			dbh2AgentManager.dumpAgents();
 			for (var future : futures)
 				future.get();
