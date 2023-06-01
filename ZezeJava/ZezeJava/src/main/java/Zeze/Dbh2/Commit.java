@@ -15,16 +15,16 @@ public class Commit extends AbstractCommit {
     }
 
     public void start() throws Exception {
-        service.start();
         rocks.start();
+        service.start(); // 网络后启动。
     }
 
     public synchronized void stop() throws Exception {
+        service.stop(); // 网络先关闭。否则请求过来访问rocks会导致jvm-crash。
         if (null != rocks) {
             rocks.close();
             rocks = null;
         }
-        service.stop();
     }
 
     public CommitRocks getRocks() {

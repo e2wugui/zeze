@@ -112,10 +112,13 @@ public class CommitRocks {
 
 	public BTransactionState.Data query(Binary tid) throws RocksDBException {
 		var value = commitPoint.get(tid.bytesUnsafe(), tid.getOffset(), tid.size());
-		if (null == value)
+		if (null == value) {
+			logger.warn("query but not found {}", tid);
 			return null;
+		}
 		var state = new BTransactionState.Data();
 		state.decode(ByteBuffer.Wrap(value));
+		logger.info("query {}:{}", tid, state);
 		return state;
 	}
 
