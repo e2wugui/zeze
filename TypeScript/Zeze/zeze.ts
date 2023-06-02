@@ -432,6 +432,7 @@ export module Zeze {
 				const context = <Rpc<TArgument, TResult>><unknown>socket.service.RemoveRpcContext(this.sid);
 				if (context && context.ResponseHandle) {
 					context.IsTimeout = true;
+					context.ResultCode = -10n; // Timeout
 					context.ResponseHandle(context);
 				}
 			}, timeoutMs);
