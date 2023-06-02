@@ -271,6 +271,7 @@ namespace Zeze.Gen
             try
             {
                 Console.ForegroundColor = color;
+                Console.BackgroundColor = ConsoleColor.Black;
                 Console.WriteLine(obj);
             }
             finally

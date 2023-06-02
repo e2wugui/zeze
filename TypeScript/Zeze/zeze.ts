@@ -292,8 +292,14 @@ export module Zeze {
 		abstract Encode(bb: ByteBuffer): void;
 		abstract Decode(bb: ByteBuffer): void;
 
+		public static MakeTypeId(moduleId: number, protocolId: number): bigint {
+			if (protocolId < 0)
+				protocolId += 0x100000000;
+			return (BigInt(moduleId) << 32n) | BigInt(protocolId);
+		}
+
 		public TypeId(): bigint {
-			return BigInt(this.ModuleId()) << 32n | BigInt(this.ProtocolId());
+			return Protocol.MakeTypeId(this.ModuleId(), this.ProtocolId());
 		}
 
 		public EncodeProtocol(): ByteBuffer {
@@ -321,7 +327,7 @@ export module Zeze {
 			const moduleId: number = singleEncodedProtocol.ReadInt4();
 			const protocolId: number = singleEncodedProtocol.ReadInt4();
 			const size: number = singleEncodedProtocol.ReadInt4();
-			const type: bigint = BigInt(moduleId) << 32n | BigInt(protocolId);
+			const type: bigint = Protocol.MakeTypeId(moduleId, protocolId);
 			const factoryHandle = service.FactoryHandleMap.get(type);
 			if (factoryHandle != null) {
 				const p = factoryHandle.factory();
@@ -355,7 +361,7 @@ export module Zeze {
 
 				const buffer = new ByteBuffer(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
-				const type: bigint = BigInt(moduleId) << 32n | BigInt(protocolId);
+				const type: bigint = Protocol.MakeTypeId(moduleId, protocolId);
 				const factoryHandle = service.FactoryHandleMap.get(type);
 				if (factoryHandle != null) {
 					const p = factoryHandle.factory();
