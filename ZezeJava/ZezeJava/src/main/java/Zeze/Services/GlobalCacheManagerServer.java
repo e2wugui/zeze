@@ -80,7 +80,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		int initialCapacity = 10_000_000;
 
 		int maxNetPing = 1_500;
-		int serverProcessTime = 1_000;
+		int serverProcessTime = 10_000;
 		int serverReleaseTimeout = 10_000;
 
 		@Override

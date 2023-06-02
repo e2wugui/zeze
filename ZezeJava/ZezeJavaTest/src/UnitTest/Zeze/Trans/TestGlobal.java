@@ -80,6 +80,15 @@ public class TestGlobal extends TestCase {
 		app1.Start(config1);
 		app2.Start(config2);
 		try {
+			Assert.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
+				app1.demo_Module1.getTable1().getOrAdd(6785L);
+				return Procedure.Success;
+			}, "RemoveClean").call());
+			Assert.assertEquals(Procedure.Success, app2.Zeze.newProcedure(() -> {
+				app2.demo_Module1.getTable1().getOrAdd(6785L);
+				return Procedure.Success;
+			}, "RemoveClean").call());
+
 			// 只删除一个app里面的记录就够了。
 			Assert.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
 				app1.demo_Module1.getTable1().remove(6785L);

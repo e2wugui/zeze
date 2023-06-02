@@ -99,6 +99,13 @@ public class TestLostRedo {
 			return 0;
 		}, "clear").call();
 
+		/*
+		App.Instance.Zeze.newProcedure(() -> {
+					App.Instance.Zeze.getAutoKeyOld("insert.autokey").setSeed(System.currentTimeMillis());
+					return 0;
+				}, "set seed to now").call();
+		*/
+
 		var count = 1000;
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < count; ++i)

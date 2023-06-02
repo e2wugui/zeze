@@ -15,7 +15,7 @@ public abstract class GlobalAgentBase {
 
 	public GlobalAgentBase(Application zeze) {
 		this.zeze = zeze;
-		config = new AchillesHeelConfig(1500, 1000, 10 * 1000);
+		config = new AchillesHeelConfig(1500, 10000, 10 * 1000);
 	}
 
 	public final AchillesHeelConfig getConfig() {

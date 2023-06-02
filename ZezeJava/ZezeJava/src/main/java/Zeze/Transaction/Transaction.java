@@ -300,6 +300,7 @@ public final class Transaction {
 								if (!"GlobalAgent.Acquire Failed".equals(e.getMessage()) &&
 										!"GlobalAgent In FastErrorPeriod".equals(e.getMessage()))
 									logger.warn("Transaction.Perform: Abort", e);
+								logger.warn("Transaction.Perform: Abort", e);
 								finalRollback(procedure);
 								return Procedure.AbortException;
 
