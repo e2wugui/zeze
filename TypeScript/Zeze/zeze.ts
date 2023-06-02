@@ -214,11 +214,11 @@ export module Zeze {
 		}
 
 		public Encode(bb: ByteBuffer) {
-			bb.SkipUnknownField(ByteBuffer.BEAN);
+			bb.WriteByte(0);
 		}
 
 		public Decode(bb: ByteBuffer) {
-			bb.WriteByte(0);
+			bb.SkipUnknownField(ByteBuffer.BEAN);
 		}
 	}
 
@@ -1616,22 +1616,23 @@ export module Zeze {
 					this.SkipBytes();
 					return;
 				case ByteBuffer.LIST:
-					let t = this.ReadByte();
-					this.SkipUnknownList(t, this.ReadTagSize(t));
+					const t1 = this.ReadByte();
+					this.SkipUnknownList(t1, this.ReadTagSize(t1));
 					return;
 				case ByteBuffer.MAP:
-					t = this.ReadByte();
-					this.SkipUnknownMap(t >> ByteBuffer.TAG_SHIFT, t, this.ReadUInt());
+					const t2 = this.ReadByte();
+					this.SkipUnknownMap(t2 >> ByteBuffer.TAG_SHIFT, t2, this.ReadUInt());
 					return;
 				case ByteBuffer.DYNAMIC:
 					this.SkipLong();
 				// eslint-disable-next-line no-fallthrough
 				case ByteBuffer.BEAN:
+					let t3;
 					// eslint-disable-next-line no-cond-assign
-					while ((t = this.ReadByte()) !== 0) {
-						if ((t & ByteBuffer.ID_MASK) === 0xf0)
+					while ((t3 = this.ReadByte()) !== 0) {
+						if ((t3 & ByteBuffer.ID_MASK) === 0xf0)
 							this.SkipUInt();
-						this.SkipUnknownField(t);
+						this.SkipUnknownField(t3);
 					}
 					return;
 				default:

@@ -106,6 +106,7 @@ public final class Token extends AbstractToken {
 				stop();
 			connector = new Connector(host, port, true);
 			connector.SetService(this);
+			connector.setAutoReconnect(true);
 			connector.start();
 			return this;
 		}
