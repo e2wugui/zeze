@@ -471,17 +471,26 @@ public class Online extends AbstractOnline {
 		var local = _tlocal.get(roleId);
 		if (null != local && local.getLoginVersion() == currentLoginVersion) {
 			var ret = removeLocalAndTrigger(roleId);
+			logger.info("tryLogout: roleId={}, currentLoginVersion={}, removeLocalAndTrigger={}",
+					roleId, currentLoginVersion, ret);
 			if (0 != ret)
 				return ret;
 		}
 		// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
 		var online = getOnline(roleId);
+		var logoutVersion = online != null ? online.getLogoutVersion() : -1;
 		if (online != null && online.getLink().getState() != eOffline
 				&& online.getLoginVersion() == currentLoginVersion
 				&& assignLogoutVersion(online)) {
 			var ret = logoutTrigger(roleId, LogoutReason.LOGOUT);
+			logger.info("tryLogout: roleId={}, state={}, currentLoginVersion={}, logoutVersion={}, logoutTrigger={}",
+					roleId, online.getLink().getState(), currentLoginVersion, logoutVersion, ret);
 			if (0 != ret)
 				return ret;
+		} else {
+			logger.info("tryLogout: roleId={}, state={}, version.login/logoutVersion={}/{}, currentLoginVersion={}",
+					roleId, online != null ? online.getLink().getState() : -1,
+					online != null ? online.getLoginVersion() : -1, logoutVersion, currentLoginVersion);
 		}
 		return Procedure.Success;
 	}
