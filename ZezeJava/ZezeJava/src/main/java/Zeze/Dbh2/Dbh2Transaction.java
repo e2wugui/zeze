@@ -3,7 +3,6 @@ package Zeze.Dbh2;
 import java.io.Closeable;
 import java.util.HashMap;
 import Zeze.Builtin.Dbh2.BBatch;
-import Zeze.Builtin.Dbh2.BPrepareBatch;
 import org.rocksdb.RocksDBException;
 
 public class Dbh2Transaction implements Closeable {
@@ -59,7 +58,7 @@ public class Dbh2Transaction implements Closeable {
 	 * 把batch数据写入db，并且构造出undo logs。
 	 *
 	 * @param bucket bucket
-	 * @param prepare prepare batch
+	 * @param batch prepare batch
 	 */
 	public void prepareBatch(Bucket bucket, BBatch.Data batch) throws RocksDBException {
 		var b = bucket.getBatch();

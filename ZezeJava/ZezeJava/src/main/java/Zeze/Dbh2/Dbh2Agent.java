@@ -23,6 +23,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Func3;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskCompletionSourceX;
 
 public class Dbh2Agent extends AbstractDbh2Agent {
 	// private static final Logger logger = LogManager.getLogger(Dbh2Agent.class);
@@ -74,7 +75,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return KV.create(true, bb);
 	}
 
-	public TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BRefused.Data>> prepareBatch(BPrepareBatch.Data batch) {
+	public TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>> prepareBatch(BPrepareBatch.Data batch) {
 		var r = new PrepareBatch();
 		r.Argument = batch;
 		return raftClient.sendForWait(r);

@@ -29,10 +29,8 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.ThreadFactoryWithName;
 import Zeze.Util.TimerFuture;
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

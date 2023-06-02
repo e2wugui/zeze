@@ -87,7 +87,7 @@ public class TimerAccount {
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
 		if (null != customData) {
-			timer.register(customData.getClass());
+			Timer.register(customData.getClass());
 			timerLocal.getCustomData().setBean(customData);
 		}
 		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name);
@@ -116,7 +116,7 @@ public class TimerAccount {
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
 		if (null != customData) {
-			timer.register(customData.getClass());
+			Timer.register(customData.getClass());
 			timerLocal.getCustomData().setBean(customData);
 		}
 		scheduleCron(timerId, cronTimer, name);
@@ -177,7 +177,7 @@ public class TimerAccount {
 		var timerName = timer.schedule(timerId, simpleTimer, OfflineHandle.class, custom);
 		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
 		if (null != customData) {
-			timer.register(customData.getClass());
+			Timer.register(customData.getClass());
 			custom.getCustomData().setBean(customData);
 		}
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
@@ -224,7 +224,7 @@ public class TimerAccount {
 		var timerName = timer.schedule(timerId, cronTimer, OfflineHandle.class, custom);
 		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
 		if (null != customData) {
-			timer.register(customData.getClass());
+			Timer.register(customData.getClass());
 			custom.getCustomData().setBean(customData);
 		}
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));

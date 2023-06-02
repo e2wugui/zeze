@@ -26,7 +26,7 @@ import Zeze.Util.OutObject;
 import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
-import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskCompletionSourceX;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -183,12 +183,12 @@ public final class Agent {
 		return Procedure.Success;
 	}
 
-	public <TArgument extends Serializable, TResult extends Serializable> TaskCompletionSource<RaftRpc<TArgument, TResult>> sendForWait(
+	public <TArgument extends Serializable, TResult extends Serializable> TaskCompletionSourceX<RaftRpc<TArgument, TResult>> sendForWait(
 			RaftRpc<TArgument, TResult> rpc) {
 		return sendForWait(rpc, false);
 	}
 
-	public <TArgument extends Serializable, TResult extends Serializable> TaskCompletionSource<RaftRpc<TArgument, TResult>> sendForWait(
+	public <TArgument extends Serializable, TResult extends Serializable> TaskCompletionSourceX<RaftRpc<TArgument, TResult>> sendForWait(
 			RaftRpc<TArgument, TResult> rpc, boolean urgent) {
 		if (pendingLimit > 0 && pending.size() > pendingLimit) // UrgentPending不限制。
 			throw new IllegalStateException("too many pending");
@@ -206,7 +206,7 @@ public final class Agent {
 		if (rpc.getTimeout() == 0) // set default timeout
 			rpc.setTimeout(raftConfig.getAgentTimeout());
 
-		var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
+		var future = new TaskCompletionSourceX<RaftRpc<TArgument, TResult>>();
 		rpc.setUrgent(urgent);
 		var pending = urgent ? urgentPending : this.pending;
 		rpc.future = future;

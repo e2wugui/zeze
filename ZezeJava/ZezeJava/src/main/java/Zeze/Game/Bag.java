@@ -32,12 +32,12 @@ public class Bag {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
-	private final Module module;
+	// private final Module module;
 
 	Bag(Module module, String bagName) {
-		this.module = module;
+		// this.module = module;
 		this.name = bagName;
-		this.bean = this.module._tbag.getOrAdd(bagName);
+		this.bean = module._tbag.getOrAdd(bagName);
 	}
 
 	private final String name;
@@ -135,7 +135,7 @@ public class Bag {
 			throw new IllegalArgumentException();
 		}
 		// 自动注册加入的BItem.Item的class。
-		module.register(itemAdd.getItem().getBean());
+		Module.register(itemAdd.getItem().getBean());
 
 		int pileMax = getItemPileMax(itemAdd.getId());
 
@@ -346,11 +346,10 @@ public class Bag {
 			return bags.computeIfAbsent(bagName, key -> new Bag(this, bagName));
 		}
 
-		public void register(Bean bean) {
+		public static void register(Bean bean) {
 			beanFactory.register(bean);
 		}
 
-		@SuppressWarnings("unchecked")
 		public void start(Application zeze) {
 			providerApp.builtinModules.put(this.getFullName(), this);
 		}

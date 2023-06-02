@@ -175,8 +175,7 @@ public final class Config {
 		return checkpointFlushMode;
 	}
 
-	public void setCheckpointFlushMode(@NotNull CheckpointFlushMode value) {
-		//noinspection ConstantValue
+	public void setCheckpointFlushMode(@Nullable CheckpointFlushMode value) {
 		checkpointFlushMode = value != null ? value : CheckpointFlushMode.SingleThread;
 	}
 
@@ -208,8 +207,7 @@ public final class Config {
 		return checkpointMode;
 	}
 
-	public void setCheckpointMode(@NotNull CheckpointMode value) {
-		//noinspection ConstantValue
+	public void setCheckpointMode(@Nullable CheckpointMode value) {
 		checkpointMode = value != null ? value : CheckpointMode.Table;
 	}
 
@@ -217,8 +215,7 @@ public final class Config {
 		return processReturnErrorLogLevel;
 	}
 
-	public void setProcessReturnErrorLogLevel(@NotNull Level value) {
-		//noinspection ConstantValue
+	public void setProcessReturnErrorLogLevel(@Nullable Level value) {
 		processReturnErrorLogLevel = value != null ? value : Level.INFO;
 	}
 
@@ -390,8 +387,7 @@ public final class Config {
 		return defaultServiceConf;
 	}
 
-	public void setDefaultServiceConf(@NotNull ServiceConf value) {
-		//noinspection ConstantValue
+	public void setDefaultServiceConf(@Nullable ServiceConf value) {
 		if (value != null)
 			defaultServiceConf = value;
 	}
@@ -436,13 +432,12 @@ public final class Config {
 	public void parse(@NotNull Element self) {
 		if (!self.getNodeName().equals("zeze"))
 			throw new IllegalStateException("is it a zeze config?");
-		String name = self.getAttribute("name");
-		if (!name.isBlank())
-			this.name = name;
+
+		name = self.getAttribute("name").trim();
 
 		String attr = self.getAttribute("CheckpointPeriod");
 		if (!attr.isBlank())
-			checkpointPeriod = Integer.parseInt(self.getAttribute("CheckpointPeriod"));
+			checkpointPeriod = Integer.parseInt(attr);
 
 		attr = self.getAttribute("ServerId");
 		if (!attr.isBlank())
@@ -473,25 +468,30 @@ public final class Config {
 			setProcessReturnErrorLogLevel(Level.toLevel(attr));
 
 		attr = self.getAttribute("WorkerThreads");
-		setWorkerThreads(attr.isBlank() ? -1 : Integer.parseInt(attr));
+		if (!attr.isBlank())
+			workerThreads = Integer.parseInt(attr);
 
 		attr = self.getAttribute("ScheduledThreads");
-		scheduledThreads = attr.isBlank() ? -1 : Integer.parseInt(attr);
+		if (!attr.isBlank())
+			scheduledThreads = Integer.parseInt(attr);
 
 		attr = self.getAttribute("CompletionPortThreads");
-		setCompletionPortThreads(attr.isBlank() ? -1 : Integer.parseInt(attr));
+		if (!attr.isBlank())
+			completionPortThreads = Integer.parseInt(attr);
 
 		attr = self.getAttribute("AllowReadWhenRecordNotAccessed");
-		setAllowReadWhenRecordNotAccessed(attr.isBlank() || Boolean.parseBoolean(attr));
+		allowReadWhenRecordNotAccessed = attr.isBlank() || Boolean.parseBoolean(attr);
+
 		attr = self.getAttribute("AllowSchemasReuseVariableIdWithSameType");
-		setAllowSchemasReuseVariableIdWithSameType(attr.isBlank() || Boolean.parseBoolean(attr));
+		allowSchemasReuseVariableIdWithSameType = attr.isBlank() || Boolean.parseBoolean(attr);
 
 		attr = self.getAttribute("FastRedoWhenConflict");
-		setFastRedoWhenConflict(attr.isBlank() || Boolean.parseBoolean(attr));
+		fastRedoWhenConflict = attr.isBlank() || Boolean.parseBoolean(attr);
 
 		attr = self.getAttribute("CheckpointMode");
 		if (!attr.isBlank())
 			setCheckpointMode(CheckpointMode.valueOf(attr));
+
 		attr = self.getAttribute("CheckpointFlushMode");
 		if (!attr.isBlank())
 			setCheckpointFlushMode(CheckpointFlushMode.valueOf(attr));

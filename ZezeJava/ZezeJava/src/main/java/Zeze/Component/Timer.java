@@ -71,12 +71,11 @@ public class Timer extends AbstractTimer {
 
 	protected Timer(@NotNull AppBase app) {
 		zeze = app.getZeze();
-		//noinspection ConstantValue
 		if (zeze != null) // 只生成Redirect代码时zeze可能为null
 			RegisterZezeTables(zeze);
 	}
 
-	void register(@NotNull Class<? extends Bean> cls) {
+	static void register(@NotNull Class<? extends Bean> cls) {
 		beanFactory.register(cls);
 	}
 

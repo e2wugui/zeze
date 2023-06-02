@@ -24,16 +24,6 @@ public class TaskCompletionSource<R> implements Future<R> {
 	private volatile @SuppressWarnings("unused") Object result;
 	private final ReentrantLock lock = new ReentrantLock();
 	private final Condition cond = lock.newCondition();
-	private Object context;
-
-	public Object getContext() {
-		return context;
-	}
-
-	public TaskCompletionSource<R> setContext(Object context) {
-		this.context = context;
-		return this;
-	}
 
 	static {
 		try {

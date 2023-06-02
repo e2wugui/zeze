@@ -18,6 +18,7 @@ import Zeze.Util.Func2;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskCompletionSourceX;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -136,12 +137,12 @@ public class CommitRocks {
 			e.await();
 	}
 
-	private ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> processPrepareFutures(
+	private ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> processPrepareFutures(
 			Binary tid, String queryHost, int queryPort,
-			ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> futures)
+			ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> futures)
 			throws ExecutionException, InterruptedException {
 
-		var futuresRedirect = new ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
+		var futuresRedirect = new ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
 		for (var e : futures) {
 			var r = e.get();
 			if (r.getResultCode() != 0)
@@ -174,7 +175,7 @@ public class CommitRocks {
 		try {
 			// prepare
 			saveCommitPoint(tid, batches, Commit.ePreparing);
-			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
+			var futures = new ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
 			var tidBinary = new Binary(tid);
 			for (var e : batches.getDatas().entrySet()) {
 				var batch = e.getValue();
@@ -250,7 +251,7 @@ public class CommitRocks {
 	}
 
 	private void modifyCommitPoint(byte[] tid, BPrepareBatches.Data batches,
-								   ArrayList<TaskCompletionSource<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> futures)
+								   ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> futures)
 			throws RocksDBException {
 
 		var bState = new BTransactionState.Data();
