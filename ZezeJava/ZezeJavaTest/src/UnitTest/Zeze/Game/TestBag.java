@@ -112,10 +112,7 @@ public class TestBag {
 
 	private static long preRemove() {
 		var table = App.getInstance().BagModule.getTable();
-		table.walkDatabase((TableWalkHandle<String, BBag>)(key, value) -> {
-			table.remove(String.valueOf(key));
-			return true;
-		});
+		table.remove("test1");
 		System.out.println(String.format("delete table %s", table.getName()));
 		return Procedure.Success;
 	}
