@@ -8,7 +8,7 @@ final class HeartbeatLog extends Log {
 	public static final int TypeId_ = Bean.hash32(HeartbeatLog.class.getName());
 
 	@Override
-	public int typeId() {
+	public long typeId() {
 		return TypeId_;
 	}
 

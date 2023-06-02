@@ -90,6 +90,7 @@ public abstract class Bean implements Serializable {
 
 	public abstract void leaderApplyNoRecursive(Log log);
 
+	@Override
 	public long typeId() {
 		return Zeze.Transaction.Bean.hash64(getClass().getName());
 	}

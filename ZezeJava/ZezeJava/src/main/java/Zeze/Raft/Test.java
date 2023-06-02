@@ -641,7 +641,7 @@ public class Test {
 		private long count;
 
 		public TestStateMachine() {
-			addFactory(new AddCount(null).typeId(), () -> new AddCount(null));
+			addFactory(AddCount.TypeId_, () -> new AddCount(null));
 		}
 
 		public long getCount() {
@@ -661,7 +661,7 @@ public class Test {
 			public static final int TypeId_ = Bean.hash32(AddCount.class.getName());
 
 			@Override
-			public int typeId() {
+			public long typeId() {
 				return TypeId_;
 			}
 

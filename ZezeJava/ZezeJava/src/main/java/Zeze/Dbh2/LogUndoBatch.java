@@ -28,7 +28,7 @@ public class LogUndoBatch extends Log {
 	}
 
 	@Override
-	public int typeId() {
+	public long typeId() {
 		return TypeId_;
 	}
 

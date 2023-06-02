@@ -20,7 +20,7 @@ public final class Changes extends Zeze.Raft.Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(Changes.class.getName());
 
 	@Override
-	public int typeId() {
+	public long typeId() {
 		return TypeId_;
 	}
 

@@ -12,7 +12,7 @@ public abstract class StateMachine {
 	private final LongConcurrentHashMap<Supplier<Log>> logFactorys = new LongConcurrentHashMap<>();
 
 	public StateMachine() {
-		addFactory(new HeartbeatLog().typeId(), HeartbeatLog::new);
+		addFactory(HeartbeatLog.TypeId_, HeartbeatLog::new);
 	}
 
 	public Raft getRaft() {
@@ -90,7 +90,6 @@ public abstract class StateMachine {
 	 * 然后 Raft 会从 LastIncludedIndex 后面开始复制日志。进入正常的模式。
 	 */
 	public abstract void loadSnapshot(String path) throws Exception;
-
 
 	/**
 	 * 没有快照的时候，stateMachine可能需要重置。

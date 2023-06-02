@@ -159,6 +159,7 @@ public abstract class Bean implements Serializable {
 	// 默认实现是 ClassName.HashCode()，也可以手动指定一个值。
 	// Gen的时候会全局判断是否出现重复冲突。如果出现冲突，则手动指定一个。
 	// 这个方法在Gen的时候总是覆盖(override)，提供默认实现是为了方便内部Bean的实现。
+	@Override
 	public long typeId() {
 		return hash64(getClass().getName());
 	}

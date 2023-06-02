@@ -16,8 +16,10 @@ public abstract class Log implements Serializable {
 	 * 【注意】
 	 * 如果实现类的FullName发生了改变，需要更新所有的Raft-Node。
 	 * 如果不想跟名字相关，重载并提供一个编号。
+	 * Log的typeId只使用低32位
 	 */
-	public abstract int typeId();
+	@Override
+	public abstract long typeId();
 
 	// 当前这个Log是哪个应用的Rpc请求引起的。
 	// 【Raft用来检测重复的请求】。

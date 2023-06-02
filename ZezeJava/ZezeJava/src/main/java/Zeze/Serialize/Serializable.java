@@ -9,6 +9,10 @@ public interface Serializable {
 
 	void decode(@NotNull ByteBuffer bb);
 
+	default long typeId() {
+		return 0;
+	}
+
 	default int preAllocSize() {
 		return 16;
 	}
