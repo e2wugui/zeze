@@ -13,9 +13,16 @@ ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 Dbh2 接入Zeze：CheckpointFlush 慢。
 Config.Custom 修改接口。去掉一开始注册。
-	load时记住XmlElement。用方法parseCustom(custom)查找XmlElement并解析。
-	其他Custom方法都删除。
-	【不兼容修改】修改方案，去掉addCustom调用，直接调用config.parseCustom。
+	【问题】
+	Custom实例需要预先new出来，在Config.loadAndParse之前注册到Config中。
+	这个方式在涉及到Config传递给多个地方，以及多个地方可能都有自己的Custom时非常不好用。
+	【这是不兼容修改】
+	1. Config.Load时记住map<CustomName, XmlElement>。
+	2. 增加方法 parseCustom(custom)，查找map并调用解析。
+	3. 其他Custom方法都删除。
+	【现有代码怎么改】
+	去掉addCustom调用，改成调用config.parseCustom。parseCustom可以随时根据需要调用。
+
 Dbh2 create table async. & connect to all bucket.
 Dbh2 全桶迁移？ 
 ------------------------------------------------------------------------------------------------------------------------------
