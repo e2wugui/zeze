@@ -19,7 +19,7 @@ public class Dbh2FullTest {
 	private static Database newDatabase(Dbh2AgentManager dbh2AgentManager, @SuppressWarnings("SameParameterValue") String dbName) {
 		var databaseConf = new Config.DatabaseConf();
 		databaseConf.setDatabaseType(Config.DbType.Dbh2);
-		databaseConf.setDatabaseUrl("dbh2://127.0.0.1:10999/" + dbName);
+		databaseConf.setDatabaseUrl("dbh2://127.0.0.1:11000/" + dbName);
 		databaseConf.setName("dbh2");
 		return new Database(null, dbh2AgentManager, databaseConf);
 	}
@@ -39,6 +39,7 @@ public class Dbh2FullTest {
 
 	@Test
 	public void testBench() throws Exception {
+		System.setProperty("Dbh2MasterDefaultBucketPortId", "18000");
 		Task.tryInitThreadPool(null, null, null);
 		Zeze.Net.Selectors.getInstance().add(7);
 
@@ -48,7 +49,7 @@ public class Dbh2FullTest {
 		var value = ByteBuffer.Wrap(new byte[]{1, 2, 3, 4});
 		Database database = null;
 		Application.renameAndDeleteDirectory(new File("CommitRocks"));
-		var dbh2AgentManager = new Dbh2AgentManager(null);
+		var dbh2AgentManager = new Dbh2AgentManager(null, 100);
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
@@ -88,13 +89,15 @@ public class Dbh2FullTest {
 
 	@Test
 	public void testCommitServerQueryVerify() throws Exception {
+		System.setProperty("Dbh2MasterDefaultBucketPortId", "18000");
+
 		Task.tryInitThreadPool(null, null, null);
 
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		Database database = null;
 		Application.renameAndDeleteDirectory(new File("CommitRocks"));
-		var dbh2AgentManager = new Dbh2AgentManager(null);
+		var dbh2AgentManager = new Dbh2AgentManager(null, 100);
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
@@ -127,13 +130,15 @@ public class Dbh2FullTest {
 
 	@Test
 	public void testFull() throws Exception {
+		System.setProperty("Dbh2MasterDefaultBucketPortId", "18000");
+
 		Task.tryInitThreadPool(null, null, null);
 
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		Database database = null;
 		Application.renameAndDeleteDirectory(new File("CommitRocks"));
-		var dbh2AgentManager = new Dbh2AgentManager(null);
+		var dbh2AgentManager = new Dbh2AgentManager(null, 100);
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)

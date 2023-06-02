@@ -765,11 +765,11 @@ public class Timer extends AbstractTimer {
 				simpleTimer.setExpectedTime(now);
 				simpleTimer.setNextExpectedTime(now + simpleTimer.getPeriod());
 			} else {
-				simpleTimer.setExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
+				simpleTimer.setExpectedTime(simpleTimer.getNextExpectedTime());
 				simpleTimer.setNextExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
 			}
 		} else {
-			simpleTimer.setExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
+			simpleTimer.setExpectedTime(simpleTimer.getNextExpectedTime());
 			simpleTimer.setNextExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
 		}
 

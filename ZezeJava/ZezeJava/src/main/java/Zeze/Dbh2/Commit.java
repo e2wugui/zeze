@@ -11,7 +11,7 @@ public class Commit extends AbstractCommit {
     private final CommitService service;
 
     public Commit(Dbh2AgentManager manager, Config config) throws RocksDBException {
-        rocks = new CommitRocks(manager);
+        rocks = new CommitRocks(manager, config.getServerId());
         service = new CommitService(config);
         RegisterProtocols(service);
     }

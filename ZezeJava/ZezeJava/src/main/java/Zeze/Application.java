@@ -90,7 +90,7 @@ public final class Application {
 
 	public Dbh2AgentManager tryNewDbh2AgentManager() throws RocksDBException {
 		if (null == dbh2AgentManager)
-			dbh2AgentManager = new Dbh2AgentManager(null);
+			dbh2AgentManager = new Dbh2AgentManager(conf);
 		return dbh2AgentManager;
 	}
 
@@ -554,6 +554,11 @@ public final class Application {
 
 		for (var db : databases.values())
 			db.close();
+
+		if (null != dbh2AgentManager) {
+			dbh2AgentManager.stop();
+			dbh2AgentManager = null;
+		}
 		startState = 0;
 	}
 

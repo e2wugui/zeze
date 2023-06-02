@@ -65,21 +65,21 @@ public class Dbh2Test {
 		var bucket1 = new Bucket("""
 				<?xml version="1.0" encoding="utf-8"?>
 				<raft Name="">
-					<node Host="127.0.0.1" Port="10000"/>
-					<node Host="127.0.0.1" Port="10001"/>
-					<node Host="127.0.0.1" Port="10002"/>
+					<node Host="127.0.0.1" Port="19000"/>
+					<node Host="127.0.0.1" Port="19001"/>
+					<node Host="127.0.0.1" Port="19002"/>
 				</raft>
 				""");
 		var bucket2 = new Bucket("""
 				<?xml version="1.0" encoding="utf-8"?>
 				<raft Name="">
-					<node Host="127.0.0.1" Port="10003"/>
-					<node Host="127.0.0.1" Port="10004"/>
-					<node Host="127.0.0.1" Port="10005"/>
+					<node Host="127.0.0.1" Port="19003"/>
+					<node Host="127.0.0.1" Port="19004"/>
+					<node Host="127.0.0.1" Port="19005"/>
 				</raft>
 				""");
 		Application.renameAndDeleteDirectory(new File("CommitRocks"));
-		var dbh2AgentManager = new Dbh2AgentManager(null);
+		var dbh2AgentManager = new Dbh2AgentManager(null, 101);
 		try {
 			final var db = "database";
 			final var tb1 = "table1";

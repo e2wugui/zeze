@@ -23,6 +23,7 @@ import Zeze.Dbh2.Dbh2Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
+import Zeze.Util.PropertiesHelper;
 import Zeze.Util.RocksDatabase;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -87,7 +88,7 @@ public class Master extends AbstractMaster {
 	}
 
 	public synchronized int nextBucketPortId(String acceptorName) throws RocksDBException {
-		var seed = 10000;
+		var seed = PropertiesHelper.getInt("Dbh2MasterDefaultBucketPortId", 10000);
 		var seedKey = acceptorName.getBytes(StandardCharsets.UTF_8);
 		var seedValue = masterDb.get(RocksDatabase.getDefaultReadOptions(), seedKey);
 		if (null != seedValue) {

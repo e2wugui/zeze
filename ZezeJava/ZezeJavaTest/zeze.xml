@@ -25,7 +25,7 @@
 		/>
 	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="172.21.15.68:2379"/>
 	-->
-	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
+	<DatabaseConf Name="" DatabaseType="Dbh2" DatabaseUrl="dbh2://127.0.0.1:10999/dbh2_unittest"/>
 
 	<TableConf CacheCapacity="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
 	<TableConf Name="demo_Module1_tflush" CacheCapacity="1000"/>
@@ -38,10 +38,10 @@
 		<Acceptor Ip="127.0.0.1" Port="7777"/>
 	</ServiceConf>
 	<ServiceConf Name="Zeze.Dbh2.Master">
-		<Acceptor Ip="127.0.0.1" Port="10999"/>
+		<Acceptor Ip="127.0.0.1" Port="11000"/>
 	</ServiceConf>
 	<ServiceConf Name="Zeze.Dbh2.Master.Agent">
-		<Connector HostNameOrAddress="127.0.0.1" Port="10999"/>
+		<Connector HostNameOrAddress="127.0.0.1" Port="11000"/>
 		<Acceptor Ip="127.0.0.1" Port="0"/>
 	</ServiceConf>
 	<ServiceConf Name="Zeze.Dbh2.Commit">

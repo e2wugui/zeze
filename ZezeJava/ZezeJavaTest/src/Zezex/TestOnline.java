@@ -35,7 +35,7 @@ public class TestOnline extends TestCase {
 
 	private void start() throws Exception {
 		for (int i = 0; i < LinkCount; ++i)
-			links.get(i).Start(-(i+1), 10000 + i, 15000 + i);
+			links.get(i).Start(-(i+1), 12000 + i, 15000 + i);
 		for (int i = 0; i < ServerCount; ++i)
 			servers.get(i).Start(i + 50, 20000 + i);
 		Thread.sleep(2000); // wait server ready
@@ -123,41 +123,41 @@ public class TestOnline extends TestCase {
 	private static void relogin(ClientGame.App app, long roleId) {
 		var relogin = new ReLogin();
 		relogin.Argument.setRoleId(roleId);
-		relogin.SendForWait(app.ClientService.GetSocket()).await();
+		relogin.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, relogin.getResultCode());
 	}
 
 	private static void logout(ClientGame.App app, long roleIdForLogOnly) {
 		var logout = new Logout();
-		logout.SendForWait(app.ClientService.GetSocket()).await();
+		logout.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, logout.getResultCode());
 	}
 
 	private static void login(ClientGame.App app, long roleId) {
 		var login = new Login();
 		login.Argument.setRoleId(roleId);
-		login.SendForWait(app.ClientService.GetSocket()).await();
+		login.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, login.getResultCode());
 	}
 
 	private static void auth(ClientGame.App app, String account) {
 		var auth = new Auth();
 		auth.Argument.setAccount(account);
-		auth.SendForWait(app.ClientService.GetSocket()).await();
+		auth.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, auth.getResultCode());
 	}
 
 	private static long createRole(ClientGame.App app, String role) {
 		var createRole = new CreateRole();
 		createRole.Argument.setName(role);
-		createRole.SendForWait(app.ClientService.GetSocket()).await();
+		createRole.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, createRole.getResultCode());
 		return createRole.Result.getId();
 	}
 
 	private static BRole getRole(ClientGame.App app) {
 		var get = new GetRoleList();
-		get.SendForWait(app.ClientService.GetSocket()).await();
+		get.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, get.getResultCode());
 		if (get.Result.getRoleList().isEmpty())
 			return null;

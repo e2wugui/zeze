@@ -33,9 +33,9 @@ public class CommitRocks {
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
 	private Future<?> redoTimer;
 
-	public CommitRocks(Dbh2AgentManager manager) throws RocksDBException {
+	public CommitRocks(Dbh2AgentManager manager, int serverId) throws RocksDBException {
 		this.manager = manager;
-		database = new RocksDatabase("CommitRocks");
+		database = new RocksDatabase("CommitRocks" + serverId);
 		commitPoint = database.getOrAddTable("CommitPoint");
 		commitIndex = database.getOrAddTable("CommitIndex");
 	}
@@ -94,7 +94,8 @@ public class CommitRocks {
 	}
 
 	public void close() {
-		redoTimer.cancel(false);
+		if (null != redoTimer)
+			redoTimer.cancel(false);
 		database.close();
 	}
 

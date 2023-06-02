@@ -11,9 +11,17 @@ c# fresh 有bug？
 c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，等c#自己的async-lock】
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
+Dbh2 接入Zeze：CheckpointFlush 慢。
+Config.Custom 修改接口。去掉一开始注册。
+	load时记住XmlElement。用方法parseCustom(custom)查找XmlElement并解析。
+	其他Custom方法都删除。
+	【不兼容修改】修改方案，去掉addCustom调用，直接调用config.parseCustom。
+Dbh2 create table async. & connect to all bucket.
+Dbh2 全桶迁移？ 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/6/2 v1.2.5 Netty DispatchMode; Dbh2; Game.Online.sendOnlineRpc;
 ------------------------------------------------------------------------------------------------------------------------------
+Dbh2 接入Zeze跑通单元测试。
 Zeze.Component 里面用到的DynamicBean注册class不需要了。
 	【持久化到表的清理，register的调用保留使得beanFactory可以使用局部map，效率更高】
 LinkdUserSession.keepAlive 机制每次重新调度定时任务比较费。

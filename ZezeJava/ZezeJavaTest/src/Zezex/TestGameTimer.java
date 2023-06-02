@@ -35,12 +35,12 @@ public class TestGameTimer {
 			servers.add(new Game.App());
 
 		for (int i = 0; i < linkCount; ++i)
-			links.get(i).Start(-(i+1), 10000 + i, 15000 + i);
+			links.get(i).Start(-(i+1), 12000 + i, 15000 + i);
 		for (int i = 40; i < serverCount + 40; ++i) {
 			servers.get(i - 40).Start(i, 20000 + i - 40);
 			servers.get(i - 40).getZeze().getTimer().start();
 		}
-		Thread.sleep(2000);
+		//Thread.sleep(2000);
 		for (int i = 0; i < clientCount; ++i) {
 			var link = links.get(i % linkCount);
 			var ipport = link.LinkdService.getOnePassiveAddress();
@@ -109,7 +109,7 @@ public class TestGameTimer {
 
 			TestBean bean = new TestBean();
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				timerRole0.scheduleOnline(roleId, 100, 100, 10, System.currentTimeMillis() + 2000, new TestOnlineTimerHandle(), bean);
+				timerRole0.scheduleOnline(roleId, 1, 1, 5, System.currentTimeMillis() + 2000, new TestOnlineTimerHandle(), bean);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
 			sleep(100, 6);
@@ -225,41 +225,41 @@ public class TestGameTimer {
 	private static void relogin(ClientGame.App app, long roleId) {
 		var relogin = new Zeze.Builtin.Game.Online.ReLogin();
 		relogin.Argument.setRoleId(roleId);
-		relogin.SendForWait(app.ClientService.GetSocket()).await();
+		relogin.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, relogin.getResultCode());
 	}
 
 	private static void logout(ClientGame.App app, long roleIdForLogOnly) {
 		var logout = new Zeze.Builtin.Game.Online.Logout();
-		logout.SendForWait(app.ClientService.GetSocket()).await();
+		logout.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, logout.getResultCode());
 	}
 
 	private static void login(ClientGame.App app, long roleId) {
 		var login = new Zeze.Builtin.Game.Online.Login();
 		login.Argument.setRoleId(roleId);
-		login.SendForWait(app.ClientService.GetSocket()).await();
+		login.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, login.getResultCode());
 	}
 
 	private static void auth(ClientGame.App app, String account) {
 		var auth = new Auth();
 		auth.Argument.setAccount(account);
-		auth.SendForWait(app.ClientService.GetSocket()).await();
+		auth.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, auth.getResultCode());
 	}
 
 	private static long createRole(ClientGame.App app, String role) {
 		var createRole = new CreateRole();
 		createRole.Argument.setName(role);
-		createRole.SendForWait(app.ClientService.GetSocket()).await();
+		createRole.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, createRole.getResultCode());
 		return createRole.Result.getId();
 	}
 
 	private static BRole getRole(ClientGame.App app) {
 		var get = new GetRoleList();
-		get.SendForWait(app.ClientService.GetSocket()).await();
+		get.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, get.getResultCode());
 		if (get.Result.getRoleList().isEmpty())
 			return null;

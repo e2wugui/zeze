@@ -17,7 +17,7 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 
 	<ServiceManagerConf raftXml="servicemanager.raft.xml"/>
 
-	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/> 先配一个内存数据库，调试。
+	<DatabaseConf Name="" DatabaseType="Dbh2" DatabaseUrl="dbh2://127.0.0.1:10999/dbh2_unittest"/>
 
 	<ServiceConf Name="Server" InputBufferMaxProtocolSize="2M">
 	</ServiceConf>
@@ -28,5 +28,9 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 
 	<ServiceConf Name="ServerDirect" InputBufferMaxProtocolSize="2M">
 		<Acceptor Ip="" Port="20001"/>
+	</ServiceConf>
+
+	<ServiceConf Name="Zeze.Dbh2.Commit">
+		<Acceptor Ip="127.0.0.1" Port="7789"/>
 	</ServiceConf>
 </zeze>

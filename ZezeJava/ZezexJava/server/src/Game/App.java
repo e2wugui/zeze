@@ -75,6 +75,12 @@ public final class App extends Zeze.AppBase {
 		if (serverId != -1) {
 			config.setServerId(serverId); // replace from args
 		}
+		var commitService = config.getServiceConf("Zeze.Dbh2.Commit");
+		if (null != commitService) {
+			commitService.forEachAcceptor((a) -> {
+				a.setPort(a.getPort() + config.getServerId());
+			});
+		}
 		if (providerDirectPort != -1) {
 			final int port = providerDirectPort;
 			config.getServiceConfMap().get("ServerDirect").forEachAcceptor((a) -> a.setPort(port));

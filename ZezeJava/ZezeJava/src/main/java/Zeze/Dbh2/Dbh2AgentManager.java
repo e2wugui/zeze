@@ -55,8 +55,14 @@ public class Dbh2AgentManager {
 	}
 
 	public Dbh2AgentManager(Config config) throws RocksDBException {
+		this(config, -1);
+	}
+
+	public Dbh2AgentManager(Config config, int serverId) throws RocksDBException {
 		if (null == config)
 			config = new Config().addCustomize(dbh2Config).loadAndParse();
+		if (serverId != -1) // 为了测试能指定一个不一样的serverId用来连续运行测试。
+			config.setServerId(serverId);
 		this.config = config;
 		// ugly
 		if (config.isDbh2LocalCommit()) {

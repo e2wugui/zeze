@@ -65,9 +65,15 @@ public class TestGlobal extends TestCase {
 		demo.App app1 = new demo.App();
 		demo.App app2 = new demo.App();
 		var config1 = Config.load("zeze.xml");
-		config1.setServerId(config1.getServerId() + 1);
+		config1.setServerId(1);
 		var config2 = Config.load("zeze.xml");
-		config2.setServerId(config1.getServerId() + 1);
+		config2.setServerId(2);
+		var commitService = config2.getServiceConf("Zeze.Dbh2.Commit");
+		if (null != commitService) {
+			commitService.forEachAcceptor((a) -> {
+				a.setPort(a.getPort() + config2.getServerId());
+			});
+		}
 		config1.getServiceConfMap().remove("TestServer");
 		config2.getServiceConfMap().remove("TestServer");
 
