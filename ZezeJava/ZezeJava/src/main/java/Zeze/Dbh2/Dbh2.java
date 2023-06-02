@@ -36,7 +36,7 @@ import org.rocksdb.RocksIterator;
 
 public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private static final Logger logger = LogManager.getLogger(Dbh2.class);
-	private final Dbh2Config config = new Dbh2Config();
+	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private final Raft raft;
 	private final Dbh2StateMachine stateMachine;
 	private final Dbh2Manager manager;
@@ -114,15 +114,16 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		return manager;
 	}
 
-	public Dbh2Config getConfig() {
-		return config;
+	public Dbh2Config getDbh2Config() {
+		return dbh2Config;
 	}
 
 	public Dbh2(Dbh2Manager manager, String raftName, RaftConfig raftConf, Config config, boolean writeOptionSync) {
 		this.manager = manager;
 
 		if (config == null)
-			config = new Config().addCustomize(this.config).loadAndParse();
+			config = Config.load();
+		config.parseCustomize(this.dbh2Config);
 
 		try {
 			stateMachine = new Dbh2StateMachine(this);
@@ -393,7 +394,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 第一次开始分桶，准备阶段。
 				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
 				// 先去manager查一下可用的manager是否够，简单判断，不原子化。
-				if (manager.getMasterAgent().checkFreeManager() < config.getRaftClusterCount()) {
+				if (manager.getMasterAgent().checkFreeManager() < dbh2Config.getRaftClusterCount()) {
 					logger.warn("not enough free manager.");
 					return;
 				}
@@ -439,7 +440,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private SplitPut buildSplitPut(RocksIterator it) {
 		var r = new SplitPut();
 		r.Argument.setFromTransaction(false);
-		var count = config.getSplitPutCount();
+		var count = dbh2Config.getSplitPutCount();
 		for (; it.isValid() && count > 0; it.next(), --count) {
 			r.Argument.getPuts().put(new Binary(it.key()), new Binary(it.value()));
 		}

@@ -76,7 +76,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	 * 简化实现。
 	 */
 	private LongConcurrentHashMap<CacheHolder> sessions;
-	private final GlobalCacheManagerServer.GCMConfig config = new GlobalCacheManagerServer.GCMConfig();
+	private final GlobalCacheManagerServer.GCMConfig gcmConfig = new GlobalCacheManagerServer.GCMConfig();
 	private AchillesHeelConfig achillesHeelConfig;
 	private GlobalCacheManagerPerf perf;
 
@@ -84,8 +84,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
-	public GlobalCacheManagerServer.GCMConfig getConfig() {
-		return config;
+	public GlobalCacheManagerServer.GCMConfig getGcmConfig() {
+		return gcmConfig;
 	}
 
 	public void start(@Nullable InetAddress ipaddress, int port) {
@@ -101,10 +101,11 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		PerfCounter.instance.tryStartScheduledLog();
 
 		if (config == null)
-			config = new Config().addCustomize(this.config).loadAndParse();
+			config = Config.load();
+		config.parseCustomize(this.gcmConfig);
 
 		sessions = new LongConcurrentHashMap<>(4096);
-		global = new ConcurrentHashMap<>(this.config.initialCapacity);
+		global = new ConcurrentHashMap<>(this.gcmConfig.initialCapacity);
 
 		server = new ServerService(config);
 
@@ -128,7 +129,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
-		achillesHeelConfig = new AchillesHeelConfig(this.config.maxNetPing, this.config.serverProcessTime, this.config.serverReleaseTimeout);
+		achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing, this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
 		Task.schedule(5000, 5000, this::achillesHeelDaemon);
 	}
 
@@ -228,9 +229,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 			releaseAsync(session, k, allReleaseFuture.createOne());
 		}
-		rpc.Result.maxNetPing = config.maxNetPing;
-		rpc.Result.serverProcessTime = config.serverProcessTime;
-		rpc.Result.serverReleaseTimeout = config.serverReleaseTimeout;
+		rpc.Result.maxNetPing = gcmConfig.maxNetPing;
+		rpc.Result.serverProcessTime = gcmConfig.serverProcessTime;
+		rpc.Result.serverReleaseTimeout = gcmConfig.serverReleaseTimeout;
 		allReleaseFuture.then(__ -> rpc.SendResultCode(0));
 		return 0;
 	}

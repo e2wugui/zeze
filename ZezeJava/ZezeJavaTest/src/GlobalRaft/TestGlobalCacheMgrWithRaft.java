@@ -79,7 +79,9 @@ public class TestGlobalCacheMgrWithRaft {
 		//noinspection ConstantConditions
 		InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
 
-		var config = new Zeze.Config().addCustomize(new ServiceManagerServer.Conf()).loadAndParse();
+		var conf = new ServiceManagerServer.Conf();
+		var config = Config.load();
+		config.parseCustomize(conf);
 		//noinspection ConstantConditions
 		new ServiceManagerServer(address, port, config);
 

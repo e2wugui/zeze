@@ -12,7 +12,6 @@ import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
@@ -146,7 +145,7 @@ public class Dbh2Manager {
 
 			// 达到分桶条件之一：负载高于最大值的80%。
 			// todo 这里可以考虑dbFileSize(min,max)，当库比较大时也分桶，另外库很小时即使负载高也不分桶。
-			if (load > dbh2.getConfig().getSplitLoad())
+			if (load > dbh2.getDbh2Config().getSplitLoad())
 				willSplit.add(dbh2);
 		}
 		masterAgent.reportLoad(loadManager);

@@ -47,11 +47,11 @@ public class Master extends AbstractMaster {
 
 	private final ArrayList<Manager> managers = new ArrayList<>();
 	private final RocksDB masterDb;
-	private final Dbh2Config config = new Dbh2Config();
+	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private final Config zezeConfig;
 
-	public Dbh2Config getConfig() {
-		return config;
+	public Dbh2Config getDbh2Config() {
+		return dbh2Config;
 	}
 
 	public Config getZezeConfig() {
@@ -60,7 +60,8 @@ public class Master extends AbstractMaster {
 
 	public Master(String home) throws RocksDBException {
 		this.home = home;
-		zezeConfig = new Config().addCustomize(config).loadAndParse();
+		zezeConfig = Config.load();
+		zezeConfig.parseCustomize(dbh2Config);
 		masterDb = RocksDatabase.open(Path.of(home, MasterDbName).toString());
 
 		var dbs = new File(home).listFiles();
@@ -151,9 +152,9 @@ public class Master extends AbstractMaster {
 		var result = new ArrayList<Manager>();
 		var count = 0;
 		for (var manager : managers) {
-			if (manager.load < config.getSplitMaxManagerLoad()) {
+			if (manager.load < dbh2Config.getSplitMaxManagerLoad()) {
 				result.add(manager);
-				if (++count >= config.getRaftClusterCount())
+				if (++count >= dbh2Config.getRaftClusterCount())
 					break;
 			}
 		}

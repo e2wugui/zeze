@@ -138,7 +138,7 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
-	private final Conf config;
+	private final Conf conf = new Conf();
 	private NetServer server;
 	private final AsyncSocket serverSocket;
 	private final RocksDB autoKeysDb;
@@ -242,7 +242,7 @@ public final class ServiceManagerServer implements Closeable {
 				// 只有两段公告模式需要回应处理。
 				if (notifyTimeoutTask != null)
 					notifyTimeoutTask.cancel(false);
-				notifyTimeoutTask = Task.scheduleUnsafe(serviceManager.config.retryNotifyDelayWhenNotAllReady,
+				notifyTimeoutTask = Task.scheduleUnsafe(serviceManager.conf.retryNotifyDelayWhenNotAllReady,
 						() -> {
 							// NotifyTimeoutTask 会在下面两种情况下被修改：
 							// 1. 在 Notify.ReadyCommit 完成以后会被清空。
@@ -414,10 +414,10 @@ public final class ServiceManagerServer implements Closeable {
 		public Session(ServiceManagerServer sm, long sid) {
 			serviceManager = sm;
 			sessionId = sid;
-			if (serviceManager.config.keepAlivePeriod > 0) {
+			if (serviceManager.conf.keepAlivePeriod > 0) {
 				keepAliveTimerTask = Task.scheduleUnsafe(
-						Random.getInstance().nextInt(serviceManager.config.keepAlivePeriod),
-						serviceManager.config.keepAlivePeriod,
+						Random.getInstance().nextInt(serviceManager.conf.keepAlivePeriod),
+						serviceManager.conf.keepAlivePeriod,
 						() -> {
 							AsyncSocket s = null;
 							try {
@@ -721,10 +721,10 @@ public final class ServiceManagerServer implements Closeable {
 			throws Exception {
 		PerfCounter.instance.tryStartScheduledLog();
 
-		this.config = config.getCustomize(new Conf());
+		config.parseCustomize(this.conf);
 
 		if (startNotifyDelay >= 0)
-			this.config.startNotifyDelay = startNotifyDelay;
+			this.conf.startNotifyDelay = startNotifyDelay;
 
 		server = new NetServer(this, config);
 
@@ -752,15 +752,15 @@ public final class ServiceManagerServer implements Closeable {
 				OfflineNotify::new, null, TransactionLevel.None, DispatchMode.Direct));
 		server.AddFactoryHandle(NormalClose.TypeId_, new Service.ProtocolFactoryHandle<>(
 				NormalClose::new, this::processNormalClose, TransactionLevel.None, DispatchMode.Critical));
-		if (this.config.startNotifyDelay > 0) {
+		if (this.conf.startNotifyDelay > 0) {
 			//noinspection NonAtomicOperationOnVolatileField
-			startNotifyDelayTask = Task.scheduleUnsafe(this.config.startNotifyDelay, () -> {
+			startNotifyDelayTask = Task.scheduleUnsafe(this.conf.startNotifyDelay, () -> {
 				startNotifyDelayTask = null;
 				serverStates.values().forEach(s -> s.startReadyCommitNotify(true));
 			});
 		}
 
-		autoKeysDb = RocksDatabase.open(Path.of(this.config.dbHome, "autokeys").toString());
+		autoKeysDb = RocksDatabase.open(Path.of(this.conf.dbHome, "autokeys").toString());
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		serverSocket = server.newServerSocket(ipaddress, port,
@@ -832,7 +832,7 @@ public final class ServiceManagerServer implements Closeable {
 		server = null;
 		serverStates.values().forEach(ServerState::close);
 		if (autoKeysDb != null) {
-			logger.info("closeDb: {}, autokeys", this.config.dbHome);
+			logger.info("closeDb: {}, autokeys", this.conf.dbHome);
 			autoKeysDb.close();
 		}
 	}
@@ -925,7 +925,9 @@ public final class ServiceManagerServer implements Closeable {
 		if (raftName == null || raftName.isEmpty()) {
 			logger.info("Start {}:{}", ip != null ? ip : "any", port);
 			InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
-			var config = new Config().addCustomize(new ServiceManagerServer.Conf()).loadAndParse();
+			var conf = new ServiceManagerServer.Conf();
+			var config = Config.load();
+			config.parseCustomize(conf);
 			try (var ignored = new ServiceManagerServer(address, port, config)) {
 				synchronized (Thread.currentThread()) {
 					Thread.currentThread().wait();

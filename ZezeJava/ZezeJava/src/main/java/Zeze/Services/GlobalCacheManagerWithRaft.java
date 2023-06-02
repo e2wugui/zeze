@@ -75,14 +75,14 @@ public class GlobalCacheManagerWithRaft
 	 */
 	private final LongConcurrentHashMap<CacheHolder> sessions = new LongConcurrentHashMap<>();
 
-	private final GlobalCacheManagerServer.GCMConfig config = new GlobalCacheManagerServer.GCMConfig();
+	private final GlobalCacheManagerServer.GCMConfig gcmConfig = new GlobalCacheManagerServer.GCMConfig();
 	private final AchillesHeelConfig achillesHeelConfig;
 	private final GlobalCacheManagerPerf perf;
 	private final AtomicLong serialId = new AtomicLong();
 
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
-	public GlobalCacheManagerServer.GCMConfig getConfig() {
-		return config;
+	public GlobalCacheManagerServer.GCMConfig getGcmConfig() {
+		return gcmConfig;
 	}
 
 	public GlobalCacheManagerWithRaft(String raftName) throws Exception {
@@ -100,7 +100,8 @@ public class GlobalCacheManagerWithRaft
 	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Config config,
 									  boolean RocksDbWriteOptionSync) throws Exception {
 		if (config == null)
-			config = new Config().addCustomize(this.config).loadAndParse();
+			config = Config.load();
+		config.parseCustomize(this.gcmConfig);
 		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync);
 
 		RegisterRocksTables(rocks);
@@ -118,7 +119,7 @@ public class GlobalCacheManagerWithRaft
 		rocks.getRaft().getServer().start();
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
-		achillesHeelConfig = new AchillesHeelConfig(this.config.maxNetPing, this.config.serverProcessTime, this.config.serverReleaseTimeout);
+		achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing, this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
 		Task.schedule(5000, 5000, this::achillesHeelDaemon);
 	}
 
@@ -695,9 +696,9 @@ public class GlobalCacheManagerWithRaft
 			return true; // continue walk
 		});
 
-		rpc.Result.setMaxNetPing(config.maxNetPing);
-		rpc.Result.setServerProcessTime(config.serverProcessTime);
-		rpc.Result.setServerReleaseTimeout(config.serverReleaseTimeout);
+		rpc.Result.setMaxNetPing(gcmConfig.maxNetPing);
+		rpc.Result.setServerProcessTime(gcmConfig.serverProcessTime);
+		rpc.Result.setServerReleaseTimeout(gcmConfig.serverReleaseTimeout);
 
 		rpc.SendResultCode(0);
 		logger.info("Login {} {}.", rocks.getRaft().getName(), rpc.getSender());

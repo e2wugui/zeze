@@ -70,7 +70,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	 * 简化实现。
 	 */
 	private LongConcurrentHashMap<CacheHolder> sessions;
-	private final GCMConfig config = new GCMConfig();
+	private final GCMConfig gcmConfig = new GCMConfig();
 	private AchillesHeelConfig achillesHeelConfig;
 	private GlobalCacheManagerPerf perf;
 
@@ -107,8 +107,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
-	public GlobalCacheManagerServer.GCMConfig getConfig() {
-		return config;
+	public GlobalCacheManagerServer.GCMConfig getGcmConfig() {
+		return gcmConfig;
 	}
 
 	private GlobalCacheManagerServer() {
@@ -127,10 +127,11 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		PerfCounter.instance.tryStartScheduledLog();
 
 		if (config == null)
-			config = new Config().addCustomize(this.config).loadAndParse();
+			config = Config.load();
+		config.parseCustomize(this.gcmConfig);
 
 		sessions = new LongConcurrentHashMap<>(4096);
-		global = new ConcurrentHashMap<>(this.config.initialCapacity);
+		global = new ConcurrentHashMap<>(this.gcmConfig.initialCapacity);
 
 		server = new ServerService(config);
 
@@ -154,7 +155,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
-		achillesHeelConfig = new AchillesHeelConfig(this.config.maxNetPing, this.config.serverProcessTime, this.config.serverReleaseTimeout);
+		achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing, this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
 		Task.schedule(5000, 5000, this::achillesHeelDaemon);
 	}
 
@@ -254,9 +255,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		}
 		session.setActiveTime(System.currentTimeMillis());
 		session.setDebugMode(rpc.Argument.debugMode);
-		rpc.Result.maxNetPing = config.maxNetPing;
-		rpc.Result.serverProcessTime = config.serverProcessTime;
-		rpc.Result.serverReleaseTimeout = config.serverReleaseTimeout;
+		rpc.Result.maxNetPing = gcmConfig.maxNetPing;
+		rpc.Result.serverProcessTime = gcmConfig.serverProcessTime;
+		rpc.Result.serverReleaseTimeout = gcmConfig.serverReleaseTimeout;
 		rpc.SendResultCode(0);
 		return 0;
 	}

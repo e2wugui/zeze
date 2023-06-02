@@ -117,7 +117,7 @@ public class MasterDatabase {
 
 			// allocate first bucket service and setup table
 			var managers = master.choiceManagers();
-			if (managers.size() < master.getConfig().getRaftClusterCount())
+			if (managers.size() < master.getDbh2Config().getRaftClusterCount())
 				return null;
 
 			var raftNames = buildRaftConfig(bucket, managers);
@@ -236,7 +236,7 @@ public class MasterDatabase {
 
 			// allocate first bucket service and setup table
 			var managers = master.choiceSmallLoadManagers();
-			if (managers.size() < master.getConfig().getRaftClusterCount()) {
+			if (managers.size() < master.getDbh2Config().getRaftClusterCount()) {
 				logger.info("too few small load manager. database=" + databaseName + " table=" + tableName);
 				return master.errorCode(Master.eTooFewManager);
 			}

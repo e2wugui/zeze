@@ -12,6 +12,11 @@ c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，等c#自己的asy
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 Dbh2 接入Zeze：CheckpointFlush 慢。
+Dbh2 create table async. & connect to all bucket.
+Dbh2 全桶迁移？ 
+------------------------------------------------------------------------------------------------------------------------------
+2023/6/16 v1.2.6 Config.Customize; 
+------------------------------------------------------------------------------------------------------------------------------
 Config.Custom 修改接口。去掉一开始注册。
 	【问题】
 	Custom实例需要预先new出来，在Config.loadAndParse之前注册到Config中。
@@ -23,8 +28,6 @@ Config.Custom 修改接口。去掉一开始注册。
 	【现有代码怎么改】
 	去掉addCustom调用，改成调用config.parseCustom。parseCustom可以随时根据需要调用。
 
-Dbh2 create table async. & connect to all bucket.
-Dbh2 全桶迁移？ 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/6/2 v1.2.5 Netty DispatchMode; Dbh2; Game.Online.sendOnlineRpc;
 ------------------------------------------------------------------------------------------------------------------------------

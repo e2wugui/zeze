@@ -70,8 +70,8 @@ public class App extends Zeze.AppBase {
 	public ZegeConfig ZegeConfig = new ZegeConfig();
 
 	public void Start(String conf) throws Exception {
-		var config = new Config().addCustomize(ZegeConfig);
-		config.loadAndParse(conf);
+		var config = Config.load();
+		config.parseCustomize(ZegeConfig);
 
 		createZeze(config);
 		createService();

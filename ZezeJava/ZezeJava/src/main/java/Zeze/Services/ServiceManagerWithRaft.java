@@ -51,7 +51,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	private Future<?> startNotifyDelayTask;
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
-	private final ServiceManagerServer.Conf config;
+	private final ServiceManagerServer.Conf conf = new ServiceManagerServer.Conf();
 
 	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf) throws Exception {
 		this(raftName, raftConf, Config.load(), false);
@@ -63,7 +63,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 		if (null == config)
 			config = Config.load();
-		this.config = config.getCustomize(new ServiceManagerServer.Conf());
+		config.parseCustomize(conf);
 
 		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync, SMServer::new);
 		RegisterRocksTables(rocks);
@@ -75,8 +75,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		tableLoadObservers = rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers").openTable();
 		tableServerState = rocks.<String, BServerState>getTableTemplate("tServerState").openTable();
 
-		if (this.config.startNotifyDelay > 0) {
-			startNotifyDelayTask = Task.scheduleUnsafe(this.config.startNotifyDelay, () -> {
+		if (this.conf.startNotifyDelay > 0) {
+			startNotifyDelayTask = Task.scheduleUnsafe(this.conf.startNotifyDelay, () -> {
 				startNotifyDelayTask = null;
 				tableServerState.walk((__, state) -> {
 					rocks.newProcedure(() -> {
@@ -159,10 +159,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			this.name = name;
 			this.sessionId = sessionId;
 
-			if (config.keepAlivePeriod > 0) {
+			if (conf.keepAlivePeriod > 0) {
 				keepAliveTimerTask = Task.scheduleUnsafe(
-						Random.getInstance().nextInt(config.keepAlivePeriod),
-						config.keepAlivePeriod,
+						Random.getInstance().nextInt(conf.keepAlivePeriod),
+						conf.keepAlivePeriod,
 						() -> {
 							AsyncSocket s = null;
 							try {
@@ -660,7 +660,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			// 只有两段公告模式需要回应处理。
 			if (notifyTimeoutTask != null)
 				notifyTimeoutTask.cancel(false);
-			notifyTimeoutTasks.put(state.getServiceName(), Task.scheduleUnsafe(config.retryNotifyDelayWhenNotAllReady,
+			notifyTimeoutTasks.put(state.getServiceName(), Task.scheduleUnsafe(conf.retryNotifyDelayWhenNotAllReady,
 					() -> {
 						// NotifyTimeoutTask 会在下面两种情况下被修改：
 						// 1. 在 Notify.ReadyCommit 完成以后会被清空。

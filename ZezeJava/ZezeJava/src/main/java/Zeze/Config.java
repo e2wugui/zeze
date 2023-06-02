@@ -79,7 +79,7 @@ public final class Config {
 	private boolean allowReadWhenRecordNotAccessed = true;
 	private boolean allowSchemasReuseVariableIdWithSameType = true;
 	private boolean fastRedoWhenConflict = false;
-	private final ConcurrentHashMap<String, ICustomize> customize = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Element> customize = new ConcurrentHashMap<>();
 	private boolean autoResetTable = false;
 	private final ConcurrentHashMap<String, DatabaseConf> databaseConfMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, ServiceConf> serviceConfMap = new ConcurrentHashMap<>();
@@ -298,7 +298,7 @@ public final class Config {
 		fastRedoWhenConflict = value;
 	}
 
-	public @NotNull ConcurrentHashMap<String, ICustomize> getCustomize() {
+	public @NotNull ConcurrentHashMap<String, Element> getCustomize() {
 		return customize;
 	}
 
@@ -306,25 +306,10 @@ public final class Config {
 		return autoResetTable;
 	}
 
-	/**
-	 * 根据自定义配置名字查找。
-	 * 因为外面需要通过AddCustomize注册进来，
-	 * 如果外面保存了配置引用，是不需要访问这个接口的。
-	 *
-	 * <typeparam name="T"></typeparam>
-	 */
-	@SuppressWarnings("unchecked")
-	public <T extends ICustomize> @NotNull T getCustomize(@NotNull T customize) {
-		var exist = getCustomize().get(customize.getName());
-		if (null == exist)
-			return customize;
-		return (T)exist;
-	}
-
-	public @NotNull Config addCustomize(@NotNull ICustomize c) {
-		if (getCustomize().putIfAbsent(c.getName(), c) != null)
-			throw new IllegalStateException("Duplicate Customize Config '" + c.getName() + "'");
-		return this;
+	public void parseCustomize(@NotNull ICustomize c) {
+		var self = customize.get(c.getName());
+		if (self != null)
+			c.parse(self);
 	}
 
 	public TableConf getTableConf(String name) {
@@ -414,14 +399,6 @@ public final class Config {
 	public @Nullable ServiceConf getServiceConf(@NotNull String name) {
 		return getServiceConfMap().get(name);
 	}
-
-	/**
-	 * 由于这个方法没法加入Customize配置，为了兼容和内部测试保留，
-	 * 应用应该自己LoadAndParse。
-	 * var c = new Config();
-	 * c.AddCustomize(...);
-	 * c.LoadAndParse();
-	 */
 
 	public static @NotNull Config load() {
 		return load("zeze.xml");
@@ -590,11 +567,8 @@ public final class Config {
 
 			case "CustomizeConf":
 				var cname = e.getAttribute("Name").trim();
-				var customizeConf = getCustomize().get(cname);
-				if (null == customizeConf)
-					throw new UnsupportedOperationException("Unknown CustomizeConf Name='" + cname + "'");
-
-				customizeConf.parse(e);
+				if (null != customize.putIfAbsent(cname, e))
+					throw new RuntimeException("duplicate customize name=" + cname);
 				break;
 
 			default:

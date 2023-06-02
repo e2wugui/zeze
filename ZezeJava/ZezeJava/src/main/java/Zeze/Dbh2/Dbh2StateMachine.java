@@ -182,7 +182,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		var now = System.currentTimeMillis();
 		for (var e : transactions.entrySet()) {
 			var t = e.getValue();
-			if (now - t.getCreateTime() < dbh2.getConfig().getBucketMaxTime())
+			if (now - t.getCreateTime() < dbh2.getDbh2Config().getBucketMaxTime())
 				continue;
 			var tid = e.getKey();
 			var state = commitAgent.query(t.getQueryIp(), t.getQueryPort(), tid);
