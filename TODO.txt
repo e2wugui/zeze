@@ -12,11 +12,15 @@ c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，等c#自己的asy
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 Dbh2 接入Zeze：CheckpointFlush 慢。
-Dbh2 create table async. & connect to all bucket.
 Dbh2 全桶迁移？ 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/6/16 v1.2.6 Config.Customize; 
+2023/6/16 v1.2.6 Config.Customize; Dbh2 Lock Walk CreateTableAsync; 
 ------------------------------------------------------------------------------------------------------------------------------
+Dbh2 walk;
+Dbh2 create table async. & connect to all bucket.
+Dbh2 【锁】
+	Get 不再加锁，完全信任Zeze；
+	Write-Trans加锁加一个开关，默认实现加锁，对写进行系列化保护，但是可以关闭，也完全信任Zeze；
 Config.Custom 修改接口。去掉一开始注册。
 	【问题】
 	Custom实例需要预先new出来，在Config.loadAndParse之前注册到Config中。

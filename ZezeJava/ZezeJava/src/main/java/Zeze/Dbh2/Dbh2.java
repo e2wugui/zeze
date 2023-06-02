@@ -165,9 +165,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	@Override
 	protected long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws RocksDBException, InterruptedException {
 		stateMachine.counterGet.incrementAndGet();
-		var lock = getLocks().get(r.Argument.getKey());
-		lock.lock(this);
-		try {
+//		var lock = getLocks().get(r.Argument.getKey());
+//		lock.lock(this);
+//		try {
 			// 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
 			var bucket = stateMachine.getBucket();
 			if (!bucket.inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
@@ -180,9 +180,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				stateMachine.sizeGet.addAndGet(value.size());
 			}
 			r.SendResult();
-		} finally {
-			lock.unlock();
-		}
+//		} finally {
+//			lock.unlock();
+//		}
 		return 0;
 	}
 

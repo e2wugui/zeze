@@ -11,6 +11,15 @@ public class Dbh2Config implements Config.ICustomize {
 	private double splitLoad = 5000 * 0.8;
 	private double splitMaxManagerLoad = splitLoad * 4;
 	private int raftClusterCount = 3;
+	private boolean serialize = true;
+
+	public boolean isSerialize() {
+		return serialize;
+	}
+
+	public void setSerialize(boolean value) {
+		serialize = value;
+	}
 
 	public int getRaftClusterCount() {
 		return raftClusterCount;
@@ -77,5 +86,9 @@ public class Dbh2Config implements Config.ICustomize {
 		attr = self.getAttribute("RaftClusterCount");
 		if (!attr.isBlank())
 			raftClusterCount = Integer.parseInt(attr);
+
+		attr = self.getAttribute("Serialize");
+		if (!attr.isBlank())
+			serialize = Boolean.parseBoolean(attr);
 	}
 }
