@@ -101,16 +101,23 @@ public class RocksDatabase implements Closeable {
 
 	private final @NotNull String homePath;
 	private final @NotNull RocksDB rocksDb;
+	private final OptimisticTransactionDB optimisticTransactionDB;
+
 	private final ConcurrentHashMap<String, Table> tableMap = new ConcurrentHashMap<>();
 	private @Nullable Map<String, Table> tableMapView;
 	private @Nullable ArrayList<Batch> batchPool;
 
 	public RocksDatabase(@NotNull String homePath) throws RocksDBException {
+		this(homePath, false);
+	}
+
+	public RocksDatabase(@NotNull String homePath, boolean transactionDb) throws RocksDBException {
 		this.homePath = homePath;
 		var cfds = getCfDescriptors(homePath);
 		int cfCount = cfds.size();
 		var cfhs = new ArrayList<ColumnFamilyHandle>(cfCount);
-		rocksDb = open(commonDbOptions, homePath, cfds, cfhs);
+		rocksDb = open(transactionDb, commonDbOptions, homePath, cfds, cfhs);
+		optimisticTransactionDB = transactionDb ? (OptimisticTransactionDB)rocksDb : null;
 		for (int i = 0; i < cfCount; i++) {
 			var name = new String(cfds.get(i).getName(), StandardCharsets.UTF_8);
 			tableMap.put(name, new Table(name, cfhs.get(i)));
@@ -127,8 +134,18 @@ public class RocksDatabase implements Closeable {
 		return cfds;
 	}
 
+	public Transaction beginTransaction() {
+		return optimisticTransactionDB.beginTransaction(getDefaultWriteOptions());
+	}
+
 	// RocksDB用完时需确保调用close回收堆外内存
 	public static @NotNull RocksDB open(@NotNull DBOptions options, @NotNull String path,
+										@NotNull List<ColumnFamilyDescriptor> cfds,
+										@NotNull List<ColumnFamilyHandle> cfhs) throws RocksDBException {
+		return open(false, options, path, cfds, cfhs);
+	}
+
+	public static @NotNull RocksDB open(boolean transactionDb, @NotNull DBOptions options, @NotNull String path,
 										@NotNull List<ColumnFamilyDescriptor> cfds,
 										@NotNull List<ColumnFamilyHandle> cfhs) throws RocksDBException {
 		logger.info("RocksDB.open: '{}'", path);
@@ -139,7 +156,9 @@ public class RocksDatabase implements Closeable {
 		}
 		for (int i = 0; ; ) {
 			try {
-				var rocksDb = RocksDB.open(options, path, cfds, cfhs);
+				var rocksDb = transactionDb
+						? OptimisticTransactionDB.open(options, path, cfds, cfhs)
+						: RocksDB.open(options, path, cfds, cfhs);
 				if (cfds.size() != cfhs.size())
 					throw new IllegalStateException("RocksDB.open unmatched: " + cfds.size() + " != " + cfhs.size());
 				return rocksDb;
@@ -509,6 +528,45 @@ public class RocksDatabase implements Closeable {
 			rocksDb.deleteRange(cfHandle, options, first, last);
 			if (PerfCounter.ENABLE_PERF)
 				PerfCounter.instance.addRunInfo("RocksDB.deleteRange", System.nanoTime() - timeBegin);
+		}
+
+		public void put(@NotNull Transaction t, @NotNull Binary key, @NotNull Binary value) throws RocksDBException {
+			put(t, key.bytesUnsafe(), key.getOffset(), key.size(),
+					value.bytesUnsafe(), value.getOffset(), value.size());
+		}
+
+		public void put(@NotNull Transaction t, byte[] key, byte[] value) throws RocksDBException {
+			put(t, key, 0, key.length, value, 0, value.length);
+		}
+
+		public void put(@NotNull Transaction t, byte[] key, int keyLen, byte[] value, int valueLen) throws RocksDBException {
+			put(t, key, 0, keyLen, value, 0, valueLen);
+		}
+
+		public void put(@NotNull Transaction t, byte[] key, int keyOff, int keyLen,
+						byte[] value, int valueOff, int valueLen) throws RocksDBException {
+			// batch 优化成内部方法调用了？仅在keyOff不等于0时拷贝！！！
+			key = Zeze.Transaction.Database.copyIf(key, keyOff, keyLen);
+			value = Zeze.Transaction.Database.copyIf(value, valueOff, valueLen);
+			t.put(cfHandle, key, value);
+		}
+
+		public void delete(@NotNull Transaction t, @NotNull Binary key) throws RocksDBException {
+			delete(t, key.bytesUnsafe(), key.getOffset(), key.size());
+		}
+
+		public void delete(@NotNull Transaction t, byte[] key) throws RocksDBException {
+			delete(t, key, 0, key.length);
+		}
+
+		public void delete(@NotNull Transaction t, byte[] key, int keyLen) throws RocksDBException {
+			delete(t, key, 0, keyLen);
+		}
+
+		public void delete(@NotNull Transaction t, byte[] key, int keyOff, int keyLen) throws RocksDBException {
+			// batch 优化成内部方法调用了？仅在keyOff不等于0时拷贝！！！
+			key = Zeze.Transaction.Database.copyIf(key, keyOff, keyLen);
+			t.delete(cfHandle, key);
 		}
 
 		public void put(@NotNull Batch batch, @NotNull Binary key, @NotNull Binary value) throws RocksDBException {

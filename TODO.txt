@@ -18,6 +18,7 @@ Dbh2 全桶迁移？
 ------------------------------------------------------------------------------------------------------------------------------
 Dbh2 walk;
 Dbh2 OptimisticTransactionDB
+Zeze.Util.RocksDatabase 增加事务支持。
 Dbh2 create table async. & connect to all bucket.
 Dbh2 【锁】
 	Get 不再加锁，完全信任Zeze；
