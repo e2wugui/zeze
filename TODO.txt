@@ -17,7 +17,7 @@ Dbh2 全桶迁移？
 2023/6/16 v1.2.6 Config.Customize; Dbh2 Lock Walk CreateTableAsync; 
 ------------------------------------------------------------------------------------------------------------------------------
 Dbh2 walk;
-Dbh2 OptimisticTransactionDB
+Dbh2 OptimisticTransactionDB(Two phase commit not supported for optimistic transactions.) --> TransactionDB
 Zeze.Util.RocksDatabase 增加事务支持。
 Dbh2 create table async. & connect to all bucket.
 Dbh2 【锁】

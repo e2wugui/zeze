@@ -62,6 +62,8 @@ public class Dbh2FullTest {
 			var tables = new ArrayList<AbstractKVTable>();
 			for (int i = 0; i < 4; ++i)
 				tables.add((Database.AbstractKVTable)database.openTable("table" + i));
+			for (var table : tables)
+				table.waitReady();
 
 			var count = 3000;
 			var threads = 2;
@@ -108,6 +110,8 @@ public class Dbh2FullTest {
 
 			database = newDatabase(dbh2AgentManager, "dbh2TestDb");
 			var table1 = (Database.AbstractKVTable)database.openTable("table1");
+			table1.waitReady();
+
 			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
 			var key1 = ByteBuffer.Wrap(new byte[]{1});
 			var value = ByteBuffer.Wrap(new byte[]{1, 2, 3, 4});

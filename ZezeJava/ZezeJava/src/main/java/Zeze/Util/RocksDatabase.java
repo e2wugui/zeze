@@ -48,6 +48,7 @@ public class RocksDatabase implements Closeable {
 	private static final @NotNull MethodHandle mhWriteBatchDeleteCf;
 	private static final @NotNull MethodHandle mhWriteBatchNativeNew;
 	private static final @NotNull MethodHandle mhWriteBatchNew;
+	private static final TransactionDBOptions transactionDbOptions = new TransactionDBOptions();
 
 	static {
 		try {
@@ -101,23 +102,31 @@ public class RocksDatabase implements Closeable {
 
 	private final @NotNull String homePath;
 	private final @NotNull RocksDB rocksDb;
-	private final OptimisticTransactionDB optimisticTransactionDB;
+	private final OptimisticTransactionDB optimisticTransactionDb;
+	private final TransactionDB transactionDb;
 
 	private final ConcurrentHashMap<String, Table> tableMap = new ConcurrentHashMap<>();
 	private @Nullable Map<String, Table> tableMapView;
 	private @Nullable ArrayList<Batch> batchPool;
 
 	public RocksDatabase(@NotNull String homePath) throws RocksDBException {
-		this(homePath, false);
+		this(homePath, DbType.eRocksDb);
 	}
 
-	public RocksDatabase(@NotNull String homePath, boolean transactionDb) throws RocksDBException {
+	public enum DbType {
+		eRocksDb,
+		eOptimisticTransactionDb,
+		eTransactionDb,
+	}
+
+	public RocksDatabase(@NotNull String homePath, DbType dbType) throws RocksDBException {
 		this.homePath = homePath;
 		var cfds = getCfDescriptors(homePath);
 		int cfCount = cfds.size();
 		var cfhs = new ArrayList<ColumnFamilyHandle>(cfCount);
-		rocksDb = open(transactionDb, commonDbOptions, homePath, cfds, cfhs);
-		optimisticTransactionDB = transactionDb ? (OptimisticTransactionDB)rocksDb : null;
+		rocksDb = open(dbType, commonDbOptions, homePath, cfds, cfhs);
+		optimisticTransactionDb = dbType == DbType.eOptimisticTransactionDb ? (OptimisticTransactionDB)rocksDb : null;
+		transactionDb = dbType == DbType.eTransactionDb ? (TransactionDB)rocksDb : null;
 		for (int i = 0; i < cfCount; i++) {
 			var name = new String(cfds.get(i).getName(), StandardCharsets.UTF_8);
 			tableMap.put(name, new Table(name, cfhs.get(i)));
@@ -135,17 +144,36 @@ public class RocksDatabase implements Closeable {
 	}
 
 	public Transaction beginTransaction() {
-		return optimisticTransactionDB.beginTransaction(getDefaultWriteOptions());
+		return optimisticTransactionDb.beginTransaction(getDefaultWriteOptions());
+	}
+
+	public Transaction beginTransaction2() {
+		return transactionDb.beginTransaction(getDefaultWriteOptions());
 	}
 
 	// RocksDB用完时需确保调用close回收堆外内存
 	public static @NotNull RocksDB open(@NotNull DBOptions options, @NotNull String path,
 										@NotNull List<ColumnFamilyDescriptor> cfds,
 										@NotNull List<ColumnFamilyHandle> cfhs) throws RocksDBException {
-		return open(false, options, path, cfds, cfhs);
+		return open(DbType.eRocksDb, options, path, cfds, cfhs);
 	}
 
-	public static @NotNull RocksDB open(boolean transactionDb, @NotNull DBOptions options, @NotNull String path,
+	private static RocksDB realOpen(DbType dbType, @NotNull DBOptions options, @NotNull String path,
+								@NotNull List<ColumnFamilyDescriptor> cfds,
+								@NotNull List<ColumnFamilyHandle> cfhs) throws RocksDBException {
+		switch (dbType) {
+		case eRocksDb:
+			return RocksDB.open(options, path, cfds, cfhs);
+		case eOptimisticTransactionDb:
+			return OptimisticTransactionDB.open(options, path, cfds, cfhs);
+		case eTransactionDb:
+			return TransactionDB.open(options, transactionDbOptions, path, cfds, cfhs);
+		default:
+			throw new RuntimeException("unknown dbType=" + dbType);
+		}
+	}
+
+	public static @NotNull RocksDB open(DbType dbType, @NotNull DBOptions options, @NotNull String path,
 										@NotNull List<ColumnFamilyDescriptor> cfds,
 										@NotNull List<ColumnFamilyHandle> cfhs) throws RocksDBException {
 		logger.info("RocksDB.open: '{}'", path);
@@ -156,9 +184,7 @@ public class RocksDatabase implements Closeable {
 		}
 		for (int i = 0; ; ) {
 			try {
-				var rocksDb = transactionDb
-						? OptimisticTransactionDB.open(options, path, cfds, cfhs)
-						: RocksDB.open(options, path, cfds, cfhs);
+				var rocksDb = realOpen(dbType, options, path, cfds, cfhs);
 				if (cfds.size() != cfhs.size())
 					throw new IllegalStateException("RocksDB.open unmatched: " + cfds.size() + " != " + cfhs.size());
 				return rocksDb;

@@ -280,9 +280,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public void commitBatch(Binary tid) {
 		try (var txn = transactions.remove(tid)) {
 			counterCommitBatch.incrementAndGet();
-			if (null != txn)
+			if (null != txn) {
 				dbh2.onCommitBatch(txn);
+				txn.commitBatch();
+			}
 			triggerNoTransactionIf();
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
 		}
 	}
 

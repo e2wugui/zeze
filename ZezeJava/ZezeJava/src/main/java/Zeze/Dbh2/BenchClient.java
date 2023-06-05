@@ -34,7 +34,7 @@ public class BenchClient {
 			var threadNumber = 4;
 			var valueSize = 12;
 			var masterIp = "127.0.0.1";
-			var masterPort = 30000;
+			var masterPort = 10999;
 			var tableAccess = 2;
 			var selector = Runtime.getRuntime().availableProcessors();
 			var get = false;
@@ -79,6 +79,8 @@ public class BenchClient {
 			var tables = new ArrayList<Zeze.Transaction.Database.AbstractKVTable>();
 			for (int i = 0; i < tableNumber; ++i)
 				tables.add((Database.AbstractKVTable)database.openTable("table" + i));
+			for (var table : tables)
+				table.waitReady();
 
 			var running = new OutObject<>(true);
 			var futures = new ArrayList<Future<?>>();
