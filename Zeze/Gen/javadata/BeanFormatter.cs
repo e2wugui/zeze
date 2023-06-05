@@ -34,10 +34,10 @@ namespace Zeze.Gen.javadata
             }
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static Zeze.Transaction.DynamicBeanData newDynamicBean_{var.NameUpper1}() {{");
-            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
+            if (string.IsNullOrEmpty(type.DynamicParams.CreateDataFromSpecialTypeId)) // 判断一个就够了。
                 sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBeanData({bean.Name}.Data::getSpecialTypeIdFromBean_{var.Id}, {bean.Name}.Data::createBeanFromSpecialTypeId_{var.Id});");
             else
-                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBeanData({type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
+                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBeanData({type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateDataFromSpecialTypeId});");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static long getSpecialTypeIdFromBean_{var.Id}(Zeze.Transaction.Data bean) {{");
@@ -63,7 +63,7 @@ namespace Zeze.Gen.javadata
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static Zeze.Transaction.Data createBeanFromSpecialTypeId_{var.Id}(long typeId) {{");
             //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
-            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId))
+            if (string.IsNullOrEmpty(type.DynamicParams.CreateDataFromSpecialTypeId))
             {
                 // 根据配置的实际类型生成switch。
                 foreach (var real in type.RealBeans)
@@ -78,7 +78,7 @@ namespace Zeze.Gen.javadata
             else
             {
                 // 转发给全局静态（static）函数。
-                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeId.Replace("::", ".")}(typeId);");
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateDataFromSpecialTypeId.Replace("::", ".")}(typeId);");
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();

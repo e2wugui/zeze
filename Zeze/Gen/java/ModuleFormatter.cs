@@ -535,7 +535,8 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    @Override public int getId() {{ return ModuleId; }}");
             sw.WriteLine($"    @Override public String getName() {{ return ModuleName; }}");
             sw.WriteLine($"    @Override public String getFullName() {{ return ModuleFullName; }}");
-            sw.WriteLine($"    @Override public String getWebPathBase() {{ return \"{module.WebPathBase}\";}}");
+            if (!string.IsNullOrEmpty(module.WebPathBase))
+                sw.WriteLine($"    @Override public String getWebPathBase() {{ return \"{module.WebPathBase}\";}}");
             // declare enums
             GenEnums(sw);
             GenAbstractProtocolHandles(sw);

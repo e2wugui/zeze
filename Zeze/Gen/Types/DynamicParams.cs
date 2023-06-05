@@ -12,7 +12,9 @@ namespace Zeze.Gen.Types
 		public HashSet<string> Beans { get; } = new();
 		public string GetSpecialTypeIdFromBean { get; set; }
 		public string CreateBeanFromSpecialTypeId { get; set; }
+		public string CreateDataFromSpecialTypeId { get; set; }
 		public string GetSpecialTypeIdFromBeanCsharp => Program.Upper1LastName(GetSpecialTypeIdFromBean.Replace("::", "."));
         public string CreateBeanFromSpecialTypeIdCsharp => Program.Upper1LastName(CreateBeanFromSpecialTypeId.Replace("::", "."));
+        public string CreateDataFromSpecialTypeIdCsharp => Program.Upper1LastName(CreateDataFromSpecialTypeId.Replace("::", "."));
     }
 }

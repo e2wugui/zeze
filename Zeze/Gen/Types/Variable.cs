@@ -169,6 +169,9 @@ namespace Zeze.Gen.Types
 					case "CreateBeanFromSpecialTypeId":
 						DynamicParams.CreateBeanFromSpecialTypeId = e.GetAttribute("value");
 						break;
+					case "CreateDataFromSpecialTypeId":
+						DynamicParams.CreateDataFromSpecialTypeId = e.GetAttribute("value");
+						break;
 					default:
 						throw new Exception("node=" + nodename);
 				}

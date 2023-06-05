@@ -81,6 +81,11 @@
 			<variable id="20" name="vector3Int" type="vector3int" />
 			<variable id="21" name="vector4" type="vector4" />
 			<variable id="22" name="quaternion" type="quaternion" />
+			<variable id="23" name="dynamic23" type="dynamic">
+				<GetSpecialTypeIdFromBean value="Zeze.Collections.BeanFactory::getSpecialTypeIdFromBean"/>
+				<CreateBeanFromSpecialTypeId value="demo.Module1.ModuleModule1::createBeanFromSpecialTypeId"/>
+				<CreateDataFromSpecialTypeId value="demo.Module1.ModuleModule1::createDataFromSpecialTypeId"/>
+			</variable>
 
 			<variable id="24" name="listVector2Int" type="list" value="vector2int"/>
 			<variable id="25" name="map25" type="map[Key,BSimple]"/>
@@ -121,9 +126,9 @@
 		<module name="Module11" id="3" comment=""/> module的注释
 
 		<table name="tWalkPage" key="int" RelationalMapping="true" value="demo.Bean1" memory="false"/>
-		
+
 		<protocol name="ProtocolUseData" argument="BValue" UseData="true" handle="server"/>
-		
+
 		<table name="tAutoKeyRandom" key="binary" value="demo.Bean1" autokey="random"/>
 	</module>
 
