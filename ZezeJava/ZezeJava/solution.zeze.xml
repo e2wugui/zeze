@@ -577,7 +577,7 @@
 				<variable id="3" name="desc" type="string"/>
 			</bean>
 
-			<protocol name="ReportError" argument="BReportError" handle="client"/>
+			<protocol name="ReportError" argument="BReportError" handle="client,clientscript"/>
 		</module>
 
 		<module name="Game" id="11012">
