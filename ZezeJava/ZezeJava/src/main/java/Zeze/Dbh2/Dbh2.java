@@ -91,6 +91,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (null != prepareQueue && isPrepareRequest(p.getTypeId())) {
 				prepareQueue.add(() -> Task.call(func, p));
 			} else if (p.getTypeId() == Get.TypeId_) {
+				// 允许Get请求并发
 				super.dispatchRaftRequest(p, func, name, cancel, mode);
 			} else {
 				raft.getUserThreadExecutor().execute(() -> Task.call(func, p));

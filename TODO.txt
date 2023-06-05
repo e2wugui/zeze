@@ -14,7 +14,7 @@ DatabaseDynamoDb 还需测试。
 Dbh2 接入Zeze：CheckpointFlush 慢。
 Dbh2 全桶迁移？ 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/6/16 v1.2.6 Config.Customize; Dbh2 Lock Walk CreateTableAsync; 
+2023/6/16 v1.2.6 Config.Customize; Dbh2 Lock Options, Walk, CreateTableAsync; 
 ------------------------------------------------------------------------------------------------------------------------------
 Dbh2 walk;
 Dbh2 OptimisticTransactionDB(Two phase commit not supported for optimistic transactions.) --> TransactionDB

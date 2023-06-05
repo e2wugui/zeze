@@ -3,6 +3,7 @@ package Zeze.Dbh2;
 import java.io.Closeable;
 import java.util.HashMap;
 import Zeze.Builtin.Dbh2.BBatch;
+import Zeze.Util.BitConverter;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 
@@ -38,8 +39,10 @@ public class Dbh2Transaction implements Closeable {
 	 *
 	 * @param batch batch parameter
 	 */
-	public Dbh2Transaction(Dbh2 dbh2, BBatch.Data batch) throws InterruptedException {
-		this.transaction = dbh2.getStateMachine().getBucket().getDb().beginTransaction();
+	public Dbh2Transaction(Dbh2 dbh2, BBatch.Data batch) throws InterruptedException, RocksDBException {
+		this.transaction = dbh2.getStateMachine().getBucket().getDb().beginTransaction2();
+		var tid = batch.getTid();
+		this.transaction.setName(BitConverter.toHexString(tid.bytesUnsafe(), tid.getOffset(), tid.size()));
 		this.batch = batch;
 		this.createTime = System.currentTimeMillis();
 
@@ -72,7 +75,7 @@ public class Dbh2Transaction implements Closeable {
 			bucket.getTData().delete(transaction, del);
 		}
 		// Two phase commit not supported for optimistic transactions.
-		//transaction.prepare();
+		transaction.prepare();
 	}
 
 	public void undoBatch(Bucket bucket) throws RocksDBException {

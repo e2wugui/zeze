@@ -258,7 +258,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					_tid -> {
 						try {
 							return new Dbh2Transaction(dbh2, batch);
-						} catch (InterruptedException e) {
+						} catch (Exception e) {
 							throw new RuntimeException(e);
 						}
 					});
