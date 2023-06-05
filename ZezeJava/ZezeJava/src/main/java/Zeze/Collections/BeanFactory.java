@@ -7,6 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
 import org.apache.logging.log4j.LogManager;
@@ -265,8 +266,11 @@ public final class BeanFactory {
 			if (beanCtor != null)
 				return (Bean)beanCtor.invoke();
 			var cls = findClass(typeId);
-			if (cls == null)
-				throw new UnsupportedOperationException("unknown bean typeId=" + typeId);
+			if (cls == null) {
+				if (typeId != EmptyBean.TYPEID)
+					throw new UnsupportedOperationException("unknown bean typeId=" + typeId);
+				cls = EmptyBean.class;
+			}
 			beanCtor = Reflect.getDefaultConstructor(cls);
 			var bean = (Bean)beanCtor.invoke();
 			var beanTypeId = bean.typeId();
@@ -294,9 +298,12 @@ public final class BeanFactory {
 			var dataCtor = factory.get(typeId);
 			if (dataCtor != null)
 				return (Data)dataCtor.invoke();
-			var cls = findClass(typeId);
-			if (cls == null)
-				throw new UnsupportedOperationException("unknown data typeId=" + typeId);
+			var cls = findDataClass(typeId);
+			if (cls == null) {
+				if (typeId != EmptyBean.Data.TYPEID)
+					throw new UnsupportedOperationException("unknown data typeId=" + typeId);
+				cls = EmptyBean.Data.class;
+			}
 			dataCtor = Reflect.getDefaultConstructor(cls);
 			var data = (Data)dataCtor.invoke();
 			var dataTypeId = data.typeId();
