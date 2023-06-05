@@ -498,6 +498,11 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		private boolean isNew;
 		private boolean dropped = false;
 
+		@Override
+		public void waitReady() {
+
+		}
+
 		public void drop() {
 			if (dropped)
 				return;

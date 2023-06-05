@@ -100,6 +100,9 @@ public abstract class Database {
 			if (storage != null)
 				storages.add(storage);
 		}
+		for (var storage : storages) {
+			storage.getDatabaseTable().waitReady();
+		}
 	}
 
 	public final void openDynamicTable(@NotNull Application app, @NotNull Zeze.Transaction.Table table) {
@@ -178,6 +181,7 @@ public abstract class Database {
 
 	public interface Table {
 		boolean isNew();
+		void waitReady();
 
 		@NotNull Database getDatabase();
 
@@ -232,6 +236,10 @@ public abstract class Database {
 
 	// KV表辅助类，实现所有的下沉的带类型接口。
 	public static abstract class AbstractKVTable implements Table {
+		@Override
+		public void waitReady() {
+		}
+
 		////////////////////////////////////////////////////////////
 		// KV表操作接口。
 		public abstract @Nullable ByteBuffer find(@NotNull ByteBuffer key);

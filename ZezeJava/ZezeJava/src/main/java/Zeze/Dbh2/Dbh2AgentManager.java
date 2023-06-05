@@ -10,6 +10,7 @@ import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Dbh2.Master.MasterTable;
 import Zeze.Net.Binary;
 import Zeze.Net.ServiceConf;
+import Zeze.Util.Action2;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import Zeze.Util.ShutdownHook;
@@ -179,6 +180,20 @@ public class Dbh2AgentManager {
 		var isNew = masterAgent.createTable(databaseName, tableName, out);
 		putBuckets(out.value, masterName, databaseName, tableName);
 		return isNew;
+	}
+
+	public void createTableAsync(
+			MasterAgent masterAgent, String masterName,
+			String databaseName, String tableName,
+			Action2<Integer, Boolean> callback) {
+		masterAgent.createTableAsync(databaseName, tableName, (rc, isNew, masterTable) -> {
+			if (rc == 0) {
+				putBuckets(masterTable, masterName, databaseName, tableName);
+				for (var bucket : masterTable.buckets())
+					openBucket(bucket.getRaftConfig());
+			}
+			callback.run(rc, isNew);
+		});
 	}
 
 	public void dumpAgents() {

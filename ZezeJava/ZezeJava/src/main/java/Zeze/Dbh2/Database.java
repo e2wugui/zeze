@@ -11,6 +11,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
 import Zeze.Util.KV;
+import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -100,13 +101,26 @@ public class Database extends Zeze.Transaction.Database {
 
 	public class Dbh2Table extends Zeze.Transaction.Database.AbstractKVTable {
 		private final String name;
-		private final boolean isNew;
+		private boolean isNew;
+		private final TaskCompletionSource<Integer> ready = new TaskCompletionSource<>();
 
 		public Dbh2Table(String tableName) {
 			this.name = tableName;
-			isNew = dbh2AgentManager.createTable(
+			dbh2AgentManager.createTableAsync(
 					Database.this.masterAgent, Database.this.masterName,
-					Database.this.databaseName, tableName);
+					Database.this.databaseName, tableName,
+					(rc, _isNew) -> {
+						isNew = _isNew;
+						if (rc == 0)
+							ready.setResult(0);
+						else
+							ready.setException(new RuntimeException("rc=" + rc));
+					});
+		}
+
+		@Override
+		public void waitReady() {
+			ready.await();
 		}
 
 		public String getName() {

@@ -16,6 +16,8 @@ import Zeze.IModule;
 import Zeze.Net.Connector;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Action2;
+import Zeze.Util.Action3;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 
@@ -70,6 +72,25 @@ public class MasterAgent extends AbstractMasterAgent {
 		if (rc != 0 && rc != errorCode(eTableIsNew))
 			throw new RuntimeException("fail module=" + IModule.getModuleId(rc) + " code=" + IModule.getErrorCode(rc));
 		return IModule.getErrorCode(rc) == eTableIsNew;
+	}
+
+	public void createTableAsync(String database, String table, Action3<Integer, Boolean, MasterTable.Data> callback) {
+		var r = new CreateTable();
+		r.Argument.setDatabase(database);
+		r.Argument.setTable(table);
+		r.Send(service.GetSocket(), (p) -> {
+			var rc = r.getResultCode();
+			if (rc == 0) {
+				callback.run(0, false, r.Result);
+			} else {
+				var error = IModule.getErrorCode(rc);
+				if (error == eTableIsNew)
+					callback.run(0, true, r.Result);
+				else
+					callback.run(error, false, null);
+			}
+			return 0;
+		}, 30_000);
 	}
 
 	public MasterTable.Data getBuckets(String database, String table) {
