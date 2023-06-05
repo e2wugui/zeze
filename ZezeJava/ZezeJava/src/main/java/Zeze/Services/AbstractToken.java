@@ -29,11 +29,20 @@ public abstract class AbstractToken implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessNewTokenRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47372856131924L, factoryHandle); // 11029, -633142956
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Token.TokenStatus.class, Zeze.Builtin.Token.TokenStatus.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Token.TokenStatus::new;
+            factoryHandle.Handle = this::ProcessTokenStatusRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessTokenStatusRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessTokenStatusRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47373124176530L, factoryHandle); // 11029, -365098350
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47371919073971L);
         service.getFactorys().remove(47372856131924L);
+        service.getFactorys().remove(47373124176530L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -47,4 +56,5 @@ public abstract class AbstractToken implements Zeze.IModule {
 
     protected abstract long ProcessGetTokenRequest(Zeze.Builtin.Token.GetToken r) throws Exception;
     protected abstract long ProcessNewTokenRequest(Zeze.Builtin.Token.NewToken r) throws Exception;
+    protected abstract long ProcessTokenStatusRequest(Zeze.Builtin.Token.TokenStatus r) throws Exception;
 }

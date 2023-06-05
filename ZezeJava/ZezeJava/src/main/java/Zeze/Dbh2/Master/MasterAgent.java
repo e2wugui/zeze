@@ -16,7 +16,6 @@ import Zeze.IModule;
 import Zeze.Net.Connector;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.Action2;
 import Zeze.Util.Action3;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -154,11 +153,11 @@ public class MasterAgent extends AbstractMasterAgent {
 		r.Argument.setTo(to);
 		if (!r.Send(service.GetSocket(), (p) -> {
 			if (p.getResultCode() != 0) {
-				Task.schedule(30_000, () -> endSplitWithRetryAsync(from,to));
+				Task.schedule(30_000, () -> endSplitWithRetryAsync(from, to));
 			}
 			return 0;
 		})) {
-			Task.schedule(30_000, () -> endSplitWithRetryAsync(from,to));
+			Task.schedule(30_000, () -> endSplitWithRetryAsync(from, to));
 		}
 	}
 

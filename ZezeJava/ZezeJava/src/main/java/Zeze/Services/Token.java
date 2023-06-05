@@ -5,12 +5,14 @@ import java.security.SecureRandom;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.LongAdder;
 import Zeze.Builtin.Token.BGetTokenArg;
 import Zeze.Builtin.Token.BGetTokenRes;
 import Zeze.Builtin.Token.BNewTokenArg;
 import Zeze.Builtin.Token.BNewTokenRes;
 import Zeze.Builtin.Token.GetToken;
 import Zeze.Builtin.Token.NewToken;
+import Zeze.Builtin.Token.TokenStatus;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
@@ -171,6 +173,7 @@ public final class Token extends AbstractToken {
 
 	private final Random tokenRandom = new SecureRandom();
 	private final ConcurrentHashMap<String, TokenState> tokenMap = new ConcurrentHashMap<>();
+	private final LongAdder newCounter = new LongAdder(); // 分配计数
 	private TokenServer service;
 	private TimerFuture<?> cleanTokenMapFuture;
 
@@ -231,6 +234,7 @@ public final class Token extends AbstractToken {
 		do {
 			token = genToken();
 		} while (tokenMap.putIfAbsent(token, new TokenState(arg.getContext(), ttl)) != null);
+		newCounter.increment();
 		r.Result.setToken(token);
 		r.SendResultCode(0);
 		return Procedure.Success;
@@ -266,6 +270,17 @@ public final class Token extends AbstractToken {
 				}
 			}
 		}
+		r.SendResultCode(0);
+		return Procedure.Success;
+	}
+
+	@Override
+	protected long ProcessTokenStatusRequest(TokenStatus r) throws Exception {
+		var res = r.Result;
+		res.setNewCount(newCounter.sum());
+		res.setCurCount(tokenMap.size());
+		var s = service;
+		res.setConnectCount(s != null ? s.getSocketCount() : -1);
 		r.SendResultCode(0);
 		return Procedure.Success;
 	}

@@ -1463,8 +1463,15 @@
 				<variable id="3" name="time"    type="long"/> 此token已存活时间(毫秒). token已失效(状态已清除)时为负值
 			</bean>
 
+			<bean name="BTokenStatus">
+				<variable id="1" name="newCount"     type="long"/> 已分配的token数量
+				<variable id="2" name="curCount"     type="long"/> 当前有效的token数量
+				<variable id="3" name="connectCount" type="int"/> 当前的网络连接数量
+			</bean>
+
 			<rpc name="NewToken" argument="BNewTokenArg" result="BNewTokenRes" handle="server"/> 申请新token
 			<rpc name="GetToken" argument="BGetTokenArg" result="BGetTokenRes" handle="server"/> 获取token状态(也可用于验证和删除token)
+			<rpc name="TokenStatus" result="BTokenStatus" handle="server"/> 获取token服务器的全局状态
 		</module>
 
 		<!--
