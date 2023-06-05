@@ -1,8 +1,5 @@
 package demo.Module1;
 
-// ZEZE_FILE_CHUNK {{{ IMPORT GEN
-// ZEZE_FILE_CHUNK }}} IMPORT GEN
-
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
@@ -81,10 +78,9 @@ public class ModuleModule1 extends AbstractModule {
 		return Zeze.Transaction.Procedure.NotImplement;
 	}
 
-	// ZEZE_FILE_CHUNK {{{ GEN MODULE
-	public ModuleModule1(demo.App app) {
-		super(app);
-	}
-	// ZEZE_FILE_CHUNK }}} GEN MODULE
-
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
+    public ModuleModule1(demo.App app) {
+        super(app);
+    }
+	// ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on
 }

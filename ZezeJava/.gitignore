@@ -17,11 +17,11 @@ Redirect_*.java
 /raft.xml
 /zeze.xml
 /ZezeJavaTest/test.ks
-/ZezeJavaTest/CommitRocks
+/ZezeJavaTest/CommitRocks*
 /ZezeJavaTest/DiffLockAndNoLock
 /ZezeJavaTest/RocksDB
 /ZezeJavaTest/manager*
 /ZezeJavaTest/master
-/test/Dbh2/CommitRocks
+/test/Dbh2/CommitRocks*
 /test/Dbh2/manager*
 /test/Dbh2/master
