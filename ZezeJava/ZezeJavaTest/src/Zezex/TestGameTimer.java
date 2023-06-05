@@ -38,6 +38,7 @@ public class TestGameTimer {
 			links.get(i).Start(-(i+1), 12000 + i, 15000 + i);
 		for (int i = 40; i < serverCount + 40; ++i) {
 			servers.get(i - 40).Start(i, 20000 + i - 40);
+			servers.get(i - 40).getZeze().getTimer().initializeOnlineTimer(servers.get(i - 40).ProviderApp);
 			servers.get(i - 40).getZeze().getTimer().start();
 		}
 		//Thread.sleep(2000);
@@ -93,9 +94,7 @@ public class TestGameTimer {
 			var server0 = servers.get(0);
 //			var server1 = servers.get(1);
 			var timer0 = server0.getZeze().getTimer();
-			timer0.initializeOnlineTimer(server0.ProviderApp);
 //			var timer1 = server1.getZeze().getTimer();
-//			timer1.initializeOnlineTimer(server1.ProviderApp);
 
 			log("测试 Role Online Timer ");
 			log("在客户端0登录role0");
@@ -185,8 +184,6 @@ public class TestGameTimer {
 			var timer0 = server0.getZeze().getTimer();
 			var timer1 = server1.getZeze().getTimer();
 
-			timer0.initializeOnlineTimer(server0.ProviderApp);
-			timer1.initializeOnlineTimer(server1.ProviderApp);
 			var timerRole0 = timer0.getRoleTimer();
 			var timerRole1 = timer1.getRoleTimer();
 
