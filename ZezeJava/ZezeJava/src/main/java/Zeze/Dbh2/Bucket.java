@@ -21,12 +21,14 @@ public class Bucket {
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
 	private volatile BBucketMeta.Data meta;
 	private volatile BBucketMeta.Data splittingMeta;
-	private volatile MasterTable.Data splitMetaHistory;
+	private final MasterTable.Data splitMetaHistory;
+	private volatile byte[] splitCleanKey;
 	private long tid;
 	private final byte[] metaKey = new byte[]{1};
 	private final byte[] metaTid = ByteBuffer.Empty;
 	private final byte[] metaSplittingKey = new byte[]{2};
 	private final byte[] metaSplitKeyHistory = new byte[]{3};
+	private final byte[] metaSplitCleanKey = new byte[]{4};
 
 	public WriteOptions getWriteOptions() {
 		return writeOptions;
@@ -53,7 +55,22 @@ public class Bucket {
 		splittingMeta = null;
 	}
 
-	RocksDatabase.Batch getBatch() {
+	public byte[] getSplitCleanKey() {
+		return splitCleanKey;
+	}
+
+	public void setSplitCleanKey(Binary key) throws RocksDBException {
+		tMeta.put(writeOptions, metaSplitCleanKey, 0, metaSplitCleanKey.length,
+				key.bytesUnsafe(), key.getOffset(), key.size());
+		splitCleanKey = key.copyIf();
+	}
+
+	public void deleteSplitCleanKey() throws RocksDBException {
+		tMeta.delete(metaSplitCleanKey);
+		splitCleanKey = null;
+	}
+
+	public RocksDatabase.Batch getBatch() {
 		return batch;
 	}
 
@@ -90,6 +107,7 @@ public class Bucket {
 				var bb = ByteBuffer.Wrap(tidValue);
 				tid = bb.ReadLong();
 			}
+			splitCleanKey = tMeta.get(metaSplitCleanKey);
 		} catch (RocksDBException ex) {
 			throw new RuntimeException(ex);
 		}

@@ -14,7 +14,12 @@ DatabaseDynamoDb 还需测试。
 Dbh2 接入Zeze：CheckpointFlush 慢。
 Dbh2 全桶迁移？ 
 Dbh2 walk;
-Dbh2 事务实现方案。
+Dbh2 BenchClient exit 退不出。
+Dbh2 BenchClient.Query 哪来的，问题需要追踪。
+------------------------------------------------------------------------------------------------------------------------------
+2023/6/16 v1.2.6 Config.Customize; Dbh2 Lock Options, Walk, CreateTableAsync; 
+------------------------------------------------------------------------------------------------------------------------------
+Dbh2 事务实现方案。【采用了方案2】
 1. rocks.writeBatch 统计记录undoLogs。缺点进行中的事务的数据马上可见了。（现方案）
 2. rocks.TransastionDB 真正到达rocks的两段式提交协议。有prepare阶段。
     优点，真正落地到底层的两段式。
@@ -24,10 +29,6 @@ Dbh2 事务实现方案。
     rollback时直接删除事务数据。
     优点，进行中事务落地，不需要维护事务对象了。
     缺点，没有测试过，不知道性能如何，应该不比方案1差。
-
-------------------------------------------------------------------------------------------------------------------------------
-2023/6/16 v1.2.6 Config.Customize; Dbh2 Lock Options, Walk, CreateTableAsync; 
-------------------------------------------------------------------------------------------------------------------------------
 Dbh2 事务模式回滚成RocksDb.Batch模式。TransactionDB模式下，deleteRange不支持，备份(Snapshot)需要修改。
 Dbh2 OptimisticTransactionDB(Two phase commit not supported for optimistic transactions.) --> TransactionDB
 Zeze.Util.RocksDatabase 增加事务支持。

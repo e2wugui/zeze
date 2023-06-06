@@ -12,6 +12,7 @@ public class Dbh2Config implements Config.ICustomize {
 	private double splitMaxManagerLoad = splitLoad * 4;
 	private int raftClusterCount = 3;
 	private boolean serialize = true;
+	private int splitCleanCount = 200;
 
 	public boolean isSerialize() {
 		return serialize;
@@ -54,6 +55,14 @@ public class Dbh2Config implements Config.ICustomize {
 		return "Dbh2Config";
 	}
 
+	public int getSplitCleanCount() {
+		return splitCleanCount;
+	}
+
+	public void setSplitCleanCount(int value) {
+		splitCleanCount = value;
+	}
+
 	@Override
 	public void parse(Element self) {
 		var attr = self.getAttribute("PrepareMaxTime");
@@ -90,5 +99,9 @@ public class Dbh2Config implements Config.ICustomize {
 		attr = self.getAttribute("Serialize");
 		if (!attr.isBlank())
 			serialize = Boolean.parseBoolean(attr);
+
+		attr = self.getAttribute("SplitCleanCount");
+		if (!attr.isBlank())
+			splitCleanCount = Integer.parseInt(attr);
 	}
 }

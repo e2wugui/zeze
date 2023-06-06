@@ -213,24 +213,31 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
-		try (var it = bucket.getTData().iterator()) {
-			it.seek(from.getKeyLast().copyIf());
-			if (!it.isValid())
-				return;
-			var first = it.key();
-
-			it.seekToLast();
-			if (!it.isValid())
-				return;
-			var last = it.key();
-
-			// deleteRange 不包含last，需要制造一个比当前last后面的key。
-			last = Arrays.copyOf(last, last.length + 1);
-			//bucket.getTData().deleteRange(first, last);
-
+		try {
+			bucket.setSplitCleanKey(from.getKeyLast());
 			bucket.setMeta(from);
 			bucket.addSplitMetaHistory(from, to);
 			bucket.deleteSplittingMeta();
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
+		}
+	}
+
+	public void splitClean() {
+		try (var it = bucket.getTData().iterator()) {
+			var count = dbh2.getDbh2Config().getSplitCleanCount();
+			for (it.seek(bucket.getSplitCleanKey()); it.isValid() && count > 0; --count, it.next())
+				bucket.getTData().delete(it.key());
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
+		}
+	}
+
+	public void splitCleanEnd() {
+		try {
+			bucket.deleteSplitCleanKey();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();

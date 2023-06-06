@@ -48,6 +48,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	// 性能统计。
 	public static String formatMeta(BBucketMeta.Data meta) {
+		if (null == meta)
+			return "";
 		//noinspection StringBufferReplaceableByString
 		var sb = new StringBuilder();
 		sb.append(meta.getDatabaseName()).append(".").append(meta.getTableName());
@@ -313,8 +315,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 		var bucket = stateMachine.getBucket();
 		var splitting = bucket.getSplittingMeta();
-		if (null != splitting) {
-			logger.info("start but in splitting. {}->{}", formatMeta(bucket.getMeta()), formatMeta(splitting));
+		if (null != splitting || null != bucket.getSplitCleanKey()) {
+			logger.info("start but in splitting or ending. {}->{}", formatMeta(bucket.getMeta()), formatMeta(splitting));
 			return; // splitting
 		}
 
@@ -334,6 +336,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		var bucket = stateMachine.getBucket();
 		if (null != bucket.getSplittingMeta())
 			startSplit();
+		else if (null != bucket.getSplitCleanKey())
+			splitClean();
 	}
 
 	private volatile long splitSerialNo;
@@ -563,6 +567,28 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo());
 		var meta = stateMachine.getBucket().getMeta();
 		logger.info("splitting end done. {}", formatMeta(meta));
+		splitClean();
+	}
+
+	private void splitClean() {
+		getRaft().appendLog(new LogSplitClean(), this::splitCleanResult);
+	}
+
+	private void splitCleanResult(RaftLog raftLog, boolean result) {
+		if (result) {
+			var bucket = stateMachine.getBucket();
+			try (var it = bucket.getTData().iterator()) {
+				it.seek(bucket.getSplitCleanKey());
+				if (it.isValid())
+					splitClean();
+				else
+					getRaft().appendLog(new LogSplitCleanEnd(), (rLog, r) -> {
+						logger.error("splitCleanEnd result={}", r);
+					});
+			}
+		} else {
+			logger.error("splitClean error");
+		}
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {
