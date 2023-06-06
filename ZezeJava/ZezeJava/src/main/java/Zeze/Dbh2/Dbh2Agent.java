@@ -147,19 +147,21 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return raftClient;
 	}
 
-	public Walk walk(Binary exclusiveStartKey, int proposeLimit) {
+	public Walk walk(Binary exclusiveStartKey, int proposeLimit, boolean desc) {
 		var r = new Walk();
 		r.Argument.setExclusiveStartKey(exclusiveStartKey);
 		r.Argument.setProposeLimit(proposeLimit);
+		r.Argument.setDesc(desc);
 		raftClient.sendForWait(r).await();
 		// 错误在外面处理。
 		return r;
 	}
 
-	public WalkKey walkKey(Binary exclusiveStartKey, int proposeLimit) {
+	public WalkKey walkKey(Binary exclusiveStartKey, int proposeLimit, boolean desc) {
 		var r = new WalkKey();
 		r.Argument.setExclusiveStartKey(exclusiveStartKey);
 		r.Argument.setProposeLimit(proposeLimit);
+		r.Argument.setDesc(desc);
 		raftClient.sendForWait(r).await();
 		// 错误在外面处理。
 		return r;

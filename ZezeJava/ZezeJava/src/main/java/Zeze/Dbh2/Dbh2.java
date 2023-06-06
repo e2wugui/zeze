@@ -279,7 +279,41 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		return 0;
 	}
 
-	private boolean walk(Binary exclusiveStartKey, int proposeLimit, Action2<Binary, RocksIterator> fill) throws Exception {
+	private boolean walkDesc(Binary exclusiveStartKey, int proposeLimit,
+							 Action2<Binary, RocksIterator> fill) throws Exception {
+		try (var it = stateMachine.getBucket().getTData().iterator()) {
+			if (exclusiveStartKey.size() > 0) {
+				it.seekForPrev(exclusiveStartKey.copyIf());
+			} else {
+				// 分桶过程中，可能存在Last之后的数据，必须根据Last的情况定位，不能直接使用seekToLast。
+				var lastKey = stateMachine.getBucket().getMeta().getKeyLast();
+				if (lastKey.size() > 0)
+					it.seekForPrev(lastKey.copyIf());
+				else
+					it.seekToLast();
+			}
+			if (it.isValid()) {
+				var firstKey = it.key();
+				if (exclusiveStartKey.size() > 0 && exclusiveStartKey.equals(firstKey))
+					it.prev(); // skip exclusive key if need.
+			}
+
+			var count = proposeLimit;
+			for (; it.isValid() && count > 0; it.prev(), count--) {
+				var key = new Binary(it.key());
+				fill.run(key, it);
+			}
+
+			return !it.isValid();
+		}
+	}
+
+	private boolean walk(Binary exclusiveStartKey, int proposeLimit, boolean desc,
+						 Action2<Binary, RocksIterator> fill) throws Exception {
+		if (desc) {
+			return walkDesc(exclusiveStartKey, proposeLimit, fill);
+		}
+
 		try (var it = stateMachine.getBucket().getTData().iterator()) {
 			if (exclusiveStartKey.size() > 0)
 				it.seek(exclusiveStartKey.copyIf());
@@ -316,7 +350,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			r.SendResult();
 			return 0;
 		}
-		var bucketEnd = walk(r.Argument.getExclusiveStartKey(), r.Argument.getProposeLimit(),
+		var bucketEnd = walk(
+				r.Argument.getExclusiveStartKey(),
+				r.Argument.getProposeLimit(),
+				r.Argument.isDesc(),
 				(key, it) -> {
 					r.Result.getKeyValues().add(new BWalkKeyValue.Data(key, new Binary(it.value())));
 				});
@@ -333,7 +370,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			return 0;
 		}
 
-		var bucketEnd = walk(r.Argument.getExclusiveStartKey(), r.Argument.getProposeLimit(),
+		var bucketEnd = walk(
+				r.Argument.getExclusiveStartKey(),
+				r.Argument.getProposeLimit(),
+				r.Argument.isDesc(),
 				(key, it) -> {
 					r.Result.getKeys().add(key);
 				});

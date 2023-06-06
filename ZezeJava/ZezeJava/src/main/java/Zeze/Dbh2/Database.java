@@ -181,44 +181,46 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public long walk(TableWalkHandleRaw callback) {
-			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name, callback);
+			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name, callback, false);
 		}
 
 		@Override
 		public long walkKey(TableWalkKeyRaw callback) {
-			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name, callback);
+			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name, callback, false);
 		}
 
 		@Override
 		public long walkDesc(TableWalkHandleRaw callback) {
-			return 0;
+			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name, callback, true);
 		}
 
 		@Override
 		public long walkKeyDesc(TableWalkKeyRaw callback) {
-			return 0;
+			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name, callback, true);
 		}
 
 		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name,
-					exclusiveStartKey, proposeLimit, callback);
+					exclusiveStartKey, proposeLimit, callback, false);
 		}
 
 		@Override
 		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
 			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name,
-					exclusiveStartKey, proposeLimit, callback);
+					exclusiveStartKey, proposeLimit, callback, false);
 		}
 
 		@Override
 		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
-			return null;
+			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name,
+					exclusiveStartKey, proposeLimit, callback, true);
 		}
 
 		@Override
 		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
-			return null;
+			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name,
+					exclusiveStartKey, proposeLimit, callback, true);
 		}
 
 		@Override

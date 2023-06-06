@@ -1428,6 +1428,7 @@
 			<bean name="BWalk">
 				<variable id="1" name="ExclusiveStartKey" type="binary"/>
 				<variable id="2" name="ProposeLimit" type="int"/>
+				<variable id="3" name="Desc" type="bool"/>
 			</bean>
 			<bean name="BWalkKeyValue">
 				<variable id="1" name="Key" type="binary"/>

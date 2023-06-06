@@ -8,7 +8,6 @@ import java.util.concurrent.Future;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Config;
-import Zeze.Dbh2.Master.Master;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Dbh2.Master.MasterTable;
 import Zeze.IModule;
@@ -21,9 +20,7 @@ import Zeze.Util.Action2;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import Zeze.Util.ShutdownHook;
-import Zeze.Util.SortedMap;
 import Zeze.Util.Task;
-import com.alibaba.druid.sql.visitor.functions.Bin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -281,7 +278,10 @@ public class Dbh2AgentManager {
 		database.put(tableName, buckets);
 	}
 
-	public long walk(MasterAgent masterAgent, String masterName, String databaseName, String tableName, TableWalkHandleRaw callback) {
+	public long walk(MasterAgent masterAgent,
+					 String masterName, String databaseName, String tableName,
+					 TableWalkHandleRaw callback,
+					 boolean desc) {
 		var table = buckets.get(masterName).get(databaseName).get(tableName);
 		var count = 0L;
 		for (var bucketIt = table.buckets().iterator(); bucketIt.hasNext(); /* nothing */) {
@@ -289,7 +289,7 @@ public class Dbh2AgentManager {
 			var proposeLimit = 5000;
 			var bucket = bucketIt.next();
 			while (true) {
-				var r = openBucket(bucket.getRaftConfig()).walk(exclusiveStartKey, proposeLimit);
+				var r = openBucket(bucket.getRaftConfig()).walk(exclusiveStartKey, proposeLimit, desc);
 				// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
 				if (r.getResultCode() != 0)
 					throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
@@ -315,9 +315,11 @@ public class Dbh2AgentManager {
 		return count;
 	}
 
-	public ByteBuffer walk(MasterAgent masterAgent, String masterName, String databaseName, String tableName,
-					 ByteBuffer exclusiveStartKey, int proposeLimit,
-					 TableWalkHandleRaw callback) {
+	public ByteBuffer walk(MasterAgent masterAgent,
+						   String masterName, String databaseName, String tableName,
+						   ByteBuffer exclusiveStartKey, int proposeLimit,
+						   TableWalkHandleRaw callback,
+						   boolean desc) {
 		var exclusiveKey = exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty;
 		var bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey);
 		if (!bucketIt.hasNext())
@@ -325,7 +327,7 @@ public class Dbh2AgentManager {
 		var bucket = bucketIt.next();
 		while (true) {
 			Binary lastKey = null;
-			var r = openBucket(bucket.getRaftConfig()).walk(exclusiveKey, proposeLimit);
+			var r = openBucket(bucket.getRaftConfig()).walk(exclusiveKey, proposeLimit, desc);
 			// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
 			if (r.getResultCode() != 0)
 				throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
@@ -348,7 +350,10 @@ public class Dbh2AgentManager {
 		return null;
 	}
 
-	public long walkKey(MasterAgent masterAgent, String masterName, String databaseName, String tableName, TableWalkKeyRaw callback) {
+	public long walkKey(MasterAgent masterAgent,
+						String masterName, String databaseName, String tableName,
+						TableWalkKeyRaw callback,
+						boolean desc) {
 		var table = buckets.get(masterName).get(databaseName).get(tableName);
 		var count = 0L;
 		for (var bucketIt = table.buckets().iterator(); bucketIt.hasNext(); /* nothing */) {
@@ -356,7 +361,7 @@ public class Dbh2AgentManager {
 			var proposeLimit = 5000;
 			var bucket = bucketIt.next();
 			while (true) {
-				var r = openBucket(bucket.getRaftConfig()).walkKey(exclusiveStartKey, proposeLimit);
+				var r = openBucket(bucket.getRaftConfig()).walkKey(exclusiveStartKey, proposeLimit, desc);
 				// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
 				if (r.getResultCode() != 0)
 					throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
@@ -382,9 +387,11 @@ public class Dbh2AgentManager {
 		return count;
 	}
 
-	public ByteBuffer walkKey(MasterAgent masterAgent, String masterName, String databaseName, String tableName,
+	public ByteBuffer walkKey(MasterAgent masterAgent,
+							  String masterName, String databaseName, String tableName,
 							  ByteBuffer exclusiveStartKey, int proposeLimit,
-							  TableWalkKeyRaw callback) {
+							  TableWalkKeyRaw callback,
+							  boolean desc) {
 		var exclusiveKey = exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty;
 		var bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey);
 		if (!bucketIt.hasNext())
@@ -392,7 +399,7 @@ public class Dbh2AgentManager {
 		var bucket = bucketIt.next();
 		Binary lastKey = null;
 		while (true) {
-			var r = openBucket(bucket.getRaftConfig()).walk(exclusiveKey, proposeLimit);
+			var r = openBucket(bucket.getRaftConfig()).walkKey(exclusiveKey, proposeLimit, desc);
 			// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
 			if (r.getResultCode() != 0)
 				throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
@@ -406,9 +413,9 @@ public class Dbh2AgentManager {
 				}
 				break; // no more bucket
 			}
-			for (var keyValue : r.Result.getKeyValues()) {
-				callback.handle(keyValue.getKey().copyIf());
-				lastKey = keyValue.getKey();
+			for (var key : r.Result.getKeys()) {
+				callback.handle(key.copyIf());
+				lastKey = key;
 			}
 			break;
 		}
