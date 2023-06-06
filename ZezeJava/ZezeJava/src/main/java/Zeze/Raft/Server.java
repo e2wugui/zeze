@@ -184,7 +184,8 @@ public class Server extends HandshakeBoth {
 	}
 
 	public <P extends Protocol<?>> void dispatchRaftRpcResponse(P p, ProtocolHandle<P> responseHandle,
-																ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+																ProtocolFactoryHandle<?> factoryHandle)
+			throws Exception {
 		super.dispatchRpcResponse(p, responseHandle, factoryHandle);
 	}
 
@@ -215,15 +216,10 @@ public class Server extends HandshakeBoth {
 
 	/**
 	 * Raft.Server的线程派发模式总是完全
-	 * @param typeId typeId
-	 * @param bb bb
-	 * @param factoryHandle factoryHandle
-	 * @param so so
-	 * @throws Exception
-	 * process error.
 	 */
 	@Override
-	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
+			throws Exception {
 		// 不支持事务
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		p.dispatch(this, factoryHandle);
@@ -283,7 +279,7 @@ public class Server extends HandshakeBoth {
 		super.OnHandshakeDone(so);
 
 		// 没有判断是否和其他Raft-Node的连接。
-		Task.runUnsafe(() -> {
+		Task.executeUnsafe(() -> {
 			raft.lock();
 			try {
 				if (raft.isReadyLeader()) {

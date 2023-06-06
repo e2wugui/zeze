@@ -202,7 +202,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 	// 如果执行的操作没有阻塞，可以直接在网络线程中执行。
 	// 重载当然也可以实现其他模式，加到自己的队列什么的。
 	public void dispatch(Session session, Packet packet) {
-		Task.runUnsafe(() -> session.handle.handle(session, packet), "ReliableUdp.dispatch", DispatchMode.Normal);
+		Task.executeUnsafe(() -> session.handle.handle(session, packet), "ReliableUdp.dispatch", DispatchMode.Normal);
 		// session.Handle.handle(session, packet); // 直接在网络线程中执行。
 	}
 

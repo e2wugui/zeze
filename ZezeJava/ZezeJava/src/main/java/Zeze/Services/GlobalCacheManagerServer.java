@@ -676,7 +676,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				// 2. sender是share, 而且reducePending的size是0
 				var errorFreshAcquire = new OutObject<>(Boolean.FALSE);
 				if (!cs.share.isEmpty() && (!senderIsShare || !reducePending.isEmpty())) {
-					Task.runUnsafe(() -> {
+					Task.executeUnsafe(() -> {
 						// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
 						// 应该也会等待所有任务结束（包括错误）。
 						var freshAcquire = false;

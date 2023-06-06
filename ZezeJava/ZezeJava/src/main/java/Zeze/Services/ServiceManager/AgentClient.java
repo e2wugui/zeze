@@ -42,7 +42,7 @@ public final class AgentClient extends HandshakeClient {
 			socket = so; // 下面这行可能导致等待future的其它线程开始执行,所以先给socket赋值
 		super.OnHandshakeDone(so);
 		if (firstConnected) {
-			Task.runUnsafe(agent::onConnected, "ServiceManager.AgentClient.OnHandshakeDone", DispatchMode.Normal);
+			Task.executeUnsafe(agent::onConnected, "ServiceManager.AgentClient.OnHandshakeDone", DispatchMode.Normal);
 		} else {
 			Agent.logger.error("Has Connected.");
 		}
@@ -57,23 +57,26 @@ public final class AgentClient extends HandshakeClient {
 	}
 
 	@Override
-	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
+			throws Exception {
 		// 不支持事务
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		p.dispatch(this, factoryHandle);
 	}
 
 	@Override
-	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
+			throws Exception {
 		// 不支持事务
-		Task.runUnsafe(() -> p.handle(this, factoryHandle),
+		Task.executeUnsafe(() -> p.handle(this, factoryHandle),
 				p, Protocol::trySendResultCode, null, factoryHandle.Mode);
 	}
 
 	@Override
 	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
-															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+															@NotNull ProtocolFactoryHandle<?> factoryHandle)
+			throws Exception {
 		// 不支持事务
-		Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+		Task.executeRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
 }

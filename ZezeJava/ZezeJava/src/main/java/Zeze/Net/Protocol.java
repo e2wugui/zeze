@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.ProtocolFactoryFinder;
@@ -202,10 +203,12 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 			return handle.handleProtocol(this);
 
 		logger.warn("handle({}): Protocol Handle Not Found: {}", service.getName(), this);
-		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null)
+		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null) {
 			((AsyncSocket)sender).close();
+			return 0;
+		}
 
-		return 0;
+		return Procedure.NotImplement;
 	}
 
 	public long handle(@NotNull DatagramService service,
@@ -215,10 +218,12 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 			return handle.handleProtocol(this);
 
 		logger.warn("handle({}): Protocol Handle Not Found: {}", service.getName(), this);
-		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null)
+		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null) {
 			((DatagramSession)sender).close();
+			return 0;
+		}
 
-		return 0;
+		return Procedure.NotImplement;
 	}
 
 	/**

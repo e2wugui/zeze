@@ -180,7 +180,7 @@ public class DatagramService {
 		if (zeze != null && level != TransactionLevel.None) {
 			var bbCopy = ByteBuffer.Wrap(bb.Copy()); // 传给事务的buffer可能重做需要重新decode，不能直接引用网络层的buffer，需要copy一次。
 			var outProtocol = new OutObject<Protocol<?>>();
-			Task.runUnsafe(zeze.newProcedure(() -> {
+			Task.executeUnsafe(zeze.newProcedure(() -> {
 						bbCopy.ReadIndex = 0; // 考虑redo,要重置读指针
 						var p = decodeProtocol(bbCopy, factoryHandle, sender, serialId);
 						outProtocol.value = p;
@@ -189,7 +189,7 @@ public class DatagramService {
 					outProtocol, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
 			var p = decodeProtocol(bb, factoryHandle, sender, serialId);
-			Task.runUnsafe(() -> p.handle(this, factoryHandle), p,
+			Task.executeUnsafe(() -> p.handle(this, factoryHandle), p,
 					Protocol::trySendResultCode, null, factoryHandle.Mode);
 		}
 	}

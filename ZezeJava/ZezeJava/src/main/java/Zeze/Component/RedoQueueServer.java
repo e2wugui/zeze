@@ -76,7 +76,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
 			// 总是支持事务
 			var outProtocol = new OutObject<Protocol<?>>();
-			Task.runUnsafe(getZeze().newProcedure(() -> {
+			Task.executeUnsafe(getZeze().newProcedure(() -> {
 						bb.ReadIndex = 0; // 考虑redo,要重置读指针
 						var p = decodeProtocol(typeId, bb, factoryHandle, so);
 						outProtocol.value = p;

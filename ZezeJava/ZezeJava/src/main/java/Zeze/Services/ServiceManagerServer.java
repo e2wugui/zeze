@@ -873,7 +873,7 @@ public final class ServiceManagerServer implements Closeable {
 		@Override
 		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 不支持事务
-			Task.runUnsafe(() -> p.handle(this, factoryHandle),
+			Task.executeUnsafe(() -> p.handle(this, factoryHandle),
 					p, Protocol::trySendResultCode, null, factoryHandle.Mode);
 		}
 
@@ -881,7 +881,7 @@ public final class ServiceManagerServer implements Closeable {
 		public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
 																@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 不支持事务
-			Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+			Task.executeRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 		}
 		*/
 	}

@@ -292,12 +292,12 @@ public class ProviderDirectService extends HandshakeBoth {
 		if (p.getTypeId() == ModuleRedirectAllResult.TypeId_) {
 			var r = (ModuleRedirectAllResult)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-			Task.runUnsafe(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode,
+			Task.executeUnsafe(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode,
 					r.Argument.getMethodFullName(), factoryHandle.Mode);
 			return;
 		}
 		// 所有的Direct都不启用存储过程。
-		Task.runUnsafe(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode, null, factoryHandle.Mode);
+		Task.executeUnsafe(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode, null, factoryHandle.Mode);
 		//super.DispatchProtocol(p, factoryHandle);
 	}
 
@@ -314,7 +314,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		}
 
 		// no procedure.
-		Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+		Task.executeRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 		//super.dispatchRpcResponse(rpc, responseHandle, factoryHandle);
 	}
 

@@ -515,7 +515,7 @@ public final class Agent {
 			if (p.getTypeId() == LeaderIs.TypeId_ || isHandshakeProtocol(p.getTypeId()) || agent.dispatchProtocolToInternalThreadPool) {
 				Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), "InternalRequest"));
 			} else
-				Task.runUnsafe(() -> p.handle(this, factoryHandle),
+				Task.executeUnsafe(() -> p.handle(this, factoryHandle),
 						p, Protocol::trySendResultCode, null, factoryHandle.Mode);
 		}
 	}

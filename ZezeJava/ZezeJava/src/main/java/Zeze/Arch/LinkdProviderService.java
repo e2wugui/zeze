@@ -62,7 +62,7 @@ public class LinkdProviderService extends HandshakeServer {
 		if (p.getTypeId() == Bind.TypeId_ || p.getTypeId() == Subscribe.TypeId_) {
 			// Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
 			// 不要直接在io-thread里面执行。
-			Task.runUnsafe(() -> p.handle(this, factoryHandle), p, null, null, factoryHandle.Mode);
+			Task.executeUnsafe(() -> p.handle(this, factoryHandle), p, null, null, factoryHandle.Mode);
 		} else {
 			// 不启用新的Task，直接在io-thread里面执行。因为其他协议都是立即处理的，
 			// 直接执行，少一次线程切换。

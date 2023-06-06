@@ -123,6 +123,10 @@ public final class Token extends AbstractToken {
 			connector.WaitReady();
 		}
 
+		public @Nullable AsyncSocket getSocket() {
+			return connector.getSocket();
+		}
+
 		public @NotNull TaskCompletionSource<BNewTokenRes.Data> newToken(@Nullable Binary context, long ttl) {
 			return new NewToken(new BNewTokenArg.Data(context, ttl)).SendForWait(connector.getSocket());
 		}

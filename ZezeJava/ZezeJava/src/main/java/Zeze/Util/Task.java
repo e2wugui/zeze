@@ -123,7 +123,7 @@ public final class Task {
 		return true;
 	}
 
-	public static void call(@NotNull Action0 action, String name) {
+	public static void call(@NotNull Action0 action, @Nullable String name) {
 		var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 		try {
 			action.run();
@@ -137,7 +137,7 @@ public final class Task {
 		}
 	}
 
-	public static long call(@NotNull FuncLong func, String name) {
+	public static long call(@NotNull FuncLong func, @Nullable String name) {
 		var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 		try {
 			return func.call();
@@ -152,31 +152,32 @@ public final class Task {
 		}
 	}
 
-	public static void run(@NotNull Action0 action, String name) {
+	public static void run(@NotNull Action0 action, @Nullable String name) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> runUnsafe(action, name));
+			t.runWhileCommit(() -> executeUnsafe(action, name));
 		else
-			runUnsafe(action, name);
+			executeUnsafe(action, name);
+	}
+
+	public static void run(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> executeUnsafe(action, name, mode));
+		else
+			executeUnsafe(action, name, mode);
 	}
 
 	// 注意: 以Unsafe结尾的方法在事务中也会立即异步执行,即使之后该事务redo或rollback也无法撤销,很可能不是想要的结果,所以小心使用
-	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, String name) {
+	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name) {
 		return runUnsafe(action, name, DispatchMode.Normal);
 	}
 
-	public static void run(@NotNull Action0 action, String name, DispatchMode mode) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> runUnsafe(action, name, mode));
-		else
-			runUnsafe(action, name, mode);
-	}
-
-	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, String name, DispatchMode mode) {
+	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name,
+											   @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			final var future = new TaskCompletionSource<Long>();
+			var future = new TaskCompletionSource<Long>();
 			try {
 				action.run();
 				future.setResult(0L);
@@ -194,8 +195,47 @@ public final class Task {
 			return future;
 		}
 
-		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> {
+		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			try {
+				action.run();
+			} catch (Throwable e) { // logger.error
+				//noinspection ConstantValue
+				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", e);
+			} finally {
+				//noinspection ConstantValue
+				if (PerfCounter.ENABLE_PERF && action != null) {
+					PerfCounter.instance.addRunInfo(name != null ? name : action.getClass(),
+							System.nanoTime() - timeBegin);
+				}
+			}
+		});
+	}
+
+	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name) {
+		executeUnsafe(action, name, DispatchMode.Normal);
+	}
+
+	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
+									 @Nullable DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			try {
+				action.run();
+			} catch (Exception e) {
+				//noinspection ConstantValue
+				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", e);
+			} finally {
+				//noinspection ConstantValue
+				if (PerfCounter.ENABLE_PERF && action != null) {
+					PerfCounter.instance.addRunInfo(name != null ? name : action.getClass(),
+							System.nanoTime() - timeBegin);
+				}
+			}
+			return;
+		}
+
+		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
 				action.run();
@@ -314,7 +354,8 @@ public final class Task {
 		return future;
 	}
 
-	public static void DefaultLogAction(Throwable ex, long result, Protocol<?> p, String actionName) {
+	public static void DefaultLogAction(@Nullable Throwable ex, long result, @Nullable Protocol<?> p,
+										@NotNull String actionName) {
 		// exception -> Error
 		// 0 != result -> level from p or Info
 		// others -> Trace
@@ -343,16 +384,17 @@ public final class Task {
 			logger.log(level, "Action={}{} Return={}", actionName, userStateStr, result, ex);
 	}
 
-	public static void logAndStatistics(long result, Protocol<?> p, boolean IsRequestSaved) {
+	public static void logAndStatistics(long result, @Nullable Protocol<?> p, boolean IsRequestSaved) {
 		logAndStatistics(null, result, p, IsRequestSaved, null);
 	}
 
-	public static void logAndStatistics(Throwable ex, long result, Protocol<?> p, boolean IsRequestSaved) {
+	public static void logAndStatistics(@Nullable Throwable ex, long result, @Nullable Protocol<?> p,
+										boolean IsRequestSaved) {
 		logAndStatistics(ex, result, p, IsRequestSaved, null);
 	}
 
-	public static void logAndStatistics(Throwable ex, long result, Protocol<?> p, boolean IsRequestSaved,
-										String aName) {
+	public static void logAndStatistics(@Nullable Throwable ex, long result, @Nullable Protocol<?> p,
+										boolean IsRequestSaved, @Nullable String aName) {
 		var protocolName = p != null ? p.getClass().getName() : "?";
 		var actionName = null != aName ? aName : IsRequestSaved ? protocolName : protocolName + ":Response";
 		var tmpVolatile = logAction;
@@ -367,11 +409,12 @@ public final class Task {
 			ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(result).increment();
 	}
 
-	public static long call(@NotNull FuncLong func, Protocol<?> p) {
+	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		return call(func, p, null, null);
 	}
 
-	public static long call(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
+	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p,
+							@Nullable ProtocolErrorHandle actionWhenError) {
 		return call(func, p, actionWhenError, null);
 	}
 
@@ -384,7 +427,8 @@ public final class Task {
 		}
 	}
 
-	public static long call(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName) {
+	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p,
+							@Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
 		var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 		boolean isRequestSaved = p != null && p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
@@ -421,64 +465,66 @@ public final class Task {
 		}
 	}
 
-	public static void run(@NotNull FuncLong func, Protocol<?> p) {
+	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> runUnsafe(func, p));
+			t.runWhileCommit(() -> executeUnsafe(func, p));
 		else
-			runUnsafe(func, p);
+			executeUnsafe(func, p);
 	}
 
-	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, Protocol<?> p) {
+	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
+						   @Nullable ProtocolErrorHandle actionWhenError) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> executeUnsafe(func, p, actionWhenError));
+		else
+			executeUnsafe(func, p, actionWhenError);
+	}
+
+	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
+						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> executeUnsafe(func, p, actionWhenError, aName));
+		else
+			executeUnsafe(func, p, actionWhenError, aName);
+	}
+
+	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
+						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+						   @Nullable DispatchMode mode) {
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> executeUnsafe(func, p, actionWhenError, aName, mode));
+		else
+			executeUnsafe(func, p, actionWhenError, aName, mode);
+	}
+
+	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		return runUnsafe(func, p, null, null, DispatchMode.Normal);
 	}
 
-	public static void run(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError));
-		else
-			runUnsafe(func, p, actionWhenError);
-	}
-
-	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, Protocol<?> p,
-												  ProtocolErrorHandle actionWhenError) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+												  @Nullable ProtocolErrorHandle actionWhenError) {
 		return runUnsafe(func, p, actionWhenError, null, DispatchMode.Normal);
 	}
 
-	public static void run(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError, aName));
-		else
-			runUnsafe(func, p, actionWhenError, aName);
-	}
-
-	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, Protocol<?> p,
-												  ProtocolErrorHandle actionWhenError, String aName) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+												  @Nullable ProtocolErrorHandle actionWhenError, String aName) {
 		return runUnsafe(func, p, actionWhenError, aName, DispatchMode.Normal);
 	}
 
-	public static void run(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName,
-						   DispatchMode mode) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError, aName, mode));
-		else
-			runUnsafe(func, p, actionWhenError, aName, mode);
-	}
-
-	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, Protocol<?> p,
-												  ProtocolErrorHandle actionWhenError, String aName,
-												  DispatchMode mode) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+												  @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+												  @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
-			final var future = new TaskCompletionSource<Long>();
+			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(func, p, actionWhenError, aName));
 			return future;
 		}
 
-		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> {
+		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
 			try {
 				return call(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
@@ -488,16 +534,47 @@ public final class Task {
 		});
 	}
 
+	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
+		executeUnsafe(func, p, null, null, DispatchMode.Normal);
+	}
+
+	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+									 @Nullable ProtocolErrorHandle actionWhenError) {
+		executeUnsafe(func, p, actionWhenError, null, DispatchMode.Normal);
+	}
+
+	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+									 @Nullable ProtocolErrorHandle actionWhenError, String aName) {
+		executeUnsafe(func, p, actionWhenError, aName, DispatchMode.Normal);
+	}
+
+	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+									 @Nullable DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			call(func, p, actionWhenError, aName);
+			return;
+		}
+
+		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
+			try {
+				call(func, p, actionWhenError, aName);
+			} catch (Throwable e) { // logger.error
+				logger.error("{}", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
+			}
+		});
+	}
+
 	public static long call(@NotNull Procedure procedure) {
 		return call(procedure, (Protocol<?>)null, null);
 	}
 
-	public static long call(@NotNull Procedure procedure, Protocol<?> from) {
+	public static long call(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
 		return call(procedure, from, null);
 	}
 
-	public static long call(@NotNull Procedure procedure, Protocol<?> from,
-							Action2<Protocol<?>, Long> actionWhenError) {
+	public static long call(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+							@Nullable Action2<Protocol<?>, Long> actionWhenError) {
 		boolean isRequestSaved = from != null && from.isRequest();
 		try {
 			// 日志在Call里面记录。因为要支持嵌套。
@@ -521,8 +598,8 @@ public final class Task {
 		}
 	}
 
-	public static long call(@NotNull Procedure procedure, OutObject<Protocol<?>> outProtocol,
-							Action2<Protocol<?>, Long> actionWhenError) {
+	public static long call(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+							@Nullable Action2<Protocol<?>, Long> actionWhenError) {
 		Protocol<?> from = null;
 		try {
 			// 日志在Call里面记录。因为要支持嵌套。
@@ -550,63 +627,64 @@ public final class Task {
 	public static void run(@NotNull Procedure procedure) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> runUnsafe(procedure));
+			t.runWhileCommit(() -> executeUnsafe(procedure));
 		else
-			runUnsafe(procedure);
+			executeUnsafe(procedure);
+	}
+
+	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> executeUnsafe(procedure, from));
+		else
+			executeUnsafe(procedure, from);
+	}
+
+	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+						   @Nullable Action2<Protocol<?>, Long> actionWhenError) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> executeUnsafe(procedure, from, actionWhenError));
+		else
+			executeUnsafe(procedure, from, actionWhenError);
+	}
+
+	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+						   @Nullable Action2<Protocol<?>, Long> actionWhenError, @Nullable DispatchMode mode) {
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> executeUnsafe(procedure, from, actionWhenError, mode));
+		else
+			executeUnsafe(procedure, from, actionWhenError, mode);
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure) {
 		return runUnsafe(procedure, DispatchMode.Normal);
 	}
 
-	public static void run(@NotNull Procedure procedure, Protocol<?> from) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> runUnsafe(procedure, from));
-		else
-			runUnsafe(procedure, from);
-	}
-
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, Protocol<?> from) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
 		return runUnsafe(procedure, from, null, DispatchMode.Normal);
 	}
 
-	public static void run(@NotNull Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> runUnsafe(procedure, from, actionWhenError));
-		else
-			runUnsafe(procedure, from, actionWhenError);
-	}
-
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, Protocol<?> from,
-												  Action2<Protocol<?>, Long> actionWhenError) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+												  @Nullable Action2<Protocol<?>, Long> actionWhenError) {
 		return runUnsafe(procedure, from, actionWhenError, DispatchMode.Normal);
 	}
 
-	public static void run(@NotNull Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError,
-						   DispatchMode mode) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> runUnsafe(procedure, from, actionWhenError, mode));
-		else
-			runUnsafe(procedure, from, actionWhenError, mode);
-	}
-
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, DispatchMode mode) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
 		return runUnsafe(procedure, (Protocol<?>)null, null, mode);
 	}
 
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, Protocol<?> from,
-												  Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+												  @Nullable Action2<Protocol<?>, Long> actionWhenError,
+												  @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
-			final var future = new TaskCompletionSource<Long>();
+			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure, from, actionWhenError));
 			return future;
 		}
 
-		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> {
+		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
 			try {
 				return call(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
@@ -616,16 +694,17 @@ public final class Task {
 		});
 	}
 
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, OutObject<Protocol<?>> outProtocol,
-												  Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure,
+												  @NotNull OutObject<Protocol<?>> outProtocol,
+												  @Nullable Action2<Protocol<?>, Long> actionWhenError,
+												  @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
-			final var future = new TaskCompletionSource<Long>();
+			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure, outProtocol, actionWhenError));
 			return future;
 		}
 
-		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> {
+		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
 			try {
 				return call(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
@@ -635,35 +714,102 @@ public final class Task {
 		});
 	}
 
+	public static void executeUnsafe(@NotNull Procedure procedure) {
+		executeUnsafe(procedure, DispatchMode.Normal);
+	}
+
+	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
+		executeUnsafe(procedure, from, null, DispatchMode.Normal);
+	}
+
+	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+									 @Nullable Action2<Protocol<?>, Long> actionWhenError) {
+		executeUnsafe(procedure, from, actionWhenError, DispatchMode.Normal);
+	}
+
+	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
+		executeUnsafe(procedure, (Protocol<?>)null, null, mode);
+	}
+
+	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+									 @Nullable Action2<Protocol<?>, Long> actionWhenError,
+									 @Nullable DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			call(procedure, from, actionWhenError);
+			return;
+		}
+
+		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
+			try {
+				call(procedure, from, actionWhenError);
+			} catch (Throwable e) { // logger.error
+				logger.error("{}", procedure, e);
+			}
+		});
+	}
+
+	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+									 @Nullable Action2<Protocol<?>, Long> actionWhenError,
+									 @Nullable DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			call(procedure, outProtocol, actionWhenError);
+			return;
+		}
+
+		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
+			try {
+				call(procedure, outProtocol, actionWhenError);
+			} catch (Throwable e) { // logger.error
+				logger.error("{}", procedure, e);
+			}
+		});
+	}
+
 	public static void runRpcResponse(@NotNull Procedure procedure) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> runRpcResponseUnsafe(procedure));
+			t.runWhileCommit(() -> executeRpcResponseUnsafe(procedure));
 		else
-			runRpcResponseUnsafe(procedure);
+			executeRpcResponseUnsafe(procedure);
+	}
+
+	public static void runRpcResponse(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> executeRpcResponseUnsafe(procedure, mode));
+		else
+			executeRpcResponseUnsafe(procedure, mode);
+	}
+
+	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> executeRpcResponseUnsafe(func, p));
+		else
+			executeRpcResponseUnsafe(func, p);
+	}
+
+	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode) {
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> executeRpcResponseUnsafe(func, p, mode));
+		else
+			executeRpcResponseUnsafe(func, p, mode);
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure) {
 		return runRpcResponseUnsafe(procedure, DispatchMode.Normal);
 	}
 
-	public static void runRpcResponse(@NotNull Procedure procedure, DispatchMode mode) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> runRpcResponseUnsafe(procedure, mode));
-		else
-			runRpcResponseUnsafe(procedure, mode);
-	}
-
-	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure, DispatchMode mode) {
+	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure,
+															 @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
-			final var future = new TaskCompletionSource<Long>();
+			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure));
 			return future;
 		}
 
-		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> { // rpcResponseThreadPool
+		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> { // rpcResponseThreadPool
 			try {
 				return call(procedure);
 			} catch (Throwable e) { // logger.error
@@ -673,40 +819,64 @@ public final class Task {
 		});
 	}
 
-	public static void runRpcResponse(@NotNull FuncLong func, Protocol<?> p) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> runRpcResponseUnsafe(func, p));
-		else
-			runRpcResponseUnsafe(func, p);
-	}
-
-	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, Protocol<?> p) {
+	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		return runRpcResponseUnsafe(func, p, DispatchMode.Normal);
 	}
 
-	public static void runRpcResponse(@NotNull FuncLong func, Protocol<?> p, DispatchMode mode) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> runRpcResponseUnsafe(func, p, mode));
-		else
-			runRpcResponseUnsafe(func, p, mode);
-	}
-
-	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, Protocol<?> p, DispatchMode mode) {
+	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+															 @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
-			final var future = new TaskCompletionSource<Long>();
+			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(func, p));
 			return future;
 		}
 
-		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> { // rpcResponseThreadPool
+		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> { // rpcResponseThreadPool
 			try {
 				return call(func, p);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", p != null ? p.getClass().getName() : null, e);
 				return Procedure.Exception;
+			}
+		});
+	}
+
+	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure) {
+		executeRpcResponseUnsafe(procedure, DispatchMode.Normal);
+	}
+
+	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure,
+												@Nullable DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			call(procedure);
+			return;
+		}
+
+		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> { // rpcResponseThreadPool
+			try {
+				call(procedure);
+			} catch (Throwable e) { // logger.error
+				logger.error("{}", procedure, e);
+			}
+		});
+	}
+
+	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
+		executeRpcResponseUnsafe(func, p, DispatchMode.Normal);
+	}
+
+	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+												@Nullable DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			call(func, p);
+			return;
+		}
+
+		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> { // rpcResponseThreadPool
+			try {
+				call(func, p);
+			} catch (Throwable e) { // logger.error
+				logger.error("{}", p != null ? p.getClass().getName() : null, e);
 			}
 		});
 	}

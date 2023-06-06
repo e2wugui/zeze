@@ -292,7 +292,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (p.getTypeId() == Zeze.Raft.LeaderIs.TypeId_) {
 				Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), "InternalRequest"));
 			} else {
-				raft.getUserThreadExecutor().execute(() -> Task.runUnsafe(
+				raft.getUserThreadExecutor().execute(() -> Task.executeUnsafe(
 						() -> p.handle(this, factoryHandle),
 						p,
 						null,
