@@ -201,12 +201,14 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
-			return null;
+			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name,
+					exclusiveStartKey, proposeLimit, callback);
 		}
 
 		@Override
 		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
-			return null;
+			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name,
+					exclusiveStartKey, proposeLimit, callback);
 		}
 
 		@Override

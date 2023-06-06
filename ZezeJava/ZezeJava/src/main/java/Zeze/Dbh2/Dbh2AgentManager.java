@@ -14,6 +14,7 @@ import Zeze.Dbh2.Master.MasterTable;
 import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Net.ServiceConf;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
 import Zeze.Util.Action2;
@@ -22,6 +23,7 @@ import Zeze.Util.OutObject;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.SortedMap;
 import Zeze.Util.Task;
+import com.alibaba.druid.sql.visitor.functions.Bin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -313,6 +315,39 @@ public class Dbh2AgentManager {
 		return count;
 	}
 
+	public ByteBuffer walk(MasterAgent masterAgent, String masterName, String databaseName, String tableName,
+					 ByteBuffer exclusiveStartKey, int proposeLimit,
+					 TableWalkHandleRaw callback) {
+		var exclusiveKey = exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty;
+		var bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey);
+		if (!bucketIt.hasNext())
+			return null;
+		var bucket = bucketIt.next();
+		while (true) {
+			Binary lastKey = null;
+			var r = openBucket(bucket.getRaftConfig()).walk(exclusiveKey, proposeLimit);
+			// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
+			if (r.getResultCode() != 0)
+				throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
+			if (r.Result.isBucketRefuse()) {
+				// 分桶但是本地信息没有更新会出现这种情况，此时重新装载桶的信息，再次定位。
+				reload(masterAgent, masterName, databaseName, tableName);
+				bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey);
+				if (bucketIt.hasNext()) {
+					bucket = bucketIt.next();
+					continue; // refused and redirect success.
+				}
+				break; // no more bucket
+			}
+			for (var keyValue : r.Result.getKeyValues()) {
+				callback.handle(keyValue.getKey().copyIf(), keyValue.getValue().copyIf());
+				lastKey = keyValue.getKey();
+			}
+			return lastKey != null && !r.Result.isBucketEnd() ? ByteBuffer.Wrap(lastKey) : null;
+		}
+		return null;
+	}
+
 	public long walkKey(MasterAgent masterAgent, String masterName, String databaseName, String tableName, TableWalkKeyRaw callback) {
 		var table = buckets.get(masterName).get(databaseName).get(tableName);
 		var count = 0L;
@@ -345,5 +380,38 @@ public class Dbh2AgentManager {
 			}
 		}
 		return count;
+	}
+
+	public ByteBuffer walkKey(MasterAgent masterAgent, String masterName, String databaseName, String tableName,
+							  ByteBuffer exclusiveStartKey, int proposeLimit,
+							  TableWalkKeyRaw callback) {
+		var exclusiveKey = exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty;
+		var bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey);
+		if (!bucketIt.hasNext())
+			return null;
+		var bucket = bucketIt.next();
+		Binary lastKey = null;
+		while (true) {
+			var r = openBucket(bucket.getRaftConfig()).walk(exclusiveKey, proposeLimit);
+			// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
+			if (r.getResultCode() != 0)
+				throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
+			if (r.Result.isBucketRefuse()) {
+				// 分桶但是本地信息没有更新会出现这种情况，此时重新装载桶的信息，再次定位。
+				reload(masterAgent, masterName, databaseName, tableName);
+				bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey);
+				if (bucketIt.hasNext()) {
+					bucket = bucketIt.next();
+					continue; // refused and redirect success.
+				}
+				break; // no more bucket
+			}
+			for (var keyValue : r.Result.getKeyValues()) {
+				callback.handle(keyValue.getKey().copyIf());
+				lastKey = keyValue.getKey();
+			}
+			break;
+		}
+		return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 	}
 }

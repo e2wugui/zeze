@@ -27,7 +27,8 @@ public class MasterTable {
 		}
 
 		public SortedMap<Binary, BBucketMeta.Data> tailMap(Binary key) {
-			return buckets.tailMap(key);
+			var bucket = locate(key);
+			return buckets.tailMap(bucket.getKeyFirst());
 		}
 
 		@Override
