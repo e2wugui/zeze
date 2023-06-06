@@ -1467,6 +1467,7 @@
 				<variable id="1" name="newCount"     type="long"/> 已分配的token数量
 				<variable id="2" name="curCount"     type="long"/> 当前有效的token数量
 				<variable id="3" name="connectCount" type="int"/> 当前的网络连接数量
+				<variable id="4" name="perfLog"      type="string"/> 最近生成的性能日志
 			</bean>
 
 			<rpc name="NewToken" argument="BNewTokenArg" result="BNewTokenRes" handle="server"/> 申请新token

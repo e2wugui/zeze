@@ -10,6 +10,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
     private long _newCount; // 已分配的token数量
     private long _curCount; // 当前有效的token数量
     private int _connectCount; // 当前的网络连接数量
+    private String _perfLog; // 最近生成的性能日志
 
     @Override
     public long getNewCount() {
@@ -71,15 +72,41 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         txn.putLog(new Log__connectCount(this, 3, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BTokenStatus() {
+    @Override
+    public String getPerfLog() {
+        if (!isManaged())
+            return _perfLog;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _perfLog;
+        var log = (Log__perfLog)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _perfLog;
+    }
+
+    public void setPerfLog(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _perfLog = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__perfLog(this, 4, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BTokenStatus(long _newCount_, long _curCount_, int _connectCount_) {
+    public BTokenStatus() {
+        _perfLog = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BTokenStatus(long _newCount_, long _curCount_, int _connectCount_, String _perfLog_) {
         _newCount = _newCount_;
         _curCount = _curCount_;
         _connectCount = _connectCount_;
+        if (_perfLog_ == null)
+            _perfLog_ = "";
+        _perfLog = _perfLog_;
     }
 
     @Override
@@ -98,12 +125,14 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         setNewCount(other._newCount);
         setCurCount(other._curCount);
         setConnectCount(other._connectCount);
+        setPerfLog(other._perfLog);
     }
 
     public void assign(BTokenStatus other) {
         setNewCount(other.getNewCount());
         setCurCount(other.getCurCount());
         setConnectCount(other.getConnectCount());
+        setPerfLog(other.getPerfLog());
     }
 
     public BTokenStatus copyIfManaged() {
@@ -149,6 +178,13 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         public void commit() { ((BTokenStatus)getBelong())._connectCount = value; }
     }
 
+    private static final class Log__perfLog extends Zeze.Transaction.Logs.LogString {
+        public Log__perfLog(BTokenStatus bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BTokenStatus)getBelong())._perfLog = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -162,7 +198,8 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("newCount=").append(getNewCount()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("curCount=").append(getCurCount()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("connectCount=").append(getConnectCount()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("connectCount=").append(getConnectCount()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("perfLog=").append(getPerfLog()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -203,6 +240,13 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            String _x_ = getPerfLog();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -220,6 +264,10 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         }
         if (_i_ == 3) {
             setConnectCount(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setPerfLog(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -251,6 +299,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
                 case 1: _newCount = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _curCount = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 3: _connectCount = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 4: _perfLog = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -261,6 +310,9 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         setNewCount(rs.getLong(_parents_name_ + "newCount"));
         setCurCount(rs.getLong(_parents_name_ + "curCount"));
         setConnectCount(rs.getInt(_parents_name_ + "connectCount"));
+        setPerfLog(rs.getString(_parents_name_ + "perfLog"));
+        if (getPerfLog() == null)
+            setPerfLog("");
     }
 
     @Override
@@ -269,6 +321,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         st.appendLong(_parents_name_ + "newCount", getNewCount());
         st.appendLong(_parents_name_ + "curCount", getCurCount());
         st.appendInt(_parents_name_ + "connectCount", getConnectCount());
+        st.appendString(_parents_name_ + "perfLog", getPerfLog());
     }
 
 public static final class Data extends Zeze.Transaction.Data {
@@ -277,6 +330,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private long _newCount; // 已分配的token数量
     private long _curCount; // 当前有效的token数量
     private int _connectCount; // 当前的网络连接数量
+    private String _perfLog; // 最近生成的性能日志
 
     public long getNewCount() {
         return _newCount;
@@ -302,15 +356,29 @@ public static final class Data extends Zeze.Transaction.Data {
         _connectCount = value;
     }
 
-    @SuppressWarnings("deprecation")
-    public Data() {
+    public String getPerfLog() {
+        return _perfLog;
+    }
+
+    public void setPerfLog(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _perfLog = value;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _newCount_, long _curCount_, int _connectCount_) {
+    public Data() {
+        _perfLog = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(long _newCount_, long _curCount_, int _connectCount_, String _perfLog_) {
         _newCount = _newCount_;
         _curCount = _curCount_;
         _connectCount = _connectCount_;
+        if (_perfLog_ == null)
+            _perfLog_ = "";
+        _perfLog = _perfLog_;
     }
 
     @Override
@@ -329,12 +397,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _newCount = other.getNewCount();
         _curCount = other.getCurCount();
         _connectCount = other.getConnectCount();
+        _perfLog = other.getPerfLog();
     }
 
     public void assign(BTokenStatus.Data other) {
         _newCount = other._newCount;
         _curCount = other._curCount;
         _connectCount = other._connectCount;
+        _perfLog = other._perfLog;
     }
 
     @Override
@@ -373,7 +443,8 @@ public static final class Data extends Zeze.Transaction.Data {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("newCount=").append(_newCount).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("curCount=").append(_curCount).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("connectCount=").append(_connectCount).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("connectCount=").append(_connectCount).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("perfLog=").append(_perfLog).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -414,6 +485,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            String _x_ = _perfLog;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -431,6 +509,10 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 3) {
             _connectCount = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _perfLog = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

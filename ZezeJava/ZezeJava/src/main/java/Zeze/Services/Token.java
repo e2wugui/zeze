@@ -285,6 +285,7 @@ public final class Token extends AbstractToken {
 		res.setCurCount(tokenMap.size());
 		var s = service;
 		res.setConnectCount(s != null ? s.getSocketCount() : -1);
+		res.setPerfLog(PerfCounter.instance.getLastLog());
 		r.SendResultCode(0);
 		return Procedure.Success;
 	}

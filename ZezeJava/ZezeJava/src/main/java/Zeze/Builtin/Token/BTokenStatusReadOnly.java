@@ -10,4 +10,5 @@ public interface BTokenStatusReadOnly {
     long getNewCount();
     long getCurCount();
     int getConnectCount();
+    String getPerfLog();
 }
