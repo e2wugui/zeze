@@ -89,7 +89,7 @@ public class MasterAgent extends AbstractMasterAgent {
 					callback.run(error, false, null);
 			}
 			return 0;
-		}, 30_000);
+		}, 60_000);
 	}
 
 	public MasterTable.Data getBuckets(String database, String table) {

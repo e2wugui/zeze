@@ -161,7 +161,7 @@ public class MasterDatabase {
 			// 用于manager服务器的需要replace RaftName.
 			r.Argument.setRaftConfig(r.Argument.getRaftConfig().replaceAll("RaftName", raftNames.get(i++)));
 			//System.out.println(r.Argument.getRaftConfig());
-			futures.add(r.SendForWait(e.socket));
+			futures.add(r.SendForWait(e.socket, 30_000));
 		}
 		for (var future : futures)
 			future.await();

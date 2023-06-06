@@ -48,6 +48,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	public void setBucketMeta(BBucketMeta.Data meta) {
 		var r = new SetBucketMeta();
 		r.Argument = meta;
+		r.setTimeout(30_000);
 		raftClient.sendForWait(r).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("fail! code=" + r.getResultCode());
