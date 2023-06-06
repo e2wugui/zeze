@@ -73,6 +73,22 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessUndoBatchRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47357555155327L, factoryHandle); // 11026, 1245749631
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Walk.class, Zeze.Builtin.Dbh2.Walk.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Walk::new;
+            factoryHandle.Handle = this::ProcessWalkRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessWalkRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessWalkRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47356866459183L, factoryHandle); // 11026, 557053487
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.WalkKey.class, Zeze.Builtin.Dbh2.WalkKey.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.WalkKey::new;
+            factoryHandle.Handle = this::ProcessWalkKeyRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessWalkKeyRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessWalkKeyRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47357793622820L, factoryHandle); // 11026, 1484217124
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
@@ -83,6 +99,8 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
         service.getFactorys().remove(47356909547647L);
         service.getFactorys().remove(47359148214035L);
         service.getFactorys().remove(47357555155327L);
+        service.getFactorys().remove(47356866459183L);
+        service.getFactorys().remove(47357793622820L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -101,4 +119,6 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
     protected abstract long ProcessSetBucketMetaRequest(Zeze.Builtin.Dbh2.SetBucketMeta r) throws Exception;
     protected abstract long ProcessSplitPutRequest(Zeze.Builtin.Dbh2.SplitPut r) throws Exception;
     protected abstract long ProcessUndoBatchRequest(Zeze.Builtin.Dbh2.UndoBatch r) throws Exception;
+    protected abstract long ProcessWalkRequest(Zeze.Builtin.Dbh2.Walk r) throws Exception;
+    protected abstract long ProcessWalkKeyRequest(Zeze.Builtin.Dbh2.WalkKey r) throws Exception;
 }

@@ -1,6 +1,7 @@
 package Zeze.Dbh2.Master;
 
 import java.util.Collection;
+import java.util.SortedMap;
 import java.util.TreeMap;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Net.Binary;
@@ -23,6 +24,10 @@ public class MasterTable {
 		public BBucketMeta.Data locate(Binary key) {
 			var lower = buckets.floorEntry(key);
 			return lower.getValue();
+		}
+
+		public SortedMap<Binary, BBucketMeta.Data> tailMap(Binary key) {
+			return buckets.tailMap(key);
 		}
 
 		@Override

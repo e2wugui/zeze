@@ -66,6 +66,20 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessUndoBatchResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47357555155327L, factoryHandle); // 11026, 1245749631
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Walk.class, Zeze.Builtin.Dbh2.Walk.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Walk::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessWalkResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessWalkResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47356866459183L, factoryHandle); // 11026, 557053487
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.WalkKey.class, Zeze.Builtin.Dbh2.WalkKey.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.WalkKey::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessWalkKeyResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessWalkKeyResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47357793622820L, factoryHandle); // 11026, 1484217124
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
@@ -76,6 +90,8 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
         service.getFactorys().remove(47356909547647L);
         service.getFactorys().remove(47359148214035L);
         service.getFactorys().remove(47357555155327L);
+        service.getFactorys().remove(47356866459183L);
+        service.getFactorys().remove(47357793622820L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {

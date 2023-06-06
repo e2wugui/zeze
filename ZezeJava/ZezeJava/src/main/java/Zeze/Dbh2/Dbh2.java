@@ -5,8 +5,11 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Builtin.Dbh2.BWalkKeyValue;
 import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.Get;
+import Zeze.Builtin.Dbh2.Walk;
+import Zeze.Builtin.Dbh2.WalkKey;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
@@ -25,7 +28,10 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
+import Zeze.Util.Action1;
+import Zeze.Util.Action2;
 import Zeze.Util.FuncLong;
+import Zeze.Util.OutLong;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -87,12 +93,17 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			});
 		}
 
+		private static boolean isQueryRequest(long typeId) {
+			return typeId == Get.TypeId_
+					|| typeId == Walk.TypeId_
+					|| typeId == WalkKey.TypeId_;
+		}
 		@Override
 		public synchronized void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
 													 DispatchMode mode) throws Exception {
 			if (null != prepareQueue && isPrepareRequest(p.getTypeId())) {
 				prepareQueue.add(() -> Task.call(func, p));
-			} else if (p.getTypeId() == Get.TypeId_) {
+			} else if (isQueryRequest(p.getTypeId())) {
 				// 允许Get请求并发
 				super.dispatchRaftRequest(p, func, name, cancel, mode);
 			} else {
@@ -265,6 +276,69 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	@Override
 	protected long ProcessUndoBatchRequest(UndoBatch r) throws Exception {
 		getRaft().appendLog(new LogUndoBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
+		return 0;
+	}
+
+	private boolean walk(Binary exclusiveStartKey, int proposeLimit, Action2<Binary, RocksIterator> fill) throws Exception {
+		try (var it = stateMachine.getBucket().getTData().iterator()) {
+			if (exclusiveStartKey.size() > 0)
+				it.seek(exclusiveStartKey.copyIf());
+			else
+				it.seekToFirst();
+
+			if (it.isValid()) {
+				var firstKey = it.key();
+				if (exclusiveStartKey.size() > 0 && exclusiveStartKey.equals(firstKey))
+					it.next(); // skip exclusive key if need.
+			}
+
+			var count = proposeLimit;
+			var bucketEnd = false;
+			var keyLast = stateMachine.getBucket().getMeta().getKeyLast();
+			for (; it.isValid() && count > 0; it.next(), count--) {
+				var key = new Binary(it.key());
+				if (keyLast.size() > 0 && key.compareTo(keyLast) >= 0) {
+					// 分桶中刚完成时，数据可能超过Last，此时应该检查出来并结束walk。
+					bucketEnd = true;
+					break;
+				}
+				fill.run(key, it);
+			}
+
+			return bucketEnd || !it.isValid();
+		}
+	}
+
+	@Override
+	protected long ProcessWalkRequest(Walk r) throws Exception {
+		if (!stateMachine.getBucket().inBucket(r.Argument.getExclusiveStartKey())) {
+			r.Result.setBucketRefuse(true);
+			r.SendResult();
+			return 0;
+		}
+		var bucketEnd = walk(r.Argument.getExclusiveStartKey(), r.Argument.getProposeLimit(),
+				(key, it) -> {
+					r.Result.getKeyValues().add(new BWalkKeyValue.Data(key, new Binary(it.value())));
+				});
+		r.Result.setBucketEnd(bucketEnd);
+		r.SendResult();
+		return 0;
+	}
+
+	@Override
+	protected long ProcessWalkKeyRequest(WalkKey r) throws Exception {
+		if (!stateMachine.getBucket().inBucket(r.Argument.getExclusiveStartKey())) {
+			r.Result.setBucketRefuse(true);
+			r.SendResult();
+			return 0;
+		}
+
+		var bucketEnd = walk(r.Argument.getExclusiveStartKey(), r.Argument.getProposeLimit(),
+				(key, it) -> {
+					r.Result.getKeys().add(key);
+				});
+		r.Result.setBucketEnd(bucketEnd);
+		r.SendResult();
 		return 0;
 	}
 

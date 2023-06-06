@@ -11,6 +11,8 @@ import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Builtin.Dbh2.UndoBatch;
+import Zeze.Builtin.Dbh2.Walk;
+import Zeze.Builtin.Dbh2.WalkKey;
 import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -143,5 +145,23 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 
 	public Agent getRaftAgent() {
 		return raftClient;
+	}
+
+	public Walk walk(Binary exclusiveStartKey, int proposeLimit) {
+		var r = new Walk();
+		r.Argument.setExclusiveStartKey(exclusiveStartKey);
+		r.Argument.setProposeLimit(proposeLimit);
+		raftClient.sendForWait(r).await();
+		// 错误在外面处理。
+		return r;
+	}
+
+	public WalkKey walkKey(Binary exclusiveStartKey, int proposeLimit) {
+		var r = new WalkKey();
+		r.Argument.setExclusiveStartKey(exclusiveStartKey);
+		r.Argument.setProposeLimit(proposeLimit);
+		raftClient.sendForWait(r).await();
+		// 错误在外面处理。
+		return r;
 	}
 }

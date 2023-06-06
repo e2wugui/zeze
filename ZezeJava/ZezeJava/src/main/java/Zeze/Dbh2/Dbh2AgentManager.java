@@ -2,18 +2,25 @@ package Zeze.Dbh2;
 
 import java.security.SecureRandom;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Config;
+import Zeze.Dbh2.Master.Master;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Dbh2.Master.MasterTable;
+import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Net.ServiceConf;
+import Zeze.Transaction.TableWalkHandleRaw;
+import Zeze.Transaction.TableWalkKeyRaw;
 import Zeze.Util.Action2;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import Zeze.Util.ShutdownHook;
+import Zeze.Util.SortedMap;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -214,6 +221,16 @@ public class Dbh2AgentManager {
 		return table.locate(key).getRaftConfig();
 	}
 
+	public Iterator<BBucketMeta.Data> locateBucketIterator(
+			MasterAgent masterAgent, String masterName,
+			String databaseName, String tableName,
+			Binary key) {
+		var master = buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
+		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
+		var table = database.computeIfAbsent(tableName, tbName -> masterAgent.getBuckets(databaseName, tbName));
+		return table.tailMap(key).values().iterator();
+	}
+
 	public Dbh2Agent openBucket(String raftString) {
 		return agents.computeIfAbsent(raftString, _raft -> {
 			try {
@@ -260,5 +277,73 @@ public class Dbh2AgentManager {
 			}
 		}
 		database.put(tableName, buckets);
+	}
+
+	public long walk(MasterAgent masterAgent, String masterName, String databaseName, String tableName, TableWalkHandleRaw callback) {
+		var table = buckets.get(masterName).get(databaseName).get(tableName);
+		var count = 0L;
+		for (var bucketIt = table.buckets().iterator(); bucketIt.hasNext(); /* nothing */) {
+			var exclusiveStartKey = Binary.Empty;
+			var proposeLimit = 5000;
+			var bucket = bucketIt.next();
+			while (true) {
+				var r = openBucket(bucket.getRaftConfig()).walk(exclusiveStartKey, proposeLimit);
+				// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
+				if (r.getResultCode() != 0)
+					throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
+				if (r.Result.isBucketRefuse()) {
+					// 分桶但是本地信息没有更新会出现这种情况，此时重新装载桶的信息，再次定位。
+					reload(masterAgent, masterName, databaseName, tableName);
+					bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveStartKey);
+					if (bucketIt.hasNext()) {
+						bucket = bucketIt.next();
+						continue; // refused and redirect success.
+					}
+					break; // no more bucket
+				}
+				for (var keyValue : r.Result.getKeyValues()) {
+					callback.handle(keyValue.getKey().bytesUnsafe(), keyValue.getValue().bytesUnsafe());
+					exclusiveStartKey = keyValue.getKey();
+					count++;
+				}
+				if (r.Result.isBucketEnd() || r.Result.getKeyValues().isEmpty())
+					break; // no more record in this bucket
+			}
+		}
+		return count;
+	}
+
+	public long walkKey(MasterAgent masterAgent, String masterName, String databaseName, String tableName, TableWalkKeyRaw callback) {
+		var table = buckets.get(masterName).get(databaseName).get(tableName);
+		var count = 0L;
+		for (var bucketIt = table.buckets().iterator(); bucketIt.hasNext(); /* nothing */) {
+			var exclusiveStartKey = Binary.Empty;
+			var proposeLimit = 5000;
+			var bucket = bucketIt.next();
+			while (true) {
+				var r = openBucket(bucket.getRaftConfig()).walkKey(exclusiveStartKey, proposeLimit);
+				// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
+				if (r.getResultCode() != 0)
+					throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
+				if (r.Result.isBucketRefuse()) {
+					// 分桶但是本地信息没有更新会出现这种情况，此时重新装载桶的信息，再次定位。
+					reload(masterAgent, masterName, databaseName, tableName);
+					bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveStartKey);
+					if (bucketIt.hasNext()) {
+						bucket = bucketIt.next();
+						continue; // refused and redirect success.
+					}
+					break; // no more bucket
+				}
+				for (var key : r.Result.getKeys()) {
+					callback.handle(key.bytesUnsafe());
+					exclusiveStartKey = key;
+					count++;
+				}
+				if (r.Result.isBucketEnd() || r.Result.getKeys().isEmpty())
+					break; // no more record in this bucket
+			}
+		}
+		return count;
 	}
 }

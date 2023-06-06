@@ -181,12 +181,12 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public long walk(TableWalkHandleRaw callback) {
-			return 0;
+			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name, callback);
 		}
 
 		@Override
 		public long walkKey(TableWalkKeyRaw callback) {
-			return 0;
+			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name, callback);
 		}
 
 		@Override

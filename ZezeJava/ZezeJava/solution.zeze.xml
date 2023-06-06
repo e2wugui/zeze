@@ -1425,6 +1425,28 @@
 			<rpc name="CommitBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			<rpc name="UndoBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
+			<bean name="BWalk">
+				<variable id="1" name="ExclusiveStartKey" type="binary"/>
+				<variable id="2" name="ProposeLimit" type="int"/>
+			</bean>
+			<bean name="BWalkKeyValue">
+				<variable id="1" name="Key" type="binary"/>
+				<variable id="2" name="Value" type="binary"/>
+			</bean>
+			<bean name="BWalkResult">
+				<variable id="1" name="KeyValues" type="list[BWalkKeyValue]"/>
+				<variable id="2" name="BucketEnd" type="bool"/>
+				<variable id="3" name="BucketRefuse" type="bool"/>
+			</bean>
+			<rpc name="Walk" argument="BWalk" result="BWalkResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/> 
+
+			<bean name="BWalkKeyResult">
+				<variable id="1" name="Keys" type="list[binary]"/>
+				<variable id="2" name="BucketEnd" type="bool"/>
+				<variable id="3" name="BucketRefuse" type="bool"/>
+			</bean>
+			<rpc name="WalkKey" argument="BWalk" result="BWalkKeyResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/> 
+
 			<module name="Commit" id="11028" DefaultTransactionLevel="None">
 				<enum name="eCommitNotExist" value="0"/>
 				<enum name="ePreparing" value="1"/>
