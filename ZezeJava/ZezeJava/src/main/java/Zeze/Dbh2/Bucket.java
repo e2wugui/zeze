@@ -61,7 +61,7 @@ public class Bucket {
 		try {
 			// 读取meta，meta创建在Bucket创建流程中写入。
 			var path = Path.of(raftConfig.getDbHome(), "statemachine").toAbsolutePath().toString();
-			db = new RocksDatabase(path);
+			db = new RocksDatabase(path, RocksDatabase.DbType.eTransactionDb);
 			tData = db.getOrAddTable("data");
 			tMeta = db.getOrAddTable("meta");
 			batch = db.newBatch();

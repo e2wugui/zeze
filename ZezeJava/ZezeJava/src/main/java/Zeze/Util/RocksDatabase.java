@@ -390,8 +390,12 @@ public class RocksDatabase implements Closeable {
 	}
 
 	public static void backup(@NotNull String checkpointDir, @NotNull String backupDir) throws RocksDBException {
+		backup(DbType.eRocksDb, checkpointDir, backupDir);
+	}
+
+	public static void backup(DbType dbType, @NotNull String checkpointDir, @NotNull String backupDir) throws RocksDBException {
 		var cfhs = new ArrayList<ColumnFamilyHandle>();
-		try (var src = RocksDB.open(commonDbOptions, checkpointDir, getCfDescriptors(checkpointDir), cfhs);
+		try (var src = realOpen(dbType, commonDbOptions, checkpointDir, getCfDescriptors(checkpointDir), cfhs);
 			 var backupOptions = new BackupEngineOptions(backupDir);
 			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
 			backup.createNewBackup(src, true);

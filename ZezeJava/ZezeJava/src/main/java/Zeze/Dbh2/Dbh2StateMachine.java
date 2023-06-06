@@ -226,7 +226,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 			// deleteRange 不包含last，需要制造一个比当前last后面的key。
 			last = Arrays.copyOf(last, last.length + 1);
-			bucket.getTData().deleteRange(first, last);
+			//bucket.getTData().deleteRange(first, last);
 
 			bucket.setMeta(from);
 			bucket.addSplitMetaHistory(from, to);
@@ -280,9 +280,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public void commitBatch(Binary tid) {
 		try (var txn = transactions.remove(tid)) {
 			counterCommitBatch.incrementAndGet();
-			if (null != txn)
+			if (null != txn) {
 				dbh2.onCommitBatch(txn);
+				txn.commitBatch();
+			}
 			triggerNoTransactionIf();
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
 		}
 	}
 
@@ -315,7 +320,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		var backupFile = new File(backupDir);
 		if (!backupFile.isDirectory() && !backupFile.mkdirs())
 			logger.error("create backup directory failed: {}", backupDir);
-		RocksDatabase.backup(cpHome, backupDir);
+		RocksDatabase.backup(RocksDatabase.DbType.eTransactionDb, cpHome, backupDir);
 
 		long t2 = System.nanoTime();
 		LogSequence.deleteDirectory(new File(cpHome));

@@ -3,11 +3,13 @@ package Zeze.Dbh2;
 import java.io.Closeable;
 import java.util.HashMap;
 import Zeze.Builtin.Dbh2.BBatch;
+import Zeze.Util.BitConverter;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.Transaction;
 
 public class Dbh2Transaction implements Closeable {
 	private final HashMap<Lockey, Lockey> locks = new HashMap<>();
-	private final BBatch.Data logs = new BBatch.Data();
+	private final Transaction transaction;
 	private final BBatch.Data batch;
 	private final long createTime;
 
@@ -17,7 +19,7 @@ public class Dbh2Transaction implements Closeable {
 
 	@Override
 	public String toString() {
-		return batch.getQueryIp() + ":" + batch.getQueryPort() + " logs=" + logs;
+		return batch.getQueryIp() + ":" + batch.getQueryPort();
 	}
 
 	public String getQueryIp() {
@@ -37,7 +39,10 @@ public class Dbh2Transaction implements Closeable {
 	 *
 	 * @param batch batch parameter
 	 */
-	public Dbh2Transaction(Dbh2 dbh2, BBatch.Data batch) throws InterruptedException {
+	public Dbh2Transaction(Dbh2 dbh2, BBatch.Data batch) throws InterruptedException, RocksDBException {
+		this.transaction = dbh2.getStateMachine().getBucket().getDb().beginTransaction2();
+		var tid = batch.getTid();
+		this.transaction.setName(BitConverter.toHexString(tid.bytesUnsafe(), tid.getOffset(), tid.size()));
 		this.batch = batch;
 		this.createTime = System.currentTimeMillis();
 
@@ -61,43 +66,26 @@ public class Dbh2Transaction implements Closeable {
 	 * @param batch prepare batch
 	 */
 	public void prepareBatch(Bucket bucket, BBatch.Data batch) throws RocksDBException {
-		var b = bucket.getBatch();
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (b) {
-			b.clear();
-			for (var put : batch.getPuts().entrySet()) {
-				var key = put.getKey();
-				var exist = bucket.get(key);
-				if (exist != null)
-					logs.getPuts().put(key, exist);
-				else
-					logs.getDeletes().add(key);
-				bucket.getTData().put(b, key, put.getValue());
-			}
-			for (var del : batch.getDeletes()) {
-				var exist = bucket.get(del);
-				if (exist != null)
-					logs.getPuts().put(del, exist);
-				// else delete not exist record. skip.
-				bucket.getTData().delete(b, del);
-			}
-			b.commit(bucket.getWriteOptions());
+		for (var put : batch.getPuts().entrySet()) {
+			var key = put.getKey();
+			var value = put.getValue();
+			bucket.getTData().put(transaction, key, value);
 		}
+		for (var del : batch.getDeletes()) {
+			bucket.getTData().delete(transaction, del);
+		}
+		// Two phase commit not supported for optimistic transactions.
+		transaction.prepare();
 	}
 
 	public void undoBatch(Bucket bucket) throws RocksDBException {
-		var b = bucket.getBatch();
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (b) {
-			b.clear();
-			for (var put : logs.getPuts().entrySet()) {
-				bucket.getTData().put(b, put.getKey(), put.getValue());
-			}
-			for (var del : logs.getDeletes()) {
-				bucket.getTData().delete(b, del);
-			}
-			b.commit(bucket.getWriteOptions());
-		}
+		if (null != transaction)
+			transaction.rollback();
+	}
+
+	public void commitBatch() throws RocksDBException {
+		if (null != transaction)
+			transaction.commit();
 	}
 
 	/**
@@ -105,6 +93,8 @@ public class Dbh2Transaction implements Closeable {
 	 */
 	@Override
 	public void close() {
+		if (null != transaction)
+			transaction.close();
 		for (var lock : locks.values())
 			lock.unlock();
 		locks.clear();

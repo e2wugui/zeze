@@ -13,10 +13,22 @@ ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 Dbh2 接入Zeze：CheckpointFlush 慢。
 Dbh2 全桶迁移？ 
+Dbh2 walk;
+Dbh2 事务实现方案。
+1. rocks.writeBatch 统计记录undoLogs。缺点进行中的事务的数据马上可见了。（现方案）
+2. rocks.TransastionDB 真正到达rocks的两段式提交协议。有prepare阶段。
+    优点，真正落地到底层的两段式。
+    缺点，性能降低近20%，不支持deleteRange（endSplit需要自己实现成一点点删除）。
+3. （张路提供）我们自己把Batch数据系列化并写入表的另一个ColumnFamily（提交中事务专门保存点）。
+    commit时把事务数据取出写入真正的ColumnFamily，同时删除。
+    rollback时直接删除事务数据。
+    优点，进行中事务落地，不需要维护事务对象了。
+    缺点，没有测试过，不知道性能如何，应该不比方案1差。
+
 ------------------------------------------------------------------------------------------------------------------------------
 2023/6/16 v1.2.6 Config.Customize; Dbh2 Lock Options, Walk, CreateTableAsync; 
 ------------------------------------------------------------------------------------------------------------------------------
-Dbh2 walk;
+Dbh2 事务模式回滚成RocksDb.Batch模式。TransactionDB模式下，deleteRange不支持，备份(Snapshot)需要修改。
 Dbh2 OptimisticTransactionDB(Two phase commit not supported for optimistic transactions.) --> TransactionDB
 Zeze.Util.RocksDatabase 增加事务支持。
 Dbh2 create table async. & connect to all bucket.
