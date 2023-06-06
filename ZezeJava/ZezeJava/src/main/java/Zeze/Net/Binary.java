@@ -48,12 +48,8 @@ public final class Binary implements Comparable<Binary> {
 		this(bb.Bytes, bb.ReadIndex, bb.size());
 	}
 
-	/**
-	 * 这里调用Copy是因为ByteBuffer可能分配的保留内存较大。Copy返回实际大小的数据。
-	 * 使用这个方法的地方一般是应用。这个数据可能被存储到表中。
-	 */
 	public Binary(@NotNull Serializable s) {
-		this(ByteBuffer.encode(s).Copy());
+		this(ByteBuffer.encode(s));
 	}
 
 	public Binary(@NotNull String s) {

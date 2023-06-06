@@ -3,7 +3,6 @@ package Zeze.Dbh2;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -129,7 +128,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogSplitPut.TypeId_, LogSplitPut::new);
 	}
 
-	public void setupOneshotIfNoTransaction(Runnable handle) {
+	public void setupOneShotIfNoTransaction(Runnable handle) {
 		if (transactions.isEmpty())
 			handle.run();
 		else

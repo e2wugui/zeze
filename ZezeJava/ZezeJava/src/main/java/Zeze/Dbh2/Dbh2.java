@@ -8,13 +8,13 @@ import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BWalkKeyValue;
 import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.Get;
-import Zeze.Builtin.Dbh2.Walk;
-import Zeze.Builtin.Dbh2.WalkKey;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.PrepareBatch;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Builtin.Dbh2.SplitPut;
 import Zeze.Builtin.Dbh2.UndoBatch;
+import Zeze.Builtin.Dbh2.Walk;
+import Zeze.Builtin.Dbh2.WalkKey;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -28,10 +28,8 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
-import Zeze.Util.Action1;
 import Zeze.Util.Action2;
 import Zeze.Util.FuncLong;
-import Zeze.Util.OutLong;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -93,11 +91,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			});
 		}
 
-		private static boolean isQueryRequest(long typeId) {
-			return typeId == Get.TypeId_
-					|| typeId == Walk.TypeId_
-					|| typeId == WalkKey.TypeId_;
-		}
 		@Override
 		public synchronized void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
 													 DispatchMode mode) throws Exception {
@@ -110,6 +103,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				raft.getUserThreadExecutor().execute(() -> Task.call(func, p));
 			}
 		}
+	}
+
+	private static boolean isQueryRequest(long typeId) {
+		return typeId == Get.TypeId_
+				|| typeId == Walk.TypeId_
+				|| typeId == WalkKey.TypeId_;
 	}
 
 	private static boolean isPrepareRequest(long typeId) {
@@ -294,6 +293,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			}
 			if (it.isValid()) {
 				var firstKey = it.key();
+				//noinspection EqualsBetweenInconvertibleTypes
 				if (exclusiveStartKey.size() > 0 && exclusiveStartKey.equals(firstKey))
 					it.prev(); // skip exclusive key if need.
 			}
@@ -322,6 +322,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 			if (it.isValid()) {
 				var firstKey = it.key();
+				//noinspection EqualsBetweenInconvertibleTypes
 				if (exclusiveStartKey.size() > 0 && exclusiveStartKey.equals(firstKey))
 					it.next(); // skip exclusive key if need.
 			}
@@ -354,9 +355,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				r.Argument.getExclusiveStartKey(),
 				r.Argument.getProposeLimit(),
 				r.Argument.isDesc(),
-				(key, it) -> {
-					r.Result.getKeyValues().add(new BWalkKeyValue.Data(key, new Binary(it.value())));
-				});
+				(key, it) -> r.Result.getKeyValues().add(new BWalkKeyValue.Data(key, new Binary(it.value()))));
 		r.Result.setBucketEnd(bucketEnd);
 		r.SendResult();
 		return 0;
@@ -374,9 +373,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				r.Argument.getExclusiveStartKey(),
 				r.Argument.getProposeLimit(),
 				r.Argument.isDesc(),
-				(key, it) -> {
-					r.Result.getKeys().add(key);
-				});
+				(key, it) -> r.Result.getKeys().add(key));
 		r.Result.setBucketEnd(bucketEnd);
 		r.SendResult();
 		return 0;
@@ -613,7 +610,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		// 此时PrepareBatch已经被拦截，但是还有CommitBatch,UndoBatch等其他请求在处理。
 		// setupHandleIfNoTransaction 将在没有进行中的事务时触发。
 		getRaft().getUserThreadExecutor().execute(() ->
-				stateMachine.setupOneshotIfNoTransaction(this::endSplit0));
+				stateMachine.setupOneShotIfNoTransaction(this::endSplit0));
 	}
 
 	private void consumePrepareAndBlockAgain() {
@@ -696,9 +693,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				if (it.isValid())
 					splitClean();
 				else
-					getRaft().appendLog(new LogSplitCleanEnd(), (rLog, r) -> {
-						logger.error("splitting clean end result={}", r);
-					});
+					getRaft().appendLog(new LogSplitCleanEnd(), (rLog, r) -> logger.error("splitting clean end result={}", r));
 			}
 		} else {
 			logger.error("splitting clean error");
