@@ -24,6 +24,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
+import Zeze.Util.Random;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -786,7 +787,7 @@ public class Service {
 			return f;
 		var lastSizes = new long[6];
 		lastSizes[0] = -1;
-		f = Task.scheduleUnsafe(0, periodSec * 1000L, () -> {
+		f = Task.scheduleUnsafe(Random.getInstance().nextLong(periodSec * 1000L), periodSec * 1000L, () -> {
 			updateRecvSendSize();
 			var selectors = getSelectors();
 			long selectCount = selectors.getSelectCount();
