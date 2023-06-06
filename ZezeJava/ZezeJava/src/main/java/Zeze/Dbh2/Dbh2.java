@@ -583,11 +583,11 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 					splitClean();
 				else
 					getRaft().appendLog(new LogSplitCleanEnd(), (rLog, r) -> {
-						logger.error("splitCleanEnd result={}", r);
+						logger.error("splitting clean end result={}", r);
 					});
 			}
 		} else {
-			logger.error("splitClean error");
+			logger.error("splitting clean error");
 		}
 	}
 
