@@ -14,10 +14,11 @@ DatabaseDynamoDb 还需测试。
 Dbh2 全桶迁移？ 
 Dbh2 接入Zeze：CheckpointFlush 慢。
 Dbh2 BenchClient 输入"exit" 退不出。
-Dbh2 BenchClient.Query 哪来的，问题需要追踪。这个也会导致split end结束不了。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/6/16 v1.2.6 Config.Customize; Dbh2 Lock Options, Walk, CreateTableAsync; 
 ------------------------------------------------------------------------------------------------------------------------------
+Dbh2 BenchClient.Query 哪来的，问题需要追踪。这个也会导致split end结束不了。
+	拒绝模式的分桶信息没有写完全！！！
 Dbh2 walk;
 Dbh2 事务实现方案。【采用了方案2】
 1. rocks.writeBatch 统计记录undoLogs。缺点进行中的事务的数据马上可见了。（现方案）

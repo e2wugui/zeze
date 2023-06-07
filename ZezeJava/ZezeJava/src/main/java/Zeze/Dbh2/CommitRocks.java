@@ -169,12 +169,12 @@ public class CommitRocks {
 		return futuresRedirect;
 	}
 
-	public byte[] prepare(String queryHost, int queryPort, BPrepareBatches.Data batches) {
+	public byte[] prepare(String queryHost, int queryPort, BTransactionState.Data state, BPrepareBatches.Data batches) {
 		var tid = Dbh2AgentManager.nextTransactionId();
 		var prepareTime = System.currentTimeMillis();
 		try {
 			// prepare
-			saveCommitPoint(tid, batches, Commit.ePreparing);
+			saveCommitPoint(tid, state, Commit.ePreparing);
 			var futures = new ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
 			var tidBinary = new Binary(tid);
 			for (var e : batches.getDatas().entrySet()) {
@@ -188,8 +188,12 @@ public class CommitRocks {
 			// 处理prepare结果，碰到【拒绝模式重定向】的请求，需要循环处理。
 			while (!futures.isEmpty()) {
 				futures = processPrepareFutures(tidBinary, queryHost, queryPort, futures);
-				if (!futures.isEmpty())
-					modifyCommitPoint(tid, batches, futures);
+				if (!futures.isEmpty()) {
+					for (var future : futures) {
+						state.getBuckets().add((String)future.getContext());
+					}
+					saveCommitPoint(tid, state, Commit.ePreparing);
+				}
 			}
 
 		} catch (Throwable ex) {
@@ -207,11 +211,12 @@ public class CommitRocks {
 	}
 
 	public void commit(String queryHost, int queryPort, BPrepareBatches.Data batches) {
-		var tid = prepare(queryHost, queryPort, batches);
+		var state = buildTransactionState(batches);
+		var tid = prepare(queryHost, queryPort, state, batches);
 
 		try {
 			// 保存 commit-point，如果失败，则 undo。
-			saveCommitPoint(tid, batches, Commit.eCommitting);
+			saveCommitPoint(tid, state, Commit.eCommitting);
 		} catch (Throwable ex) {
 			undo(batches);
 			removeCommitIndex(tid);
@@ -233,39 +238,20 @@ public class CommitRocks {
 		}
 	}
 
-	private void saveCommitPoint(byte[] tid, BPrepareBatches.Data batches, int state) throws RocksDBException {
+	public static BTransactionState.Data buildTransactionState(BPrepareBatches.Data batches) {
 		var bState = new BTransactionState.Data();
-		bState.setState(state);
 		for (var e : batches.getDatas().entrySet()) {
 			bState.getBuckets().add(e.getKey());
 		}
+		return bState;
+	}
+
+	private void saveCommitPoint(byte[] tid, BTransactionState.Data bState, int state) throws RocksDBException {
+		bState.setState(state);
 		var bb = ByteBuffer.Allocate();
 		bState.encode(bb);
 		var bbIndex = ByteBuffer.Allocate(5);
 		bbIndex.WriteInt(state);
-		try (var batch = database.borrowBatch()) {
-			commitPoint.put(batch, tid, tid.length, bb.Bytes, bb.WriteIndex);
-			commitIndex.put(batch, tid, tid.length, bbIndex.Bytes, bbIndex.WriteIndex);
-			batch.commit(writeOptions);
-		}
-	}
-
-	private void modifyCommitPoint(byte[] tid, BPrepareBatches.Data batches,
-								   ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> futures)
-			throws RocksDBException {
-
-		var bState = new BTransactionState.Data();
-		bState.setState(AbstractCommit.ePreparing);
-		for (var e : batches.getDatas().entrySet()) {
-			bState.getBuckets().add(e.getKey());
-		}
-		for (var future : futures) {
-			bState.getBuckets().add((String)future.getContext());
-		}
-		var bb = ByteBuffer.Allocate();
-		bState.encode(bb);
-		var bbIndex = ByteBuffer.Allocate(5);
-		bbIndex.WriteInt(AbstractCommit.ePreparing);
 		try (var batch = database.borrowBatch()) {
 			commitPoint.put(batch, tid, tid.length, bb.Bytes, bb.WriteIndex);
 			commitIndex.put(batch, tid, tid.length, bbIndex.Bytes, bbIndex.WriteIndex);

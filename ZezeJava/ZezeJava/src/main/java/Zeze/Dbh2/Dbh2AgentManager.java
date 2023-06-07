@@ -107,7 +107,8 @@ public class Dbh2AgentManager {
 	public void commitBreakAfterPrepareForDebugOnly(BPrepareBatches.Data batches) {
 		if (config.isDbh2LocalCommit()) {
 			var query = commitServiceAcceptor();
-			commit.getRocks().prepare(query.getKey(), query.getValue(), batches);
+			var state = CommitRocks.buildTransactionState(batches);
+			commit.getRocks().prepare(query.getKey(), query.getValue(), state, batches);
 		}
 		// 这个仅仅用来调试，不报错了。
 		// else throw new RuntimeException("commitBreakAfterPrepareForDebugOnly only work with local commit.");
