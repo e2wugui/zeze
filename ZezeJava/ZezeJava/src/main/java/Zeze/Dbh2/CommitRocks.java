@@ -166,7 +166,7 @@ public class CommitRocks {
 		return futuresRedirect;
 	}
 
-	public byte[] prepare(String queryHost, int queryPort, BTransactionState.Data state, BPrepareBatches.Data batches) {
+	public Binary prepare(String queryHost, int queryPort, BTransactionState.Data state, BPrepareBatches.Data batches) {
 		var tid = Dbh2AgentManager.nextTransactionId();
 		var tidBinary = new Binary(tid);
 		var prepareTime = System.currentTimeMillis();
@@ -204,20 +204,19 @@ public class CommitRocks {
 			removeCommitIndex(tid);
 			throw new RuntimeException("max prepare time exceed.");
 		}
-		return tid;
+		return tidBinary;
 	}
 
 	public void commit(String queryHost, int queryPort, BPrepareBatches.Data batches) {
 		var state = buildTransactionState(batches);
 		var tid = prepare(queryHost, queryPort, state, batches);
-		var tidBinary = new Binary(tid);
 
 		try {
 			// 保存 commit-point，如果失败，则 undo。
-			saveCommitPoint(tid, state, Commit.eCommitting);
+			saveCommitPoint(tid.bytesUnsafe(), state, Commit.eCommitting);
 		} catch (Throwable ex) {
-			undo(tidBinary, state);
-			removeCommitIndex(tid);
+			undo(tid, state);
+			removeCommitIndex(tid.bytesUnsafe());
 			throw new RuntimeException(ex);
 		}
 
@@ -225,11 +224,11 @@ public class CommitRocks {
 		try {
 			var futures = new ArrayList<TaskCompletionSource<?>>();
 			for (var e : state.getBuckets()) {
-				futures.add(manager.openBucket(e).commitBatch(tidBinary));
+				futures.add(manager.openBucket(e).commitBatch(tid));
 			}
 			for (var e : futures)
 				e.await();
-			removeCommitIndex(tid);
+			removeCommitIndex(tid.bytesUnsafe());
 		} catch (Throwable ex) {
 			// timer will redo
 			logger.error("", ex);

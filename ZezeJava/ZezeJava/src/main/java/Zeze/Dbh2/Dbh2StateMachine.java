@@ -12,6 +12,7 @@ import Zeze.Builtin.Dbh2.BSplitPut;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
+import Zeze.Util.BitConverter;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -227,10 +228,12 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void splitClean() {
-		try (var it = bucket.getTData().iterator()) {
+		try (var it = bucket.getTData().iterator(); var batch = bucket.getBatch()) {
 			var count = dbh2.getDbh2Config().getSplitCleanCount();
 			for (it.seek(bucket.getSplitCleanKey()); it.isValid() && count > 0; --count, it.next())
-				bucket.getTData().delete(it.key());
+				bucket.getTData().delete(batch, it.key());
+			batch.commit(bucket.getWriteOptions());
+			logger.info("split clean {}", BitConverter.toString(bucket.getSplitCleanKey()));
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
