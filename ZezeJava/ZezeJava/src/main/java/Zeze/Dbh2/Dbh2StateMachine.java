@@ -126,6 +126,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogEndSplit.TypeId_, LogEndSplit::new);
 		super.addFactory(LogSetSplittingMeta.TypeId_, LogSetSplittingMeta::new);
 		super.addFactory(LogSplitPut.TypeId_, LogSplitPut::new);
+
+		super.addFactory(LogSplitClean.TypeId_, LogSplitClean::new);
+		super.addFactory(LogSplitCleanEnd.TypeId_, LogSplitCleanEnd::new);
 	}
 
 	public void setupOneShotIfNoTransaction(Runnable handle) {
