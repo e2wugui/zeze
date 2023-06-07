@@ -159,7 +159,7 @@ public class GenericBean {
 			else if (v instanceof String)
 				sb.append('"').append(v).append('"');
 			else if (v instanceof byte[])
-				sb.append(BitConverter.toStringWithLimit((byte[])v, 16));
+				sb.append(BitConverter.toStringWithLimit((byte[])v, 16, 4));
 			else if (v instanceof List) {
 				var list = (List<?>)v;
 				sb.append('[');
@@ -220,7 +220,7 @@ public class GenericBean {
 		if (o instanceof String)
 			sb.append('"').append(o).append('"');
 		else if (o instanceof byte[])
-			sb.append(BitConverter.toStringWithLimit((byte[])o, 16));
+			sb.append(BitConverter.toStringWithLimit((byte[])o, 16, 4));
 		else if (o instanceof GenericBean)
 			((GenericBean)o).buildString(sb, level);
 		else

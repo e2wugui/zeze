@@ -133,6 +133,6 @@ public final class Binary implements Comparable<Binary> {
 
 	@Override
 	public @NotNull String toString() {
-		return BitConverter.toStringWithLimit(bytes, offset, count, 16);
+		return BitConverter.toStringWithLimit(bytes, offset, count, 16, 4);
 	}
 }

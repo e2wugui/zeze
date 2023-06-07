@@ -1079,7 +1079,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 
 	@Override
 	public String toString() {
-		return BitConverter.toStringWithLimit(Bytes, ReadIndex, size(), 16);
+		return BitConverter.toStringWithLimit(Bytes, ReadIndex, size(), 16, 4);
 	}
 
 	@Override

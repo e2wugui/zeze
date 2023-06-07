@@ -47,9 +47,9 @@ public final class BitConverter {
 			limit = 0;
 		if (len <= limit)
 			return toString(bytes, offset, len);
-		var sb = new StringBuilder(limit * 3 + 16);
+		var sb = new StringBuilder(limit * 3 + 15);
 		for (int i = 0; i < limit; i++) {
-			int b = bytes[i + offset];
+			int b = bytes[offset + i];
 			if (i > 0)
 				sb.append('-');
 			sb.append((char)num2Hex((b >> 4) & 0xf));
@@ -61,6 +61,47 @@ public final class BitConverter {
 
 	public static @NotNull String toStringWithLimit(byte @NotNull [] bytes, int limit) {
 		return toStringWithLimit(bytes, 0, bytes.length, limit);
+	}
+
+	public static @NotNull String toStringWithLimit(byte @NotNull [] bytes, int offset, int len,
+													int limit1, int limit2) {
+		if (limit1 < 0)
+			limit1 = 0;
+		if (limit2 < 0)
+			limit2 = 0;
+		int limit = limit1 + limit2;
+		if (limit < 0)
+			throw new IllegalStateException("limit1=" + limit1 + ", limit2=" + limit2);
+		if (len <= limit)
+			return toString(bytes, offset, len);
+		var sb = new StringBuilder(limit * 3 + 18);
+		if (limit1 > 0) {
+			for (int i = 0; i < limit1; i++) {
+				int b = bytes[offset + i];
+				if (i > 0)
+					sb.append('-');
+				sb.append((char)num2Hex((b >> 4) & 0xf));
+				sb.append((char)num2Hex(b & 0xf));
+			}
+			sb.append("...");
+		}
+		sb.append('[').append('+').append(len - limit).append(']');
+		if (limit2 > 0) {
+			sb.append("...");
+			offset += len - limit2;
+			for (int i = 0; i < limit2; i++) {
+				int b = bytes[offset + i];
+				if (i > 0)
+					sb.append('-');
+				sb.append((char)num2Hex((b >> 4) & 0xf));
+				sb.append((char)num2Hex(b & 0xf));
+			}
+		}
+		return sb.toString();
+	}
+
+	public static @NotNull String toStringWithLimit(byte @NotNull [] bytes, int limit1, int limit2) {
+		return toStringWithLimit(bytes, 0, bytes.length, limit1, limit2);
 	}
 
 	// 十六进制字符串转成二进制数组. 大小写的A~F都支持,忽略其它字符
