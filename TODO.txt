@@ -13,7 +13,7 @@ ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 Dbh2 全桶迁移？ 
 Dbh2 接入Zeze：CheckpointFlush 慢。
-Dbh2 BenchClient exit 退不出。
+Dbh2 BenchClient 输入"exit" 退不出。
 Dbh2 BenchClient.Query 哪来的，问题需要追踪。这个也会导致split end结束不了。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/6/16 v1.2.6 Config.Customize; Dbh2 Lock Options, Walk, CreateTableAsync; 

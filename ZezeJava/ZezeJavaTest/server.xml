@@ -17,7 +17,7 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 
 	<ServiceManagerConf raftXml="servicemanager.raft.xml"/>
 
-	<DatabaseConf Name="" DatabaseType="Dbh2" DatabaseUrl="dbh2://127.0.0.1:10999/dbh2_unittest"/>
+	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 
 	<ServiceConf Name="Server" InputBufferMaxProtocolSize="2M">
 	</ServiceConf>
