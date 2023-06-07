@@ -47,7 +47,7 @@ public final class Config {
 	private int workerThreads;
 	private int completionPortThreads;
 	private int checkpointPeriod = 60000;
-	private @NotNull CheckpointFlushMode checkpointFlushMode = CheckpointFlushMode.SingleThreadMerge;
+	private @NotNull CheckpointFlushMode checkpointFlushMode = CheckpointFlushMode.MultiThreadMerge;
 	private int checkpointModeTableFlushConcurrent = 2;
 	private int checkpointModeTableFlushSetCount = 50;
 	private @NotNull CheckpointMode checkpointMode = CheckpointMode.Table;
@@ -176,7 +176,7 @@ public final class Config {
 	}
 
 	public void setCheckpointFlushMode(@Nullable CheckpointFlushMode value) {
-		checkpointFlushMode = value != null ? value : CheckpointFlushMode.SingleThread;
+		checkpointFlushMode = value != null ? value : CheckpointFlushMode.MultiThreadMerge;
 	}
 
 	public int getCheckpointModeTableFlushConcurrent() {

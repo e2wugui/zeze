@@ -110,11 +110,11 @@ public class BenchClient {
 				if (line == null || line.equals("exit"))
 					break;
 			}
-			dbh2AgentManager.stop();
-			reportTimer.cancel(true);
 			running.value = false;
 			for (var future : futures)
 				future.get();
+			dbh2AgentManager.stop();
+			reportTimer.cancel(true);
 		} catch (Exception e) {
 			logger.error("", e);
 		}

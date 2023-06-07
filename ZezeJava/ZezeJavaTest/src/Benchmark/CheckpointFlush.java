@@ -4,17 +4,34 @@ import java.util.ArrayList;
 import java.util.concurrent.Future;
 import Zeze.Config;
 import Zeze.Transaction.CheckpointFlushMode;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
 import demo.App;
 import org.junit.Test;
 
 public class CheckpointFlush {
 	@Test
-	public void benchFlush() throws Exception {
+	public void benchFlushSingleThread() throws Exception {
 		bench(CheckpointFlushMode.SingleThread);
+		System.out.println(PerfCounter.instance.getLogAndReset());
+	}
+
+	@Test
+	public void benchFlushMultiThread() throws Exception {
 		bench(CheckpointFlushMode.MultiThread);
+		System.out.println(PerfCounter.instance.getLogAndReset());
+	}
+
+	@Test
+	public void benchFlushSingleMerge() throws Exception {
 		bench(CheckpointFlushMode.SingleThreadMerge);
+		System.out.println(PerfCounter.instance.getLogAndReset());
+	}
+
+	@Test
+	public void benchFlushMultiMerge() throws Exception {
 		bench(CheckpointFlushMode.MultiThreadMerge);
+		System.out.println(PerfCounter.instance.getLogAndReset());
 	}
 
 	private void bench(CheckpointFlushMode mode) throws Exception {
