@@ -2,6 +2,7 @@ package Zeze.Collections;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -304,7 +305,8 @@ public final class BeanFactory {
 					throw new UnsupportedOperationException("unknown data typeId=" + typeId);
 				cls = EmptyBean.Data.class;
 			}
-			dataCtor = Reflect.getDefaultConstructor(cls);
+			dataCtor = cls == EmptyBean.Data.class ? MethodHandles.lookup().findStaticGetter(cls, "instance", cls)
+					: Reflect.getDefaultConstructor(cls);
 			var data = (Data)dataCtor.invoke();
 			var dataTypeId = data.typeId();
 			if (dataTypeId != typeId)
