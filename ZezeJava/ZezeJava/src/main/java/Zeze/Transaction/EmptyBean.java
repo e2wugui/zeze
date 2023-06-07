@@ -61,8 +61,11 @@ public class EmptyBean extends Bean {
 	}
 
 	public static class Data extends Zeze.Transaction.Data {
-		// 只用于协议/RPC的不可修改的共享单例,不能放入数据库中
 		public static final Data instance = new Data();
+
+		// 没有状态,所以可以安全共享使用instance,不公开构造了
+		private Data() {
+		}
 
 		@Override
 		public void decode(@NotNull ByteBuffer bb) {
@@ -76,7 +79,7 @@ public class EmptyBean extends Bean {
 
 		@Override
 		public @NotNull Data copy() {
-			return instance; // data 不可能放入数据库，返回共享的引用是可以的。
+			return this; // EmptyBean.Data没有任何状态,返回相同实例是安全的
 		}
 
 		@Override

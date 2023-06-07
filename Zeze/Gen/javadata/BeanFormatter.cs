@@ -25,26 +25,30 @@ namespace Zeze.Gen.javadata
 
         private void GenDynamicSpecialMethod(StreamWriter sw, string prefix, Variable var, TypeDynamic type, bool isCollection)
         {
+            sw.WriteLine();
+            sw.WriteLine($"{prefix}public static final class DynamicData_{var.Name} extends Zeze.Transaction.DynamicData {{");
+            prefix += "    ";
+            var hasConst = false;
             if (false == isCollection)
             {
                 foreach (var real in type.RealBeans)
                 {
                     sw.WriteLine($"{prefix}public static final long DynamicTypeId_{var.NameUpper1}_{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
+                    hasConst = true;
                 }
             }
-            sw.WriteLine();
-            sw.WriteLine($"{prefix}public static Zeze.Transaction.DynamicBeanData newDynamicBean_{var.NameUpper1}() {{");
-            if (string.IsNullOrEmpty(type.DynamicParams.CreateDataFromSpecialTypeId)) // 判断一个就够了。
-                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBeanData({bean.Name}.Data::getSpecialTypeIdFromBean_{var.Id}, {bean.Name}.Data::createBeanFromSpecialTypeId_{var.Id});");
-            else
-                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBeanData({type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateDataFromSpecialTypeId});");
+            if (hasConst)
+                sw.WriteLine();
+            sw.WriteLine($"{prefix}static {{");
+            sw.WriteLine($"{prefix}    registerJsonParser(DynamicData_{var.Name}.class);");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static long getSpecialTypeIdFromBean_{var.Id}(Zeze.Transaction.Data bean) {{");
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine($"{prefix}public long toTypeId(Zeze.Transaction.Data data) {{");
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean)) 
             {
                 // 根据配置的实际类型生成switch。
-                sw.WriteLine($"{prefix}    var _typeId_ = bean.typeId();");
+                sw.WriteLine($"{prefix}    var _typeId_ = data.typeId();");
                 sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBean.Data.TYPEID)");
                 sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.Data.TYPEID;");
                 foreach (var real in type.RealBeans)
@@ -57,11 +61,12 @@ namespace Zeze.Gen.javadata
             else
             {
                 // 转发给全局静态（static）函数。
-                sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBean.Replace("::", ".")}(bean);");
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBean.Replace("::", ".")}(data);");
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static Zeze.Transaction.Data createBeanFromSpecialTypeId_{var.Id}(long typeId) {{");
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine($"{prefix}public Zeze.Transaction.Data toData(long typeId) {{");
             //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateDataFromSpecialTypeId))
             {
@@ -72,7 +77,7 @@ namespace Zeze.Gen.javadata
                     sw.WriteLine($"{prefix}        return new {real.Value.FullName}.Data();");
                 }
                 sw.WriteLine($"{prefix}    if (typeId == Zeze.Transaction.EmptyBean.Data.TYPEID)");
-                sw.WriteLine($"{prefix}        return new Zeze.Transaction.EmptyBean.Data();");
+                sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.Data.instance;");
                 sw.WriteLine($"{prefix}    return null;");
             }
             else
@@ -81,6 +86,12 @@ namespace Zeze.Gen.javadata
                 sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateDataFromSpecialTypeId.Replace("::", ".")}(typeId);");
             }
             sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine($"{prefix}public DynamicData_{var.Name} copy() {{");
+            sw.WriteLine($"{prefix}    return (DynamicData_{var.Name})super.copy();");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine($"{prefix[..^4]}}}");
             sw.WriteLine();
         }
 

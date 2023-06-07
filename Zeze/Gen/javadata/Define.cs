@@ -100,16 +100,7 @@ namespace Zeze.Gen.javadata
 
         public void Visit(TypeDynamic type)
         {
-            if (string.IsNullOrEmpty(type.DynamicParams.CreateDataFromSpecialTypeId)) // 判断一个就够了。
-            {
-                sw.WriteLine($"{prefix}var {varname} = new Zeze.Transaction.DynamicBeanData"
-                    + $"({type.Variable.Bean.Name}.Data::getSpecialTypeIdFromBean_{type.Variable.Id}, {type.Variable.Bean.Name}.Data::createBeanFromSpecialTypeId_{type.Variable.Id});");
-            }
-            else
-            {
-                sw.WriteLine($"{prefix}var {varname} = new Zeze.Transaction.DynamicBeanData"
-                    + $"({type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateDataFromSpecialTypeId});");
-            }
+            sw.WriteLine($"{prefix}var {varname} = new DynamicData_{type.Variable.Name}();");
         }
 
         public void Visit(TypeQuaternion type)

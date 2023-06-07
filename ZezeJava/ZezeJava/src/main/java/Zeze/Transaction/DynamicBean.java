@@ -108,13 +108,13 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		setBean(other.getBean().copy());
 	}
 
-	public void assign(@NotNull DynamicBeanData other) {
-		setBean(other.getBean().toBean());
+	public void assign(@NotNull DynamicData other) {
+		setBean(other.getData().toBean());
 	}
 
 	@Override
 	public void assign(@NotNull Data data) {
-		assign((DynamicBeanData)data);
+		assign((DynamicData)data);
 	}
 
 	public boolean isEmpty() {

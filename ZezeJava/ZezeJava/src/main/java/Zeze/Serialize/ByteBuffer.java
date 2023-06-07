@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import Zeze.Net.Binary;
 import Zeze.Transaction.DynamicBean;
-import Zeze.Transaction.DynamicBeanData;
+import Zeze.Transaction.DynamicData;
 import Zeze.Util.BitConverter;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.IntHashMap;
@@ -1578,14 +1578,14 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("can not ReadDynamic for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
 	}
 
-	public @NotNull DynamicBeanData ReadDynamic(@NotNull DynamicBeanData dynBean, int tag) {
+	public @NotNull DynamicData ReadDynamic(@NotNull DynamicData dynBean, int tag) {
 		int type = tag & TAG_MASK;
 		if (type == DYNAMIC) {
 			dynBean.decode(this);
 			return dynBean;
 		}
 		if (type == BEAN) {
-			var bean = dynBean.getCreateData().apply(0);
+			var bean = dynBean.toData(0);
 			if (bean != null) {
 				bean.decode(this);
 				return dynBean;

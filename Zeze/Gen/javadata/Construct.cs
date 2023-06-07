@@ -158,7 +158,7 @@ namespace Zeze.Gen.javadata
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + varName + " = newDynamicBean_" + variable.NameUpper1 + "();");
+            sw.WriteLine(prefix + varName + " = new DynamicData_" + variable.Name + "();");
         }
 
         void InitialVector(Type type)

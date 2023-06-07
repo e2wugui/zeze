@@ -211,8 +211,8 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}=\").append(System.lineSeparator());");
-            sw.WriteLine(prefix + NamePrivate + ".getBean().buildString(sb, level + " + INDENT_SIZE + ");");
+            sw.WriteLine($"{prefix}sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}=\").append(System.lineSeparator());");
+            sw.WriteLine($"{prefix}{NamePrivate}.get{(isData ? "Data" : "Bean")}().buildString(sb, level + {INDENT_SIZE});");
             sw.Write(prefix + "sb");
             if (sep != 0)
                 sw.Write($".append('{sep}')");

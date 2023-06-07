@@ -14,9 +14,9 @@ import Zeze.Transaction.DynamicBean;
 import Zeze.Util.Json;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
-import demo.Module1.Key;
 import demo.Module1.BSimple;
 import demo.Module1.BValue;
+import demo.Module1.Key;
 import junit.framework.TestCase;
 
 @SuppressWarnings({"unused", "TextBlockMigration"})
@@ -240,22 +240,43 @@ public final class TestJson extends TestCase {
 	}
 
 	public void testD() throws ReflectiveOperationException {
-		BValue v = new BValue();
-		DynamicBean db = new DynamicBean(0, BValue::getSpecialTypeIdFromBean_26, BValue::createBeanFromSpecialTypeId_26);
-		BSimple s = new BSimple();
-		s.setInt_1(456);
-		db.setBean(s);
-		v.getMap26().put(new Key((short)123, ""), db);
-		String j = JsonWriter.local().clear().setPrettyFormat(true).setWriteNull(true).setDepthLimit(9).write(v).toString();
-		BValue v2 = JsonReader.local().buf(j).parse(new BValue());
-		assertNotNull(v2);
-		assertEquals(1, v2.getMap26().size());
-		Map.Entry<Key, DynamicBean> e = v2.getMap26().iterator().next();
-		assertEquals(Key.class, e.getKey().getClass());
-		assertEquals(123, e.getKey().getS());
-		assertEquals(BSimple.TYPEID, e.getValue().typeId());
-		assertEquals(BSimple.class, e.getValue().getBean().getClass());
-		assertEquals(456, ((BSimple)e.getValue().getBean()).getInt_1());
+		{
+			BValue v = new BValue();
+			DynamicBean db = new DynamicBean(0, BValue::getSpecialTypeIdFromBean_26, BValue::createBeanFromSpecialTypeId_26);
+			BSimple s = new BSimple();
+			s.setInt_1(456);
+			db.setBean(s);
+			v.getMap26().put(new Key((short)123, ""), db);
+			String j = JsonWriter.local().clear().setPrettyFormat(true).setWriteNull(true).setDepthLimit(9).write(v).toString();
+			BValue v2 = JsonReader.local().buf(j).parse(new BValue());
+			assertNotNull(v2);
+			assertEquals(1, v2.getMap26().size());
+			Map.Entry<Key, DynamicBean> e = v2.getMap26().iterator().next();
+			assertEquals(Key.class, e.getKey().getClass());
+			assertEquals(123, e.getKey().getS());
+			assertEquals(BSimple.TYPEID, e.getValue().typeId());
+			assertEquals(BSimple.class, e.getValue().getBean().getClass());
+			assertEquals(456, ((BSimple)e.getValue().getBean()).getInt_1());
+		}
+
+		{
+			BValue.Data d = new BValue.Data();
+			BValue.Data.DynamicData_map26 dd = new BValue.Data.DynamicData_map26();
+			BSimple.Data sd = new BSimple.Data();
+			sd.setInt_1(456);
+			dd.setData(sd);
+			d.getMap26().put(new Key((short)123, ""), dd);
+			String j = JsonWriter.local().clear().setPrettyFormat(true).setWriteNull(true).setDepthLimit(9).write(d).toString();
+			BValue.Data v2 = JsonReader.local().buf(j).parse(new BValue.Data());
+			assertNotNull(v2);
+			assertEquals(1, v2.getMap26().size());
+			Map.Entry<Key, BValue.Data.DynamicData_map26> e = v2.getMap26().entrySet().iterator().next();
+			assertEquals(Key.class, e.getKey().getClass());
+			assertEquals(123, e.getKey().getS());
+			assertEquals(BSimple.Data.TYPEID, e.getValue().typeId());
+			assertEquals(BSimple.Data.class, e.getValue().getData().getClass());
+			assertEquals(456, ((BSimple.Data)e.getValue().getData()).getInt_1());
+		}
 	}
 
 	public void testE() throws ReflectiveOperationException {

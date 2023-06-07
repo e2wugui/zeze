@@ -108,7 +108,7 @@ namespace Zeze.Gen.javadata
 
         public virtual void Visit(TypeDynamic type)
         {
-            name = "Zeze.Transaction.DynamicBeanData";
+            name = "DynamicData_" + type.Variable.Name;
         }
 
         public void Visit(TypeQuaternion type)

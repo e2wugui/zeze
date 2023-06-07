@@ -14,6 +14,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.PList2;
 import Zeze.Transaction.Collections.PMap2;
+import Zeze.Transaction.Data;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.EmptyBean;
 import org.jetbrains.annotations.NotNull;
@@ -43,7 +44,7 @@ public final class Json implements Cloneable {
 		Object parse(@NotNull JsonReader jr, int b) throws ReflectiveOperationException;
 	}
 
-	interface Creator<T> {
+	public interface Creator<T> {
 		T create() throws ReflectiveOperationException;
 	}
 
@@ -313,6 +314,10 @@ public final class Json implements Cloneable {
 			return type != null ? type : TYPE_CUSTOM;
 		}
 
+		public @NotNull Creator<T> getCtor() {
+			return ctor;
+		}
+
 		public @Nullable Parser<T> getParser() {
 			return parser;
 		}
@@ -489,6 +494,7 @@ public final class Json implements Cloneable {
 			final String fn = field.getName();
 			if (fn.charAt(0) == '_' &&
 					(Bean.class.isAssignableFrom(klass) // bean
+							|| Data.class.isAssignableFrom(klass) // data
 							|| Zeze.Raft.RocksRaft.Bean.class.isAssignableFrom(klass) // RocksRaft bean
 							|| (Serializable.class.isAssignableFrom(klass)
 							&& Comparable.class.isAssignableFrom(klass)))) // beankey
@@ -537,15 +543,15 @@ public final class Json implements Cloneable {
 					obj = (DynamicBean)((PList2<?>)parent).createValue();
 				else if (parent instanceof PMap2)
 					obj = (DynamicBean)((PMap2<?, ?>)parent).createValue();
+				if (obj == null)
+					return null;
 			}
-			if (obj != null) {
-				obj.reset();
-				int p = reader.pos();
-				reader.parse0(obj, classMeta);
-				Bean bean = obj.getCreateBean().apply(obj.getTypeId());
-				obj.setBean(bean != null ? bean : new EmptyBean());
-				reader.pos(p).parse0(obj, classMeta);
-			}
+			obj.reset();
+			int p = reader.pos();
+			reader.parse0(obj, classMeta);
+			Bean bean = obj.getCreateBean().apply(obj.getTypeId());
+			obj.setBean(bean != null ? bean : new EmptyBean());
+			reader.pos(p).parse0(obj, classMeta);
 			return obj;
 		});
 
