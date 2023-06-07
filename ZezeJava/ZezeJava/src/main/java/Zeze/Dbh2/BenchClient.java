@@ -30,12 +30,12 @@ public class BenchClient {
 		try {
 			Task.tryInitThreadPool(null, null, null);
 
-			var tableNumber = 4;
-			var threadNumber = 4;
-			var valueSize = 12;
+			var tableNumber = 1;
+			var threadNumber = 128;
+			var valueSize = 100;
 			var masterIp = "127.0.0.1";
 			var masterPort = 10999;
-			var tableAccess = 2;
+			var tableAccess = 1;
 			var selector = Runtime.getRuntime().availableProcessors();
 			var get = false;
 

@@ -228,12 +228,11 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void splitClean() {
-		try (var it = bucket.getTData().iterator(); var batch = bucket.getBatch()) {
+		try (var it = bucket.getTData().iterator(); var t = bucket.getDb().beginTransaction2()) {
 			var count = dbh2.getDbh2Config().getSplitCleanCount();
 			for (it.seek(bucket.getSplitCleanKey()); it.isValid() && count > 0; --count, it.next())
-				bucket.getTData().delete(batch, it.key());
-			batch.commit(bucket.getWriteOptions());
-			logger.info("split clean {}", BitConverter.toString(bucket.getSplitCleanKey()));
+				bucket.getTData().delete(t, it.key());
+			t.commit();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
