@@ -5,7 +5,6 @@ import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
-import Zeze.Net.Selectors;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
@@ -24,7 +23,6 @@ public class LinkdApp {
 	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
 	public final String providerIp;
 	public int providerPort;
-	public final Selectors selectors;
 	public Action1<ServerSocket> onServerSocketBindAction;
 
 	public interface DiscardAction {
@@ -79,9 +77,6 @@ public class LinkdApp {
 		var kv = this.linkdProviderService.getOnePassiveAddress();
 		providerIp = kv.getKey();
 		providerPort = kv.getValue();
-
-		selectors = new Selectors("LinkdApp");
-		this.linkdService.setSelectors(selectors);
 
 		this.commandConsoleService = new CommandConsoleService("Zeze.Arch.CommandConsole", zeze.getConfig());
 
