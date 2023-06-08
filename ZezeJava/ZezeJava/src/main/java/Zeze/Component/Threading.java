@@ -2,9 +2,7 @@ package Zeze.Component;
 
 import java.util.concurrent.ExecutionException;
 import Zeze.Application;
-import Zeze.Builtin.Threading.BSemaphore;
 import Zeze.Transaction.DispatchMode;
-import Zeze.Util.OutInt;
 import Zeze.Util.Task;
 
 public class Threading extends AbstractThreading {
@@ -21,13 +19,13 @@ public class Threading extends AbstractThreading {
 			this.name = name;
 		}
 
-		@SuppressWarnings("BusyWait")
 		public void lock() {
 			while (true) {
 				if (tryLock())
 					return;
 
 				try {
+					//noinspection BusyWait
 					Thread.sleep(500);
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);
@@ -35,7 +33,6 @@ public class Threading extends AbstractThreading {
 			}
 		}
 
-		@SuppressWarnings("BusyWait")
 		public boolean tryLock(long timeoutMs) {
 			while (true) {
 				if (tryLock())
@@ -45,6 +42,7 @@ public class Threading extends AbstractThreading {
 					return false;
 
 				try {
+					//noinspection BusyWait
 					Thread.sleep(500);
 					timeoutMs -= 500; // 低精度
 				} catch (InterruptedException e) {
@@ -123,13 +121,13 @@ public class Threading extends AbstractThreading {
 			release(1);
 		}
 
-		@SuppressWarnings("BusyWait")
 		public void acquire(int permits) {
 			while (true) {
 				if (tryAcquire(permits))
 					return;
 
 				try {
+					//noinspection BusyWait
 					Thread.sleep(500);
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);
@@ -137,7 +135,6 @@ public class Threading extends AbstractThreading {
 			}
 		}
 
-		@SuppressWarnings("BusyWait")
 		public boolean tryAcquire(int permits, int timeoutMs) {
 			while (true) {
 				if (tryAcquire(permits))
@@ -147,6 +144,7 @@ public class Threading extends AbstractThreading {
 					return false;
 
 				try {
+					//noinspection BusyWait
 					Thread.sleep(500);
 					timeoutMs -= 500;
 				} catch (InterruptedException e) {
@@ -191,7 +189,7 @@ public class Threading extends AbstractThreading {
 
 							sem.setPermits(sem.getPermits() + permits);
 							return 0;
-						}, "Threading.Semaphore.release"),DispatchMode.Critical).get();
+						}, "Threading.Semaphore.release"), DispatchMode.Critical).get();
 			} catch (InterruptedException | ExecutionException e) {
 				throw new RuntimeException(e);
 			}
@@ -214,6 +212,7 @@ public class Threading extends AbstractThreading {
 
 	/**
 	 * 创建信号量
+	 *
 	 * @param name semaphore name
 	 * @return semaphore
 	 */
@@ -225,7 +224,8 @@ public class Threading extends AbstractThreading {
 	 * permits 只有第一次创建的时候才会被初始化到信号量里面。
 	 * 这个参数比较讨厌，每个使用的地方最好统一。
 	 * api设计成两步了。
-	 * @param name name
+	 *
+	 * @param name    name
 	 * @param permits permits
 	 */
 	public void initializeSemaphore(String name, int permits) {
@@ -243,7 +243,6 @@ public class Threading extends AbstractThreading {
 		}
 	}
 
-
 	public class ReadWriteLock {
 		private final String name;
 
@@ -253,9 +252,9 @@ public class Threading extends AbstractThreading {
 
 		/**
 		 * 尝试进入读锁，必须匹配exitRead释放。
+		 *
 		 * @return boolean
 		 */
-
 		public boolean tryEnterRead() {
 			try {
 				return 0 == Task.runUnsafe(zeze.newProcedure(
