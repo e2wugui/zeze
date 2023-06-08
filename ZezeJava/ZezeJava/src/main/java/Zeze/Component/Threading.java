@@ -202,8 +202,8 @@ public class Threading extends AbstractThreading {
 				return 0 == Task.runUnsafe(zeze.newProcedure(
 						() -> {
 							var sem = _tSemaphore.get(name);
-							if (null == sem && sem.getPermits() == initialPermits)
-								return
+							if (null == sem)
+								return 1;
 							return 0;
 						}, "Threading.Semaphore.destroy"), DispatchMode.Critical).get();
 			} catch (InterruptedException | ExecutionException e) {
