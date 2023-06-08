@@ -154,6 +154,8 @@ public class Dbh2FullTest {
 			database = newDatabase(dbh2AgentManager, "dbh2TestDb");
 			var table1 = (Database.AbstractKVTable)database.openTable("table1");
 			var table2 = (Database.AbstractKVTable)database.openTable("table2");
+			table1.waitReady();
+			table2.waitReady();
 
 			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
 			var key1 = ByteBuffer.Wrap(new byte[]{1});
