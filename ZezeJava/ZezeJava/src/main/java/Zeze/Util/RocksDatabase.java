@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -44,11 +45,11 @@ public class RocksDatabase implements Closeable {
 	private static final ReadOptions defaultReadOptions = new ReadOptions();
 	private static final WriteOptions defaultWriteOptions = new WriteOptions();
 	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
+	private static final TransactionDBOptions transactionDbOptions = new TransactionDBOptions();
 	private static final @NotNull MethodHandle mhWriteBatchPutCf;
 	private static final @NotNull MethodHandle mhWriteBatchDeleteCf;
 	private static final @NotNull MethodHandle mhWriteBatchNativeNew;
 	private static final @NotNull MethodHandle mhWriteBatchNew;
-	private static final TransactionDBOptions transactionDbOptions = new TransactionDBOptions();
 
 	static {
 		try {
@@ -100,10 +101,16 @@ public class RocksDatabase implements Closeable {
 		return syncWriteOptions;
 	}
 
+	public enum DbType {
+		eRocksDb,
+		eOptimisticTransactionDb,
+		eTransactionDb,
+	}
+
 	private final @NotNull String homePath;
 	private final @NotNull RocksDB rocksDb;
-	private final OptimisticTransactionDB optimisticTransactionDb;
-	private final TransactionDB transactionDb;
+	private final @Nullable OptimisticTransactionDB optimisticTransactionDb;
+	private final @Nullable TransactionDB transactionDb;
 
 	private final ConcurrentHashMap<String, Table> tableMap = new ConcurrentHashMap<>();
 	private @Nullable Map<String, Table> tableMapView;
@@ -113,13 +120,7 @@ public class RocksDatabase implements Closeable {
 		this(homePath, DbType.eRocksDb);
 	}
 
-	public enum DbType {
-		eRocksDb,
-		eOptimisticTransactionDb,
-		eTransactionDb,
-	}
-
-	public RocksDatabase(@NotNull String homePath, DbType dbType) throws RocksDBException {
+	public RocksDatabase(@NotNull String homePath, @NotNull DbType dbType) throws RocksDBException {
 		this.homePath = homePath;
 		var cfds = getCfDescriptors(homePath);
 		int cfCount = cfds.size();
@@ -143,11 +144,13 @@ public class RocksDatabase implements Closeable {
 		return cfds;
 	}
 
-	public Transaction beginTransaction() {
+	public @NotNull Transaction beginOptimisticTransaction() {
+		//noinspection DataFlowIssue
 		return optimisticTransactionDb.beginTransaction(getDefaultWriteOptions());
 	}
 
-	public Transaction beginTransaction2() {
+	public @NotNull Transaction beginTransaction() {
+		//noinspection DataFlowIssue
 		return transactionDb.beginTransaction(getDefaultWriteOptions());
 	}
 
@@ -158,9 +161,9 @@ public class RocksDatabase implements Closeable {
 		return open(DbType.eRocksDb, options, path, cfds, cfhs);
 	}
 
-	private static RocksDB realOpen(DbType dbType, @NotNull DBOptions options, @NotNull String path,
-								@NotNull List<ColumnFamilyDescriptor> cfds,
-								@NotNull List<ColumnFamilyHandle> cfhs) throws RocksDBException {
+	private static @NotNull RocksDB realOpen(@NotNull DbType dbType, @NotNull DBOptions options, @NotNull String path,
+											 @NotNull List<ColumnFamilyDescriptor> cfds,
+											 @NotNull List<ColumnFamilyHandle> cfhs) throws RocksDBException {
 		switch (dbType) {
 		case eRocksDb:
 			return RocksDB.open(options, path, cfds, cfhs);
@@ -173,7 +176,7 @@ public class RocksDatabase implements Closeable {
 		}
 	}
 
-	public static @NotNull RocksDB open(DbType dbType, @NotNull DBOptions options, @NotNull String path,
+	public static @NotNull RocksDB open(@NotNull DbType dbType, @NotNull DBOptions options, @NotNull String path,
 										@NotNull List<ColumnFamilyDescriptor> cfds,
 										@NotNull List<ColumnFamilyHandle> cfhs) throws RocksDBException {
 		logger.info("RocksDB.open: '{}'", path);
@@ -393,7 +396,8 @@ public class RocksDatabase implements Closeable {
 		backup(DbType.eRocksDb, checkpointDir, backupDir);
 	}
 
-	public static void backup(DbType dbType, @NotNull String checkpointDir, @NotNull String backupDir) throws RocksDBException {
+	public static void backup(@NotNull DbType dbType, @NotNull String checkpointDir, @NotNull String backupDir)
+			throws RocksDBException {
 		var cfhs = new ArrayList<ColumnFamilyHandle>();
 		try (var src = realOpen(dbType, commonDbOptions, checkpointDir, getCfDescriptors(checkpointDir), cfhs);
 			 var backupOptions = new BackupEngineOptions(backupDir);
@@ -569,16 +573,20 @@ public class RocksDatabase implements Closeable {
 			put(t, key, 0, key.length, value, 0, value.length);
 		}
 
-		public void put(@NotNull Transaction t, byte[] key, int keyLen, byte[] value, int valueLen) throws RocksDBException {
+		public void put(@NotNull Transaction t, byte[] key, int keyLen, byte[] value, int valueLen)
+				throws RocksDBException {
 			put(t, key, 0, keyLen, value, 0, valueLen);
 		}
 
 		public void put(@NotNull Transaction t, byte[] key, int keyOff, int keyLen,
 						byte[] value, int valueOff, int valueLen) throws RocksDBException {
 			// batch 优化成内部方法调用了？仅在keyOff不等于0时拷贝！！！
-			key = Zeze.Transaction.Database.copyIf(key, keyOff, keyLen);
-			value = Zeze.Transaction.Database.copyIf(value, valueOff, valueLen);
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			key = Database.copyIf(key, keyOff, keyLen);
+			value = Database.copyIf(value, valueOff, valueLen);
 			t.put(cfHandle, key, value);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDBTxn.put", System.nanoTime() - timeBegin);
 		}
 
 		public void delete(@NotNull Transaction t, @NotNull Binary key) throws RocksDBException {
@@ -595,8 +603,11 @@ public class RocksDatabase implements Closeable {
 
 		public void delete(@NotNull Transaction t, byte[] key, int keyOff, int keyLen) throws RocksDBException {
 			// batch 优化成内部方法调用了？仅在keyOff不等于0时拷贝！！！
-			key = Zeze.Transaction.Database.copyIf(key, keyOff, keyLen);
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			key = Database.copyIf(key, keyOff, keyLen);
 			t.delete(cfHandle, key);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDBTxn.delete", System.nanoTime() - timeBegin);
 		}
 
 		public void put(@NotNull Batch batch, @NotNull Binary key, @NotNull Binary value) throws RocksDBException {
@@ -681,7 +692,10 @@ public class RocksDatabase implements Closeable {
 		}
 
 		public void compact() throws RocksDBException {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.compactRange(cfHandle);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("RocksDB.compact", System.nanoTime() - timeBegin);
 		}
 	}
 
