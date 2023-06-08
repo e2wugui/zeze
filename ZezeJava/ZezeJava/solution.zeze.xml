@@ -1498,13 +1498,40 @@
 			<rpc name="TokenStatus" result="BTokenStatus" handle="server"/> 获取token服务器的全局状态
 		</module>
 
+		<module name="Threading" id="11030">
+			<bean name="BMutex">
+				<variable id="1" name="Locked"  type="bool"/>
+				<variable id="2" name="ServerId"  type="int"/>
+				<variable id="3" name="LockTime"  type="long"/>
+			</bean>
+			<table name="tMutex" key="string" value="BMutex"/>
+
+			<bean name="BSemaphore">
+				<variable id="1" name="Permits"  type="int"/>
+			</bean>
+			<table name="tSemaphore" key="string" value="BSemaphore"/>
+
+			<bean name="BReadWriteLock">
+				<variable id="1" name="ReadingCount"  type="int"/>
+				<variable id="2" name="InWriting"  type="bool"/>
+			</bean>
+
+			<table name="tReadWriteLock" key="string" value="BReadWriteLock"/>
+		</module>
+
 		<!--
-		可用id范围 [11030, 11100) [11102, 11999]
+		可用id范围 [11031, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="Threading" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Threading"/>
+		</service>
+	</component>
+
 	<component name="Commit" gendir="src/main/java" genrelativedir="Zeze/Dbh2" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Dbh2.Commit"/>

@@ -144,7 +144,7 @@ public class AutoKey {
 					return 0;
 				}
 				return Procedure.LogicError;
-			}, "AutoKey.setSeed")).get();
+			}, "AutoKey.setSeed"), DispatchMode.Critical).get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw new RuntimeException(e);
 		}
@@ -163,7 +163,7 @@ public class AutoKey {
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				bAutoKey.setNextId(0);
 				return 0;
-			}, "AutoKey.setSeed")).get();
+			}, "AutoKey.setSeed"), DispatchMode.Critical).get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw new RuntimeException(e);
 		}
@@ -189,7 +189,7 @@ public class AutoKey {
 				}
 				// 溢出
 				return Procedure.LogicError;
-			}, "AutoKey.increaseSeed")).get();
+			}, "AutoKey.increaseSeed"), DispatchMode.Critical).get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw new RuntimeException(e);
 		}
@@ -209,7 +209,7 @@ public class AutoKey {
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				result.value = bAutoKey.getNextId();
 				return 0;
-			}, "AutoKey.getSeed")).get();
+			}, "AutoKey.getSeed"), DispatchMode.Critical).get();
 			if (ret == Procedure.Success)
 				return result.value;
 		} catch (InterruptedException | ExecutionException e) {
