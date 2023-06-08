@@ -44,7 +44,7 @@ public final class BitConverter {
 
 	public static @NotNull String toStringWithLimit(byte @NotNull [] bytes, int offset, int len, int limit) {
 		if (limit < 0)
-			limit = 0;
+			throw new IllegalArgumentException("limit=" + limit);
 		if (len <= limit)
 			return toString(bytes, offset, len);
 		var sb = new StringBuilder(limit * 3 + 15);
@@ -65,13 +65,9 @@ public final class BitConverter {
 
 	public static @NotNull String toStringWithLimit(byte @NotNull [] bytes, int offset, int len,
 													int limit1, int limit2) {
-		if (limit1 < 0)
-			limit1 = 0;
-		if (limit2 < 0)
-			limit2 = 0;
 		int limit = limit1 + limit2;
-		if (limit < 0)
-			throw new IllegalStateException("limit1=" + limit1 + ", limit2=" + limit2);
+		if ((limit1 | limit2 | limit) < 0)
+			throw new IllegalArgumentException("limit=" + limit1 + '+' + limit2);
 		if (len <= limit)
 			return toString(bytes, offset, len);
 		var sb = new StringBuilder(limit * 3 + 18);

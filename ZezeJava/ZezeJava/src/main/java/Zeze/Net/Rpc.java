@@ -16,14 +16,14 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	private static final Logger logger = LogManager.getLogger(Rpc.class);
 
 	public TResult Result;
-	private @Nullable Binary resultEncoded; // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
+	private transient @Nullable Binary resultEncoded; // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
 	private long sessionId;
-	private @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle;
-	private @Nullable TaskCompletionSource<TResult> future;
+	private transient @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle;
+	private transient @Nullable TaskCompletionSource<TResult> future;
 	private int timeout = 5000;
 	private boolean isTimeout;
 	private boolean isRequest = true;
-	private boolean sendResultDone; // XXX ugly
+	private transient boolean sendResultDone; // XXX ugly
 
 	@Override
 	public int getFamilyClass() {

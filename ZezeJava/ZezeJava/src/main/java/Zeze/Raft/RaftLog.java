@@ -11,8 +11,8 @@ public final class RaftLog implements Serializable {
 	private long index;
 	private Log log;
 
-	private IntFunction<Log> logFactory; // 不会被序列化。Local Only.
-	private Action2<RaftLog, Boolean> leaderCallback;
+	private transient IntFunction<Log> logFactory; // 不会被序列化。Local Only.
+	private transient Action2<RaftLog, Boolean> leaderCallback;
 
 	public RaftLog(long term, long index, Log log) {
 		this.term = term;

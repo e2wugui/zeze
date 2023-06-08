@@ -95,7 +95,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 		public int length;
 
 		// 发送端用来记录这个包的重发 TimerTask。TODO 每个包一个Timer很浪费，先这样。
-		public Future<?> resendTimerTask;
+		public transient Future<?> resendTimerTask;
 
 		public Packet() {
 		}

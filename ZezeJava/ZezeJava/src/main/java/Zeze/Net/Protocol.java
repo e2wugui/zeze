@@ -16,8 +16,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	private static final Logger logger = LogManager.getLogger(Protocol.class);
 	private static final LongConcurrentHashMap<Class<? extends Protocol<?>>> protocolClasses = new LongConcurrentHashMap<>();
 
-	private Object sender; // AsyncSocket or DatagramSession
-	private @Nullable Object userState;
+	private transient Object sender; // AsyncSocket or DatagramSession
+	private transient @Nullable Object userState;
 	public TArgument Argument;
 	protected long resultCode;
 

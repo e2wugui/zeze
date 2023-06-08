@@ -33,6 +33,8 @@ public abstract class DynamicData extends Data {
 	}
 
 	private void setDataWithSpecialTypeId(long specialTypeId, @NotNull Data data) {
+		if (data instanceof DynamicData) // 不允许嵌套放入DynamicData,否则序列化会输出错误的数据流
+			data = ((DynamicData)data).data;
 		typeId = specialTypeId;
 		this.data = data;
 	}
@@ -99,6 +101,12 @@ public abstract class DynamicData extends Data {
 	}
 
 	@Override
+	public void encode(@NotNull ByteBuffer bb) {
+		bb.WriteLong(typeId);
+		data.encode(bb);
+	}
+
+	@Override
 	public void decode(@NotNull ByteBuffer bb) {
 		var newTypeId = bb.ReadLong();
 		var newData = toData(newTypeId);
@@ -112,12 +120,6 @@ public abstract class DynamicData extends Data {
 			newTypeId = toTypeId(newData); // 再确认一下真正的typeId
 		newData.decode(bb);
 		setDataWithSpecialTypeId(newTypeId, newData);
-	}
-
-	@Override
-	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteLong(getTypeId());
-		data.encode(bb);
 	}
 
 	@Override
@@ -155,7 +157,7 @@ public abstract class DynamicData extends Data {
 			obj.reset();
 			int p = reader.pos();
 			reader.parse0(obj, classMeta);
-			Data data = obj.toData(obj.getTypeId());
+			Data data = obj.toData(obj.typeId);
 			obj.setData(data != null ? data : EmptyBean.Data.instance);
 			reader.pos(p).parse0(obj, classMeta);
 			return obj;
