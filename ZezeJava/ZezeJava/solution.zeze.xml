@@ -1508,6 +1508,7 @@
 
 			<bean name="BSemaphore">
 				<variable id="1" name="Permits"  type="int"/>
+				<variable id="2" name="InitialPermits"  type="int"/>
 			</bean>
 			<table name="tSemaphore" key="string" value="BSemaphore"/>
 

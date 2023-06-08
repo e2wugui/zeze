@@ -202,7 +202,7 @@ public class Threading extends AbstractThreading {
 				return 0 == Task.runUnsafe(zeze.newProcedure(
 						() -> {
 							var sem = _tSemaphore.get(name);
-							if (null == sem)
+							if (null == sem || sem.getPermits() != sem.getInitialPermits())
 								return 1;
 							return 0;
 						}, "Threading.Semaphore.destroy"), DispatchMode.Critical).get();
@@ -232,7 +232,9 @@ public class Threading extends AbstractThreading {
 		try {
 			if (0 != Task.runUnsafe(zeze.newProcedure(
 					() -> {
-						_tSemaphore.getOrAdd(name).setPermits(permits);
+						var sem = _tSemaphore.getOrAdd(name);
+						sem.setPermits(permits);
+						sem.setInitialPermits(permits);
 						return 0;
 					}, "Threading.Semaphore.initialize"), DispatchMode.Critical).get())
 				throw new RuntimeException("Threading.Semaphore.initialize fail.");

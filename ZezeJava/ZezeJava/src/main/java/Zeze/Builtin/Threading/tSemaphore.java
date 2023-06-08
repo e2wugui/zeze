@@ -17,6 +17,7 @@ public final class tSemaphore extends TableX<String, Zeze.Builtin.Threading.BSem
     }
 
     public static final int VAR_Permits = 1;
+    public static final int VAR_InitialPermits = 2;
 
     @Override
     public String decodeKey(ByteBuffer _os_) {

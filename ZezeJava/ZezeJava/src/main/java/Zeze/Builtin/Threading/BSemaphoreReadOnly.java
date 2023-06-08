@@ -8,4 +8,5 @@ public interface BSemaphoreReadOnly {
     BSemaphore copy();
 
     int getPermits();
+    int getInitialPermits();
 }
