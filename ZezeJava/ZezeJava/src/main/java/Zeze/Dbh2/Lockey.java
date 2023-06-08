@@ -27,7 +27,7 @@ public class Lockey implements Comparable<Lockey>{
 
 	public void lock(Dbh2 dbh2) throws InterruptedException {
 		if (dbh2.getDbh2Config().isSerialize()) {
-			if (!semaphore.tryAcquire(dbh2.getRaft().getRaftConfig().getAgentTimeout() * 2L, TimeUnit.MILLISECONDS))
+			if (!semaphore.tryAcquire(0, TimeUnit.NANOSECONDS))
 				throw new RuntimeException("lock timeout");
 			locked = true; // 只会有一个成功。
 		}

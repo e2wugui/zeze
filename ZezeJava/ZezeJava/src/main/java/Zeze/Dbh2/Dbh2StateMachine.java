@@ -3,6 +3,7 @@ package Zeze.Dbh2;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -12,6 +13,7 @@ import Zeze.Builtin.Dbh2.BSplitPut;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -95,7 +97,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			//noinspection StringBufferReplaceableByString
 			var sb = new StringBuilder();
 			sb.append("load: ");
-			sb.append(Dbh2.formatMeta(getBucket().getMeta()));
+			sb.append(Dbh2.formatMeta(getBucket().getBucketMeta()));
 			sb.append(" get=").append(avgGet);
 			sb.append(" put=").append(avgPut);
 			sb.append(" getSize=").append(diffSizeGet / elapse);
@@ -126,9 +128,6 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogEndSplit.TypeId_, LogEndSplit::new);
 		super.addFactory(LogSetSplittingMeta.TypeId_, LogSetSplittingMeta::new);
 		super.addFactory(LogSplitPut.TypeId_, LogSplitPut::new);
-
-		super.addFactory(LogSplitClean.TypeId_, LogSplitClean::new);
-		super.addFactory(LogSplitCleanEnd.TypeId_, LogSplitCleanEnd::new);
 	}
 
 	public void setupOneShotIfNoTransaction(Runnable handle) {
@@ -198,7 +197,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void setBucketMeta(BBucketMeta.Data argument) {
 		try {
-			bucket.setMeta(argument);
+			bucket.setBucketMeta(argument);
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -215,32 +214,21 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
-		try {
-			bucket.setSplitCleanKey(from.getKeyLast());
-			bucket.setMeta(from);
+		try (var it = bucket.getData().iterator()){
+			it.seek(from.getKeyLast().copyIf());
+			if (it.isValid()) {
+				var first = it.key();
+				it.seekToLast();
+				if (it.isValid()) {
+					var last = it.key();
+					// deleteRange 不包含last，需要制造一个比当前last后面的key。
+					last = Arrays.copyOf(last, last.length + 1);
+					bucket.getData().deleteRange(first, last);
+				}
+			}
+			bucket.setBucketMeta(from);
 			bucket.addSplitMetaHistory(from, to);
 			bucket.deleteSplittingMeta();
-		} catch (RocksDBException e) {
-			logger.error("", e);
-			getRaft().fatalKill();
-		}
-	}
-
-	public void splitClean() {
-		try (var it = bucket.getTData().iterator(); var t = bucket.getDb().beginTransaction2()) {
-			var count = dbh2.getDbh2Config().getSplitCleanCount();
-			for (it.seek(bucket.getSplitCleanKey()); it.isValid() && count > 0; --count, it.next())
-				bucket.getTData().delete(t, it.key());
-			t.commit();
-		} catch (RocksDBException e) {
-			logger.error("", e);
-			getRaft().fatalKill();
-		}
-	}
-
-	public void splitCleanEnd() {
-		try {
-			bucket.deleteSplitCleanKey();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -261,17 +249,21 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
+	private Dbh2Transaction getOrAddTransaction(BBatch.Data batch) {
+		return transactions.computeIfAbsent(batch.getTid(),
+				_tid -> {
+					try {
+						return new Dbh2Transaction(dbh2, batch);
+					} catch (Exception e) {
+						throw new RuntimeException(e);
+					}
+				});
+	}
+
 	public void prepareBatch(BBatch.Data batch) {
 		try {
 			counterPrepareBatch.incrementAndGet();
-			var txn = transactions.computeIfAbsent(batch.getTid(),
-					_tid -> {
-						try {
-							return new Dbh2Transaction(dbh2, batch);
-						} catch (Exception e) {
-							throw new RuntimeException(e);
-						}
-					});
+			var txn = getOrAddTransaction(batch);
 			counterPut.addAndGet(txn.getBatch().getPuts().size());
 			var totalPutValueSize = 0;
 			for (var e : txn.getBatch().getPuts().entrySet()) {
@@ -280,7 +272,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			}
 			sizePut.addAndGet(totalPutValueSize);
 			counterDelete.addAndGet(txn.getBatch().getDeletes().size());
-			txn.prepareBatch(bucket, batch);
+			txn.prepareBatch(bucket);
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -292,7 +284,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			counterCommitBatch.incrementAndGet();
 			if (null != txn) {
 				dbh2.onCommitBatch(txn);
-				txn.commitBatch();
+				txn.commitBatch(bucket);
 			}
 			triggerNoTransactionIf();
 		} catch (RocksDBException e) {
@@ -330,7 +322,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		var backupFile = new File(backupDir);
 		if (!backupFile.isDirectory() && !backupFile.mkdirs())
 			logger.error("create backup directory failed: {}", backupDir);
-		RocksDatabase.backup(RocksDatabase.DbType.eTransactionDb, cpHome, backupDir);
+		RocksDatabase.backup(RocksDatabase.DbType.eRocksDb, cpHome, backupDir);
 
 		long t2 = System.nanoTime();
 		LogSequence.deleteDirectory(new File(cpHome));
@@ -382,7 +374,17 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			LogSequence.deletedDirectoryAndCheck(backupFile, 100);
 			Zeze.Raft.RocksRaft.Rocks.extractZipToDirectory(path, backupDir);
 		}
+
 		restore(backupDir);
+
+		// load exist transaction
+		try (var it = bucket.getTrans().iterator()) {
+			for (it.seekToFirst(); it.isValid(); it.next()) {
+				var batch = new BBatch.Data();
+				batch.decode(ByteBuffer.Wrap(it.value()));
+				getOrAddTransaction(batch);
+			}
+		}
 	}
 
 	public String checkpoint(SnapshotResult result) throws RocksDBException {
@@ -419,7 +421,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void applySplitPut(BSplitPut.Data puts) {
 		try {
-			var table = bucket.getTData();
+			var table = bucket.getData();
 			if (puts.isFromTransaction()) {
 				// 事务同步流程
 				for (var e : puts.getPuts().entrySet()) {

@@ -226,7 +226,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				if (!stateMachine.getBucket().inBucket(key)) {
 					var locate = splitHistory.locate(key);
 
-					if (null == locate || locate.getKeyFirst().equals(stateMachine.getBucket().getMeta().getKeyFirst()))
+					if (null == locate || locate.getKeyFirst().equals(stateMachine.getBucket().getBucketMeta().getKeyFirst()))
 						return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
 
 					var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
@@ -237,7 +237,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				if (!stateMachine.getBucket().inBucket(del)) {
 					var locate = splitHistory.locate(del);
 
-					if (null == locate || locate.getKeyFirst().equals(stateMachine.getBucket().getMeta().getKeyFirst()))
+					if (null == locate || locate.getKeyFirst().equals(stateMachine.getBucket().getBucketMeta().getKeyFirst()))
 						return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
 
 					var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
@@ -254,7 +254,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			}
 
 			// apply to raft
-			getRaft().appendLog(new LogPrepareBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
+			getRaft().appendLog(new LogPrepareBatch(r),
+					(raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
+
 			// 操作成功，释放所有权。see finally.
 			txn = null;
 		} finally {
@@ -280,12 +282,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	private boolean walkDesc(Binary exclusiveStartKey, int proposeLimit,
 							 Action2<Binary, RocksIterator> fill) throws Exception {
-		try (var it = stateMachine.getBucket().getTData().iterator()) {
+		try (var it = stateMachine.getBucket().getData().iterator()) {
 			if (exclusiveStartKey.size() > 0) {
 				it.seekForPrev(exclusiveStartKey.copyIf());
 			} else {
 				// 分桶过程中，可能存在Last之后的数据，必须根据Last的情况定位，不能直接使用seekToLast。
-				var lastKey = stateMachine.getBucket().getMeta().getKeyLast();
+				var lastKey = stateMachine.getBucket().getBucketMeta().getKeyLast();
 				if (lastKey.size() > 0)
 					it.seekForPrev(lastKey.copyIf());
 				else
@@ -314,7 +316,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			return walkDesc(exclusiveStartKey, proposeLimit, fill);
 		}
 
-		try (var it = stateMachine.getBucket().getTData().iterator()) {
+		try (var it = stateMachine.getBucket().getData().iterator()) {
 			if (exclusiveStartKey.size() > 0)
 				it.seek(exclusiveStartKey.copyIf());
 			else
@@ -329,7 +331,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 			var count = proposeLimit;
 			var bucketEnd = false;
-			var keyLast = stateMachine.getBucket().getMeta().getKeyLast();
+			var keyLast = stateMachine.getBucket().getBucketMeta().getKeyLast();
 			for (; it.isValid() && count > 0; it.next(), count--) {
 				var key = new Binary(it.key());
 				if (keyLast.size() > 0 && key.compareTo(keyLast) >= 0) {
@@ -426,8 +428,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 		var bucket = stateMachine.getBucket();
 		var splitting = bucket.getSplittingMeta();
-		if (null != splitting || null != bucket.getSplitCleanKey()) {
-			logger.info("start but in splitting or ending. {}->{}", formatMeta(bucket.getMeta()), formatMeta(splitting));
+		if (null != splitting) {
+			logger.info("start but in splitting or ending. {}->{}", formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
 			return; // splitting
 		}
 
@@ -447,8 +449,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		var bucket = stateMachine.getBucket();
 		if (null != bucket.getSplittingMeta())
 			startSplit();
-		else if (null != bucket.getSplitCleanKey())
-			splitClean();
 	}
 
 	private volatile long splitSerialNo;
@@ -456,8 +456,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	private RocksIterator locateMiddle() throws RocksDBException {
 		var bucket = stateMachine.getBucket();
-		var it = bucket.getTData().iterator();
-		var keyNumbers = bucket.getTData().getKeyNumbers();
+		var it = bucket.getData().iterator();
+		var keyNumbers = bucket.getData().getKeyNumbers();
 		var count = keyNumbers / 2;
 		for (it.seekToFirst(); it.isValid() && count > 0; it.next(), --count) {
 			// searching middle
@@ -468,12 +468,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		}
 		logger.info("splitting start locateMiddle keyNumbers={} middle={} {}",
 				keyNumbers, new Binary(it.key()),
-				formatMeta(stateMachine.getBucket().getMeta()));
+				formatMeta(stateMachine.getBucket().getBucketMeta()));
 		return it;
 	}
 
 	private RocksIterator locateMiddle(Binary middleKey) throws RocksDBException {
-		var it = stateMachine.getBucket().getTData().iterator();
+		var it = stateMachine.getBucket().getData().iterator();
 		it.seek(Database.copyIf(middleKey.bytesUnsafe(), middleKey.getOffset(), middleKey.size()));
 		if (!it.isValid()) {
 			it.close();
@@ -514,8 +514,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 					logger.warn("not enough free manager.");
 					return;
 				}
-				var metaCopy = bucket.getMeta().copy();
-				bucket.getTData().compact(); // 上一次分桶结束的deleteRange可能还没compact，此时keyNumbers不准确，这里总是执行一次。
+				var metaCopy = bucket.getBucketMeta().copy();
+				bucket.getData().compact(); // 上一次分桶结束的deleteRange可能还没compact，此时keyNumbers不准确，这里总是执行一次。
 				it = locateMiddle();
 				metaCopy.setKeyFirst(new Binary(it.key()));
 				metaCopy.setRaftConfig("");
@@ -524,7 +524,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 设置分桶进行中的标记到raft集群中。
 				getRaft().appendLog(new LogSetSplittingMeta(splitting));
 				// 创建到分桶目标的客户端。
-				logger.info("splitting start... {}->{}", formatMeta(bucket.getMeta()), formatMeta(splitting));
+				logger.info("splitting start... {}->{}", formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
 			}
 
 			// 重启的时候，需要重建到分桶的连接。
@@ -539,7 +539,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (null == it) {
 				// 重新开始分桶时走这个分支，根据上次找到的middle，定位it。
 				it = locateMiddle(splitting.getKeyFirst());
-				logger.info("splitting restart... {}->{}", formatMeta(bucket.getMeta()), formatMeta(splitting));
+				logger.info("splitting restart... {}->{}", formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
 			}
 
 			// 开始同步数据，这个阶段对于rocks时同步访问的，对于网络是异步的。
@@ -594,7 +594,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	private void blockPrepareUntilNoTransaction() {
-		var meta = stateMachine.getBucket().getMeta();
+		var meta = stateMachine.getBucket().getBucketMeta();
 		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
 		logger.info("splitting end ... {}->{}", formatMeta(meta), formatMeta(splittingMeta));
 
@@ -641,7 +641,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 		// 【原子化】设置源桶状态（修改源桶Meta；保存新桶Meta到历史中；删除分桶Meta）。
 		var bucket = stateMachine.getBucket();
-		var from = bucket.getMeta().copy();
+		var from = bucket.getBucketMeta().copy();
 		var to = bucket.getSplittingMeta();
 		from.setKeyLast(to.getKeyFirst());
 
@@ -676,28 +676,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		// 可以安全的发布新旧桶的信息到Master了。
 		var endSplit = (LogEndSplit)raftLog.getLog();
 		manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo());
-		var meta = stateMachine.getBucket().getMeta();
+		var meta = stateMachine.getBucket().getBucketMeta();
 		logger.info("splitting end done. {}", formatMeta(meta));
-		splitClean();
-	}
-
-	private void splitClean() {
-		getRaft().appendLog(new LogSplitClean(), this::splitCleanResult);
-	}
-
-	private void splitCleanResult(RaftLog raftLog, boolean result) {
-		if (result) {
-			var bucket = stateMachine.getBucket();
-			try (var it = bucket.getTData().iterator()) {
-				it.seek(bucket.getSplitCleanKey());
-				if (it.isValid())
-					splitClean();
-				else
-					getRaft().appendLog(new LogSplitCleanEnd(), (rLog, r) -> logger.error("splitting clean end result={}", r));
-			}
-		} else {
-			logger.error("splitting clean error");
-		}
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {
