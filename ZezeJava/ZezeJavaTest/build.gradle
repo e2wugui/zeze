@@ -11,7 +11,7 @@ dependencies {
 
     // for tikv
     implementation 'org.tikv:tikv-client-java:3.3.4'
-    runtimeOnly 'org.slf4j:slf4j-api:2.0.7'
+    runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.20.0'
 
     // for jdbc(mysql,sqlserver,tidb)
@@ -25,7 +25,9 @@ dependencies {
     implementation 'com.lmax:disruptor:3.4.4'
 
     // for rocketMQ
-    implementation 'org.apache.rocketmq:rocketmq-client:4.9.6'
+    implementation('org.apache.rocketmq:rocketmq-client:4.9.6') {
+        exclude group: 'io.netty', module: 'netty-all'
+    }
     implementation 'javax:javaee-api:8.0.1'
 
     // for task component
