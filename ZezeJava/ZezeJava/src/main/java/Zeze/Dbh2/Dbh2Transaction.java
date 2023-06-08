@@ -72,21 +72,21 @@ public class Dbh2Transaction implements Closeable {
 	}
 
 	public void commitBatch(Bucket bucket) throws RocksDBException {
-		try (var b = bucket.getBatch()) {
-			for (var put : batch.getPuts().entrySet()) {
-				var key = put.getKey();
-				var value = put.getValue();
-				bucket.getData().put(b, key, value);
-			}
-			for (var del : batch.getDeletes()) {
-				bucket.getData().delete(b, del);
-			}
-
-			var tid = batch.getTid();
-			bucket.getTrans().delete(b, tid.bytesUnsafe(), tid.getOffset(), tid.size());
-
-			b.commit(bucket.getWriteOptions());
+		var b = bucket.getBatch();
+		b.clear();
+		for (var put : batch.getPuts().entrySet()) {
+			var key = put.getKey();
+			var value = put.getValue();
+			bucket.getData().put(b, key, value);
 		}
+		for (var del : batch.getDeletes()) {
+			bucket.getData().delete(b, del);
+		}
+
+		var tid = batch.getTid();
+		bucket.getTrans().delete(b, tid.bytesUnsafe(), tid.getOffset(), tid.size());
+
+		b.commit(bucket.getWriteOptions());
 	}
 
 	/**
