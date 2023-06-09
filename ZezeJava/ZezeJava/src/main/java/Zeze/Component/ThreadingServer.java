@@ -95,14 +95,15 @@ public class ThreadingServer extends AbstractThreadingServer {
                             action.run(this);
                             continue; // 发现新任务，继续工作，中断退出。
                         }
-                        simulateThreads.computeIfPresent(id, (key, This) -> {
+                        if (null == simulateThreads.computeIfPresent(id, (key, This) -> {
                             if (This.actions.isEmpty()) {
                                 logger.info("simulate exit thread=({}, {})", id.getServerId(), id.getThreadId());
                                 return null;
                             }
                             return This;
-                        });
-                        break; // 退出...
+                        }))
+                            break; // 真正退出...
+                        // else continue
                     }
                 } catch (Exception e) {
                     logger.error("", e);
