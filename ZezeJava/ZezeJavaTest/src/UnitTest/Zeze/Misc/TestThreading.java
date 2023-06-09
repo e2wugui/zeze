@@ -1,6 +1,8 @@
 package UnitTest.Zeze.Misc;
 
+import java.util.HashMap;
 import demo.App;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -9,6 +11,14 @@ public class TestThreading {
 	@Before
 	public void before() throws Exception {
 		App.Instance.Start();
+	}
+
+	@Test
+	public void TestComputeIfPresent() {
+		var map = new HashMap<Integer, Integer>();
+		map.put(1, 1);
+		map.computeIfPresent(1, (key, This) -> null);
+		Assert.assertNull(map.get(1));
 	}
 
 	@Test
