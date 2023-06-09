@@ -28,13 +28,12 @@ public class ThreadingServer extends AbstractThreadingServer {
 
     public class SimulateThread extends Thread {
         private final BGlobalThreadId id;
-        private final long sessionId;
+        private long sessionId;
         private final LinkedBlockingQueue<Action1<SimulateThread>> actions = new LinkedBlockingQueue<>();
         private final HashMap<String, ReentrantLock> mutexRefs = new HashMap<>();
 
-        public SimulateThread(BGlobalThreadId id, long sessionId) {
+        public SimulateThread(BGlobalThreadId id) {
             this.id = id;
-            this.sessionId = sessionId;
         }
 
         private boolean acquireNothing() {
@@ -96,6 +95,13 @@ public class ThreadingServer extends AbstractThreadingServer {
                             action.run(this);
                             continue; // 发现新任务，继续工作，中断退出。
                         }
+                        simulateThreads.computeIfPresent(id, (key, This) -> {
+                            if (This.actions.isEmpty()) {
+                                logger.info("simulate exit thread=({}, {})", id.getServerId(), id.getThreadId());
+                                return null;
+                            }
+                            return This;
+                        });
                         break; // 退出...
                     }
                 } catch (Exception e) {
@@ -106,19 +112,25 @@ public class ThreadingServer extends AbstractThreadingServer {
     }
 
     private SimulateThread simulateThread(BGlobalThreadId id, long sessionId) {
-        return simulateThreads.computeIfAbsent(
+        var st = simulateThreads.computeIfAbsent(
                 id,
                 (key) -> {
-                    var simulate = new SimulateThread(key, sessionId);
+                    var simulate = new SimulateThread(key);
                     simulate.start();
                     logger.info("simulate new thread=({}, {}), sessionId={}",
                             key.getServerId(), key.getThreadId(), sessionId);
                     return simulate;
                 });
+        st.sessionId = sessionId;
+        return st;
     }
 
     @Override
     protected long ProcessMutexTryLockRequest(Zeze.Builtin.Threading.MutexTryLock r) {
+        logger.info("mutex.tryLock ININININ (thread=({}, {}), name={})",
+                r.Argument.getLockName().getGlobalThreadId().getServerId(),
+                r.Argument.getLockName().getGlobalThreadId().getThreadId(),
+                r.Argument.getLockName().getName());
         var simulate = simulateThread(r.Argument.getLockName().getGlobalThreadId(), r.getSender().getSessionId());
         simulate.actions.offer((This) -> {
             var mutex = This.getOrAddMutex(r.Argument.getLockName().getName());
