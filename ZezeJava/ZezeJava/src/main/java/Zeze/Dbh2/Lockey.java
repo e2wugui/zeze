@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit;
 import Zeze.Net.Binary;
 import org.jetbrains.annotations.NotNull;
 
-public class Lockey implements Comparable<Lockey>{
+public class Lockey implements Zeze.Util.Lockey<Lockey>{
 
 	private final Binary key;
 	// 超时将抛出异常。
@@ -20,6 +20,7 @@ public class Lockey implements Comparable<Lockey>{
 		return key;
 	}
 
+	@Override
 	public Lockey alloc() {
 		this.semaphore = new Semaphore(1);
 		return this;

@@ -252,7 +252,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
 		var ctx = service.removeRpcContext(sessionId);
 		if (ctx == null) {
-			logger.warn("rpc response: lost context, maybe timeout. {}", this);
+			service.onRpcLostContext(this);
 			return;
 		}
 		var context = setupRpcResponseContext(ctx);
@@ -295,7 +295,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
 		Rpc<TArgument, TResult> context = service.removeRpcContext(sessionId);
 		if (context == null) {
-			logger.warn("rpc response: lost context, maybe timeout. {}", this);
+			service.onRpcLostContext(this);
 			return 0;
 		}
 

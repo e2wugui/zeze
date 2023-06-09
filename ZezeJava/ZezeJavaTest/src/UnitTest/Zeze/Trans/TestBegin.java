@@ -8,7 +8,7 @@ import org.junit.Assert;
 
 public class TestBegin extends TestCase {
 
-	private final Zeze.Transaction.Locks Locks = new Locks();
+	private final Locks Locks = new Locks();
 
 	public final void testRollback() {
 		Transaction.create(Locks, null);

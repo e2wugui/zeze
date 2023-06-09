@@ -60,7 +60,7 @@ public class TestLock extends TestCase {
 //#endif
 	}
 
-	private final Zeze.Transaction.Locks Locks = new Zeze.Transaction.Locks();
+	private final Locks Locks = new Locks();
 
 	public final void test1() {
 		Locks locks = Locks;

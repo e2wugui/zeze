@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Util.Macro;
 
-public final class Lockey implements Comparable<Lockey> {
+public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	private final TableKey tableKey;
 	private ReentrantReadWriteLock rwLock;
 
@@ -25,7 +25,8 @@ public final class Lockey implements Comparable<Lockey> {
 	/**
 	 * 创建真正的锁对象。
 	 */
-	Lockey alloc() {
+	@Override
+	public Lockey alloc() {
 		rwLock = new ReentrantReadWriteLock();
 		return this;
 	}
