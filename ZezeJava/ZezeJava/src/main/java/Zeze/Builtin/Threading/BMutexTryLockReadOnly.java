@@ -1,12 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Threading;
 
-public interface BReadWriteLockReadOnly {
+public interface BMutexTryLockReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BReadWriteLock copy();
+    BMutexTryLock copy();
 
-    int getReadingCount();
-    boolean isInWriting();
+    Zeze.Builtin.Threading.BLockName getLockName();
+    long getTimeoutMs();
 }

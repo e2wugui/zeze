@@ -1,12 +1,11 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Threading;
 
-public interface BSemaphoreReadOnly {
+public interface BQueryLockInfoReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BSemaphore copy();
+    BQueryLockInfo copy();
 
-    int getPermits();
-    int getInitialPermits();
+    Zeze.Transaction.Collections.PList1ReadOnly<String> getLockNamesReadOnly();
 }

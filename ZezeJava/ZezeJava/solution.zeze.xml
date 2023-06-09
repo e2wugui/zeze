@@ -1498,26 +1498,30 @@
 			<rpc name="TokenStatus" result="BTokenStatus" handle="server"/> 获取token服务器的全局状态
 		</module>
 
-		<module name="Threading" id="11030">
-			<bean name="BMutex">
-				<variable id="1" name="Locked"  type="bool"/>
-				<variable id="2" name="ServerId"  type="int"/>
-				<variable id="3" name="LockTime"  type="long"/>
-			</bean>
-			<table name="tMutex" key="string" value="BMutex"/>
+		<module name="Threading" id="11030" DefaultTransactionLevel="None">
+			<beankey name="BGlobalThreadId">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="ThreadId" type="int"/>
+			</beankey>
 
-			<bean name="BSemaphore">
-				<variable id="1" name="Permits"  type="int"/>
-				<variable id="2" name="InitialPermits"  type="int"/>
-			</bean>
-			<table name="tSemaphore" key="string" value="BSemaphore"/>
+			<beankey name="BLockName">
+				<variable id="1" name="GlobalThreadId" type="BGlobalThreadId"/>
+				<variable id="2" name="Name"                type="string"/>
+			</beankey>
 
-			<bean name="BReadWriteLock">
-				<variable id="1" name="ReadingCount"  type="int"/>
-				<variable id="2" name="InWriting"  type="bool"/>
+			<bean name="BMutexTryLock">
+				<variable id="1" name="LockName"  type="BLockName"/>
+				<variable id="2" name="TimeoutMs" type="long"/>
 			</bean>
 
-			<table name="tReadWriteLock" key="string" value="BReadWriteLock"/>
+			<rpc name="MutexTryLock" argument="BMutexTryLock" UseData="true" handle="server"/>
+			<rpc name="MutexUnlock" argument="BLockName" UseData="true" handle="server"/>
+
+			<bean name="BQueryLockInfo">
+				<variable id="1" name="LockNames"  type="list[string]"/> 请求包含所有当前线程拥有的锁，结果是剩下的不存在的锁。
+			</bean>
+
+			<rpc name="QueryLockInfo" argument="BQueryLockInfo" result="BQueryLockInfo" UseData="true" handle="client"/>
 		</module>
 
 		<!--
@@ -1528,6 +1532,12 @@
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
 	<component name="Threading" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Threading"/>
+		</service>
+	</component>
+
+	<component name="ThreadingServer" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Threading"/>
 		</service>
