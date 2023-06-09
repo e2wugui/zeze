@@ -1498,7 +1498,7 @@
 			<rpc name="TokenStatus" result="BTokenStatus" handle="server"/> 获取token服务器的全局状态
 		</module>
 
-		<module name="Threading" id="11030" DefaultTransactionLevel="None">
+		<module name="Threading" id="11030" UseData="true" DefaultTransactionLevel="None">
 			<beankey name="BGlobalThreadId">
 				<variable id="1" name="ServerId" type="int"/>
 				<variable id="2" name="ThreadId" type="long"/>
@@ -1514,14 +1514,24 @@
 				<variable id="2" name="TimeoutMs" type="int"/>
 			</bean>
 
-			<rpc name="MutexTryLock" argument="BMutexTryLock" UseData="true" handle="server"/>
-			<rpc name="MutexUnlock" argument="BLockName" UseData="true" handle="server"/>
+			<rpc name="MutexTryLock" argument="BMutexTryLock" handle="server"/>
+			<rpc name="MutexUnlock" argument="BLockName" handle="server"/>
 
 			<bean name="BQueryLockInfo">
 				<variable id="1" name="LockNames"  type="list[BLockName]"/> 请求包含所有当前线程拥有的锁，结果是剩下的不存在的锁。
 			</bean>
 
-			<rpc name="QueryLockInfo" argument="BQueryLockInfo" result="BQueryLockInfo" UseData="true" handle="client"/>
+			<rpc name="QueryLockInfo" argument="BQueryLockInfo" result="BQueryLockInfo" handle="client"/>
+
+			<bean name="BSemaphore">
+				<variable id="1" name="LockName"  type="BLockName"/>
+				<variable id="2" name="Permits"       type="int"/>
+				<variable id="3" name="TimeoutMs" type="int"/>
+			</bean>
+
+			<rpc name="SemaphoreCreate" argument="BSemaphore" handle="server"/>
+			<rpc name="SemaphoreTryAcquire" argument="BSemaphore" handle="server"/>
+			<rpc name="SemaphoreRelease" argument="BSemaphore" handle="server"/>
 		</module>
 
 		<!--

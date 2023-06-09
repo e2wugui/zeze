@@ -36,12 +36,39 @@ public abstract class AbstractThreadingServer implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessQueryLockInfoResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47373607783577L, factoryHandle); // 11030, 118508697
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.SemaphoreCreate.class, Zeze.Builtin.Threading.SemaphoreCreate.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Threading.SemaphoreCreate::new;
+            factoryHandle.Handle = this::ProcessSemaphoreCreateRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSemaphoreCreateRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSemaphoreCreateRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47377757945276L, factoryHandle); // 11030, -26296900
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.SemaphoreRelease.class, Zeze.Builtin.Threading.SemaphoreRelease.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Threading.SemaphoreRelease::new;
+            factoryHandle.Handle = this::ProcessSemaphoreReleaseRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSemaphoreReleaseRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSemaphoreReleaseRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47374374546810L, factoryHandle); // 11030, 885271930
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.SemaphoreTryAcquire.class, Zeze.Builtin.Threading.SemaphoreTryAcquire.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Threading.SemaphoreTryAcquire::new;
+            factoryHandle.Handle = this::ProcessSemaphoreTryAcquireRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSemaphoreTryAcquireRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSemaphoreTryAcquireRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47376407442804L, factoryHandle); // 11030, -1376799372
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47375642163702L);
         service.getFactorys().remove(47374259242978L);
         service.getFactorys().remove(47373607783577L);
+        service.getFactorys().remove(47377757945276L);
+        service.getFactorys().remove(47374374546810L);
+        service.getFactorys().remove(47376407442804L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -55,4 +82,7 @@ public abstract class AbstractThreadingServer implements Zeze.IModule {
 
     protected abstract long ProcessMutexTryLockRequest(Zeze.Builtin.Threading.MutexTryLock r) throws Exception;
     protected abstract long ProcessMutexUnlockRequest(Zeze.Builtin.Threading.MutexUnlock r) throws Exception;
+    protected abstract long ProcessSemaphoreCreateRequest(Zeze.Builtin.Threading.SemaphoreCreate r) throws Exception;
+    protected abstract long ProcessSemaphoreReleaseRequest(Zeze.Builtin.Threading.SemaphoreRelease r) throws Exception;
+    protected abstract long ProcessSemaphoreTryAcquireRequest(Zeze.Builtin.Threading.SemaphoreTryAcquire r) throws Exception;
 }

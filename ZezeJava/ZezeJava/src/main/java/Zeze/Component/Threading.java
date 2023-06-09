@@ -1,15 +1,16 @@
 package Zeze.Component;
 
-import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Threading.BGlobalThreadId;
 import Zeze.Builtin.Threading.BLockName;
 import Zeze.Builtin.Threading.MutexTryLock;
 import Zeze.Builtin.Threading.MutexUnlock;
 import Zeze.Builtin.Threading.QueryLockInfo;
+import Zeze.Builtin.Threading.SemaphoreCreate;
+import Zeze.Builtin.Threading.SemaphoreRelease;
+import Zeze.Builtin.Threading.SemaphoreTryAcquire;
 import Zeze.IModule;
 import Zeze.Net.Service;
-import Zeze.Util.ConcurrentHashSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -17,11 +18,11 @@ public class Threading extends AbstractThreading {
 	static final Logger logger = LogManager.getLogger(Threading.class);
 
 	public Service service;
-	private int progressId;
+	private int serverId;
 
 	public Threading(Service service, int progressId) {
 		this.service = service;
-		this.progressId = progressId;
+		this.serverId = progressId;
 	}
 
 	@Override
@@ -49,9 +50,13 @@ public class Threading extends AbstractThreading {
 			this.name = name;
 		}
 
+		public boolean tryLock() {
+			return tryLock(0);
+		}
+
 		public boolean tryLock(int timeoutMs) {
 			var r = new MutexTryLock();
-			var globalThreadId = new BGlobalThreadId(progressId, Thread.currentThread().getId());
+			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
 			var lockName = new BLockName(globalThreadId, name);
 			r.Argument.setLockName(lockName);
 			r.Argument.setTimeoutMs(timeoutMs);
@@ -64,7 +69,7 @@ public class Threading extends AbstractThreading {
 		}
 
 		public void unlock() {
-			var globalThreadId = new BGlobalThreadId(progressId, Thread.currentThread().getId());
+			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
 			var lockName = new BLockName(globalThreadId, name);
 
 			// 完美方案应该unlock成功以后才释放。这里先这样写了。
@@ -79,7 +84,79 @@ public class Threading extends AbstractThreading {
 		}
 	}
 
-	public Mutex createMutex(String name) {
+	public Mutex openMutex(String name) {
 		return new Mutex(name);
+	}
+
+	public class Semaphore implements Concurrent {
+		private final String name;
+
+		Semaphore(String name) {
+			this.name = name;
+		}
+
+		public boolean tryAcquire() {
+			return tryAcquire(1, 0);
+		}
+
+		public boolean tryAcquire(int timeoutMs) {
+			return tryAcquire(1, timeoutMs);
+		}
+
+		public boolean tryAcquire(int permits, int timeoutMs) {
+			var r = new SemaphoreTryAcquire();
+			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
+			var lockName = new BLockName(globalThreadId, name);
+			r.Argument.setLockName(lockName);
+			r.Argument.setPermits(permits);
+			r.Argument.setTimeoutMs(timeoutMs);
+			r.SendForWait(service.GetSocket(), timeoutMs + 1000).await();
+			if (r.getResultCode() == 0) {
+				acquired.put(lockName, this);
+				return true;
+			}
+			return false;
+		}
+
+		public void release() {
+			release(1);
+		}
+
+		public void release(int permits) {
+			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
+			var lockName = new BLockName(globalThreadId, name);
+
+			// 完美方案应该unlock成功以后才释放。这里先这样写了。
+			if (!acquired.remove(lockName, this))
+				return;
+
+			var r = new SemaphoreRelease();
+			r.Argument.setLockName(lockName);
+			r.Argument.setPermits(permits);
+			r.SendForWait(service.GetSocket()).await();
+			if (r.getResultCode() != 0)
+				logger.error("unlock error={}", IModule.getErrorCode(r.getResultCode()));
+		}
+
+		void create(int permits) {
+			var r = new SemaphoreCreate();
+			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
+			var lockName = new BLockName(globalThreadId, name);
+			r.Argument.setLockName(lockName);
+			r.Argument.setPermits(permits);
+			r.SendForWait(service.GetSocket()).await();
+			if (r.getResultCode() != 0)
+				logger.error("create error={}", IModule.getErrorCode(r.getResultCode()));
+		}
+	}
+
+	public Semaphore createSemaphore(String name, int permits) {
+		var semaphore = new Semaphore(name);
+		semaphore.create(permits);
+		return semaphore;
+	}
+
+	public Semaphore openSemaphore(String name) {
+		return new Semaphore(name);
 	}
 }
