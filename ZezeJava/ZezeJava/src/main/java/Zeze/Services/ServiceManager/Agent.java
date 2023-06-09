@@ -3,6 +3,7 @@ package Zeze.Services.ServiceManager;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
+import Zeze.Component.Threading;
 import Zeze.Net.Connector;
 import Zeze.Net.Service.ProtocolFactoryHandle;
 import Zeze.Transaction.DispatchMode;
@@ -25,6 +26,8 @@ public final class Agent extends AbstractAgent {
 
 	private final AgentClient client;
 	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> registers = new ConcurrentHashMap<>();
+
+	private final Threading threading;
 
 	public AgentClient getClient() {
 		return client;
@@ -329,6 +332,14 @@ public final class Agent extends AbstractAgent {
 				OfflineRegister::new, null, TransactionLevel.None, DispatchMode.Normal));
 		client.AddFactoryHandle(NormalClose.TypeId_, new ProtocolFactoryHandle<>(
 				NormalClose::new, null, TransactionLevel.None, DispatchMode.Critical));
+
+		threading = new Threading(client, zeze.getConfig().getServerId());
+		threading.RegisterProtocols(client);
+	}
+
+	@Override
+	public Threading getThreading() {
+		return threading;
 	}
 
 	public synchronized void stop() throws Exception {

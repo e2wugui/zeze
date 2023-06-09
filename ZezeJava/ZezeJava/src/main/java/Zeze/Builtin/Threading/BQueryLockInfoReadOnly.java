@@ -7,5 +7,5 @@ public interface BQueryLockInfoReadOnly {
     boolean negativeCheck();
     BQueryLockInfo copy();
 
-    Zeze.Transaction.Collections.PList1ReadOnly<String> getLockNamesReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Builtin.Threading.BLockName> getLockNamesReadOnly();
 }

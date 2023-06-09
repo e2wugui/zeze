@@ -8,7 +8,7 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
     public static final long TYPEID = 3426796213570177191L;
 
     private Zeze.Builtin.Threading.BLockName _LockName;
-    private long _TimeoutMs;
+    private int _TimeoutMs;
 
     @Override
     public Zeze.Builtin.Threading.BLockName getLockName() {
@@ -33,7 +33,7 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
     }
 
     @Override
-    public long getTimeoutMs() {
+    public int getTimeoutMs() {
         if (!isManaged())
             return _TimeoutMs;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
@@ -43,7 +43,7 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
         return log != null ? log.value : _TimeoutMs;
     }
 
-    public void setTimeoutMs(long value) {
+    public void setTimeoutMs(int value) {
         if (!isManaged()) {
             _TimeoutMs = value;
             return;
@@ -58,7 +58,7 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
     }
 
     @SuppressWarnings("deprecation")
-    public BMutexTryLock(Zeze.Builtin.Threading.BLockName _LockName_, long _TimeoutMs_) {
+    public BMutexTryLock(Zeze.Builtin.Threading.BLockName _LockName_, int _TimeoutMs_) {
         if (_LockName_ == null)
             _LockName_ = new Zeze.Builtin.Threading.BLockName();
         _LockName = _LockName_;
@@ -116,8 +116,8 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
         public void commit() { ((BMutexTryLock)getBelong())._LockName = value; }
     }
 
-    private static final class Log__TimeoutMs extends Zeze.Transaction.Logs.LogLong {
-        public Log__TimeoutMs(BMutexTryLock bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__TimeoutMs extends Zeze.Transaction.Logs.LogInt {
+        public Log__TimeoutMs(BMutexTryLock bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
         public void commit() { ((BMutexTryLock)getBelong())._TimeoutMs = value; }
@@ -168,10 +168,10 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
                 _i_ = _j_;
         }
         {
-            long _x_ = getTimeoutMs();
+            int _x_ = getTimeoutMs();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
+                _o_.WriteInt(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -186,7 +186,7 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setTimeoutMs(_o_.ReadLong(_t_));
+            setTimeoutMs(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -214,7 +214,7 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _LockName = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Threading.BLockName>)vlog).value; break;
-                case 2: _TimeoutMs = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _TimeoutMs = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }
@@ -225,7 +225,7 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
         getLockName().decodeResultSet(parents, rs);
         parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setTimeoutMs(rs.getLong(_parents_name_ + "TimeoutMs"));
+        setTimeoutMs(rs.getInt(_parents_name_ + "TimeoutMs"));
     }
 
     @Override
@@ -234,14 +234,14 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
         getLockName().encodeSQLStatement(parents, st);
         parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "TimeoutMs", getTimeoutMs());
+        st.appendInt(_parents_name_ + "TimeoutMs", getTimeoutMs());
     }
 
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 3426796213570177191L;
 
     private Zeze.Builtin.Threading.BLockName _LockName;
-    private long _TimeoutMs;
+    private int _TimeoutMs;
 
     public Zeze.Builtin.Threading.BLockName getLockName() {
         return _LockName;
@@ -253,11 +253,11 @@ public static final class Data extends Zeze.Transaction.Data {
         _LockName = value;
     }
 
-    public long getTimeoutMs() {
+    public int getTimeoutMs() {
         return _TimeoutMs;
     }
 
-    public void setTimeoutMs(long value) {
+    public void setTimeoutMs(int value) {
         _TimeoutMs = value;
     }
 
@@ -267,7 +267,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Builtin.Threading.BLockName _LockName_, long _TimeoutMs_) {
+    public Data(Zeze.Builtin.Threading.BLockName _LockName_, int _TimeoutMs_) {
         if (_LockName_ == null)
             _LockName_ = new Zeze.Builtin.Threading.BLockName();
         _LockName = _LockName_;
@@ -364,10 +364,10 @@ public static final class Data extends Zeze.Transaction.Data {
                 _i_ = _j_;
         }
         {
-            long _x_ = _TimeoutMs;
+            int _x_ = _TimeoutMs;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
+                _o_.WriteInt(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -382,7 +382,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            _TimeoutMs = _o_.ReadLong(_t_);
+            _TimeoutMs = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

@@ -7,20 +7,20 @@ import Zeze.Serialize.ByteBuffer;
 public final class BQueryLockInfo extends Zeze.Transaction.Bean implements BQueryLockInfoReadOnly {
     public static final long TYPEID = -5570759109568176767L;
 
-    private final Zeze.Transaction.Collections.PList1<String> _LockNames; // 请求包含所有当前线程拥有的锁，结果是剩下的不存在的锁。
+    private final Zeze.Transaction.Collections.PList1<Zeze.Builtin.Threading.BLockName> _LockNames; // 请求包含所有当前线程拥有的锁，结果是剩下的不存在的锁。
 
-    public Zeze.Transaction.Collections.PList1<String> getLockNames() {
+    public Zeze.Transaction.Collections.PList1<Zeze.Builtin.Threading.BLockName> getLockNames() {
         return _LockNames;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PList1ReadOnly<String> getLockNamesReadOnly() {
+    public Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Builtin.Threading.BLockName> getLockNamesReadOnly() {
         return new Zeze.Transaction.Collections.PList1ReadOnly<>(_LockNames);
     }
 
     @SuppressWarnings("deprecation")
     public BQueryLockInfo() {
-        _LockNames = new Zeze.Transaction.Collections.PList1<>(String.class);
+        _LockNames = new Zeze.Transaction.Collections.PList1<>(Zeze.Builtin.Threading.BLockName.class);
         _LockNames.variableId(1);
     }
 
@@ -84,7 +84,9 @@ public final class BQueryLockInfo extends Zeze.Transaction.Bean implements BQuer
             sb.append(System.lineSeparator());
             level += 4;
             for (var _item_ : _LockNames) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
+                _item_.buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
             }
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
@@ -114,9 +116,9 @@ public final class BQueryLockInfo extends Zeze.Transaction.Bean implements BQuer
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BYTES);
+                _o_.WriteListType(_n_, ByteBuffer.BEAN);
                 for (var _v_ : _x_) {
-                    _o_.WriteString(_v_);
+                    _v_.encode(_o_);
                     _n_--;
                 }
                 if (_n_ != 0)
@@ -135,7 +137,7 @@ public final class BQueryLockInfo extends Zeze.Transaction.Bean implements BQuer
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadString(_t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.Threading.BLockName(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -156,6 +158,15 @@ public final class BQueryLockInfo extends Zeze.Transaction.Bean implements BQuer
         _LockNames.initRootInfoWithRedo(root, this);
     }
 
+    @Override
+    public boolean negativeCheck() {
+        for (var _v_ : _LockNames) {
+            if (_v_.negativeCheck())
+                return true;
+        }
+        return false;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {
@@ -173,7 +184,7 @@ public final class BQueryLockInfo extends Zeze.Transaction.Bean implements BQuer
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(_LockNames, String.class, rs.getString(_parents_name_ + "LockNames"));
+        Zeze.Serialize.Helper.decodeJsonList(_LockNames, Zeze.Builtin.Threading.BLockName.class, rs.getString(_parents_name_ + "LockNames"));
     }
 
     @Override
@@ -185,13 +196,13 @@ public final class BQueryLockInfo extends Zeze.Transaction.Bean implements BQuer
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -5570759109568176767L;
 
-    private java.util.ArrayList<String> _LockNames; // 请求包含所有当前线程拥有的锁，结果是剩下的不存在的锁。
+    private java.util.ArrayList<Zeze.Builtin.Threading.BLockName> _LockNames; // 请求包含所有当前线程拥有的锁，结果是剩下的不存在的锁。
 
-    public java.util.ArrayList<String> getLockNames() {
+    public java.util.ArrayList<Zeze.Builtin.Threading.BLockName> getLockNames() {
         return _LockNames;
     }
 
-    public void setLockNames(java.util.ArrayList<String> value) {
+    public void setLockNames(java.util.ArrayList<Zeze.Builtin.Threading.BLockName> value) {
         if (value == null)
             throw new IllegalArgumentException();
         _LockNames = value;
@@ -203,7 +214,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.ArrayList<String> _LockNames_) {
+    public Data(java.util.ArrayList<Zeze.Builtin.Threading.BLockName> _LockNames_) {
         if (_LockNames_ == null)
             _LockNames_ = new java.util.ArrayList<>();
         _LockNames = _LockNames_;
@@ -270,7 +281,9 @@ public static final class Data extends Zeze.Transaction.Data {
             sb.append(System.lineSeparator());
             level += 4;
             for (var _item_ : _LockNames) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
+                _item_.buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
             }
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
@@ -300,9 +313,9 @@ public static final class Data extends Zeze.Transaction.Data {
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BYTES);
+                _o_.WriteListType(_n_, ByteBuffer.BEAN);
                 for (var _v_ : _x_) {
-                    _o_.WriteString(_v_);
+                    _v_.encode(_o_);
                     _n_--;
                 }
                 if (_n_ != 0)
@@ -321,7 +334,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadString(_t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.Threading.BLockName(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

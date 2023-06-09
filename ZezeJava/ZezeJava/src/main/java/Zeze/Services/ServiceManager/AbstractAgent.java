@@ -3,6 +3,7 @@ package Zeze.Services.ServiceManager;
 import java.io.Closeable;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
+import Zeze.Component.Threading;
 import Zeze.Net.Binary;
 import Zeze.Util.Action1;
 import Zeze.Util.Action2;
@@ -382,4 +383,6 @@ public abstract class AbstractAgent implements Closeable {
 	protected static void setCurrentAndCount(AutoKey autoKey, long current, int count) {
 		autoKey.setCurrentAndCount(current, count);
 	}
+
+	public abstract Threading getThreading();
 }

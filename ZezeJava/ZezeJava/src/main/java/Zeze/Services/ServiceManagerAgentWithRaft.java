@@ -19,6 +19,7 @@ import Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit;
 import Zeze.Builtin.ServiceManagerWithRaft.UnRegister;
 import Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe;
 import Zeze.Builtin.ServiceManagerWithRaft.Update;
+import Zeze.Component.Threading;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
 import Zeze.Services.ServiceManager.AutoKey;
@@ -37,6 +38,11 @@ import org.apache.logging.log4j.Logger;
 public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWithRaft {
 	static final Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
 	private final Agent raftClient;
+
+	@Override
+	public Threading getThreading() {
+		throw new UnsupportedOperationException();
+	}
 
 	public ServiceManagerAgentWithRaft(Application zeze) throws Exception {
 		super.zeze = zeze;

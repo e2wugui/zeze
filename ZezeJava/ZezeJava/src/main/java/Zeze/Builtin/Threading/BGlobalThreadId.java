@@ -7,13 +7,13 @@ import Zeze.Serialize.Serializable;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
 public final class BGlobalThreadId implements Serializable, Comparable<BGlobalThreadId> {
     private int _ServerId;
-    private int _ThreadId;
+    private long _ThreadId;
 
     // for decode only
     public BGlobalThreadId() {
     }
 
-    public BGlobalThreadId(int _ServerId_, int _ThreadId_) {
+    public BGlobalThreadId(int _ServerId_, long _ThreadId_) {
         this._ServerId = _ServerId_;
         this._ThreadId = _ThreadId_;
     }
@@ -22,7 +22,7 @@ public final class BGlobalThreadId implements Serializable, Comparable<BGlobalTh
         return _ServerId;
     }
 
-    public int getThreadId() {
+    public long getThreadId() {
         return _ThreadId;
     }
 
@@ -66,10 +66,10 @@ public final class BGlobalThreadId implements Serializable, Comparable<BGlobalTh
             }
         }
         {
-            int _x_ = _ThreadId;
+            long _x_ = _ThreadId;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
+                _o_.WriteLong(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -84,7 +84,7 @@ public final class BGlobalThreadId implements Serializable, Comparable<BGlobalTh
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            _ThreadId = _o_.ReadInt(_t_);
+            _ThreadId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -113,7 +113,7 @@ public final class BGlobalThreadId implements Serializable, Comparable<BGlobalTh
         final int _p_ = 31;
         int _h_ = 0;
         _h_ = _h_ * _p_ + Integer.hashCode(_ServerId);
-        _h_ = _h_ * _p_ + Integer.hashCode(_ThreadId);
+        _h_ = _h_ * _p_ + Long.hashCode(_ThreadId);
         return _h_;
     }
 
@@ -126,7 +126,7 @@ public final class BGlobalThreadId implements Serializable, Comparable<BGlobalTh
             _c_ = Integer.compare(_ServerId, _o_._ServerId);
             if (_c_ != 0)
                 return _c_;
-            _c_ = Integer.compare(_ThreadId, _o_._ThreadId);
+            _c_ = Long.compare(_ThreadId, _o_._ThreadId);
             if (_c_ != 0)
                 return _c_;
             return _c_;
@@ -146,13 +146,13 @@ public final class BGlobalThreadId implements Serializable, Comparable<BGlobalTh
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _ServerId = rs.getInt(_parents_name_ + "ServerId");
-        _ThreadId = rs.getInt(_parents_name_ + "ThreadId");
+        _ThreadId = rs.getLong(_parents_name_ + "ThreadId");
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendInt(_parents_name_ + "ServerId", _ServerId);
-        st.appendInt(_parents_name_ + "ThreadId", _ThreadId);
+        st.appendLong(_parents_name_ + "ThreadId", _ThreadId);
     }
 }

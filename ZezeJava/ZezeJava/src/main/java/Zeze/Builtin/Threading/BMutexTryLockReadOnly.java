@@ -8,5 +8,5 @@ public interface BMutexTryLockReadOnly {
     BMutexTryLock copy();
 
     Zeze.Builtin.Threading.BLockName getLockName();
-    long getTimeoutMs();
+    int getTimeoutMs();
 }

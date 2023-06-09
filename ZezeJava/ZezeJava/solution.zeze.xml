@@ -1501,7 +1501,7 @@
 		<module name="Threading" id="11030" DefaultTransactionLevel="None">
 			<beankey name="BGlobalThreadId">
 				<variable id="1" name="ServerId" type="int"/>
-				<variable id="2" name="ThreadId" type="int"/>
+				<variable id="2" name="ThreadId" type="long"/>
 			</beankey>
 
 			<beankey name="BLockName">
@@ -1511,14 +1511,14 @@
 
 			<bean name="BMutexTryLock">
 				<variable id="1" name="LockName"  type="BLockName"/>
-				<variable id="2" name="TimeoutMs" type="long"/>
+				<variable id="2" name="TimeoutMs" type="int"/>
 			</bean>
 
 			<rpc name="MutexTryLock" argument="BMutexTryLock" UseData="true" handle="server"/>
 			<rpc name="MutexUnlock" argument="BLockName" UseData="true" handle="server"/>
 
 			<bean name="BQueryLockInfo">
-				<variable id="1" name="LockNames"  type="list[string]"/> 请求包含所有当前线程拥有的锁，结果是剩下的不存在的锁。
+				<variable id="1" name="LockNames"  type="list[BLockName]"/> 请求包含所有当前线程拥有的锁，结果是剩下的不存在的锁。
 			</bean>
 
 			<rpc name="QueryLockInfo" argument="BQueryLockInfo" result="BQueryLockInfo" UseData="true" handle="client"/>

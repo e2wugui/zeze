@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Component.ThreadingServer;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
@@ -713,6 +714,8 @@ public final class ServiceManagerServer implements Closeable {
 		}
 	}
 
+	private final ThreadingServer threading;
+
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port, @NotNull Config config) throws Exception {
 		this(ipaddress, port, config, -1);
 	}
@@ -759,6 +762,9 @@ public final class ServiceManagerServer implements Closeable {
 				serverStates.values().forEach(s -> s.startReadyCommitNotify(true));
 			});
 		}
+
+		threading = new ThreadingServer(server);
+		threading.RegisterProtocols(server);
 
 		autoKeysDb = RocksDatabase.open(Path.of(this.conf.dbHome, "autokeys").toString());
 
