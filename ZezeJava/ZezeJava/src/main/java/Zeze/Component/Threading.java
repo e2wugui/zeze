@@ -6,6 +6,7 @@ import Zeze.Builtin.Threading.BLockName;
 import Zeze.Builtin.Threading.MutexTryLock;
 import Zeze.Builtin.Threading.MutexUnlock;
 import Zeze.Builtin.Threading.QueryLockInfo;
+import Zeze.Builtin.Threading.ReadWriteLockOperate;
 import Zeze.Builtin.Threading.SemaphoreCreate;
 import Zeze.Builtin.Threading.SemaphoreRelease;
 import Zeze.Builtin.Threading.SemaphoreTryAcquire;
@@ -73,14 +74,13 @@ public class Threading extends AbstractThreading {
 			var lockName = new BLockName(globalThreadId, name);
 
 			// 完美方案应该unlock成功以后才释放。这里先这样写了。
-			if (!acquired.remove(lockName, this))
-				return;
-
 			var r = new MutexUnlock();
-			r.Argument = lockName;
+			r.Argument.setLockName(lockName);
 			r.SendForWait(service.GetSocket()).await();
-			if (r.getResultCode() != 0)
+			if (r.getResultCode() < 0)
 				logger.error("unlock error={}", IModule.getErrorCode(r.getResultCode()));
+			if (r.getResultCode() == 0)
+				acquired.remove(lockName, this);
 		}
 	}
 
@@ -127,15 +127,14 @@ public class Threading extends AbstractThreading {
 			var lockName = new BLockName(globalThreadId, name);
 
 			// 完美方案应该unlock成功以后才释放。这里先这样写了。
-			if (!acquired.remove(lockName, this))
-				return;
-
 			var r = new SemaphoreRelease();
 			r.Argument.setLockName(lockName);
 			r.Argument.setPermits(permits);
 			r.SendForWait(service.GetSocket()).await();
-			if (r.getResultCode() != 0)
+			if (r.getResultCode() < 0)
 				logger.error("unlock error={}", IModule.getErrorCode(r.getResultCode()));
+			if (r.getResultCode() == 0)
+				acquired.remove(lockName, this);
 		}
 
 		void create(int permits) {
@@ -158,5 +157,67 @@ public class Threading extends AbstractThreading {
 
 	public Semaphore openSemaphore(String name) {
 		return new Semaphore(name);
+	}
+
+	public class ReadWriteLock implements Concurrent {
+		private final String name;
+
+		ReadWriteLock(String name) {
+			this.name = name;
+		}
+
+		private boolean tryOperate(int timeoutMs, int operateType) {
+			var r = new ReadWriteLockOperate();
+			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
+			var lockName = new BLockName(globalThreadId, name);
+			r.Argument.setLockName(lockName);
+			r.Argument.setOperateType(operateType);
+			r.Argument.setTimeoutMs(timeoutMs);
+			r.SendForWait(service.GetSocket(), timeoutMs + 1000).await();
+			if (r.getResultCode() == 0) {
+				acquired.put(lockName, this);
+				return true;
+			}
+			return false;
+		}
+
+		public boolean tryEnterRead() {
+			return tryOperate(0, eEnterRead);
+		}
+
+		public boolean tryEnterRead(int timeoutMs) {
+			return tryOperate(timeoutMs, eEnterRead);
+		}
+
+		public boolean tryEnterWrite() {
+			return tryOperate(0, eEnterWrite);
+		}
+
+		public boolean tryEnterWrite(int timeoutMs) {
+			return tryOperate(timeoutMs, eEnterWrite);
+		}
+
+		private void exitOperate(int operateType) {
+			var r = new ReadWriteLockOperate();
+			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
+			var lockName = new BLockName(globalThreadId, name);
+			r.Argument.setLockName(lockName);
+			r.Argument.setOperateType(operateType);
+			r.SendForWait(service.GetSocket()).await();
+			if (r.getResultCode() != 0)
+				logger.error("exit {} error={}", operateType, IModule.getErrorCode(r.getResultCode()));
+		}
+
+		public void exitRead() {
+			exitOperate(eExitRead);
+		}
+
+		public void exitWrite() {
+			exitOperate(eExitWrite);
+		}
+	}
+
+	public ReadWriteLock openReadWriteLock(String name) {
+		return new ReadWriteLock(name);
 	}
 }

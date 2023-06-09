@@ -11,6 +11,11 @@ public abstract class AbstractThreadingServer implements Zeze.IModule {
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
+    public static final int eEnterRead = 0;
+    public static final int eEnterWrite = 1;
+    public static final int eExitRead = 2;
+    public static final int eExitWrite = 3;
+
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
@@ -35,6 +40,14 @@ public abstract class AbstractThreadingServer implements Zeze.IModule {
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessQueryLockInfoResponse", Zeze.Transaction.TransactionLevel.None);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessQueryLockInfoResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47373607783577L, factoryHandle); // 11030, 118508697
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.ReadWriteLockOperate.class, Zeze.Builtin.Threading.ReadWriteLockOperate.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Threading.ReadWriteLockOperate::new;
+            factoryHandle.Handle = this::ProcessReadWriteLockOperateRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReadWriteLockOperateRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReadWriteLockOperateRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47376860983435L, factoryHandle); // 11030, -923258741
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.SemaphoreCreate.class, Zeze.Builtin.Threading.SemaphoreCreate.TypeId_);
@@ -66,6 +79,7 @@ public abstract class AbstractThreadingServer implements Zeze.IModule {
         service.getFactorys().remove(47375642163702L);
         service.getFactorys().remove(47374259242978L);
         service.getFactorys().remove(47373607783577L);
+        service.getFactorys().remove(47376860983435L);
         service.getFactorys().remove(47377757945276L);
         service.getFactorys().remove(47374374546810L);
         service.getFactorys().remove(47376407442804L);
@@ -82,6 +96,7 @@ public abstract class AbstractThreadingServer implements Zeze.IModule {
 
     protected abstract long ProcessMutexTryLockRequest(Zeze.Builtin.Threading.MutexTryLock r) throws Exception;
     protected abstract long ProcessMutexUnlockRequest(Zeze.Builtin.Threading.MutexUnlock r) throws Exception;
+    protected abstract long ProcessReadWriteLockOperateRequest(Zeze.Builtin.Threading.ReadWriteLockOperate r) throws Exception;
     protected abstract long ProcessSemaphoreCreateRequest(Zeze.Builtin.Threading.SemaphoreCreate r) throws Exception;
     protected abstract long ProcessSemaphoreReleaseRequest(Zeze.Builtin.Threading.SemaphoreRelease r) throws Exception;
     protected abstract long ProcessSemaphoreTryAcquireRequest(Zeze.Builtin.Threading.SemaphoreTryAcquire r) throws Exception;

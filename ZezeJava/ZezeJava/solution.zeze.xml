@@ -1509,13 +1509,13 @@
 				<variable id="2" name="Name"                type="string"/>
 			</beankey>
 
-			<bean name="BMutexTryLock">
+			<bean name="BMutex">
 				<variable id="1" name="LockName"  type="BLockName"/>
 				<variable id="2" name="TimeoutMs" type="int"/>
 			</bean>
 
-			<rpc name="MutexTryLock" argument="BMutexTryLock" handle="server"/>
-			<rpc name="MutexUnlock" argument="BLockName" handle="server"/>
+			<rpc name="MutexTryLock" argument="BMutex" handle="server"/>
+			<rpc name="MutexUnlock" argument="BMutex" handle="server"/>
 
 			<bean name="BQueryLockInfo">
 				<variable id="1" name="LockNames"  type="list[BLockName]"/> 请求包含所有当前线程拥有的锁，结果是剩下的不存在的锁。
@@ -1532,6 +1532,19 @@
 			<rpc name="SemaphoreCreate" argument="BSemaphore" handle="server"/>
 			<rpc name="SemaphoreTryAcquire" argument="BSemaphore" handle="server"/>
 			<rpc name="SemaphoreRelease" argument="BSemaphore" handle="server"/>
+
+			<enum name="eEnterRead"  value="0"/>
+			<enum name="eEnterWrite" value="1"/>
+			<enum name="eExitRead"    value="2"/>
+			<enum name="eExitWrite"   value="3"/>
+
+			<bean name="BReadWriteLock">
+				<variable id="1" name="LockName"  type="BLockName"/>
+				<variable id="2" name="OperateType"   type="int"/> see enum above
+				<variable id="3" name="TimeoutMs" type="int"/>
+			</bean>
+
+			<rpc name="ReadWriteLockOperate" argument="BReadWriteLock" handle="server"/>
 		</module>
 
 		<!--

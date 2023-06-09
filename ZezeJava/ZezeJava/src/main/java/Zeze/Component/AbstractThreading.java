@@ -11,6 +11,11 @@ public abstract class AbstractThreading implements Zeze.IModule {
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
+    public static final int eEnterRead = 0;
+    public static final int eEnterWrite = 1;
+    public static final int eExitRead = 2;
+    public static final int eExitWrite = 3;
+
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
@@ -34,6 +39,13 @@ public abstract class AbstractThreading implements Zeze.IModule {
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessQueryLockInfoRequest", Zeze.Transaction.TransactionLevel.None);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessQueryLockInfoRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47373607783577L, factoryHandle); // 11030, 118508697
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.ReadWriteLockOperate.class, Zeze.Builtin.Threading.ReadWriteLockOperate.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Threading.ReadWriteLockOperate::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReadWriteLockOperateResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReadWriteLockOperateResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47376860983435L, factoryHandle); // 11030, -923258741
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.SemaphoreCreate.class, Zeze.Builtin.Threading.SemaphoreCreate.TypeId_);
@@ -62,6 +74,7 @@ public abstract class AbstractThreading implements Zeze.IModule {
         service.getFactorys().remove(47375642163702L);
         service.getFactorys().remove(47374259242978L);
         service.getFactorys().remove(47373607783577L);
+        service.getFactorys().remove(47376860983435L);
         service.getFactorys().remove(47377757945276L);
         service.getFactorys().remove(47374374546810L);
         service.getFactorys().remove(47376407442804L);

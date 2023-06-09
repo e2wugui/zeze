@@ -4,8 +4,8 @@ package Zeze.Builtin.Threading;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
-public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutexTryLockReadOnly {
-    public static final long TYPEID = 3426796213570177191L;
+public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnly {
+    public static final long TYPEID = 7224301299276482451L;
 
     private Zeze.Builtin.Threading.BLockName _LockName;
     private int _TimeoutMs;
@@ -53,12 +53,12 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
     }
 
     @SuppressWarnings("deprecation")
-    public BMutexTryLock() {
+    public BMutex() {
         _LockName = new Zeze.Builtin.Threading.BLockName();
     }
 
     @SuppressWarnings("deprecation")
-    public BMutexTryLock(Zeze.Builtin.Threading.BLockName _LockName_, int _TimeoutMs_) {
+    public BMutex(Zeze.Builtin.Threading.BLockName _LockName_, int _TimeoutMs_) {
         if (_LockName_ == null)
             _LockName_ = new Zeze.Builtin.Threading.BLockName();
         _LockName = _LockName_;
@@ -66,40 +66,40 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
     }
 
     @Override
-    public Zeze.Builtin.Threading.BMutexTryLock.Data toData() {
-        var data = new Zeze.Builtin.Threading.BMutexTryLock.Data();
+    public Zeze.Builtin.Threading.BMutex.Data toData() {
+        var data = new Zeze.Builtin.Threading.BMutex.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Threading.BMutexTryLock.Data)other);
+        assign((Zeze.Builtin.Threading.BMutex.Data)other);
     }
 
-    public void assign(BMutexTryLock.Data other) {
+    public void assign(BMutex.Data other) {
         setLockName(other._LockName);
         setTimeoutMs(other._TimeoutMs);
     }
 
-    public void assign(BMutexTryLock other) {
+    public void assign(BMutex other) {
         setLockName(other.getLockName());
         setTimeoutMs(other.getTimeoutMs());
     }
 
-    public BMutexTryLock copyIfManaged() {
+    public BMutex copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BMutexTryLock copy() {
-        var copy = new BMutexTryLock();
+    public BMutex copy() {
+        var copy = new BMutex();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BMutexTryLock a, BMutexTryLock b) {
-        BMutexTryLock save = a.copy();
+    public static void swap(BMutex a, BMutex b) {
+        BMutex save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -110,17 +110,17 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
     }
 
     private static final class Log__LockName extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Threading.BLockName> {
-        public Log__LockName(BMutexTryLock bean, int varId, Zeze.Builtin.Threading.BLockName value) { super(Zeze.Builtin.Threading.BLockName.class, bean, varId, value); }
+        public Log__LockName(BMutex bean, int varId, Zeze.Builtin.Threading.BLockName value) { super(Zeze.Builtin.Threading.BLockName.class, bean, varId, value); }
 
         @Override
-        public void commit() { ((BMutexTryLock)getBelong())._LockName = value; }
+        public void commit() { ((BMutex)getBelong())._LockName = value; }
     }
 
     private static final class Log__TimeoutMs extends Zeze.Transaction.Logs.LogInt {
-        public Log__TimeoutMs(BMutexTryLock bean, int varId, int value) { super(bean, varId, value); }
+        public Log__TimeoutMs(BMutex bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BMutexTryLock)getBelong())._TimeoutMs = value; }
+        public void commit() { ((BMutex)getBelong())._TimeoutMs = value; }
     }
 
     @Override
@@ -132,7 +132,7 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Threading.BMutexTryLock: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Threading.BMutex: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("LockName=").append(System.lineSeparator());
         getLockName().buildString(sb, level + 4);
@@ -238,7 +238,7 @@ public final class BMutexTryLock extends Zeze.Transaction.Bean implements BMutex
     }
 
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = 3426796213570177191L;
+    public static final long TYPEID = 7224301299276482451L;
 
     private Zeze.Builtin.Threading.BLockName _LockName;
     private int _TimeoutMs;
@@ -275,35 +275,35 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public Zeze.Builtin.Threading.BMutexTryLock toBean() {
-        var bean = new Zeze.Builtin.Threading.BMutexTryLock();
+    public Zeze.Builtin.Threading.BMutex toBean() {
+        var bean = new Zeze.Builtin.Threading.BMutex();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BMutexTryLock)other);
+        assign((BMutex)other);
     }
 
-    public void assign(BMutexTryLock other) {
+    public void assign(BMutex other) {
         _LockName = other.getLockName();
         _TimeoutMs = other.getTimeoutMs();
     }
 
-    public void assign(BMutexTryLock.Data other) {
+    public void assign(BMutex.Data other) {
         _LockName = other._LockName;
         _TimeoutMs = other._TimeoutMs;
     }
 
     @Override
-    public BMutexTryLock.Data copy() {
-        var copy = new BMutexTryLock.Data();
+    public BMutex.Data copy() {
+        var copy = new BMutex.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BMutexTryLock.Data a, BMutexTryLock.Data b) {
+    public static void swap(BMutex.Data a, BMutex.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -315,8 +315,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BMutexTryLock.Data clone() {
-        return (BMutexTryLock.Data)super.clone();
+    public BMutex.Data clone() {
+        return (BMutex.Data)super.clone();
     }
 
     @Override
@@ -328,7 +328,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Threading.BMutexTryLock: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Threading.BMutex: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("LockName=").append(System.lineSeparator());
         _LockName.buildString(sb, level + 4);

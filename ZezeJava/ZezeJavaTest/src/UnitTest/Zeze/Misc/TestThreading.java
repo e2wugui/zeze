@@ -52,4 +52,21 @@ public class TestThreading {
 			}
 		}
 	}
+
+	@Test
+	public void testRWLock() throws InterruptedException {
+		var rwLock = App.Instance.Zeze.getServiceManager().getThreading().openReadWriteLock("UnitTest.Threading.RWLock");
+		if (rwLock.tryEnterRead(1000)) {
+			new Thread(() -> {
+				if (rwLock.tryEnterWrite(1000))
+					rwLock.exitWrite();
+			}).start();
+
+			rwLock.tryEnterRead(1000);
+			Thread.sleep(100);
+
+			rwLock.exitRead();
+			rwLock.exitRead();
+		}
+	}
 }
