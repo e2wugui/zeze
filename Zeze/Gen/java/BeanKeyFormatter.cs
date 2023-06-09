@@ -38,7 +38,10 @@ namespace Zeze.Gen.java
 
             // declare variables
             foreach (Variable v in beanKey.Variables)
-                sw.WriteLine("    private " + TypeName.GetName(v.VariableType) + " " + v.NamePrivate + ";" + v.Comment);
+            {
+                string final = v.VariableType is BeanKey ? "final " : "";
+                sw.WriteLine($"    private {final}{TypeName.GetName(v.VariableType)} {v.NamePrivate};{v.Comment}");
+            }
             sw.WriteLine();
 
             Construct.Make(beanKey, sw, "    ");

@@ -15,7 +15,6 @@ import java.util.function.Predicate;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
@@ -27,7 +26,6 @@ import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
-import com.amazonaws.services.dynamodbv2.xspec.S;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -834,6 +832,7 @@ public class Service {
 		return f != null && f.cancel(false);
 	}
 
+	@SuppressWarnings("MethodMayBeStatic")
 	public void onRpcLostContext(Rpc<?, ?> rpc) {
 		logger.warn("rpc response: lost context, maybe timeout. {}", rpc);
 	}

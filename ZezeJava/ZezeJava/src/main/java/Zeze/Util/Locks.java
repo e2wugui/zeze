@@ -48,6 +48,7 @@ public class Locks<T extends Lockey<T>> {
 		this(1024);
 	}
 
+	@SuppressWarnings("unchecked")
 	public Locks(int concurrencyLevel) {
 		if (concurrencyLevel <= 0) {
 			throw new IllegalArgumentException();

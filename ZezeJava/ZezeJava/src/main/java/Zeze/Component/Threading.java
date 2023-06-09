@@ -35,7 +35,7 @@ public class Threading extends AbstractThreading {
 		return 0;
 	}
 
-	public ConcurrentHashMap<BLockName, Concurrent> acquired = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<BLockName, Concurrent> acquired = new ConcurrentHashMap<>();
 
 	public interface Concurrent {
 		// 所有Threading并发控制机制的基类。

@@ -14,6 +14,29 @@
           "Gen.dll": {}
         }
       },
+      "DotNext/4.12.0": {
+        "dependencies": {
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        },
+        "runtime": {
+          "lib/net6.0/DotNext.dll": {
+            "assemblyVersion": "4.12.0.0",
+            "fileVersion": "4.12.0.0"
+          }
+        }
+      },
+      "DotNext.Threading/4.12.0": {
+        "dependencies": {
+          "DotNext": "4.12.0",
+          "System.Threading.Channels": "7.0.0"
+        },
+        "runtime": {
+          "lib/net6.0/DotNext.Threading.dll": {
+            "assemblyVersion": "4.12.0.0",
+            "fileVersion": "4.12.0.0"
+          }
+        }
+      },
       "Google.Protobuf/3.19.4": {
         "runtime": {
           "lib/net5.0/Google.Protobuf.dll": {
@@ -494,6 +517,14 @@
           "Microsoft.NETCore.Platforms": "3.1.0"
         }
       },
+      "System.Threading.Channels/7.0.0": {
+        "runtime": {
+          "lib/net6.0/System.Threading.Channels.dll": {
+            "assemblyVersion": "7.0.0.0",
+            "fileVersion": "7.0.22.51805"
+          }
+        }
+      },
       "System.Threading.Tasks/4.3.0": {
         "dependencies": {
           "Microsoft.NETCore.Platforms": "3.1.0",
@@ -522,6 +553,7 @@
       },
       "Zeze/1.0.0": {
         "dependencies": {
+          "DotNext.Threading": "4.12.0",
           "MySql.Data": "8.0.31",
           "NLog": "5.1.0",
           "Nito.AsyncEx": "5.1.2",
@@ -542,6 +574,20 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "DotNext/4.12.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-q1J4mZDwDEWIjGlb4srq3eRLKheIg007bHLJ/WBlvJLh5AiA92CvtJHIk0nnSkmHc47NglIPN0GYINwilWsLOw==",
+      "path": "dotnext/4.12.0",
+      "hashPath": "dotnext.4.12.0.nupkg.sha512"
+    },
+    "DotNext.Threading/4.12.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-XGrnCcwIhtkvmkWQTuS8ZoI997M41Aj+4EXT7aQCBpkhLtF6gXRHumMqnlwr8VZGYa/v9Xr7l/NZN+xkXzfY2g==",
+      "path": "dotnext.threading/4.12.0",
+      "hashPath": "dotnext.threading.4.12.0.nupkg.sha512"
     },
     "Google.Protobuf/3.19.4": {
       "type": "package",
@@ -878,6 +924,13 @@
       "sha512": "sha512-6JX7ZdaceBiLKLkYt8zJcp4xTJd1uYyXXEkPw6mnlUIjh1gZPIVKPtRXPmY5kLf6DwZmf5YLwR3QUrRonl7l0A==",
       "path": "system.text.encoding.codepages/4.4.0",
       "hashPath": "system.text.encoding.codepages.4.4.0.nupkg.sha512"
+    },
+    "System.Threading.Channels/7.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-qmeeYNROMsONF6ndEZcIQ+VxR4Q/TX/7uIVLJqtwIWL7dDWeh0l1UIqgo4wYyjG//5lUNhwkLDSFl+pAWO6oiA==",
+      "path": "system.threading.channels/7.0.0",
+      "hashPath": "system.threading.channels.7.0.0.nupkg.sha512"
     },
     "System.Threading.Tasks/4.3.0": {
       "type": "package",
