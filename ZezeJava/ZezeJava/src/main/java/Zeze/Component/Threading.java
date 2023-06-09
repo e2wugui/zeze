@@ -17,8 +17,8 @@ import org.apache.logging.log4j.Logger;
 public class Threading extends AbstractThreading {
 	static final Logger logger = LogManager.getLogger(Threading.class);
 
-	public Service service;
-	private int serverId;
+	public final Service service;
+	private final int serverId;
 
 	public Threading(Service service, int progressId) {
 		this.service = service;

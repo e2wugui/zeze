@@ -57,16 +57,14 @@ public class ThreadingServer extends AbstractThreadingServer {
             return mutexRefs.isEmpty() && semaphoreRefs.isEmpty();
         }
 
-        public ReentrantLock getOrAddMutex(String name) {
+        public ReentrantLock getMutex(String name) {
             // ref cache
             var mutex = mutexRefs.get(name);
             if (null != mutex)
                 return mutex;
 
             // alloc
-            mutex = mutexes.computeIfAbsent(name, (k) -> new ReentrantLock());
-            mutexRefs.put(name, mutex);
-            return mutex;
+            return mutexes.computeIfAbsent(name, (k) -> new ReentrantLock());
         }
 
         public SemaphoreAcquired getSemaphore(String name) {
@@ -78,8 +76,8 @@ public class ThreadingServer extends AbstractThreadingServer {
             // ref global
             var semaphore = semaphores.get(name);
             if (null != semaphore)
-                semaphoreRefs.put(name, semaphoreAcq = new SemaphoreAcquired(semaphore));
-            return semaphoreAcq;
+                return new SemaphoreAcquired(semaphore);
+            return null;
         }
 
         @Override
@@ -157,12 +155,14 @@ public class ThreadingServer extends AbstractThreadingServer {
                 r.Argument.getLockName().getName());
         simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(), r.getSender().getSessionId(),
                 (This) -> {
-                    var mutex = This.getOrAddMutex(r.Argument.getLockName().getName());
+                    var mutex = This.getMutex(r.Argument.getLockName().getName());
                     var locked = mutex.tryLock(r.Argument.getTimeoutMs(), TimeUnit.MILLISECONDS);
                     logger.info("mutex.tryLock(thread=({}, {}), name={}) -> {}",
                             r.Argument.getLockName().getGlobalThreadId().getServerId(),
                             r.Argument.getLockName().getGlobalThreadId().getThreadId(),
                             r.Argument.getLockName().getName(), locked);
+                    if (locked)
+                        This.mutexRefs.put(r.Argument.getLockName().getName(), mutex);
                     r.SendResultCode(locked ? 0 : 1);
                 });
 
@@ -233,8 +233,10 @@ public class ThreadingServer extends AbstractThreadingServer {
                     } else {
                         var acquired = semaphoreAcq.semaphore.tryAcquire(r.Argument.getPermits(),
                                 r.Argument.getTimeoutMs(), TimeUnit.MILLISECONDS);
-                        if (acquired)
+                        if (acquired) {
                             semaphoreAcq.permits += r.Argument.getPermits();
+                            This.semaphoreRefs.put(r.Argument.getLockName().getName(), semaphoreAcq);
+                        }
                         logger.info("semaphore.tryAcquire(thread=({}, {}), name={}) -> {}",
                                 r.Argument.getLockName().getGlobalThreadId().getServerId(),
                                 r.Argument.getLockName().getGlobalThreadId().getThreadId(),
