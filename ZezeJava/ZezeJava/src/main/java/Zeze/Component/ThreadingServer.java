@@ -35,20 +35,20 @@ public class ThreadingServer extends AbstractThreadingServer {
         this.service = service;
     }
 
+    static class SemaphoreAcquired {
+        final Semaphore semaphore;
+        int permits;
+
+        SemaphoreAcquired(Semaphore s) {
+            this.semaphore = s;
+        }
+    }
+
     public class SimulateThread extends Thread {
         private final BGlobalThreadId id;
         private long sessionId;
         private final LinkedBlockingQueue<Action1<SimulateThread>> actions = new LinkedBlockingQueue<>();
         private final HashMap<String, ReentrantLock> mutexRefs = new HashMap<>();
-
-        static class SemaphoreAcquired {
-            final Semaphore semaphore;
-            int permits;
-
-            SemaphoreAcquired(Semaphore s) {
-                this.semaphore = s;
-            }
-        }
 
         private final HashMap<String, SemaphoreAcquired> semaphoreRefs = new HashMap<>();
 
