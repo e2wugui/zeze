@@ -321,8 +321,16 @@ public final class TestJson extends TestCase {
 	}
 
 	public void testF() throws ReflectiveOperationException {
-		var a = JsonReader.local().buf("[Infinity,-Infinity,Nan,0x1234567890abcdef,-0x1]").parse();
-		System.out.println(a);
+		Object o = JsonReader.local().buf("[Infinity,-Infinity,Nan,0x1234567890abcdef,-0x1]").parse();
+		assertNotNull(o);
+		assertEquals(ArrayList.class, o.getClass());
+		ArrayList<?> a = (ArrayList<?>)o;
+		assertEquals(5, a.size());
+		assertEquals(Double.POSITIVE_INFINITY, a.get(0));
+		assertEquals(Double.NEGATIVE_INFINITY, a.get(1));
+		assertEquals(Double.NaN, a.get(2));
+		assertEquals(0x1234567890abcdefL, a.get(3));
+		assertEquals(-1, a.get(4));
 	}
 
 	public static void main(String[] args) throws ReflectiveOperationException {
