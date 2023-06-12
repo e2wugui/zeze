@@ -168,7 +168,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 
     public class SimulateThreads {
         private final HashSet<SimulateThread> threads = new HashSet<>();
-        private long activeTime;
+        private long activeTime = System.currentTimeMillis();
         private final int serverId;
         private BKeepAlive.Data lastAppSerial;
 
