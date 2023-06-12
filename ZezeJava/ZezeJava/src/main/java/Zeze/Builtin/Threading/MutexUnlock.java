@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Threading;
 
+// 这个rpc实际上没有使用参数TimeoutMs
 public class MutexUnlock extends Zeze.Net.Rpc<Zeze.Builtin.Threading.BMutex.Data, Zeze.Transaction.EmptyBean.Data> {
     public static final int ModuleId_ = 11030;
     public static final int ProtocolId_ = 769968098;

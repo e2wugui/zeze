@@ -1,17 +1,19 @@
 package Zeze.Component;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import Zeze.Builtin.Threading.BGlobalThreadId;
 import Zeze.Builtin.Threading.BLockName;
+import Zeze.Builtin.Threading.KeepAlive;
 import Zeze.Builtin.Threading.MutexTryLock;
 import Zeze.Builtin.Threading.MutexUnlock;
-import Zeze.Builtin.Threading.QueryLockInfo;
 import Zeze.Builtin.Threading.ReadWriteLockOperate;
 import Zeze.Builtin.Threading.SemaphoreCreate;
 import Zeze.Builtin.Threading.SemaphoreRelease;
 import Zeze.Builtin.Threading.SemaphoreTryAcquire;
 import Zeze.IModule;
 import Zeze.Net.Service;
+import Zeze.Util.PersistentAtomicLong;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -20,31 +22,33 @@ public class Threading extends AbstractThreading {
 
 	public final Service service;
 	private final int serverId;
+	private final long appSerialId;
+	private final Future<?> keepAliveTask;
 
-	public Threading(Service service, int progressId) {
+	public Threading(Service service, int serverId) {
 		this.service = service;
-		this.serverId = progressId;
+		this.serverId = serverId;
+		// 这里使用Agent.ServiceName联合serverId当作进程名字，目前足够区分不同的进程。
+		this.appSerialId = PersistentAtomicLong.getOrAdd(service.getName() + "." + serverId).next();
+
+		keepAlive(); // first keepAlive
+		keepAliveTask = Task.scheduleUnsafe(10_000, 10_000, this::keepAlive);
 	}
 
-	@Override
-	protected long ProcessQueryLockInfoRequest(QueryLockInfo r) throws Exception {
-		for (var lockName : r.Argument.getLockNames())
-			if (!acquired.containsKey(lockName))
-				r.Result.getLockNames().add(lockName);
-		r.SendResult();
-		return 0;
+	public void close() {
+		keepAliveTask.cancel(false);
 	}
 
-	public final ConcurrentHashMap<BLockName, Concurrent> acquired = new ConcurrentHashMap<>();
-
-	public interface Concurrent {
-		// 所有Threading并发控制机制的基类。
-		// 以后可能定义公共方法。
+	private void keepAlive() {
+		var p = new KeepAlive();
+		p.Argument.setServerId(serverId);
+		p.Argument.setAppSerialId(appSerialId);
+		p.Send(service.GetSocket());
 	}
 
 	// 即使相同的名字，每个线程调用createMutex也是创建新的实例。
 	// 多个线程共享一个实例也是可以的。
-	public class Mutex implements Concurrent {
+	public class Mutex {
 		private final String name;
 
 		Mutex(String name) {
@@ -62,11 +66,7 @@ public class Threading extends AbstractThreading {
 			r.Argument.setLockName(lockName);
 			r.Argument.setTimeoutMs(timeoutMs);
 			r.SendForWait(service.GetSocket(), timeoutMs + 1000).await();
-			if (r.getResultCode() == 0) {
-				acquired.put(lockName, this);
-				return true;
-			}
-			return false;
+			return r.getResultCode() == 0;
 		}
 
 		public void unlock() {
@@ -80,7 +80,7 @@ public class Threading extends AbstractThreading {
 			if (r.getResultCode() < 0)
 				logger.error("unlock error={}", IModule.getErrorCode(r.getResultCode()));
 			if (r.getResultCode() == 0)
-				acquired.remove(lockName, this);
+				logger.debug("unlock success, {}", lockName);
 		}
 	}
 
@@ -88,7 +88,7 @@ public class Threading extends AbstractThreading {
 		return new Mutex(name);
 	}
 
-	public class Semaphore implements Concurrent {
+	public class Semaphore {
 		private final String name;
 
 		Semaphore(String name) {
@@ -111,11 +111,7 @@ public class Threading extends AbstractThreading {
 			r.Argument.setPermits(permits);
 			r.Argument.setTimeoutMs(timeoutMs);
 			r.SendForWait(service.GetSocket(), timeoutMs + 1000).await();
-			if (r.getResultCode() == 0) {
-				acquired.put(lockName, this);
-				return true;
-			}
-			return false;
+			return r.getResultCode() == 0;
 		}
 
 		public void release() {
@@ -132,9 +128,9 @@ public class Threading extends AbstractThreading {
 			r.Argument.setPermits(permits);
 			r.SendForWait(service.GetSocket()).await();
 			if (r.getResultCode() < 0)
-				logger.error("unlock error={}", IModule.getErrorCode(r.getResultCode()));
+				logger.error("release error={}", IModule.getErrorCode(r.getResultCode()));
 			if (r.getResultCode() == 0)
-				acquired.remove(lockName, this);
+				logger.debug("release success, {}", lockName);
 		}
 
 		void create(int permits) {
@@ -159,7 +155,7 @@ public class Threading extends AbstractThreading {
 		return new Semaphore(name);
 	}
 
-	public class ReadWriteLock implements Concurrent {
+	public class ReadWriteLock {
 		private final String name;
 
 		ReadWriteLock(String name) {
@@ -174,11 +170,7 @@ public class Threading extends AbstractThreading {
 			r.Argument.setOperateType(operateType);
 			r.Argument.setTimeoutMs(timeoutMs);
 			r.SendForWait(service.GetSocket(), timeoutMs + 1000).await();
-			if (r.getResultCode() == 0) {
-				acquired.put(lockName, this);
-				return true;
-			}
-			return false;
+			return r.getResultCode() == 0;
 		}
 
 		public boolean tryEnterRead() {

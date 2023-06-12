@@ -1,38 +1,57 @@
 package Zeze.Component;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Builtin.Threading.BGlobalThreadId;
-import Zeze.Builtin.Threading.QueryLockInfo;
+import Zeze.Builtin.Threading.BKeepAlive;
+import Zeze.Builtin.Threading.KeepAlive;
 import Zeze.Builtin.Threading.ReadWriteLockOperate;
 import Zeze.Builtin.Threading.SemaphoreCreate;
 import Zeze.Builtin.Threading.SemaphoreRelease;
 import Zeze.Builtin.Threading.SemaphoreTryAcquire;
 import Zeze.Net.Service;
+import Zeze.Services.ServiceManagerServer;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class ThreadingServer extends AbstractThreadingServer {
     static final Logger logger = LogManager.getLogger(ThreadingServer.class);
     private final Service service;
+    private final ServiceManagerServer.Conf conf;
     private final HashMap<BGlobalThreadId, SimulateThread> simulateThreads = new HashMap<>();
+    private final ConcurrentHashMap<Integer, SimulateThreads> simulateThreadsByServerId = new ConcurrentHashMap<>();
 
-    // 全局mutex一个命名空间。
+    // 每种锁一个命名空间。
     // 其他可做的优化【暂不考虑】。
     // WeakRef SimulateThread记住自己拥有的所有资源，当SimulateThread退出时，这里自动回收。
     private final ConcurrentHashMap<String, ReentrantLock> mutexes = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Semaphore> semaphores = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, ReentrantReadWriteLock> rwLocks = new ConcurrentHashMap<>();
 
-    public ThreadingServer(Service service) {
+    private final Future<?> timeoutReleaseTask;
+
+    public ThreadingServer(Service service, ServiceManagerServer.Conf conf) {
         this.service = service;
+        this.conf = conf;
+        this.timeoutReleaseTask = Task.scheduleUnsafe(60_000, 60_000, this::timeoutRelease);
+    }
+
+    public void close() {
+        timeoutReleaseTask.cancel(false);
+    }
+
+    public Service getService() {
+        return service;
     }
 
     static class SemaphoreAcquired {
@@ -46,7 +65,6 @@ public class ThreadingServer extends AbstractThreadingServer {
 
     public class SimulateThread extends Thread {
         private final BGlobalThreadId id;
-        private long sessionId;
         private final LinkedBlockingQueue<Action1<SimulateThread>> actions = new LinkedBlockingQueue<>();
         private final HashMap<String, ReentrantLock> mutexRefs = new HashMap<>();
 
@@ -98,27 +116,11 @@ public class ThreadingServer extends AbstractThreadingServer {
 
         @Override
         public void run() {
-            var lastQueryTime = System.currentTimeMillis();
-            var queryTimeout = 10_000;
             while (true) {
                 try {
-                    var timeout = queryTimeout - (System.currentTimeMillis() - lastQueryTime);
-                    var action = actions.poll(timeout, TimeUnit.MILLISECONDS);
+                    var action = actions.poll();
                     if (null != action) {
                         action.run(this);
-                    }
-
-                    var now = System.currentTimeMillis();
-                    if (now - lastQueryTime >= 10_000) {
-                        lastQueryTime = now;
-                        var r = new QueryLockInfo();
-                        // todo prepare allocated locks.
-                        r.Send(service.GetSocket(sessionId), (p) -> {
-                            actions.offer((This) -> {
-                                // todo process missing lock.
-                            });
-                            return 0;
-                        });
                     }
 
                     if (acquireNothing()) {
@@ -137,29 +139,107 @@ public class ThreadingServer extends AbstractThreadingServer {
                 }
             }
         }
+
+        public void release() {
+            logger.info("timeout(thread=({}, {}))", id.getServerId(), id.getThreadId());
+            for (var e : mutexRefs.entrySet()) {
+                while (e.getValue().getHoldCount() > 0)
+                    e.getValue().unlock();
+                logger.info("mutex timeout(name={})", e.getKey());
+            }
+            mutexRefs.clear();
+
+            for (var e : semaphoreRefs.entrySet()) {
+                e.getValue().semaphore.release(e.getValue().permits);
+                logger.info("semaphore timeout(name={})", e.getKey());
+            }
+            semaphoreRefs.clear();
+
+            for (var e : rwLockRefs.entrySet()) {
+                while (e.getValue().getReadHoldCount() > 0)
+                    e.getValue().readLock().unlock();
+                while (e.getValue().getWriteHoldCount() > 0)
+                    e.getValue().writeLock().unlock();
+                logger.info("rwLock timeout(name={})", e.getKey());
+            }
+            rwLockRefs.clear();
+        }
+    }
+
+    public class SimulateThreads {
+        private final HashSet<SimulateThread> threads = new HashSet<>();
+        private long activeTime;
+        private final int serverId;
+        private BKeepAlive.Data lastAppSerial;
+
+        public SimulateThreads(int serverId) {
+            this.serverId = serverId;
+        }
+
+        public int getServerId() {
+            return serverId;
+        }
+
+        public void release() {
+            for (var thread : threads) {
+                thread.actions.offer(SimulateThread::release);
+            }
+        }
+    }
+
+    @Override
+    protected long ProcessKeepAlive(KeepAlive p) throws Exception {
+        var threads = simulateThreadsByServerId.computeIfAbsent(p.Argument.getServerId(), SimulateThreads::new);
+        threads.activeTime = System.currentTimeMillis();
+        if (null == threads.lastAppSerial) {
+            threads.lastAppSerial = p.Argument;
+            return 0; // first keepAlive。record only。
+        }
+        if (threads.lastAppSerial.getAppSerialId() != p.Argument.getAppSerialId()) {
+            threads.release();
+            threads.lastAppSerial = p.Argument;
+            return 0;
+        }
+        // same app serialId. done.
+        return 0;
+    }
+
+    private void timeoutRelease() {
+        var now = System.currentTimeMillis();
+        for (var threads : simulateThreadsByServerId.values()) {
+            // 【30 minutes 没有联系】强制释放获得的所有资源。
+            // 这个时间可以看作异常情况下，Agent获得锁后的最长安全工作时间。
+            // 再超出，就没有锁定保证了。
+            if (now - threads.activeTime > conf.threadingReleaseTimeout)
+                threads.release();
+        }
     }
 
     private synchronized boolean simulateThreadExit(BGlobalThreadId id) {
         return null == simulateThreads.computeIfPresent(id, (key, This) -> {
             if (This.actions.isEmpty()) {
                 logger.info("simulate exit thread=({}, {})", id.getServerId(), id.getThreadId());
+                var x = simulateThreadsByServerId.get(This.id.getServerId());
+                if (null != x)
+                    x.threads.remove(This);
                 return null;
             }
             return This;
         });
     }
 
-    private synchronized void simulateThreadOffer(BGlobalThreadId id, long sessionId, Action1<SimulateThread> action) {
+    private synchronized void simulateThreadOffer(BGlobalThreadId id, Action1<SimulateThread> action) {
         var st = simulateThreads.computeIfAbsent(
                 id,
                 (key) -> {
                     var simulate = new SimulateThread(key);
+                    simulateThreadsByServerId.computeIfAbsent(id.getServerId(), SimulateThreads::new)
+                            .threads.add(simulate);
                     simulate.start();
-                    logger.info("simulate new thread=({}, {}), sessionId={}",
-                            key.getServerId(), key.getThreadId(), sessionId);
+                    logger.info("simulate new thread=({}, {})",
+                            key.getServerId(), key.getThreadId());
                     return simulate;
                 });
-        st.sessionId = sessionId;
         st.actions.offer(action);
     }
 
@@ -169,7 +249,7 @@ public class ThreadingServer extends AbstractThreadingServer {
                 r.Argument.getLockName().getGlobalThreadId().getServerId(),
                 r.Argument.getLockName().getGlobalThreadId().getThreadId(),
                 r.Argument.getLockName().getName());
-        simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(), r.getSender().getSessionId(),
+        simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
                 (This) -> {
                     var mutex = This.getMutex(r.Argument.getLockName().getName());
                     var locked = mutex.tryLock(r.Argument.getTimeoutMs(), TimeUnit.MILLISECONDS);
@@ -187,7 +267,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 
     @Override
     protected long ProcessMutexUnlockRequest(Zeze.Builtin.Threading.MutexUnlock r) {
-        simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(), r.getSender().getSessionId(),
+        simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
                 (This) -> {
                     var mutex = This.mutexRefs.get(r.Argument.getLockName().getName());
                     if (null != mutex) {
@@ -212,7 +292,7 @@ public class ThreadingServer extends AbstractThreadingServer {
     protected long ProcessReadWriteLockOperateRequest(ReadWriteLockOperate r) throws Exception {
         switch (r.Argument.getOperateType()) {
         case Threading.eEnterRead:
-            simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(), r.getSender().getSessionId(),
+            simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
                     (This) -> {
                         var rwLock = This.getReadWriteLock(r.Argument.getLockName().getName());
                         var locked = rwLock.readLock().tryLock(r.Argument.getTimeoutMs(), TimeUnit.MILLISECONDS);
@@ -229,7 +309,7 @@ public class ThreadingServer extends AbstractThreadingServer {
             break;
 
         case Threading.eEnterWrite:
-            simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(), r.getSender().getSessionId(),
+            simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
                     (This) -> {
                         var rwLock = This.getReadWriteLock(r.Argument.getLockName().getName());
                         var locked = rwLock.writeLock().tryLock(r.Argument.getTimeoutMs(), TimeUnit.MILLISECONDS);
@@ -246,7 +326,7 @@ public class ThreadingServer extends AbstractThreadingServer {
             break;
 
         case Threading.eExitRead:
-            simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(), r.getSender().getSessionId(),
+            simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
                     (This) -> {
                         var rwLock = This.rwLockRefs.get(r.Argument.getLockName().getName());
                         if (null != rwLock) {
@@ -268,7 +348,7 @@ public class ThreadingServer extends AbstractThreadingServer {
             break;
 
         case Threading.eExitWrite:
-            simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(), r.getSender().getSessionId(),
+            simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
                     (This) -> {
                         var rwLock = This.rwLockRefs.get(r.Argument.getLockName().getName());
                         if (null != rwLock) {
@@ -302,7 +382,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 
     @Override
     protected long ProcessSemaphoreReleaseRequest(SemaphoreRelease r) throws Exception {
-        simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(), r.getSender().getSessionId(),
+        simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
                 (This) -> {
                     var semaphoreAcq = This.semaphoreRefs.get(r.Argument.getLockName().getName());
                     if (null != semaphoreAcq) {
@@ -333,7 +413,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 
     @Override
     protected long ProcessSemaphoreTryAcquireRequest(SemaphoreTryAcquire r) throws Exception {
-        simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(), r.getSender().getSessionId(),
+        simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
                 (This) -> {
                     var semaphoreAcq = This.getSemaphore(r.Argument.getLockName().getName());
                     if (null == semaphoreAcq) {

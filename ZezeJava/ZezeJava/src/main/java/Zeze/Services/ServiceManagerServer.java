@@ -158,6 +158,8 @@ public final class ServiceManagerServer implements Closeable {
 		public int retryNotifyDelayWhenNotAllReady = 30 * 1000;
 		public String dbHome = ".";
 
+		public long threadingReleaseTimeout = 1 * 60 * 1000;
+
 		@Override
 		public String getName() {
 			return "Zeze.Services.ServiceManager";
@@ -177,6 +179,9 @@ public final class ServiceManagerServer implements Closeable {
 			dbHome = self.getAttribute("DbHome");
 			if (dbHome.isEmpty())
 				dbHome = ".";
+			attr = self.getAttribute("ThreadingReleaseTimeout");
+			if (!attr.isBlank())
+				threadingReleaseTimeout = Long.parseLong(attr);
 		}
 	}
 
@@ -763,7 +768,7 @@ public final class ServiceManagerServer implements Closeable {
 			});
 		}
 
-		threading = new ThreadingServer(server);
+		threading = new ThreadingServer(server, conf);
 		threading.RegisterProtocols(server);
 
 		autoKeysDb = RocksDatabase.open(Path.of(this.conf.dbHome, "autokeys").toString());
@@ -841,6 +846,7 @@ public final class ServiceManagerServer implements Closeable {
 			logger.info("closeDb: {}, autokeys", this.conf.dbHome);
 			autoKeysDb.close();
 		}
+		threading.close();
 	}
 
 	public static final class NetServer extends HandshakeServer {

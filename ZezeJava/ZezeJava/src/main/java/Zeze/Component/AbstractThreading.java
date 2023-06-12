@@ -33,14 +33,6 @@ public abstract class AbstractThreading implements Zeze.IModule {
             service.AddFactoryHandle(47374259242978L, factoryHandle); // 11030, 769968098
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.QueryLockInfo.class, Zeze.Builtin.Threading.QueryLockInfo.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Threading.QueryLockInfo::new;
-            factoryHandle.Handle = this::ProcessQueryLockInfoRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessQueryLockInfoRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessQueryLockInfoRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47373607783577L, factoryHandle); // 11030, 118508697
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.ReadWriteLockOperate.class, Zeze.Builtin.Threading.ReadWriteLockOperate.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Threading.ReadWriteLockOperate::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessReadWriteLockOperateResponse", Zeze.Transaction.TransactionLevel.None);
@@ -73,7 +65,6 @@ public abstract class AbstractThreading implements Zeze.IModule {
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47375642163702L);
         service.getFactorys().remove(47374259242978L);
-        service.getFactorys().remove(47373607783577L);
         service.getFactorys().remove(47376860983435L);
         service.getFactorys().remove(47377757945276L);
         service.getFactorys().remove(47374374546810L);
@@ -88,6 +79,4 @@ public abstract class AbstractThreading implements Zeze.IModule {
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
-
-    protected abstract long ProcessQueryLockInfoRequest(Zeze.Builtin.Threading.QueryLockInfo r) throws Exception;
 }

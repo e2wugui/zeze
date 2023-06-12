@@ -1515,13 +1515,15 @@
 			</bean>
 
 			<rpc name="MutexTryLock" argument="BMutex" handle="server"/>
-			<rpc name="MutexUnlock" argument="BMutex" handle="server"/>
+			<rpc name="MutexUnlock" argument="BMutex" handle="server"/> 这个rpc实际上没有使用参数TimeoutMs
 
-			<bean name="BQueryLockInfo">
-				<variable id="1" name="LockNames"  type="list[BLockName]"/> 请求包含所有当前线程拥有的锁，结果是剩下的不存在的锁。
+			<bean name="BKeepAlive">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="AppSerialId" type="long"/>
 			</bean>
 
-			<rpc name="QueryLockInfo" argument="BQueryLockInfo" result="BQueryLockInfo" handle="client"/>
+			<!-- 由Client定时发送报告，Server发现AppSerialId发生变化或者超时，释放该ServerId所有的锁。 -->
+			<protocol name="KeepAlive" argument="BKeepAlive" handle="server"/>
 
 			<bean name="BSemaphore">
 				<variable id="1" name="LockName"  type="BLockName"/>
@@ -1529,9 +1531,9 @@
 				<variable id="3" name="TimeoutMs" type="int"/>
 			</bean>
 
-			<rpc name="SemaphoreCreate" argument="BSemaphore" handle="server"/>
+			<rpc name="SemaphoreCreate" argument="BSemaphore" handle="server"/> 这个rpc实际上没有使用参数TimeoutMs
 			<rpc name="SemaphoreTryAcquire" argument="BSemaphore" handle="server"/>
-			<rpc name="SemaphoreRelease" argument="BSemaphore" handle="server"/>
+			<rpc name="SemaphoreRelease" argument="BSemaphore" handle="server"/> 这个rpc实际上没有使用参数TimeoutMs
 
 			<enum name="eEnterRead"  value="0"/>
 			<enum name="eEnterWrite" value="1"/>
@@ -1541,7 +1543,7 @@
 			<bean name="BReadWriteLock">
 				<variable id="1" name="LockName"  type="BLockName"/>
 				<variable id="2" name="OperateType"   type="int"/> see enum above
-				<variable id="3" name="TimeoutMs" type="int"/>
+				<variable id="3" name="TimeoutMs" type="int"/> 部分操作实际上没有使用这个参数
 			</bean>
 
 			<rpc name="ReadWriteLockOperate" argument="BReadWriteLock" handle="server"/>

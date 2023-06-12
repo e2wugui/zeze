@@ -14,6 +14,14 @@ public class TestThreading {
 	}
 
 	@Test
+	public void TestTimeout() {
+		var threading = App.Instance.Zeze.getServiceManager().getThreading();
+		threading.openMutex("timeout_mutex").tryLock();
+		threading.createSemaphore("timeout_semaphore", 10).tryAcquire();
+		threading.openReadWriteLock("timeout_rwlock").tryEnterRead();
+	}
+
+	@Test
 	public void TestComputeIfPresent() {
 		var map = new HashMap<Integer, Integer>();
 		map.put(1, 1);

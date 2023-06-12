@@ -19,6 +19,14 @@ public abstract class AbstractThreadingServer implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.KeepAlive.class, Zeze.Builtin.Threading.KeepAlive.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Threading.KeepAlive::new;
+            factoryHandle.Handle = this::ProcessKeepAlive;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessKeepAlive", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessKeepAlive", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47374638673857L, factoryHandle); // 11030, 1149398977
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.MutexTryLock.class, Zeze.Builtin.Threading.MutexTryLock.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Threading.MutexTryLock::new;
             factoryHandle.Handle = this::ProcessMutexTryLockRequest;
@@ -33,13 +41,6 @@ public abstract class AbstractThreadingServer implements Zeze.IModule {
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessMutexUnlockRequest", Zeze.Transaction.TransactionLevel.None);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessMutexUnlockRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47374259242978L, factoryHandle); // 11030, 769968098
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.QueryLockInfo.class, Zeze.Builtin.Threading.QueryLockInfo.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Threading.QueryLockInfo::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessQueryLockInfoResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessQueryLockInfoResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47373607783577L, factoryHandle); // 11030, 118508697
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.ReadWriteLockOperate.class, Zeze.Builtin.Threading.ReadWriteLockOperate.TypeId_);
@@ -76,9 +77,9 @@ public abstract class AbstractThreadingServer implements Zeze.IModule {
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47374638673857L);
         service.getFactorys().remove(47375642163702L);
         service.getFactorys().remove(47374259242978L);
-        service.getFactorys().remove(47373607783577L);
         service.getFactorys().remove(47376860983435L);
         service.getFactorys().remove(47377757945276L);
         service.getFactorys().remove(47374374546810L);
@@ -94,6 +95,7 @@ public abstract class AbstractThreadingServer implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
+    protected abstract long ProcessKeepAlive(Zeze.Builtin.Threading.KeepAlive p) throws Exception;
     protected abstract long ProcessMutexTryLockRequest(Zeze.Builtin.Threading.MutexTryLock r) throws Exception;
     protected abstract long ProcessMutexUnlockRequest(Zeze.Builtin.Threading.MutexUnlock r) throws Exception;
     protected abstract long ProcessReadWriteLockOperateRequest(Zeze.Builtin.Threading.ReadWriteLockOperate r) throws Exception;

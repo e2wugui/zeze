@@ -9,7 +9,7 @@ public final class BReadWriteLock extends Zeze.Transaction.Bean implements BRead
 
     private Zeze.Builtin.Threading.BLockName _LockName;
     private int _OperateType; // see enum above
-    private int _TimeoutMs;
+    private int _TimeoutMs; // 部分操作实际上没有使用这个参数
 
     @Override
     public Zeze.Builtin.Threading.BLockName getLockName() {
@@ -290,7 +290,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private Zeze.Builtin.Threading.BLockName _LockName;
     private int _OperateType; // see enum above
-    private int _TimeoutMs;
+    private int _TimeoutMs; // 部分操作实际上没有使用这个参数
 
     public Zeze.Builtin.Threading.BLockName getLockName() {
         return _LockName;
