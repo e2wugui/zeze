@@ -960,6 +960,23 @@ public final class JsonWriter {
 			buf[pos++] = '-';
 			d = -d;
 		}
+		if (!Double.isFinite(d)) {
+			if (d == Double.POSITIVE_INFINITY) { // Infinity
+				buf[pos++] = 'I';
+				buf[pos++] = 'n';
+				buf[pos++] = 'f';
+				buf[pos++] = 'i';
+				buf[pos++] = 'n';
+				buf[pos++] = 'i';
+				buf[pos++] = 't';
+				buf[pos++] = 'y';
+			} else {
+				buf[pos++] = 'N';
+				buf[pos++] = 'a';
+				buf[pos++] = 'N';
+			}
+			return;
+		}
 		grisu2(d, maxDecimalPlaces);
 	}
 

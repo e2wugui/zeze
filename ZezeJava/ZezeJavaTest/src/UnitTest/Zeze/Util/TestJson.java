@@ -320,6 +320,11 @@ public final class TestJson extends TestCase {
 		assertEquals(0xdeaa, c[9]);
 	}
 
+	public void testF() throws ReflectiveOperationException {
+		var a = JsonReader.local().buf("[Infinity,-Infinity,Nan,0x1234567890abcdef,-0x1]").parse();
+		System.out.println(a);
+	}
+
 	public static void main(String[] args) throws ReflectiveOperationException {
 		TestJson t = new TestJson();
 		t.test1();
@@ -336,6 +341,7 @@ public final class TestJson extends TestCase {
 		t.testC();
 		t.testD();
 		t.testE();
-		System.out.println(t.getClass().getSimpleName() + ": 14 tests OK!");
+		t.testF();
+		System.out.println(t.getClass().getSimpleName() + ": 15 tests OK!");
 	}
 }

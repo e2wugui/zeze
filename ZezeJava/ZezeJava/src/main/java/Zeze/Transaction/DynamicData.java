@@ -22,12 +22,12 @@ public abstract class DynamicData extends Data {
 		setDataWithSpecialTypeId(toTypeId(data), data);
 	}
 
-	@Deprecated
+	@Deprecated // use getData
 	public @NotNull Data getBean() {
 		return data;
 	}
 
-	@Deprecated
+	@Deprecated // use setData
 	public void setBean(@Nullable Data data) {
 		setData(data);
 	}

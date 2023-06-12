@@ -18,9 +18,9 @@ JSON5 additional features:
  YES : Strings may be single quoted.
  YES : Strings may span multiple lines by escaping new line characters.
  YES : Strings may include character escapes.
-  NO : Numbers may be hexadecimal. 0xdecaf,-0XC0FFEE
+ YES : Numbers may be hexadecimal. 0xdecaf,-0XC0FFEE
  YES : Numbers may have a leading or trailing decimal point.
-  NO : Numbers may be IEEE 754 "Infinity", "-Infinity", and "NaN".
+ YES : Numbers may be IEEE 754 "Infinity", "-Infinity", and "NaN".
  YES : Numbers may begin with an explicit plus sign.
  YES : Single and multi-line comments are allowed.
   NO : Additional white space characters are allowed: \t,\n,\v(\x0b),\f(\x0c),\r, (\x20),\xa0,\u2028,\u2029,\uFEFF
@@ -315,7 +315,8 @@ public final class JsonReader {
 		case '[': return parseArray0(obj instanceof Collection ? (Collection<Object>) obj : null);
 		case '"': case '\'': return parseString(false);
 		case '0': case '1': case '2': case '3': case '4': case '5': case '6':
-		case '7': case '8': case '9': case '-': case '+': case '.': return parseNumber();
+		case '7': case '8': case '9': case '-': case '+': case '.':
+		case 'I': case 'i': case 'N': case 'n': return parseNumber();
 		case 'f': return false;
 		case 't': return true;
 		} //@formatter:on
@@ -1396,14 +1397,34 @@ public final class JsonReader {
 
 		try {
 			b = buffer[p];
-			if (b == '-') {
-				minus = true;
+			if (((b - '0') & 0xff) >= 10) {
+				if (b == '-') {
+					minus = true;
+					b = buffer[++p];
+				} else if (b == '+')
+					b = buffer[++p];
+				c = b | 0x20;
+				if (c == 'i' || c == 'n') { // Infinity NaN
+					do
+						b = buffer[++p];
+					while ((((b | 0x20) - 'a') & 0xff) < 26);
+					return c == 'n' ? Double.NaN : minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+				}
+			}
+			if (b == '0') {
 				b = buffer[++p];
-			} else if (b == '+')
-				b = buffer[++p];
-			if (b == '0')
-				b = buffer[++p];
-			else if ((i = (b - '0') & 0xff) < 10) {
+				if ((b | 0x20) == 'x') { // 0x
+					for (; ; ) {
+						b = buffer[++p];
+						if ((c = (b - '0') & 0xff) < 10)
+							i = i * 16 + c;
+						else if ((c = ((b | 0x20) - 'a') & 0xff) < 6)
+							i = i * 16 + c + 10;
+						else
+							break;
+					}
+				}
+			} else if ((i = (b - '0') & 0xff) < 10) {
 				while ((c = ((b = buffer[++p]) - '0') & 0xff) < 10) {
 					if (i >= 0xCCC_CCCC_CCCC_CCCCL && (i > 0xCCC_CCCC_CCCC_CCCCL || c > 7)) {
 						d = i; // 0xCCC_CCCC_CCCC_CCCC * 10 = 0x7FFF_FFFF_FFFF_FFF8
