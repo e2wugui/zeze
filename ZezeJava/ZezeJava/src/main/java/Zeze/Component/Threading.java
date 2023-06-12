@@ -197,7 +197,7 @@ public class Threading extends AbstractThreading {
 			r.Argument.setOperateType(operateType);
 			r.SendForWait(service.GetSocket()).await();
 			if (r.getResultCode() != 0)
-				logger.error("exit {} error={}", operateType, IModule.getErrorCode(r.getResultCode()));
+				logger.debug("exit {} hold={}", operateType, IModule.getErrorCode(r.getResultCode()));
 		}
 
 		public void exitRead() {
