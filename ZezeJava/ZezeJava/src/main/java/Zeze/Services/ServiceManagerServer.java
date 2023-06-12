@@ -158,7 +158,7 @@ public final class ServiceManagerServer implements Closeable {
 		public int retryNotifyDelayWhenNotAllReady = 30 * 1000;
 		public String dbHome = ".";
 
-		public long threadingReleaseTimeout = 1 * 60 * 1000;
+		public long threadingReleaseTimeout = 30 * 60 * 1000;
 
 		@Override
 		public String getName() {
