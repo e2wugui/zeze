@@ -3,7 +3,7 @@ apply from: '../../ZezeJava/build.gradle'
 dependencies {
     implementation project(":ZezeJava")
 
-    implementation 'org.jgrapht:jgrapht-core:1.5.1'
+    implementation 'org.jgrapht:jgrapht-core:1.5.2'
     implementation 'com.opencsv:opencsv:5.7.1'
 }
 
