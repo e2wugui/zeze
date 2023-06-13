@@ -6,7 +6,9 @@ import java.io.FileNotFoundException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -277,8 +279,11 @@ public final class RaftConfig {
 			node.save(xmlDocument, self);
 
 		if (null != xmlFileName) {
-			TransformerFactory.newInstance().newTransformer().transform(
-					new DOMSource(xmlDocument), new StreamResult(new File(xmlFileName)));
+			var factory = TransformerFactory.newInstance();
+			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+			var transformer = factory.newTransformer();
+			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+			transformer.transform(new DOMSource(xmlDocument), new StreamResult(new File(xmlFileName)));
 		}
 	}
 
@@ -357,7 +362,7 @@ public final class RaftConfig {
 		}
 	}
 
-	public static void main(String [] args) {
+	public static void main(String[] args) {
 		var conf = RaftConfig.loadFromSortedNames("-127.0.0.1:10004-127.0.0.1:10005-127.0.0.1:10006");
 		System.out.println(conf.getNodes());
 	}

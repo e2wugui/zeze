@@ -308,7 +308,7 @@ public abstract class AbstractAgent implements Closeable {
 			if (serviceInfosPending == null)
 				return; // 并发过来的Commit，只需要处理一个。
 			if (version.serialId != serviceInfosPending.getSerialId())
-				logger.warn("OnCommit {} {} != {}", getServiceName(), version.serialId, serviceInfosPending.getSerialId());
+				logger.warn("onCommit {} {} != {}", getServiceName(), version.serialId, serviceInfosPending.getSerialId());
 			serviceInfos = serviceInfosPending;
 			serviceInfosPending = null;
 			committed = true;

@@ -406,7 +406,7 @@ public final class ServiceManagerServer implements Closeable {
 	public static final class Session {
 		private final ServiceManagerServer serviceManager;
 		private final long sessionId;
-		private final ConcurrentHashSet<BServiceInfo> registers = new ConcurrentHashSet<>();
+		private final ConcurrentHashSet<BServiceInfo> registers = new ConcurrentHashSet<>(); // 以'服务名+ID'作为key的set
 		// key is ServiceName: 会话订阅
 		private final ConcurrentHashMap<String, BSubscribeInfo> subscribes = new ConcurrentHashMap<>();
 		private final Future<?> keepAliveTimerTask;

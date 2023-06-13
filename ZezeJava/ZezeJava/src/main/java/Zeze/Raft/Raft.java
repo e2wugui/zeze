@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -476,8 +477,7 @@ public final class Raft {
 						}
 						var pathDelete = Paths.get(raftConfig.getDbHome(),
 								LogSequence.snapshotFileName + ".installing." + e.getKey()).toString();
-						//noinspection ResultOfMethodCallIgnored
-						new File(pathDelete).delete();
+						Files.delete(Path.of(pathDelete));
 					}
 				}
 			}

@@ -709,8 +709,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					try (var rs = pre.executeQuery()) {
 						var count = 0L;
 						while (rs.next()) {
+							count++;
 							invokeCallback(table, rs, callback, null);
-							++count;
 							if (null != afterLock)
 								afterLock.run();
 						}
@@ -834,13 +834,13 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					try (var rs = pre.executeQuery()) {
 						var count = 0L;
 						while (rs.next()) {
+							count++;
 							var key = table.decodeKeyResultSet(rs);
 							var value = table.newValue();
 							var parents = new ArrayList<String>();
 							value.decodeResultSet(parents, rs);
 							if (!callback.handle(key, value))
 								break;
-							++count;
 						}
 						return count;
 					}
@@ -874,6 +874,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					var count = 0L;
 					try (var rs = cmd.executeQuery()) {
 						while (rs.next()) {
+							count++;
 							var key = table.decodeKeyResultSet(rs);
 							if (!callback.handle(key))
 								break;
@@ -1073,9 +1074,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					long count = 0;
 					try (var rs = cmd.executeQuery()) {
 						while (rs.next()) {
+							count++;
 							byte[] key = rs.getBytes(1);
 							byte[] value = rs.getBytes(2);
-							++count;
 							if (!callback.handle(key, value)) {
 								break;
 							}
@@ -1102,8 +1103,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					long count = 0;
 					try (var rs = cmd.executeQuery()) {
 						while (rs.next()) {
+							count++;
 							byte[] key = rs.getBytes(1);
-							++count;
 							if (!callback.handle(key)) {
 								break;
 							}

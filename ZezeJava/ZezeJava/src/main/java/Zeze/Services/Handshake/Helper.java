@@ -4,7 +4,7 @@ import java.math.BigInteger;
 import java.security.SecureRandom;
 
 public final class Helper {
-	private static final BigInteger dh_g = new BigInteger("2");
+	private static final BigInteger dh_g = BigInteger.valueOf(2);
 	@SuppressWarnings("SpellCheckingInspection")
 	private static final BigInteger[] dh_group = new BigInteger[]{
 			BigInteger.ZERO

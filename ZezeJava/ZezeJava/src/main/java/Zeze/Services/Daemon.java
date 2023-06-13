@@ -10,6 +10,8 @@ import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.Future;
@@ -300,8 +302,7 @@ public class Daemon {
 				logger.error("File.close", e);
 			}
 			try {
-				//noinspection ResultOfMethodCallIgnored
-				new File(fileName).delete(); // try delete
+				Files.delete(Path.of(fileName)); // try delete
 			} catch (Exception ignored) {
 			}
 		}

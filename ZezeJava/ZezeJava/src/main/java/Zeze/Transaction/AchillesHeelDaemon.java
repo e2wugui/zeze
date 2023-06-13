@@ -11,6 +11,7 @@ import java.net.SocketTimeoutException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import Zeze.Application;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Daemon;
@@ -284,8 +285,7 @@ public class AchillesHeelDaemon {
 				logger.error("UdpSocket.close", e);
 			}
 			try {
-				//noinspection ResultOfMethodCallIgnored
-				new File(fileName).delete(); // try delete
+				Files.delete(Path.of(fileName)); // try delete
 			} catch (Exception ignored) {
 			}
 		}

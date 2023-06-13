@@ -8,7 +8,7 @@ public final class BSubscribeInfo extends Bean {
 	public static final int SubscribeTypeReadyCommit = 1;
 
 	private String serviceName;
-	private int subscribeType;
+	private int subscribeType; // 见上面定义的枚举
 	private Object localState;
 
 	public String getServiceName() {

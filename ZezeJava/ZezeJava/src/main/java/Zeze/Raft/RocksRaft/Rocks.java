@@ -306,18 +306,18 @@ public final class Rocks extends StateMachine implements Closeable {
 	public static void createZipFromDirectory(String sourceDir, String zipFilePath) throws IOException {
 		try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFilePath))) {
 			Path sourcePath = Paths.get(sourceDir);
-			Files.walk(sourcePath)
-					.filter(path -> !Files.isDirectory(path))
-					.forEach(path -> {
-						ZipEntry ze = new ZipEntry(sourcePath.relativize(path).toString());
-						try {
-							zos.putNextEntry(ze);
-							Files.copy(path, zos);
-							zos.closeEntry();
-						} catch (IOException e) {
-							throw new RuntimeException(e);
-						}
-					});
+			try (var stream = Files.walk(sourcePath)) {
+				stream.filter(path -> !Files.isDirectory(path)).forEach(path -> {
+					ZipEntry ze = new ZipEntry(sourcePath.relativize(path).toString());
+					try {
+						zos.putNextEntry(ze);
+						Files.copy(path, zos);
+						zos.closeEntry();
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				});
+			}
 		}
 	}
 

@@ -174,10 +174,7 @@ public final class Agent extends AbstractAgent {
 		r.Argument.serviceName = serviceName;
 		r.Argument.serialId = serialId;
 		var s = client.getSocket();
-		if (s != null) {
-			return s.Send(r);
-		}
-		return false;
+		return s != null && s.Send(r);
 	}
 
 	public void onConnected() {

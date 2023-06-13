@@ -6,7 +6,7 @@ import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
 public final class BLockName implements Serializable, Comparable<BLockName> {
-    private Zeze.Builtin.Threading.BGlobalThreadId _GlobalThreadId;
+    private final Zeze.Builtin.Threading.BGlobalThreadId _GlobalThreadId;
     private String _Name;
 
     // for decode only
