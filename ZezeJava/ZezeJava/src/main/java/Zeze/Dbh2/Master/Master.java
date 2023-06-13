@@ -12,6 +12,7 @@ import Zeze.Builtin.Dbh2.Master.CheckFreeManager;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
+import Zeze.Builtin.Dbh2.Master.EndMove;
 import Zeze.Builtin.Dbh2.Master.EndSplit;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.LocateBucket;
@@ -240,6 +241,14 @@ public class Master extends AbstractMaster {
 		if (null == database)
 			return errorCode(eDatabaseNotFound);
 		return database.createSplitBucket(r);
+	}
+
+	@Override
+	protected long ProcessEndMoveRequest(EndMove r) throws Exception {
+		var database = databases.get(r.Argument.getTo().getDatabaseName());
+		if (null == database)
+			return errorCode(eDatabaseNotFound);
+		return database.endMove(r);
 	}
 
 	@Override

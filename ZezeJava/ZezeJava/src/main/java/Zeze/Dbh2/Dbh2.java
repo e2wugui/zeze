@@ -422,7 +422,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		}
 	}
 
-	public void tryStartSplit() throws Exception {
+	public void tryStartSplit(boolean isMove) throws Exception {
 		if (!raft.isLeader())
 			return;
 
@@ -433,7 +433,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			return; // splitting
 		}
 
-		startSplit();
+		startSplit(isMove);
 	}
 
 	private void onFollowerReceiveKeepAlive() {
@@ -447,18 +447,41 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 		stateMachine.setLoadSwitch(true);
 		var bucket = stateMachine.getBucket();
-		if (null != bucket.getSplittingMeta())
-			startSplit();
+		if (null != bucket.getSplittingMeta()) {
+			var bucketKeyFirst = bucket.getSplittingMeta().getKeyFirst();
+			boolean isMove = bucketKeyFirst.size() == 0; // keyFirst 为空肯定是move
+			if (!isMove) {
+				// keyFirst不为空，还不能确认就是split，需要进一步判断keyFirst确实是第一条数据。
+				try (var it = bucket.getData().iterator()) {
+					it.seekToFirst();
+					// keyFirst 就是第一条数据，那么当前还是move。
+					isMove = it.isValid() && bucketKeyFirst.equals(it.key());
+				}
+			}
+			startSplit(isMove);
+		}
 	}
 
 	private volatile long splitSerialNo;
 	private volatile Dbh2Agent dbh2Splitting;
+
+	private RocksIterator locateFirst() {
+		var bucket = stateMachine.getBucket();
+		var it = bucket.getData().iterator();
+		it.seekToFirst();
+		if (it.isValid())
+			return it;
+		it.close();
+		return null;
+	}
 
 	private RocksIterator locateMiddle() throws RocksDBException {
 		var bucket = stateMachine.getBucket();
 		var it = bucket.getData().iterator();
 		var keyNumbers = bucket.getData().getKeyNumbers();
 		var count = keyNumbers / 2;
+		if (count <= 0) // 这里可以考虑配置一个较大的值，即记录数很少的时候不分桶。
+			return null;
 		for (it.seekToFirst(); it.isValid() && count > 0; it.next(), --count) {
 			// searching middle
 		}
@@ -495,7 +518,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	// 开始分桶流程有两个线程需要访问：timer & raft.UserThreadExecutor
-	private synchronized void startSplit() throws Exception {
+	private synchronized void startSplit(boolean isMove) throws Exception {
 		if (!getRaft().isLeader())
 			return;
 
@@ -514,12 +537,19 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 					logger.warn("not enough free manager.");
 					return;
 				}
-				var metaCopy = bucket.getBucketMeta().copy();
-				bucket.getData().compact(); // 上一次分桶结束的deleteRange可能还没compact，此时keyNumbers不准确，这里总是执行一次。
-				it = locateMiddle();
-				metaCopy.setKeyFirst(new Binary(it.key()));
-				metaCopy.setRaftConfig("");
-				splitting = manager.getMasterAgent().createSplitBucket(metaCopy);
+				// 上一次分桶结束的deleteRange可能还没compact，此时keyNumbers不准确，这里总是执行一次。
+				bucket.getData().compact();
+
+				it = isMove ? locateFirst() : locateMiddle();
+				if (null == it) {
+					logger.info("splitting break start: it is null.");
+					return; // empty？不需要执行后续操作。break progress.
+				}
+				var newMeta = stateMachine.getBucket().getBucketMeta().copy();
+				newMeta.setRaftConfig("");
+				if (!isMove)
+					newMeta.setKeyFirst(new Binary(it.key()));
+				splitting = manager.getMasterAgent().createSplitBucket(newMeta);
 
 				// 设置分桶进行中的标记到raft集群中。
 				getRaft().appendLog(new LogSetSplittingMeta(splitting));
@@ -538,14 +568,18 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 			if (null == it) {
 				// 重新开始分桶时走这个分支，根据上次找到的middle，定位it。
-				it = locateMiddle(splitting.getKeyFirst());
+				it = isMove ? locateFirst() : locateMiddle(splitting.getKeyFirst());
+				if (null == it) {
+					logger.info("splitting break restart: it is null.");
+					return;
+				}
 				logger.info("splitting restart... {}->{}", formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
 			}
 
 			// 开始同步数据，这个阶段对于rocks时同步访问的，对于网络是异步的。
 			var puts = buildSplitPut(it);
 			var fit = it;
-			dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext((SplitPut)p, fit, serialNo));
+			dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, fit, serialNo));
 			it = null;
 		} finally {
 			if (null != it)
@@ -563,18 +597,18 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		return r;
 	}
 
-	public long splitPutNext(SplitPut r, RocksIterator it, long serialNo) {
+	public long splitPutNext(boolean isMove, SplitPut r, RocksIterator it, long serialNo) {
 		try {
 			var hasError = r.getResultCode() != 0;
 			if (!raft.isLeader() || dbh2Splitting == null || serialNo != splitSerialNo) {
 				it.close();
 				if (hasError)
-					startSplit();
+					startSplit(isMove);
 				return 0;
 			}
 
 			if (hasError) {
-				startSplit();
+				startSplit(isMove);
 				return 0;
 			}
 
@@ -582,18 +616,18 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (puts.Argument.getPuts().isEmpty()) {
 				it.close();
 
-				blockPrepareUntilNoTransaction();
+				blockPrepareUntilNoTransaction(isMove);
 				return 0; // split done.
 			}
 
-			dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext((SplitPut)p, it, serialNo));
+			dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, it, serialNo));
 		} catch (Exception ex) {
 			logger.error("", ex);
 		}
 		return 0;
 	}
 
-	private void blockPrepareUntilNoTransaction() {
+	private void blockPrepareUntilNoTransaction(boolean isMove) {
 		var meta = stateMachine.getBucket().getBucketMeta();
 		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
 		logger.info("splitting end ... {}->{}", formatMeta(meta), formatMeta(splittingMeta));
@@ -604,55 +638,60 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 		// 设置一个超时，每秒放行一次。
 		Task.scheduleUnsafe(1000,
-				() -> getRaft().getUserThreadExecutor().execute(this::consumePrepareAndBlockAgain));
+				() -> getRaft().getUserThreadExecutor().execute(() -> consumePrepareAndBlockAgain(isMove)));
 
 		// 在队列中增加endSplit启动任务，先要处理完队列中的请求。
 		// 此时PrepareBatch已经被拦截，但是还有CommitBatch,UndoBatch等其他请求在处理。
 		// setupHandleIfNoTransaction 将在没有进行中的事务时触发。
 		getRaft().getUserThreadExecutor().execute(() ->
-				stateMachine.setupOneShotIfNoTransaction(this::endSplit0));
+				stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove)));
 	}
 
-	private void consumePrepareAndBlockAgain() {
+	private void consumePrepareAndBlockAgain(boolean isMove) {
 		if (stateMachine.hasNoTransactionHandle()) {
 			// 还在等待事务清空，此时...
 			// 处理一下累积的Prepare请求，暂时放行一下。
 			var server = (Dbh2RaftServer)getRaft().getServer();
 			performPrepareQueue(server.takePrepareQueue());
-			blockPrepareUntilNoTransaction();
+			blockPrepareUntilNoTransaction(isMove);
 		}
 	}
 
-	private void endSplit0() {
+	private void endSplit0(boolean isMove) {
 		// 第一步，设置新桶的meta
-		dbh2Splitting.setBucketMetaAsync(stateMachine.getBucket().getSplittingMeta(), this::endSplit1);
+		dbh2Splitting.setBucketMetaAsync(stateMachine.getBucket().getSplittingMeta(), (p) -> endSplit1(p, isMove));
 	}
 
-	private long endSplit1(Protocol<?> p) {
+	private long endSplit1(Protocol<?> p, boolean isMove) {
 		var r = (SetBucketMeta)p;
 		if (r.getResultCode() != 0) {
 			try {
-				startSplit();
+				startSplit(isMove);
 			} catch (Exception e) {
 				logger.error("", e);
 			}
 			return 0;
 		}
 
-		// 【原子化】设置源桶状态（修改源桶Meta；保存新桶Meta到历史中；删除分桶Meta）。
 		var bucket = stateMachine.getBucket();
-		var from = bucket.getBucketMeta().copy();
-		var to = bucket.getSplittingMeta();
-		from.setKeyLast(to.getKeyFirst());
-
-		getRaft().appendLog(new LogEndSplit(from, to), this::endSplit2);
+		if (isMove) {
+			getRaft().appendLog(new LogEndMove(bucket.getSplittingMeta()),
+					(raftLog, result) -> endSplit2(raftLog, result, true));
+		} else {
+			// 【原子化】设置源桶状态（修改源桶Meta；保存新桶Meta到历史中；删除分桶Meta）。
+			var from = bucket.getBucketMeta().copy();
+			var to = bucket.getSplittingMeta();
+			from.setKeyLast(to.getKeyFirst());
+			getRaft().appendLog(new LogEndSplit(from, to),
+					(raftLog, result) -> endSplit2(raftLog, result, false));
+		}
 		return 0;
 	}
 
-	private void endSplit2(RaftLog raftLog, Boolean result) {
+	private void endSplit2(RaftLog raftLog, Boolean result, boolean isMove) {
 		if (!result) {
 			try {
-				startSplit();
+				startSplit(isMove);
 			} catch (Exception e) {
 				logger.error("", e);
 			}
@@ -673,11 +712,17 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		}
 		dbh2Splitting = null;
 
-		// 可以安全的发布新旧桶的信息到Master了。
-		var endSplit = (LogEndSplit)raftLog.getLog();
-		manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo());
 		var meta = stateMachine.getBucket().getBucketMeta();
-		logger.info("splitting end done. {}", formatMeta(meta));
+		if (isMove) {
+			var endMove = (LogEndMove)raftLog.getLog();
+			manager.getMasterAgent().endMoveWithRetryAsync(endMove.getTo());
+			logger.info("splitting end move. {}", formatMeta(meta));
+		} else {
+			// 可以安全的发布新旧桶的信息到Master了。
+			var endSplit = (LogEndSplit)raftLog.getLog();
+			manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo());
+			logger.info("splitting end done. {}", formatMeta(meta));
+		}
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {
@@ -702,7 +747,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		dbh2Splitting.getRaftAgent().send(r, (p) -> {
 			try {
 				if (r.getResultCode() != 0)
-					startSplit(); // restart split.
+					recoverSplitting(); // restart split.
 				return 0;
 			} catch (Exception ex) {
 				logger.error("", ex);

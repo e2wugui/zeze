@@ -115,6 +115,13 @@ public class Bucket {
 		this.splittingMeta = meta;
 	}
 
+	public void addMoveMetaHistory(BBucketMeta.Data to) throws RocksDBException {
+		this.splitMetaHistory.getBuckets().put(to.getKeyFirst(), to);
+		var bb = ByteBuffer.Allocate();
+		this.splitMetaHistory.encode(bb);
+		meta.put(writeOptions, metaSplitKeyHistory, 0, metaSplitKeyHistory.length, bb.Bytes, 0, bb.WriteIndex);
+	}
+
 	public void addSplitMetaHistory(BBucketMeta.Data from, BBucketMeta.Data to) throws RocksDBException {
 		this.splitMetaHistory.getBuckets().put(from.getKeyFirst(), from);
 		this.splitMetaHistory.getBuckets().put(to.getKeyFirst(), to);

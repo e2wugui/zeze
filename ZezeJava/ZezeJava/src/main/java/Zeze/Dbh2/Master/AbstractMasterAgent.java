@@ -58,6 +58,13 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
             service.AddFactoryHandle(47363344664675L, factoryHandle); // 11027, -1554675613
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.EndMove.class, Zeze.Builtin.Dbh2.Master.EndMove.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.EndMove::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessEndMoveResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessEndMoveResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47362660475482L, factoryHandle); // 11027, 2056102490
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.EndSplit.class, Zeze.Builtin.Dbh2.Master.EndSplit.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.EndSplit::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessEndSplitResponse", Zeze.Transaction.TransactionLevel.None);
@@ -107,6 +114,7 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
         service.getFactorys().remove(47361973054464L);
         service.getFactorys().remove(47362664777370L);
         service.getFactorys().remove(47363344664675L);
+        service.getFactorys().remove(47362660475482L);
         service.getFactorys().remove(47363904457956L);
         service.getFactorys().remove(47363118214025L);
         service.getFactorys().remove(47363709711447L);

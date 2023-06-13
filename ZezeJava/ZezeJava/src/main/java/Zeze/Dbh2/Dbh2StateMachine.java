@@ -20,6 +20,7 @@ import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 
 public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private static final Logger logger = LogManager.getLogger(Dbh2StateMachine.class);
@@ -128,6 +129,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogEndSplit.TypeId_, LogEndSplit::new);
 		super.addFactory(LogSetSplittingMeta.TypeId_, LogSetSplittingMeta::new);
 		super.addFactory(LogSplitPut.TypeId_, LogSplitPut::new);
+
+		super.addFactory(LogEndMove.TypeId_, LogEndMove::new);
 	}
 
 	public void setupOneShotIfNoTransaction(Runnable handle) {
@@ -213,19 +216,44 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
+	private static final Binary emptyBucketMetaKey = new Binary(new byte[] {1} );
+
+	private void deleteToEnd(RocksIterator it) throws RocksDBException {
+		if (it.isValid()) {
+			var first = it.key();
+			it.seekToLast();
+			if (it.isValid()) {
+				var last = it.key();
+				// deleteRange 不包含last，需要制造一个比当前last后面的key。
+				last = Arrays.copyOf(last, last.length + 1);
+				bucket.getData().deleteRange(first, last);
+			}
+		}
+	}
+
+	public void endMove(BBucketMeta.Data to) {
+		try (var it = bucket.getData().iterator()){
+			it.seekToFirst();
+			deleteToEnd(it);
+
+			// 被移走的桶Meta置空（使用相同的非空key）。
+			// 将会拒绝所有对这个桶的访问。
+			var emptyMeta = bucket.getBucketMeta().copy();
+			emptyMeta.setKeyFirst(emptyBucketMetaKey);
+			emptyMeta.setKeyLast(emptyBucketMetaKey);
+			bucket.setBucketMeta(emptyMeta);
+			bucket.addMoveMetaHistory(to);
+			bucket.deleteSplittingMeta();
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
+		}
+	}
+
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
 		try (var it = bucket.getData().iterator()){
 			it.seek(from.getKeyLast().copyIf());
-			if (it.isValid()) {
-				var first = it.key();
-				it.seekToLast();
-				if (it.isValid()) {
-					var last = it.key();
-					// deleteRange 不包含last，需要制造一个比当前last后面的key。
-					last = Arrays.copyOf(last, last.length + 1);
-					bucket.getData().deleteRange(first, last);
-				}
-			}
+			deleteToEnd(it);
 			bucket.setBucketMeta(from);
 			bucket.addSplitMetaHistory(from, to);
 			bucket.deleteSplittingMeta();

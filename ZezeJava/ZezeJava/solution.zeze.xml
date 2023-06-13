@@ -1366,6 +1366,11 @@
 				</bean>
 				<rpc name="EndSplit" argument="BEndSplit" UseData="true" handle="server"/>
 
+				<bean name="BEndMove">
+					<variable id="1" name="To" type="Zeze.Builtin.Dbh2.BBucketMeta"/>
+				</bean>
+				<rpc name="EndMove" argument="BEndMove" UseData="true" handle="server"/>
+
 				<rpc name="CheckFreeManager" result="BBucketCount" UseData="true" handle="server"/>
 			</module>
 

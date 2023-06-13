@@ -150,7 +150,7 @@ public class Dbh2Manager {
 		}
 		masterAgent.reportLoad(loadManager);
 		for (var split : willSplit)
-			split.tryStartSplit(); // 允许重复调用，里面需要去重。
+			split.tryStartSplit(false); // 允许重复调用，里面需要去重。
 	}
 
 	public void stop() throws Exception {

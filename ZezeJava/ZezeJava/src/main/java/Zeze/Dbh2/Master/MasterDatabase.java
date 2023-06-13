@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
+import Zeze.Builtin.Dbh2.Master.EndMove;
 import Zeze.Builtin.Dbh2.Master.EndSplit;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
@@ -175,6 +176,43 @@ public class MasterDatabase {
 		} finally {
 			agent.close();
 		}
+	}
+
+	public long endMove(EndMove r) throws Exception {
+		var tableName = r.Argument.getTo().getTableName();
+		var table = tables.get(tableName);
+		if (null == table)
+			return master.errorCode(Master.eTableNotFound);
+
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (table) {
+			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
+			var bucketNew = r.Argument.getTo();
+			var bucket = splitting.buckets.get(bucketNew.getKeyFirst());
+			if (bucket != null
+					&& bucket.getDatabaseName().equals(bucketNew.getDatabaseName())
+					&& bucket.getTableName().equals(bucketNew.getTableName())
+					&& bucket.getKeyFirst().equals(bucketNew.getKeyFirst())
+					&& bucket.getKeyLast().equals(bucketNew.getKeyLast())
+			) {
+				splitting.buckets.remove(bucketNew.getKeyFirst());
+				table.buckets.put(bucketNew.getKeyFirst(), bucketNew);
+
+				try (var batch = rocksDb.newBatch()) {
+					var bbTable = table.encode();
+					var bbSplitting = splitting.encode();
+					var key = tableName.getBytes(StandardCharsets.UTF_8);
+					rocksTables.put(batch, key, 0, key.length,
+							bbTable.Bytes, bbTable.ReadIndex, bbTable.size());
+					rocksSplitting.put(batch, key, 0, key.length,
+							bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
+					batch.commit();
+				}
+				r.SendResult();
+				return 0;
+			}
+		}
+		return master.errorCode(Master.eSplittingBucketNotFound);
 	}
 
 	public long endSplit(EndSplit r) throws Exception {

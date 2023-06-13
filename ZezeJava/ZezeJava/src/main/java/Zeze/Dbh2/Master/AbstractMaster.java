@@ -61,6 +61,14 @@ public abstract class AbstractMaster implements Zeze.IModule {
             service.AddFactoryHandle(47363344664675L, factoryHandle); // 11027, -1554675613
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.EndMove.class, Zeze.Builtin.Dbh2.Master.EndMove.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.EndMove::new;
+            factoryHandle.Handle = this::ProcessEndMoveRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessEndMoveRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessEndMoveRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47362660475482L, factoryHandle); // 11027, 2056102490
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.EndSplit.class, Zeze.Builtin.Dbh2.Master.EndSplit.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.EndSplit::new;
             factoryHandle.Handle = this::ProcessEndSplitRequest;
@@ -116,6 +124,7 @@ public abstract class AbstractMaster implements Zeze.IModule {
         service.getFactorys().remove(47361973054464L);
         service.getFactorys().remove(47362664777370L);
         service.getFactorys().remove(47363344664675L);
+        service.getFactorys().remove(47362660475482L);
         service.getFactorys().remove(47363904457956L);
         service.getFactorys().remove(47363118214025L);
         service.getFactorys().remove(47363709711447L);
@@ -137,6 +146,7 @@ public abstract class AbstractMaster implements Zeze.IModule {
     protected abstract long ProcessCreateDatabaseRequest(Zeze.Builtin.Dbh2.Master.CreateDatabase r) throws Exception;
     protected abstract long ProcessCreateSplitBucketRequest(Zeze.Builtin.Dbh2.Master.CreateSplitBucket r) throws Exception;
     protected abstract long ProcessCreateTableRequest(Zeze.Builtin.Dbh2.Master.CreateTable r) throws Exception;
+    protected abstract long ProcessEndMoveRequest(Zeze.Builtin.Dbh2.Master.EndMove r) throws Exception;
     protected abstract long ProcessEndSplitRequest(Zeze.Builtin.Dbh2.Master.EndSplit r) throws Exception;
     protected abstract long ProcessGetBucketsRequest(Zeze.Builtin.Dbh2.Master.GetBuckets r) throws Exception;
     protected abstract long ProcessLocateBucketRequest(Zeze.Builtin.Dbh2.Master.LocateBucket r) throws Exception;

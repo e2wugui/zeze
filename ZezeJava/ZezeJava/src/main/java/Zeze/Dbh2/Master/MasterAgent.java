@@ -6,6 +6,7 @@ import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
+import Zeze.Builtin.Dbh2.Master.EndMove;
 import Zeze.Builtin.Dbh2.Master.EndSplit;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.Register;
@@ -145,6 +146,19 @@ public class MasterAgent extends AbstractMasterAgent {
 		r.SendForWait(service.GetSocket()).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
+	}
+
+	public void endMoveWithRetryAsync(BBucketMeta.Data to) {
+		var r = new EndMove();
+		r.Argument.setTo(to);
+		if (!r.Send(service.GetSocket(), (p) -> {
+			if (p.getResultCode() != 0) {
+				Task.schedule(30_000, () -> endMoveWithRetryAsync(to));
+			}
+			return 0;
+		})) {
+			Task.schedule(30_000, () -> endMoveWithRetryAsync(to));
+		}
 	}
 
 	public void endSplitWithRetryAsync(BBucketMeta.Data from, BBucketMeta.Data to) {
