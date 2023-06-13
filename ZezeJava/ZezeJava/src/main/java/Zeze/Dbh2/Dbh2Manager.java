@@ -160,7 +160,7 @@ public class Dbh2Manager {
 			for (var split : willSplit) {
 				split.tryStartSplit(false); // 允许重复调用，里面需要去重。
 			}
-		} else if (null != maxLoadDbh2 && loadManager > maxLoadDbh2.getDbh2Config().getSplitMaxManagerLoad()) {
+		} else if (null != maxLoadDbh2 && loadManager > maxLoadDbh2.getDbh2Config().getSplitMaxManagerLoad() * 0.6) {
 			// 没有分桶，但是总负载达到，则把当前负载最大的桶迁移走。
 			maxLoadDbh2.tryStartSplit(true);
 		}
