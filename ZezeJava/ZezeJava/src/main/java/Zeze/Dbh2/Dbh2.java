@@ -534,7 +534,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
 				// 先去manager查一下可用的manager是否够，简单判断，不原子化。
 				if (manager.getMasterAgent().checkFreeManager() < dbh2Config.getRaftClusterCount()) {
-					logger.warn("not enough free manager.");
+					logger.warn("not enough free manager. isMove={}", isMove);
 					return;
 				}
 				// 上一次分桶结束的deleteRange可能还没compact，此时keyNumbers不准确，这里总是执行一次。
@@ -542,7 +542,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 				it = isMove ? locateFirst() : locateMiddle();
 				if (null == it) {
-					logger.info("splitting break start: it is null.");
+					logger.info("splitting break start: it is null. isMove={}", isMove);
 					return; // empty？不需要执行后续操作。break progress.
 				}
 				var newMeta = stateMachine.getBucket().getBucketMeta().copy();
@@ -554,7 +554,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 设置分桶进行中的标记到raft集群中。
 				getRaft().appendLog(new LogSetSplittingMeta(splitting));
 				// 创建到分桶目标的客户端。
-				logger.info("splitting start... {}->{}", formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
+				logger.info("splitting start... isMove={}{}->{}",
+						isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
 			}
 
 			// 重启的时候，需要重建到分桶的连接。
@@ -570,10 +571,11 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 重新开始分桶时走这个分支，根据上次找到的middle，定位it。
 				it = isMove ? locateFirst() : locateMiddle(splitting.getKeyFirst());
 				if (null == it) {
-					logger.info("splitting break restart: it is null.");
+					logger.info("splitting break restart: it is null. isMove={}", isMove);
 					return;
 				}
-				logger.info("splitting restart... {}->{}", formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
+				logger.info("splitting restart... isMove={} {}->{}",
+						isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
 			}
 
 			// 开始同步数据，这个阶段对于rocks时同步访问的，对于网络是异步的。
@@ -622,7 +624,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 			dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, it, serialNo));
 		} catch (Exception ex) {
-			logger.error("", ex);
+			logger.error("isMove={}", isMove, ex);
 		}
 		return 0;
 	}
@@ -630,7 +632,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private void blockPrepareUntilNoTransaction(boolean isMove) {
 		var meta = stateMachine.getBucket().getBucketMeta();
 		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
-		logger.info("splitting end ... {}->{}", formatMeta(meta), formatMeta(splittingMeta));
+		logger.info("splitting end ... isMove={} {}->{}",
+				isMove, formatMeta(meta), formatMeta(splittingMeta));
 
 		// 截住新的事务请求。
 		var server = (Dbh2RaftServer)getRaft().getServer();
@@ -668,7 +671,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			try {
 				startSplit(isMove);
 			} catch (Exception e) {
-				logger.error("", e);
+				logger.error("isMove={}", isMove, e);
 			}
 			return 0;
 		}
@@ -693,7 +696,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			try {
 				startSplit(isMove);
 			} catch (Exception e) {
-				logger.error("", e);
+				logger.error("isMove={}", isMove, e);
 			}
 			return;
 		}
@@ -716,13 +719,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		if (isMove) {
 			var endMove = (LogEndMove)raftLog.getLog();
 			manager.getMasterAgent().endMoveWithRetryAsync(endMove.getTo());
-			logger.info("splitting end move. {}", formatMeta(meta));
 		} else {
 			// 可以安全的发布新旧桶的信息到Master了。
 			var endSplit = (LogEndSplit)raftLog.getLog();
 			manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo());
-			logger.info("splitting end done. {}", formatMeta(meta));
 		}
+		logger.info("splitting end done. isMove={} {}", isMove, formatMeta(meta));
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {
