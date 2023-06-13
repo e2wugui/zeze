@@ -317,8 +317,8 @@ public final class JsonReader {
 		case '0': case '1': case '2': case '3': case '4': case '5': case '6':
 		case '7': case '8': case '9': case '-': case '+': case '.':
 		case 'I': case 'i': case 'N': case 'n': return parseNumber();
-		case 'f': return false;
-		case 't': return true;
+		case 'f': case 'F': return false;
+		case 't': case 'T': return true;
 		} //@formatter:on
 		return null;
 	}

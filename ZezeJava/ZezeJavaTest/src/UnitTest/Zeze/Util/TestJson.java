@@ -321,7 +321,7 @@ public final class TestJson extends TestCase {
 	}
 
 	public void testF() throws ReflectiveOperationException {
-		Object o = JsonReader.local().buf("[Infinity,-Infinity,Nan,0x1234567890abcdef,-0x1]").parse();
+		Object o = JsonReader.local().buf("[Infinity,-Infinity,NaN,0x1234567890abcdef,-0x1]").parse();
 		assertNotNull(o);
 		assertEquals(ArrayList.class, o.getClass());
 		ArrayList<?> a = (ArrayList<?>)o;

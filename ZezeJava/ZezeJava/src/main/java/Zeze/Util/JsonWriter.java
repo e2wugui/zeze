@@ -755,9 +755,8 @@ public final class JsonWriter {
 		}
 	}
 
-	void grisu2(final double d, final int maxDecimalPlaces) {
+	void grisu2(long f, final int maxDecimalPlaces) { // f = Double.doubleToRawLongBits(d)
 		// {f,e}.reset(d)
-		long f = Double.doubleToRawLongBits(d);
 		int e = (int)(f >>> DOUBLE_SIGNIFICAND_SIZE); // [0,0x3ff]
 		f &= DOUBLE_SIGNIFICAND_MASK; // [0,1e52)
 		if (e != 0) {
@@ -946,22 +945,20 @@ public final class JsonWriter {
 		buf[pos++] = (byte)('0' + k % 10);
 	}
 
-	public void write(double d, final int maxDecimalPlaces) {
-		final long u = Double.doubleToRawLongBits(d);
+	public void write(final double d, final int maxDecimalPlaces) {
+		long u = Double.doubleToRawLongBits(d);
 		if ((u & (DOUBLE_EXP_MASK | DOUBLE_SIGNIFICAND_MASK)) == 0) { // d == 0
-			if ((u & DOUBLE_SIGN_MASK) != 0)
+			if ((u & DOUBLE_SIGN_MASK) != 0) // d < 0
 				buf[pos++] = '-';
 			buf[pos++] = '0';
 			buf[pos++] = '.';
 			buf[pos++] = '0';
 			return;
 		}
-		if (d < 0) {
-			buf[pos++] = '-';
-			d = -d;
-		}
-		if (!Double.isFinite(d)) {
-			if (d == Double.POSITIVE_INFINITY) { // Infinity
+		if ((u & DOUBLE_EXP_MASK) == DOUBLE_EXP_MASK) { // !Double.isFinite()
+			if ((u & DOUBLE_SIGNIFICAND_MASK) == 0) { // Double.isInfinite()
+				if ((u & DOUBLE_SIGN_MASK) != 0) // d < 0
+					buf[pos++] = '-';
 				buf[pos++] = 'I';
 				buf[pos++] = 'n';
 				buf[pos++] = 'f';
@@ -977,7 +974,11 @@ public final class JsonWriter {
 			}
 			return;
 		}
-		grisu2(d, maxDecimalPlaces);
+		if ((u & DOUBLE_SIGN_MASK) != 0) { // d < 0
+			buf[pos++] = '-';
+			u &= (DOUBLE_EXP_MASK | DOUBLE_SIGNIFICAND_MASK); // d = Math.abs(d)
+		}
+		grisu2(u, maxDecimalPlaces);
 	}
 
 	public void write(final double d) {
