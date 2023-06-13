@@ -386,18 +386,14 @@ public class ThreadingServer extends AbstractThreadingServer {
                 (This) -> {
                     var semaphoreAcq = This.semaphoreRefs.get(r.Argument.getLockName().getName());
                     if (null != semaphoreAcq) {
-                        if (r.Argument.getPermits() > semaphoreAcq.permits) {
-                            logger.error("semaphore.release(thread=({}, {}), name={})",
-                                    r.Argument.getLockName().getGlobalThreadId().getServerId(),
-                                    r.Argument.getLockName().getGlobalThreadId().getThreadId(),
-                                    r.Argument.getLockName().getName());
-                            r.SendResultCode(Procedure.LogicError);
-                            return; // done
-                        }
                         semaphoreAcq.semaphore.release(r.Argument.getPermits());
                         semaphoreAcq.permits -= r.Argument.getPermits();
-                        if (semaphoreAcq.permits == 0)
+                        if (semaphoreAcq.permits <= 0) {
+                            // 马上要删除了，这个值本来不需要重置。如果下一次申请继续使用这个对象，必须设为0。
+                            // 【现在不清除它，让后面的日志和结果能反应更多信息】
+                            // semaphoreAcq.permits = 0;
                             This.semaphoreRefs.remove(r.Argument.getLockName().getName());
+                        }
                         logger.info("semaphore.release(thread=({}, {}), name={}) permits={}",
                                 r.Argument.getLockName().getGlobalThreadId().getServerId(),
                                 r.Argument.getLockName().getGlobalThreadId().getThreadId(),

@@ -65,7 +65,8 @@ public class Threading extends AbstractThreading {
 			var lockName = new BLockName(globalThreadId, name);
 			r.Argument.setLockName(lockName);
 			r.Argument.setTimeoutMs(timeoutMs);
-			r.SendForWait(service.GetSocket(), timeoutMs + 1000).await();
+			var timeout = Math.max(timeoutMs + 1000, 5000);
+			r.SendForWait(service.GetSocket(), timeout).await();
 			return r.getResultCode() == 0;
 		}
 
@@ -110,7 +111,8 @@ public class Threading extends AbstractThreading {
 			r.Argument.setLockName(lockName);
 			r.Argument.setPermits(permits);
 			r.Argument.setTimeoutMs(timeoutMs);
-			r.SendForWait(service.GetSocket(), timeoutMs + 1000).await();
+			var timeout = Math.max(timeoutMs + 1000, 5000);
+			r.SendForWait(service.GetSocket(), timeout).await();
 			return r.getResultCode() == 0;
 		}
 
@@ -127,10 +129,8 @@ public class Threading extends AbstractThreading {
 			r.Argument.setLockName(lockName);
 			r.Argument.setPermits(permits);
 			r.SendForWait(service.GetSocket()).await();
-			if (r.getResultCode() < 0)
-				logger.error("release error={}", IModule.getErrorCode(r.getResultCode()));
-			if (r.getResultCode() == 0)
-				logger.debug("release success, {}", lockName);
+			if (r.getResultCode() <= 0)
+				logger.info("release success, {} permits={}", lockName, r.getResultCode());
 		}
 
 		void create(int permits) {
@@ -141,10 +141,19 @@ public class Threading extends AbstractThreading {
 			r.Argument.setPermits(permits);
 			r.SendForWait(service.GetSocket()).await();
 			if (r.getResultCode() != 0)
-				logger.error("create error={}", IModule.getErrorCode(r.getResultCode()));
+				throw new RuntimeException("create error=" + IModule.getErrorCode(r.getResultCode()));
 		}
 	}
 
+	/**
+	 * 创建信号量。
+	 * 其中参数permits只有第一次创建的时候才会被使用。
+	 * 比较建议的使用方式是只使用 createSemaphore 初始化一次，然后共享返回的变量。
+	 * 如果不保存返回值，后面建议使用 openSemaphore 继续访问这个信号量。
+	 * @param name semaphore name
+	 * @param permits initial permits
+	 * @return created semaphore
+	 */
 	public Semaphore createSemaphore(String name, int permits) {
 		var semaphore = new Semaphore(name);
 		semaphore.create(permits);
@@ -169,7 +178,8 @@ public class Threading extends AbstractThreading {
 			r.Argument.setLockName(lockName);
 			r.Argument.setOperateType(operateType);
 			r.Argument.setTimeoutMs(timeoutMs);
-			r.SendForWait(service.GetSocket(), timeoutMs + 1000).await();
+			var timeout = Math.max(timeoutMs + 1000, 5000);
+			r.SendForWait(service.GetSocket(), timeout).await();
 			return r.getResultCode() == 0;
 		}
 

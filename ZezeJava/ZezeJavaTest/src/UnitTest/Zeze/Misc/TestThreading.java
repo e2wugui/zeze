@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Misc;
 
 import java.util.HashMap;
+import java.util.concurrent.Semaphore;
 import demo.App;
 import org.junit.Assert;
 import org.junit.Before;
@@ -22,7 +23,11 @@ public class TestThreading {
 	}
 
 	@Test
-	public void TestComputeIfPresent() {
+	public void TestComputeIfPresent() throws InterruptedException {
+		var s = new Semaphore(10);
+		s.release(10); // 没有申请也可以调用release，表现为资源增长。
+		s.acquire(20);
+		s.release(20);
 		var map = new HashMap<Integer, Integer>();
 		map.put(1, 1);
 		map.computeIfPresent(1, (key, This) -> null);
