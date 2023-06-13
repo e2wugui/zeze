@@ -154,6 +154,7 @@ public class Dbh2Manager {
 				maxLoadDbh2 = dbh2;
 			}
 		}
+		logger.info("splitting manager={} load={}", home, loadManager);
 		masterAgent.reportLoad(loadManager);
 		if (!willSplit.isEmpty()) {
 			// 分桶优先处理

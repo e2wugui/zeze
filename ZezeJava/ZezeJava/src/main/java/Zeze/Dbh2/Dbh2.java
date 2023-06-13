@@ -534,7 +534,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
 				// 先去manager查一下可用的manager是否够，简单判断，不原子化。
 				if (manager.getMasterAgent().checkFreeManager() < dbh2Config.getRaftClusterCount()) {
-					logger.warn("not enough free manager. isMove={}", isMove);
+					logger.warn("splitting not enough free manager. isMove={}", isMove);
 					return;
 				}
 				// 上一次分桶结束的deleteRange可能还没compact，此时keyNumbers不准确，这里总是执行一次。
