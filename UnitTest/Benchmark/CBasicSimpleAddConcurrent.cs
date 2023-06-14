@@ -8,7 +8,7 @@ namespace Benchmark
     [TestClass]
 
     public class CBasicSimpleAddConcurrent {
-        public const int AddCount = 1_000_000;
+        public const int AddCount = 1_0_000;
         public const int ConcurrentLevel = 1_000;
         [TestMethod]
         public void testBenchmark() {
@@ -64,6 +64,8 @@ namespace Benchmark
         private async Task<long> Add(long key) {
             var r = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(key);
             r.Long2 += 1;
+            //for (int i = 0; i < 100000; ++i)
+            //    r.Int_1 += i;
             //System.out.println("Add=" + key);
             return 0;
         }

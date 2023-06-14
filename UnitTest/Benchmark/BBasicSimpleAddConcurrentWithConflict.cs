@@ -2,13 +2,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Zeze.Component;
 
 namespace Benchmark
 {
     [TestClass]
     public class BBasicSimpleAddConcurrentWithConflict
     {
-        public const int AddCount = 1_000_000;
+        public const int AddCount = 1_0_000;
         public const int ConcurrentLevel = 1_000;
         [TestMethod]
         public void testBenchmark() {
@@ -58,6 +59,8 @@ namespace Benchmark
         private async Task<long> Add(long key) {
             var r = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(0L);
             r.Long2 += 1;
+            //for (int i = 0; i < 100000; ++i)
+            //    r.Int_1 += i;
             return 0;
         }
 
