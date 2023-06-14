@@ -10,6 +10,7 @@ using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
 using Zeze.Util;
+using DotNext.Threading;
 
 namespace Zeze.Raft
 {
@@ -192,7 +193,7 @@ namespace Zeze.Raft
                 await StateMachine.LoadSnapshot(snapshot);
 
             AppDomain.CurrentDomain.ProcessExit += ProcessExit;
-            TimerTask = Scheduler.Schedule(OnTimer, 10);
+            TimerTask = Zeze.Util.Scheduler.Schedule(OnTimer, 10);
             return this;
         }
 
@@ -401,7 +402,7 @@ namespace Zeze.Raft
                 }
                 finally
                 {
-                    TimerTask = Scheduler.Schedule(OnTimer, 10);
+                    TimerTask = Zeze.Util.Scheduler.Schedule(OnTimer, 10);
                 }
             }
         }

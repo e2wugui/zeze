@@ -16,6 +16,8 @@ using Zeze.Util;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using System.Collections;
+using DotNext.Threading;
+using System.Threading;
 
 namespace Zeze.Services
 {
@@ -229,7 +231,7 @@ namespace Zeze.Services
                     if (!ReadyCommit.IsEmpty)
                     {
                         // 只有两段公告模式需要回应处理。
-                        NotifyTimeoutTask = Scheduler.Schedule(ThisTask =>
+                        NotifyTimeoutTask = Zeze.Util.Scheduler.Schedule(ThisTask =>
                             {
                                 if (NotifyTimeoutTask == ThisTask)
                                 {
@@ -402,7 +404,7 @@ namespace Zeze.Services
             {
                 ServiceManager = sm;
                 SessionId = ssid;
-                KeepAliveTimerTask = Scheduler.Schedule(
+                KeepAliveTimerTask = Zeze.Util.Scheduler.Schedule(
                     async (ThisTask) =>
                     {
                         var s = ServiceManager.Server.GetSocket(SessionId);
@@ -454,7 +456,7 @@ namespace Zeze.Services
                         if (!ServiceManager.OfflineNotifyFutures.ContainsKey(OfflineRegisterServerId))
                         {
                             ServiceManager.OfflineNotifyFutures.TryAdd(OfflineRegisterServerId,
-                                Scheduler.Schedule(OfflineNotify, eOfflineNotifyDelay));
+                                Zeze.Util.Scheduler.Schedule(OfflineNotify, eOfflineNotifyDelay));
                         }
                     }
                 }
@@ -794,7 +796,7 @@ namespace Zeze.Services
 
             if (Config.StartNotifyDelay > 0)
             {
-                StartNotifyDelayTask = Scheduler.Schedule(StartNotifyAll, Config.StartNotifyDelay);
+                StartNotifyDelayTask = Zeze.Util.Scheduler.Schedule(StartNotifyAll, Config.StartNotifyDelay);
             }
 
             var options = new DbOptions().SetCreateIfMissing(true);
@@ -1475,7 +1477,7 @@ namespace Zeze.Services.ServiceManager
             public long Current { get; private set; }
             public int Count { get; private set; }
             public Agent Agent { get; }
-            private Nito.AsyncEx.AsyncLock Mutex { get; } = new();
+            private AsyncLock Mutex { get; } = new();
 
             internal AutoKey(string name, Agent agent)
             {
@@ -1485,7 +1487,7 @@ namespace Zeze.Services.ServiceManager
 
             public async Task<long> NextAsync()
             {
-                using (await Mutex.LockAsync())
+                using (await Mutex.AcquireAsync(CancellationToken.None))
                 {
                     if (Count <= 0)
                         await Allocate();

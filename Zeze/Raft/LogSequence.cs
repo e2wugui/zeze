@@ -10,6 +10,8 @@ using Zeze.Transaction;
 using System.Globalization;
 using RocksDbSharp;
 using Zeze.Util;
+using DotNext.Threading;
+using System.Threading;
 
 namespace Zeze.Raft
 {
@@ -244,7 +246,7 @@ namespace Zeze.Raft
             public string DbName { get; set; }
 
             public LogSequence LogSequence { get; set; }
-            public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
+            public AsyncLock Mutex { get; } = new();
 
             public UniqueRequestSet(LogSequence lq, string dbName)
             {
@@ -309,7 +311,7 @@ namespace Zeze.Raft
 
             private async Task<Util.AsyncRocksDb> OpenDb()
             {
-                using var lockthis = await Mutex.LockAsync();
+                using (await Mutex.AcquireAsync(CancellationToken.None))
                 {
                     if (null == Db)
                     {

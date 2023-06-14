@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DotNext.Threading;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
@@ -207,7 +208,7 @@ namespace Zeze.Services
 
                 // Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
                 AchillesHeelConfig = new AchillesHeelConfig(Config.MaxNetPing, Config.ServerProcessTime, Config.ServerReleaseTimeout);
-                Scheduler.Schedule(AchillesHeelDaemon, 5000, 5000);
+                Zeze.Util.Scheduler.Schedule(AchillesHeelDaemon, 5000, 5000);
             }
         }
 
@@ -221,7 +222,7 @@ namespace Zeze.Services
             { 
                 if (now - session.GetActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout && !session.DebugMode)
                 {
-                    using (await session.Mutex.LockAsync())
+                    using (await session.Mutex.AcquireAsync(CancellationToken.None))
                     {
                         session.Kick();
                         if (session.Acquired.Count > 0)
@@ -872,7 +873,7 @@ namespace Zeze.Services
             internal CacheHolder Modify { get; set; }
             internal Binary GlobalKey { get; set; }
             internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
-            internal Nito.AsyncEx.AsyncMonitor Monitor { get; } = new Nito.AsyncEx.AsyncMonitor();
+            internal Nito.AsyncEx.AsyncMonitor Monitor { get; } = new();
             internal int AcquireStatePending { get; set; } = StateInvalid;
 
             public override string ToString()
@@ -902,7 +903,7 @@ namespace Zeze.Services
             public long SessionId { get; private set; }
 
             public ConcurrentDictionary<Binary, int> Acquired { get; }
-            public Nito.AsyncEx.AsyncLock Mutex { get; } = new Nito.AsyncEx.AsyncLock();
+            public AsyncLock Mutex { get; } = new();
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
             public long GetActiveTime()
@@ -935,7 +936,7 @@ namespace Zeze.Services
 
             public async Task<bool> TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex, bool login)
             {
-                using (await Mutex.LockAsync())
+                using (await Mutex.AcquireAsync(CancellationToken.None))
                 {
                     if (login)
                     {
@@ -969,7 +970,7 @@ namespace Zeze.Services
             public async Task<bool> TryUnBindSocket(AsyncSocket oldSocket)
             {
                 // 这里检查比较严格，但是这些检查应该都不会出现。
-                using (await Mutex.LockAsync())
+                using (await Mutex.AcquireAsync(CancellationToken.None))
                 {
                     if (oldSocket.UserState != this)
                         return false; // not bind to this

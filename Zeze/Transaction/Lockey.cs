@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Runtime.CompilerServices;
-using Nito.AsyncEx;
 using System.Threading;
 using System.Threading.Tasks;
+using DotNext.Threading;
 
 namespace Zeze.Transaction
 {
@@ -15,10 +15,6 @@ namespace Zeze.Transaction
 	public sealed class LockAsync : IDisposable
 	{
 		public Lockey Lockey { get; }
-		private IDisposable Acquired;
-
-		// 暂时不需要这个状态，考虑删除。相关判断改成使用 null != Acquired。
-		public int AcquiredType { get; private set; } // 0 none, 1 read, 2 write
 
 		public LockAsync(Lockey lockey)
         {
@@ -27,112 +23,42 @@ namespace Zeze.Transaction
 
 		public async Task<LockAsync> ReaderLockAsync()
 		{
-			if (AcquiredType != 0)
-				throw new InvalidOperationException();
-
 #if ENABLE_STATISTICS
 			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Id).ReadLockTimes.IncrementAndGet();
 #endif
-			Acquired = await Lockey.RWlock.ReaderLockAsync();
-			AcquiredType = 1;
+			await Lockey.RWlock.EnterReadLockAsync();
 			return this;
 		}
 
 		public async Task<LockAsync> WriterLockAsync()
 		{
-			if (AcquiredType != 0)
-				throw new InvalidOperationException();
 #if ENABLE_STATISTICS
 			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Id).WriteLockTimes.IncrementAndGet();
 #endif
-			Acquired = await Lockey.RWlock.WriterLockAsync();
-			AcquiredType = 2;
+			await Lockey.RWlock.EnterWriteLockAsync();
 			return this;
 		}
 
 		public bool TryEnterReadLock()
 		{
-			if (AcquiredType != 0)
-				throw new InvalidOperationException();
-
 #if ENABLE_STATISTICS
 			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Id).TryReadLockTimes.IncrementAndGet();
 #endif
-			var source = new CancellationTokenSource();
-			var context = Lockey.RWlock.ReaderLockAsync(source.Token);
-			if (context.AsTask().Wait(0))
-            {
-				Acquired = context.AsTask().Result;
-				AcquiredType = 1;
-				return true;
-			}
-
-			source.Cancel();
-			try
-			{
-				// Cancel 之后需要等待结果。此时还可能得到锁。
-				context.AsTask().Wait();
-				Acquired = context.AsTask().Result;
-				AcquiredType = 1;
-				return true;
-			}
-			catch (Exception)
-			{
-			}
-			return false;
+			return Lockey.RWlock.TryEnterReadLock();
 		}
 
 		public bool TryEnterWriteLock()
 		{
-			if (AcquiredType != 0)
-				throw new InvalidOperationException();
-
 #if ENABLE_STATISTICS
 			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Id).TryWriteLockTimes.IncrementAndGet();
 #endif
-			var source = new CancellationTokenSource();
-			var context = Lockey.RWlock.WriterLockAsync(source.Token);
-			if (context.AsTask().Wait(0))
-			{
-				Acquired = context.AsTask().Result;
-				AcquiredType = 2;
-				return true;
-			}
-
-			source.Cancel();
-			try
-			{
-				// Cancel 之后需要等待结果。此时还可能得到锁。
-				context.AsTask().Wait();
-				Acquired = context.AsTask().Result;
-				AcquiredType = 2;
-				return true;
-			}
-			catch (Exception)
-			{
-			}
-			return false;
+			return Lockey.RWlock.TryEnterWriteLock();
 		}
 
 		public void EnterReadLock()
         {
-			if (AcquiredType != 0)
-				throw new InvalidOperationException();
-
-			Acquired = Lockey.RWlock.ReaderLock();
-			AcquiredType = 1;
+			Lockey.RWlock.EnterReadLockAsync().AsTask().Wait();
         }
-
-		/*
-		public void EnterWriteLock()
-        {
-			if (HoldType != 0)
-				throw new InvalidOperationException();
-
-			Holder = Lockey.RWlock.WriterLock();
-			HoldType = 2;
-        }
-		*/
 
 		/// <summary>
 		/// 根据参数进入读或写锁。
@@ -151,8 +77,7 @@ namespace Zeze.Transaction
 
 		public void Release()
 		{
-			Acquired?.Dispose();
-			AcquiredType = 0;
+			Lockey.RWlock.Release();
 		}
 
 		public void Dispose()
@@ -162,8 +87,10 @@ namespace Zeze.Transaction
 
 		public override string ToString()
 		{
-			return $"{Lockey} HoldType={AcquiredType}";
+			return $"{Lockey} IsRead={Lockey.RWlock.IsReadLockHeld} IsWrite={Lockey.RWlock.IsWriteLockHeld}";
 		}
+
+		public bool IsWriteLockHeld => Lockey.RWlock.IsWriteLockHeld;
 	}
 
 	public sealed class Lockey : System.IComparable<Lockey>
@@ -187,7 +114,7 @@ namespace Zeze.Transaction
 		/// <returns></returns>
 		internal Lockey Alloc()
 		{
-			RWlock = new Nito.AsyncEx.AsyncReaderWriterLock();
+			RWlock = new();
 			return this;
 		}
 

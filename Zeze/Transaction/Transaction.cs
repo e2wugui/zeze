@@ -596,7 +596,7 @@ namespace Zeze.Transaction
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private async Task<CheckResult> Check(bool writeLock, RecordAccessed e)
         {
-            var lockr = await e.Origin.Mutex.LockAsync();
+            var lockr = await e.Origin.Mutex.AcquireAsync(CancellationToken.None);
             try
             {
                 if (writeLock)
@@ -749,7 +749,7 @@ namespace Zeze.Transaction
                 if (c == 0)
                 {
                     // 这里可能发生读写锁提升
-                    if (e.Value.Dirty && 2 != curLock.AcquiredType)
+                    if (e.Value.Dirty && false == curLock.IsWriteLockHeld)
                     {
                         // 必须先全部释放，再升级当前记录锁，再锁后面的记录。
                         // 直接 unlockRead，lockWrite会死锁。

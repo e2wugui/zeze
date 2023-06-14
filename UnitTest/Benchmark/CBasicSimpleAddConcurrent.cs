@@ -33,13 +33,6 @@ namespace Benchmark
                 {
                     int c = i % ConcurrentLevel;
                     tasks.Add(demo.App.Instance.Zeze.NewProcedure(() => Add(c), "Add").CallAsync());
-                    // 修改测试，使用队列，并保持队列不空，不出现停等，看实际效果。
-                    if (c == ConcurrentLevel - 1)
-                    {
-                        foreach (var task in tasks)
-                            task.Wait();
-                        tasks.Clear();
-                    }
                 }
                 foreach (var task in tasks)
                     task.Wait();

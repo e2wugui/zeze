@@ -18,7 +18,8 @@ namespace Benchmark
                 Console.WriteLine("benchmark start...");
                 var b = new Zeze.Util.Benchmark();
                 for (int i = 0; i < AddCount; ++i) {
-                    tasks.Add(demo.App.Instance.Zeze.NewProcedure(Add, "Add").CallAsync());
+                    var c = i % 1000;
+                    tasks.Add(demo.App.Instance.Zeze.NewProcedure(() => Add(c), "Add").CallAsync());
                 }
                 b.Report(this.GetType().FullName, AddCount);
                 foreach (var task in tasks) {
@@ -41,9 +42,9 @@ namespace Benchmark
             return 0;
         }
 
-        private async Task<long> Add() {
+        private async Task<long> Add(long key) {
             var r = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1L);
-            r.Long2 += 1;
+            r.Long2 += key / 1000;
             return 0;
         }
 

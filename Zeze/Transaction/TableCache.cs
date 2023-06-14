@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Zeze.Services;
 using System.Threading.Tasks;
+using System.Threading;
 
 // MESI？
 namespace Zeze.Transaction
@@ -193,7 +194,7 @@ namespace Zeze.Transaction
             }
         }
 
-        private void CleanNow(Zeze.Util.SchedulerTask ThisTask)
+        private async void CleanNow(Zeze.Util.SchedulerTask ThisTask)
         {
             // 这个任务的执行时间可能很长，
             // 不直接使用 Scheduler 的定时任务，
@@ -217,7 +218,7 @@ namespace Zeze.Transaction
 
                     foreach (var e in node)
                     {
-                        TryRemoveRecord(e);
+                        await TryRemoveRecord(e);
                     }
                     if (node.IsEmpty)
                     {
@@ -302,7 +303,7 @@ namespace Zeze.Transaction
             return Remove(p);
         }
 
-        private bool TryRemoveRecord(KeyValuePair<K, Record<K, V>> p)
+        private async Task<bool> TryRemoveRecord(KeyValuePair<K, Record<K, V>> p)
         {
             // lockey 第一优先，和事务并发。
             var tkey = new TableKey(this.Table.Id, p.Key);
@@ -313,8 +314,11 @@ namespace Zeze.Transaction
             try
             {
                 // record.lock 和事务并发。
-                using (p.Value.Mutex.Lock()) // 最好使用TryLock，先这样了。
+                using (var holder = await p.Value.Mutex.TryAcquireAsync(CancellationToken.None)) // 最好使用TryLock，先这样了。
                 {
+                    if (holder.IsEmpty)
+                        return false;
+
                     // rrs lock
                     var rrs = p.Value.RelativeRecordSet;
                     var lockrrs = rrs.LockTry();

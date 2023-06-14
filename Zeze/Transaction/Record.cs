@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using Zeze.Services;
 using System.Threading.Tasks;
 using System.Threading;
+using DotNext.Threading;
 
 namespace Zeze.Transaction
 {
@@ -96,7 +97,7 @@ namespace Zeze.Transaction
         internal Database.ITransaction DatabaseTransactionTmp { get; set; }
         internal Database.ITransaction DatabaseTransactionOldTmp { get; set; }
         internal abstract void SetDirty();
-        internal Nito.AsyncEx.AsyncLock Mutex = new();
+        internal AsyncLock Mutex = new();
 
         internal bool fresh;
         private long acquireTime;

@@ -36,12 +36,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="DotNext.Threading" Version="4.12.0" />
-    <PackageReference Include="MySql.Data" Version="8.0.31" />
+    <PackageReference Include="DotNext.Threading" Version="4.12.3" />
+    <PackageReference Include="MySql.Data" Version="8.0.33" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
-    <PackageReference Include="NLog" Version="5.1.0" />
-    <PackageReference Include="RocksDB" Version="7.7.3.33461" />
-    <PackageReference Include="Scriban" Version="5.5.1" />
+    <PackageReference Include="NLog" Version="5.2.0" />
+    <PackageReference Include="RocksDB" Version="8.1.1.38647" />
+    <PackageReference Include="Scriban" Version="5.7.0" />
     <PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="7.0.0" />

@@ -9,6 +9,8 @@ using Zeze.Transaction;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Util;
+using DotNext.Threading;
+using System.Threading;
 
 namespace Zeze.Arch
 {
@@ -27,7 +29,7 @@ namespace Zeze.Arch
         public Func<Binary, T> ResultDecoder { get; }
         public bool IsCompleted => HashCodes.Count == 0;
         public Func<RedirectAll<T>, Task> Processing { get; }
-        private Nito.AsyncEx.AsyncLock Mutex = new();
+        private AsyncLock Mutex = new();
 
         public RedirectAll(
             int concurrentLevel, string methodFullName,
@@ -45,7 +47,7 @@ namespace Zeze.Arch
 
         public override async void OnRemoved()
         {
-            using (await Mutex.LockAsync())
+            using (await Mutex.AcquireAsync(CancellationToken.None))
             {
                 foreach (var hash in HashCodes)
                 {
@@ -61,7 +63,7 @@ namespace Zeze.Arch
         {
             // 一批结果锁一次。
             // 【注意】锁内回调 Processing.
-            using (await Mutex.LockAsync())
+            using (await Mutex.AcquireAsync(CancellationToken.None))
             {
                 try
                 {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DotNext.Threading;
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -86,17 +87,17 @@ namespace Zeze.Transaction
             }
         }
 
-        private readonly Nito.AsyncEx.AsyncLock Mutex = new();
+        private readonly AsyncLock Mutex = new();
 
         internal async Task<IDisposable> LockAsync()
         {
-            return await Mutex.LockAsync();
+            return await Mutex.AcquireAsync(CancellationToken.None);
         }
 
         internal IDisposable LockTry()
         {
             var source = new CancellationTokenSource();
-            var context = Mutex.LockAsync(source.Token);
+            var context = Mutex.AcquireAsync(source.Token);
             if (context.AsTask().Wait(0))
             {
                 return context.AsTask().Result;
@@ -519,7 +520,7 @@ namespace Zeze.Transaction
             while (rrs != null)
             {
                 {
-                    using var lockr = await r.Mutex.LockAsync();
+                    using var lockr = await r.Mutex.AcquireAsync(CancellationToken.None);
                     if (r.State == Services.GlobalCacheManagerServer.StateRemoved)
                         return;
                 }

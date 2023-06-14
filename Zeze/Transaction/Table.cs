@@ -77,7 +77,7 @@ namespace Zeze.Transaction
             while (true)
             {
                 Record<K, V> r = Cache.GetOrAdd(key, (key) => new Record<K, V>(this, key, null));
-                var lockr = await r.Mutex.LockAsync();
+                var lockr = await r.Mutex.AcquireAsync(CancellationToken.None);
                 try
                 {
                     if (r.State == GlobalCacheManagerServer.StateRemoved)
@@ -188,7 +188,7 @@ namespace Zeze.Transaction
                     rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
                     return 0;
                 }
-                using var lockr = r.Mutex.Lock();
+                using var lockr = await r.Mutex.AcquireAsync(CancellationToken.None);
                 if (fresh != GlobalCacheManagerServer.AcquireFreshSource && r.IsFreshAcquire())
                 {
                     logger.Debug("Reduce SendResult fresh {}", r);
@@ -278,7 +278,7 @@ namespace Zeze.Transaction
                     rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
                     return 0;
                 }
-                using var lockr = r.Mutex.Lock();
+                using var lockr = await r.Mutex.AcquireAsync(CancellationToken.None);
                 if (fresh != GlobalCacheManagerServer.AcquireFreshSource && r.IsFreshAcquire())
                 {
                     logger.Debug("Reduce SendResult fresh {}", r);
@@ -358,11 +358,18 @@ namespace Zeze.Transaction
                 }
                 try
                 {
-                    using (await e.Value.Mutex.LockAsync()) // TODO TryLock Need
+                    using (var holder = await e.Value.Mutex.TryAcquireAsync(CancellationToken.None))
                     {
-                        // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
-                        e.Value.State = GlobalCacheManagerServer.StateInvalid;
-                        await FlushWhenReduce(e.Value);
+                        if (holder.IsEmpty)
+                        { 
+                            remain.Add((tkey, e.Value));
+                        }
+                        else
+                        {
+                            // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
+                            e.Value.State = GlobalCacheManagerServer.StateInvalid;
+                            await FlushWhenReduce(e.Value);
+                        }
                     }
                 }
                 finally
@@ -378,7 +385,7 @@ namespace Zeze.Transaction
                     await lockey.WriterLockAsync();
                     try
                     {
-                        using (await e.Item2.Mutex.LockAsync())
+                        using (await e.Item2.Mutex.AcquireAsync(CancellationToken.None))
                         {
                             // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
                             e.Item2.State = GlobalCacheManagerServer.StateInvalid;

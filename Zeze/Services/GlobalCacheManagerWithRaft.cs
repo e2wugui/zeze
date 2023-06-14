@@ -8,6 +8,7 @@ using Zeze.Net;
 using System.Threading.Tasks;
 using Zeze.Util;
 using System.Threading;
+using DotNext.Threading;
 
 namespace Zeze.Services
 {
@@ -733,7 +734,7 @@ namespace Zeze.Services
 
             // Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
             AchillesHeelConfig = new AchillesHeelConfig(Config.MaxNetPing, Config.ServerProcessTime, Config.ServerReleaseTimeout);
-            Scheduler.Schedule(AchillesHeelDaemon, 5000, 5000);
+            Zeze.Util.Scheduler.Schedule(AchillesHeelDaemon, 5000, 5000);
             return this;
         }
 
@@ -748,7 +749,7 @@ namespace Zeze.Services
                 {
                     if (now - session.GetActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout && !session.DebugMode)
                     {
-                        using (await session.Mutex.LockAsync())
+                        using (await session.Mutex.AcquireAsync(CancellationToken.None))
                         {
                             session.Kick();
                             var Acquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
@@ -787,7 +788,7 @@ namespace Zeze.Services
             public int GlobalCacheManagerHashIndex { get; private set; }
             public int ServerId { get; internal set; }
             public GlobalCacheManagerWithRaft GlobalInstance { get; set; }
-            public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
+            public AsyncLock Mutex { get; } = new();
             public bool DebugMode { get; set; }
 
             public long GetActiveTime()
@@ -814,7 +815,7 @@ namespace Zeze.Services
 
             public async Task<bool> TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
             {
-                using (await Mutex.LockAsync())
+                using (await Mutex.AcquireAsync(CancellationToken.None))
                 {
                     if (newSocket.UserState != null && newSocket.UserState != this)
                         return false; // 允许重复login|relogin，但不允许切换ServerId。
@@ -835,7 +836,7 @@ namespace Zeze.Services
 
             public async Task<bool> TryUnBindSocket(AsyncSocket oldSocket)
             {
-                using (await Mutex.LockAsync())
+                using (await Mutex.AcquireAsync(CancellationToken.None))
                 {
                     // 这里检查比较严格，但是这些检查应该都不会出现。
 

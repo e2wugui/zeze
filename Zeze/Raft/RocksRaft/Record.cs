@@ -1,4 +1,5 @@
-﻿using RocksDbSharp;
+﻿using DotNext.Threading;
+using RocksDbSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -44,7 +45,7 @@ namespace Zeze.Raft.RocksRaft
 		internal abstract void LeaderApply(Transaction.RecordAccessed accessed);
 		internal abstract void Flush(WriteBatch batch);
 		public Table Table { get; internal set; }
-		public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
+		public AsyncLock Mutex { get; } = new();
 	}
 
 	public class Record<K, V> : Record

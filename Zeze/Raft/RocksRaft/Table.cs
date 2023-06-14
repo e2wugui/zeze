@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Zeze.Serialize;
 
@@ -314,7 +315,7 @@ namespace Zeze.Raft.RocksRaft
             while (true)
             {
                 var r = LruCache.GetOrAdd(key, (_) => new Record<K, V>() { Table = this, Key = key });
-                using var lockr = await r.Mutex.LockAsync();
+                using (await r.Mutex.AcquireAsync(CancellationToken.None))
                 {
                     if (r.Removed)
                         continue;

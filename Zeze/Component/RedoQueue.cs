@@ -8,6 +8,8 @@ using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
 using Zeze.Util;
+using DotNext.Threading;
+using System.Threading;
 
 namespace Zeze.Component
 {
@@ -20,7 +22,7 @@ namespace Zeze.Component
 	 */
 	public class RedoQueue : Zeze.Services.HandshakeClient
 	{
-		private readonly Nito.AsyncEx.AsyncLock Mutex = new();
+		private readonly AsyncLock Mutex = new();
 
 		public RedoQueue(string name, Zeze.Config config)
 			: base(name, config)
@@ -29,7 +31,7 @@ namespace Zeze.Component
 
 		public override async void Start()
 		{
-			using (Mutex.Lock())
+			using (await Mutex.AcquireAsync(CancellationToken.None))
 			{
 				if (null != Db)
 					return;
@@ -68,10 +70,10 @@ namespace Zeze.Component
 			}
 		}
 
-		public override void Stop()
+		public override async void Stop()
 		{
 			base.Stop();
-			using (Mutex.Lock())
+			using (await Mutex.AcquireAsync(CancellationToken.None))
 			{
 
 				Db.RocksDb.Dispose();
@@ -81,7 +83,7 @@ namespace Zeze.Component
 
 		public async Task AddAsync(int taskType, Zeze.Serialize.Serializable taskParam)
 		{
-			using (await Mutex.LockAsync())
+			using (await Mutex.AcquireAsync(CancellationToken.None))
 			{
 				var key = ByteBuffer.Allocate(16);
 				++LastTaskId;
@@ -159,7 +161,7 @@ namespace Zeze.Component
 		public override async void OnHandshakeDone(AsyncSocket sender)
 		{
 			base.OnHandshakeDone(sender);
-			using (await Mutex.LockAsync())
+			using (await Mutex.AcquireAsync(CancellationToken.None))
 			{
 				await TryStartSendNextTask(null, sender);
 			}
@@ -168,7 +170,7 @@ namespace Zeze.Component
 		public override async void OnSocketClose(AsyncSocket socket, Exception ex)
 		{
 			base.OnSocketClose(socket, ex);
-			using (await Mutex.LockAsync())
+			using (await Mutex.AcquireAsync(CancellationToken.None))
 			{ 
 				if (Socket == socket) {
 					Socket = null;
@@ -180,7 +182,7 @@ namespace Zeze.Component
         {
 			public async Task TryCreateAsync(RedoQueue rq, string name)
             {
-				using (await rq.Mutex.LockAsync())
+				using (await rq.Mutex.AcquireAsync(CancellationToken.None))
                 {
 					if (Handle == null)
 					Handle = await rq.Db.CreateColumnFamily(rq.CfOptions, name);
