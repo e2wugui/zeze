@@ -1,9 +1,12 @@
 package Zeze.Netty;
 
 import java.io.Closeable;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLException;
 import Zeze.Application;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
@@ -22,7 +25,11 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.util.ReferenceCountUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @Sharable
 public class HttpServer extends ChannelInitializer<SocketChannel> implements Closeable {
@@ -34,6 +41,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
 	final ConcurrentHashMap<ChannelId, HttpExchange> exchanges = new ConcurrentHashMap<>();
 	final TaskOneByOneByKey task11Executor = new TaskOneByOneByKey();
+	private SslContext sslCtx;
 	private Future<?> scheduler;
 	private ChannelFuture channelFuture;
 
@@ -45,6 +53,11 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		this.zeze = zeze;
 		this.fileHome = fileHome;
 		this.fileCacheSeconds = fileCacheSeconds;
+	}
+
+	public void setSsl(@NotNull PrivateKey priKey, @Nullable String keyPassword,
+					   @Nullable X509Certificate... keyCertChain) throws SSLException {
+		sslCtx = SslContextBuilder.forServer(priKey, keyPassword, keyCertChain).build();
 	}
 
 	public synchronized ChannelFuture start(Netty netty, int port) {
@@ -104,10 +117,12 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		if (ch.pipeline().get(HttpResponseEncoder.class) != null)
 			return;
 		Netty.logger.info("accept {}", ch.remoteAddress());
-		ch.pipeline()
-				.addLast(new HttpResponseEncoder())
-				.addLast(new HttpRequestDecoder(4096, 8192, 8192, false))
-				.addLast(this);
+		var p = ch.pipeline();
+		if (sslCtx != null)
+			p.addLast(sslCtx.newHandler(ch.alloc()));
+		p.addLast(new HttpResponseEncoder());
+		p.addLast(new HttpRequestDecoder(4096, 8192, 8192, false));
+		p.addLast(this);
 		ch.config().setWriteBufferHighWaterMark(WRITE_PENDING_LIMIT);
 	}
 
