@@ -80,20 +80,30 @@ public class Netty implements Closeable {
 		return eventLoopGroup;
 	}
 
-	// 各种选项可配置。ServerBootstrapConfig?
 	public ChannelFuture startServer(ChannelHandler handler, int port) {
+		return startServer(handler, null, port);
+	}
+
+	// 各种选项可配置。ServerBootstrapConfig?
+	public ChannelFuture startServer(ChannelHandler handler, String host, int port) {
 		var b = new ServerBootstrap();
 		if (eventLoopGroup instanceof EpollEventLoopGroup)
 			b.option(EpollChannelOption.SO_REUSEPORT, true);
-		var future = b.group(eventLoopGroup)
+		var bs = b.group(eventLoopGroup)
 				.option(ChannelOption.SO_BACKLOG, 8192)
 				.option(ChannelOption.SO_REUSEADDR, true)
 				.childOption(ChannelOption.SO_REUSEADDR, true)
 				.childOption(ChannelOption.ALLOW_HALF_CLOSURE, true)
 				.channel(serverChannelClass)
-				.childHandler(handler)
-				.bind(port);
-		logger.info("startServer {} on port {}", handler.getClass().getName(), port);
+				.childHandler(handler);
+		ChannelFuture future;
+		if (host != null) {
+			future = bs.bind(host, port);
+			logger.info("startServer {} on {}:{}", handler.getClass().getName(), host, port);
+		} else {
+			future = bs.bind(port);
+			logger.info("startServer {} on any:{}", handler.getClass().getName(), port);
+		}
 		return future;
 	}
 

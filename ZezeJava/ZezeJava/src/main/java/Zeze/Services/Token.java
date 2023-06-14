@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Random;
@@ -163,15 +165,22 @@ public final class Token extends AbstractToken {
 	}
 
 	private static final class TokenState {
+		final @Nullable InetSocketAddress remoteAddr;
 		final @NotNull Binary context; // 绑定的上下文
 		final long createTime; // 创建时间戳(毫秒)
 		final long endTime; // 失效时间戳(毫秒)
 		long count; // 已访问次数
 
-		TokenState(@NotNull Binary context, long ttl) {
+		TokenState(@Nullable SocketAddress remoteAddr, @NotNull Binary context, long ttl) {
+			this.remoteAddr = remoteAddr instanceof InetSocketAddress ? (InetSocketAddress)remoteAddr : null;
 			this.context = context;
 			this.createTime = System.currentTimeMillis();
 			this.endTime = createTime + ttl;
+		}
+
+		@NotNull String getRemoteAddr() {
+			var addr = remoteAddr != null ? remoteAddr.getAddress().getHostAddress() : null;
+			return addr != null ? addr : "";
 		}
 	}
 
@@ -234,10 +243,11 @@ public final class Token extends AbstractToken {
 			r.SendResultCode(-1);
 			return Procedure.Success;
 		}
+		var remoteAddr = r.getSender().getRemoteAddress();
 		String token;
 		do {
 			token = genToken();
-		} while (tokenMap.putIfAbsent(token, new TokenState(arg.getContext(), ttl)) != null);
+		} while (tokenMap.putIfAbsent(token, new TokenState(remoteAddr, arg.getContext(), ttl)) != null);
 		newCounter.increment();
 		r.Result.setToken(token);
 		r.SendResultCode(0);
@@ -255,6 +265,7 @@ public final class Token extends AbstractToken {
 			r.SendResultCode(0);
 			return Procedure.Success;
 		}
+		res.setAddr(state.getRemoteAddr());
 		var maxCount = arg.getMaxCount();
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (state) {

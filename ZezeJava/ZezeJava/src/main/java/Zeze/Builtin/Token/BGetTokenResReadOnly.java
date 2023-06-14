@@ -10,4 +10,5 @@ public interface BGetTokenResReadOnly {
     Zeze.Net.Binary getContext();
     long getCount();
     long getTime();
+    String getAddr();
 }

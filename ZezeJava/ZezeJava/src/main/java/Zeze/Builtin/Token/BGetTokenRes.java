@@ -10,6 +10,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
     private Zeze.Net.Binary _context; // token绑定的自定义上下文. token已失效(状态已清除)时为空
     private long _count; // 此token已被GetToken访问的次数(包括当前访问). token已失效(状态已清除)时为0
     private long _time; // 此token已存活时间(毫秒). token已失效(状态已清除)时为负值
+    private String _addr; // 请求分配此token的IP地址
 
     @Override
     public Zeze.Net.Binary getContext() {
@@ -73,18 +74,44 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         txn.putLog(new Log__time(this, 3, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BGetTokenRes() {
-        _context = Zeze.Net.Binary.Empty;
+    @Override
+    public String getAddr() {
+        if (!isManaged())
+            return _addr;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _addr;
+        var log = (Log__addr)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _addr;
+    }
+
+    public void setAddr(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _addr = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__addr(this, 4, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BGetTokenRes(Zeze.Net.Binary _context_, long _count_, long _time_) {
+    public BGetTokenRes() {
+        _context = Zeze.Net.Binary.Empty;
+        _addr = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BGetTokenRes(Zeze.Net.Binary _context_, long _count_, long _time_, String _addr_) {
         if (_context_ == null)
             _context_ = Zeze.Net.Binary.Empty;
         _context = _context_;
         _count = _count_;
         _time = _time_;
+        if (_addr_ == null)
+            _addr_ = "";
+        _addr = _addr_;
     }
 
     @Override
@@ -103,12 +130,14 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         setContext(other._context);
         setCount(other._count);
         setTime(other._time);
+        setAddr(other._addr);
     }
 
     public void assign(BGetTokenRes other) {
         setContext(other.getContext());
         setCount(other.getCount());
         setTime(other.getTime());
+        setAddr(other.getAddr());
     }
 
     public BGetTokenRes copyIfManaged() {
@@ -154,6 +183,13 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         public void commit() { ((BGetTokenRes)getBelong())._time = value; }
     }
 
+    private static final class Log__addr extends Zeze.Transaction.Logs.LogString {
+        public Log__addr(BGetTokenRes bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BGetTokenRes)getBelong())._addr = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -167,7 +203,8 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("context=").append(getContext()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("count=").append(getCount()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("time=").append(getTime()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("time=").append(getTime()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("addr=").append(getAddr()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -208,6 +245,13 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            String _x_ = getAddr();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -225,6 +269,10 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         }
         if (_i_ == 3) {
             setTime(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setAddr(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -254,6 +302,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
                 case 1: _context = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
                 case 2: _count = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 3: _time = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 4: _addr = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -266,6 +315,9 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
             setContext(Zeze.Net.Binary.Empty);
         setCount(rs.getLong(_parents_name_ + "count"));
         setTime(rs.getLong(_parents_name_ + "time"));
+        setAddr(rs.getString(_parents_name_ + "addr"));
+        if (getAddr() == null)
+            setAddr("");
     }
 
     @Override
@@ -274,6 +326,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         st.appendBinary(_parents_name_ + "context", getContext());
         st.appendLong(_parents_name_ + "count", getCount());
         st.appendLong(_parents_name_ + "time", getTime());
+        st.appendString(_parents_name_ + "addr", getAddr());
     }
 
 public static final class Data extends Zeze.Transaction.Data {
@@ -282,6 +335,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private Zeze.Net.Binary _context; // token绑定的自定义上下文. token已失效(状态已清除)时为空
     private long _count; // 此token已被GetToken访问的次数(包括当前访问). token已失效(状态已清除)时为0
     private long _time; // 此token已存活时间(毫秒). token已失效(状态已清除)时为负值
+    private String _addr; // 请求分配此token的IP地址
 
     public Zeze.Net.Binary getContext() {
         return _context;
@@ -309,18 +363,32 @@ public static final class Data extends Zeze.Transaction.Data {
         _time = value;
     }
 
-    @SuppressWarnings("deprecation")
-    public Data() {
-        _context = Zeze.Net.Binary.Empty;
+    public String getAddr() {
+        return _addr;
+    }
+
+    public void setAddr(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _addr = value;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Net.Binary _context_, long _count_, long _time_) {
+    public Data() {
+        _context = Zeze.Net.Binary.Empty;
+        _addr = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(Zeze.Net.Binary _context_, long _count_, long _time_, String _addr_) {
         if (_context_ == null)
             _context_ = Zeze.Net.Binary.Empty;
         _context = _context_;
         _count = _count_;
         _time = _time_;
+        if (_addr_ == null)
+            _addr_ = "";
+        _addr = _addr_;
     }
 
     @Override
@@ -339,12 +407,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _context = other.getContext();
         _count = other.getCount();
         _time = other.getTime();
+        _addr = other.getAddr();
     }
 
     public void assign(BGetTokenRes.Data other) {
         _context = other._context;
         _count = other._count;
         _time = other._time;
+        _addr = other._addr;
     }
 
     @Override
@@ -383,7 +453,8 @@ public static final class Data extends Zeze.Transaction.Data {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("context=").append(_context).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("count=").append(_count).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("time=").append(_time).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("time=").append(_time).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("addr=").append(_addr).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -424,6 +495,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            String _x_ = _addr;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -441,6 +519,10 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 3) {
             _time = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _addr = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
