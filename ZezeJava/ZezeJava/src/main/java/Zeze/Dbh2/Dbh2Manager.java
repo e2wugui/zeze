@@ -141,9 +141,11 @@ public class Dbh2Manager {
 		var willSplit = new ArrayList<Dbh2>();
 		Dbh2 maxLoadDbh2 = null;
 		double maxLoad = 0.0f;
+		var hasSplitting = false;
 		for (var dbh2 : dbh2s.values()) {
 			var load = dbh2.getStateMachine().load();
 			loadManager += load;
+			hasSplitting |= dbh2.getStateMachine().getBucket().getSplittingMeta() != null;
 
 			// 达到分桶条件之一：负载高于最大值的80%。
 			// todo 这里可以考虑dbFileSize(min,max)，当库比较大时也分桶，另外库很小时即使负载高也不分桶。
@@ -154,15 +156,16 @@ public class Dbh2Manager {
 				maxLoadDbh2 = dbh2;
 			}
 		}
-		logger.info("splitting manager={} load={}", home, loadManager);
+		logger.info("splitting try ... manager={} load={}", home, loadManager);
 		masterAgent.reportLoad(loadManager);
 		if (!willSplit.isEmpty()) {
 			// 分桶优先处理
 			for (var split : willSplit) {
 				split.tryStartSplit(false); // 允许重复调用，里面需要去重。
 			}
-		} else if (null != maxLoadDbh2 && loadManager > maxLoadDbh2.getDbh2Config().getSplitMaxManagerLoad() * 0.6) {
+		} else if (!hasSplitting && null != maxLoadDbh2 && loadManager > maxLoadDbh2.getDbh2Config().getSplitMaxManagerLoad() * 0.6) {
 			// 没有分桶，但是总负载达到，则把当前负载最大的桶迁移走。
+			// （!hasSplitting）迁移桶仅在没有分桶并且没有迁移桶的时候才执行。
 			maxLoadDbh2.tryStartSplit(true);
 		}
 	}

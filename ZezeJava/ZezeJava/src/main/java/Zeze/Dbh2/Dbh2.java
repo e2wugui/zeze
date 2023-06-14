@@ -554,7 +554,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 设置分桶进行中的标记到raft集群中。
 				getRaft().appendLog(new LogSetSplittingMeta(splitting));
 				// 创建到分桶目标的客户端。
-				logger.info("splitting start... isMove={}{}->{}",
+				logger.info("splitting start... isMove={} {}->{}",
 						isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
 			}
 
