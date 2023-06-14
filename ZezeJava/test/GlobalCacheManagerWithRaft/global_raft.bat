@@ -2,6 +2,6 @@
 setlocal
 pushd %~dp0
 
-java -ea -Dlogname=GlobalRaft -cp .;..\..\ZezeJavaTest\lib\*;..\..\ZezeJava\build\libs\ZezeJava-1.2.15-SNAPSHOT.jar;..\..\ZezeJavaTest\build\libs\ZezeJavaTest-1.2.15-SNAPSHOT.jar GlobalRaft.TestGlobalCacheMgrWithRaft
+java -ea -Dlogname=GlobalRaft -cp .;..\..\ZezeJavaTest\lib\*;..\..\ZezeJava\build\libs\ZezeJava-1.2.16-SNAPSHOT.jar;..\..\ZezeJavaTest\build\libs\ZezeJavaTest-1.2.16-SNAPSHOT.jar GlobalRaft.TestGlobalCacheMgrWithRaft
 
 pause
