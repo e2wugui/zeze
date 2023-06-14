@@ -23,7 +23,7 @@ namespace Benchmark
                 for (int i = 0; i < ConcurrentLevel; ++i)
                 {
                     int c = i;
-                    tasks.Add(demo.App.Instance.Zeze.NewProcedure(() => Add(c), "Add").CallAsync());
+                    tasks.Add(demo.App.Instance.Zeze.NewProcedure(async () => await Add(c), "Add").CallAsync());
                 }
                 foreach (var task in tasks)
                     task.Wait();
@@ -32,8 +32,9 @@ namespace Benchmark
                 for (int i = 0; i < AddCount - ConcurrentLevel; ++i)
                 {
                     int c = i % ConcurrentLevel;
-                    tasks.Add(demo.App.Instance.Zeze.NewProcedure(() => Add(c), "Add").CallAsync());
+                    tasks.Add(demo.App.Instance.Zeze.NewProcedure(async () => await Add(c), "Add").CallAsync());
                 }
+                b.Report(this.GetType().FullName, AddCount);
                 foreach (var task in tasks)
                     task.Wait();
                 tasks.Clear();
