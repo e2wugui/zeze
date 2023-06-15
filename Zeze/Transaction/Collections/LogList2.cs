@@ -13,7 +13,12 @@ namespace Zeze.Transaction.Collections
             where E : Bean, new()
 #endif
 	{
-		public class OutInt
+        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogList2<E>));
+        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+
+        public override int TypeId => TypeId_;
+
+        public class OutInt
 		{
 			public int Value { get; set; }
             public override string ToString()

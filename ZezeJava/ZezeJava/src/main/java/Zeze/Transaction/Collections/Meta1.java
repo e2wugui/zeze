@@ -55,7 +55,7 @@ public final class Meta1<V> {
 	}
 
 	@SuppressWarnings("unchecked")
-	static <V extends Bean> @NotNull Meta1<V> getList2Meta(@NotNull Class<V> valueClass) {
+	public static <V extends Bean> @NotNull Meta1<V> getList2Meta(@NotNull Class<V> valueClass) {
 		return (Meta1<V>)list2Metas.computeIfAbsent(valueClass, vc -> new Meta1<>(list2HeadHash, (Class<V>)vc));
 	}
 

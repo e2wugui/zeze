@@ -40,7 +40,7 @@ namespace Zeze.Net
     }
 
 #if USE_CONFCS
-    public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>
+    public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>, Rpc
         where TArgument: ConfBean, new()
         where TResult: ConfBean, new()
 #else

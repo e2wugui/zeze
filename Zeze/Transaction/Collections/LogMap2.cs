@@ -12,8 +12,13 @@ namespace Zeze.Transaction.Collections
         where V : Bean, new()
 #endif
 	{
-		// changed V logs. using in collect.
-		public ISet<LogBean> Changed { get; } = new HashSet<LogBean>();
+        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogMap2<K, V>));
+        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+
+        public override int TypeId => TypeId_;
+        
+        // changed V logs. using in collect.
+        public ISet<LogBean> Changed { get; } = new HashSet<LogBean>();
 
 		// changed with key. using in encode/decode FollowerApply
 		public Dictionary<K, LogBean> ChangedWithKey { get; } = new Dictionary<K, LogBean>();

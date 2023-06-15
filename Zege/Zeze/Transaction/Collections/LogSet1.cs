@@ -9,6 +9,11 @@ namespace Zeze.Transaction.Collections
 {
 	public class LogSet1<V> : LogSet<V>
 	{
+        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogSet1<V>));
+        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+
+        public override int TypeId => TypeId_;
+        
 		public ISet<V> Added { get; } = new HashSet<V>();
 		public ISet<V> Removed { get; } = new HashSet<V>();
 

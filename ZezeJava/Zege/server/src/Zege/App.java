@@ -70,7 +70,7 @@ public class App extends Zeze.AppBase {
 	public ZegeConfig ZegeConfig = new ZegeConfig();
 
 	public void Start(String conf) throws Exception {
-		var config = Config.load();
+		var config = Config.load("server.xml");
 		config.parseCustomize(ZegeConfig);
 
 		createZeze(config);
@@ -95,7 +95,7 @@ public class App extends Zeze.AppBase {
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。
 		Provider.start();
-		HttpServer.start(new Netty(1), 80); //TODO: 从配置里读线程数和端口
+		//HttpServer.start(new Netty(1), 80); //TODO: 从配置里读线程数和端口
 
 		createFakeCa();
 
@@ -108,7 +108,7 @@ public class App extends Zeze.AppBase {
 	public void Stop() throws Exception {
 		if (Provider != null)
 			Provider.stop();
-		HttpServer.close();
+		//HttpServer.close();
 		stopService(); // 关闭网络
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null)
