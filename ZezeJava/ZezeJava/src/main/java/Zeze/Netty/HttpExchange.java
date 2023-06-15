@@ -71,7 +71,7 @@ public class HttpExchange {
 	}
 
 	protected final @NotNull HttpServer server; // 所属的HttpServer对象,每个对象管理监听端口的所有连接
-	protected ChannelHandlerContext context; // netty的连接上下文,每个连接可能会依次绑定到多个HttpExchange对象
+	protected final @NotNull ChannelHandlerContext context; // netty的连接上下文,每个连接可能会依次绑定到多个HttpExchange对象
 	protected @Nullable HttpRequest request; // 收到完整HTTP header部分会赋值
 	protected @Nullable HttpHandler handler; // 收到完整HTTP header部分会查找对应handler并赋值
 	protected @NotNull ByteBuf content = Unpooled.EMPTY_BUFFER; // 当前收集的HTTP body部分, 只用于非流模式
@@ -524,10 +524,8 @@ public class HttpExchange {
 			ReferenceCountUtil.release(request);
 			request = null;
 		}
-		if (willCloseConnection && context != null) {
+		if (willCloseConnection)
 			context.close();
-			context = null;
-		}
 	}
 
 	void close(int method, @Nullable ChannelFuture cf) {

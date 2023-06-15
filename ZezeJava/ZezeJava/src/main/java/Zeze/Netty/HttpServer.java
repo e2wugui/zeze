@@ -42,7 +42,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected int writePendingLimit = 64 * 1024; // 写缓冲区的限制大小(字节),超过会立即断开连接,写大量内容需要考虑分片
 	protected int checkIdleInterval = 5; // 检查超时的间隔(秒),只有以下两个超时时间都满足才会触发超时关闭,start之后修改无效
 	protected int readIdleTimeout = 60; // 服务端无接收的超时时间(秒)
-	protected int writeIdleTimeout = 600; // 服务端无发送的超时时间(秒)
+	protected int writeIdleTimeout = 10 * 60; // 服务端无发送的超时时间(秒)
 	protected @Nullable SslContext sslCtx;
 	protected @Nullable Future<?> scheduler;
 	protected @Nullable ChannelFuture channelFuture;

@@ -455,6 +455,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				try (var it = bucket.getData().iterator()) {
 					it.seekToFirst();
 					// keyFirst 就是第一条数据，那么当前还是move。
+					//noinspection EqualsBetweenInconvertibleTypes
 					isMove = it.isValid() && bucketKeyFirst.equals(it.key());
 				}
 			}

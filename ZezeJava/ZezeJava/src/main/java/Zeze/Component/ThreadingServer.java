@@ -18,7 +18,6 @@ import Zeze.Builtin.Threading.SemaphoreRelease;
 import Zeze.Builtin.Threading.SemaphoreTryAcquire;
 import Zeze.Net.Service;
 import Zeze.Services.ServiceManagerServer;
-import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
