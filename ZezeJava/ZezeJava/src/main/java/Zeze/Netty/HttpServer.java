@@ -33,26 +33,60 @@ import org.jetbrains.annotations.Nullable;
 
 @Sharable
 public class HttpServer extends ChannelInitializer<SocketChannel> implements Closeable {
-	private static final int WRITE_PENDING_LIMIT = 64 * 1024; // 写缓冲区的限制大小,超过会立即断开连接,写大量内容需要考虑分片
-
-	final Application zeze;
-	final String fileHome;
-	final int fileCacheSeconds;
-	final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
-	final ConcurrentHashMap<ChannelId, HttpExchange> exchanges = new ConcurrentHashMap<>();
-	final TaskOneByOneByKey task11Executor = new TaskOneByOneByKey();
-	private SslContext sslCtx;
-	private Future<?> scheduler;
-	private ChannelFuture channelFuture;
+	protected final @Nullable Application zeze; // 只用于通过事务处理HTTP请求
+	protected final @Nullable String fileHome; // 客户端可下载的文件根目录
+	protected final int fileCacheSeconds; // 通知客户端文件下载的缓存时间(秒)
+	protected final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
+	protected final ConcurrentHashMap<ChannelId, HttpExchange> exchanges = new ConcurrentHashMap<>();
+	protected final TaskOneByOneByKey task11Executor = new TaskOneByOneByKey();
+	protected int writePendingLimit = 64 * 1024; // 写缓冲区的限制大小(字节),超过会立即断开连接,写大量内容需要考虑分片
+	protected int checkIdleInterval = 5; // 检查超时的间隔(秒),只有以下两个超时时间都满足才会触发超时关闭,start之后修改无效
+	protected int readIdleTimeout = 60; // 服务端无接收的超时时间(秒)
+	protected int writeIdleTimeout = 600; // 服务端无发送的超时时间(秒)
+	protected @Nullable SslContext sslCtx;
+	protected @Nullable Future<?> scheduler;
+	protected @Nullable ChannelFuture channelFuture;
 
 	public HttpServer() {
 		this(null, null, 10 * 60);
 	}
 
-	public HttpServer(Application zeze, String fileHome, int fileCacheSeconds) {
+	public HttpServer(@Nullable Application zeze, @Nullable String fileHome, int fileCacheSeconds) {
 		this.zeze = zeze;
 		this.fileHome = fileHome;
 		this.fileCacheSeconds = fileCacheSeconds;
+	}
+
+	public int getWritePendingLimit() {
+		return writePendingLimit;
+	}
+
+	public void setWritePendingLimit(int writePendingLimit) {
+		this.writePendingLimit = writePendingLimit;
+	}
+
+	public int getCheckIdleInterval() {
+		return checkIdleInterval;
+	}
+
+	public void setCheckIdleInterval(int checkIdleInterval) {
+		this.checkIdleInterval = checkIdleInterval;
+	}
+
+	public int getReadIdleTimeout() {
+		return readIdleTimeout;
+	}
+
+	public void setReadIdleTimeout(int readIdleTimeout) {
+		this.readIdleTimeout = readIdleTimeout;
+	}
+
+	public int getWriteIdleTimeout() {
+		return writeIdleTimeout;
+	}
+
+	public void setWriteIdleTimeout(int writeIdleTimeout) {
+		this.writeIdleTimeout = writeIdleTimeout;
 	}
 
 	public void setSsl(@NotNull PrivateKey priKey, @Nullable String keyPassword,
@@ -60,12 +94,12 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		sslCtx = SslContextBuilder.forServer(priKey, keyPassword, keyCertChain).build();
 	}
 
-	public synchronized ChannelFuture start(Netty netty, int port) {
+	public synchronized @NotNull ChannelFuture start(@NotNull Netty netty, int port) {
 		if (scheduler != null)
 			throw new IllegalStateException("already started");
 		scheduler = netty.getEventLoopGroup().scheduleWithFixedDelay(
 				() -> exchanges.values().forEach(HttpExchange::checkTimeout),
-				HttpExchange.CHECK_IDLE_INTERVAL, HttpExchange.CHECK_IDLE_INTERVAL, TimeUnit.SECONDS);
+				checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
 		return channelFuture = netty.startServer(this, port);
 	}
 
@@ -87,33 +121,35 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		}
 	}
 
-	public void addHandler(String path, int maxContentLength, TransactionLevel level, DispatchMode mode,
-						   HttpEndStreamHandle fullHandle) {
+	public void addHandler(@NotNull String path, int maxContentLength, @Nullable TransactionLevel level,
+						   @Nullable DispatchMode mode, @NotNull HttpEndStreamHandle fullHandle) {
 		addHandler(path, new HttpHandler(maxContentLength, level, mode, fullHandle));
 	}
 
-	public void addHandler(String path, TransactionLevel level, DispatchMode mode, HttpBeginStreamHandle beginStream,
-						   HttpStreamContentHandle streamContent, HttpEndStreamHandle endStream) {
+	public void addHandler(@NotNull String path, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
+						   @NotNull HttpBeginStreamHandle beginStream, @Nullable HttpStreamContentHandle streamContent,
+						   @NotNull HttpEndStreamHandle endStream) {
 		addHandler(path, new HttpHandler(level, mode, beginStream, streamContent, endStream));
 	}
 
-	public void addHandler(String path, TransactionLevel level, DispatchMode mode, HttpWebSocketHandle webSocketHandle) {
+	public void addHandler(@NotNull String path, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
+						   @NotNull HttpWebSocketHandle webSocketHandle) {
 		addHandler(path, new HttpHandler(level, mode, webSocketHandle));
 	}
 
-	public void addHandler(String path, HttpHandler handler) {
+	public void addHandler(@NotNull String path, @NotNull HttpHandler handler) {
 		if (handlers.putIfAbsent(path, handler) != null)
 			throw new IllegalStateException("add handler: duplicate path=" + path);
 	}
 
 	// 允许扩展HttpExchange类
-	public HttpExchange createHttpExchange(ChannelHandlerContext context) {
+	public @NotNull HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
 		return new HttpExchange(this, context);
 	}
 
 	@SuppressWarnings("RedundantThrows")
 	@Override
-	protected void initChannel(SocketChannel ch) throws Exception {
+	protected void initChannel(@NotNull SocketChannel ch) throws Exception {
 		if (ch.pipeline().get(HttpResponseEncoder.class) != null)
 			return;
 		Netty.logger.info("accept {}", ch.remoteAddress());
@@ -123,11 +159,11 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		p.addLast(new HttpResponseEncoder());
 		p.addLast(new HttpRequestDecoder(4096, 8192, 8192, false));
 		p.addLast(this);
-		ch.config().setWriteBufferHighWaterMark(WRITE_PENDING_LIMIT);
+		ch.config().setWriteBufferHighWaterMark(writePendingLimit);
 	}
 
 	@Override
-	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+	public void channelRead(@NotNull ChannelHandlerContext ctx, Object msg) throws Exception {
 		try {
 			var channelId = ctx.channel().id();
 			HttpExchange x;
@@ -142,7 +178,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	}
 
 	@Override
-	public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+	public void userEventTriggered(@NotNull ChannelHandlerContext ctx, Object evt) throws Exception {
 		if (evt == ChannelInputShutdownEvent.INSTANCE) {
 			var x = exchanges.get(ctx.channel().id());
 			if (x != null)
@@ -163,7 +199,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	}
 
 	@Override
-	public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
+	public void channelWritabilityChanged(@NotNull ChannelHandlerContext ctx) throws Exception {
 		var channel = ctx.channel();
 		Netty.logger.error("write buffer overflow {} > {} from {}",
 				channel.unsafe().outboundBuffer().totalPendingWriteBytes(),
@@ -173,7 +209,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	}
 
 	@Override
-	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+	public void exceptionCaught(@NotNull ChannelHandlerContext ctx, @NotNull Throwable cause) {
 		try {
 			Netty.logger.error("exceptionCaught from {}", ctx.channel().remoteAddress(), cause);
 			var x = exchanges.get(ctx.channel().id());

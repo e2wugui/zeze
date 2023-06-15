@@ -9,6 +9,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Properties;
 import Zeze.Util.StringSpan;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Mimes {
 	@SuppressWarnings("TextBlockMigration")
@@ -361,7 +363,7 @@ public class Mimes {
 	private static final String MimeDefault = "application/octet-stream";
 	private static final HashMap<String, String> MimesMap = new HashMap<>();
 
-	private static void load(Reader input) throws IOException {
+	private static void load(@NotNull Reader input) throws IOException {
 		var p = new Properties();
 		p.load(input);
 		for (var e : p.entrySet())
@@ -382,13 +384,13 @@ public class Mimes {
 	}
 
 	// 注意：扩展名包含字符'.'
-	public static String fromFileExtension(Object extName) {
+	public static @NotNull String fromFileExtension(@NotNull Object extName) {
 		//noinspection SuspiciousMethodCalls
 		var mime = MimesMap.get(extName);
 		return mime != null ? mime : MimeDefault;
 	}
 
-	public static String fromFileName(String file) {
+	public static @NotNull String fromFileName(@Nullable String file) {
 		if (file != null) {
 			var index = file.lastIndexOf('.');
 			if (index >= 0)

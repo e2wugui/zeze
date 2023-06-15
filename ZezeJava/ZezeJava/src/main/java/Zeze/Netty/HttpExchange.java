@@ -48,20 +48,19 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.util.AsciiString;
 import io.netty.util.AttributeMap;
 import io.netty.util.ReferenceCountUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class HttpExchange {
-	static final int CHECK_IDLE_INTERVAL = 5; // 检查连接状态间隔(秒)
-	static final int IDLE_TIMEOUT = 60; // 主动断开的超时时间(秒)
+	protected static final int CLOSE_FINISH = 0; // 正常结束HttpExchange,不关闭连接
+	protected static final int CLOSE_ON_FLUSH = 1; // 结束HttpExchange,发送完时关闭连接
+	protected static final int CLOSE_FORCE = 2; // 结束HttpExchange,不等发送完强制关闭连接
+	protected static final int CLOSE_TIMEOUT = 3; // 同上,只是因idle超时而关闭
+	protected static final int CLOSE_PASSIVE = 4; // 同上,只是因远程主动关闭而关闭
 
-	static final int CLOSE_FINISH = 0; // 正常结束HttpExchange,不关闭连接
-	static final int CLOSE_ON_FLUSH = 1; // 结束HttpExchange,发送完时关闭连接
-	static final int CLOSE_FORCE = 2; // 结束HttpExchange,不等发送完强制关闭连接
-	static final int CLOSE_TIMEOUT = 3; // 同上,只是因idle超时而关闭
-	static final int CLOSE_PASSIVE = 4; // 同上,只是因远程主动关闭而关闭
-
-	private static final Pattern rangePattern = Pattern.compile("[ =\\-/]");
-	private static final OpenOption[] emptyOpenOptions = new OpenOption[0];
-	private static final VarHandle detachedHandle;
+	protected static final @NotNull Pattern rangePattern = Pattern.compile("[ =\\-/]");
+	protected static final OpenOption[] emptyOpenOptions = new OpenOption[0];
+	protected static final @NotNull VarHandle detachedHandle;
 
 	static {
 		try {
@@ -71,28 +70,28 @@ public class HttpExchange {
 		}
 	}
 
-	private final HttpServer server; // 所属的HttpServer对象,每个对象管理监听端口的所有连接
-	private ChannelHandlerContext context; // netty的连接上下文,每个连接可能会依次绑定到多个HttpExchange对象
-	private HttpRequest request; // 收到完整HTTP header部分会赋值
-	private HttpHandler handler; // 收到完整HTTP header部分会查找对应handler并赋值
-	private ByteBuf content = Unpooled.EMPTY_BUFFER; // 当前收集的HTTP body部分, 只用于非流模式
-	private int outBufHash; // 用于判断输出buffer是否有变化
-	private short idleTime; // 当前统计的idle时间(秒)
-	private boolean willCloseConnection; // true表示close时会关闭连接
-	private boolean inStreamMode; // 是否在流/WebSocket模式过程中
-	private Object userState;
-	private volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
+	protected final @NotNull HttpServer server; // 所属的HttpServer对象,每个对象管理监听端口的所有连接
+	protected ChannelHandlerContext context; // netty的连接上下文,每个连接可能会依次绑定到多个HttpExchange对象
+	protected @Nullable HttpRequest request; // 收到完整HTTP header部分会赋值
+	protected @Nullable HttpHandler handler; // 收到完整HTTP header部分会查找对应handler并赋值
+	protected @NotNull ByteBuf content = Unpooled.EMPTY_BUFFER; // 当前收集的HTTP body部分, 只用于非流模式
+	protected int outBufHash; // 用于判断输出buffer是否有变化
+	protected short idleTime; // 当前统计的idle时间(秒)
+	protected boolean willCloseConnection; // true表示close时会关闭连接
+	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
+	protected @Nullable Object userState;
+	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
 
-	public HttpExchange(HttpServer server, ChannelHandlerContext context) {
+	public HttpExchange(@NotNull HttpServer server, @NotNull ChannelHandlerContext context) {
 		this.server = server;
 		this.context = context;
 	}
 
-	public Object getUserState() {
+	public @Nullable Object getUserState() {
 		return userState;
 	}
 
-	public void setUserState(Object userState) {
+	public void setUserState(@Nullable Object userState) {
 		this.userState = userState;
 	}
 
@@ -109,23 +108,23 @@ public class HttpExchange {
 		return context;
 	}
 
-	public Channel channel() {
+	public @NotNull Channel channel() {
 		return context.channel();
 	}
 
-	public AttributeMap attributes() {
+	public @NotNull AttributeMap attributes() {
 		return context.channel();
 	}
 
-	public HttpRequest request() {
+	public @Nullable HttpRequest request() {
 		return request;
 	}
 
-	public ByteBuf content() {
+	public @NotNull ByteBuf content() {
 		return content;
 	}
 
-	public static String urlDecode(String s) {
+	public static @NotNull String urlDecode(@NotNull String s) {
 		for (int i = 0, n = s.length(); i < n; i++) {
 			var c = s.charAt(i);
 			if (c == '%' || c == '+')
@@ -134,19 +133,23 @@ public class HttpExchange {
 		return s;
 	}
 
-	public String path() {
+	public @NotNull String path() {
+		if (request == null)
+			return "";
 		var uri = request.uri();
 		var i = uri.indexOf('?');
 		return urlDecode(i >= 0 ? uri.substring(0, i) : uri);
 	}
 
-	public String query() {
+	public @Nullable String query() {
+		if (request == null)
+			return null;
 		var uri = request.uri();
 		var i = uri.indexOf('?');
 		return i >= 0 ? uri.substring(i + 1) : null;
 	}
 
-	public static Map<String, String> parseQuery(String s) {
+	public static @NotNull Map<String, String> parseQuery(@Nullable String s) {
 		if (s == null)
 			return Map.of();
 		var m = new LinkedHashMap<String, String>();
@@ -163,15 +166,15 @@ public class HttpExchange {
 		}
 	}
 
-	public Map<String, String> queryMap() {
+	public @NotNull Map<String, String> queryMap() {
 		return parseQuery(query());
 	}
 
-	public Map<String, String> contentQueryMap() {
+	public @NotNull Map<String, String> contentQueryMap() {
 		return parseQuery(content().toString(StandardCharsets.UTF_8));
 	}
 
-	public static String filePath(String path) {
+	public static @NotNull String filePath(@NotNull String path) {
 		var i = path.lastIndexOf(':'); // 过滤掉盘符,避免访问非法路径
 		if (i < 0)
 			i = 0;
@@ -259,8 +262,10 @@ public class HttpExchange {
 		}
 	}
 
-	@SuppressWarnings("ConstantConditions")
+	@SuppressWarnings("DataFlowIssue")
 	private void fireBeginStream() throws Exception {
+		if (handler == null)
+			return;
 		var r = parseRange(HttpHeaderNames.CONTENT_RANGE);
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			var p = server.zeze.newProcedure(() -> {
@@ -280,8 +285,8 @@ public class HttpExchange {
 		}
 	}
 
-	private void fireStreamContentHandle(HttpContent c) throws Exception {
-		var handle = handler.StreamContentHandle;
+	private void fireStreamContentHandle(@NotNull HttpContent c) throws Exception {
+		var handle = handler != null ? handler.StreamContentHandle : null;
 		if (handle == null)
 			return;
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
@@ -315,14 +320,14 @@ public class HttpExchange {
 		}
 	}
 
-	public HttpExchange detach() {
+	public @NotNull HttpExchange detach() {
 		detachedHandle.compareAndSet(this, 0, 1);
 		return this;
 	}
 
 	private void invokeEndStream() throws Exception {
 		try {
-			var handle = handler.EndStreamHandle;
+			var handle = handler != null ? handler.EndStreamHandle : null;
 			if (handle != null)
 				handle.onEndStream(this);
 		} finally {
@@ -365,7 +370,9 @@ public class HttpExchange {
 		}
 	}
 
-	private void fireWebSocket(WebSocketFrame frame) throws Exception {
+	private void fireWebSocket(@NotNull WebSocketFrame frame) throws Exception {
+		if (handler == null)
+			return;
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			frame.retain();
 			var p = server.zeze.newProcedure(() -> {
@@ -406,7 +413,7 @@ public class HttpExchange {
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	private void fireWebSocket0(WebSocketFrame frame) throws Exception {
+	private void fireWebSocket0(@NotNull WebSocketFrame frame) throws Exception {
 		if (frame instanceof BinaryWebSocketFrame)
 			handler.WebSocketHandle.onBinary(this, frame.content());
 		else if (frame instanceof TextWebSocketFrame)
@@ -432,8 +439,9 @@ public class HttpExchange {
 	// 上传请求/下载回复: content-range: bytes from-to/size 范围是[from,to]
 	// 参考: https://www.jianshu.com/p/acca9656e250
 	// 返回: [from, to, size]
-	private long[] parseRange(AsciiString headerName) {
+	private long[] parseRange(@NotNull AsciiString headerName) {
 		var r = new long[]{-1, -1, -1};
+		//noinspection DataFlowIssue
 		var headers = request.headers();
 		var range = headers.get(headerName);
 		if (range != null) {
@@ -462,7 +470,7 @@ public class HttpExchange {
 		return r;
 	}
 
-	private static long parse(String s) {
+	private static long parse(@NotNull String s) {
 		if (s.isEmpty())
 			return -1;
 		try {
@@ -472,9 +480,9 @@ public class HttpExchange {
 		}
 	}
 
-	void checkTimeout() {
+	protected void checkTimeout() {
 		// 这里为了减小开销, 前半段IDLE_TIMEOUT期间只判断读超时
-		if ((idleTime += CHECK_IDLE_INTERVAL) < IDLE_TIMEOUT / 2)
+		if (idleTime < server.readIdleTimeout)
 			return;
 		// 后半段IDLE_TIMEOUT期间每次再判断写buffer的状态是否有变化,有变化则重新idle计时
 		var outBuf = context.channel().unsafe().outboundBuffer();
@@ -487,7 +495,7 @@ public class HttpExchange {
 			}
 		}
 		// 到这里至少有IDLE_TIMEOUT的时间没有任何读写了,那就强制关闭吧
-		if (idleTime >= IDLE_TIMEOUT)
+		if (idleTime >= server.writeIdleTimeout)
 			close(CLOSE_TIMEOUT, null);
 	}
 
@@ -499,7 +507,7 @@ public class HttpExchange {
 		if (inStreamMode) {
 			inStreamMode = false;
 			try {
-				if (handler.isWebSocketMode()) {
+				if (handler != null && handler.isWebSocketMode()) {
 					//noinspection ConstantConditions
 					handler.WebSocketHandle.onClose(this, WebSocketCloseStatus.ABNORMAL_CLOSURE.code(), "");
 				} else
@@ -522,7 +530,7 @@ public class HttpExchange {
 		}
 	}
 
-	void close(int method, ChannelFuture cf) {
+	void close(int method, @Nullable ChannelFuture cf) {
 		if ((int)detachedHandle.getAndSet(this, 2) == 2)
 			return;
 		server.exchanges.remove(context.channel().id(), this); // 尝试删除,避免继续接收当前请求的消息
@@ -549,12 +557,12 @@ public class HttpExchange {
 	}
 
 	// 正常结束HttpExchange,不关闭连接
-	public void close(ChannelFuture future) {
+	public void close(@Nullable ChannelFuture future) {
 		close(CLOSE_FINISH, future);
 	}
 
 	// 结束HttpExchange,发送完时关闭连接
-	public void closeConnectionOnFlush(ChannelFuture future) {
+	public void closeConnectionOnFlush(@Nullable ChannelFuture future) {
 		close(CLOSE_ON_FLUSH, future);
 	}
 
@@ -565,7 +573,10 @@ public class HttpExchange {
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// send response
-	public ChannelFuture send(HttpResponseStatus status, String contentType, ByteBuf content) { // content所有权会被转移
+	public @NotNull ChannelFuture send(@NotNull HttpResponseStatus status, @Nullable String contentType,
+									   @Nullable ByteBuf content) { // content所有权会被转移
+		if (content == null)
+			content = Unpooled.EMPTY_BUFFER;
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, false);
 		var headers = Netty.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
@@ -575,28 +586,29 @@ public class HttpExchange {
 		return context.writeAndFlush(res);
 	}
 
-	public ChannelFuture send(HttpResponseStatus status, String contentType, String content) {
+	public @NotNull ChannelFuture send(@NotNull HttpResponseStatus status, @Nullable String contentType,
+									   @Nullable String content) {
 		return send(status, contentType, content == null || content.isEmpty() ? Unpooled.EMPTY_BUFFER
 				: Unpooled.wrappedBuffer(content.getBytes(StandardCharsets.UTF_8)));
 	}
 
-	public ChannelFuture sendPlainText(HttpResponseStatus status, String text) {
+	public @NotNull ChannelFuture sendPlainText(@NotNull HttpResponseStatus status, @Nullable String text) {
 		return send(status, "text/plain; charset=utf-8", text);
 	}
 
-	public ChannelFuture sendHtml(HttpResponseStatus status, String html) {
+	public @NotNull ChannelFuture sendHtml(@NotNull HttpResponseStatus status, @Nullable String html) {
 		return send(status, "text/html; charset=utf-8", html);
 	}
 
-	public ChannelFuture sendJson(HttpResponseStatus status, String json) {
+	public @NotNull ChannelFuture sendJson(@NotNull HttpResponseStatus status, @Nullable String json) {
 		return send(status, "application/json; charset=utf-8", json);
 	}
 
-	public ChannelFuture sendXml(HttpResponseStatus status, String xml) {
+	public @NotNull ChannelFuture sendXml(@NotNull HttpResponseStatus status, @Nullable String xml) {
 		return send(status, "text/xml; charset=utf-8", xml);
 	}
 
-	public void sendFile(String filePath) throws Exception {
+	public void sendFile(@NotNull String filePath) throws Exception {
 		var file = new File(server.fileHome, filePath);
 		if (!file.isFile() || file.isHidden()) {
 			close(send404());
@@ -605,7 +617,7 @@ public class HttpExchange {
 
 		// 检查 if-modified-since
 		var lastModified = file.lastModified() / 1000;
-		var ifModifiedSince = request.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
+		var ifModifiedSince = request != null ? request.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE) : null;
 		if (ifModifiedSince != null && !ifModifiedSince.isEmpty() && lastModified == Netty.parseDate(ifModifiedSince)) {
 			var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED, // 文件未改变
 					Unpooled.EMPTY_BUFFER, false);
@@ -639,49 +651,49 @@ public class HttpExchange {
 		close(context.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT).addListener(__ -> fc.close()));
 	}
 
-	public ChannelFuture send404() {
+	public @NotNull ChannelFuture send404() {
 		return sendPlainText(HttpResponseStatus.NOT_FOUND, null);
 	}
 
-	public ChannelFuture send500(Throwable ex) {
+	public @NotNull ChannelFuture send500(@NotNull Throwable ex) {
 		return sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, Str.stacktrace(ex));
 	}
 
-	public ChannelFuture send500(String text) {
+	public @NotNull ChannelFuture send500(@NotNull String text) {
 		return sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, text);
 	}
 
-	public ChannelFuture sendWebSocket(WebSocketFrame frame) { // frame所有权会被转移
+	public @NotNull ChannelFuture sendWebSocket(@NotNull WebSocketFrame frame) { // frame所有权会被转移
 		return context.writeAndFlush(frame);
 	}
 
-	public ChannelFuture sendWebSocket(String text) {
+	public @NotNull ChannelFuture sendWebSocket(@NotNull String text) {
 		return context.writeAndFlush(new TextWebSocketFrame(text));
 	}
 
-	public ChannelFuture sendWebSocket(byte[] data) {
+	public @NotNull ChannelFuture sendWebSocket(byte @NotNull [] data) {
 		return context.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data, 0, data.length)));
 	}
 
-	public ChannelFuture sendWebSocket(byte[] data, int offset, int count) {
+	public @NotNull ChannelFuture sendWebSocket(byte @NotNull [] data, int offset, int count) {
 		return context.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data, offset, count)));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
-	public ChannelFuture beginStream(HttpResponseStatus status, HttpHeaders headers) {
+	public @NotNull ChannelFuture beginStream(@NotNull HttpResponseStatus status, @NotNull HttpHeaders headers) {
 		if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH))
 			headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
 		return context.writeAndFlush(new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers));
 	}
 
 	// 发送后data内容在回调前不能修改
-	public ChannelFuture sendStream(byte[] data) {
+	public @NotNull ChannelFuture sendStream(byte @NotNull [] data) {
 		return context.writeAndFlush(new DefaultHttpContent(Unpooled.wrappedBuffer(data, 0, data.length)));
 	}
 
 	// 发送后data内容在回调前不能修改
-	public ChannelFuture sendStream(byte[] data, int offset, int count) {
+	public @NotNull ChannelFuture sendStream(byte @NotNull [] data, int offset, int count) {
 		return context.writeAndFlush(new DefaultHttpContent(Unpooled.wrappedBuffer(data, offset, count)));
 	}
 
