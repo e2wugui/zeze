@@ -40,7 +40,7 @@
     <MauiXaml Update="Resources\Styles\Styles.xaml">
       <SubType>Designer</SubType>
     </MauiXaml>
-    <MauiXaml Update="Zege\Notify\NotifyPage.xaml">
+    <MauiXaml Update="Zege\NotifyPage.xaml">
       <SubType>Designer</SubType>
     </MauiXaml>
   </ItemGroup>

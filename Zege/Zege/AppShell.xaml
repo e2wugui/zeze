@@ -6,9 +6,12 @@
     xmlns:local="clr-namespace:Zege"
     Shell.FlyoutBehavior="Disabled">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
-
+    <TabBar>
+        <Tab Title="好友">
+            <ShellContent ContentTemplate="{DataTemplate local:MainPage}"/>
+        </Tab>
+        <Tab Title="TODO">
+            <ShellContent ContentTemplate="{DataTemplate local:NotifyPage}"/>
+        </Tab>
+    </TabBar>
 </Shell>

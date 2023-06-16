@@ -15,8 +15,11 @@ namespace Zege
     {
         public App App { get; private set; }
 
+        public static MainPage Instance { get; private set; }
+
         public MainPage()
         {
+            Instance = this;
             InitializeComponent();
             LoggingConfiguration();
             FollowerApplyTables.RegisterLog();
@@ -25,7 +28,6 @@ namespace Zege
         public ScrollView MessageScrollView => _MessageScrollView;
         public AbsoluteLayout MessageLayout => _MessageLayout;
         public Layout MessageParent => _MessageParent;
-        public Window NotifyWindow { get; private set; }
 
         private void LoggingConfiguration()
         {
@@ -50,6 +52,7 @@ namespace Zege
                 App.Start("127.0.0.1", 5100);
                 App.Zege_Friend.Bind(FriendsListView);
                 FriendsListView.ItemSelected += OnFriendsItemSelected;
+                App.Zege_Notify.SetNotifyPage(NotifyPage.Instance);
             }
         }
 
@@ -173,24 +176,6 @@ namespace Zege
             if (string.IsNullOrEmpty(message))
                 return;
             LabelMultiLine.Text = message;
-        }
-
-        private void OnOpenNotifyWindow(object sender, EventArgs e)
-        {
-            if (null == NotifyWindow && null != App)
-            {
-                var notifyPage = new Zege.Notify.NotifyPage(App);
-                App.Zege_Notify.SetNotifyPage(notifyPage);
-                NotifyWindow = new Window(notifyPage);
-                NotifyWindow.Destroying += NotifyWindow_Destroying;
-                Microsoft.Maui.Controls.Application.Current.OpenWindow(NotifyWindow);
-            }
-        }
-
-        private void NotifyWindow_Destroying(object sender, EventArgs e)
-        {
-            App.Zege_Notify.SetNotifyPage(null);
-            NotifyWindow = null;
         }
 
         private void OnAdd(object sender, EventArgs e)

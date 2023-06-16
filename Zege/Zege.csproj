@@ -113,7 +113,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <MauiXaml Update="Zege\Notify\NotifyPage.xaml">
+	  <MauiXaml Update="Zege\NotifyPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	</ItemGroup>

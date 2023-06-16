@@ -116,9 +116,16 @@ namespace Zege.Message
             var info = await Module.App.Zege_Friend.GetPublicUserInfo(Friend);
             rpc.Argument.Message.SecureKeyIndex = info.LastCertIndex;
             var encodedMessage = ByteBuffer.Encode(textMessage);
-            var cert = Cert.CreateFromPkcs12(info.Cert.GetBytesUnsafe(), "");
-            var encryptedMessage = Cert.EncryptRsa(cert, encodedMessage.Bytes, encodedMessage.ReadIndex, encodedMessage.Size);
-            rpc.Argument.Message.SecureMessage = new Binary(encryptedMessage);
+            if (info.Cert.Count > 0)
+            {
+                var cert = Cert.CreateFromPkcs12(info.Cert.GetBytesUnsafe(), "");
+                var encryptedMessage = Cert.EncryptRsa(cert, encodedMessage.Bytes, encodedMessage.ReadIndex, encodedMessage.Size);
+                rpc.Argument.Message.SecureMessage = new Binary(encryptedMessage);
+            }
+            else
+            {
+                rpc.Argument.Message.SecureMessage = new Binary(encodedMessage);
+            }
 
             await rpc.SendAsync(Module.App.ClientService.GetSocket());
             rpc.Argument.Message.SecureMessage = new Binary(encodedMessage); // 给本地用之前恢复成不加密的。

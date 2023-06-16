@@ -6,8 +6,6 @@
 
     <ScrollView>
         <HorizontalStackLayout>
-
-            <!-- ItemSource="{Binding Friends}"-->
             <ListView x:Name ="FriendsListView" HeightRequest="600" WidthRequest="350" >
                 <ListView.ItemTemplate>
                     <DataTemplate>
@@ -73,7 +71,6 @@
                 <Button Text="Top" Clicked="OnMakeCurrentFriendTop"/>
                 <Button Text="Return to Top" Clicked="OnReturnTop"/>
                 <Button Text="Test" Clicked="OnTest"/>
-                <Button Text="Notify" Clicked="OnOpenNotifyWindow"/>
                 <Label Text="a1" x:Name="LabelMultiLine" HeightRequest="80"/>
             </VerticalStackLayout>
 

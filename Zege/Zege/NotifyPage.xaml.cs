@@ -1,15 +1,18 @@
-using Zege.Friend;
 
-namespace Zege.Notify;
+using Zege.Friend;
+using Zege.Notify;
+
+namespace Zege;
 
 public partial class NotifyPage : ContentPage
 {
-	public App App { get; }
+    public static NotifyPage Instance { get; private set; }
 
-	public NotifyPage(App app)
+	public NotifyPage()
 	{
+        Instance = this;
 		InitializeComponent();
-        App = app;
+        MainPage.Instance?.App?.Zege_Notify.SetNotifyPage(this);
     }
 
     public ListView NotifyListView => _NotifyListView;
@@ -39,7 +42,7 @@ public partial class NotifyPage : ContentPage
                     var rpc = new AcceptFriend();
                     rpc.Argument.Account = from;
                     rpc.Argument.Memo = Memo.Text == null ? "" : Memo.Text;
-                    rpc.Send(App.ClientService.GetSocket()); // skip rpc result
+                    rpc.Send(MainPage.Instance?.App?.ClientService.GetSocket()); // skip rpc result
                 }
 				break;
 		}
@@ -57,7 +60,7 @@ public partial class NotifyPage : ContentPage
                 {
                     var rpc = new DenyFriend();
                     rpc.Argument.Account = from;
-                    rpc.Send(App.ClientService.GetSocket()); // skip rpc result
+                    rpc.Send(MainPage.Instance?.App?.ClientService.GetSocket()); // skip rpc result
                 }
                 break;
         }
