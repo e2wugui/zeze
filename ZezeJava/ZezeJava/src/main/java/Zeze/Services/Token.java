@@ -1,8 +1,15 @@
 package Zeze.Services;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +36,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.PerfCounter;
+import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.ThreadFactoryWithName;
@@ -178,6 +186,34 @@ public final class Token extends AbstractToken {
 			this.endTime = createTime + ttl;
 		}
 
+		TokenState(@NotNull ByteBuffer bb) throws UnknownHostException {
+			int v = bb.ReadByte();
+			if (v == 0)
+				remoteAddr = null;
+			else if (v == 1) {
+				var ip = bb.ReadBytes();
+				int port = bb.ReadInt();
+				remoteAddr = new InetSocketAddress(InetAddress.getByAddress(ip), port);
+			} else
+				throw new IllegalStateException("unknown TokenState version = " + v);
+			context = bb.ReadBinary();
+			createTime = bb.ReadLong();
+			endTime = bb.ReadLong();
+			count = bb.ReadLong();
+		}
+
+		void encode(@NotNull ByteBuffer bb) {
+			bb.WriteByte(remoteAddr != null ? 1 : 0);
+			if (remoteAddr != null) {
+				bb.WriteBytes(remoteAddr.getAddress().getAddress()); // getHostName()不靠谱,只记IP地址吧
+				bb.WriteInt(remoteAddr.getPort());
+			}
+			bb.WriteBinary(context);
+			bb.WriteLong(createTime);
+			bb.WriteLong(endTime);
+			bb.WriteLong(count);
+		}
+
 		@NotNull String getRemoteAddr() {
 			var addr = remoteAddr != null ? remoteAddr.getAddress().getHostAddress() : null;
 			return addr != null ? addr : "";
@@ -232,6 +268,84 @@ public final class Token extends AbstractToken {
 			var state = e.getValue();
 			if (time >= state.endTime)
 				tokenMap.remove(e.getKey(), state);
+		}
+	}
+
+	public boolean tryLoadLatestSaveFile() {
+		var maxTime = 0L;
+		File maxFile = null;
+		var files = new File(".").listFiles();
+		if (files != null) {
+			for (var file : files) {
+				if (file.isFile()) {
+					var fn = file.getName();
+					if (fn.startsWith("token_") && fn.endsWith(".save")) {
+						try {
+							var time = Long.parseLong(fn.substring(6, fn.length() - 5));
+							if (maxTime < time) {
+								maxTime = time;
+								maxFile = file;
+							}
+						} catch (Exception ignored) {
+						}
+					}
+				}
+			}
+		}
+		if (maxFile == null) {
+			logger.info("tryLoadLatestSaveFile: not found any");
+			return false;
+		}
+		try {
+			decode(ByteBuffer.Wrap(Files.readAllBytes(maxFile.toPath())));
+			logger.info("tryLoadLatestSaveFile('{}') OK ({} tokens)", maxFile.getAbsolutePath(), tokenMap.size());
+			return true;
+		} catch (Exception e) {
+			logger.error("tryLoadLatestSaveFile('{}') failed ({} tokens loaded):",
+					maxFile.getAbsolutePath(), tokenMap.size(), e);
+			return false;
+		}
+	}
+
+	public boolean trySaveFile() {
+		var fn = "token_" + System.currentTimeMillis() + ".save";
+		try (var fos = new FileOutputStream(fn)) {
+			var bb = ByteBuffer.Allocate(1024);
+			encode(bb, fos);
+			fos.write(bb.Bytes, bb.ReadIndex, bb.size());
+		} catch (Exception e) {
+			logger.error("trySaveFile('{}') failed:", fn, e);
+			return false;
+		}
+		logger.info("trySaveFile('{}') OK", fn);
+		return true;
+	}
+
+	private void encode(@NotNull ByteBuffer bb, @NotNull OutputStream os) throws IOException {
+		bb.WriteByte(1); // version
+		bb.WriteLong(newCounter.sum());
+		for (var e : tokenMap.entrySet()) {
+			bb.WriteByte(1); // a new token record
+			bb.WriteString(e.getKey());
+			e.getValue().encode(bb);
+			if (bb.size() >= 65536) { // 写到一定量就输出到os里,避免bb积累太多数据
+				os.write(bb.Bytes, bb.ReadIndex, bb.size());
+				bb.Reset();
+			}
+		}
+		bb.WriteByte(0); // end of token records
+	}
+
+	private void decode(@NotNull ByteBuffer bb) throws UnknownHostException {
+		tokenMap.clear();
+		int v = bb.ReadByte();
+		if (v != 1)
+			throw new IllegalStateException("unknown Token version = " + v);
+		newCounter.reset();
+		newCounter.add(bb.ReadLong());
+		while (bb.ReadByte() == 1) {
+			var k = bb.ReadString();
+			tokenMap.put(k, new TokenState(bb));
 		}
 	}
 
@@ -336,7 +450,11 @@ public final class Token extends AbstractToken {
 		if (Selectors.getInstance().getCount() < threadCount)
 			Selectors.getInstance().add(threadCount - Selectors.getInstance().getCount());
 
-		new Token().start(null, host, port);
+		var token = new Token();
+		token.tryLoadLatestSaveFile();
+		ShutdownHook.add(token::trySaveFile);
+
+		token.start(null, host, port);
 		synchronized (Thread.currentThread()) {
 			Thread.currentThread().wait();
 		}
