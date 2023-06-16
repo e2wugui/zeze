@@ -12,8 +12,24 @@ ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 c# 并发上不去，只有4/8.
 ------------------------------------------------------------------------------------------------------------------------------
-2023/6/16 v1.2.7 Dbh2 Move; Threading; 
+2023/6/23 v1.2.7 Dbh2 Move; Threading;  Zege;
 ------------------------------------------------------------------------------------------------------------------------------
+Zege 客户端重构；Notify重新设计？ChatControl 改成用WebView；
+Zege 消息已读；红点；
+Task
+	BTask：内容描述，时间范围，发起人，执行人，附件，资源（对应实物，比如会议室）
+	CreateTask 自动给所有相关人发送Notify。Parent没指定就是自由任务，指定则形成系列任务。Parent可以用来追溯前置任务，是一种查看手段。
+	GetTask 查询任务信息。
+	ChangeTaskState 需要notify。Finish,Close。需要notify。
+	ChangeTask 修改任务内容（改描述，附件增删，等等），需要notify。
+	GetTasks 查询最近一段时间（一个月），显示为表格形状页面，作为整体视图。
+
+	task table: taskid -> btask
+	timeindex:  day ->set<taskid>
+	date begin <---> date end 限定半年 day ... day
+Zege MainUI：Tab，整合Notify窗口。
+
+Zege 重新能跑啦。
 c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，换成DotNext.Threading】
 	==> 换成DotNext.Threading，并发还是慢。其中AsyncMonitor还是用老的，但应该对主要性能没有影响。
 	==> 有个现象，当async task收集完成的时间和加上wait all的时间几乎一样。这说明存储过程任务太简单，导致性能统计
