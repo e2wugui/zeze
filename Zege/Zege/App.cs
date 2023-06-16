@@ -1,13 +1,101 @@
 
 using Zeze.Net;
 using Zeze;
+using System.Collections.Concurrent;
+using Zege.User;
 
 namespace Zege
 {
     public sealed partial class App
     {
-        public Connector Connector;
-        public MainPage MainPage { get; set; }
+        public static Func<string, string, Task> OnError { get; set; }
+
+        private static ConcurrentDictionary<string, App> Apps { get; } = new();
+
+        public static App GetOrAdd(string account)
+        {
+            var fresh = false;
+            var app = Apps.GetOrAdd(account, (key) =>
+            {
+                fresh = true;
+                return new App(account);
+            });
+
+            if (fresh)
+            {
+                app.Start("127.0.0.1", 5100);
+            }
+            return app;
+        }
+
+        public static App Login(string account, string passwd, bool savePassword)
+        {
+            var app = GetOrAdd(account);
+            if (app.Zege_Linkd.ChallengeFuture.Task.IsCompletedSuccessfully)
+                return app;
+
+            Mission.Run(async () =>
+            {
+                if (await app.Zege_Linkd.ChallengeMeAsync(account, passwd, savePassword))
+                {
+                    app.Zege_Friend.GetFristFriendNode();
+                    var clientId = "PC";
+                    await app.Zeze_Builtin_Online.LoginAsync(clientId);
+                    app.Zege_Notify.GetFirstNode();
+                }
+                else
+                {
+                    app.Stop();
+                    await OnError("Login", "Account Cert Not Exists."); ;
+                }
+            });
+            return app;
+        }
+
+        public static App Create(string account, string passwd, bool save)
+        {
+            var app = GetOrAdd(account);
+            Mission.Run(async () =>
+            {
+                await app.Connector.GetReadySocketAsync();
+                var rc = await app.Zege_User.CreateAccountAsync(account, passwd, save);
+                switch (rc)
+                {
+                    case 0:
+                        Login(account, passwd, save);
+                        break;
+
+                    case ModuleUser.eAccountHasUsed:
+                        app.Stop();
+                        await OnError("Create Account", "Account Exists.");
+                        break;
+
+                    case ModuleUser.eAccountHasPrepared:
+                        app.Stop();
+                        await OnError("Create Account", "Account Busy.");
+                        break;
+
+                    default:
+                        app.Stop();
+                        await OnError("Create Account", $"Unknown Error{rc}");
+                        break;
+                }
+            });
+            return app;
+        }
+
+        private static void Remove(App app)
+        {
+            Apps.TryRemove(KeyValuePair.Create(app.Account, app));
+        }
+
+        public string Account { get; private set; }
+        public Connector Connector; // 属性不能用 out，就这样了吧。
+
+        public App(string account)
+        {
+            Account = account;
+        }
 
         public void Start(string ip, int port)
         {
@@ -24,7 +112,11 @@ namespace Zege
             else
             {
                 // 从配置里面找到第一个Connnector。
-                ClientService.Config.ForEachConnector((c) => { Connector = c; return false; });
+                ClientService.Config.ForEachConnector((c) =>
+                {
+                    Connector = c;
+                    return false;
+                });
             }
             if (null == Connector)
                 throw new Exception("miss Connector!");
@@ -37,6 +129,8 @@ namespace Zege
 
         public void Stop()
         {
+            Remove(this);
+
             StopService(); // 关闭网络
             StopModules(); // 关闭模块，卸载配置什么的。
             Zeze.Stop(); // 关闭数据库

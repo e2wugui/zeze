@@ -28,7 +28,7 @@ namespace Zege
                 // 注意：Application.Current.MainPage is AppShell
                 // see UiApp.xaml.cs
                 MainThread.BeginInvokeOnMainThread(
-                    async () => await AppShell.OnUnhandledException(ex));
+                    async () => await AppShell.Instance.OnUnhandledException(ex));
             }
         }
 
@@ -44,11 +44,9 @@ namespace Zege
                 // 注意：Application.Current.MainPage is AppShell
                 // see UiApp.xaml.cs
                 MainThread.BeginInvokeOnMainThread(
-                    async () => await AppShell.OnUnhandledException(ex));
+                    async () => await AppShell.Instance.OnUnhandledException(ex));
             }
         }
-
-        public static AppShell AppShell => (AppShell)Microsoft.Maui.Controls.Application.Current.MainPage;
 
         /// <summary>
         /// 成功（结果码为零）返回false；

@@ -27,8 +27,8 @@ Task
 	task table: taskid -> btask
 	timeindex:  day ->set<taskid>
 	date begin <---> date end 限定半年 day ... day
+Zege 【重构，更加清晰的逻辑层和界面层】UI 自己从底层模块获取ItemSource并设置，而不应该把窗口传入，让里面设置。【底层模块应该完全不知道UI】
 Zege MainUI：Tab，整合Notify窗口。
-
 Zege 重新能跑啦。
 c# 并发比冲突还慢【怀疑Nito.AsyncEx的性能问题，换成DotNext.Threading】
 	==> 换成DotNext.Threading，并发还是慢。其中AsyncMonitor还是用老的，但应该对主要性能没有影响。

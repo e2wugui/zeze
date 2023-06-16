@@ -12,7 +12,7 @@ public partial class NotifyPage : ContentPage
 	{
         Instance = this;
 		InitializeComponent();
-        MainPage.Instance?.App?.Zege_Notify.SetNotifyPage(this);
+        AppShell.Instance.App?.Zege_Notify.SetNotifyPage(this);
     }
 
     public ListView NotifyListView => _NotifyListView;
@@ -42,7 +42,7 @@ public partial class NotifyPage : ContentPage
                     var rpc = new AcceptFriend();
                     rpc.Argument.Account = from;
                     rpc.Argument.Memo = Memo.Text == null ? "" : Memo.Text;
-                    rpc.Send(MainPage.Instance?.App?.ClientService.GetSocket()); // skip rpc result
+                    rpc.Send(AppShell.Instance.App?.ClientService.GetSocket()); // skip rpc result
                 }
 				break;
 		}
@@ -60,7 +60,7 @@ public partial class NotifyPage : ContentPage
                 {
                     var rpc = new DenyFriend();
                     rpc.Argument.Account = from;
-                    rpc.Send(MainPage.Instance?.App?.ClientService.GetSocket()); // skip rpc result
+                    rpc.Send(AppShell.Instance.App?.ClientService.GetSocket()); // skip rpc result
                 }
                 break;
         }

@@ -36,13 +36,11 @@ namespace Zege.Friend
         {
         }
 
-        // 给ListView提供数据。
-        internal ObservableCollection<FriendItem> ItemsSource { get; } = new();
-        private ListView ListView { get; set; }
-
+        // 给UI提供数据，一般来说绑定到ListView。
+        public ObservableCollection<FriendItem> ItemsSource { get; } = new();
         // 好友数据
-        private FriendNodes Friends { get; set; }
-        private FriendNodes Topmosts { get; set; }
+        public FriendNodes Friends { get; private set; }
+        public FriendNodes Topmosts { get; private set; }
 
         private FriendNodes GetFriendNodes(string tableName)
         {
@@ -71,19 +69,6 @@ namespace Zege.Friend
             key.Decode(bb.ReadByteBuffer());
             table.FollowerApply(key, bb);
             return Task.FromResult(ResultCode.Success);
-        }
-
-        private void OnScrolled(object sender, ScrolledEventArgs args)
-        {
-            if (args.ScrollY > ListView.Height - 120)
-                Friends.TryGetFriendNode(true);
-        }
-
-        public void Bind(ListView view)
-        {
-            ListView = view;
-            view.ItemsSource = ItemsSource;
-            view.Scrolled += OnScrolled;
         }
 
         public void GetFristFriendNode()

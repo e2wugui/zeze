@@ -1,59 +1,25 @@
 ﻿
-using NLog;
-using NLog.Config;
-using NLog.Targets;
-using System.Collections.ObjectModel;
 using Zege.Friend;
 using Zege.Message;
 using Zege.User;
-using Zeze.Transaction;
-using Zeze.Transaction.Collections;
 
 namespace Zege
 {
     public partial class MainPage : ContentPage
     {
-        public App App { get; private set; }
-
-        public static MainPage Instance { get; private set; }
-
         public MainPage()
         {
-            Instance = this;
             InitializeComponent();
-            LoggingConfiguration();
-            FollowerApplyTables.RegisterLog();
         }
 
         public ScrollView MessageScrollView => _MessageScrollView;
         public AbsoluteLayout MessageLayout => _MessageLayout;
         public Layout MessageParent => _MessageParent;
 
-        private void LoggingConfiguration()
+        private void OnScrolled(object sender, ScrolledEventArgs args)
         {
-            var config = new LoggingConfiguration();
-            var fileTarget = new FileTarget
-            {
-                FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "zege.log"),
-                Layout = "${longdate} ${level} ${message} ${exception:format=Message,StackTrace}"
-            };
-            config.AddTarget("file", fileTarget);
-            config.LoggingRules.Add(new LoggingRule("*", LogLevel.Trace, fileTarget));
-            LogManager.Configuration = config;
-        }
-
-        private void StartApp()
-        {
-            if (App == null)
-            {
-                App = new App();
-                App.MainPage = this;
-                //App.Start("10.12.7.140", 29555);
-                App.Start("127.0.0.1", 5100);
-                App.Zege_Friend.Bind(FriendsListView);
-                FriendsListView.ItemSelected += OnFriendsItemSelected;
-                App.Zege_Notify.SetNotifyPage(NotifyPage.Instance);
-            }
+            if (args.ScrollY > FriendsListView.Height - 120)
+                AppShell.Instance.App.Zege_Friend.Friends.TryGetFriendNode(true);
         }
 
         private void OnFriendsItemSelected(object sender, EventArgs e)
@@ -64,7 +30,7 @@ namespace Zege
 
             // TODO: make selected to top here
 
-            App.Zege_Message.StartChat(selected.Account);
+            AppShell.Instance.App.Zege_Message.StartChat(selected.Account);
         }
 
         public void UpdateRedPoint(string target, long notReadCount)
@@ -75,78 +41,44 @@ namespace Zege
         private async void OnSendClicked(object sender, EventArgs e)
         {
             var message = MessageEditor.Text;
-            await App.Zege_Message.CurrentChat?.SendAsync(message);
+            await AppShell.Instance.App.Zege_Message.CurrentChat?.SendAsync(message);
             MessageEditor.Text = string.Empty;
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)
         {
-            StartApp();
-
             var account = AccountEditor.Text;
             if (string.IsNullOrEmpty(account))
             {
                 await DisplayAlert("Account", "Account Is Empty.", "Ok");
                 return;
             }
-            var passwd = PasswordEditor.Text;
-            var save = SavePasswordCheckBox.IsChecked;
 
-            if (App.Zege_Linkd.ChallengeFuture.Task.IsCompletedSuccessfully)
-                return;
-
-            Mission.Run(async () =>
-            {
-                if (await App.Zege_Linkd.ChallengeMeAsync(account, passwd, save))
-                {
-                    App.Zege_Friend.GetFristFriendNode();
-                    var clientId = "PC";
-                    await App.Zeze_Builtin_Online.LoginAsync(clientId);
-                    App.Zege_Notify.GetFirstNode();
-                }
-                else
-                {
-                    await Mission.AppShell.DisplayAlertAsync("Login", "Account Cert Not Exists."); ;
-                }
-            });
+            // TODO 应该有个登录窗口
+            var app = AppShell.Instance.Login(account, PasswordEditor.Text, SavePasswordCheckBox.IsChecked);
+            FriendsListView.ItemsSource = app.Zege_Friend.ItemsSource;
+            FriendsListView.ItemSelected += OnFriendsItemSelected;
+            FriendsListView.Scrolled += OnScrolled;
+            app.Zege_Message.UpdateRedPoint = UpdateRedPoint;
+            app.Zege_Message.MessageViewFactory = () => new MessageViewControl(app, MessageParent);
         }
 
         private async void OnCreateClicked(object sender, EventArgs e)
         {
-            StartApp();
-
             var account = AccountEditor.Text;
             if (string.IsNullOrEmpty(account))
             {
                 await DisplayAlert("Account", "Account Is Empty.", "Ok");
                 return;
             }
-            var passwd = PasswordEditor.Text;
-            var save = SavePasswordCheckBox.IsChecked;
 
-            Mission.Run(async () =>
-            {
-                await App.Connector.GetReadySocketAsync();
-                var rc = await App.Zege_User.CreateAccountAsync(account, passwd, save);
-                switch (rc)
-                {
-                    case 0:
-                        OnLoginClicked(sender, e);
-                        break;
-
-                    case ModuleUser.eAccountHasUsed:
-                        await Mission.AppShell.DisplayAlertAsync("Create Account", "Account Exists.");
-                        break;
-
-                    case ModuleUser.eAccountHasPrepared:
-                        await Mission.AppShell.DisplayAlertAsync("Create Account", "Account Busy.");
-                        break;
-
-                    default:
-                        await Mission.AppShell.DisplayAlertAsync("Create Account", $"Unknown Error{rc}");
-                        break;
-                }
-            });
+            // TODO 应该有个登录窗口
+            var app = AppShell.Instance.Create(account, PasswordEditor.Text, SavePasswordCheckBox.IsChecked);
+            FriendsListView.ItemsSource = app.Zege_Friend.ItemsSource;
+            FriendsListView.ItemSelected += OnFriendsItemSelected;
+            FriendsListView.Scrolled += OnScrolled;
+            app.Zege_Message.UpdateRedPoint = UpdateRedPoint;
+            app.Zege_Message.MessageViewFactory = () => new MessageViewControl(app, MessageParent);
         }
 
         private void OnClear(object sender, EventArgs e)
@@ -161,12 +93,12 @@ namespace Zege
             if (null == selected)
                 return;
 
-            App.Zege_Friend.SetTopmost(selected);
+            AppShell.Instance.App?.Zege_Friend.SetTopmost(selected);
         }
 
         private void OnReturnTop(object sender, EventArgs e)
         {
-            App.Zege_Friend.ReturnTop();
+            AppShell.Instance.App?.Zege_Friend.ReturnTop();
         }
 
         private void OnTest(object sender, EventArgs e)
@@ -183,7 +115,7 @@ namespace Zege
             var rpc = new AddFriend();
             rpc.Argument.Account = AccountEditor.Text;
             rpc.Argument.Memo = PasswordEditor.Text;
-            rpc.Send(App.ClientService.GetSocket()); // skip rpc result
+            rpc.Send(AppShell.Instance.App?.ClientService.GetSocket()); // skip rpc result
         }
     }
 }

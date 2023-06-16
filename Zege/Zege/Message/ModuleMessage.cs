@@ -10,6 +10,9 @@ namespace Zege.Message
         private ConcurrentDictionary<string, MessageFriend> Friends = new();
         public MessageFriend CurrentChat { get; private set; }
 
+        public Action<string, long> UpdateRedPoint { get; set; }
+        public Func<IMessageView> MessageViewFactory { get; set; }
+
         public void Start(global::Zege.App app)
         {
         }
@@ -22,7 +25,7 @@ namespace Zege.Message
         protected override async Task<long> ProcessNotifyMessageRequest(Zeze.Net.Protocol _p)
         {
             var p = _p as NotifyMessage;
-            var friend = Friends.GetOrAdd(p.Argument.From, (key) => new MessageFriend(this, key));
+            var friend = Friends.GetOrAdd(p.Argument.From, (key) => new MessageFriend(this, key, MessageViewFactory()));
             await friend.OnNotifyMessage(p);
             return 0;
         }
@@ -31,7 +34,7 @@ namespace Zege.Message
         internal Task<long> ProcessGetFriendMessageResponse(Zeze.Net.Protocol p)
         {
             var r = p as GetFriendMessage;
-            var friend = Friends.GetOrAdd(r.Argument.Friend, (key) => new MessageFriend(this, key));
+            var friend = Friends.GetOrAdd(r.Argument.Friend, (key) => new MessageFriend(this, key, MessageViewFactory()));
             friend.OnGetFriendMessage(r);
             return Task.FromResult(0L);
         }
@@ -40,7 +43,7 @@ namespace Zege.Message
         {
             if (account.Equals(CurrentChat?.Friend))
                 return;
-            CurrentChat = Friends.GetOrAdd(account, (key) => new MessageFriend(this, key));
+            CurrentChat = Friends.GetOrAdd(account, (key) => new MessageFriend(this, key, MessageViewFactory()));
             CurrentChat.Show();
         }
 
