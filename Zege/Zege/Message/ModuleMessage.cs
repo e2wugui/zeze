@@ -8,7 +8,9 @@ namespace Zege.Message
     public partial class ModuleMessage : AbstractModule
     {
         private ConcurrentDictionary<string, MessageFriend> Friends = new();
-        public MessageFriend CurrentChat { get; private set; }
+        private ConcurrentDictionary<BDepartmentKey, MessageGroup> Groups = new();
+
+        public Chat CurrentChat { get; private set; }
 
         public Action<string, long> UpdateRedPoint { get; set; }
         public Func<IMessageView> MessageViewFactory { get; set; }
@@ -25,8 +27,17 @@ namespace Zege.Message
         protected override async Task<long> ProcessNotifyMessageRequest(Zeze.Net.Protocol _p)
         {
             var p = _p as NotifyMessage;
-            var friend = Friends.GetOrAdd(p.Argument.From, (key) => new MessageFriend(this, key, MessageViewFactory()));
-            await friend.OnNotifyMessage(p);
+            if (p.Argument.Group.Length == 0)
+            {
+                var friend = Friends.GetOrAdd(p.Argument.From, (key) => new MessageFriend(this, key, MessageViewFactory()));
+                await friend.OnNotifyMessage(p);
+            }
+            else
+            {
+                var departmentKey = new BDepartmentKey(p.Argument.Group, p.Argument.DepartmentId);
+                var group = Groups.GetOrAdd(departmentKey, (key) => new MessageGroup(this, key, MessageViewFactory()));
+                await group.OnNotifyMessage(p);
+            }
             return 0;
         }
 
@@ -39,12 +50,31 @@ namespace Zege.Message
             return Task.FromResult(0L);
         }
 
-        public void StartChat(string account)
+        [DispatchMode(Mode = DispatchMode.UIThread)]
+        internal Task<long> ProcessGetGroupMessageResponse(Zeze.Net.Protocol p)
         {
-            if (account.Equals(CurrentChat?.Friend))
+            var r = p as GetGroupMessage;
+            var department = Groups.GetOrAdd(r.Argument.GroupDepartment, (key) => new MessageGroup(this, key, MessageViewFactory()));
+            department.OnGetGroupMessage(r);
+            return Task.FromResult(0L);
+        }
+
+        public void StartChat(string account, long departmentId)
+        {
+            if (null != CurrentChat && CurrentChat.IsYou(account, departmentId))
                 return;
-            CurrentChat = Friends.GetOrAdd(account, (key) => new MessageFriend(this, key, MessageViewFactory()));
-            CurrentChat.Show();
+
+            if (account.EndsWith("@group"))
+            {
+                var departmentKey = new BDepartmentKey(account, departmentId);
+                CurrentChat = Groups.GetOrAdd(departmentKey, (key) => new MessageGroup(this, key, MessageViewFactory()));
+                CurrentChat.Show();
+            }
+            else
+            {
+                CurrentChat = Friends.GetOrAdd(account, (key) => new MessageFriend(this, key, MessageViewFactory()));
+                CurrentChat.Show();
+            }
         }
 
         /*

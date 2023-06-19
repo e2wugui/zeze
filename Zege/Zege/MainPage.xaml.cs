@@ -37,7 +37,7 @@ namespace Zege
 
             // TODO: make selected to top here
 
-            AppShell.Instance.App.Zege_Message.StartChat(selected.Account);
+            AppShell.Instance.App.Zege_Message.StartChat(selected.Account, 0);
         }
 
         public void UpdateRedPoint(string target, long notReadCount)

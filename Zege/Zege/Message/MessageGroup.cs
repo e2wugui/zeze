@@ -9,10 +9,10 @@ using Zeze.Util;
 
 namespace Zege.Message
 {
-    public class MessageFriend : Chat
+    public class MessageGroup : Chat
     {
         public ModuleMessage Module { get; }
-        public string Friend { get; }
+        public BDepartmentKey DepartmentKey { get; }
         public IMessageView View { get; }
 
         // 使用字典，可以去重（当查询返回重复的消息）。
@@ -22,18 +22,17 @@ namespace Zege.Message
         private long NextMessageId;
         private bool ReachEnd = false;
 
-        public MessageFriend(ModuleMessage module, string friend, IMessageView view)
+        public MessageGroup(ModuleMessage module, BDepartmentKey departmentKey, IMessageView view)
         {
             Module = module;
-            Friend = friend;
+            DepartmentKey = departmentKey;
             View = view;
 
-            var rpc = new GetFriendMessage();
-            rpc.Argument.Friend = friend;
+            var rpc = new GetGroupMessage();
+            rpc.Argument.GroupDepartment = departmentKey;
             rpc.Argument.MessageIdFrom = -2;
-            rpc.Send(Module.App.ClientService.GetSocket(), Module.ProcessGetFriendMessageResponse);
+            rpc.Send(Module.App.ClientService.GetSocket(), Module.ProcessGetGroupMessageResponse);
         }
-
 
         public async Task OnNotifyMessage(NotifyMessage p)
         {
@@ -50,8 +49,10 @@ namespace Zege.Message
                 View.AddTail(p.Argument);
 
             NextMessageId = p.Argument.MessageId + 1;
+
             // TODO 需要检测当前View是否正在显示最新的消息，如果是，不需要更新红点。
-            Module.UpdateRedPoint(Friend, NextMessageId - NextMessageIdNotRead);
+            // TODO 这个是更新好友的，群-部门需要多一个参数：部门编号。可以考虑编码到Group的名字里面？？？
+            // Module.UpdateRedPoint(DepartmentKey, NextMessageId - NextMessageIdNotRead);
         }
 
         private bool IsNewMessage(List<BMessage> messages)
@@ -65,7 +66,7 @@ namespace Zege.Message
             return false;
         }
 
-        public void OnGetFriendMessage(GetFriendMessage r)
+        public void OnGetGroupMessage(GetGroupMessage r)
         {
             // 首先保存最新的全局信息。
             if (r.Result.NextMessageIdNotRead > NextMessageIdNotRead)
@@ -73,7 +74,7 @@ namespace Zege.Message
             NextMessageId = r.Result.NextMessageId;
             ReachEnd = r.Result.ReachEnd;
 
-            Module.UpdateRedPoint(Friend, NextMessageId - NextMessageIdNotRead);
+            //Module.UpdateRedPoint(DepartmentKey, NextMessageId - NextMessageIdNotRead);
 
             if (r.Result.Messages.Count == 0)
                 return; // skip empty result; 可以不判断。
@@ -105,7 +106,7 @@ namespace Zege.Message
 
         public bool IsYou(string account, long departmentId)
         {
-            return account.Equals(Friend);
+            return account.Equals(DepartmentKey.Group) && departmentId == DepartmentKey.DepartmentId;
         }
 
         public async Task SendAsync(string message)
@@ -113,11 +114,12 @@ namespace Zege.Message
             message = message.Replace("\r\n", "\n");
             message = message.Replace("\r", "\n");
 
-            var rpc = new SendMessage();
-            rpc.Argument.Friend = Friend;
+            var rpc = new SendDepartmentMessage();
+            rpc.Argument.Group = DepartmentKey.Group;
+            rpc.Argument.DepartmentId = DepartmentKey.DepartmentId;
             rpc.Argument.Message.Type = BMessage.eTypeText;
             var textMessage = new BTextMessage() { Message = message };
-            var info = await Module.App.Zege_Friend.GetPublicUserInfo(Friend);
+            var info = await Module.App.Zege_Friend.GetPublicUserInfo(DepartmentKey.Group);
             rpc.Argument.Message.SecureKeyIndex = info.LastCertIndex;
             var encodedMessage = ByteBuffer.Encode(textMessage);
             if (info.Cert.Count > 0)
