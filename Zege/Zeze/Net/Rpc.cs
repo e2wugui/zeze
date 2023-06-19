@@ -39,22 +39,32 @@ namespace Zeze.Net
         public void ClearParameters(ProtocolPool.ReuseLevel level);
     }
 
-#if USE_CONFCS
     public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>, Rpc
-        where TArgument: ConfBean, new()
-        where TResult: ConfBean, new()
-#else
-    public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>, Rpc
-        where TArgument : Transaction.Bean, new()
-        where TResult : Transaction.Bean, new()
-#endif
+        where TArgument : Serializable, new()
+        where TResult : Serializable, new()
     {
         public TResult Result { get; set; } = new TResult();
 
 #if USE_CONFCS
-        public override ConfBean ResultBean => Result;
+        public override Util.ConfBean ResultBean
+        {
+            get
+            {
+                if (Result is Util.ConfBean b)
+                    return b;
+                return null;
+            }
+        }
 #else
-        public override Transaction.Bean ResultBean => Result;
+        public override Transaction.Bean ResultBean
+        {
+            get
+            {
+                if (Result is Transaction.Bean b)
+                    return b;
+                return null;
+            }
+        }
 #endif
         public Binary ResultEncoded { get; set; } // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
         public override int FamilyClass => IsRequest ? Zeze.Net.FamilyClass.Request : Zeze.Net.FamilyClass.Response;
@@ -320,8 +330,8 @@ namespace Zeze.Net
                     break;
 
                 case ProtocolPool.ReuseLevel.Bean:
-                    Argument.ClearParameters();
-                    Result.ClearParameters();
+                    ArgumentBean?.ClearParameters();
+                    ResultBean?.ClearParameters();
                     break;
             }
         }

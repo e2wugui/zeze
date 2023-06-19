@@ -80,6 +80,7 @@ namespace Zeze
         /// 如果外面保存了配置引用，是不需要访问这个接口的。
         /// </summary>
         /// <typeparam name="T"></typeparam>
+        /// <param name="name"></param>
         /// <param name="customize"></param>
         public bool GetCustomize<T>(out T customize) where T : ICustomize, new()
         {

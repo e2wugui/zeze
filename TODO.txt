@@ -12,21 +12,23 @@ ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 c# 并发上不去，只有4/8.
 ------------------------------------------------------------------------------------------------------------------------------
-2023/6/23 v1.2.7 Dbh2 Move; Threading;  Zege;
+2023/6/30 v1.2.7 Dbh2 Move; Threading;  Zege;
 ------------------------------------------------------------------------------------------------------------------------------
-Zege 客户端重构；Notify重新设计？ChatControl 改成用WebView；
+Zege ChatControl 改成用WebView；
+Zege 客户端自行决定排序。
 Zege 消息已读；红点；
-Task
+Zege Task
 	BTask：内容描述，时间范围，发起人，执行人，附件，资源（对应实物，比如会议室）
 	CreateTask 自动给所有相关人发送Notify。Parent没指定就是自由任务，指定则形成系列任务。Parent可以用来追溯前置任务，是一种查看手段。
 	GetTask 查询任务信息。
 	ChangeTaskState 需要notify。Finish,Close。需要notify。
 	ChangeTask 修改任务内容（改描述，附件增删，等等），需要notify。
 	GetTasks 查询最近一段时间（一个月），显示为表格形状页面，作为整体视图。
-
 	task table: taskid -> btask
 	timeindex:  day ->set<taskid>
 	date begin <---> date end 限定半年 day ... day
+Zege 群的操作客户端。
+Zege Notify使用了LinkedMap，节点数据可能较大，还是保持增量更新。【XXX】
 Zege 客户端增加登录窗口步骤（现使用Shell实现，也不知道对不对，反正能工作）。
 Zege 【重构，更加清晰的逻辑层和界面层】UI 自己从底层模块获取ItemSource并设置，而不应该把窗口传入，让里面设置。【底层模块应该完全不知道UI】
 Zege MainUI：Tab，整合Notify窗口。

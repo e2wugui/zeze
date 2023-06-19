@@ -239,16 +239,30 @@ namespace Zeze.Net
         }
     }
 
+    public abstract class Protocol<TArgument> : Protocol where TArgument : Serializable, new()
+    {
+        public TArgument Argument { get; set; } = new TArgument();
+
 #if USE_CONFCS
-    public abstract class Protocol<TArgument> : Protocol where TArgument : Zeze.Util.ConfBean, new()
-    {
-        public TArgument Argument { get; set; } = new TArgument();
-        public override Zeze.Util.ConfBean ArgumentBean => Argument;
+        public override Util.ConfBean ArgumentBean
+        {
+            get
+            {
+                if (Argument is Util.ConfBean b)
+                    return b;
+                return null;
+            }
+        }
 #else
-    public abstract class Protocol<TArgument> : Protocol where TArgument : Transaction.Bean, new()
-    {
-        public TArgument Argument { get; set; } = new TArgument();
-        public override Zeze.Transaction.Bean ArgumentBean => Argument;
+        public override Zeze.Transaction.Bean ArgumentBean
+        {
+            get
+            {
+                if (Argument is Transaction.Bean b)
+                    return b;
+                return null;
+            }
+        }
 #endif
         public override void Decode(ByteBuffer bb)
         {
@@ -283,7 +297,7 @@ namespace Zeze.Net
                     break;
 
                 case ProtocolPool.ReuseLevel.Bean:
-                    Argument.ClearParameters();
+                    ArgumentBean?.ClearParameters();
                     break;
             }
         }
