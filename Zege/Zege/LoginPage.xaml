@@ -15,8 +15,8 @@
                     <RowDefinition Height="40" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="80" />
-                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="200" />
+                    <ColumnDefinition Width="200" />
                 </Grid.ColumnDefinitions>
                 <Label Text="Account" VerticalOptions="Center"/>
                 <Editor x:Name="AccountEditor" Grid.Column="1"/>
@@ -30,7 +30,7 @@
                 <Button Text="Login" Clicked="OnLoginClicked" Grid.Row="3"/>
                 <Button Text="Create" Clicked="OnCreateClicked" Grid.Row="3" Grid.Column="1"/>
 
-                <Button Text="Clear All Certs" Grid.ColumnSpan="2" Clicked="OnClear" Grid.Row="4"/>
+                <Button Text="服务器重启，清除本地所有证书" Grid.ColumnSpan="2" Clicked="OnClear" Grid.Row="4"/>
             </Grid>
         </VerticalStackLayout>
     </ScrollView>
