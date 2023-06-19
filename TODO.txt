@@ -28,6 +28,7 @@ Zege Task
 	timeindex:  day ->set<taskid>
 	date begin <---> date end 限定半年 day ... day
 Zege 群的操作客户端。
+Zege 好友列表的Id好像必须编码???
 Zege Notify使用了LinkedMap，节点数据可能较大，还是保持增量更新。【XXX】
 Zege 客户端增加登录窗口步骤（现使用Shell实现，也不知道对不对，反正能工作）。
 Zege 【重构，更加清晰的逻辑层和界面层】UI 自己从底层模块获取ItemSource并设置，而不应该把窗口传入，让里面设置。【底层模块应该完全不知道UI】

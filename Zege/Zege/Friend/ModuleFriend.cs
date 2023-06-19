@@ -148,7 +148,7 @@ namespace Zege.Friend
 
     public class FriendItem
     {
-        // Basic
+        // Context
         public BLinkedMapNodeKey NodeKey { get; set; }
         public string Account { get; set; }
 

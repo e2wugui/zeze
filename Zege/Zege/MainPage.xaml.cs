@@ -29,6 +29,26 @@ namespace Zege
                 AppShell.Instance.App.Zege_Friend.Friends.TryGetFriendNode(true);
         }
 
+        private static void AccountToDepartment(string account, out string groupId, out long departmentId)
+        {
+            if (account.EndsWith("@group"))
+            {
+                var idx = account.IndexOf("@group");
+                var name0 = account.Substring(0, idx);
+                var nd = name0.Split("@");
+                if (nd.Length > 1)
+                {
+                    // 编码了部门编号的群名。
+                    groupId = nd[0] + "@group";
+                    departmentId = long.Parse(nd[1]);
+                    return;
+                }
+            }
+            // 正常好友或者群名。
+            groupId = account;
+            departmentId = 0;
+        }
+
         private void OnFriendsItemSelected(object sender, EventArgs e)
         {
             var selected = FriendsListView.SelectedItem as FriendItem;
@@ -36,8 +56,8 @@ namespace Zege
                 return;
 
             // TODO: make selected to top here
-
-            AppShell.Instance.App.Zege_Message.StartChat(selected.Account, 0);
+            AccountToDepartment(selected.Account, out var group, out var departmentId);
+            AppShell.Instance.App.Zege_Message.StartChat(group, departmentId);
         }
 
         public void UpdateRedPoint(string target, long notReadCount)
