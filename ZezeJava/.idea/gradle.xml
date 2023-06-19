@@ -9,10 +9,6 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/Zege" />
-            <option value="$PROJECT_DIR$/Zege/client" />
-            <option value="$PROJECT_DIR$/Zege/linkd" />
-            <option value="$PROJECT_DIR$/Zege/server" />
             <option value="$PROJECT_DIR$/ZezeJava" />
             <option value="$PROJECT_DIR$/ZezeJavaTest" />
             <option value="$PROJECT_DIR$/ZezexJava" />
