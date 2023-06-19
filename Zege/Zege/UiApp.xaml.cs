@@ -7,7 +7,7 @@ namespace Zege
         {
             InitializeComponent();
 
-            MainPage = new AppShell();
+            MainPage = new LoginShell();
         }
 
         protected override Microsoft.Maui.Controls.Window CreateWindow(IActivationState activationState)

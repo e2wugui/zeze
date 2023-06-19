@@ -28,62 +28,6 @@ namespace Zege
             return app;
         }
 
-        public static App Login(string account, string passwd, bool savePassword)
-        {
-            var app = GetOrAdd(account);
-            if (app.Zege_Linkd.ChallengeFuture.Task.IsCompletedSuccessfully)
-                return app;
-
-            Mission.Run(async () =>
-            {
-                if (await app.Zege_Linkd.ChallengeMeAsync(account, passwd, savePassword))
-                {
-                    app.Zege_Friend.GetFristFriendNode();
-                    var clientId = "PC";
-                    await app.Zeze_Builtin_Online.LoginAsync(clientId);
-                    app.Zege_Notify.GetFirstNode();
-                }
-                else
-                {
-                    app.Stop();
-                    await OnError("Login", "Account Cert Not Exists."); ;
-                }
-            });
-            return app;
-        }
-
-        public static App Create(string account, string passwd, bool save)
-        {
-            var app = GetOrAdd(account);
-            Mission.Run(async () =>
-            {
-                await app.Connector.GetReadySocketAsync();
-                var rc = await app.Zege_User.CreateAccountAsync(account, passwd, save);
-                switch (rc)
-                {
-                    case 0:
-                        Login(account, passwd, save);
-                        break;
-
-                    case ModuleUser.eAccountHasUsed:
-                        app.Stop();
-                        await OnError("Create Account", "Account Exists.");
-                        break;
-
-                    case ModuleUser.eAccountHasPrepared:
-                        app.Stop();
-                        await OnError("Create Account", "Account Busy.");
-                        break;
-
-                    default:
-                        app.Stop();
-                        await OnError("Create Account", $"Unknown Error{rc}");
-                        break;
-                }
-            });
-            return app;
-        }
-
         private static void Remove(App app)
         {
             Apps.TryRemove(KeyValuePair.Create(app.Account, app));
