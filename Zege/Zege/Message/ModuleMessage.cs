@@ -42,21 +42,21 @@ namespace Zege.Message
         }
 
         [DispatchMode(Mode = DispatchMode.UIThread)]
-        internal Task<long> ProcessGetFriendMessageResponse(Zeze.Net.Protocol p)
+        internal async Task<long> ProcessGetFriendMessageResponse(Zeze.Net.Protocol p)
         {
             var r = p as GetFriendMessage;
             var friend = Friends.GetOrAdd(r.Argument.Friend, (key) => new MessageFriend(this, key, MessageViewFactory()));
-            friend.OnGetMessage(r.Result.NextMessageId, r.Result.ReachEnd, r.Result.NextMessageIdNotRead, r.Result.Messages);
-            return Task.FromResult(0L);
+            await friend.OnGetMessage(r.Result.NextMessageId, r.Result.ReachEnd, r.Result.NextMessageIdNotRead, r.Result.Messages);
+            return 0L;
         }
 
         [DispatchMode(Mode = DispatchMode.UIThread)]
-        internal Task<long> ProcessGetGroupMessageResponse(Zeze.Net.Protocol p)
+        internal async Task<long> ProcessGetGroupMessageResponse(Zeze.Net.Protocol p)
         {
             var r = p as GetGroupMessage;
             var department = Groups.GetOrAdd(r.Argument.GroupDepartment, (key) => new MessageGroup(this, key, MessageViewFactory()));
-            department.OnGetMessage(r.Result.NextMessageId, r.Result.ReachEnd, r.Result.NextMessageIdNotRead, r.Result.Messages);
-            return Task.FromResult(0L);
+            await department.OnGetMessage(r.Result.NextMessageId, r.Result.ReachEnd, r.Result.NextMessageIdNotRead, r.Result.Messages);
+            return 0L;
         }
 
         public void StartChat(string account, long departmentId)

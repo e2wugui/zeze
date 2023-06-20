@@ -87,8 +87,9 @@ namespace Zege.Message
                 View.AddTail(p.Argument);
 
             NextMessageId = p.Argument.MessageId + 1;
+
             // TODO 需要检测当前View是否正在显示最新的消息，如果是，不需要更新红点。
-            // Module.UpdateRedPoint(Friend, NextMessageId - NextMessageIdNotRead);
+            await UpdateNotRead(NextMessageId - NextMessageIdNotRead);
         }
 
         private bool IsNewMessage(List<BMessage> messages)
@@ -102,7 +103,9 @@ namespace Zege.Message
             return false;
         }
 
-        public void OnGetMessage(long nextMessageId, bool reachEnd, long nextMessageIdNotRead, List<Zege.Message.BMessage> messages)
+        public abstract Task UpdateNotRead(long count);
+
+        public async Task OnGetMessage(long nextMessageId, bool reachEnd, long nextMessageIdNotRead, List<Zege.Message.BMessage> messages)
         {
             // 首先保存最新的全局信息。
             if (nextMessageIdNotRead > NextMessageIdNotRead)
@@ -110,7 +113,8 @@ namespace Zege.Message
             NextMessageId = nextMessageId;
             ReachEnd = reachEnd;
 
-            //Module.UpdateRedPoint(Friend, NextMessageId - NextMessageIdNotRead);
+            // TODO 需要检测当前View是否正在显示最新的消息，如果是，不需要更新红点。
+            await UpdateNotRead(NextMessageId - NextMessageIdNotRead);
 
             if (messages.Count == 0)
                 return; // skip empty result; 可以不判断。

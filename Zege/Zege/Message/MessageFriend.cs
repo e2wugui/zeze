@@ -40,6 +40,12 @@ namespace Zege.Message
             await EncryptMessageWithAccountPublicKey(message, Friend);
         }
 
+        public override Task UpdateNotRead(long count)
+        {
+            // TODO 需要检测当前View是否正在显示最新的消息，如果是，不需要更新红点。
+            return Task.CompletedTask;
+        }
+
         public override async Task SendAsync(string message)
         {
             var rpc = new SendMessage();

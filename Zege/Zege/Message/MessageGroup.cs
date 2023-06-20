@@ -40,6 +40,11 @@ namespace Zege.Message
             await EncryptMessageWithAccountPublicKey(message, DepartmentKey.Group);
         }
 
+        public override Task UpdateNotRead(long count)
+        {
+            return Task.CompletedTask;
+        }
+
         public override async Task SendAsync(string message)
         {
             var rpc = new SendDepartmentMessage();
