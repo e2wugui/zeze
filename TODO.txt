@@ -27,7 +27,11 @@ Zege Task
 	task table: taskid -> btask
 	timeindex:  day ->set<taskid>
 	date begin <---> date end 限定半年 day ... day
+
 Zege 群的操作客户端。
+Zege 群加密。
+Zege 群成员之间发送Notify。用来发送群秘密证书等。
+
 Zege 好友列表的Id好像必须编码???
 Zege Notify使用了LinkedMap，节点数据可能较大，还是保持增量更新。【XXX】
 Zege 客户端增加登录窗口步骤（现使用Shell实现，也不知道对不对，反正能工作）。
