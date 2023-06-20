@@ -18,19 +18,24 @@ namespace Zege.User
 
         public string Account { get; private set; }
         public X509Certificate2 Certificate { get; private set; }
-        private readonly Dictionary<long, X509Certificate2> CertificatesByIndex = new();
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<long, X509Certificate2>> Certificates = new();
         private string savedPasswd;
 
         public int ServerId;
         public String NotifyId;
 
-        public async Task<X509Certificate2> LoadCertificate(long certIndex)
+        public async Task<X509Certificate2> GetPrivateCertificate(string account, long index)
         {
-            if (CertificatesByIndex.TryGetValue(certIndex, out var cert))
+            // cache
+            if (Certificates.TryGetValue(account, out var certs) && certs.TryGetValue(index, out var cert))
                 return cert;
-            var pkcs12 = await SecureStorage.Default.GetAsync(Account + "." + certIndex + ".pkcs12");
+
+            // storage
+            var pkcs12 = await SecureStorage.Default.GetAsync(Account + "." + index + ".pkcs12");
+            if (pkcs12 == null || pkcs12.Length == 0)
+                return null;
             cert = Cert.CreateFromPkcs12(pkcs12, savedPasswd);
-            CertificatesByIndex.Add(certIndex, cert);
+            Certificates[account][index] = cert;
             return cert;
         }
 

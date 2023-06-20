@@ -29,17 +29,15 @@ namespace Zege.Message
             return account.Equals(DepartmentKey.Group) && departmentId == DepartmentKey.DepartmentId;
         }
 
-        public override Task DecryptMessage(BMessage message)
+        public override async Task DecryptMessage(BMessage message)
         {
-            // TODO
-            return Task.CompletedTask;
+            // 群消息使用群私钥解密。
+            await DecryptMessageWithAccountPrivateKey(message, DepartmentKey.Group);
         }
 
-        public override Task EncryptMessage(BMessage message)
+        public override async Task EncryptMessage(BMessage message)
         {
-            // TODO
-            message.SecureKeyIndex = -1;
-            return Task.CompletedTask;
+            await EncryptMessageWithAccountPublicKey(message, DepartmentKey.Group);
         }
 
         public override async Task SendAsync(string message)

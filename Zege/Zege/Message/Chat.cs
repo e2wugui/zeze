@@ -1,5 +1,6 @@
 ﻿using Zeze.Net;
 using Zeze.Serialize;
+using Zeze.Util;
 
 namespace Zege.Message
 {
@@ -28,7 +29,38 @@ namespace Zege.Message
             View.Show(NextMessageIdNotRead);
         }
 
-        // 抽象出来是为了以后写功能方便，
+        public async Task EncryptMessageWithAccountPublicKey(BMessage message, string account)
+        {
+            var info = await Module.App.Zege_Friend.GetPublicUserInfo(account);
+            if (info.Cert.Count > 0)
+            {
+                var cert = Cert.CreateFromPkcs12(info.Cert.GetBytesUnsafe(), "");
+                var encryptedMessage = Cert.EncryptRsa(cert, message.SecureMessage.Bytes, message.SecureMessage.Offset, message.SecureMessage.Count);
+                message.SecureMessage = new Binary(encryptedMessage);
+                message.SecureKeyIndex = info.LastCertIndex;
+            }
+            else
+            {
+                // 未加密。
+                message.SecureKeyIndex = -1;
+            }
+        }
+
+        public async Task DecryptMessageWithAccountPrivateKey(BMessage message, string account)
+        {
+            if (message.SecureKeyIndex >= 0)
+            {
+                var cert = await Module.App.Zege_User.GetPrivateCertificate(account, message.SecureKeyIndex);
+                if (cert != null)
+                {
+                    message.SecureMessage = new Binary(Cert.DecryptRsa(cert, message.SecureMessage.GetBytesUnsafe()));
+                    return;
+                }
+                FillTextMessage(message, "这是一条加密消息，但解密失败。");
+            }
+            // 未加密消息，不用处理。
+        }
+
         public abstract Task EncryptMessage(BMessage message);
         public abstract Task DecryptMessage(BMessage message);
 

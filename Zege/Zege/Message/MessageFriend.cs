@@ -31,28 +31,13 @@ namespace Zege.Message
 
         public override async Task DecryptMessage(BMessage message)
         {
-            if (message.SecureKeyIndex >= 0)
-            {
-                var cert = await Module.App.Zege_User.LoadCertificate(message.SecureKeyIndex);
-                message.SecureMessage = new Binary(Cert.DecryptRsa(cert, message.SecureMessage.GetBytesUnsafe()));
-            }
+            // 好友消息使用自己的私钥解密。
+            await DecryptMessageWithAccountPrivateKey(message, AppShell.Instance.App.Account);
         }
 
         public override async Task EncryptMessage(BMessage message)
         {
-            var info = await Module.App.Zege_Friend.GetPublicUserInfo(Friend);
-            if (info.Cert.Count > 0)
-            {
-                var cert = Cert.CreateFromPkcs12(info.Cert.GetBytesUnsafe(), "");
-                var encryptedMessage = Cert.EncryptRsa(cert, message.SecureMessage.Bytes, message.SecureMessage.Offset, message.SecureMessage.Count);
-                message.SecureMessage = new Binary(encryptedMessage);
-                message.SecureKeyIndex = info.LastCertIndex;
-            }
-            else
-            {
-                // 未加密。
-                message.SecureKeyIndex = -1;
-            }
+            await EncryptMessageWithAccountPublicKey(message, Friend);
         }
 
         public override async Task SendAsync(string message)
