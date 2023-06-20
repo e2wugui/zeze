@@ -46,7 +46,7 @@ namespace Zege.Message
         {
             var r = p as GetFriendMessage;
             var friend = Friends.GetOrAdd(r.Argument.Friend, (key) => new MessageFriend(this, key, MessageViewFactory()));
-            friend.OnGetFriendMessage(r);
+            friend.OnGetMessage(r.Result.NextMessageId, r.Result.ReachEnd, r.Result.NextMessageIdNotRead, r.Result.Messages);
             return Task.FromResult(0L);
         }
 
@@ -55,7 +55,7 @@ namespace Zege.Message
         {
             var r = p as GetGroupMessage;
             var department = Groups.GetOrAdd(r.Argument.GroupDepartment, (key) => new MessageGroup(this, key, MessageViewFactory()));
-            department.OnGetGroupMessage(r);
+            department.OnGetMessage(r.Result.NextMessageId, r.Result.ReachEnd, r.Result.NextMessageIdNotRead, r.Result.Messages);
             return Task.FromResult(0L);
         }
 

@@ -29,7 +29,7 @@ namespace Zege
                 AppShell.Instance.App.Zege_Friend.Friends.TryGetFriendNode(true);
         }
 
-        private static void AccountToDepartment(string account, out string groupId, out long departmentId)
+        private static void AccountToDepartment(string account, out string group, out long departmentId)
         {
             if (account.EndsWith("@group"))
             {
@@ -39,13 +39,13 @@ namespace Zege
                 if (nd.Length > 1)
                 {
                     // 编码了部门编号的群名。
-                    groupId = nd[0] + "@group";
+                    group = nd[0] + "@group";
                     departmentId = long.Parse(nd[1]);
                     return;
                 }
             }
             // 正常好友或者群名。
-            groupId = account;
+            group = account;
             departmentId = 0;
         }
 

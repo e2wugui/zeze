@@ -11,22 +11,12 @@ namespace Zege.Message
 {
     public class MessageGroup : Chat
     {
-        public ModuleMessage Module { get; }
         public BDepartmentKey DepartmentKey { get; }
-        public IMessageView View { get; }
-
-        // 使用字典，可以去重（当查询返回重复的消息）。
-        public SortedDictionary<long, BMessage> Messages = new();
-
-        private long NextMessageIdNotRead;
-        private long NextMessageId;
-        private bool ReachEnd = false;
 
         public MessageGroup(ModuleMessage module, BDepartmentKey departmentKey, IMessageView view)
+            : base(module, view)
         {
-            Module = module;
             DepartmentKey = departmentKey;
-            View = view;
 
             var rpc = new GetGroupMessage();
             rpc.Argument.GroupDepartment = departmentKey;
@@ -34,110 +24,39 @@ namespace Zege.Message
             rpc.Send(Module.App.ClientService.GetSocket(), Module.ProcessGetGroupMessageResponse);
         }
 
-        public async Task OnNotifyMessage(NotifyMessage p)
-        {
-            if (false == ReachEnd)
-                return; // 本地消息历史没有包含最后一条消息，忽略新消息。等待用户翻页。
-
-            if (p.Argument.SecureKeyIndex >= 0)
-            {
-                var cert = await Module.App.Zege_User.LoadCertificate(p.Argument.SecureKeyIndex);
-                p.Argument.SecureMessage = new Binary(Cert.DecryptRsa(cert, p.Argument.SecureMessage.GetBytesUnsafe()));
-            }
-            // 处理最新的消息。
-            if (Messages.TryAdd(p.Argument.MessageId, p.Argument))
-                View.AddTail(p.Argument);
-
-            NextMessageId = p.Argument.MessageId + 1;
-
-            // TODO 需要检测当前View是否正在显示最新的消息，如果是，不需要更新红点。
-            // TODO 这个是更新好友的，群-部门需要多一个参数：部门编号。可以考虑编码到Group的名字里面？？？
-            // Module.UpdateRedPoint(DepartmentKey, NextMessageId - NextMessageIdNotRead);
-        }
-
-        private bool IsNewMessage(List<BMessage> messages)
-        {
-            if (Messages.Count == 0)
-                return true;
-            if (messages.Count == 0)
-                return true;
-            if (messages.Last().MessageId > Messages.Last().Key)
-                return true;
-            return false;
-        }
-
-        public void OnGetGroupMessage(GetGroupMessage r)
-        {
-            // 首先保存最新的全局信息。
-            if (r.Result.NextMessageIdNotRead > NextMessageIdNotRead)
-                NextMessageIdNotRead = r.Result.NextMessageIdNotRead;
-            NextMessageId = r.Result.NextMessageId;
-            ReachEnd = r.Result.ReachEnd;
-
-            //Module.UpdateRedPoint(DepartmentKey, NextMessageId - NextMessageIdNotRead);
-
-            if (r.Result.Messages.Count == 0)
-                return; // skip empty result; 可以不判断。
-
-            if (IsNewMessage(r.Result.Messages))
-            {
-                foreach (var msg in r.Result.Messages)
-                {
-                    if (Messages.TryAdd(msg.MessageId, msg))
-                        View.AddTail(msg);
-                }
-            }
-            else
-            {
-                // 插入消息，倒过来遍历。
-                for (var i = r.Result.Messages.Count - 1; i >= 0; --i)
-                {
-                    var msg = r.Result.Messages[i];
-                    if (Messages.TryAdd(msg.MessageId, msg))
-                        View.InsertHead(msg);
-                }
-            }
-        }
-
-        public void Show()
-        {
-            View.Show(NextMessageIdNotRead);
-        }
-
-        public bool IsYou(string account, long departmentId)
+        public override bool IsYou(string account, long departmentId)
         {
             return account.Equals(DepartmentKey.Group) && departmentId == DepartmentKey.DepartmentId;
         }
 
-        public async Task SendAsync(string message)
+        public override Task DecryptMessage(BMessage message)
         {
-            message = message.Replace("\r\n", "\n");
-            message = message.Replace("\r", "\n");
+            // TODO
+            return Task.CompletedTask;
+        }
 
+        public override Task EncryptMessage(BMessage message)
+        {
+            // TODO
+            message.SecureKeyIndex = -1;
+            return Task.CompletedTask;
+        }
+
+        public override async Task SendAsync(string message)
+        {
             var rpc = new SendDepartmentMessage();
             rpc.Argument.Group = DepartmentKey.Group;
             rpc.Argument.DepartmentId = DepartmentKey.DepartmentId;
-            rpc.Argument.Message.Type = BMessage.eTypeText;
-            var textMessage = new BTextMessage() { Message = message };
-            var info = await Module.App.Zege_Friend.GetPublicUserInfo(DepartmentKey.Group);
-            rpc.Argument.Message.SecureKeyIndex = info.LastCertIndex;
-            var encodedMessage = ByteBuffer.Encode(textMessage);
-            if (info.Cert.Count > 0)
-            {
-                var cert = Cert.CreateFromPkcs12(info.Cert.GetBytesUnsafe(), "");
-                var encryptedMessage = Cert.EncryptRsa(cert, encodedMessage.Bytes, encodedMessage.ReadIndex, encodedMessage.Size);
-                rpc.Argument.Message.SecureMessage = new Binary(encryptedMessage);
-            }
-            else
-            {
-                rpc.Argument.Message.SecureMessage = new Binary(encodedMessage);
-                rpc.Argument.Message.SecureKeyIndex = -1;
-            }
 
+            FillTextMessage(rpc.Argument.Message, message);
+            var notEncryptMessage = rpc.Argument.Message.SecureMessage;
+            await EncryptMessage(rpc.Argument.Message);
             await rpc.SendAsync(Module.App.ClientService.GetSocket());
-            rpc.Argument.Message.SecureMessage = new Binary(encodedMessage); // 给本地用之前恢复成不加密的。
             if (0 == rpc.ResultCode)
             {
+                // 给本地用之前恢复成不加密的。
+                rpc.Argument.Message.SecureMessage = notEncryptMessage;
+
                 // 自己发送的消息的这些变量是本地的，需要自己填写。
                 // 服务器仅负责NotifyMessage的填写，收到别人的消息不需要填写。
                 // 好友消息今天写这两个就够了。群消息还需要填写Group,DepartmentId。
