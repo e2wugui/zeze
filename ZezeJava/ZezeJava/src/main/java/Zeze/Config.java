@@ -79,7 +79,7 @@ public final class Config {
 	private boolean allowReadWhenRecordNotAccessed = true;
 	private boolean allowSchemasReuseVariableIdWithSameType = true;
 	private boolean fastRedoWhenConflict = false;
-	private final ConcurrentHashMap<String, Element> customize = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Element> customizes = new ConcurrentHashMap<>();
 	private boolean autoResetTable = false;
 	private final ConcurrentHashMap<String, DatabaseConf> databaseConfMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, ServiceConf> serviceConfMap = new ConcurrentHashMap<>();
@@ -295,8 +295,8 @@ public final class Config {
 		fastRedoWhenConflict = value;
 	}
 
-	public @NotNull ConcurrentHashMap<String, Element> getCustomize() {
-		return customize;
+	public @NotNull ConcurrentHashMap<String, Element> getCustomizes() {
+		return customizes;
 	}
 
 	public boolean autoResetTable() {
@@ -304,7 +304,7 @@ public final class Config {
 	}
 
 	public void parseCustomize(@NotNull ICustomize c) {
-		var self = customize.get(c.getName());
+		var self = customizes.get(c.getName());
 		if (self != null)
 			c.parse(self);
 	}
@@ -567,7 +567,7 @@ public final class Config {
 
 			case "CustomizeConf":
 				var cname = e.getAttribute("Name").trim();
-				if (null != customize.putIfAbsent(cname, e))
+				if (null != customizes.putIfAbsent(cname, e))
 					throw new RuntimeException("duplicate customize name=" + cname);
 				break;
 
