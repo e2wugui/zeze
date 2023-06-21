@@ -49,7 +49,7 @@
     {
         var hName15 = new Zeze.Arch.RedirectHandle();
         hName15.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName15.RequestHandle = async(_sessionId_, _HashOrServerId_, _params_) =>
+        hName15.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             long roleId;
