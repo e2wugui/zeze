@@ -86,6 +86,11 @@ namespace Zege
             AppShell.Instance.App?.Zege_Friend.ReturnTop();
         }
 
+        private void OnShowFriendMenu(object sender, EventArgs e)
+        {
+
+        }
+
         private void OnTest(object sender, EventArgs e)
         {
             //App.Zege_Friend.Test();

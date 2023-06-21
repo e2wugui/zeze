@@ -121,7 +121,7 @@ namespace Zeze.Services
             }
         }
 
-        public GCMConfig Config { get; } = new GCMConfig();
+        public GCMConfig GcmConfig { get; } = new GCMConfig();
         private GlobalCacheManagerPerf Perf;
         //private Util.ObjectPool<Acquire> AcquirePool = new();
         //private Util.ObjectPool<Reduce> ReducePool = new();
@@ -134,17 +134,15 @@ namespace Zeze.Services
                     return;
 
                 if (null == config)
-                {
-                    config = new Config();
-                    config.AddCustomize(Config);
-                    config.LoadAndParse();
-                }
+                    config = Zeze.Config.Load();
+
+                config.ParseCustomize(GcmConfig);
 
                 // TODO 根据配置是否启用性能统计。
                 Perf = new(SerialIdGenerator);
 
-                Sessions = new(Config.ConcurrencyLevel, 4096);
-                global = new(Config.ConcurrencyLevel, Config.InitialCapacity);
+                Sessions = new(GcmConfig.ConcurrencyLevel, 4096);
+                global = new(GcmConfig.ConcurrencyLevel, GcmConfig.InitialCapacity);
 
                 Server = new ServerService(config);
 
@@ -207,7 +205,7 @@ namespace Zeze.Services
 
 
                 // Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
-                AchillesHeelConfig = new AchillesHeelConfig(Config.MaxNetPing, Config.ServerProcessTime, Config.ServerReleaseTimeout);
+                AchillesHeelConfig = new AchillesHeelConfig(GcmConfig.MaxNetPing, GcmConfig.ServerProcessTime, GcmConfig.ServerReleaseTimeout);
                 Zeze.Util.Scheduler.Schedule(AchillesHeelDaemon, 5000, 5000);
             }
         }
@@ -289,7 +287,7 @@ namespace Zeze.Services
                 return 0;
             }
 
-            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (key) => new CacheHolder(Config));
+            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (key) => new CacheHolder(GcmConfig));
             if (session.GlobalCacheManagerHashIndex != rpc.Argument.GlobalCacheManagerHashIndex)
             {
                 // 多点验证
@@ -319,7 +317,7 @@ namespace Zeze.Services
         private async Task<long> ProcessLogin(Protocol p)
         {
             var rpc = p as Login;
-            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
+            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(GcmConfig));
 
             if (false == await session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex, true))
             {
@@ -335,9 +333,9 @@ namespace Zeze.Services
                 // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
                 await ReleaseAsync(session, e.Key, false);
             }
-            rpc.Result.MaxNetPing = Config.MaxNetPing;
-            rpc.Result.ServerProcessTime = Config.ServerProcessTime;
-            rpc.Result.ServerReleaseTimeout = Config.ServerReleaseTimeout;
+            rpc.Result.MaxNetPing = GcmConfig.MaxNetPing;
+            rpc.Result.ServerProcessTime = GcmConfig.ServerProcessTime;
+            rpc.Result.ServerReleaseTimeout = GcmConfig.ServerReleaseTimeout;
             rpc.SendResultCode(0);
             return 0;
         }
@@ -345,7 +343,7 @@ namespace Zeze.Services
         private async Task<long> ProcessReLogin(Protocol p)
         {
             var rpc = p as ReLogin;
-            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
+            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(GcmConfig));
             if (false == await session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex, false))
             {
                 rpc.SendResultCode(ReLoginBindSocketFail);

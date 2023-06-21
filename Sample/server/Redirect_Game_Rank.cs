@@ -607,7 +607,7 @@ public class Redirect_Game_Rank : Game.Rank.ModuleRank
         App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestToServer", hName57);
         var hName66 = new Zeze.Arch.RedirectHandle();
         hName66.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName66.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
+        hName66.RequestHandle = (_sessionId_, _HashOrServerId_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             int param;
@@ -620,7 +620,7 @@ public class Redirect_Game_Rank : Game.Rank.ModuleRank
                 _bb_.WriteInt(tmp68);
             };
             base.TestToServerNoWait(_HashOrServerId_, result, param);
-            return Zeze.Net.Binary.Empty;
+            return System.Threading.Tasks.Task.FromResult(Zeze.Net.Binary.Empty);
         };
         App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestToServerNoWait", hName66);
         var hName77 = new Zeze.Arch.RedirectHandle();

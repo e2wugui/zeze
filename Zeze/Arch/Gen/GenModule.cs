@@ -315,7 +315,7 @@ namespace Zeze.Arch.Gen
                 var hName = "hName" + Gen.Instance.TmpVarNameId.IncrementAndGet();
                 sbHandles.AppendLine($"        var {hName} = new Zeze.Arch.RedirectHandle();");
                 sbHandles.AppendLine($"        {hName}.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.{m.TransactionLevel};");
-                sbHandles.AppendLine($"        {hName}.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>");
+                sbHandles.AppendLine($"        {hName}.RequestHandle = {(m.MethodMode.IsAsync ? "async " : "")}(_sessionId_, _HashOrServerId_, _params_) =>");
                 sbHandles.AppendLine($"        {{");
                 sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
                 for (int i = 0; i < m.ParametersNormal.Count; ++i)
@@ -353,7 +353,7 @@ namespace Zeze.Arch.Gen
                     var bcall = m.GetNormalCallString();
                     var sep = bcall.Length == 0 ? "" : ", "; 
                     sbHandles.AppendLine($"            base.{m.Method.Name}(_HashOrServerId_{sep}{bcall});");
-                    sbHandles.AppendLine($"            return Zeze.Net.Binary.Empty;");
+                    sbHandles.AppendLine($"            return System.Threading.Tasks.Task.FromResult(Zeze.Net.Binary.Empty);");
                 }
                 sbHandles.AppendLine($"        }};");
                 sbHandles.AppendLine($"        App.Zeze.Redirect.Handles.TryAdd(\"{module.FullName}:{m.Method.Name}\", {hName});");

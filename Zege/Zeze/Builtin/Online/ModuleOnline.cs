@@ -13,10 +13,10 @@ namespace Zeze.Builtin.Online
         {
         }
 
-        protected override async System.Threading.Tasks.Task<long> ProcessSReliableNotify(Zeze.Net.Protocol _p)
+        protected override System.Threading.Tasks.Task<long> ProcessSReliableNotify(Zeze.Net.Protocol _p)
         {
             var p = _p as SReliableNotify;
-            return ResultCode.NotImplement;
+            return Task.FromResult(ResultCode.NotImplement);
         }
 
         public async Task LoginAsync(string clientId)

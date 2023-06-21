@@ -107,6 +107,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Update="Zege\CreateGroup.xaml.cs">
+	    <DependentUpon>CreateGroup.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="Zege\LoginShell.xaml.cs">
 	    <DependentUpon>LoginShell.xaml</DependentUpon>
 	  </Compile>
@@ -119,6 +122,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiXaml Update="Zege\CreateGroup.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Zege\LoginShell.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

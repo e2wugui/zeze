@@ -100,33 +100,5 @@ namespace Zege.User
             await SecureStorage.Default.SetAsync(account + ".pkcs12", base64);
             return 0;
         }
-
-        public async Task<int> RegisterOffline()
-        {
-            /*
-            var rpc = new OfflineNotify();
-            rpc.Argument.ServerId = 0; // TODO: correct server id
-            rpc.Argument.NotifyId = "0"; // TODO: correct notify id
-            rpc.Argument.NotifySerialId = 0L; // TODO: correct notify serial id
-            await rpc.SendAsync(App.Connector.TryGetReadySocket());
-            */
-            return 0;
-        }
-
-        public async Task<int> LogoutAccount()
-        {
-            if (Account.Length == 0)
-                return eAccountInvalid;
-
-            // TODO: make sure account is signed in 
-            /*
-            var rpc = new OfflineNotify();
-            rpc.Argument.ServerId = ServerId; // TODO: check valid
-            rpc.Argument.NotifyId = NotifyId; // TODO: check valid
-            rpc.Argument.NotifySerialId = 0L; // TODO: correct notify serial id
-            await rpc.SendAsync(App.Connector.TryGetReadySocket());
-            */
-            return 0;
-        }
     }
 }

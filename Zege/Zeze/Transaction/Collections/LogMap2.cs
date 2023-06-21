@@ -106,17 +106,17 @@ namespace Zeze.Transaction.Collections
             throw new NotImplementedException();
 #else
             BuildChangedWithKey();
-#endif
             bb.WriteUInt(ChangedWithKey.Count);
-			foreach (var e in ChangedWithKey)
+            foreach (var e in ChangedWithKey)
             {
-				SerializeHelper<K>.Encode(bb, e.Key);
-				SerializeHelper<LogBean>.Encode(bb, e.Value);
-			}
-			base.Encode(bb);
+                SerializeHelper<K>.Encode(bb, e.Key);
+                SerializeHelper<LogBean>.Encode(bb, e.Value);
+            }
+            base.Encode(bb);
+#endif
         }
 
-		public override string ToString()
+        public override string ToString()
 		{
 			var sb = new StringBuilder();
 			sb.Append(" Putted:");

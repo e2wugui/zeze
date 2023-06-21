@@ -6,30 +6,45 @@
 
     <ScrollView>
         <HorizontalStackLayout>
-            <ListView x:Name ="FriendsListView" HeightRequest="600" WidthRequest="350" >
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <ViewCell>
-                            <Grid Padding="10">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="30" />
-                                    <RowDefinition Height="30" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="60" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="60" />
-                                </Grid.ColumnDefinitions>
+            <VerticalStackLayout>
+                <HorizontalStackLayout>
+                    <Editor WidthRequest="300"/>
+                    <Button Text="+" Clicked="OnShowFriendMenu">
+                        <!--
+                        <FlyoutBase.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="A"/>
+                                <MenuFlyoutItem Text="B"/>
+                            </MenuFlyout>
+                        </FlyoutBase.ContextFlyout>
+                        -->
+                    </Button>
+                </HorizontalStackLayout>
+                <ListView x:Name ="FriendsListView" HeightRequest="600" WidthRequest="350" >
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <ViewCell>
+                                <Grid Padding="10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="30" />
+                                        <RowDefinition Height="30" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="60" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="60" />
+                                    </Grid.ColumnDefinitions>
 
-                                <Image Grid.RowSpan="2" Source="{Binding Image}" Aspect="AspectFill" HeightRequest="60" WidthRequest="60" />
-                                <Label Grid.Column="1" Text="{Binding Nick}" LineBreakMode="TailTruncation" FontAttributes="Bold" />
-                                <Label Grid.Column="2" Text="{Binding Time}" LineBreakMode="NoWrap" />
-                                <Label Grid.Row="1" Grid.Column="1" Text="{Binding Message}" LineBreakMode="TailTruncation" />
-                            </Grid>
-                        </ViewCell>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+                                    <Image Grid.RowSpan="2" Source="{Binding Image}" Aspect="AspectFill" HeightRequest="60" WidthRequest="60" />
+                                    <Label Grid.Column="1" Text="{Binding Nick}" LineBreakMode="TailTruncation" FontAttributes="Bold" />
+                                    <Label Grid.Column="2" Text="{Binding Time}" LineBreakMode="NoWrap" />
+                                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding Message}" LineBreakMode="TailTruncation" />
+                                </Grid>
+                            </ViewCell>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </VerticalStackLayout>
             <VerticalStackLayout x:Name="_MessageParent">
                 <ScrollView x:Name="_MessageScrollView" HeightRequest="450" WidthRequest="600">
                     <AbsoluteLayout x:Name="_MessageLayout" />

@@ -718,7 +718,8 @@ namespace Zeze.Services
 
             ZezeConfig = config;
             if (ZezeConfig == null)
-                ZezeConfig = new Zeze.Config().AddCustomize(Config).LoadAndParse();
+                ZezeConfig = Zeze.Config.Load();
+            ZezeConfig.ParseCustomize(Config);
 
             await Rocks.OpenAsync(raftName, raftconf, config);
 

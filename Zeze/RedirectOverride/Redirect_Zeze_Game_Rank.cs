@@ -102,7 +102,7 @@
 
         var hName11 = new Zeze.Arch.RedirectHandle();
         hName11.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName11.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
+        hName11.RequestHandle = async(_sessionId_, _HashOrServerId_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             Zeze.Builtin.Game.Rank.BConcurrentKey keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();

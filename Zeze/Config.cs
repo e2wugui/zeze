@@ -28,8 +28,7 @@ namespace Zeze
             Off
         }
 
-        public ConcurrentDictionary<string, ICustomize> Customize { get; }
-            = new ConcurrentDictionary<string, ICustomize>();
+        private ConcurrentDictionary<string, XmlElement> Customizes { get; } = new ();
         public LogLevel ProcessReturnErrorLogLevel { get; set; } = LogLevel.Info;
 
 #if !USE_CONFCS
@@ -82,24 +81,12 @@ namespace Zeze
         /// <typeparam name="T"></typeparam>
         /// <param name="name"></param>
         /// <param name="customize"></param>
-        public bool GetCustomize<T>(out T customize) where T : ICustomize, new()
+        public void ParseCustomize(ICustomize customize)
         {
-            T forName = new T();
-            if (Customize.TryGetValue(forName.Name, out var _customize))
-            {
-                customize = (T)_customize;
-                return true;
-            }
-            customize = default(T);
-            return false;
+            if (Customizes.TryGetValue(customize.Name, out var xmlElement))
+                customize.Parse(xmlElement);
         }
 
-        public Config AddCustomize(ICustomize c)
-        {
-            if (!Customize.TryAdd(c.Name, c))
-                throw new Exception($"Duplicate Customize Config '{c.Name}'");
-            return this;
-        }
 #if !USE_CONFCS
         public TableConf GetTableConf(string name)
         {
@@ -310,10 +297,9 @@ namespace Zeze
                         break;
 
                     case "CustomizeConf":
-                        var cname = e.GetAttribute("Name");
-                        if (false == Customize.TryGetValue(cname, out var customizeConf))
+                        var cname = e.GetAttribute("Name").Trim();
+                        if (false == Customizes.TryAdd(cname, e))
                             throw new Exception($"Unknown CustomizeConf Name='{cname}'");
-                        customizeConf.Parse(e);
                         break;
 
                     default:

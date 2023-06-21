@@ -7,11 +7,7 @@
     Shell.FlyoutBehavior="Disabled">
 
     <TabBar>
-        <Tab Title="好友">
-            <ShellContent ContentTemplate="{DataTemplate local:MainPage}"/>
-        </Tab>
-        <Tab Title="TODO">
-            <ShellContent ContentTemplate="{DataTemplate local:NotifyPage}"/>
-        </Tab>
+        <ShellContent Title="Zege" ContentTemplate="{DataTemplate local:MainPage}"/>
+        <ShellContent Title="Todo" ContentTemplate="{DataTemplate local:NotifyPage}"/>
     </TabBar>
 </Shell>

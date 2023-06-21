@@ -157,7 +157,7 @@ namespace Zeze.Services
         /// <summary>
         /// 需要从配置文件中读取，把这个引用加入： Zeze.Config.AddCustomize
         /// </summary>
-        public Conf Config { get; } = new();
+        public Conf SmConf { get; } = new();
 
         private void AddLoadObserver(string ip, int port, AsyncSocket sender)
         {
@@ -241,7 +241,7 @@ namespace Zeze.Services
                                     StartReadyCommitNotify(); // restart
                                 }
                             },
-                            ServiceManager.Config.RetryNotifyDelayWhenNotAllReady);
+                            ServiceManager.SmConf.RetryNotifyDelayWhenNotAllReady);
                     }
                 }
             }
@@ -419,8 +419,8 @@ namespace Zeze.Services
                             logger.Error(ex, "ServiceManager.KeepAlive");
                         }
                     },
-                    Util.Random.Instance.Next(ServiceManager.Config.KeepAlivePeriod),
-                ServiceManager.Config.KeepAlivePeriod);
+                    Util.Random.Instance.Next(ServiceManager.SmConf.KeepAlivePeriod),
+                ServiceManager.SmConf.KeepAlivePeriod);
             }
 
             public void OnClose()
@@ -720,13 +720,14 @@ namespace Zeze.Services
             }
         }
 
-        public ServiceManagerServer(IPAddress ipaddress, int port, Config config, int startNotifyDelay = -1)
+        public ServiceManagerServer(IPAddress ipaddress, int port, Config config = null, int startNotifyDelay = -1)
         {
-            if (config.GetCustomize<Conf>(out var tmpconf))
-                Config = tmpconf;
+            if (null == config)
+                config = Zeze.Config.Load();
+            config.ParseCustomize(SmConf);
 
             if (startNotifyDelay >= 0)
-                Config.StartNotifyDelay = startNotifyDelay;
+                SmConf.StartNotifyDelay = startNotifyDelay;
 
             Server = new NetServer(this, config);
 
@@ -794,13 +795,13 @@ namespace Zeze.Services
                 Factory = () => new OfflineNotify(),
             });
 
-            if (Config.StartNotifyDelay > 0)
+            if (SmConf.StartNotifyDelay > 0)
             {
-                StartNotifyDelayTask = Zeze.Util.Scheduler.Schedule(StartNotifyAll, Config.StartNotifyDelay);
+                StartNotifyDelayTask = Zeze.Util.Scheduler.Schedule(StartNotifyAll, SmConf.StartNotifyDelay);
             }
 
             var options = new DbOptions().SetCreateIfMissing(true);
-            AutoKeysDb = RocksDb.Open(options, Path.Combine(Config.DbHome, "autokeys"));
+            AutoKeysDb = RocksDb.Open(options, Path.Combine(SmConf.DbHome, "autokeys"));
 
             // 允许配置多个acceptor，如果有冲突，通过日志查看。
             ServerSocket = Server.NewServerSocket(ipaddress, port, null);
