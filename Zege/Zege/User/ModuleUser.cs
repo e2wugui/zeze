@@ -42,39 +42,35 @@ namespace Zege.User
                 return cert;
 
             // storage
-            var pkcs12 = await SecureStorage.Default.GetAsync(Account + "." + index + ".pkcs12");
-            if (pkcs12 == null || pkcs12.Length == 0)
+            var certSaved = await SecureStorage.Default.GetAsync(account + "." + index + ".pkcs12");
+            if (certSaved == null || certSaved.Length == 0)
                 return null;
+            var pkcs12 = Convert.FromBase64String(certSaved);
             cert = Cert.CreateFromPkcs12(pkcs12, savedPasswd);
-            Certificates[account][index] = cert;
+            Certificates.GetOrAdd(account, (key) => new())[index] = cert;
             return cert;
         }
 
-        public async Task<int> OpenCertAsync(string account, string passwd, bool save)
+        public async Task<int> OpenAccountAsync(string account, string passwd, bool save)
         {
+            if (null == passwd)
+                passwd = await SecureStorage.Default.GetAsync(account + ".password");
             if (null == passwd)
                 passwd = string.Empty;
 
-            var certSaved = await SecureStorage.Default.GetAsync(account + ".pkcs12");
-            if (null == certSaved)
-                return 1;
-
-            var pkcs12 = Convert.FromBase64String(certSaved);
-            if (null == passwd)
-                passwd = await SecureStorage.Default.GetAsync(account + ".password");
             savedPasswd = passwd;
-            Certificate = Cert.CreateFromPkcs12(pkcs12, passwd);
+            var cert = await GetLastPrivateCertificate(account);
+            if (null == cert)
+                return 1;
 
             // 证书打开成功以后，才进行密码修改或者删除。
             if (save)
-            {
                 await SecureStorage.Default.SetAsync(account + ".password", passwd);
-            }
             else
-            {
                 SecureStorage.Default.Remove(account + ".password");
-            }
+
             Account = account;
+            Certificate = cert;
             return 0;
         }
 
@@ -83,7 +79,7 @@ namespace Zege.User
             if (null == passwd)
                 passwd = string.Empty;
 
-            var certSaved = await SecureStorage.Default.GetAsync(account + ".pkcs12");
+            var certSaved = await SecureStorage.Default.GetAsync(account + ".LastCertIndex");
             if (certSaved != null)
                 return eAccountHasUsed;
 
