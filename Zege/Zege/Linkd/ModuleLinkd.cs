@@ -46,7 +46,7 @@ namespace Zege.Linkd
 
         public async Task<bool> ChallengeMeAsync(string account, string passwd, bool save)
         {
-            if (0 != await App.Zege_User.OpenCertAsync(account, passwd, save))
+            if (0 != await App.Zege_User.OpenAccountAsync(account, passwd, save))
                 return false;
 
             ChallengeFuture?.TrySetException(new Exception("Cancel"));
