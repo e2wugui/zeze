@@ -45,15 +45,15 @@ namespace Zeze.Net
         public volatile object UserState;
         public bool IsHandshakeDone { get; set; }
 
-        private static readonly AtomicLong SessionIdGen = new();
+        private static readonly AtomicLong SessionIdGen = new AtomicLong();
         public static Func<long> SessionIdGenFunc { get; set; }
 
         private readonly SocketAsyncEventArgs eventArgsAccept;
         private SocketAsyncEventArgs eventArgsReceive;
         private SocketAsyncEventArgs eventArgsSend;
 
-        private readonly BufferCodec inputCodecBuffer = new(); // 记录这个变量用来操作buffer
-        private readonly BufferCodec outputCodecBuffer = new(); // 记录这个变量用来操作buffer
+        private readonly BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
+        private readonly BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
 
         private Codec inputCodecChain;
         private Codec outputCodecChain;

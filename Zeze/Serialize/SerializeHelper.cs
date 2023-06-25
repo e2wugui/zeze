@@ -63,7 +63,7 @@ namespace Zeze.Serialize
                     (ByteBuffer bb) => bb.ReadBinary()));
             }
 
-            if (type.IsAssignableTo(typeof(Serializable)))
+            if (typeof(Serializable).IsAssignableFrom(type))
             {
                 return (Func<ByteBuffer, T>)Delegate.CreateDelegate(
                     typeof(Func<ByteBuffer, T>),

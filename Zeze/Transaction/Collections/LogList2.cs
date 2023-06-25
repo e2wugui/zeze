@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
+using System;
 
 namespace Zeze.Transaction.Collections
 {
@@ -27,7 +28,7 @@ namespace Zeze.Transaction.Collections
             }
         }
 
-		public Dictionary<LogBean, OutInt> Changed { get; } = new(); // changed V logs. using in collect.
+		public Dictionary<LogBean, OutInt> Changed { get; } = new Dictionary<LogBean, OutInt>(); // changed V logs. using in collect.
 
 #if !USE_CONFCS
 		internal override Log BeginSavepoint()

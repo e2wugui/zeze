@@ -46,8 +46,10 @@ namespace Zeze.Net
             }
         }
         public bool IsConnected { get; private set; } = false;
+ #if NET
         public bool IsHandshakeDone => TryGetReadySocket() != null;
-        private volatile TaskCompletionSource<AsyncSocket> FutureSocket = new(TaskCreationOptions.RunContinuationsAsynchronously);
+#endif
+        private volatile TaskCompletionSource<AsyncSocket> FutureSocket = new TaskCompletionSource<AsyncSocket>(TaskCreationOptions.RunContinuationsAsynchronously);
         public string Name => $"{HostNameOrAddress}:{Port}";
 
         public AsyncSocket Socket { get; private set; }
@@ -119,26 +121,28 @@ namespace Zeze.Net
             throw new Exception("GetReadySocket Timeout.");
         }
 
+#if NET
         public async Task<AsyncSocket> GetReadySocketAsync()
-        {
-            var volatileTmp = FutureSocket;
-            return await volatileTmp.Task.WaitAsync(TimeSpan.FromMilliseconds(ReadyTimeout));
-        }
+         {
+             var volatileTmp = FutureSocket;
+             return await volatileTmp.Task.WaitAsync(TimeSpan.FromMilliseconds(ReadyTimeout));
+         }
 
-        public virtual AsyncSocket TryGetReadySocket()
-        {
-            var volatileTmp = FutureSocket;
-            try
-            {
-                if (volatileTmp.Task.IsCompletedSuccessfully)
-                    return volatileTmp.Task.Result;
-            }
-            catch (Exception)
-            {
-                // skip
-            }
-            return null;
-        }
+         public virtual AsyncSocket TryGetReadySocket()
+         {
+             var volatileTmp = FutureSocket;
+             try
+             {
+                 if (volatileTmp.Task.IsCompletedSuccessfully)
+                     return volatileTmp.Task.Result;
+             }
+             catch (Exception)
+             {
+                 // skip
+             }
+             return null;
+         }
+#endif
 
         public virtual void OnSocketClose(AsyncSocket closed, Exception e)
         {
