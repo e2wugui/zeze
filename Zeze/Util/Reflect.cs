@@ -119,7 +119,7 @@ namespace Zeze.Util
 			if (type == typeof(Zeze.Util.LogConfDynamic))
 				return "Zeze.Transaction.LogDynamic";
 
-			if (typeof(Zeze.Serialize.Serializable).IsAssignableFrom(type))
+			if (type.IsAssignableTo(typeof(Zeze.Serialize.Serializable)))
 				return type.FullName;
 
 			// Serializable已经处理了下面这两种情况，不会执行到这里，写在这里，明确一下类型。

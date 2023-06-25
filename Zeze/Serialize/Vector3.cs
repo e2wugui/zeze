@@ -49,7 +49,7 @@ namespace Zeze.Serialize
 
         public override int GetHashCode()
         {
-            return x.GetHashCode() ^ y.GetHashCode();
+            return HashCode.Combine(x, y);
         }
 
         protected bool Equals(Vector2 other)
@@ -118,7 +118,7 @@ namespace Zeze.Serialize
 
         public override int GetHashCode()
         {
-            return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode();
+            return HashCode.Combine(x, y, z);
         }
 
         protected bool Equals(Vector3 other)
@@ -190,7 +190,7 @@ namespace Zeze.Serialize
 
         public override int GetHashCode()
         {
-            return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode() ^ w.GetHashCode();
+            return HashCode.Combine(x, y, z, w);
         }
 
         protected bool Equals(Vector4 other)
@@ -286,7 +286,7 @@ namespace Zeze.Serialize
 
         public override int GetHashCode()
         {
-            return x.GetHashCode() ^ y.GetHashCode();
+            return HashCode.Combine(x, y);
         }
 
         protected bool Equals(Vector2Int other)
@@ -355,7 +355,7 @@ namespace Zeze.Serialize
 
         public override int GetHashCode()
         {
-            return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode();
+            return HashCode.Combine(x, y, z);
         }
 
         protected bool Equals(Vector3Int other)

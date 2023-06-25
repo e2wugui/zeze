@@ -38,7 +38,7 @@ namespace Zeze.Transaction.Collections
 			}
 		}
 
-		public List<OpLog> OpLogs { get; } = new List<OpLog>();
+		public List<OpLog> OpLogs { get; } = new();
 
 #if !USE_CONFCS
 		public override void Collect(Changes changes, Bean recent, Log vlog)

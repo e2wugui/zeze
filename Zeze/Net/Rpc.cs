@@ -190,7 +190,7 @@ namespace Zeze.Net
 
         public async Task SendAsync(AsyncSocket so, int millisecondsTimeout = 5000)
         {
-            Future = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Future = new(TaskCreationOptions.RunContinuationsAsynchronously);
             if (false == Send(so, null, millisecondsTimeout))
             {
                 Future.SetException(new Exception("Send Failed."));

@@ -8,7 +8,9 @@ using System.Net.NetworkInformation;
 using Zeze.Util;
 using System.Threading.Tasks;
 using Zeze.Transaction;
-
+using NLog;
+using NLog.Fluent;
+using System.Threading;
 
 namespace Zeze.Net
 {
@@ -447,7 +449,7 @@ namespace Zeze.Net
         private static AtomicLong StaticSessionIdAtomicLong { get; } = new AtomicLong();
         public Func<long> SessionIdGenerator { get; set; }
 
-        private readonly ConcurrentDictionary<long, Protocol> RpcContextsPrivate = new ConcurrentDictionary<long, Protocol>();
+        private readonly ConcurrentDictionary<long, Protocol> RpcContextsPrivate = new();
         public IReadOnlyDictionary<long, Protocol> RpcContexts => RpcContextsPrivate;
 
         public long NextSessionId()
@@ -495,7 +497,7 @@ namespace Zeze.Net
             }
         }
 
-        private readonly ConcurrentDictionary<long, ManualContext> ManualContexts = new ConcurrentDictionary<long, ManualContext>();
+        private readonly ConcurrentDictionary<long, ManualContext> ManualContexts = new();
 
         public long AddManualContextWithTimeout(ManualContext context, long timeout = 10 * 1000)
         {

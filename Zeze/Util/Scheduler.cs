@@ -19,7 +19,7 @@ namespace Zeze.Util
 
         internal static Scheduler Instance { get; } = new Scheduler();
 
-        private ConcurrentDictionary<SchedulerTask, SchedulerTask> Timers { get; } = new ConcurrentDictionary<SchedulerTask, SchedulerTask>();
+        private ConcurrentDictionary<SchedulerTask, SchedulerTask> Timers { get; } = new();
 
         public Scheduler()
         {
