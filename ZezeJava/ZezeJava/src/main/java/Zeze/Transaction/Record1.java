@@ -16,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
 
 public final class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	private static final Logger logger = LogManager.getLogger(Record1.class);
-	private static final boolean isDebugEnabled = logger.isDebugEnabled();
+	private static final boolean isTraceEnabled = logger.isTraceEnabled();
 	private static final VarHandle LRU_NODE_HANDLE;
 
 	static {
@@ -87,8 +87,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		if (table.getStorage() == null || (agent = table.getZeze().getGlobalAgent()) == null) // 不支持内存表cache同步。
 			return IGlobalAgent.AcquireResult.getSuccessResult(state);
 
-		if (isDebugEnabled)
-			logger.debug("Acquire NewState={} {}", state, this);
+		if (isTraceEnabled)
+			logger.trace("Acquire NewState={} {}", state, this);
 		if (Macro.enableStatistics) {
 			var stat = TableStatistics.getInstance().getOrAdd(table.getId());
 			switch (state) {
