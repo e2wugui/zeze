@@ -28,7 +28,7 @@ namespace Zeze
             Off
         }
 
-        private ConcurrentDictionary<string, XmlElement> Customizes { get; } = new ();
+        public ConcurrentDictionary<string, XmlElement> Customizes { get; } = new ();
         public LogLevel ProcessReturnErrorLogLevel { get; set; } = LogLevel.Info;
 
 #if !USE_CONFCS
@@ -78,6 +78,8 @@ namespace Zeze
         /// 因为外面需要通过AddCustomize注册进来，
         /// 如果外面保存了配置引用，是不需要访问这个接口的。
         /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name"></param>
         /// <param name="customize"></param>
         public void ParseCustomize(ICustomize customize)
         {
