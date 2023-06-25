@@ -28,7 +28,7 @@ namespace Zeze
             Off
         }
 
-        public ConcurrentDictionary<string, XmlElement> Customizes { get; } = new ();
+        public ConcurrentDictionary<string, XmlElement> Customizes { get; } = new ConcurrentDictionary<string, XmlElement>();
         public LogLevel ProcessReturnErrorLogLevel { get; set; } = LogLevel.Info;
 
 #if !USE_CONFCS

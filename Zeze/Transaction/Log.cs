@@ -36,7 +36,7 @@ namespace Zeze.Transaction
         public abstract void Encode(ByteBuffer bb);
         public abstract void Decode(ByteBuffer bb);
 
-        public static ConcurrentDictionary<int, Func<Log>> Factorys { get; } = new();
+        public static ConcurrentDictionary<int, Func<Log>> Factorys { get; } = new ConcurrentDictionary<int, Func<Log>>();
 
         public static Log Create(int typeId)
         {

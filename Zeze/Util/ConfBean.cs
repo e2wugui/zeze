@@ -74,7 +74,7 @@ namespace Zeze.Util
             return "()";
         }
 
-        public readonly static ConfEmptyBean Instance = new();
+        public readonly static ConfEmptyBean Instance = new ConfEmptyBean();
 
         public override void ClearParameters()
         {
@@ -132,7 +132,7 @@ namespace Zeze.Util
             return Bean.NegativeCheck();
         }
 
-        public override ConfDynamicBean Copy()
+        public override ConfBean Copy()
         {
             var copy = new ConfDynamicBean(VariableId, GetSpecialTypeIdFromBean, CreateBeanFromSpecialTypeId);
             copy._Bean = Bean.Copy();
@@ -218,7 +218,7 @@ namespace Zeze.Util
             {
                 SpecialTypeId = bb.ReadLong();
                 var parentType = Zeze.Util.Reflect.GetType(parentTypeName);
-                var factory = parentType.GetMethod("CreateBeanFromSpecialTypeId_" + varId, BindingFlags.Static | BindingFlags.Public, new Type[] { typeof(long) });
+                var factory = parentType.GetMethod("CreateBeanFromSpecialTypeId_" + varId, new Type[] { typeof(long) });
                 Value = (ConfBean)factory.Invoke(null, new object[] { SpecialTypeId });
                 Value.Decode(bb);
             }
