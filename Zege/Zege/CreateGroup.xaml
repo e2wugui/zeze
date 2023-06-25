@@ -5,7 +5,32 @@
              Title="Zege">
 
     <ScrollView>
-        <Button Text="完成" Clicked="OnCreateGroup"/>
+        <VerticalStackLayout>
+            <ListView x:Name ="FriendsListView" HeightRequest="600" WidthRequest="350" >
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <ViewCell>
+                            <Grid Padding="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="30" />
+                                    <RowDefinition Height="30" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60" />
+                                    <ColumnDefinition Width="60" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <CheckBox Grid.RowSpan="2" Grid.Column="0" BindingContext="{Binding Account}" CheckedChanged="OnCheckedChanged"/>
+                                <Image Grid.RowSpan="2" Grid.Column="1" Source="{Binding Image}" Aspect="AspectFill" HeightRequest="60" WidthRequest="60" />
+                                <Label Grid.Column="2" Text="{Binding Nick}" LineBreakMode="TailTruncation" FontAttributes="Bold" />
+                            </Grid>
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <Button Text="完成" Clicked="OnCreateGroup"/>
+        </VerticalStackLayout>
     </ScrollView>
 
 </ContentPage>

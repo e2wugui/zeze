@@ -1,6 +1,8 @@
 
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Security.Cryptography.X509Certificates;
+using Zege.Notify;
 using Zeze.Builtin.Collections.LinkedMap;
 using Zeze.Net;
 using Zeze.Serialize;
@@ -11,7 +13,7 @@ namespace Zege.Friend
 {
     public partial class ModuleFriend : AbstractModule
     {
-        private readonly ConcurrentDictionary<string, BPublicUserInfo> PublicUserInfos = new();
+        private readonly ConcurrentDictionary<string, BPublicUserInfo> PublicUserInfos = new(); // TODO 展开证书。
 
         public void Start(global::Zege.App app)
         {
@@ -132,18 +134,60 @@ namespace Zege.Friend
             r.Send(App.ClientService.GetSocket());
         }
 
-        public void ReturnTop()
+        public async void ReturnTop()
         {
-            throw new NotImplementedException();
+            await AppShell.Instance.DisplayAlertAsync("!!!", "NotImplementedException");
         }
 
-        public void Test()
-        {
-            var res = Friends.TryNewGetFriendNode(true);
+        public async Task<string> CreateGroup(IEnumerable<string> selected)
+        { 
+            var r = new CreateGroup();
+            r.Argument.Members.Union(selected);
+
+            var randomData = new byte[16];
+            Random.Shared.NextBytes(randomData);
+            r.Argument.RandomData = new Binary(randomData);
+
+            var rsa = Cert.GenerateRsa();
+            var sign = Cert.Sign(rsa, randomData);
+            r.Argument.RsaPublicKey = new Binary(rsa.ExportRSAPublicKey());
+            r.Argument.Signed = new Binary(sign);
+
+            await r.SendAsync(App.Connector.TryGetReadySocket());
+            Mission.VerifySkipResultCode(r.ResultCode);
+            var group = r.Result.Group;
+
+            var cert = Cert.CreateFromCertAndPrivateKey(r.Result.Cert.GetBytesUnsafe(), rsa);
+            var pkcs12 = cert.Export(X509ContentType.Pkcs12, "");
+            var base64 = Convert.ToBase64String(pkcs12);
+            await SecureStorage.Default.SetAsync(group + "." + r.Result.LastCertIndex + ".pkcs12", base64);
+            //await SecureStorage.Default.SetAsync(group + ".pkcs12", base64);
+
+            var n = new SendNotify();
+            n.Argument.Group = group;
+
+            foreach (var account in selected)
+            {
+                var info = await App.Zege_Friend.GetPublicUserInfo(account); // TODO 优化，批量获取。
+                if (info.Cert.Count > 0)
+                {
+                    var certTarget = Cert.CreateFromPkcs12(info.Cert.GetBytesUnsafe(), "");
+                    var encryptedCert = Cert.EncryptRsa(certTarget, pkcs12, 0, pkcs12.Length);
+
+                    var notify = new BNotify();
+                    notify.Title = "Group Cert";
+                    notify.Type = BNotify.eTypeGroupCert;
+                    notify.Data = new Binary(encryptedCert);
+                    notify.Properties["group"] = group;
+                    notify.Properties["lastCertIndex"] = info.LastCertIndex.ToString();
+
+                    n.Argument.Notifys[account] = notify;
+                }
+                // else TODO report warning message
+            }
+            await n.SendAsync(App.Connector.TryGetReadySocket());
+            return group;
         }
-
-        // Test Field
-
     }
 
     public class FriendItem

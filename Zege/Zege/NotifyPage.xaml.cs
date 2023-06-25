@@ -1,6 +1,8 @@
 
+using System.Buffers.Text;
 using Zege.Friend;
 using Zege.Notify;
+using Zeze.Util;
 
 namespace Zege;
 
@@ -29,7 +31,7 @@ public partial class NotifyPage : ContentPage
         return notify.NodeValue.Value as BNotify;
     }
 
-    private void OnAccept(object sender, EventArgs e)
+    private async void OnAccept(object sender, EventArgs e)
 	{
 		var notify = GetSelectedNotify();
 		if (null == notify) return;
@@ -44,7 +46,24 @@ public partial class NotifyPage : ContentPage
                     rpc.Argument.Memo = Memo.Text == null ? "" : Memo.Text;
                     rpc.Send(AppShell.Instance.App?.ClientService.GetSocket()); // skip rpc result
                 }
-				break;
+                break;
+
+            case BNotify.eTypeGroupCert:
+                if (notify.Properties.TryGetValue("group", out var group) && notify.Properties.TryGetValue("lastCertIndex", out var lastCertIndex))
+                {
+                    var cert = await AppShell.Instance.App.Zege_User.GetPrivateCertificate(group, long.Parse(lastCertIndex));
+                    if (cert != null)
+                    {
+                        var pkcs12 = Cert.DecryptRsa(cert, notify.Data.GetBytesUnsafe());
+                        var base64 = Convert.ToBase64String(pkcs12);
+                        await SecureStorage.Default.SetAsync(group + "." + lastCertIndex + ".pkcs12", base64);
+                    }
+                    var r = new RemoveNotify();
+                    r.Argument.Account = group;
+                    r.Argument.Type = BNotify.eTypeGroupCert;
+                    await r.SendAsync(AppShell.Instance.App.Connector.TryGetReadySocket());
+                }
+                break;
 		}
 	}
 

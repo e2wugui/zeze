@@ -14,6 +14,15 @@ namespace Zege
             _ = CallAsync(func);
         }
 
+        private static void OnUnhandledException(Exception ex)
+        {
+            var shell = Microsoft.Maui.Controls.Application.Current.MainPage;
+            if (shell is AppShell appShell)
+                MainThread.BeginInvokeOnMainThread(async () => await appShell.OnUnhandledException(ex));
+            else if (shell is LoginShell loginShell)
+                MainThread.BeginInvokeOnMainThread(async () => await loginShell.OnUnhandledException(ex));
+        }
+
         public static async Task CallAsync(Func<Task<long>> func, Action<long> onerror = null)
         {
             try
@@ -25,10 +34,7 @@ namespace Zege
             catch (Exception ex)
             {
                 onerror?.Invoke(ResultCode.Exception);
-                // 注意：Application.Current.MainPage is AppShell
-                // see UiApp.xaml.cs
-                MainThread.BeginInvokeOnMainThread(
-                    async () => await AppShell.Instance.OnUnhandledException(ex));
+                OnUnhandledException(ex);
             }
         }
 
@@ -41,10 +47,7 @@ namespace Zege
             catch (Exception ex)
             {
                 onerror?.Invoke(ResultCode.Exception);
-                // 注意：Application.Current.MainPage is AppShell
-                // see UiApp.xaml.cs
-                MainThread.BeginInvokeOnMainThread(
-                    async () => await AppShell.Instance.OnUnhandledException(ex));
+                OnUnhandledException(ex);
             }
         }
 

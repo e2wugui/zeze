@@ -1,5 +1,6 @@
 
 using System.Collections.Concurrent;
+using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography.X509Certificates;
 using Zeze.Net;
 using Zeze.Util;
@@ -23,6 +24,16 @@ namespace Zege.User
 
         public int ServerId;
         public String NotifyId;
+
+        public async Task<X509Certificate2> GetLastPrivateCertificate(string account)
+        {
+            var last = await SecureStorage.Default.GetAsync(account + ".LastCertIndex");
+            if (null == last)
+                return null;
+
+            var index = long.Parse(last);
+            return await GetPrivateCertificate(account, index);
+        }
 
         public async Task<X509Certificate2> GetPrivateCertificate(string account, long index)
         {
@@ -97,7 +108,7 @@ namespace Zege.User
             var pkcs12 = cert.Export(X509ContentType.Pkcs12, passwd);
             var base64 = Convert.ToBase64String(pkcs12);
             await SecureStorage.Default.SetAsync(account + "." + c.Result.LastCertIndex + ".pkcs12", base64);
-            await SecureStorage.Default.SetAsync(account + ".pkcs12", base64);
+            await SecureStorage.Default.SetAsync(account + ".LastCertIndex", c.Result.LastCertIndex.ToString());
             return 0;
         }
     }

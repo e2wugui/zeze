@@ -28,7 +28,7 @@ Zege Task
 	task table: taskid -> btask
 	timeindex:  day ->set<taskid>
 	date begin <---> date end 限定半年 day ... day
-
+Zege await Shell.Current.GoToAsync("///MainPage");
 Zege 群的操作客户端。
 Zege 群加密。
 Zege 群成员之间发送Notify。用来发送群秘密证书等。

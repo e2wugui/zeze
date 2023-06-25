@@ -55,10 +55,9 @@
                 </HorizontalStackLayout>
             </VerticalStackLayout>
             <VerticalStackLayout>
-                <Button Text="Top" Clicked="OnMakeCurrentFriendTop"/>
+                <Button Text="置顶" Clicked="OnTopmost"/>
                 <Button Text="Return to Top" Clicked="OnReturnTop"/>
-                <Button Text="Test" Clicked="OnTest"/>
-                <Label Text="a1" x:Name="LabelMultiLine" HeightRequest="80"/>
+                <Button Text="发起群聊" Clicked="OnCreateGroup"/>
             </VerticalStackLayout>
 
         </HorizontalStackLayout>

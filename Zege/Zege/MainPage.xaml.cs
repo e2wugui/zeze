@@ -72,7 +72,7 @@ namespace Zege
             MessageEditor.Text = string.Empty;
         }
 
-        private void OnMakeCurrentFriendTop(object sender, EventArgs e)
+        private void OnTopmost(object sender, EventArgs e)
         {
             var selected = FriendsListView.SelectedItem as FriendItem;
             if (null == selected)
@@ -86,18 +86,25 @@ namespace Zege
             AppShell.Instance.App?.Zege_Friend.ReturnTop();
         }
 
+        private Window CreateGroupWindow;
+        private void OnCreateGroupWindowDestroying(object sender, EventArgs args)
+        {
+            CreateGroupWindow = null;
+        }
+
+        private void OnCreateGroup(object sender, EventArgs args)
+        {
+            if (null == CreateGroupWindow)
+            {
+                CreateGroupWindow = new Window(new CreateGroup());
+                CreateGroupWindow.Destroying += OnCreateGroupWindowDestroying;
+                Microsoft.Maui.Controls.Application.Current.OpenWindow(CreateGroupWindow);
+            }
+        }
+
         private void OnShowFriendMenu(object sender, EventArgs e)
         {
 
-        }
-
-        private void OnTest(object sender, EventArgs e)
-        {
-            //App.Zege_Friend.Test();
-            var message = MessageEditor.Text;
-            if (string.IsNullOrEmpty(message))
-                return;
-            LabelMultiLine.Text = message;
         }
 
         private async void OnAdd(object sender, EventArgs e)

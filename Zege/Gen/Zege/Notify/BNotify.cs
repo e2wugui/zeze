@@ -9,6 +9,7 @@ namespace Zege.Notify
     public sealed class BNotify : Zeze.Util.ConfBean
     {
         public const int eTypeAddFriend = 0;
+        public const int eTypeGroupCert = 1;
 
         public string Title; // 显示标题
         public int Type; // 通知类型（内部）
