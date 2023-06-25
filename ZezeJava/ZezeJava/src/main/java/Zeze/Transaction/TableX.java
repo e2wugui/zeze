@@ -24,7 +24,7 @@ import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
 public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table {
 	private static final Logger logger = LogManager.getLogger(TableX.class);
-	private static final boolean isTraceEnabled = logger.isTraceEnabled();
+	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	private @Nullable AutoKey autoKey;
 	private TableCache<K, V> cache;
@@ -216,8 +216,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (strongRef != null)
 						strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 				}
-				if (isTraceEnabled)
-					logger.trace("Load {}", r);
+				if (isDebugEnabled)
+					logger.debug("Load {}", r);
 				return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
 			} finally {
 				r.exitFairLock();
@@ -231,28 +231,28 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		rpc.setResultCode(0);
 		rpc.Result.globalKey = rpc.Argument.globalKey;
 		rpc.Result.state = rpc.Argument.state;
-		if (isTraceEnabled)
-			logger.trace("Reduce NewState={}", rpc);
+		if (isDebugEnabled)
+			logger.debug("Reduce NewState={}", rpc);
 
 		K key = decodeKey(bbKey);
 		var lockey = getZeze().getLocks().get(new TableKey(getId(), key));
 		lockey.enterWriteLock();
 		try {
 			var r = cache.get(key);
-			if (isTraceEnabled)
-				logger.trace("Reduce NewState={} {}", rpc.Argument.state, r);
+			if (isDebugEnabled)
+				logger.debug("Reduce NewState={} {}", rpc.Argument.state, r);
 			if (r == null) {
 				rpc.Result.state = StateInvalid;
-				if (isTraceEnabled)
-					logger.trace("Reduce SendResult 1 r=null");
+				if (isDebugEnabled)
+					logger.debug("Reduce SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsInvalid);
 				return 0;
 			}
 			r.enterFairLock();
 			try {
 				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
-					if (isTraceEnabled)
-						logger.trace("Reduce SendResult fresh {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult fresh {}", r);
 					rpc.Result.state = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
 					rpc.SendResult();
 					return 0;
@@ -266,8 +266,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 					if (r.getDirty())
 						break;
-					if (isTraceEnabled)
-						logger.trace("Reduce SendResult 2 {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult 2 {}", r);
 					rpc.SendResult();
 					return 0;
 
@@ -276,8 +276,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsShare);
 					if (r.getDirty())
 						break;
-					if (isTraceEnabled)
-						logger.trace("Reduce SendResult 3 {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult 3 {}", r);
 					rpc.SendResult();
 					return 0;
 
@@ -286,16 +286,16 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.Result.state = StateShare;
 					if (r.getDirty())
 						break;
-					if (isTraceEnabled)
-						logger.trace("Reduce SendResult * {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult * {}", r);
 					rpc.SendResult();
 					return 0;
 				}
 				// if (isDebugEnabled)
 				// logger.warn("ReduceShare checkpoint begin. id={} {}", r, tkey);
 				flushWhenReduce(r);
-				if (isTraceEnabled)
-					logger.trace("Reduce SendResult 4 {}", r);
+				if (isDebugEnabled)
+					logger.debug("Reduce SendResult 4 {}", r);
 				rpc.SendResult();
 				// if (isDebugEnabled)
 				// logger.warn("ReduceShare checkpoint end. id={} {}", r, tkey);
@@ -334,20 +334,20 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		lockey.enterWriteLock();
 		try {
 			var r = cache.get(key);
-			if (isTraceEnabled)
-				logger.trace("Reduce NewState={} {}", rpc.Argument.state, r);
+			if (isDebugEnabled)
+				logger.debug("Reduce NewState={} {}", rpc.Argument.state, r);
 			if (r == null) {
 				rpc.Result.state = StateInvalid;
-				if (isTraceEnabled)
-					logger.trace("Reduce SendResult 1 r=null");
+				if (isDebugEnabled)
+					logger.debug("Reduce SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
 				return 0;
 			}
 			r.enterFairLock();
 			try {
 				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
-					if (isTraceEnabled)
-						logger.trace("Reduce SendResult fresh {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult fresh {}", r);
 					rpc.Result.state = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
 					rpc.SendResult();
 					return 0;
@@ -360,8 +360,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
 					if (r.getDirty())
 						break;
-					if (isTraceEnabled)
-						logger.trace("Reduce SendResult 2 {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult 2 {}", r);
 					rpc.SendResult();
 					return 0;
 
@@ -370,8 +370,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					// 不删除记录，让TableCache.CleanNow处理。
 					if (r.getDirty())
 						break;
-					if (isTraceEnabled)
-						logger.trace("Reduce SendResult 3 {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult 3 {}", r);
 					rpc.SendResult();
 					return 0;
 
@@ -379,8 +379,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					r.setState(StateInvalid);
 					if (r.getDirty())
 						break;
-					if (isTraceEnabled)
-						logger.trace("Reduce SendResult * {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult * {}", r);
 					rpc.SendResult();
 					return 0;
 				}
@@ -388,8 +388,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				// logger.warn("ReduceInvalid checkpoint begin. id={} {}", r, tkey);
 				rpc.Result.state = StateInvalid;
 				flushWhenReduce(r);
-				if (isTraceEnabled)
-					logger.trace("Reduce SendResult 4 {}", r);
+				if (isDebugEnabled)
+					logger.debug("Reduce SendResult 4 {}", r);
 				rpc.SendResult();
 				// if (isDebugEnabled)
 				// logger.warn("ReduceInvalid checkpoint end. id={} {}", r, tkey);
