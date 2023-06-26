@@ -97,6 +97,7 @@ namespace Zeze.Gen.Types
 
 			new TypeMap(Types);
 			new TypeList(Types);
+			new TypeArray(Types);
 			new TypeSet(Types);
 
 			new TypeDynamic(Types);

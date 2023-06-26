@@ -1,5 +1,4 @@
-﻿
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 
 namespace Zeze.Util
@@ -26,14 +25,14 @@ namespace Zeze.Util
 
         public static void BuildString<T>(StringBuilder sb, IEnumerable<T> c)
         {
-            var liststr = new List<string>();
+            var listStr = new List<string>();
             foreach (var e in c)
-                liststr.Add(e.ToString());
-            liststr.Sort(); // 排序，便于测试比较。
+                listStr.Add(e.ToString());
+            listStr.Sort(); // 排序，便于测试比较。
 
             sb.Append('[');
             int i = sb.Length;
-            foreach (var e in liststr)
+            foreach (var e in listStr)
             {
                 sb.Append(e).Append(',');
             }
@@ -48,10 +47,10 @@ namespace Zeze.Util
         {
             if (comparer != null)
             {
-                var srtdict = new SortedDictionary<TK, TV>(comparer);
+                var sortDict = new SortedDictionary<TK, TV>(comparer);
                 foreach (var kv in dic)
-                    srtdict.Add(kv.Key, kv.Value);
-                dic = srtdict;
+                    sortDict.Add(kv.Key, kv.Value);
+                dic = sortDict;
             }
 
             sb.Append('{');

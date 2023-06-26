@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Xml;
 
 namespace Zeze.Gen.Types
 {
@@ -19,7 +17,7 @@ namespace Zeze.Gen.Types
 			return new TypeList(space, key, value, var);
 		}
 
-		private TypeList(global::Zeze.Gen.ModuleSpace space, string key, string value, Variable var)
+		protected TypeList(ModuleSpace space, string key, string value, Variable var)
 		{
 			Variable = var;
 			if (key != null && key.Length > 0)
@@ -33,11 +31,32 @@ namespace Zeze.Gen.Types
 		internal TypeList(SortedDictionary<string, Type> types)
 		{
 			types.Add(Name, this);
-			types.Add("array", this);
+		}
+
+		protected TypeList()
+		{
 		}
 
 		public override string Name => "list";
 		public override bool IsNeedNegativeCheck => ValueType.IsNeedNegativeCheck;
+	}
 
+	public class TypeArray : TypeList
+	{
+		public override string Name => "array";
+
+		internal TypeArray(SortedDictionary<string, Type> types)
+		{
+			types.Add(Name, this);
+		}
+
+		protected TypeArray(ModuleSpace space, string key, string value, Variable var) : base (space, key, value, var)
+		{
+		}
+
+		public override Type Compile(ModuleSpace space, string key, string value, Variable var)
+		{
+			return new TypeArray(space, key, value, var);
+		}
 	}
 }

@@ -1,8 +1,5 @@
-﻿#define MACRO_CONF_CS
-
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Runtime.CompilerServices;
 using Zeze.Net;
@@ -10,9 +7,9 @@ using Zeze.Util;
 
 namespace Zeze.Serialize
 {
-    #pragma warning disable CS0162 // Code is heuristically unreachable
-    [SuppressMessage("ReSharper", "HeuristicUnreachableCode")]
-    [SuppressMessage("ReSharper", "IntVariableOverflowInUncheckedContext")]
+#pragma warning disable CS0162 // Code is heuristically unreachable
+    // ReSharper disable HeuristicUnreachableCode
+    // ReSharper disable IntVariableOverflowInUncheckedContext
     public class ByteBuffer
     {
         public const bool IGNORE_INCOMPATIBLE_FIELD = false;
@@ -662,8 +659,8 @@ namespace Zeze.Serialize
                 EnsureWrite(1);
                 Bytes[WriteIndex++] = (byte)u;
             }
-            else if (u < 0x4000)
-            { // 10xx xxxx +1B
+            else if (u < 0x4000) // 10xx xxxx +1B
+            {
                 EnsureWrite(2);
                 byte[] bytes = Bytes;
                 int writeIndex = WriteIndex;
@@ -768,9 +765,9 @@ namespace Zeze.Serialize
         public long ReadULong()
         {
             int b = ReadByte();
+            //@formatter:off
             switch (b >> 4)
             {
-            //@formatter:off
             case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: return b;
             case  8: case  9: case 10: case 11: return ((b & 0x3f) <<  8) + ReadLong1();
             case 12: case 13:                   return ((b & 0x1f) << 16) + ReadLong2BE();
@@ -785,16 +782,16 @@ namespace Zeze.Serialize
                 case 14:                            return ReadLong7BE();
                 default:                            return ReadLong8BE();
                 }
-            //@formatter:on
             }
+            //@formatter:on
         }
 
         public void SkipULong()
         {
             int b = ReadByte();
+            //@formatter:off
             switch ((b >> 4) & 0xf)
             {
-            //@formatter:off
             case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: return;
             case  8: case  9: case 10: case 11: Skip(1); return;
             case 12: case 13:                   Skip(2); return;
@@ -808,8 +805,8 @@ namespace Zeze.Serialize
                 case 14:                            Skip(7); return;
                 default:                            Skip(8); return;
                 }
-            //@formatter:on
             }
+            //@formatter:on
         }
 
         public long ReadLong1()
@@ -825,7 +822,7 @@ namespace Zeze.Serialize
             int readIndex = ReadIndex;
             ReadIndex = readIndex + 2;
             return (bytes[readIndex] << 8) +
-                    bytes[readIndex + 1];
+                   bytes[readIndex + 1];
         }
 
         public long ReadLong3BE()
@@ -835,8 +832,8 @@ namespace Zeze.Serialize
             int readIndex = ReadIndex;
             ReadIndex = readIndex + 3;
             return (bytes[readIndex] << 16) +
-                    (bytes[readIndex + 1] << 8) +
-                    bytes[readIndex + 2];
+                   (bytes[readIndex + 1] << 8) +
+                   bytes[readIndex + 2];
         }
 
         public long ReadLong4BE()
@@ -846,9 +843,9 @@ namespace Zeze.Serialize
             int readIndex = ReadIndex;
             ReadIndex = readIndex + 4;
             return ((long)bytes[readIndex] << 24) +
-                    (bytes[readIndex + 1] << 16) +
-                    (bytes[readIndex + 2] << 8) +
-                    bytes[readIndex + 3];
+                   (bytes[readIndex + 1] << 16) +
+                   (bytes[readIndex + 2] << 8) +
+                   bytes[readIndex + 3];
         }
 
         public long ReadLong5BE()
@@ -858,10 +855,10 @@ namespace Zeze.Serialize
             int readIndex = ReadIndex;
             ReadIndex = readIndex + 5;
             return ((long)bytes[readIndex] << 32) +
-                    ((long)bytes[readIndex + 1] << 24) +
-                    (bytes[readIndex + 2] << 16) +
-                    (bytes[readIndex + 3] << 8) +
-                    bytes[readIndex + 4];
+                   ((long)bytes[readIndex + 1] << 24) +
+                   (bytes[readIndex + 2] << 16) +
+                   (bytes[readIndex + 3] << 8) +
+                   bytes[readIndex + 4];
         }
 
         public long ReadLong6BE()
@@ -871,11 +868,11 @@ namespace Zeze.Serialize
             int readIndex = ReadIndex;
             ReadIndex = readIndex + 6;
             return ((long)bytes[readIndex] << 40) +
-                    ((long)bytes[readIndex + 1] << 32) +
-                    ((long)bytes[readIndex + 2] << 24) +
-                    (bytes[readIndex + 3] << 16) +
-                    (bytes[readIndex + 4] << 8) +
-                    bytes[readIndex + 5];
+                   ((long)bytes[readIndex + 1] << 32) +
+                   ((long)bytes[readIndex + 2] << 24) +
+                   (bytes[readIndex + 3] << 16) +
+                   (bytes[readIndex + 4] << 8) +
+                   bytes[readIndex + 5];
         }
 
         public long ReadLong7BE()
@@ -885,12 +882,12 @@ namespace Zeze.Serialize
             int readIndex = ReadIndex;
             ReadIndex = readIndex + 7;
             return ((long)bytes[readIndex] << 48) +
-                    ((long)bytes[readIndex + 1] << 40) +
-                    ((long)bytes[readIndex + 2] << 32) +
-                    ((long)bytes[readIndex + 3] << 24) +
-                    (bytes[readIndex + 4] << 16) +
-                    (bytes[readIndex + 5] << 8) +
-                    bytes[readIndex + 6];
+                   ((long)bytes[readIndex + 1] << 40) +
+                   ((long)bytes[readIndex + 2] << 32) +
+                   ((long)bytes[readIndex + 3] << 24) +
+                   (bytes[readIndex + 4] << 16) +
+                   (bytes[readIndex + 5] << 8) +
+                   bytes[readIndex + 6];
         }
 
         public long ReadLong8BE()
@@ -913,7 +910,9 @@ namespace Zeze.Serialize
         {
             EnsureRead(1);
             int b = (sbyte)Bytes[ReadIndex++];
-            switch ((b >> 3) & 0x1f) {
+            //@formatter:off
+            switch ((b >> 3) & 0x1f)
+            {
                 case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
                 case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return b;
                 case 0x08: case 0x09: case 0x0a: case 0x0b: return ((b - 0x40) << 8) + ReadLong1();
@@ -939,15 +938,16 @@ namespace Zeze.Serialize
                                 -0x0100_0000_0000_0000L + r : ((r + 0x80_0000_0000_0000L) << 8) + ReadLong1();
                     }
             }
+            //@formatter:on
         }
 
         public void SkipLong()
         {
             EnsureRead(1);
             int b = Bytes[ReadIndex++];
+            //@formatter:off
             switch ((b >> 3) & 0x1f)
             {
-            //@formatter:off
             case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
             case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return;
             case 0x08: case 0x09: case 0x0a: case 0x0b:
@@ -970,8 +970,8 @@ namespace Zeze.Serialize
                 case 1:                         Skip(6); return;
                 default: EnsureRead(1); Skip(7 - (Bytes[ReadIndex++] >> 7)); return;
                 }
-            //@formatter:on
             }
+            //@formatter:on
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1061,6 +1061,7 @@ namespace Zeze.Serialize
             WriteBytes(binary.Bytes, binary.Offset, binary.Count);
         }
 
+        // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public static bool BinaryNoCopy { get; set; } // 没有线程保护
         // XXX 对于byte[]类型直接使用引用，不拷贝。全局配置，只能用于Linkd这种纯转发的程序，优化。
 
@@ -1145,13 +1146,13 @@ namespace Zeze.Serialize
         public static long ToLong(byte[] bytes, int offset)
         {
             return bytes[offset] +
-                    (bytes[offset + 1] << 8) +
-                    (bytes[offset + 2] << 16) +
-                    ((long)bytes[offset + 3] << 24) +
-                    ((long)bytes[offset + 4] << 32) +
-                    ((long)bytes[offset + 5] << 40) +
-                    ((long)bytes[offset + 6] << 48) +
-                    ((long)bytes[offset + 7] << 56);
+                   (bytes[offset + 1] << 8) +
+                   (bytes[offset + 2] << 16) +
+                   ((long)bytes[offset + 3] << 24) +
+                   ((long)bytes[offset + 4] << 32) +
+                   ((long)bytes[offset + 5] << 40) +
+                   ((long)bytes[offset + 6] << 48) +
+                   ((long)bytes[offset + 7] << 56);
         }
 
         public static long ToLong(byte[] bytes, int offset, int length)
@@ -1212,10 +1213,11 @@ namespace Zeze.Serialize
             return true;
         }
 
-        [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
         public override int GetHashCode()
         {
+            // ReSharper disable NonReadonlyMemberInGetHashCode
             return FixedHash.calc_hashnr(Bytes, ReadIndex, Size);
+            // ReSharper restore NonReadonlyMemberInGetHashCode
         }
 
         // 只能增加新的类型定义，增加时记得同步 SkipUnknownField
@@ -1233,7 +1235,6 @@ namespace Zeze.Serialize
             VECTOR3 = 10, // float{x,y,z}
             VECTOR3INT = 11, // int{x,y,z}
             VECTOR4 = 12, // float{x,y,z,w} Quaternion
-
             END = 15;
 
         public const int TAG_SHIFT = 4;
@@ -1482,7 +1483,6 @@ namespace Zeze.Serialize
             throw new Exception("can not ReadString for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
         }
 
-#if !MACRO_CONF_CS
         public Vector2 ReadVector2()
         {
             var r = new Vector2();
@@ -1686,7 +1686,7 @@ namespace Zeze.Serialize
             }
             throw new Exception("can not ReadVector3Int for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
         }
-#endif
+
         public T ReadBean<T>(T bean, int tag) where T : Serializable
         {
             int type = tag & TAG_MASK;
@@ -1708,7 +1708,7 @@ namespace Zeze.Serialize
         }
 
 #if USE_CONFCS
-        public Util.ConfDynamicBean ReadDynamic(Util.ConfDynamicBean dynBean, int tag)
+        public ConfDynamicBean ReadDynamic(ConfDynamicBean dynBean, int tag)
 #else
         public Transaction.DynamicBean ReadDynamic(Transaction.DynamicBean dynBean, int tag)
 #endif

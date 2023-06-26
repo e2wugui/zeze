@@ -314,7 +314,7 @@ namespace Zeze.Gen.cs
                 case TypeVector2Int:
                 case TypeVector3Int:
                 case TypeQuaternion:
-                    return true;
+                    return false;
             }
             return false;
         }
@@ -324,7 +324,7 @@ namespace Zeze.Gen.cs
             if (id <= 0)
                 throw new Exception("invalid variable.id");
             Types.Type vt = type.ValueType;
-            if (type.Variable.Type == "array" && vt is TypeByte)
+            if (type is TypeArray && vt is TypeByte)
             {
                 sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.BYTES)");
                 sw.WriteLine(prefix + $"    {varname} = {bufname}.ReadBytes();");
@@ -332,26 +332,17 @@ namespace Zeze.Gen.cs
                 sw.WriteLine(prefix + $"    {bufname}.SkipUnknownFieldOrThrow(_t_, \"byte[]\");");
                 return;
             }
-            bool isFixSizeList;
-            if (type.Variable.Type == "array")
-                isFixSizeList = true;
-            else
-            {
-                isFixSizeList = type is TypeList list && list.FixSize >= 0;
-                sw.WriteLine(prefix + "var _x_ = " + varname + ';');
-                if (false == isFixSizeList)
-                    sw.WriteLine(prefix + "_x_.Clear();");
-            }
+            sw.WriteLine(prefix + "var _x_ = " + varname + ';');
+            bool isArray = type is TypeArray || type is TypeList list && list.FixSize >= 0;
+            if (!isArray)
+                sw.WriteLine(prefix + "_x_.Clear();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ")");
             sw.WriteLine(prefix + "{");
-            if (isFixSizeList)
+            if (isArray)
             {
                 sw.WriteLine(prefix + "    int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte());");
-                if (type.Variable.Type == "array")
-                {
-                    sw.WriteLine(prefix + "    var _x_ = new " + confcs.TypeName.GetName(vt) + "[_n_];");
-                    sw.WriteLine(prefix + "    " + varname + " = _x_;");
-                }
+                sw.WriteLine(prefix + "    if (_x_ == null || _x_.Length != _n_)");
+                sw.WriteLine(prefix + "        " + varname + " = _x_ = new " + confcs.TypeName.GetName(vt) + "[_n_];");
                 sw.WriteLine(prefix + "    for (int _j_ = 0; _j_ < _n_; _j_++)");
                 sw.WriteLine(prefix + "    {");
                 if (IsOldStyleEncodeDecodeType(vt))

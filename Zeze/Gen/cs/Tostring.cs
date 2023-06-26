@@ -134,7 +134,7 @@ namespace Zeze.Gen.cs
         {
             sw.WriteLine(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=[\").Append(Environment.NewLine);");
             var prefix1 = prefix;
-            if (type.Variable.Type == "array")
+            if (type is TypeArray)
             {
                 sw.WriteLine($"{prefix}if ({var} != null)");
                 sw.WriteLine($"{prefix}{{");
@@ -146,7 +146,7 @@ namespace Zeze.Gen.cs
             type.ValueType.Accept(new Tostring(sw, "Item", prefix1 + "    ", ','));
             sw.WriteLine(prefix1 + "}");
             sw.WriteLine($"{prefix1}level -= {INDENT_SIZE};");
-            if (type.Variable.Type == "array")
+            if (type is TypeArray)
                 sw.WriteLine($"{prefix}}}");
             sw.Write(prefix + "sb.Append(Zeze.Util.Str.Indent(level)).Append(']')");
             if (sep != 0)

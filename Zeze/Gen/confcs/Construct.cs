@@ -50,9 +50,7 @@ namespace Zeze.Gen.confcs
 
         void InitialNew(Type type)
         {
-            string value = variable.Initial;
-            if (value.Length > 0)
-                sw.WriteLine($"{prefix}{variable.NameUpper1} = new {TypeName.GetName(type)}({value});");
+            sw.WriteLine($"{prefix}{variable.NameUpper1} = new {TypeName.GetName(type)}({variable.Initial});");
         }
 
         public void Visit(Bean type)
@@ -102,14 +100,12 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeList type)
         {
-            if (type.Variable.Type == "array")
-                return;
             if (type.FixSize >= 0)
             {
                 string typeName = TypeName.GetName(type);
                 sw.WriteLine($"{prefix}{variable.NameUpper1} = new {typeName.Replace("[]", $"[{type.FixSize}]")};");
             }
-            else
+            else if (type is not TypeArray)
             {
                 string typeName = TypeName.GetName(type);
                 sw.WriteLine($"{prefix}{variable.NameUpper1} = new {typeName}();");

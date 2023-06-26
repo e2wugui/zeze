@@ -62,18 +62,10 @@ namespace Zeze.Gen.confcs
         public void Visit(TypeList type)
         {
             string valueName = GetName(type.ValueType);
-            if (type.Variable.Type == "array")
+            if (type.FixSize >= 0 || type is TypeArray)
                 nameCollectionImplement = name = valueName + "[]";
-            else if (type.FixSize >= 0)
-            {
-                name = $"{valueName}[]";
-                nameCollectionImplement = name;
-            }
             else
-            {
-                name = $"System.Collections.Generic.List<{valueName}>";
-                nameCollectionImplement = name;
-            }
+                nameCollectionImplement = name = $"System.Collections.Generic.List<{valueName}>";
         }
 
         public void Visit(TypeSet type)

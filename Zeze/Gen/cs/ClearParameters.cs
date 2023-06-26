@@ -83,7 +83,11 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeList type)
         {
-            sw.WriteLine($"{prefix}{variable.NameUpper1}.Clear();");
+            sw.WriteLine($"{prefix}if ({variable.NameUpper1} != null)");
+            if (type.FixSize >= 0 || type is TypeArray)
+                sw.WriteLine($"{prefix}    System.Array.Clear({variable.NameUpper1}, 0, {variable.NameUpper1}.Length);");
+            else
+                sw.WriteLine($"{prefix}    {variable.NameUpper1}.Clear();");
         }
 
         public void Visit(TypeSet type)
