@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Zeze.Net
@@ -28,17 +25,14 @@ namespace Zeze.Net
         // see Protocol.Decode
         public Protocol Acquire(Service.ProtocolFactoryHandle pfh)
         {
-            if (Pool.TryDequeue(out var result))
-                return result;
-
-            return pfh.Factory();
+            return Pool.TryDequeue(out var result) ? result : pfh.Factory();
         }
 
         // see Service.ProtocolFactoryHandle
         public async Task<long> Process(Protocol p)
         {
             var result = await Handle(p);
-            if (result == 0 && p.Recyle && Pool.Count < 10000)
+            if (result == 0 && p.Recycle && Pool.Count < 10000)
             {
                 p.ClearParameters(Level);
                 Pool.Enqueue(p);

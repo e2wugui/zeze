@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
+#if !USE_CONFCS
 using System.Collections.Generic;
 using System.Text;
+#endif
 using System.Xml;
 using Zeze.Net;
 
@@ -76,8 +78,6 @@ namespace Zeze
         /// 因为外面需要通过AddCustomize注册进来，
         /// 如果外面保存了配置引用，是不需要访问这个接口的。
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="name"></param>
         /// <param name="customize"></param>
         public void ParseCustomize(ICustomize customize)
         {
@@ -161,26 +161,26 @@ namespace Zeze
         /// c.AddCustomize(...);
         /// c.LoadAndParse();
         /// </summary>
-        /// <param name="xmlfile"></param>
+        /// <param name="xmlFile"></param>
         /// <returns></returns>
-        public static Config Load(string xmlfile = "zeze.xml")
+        public static Config Load(string xmlFile = "zeze.xml")
         {
-            return new Config().LoadAndParse(xmlfile);
+            return new Config().LoadAndParse(xmlFile);
         }
 
-        public Config LoadAndParse(string xmlfile = "zeze.xml")
+        public Config LoadAndParse(string xmlFile = "zeze.xml")
         {
-            if (System.IO.File.Exists(xmlfile))
+            if (System.IO.File.Exists(xmlFile))
             {
                 XmlDocument doc = new XmlDocument();
-                doc.Load(xmlfile);
+                doc.Load(xmlFile);
                 Parse(doc.DocumentElement);
             }
 
 #if !USE_CONFCS
             if (null == DefaultTableConf)
                 DefaultTableConf = new TableConf();
-            if (DatabaseConfMap.Count == 0) // add default databaseconf.
+            if (DatabaseConfMap.Count == 0) // add default databaseConf.
             {
                 if (!DatabaseConfMap.TryAdd("", new DatabaseConf()))
                 {
@@ -196,8 +196,7 @@ namespace Zeze
             if (false == self.Name.Equals("zeze"))
                 throw new Exception("is it a zeze config.");
 
-            string attr;
-            attr = self.GetAttribute("ProcessReturnErrorLogLevel");
+            var attr = self.GetAttribute("ProcessReturnErrorLogLevel");
             if (attr.Length > 0)
                 ProcessReturnErrorLogLevel = (LogLevel)Enum.Parse(typeof(LogLevel), attr);
 
@@ -291,7 +290,7 @@ namespace Zeze
                         break;
 #endif
                     case "ServiceConf":
-                        new ServiceConf(this, e);
+                        _ = new ServiceConf(this, e);
                         break;
 
                     case "CustomizeConf":
@@ -464,8 +463,5 @@ namespace Zeze
             }
         }
 #endif
-        public Config()
-        {
-        }
     }
 }

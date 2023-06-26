@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Text;
 using Zeze.Serialize;
+using Zeze.Transaction;
+using Zeze.Transaction.Collections;
 
 namespace Zeze.Util
 {
     public abstract class ConfBean : Serializable
     {
-        public int VariableId { get; } // reserve
+        public readonly int VariableId; // reserve
 
         protected ConfBean()
         {
@@ -39,6 +41,10 @@ namespace Zeze.Util
         public virtual void BuildString(StringBuilder sb, int level)
         {
             sb.Append(new string(' ', level)).Append("{}").Append(Environment.NewLine);
+        }
+
+        public virtual void FollowerApply(Log log)
+        {
         }
 
         public abstract void ClearParameters();
@@ -81,8 +87,8 @@ namespace Zeze.Util
         private long _TypeId;
         private ConfBean _Bean;
 
-        public Func<ConfBean, long> GetSpecialTypeIdFromBean { get; }
-        public Func<long, ConfBean> CreateBeanFromSpecialTypeId { get; }
+        public readonly Func<ConfBean, long> GetSpecialTypeIdFromBean;
+        public readonly Func<long, ConfBean> CreateBeanFromSpecialTypeId;
 
         public ConfDynamicBean(int variableId, Func<ConfBean, long> get, Func<long, ConfBean> create) : base(variableId)
         {
@@ -163,9 +169,68 @@ namespace Zeze.Util
             return Bean.NegativeCheck();
         }
 
+        public override void FollowerApply(Log log)
+        {
+            var dLog = (LogConfDynamic)log;
+            if (dLog.Value != null)
+            {
+                // 内部Bean整个被替换。
+                _TypeId = dLog.SpecialTypeId;
+                _Bean = dLog.Value;
+            }
+            else if (dLog.LogBean != null) // 安全写法，不检查应该是没问题的？
+            {
+                // 内部Bean发生了改变。
+                _Bean.FollowerApply(dLog.LogBean);
+            }
+        }
+
         public override void ClearParameters()
         {
             Bean.ClearParameters();
+        }
+    }
+
+    // see Zeze.Transaction.Bean.cs::LogDynamic
+    public class LogConfDynamic : LogBean
+    {
+        public new static readonly string StableName = Reflect.GetStableName(typeof(LogConfDynamic));
+        public new static readonly int TypeId_ = FixedHash.Hash32(StableName);
+
+        public override int TypeId => TypeId_;
+
+        public long SpecialTypeId { get; private set; }
+        public ConfBean Value { get; private set; }
+        public LogBean LogBean { get; private set; }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            var parentTypeName = bb.ReadString();
+            var varId = bb.ReadInt();
+            var hasValue = bb.ReadBool();
+            if (hasValue)
+            {
+                SpecialTypeId = bb.ReadLong();
+                var parentType = Reflect.GetType(parentTypeName);
+                var factory = parentType.GetMethod("CreateBeanFromSpecialTypeId_" + varId, new[] { typeof(long) });
+                // ReSharper disable once PossibleNullReferenceException
+                Value = (ConfBean)factory.Invoke(null, new object[] { SpecialTypeId });
+                Value.Decode(bb);
+            }
+            else
+            {
+                var hasLogBean = bb.ReadBool();
+                if (hasLogBean)
+                {
+                    LogBean = new LogBean();
+                    LogBean.Decode(bb);
+                }
+            }
         }
     }
 }

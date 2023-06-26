@@ -20,10 +20,9 @@ namespace Zeze.Net
 
         public BufferCodec()
         {
-
         }
 
-        public BufferCodec(Serialize.ByteBuffer buffer)
+        public BufferCodec(ByteBuffer buffer)
         {
             Buffer = buffer;
         }
@@ -72,9 +71,11 @@ namespace Zeze.Net
         private readonly Codec sink;
         private readonly ICryptoTransform cipher;
         private readonly byte[] _iv;
+
         private readonly byte[] _in = new byte[16];
+
         //private readonly byte[] _out = new byte[16];
-        private int count = 0;
+        private int count;
 
         public Encrypt(Codec sink, byte[] key)
         {
@@ -128,15 +129,15 @@ namespace Zeze.Net
                 sink.update(_iv, 0, 16);
                 count = 0;
             }
-            int nblocks = (len - i) >> 4;
-            for (int j = 0; j < nblocks; j++)
+            int nBlocks = (len - i) >> 4;
+            for (int j = 0; j < nBlocks; j++)
             {
                 succeed();
                 for (int k = 0; k < 16; k++)
                     _iv[k] ^= data[i + j * 16 + k];
                 sink.update(_iv, 0, 16);
             }
-            for (i += nblocks << 4; i < len; i++)
+            for (i += nBlocks << 4; i < len; i++)
                 _in[count++] = data[i];
         }
 
@@ -166,7 +167,7 @@ namespace Zeze.Net
         private readonly byte[] _iv;
         private readonly byte[] _in = new byte[16];
         private readonly byte[] _out = new byte[16];
-        private int count = 0;
+        private int count;
 
         public Decrypt(Codec sink, byte[] key)
         {
@@ -230,8 +231,8 @@ namespace Zeze.Net
                 sink.update(_out, 0, 16);
                 count = 0;
             }
-            int nblocks = (len - i) >> 4;
-            for (int j = 0; j < nblocks; j++)
+            int nBlocks = (len - i) >> 4;
+            for (int j = 0; j < nBlocks; j++)
             {
                 succeed();
                 for (int k = 0; k < 16; k++)
@@ -242,10 +243,10 @@ namespace Zeze.Net
                 }
                 sink.update(_out, 0, 16);
             }
-            for (i += nblocks << 4; i < len; i++)
+            for (i += nBlocks << 4; i < len; i++)
                 _in[count++] = data[i];
         }
- 
+
         public void flush()
         {
             if (count > 0)
@@ -273,11 +274,11 @@ namespace Zeze.Net
     {
         private readonly Codec sink;
 
-        private int pos = 0;
-        private int rem = 0;
+        private int pos;
+        private int rem;
         private readonly byte[] dict = new byte[8192];
         private readonly short[] hash = new short[65536];
-        private int idx = 0;
+        private int idx;
         private int match_idx;
         private int match_off = -1;
         private int match_len;
@@ -289,9 +290,10 @@ namespace Zeze.Net
             for (int i = 0; i < hash.Length; i++)
                 hash[i] = -1;
         }
-        private void putBits(int val, int nbits)
+
+        private void putBits(int val, int nBits)
         {
-            pos += nbits;
+            pos += nBits;
             rem |= val << (32 - pos);
             while (pos > 7)
             {
@@ -300,6 +302,7 @@ namespace Zeze.Net
                 rem <<= 8;
             }
         }
+
         private void putLiteral(byte c)
         {
             if ((c & 0x80) == 0)
@@ -307,6 +310,7 @@ namespace Zeze.Net
             else
                 putBits(c & 0x7f | 0x100, 9);
         }
+
         private void putTuple(int off, int len)
         {
             if (off < 64)
@@ -439,13 +443,16 @@ namespace Zeze.Net
     {
         private readonly Codec sink;
 
-        private int rem = 0;
-        private int pos = 0;
+        private int rem;
+        private int pos;
         private int off = -1;
         private int len;
         private readonly byte[] hist = new byte[8192 * 3];
-        private int hpos = 0;
-        public sealed class UncompressException : Exception { }
+        private int hPos;
+
+        public sealed class DecompressException : Exception
+        {
+        }
 
         public Decompress(Codec sink)
         {
@@ -454,10 +461,10 @@ namespace Zeze.Net
 
         private void drain()
         {
-            if (hpos >= 8192 * 2)
+            if (hPos >= 8192 * 2)
             {
-                Buffer.BlockCopy(hist, hpos - 8192, hist, 0, 8192);
-                hpos = 8192;
+                Buffer.BlockCopy(hist, hPos - 8192, hist, 0, 8192);
+                hPos = 8192;
             }
         }
 
@@ -469,16 +476,17 @@ namespace Zeze.Net
 
         private void output(byte c)
         {
-            sink.update(hist[hpos++] = c);
+            sink.update(hist[hPos++] = c);
             drain();
         }
+
         private void output(int off, int len)
         {
-            if (hpos < off)
-                throw new UncompressException();
-            copy(hpos, hpos - off, len);
-            sink.update(hist, hpos, len);
-            hpos += len;
+            if (hPos < off)
+                throw new DecompressException();
+            copy(hPos, hPos - off, len);
+            sink.update(hist, hPos, len);
+            hPos += len;
             drain();
         }
 
@@ -489,45 +497,41 @@ namespace Zeze.Net
             {
                 if (val < 0x80000000L)
                     return 8;
-                else if (val < 0xc0000000L)
+                if (val < 0xc0000000L)
                     return 9;
-                else if (val < 0xe0000000L)
+                if (val < 0xe0000000L)
                     return 16;
-                else if (val < 0xf0000000L)
+                if (val < 0xf0000000L)
                     return 12;
-                else
-                    return 10;
+                return 10;
             }
-            else
-            {
-                if (val < 0x80000000L)
-                    return 1;
-                else if (val < 0xc0000000L)
-                    return 4;
-                else if (val < 0xe0000000L)
-                    return 6;
-                else if (val < 0xf0000000L)
-                    return 8;
-                else if (val < 0xf8000000L)
-                    return 10;
-                else if (val < 0xfc000000L)
-                    return 12;
-                else if (val < 0xfe000000L)
-                    return 14;
-                else if (val < 0xff000000L)
-                    return 16;
-                else if (val < 0xff800000L)
-                    return 18;
-                else if (val < 0xffc00000L)
-                    return 20;
-                else if (val < 0xffe00000L)
-                    return 22;
-                else if (val < 0xfff00000L)
-                    return 24;
-                else
-                    return 32;
-            }
+            if (val < 0x80000000L)
+                return 1;
+            if (val < 0xc0000000L)
+                return 4;
+            if (val < 0xe0000000L)
+                return 6;
+            if (val < 0xf0000000L)
+                return 8;
+            if (val < 0xf8000000L)
+                return 10;
+            if (val < 0xfc000000L)
+                return 12;
+            if (val < 0xfe000000L)
+                return 14;
+            if (val < 0xff000000L)
+                return 16;
+            if (val < 0xff800000L)
+                return 18;
+            if (val < 0xffc00000L)
+                return 20;
+            if (val < 0xffe00000L)
+                return 22;
+            if (val < 0xfff00000L)
+                return 24;
+            return 32;
         }
+
         private void process()
         {
             long val = (rem << (32 - pos)) & 0xffffffffL;
@@ -624,11 +628,12 @@ namespace Zeze.Net
                     pos -= 24;
                 }
                 else
-                    throw new UncompressException();
+                    throw new DecompressException();
                 output(off, len);
                 off = -1;
             }
         }
+
         public void update(byte c)
         {
             pos += 8;
@@ -636,6 +641,7 @@ namespace Zeze.Net
             while (pos > 24)
                 process();
         }
+
         public void update(byte[] data, int off, int len)
         {
             len += off;

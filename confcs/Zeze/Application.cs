@@ -1,30 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Zeze
+﻿namespace Zeze
 {
     public class Application
     {
-        public string Name { get; }
-        public Config Config { get; set; }
+        public readonly Config Config;
 
-        public Application(string name, Config config)
+        public Application(Config config)
         {
-            Name = name;
             Config = config;
-        }
-
-        public Task StartAsync()
-        {
-            return Task.CompletedTask;
-        }
-
-        public void Stop()
-        {
-
         }
     }
 }

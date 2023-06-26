@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Zeze.Util
+﻿namespace Zeze.Util
 {
     public class ResultCode
     {
+        // >0 用户自定义。
         public const long Success = 0;
         public const long Exception = -1;
         public const long TooManyTry = -2;
@@ -28,6 +23,5 @@ namespace Zeze.Util
         public const long RaftExpired = -17;
         public const long Closed = -18;
         public const long Busy = -19;
-        // >0 用户自定义。
     }
 }

@@ -75,7 +75,10 @@ namespace Zeze.Gen.confcs
             // sw.WriteLine("            b.Assign(save);");
             // sw.WriteLine("        }");
             // sw.WriteLine();
-            sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");
+            if (bean.Base == "")
+                sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");
+            else
+                sw.WriteLine("        public new const long TYPEID = " + bean.TypeId + ";");
             sw.WriteLine("        public override long TypeId => " + bean.TypeId + ";");
             sw.WriteLine();
             var macro = project.MacroEditor;

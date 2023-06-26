@@ -124,12 +124,16 @@ namespace Zeze.Gen.confcs
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean))
             {
                 // 根据配置的实际类型生成switch。
-                sw.WriteLine($"{prefix}    switch (bean.TypeId)");
-                sw.WriteLine($"{prefix}    {{");
-                // sw.WriteLine($"{prefix}        case Zeze.Util.ConfEmptyBean.TYPEID: return Zeze.Util.ConfEmptyBean.TYPEID;");
-                foreach (var real in type.RealBeans)
-                    sw.WriteLine($"{prefix}        case {real.Value.TypeId}: return {real.Key}; // {real.Value.FullName}");
-                sw.WriteLine($"{prefix}    }}");
+                if (type.RealBeans.Count > 0)
+                {
+                    sw.WriteLine($"{prefix}    switch (bean.TypeId)");
+                    sw.WriteLine($"{prefix}    {{");
+                    // sw.WriteLine($"{prefix}        case Zeze.Util.ConfEmptyBean.TYPEID: return Zeze.Util.ConfEmptyBean.TYPEID;");
+                    foreach (var real in type.RealBeans)
+                        sw.WriteLine(
+                            $"{prefix}        case {real.Value.TypeId}: return {real.Key}; // {real.Value.FullName}");
+                    sw.WriteLine($"{prefix}    }}");
+                }
                 sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + bean.GetType());");
             }
             else
