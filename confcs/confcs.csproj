@@ -34,6 +34,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="confcs\demo\Bean1.cs" />
@@ -51,14 +52,38 @@
     <Compile Include="confcs\demo\Module1\Value.cs" />
     <Compile Include="confcs\demo\Module2\ModuleModule2.cs" />
     <Compile Include="confcs\demo\Module2\Value.cs" />
+    <Compile Include="Zeze\Application.cs" />
+    <Compile Include="Zeze\Config.cs" />
+    <Compile Include="Zeze\IModule.cs" />
+    <Compile Include="Zeze\Net\Acceptor.cs" />
+    <Compile Include="Zeze\Net\AsyncSocket.cs" />
     <Compile Include="Zeze\Net\Binary.cs" />
+    <Compile Include="Zeze\Net\Codec.cs" />
+    <Compile Include="Zeze\Net\Connector.cs" />
+    <Compile Include="Zeze\Net\FamilyClass.cs" />
+    <Compile Include="Zeze\Net\Protocol.cs" />
+    <Compile Include="Zeze\Net\ProtocolPool.cs" />
+    <Compile Include="Zeze\Net\Rpc.cs" />
+    <Compile Include="Zeze\Net\RpcTimeoutException.cs" />
+    <Compile Include="Zeze\Net\Service.cs" />
+    <Compile Include="Zeze\Net\ServiceConf.cs" />
+    <Compile Include="Zeze\Net\SocketOptions.cs" />
     <Compile Include="Zeze\Serialize\ByteBuffer.cs" />
     <Compile Include="Zeze\Serialize\Serializable.cs" />
     <Compile Include="Zeze\Serialize\SerializeHelper.cs" />
     <Compile Include="Zeze\Serialize\Vector3.cs" />
+    <Compile Include="Zeze\Services\Handshake.cs" />
+    <Compile Include="Zeze\Transaction\DispatchMode.cs" />
+    <Compile Include="Zeze\Transaction\TransactionLevel.cs" />
+    <Compile Include="Zeze\Util\AtomicLong.cs" />
     <Compile Include="Zeze\Util\ConfBean.cs" />
     <Compile Include="Zeze\Util\FixedHash.cs" />
+    <Compile Include="Zeze\Util\Mission.cs" />
+    <Compile Include="Zeze\Util\ResultCode.cs" />
+    <Compile Include="Zeze\Util\Scheduler.cs" />
     <Compile Include="Zeze\Util\Str.cs" />
+    <Compile Include="Zeze\Util\Time.cs" />
+    <Compile Include="Zeze\Util\UnityHelpers.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
  </Project>
