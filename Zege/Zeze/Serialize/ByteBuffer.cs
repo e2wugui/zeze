@@ -1071,6 +1071,15 @@ namespace Zeze.Serialize
             return new Binary(ReadBytes());
         }
 
+        public byte[] FetchBytes(int n)
+        {
+            EnsureRead(n);
+            var x = new byte[n];
+            Buffer.BlockCopy(Bytes, ReadIndex, x, 0, n);
+            ReadIndex += n;
+            return x;
+        }
+
         public byte[] ReadBytes()
         {
             int n = ReadUInt();

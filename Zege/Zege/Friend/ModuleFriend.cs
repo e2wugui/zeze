@@ -217,7 +217,7 @@ namespace Zege.Friend
                 var info = await App.Zege_Friend.GetPublicUserInfo(account);
                 if (info.Cert != null)
                 {
-                    var encryptedCert = Cert.EncryptRsa(info.Cert, pkcs12, 0, pkcs12.Length);
+                    var encryptedCert = Cert.EncryptAesWithRsa(info.Cert, pkcs12);
 
                     var notify = new BNotify();
                     notify.Title = "Group Cert";

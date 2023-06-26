@@ -54,7 +54,7 @@ public partial class NotifyPage : ContentPage
                     var cert = await AppShell.Instance.App.Zege_User.GetPrivateCertificate(group, long.Parse(lastCertIndex));
                     if (cert != null)
                     {
-                        var pkcs12 = Cert.DecryptRsa(cert, notify.Data.GetBytesUnsafe());
+                        var pkcs12 = Cert.DecryptAesWithRsa(cert, notify.Data.GetBytesUnsafe(), notify.Data.Offset, notify.Data.Count);
                         var base64 = Convert.ToBase64String(pkcs12);
                         await SecureStorage.Default.SetAsync(group + "." + lastCertIndex + ".pkcs12", base64);
                     }

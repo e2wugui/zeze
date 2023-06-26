@@ -34,7 +34,7 @@ namespace Zege.Message
             var info = await Module.App.Zege_Friend.GetPublicUserInfo(account);
             if (info.Cert != null)
             {
-                var encryptedMessage = Cert.EncryptRsa(info.Cert, message.SecureMessage.Bytes, message.SecureMessage.Offset, message.SecureMessage.Count);
+                var encryptedMessage = Cert.EncryptAesWithRsa(info.Cert, message.SecureMessage.Bytes, message.SecureMessage.Offset, message.SecureMessage.Count);
                 message.SecureMessage = new Binary(encryptedMessage);
                 message.SecureKeyIndex = info.Bean.LastCertIndex;
             }
@@ -52,7 +52,8 @@ namespace Zege.Message
                 var cert = await Module.App.Zege_User.GetPrivateCertificate(account, message.SecureKeyIndex);
                 if (cert != null)
                 {
-                    message.SecureMessage = new Binary(Cert.DecryptRsa(cert, message.SecureMessage.GetBytesUnsafe()));
+                    message.SecureMessage = new Binary(Cert.DecryptAesWithRsa(
+                        cert, message.SecureMessage.GetBytesUnsafe(), message.SecureMessage.Offset, message.SecureMessage.Count));
                     return;
                 }
                 FillTextMessage(message, "这是一条加密消息，但解密失败。");
