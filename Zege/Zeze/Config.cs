@@ -3,9 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;
-using System.Xml.Schema;
 using Zeze.Net;
-using Zeze.Transaction;
 
 namespace Zeze
 {
@@ -13,8 +11,8 @@ namespace Zeze
     {
         public interface ICustomize
         {
-            public string Name { get; }
-            public void Parse(XmlElement self);
+            string Name { get; }
+            void Parse(XmlElement self);
         }
 
         public enum LogLevel
@@ -28,7 +26,7 @@ namespace Zeze
             Off
         }
 
-        public ConcurrentDictionary<string, XmlElement> Customizes { get; } = new ();
+        public ConcurrentDictionary<string, XmlElement> Customizes { get; } = new ConcurrentDictionary<string, XmlElement>();
         public LogLevel ProcessReturnErrorLogLevel { get; set; } = LogLevel.Info;
 
 #if !USE_CONFCS

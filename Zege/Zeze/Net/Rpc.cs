@@ -14,29 +14,29 @@ namespace Zeze.Net
 #endif
 
 #if USE_CONFCS
-        public ConfBean ResultBean { get; }
+        ConfBean ResultBean { get; }
 #else
-        public Transaction.Bean ResultBean { get; }
+        Transaction.Bean ResultBean { get; }
 #endif
 
-        public Binary ResultEncoded { get; set; } // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
-        public int FamilyClass { get; }
-        public bool IsTimeout { get; }
-        public long SessionId { get; set; }
-        public Func<Protocol, Task<long>> ResponseHandle { get; set; }
-        public int Timeout { get; set; }
+        Binary ResultEncoded { get; set; } // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
+        int FamilyClass { get; }
+        bool IsTimeout { get; }
+        long SessionId { get; set; }
+        Func<Protocol, Task<long>> ResponseHandle { get; set; }
+        int Timeout { get; set; }
 
-        public bool Send(AsyncSocket so);
-        public bool Send(AsyncSocket so, Func<Protocol, Task<long>> responseHandle, int millisecondsTimeout = 5000);
-        public void SendReturnVoid(Service service, AsyncSocket so, Func<Protocol, Task<long>> responseHandle,
+        bool Send(AsyncSocket so);
+        bool Send(AsyncSocket so, Func<Protocol, Task<long>> responseHandle, int millisecondsTimeout = 5000);
+        void SendReturnVoid(Service service, AsyncSocket so, Func<Protocol, Task<long>> responseHandle,
             int millisecondsTimeout = 5000);
 
-        public Task SendAsync(AsyncSocket so, int millisecondsTimeout = 5000);
-        public Task SendAndCheckResultCodeAsync(AsyncSocket so, int millisecondsTimeout = 5000);
+        Task SendAsync(AsyncSocket so, int millisecondsTimeout = 5000);
+        Task SendAndCheckResultCodeAsync(AsyncSocket so, int millisecondsTimeout = 5000);
 
-        public void SendResult(Binary result = null);
-        public bool TrySendResultCode(long code);
-        public void ClearParameters(ProtocolPool.ReuseLevel level);
+        void SendResult(Binary result = null);
+        bool TrySendResultCode(long code);
+        void ClearParameters(ProtocolPool.ReuseLevel level);
     }
 
     public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>, Rpc
@@ -190,7 +190,7 @@ namespace Zeze.Net
 
         public async Task SendAsync(AsyncSocket so, int millisecondsTimeout = 5000)
         {
-            Future = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            Future = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
             if (false == Send(so, null, millisecondsTimeout))
             {
                 Future.SetException(new Exception("Send Failed."));

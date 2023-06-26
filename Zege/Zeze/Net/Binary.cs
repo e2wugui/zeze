@@ -1,4 +1,6 @@
 ﻿using System;
+using Zeze.Serialize;
+using Zeze.Util;
 
 namespace Zeze.Net
 {
@@ -7,16 +9,14 @@ namespace Zeze.Net
     // byte[] bytes 参数传入以后，就不能再修改了。
     public sealed class Binary : IComparable<Binary>
     {
+        public static readonly Binary Empty = new Binary(Array.Empty<byte>());
+
         private readonly byte[] _Bytes;
-
-        public byte this[int index] { get { return _Bytes[index]; } }
-
-        internal byte[] Bytes { get { return _Bytes; } } // 内部用于系列化和网络发送，读取操作。
+        internal byte[] Bytes => _Bytes; // 内部用于系列化和网络发送，读取操作。
+        public byte this[int index] => _Bytes[index];
 
         public int Offset { get; }
         public int Count { get; }
-
-        public static readonly Binary Empty = new(Array.Empty<byte>());
 
         /// <summary>
         /// 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
@@ -44,9 +44,8 @@ namespace Zeze.Net
         /// 【一般用于临时存储】
         /// </summary>
         /// <param name="bb"></param>
-        public Binary(Zeze.Serialize.ByteBuffer bb) : this(bb.Bytes, bb.ReadIndex, bb.Size)
+        public Binary(ByteBuffer bb) : this(bb.Bytes, bb.ReadIndex, bb.Size)
         {
-
         }
 
         /// <summary>
@@ -54,15 +53,13 @@ namespace Zeze.Net
         /// 使用这个方法的地方一般是应用。这个数据可能被存储到表中。
         /// </summary>
         /// <param name="_s_"></param>
-        public Binary(Zeze.Serialize.Serializable _s_)
-            : this(Zeze.Serialize.ByteBuffer.Encode(_s_).Copy())
+        public Binary(Serializable _s_) : this(ByteBuffer.Encode(_s_).Copy())
         {
         }
 
-        public void Decode(Zeze.Serialize.Serializable _s_)
+        public void Decode(Serializable _s_)
         {
-            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_Bytes, Offset, Count);
-            _s_.Decode(_bb_);
+            _s_.Decode(ByteBuffer.Wrap(_Bytes, Offset, Count));
         }
 
         // 直接访问原始的buffer是不安全的，因为这个类本意是不可变的，直接保护原始byte[]会导致修改。
@@ -74,13 +71,13 @@ namespace Zeze.Net
 
         public byte[] GetBytes()
         {
-            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_Bytes, Offset, Count);
+            var _bb_ = ByteBuffer.Wrap(_Bytes, Offset, Count);
             return _bb_.Copy();
         }
 
         public override string ToString()
         {
-            return System.BitConverter.ToString(_Bytes, Offset, Count);
+            return BitConverter.ToString(_Bytes, Offset, Count);
         }
 
         public override bool Equals(object obj)
@@ -96,13 +93,10 @@ namespace Zeze.Net
 
         public bool Equals(Binary other)
         {
-            if (other == null)
+            if (other == null || Count != other.Count)
                 return false;
 
-            if (this.Count != other.Count)
-                return false;
-
-            for (int i = 0, n = this.Count; i < n; ++i)
+            for (int i = 0, n = Count; i < n; ++i)
             {
                 if (_Bytes[Offset + i] != other._Bytes[other.Offset + i])
                     return false;
@@ -113,7 +107,7 @@ namespace Zeze.Net
 
         public override int GetHashCode()
         {
-            return Zeze.Util.FixedHash.calc_hashnr(_Bytes, Offset, Count);
+            return FixedHash.calc_hashnr(_Bytes, Offset, Count);
         }
 
         public int CompareTo(Binary other)
@@ -122,8 +116,8 @@ namespace Zeze.Net
             if (c != 0)
                 return c;
 
-            for (int i = 0, n = this.Count; i < n; ++i)
-            { 
+            for (int i = 0, n = Count; i < n; ++i)
+            {
                 c = _Bytes[Offset + i].CompareTo(other._Bytes[Offset + i]);
                 if (c != 0)
                     return c;

@@ -1,5 +1,4 @@
-﻿using System;
-
+﻿// ReSharper disable NonReadonlyMemberInGetHashCode
 namespace Zeze.Serialize
 {
     public class Vector2 : Serializable
@@ -47,9 +46,15 @@ namespace Zeze.Serialize
             bb.WriteFloat(y);
         }
 
+        public static void EncodeNull(ByteBuffer bb)
+        {
+            bb.WriteFloat(0);
+            bb.WriteFloat(0);
+        }
+
         public override int GetHashCode()
         {
-            return HashCode.Combine(x, y);
+            return x.GetHashCode() ^ y.GetHashCode();
         }
 
         protected bool Equals(Vector2 other)
@@ -116,9 +121,16 @@ namespace Zeze.Serialize
             bb.WriteFloat(z);
         }
 
+        public new static void EncodeNull(ByteBuffer bb)
+        {
+            bb.WriteFloat(0);
+            bb.WriteFloat(0);
+            bb.WriteFloat(0);
+        }
+
         public override int GetHashCode()
         {
-            return HashCode.Combine(x, y, z);
+            return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode();
         }
 
         protected bool Equals(Vector3 other)
@@ -188,9 +200,17 @@ namespace Zeze.Serialize
             bb.WriteFloat(w);
         }
 
+        public new static void EncodeNull(ByteBuffer bb)
+        {
+            bb.WriteFloat(0);
+            bb.WriteFloat(0);
+            bb.WriteFloat(0);
+            bb.WriteFloat(0);
+        }
+
         public override int GetHashCode()
         {
-            return HashCode.Combine(x, y, z, w);
+            return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode() ^ w.GetHashCode();
         }
 
         protected bool Equals(Vector4 other)
@@ -284,9 +304,15 @@ namespace Zeze.Serialize
             bb.WriteInt(y);
         }
 
+        public static void EncodeNull(ByteBuffer bb)
+        {
+            bb.WriteInt(0);
+            bb.WriteInt(0);
+        }
+
         public override int GetHashCode()
         {
-            return HashCode.Combine(x, y);
+            return x.GetHashCode() ^ y.GetHashCode();
         }
 
         protected bool Equals(Vector2Int other)
@@ -353,9 +379,16 @@ namespace Zeze.Serialize
             bb.WriteInt(z);
         }
 
+        public new static void EncodeNull(ByteBuffer bb)
+        {
+            bb.WriteInt(0);
+            bb.WriteInt(0);
+            bb.WriteInt(0);
+        }
+
         public override int GetHashCode()
         {
-            return HashCode.Combine(x, y, z);
+            return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode();
         }
 
         protected bool Equals(Vector3Int other)

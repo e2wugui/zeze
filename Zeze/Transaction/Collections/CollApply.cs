@@ -105,8 +105,8 @@ namespace Zeze.Transaction.Collections
         public static void ApplySet1<E>(HashSet<E> _set, Log _log)
         {
             var log = (LogSet1<E>)_log;
-            _set.Union(log.Added);
-            _set.Except(log.Removed);
+            _set.UnionWith(log.Added);
+            _set.ExceptWith(log.Removed);
         }
 
         public static void ApplyOne<V>(ref V value, Log _log)

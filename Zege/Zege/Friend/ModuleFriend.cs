@@ -41,7 +41,8 @@ namespace Zege.Friend
 
             if (refreshAll)
             {
-                r.Argument.Accounts.Union(accounts);
+                foreach (var account in accounts)
+                    r.Argument.Accounts.Add(account);
             }
             else
             {
@@ -174,7 +175,7 @@ namespace Zege.Friend
         public async Task<string> CreateGroup(IEnumerable<string> selected)
         { 
             var r = new CreateGroup();
-            r.Argument.Members.Union(selected);
+            r.Argument.Members.UnionWith(selected);
 
             var randomData = new byte[16];
             Random.Shared.NextBytes(randomData);

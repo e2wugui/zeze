@@ -6,9 +6,9 @@ namespace Zeze.Net
 {
     public interface Codec : IDisposable
     {
-        public void update(byte c);
-        public void update(byte[] data, int off, int len);
-        public void flush();
+        void update(byte c);
+        void update(byte[] data, int off, int len);
+        void flush();
     }
 
     /// <summary>
@@ -51,15 +51,19 @@ namespace Zeze.Net
     {
         public static byte[] Md5(byte[] message)
         {
-            using var md = MD5.Create();
-            return md.ComputeHash(message);
+            using (var md = MD5.Create())
+            {
+                return md.ComputeHash(message);
+            }
         }
 
         public static byte[] HmacMd5(byte[] key, byte[] data, int offset, int length)
         {
-            using HashAlgorithm hash = new HMACMD5(key);
-            hash.TransformFinalBlock(data, offset, length);
-            return hash.Hash;
+            using (HashAlgorithm hash = new HMACMD5(key))
+            {
+                hash.TransformFinalBlock(data, offset, length);
+                return hash.Hash;
+            }
         }
     }
 

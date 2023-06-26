@@ -8,14 +8,10 @@ using Zeze.Net;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using System.Reflection.Metadata;
 
-/// <summary>
-/// 使用dh算法交换密匙把连接加密。
-/// 如果dh交换失败，现在依赖加密压缩实现以及后面的协议解析的错误检查来发现。
-/// 有没有好的安全的dh交换失败的检测手段。
-/// </summary>
-
+// 使用dh算法交换密匙把连接加密。
+// 如果dh交换失败，现在依赖加密压缩实现以及后面的协议解析的错误检查来发现。
+// 有没有好的安全的dh交换失败的检测手段。
 namespace Zeze.Services
 {
     public class Constant
@@ -42,8 +38,8 @@ namespace Zeze.Services
         // for HandshakeClient
         public int EncryptType { get; set; } = Constant.eEncryptTypeDisable;
 
-        public List<int> SupportedEncrypt { get; } = new();
-        public List<int> SupportedCompress { get; } = new();
+        public List<int> SupportedEncrypt { get; } = new List<int>();
+        public List<int> SupportedCompress { get; } = new List<int>();
 
         public HandshakeOptions()
         {
@@ -92,7 +88,7 @@ namespace Zeze.Services
         private static readonly Zeze.MyLog logger = global::Zeze.MyLog.GetLogger(typeof(HandshakeBase));
 #endif
 
-        private readonly HashSet<long> HandshakeProtocols = new();
+        private readonly HashSet<long> HandshakeProtocols = new HashSet<long>();
 
         class Context
         {
@@ -105,7 +101,7 @@ namespace Zeze.Services
             }
         }
         // For Client Only
-        private readonly ConcurrentDictionary<long, Context> DHContext = new();
+        private readonly ConcurrentDictionary<long, Context> DHContext = new ConcurrentDictionary<long, Context>();
 
         public HandshakeBase(string name, Config config) : base(name, config)
         { 
@@ -381,7 +377,7 @@ namespace Zeze.Services
                 cHandshake.Send(so);
                 ctx.TimeoutTask = Util.Scheduler.Schedule((thisTask) =>
                 {
-                    if (DHContext.TryRemove(so.SessionId, out var ctx))
+                    if (DHContext.TryRemove(so.SessionId, out var _))
                     {
                         so.Close(new Exception("Handshake Timeout"));
                     }
@@ -488,7 +484,7 @@ namespace Zeze.Services.Handshake
 {
     public static class Helper
     {
-        private static readonly BigInteger dh_g = new(2);
+        private static readonly BigInteger dh_g = new BigInteger(2);
         private static readonly BigInteger[] dh_group = new BigInteger[] {
             BigInteger.Zero,
             BigInteger.Parse(
@@ -672,10 +668,10 @@ namespace Zeze.Services.Handshake
     {
 #endif
         public int EncryptType { get; set; }
-        public List<int> SupportedEncryptList { get; set; } = new();
+        public List<int> SupportedEncryptList { get; set; } = new List<int>();
         public int CompressS2c { get; set; }
         public int CompressC2s { get; set; }
-        public List<int> SupportedCompressList { get; set; } = new();
+        public List<int> SupportedCompressList { get; set; } = new List<int>();
 
 
         public override void ClearParameters()
