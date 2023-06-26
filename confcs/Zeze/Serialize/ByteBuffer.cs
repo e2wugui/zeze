@@ -1065,6 +1065,15 @@ namespace Zeze.Serialize
         public static bool BinaryNoCopy { get; set; } // 没有线程保护
         // XXX 对于byte[]类型直接使用引用，不拷贝。全局配置，只能用于Linkd这种纯转发的程序，优化。
 
+        public byte[] FetchBytes(int n)
+        {
+            EnsureRead(n);
+            var x = new byte[n];
+            Buffer.BlockCopy(Bytes, ReadIndex, x, 0, n);
+            ReadIndex += n;
+            return x;
+        }
+
         public Binary ReadBinary()
         {
             if (BinaryNoCopy)
