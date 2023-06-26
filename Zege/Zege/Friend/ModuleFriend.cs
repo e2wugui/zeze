@@ -147,18 +147,6 @@ namespace Zege.Friend
             }
         }
 
-        [DispatchMode(Mode = DispatchMode.UIThread)]
-        private Task<long> ProcessAddNewFriend(Protocol p)
-        {
-            Friends.GetFriendNodePending = null;
-            var r = p as AddFriend;
-            if (r.ResultCode == 0)
-            {
-                Friends.TryGetFriendNode(false);
-            }
-            return Task.FromResult(0L);
-        }
-
         // 这个方法没有真正被使用。
         // 定义在这里是为了给GetFriendNode设置DispatchMode。
         // 真正的处理在FriendNodes里面实现。
@@ -254,5 +242,10 @@ namespace Zege.Friend
         public string Nick { get; set; }
         public string Time { get; set; }
         public string Message { get; set; }
+
+        public override string ToString()
+        {
+            return $"{Account}, {Nick}";
+        }
     }
 }

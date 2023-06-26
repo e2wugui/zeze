@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NLog;
+using System;
 using Zeze.Builtin.Collections.LinkedMap;
 using Zeze.Net;
 using Zeze.Serialize;
@@ -9,6 +10,8 @@ namespace Zege.Friend
 {
     public class FriendNodes
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public ModuleFriend ModuleFriend { get; }
         public string LinkedMapNameEndsWith { get; }
 
@@ -258,7 +261,9 @@ namespace Zege.Friend
             var itemsSource = ModuleFriend.ItemsSource;
             foreach (var friend in node.Node.Values)
             {
-                itemsSource.Insert(insertIndex++, ToFriendItem(node.NodeKey, friend));
+                var item = ToFriendItem(node.NodeKey, friend);
+                logger.Debug($"{insertIndex} {item}");
+                itemsSource.Insert(insertIndex++, item);
             }
         }
 
