@@ -72,13 +72,25 @@ namespace Zege
             MessageEditor.Text = string.Empty;
         }
 
-        private void OnTopmost(object sender, EventArgs e)
+        private async void OnAddFriend(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(Editor.Text))
+                return;
+
+            var r = await AppShell.Instance.App?.Zege_Friend.AddFriend(Editor.Text);
+            if (0 != r)
+                await AppShell.Instance.DisplayAlertAsync("Add Friend Error", "Code=" + r);
+        }
+
+        private async void OnTopmost(object sender, EventArgs e)
         {
             var selected = FriendsListView.SelectedItem as FriendItem;
             if (null == selected)
                 return;
 
-            AppShell.Instance.App?.Zege_Friend.SetTopmost(selected);
+            var r = await AppShell.Instance.App?.Zege_Friend.SetTopmost(selected);
+            if (0 != r)
+                await AppShell.Instance.DisplayAlertAsync("SetTopmost Error", "Code=" + r);
         }
 
         private void OnReturnTop(object sender, EventArgs e)

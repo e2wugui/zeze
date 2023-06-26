@@ -18,6 +18,7 @@ c# GenModule.cs 根据 ResultHandle 是否异步，决定 async 和 NewProcedure
 Zege ChatControl 改成用WebView；
 Zege Notify客户端自行决定排序。
 Zege 消息已读；红点；
+Zege await Shell.Current.GoToAsync("///MainPage");
 Zege Task
 	BTask：内容描述，时间范围，发起人，执行人，附件，资源（对应实物，比如会议室）
 	CreateTask 自动给所有相关人发送Notify。Parent没指定就是自由任务，指定则形成系列任务。Parent可以用来追溯前置任务，是一种查看手段。
@@ -28,7 +29,6 @@ Zege Task
 	task table: taskid -> btask
 	timeindex:  day ->set<taskid>
 	date begin <---> date end 限定半年 day ... day
-Zege await Shell.Current.GoToAsync("///MainPage");
 Zege 群的操作客户端。
 Zege 群加密。
 Zege 群成员之间发送Notify。用来发送群秘密证书等。

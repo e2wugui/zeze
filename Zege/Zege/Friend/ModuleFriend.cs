@@ -13,7 +13,21 @@ namespace Zege.Friend
 {
     public partial class ModuleFriend : AbstractModule
     {
-        private readonly ConcurrentDictionary<string, BPublicUserInfo> PublicUserInfos = new(); // TODO 展开证书。
+        public class PublicUserInfo
+        { 
+            public BPublicUserInfo Bean { get; set; }
+            public X509Certificate2 Cert { get; set; }
+
+            public PublicUserInfo(BPublicUserInfo info)
+            {
+                Bean = info;
+                if (info.Cert.Count > 0)
+                    Cert = Zeze.Util.Cert.CreateFromPkcs12(info.Cert.GetBytesUnsafe(), "");
+            }
+
+        }
+
+        private readonly ConcurrentDictionary<string, PublicUserInfo> PublicUserInfos = new();
 
         public void Start(global::Zege.App app)
         {
@@ -21,17 +35,46 @@ namespace Zege.Friend
             Friends = new FriendNodes(this, "@Zege.Friend", false);
         }
 
-        public async Task<BPublicUserInfo> GetPublicUserInfo(string account)
+        public async Task LoadPublicUserInfos(IEnumerable<string> accounts, bool refreshAll = false)
         {
-            if (PublicUserInfos.TryGetValue(account, out var info))
+            var r = new GetPublicUserInfos();
+
+            if (refreshAll)
+            {
+                r.Argument.Accounts.Union(accounts);
+            }
+            else
+            {
+                foreach (var account in accounts)
+                {
+                    if (PublicUserInfos.ContainsKey(account))
+                        continue;
+                    r.Argument.Accounts.Add(account);
+                }
+            }
+
+            if (r.Argument.Accounts.Count > 0)
+            {
+                await r.SendAsync(App.Connector.TryGetReadySocket());
+                foreach (var e in r.Result.Infos)
+                {
+                    PublicUserInfos[e.Key] = new PublicUserInfo(e.Value);
+                }
+            }
+        }
+
+        public async Task<PublicUserInfo> GetPublicUserInfo(string account, bool refresh = false)
+        {
+            if (!refresh && PublicUserInfos.TryGetValue(account, out var info))
                 return info;
 
             // 并发执行的时候，可能会发起多个远程调用。【先不保护了。】
             var rpc = new GetPublicUserInfo();
             rpc.Argument.Account = account;
             await rpc.SendAndCheckResultCodeAsync(App.ClientService.GetSocket());
-            PublicUserInfos[account] = rpc.Result; // put
-            return rpc.Result;
+            info = new PublicUserInfo(rpc.Result);
+            PublicUserInfos[account] = info; // put
+            return info;
         }
 
         public void Stop(global::Zege.App app)
@@ -125,13 +168,14 @@ namespace Zege.Friend
             return Task.FromResult(0L);
         }
 
-        public void SetTopmost(FriendItem friend)
+        public async Task<long> SetTopmost(FriendItem friend)
         {
             var r = new SetTopmost();
             r.Argument.Account = friend.Account;
             // 普通好友则设置Topmost，否则去除Topmost。
             r.Argument.Topmost = friend.NodeKey.Name.EndsWith(Friends.LinkedMapNameEndsWith);
-            r.Send(App.ClientService.GetSocket());
+            await r.SendAsync(App.ClientService.GetSocket());
+            return r.ResultCode;
         }
 
         public async void ReturnTop()
@@ -166,20 +210,21 @@ namespace Zege.Friend
             var n = new SendNotify();
             n.Argument.Group = group;
 
+            await App.Zege_Friend.LoadPublicUserInfos(selected);
+
             foreach (var account in selected)
             {
-                var info = await App.Zege_Friend.GetPublicUserInfo(account); // TODO 优化，批量获取。
-                if (info.Cert.Count > 0)
+                var info = await App.Zege_Friend.GetPublicUserInfo(account);
+                if (info.Cert != null)
                 {
-                    var certTarget = Cert.CreateFromPkcs12(info.Cert.GetBytesUnsafe(), "");
-                    var encryptedCert = Cert.EncryptRsa(certTarget, pkcs12, 0, pkcs12.Length);
+                    var encryptedCert = Cert.EncryptRsa(info.Cert, pkcs12, 0, pkcs12.Length);
 
                     var notify = new BNotify();
                     notify.Title = "Group Cert";
                     notify.Type = BNotify.eTypeGroupCert;
                     notify.Data = new Binary(encryptedCert);
                     notify.Properties["group"] = group;
-                    notify.Properties["lastCertIndex"] = info.LastCertIndex.ToString();
+                    notify.Properties["lastCertIndex"] = info.Bean.LastCertIndex.ToString();
 
                     n.Argument.Notifys[account] = notify;
                 }
@@ -187,6 +232,14 @@ namespace Zege.Friend
             }
             await n.SendAsync(App.Connector.TryGetReadySocket());
             return group;
+        }
+
+        public async Task<long> AddFriend(string account)
+        {
+            var r = new AddFriend();
+            r.Argument.Account = account;
+            await r.SendAsync(App.Connector.TryGetReadySocket());
+            return r.ResultCode;
         }
     }
 

@@ -32,12 +32,11 @@ namespace Zege.Message
         public async Task EncryptMessageWithAccountPublicKey(BMessage message, string account)
         {
             var info = await Module.App.Zege_Friend.GetPublicUserInfo(account);
-            if (info.Cert.Count > 0)
+            if (info.Cert != null)
             {
-                var cert = Cert.CreateFromPkcs12(info.Cert.GetBytesUnsafe(), "");
-                var encryptedMessage = Cert.EncryptRsa(cert, message.SecureMessage.Bytes, message.SecureMessage.Offset, message.SecureMessage.Count);
+                var encryptedMessage = Cert.EncryptRsa(info.Cert, message.SecureMessage.Bytes, message.SecureMessage.Offset, message.SecureMessage.Count);
                 message.SecureMessage = new Binary(encryptedMessage);
-                message.SecureKeyIndex = info.LastCertIndex;
+                message.SecureKeyIndex = info.Bean.LastCertIndex;
             }
             else
             {

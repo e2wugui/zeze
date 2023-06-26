@@ -55,6 +55,8 @@
                 </HorizontalStackLayout>
             </VerticalStackLayout>
             <VerticalStackLayout>
+                <Editor x:Name="Editor"/>
+                <Button Text="添加好友" Clicked="OnAddFriend"/>
                 <Button Text="置顶" Clicked="OnTopmost"/>
                 <Button Text="Return to Top" Clicked="OnReturnTop"/>
                 <Button Text="发起群聊" Clicked="OnCreateGroup"/>

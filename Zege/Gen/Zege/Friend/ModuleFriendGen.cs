@@ -127,6 +127,12 @@ namespace Zege.Friend
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessGetPublicUserInfoResponse", Zeze.Transaction.TransactionLevel.Serializable),
                 Mode = _reflect.GetDispatchMode("ProcessGetPublicUserInfoResponse", Zeze.Transaction.DispatchMode.Normal),
             });
+            App.ClientService.AddFactoryHandle(11348545708, new Zeze.Net.Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new Zege.Friend.GetPublicUserInfos(),
+                TransactionLevel = _reflect.GetTransactionLevel("ProcessGetPublicUserInfosResponse", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessGetPublicUserInfosResponse", Zeze.Transaction.DispatchMode.Normal),
+            });
             App.ClientService.AddFactoryHandle(10306996889, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zege.Friend.GetPublicUserPhoto(),
@@ -168,6 +174,7 @@ namespace Zege.Friend
             App.ClientService.Factorys.TryRemove(9917212429, out var _);
             App.ClientService.Factorys.TryRemove(11322645231, out var _);
             App.ClientService.Factorys.TryRemove(9253156986, out var _);
+            App.ClientService.Factorys.TryRemove(11348545708, out var _);
             App.ClientService.Factorys.TryRemove(10306996889, out var _);
             App.ClientService.Factorys.TryRemove(10376408157, out var _);
             App.ClientService.Factorys.TryRemove(10767767241, out var _);
