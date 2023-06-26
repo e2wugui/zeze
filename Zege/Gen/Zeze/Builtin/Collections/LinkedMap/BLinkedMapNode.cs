@@ -141,7 +141,8 @@ namespace Zeze.Builtin.Collections.LinkedMap
         {
             PrevNodeId = 0;
             NextNodeId = 0;
-            Values.Clear();
+            if (Values != null)
+                Values.Clear();
         }
     }
 }

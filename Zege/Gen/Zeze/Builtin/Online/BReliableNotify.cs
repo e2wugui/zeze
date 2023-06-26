@@ -120,7 +120,8 @@ namespace Zeze.Builtin.Online
 
         public override void ClearParameters()
         {
-            Notifies.Clear();
+            if (Notifies != null)
+                Notifies.Clear();
             ReliableNotifyIndex = 0;
         }
     }

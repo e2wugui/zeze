@@ -154,7 +154,8 @@ namespace Zege.Message
 
         public override void ClearParameters()
         {
-            Addresses.Clear();
+            if (Addresses != null)
+                Addresses.Clear();
             ServerSee = "";
             Protocol = "";
             Port = 0;
