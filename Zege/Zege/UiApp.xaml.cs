@@ -19,11 +19,11 @@ namespace Zege
 
         private void MainWindow_Destroying(object sender, EventArgs e)
         {
-            foreach (var win in Windows)
-            {
-                if (win != sender)
-                    CloseWindow(win);
-            }
+//            foreach (var win in Windows)
+//            {
+//                if (win != sender)
+//                    CloseWindow(win);
+//            }
         }
     }
 }
