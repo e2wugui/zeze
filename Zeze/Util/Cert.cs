@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Zeze.Serialize;
 
 /*
 using Org.BouncyCastle.Asn1;
@@ -262,6 +263,59 @@ public static class Cert
         return rsa.ProcessBlock(data, offset, size);
     }
     */
+
+    public static byte[] DecryptAesWithRsa(X509Certificate2 cert, byte[] data)
+    {
+        return DecryptAesWithRsa(cert, data, 0, data.Length);
+    }
+
+    public static byte[] DecryptAesWithRsa(X509Certificate2 cert, byte[] data, int offset, int size)
+    {
+        var bb = ByteBuffer.Wrap(data, offset, size);
+
+        var encryptedKey = bb.FetchBytes(bb.ReadInt4());
+        var encryptedIv = bb.FetchBytes(bb.ReadInt4());
+
+        var encryptedDataLen = bb.ReadInt4();
+        var encryptedData = bb.Bytes;
+        var encryptedDataOffset = bb.ReadIndex;
+
+        var key = DecryptRsa(cert, encryptedKey);
+        var iv = DecryptRsa(cert, encryptedIv);
+
+        var aes = LoadAesKey(key);
+        var decryptedData = DecryptAes(aes, iv, encryptedData, encryptedDataOffset, encryptedDataLen);
+        return decryptedData;
+    }
+
+    public static byte[] EncryptAesWithRsa(X509Certificate2 cert, byte[] data)
+    {
+        return EncryptAesWithRsa(cert, data, 0, data.Length);
+    }
+
+    public static byte[] EncryptAesWithRsa(X509Certificate2 cert, byte[] data, int offset, int size)
+    {
+        var aes = GenerateAesKey();
+        var key = aes.Key;
+        var iv = GenerateAesIv();
+
+        var encryptedKey = EncryptRsa(cert, key, 0, key.Length);
+        var encryptedIv = EncryptRsa(cert, iv, 0, iv.Length);
+        var encryptedData = EncryptAes(aes, iv, data, offset, size);
+
+        var bb = ByteBuffer.Allocate(4 + encryptedKey.Length + 4 + encryptedIv.Length + 4 + encryptedData.Length);
+
+        bb.WriteInt4(encryptedKey.Length);
+        bb.Append(encryptedKey);
+
+        bb.WriteInt4(encryptedIv.Length);
+        bb.Append(encryptedIv);
+
+        bb.WriteInt4(encryptedData.Length);
+        bb.Append(encryptedData);
+
+        return bb.Bytes; // 分配刚好大小的空间，直接返回byte[]即可。
+    }
 
     // 创建安全随机的AES密钥(固定256位)
     public static Aes GenerateAesKey()
