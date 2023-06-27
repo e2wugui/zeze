@@ -5,7 +5,6 @@ pushd %~dp0
 set Zeze=..\Zeze
 set confcs=.\Zeze
 
-copy /y %confcs%\Application.cs                  %Zeze%\Application.txt
 copy /y %confcs%\Config.cs                       %Zeze%\
 copy /y %confcs%\IModule.cs                      %Zeze%\
 

@@ -13,7 +13,6 @@ rem md %confcs%\Zeze\Transaction             2> nul
 rem md %confcs%\Zeze\Transaction\Collections 2> nul
 rem md %confcs%\Zeze\Util                    2> nul
 
-copy /y %Zeze%\Application.txt                 %confcs%\Application.cs
 copy /y %Zeze%\Config.cs                       %confcs%\
 copy /y %Zeze%\IModule.cs                      %confcs%\
 
