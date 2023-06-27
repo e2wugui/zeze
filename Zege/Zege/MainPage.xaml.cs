@@ -7,6 +7,8 @@ namespace Zege
 {
     public partial class MainPage : ContentPage
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public MainPage()
         {
             InitializeComponent();
@@ -57,6 +59,7 @@ namespace Zege
 
             // TODO: make selected to top here
             AccountToDepartment(selected.Account, out var group, out var departmentId);
+            logger.Debug($"Select Friend Item {group}:{departmentId}");
             AppShell.Instance.App.Zege_Message.StartChat(group, departmentId);
         }
 
@@ -67,6 +70,8 @@ namespace Zege
 
         private async void OnSendClicked(object sender, EventArgs e)
         {
+            if (null == AppShell.Instance.App.Zege_Message.CurrentChat) return;
+
             var message = MessageEditor.Text;
             await AppShell.Instance.App.Zege_Message.CurrentChat?.SendAsync(message);
             MessageEditor.Text = string.Empty;

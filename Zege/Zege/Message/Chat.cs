@@ -124,7 +124,10 @@ namespace Zege.Message
                 foreach (var msg in messages)
                 {
                     if (Messages.TryAdd(msg.MessageId, msg))
+                    {
+                        await DecryptMessage(msg);
                         View.AddTail(msg);
+                    }
                 }
             }
             else
@@ -134,7 +137,10 @@ namespace Zege.Message
                 {
                     var msg = messages[i];
                     if (Messages.TryAdd(msg.MessageId, msg))
+                    {
+                        await DecryptMessage(msg);
                         View.InsertHead(msg);
+                    }
                 }
             }
         }

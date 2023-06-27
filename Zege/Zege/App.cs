@@ -23,6 +23,7 @@ namespace Zege
 
             if (fresh)
             {
+                //app.Start("127.0.0.1", 11000);
                 app.Start("10.12.7.155", 11000);
             }
             return app;

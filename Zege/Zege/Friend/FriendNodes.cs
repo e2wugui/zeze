@@ -262,7 +262,7 @@ namespace Zege.Friend
             foreach (var friend in node.Node.Values)
             {
                 var item = ToFriendItem(node.NodeKey, friend);
-                logger.Debug($"{insertIndex} {item}");
+                logger.Debug($"Insert Friend {insertIndex} {item}");
                 itemsSource.Insert(insertIndex++, item);
             }
         }

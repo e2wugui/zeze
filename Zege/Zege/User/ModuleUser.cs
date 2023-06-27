@@ -46,7 +46,7 @@ namespace Zege.User
             if (certSaved == null || certSaved.Length == 0)
                 return null;
             var pkcs12 = Convert.FromBase64String(certSaved);
-            cert = Cert.CreateFromPkcs12(pkcs12, savedPasswd);
+            cert = Cert.CreateFromPkcs12(pkcs12, account.EndsWith("@group") ? "" : savedPasswd);
             Certificates.GetOrAdd(account, (key) => new())[index] = cert;
             return cert;
         }

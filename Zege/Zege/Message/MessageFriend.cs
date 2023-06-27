@@ -20,7 +20,8 @@ namespace Zege.Message
 
             var rpc = new GetFriendMessage();
             rpc.Argument.Friend = friend;
-            rpc.Argument.MessageIdFrom = -2;
+            rpc.Argument.MessageIdFrom = ModuleMessage.eGetMessageFromAboutLast;
+            rpc.Argument.MessageIdTo = ModuleMessage.eGetMessageToAuto;
             rpc.Send(Module.App.ClientService.GetSocket(), Module.ProcessGetFriendMessageResponse);
         }
 
