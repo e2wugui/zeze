@@ -52,9 +52,12 @@ namespace Zege.Message
             rpc.Argument.DepartmentId = DepartmentKey.DepartmentId;
 
             FillTextMessage(rpc.Argument.Message, message);
-            var notEncryptMessage = rpc.Argument.Message.SecureMessage;
+            //var notEncryptMessage = rpc.Argument.Message.SecureMessage;
             await EncryptMessage(rpc.Argument.Message);
             await rpc.SendAsync(Module.App.ClientService.GetSocket());
+
+            // 群消息总是由服务器通知，也许自己的还是特殊处理？
+            /*
             if (0 == rpc.ResultCode)
             {
                 // 给本地用之前恢复成不加密的。
@@ -70,6 +73,7 @@ namespace Zege.Message
                 rpc.Argument.Message.From = Module.App.Zege_User.Account;
                 View.AddTail(rpc.Argument.Message);
             }
+            */
         }
     }
 }

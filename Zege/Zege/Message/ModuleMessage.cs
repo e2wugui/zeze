@@ -45,8 +45,15 @@ namespace Zege.Message
         internal async Task<long> ProcessGetFriendMessageResponse(Zeze.Net.Protocol p)
         {
             var r = p as GetFriendMessage;
-            var friend = Friends.GetOrAdd(r.Argument.Friend, (key) => new MessageFriend(this, key, MessageViewFactory()));
-            await friend.OnGetMessage(r.Result.NextMessageId, r.Result.ReachEnd, r.Result.NextMessageIdNotRead, r.Result.Messages);
+            if (r.ResultCode == 0)
+            {
+                var friend = Friends.GetOrAdd(r.Argument.Friend, (key) => new MessageFriend(this, key, MessageViewFactory()));
+                await friend.OnGetMessage(r.Result.NextMessageId, r.Result.ReachEnd, r.Result.NextMessageIdNotRead, r.Result.Messages);
+            }
+            else
+            {
+                await AppShell.Instance.DisplayAlertAsync("GetFriendMessage Error", "" + r.ResultCode);
+            }
             return 0L;
         }
 
@@ -54,8 +61,15 @@ namespace Zege.Message
         internal async Task<long> ProcessGetGroupMessageResponse(Zeze.Net.Protocol p)
         {
             var r = p as GetGroupMessage;
-            var department = Groups.GetOrAdd(r.Argument.GroupDepartment, (key) => new MessageGroup(this, key, MessageViewFactory()));
-            await department.OnGetMessage(r.Result.NextMessageId, r.Result.ReachEnd, r.Result.NextMessageIdNotRead, r.Result.Messages);
+            if (r.ResultCode == 0)
+            {
+                var department = Groups.GetOrAdd(r.Argument.GroupDepartment, (key) => new MessageGroup(this, key, MessageViewFactory()));
+                await department.OnGetMessage(r.Result.NextMessageId, r.Result.ReachEnd, r.Result.NextMessageIdNotRead, r.Result.Messages);
+            }
+            else
+            {
+                await AppShell.Instance.DisplayAlertAsync("GetGroupMessage Error", "" + r.ResultCode);
+            }
             return 0L;
         }
 
