@@ -154,8 +154,7 @@ namespace Zege.Message
 
         public override void ClearParameters()
         {
-            if (Messages != null)
-                Messages.Clear();
+            Messages.Clear();
             ReachEnd = false;
             NextMessageIdNotRead = 0;
             NextMessageId = 0;

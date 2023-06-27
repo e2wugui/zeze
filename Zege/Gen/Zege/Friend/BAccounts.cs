@@ -104,8 +104,7 @@ namespace Zege.Friend
 
         public override void ClearParameters()
         {
-            if (Accounts != null)
-                Accounts.Clear();
+            Accounts.Clear();
         }
     }
 }

@@ -368,8 +368,7 @@ namespace Zege.User
             RealName = "";
             IdentityCard = "";
             Phone = "";
-            if (BankCard != null)
-                BankCard.Clear();
+            BankCard.Clear();
             FaceToFace = false;
         }
     }
