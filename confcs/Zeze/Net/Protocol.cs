@@ -1,6 +1,10 @@
 ﻿using System;
 using Zeze.Serialize;
+#if USE_CONFCS
 using Zeze.Util;
+#else
+using Zeze.Transaction;
+#endif
 
 namespace Zeze.Net
 {
@@ -29,8 +33,8 @@ namespace Zeze.Net
         public virtual ConfBean ResultBean => null;
         public abstract ConfBean ArgumentBean { get; }
 #else
-        public abstract Zeze.Transaction.Bean ResultBean { get; }
-        public abstract Zeze.Transaction.Bean ArgumentBean { get; }
+        public virtual Bean ResultBean => null;
+        public abstract Bean ArgumentBean { get; }
 #endif
         public bool Recycle { get; set; } = true;
 
@@ -247,7 +251,7 @@ namespace Zeze.Net
 #if USE_CONFCS
         public override ConfBean ArgumentBean => Argument as ConfBean;
 #else
-        public override Zeze.Transaction.Bean ArgumentBean => Argument as Transaction.Bean;
+        public override Bean ArgumentBean => Argument as Bean;
 #endif
         public override void Decode(ByteBuffer bb)
         {

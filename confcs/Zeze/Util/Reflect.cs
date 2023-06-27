@@ -116,8 +116,8 @@ namespace Zeze.Util
             if (type == typeof(string))
                 return "string";
 
-            // if (type == typeof(Zeze.Util.LogConfDynamic))
-            // 	return "Zeze.Transaction.LogDynamic";
+            if (type == typeof(LogConfDynamic))
+                return "Zeze.Transaction.LogDynamic";
 
             if (typeof(Serialize.Serializable).IsAssignableFrom(type))
                 return type.FullName;
@@ -218,8 +218,8 @@ namespace Zeze.Util
 			if (type == typeof(string))
 				return "string";
 
-			// if (type == typeof(Zeze.Util.LogConfDynamic))
-			// 	return "Zeze.Transaction.LogDynamic";
+			if (type == typeof(Zeze.Util.LogConfDynamic))
+				return "Zeze.Transaction.LogDynamic";
 
 			if (type.IsAssignableTo(typeof(Zeze.Serialize.Serializable)))
 				return type.FullName;

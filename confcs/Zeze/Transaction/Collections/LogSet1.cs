@@ -1,4 +1,7 @@
 ﻿using System.Collections.Generic;
+#if !USE_CONFCS
+using System.Linq;
+#endif
 using System.Text;
 using Zeze.Serialize;
 using Zeze.Util;
@@ -18,7 +21,7 @@ namespace Zeze.Transaction.Collections
 #if !USE_CONFCS
 		public override void Collect(Changes changes, Bean recent, Log vlog)
 		{
-			throw new Exception($"Collect Not Implement.");
+			throw new System.Exception($"Collect Not Implement.");
 		}
 
 		public bool Add(V item)

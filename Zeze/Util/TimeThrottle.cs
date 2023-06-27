@@ -12,7 +12,7 @@ public abstract class TimeThrottle
 
 	public static TimeThrottle Create(Zeze.Net.SocketOptions options)
 	{
-		return Create(options.TimeThrottle, options.TimeThrottleSeconds, options.TimeThrottleLimit, options.TimeThrottleBandwitdh);
+		return Create(options.TimeThrottle, options.TimeThrottleSeconds, options.TimeThrottleLimit, options.TimeThrottleBandwidth);
 	}
 
 	public static TimeThrottle Create(string name, int? seconds, int? limit, int? bandwidth)
@@ -88,7 +88,7 @@ public class TimeThrottleCounter : TimeThrottle
 	private readonly int limit;
 	private readonly int bandwidthLimit;
 	private int count;
-	private int bandwitdh;
+	private int bandwidth;
 	private readonly SchedulerTask timer;
 
 	public TimeThrottleCounter(int seconds, int limit, int bandwidthLimit)
@@ -101,14 +101,14 @@ public class TimeThrottleCounter : TimeThrottle
 	private void onTimer(SchedulerTask ThisTask)
 	{
 		count = 0;
-		bandwitdh = 0;
+		bandwidth = 0;
 	}
 
 	public override bool CheckNow(int size)
 	{
 		++count;
-		bandwitdh += size; // 变成负数以后一直失败。
-		return count < limit && (bandwitdh >= 0 && bandwitdh < bandwidthLimit);
+		bandwidth += size; // 变成负数以后一直失败。
+		return count < limit && bandwidth >= 0 && bandwidth < bandwidthLimit;
 	}
 
     public override void Close()

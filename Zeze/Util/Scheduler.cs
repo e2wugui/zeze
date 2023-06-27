@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,13 +16,10 @@ namespace Zeze.Util
         internal static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(Scheduler));
 #endif
 
-        internal static Scheduler Instance { get; } = new Scheduler();
+        internal static readonly Scheduler Instance = new Scheduler();
 
-        private ConcurrentDictionary<SchedulerTask, SchedulerTask> Timers { get; } = new ConcurrentDictionary<SchedulerTask, SchedulerTask>();
-
-        public Scheduler()
-        {
-        }
+        private readonly ConcurrentDictionary<SchedulerTask, SchedulerTask> Timers =
+            new ConcurrentDictionary<SchedulerTask, SchedulerTask>();
 
         /// <summary>
         /// 调度一个执行 action。
@@ -78,7 +74,7 @@ namespace Zeze.Util
 
         public class SchedulerTaskAction : SchedulerTask
         {
-            public Action<SchedulerTask> Action { get; }
+            public readonly Action<SchedulerTask> Action;
 
             internal SchedulerTaskAction(Action<SchedulerTask> action)
             {
@@ -95,6 +91,8 @@ namespace Zeze.Util
                 {
 #if HAS_NLOG || HAS_MYLOG
                     Scheduler.logger.Error(ex);
+#else
+                    Console.Error.WriteLine(ex);
 #endif
                 }
             }
@@ -102,7 +100,7 @@ namespace Zeze.Util
 
         public class SchedulerTaskAsyncAction : SchedulerTask
         {
-            public Func<SchedulerTask, Task> AsyncFunc { get; }
+            public readonly Func<SchedulerTask, Task> AsyncFunc;
 
             internal SchedulerTaskAsyncAction(Func<SchedulerTask, Task> asyncFunc)
             {
@@ -111,7 +109,11 @@ namespace Zeze.Util
 
             public override async void Process()
             {
-                await Mission.CallAsync(async () => { await AsyncFunc(this); return 0; }, "SchedulerTaskAsyncAction");
+                await Mission.CallAsync(async () =>
+                {
+                    await AsyncFunc(this);
+                    return 0;
+                }, "SchedulerTaskAsyncAction");
             }
         }
     }
@@ -126,7 +128,7 @@ namespace Zeze.Util
         }
 
         public void Run(object param)
-        { 
+        {
             try
             {
                 Process();

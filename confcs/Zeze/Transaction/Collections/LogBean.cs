@@ -20,12 +20,12 @@ namespace Zeze.Transaction.Collections
 		// LogBean仅在_final_commit的Collect过程中创建，不会参与Savepoint。
         internal override Log BeginSavepoint()
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         internal override void EndSavepoint(Savepoint currentsp)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         // 仅发生在事务执行期间。Decode-Apply不会执行到这里。
@@ -40,7 +40,7 @@ namespace Zeze.Transaction.Collections
 
         public override void Commit()
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 #endif
 

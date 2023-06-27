@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
 using Zeze.Util;
@@ -106,7 +105,7 @@ namespace Zeze.Transaction.Collections
             // 客户端本质上不需要Encode，而且BuildChangedWithKey是服务器专用的，
             // 这个宏使得代码可以在客户端编译通过，并且抛个异常避免万一使用了Encode，导致不正确的实现。
 #if USE_CONFCS
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
 #else
             BuildChangedWithKey();
             bb.WriteUInt(ChangedWithKey.Count);

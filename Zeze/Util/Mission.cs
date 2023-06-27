@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Zeze.Net;
+#if !USE_CONFCS
 using Zeze.Transaction;
+#endif
 
 namespace Zeze.Util
 {
@@ -15,7 +18,7 @@ namespace Zeze.Util
 
         public static async Task AwaitNullableTask(Task task)
         {
-            if (null != task)
+            if (task != null)
                 await task;
         }
 
@@ -33,9 +36,7 @@ namespace Zeze.Util
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (ex.GetType().Name == "AssertFailedException")
-                {
                     throw;
-                }
 #endif
                 return ResultCode.Exception;
             }
@@ -55,9 +56,7 @@ namespace Zeze.Util
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (ex.GetType().Name == "AssertFailedException")
-                {
                     throw;
-                }
 #endif
             }
         }
@@ -81,13 +80,16 @@ namespace Zeze.Util
         }
 #endif
 
-        public static void LogAndStatistics(Exception ex, long result, Net.Protocol p, bool IsRequestSaved, string aName = null)
+        public static void LogAndStatistics(Exception ex, long result, Protocol p, bool IsRequestSaved,
+            string aName = null)
         {
-            var actionName = aName == null ? p.GetType().FullName : aName;
+            var actionName = aName ?? p.GetType().FullName;
             if (IsRequestSaved == false)
                 actionName += ":Response";
 
-            var ll = (null != p?.Service?.Zeze) ? p.Service.Zeze.Config.ProcessReturnErrorLogLevel : Config.LogLevel.Trace;
+            var ll = (null != p?.Service?.Zeze)
+                ? p.Service.Zeze.Config.ProcessReturnErrorLogLevel
+                : Config.LogLevel.Trace;
             LogAction?.Invoke(ll, ex, result, $"Action={actionName} {p}");
 
 #if ENABLE_STATISTICS
@@ -97,13 +99,15 @@ namespace Zeze.Util
 
         public static void DefaultLogAction(Config.LogLevel level, Exception ex, long result, string message)
         {
+#if HAS_NLOG || HAS_MYLOG
             // exception -> Error
             // 0 != result -> level from parameter
             // others -> Trace
-            Config.LogLevel ll = (null != ex) ? Config.LogLevel.Error : (0 != result) ? level : Config.LogLevel.Trace;
+            Config.LogLevel ll = ex != null ? Config.LogLevel.Error : (0 != result) ? level : Config.LogLevel.Trace;
             var module = "";
             if (result > 0)
                 module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
+#endif
 #if HAS_NLOG
             logger.Log(NlogLogLevel(ll), ex, $"Return={result}{module} {message}");
 #elif HAS_MYLOG
@@ -113,7 +117,11 @@ namespace Zeze.Util
 
         public static async Task<long> CallAsync(Func<Task> aa, string actionName)
         {
-            return await CallAsync(async () => { await aa(); return 0; }, actionName);
+            return await CallAsync(async () =>
+            {
+                await aa();
+                return 0;
+            }, actionName);
         }
 
         public static async Task<long> CallAsync(Func<Task<long>> aa, string actionName)
@@ -130,25 +138,21 @@ namespace Zeze.Util
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (ex.GetType().Name == "AssertFailedException")
-                {
                     throw;
-                }
 #endif
                 return ResultCode.Exception;
             }
         }
 
-        public static async Task<long> CallAsync(Func<Net.Protocol, Task<long>> phandle, Net.Protocol p,
-            Action<Net.Protocol, long> actionWhenError = null, string name = null)
+        public static async Task<long> CallAsync(Func<Protocol, Task<long>> pHandle, Protocol p,
+            Action<Protocol, long> actionWhenError = null, string name = null)
         {
             bool IsRequestSaved = p.IsRequest; // 记住这个，以后可能会被改变。
             try
             {
-                long result = await phandle(p);
+                long result = await pHandle(p);
                 if (result != 0 && IsRequestSaved)
-                {
                     actionWhenError?.Invoke(p, result);
-                }
                 LogAndStatistics(null, result, p, IsRequestSaved, name);
                 return result;
             }
@@ -157,7 +161,7 @@ namespace Zeze.Util
                 while (true)
                 {
                     var inner = ex.InnerException;
-                    if (null == inner)
+                    if (inner == null)
                         break;
                     ex = inner;
                 }
@@ -175,25 +179,20 @@ namespace Zeze.Util
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (ex.GetType().Name == "AssertFailedException")
-                {
                     throw;
-                }
 #endif
                 return errorCode;
             }
         }
 
-        public static long Call(Func<long> func, Net.Protocol p,
-            Action<Net.Protocol, long> actionWhenError = null)
+        public static long Call(Func<long> func, Protocol p, Action<Protocol, long> actionWhenError = null)
         {
             bool IsRequestSaved = p.IsRequest; // 记住这个，以后可能会被改变。
             try
             {
                 long result = func();
                 if (result != 0 && IsRequestSaved)
-                {
                     actionWhenError?.Invoke(p, result);
-                }
                 LogAndStatistics(null, result, p, IsRequestSaved);
                 return result;
             }
@@ -202,7 +201,7 @@ namespace Zeze.Util
                 while (true)
                 {
                     var inner = ex.InnerException;
-                    if (null == inner)
+                    if (inner == null)
                         break;
                     ex = inner;
                 }
@@ -221,18 +220,14 @@ namespace Zeze.Util
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (ex.GetType().Name == "AssertFailedException")
-                {
                     throw;
-                }
 #endif
                 return errorCode;
             }
         }
 
 #if !USE_CONFCS
-        public static async Task<long> CallAsync(
-            Procedure procedure,
-            Net.Protocol from = null,
+        public static async Task<long> CallAsync(Procedure procedure, Net.Protocol from = null,
             Action<Net.Protocol, long> actionWhenError = null)
         {
             bool? isRequestSaved = from?.IsRequest;
@@ -242,25 +237,19 @@ namespace Zeze.Util
                 // 统计在Call里面实现。
                 long result = await procedure.CallAsync();
                 if (result != 0 && null != isRequestSaved && isRequestSaved.Value)
-                {
                     actionWhenError?.Invoke(from, result);
-                }
                 return result;
             }
             catch (Exception ex)
             {
                 // Procedure.Call处理了所有错误。除非内部错误或者单元测试异常，不会到这里。
-                if (null != isRequestSaved && isRequestSaved.Value)
-                {
+                if (isRequestSaved != null && isRequestSaved.Value)
                     actionWhenError?.Invoke(from, ResultCode.Exception);
-                }
                 LogAction?.Invoke(Config.LogLevel.Error, ex, ResultCode.Exception, procedure.ActionName);
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (ex.GetType().Name == "AssertFailedException")
-                {
                     throw;
-                }
 #endif
                 return ResultCode.Exception;
             }

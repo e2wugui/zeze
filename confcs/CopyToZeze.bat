@@ -16,15 +16,22 @@ copy /y %confcs%\Serialize\*.*                   %Zeze%\Serialize\
 copy /y %confcs%\Services\Handshake.cs           %Zeze%\Services\
 
 copy /y %confcs%\Transaction\DispatchMode.cs     %Zeze%\Transaction\
+copy /y %confcs%\Transaction\Log.cs              %Zeze%\Transaction\
 copy /y %confcs%\Transaction\TransactionLevel.cs %Zeze%\Transaction\
 
+copy /y %confcs%\Transaction\Collections\Log*.cs %Zeze%\Transaction\Collections\
+
 copy /y %confcs%\Util\AtomicLong.cs              %Zeze%\Util\
+copy /y %confcs%\Util\Comparer.cs                %Zeze%\Util\
 copy /y %confcs%\Util\ConfBean.cs                %Zeze%\Util\
+copy /y %confcs%\Util\DispatchModeAttribute.cs   %Zeze%\Util\
 copy /y %confcs%\Util\FixedHash.cs               %Zeze%\Util\
 copy /y %confcs%\Util\Mission.cs                 %Zeze%\Util\
+copy /y %confcs%\Util\Reflect.cs                 %Zeze%\Util\
 copy /y %confcs%\Util\ResultCode.cs              %Zeze%\Util\
 copy /y %confcs%\Util\Scheduler.cs               %Zeze%\Util\
 copy /y %confcs%\Util\Str.cs                     %Zeze%\Util\
 copy /y %confcs%\Util\Time.cs                    %Zeze%\Util\
+rem copy /y %confcs%\Util\UnityHelpers.cs        %Zeze%\Util\
 
 pause

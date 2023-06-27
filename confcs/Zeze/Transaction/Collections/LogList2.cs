@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
-using System;
 using Zeze.Util;
 
 namespace Zeze.Transaction.Collections
@@ -52,7 +51,7 @@ namespace Zeze.Transaction.Collections
         public override void Encode(ByteBuffer bb)
         {
 #if USE_CONFCS
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
 #else
             if (null != Value)
             {

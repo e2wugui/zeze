@@ -1,6 +1,7 @@
 ﻿namespace Zeze.Transaction.Collections
 {
-    // ReSharper disable once UnusedTypeParameter
+	// ReSharper disable once RedundantDisableWarningComment
+	// ReSharper disable once UnusedTypeParameter
     public class LogSet<V> : LogBean
     {
 #if !USE_CONFCS
@@ -8,7 +9,7 @@
 
 		public override void Collect(Changes changes, Bean recent, Log vlog)
 		{
-			throw new Exception($"Collect Not Implement.");
+			throw new System.Exception($"Collect Not Implement.");
 		}
 
         public override void Commit()

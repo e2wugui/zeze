@@ -1074,7 +1074,6 @@ namespace Zeze.Serialize
             return x;
         }
 
-
         public Binary ReadBinary()
         {
             if (BinaryNoCopy)

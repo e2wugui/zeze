@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 using System.Text;
 using Zeze.Serialize;
 using Zeze.Transaction;
@@ -9,13 +8,24 @@ namespace Zeze.Util
 {
     public abstract class ConfBean : Serializable
     {
+        public readonly int VariableId; // reserve
+
+        protected ConfBean()
+        {
+        }
+
+        protected ConfBean(int varId)
+        {
+            VariableId = varId;
+        }
+
         public abstract long TypeId { get; }
-        public int VariableId { get; } // reserve
 
         public virtual void Encode(ByteBuffer bb)
         {
             throw new NotImplementedException();
         }
+
         public abstract void Decode(ByteBuffer bb);
 
         public virtual ConfBean Copy()
@@ -30,21 +40,11 @@ namespace Zeze.Util
 
         public virtual void BuildString(StringBuilder sb, int level)
         {
-            sb.Append(new string(' ', level)).Append("{}").Append(System.Environment.NewLine);
+            sb.Append(new string(' ', level)).Append("{}").Append(Environment.NewLine);
         }
 
-        public ConfBean()
+        public virtual void FollowerApply(Log log)
         {
-
-        }
-
-        public ConfBean(int varid)
-        {
-            VariableId = varid;
-        }
-
-        public virtual void FollowerApply(Zeze.Transaction.Log log)
-        { 
         }
 
         public abstract void ClearParameters();
@@ -52,6 +52,11 @@ namespace Zeze.Util
 
     public class ConfEmptyBean : ConfBean
     {
+        public const long TYPEID = 0; // 用0，而不是Bean.Hash("")，可能0更好吧。
+        public static readonly ConfEmptyBean Instance = new ConfEmptyBean();
+
+        public override long TypeId => TYPEID;
+
         public override void Decode(ByteBuffer bb)
         {
             bb.ReadByte();
@@ -62,19 +67,15 @@ namespace Zeze.Util
             bb.WriteByte(0);
         }
 
-        public const long TYPEID = 0; // 用0，而不是Bean.Hash("")，可能0更好吧。
-
-        public override long TypeId => TYPEID;
         public override ConfBean Copy()
         {
-            return ConfEmptyBean.Instance;
+            return Instance;
         }
+
         public override string ToString()
         {
             return "()";
         }
-
-        public readonly static ConfEmptyBean Instance = new ConfEmptyBean();
 
         public override void ClearParameters()
         {
@@ -83,38 +84,35 @@ namespace Zeze.Util
 
     public class ConfDynamicBean : ConfBean
     {
-        public override long TypeId => _TypeId;
-        public ConfBean Bean
-        {
-            get
-            {
-                return _Bean;
-            }
-
-            set
-            {
-                if (null == value)
-                    throw new System.ArgumentNullException(nameof(value));
-
-                _TypeId = GetSpecialTypeIdFromBean(value);
-                _Bean = value;
-            }
-        }
-
         private long _TypeId;
         private ConfBean _Bean;
 
-        public Func<ConfBean, long> GetSpecialTypeIdFromBean { get; }
-        public Func<long, ConfBean> CreateBeanFromSpecialTypeId { get; }
+        public readonly Func<ConfBean, long> GetSpecialTypeIdFromBean;
+        public readonly Func<long, ConfBean> CreateBeanFromSpecialTypeId;
 
-        public ConfDynamicBean(int variableId, Func<ConfBean, long> get, Func<long, ConfBean> create)
-            : base(variableId)
+        public ConfDynamicBean(int variableId, Func<ConfBean, long> get, Func<long, ConfBean> create) : base(variableId)
         {
             _Bean = ConfEmptyBean.Instance;
             _TypeId = ConfEmptyBean.TYPEID;
 
             GetSpecialTypeIdFromBean = get;
             CreateBeanFromSpecialTypeId = create;
+        }
+
+        public override long TypeId => _TypeId;
+
+        public ConfBean Bean
+        {
+            get => _Bean;
+
+            set
+            {
+                if (null == value)
+                    throw new ArgumentNullException(nameof(value));
+
+                _TypeId = GetSpecialTypeIdFromBean(value);
+                _Bean = value;
+            }
         }
 
         public bool IsEmpty()
@@ -127,23 +125,16 @@ namespace Zeze.Util
             Bean = other.Bean.Copy();
         }
 
-        public override bool NegativeCheck()
-        {
-            return Bean.NegativeCheck();
-        }
-
-        public override ConfBean Copy()
-        {
-            var copy = new ConfDynamicBean(VariableId, GetSpecialTypeIdFromBean, CreateBeanFromSpecialTypeId);
-            copy._Bean = Bean.Copy();
-            copy._TypeId = TypeId;
-            return copy;
-        }
-
         private void SetBeanWithSpecialTypeId(long specialTypeId, ConfBean bean)
         {
             _TypeId = specialTypeId;
             _Bean = bean;
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteLong(TypeId);
+            Bean.Encode(bb);
         }
 
         public override void Decode(ByteBuffer bb)
@@ -164,25 +155,33 @@ namespace Zeze.Util
             }
         }
 
-        public override void Encode(ByteBuffer bb)
+        public override ConfBean Copy()
         {
-            bb.WriteLong(TypeId);
-            Bean.Encode(bb);
+            return new ConfDynamicBean(VariableId, GetSpecialTypeIdFromBean, CreateBeanFromSpecialTypeId)
+            {
+                _Bean = Bean.Copy(),
+                _TypeId = TypeId
+            };
         }
 
-        public override void FollowerApply(Zeze.Transaction.Log log)
+        public override bool NegativeCheck()
         {
-            var dlog = (LogConfDynamic)log;
-            if (null != dlog.Value)
+            return Bean.NegativeCheck();
+        }
+
+        public override void FollowerApply(Log log)
+        {
+            var dLog = (LogConfDynamic)log;
+            if (dLog.Value != null)
             {
                 // 内部Bean整个被替换。
-                _TypeId = dlog.SpecialTypeId;
-                _Bean = dlog.Value;
+                _TypeId = dLog.SpecialTypeId;
+                _Bean = dLog.Value;
             }
-            else if (null != dlog.LogBean) // 安全写法，不检查应该是没问题的？
+            else if (dLog.LogBean != null) // 安全写法，不检查应该是没问题的？
             {
                 // 内部Bean发生了改变。
-                _Bean.FollowerApply(dlog.LogBean);
+                _Bean.FollowerApply(dLog.LogBean);
             }
         }
 
@@ -195,8 +194,8 @@ namespace Zeze.Util
     // see Zeze.Transaction.Bean.cs::LogDynamic
     public class LogConfDynamic : LogBean
     {
-        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogConfDynamic));
-        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+        public new static readonly string StableName = Reflect.GetStableName(typeof(LogConfDynamic));
+        public new static readonly int TypeId_ = FixedHash.Hash32(StableName);
 
         public override int TypeId => TypeId_;
 
@@ -217,8 +216,9 @@ namespace Zeze.Util
             if (hasValue)
             {
                 SpecialTypeId = bb.ReadLong();
-                var parentType = Zeze.Util.Reflect.GetType(parentTypeName);
-                var factory = parentType.GetMethod("CreateBeanFromSpecialTypeId_" + varId, new Type[] { typeof(long) });
+                var parentType = Reflect.GetType(parentTypeName);
+                var factory = parentType.GetMethod("CreateBeanFromSpecialTypeId_" + varId, new[] { typeof(long) });
+                // ReSharper disable once PossibleNullReferenceException
                 Value = (ConfBean)factory.Invoke(null, new object[] { SpecialTypeId });
                 Value.Decode(bb);
             }

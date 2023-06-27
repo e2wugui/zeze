@@ -41,13 +41,13 @@ namespace Zeze.Transaction.Collections
 #if !USE_CONFCS
 		public override void Collect(Changes changes, Bean recent, Log vlog)
 		{
-			throw new NotImplementedException("Collect Not Implement.");
+			throw new System.NotImplementedException("Collect Not Implement.");
 		}
 
 		public void Add(E item)
 		{
 			if (item == null)
-				throw new ArgumentNullException("value is null");
+				throw new System.ArgumentNullException("value is null");
 			Value = Value.Add(item);
 			OpLogs.Add(new OpLog(OpLog.OP_ADD, Value.Count - 1, item));
 		}

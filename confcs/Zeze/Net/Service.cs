@@ -1,13 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using Zeze.Serialize;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
-using System.Net.Sockets;
 using System.Net.NetworkInformation;
-using Zeze.Util;
+using System.Net.Sockets;
 using System.Threading.Tasks;
+using Zeze.Serialize;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Net
 {
@@ -26,7 +26,7 @@ namespace Zeze.Net
 
         public ServiceConf Config { get; private set; }
         public readonly Application Zeze;
-        public readonly string Name;
+        public string Name { get; }
 
         protected readonly ConcurrentDictionary<long, AsyncSocket> SocketMap
             = new ConcurrentDictionary<long, AsyncSocket>();
@@ -271,10 +271,10 @@ namespace Zeze.Net
             ProtocolFactoryHandle factoryHandle)
         {
 #if !USE_CONFCS
-            if (null != Zeze && Transaction.TransactionLevel.None != factoryHandle.TransactionLevel)
+            if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
             {
                 _ = Mission.CallAsync(Zeze.NewProcedure(async () => await responseHandle(rpc),
-                    rpc.GetType().FullName + ":Response", factoryHandle.TransactionLevel, rpc.Sender?.UserState), rpc, null);
+                    rpc.GetType().FullName + ":Response", factoryHandle.TransactionLevel, rpc.Sender?.UserState), rpc);
             }
             else
 #endif
@@ -285,24 +285,21 @@ namespace Zeze.Net
 
         public virtual void DispatchProtocol2(object key, Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            if (null != factoryHandle.Handle)
+            if (factoryHandle.Handle != null)
             {
 #if !USE_CONFCS
-                if (null != Zeze && Transaction.TransactionLevel.None != factoryHandle.TransactionLevel)
+                if (Zeze != null && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
                     Zeze.TaskOneByOneByKey.Execute(key, Zeze.NewProcedure(
                             () => factoryHandle.Handle(p), p.GetType().FullName,
                             factoryHandle.TransactionLevel, p.Sender?.UserState),
-                            p, (p, code) => p.TrySendResultCode(code)
-                        );
+                            p, (p2, code) => p2.TrySendResultCode(code));
                 }
+                else if (Zeze != null)
+                    Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
                 else
-                {
-                    Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p, code) => p.TrySendResultCode(code));
-                }
-#else
-                _ = Mission.CallAsync(factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
 #endif
+                _ = Mission.CallAsync(factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
             }
             else
             {
@@ -329,10 +326,10 @@ namespace Zeze.Net
                     await Mission.CallAsync(factoryHandle.Handle, p);
                 }
 #if !USE_CONFCS
-                else if (null != Zeze && Transaction.TransactionLevel.None != factoryHandle.TransactionLevel)
+                else if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
                     _ = Mission.CallAsync(Zeze.NewProcedure(() => factoryHandle.Handle(p),
-                        p.GetType().FullName, factoryHandle.TransactionLevel, p.Sender?.UserState), p, null);
+                        p.GetType().FullName, factoryHandle.TransactionLevel, p.Sender?.UserState), p);
                 }
 #endif
                 else
@@ -399,14 +396,14 @@ namespace Zeze.Net
             }
         }
 
-        public readonly ConcurrentDictionary<long, ProtocolFactoryHandle> Factories
+        public readonly ConcurrentDictionary<long, ProtocolFactoryHandle> Factorys
             = new ConcurrentDictionary<long, ProtocolFactoryHandle>();
 
         public void AddFactoryHandle(long type, ProtocolFactoryHandle factory)
         {
-            if (!Factories.TryAdd(type, factory))
+            if (!Factorys.TryAdd(type, factory))
             {
-                Factories.TryGetValue(type, out var exist);
+                Factorys.TryGetValue(type, out var exist);
                 // ReSharper disable once PossibleNullReferenceException
                 var existType = exist.Factory().GetType();
                 throw new Exception(
@@ -436,13 +433,14 @@ namespace Zeze.Net
 
         public ProtocolFactoryHandle FindProtocolFactoryHandle(long type)
         {
-            return Factories.TryGetValue(type, out ProtocolFactoryHandle factory) ? factory : null;
+            return Factorys.TryGetValue(type, out ProtocolFactoryHandle factory) ? factory : null;
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// Rpc Context. 模板不好放进去，使用基类 Protocol
         private static readonly AtomicLong StaticSessionIdAtomicLong = new AtomicLong();
 
+        // ReSharper disable once UnassignedField.Global
         public Func<long> SessionIdGenerator;
 
         private readonly ConcurrentDictionary<long, Protocol> RpcContextsPrivate =
@@ -499,7 +497,7 @@ namespace Zeze.Net
                 {
                     context.SessionId = sessionId;
                     context.Service = this;
-                    Scheduler.Schedule((ThisTask) => TryRemoveManualContext<ManualContext>(sessionId, true), timeout);
+                    Scheduler.Schedule(_ => TryRemoveManualContext<ManualContext>(sessionId, true), timeout);
                     return sessionId;
                 }
             }

@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using Zeze.Serialize;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
-using System.Net.Sockets;
 using System.Net.NetworkInformation;
-using Zeze.Util;
+using System.Net.Sockets;
 using System.Threading.Tasks;
+using Zeze.Serialize;
 using Zeze.Transaction;
-
+using Zeze.Util;
 
 namespace Zeze.Net
 {
@@ -24,11 +23,12 @@ namespace Zeze.Net
         /// 同一个 Service 下的所有连接都是用相同配置。
         /// </summary>
         public SocketOptions SocketOptions { get; private set; } = new SocketOptions();
+
         public ServiceConf Config { get; private set; }
-        public Application Zeze { get; }
+        public readonly Application Zeze;
         public string Name { get; }
 
-        protected ConcurrentDictionary<long, AsyncSocket> SocketMap { get; }
+        protected readonly ConcurrentDictionary<long, AsyncSocket> SocketMap
             = new ConcurrentDictionary<long, AsyncSocket>();
 
         internal ConcurrentDictionary<long, AsyncSocket> SocketMapInternal => SocketMap;
@@ -163,7 +163,7 @@ namespace Zeze.Net
             // 一般实现：遍历RpcContexts，
             /*
             var ctxSends = GetRpcContextsToSender(so);
-            var ctxPending = RemoveRpcContets(ctxSends.Keys);
+            var ctxPending = RemoveRpcContexts(ctxSends.Keys);
             foreach (var ctx in ctxRemoved)
             {
                 // process
@@ -271,38 +271,35 @@ namespace Zeze.Net
             ProtocolFactoryHandle factoryHandle)
         {
 #if !USE_CONFCS
-            if (null != Zeze && Transaction.TransactionLevel.None != factoryHandle.TransactionLevel)
+            if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
             {
                 _ = Mission.CallAsync(Zeze.NewProcedure(async () => await responseHandle(rpc),
-                    rpc.GetType().FullName + ":Response", factoryHandle.TransactionLevel, rpc.Sender?.UserState), rpc, null);
+                    rpc.GetType().FullName + ":Response", factoryHandle.TransactionLevel, rpc.Sender?.UserState), rpc);
             }
             else
 #endif
             {
-                _ = Mission.CallAsync(responseHandle, rpc, null);
+                _ = Mission.CallAsync(responseHandle, rpc);
             }
         }
 
         public virtual void DispatchProtocol2(object key, Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            if (null != factoryHandle.Handle)
+            if (factoryHandle.Handle != null)
             {
 #if !USE_CONFCS
-                if (null != Zeze && Transaction.TransactionLevel.None != factoryHandle.TransactionLevel)
+                if (Zeze != null && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
                     Zeze.TaskOneByOneByKey.Execute(key, Zeze.NewProcedure(
                             () => factoryHandle.Handle(p), p.GetType().FullName,
                             factoryHandle.TransactionLevel, p.Sender?.UserState),
-                            p, (p, code) => p.TrySendResultCode(code)
-                        );
+                            p, (p2, code) => p2.TrySendResultCode(code));
                 }
+                else if (Zeze != null)
+                    Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
                 else
-                {
-                    Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p, code) => p.TrySendResultCode(code));
-                }
-#else
-                _ = Mission.CallAsync(factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
 #endif
+                _ = Mission.CallAsync(factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
             }
             else
             {
@@ -326,18 +323,18 @@ namespace Zeze.Net
                 if (IsHandshakeProtocol(p.TypeId))
                 {
                     // handshake protocol call direct in io-thread.
-                    await Mission.CallAsync(factoryHandle.Handle, p, null);
+                    await Mission.CallAsync(factoryHandle.Handle, p);
                 }
 #if !USE_CONFCS
-                else if (null != Zeze && Transaction.TransactionLevel.None != factoryHandle.TransactionLevel)
+                else if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
                     _ = Mission.CallAsync(Zeze.NewProcedure(() => factoryHandle.Handle(p),
-                        p.GetType().FullName, factoryHandle.TransactionLevel, p.Sender?.UserState), p, null);
+                        p.GetType().FullName, factoryHandle.TransactionLevel, p.Sender?.UserState), p);
                 }
 #endif
                 else
                 {
-                    _ = Mission.CallAsync(factoryHandle.Handle, p, null);
+                    _ = Mission.CallAsync(factoryHandle.Handle, p);
                 }
             }
             else
@@ -359,9 +356,9 @@ namespace Zeze.Net
         /// 协议工厂
         public class ProtocolFactoryHandle
         {
-            public Func<Protocol> Factory { get; set; }
-            public Func<Protocol, Task<long>> Handle { get; set; }
-            public Transaction.TransactionLevel TransactionLevel { get; set; } = TransactionLevel.Serializable;
+            public Func<Protocol> Factory;
+            public Func<Protocol, Task<long>> Handle;
+            public TransactionLevel TransactionLevel = TransactionLevel.Serializable;
             public bool NoProcedure => TransactionLevel == TransactionLevel.None;
 
             // 协议请求的派发（线程）模式。【警告，现在这个参数同时用于服务器和客户端，如果协议收发都需要处理时，无法支持两种派发模式】
@@ -372,7 +369,7 @@ namespace Zeze.Net
             // DispatchProtocol,DispatchProtocol2,DispatchRpcResponse
 
             // 收到的协议计数
-            public AtomicLong RecvCount { get; } = new AtomicLong();
+            public readonly AtomicLong RecvCount = new AtomicLong();
             private volatile ProtocolPool _ProtocolPool;
 
             public ProtocolPool ProtocolPool => _ProtocolPool;
@@ -381,7 +378,7 @@ namespace Zeze.Net
             {
                 lock (this)
                 {
-                    if (null == _ProtocolPool)
+                    if (_ProtocolPool == null)
                     {
                         var tmp = new ProtocolPool(Handle, level);
                         Handle = tmp.Process; // 先设置，拦截处理。
@@ -399,16 +396,18 @@ namespace Zeze.Net
             }
         }
 
-        public ConcurrentDictionary<long, ProtocolFactoryHandle> Factorys { get; }
+        public readonly ConcurrentDictionary<long, ProtocolFactoryHandle> Factorys
             = new ConcurrentDictionary<long, ProtocolFactoryHandle>();
 
         public void AddFactoryHandle(long type, ProtocolFactoryHandle factory)
         {
-            if (false == Factorys.TryAdd(type, factory))
+            if (!Factorys.TryAdd(type, factory))
             {
                 Factorys.TryGetValue(type, out var exist);
+                // ReSharper disable once PossibleNullReferenceException
                 var existType = exist.Factory().GetType();
-                throw new Exception($"duplicate factory type={type} moduleid={(type >> 32) & 0x7fff} id={type & 0x7fff} exist={existType}");
+                throw new Exception(
+                    $"duplicate factory type={type} moduleId={(type >> 32) & 0x7fff} id={type & 0x7fff} exist={existType}");
             }
         }
 
@@ -423,7 +422,7 @@ namespace Zeze.Net
                     var handler = Delegate.CreateDelegate(typeof(Func<T, int>), method);
                     return ((Func<T, int>)handler)((T)p);
                 }
-                else 
+                else
                 {
                     var handler = Delegate.CreateDelegate(typeof(Func<T, int>), target, method);
                     return ((Func<T, int>)handler)((T)p);
@@ -434,27 +433,24 @@ namespace Zeze.Net
 
         public ProtocolFactoryHandle FindProtocolFactoryHandle(long type)
         {
-            if (Factorys.TryGetValue(type, out ProtocolFactoryHandle factory))
-            {
-                return factory;
-            }
-
-            return null;
+            return Factorys.TryGetValue(type, out ProtocolFactoryHandle factory) ? factory : null;
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// Rpc Context. 模板不好放进去，使用基类 Protocol
-        private static AtomicLong StaticSessionIdAtomicLong { get; } = new AtomicLong();
-        public Func<long> SessionIdGenerator { get; set; }
+        private static readonly AtomicLong StaticSessionIdAtomicLong = new AtomicLong();
 
-        private readonly ConcurrentDictionary<long, Protocol> RpcContextsPrivate = new ConcurrentDictionary<long, Protocol>();
+        // ReSharper disable once UnassignedField.Global
+        public Func<long> SessionIdGenerator;
+
+        private readonly ConcurrentDictionary<long, Protocol> RpcContextsPrivate =
+            new ConcurrentDictionary<long, Protocol>();
+
         public IReadOnlyDictionary<long, Protocol> RpcContexts => RpcContextsPrivate;
 
         public long NextSessionId()
         {
-            if (null != SessionIdGenerator)
-                return SessionIdGenerator();
-            return StaticSessionIdAtomicLong.IncrementAndGet();
+            return SessionIdGenerator?.Invoke() ?? StaticSessionIdAtomicLong.IncrementAndGet();
         }
 
         internal long AddRpcContext(Protocol p)
@@ -463,9 +459,7 @@ namespace Zeze.Net
             {
                 long sessionId = NextSessionId();
                 if (RpcContextsPrivate.TryAdd(sessionId, p))
-                {
                     return sessionId;
-                }
             }
         }
 
@@ -476,26 +470,23 @@ namespace Zeze.Net
 
         internal T RemoveRpcContext<T>(long sid) where T : Protocol
         {
-            if (RpcContextsPrivate.TryRemove(sid, out var p))
-            {
-                return (T)p;
-            }
-            return null;
+            return RpcContextsPrivate.TryRemove(sid, out var p) ? (T)p : null;
         }
 
         public abstract class ManualContext
         {
             public long SessionId { get; internal set; }
-            public object UserState { get; set; }
-            public Service Service { get; set; }
-            public bool IsTimeout { get; internal set; } = false;
+            public object UserState;
+            public Service Service;
+            public bool IsTimeout { get; internal set; }
 
             public virtual void OnRemoved()
             {
             }
         }
 
-        private readonly ConcurrentDictionary<long, ManualContext> ManualContexts = new ConcurrentDictionary<long, ManualContext>();
+        private readonly ConcurrentDictionary<long, ManualContext> ManualContexts =
+            new ConcurrentDictionary<long, ManualContext>();
 
         public long AddManualContextWithTimeout(ManualContext context, long timeout = 10 * 1000)
         {
@@ -506,7 +497,7 @@ namespace Zeze.Net
                 {
                     context.SessionId = sessionId;
                     context.Service = this;
-                    Util.Scheduler.Schedule((ThisTask) => TryRemoveManualContext<ManualContext>(sessionId, true), timeout);
+                    Scheduler.Schedule(_ => TryRemoveManualContext<ManualContext>(sessionId, true), timeout);
                     return sessionId;
                 }
             }
@@ -514,9 +505,7 @@ namespace Zeze.Net
 
         public T TryGetManualContext<T>(long sessionId) where T : ManualContext
         {
-            if (ManualContexts.TryGetValue(sessionId, out var c))
-                return (T)c;
-            return null;
+            return ManualContexts.TryGetValue(sessionId, out var c) ? (T)c : null;
         }
 
         public T TryRemoveManualContext<T>(long sessionId) where T : ManualContext
@@ -539,30 +528,25 @@ namespace Zeze.Net
         public void Foreach(Action<AsyncSocket> action)
         {
             foreach (var socket in SocketMap.Values)
-            {
                 action(socket);
-            }
         }
 
         public static string GetOneNetworkInterfaceIpAddress(AddressFamily family = AddressFamily.Unspecified)
         {
-            foreach (NetworkInterface neti in NetworkInterface.GetAllNetworkInterfaces())
+            foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
             {
-                if (neti.NetworkInterfaceType == NetworkInterfaceType.Loopback)
+                if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback)
                     continue;
 
-                IPInterfaceProperties property = neti.GetIPProperties();
+                IPInterfaceProperties property = ni.GetIPProperties();
                 foreach (UnicastIPAddressInformation ip in property.UnicastAddresses)
                 {
                     switch (ip.Address.AddressFamily)
                     {
                         case AddressFamily.InterNetworkV6:
                         case AddressFamily.InterNetwork:
-                            if (family == AddressFamily.Unspecified
-                                || family == ip.Address.AddressFamily)
-                            {
+                            if (family == AddressFamily.Unspecified || family == ip.Address.AddressFamily)
                                 return ip.Address.ToString();
-                            }
                             continue;
                     }
                 }
@@ -575,20 +559,19 @@ namespace Zeze.Net
             string ip = string.Empty;
             int port = 0;
 
-            Config.ForEachAcceptor(
-                (a) =>
+            Config.ForEachAcceptor(a =>
+            {
+                if (!string.IsNullOrEmpty(a.Ip) && a.Port != 0)
                 {
-                    if (false == string.IsNullOrEmpty(a.Ip) && a.Port != 0)
-                    {
-                        // 找到ip，port都配置成明确地址的。
-                        ip = a.Ip;
-                        port = a.Port;
-                        return false;
-                    }
-                    // 获得最后一个配置的port。允许返回(null, port)。
+                    // 找到ip，port都配置成明确地址的。
+                    ip = a.Ip;
                     port = a.Port;
-                    return true;
-                });
+                    return false;
+                }
+                // 获得最后一个配置的port。允许返回(null, port)。
+                port = a.Port;
+                return true;
+            });
 
             return (ip, port);
         }
@@ -615,6 +598,7 @@ namespace Zeze.Net
             return (ip, port);
         }
 
+        // ReSharper disable UnusedParameter.Global
         public virtual bool CheckThrottle(AsyncSocket sender, int moduleId, int protocolId, int size)
         {
 #if !USE_CONFCS
@@ -633,5 +617,6 @@ namespace Zeze.Net
         {
             return false;
         }
+        // ReSharper restore UnusedParameter.Global
     }
 }

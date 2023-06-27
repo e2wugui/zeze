@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using Zeze.Serialize;
 
@@ -17,7 +16,7 @@ namespace Zeze.Transaction
         //public void Rollback() { } // 一般的操作日志不需要实现，特殊日志可能需要。先不实现，参见Savepoint.
 
         public virtual long LogKey => Belong.ObjectId + VariableId;
-        public Bean Belong { get; set; }
+        public Bean Belong;
 
         public virtual void Collect(Changes changes, Bean recent, Log vlog)
         {
@@ -31,32 +30,32 @@ namespace Zeze.Transaction
 #endif
         // 会被系列化，实际上由LogBean管理。
         public abstract int TypeId { get; }
-        public int VariableId { get; set; }
+        public int VariableId;
 
         public abstract void Encode(ByteBuffer bb);
         public abstract void Decode(ByteBuffer bb);
 
-        public static ConcurrentDictionary<int, Func<Log>> Factorys { get; } = new ConcurrentDictionary<int, Func<Log>>();
+        public static readonly ConcurrentDictionary<int, Func<Log>> Factories = new ConcurrentDictionary<int, Func<Log>>();
 
         public static Log Create(int typeId)
         {
-            if (Factorys.TryGetValue(typeId, out var factory))
+            if (Factories.TryGetValue(typeId, out var factory))
                 return factory();
             throw new Exception($"unknown log typeId={typeId}");
         }
 
         public static void Register<T>() where T : Log, new()
         {
-            Factorys.TryAdd(new T().TypeId, () => new T());
+            Factories.TryAdd(new T().TypeId, () => new T());
         }
     }
 
     public class Log<T> : Log
     {
-        public readonly static string StableName = Util.Reflect.GetStableName(typeof(Log<T>));
-        public readonly static int TypeId_ = Util.FixedHash.Hash32(StableName);
+        public static readonly string StableName = Util.Reflect.GetStableName(typeof(Log<T>));
+        public static readonly int TypeId_ = Util.FixedHash.Hash32(StableName);
 
-        public T Value { get; set; }
+        public T Value;
 
         public override int TypeId => TypeId_;
 
@@ -76,7 +75,6 @@ namespace Zeze.Transaction
         }
 
 #if !USE_CONFCS
-        
         internal override void EndSavepoint(Savepoint currentsp)
         {
             currentsp.Logs[LogKey] = this;
