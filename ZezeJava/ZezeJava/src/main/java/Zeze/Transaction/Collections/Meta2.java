@@ -27,7 +27,7 @@ public final class Meta2<K, V> {
 	final MethodHandle valueFactory; // 只用于Bean类型
 
 	private Meta2(long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		logTypeId = Bean.hashLog(headHash, valueClass);
+		logTypeId = Bean.hashLog(headHash, keyClass, valueClass);
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		var valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 		keyEncoder = keyCodecFuncs.encoder;
@@ -38,7 +38,7 @@ public final class Meta2<K, V> {
 	}
 
 	private Meta2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
-		logTypeId = Bean.hashLog(map2HeadHash, DynamicBean.class);
+		logTypeId = Bean.hashLog(map2HeadHash, keyClass, DynamicBean.class);
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		keyEncoder = keyCodecFuncs.encoder;
 		keyDecoder = keyCodecFuncs.decoder;
