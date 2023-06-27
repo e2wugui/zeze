@@ -32,6 +32,27 @@ public class DbWeb extends AbstractDbWeb {
 	private Application zeze;
 	private String cachedListHtml;
 
+	public static String toJsonForView(Object obj) {
+		var jw = JsonWriter.local().clear();
+		var oldFlags = jw.getFlags();
+		var oldDepth = jw.getDepthLimit();
+		var str = jw.setFlagsAndDepthLimit(JsonWriter.FLAG_PRETTY_FORMAT | JsonWriter.FLAG_WRAP_ELEMENT, 16)
+				.write(obj).toString();
+		jw.setFlags(oldFlags);
+		jw.setDepthLimit(oldDepth);
+		return str;
+	}
+
+	public static String toJsonForCompact(Object obj) {
+		var jw = JsonWriter.local().clear();
+		var oldFlags = jw.getFlags();
+		var oldDepth = jw.getDepthLimit();
+		var str = jw.setFlagsAndDepthLimit(JsonWriter.FLAG_NO_QUOTE_KEY, 16).write(obj).toString();
+		jw.setFlags(oldFlags);
+		jw.setDepthLimit(oldDepth);
+		return str;
+	}
+
 	@Override
 	public void Initialize(AppBase app) {
 		super.Initialize(app);
@@ -126,13 +147,15 @@ public class DbWeb extends AbstractDbWeb {
 			var sb = new StringBuilder("<html><head><meta http-equiv=content-type content=text/html;charset=utf-8 />\n"
 					+ "<title>WalkTable</title></head><body><style>a{text-decoration:none}</style>\n");
 			for (var k : keys) {
+				var ks = k instanceof Serializable ? toJsonForCompact(k) : k.toString();
 				sb.append("<p><a href=\"GetValue?t=").append(tableName).append("&k=")
-						.append(URLEncoder.encode(k.toString(), StandardCharsets.UTF_8)).append("\">")
-						.append(tableName).append(": ").append(k).append("</a>\n");
+						.append(URLEncoder.encode(ks, StandardCharsets.UTF_8)).append("\">")
+						.append(tableName).append(": ").append(ks).append("</a>\n");
 			}
 			if (lastKey != null && keys.size() >= count) {
+				var ks = lastKey instanceof Serializable ? toJsonForCompact(lastKey) : lastKey.toString();
 				sb.append("<hr><a href=\"WalkTable?t=").append(tableName).append("&k=")
-						.append(URLEncoder.encode(lastKey.toString(), StandardCharsets.UTF_8));
+						.append(URLEncoder.encode(ks, StandardCharsets.UTF_8));
 				if (n != null)
 					sb.append("&n=").append(n);
 				sb.append("\">NEXT</a>\n");
@@ -164,12 +187,8 @@ public class DbWeb extends AbstractDbWeb {
 				return;
 			}
 			var k = parseKey(table, key);
-			var jw = JsonWriter.local().clear();
-			var oldFlags = jw.getFlags();
 			var v = selectDirty(table, k);
-			var vs = jw.setPrettyFormat(true).setWrapElement(true).write(v).toString();
-			jw.setFlags(oldFlags);
-			x.sendPlainText(HttpResponseStatus.OK, vs);
+			x.sendPlainText(HttpResponseStatus.OK, toJsonForView(v));
 		} catch (Exception e) {
 			x.sendPlainText(HttpResponseStatus.OK, Str.stacktrace(e));
 		}
