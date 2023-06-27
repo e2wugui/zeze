@@ -25,6 +25,11 @@ namespace Zege.User
         public int ServerId;
         public String NotifyId;
 
+        public async Task<X509Certificate2> GetMyPrivateCertificate()
+        {
+            return await GetLastPrivateCertificate(Account);
+        }
+
         public async Task<X509Certificate2> GetLastPrivateCertificate(string account)
         {
             var last = await SecureStorage.Default.GetAsync(account + ".LastCertIndex");

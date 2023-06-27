@@ -51,7 +51,7 @@ public partial class NotifyPage : ContentPage
             case BNotify.eTypeGroupCert:
                 if (notify.Properties.TryGetValue("group", out var group) && notify.Properties.TryGetValue("lastCertIndex", out var lastCertIndex))
                 {
-                    var cert = await AppShell.Instance.App.Zege_User.GetPrivateCertificate(group, long.Parse(lastCertIndex));
+                    var cert = await AppShell.Instance.App.Zege_User.GetMyPrivateCertificate();
                     if (cert != null)
                     {
                         var pkcs12 = Cert.DecryptAesWithRsa(cert, notify.Data.GetBytesUnsafe(), notify.Data.Offset, notify.Data.Count);
