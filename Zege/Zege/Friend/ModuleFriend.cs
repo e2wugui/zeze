@@ -167,7 +167,7 @@ namespace Zege.Friend
             return r.ResultCode;
         }
 
-        public async void ReturnTop()
+        public async Task ReturnTop()
         {
             await AppShell.Instance.DisplayAlertAsync("!!!", "NotImplementedException");
         }

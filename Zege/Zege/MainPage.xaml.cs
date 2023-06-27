@@ -98,9 +98,9 @@ namespace Zege
                 await AppShell.Instance.DisplayAlertAsync("SetTopmost Error", "Code=" + r);
         }
 
-        private void OnReturnTop(object sender, EventArgs e)
+        private async void OnReturnTop(object sender, EventArgs e)
         {
-            AppShell.Instance.App?.Zege_Friend.ReturnTop();
+            await AppShell.Instance.App?.Zege_Friend.ReturnTop();
         }
 
         private Window CreateGroupWindow;
