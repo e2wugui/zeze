@@ -69,7 +69,7 @@ namespace Zeze.Transaction.Collections
             else
             {
                 bb.WriteBool(false); // Value Tag
-                if (null != LogBean)
+                if (LogBean != null)
                 {
                     bb.WriteBool(true);
                     LogBean.Encode(bb);

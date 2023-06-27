@@ -180,7 +180,7 @@ namespace Zeze.Net
         {
             lock (this)
             {
-                if (false == AutoReconnect || null != Socket || null != ReconnectTask)
+                if (!AutoReconnect || Socket != null || ReconnectTask != null)
                     return;
 
                 if (ReConnectDelay <= 0)
@@ -215,7 +215,7 @@ namespace Zeze.Net
                 ReconnectTask?.Cancel();
                 ReconnectTask = null;
 
-                if (null == Socket)
+                if (Socket == null)
                     return; // not start or has stopped.
 
                 IsConnected = false;

@@ -121,7 +121,7 @@ namespace Zeze.Transaction
                 // 对状态正确性没有影响。
                 currentT.Rollback();
                 logger.Debug(gobackzeze);
-                throw gobackzeze;
+                throw;
             }
             catch (Exception e)
             {

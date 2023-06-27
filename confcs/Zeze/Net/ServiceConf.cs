@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Xml;
 using System.Collections.Concurrent;
+using System.Net;
 using Zeze.Services;
 using System.Threading.Tasks;
 using Zeze.Util;
@@ -194,7 +195,7 @@ namespace Zeze.Net
                 }
             }
             attr = self.GetAttribute("SecureIp");
-            if (attr.Length > 0) HandshakeOptions.SecureIp = System.Net.IPAddress.Parse(attr).GetAddressBytes();
+            if (attr.Length > 0) HandshakeOptions.SecureIp = IPAddress.Parse(attr).GetAddressBytes();
             attr = self.GetAttribute("CompressS2c");
             if (attr.Length > 0) HandshakeOptions.CompressS2c = int.Parse(attr);
             attr = self.GetAttribute("CompressC2s");

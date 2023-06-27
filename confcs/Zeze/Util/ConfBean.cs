@@ -104,10 +104,9 @@ namespace Zeze.Util
         public ConfBean Bean
         {
             get => _Bean;
-
             set
             {
-                if (null == value)
+                if (value == null)
                     throw new ArgumentNullException(nameof(value));
 
                 _TypeId = GetSpecialTypeIdFromBean(value);

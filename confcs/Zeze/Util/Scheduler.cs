@@ -34,7 +34,7 @@ namespace Zeze.Util
                 throw new ArgumentException("initialDelay < 0");
 
             var task = new SchedulerTaskAction(action);
-            if (false == Instance.Timers.TryAdd(task, task))
+            if (!Instance.Timers.TryAdd(task, task))
                 throw new Exception("Impossible!");
             // 首先启动用一分钟创建Timer，然后Change成真正的参数，确保task.Timer在Timer触发的时候已被初始化。
             task.Timer = new Timer(task.Run, period, 60 * 1000, Timeout.Infinite);
@@ -58,7 +58,7 @@ namespace Zeze.Util
                 throw new ArgumentException("initialDelay < 0");
 
             var task = new SchedulerTaskAsyncAction(action);
-            if (false == Instance.Timers.TryAdd(task, task))
+            if (!Instance.Timers.TryAdd(task, task))
                 throw new Exception("Impossible!");
             // 首先启动用一分钟创建Timer，然后Change成真正的参数，确保task.Timer在Timer触发的时候已被初始化。
             task.Timer = new Timer(task.Run, period, 60 * 1000, Timeout.Infinite);

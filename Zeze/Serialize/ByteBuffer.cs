@@ -256,7 +256,7 @@ namespace Zeze.Serialize
         public void WriteInt4(int x)
         {
             byte[] bs = BitConverter.GetBytes(x);
-            //if (false == BitConverter.IsLittleEndian)
+            //if (!BitConverter.IsLittleEndian)
             //    Array.Reverse(bs);
             Append(bs);
         }
@@ -274,7 +274,7 @@ namespace Zeze.Serialize
         public void WriteLong8(long x)
         {
             byte[] bs = BitConverter.GetBytes(x);
-            //if (false == BitConverter.IsLittleEndian)
+            //if (!BitConverter.IsLittleEndian)
             //    Array.Reverse(bs);
             Append(bs);
         }

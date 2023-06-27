@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Xml;
 
 namespace Zeze.Net
@@ -44,7 +45,7 @@ namespace Zeze.Net
 
                 Socket = Ip.Length > 0
                     ? Service.NewServerSocket(Ip, Port, this)
-                    : Service.NewServerSocket(System.Net.IPAddress.Any, Port, this);
+                    : Service.NewServerSocket(IPAddress.Any, Port, this);
             }
         }
 

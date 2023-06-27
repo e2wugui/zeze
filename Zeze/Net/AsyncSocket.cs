@@ -63,9 +63,7 @@ namespace Zeze.Net
 
         private static long NextSessionId()
         {
-            if (null != SessionIdGenFunc)
-                return SessionIdGenFunc();
-            return SessionIdGen.IncrementAndGet();
+            return SessionIdGenFunc?.Invoke() ?? SessionIdGen.IncrementAndGet();
         }
         /// <summary>
         /// for server socket
@@ -83,7 +81,7 @@ namespace Zeze.Net
 
             // xxx 只能设置到 ServerSocket 中，以后 Accept 的连接通过继承机制得到这个配置。
             // 不知道 c# 会不会也这样，先这样写。
-            if (null != service.SocketOptions.ReceiveBuffer)
+            if (service.SocketOptions.ReceiveBuffer != null)
                 Socket.ReceiveBufferSize = service.SocketOptions.ReceiveBuffer.Value;
 
             Socket.Bind(localEP);
@@ -111,11 +109,11 @@ namespace Zeze.Net
             Socket.Blocking = false;
 
             // 据说连接接受以后设置无效，应该从 ServerSocket 继承
-            if (null != service.SocketOptions.ReceiveBuffer)
+            if (service.SocketOptions.ReceiveBuffer != null)
                 Socket.ReceiveBufferSize = service.SocketOptions.ReceiveBuffer.Value;
-            if (null != service.SocketOptions.SendBuffer)
+            if (service.SocketOptions.SendBuffer != null)
                 Socket.SendBufferSize = service.SocketOptions.SendBuffer.Value;
-            if (null != service.SocketOptions.NoDelay)
+            if (service.SocketOptions.NoDelay != null)
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
             SessionId = NextSessionId();
@@ -143,11 +141,11 @@ namespace Zeze.Net
             };
             UserState = userState;
 
-            if (null != service.SocketOptions.ReceiveBuffer)
+            if (service.SocketOptions.ReceiveBuffer != null)
                 Socket.ReceiveBufferSize = service.SocketOptions.ReceiveBuffer.Value;
-            if (null != service.SocketOptions.SendBuffer)
+            if (service.SocketOptions.SendBuffer != null)
                 Socket.SendBufferSize = service.SocketOptions.SendBuffer.Value;
-            if (null != service.SocketOptions.NoDelay)
+            if (service.SocketOptions.NoDelay != null)
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
             SessionId = NextSessionId();
@@ -162,7 +160,7 @@ namespace Zeze.Net
             lock (this)
             {
                 Codec chain = outputCodecBuffer;
-                if (null != key)
+                if (key != null)
                     chain = new Encrypt(chain, key);
                 if (compress != 0)
                     chain = new Compress(chain);
@@ -189,7 +187,7 @@ namespace Zeze.Net
                 Codec chain = inputCodecBuffer;
                 if (compress != 0)
                     chain = new Decompress(chain);
-                if (null != key)
+                if (key != null)
                     chain = new Decrypt(chain, key);
                 inputCodecChain?.Dispose();
                 inputCodecChain = chain;
@@ -233,7 +231,7 @@ namespace Zeze.Net
                 {
                     if (_closedState != 0)
                         return false;
-                    if (null != outputCodecChain)
+                    if (outputCodecChain != null)
                     {
                         // 压缩加密等 codec 链操作。
                         outputCodecBuffer.Buffer.EnsureWrite(length); // reserve
@@ -249,25 +247,25 @@ namespace Zeze.Net
                         outputCodecBuffer.Buffer.FreeInternalBuffer();
                     }
 
-                    if (null == _outputBufferList)
+                    if (_outputBufferList == null)
                         _outputBufferList = new List<ArraySegment<byte>>();
                     _outputBufferList.Add(new ArraySegment<byte>(bytes, offset, length));
                     _outputBufferListCountSum += length;
 
-                    if (null == _outputBufferListSending) // 没有在发送中，马上请求发送，否则等回调处理。
+                    if (_outputBufferListSending == null) // 没有在发送中，马上请求发送，否则等回调处理。
                     {
                         _outputBufferListSending = _outputBufferList;
                         _outputBufferList = null;
                         _outputBufferListSendingCountSum = _outputBufferListCountSum;
                         _outputBufferListCountSum = 0;
 
-                        if (null == eventArgsSend)
+                        if (eventArgsSend == null)
                         {
                             eventArgsSend = new SocketAsyncEventArgs();
                             eventArgsSend.Completed += OnAsyncIOCompleted;
                         }
                         eventArgsSend.BufferList = _outputBufferListSending;
-                        if (false == Socket.SendAsync(eventArgsSend))
+                        if (!Socket.SendAsync(eventArgsSend))
                             ProcessSend(eventArgsSend);
                     }
                     return true;
@@ -316,7 +314,7 @@ namespace Zeze.Net
         private void BeginAcceptAsync()
         {
             eventArgsAccept.AcceptSocket = null;
-            if (false == Socket.AcceptAsync(eventArgsAccept))
+            if (!Socket.AcceptAsync(eventArgsAccept))
                 ProcessAccept(eventArgsAccept);
         }
 
@@ -350,9 +348,7 @@ namespace Zeze.Net
             }
             /*
             else
-            {
-                Console.WriteLine("ProcessAccept " + e.SocketError);
-            }
+                Console.Error.WriteLine("ProcessAccept " + e.SocketError);
             */
         }
 
@@ -419,14 +415,14 @@ namespace Zeze.Net
 
         private void BeginReceiveAsync()
         {
-            if (null == eventArgsReceive)
+            if (eventArgsReceive == null)
             {
                 eventArgsReceive = new SocketAsyncEventArgs();
                 eventArgsReceive.Completed += OnAsyncIOCompleted;
             }
 
             eventArgsReceive.SetBuffer(_inputBuffer, 0, _inputBuffer.Length);
-            if (false == Socket.ReceiveAsync(eventArgsReceive))
+            if (!Socket.ReceiveAsync(eventArgsReceive))
                 ProcessReceive(eventArgsReceive);
         }
 
@@ -434,7 +430,7 @@ namespace Zeze.Net
         {
             if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
             {
-                if (null != inputCodecChain)
+                if (inputCodecChain != null)
                 {
                     // 解密解压处理，处理结果直接加入 inputCodecBuffer。
                     inputCodecBuffer.Buffer.EnsureWrite(e.BytesTransferred);
@@ -547,7 +543,7 @@ namespace Zeze.Net
                     _outputBufferListSendingCountSum = _outputBufferListCountSum;
                     _outputBufferListCountSum = 0;
                 }
-                else if (null != _outputBufferList)
+                else if (_outputBufferList != null)
                 {
                     // 没有发送完，并且有要发送的
                     _outputBufferListSending.AddRange(_outputBufferList);
@@ -562,10 +558,10 @@ namespace Zeze.Net
                     _outputBufferListSendingCountSum -= _bytesTransferred;
                 }
 
-                if (null != _outputBufferListSending) // 全部发送完，并且 _outputBufferList == null 时，可能为 null
+                if (_outputBufferListSending != null) // 全部发送完，并且 _outputBufferList == null 时，可能为 null
                 {
                     eventArgsSend.BufferList = _outputBufferListSending;
-                    if (false == Socket.SendAsync(eventArgsSend))
+                    if (!Socket.SendAsync(eventArgsSend))
                         ProcessSend(eventArgsSend);
 
                 }
@@ -582,12 +578,14 @@ namespace Zeze.Net
         public void Close(Exception e)
         {
             LastException = e;
-            if (null != e)
+            if (e != null)
             {
 #if HAS_NLOG
                 logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), e, "Close");
 #elif HAS_MYLOG
                 logger.Log(Service.SocketOptions.SocketLogLevel, e, "Close");
+#else
+                Console.Error.WriteLine(e);
 #endif
             }
             Dispose();
@@ -607,13 +605,9 @@ namespace Zeze.Net
                 realClose = _outputBufferListSending == null;
             }
             if (realClose)
-            {
                 RealClose();
-            }
             else
-            {
-                Scheduler.Schedule((ThisTask) => RealClose(), 120 * 1000);
-            }
+                Scheduler.Schedule(_ => RealClose(), 120 * 1000);
         }
 
         private void Trigger()

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.IO;
 #if !USE_CONFCS
 using System.Collections.Generic;
 using System.Text;
@@ -89,9 +90,7 @@ namespace Zeze
         public TableConf GetTableConf(string name)
         {
             if (TableConfMap.TryGetValue(name, out var tableConf))
-            {
                 return tableConf;
-            }
             return DefaultTableConf;
         }
 
@@ -123,23 +122,19 @@ namespace Zeze
         {
             // add other database
             foreach (var db in DatabaseConfMap.Values)
-            {
                 map.Add(db.Name, CreateDatabase(zeze, db.DatabaseType, db));
-            }
         }
 
         public void ClearInUseAndIAmSureAppStopped(Application zeze,
             Dictionary<string, Transaction.Database> databases = null)
         {
-            if (null == databases)
+            if (databases == null)
             {
                 databases = new Dictionary<string, Transaction.Database>();
                 CreateDatabase(zeze, databases);
             }
             foreach (var db in databases.Values)
-            {
                 db.DirectOperates.ClearInUse(ServerId, GlobalCacheManagerHostNameOrAddress);
-            }
         }
 #endif
 
@@ -149,9 +144,7 @@ namespace Zeze
 
         public ServiceConf GetServiceConf(string name)
         {
-            if (ServiceConfMap.TryGetValue(name, out var serviceConf))
-                return serviceConf;
-            return null;
+            return ServiceConfMap.TryGetValue(name, out var serviceConf) ? serviceConf : null;
         }
 
         /// <summary>
@@ -170,7 +163,7 @@ namespace Zeze
 
         public Config LoadAndParse(string xmlFile = "zeze.xml")
         {
-            if (System.IO.File.Exists(xmlFile))
+            if (File.Exists(xmlFile))
             {
                 XmlDocument doc = new XmlDocument();
                 doc.Load(xmlFile);
@@ -178,14 +171,12 @@ namespace Zeze
             }
 
 #if !USE_CONFCS
-            if (null == DefaultTableConf)
+            if (DefaultTableConf == null)
                 DefaultTableConf = new TableConf();
             if (DatabaseConfMap.Count == 0) // add default databaseConf.
             {
                 if (!DatabaseConfMap.TryAdd("", new DatabaseConf()))
-                {
                     throw new Exception("Concurrent Add Default Database.");
-                }
             }
 #endif
             return this;
@@ -193,7 +184,7 @@ namespace Zeze
 
         public void Parse(XmlElement self)
         {
-            if (false == self.Name.Equals("zeze"))
+            if (!self.Name.Equals("zeze"))
                 throw new Exception("is it a zeze config.");
 
             var attr = self.GetAttribute("ProcessReturnErrorLogLevel");
@@ -295,7 +286,7 @@ namespace Zeze
 
                     case "CustomizeConf":
                         var cname = e.GetAttribute("Name").Trim();
-                        if (false == Customizes.TryAdd(cname, e))
+                        if (!Customizes.TryAdd(cname, e))
                             throw new Exception($"Unknown CustomizeConf Name='{cname}'");
                         break;
 
@@ -336,7 +327,7 @@ namespace Zeze
                             throw new Exception("unknown node name: " + e.Name);
                     }
                 }
-                if (null != conf.GlobalCacheManagers)
+                if (conf.GlobalCacheManagers != null)
                     throw new Exception("too many GlobalCacheManagersConf.");
                 conf.GlobalCacheManagers = this;
             }

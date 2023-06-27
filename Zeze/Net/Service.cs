@@ -16,7 +16,7 @@ namespace Zeze.Net
 #if HAS_NLOG
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 #elif HAS_MYLOG
-        private static readonly Zeze.MyLog logger = global::Zeze.MyLog.GetLogger(typeof(Service));
+        private static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(Service));
 #endif
 
         /// <summary>
@@ -36,11 +36,11 @@ namespace Zeze.Net
         private void InitConfig(Config config)
         {
             Config = config?.GetServiceConf(Name);
-            if (null == Config)
+            if (Config == null)
             {
                 // setup program default
                 Config = new ServiceConf();
-                if (null != config)
+                if (config != null)
                 {
                     // reference to config default
                     Config.SocketOptions = config.DefaultServiceConf.SocketOptions;
@@ -140,12 +140,14 @@ namespace Zeze.Net
         {
             SocketMap.TryRemove(new KeyValuePair<long, AsyncSocket>(so.SessionId, so));
 
-            if (null != e)
+            if (e != null)
             {
 #if HAS_NLOG
                 logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), e, "OnSocketClose");
 #elif HAS_MYLOG
                 logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketClose");
+#else
+                Console.Error.WriteLine(e);
 #endif
             }
         }
@@ -189,11 +191,9 @@ namespace Zeze.Net
             var result = new List<Protocol>(sids.Count);
             foreach (var sid in sids)
             {
-                var ctx = this.RemoveRpcContext<Protocol>(sid);
-                if (null != ctx)
-                {
+                var ctx = RemoveRpcContext<Protocol>(sid);
+                if (ctx != null)
                     result.Add(ctx);
-                }
             }
             return result;
         }
@@ -232,15 +232,20 @@ namespace Zeze.Net
             logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), e, "OnSocketConnectError");
 #elif HAS_MYLOG
             logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketConnectError");
+#else
+            Console.Error.WriteLine($"OnSocketConnectError: {e}");
 #endif
         }
 
+        // ReSharper disable once UnusedParameter.Global
         public virtual void OnSocketAcceptError(AsyncSocket listener, Exception e)
         {
 #if HAS_NLOG
             logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), e, $"OnSocketAcceptError {listener}");
 #elif HAS_MYLOG
             logger.Log(SocketOptions.SocketLogLevel, e, $"OnSocketAcceptError {listener}");
+#else
+            Console.Error.WriteLine($"OnSocketAcceptError: {e}");
 #endif
         }
 
@@ -266,12 +271,11 @@ namespace Zeze.Net
         }
 
         // 用来派发异步rpc回调。
-        public virtual void DispatchRpcResponse(Protocol rpc,
-            Func<Protocol, Task<long>> responseHandle,
+        public virtual void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
 #if !USE_CONFCS
-            if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
+            if (Zeze != null && TransactionLevel.None != factoryHandle.TransactionLevel)
             {
                 _ = Mission.CallAsync(Zeze.NewProcedure(async () => await responseHandle(rpc),
                     rpc.GetType().FullName + ":Response", factoryHandle.TransactionLevel, rpc.Sender?.UserState), rpc);
@@ -307,6 +311,8 @@ namespace Zeze.Net
                 logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), "Protocol Handle Not Found. {0}", p);
 #elif HAS_MYLOG
                 logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}", p);
+#else
+                Console.Error.WriteLine($"Protocol Handle Not Found. {p}");
 #endif
             }
         }
@@ -318,7 +324,7 @@ namespace Zeze.Net
 
         public virtual async void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            if (null != factoryHandle.Handle)
+            if (factoryHandle.Handle != null)
             {
                 if (IsHandshakeProtocol(p.TypeId))
                 {
@@ -326,7 +332,7 @@ namespace Zeze.Net
                     await Mission.CallAsync(factoryHandle.Handle, p);
                 }
 #if !USE_CONFCS
-                else if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
+                else if (Zeze != null && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
                     _ = Mission.CallAsync(Zeze.NewProcedure(() => factoryHandle.Handle(p),
                         p.GetType().FullName, factoryHandle.TransactionLevel, p.Sender?.UserState), p);
@@ -343,6 +349,8 @@ namespace Zeze.Net
                 logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), "Protocol Handle Not Found. {0}", p);
 #elif HAS_MYLOG
                 logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}", p);
+#else
+                Console.Error.WriteLine($"Protocol Handle Not Found. {p}");
 #endif
             }
         }
@@ -406,8 +414,7 @@ namespace Zeze.Net
                 Factorys.TryGetValue(type, out var exist);
                 // ReSharper disable once PossibleNullReferenceException
                 var existType = exist.Factory().GetType();
-                throw new Exception(
-                    $"duplicate factory type={type} moduleId={(type >> 32) & 0x7fff} id={type & 0x7fff} exist={existType}");
+                throw new Exception($"duplicate factory type={type} moduleId={(type >> 32) & 0x7fff} id={type & 0x7fff} exist={existType}");
             }
         }
 
@@ -603,9 +610,9 @@ namespace Zeze.Net
         {
 #if !USE_CONFCS
             var throttle = sender.TimeThrottle;
-            if (null != throttle && false == throttle.CheckNow(size))
+            if (throttle != null && !throttle.CheckNow(size))
             {
-                // TrySendResultCode(Zeze.Util.ResultCode.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
+                // TrySendResultCode(ResultCode.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
                 sender.Dispose();
                 return false; // 超过速度控制，丢弃这条协议。
             }

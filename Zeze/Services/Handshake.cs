@@ -87,7 +87,7 @@ namespace Zeze.Services
 #if HAS_NLOG
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 #elif HAS_MYLOG
-        private static readonly Zeze.MyLog logger = global::Zeze.MyLog.GetLogger(typeof(HandshakeBase));
+        private static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(HandshakeBase));
 #endif
 
         private readonly HashSet<long> HandshakeProtocols = new HashSet<long>();
@@ -196,7 +196,7 @@ namespace Zeze.Services
                 {
                     // 当group采用客户端参数时需要检查参数正确性，现在统一采用了1，不需要检查了。
                     /*
-                    if (false == Config.HandshakeOptions.DhGroups.Contains(group))
+                    if (!Config.HandshakeOptions.DhGroups.Contains(group))
                     {
                         p.Sender.Close(new Exception("dhGroup Not Supported"));
                         return Task.FromResult(0L);
@@ -208,8 +208,9 @@ namespace Zeze.Services
                     byte[] material = Handshake.Helper.ComputeDHKey(group, data, rand).ToByteArray();
                     Array.Reverse(material);
                     IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
-                    //logger.Debug(ipaddress);
-                    if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
+                    // logger.Debug(ipaddress);
+                    if (ipaddress.IsIPv4MappedToIPv6)
+                        ipaddress = ipaddress.MapToIPv4();
                     byte[] key = Config.HandshakeOptions.SecureIp ?? ipaddress.GetAddressBytes();
 #if HAS_NLOG || HAS_MYLOG
                     logger.Debug("{0} localip={1}", p.Sender.SessionId, BitConverter.ToString(key));

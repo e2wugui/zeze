@@ -32,6 +32,8 @@ namespace Zeze.Util
             {
 #if HAS_NLOG || HAS_MYLOG
                 logger.Error(ex, actionName);
+#else
+                Console.Error.WriteLine($"{actionName}: {ex}");
 #endif
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
@@ -52,6 +54,8 @@ namespace Zeze.Util
             {
 #if HAS_NLOG || HAS_MYLOG
                 logger.Error(ex, actionName);
+#else
+                Console.Error.WriteLine($"{actionName}: {ex}");
 #endif
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
@@ -87,7 +91,7 @@ namespace Zeze.Util
             if (IsRequestSaved == false)
                 actionName += ":Response";
 
-            var ll = (null != p?.Service?.Zeze)
+            var ll = p?.Service?.Zeze != null
                 ? p.Service.Zeze.Config.ProcessReturnErrorLogLevel
                 : Config.LogLevel.Trace;
             LogAction?.Invoke(ll, ex, result, $"Action={actionName} {p}");
@@ -112,6 +116,9 @@ namespace Zeze.Util
             logger.Log(NlogLogLevel(ll), ex, $"Return={result}{module} {message}");
 #elif HAS_MYLOG
             logger.Log(ll, ex, $"Return={result}{module} {message}");
+#else
+            if (ex != null)
+                Console.Error.WriteLine($"Return={result} {message}: {ex}");
 #endif
         }
 
@@ -134,6 +141,8 @@ namespace Zeze.Util
             {
 #if HAS_NLOG || HAS_MYLOG
                 logger.Error(ex, actionName);
+#else
+                await Console.Error.WriteLineAsync($"{actionName}: {ex}");
 #endif
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
@@ -236,7 +245,7 @@ namespace Zeze.Util
                 // 日志在Call里面记录。因为要支持嵌套。
                 // 统计在Call里面实现。
                 long result = await procedure.CallAsync();
-                if (result != 0 && null != isRequestSaved && isRequestSaved.Value)
+                if (result != 0 && isRequestSaved != null && isRequestSaved.Value)
                     actionWhenError?.Invoke(from, result);
                 return result;
             }

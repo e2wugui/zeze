@@ -71,7 +71,7 @@ namespace Zeze.Transaction.Collections
 			{
 				foreach (var item in Value)
 				{
-					if (false == other.Contains(item))
+					if (!other.Contains(item))
 					{
 						Removed.Add(item);
 						Added.Remove(item);
@@ -111,7 +111,7 @@ namespace Zeze.Transaction.Collections
 			{
 				foreach (var item in other)
 				{
-					if (false == Value.Contains(item))
+					if (!Value.Contains(item))
                     {
 						Added.Add(item);
 						Removed.Remove(item);

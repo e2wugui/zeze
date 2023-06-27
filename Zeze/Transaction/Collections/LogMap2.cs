@@ -39,16 +39,14 @@ namespace Zeze.Transaction.Collections
         public override void Collect(Changes changes, Bean recent, Log vlog)
         {
             if (Changed.Add((LogBean)vlog))
-            {
                 changes.Collect(recent, this);
-            }
         }
 
         private bool Built = false;
 
         public bool BuildChangedWithKey()
         {
-            if (false == Built && null != Value)
+            if (!Built && Value != null)
             {
                 Built = true;
                 foreach (var c in Changed)
@@ -56,7 +54,7 @@ namespace Zeze.Transaction.Collections
                     if (CollMap2<K, V>.PropertyMapKey != null)
                     {
                         var pkey = (K)CollMap2<K, V>.PropertyMapKey.GetValue(c.This);
-                        if (false == Replaced.ContainsKey(pkey) && false == Removed.Contains(pkey))
+                        if (!Replaced.ContainsKey(pkey) && !Removed.Contains(pkey))
                             ChangedWithKey.Add(pkey, c);
                         continue;
                     }
@@ -65,7 +63,7 @@ namespace Zeze.Transaction.Collections
                     {
                         if (c.Belong == e.Value)
                         {
-                            if (false == Replaced.ContainsKey(e.Key) && false == Removed.Contains(e.Key))
+                            if (!Replaced.ContainsKey(e.Key) && !Removed.Contains(e.Key))
                                 ChangedWithKey.Add(e.Key, c);
                             break;
                         }
@@ -81,9 +79,7 @@ namespace Zeze.Transaction.Collections
             if (BuildChangedWithKey())
             {
                 foreach (var e in ChangedWithKey)
-                {
                     Replaced.TryAdd(e.Key, (V)e.Value.This);
-                }
             }
         }
 

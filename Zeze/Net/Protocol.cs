@@ -96,7 +96,7 @@ namespace Zeze.Net
 
         public virtual bool Send(AsyncSocket so)
         {
-            if (null == so)
+            if (so == null)
                 return false;
             Sender = so;
             Service = Sender.Service;
@@ -109,9 +109,7 @@ namespace Zeze.Net
         public virtual bool Send(Service service)
         {
             AsyncSocket so = service.GetSocket();
-            if (null != so)
-                return Send(so);
-            return false;
+            return so != null && Send(so);
         }
 
         // 用于Rpc自动发送结果。

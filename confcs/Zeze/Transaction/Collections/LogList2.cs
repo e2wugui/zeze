@@ -53,7 +53,7 @@ namespace Zeze.Transaction.Collections
 #if USE_CONFCS
             throw new System.NotImplementedException();
 #else
-            if (null != Value)
+            if (Value != null)
             {
 				// follower接收到log时，Value为空，此时不做Changed过滤。
 				var miss = new List<LogBean>();
@@ -67,9 +67,7 @@ namespace Zeze.Transaction.Collections
 						e.Value.Value = idxExist;
 				}
 				foreach (var logbean in miss)
-				{
 					Changed.Remove(logbean);
-				}
 			}
 
 			bb.WriteUInt(Changed.Count);

@@ -61,11 +61,6 @@ namespace Zeze.Net
 
         public TaskCompletionSource<TResult> Future { get; internal set; }
 
-        protected Rpc()
-        {
-            IsTimeout = false;
-        }
-
         /// <summary>
         /// 使用当前 rpc 中设置的参数发送。
         /// 总是建立上下文，总是返回true。
@@ -193,6 +188,8 @@ namespace Zeze.Net
                 Rpc.logger.Log(NLog.LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
 #elif HAS_MYLOG
                 Rpc.logger.Log(Config.LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
+#else
+                Console.Error.WriteLine($"Rpc.SendResult Already Done {Sender.Socket} {this}");
 #endif
                 return;
             }
@@ -200,12 +197,14 @@ namespace Zeze.Net
 
             ResultEncoded = result;
             IsRequest = false;
-            if (false == base.Send(Sender))
+            if (!base.Send(Sender))
             {
 #if HAS_NLOG
                 Rpc.logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), $"Rpc.SendResult Failed {Sender.Socket} {this}");
 #elif HAS_MYLOG
                 Rpc.logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Failed {Sender.Socket} {this}");
+#else
+                Console.Error.WriteLine($"Rpc.SendResult Failed {Sender.Socket} {this}");
 #endif
             }
         }
@@ -235,6 +234,8 @@ namespace Zeze.Net
                 Rpc.logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), "rpc response: lost context, maybe timeout. {0}", this);
 #elif HAS_MYLOG
                 Rpc.logger.Log(Service.SocketOptions.SocketLogLevel, "rpc response: lost context, maybe timeout. {0}", this);
+#else
+                Console.Error.WriteLine("rpc response: lost context, maybe timeout. {this}");
 #endif
                 return;
             }
@@ -287,8 +288,9 @@ namespace Zeze.Net
 
         public override string ToString()
         {
-            return
-                $"{GetType().FullName} SessionId={SessionId} ResultCode={ResultCode}{Environment.NewLine}  Argument={Argument}{Environment.NewLine}  Result={Result}";
+            return $"{GetType().FullName} SessionId={SessionId} ResultCode={ResultCode}{Environment.NewLine}" +
+                   $"  Argument={Argument}{Environment.NewLine}" +
+                   $"  Result={Result}";
         }
 
         public override void ClearParameters(ProtocolPool.ReuseLevel level)
