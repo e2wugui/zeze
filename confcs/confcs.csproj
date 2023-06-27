@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>51933975-1a63-4210-88c0-2b0633ffa3a4</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace></RootNamespace>
     <AssemblyName>confcs</AssemblyName>
@@ -32,7 +32,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -57,6 +56,7 @@
     <Compile Include="confcs\demo\Module1\Value.cs" />
     <Compile Include="confcs\demo\Module2\ModuleModule2.cs" />
     <Compile Include="confcs\demo\Module2\Value.cs" />
+    <Compile Include="TestClient.cs" />
     <Compile Include="Zeze\Application.cs" />
     <Compile Include="Zeze\Config.cs" />
     <Compile Include="Zeze\IModule.cs" />
