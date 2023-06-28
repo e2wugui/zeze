@@ -25,6 +25,19 @@ namespace Zege.User
         public int ServerId;
         public String NotifyId;
 
+        public async Task<byte[]> GetLastPrivateCertificatePkcs12(string account)
+        {
+            var last = await SecureStorage.Default.GetAsync(account + ".LastCertIndex");
+            if (null == last)
+                return null;
+
+            var index = long.Parse(last);
+            var certSaved = await SecureStorage.Default.GetAsync(account + "." + index + ".pkcs12");
+            if (certSaved == null || certSaved.Length == 0)
+                return null;
+            return Convert.FromBase64String(certSaved);
+        }
+
         public async Task<X509Certificate2> GetMyPrivateCertificate()
         {
             return await GetLastPrivateCertificate(Account);

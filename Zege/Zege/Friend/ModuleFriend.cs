@@ -188,11 +188,10 @@ namespace Zege.Friend
 
         private async Task<BNotify> EncryptGroupCertificateWith(string group, string account)
         {
-            var groupCert = await App.Zege_User.GetLastPrivateCertificate(group);
-            if (groupCert == null)
+            var pkcs12 = await App.Zege_User.GetLastPrivateCertificatePkcs12(group);
+            if (pkcs12 == null)
                 return null;
 
-            var pkcs12 = groupCert.Export(X509ContentType.Pkcs12, "");
             var info = await App.Zege_Friend.GetPublicUserInfo(account);
             if (info.Cert != null)
             {
