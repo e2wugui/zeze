@@ -14,68 +14,63 @@
           "Gen.dll": {}
         }
       },
-      "DotNext/4.12.0": {
+      "DotNext/4.12.3": {
         "dependencies": {
           "System.Runtime.CompilerServices.Unsafe": "6.0.0"
         },
         "runtime": {
           "lib/net6.0/DotNext.dll": {
-            "assemblyVersion": "4.12.0.0",
-            "fileVersion": "4.12.0.0"
+            "assemblyVersion": "4.12.3.0",
+            "fileVersion": "4.12.3.0"
           }
         }
       },
-      "DotNext.Threading/4.12.0": {
+      "DotNext.Threading/4.12.3": {
         "dependencies": {
-          "DotNext": "4.12.0",
+          "DotNext": "4.12.3",
           "System.Threading.Channels": "7.0.0"
         },
         "runtime": {
           "lib/net6.0/DotNext.Threading.dll": {
-            "assemblyVersion": "4.12.0.0",
-            "fileVersion": "4.12.0.0"
+            "assemblyVersion": "4.12.3.0",
+            "fileVersion": "4.12.3.0"
           }
         }
       },
-      "Google.Protobuf/3.19.4": {
+      "Google.Protobuf/3.21.9": {
         "runtime": {
           "lib/net5.0/Google.Protobuf.dll": {
-            "assemblyVersion": "3.19.4.0",
-            "fileVersion": "3.19.4.0"
+            "assemblyVersion": "3.21.9.0",
+            "fileVersion": "3.21.9.0"
           }
         }
       },
-      "K4os.Compression.LZ4/1.2.6": {
-        "dependencies": {
-          "System.Memory": "4.5.4"
-        },
+      "K4os.Compression.LZ4/1.3.5": {
         "runtime": {
-          "lib/netstandard2.0/K4os.Compression.LZ4.dll": {
-            "assemblyVersion": "1.2.6.0",
-            "fileVersion": "1.2.6.0"
+          "lib/net6.0/K4os.Compression.LZ4.dll": {
+            "assemblyVersion": "1.3.5.0",
+            "fileVersion": "1.3.5.0"
           }
         }
       },
-      "K4os.Compression.LZ4.Streams/1.2.6": {
+      "K4os.Compression.LZ4.Streams/1.3.5": {
         "dependencies": {
-          "K4os.Compression.LZ4": "1.2.6",
-          "K4os.Hash.xxHash": "1.0.6"
+          "K4os.Compression.LZ4": "1.3.5",
+          "K4os.Hash.xxHash": "1.0.8",
+          "System.IO.Pipelines": "6.0.3"
         },
         "runtime": {
-          "lib/netstandard2.1/K4os.Compression.LZ4.Streams.dll": {
-            "assemblyVersion": "1.2.6.0",
-            "fileVersion": "1.2.6.0"
+          "lib/net6.0/K4os.Compression.LZ4.Streams.dll": {
+            "assemblyVersion": "1.3.5.0",
+            "fileVersion": "1.3.5.0"
           }
         }
       },
-      "K4os.Hash.xxHash/1.0.6": {
-        "dependencies": {
-          "System.Memory": "4.5.4"
-        },
+      "K4os.Hash.xxHash/1.0.8": {
         "runtime": {
-          "lib/netstandard2.0/K4os.Hash.xxHash.dll": {
-            "assemblyVersion": "1.0.6.0",
-            "fileVersion": "1.0.6.0"
+          "lib/net6.0/K4os.Hash.xxHash.dll": {
+            "assemblyVersion": "1.0.8.0",
+            "fileVersion": "1.0.8.0"
           }
         }
       },
@@ -104,25 +99,51 @@
           }
         }
       },
-      "MySql.Data/8.0.31": {
+      "MySql.Data/8.0.33": {
         "dependencies": {
-          "Google.Protobuf": "3.19.4",
-          "K4os.Compression.LZ4.Streams": "1.2.6",
+          "Google.Protobuf": "3.21.9",
+          "K4os.Compression.LZ4.Streams": "1.3.5",
           "Portable.BouncyCastle": "1.9.0",
           "System.Buffers": "4.5.1",
           "System.Configuration.ConfigurationManager": "7.0.0",
           "System.Runtime.CompilerServices.Unsafe": "6.0.0",
+          "System.Runtime.Loader": "4.3.0",
           "System.Security.Permissions": "7.0.0",
-          "System.Text.Encoding.CodePages": "4.4.0"
+          "System.Text.Encoding.CodePages": "4.4.0",
+          "System.Text.Json": "7.0.1",
+          "System.Threading.Tasks.Extensions": "4.5.4"
         },
         "runtime": {
           "lib/net6.0/MySql.Data.dll": {
-            "assemblyVersion": "8.0.31.0",
-            "fileVersion": "8.0.31.0"
+            "assemblyVersion": "8.0.33.0",
+            "fileVersion": "8.0.33.0"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/win-x64/native/comerr64.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "4.1.0.0"
           },
-          "lib/net6.0/ZstdNet.dll": {
-            "assemblyVersion": "1.4.5.0",
-            "fileVersion": "1.4.5.0"
+          "runtimes/win-x64/native/gssapi64.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "4.1.0.0"
+          },
+          "runtimes/win-x64/native/k5sprt64.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "4.1.0.0"
+          },
+          "runtimes/win-x64/native/krb5_64.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "4.1.0.0"
+          },
+          "runtimes/win-x64/native/krbcc64.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "4.1.0.0"
           }
         }
       },
@@ -222,11 +243,11 @@
           }
         }
       },
-      "NLog/5.1.0": {
+      "NLog/5.2.0": {
         "runtime": {
           "lib/netstandard2.0/NLog.dll": {
             "assemblyVersion": "5.0.0.0",
-            "fileVersion": "5.1.0.1480"
+            "fileVersion": "5.2.0.1813"
           }
         }
       },
@@ -238,7 +259,7 @@
           }
         }
       },
-      "RocksDB/7.7.3.33461": {
+      "RocksDB/8.1.1.38647": {
         "dependencies": {
           "Microsoft.CSharp": "4.7.0",
           "System.Reflection": "4.3.0",
@@ -247,13 +268,28 @@
         },
         "runtime": {
           "lib/net6.0/RocksDbSharp.dll": {
-            "assemblyVersion": "7.7.3.33461",
-            "fileVersion": "7.7.3.33461"
+            "assemblyVersion": "8.1.1.38647",
+            "fileVersion": "8.1.1.38647"
           }
         },
         "runtimeTargets": {
+          "runtimes/linux-arm64/native/librocksdb.so": {
+            "rid": "linux-arm64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
           "runtimes/linux-x64/native/librocksdb.so": {
             "rid": "linux-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/osx-arm64/native/librocksdb.dylib": {
+            "rid": "osx-arm64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/osx-x64/native/libbz.dylib": {
+            "rid": "osx-x64",
             "assetType": "native",
             "fileVersion": "0.0.0.0"
           },
@@ -323,11 +359,15 @@
           }
         }
       },
-      "Scriban/5.5.1": {
+      "Scriban/5.7.0": {
+        "dependencies": {
+          "Microsoft.CSharp": "4.7.0",
+          "System.Threading.Tasks.Extensions": "4.5.4"
+        },
         "runtime": {
-          "lib/net6.0/Scriban.dll": {
+          "lib/netstandard2.0/Scriban.dll": {
             "assemblyVersion": "5.0.0.0",
-            "fileVersion": "5.5.1.0"
+            "fileVersion": "5.7.0.0"
           }
         }
       },
@@ -429,7 +469,14 @@
           "System.Threading.Tasks": "4.3.0"
         }
       },
-      "System.Memory/4.5.4": {},
+      "System.IO.Pipelines/6.0.3": {
+        "runtime": {
+          "lib/net6.0/System.IO.Pipelines.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.522.21309"
+          }
+        }
+      },
       "System.Reflection/4.3.0": {
         "dependencies": {
           "Microsoft.NETCore.Platforms": "3.1.0",
@@ -469,6 +516,13 @@
           "System.Reflection.Primitives": "4.3.0",
           "System.Runtime": "4.3.0",
           "System.Runtime.Handles": "4.3.0"
+        }
+      },
+      "System.Runtime.Loader/4.3.0": {
+        "dependencies": {
+          "System.IO": "4.3.0",
+          "System.Reflection": "4.3.0",
+          "System.Runtime": "4.3.0"
         }
       },
       "System.Security.AccessControl/4.7.0": {
@@ -517,6 +571,37 @@
           "Microsoft.NETCore.Platforms": "3.1.0"
         }
       },
+      "System.Text.Encodings.Web/7.0.0": {
+        "dependencies": {
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        },
+        "runtime": {
+          "lib/net6.0/System.Text.Encodings.Web.dll": {
+            "assemblyVersion": "7.0.0.0",
+            "fileVersion": "7.0.22.51805"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/browser/lib/net6.0/System.Text.Encodings.Web.dll": {
+            "rid": "browser",
+            "assetType": "runtime",
+            "assemblyVersion": "7.0.0.0",
+            "fileVersion": "7.0.22.51805"
+          }
+        }
+      },
+      "System.Text.Json/7.0.1": {
+        "dependencies": {
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0",
+          "System.Text.Encodings.Web": "7.0.0"
+        },
+        "runtime": {
+          "lib/net6.0/System.Text.Json.dll": {
+            "assemblyVersion": "7.0.0.0",
+            "fileVersion": "7.0.122.56804"
+          }
+        }
+      },
       "System.Threading.Channels/7.0.0": {
         "runtime": {
           "lib/net6.0/System.Threading.Channels.dll": {
@@ -532,6 +617,7 @@
           "System.Runtime": "4.3.0"
         }
       },
+      "System.Threading.Tasks.Extensions/4.5.4": {},
       "System.Windows.Extensions/7.0.0": {
         "dependencies": {
           "System.Drawing.Common": "7.0.0"
@@ -553,12 +639,12 @@
       },
       "Zeze/1.0.0": {
         "dependencies": {
-          "DotNext.Threading": "4.12.0",
-          "MySql.Data": "8.0.31",
-          "NLog": "5.1.0",
+          "DotNext.Threading": "4.12.3",
+          "MySql.Data": "8.0.33",
+          "NLog": "5.2.0",
           "Nito.AsyncEx": "5.1.2",
-          "RocksDB": "7.7.3.33461",
-          "Scriban": "5.5.1",
+          "RocksDB": "8.1.1.38647",
+          "Scriban": "5.7.0",
           "System.Collections.Immutable": "7.0.0",
           "System.Data.SqlClient": "4.8.5",
           "System.Diagnostics.PerformanceCounter": "7.0.0"
@@ -575,47 +661,47 @@
       "serviceable": false,
       "sha512": ""
     },
-    "DotNext/4.12.0": {
+    "DotNext/4.12.3": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-q1J4mZDwDEWIjGlb4srq3eRLKheIg007bHLJ/WBlvJLh5AiA92CvtJHIk0nnSkmHc47NglIPN0GYINwilWsLOw==",
-      "path": "dotnext/4.12.0",
-      "hashPath": "dotnext.4.12.0.nupkg.sha512"
+      "sha512": "sha512-KbHzmIYp56gsi7V68hFxLbbhO+jbgUYRn0IFOqlWoWvgW7kJ0OUWngRZem+i+Tzw2Ji4QkOuQAJSVVTtb6cfhQ==",
+      "path": "dotnext/4.12.3",
+      "hashPath": "dotnext.4.12.3.nupkg.sha512"
     },
-    "DotNext.Threading/4.12.0": {
+    "DotNext.Threading/4.12.3": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-XGrnCcwIhtkvmkWQTuS8ZoI997M41Aj+4EXT7aQCBpkhLtF6gXRHumMqnlwr8VZGYa/v9Xr7l/NZN+xkXzfY2g==",
-      "path": "dotnext.threading/4.12.0",
-      "hashPath": "dotnext.threading.4.12.0.nupkg.sha512"
+      "sha512": "sha512-pDntwO4ZsmX/JGHV7gevnQoTXRRy76WFvbB1KRuwLCNiFZa+mD68gFuSmL9aHWz+kDxaWCfIdvWwVwnkAqssNg==",
+      "path": "dotnext.threading/4.12.3",
+      "hashPath": "dotnext.threading.4.12.3.nupkg.sha512"
     },
-    "Google.Protobuf/3.19.4": {
+    "Google.Protobuf/3.21.9": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-fd07/ykL4O4FhqrZIELm5lmiyOHfdPg9+o+hWr6tcfRdS7tHXnImg/2wtogLzlW2eEmr0J7j6ZrZvaWOLiJbxQ==",
-      "path": "google.protobuf/3.19.4",
-      "hashPath": "google.protobuf.3.19.4.nupkg.sha512"
+      "sha512": "sha512-OTpFujTgkmqMLbg3KT7F/iuKi1rg6s5FCS2M9XcVLDn40zL8wgXm37CY/F6MeOEXKjdcnXGCN/h7oyMkVydVsg==",
+      "path": "google.protobuf/3.21.9",
+      "hashPath": "google.protobuf.3.21.9.nupkg.sha512"
     },
-    "K4os.Compression.LZ4/1.2.6": {
+    "K4os.Compression.LZ4/1.3.5": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-4EN8EE6bZG2U8dFfeqn+Om3UNajK3cPYHvyQROCFm4jNFVLuRB7Nl5bDkjBSAjfctS6konm+ay3u5RafBzltDA==",
-      "path": "k4os.compression.lz4/1.2.6",
-      "hashPath": "k4os.compression.lz4.1.2.6.nupkg.sha512"
+      "sha512": "sha512-TS4mqlT0X1OlnvOGNfl02QdVUhuqgWuCnn7UxupIa7C9Pb6qlQ5yZA2sPhRh0OSmVULaQU64KV4wJuu//UyVQQ==",
+      "path": "k4os.compression.lz4/1.3.5",
+      "hashPath": "k4os.compression.lz4.1.3.5.nupkg.sha512"
     },
-    "K4os.Compression.LZ4.Streams/1.2.6": {
+    "K4os.Compression.LZ4.Streams/1.3.5": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-5KMcNFRHeRrnJ9c8k5fZcfAJJEY0FndMiDiHIYa35Mx5KCMkeSNo/PEXu7YmtCoVczJagx+Vt7J/F+//S1PcJQ==",
-      "path": "k4os.compression.lz4.streams/1.2.6",
-      "hashPath": "k4os.compression.lz4.streams.1.2.6.nupkg.sha512"
+      "sha512": "sha512-M0NufZI8ym3mm6F6HMSPz1jw7TJGdY74fjAtbIXATmnAva/8xLz50eQZJI9tf9mMeHUaFDg76N1BmEh8GR5zeA==",
+      "path": "k4os.compression.lz4.streams/1.3.5",
+      "hashPath": "k4os.compression.lz4.streams.1.3.5.nupkg.sha512"
     },
-    "K4os.Hash.xxHash/1.0.6": {
+    "K4os.Hash.xxHash/1.0.8": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-jCfNP0inx1sGcP3KSbpiDEH3km2e1sVBjMfKo+V92jr1dL4ZYgA1uhRMl1wAtdGZcbObXIikKqtVlgx3j/CW6g==",
-      "path": "k4os.hash.xxhash/1.0.6",
-      "hashPath": "k4os.hash.xxhash.1.0.6.nupkg.sha512"
+      "sha512": "sha512-Wp2F7BamQ2Q/7Hk834nV9vRQapgcr8kgv9Jvfm8J3D0IhDqZMMl+a2yxUq5ltJitvXvQfB8W6K4F4fCbw/P6YQ==",
+      "path": "k4os.hash.xxhash/1.0.8",
+      "hashPath": "k4os.hash.xxhash.1.0.8.nupkg.sha512"
     },
     "Microsoft.CSharp/4.7.0": {
       "type": "package",
@@ -652,12 +738,12 @@
       "path": "microsoft.win32.systemevents/7.0.0",
       "hashPath": "microsoft.win32.systemevents.7.0.0.nupkg.sha512"
     },
-    "MySql.Data/8.0.31": {
+    "MySql.Data/8.0.33": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-ZVcctmag6cX0DtDxWh3fhBlSdZfGHKIUIodl7QtjZKupSgbCT0X+bO1Faw/NfUR2VfoxB/L9WzLfeCvki65qVg==",
-      "path": "mysql.data/8.0.31",
-      "hashPath": "mysql.data.8.0.31.nupkg.sha512"
+      "sha512": "sha512-mW+A9tc0s+3E3+XYe80aJmr/AvZoKBZG44w13AdVf4+1iRDwgdL6eLMPZgHyQFGwdLwNvQNPKegcOE4rRDuv8Q==",
+      "path": "mysql.data/8.0.33",
+      "hashPath": "mysql.data.8.0.33.nupkg.sha512"
     },
     "Nito.AsyncEx/5.1.2": {
       "type": "package",
@@ -722,12 +808,12 @@
       "path": "nito.disposables/2.2.1",
       "hashPath": "nito.disposables.2.2.1.nupkg.sha512"
     },
-    "NLog/5.1.0": {
+    "NLog/5.2.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-oW7ekrkRG9okpDMUcEglunWj8Qf2RY8qkgl+/chJoavzg3dbT13y32t19R54FKkmq80fKzw4ZekZkCrRGanKgQ==",
-      "path": "nlog/5.1.0",
-      "hashPath": "nlog.5.1.0.nupkg.sha512"
+      "sha512": "sha512-uYBgseY0m/9lQUbZYGsQsTBFOWrfs3iaekzzYMH6vFmpoOAvV8/bp1XxG/suZkwB5h8nAiTJAp7VENWRDKtKPA==",
+      "path": "nlog/5.2.0",
+      "hashPath": "nlog.5.2.0.nupkg.sha512"
     },
     "Portable.BouncyCastle/1.9.0": {
       "type": "package",
@@ -736,12 +822,12 @@
       "path": "portable.bouncycastle/1.9.0",
       "hashPath": "portable.bouncycastle.1.9.0.nupkg.sha512"
     },
-    "RocksDB/7.7.3.33461": {
+    "RocksDB/8.1.1.38647": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-gEgeCV6ymFm93swC+QJvxMSO4jIdHi54x78CvS9qOAHxcfj7c3+z0bqcW41gZLj3oTqgRNbgfhXLw+Zf0QsWcA==",
-      "path": "rocksdb/7.7.3.33461",
-      "hashPath": "rocksdb.7.7.3.33461.nupkg.sha512"
+      "sha512": "sha512-930GklOK2VMhCXPlM9yDLq0e50o/mjR5vCPwR/7pjCql85iWkrkn+zG7h3rKOgfUFPVt5/cPluYOQsyk3HQuUA==",
+      "path": "rocksdb/8.1.1.38647",
+      "hashPath": "rocksdb.8.1.1.38647.nupkg.sha512"
     },
     "runtime.native.System.Data.SqlClient.sni/4.7.0": {
       "type": "package",
@@ -771,12 +857,12 @@
       "path": "runtime.win-x86.runtime.native.system.data.sqlclient.sni/4.4.0",
       "hashPath": "runtime.win-x86.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512"
     },
-    "Scriban/5.5.1": {
+    "Scriban/5.7.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-ZGCDgKwyx0pPp5p8lsqBDLlOQR5qTVhD/hgVmdL1K8ReyCDdPxhvUUmzdFhBsPxGEqyDwG8dIEQ8BynzR3trpw==",
-      "path": "scriban/5.5.1",
-      "hashPath": "scriban.5.5.1.nupkg.sha512"
+      "sha512": "sha512-sSjmrKmvin85FDVb2W63IDkUK5BgKY+ZnuCuwF8KRfcREB9f3dJZA58TgV052vzYxadlro4kAZv4jBP1tonaaQ==",
+      "path": "scriban/5.7.0",
+      "hashPath": "scriban.5.7.0.nupkg.sha512"
     },
     "System.Buffers/4.5.1": {
       "type": "package",
@@ -827,12 +913,12 @@
       "path": "system.io/4.3.0",
       "hashPath": "system.io.4.3.0.nupkg.sha512"
     },
-    "System.Memory/4.5.4": {
+    "System.IO.Pipelines/6.0.3": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-1MbJTHS1lZ4bS4FmsJjnuGJOu88ZzTT2rLvrhW7Ygic+pC0NWA+3hgAen0HRdsocuQXCkUTdFn9yHJJhsijDXw==",
-      "path": "system.memory/4.5.4",
-      "hashPath": "system.memory.4.5.4.nupkg.sha512"
+      "sha512": "sha512-ryTgF+iFkpGZY1vRQhfCzX0xTdlV3pyaTTqRu2ETbEv+HlV7O6y7hyQURnghNIXvctl5DuZ//Dpks6HdL/Txgw==",
+      "path": "system.io.pipelines/6.0.3",
+      "hashPath": "system.io.pipelines.6.0.3.nupkg.sha512"
     },
     "System.Reflection/4.3.0": {
       "type": "package",
@@ -883,6 +969,13 @@
       "path": "system.runtime.interopservices/4.3.0",
       "hashPath": "system.runtime.interopservices.4.3.0.nupkg.sha512"
     },
+    "System.Runtime.Loader/4.3.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-DHMaRn8D8YCK2GG2pw+UzNxn/OHVfaWx7OTLBD/hPegHZZgcZh3H6seWegrC4BYwsfuGrywIuT+MQs+rPqRLTQ==",
+      "path": "system.runtime.loader/4.3.0",
+      "hashPath": "system.runtime.loader.4.3.0.nupkg.sha512"
+    },
     "System.Security.AccessControl/4.7.0": {
       "type": "package",
       "serviceable": true,
@@ -925,6 +1018,20 @@
       "path": "system.text.encoding.codepages/4.4.0",
       "hashPath": "system.text.encoding.codepages.4.4.0.nupkg.sha512"
     },
+    "System.Text.Encodings.Web/7.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-OP6umVGxc0Z0MvZQBVigj4/U31Pw72ITihDWP9WiWDm+q5aoe0GaJivsfYGq53o6dxH7DcXWiCTl7+0o2CGdmg==",
+      "path": "system.text.encodings.web/7.0.0",
+      "hashPath": "system.text.encodings.web.7.0.0.nupkg.sha512"
+    },
+    "System.Text.Json/7.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-OtDEmCCiNl8JAduFKZ/r0Sw6XZNHwIicUYy/mXgMDGeOsZLshH37qi3oPRzFYiryVktiMoQLByMGPtRCEMYbeQ==",
+      "path": "system.text.json/7.0.1",
+      "hashPath": "system.text.json.7.0.1.nupkg.sha512"
+    },
     "System.Threading.Channels/7.0.0": {
       "type": "package",
       "serviceable": true,
@@ -938,6 +1045,13 @@
       "sha512": "sha512-LbSxKEdOUhVe8BezB/9uOGGppt+nZf6e1VFyw6v3DN6lqitm0OSn2uXMOdtP0M3W4iMcqcivm2J6UgqiwwnXiA==",
       "path": "system.threading.tasks/4.3.0",
       "hashPath": "system.threading.tasks.4.3.0.nupkg.sha512"
+    },
+    "System.Threading.Tasks.Extensions/4.5.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-zteT+G8xuGu6mS+mzDzYXbzS7rd3K6Fjb9RiZlYlJPam2/hU7JCBZBVEcywNuR+oZ1ncTvc/cq0faRr3P01OVg==",
+      "path": "system.threading.tasks.extensions/4.5.4",
+      "hashPath": "system.threading.tasks.extensions.4.5.4.nupkg.sha512"
     },
     "System.Windows.Extensions/7.0.0": {
       "type": "package",

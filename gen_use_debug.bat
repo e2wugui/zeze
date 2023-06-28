@@ -24,8 +24,8 @@ cd ..
 cd confcs
 echo -------- Gen confcs\solution.xml ...
 Gen.exe solution.xml
-echo -------- ExportConf ...
-Gen.exe -c ExportConf -ZezeSrcDir ..
+rem echo -------- ExportConf ...
+rem Gen.exe -c ExportConf -ZezeSrcDir ..
 cd ..
 
 cd ZezeJava\ZezeJava
