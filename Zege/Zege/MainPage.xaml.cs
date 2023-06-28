@@ -133,13 +133,30 @@ namespace Zege
                 var r = await app.Zege_Friend.CreateDepartment(chatGroup.DepartmentKey.Group, chatGroup.DepartmentKey.DepartmentId, Editor.Text);
                 if (0 != r.ResultCode)
                 {
-                    await AppShell.Instance.DisplayAlertAsync("SetTopmost Error", r.ToString());
+                    await AppShell.Instance.DisplayAlertAsync("CreateDepartment Error", "Code=" + r.ResultCode);
                     return;
                 }
                 // 把自己加入新创建的部门，测试代码。
                 var rc = await app.Zege_Friend.AddDepartmentMember(r.Result.Group, r.Result.DepartmentId, app.Zege_User.Account);
                 if (0 != rc)
-                    await AppShell.Instance.DisplayAlertAsync("SetTopmost Error", "Code=" + rc);
+                    await AppShell.Instance.DisplayAlertAsync("AddDepartmentMember Error", "Code=" + rc);
+            }
+        }
+
+        private async void OnAddDepartmentMember(object sender, EventArgs args)
+        {
+            if (string.IsNullOrEmpty(Editor.Text))
+                return;
+
+            var app = AppShell.Instance.App;
+            if (null == app)
+                return;
+
+            if (app.Zege_Message.CurrentChat is MessageGroup chatGroup)
+            {
+                var rc = await app.Zege_Friend.AddDepartmentMember(chatGroup.DepartmentKey.Group, chatGroup.DepartmentKey.DepartmentId, Editor.Text);
+                if (0 != rc)
+                    await AppShell.Instance.DisplayAlertAsync("AddDepartmentMember Error", "Code=" + rc);
             }
         }
 

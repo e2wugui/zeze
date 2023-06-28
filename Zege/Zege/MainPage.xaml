@@ -63,6 +63,7 @@
                 <Button Text="Return to Top" Clicked="OnReturnTop"/>
                 <Button Text="发起群聊" Clicked="OnCreateGroup"/>
                 <Button Text="创建部门" Clicked="OnCreateDepartment"/>
+                <Button Text="添加成员" Clicked="OnAddDepartmentMember"/>
             </VerticalStackLayout>
 
         </HorizontalStackLayout>
