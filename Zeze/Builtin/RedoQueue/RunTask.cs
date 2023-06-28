@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.RedoQueue
 {
     public sealed class RunTask : Zeze.Net.Rpc<Zeze.Builtin.RedoQueue.BQueueTask, Zeze.Builtin.RedoQueue.BTaskId>

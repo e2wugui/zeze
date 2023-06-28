@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 {
     public sealed class Cleanup : Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWithRaft.AchillesHeel, Zeze.Transaction.EmptyBean>

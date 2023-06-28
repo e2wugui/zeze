@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Game.Online
 {
     public sealed class SReliableNotify : Zeze.Net.Protocol<Zeze.Builtin.Game.Online.BReliableNotify>
@@ -10,9 +12,5 @@ namespace Zeze.Builtin.Game.Online
 
         public override int ModuleId => ModuleId_;
         public override int ProtocolId => ProtocolId_;
-
-        public SReliableNotify()
-        {
-        }
     }
 }

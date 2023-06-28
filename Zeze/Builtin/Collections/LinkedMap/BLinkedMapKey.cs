@@ -2,9 +2,13 @@
 using System;
 using Zeze.Serialize;
 
+// ReSharper disable ArrangeThisQualifier JoinDeclarationAndInitializer NonReadonlyMemberInGetHashCode
+// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment StringCompareToIsCultureSpecific
+// ReSharper disable UselessBinaryOperation
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Collections.LinkedMap
 {
-    public sealed class BLinkedMapKey : Serializable, System.IComparable
+    public sealed class BLinkedMapKey : Serializable, IComparable
     {
         string _Name; // LinkedMap的Name
         string _ValueId; // LinkedMap的Key转成字符串类型

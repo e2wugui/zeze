@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Game.Bag
 {
     public sealed class Destroy : Zeze.Net.Rpc<Zeze.Builtin.Game.Bag.BDestroy, Zeze.Transaction.EmptyBean>

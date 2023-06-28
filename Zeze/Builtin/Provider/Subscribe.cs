@@ -1,6 +1,8 @@
 // auto-generated
 
 // 通知linkd订阅模块的服务列表。
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Provider
 {
     public sealed class Subscribe : Zeze.Net.Rpc<Zeze.Builtin.Provider.BSubscribe, Zeze.Transaction.EmptyBean>

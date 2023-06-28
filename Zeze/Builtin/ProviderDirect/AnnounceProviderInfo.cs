@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.ProviderDirect
 {
     public sealed class AnnounceProviderInfo : Zeze.Net.Rpc<Zeze.Builtin.ProviderDirect.BProviderInfo, Zeze.Transaction.EmptyBean>

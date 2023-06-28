@@ -2,9 +2,13 @@
 using System;
 using Zeze.Serialize;
 
+// ReSharper disable ArrangeThisQualifier JoinDeclarationAndInitializer NonReadonlyMemberInGetHashCode
+// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment StringCompareToIsCultureSpecific
+// ReSharper disable UselessBinaryOperation
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Game.Rank
 {
-    public sealed class BConcurrentKey : Serializable, System.IComparable
+    public sealed class BConcurrentKey : Serializable, IComparable
     {
         public const int TimeTypeTotal = 0; // 所有时间
         public const int TimeTypeDay = 1; // 每天：Year为当前时间的年份，Offset为天

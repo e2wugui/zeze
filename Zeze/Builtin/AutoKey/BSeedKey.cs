@@ -2,9 +2,13 @@
 using System;
 using Zeze.Serialize;
 
+// ReSharper disable ArrangeThisQualifier JoinDeclarationAndInitializer NonReadonlyMemberInGetHashCode
+// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment StringCompareToIsCultureSpecific
+// ReSharper disable UselessBinaryOperation
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.AutoKey
 {
-    public sealed class BSeedKey : Serializable, System.IComparable
+    public sealed class BSeedKey : Serializable, IComparable
     {
         int _ServerId;
         string _KeyName;

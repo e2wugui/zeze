@@ -2,9 +2,13 @@
 using System;
 using Zeze.Serialize;
 
+// ReSharper disable ArrangeThisQualifier JoinDeclarationAndInitializer NonReadonlyMemberInGetHashCode
+// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment StringCompareToIsCultureSpecific
+// ReSharper disable UselessBinaryOperation
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.TestRocks
 {
-    public sealed class BeanKey : Serializable, System.IComparable
+    public sealed class BeanKey : Serializable, IComparable
     {
         int _Id;
         string _Name;

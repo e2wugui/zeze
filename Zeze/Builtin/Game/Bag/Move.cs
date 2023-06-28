@@ -14,6 +14,8 @@
 				<protocol name="NotifyChanged" argument="BChanged" handle="client"/> 所有的包裹改变都通过这个协议发送。
 				<protocol name="NotifyBag" argument="BBag" handle="client"/> 包裹全部改变时发送这个协议。在可靠消息框架内使用。不直接处理。
 */
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Game.Bag
 {
     public sealed class Move : Zeze.Net.Rpc<Zeze.Builtin.Game.Bag.BMove, Zeze.Transaction.EmptyBean>

@@ -1,6 +1,8 @@
 // auto-generated
 
 // 默认不启用事务，由协议实现自己控制。
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.ProviderDirect
 {
     public sealed class TransmitAccount : Zeze.Net.Protocol<Zeze.Builtin.ProviderDirect.BTransmitAccount>
@@ -11,9 +13,5 @@ namespace Zeze.Builtin.ProviderDirect
 
         public override int ModuleId => ModuleId_;
         public override int ProtocolId => ProtocolId_;
-
-        public TransmitAccount()
-        {
-        }
     }
 }

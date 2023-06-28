@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.ProviderDirect
 {
     public sealed class ModuleRedirectAllResult : Zeze.Net.Protocol<Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult>
@@ -10,9 +12,5 @@ namespace Zeze.Builtin.ProviderDirect
 
         public override int ModuleId => ModuleId_;
         public override int ProtocolId => ProtocolId_;
-
-        public ModuleRedirectAllResult()
-        {
-        }
     }
 }

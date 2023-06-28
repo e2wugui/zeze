@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Provider
 {
     public sealed class LinkBroken : Zeze.Net.Protocol<Zeze.Builtin.Provider.BLinkBroken>
@@ -10,9 +12,5 @@ namespace Zeze.Builtin.Provider
 
         public override int ModuleId => ModuleId_;
         public override int ProtocolId => ProtocolId_;
-
-        public LinkBroken()
-        {
-        }
     }
 }

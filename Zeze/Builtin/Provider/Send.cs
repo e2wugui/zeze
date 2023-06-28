@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Provider
 {
     public sealed class Send : Zeze.Net.Rpc<Zeze.Builtin.Provider.BSend, Zeze.Builtin.Provider.BSendResult>
