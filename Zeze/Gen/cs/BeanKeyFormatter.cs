@@ -25,9 +25,13 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             if (beanKey.Comment.Length > 0)
                 sw.WriteLine(beanKey.Comment);
+            sw.WriteLine("// ReSharper disable ArrangeThisQualifier JoinDeclarationAndInitializer NonReadonlyMemberInGetHashCode");
+            sw.WriteLine("// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment StringCompareToIsCultureSpecific");
+            sw.WriteLine("// ReSharper disable UselessBinaryOperation");
+            sw.WriteLine("// ReSharper disable once CheckNamespace");
             sw.WriteLine("namespace " + beanKey.Space.Path());
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed class " + beanKey.Name + " : Serializable, System.IComparable");
+            sw.WriteLine("    public sealed class " + beanKey.Name + " : Serializable, IComparable");
             sw.WriteLine("    {");
             // declare enums
             foreach (Enum e in beanKey.Enums)

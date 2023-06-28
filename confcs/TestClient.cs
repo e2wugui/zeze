@@ -1,15 +1,50 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
+using demo.Module1;
+using demo.Module1.Module11;
 using Zeze;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Services;
 using Zeze.Services.Handshake;
 
+public class ModuleModule1 : AbstractModuleModule1
+{
+    protected override Task<long> ProcessProtocol1(Protocol p)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected override Task<long> ProcessProtocol3(Protocol p)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected override Task<long> ProcessProtocolNoProcedure(Protocol p)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected override Task<long> ProcessRpc1Request(Protocol p)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public class ModuleModule11 : AbstractModuleModule11
+{
+}
+
 public class TestClient : HandshakeClient
 {
+    private readonly ModuleModule1 module1 = new ModuleModule1();
+    private readonly ModuleModule11 module11 = new ModuleModule11();
+
     public TestClient(string name, Config config) : base(name, config)
     {
+        module1.Register(this);
+        module11.Register(this);
     }
 
     public override void OnSocketConnected(AsyncSocket so)

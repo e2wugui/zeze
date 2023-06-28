@@ -23,6 +23,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             if (rpc.Comment.Length > 0)
                 sw.WriteLine(rpc.Comment);
+            sw.WriteLine("// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext");
+            sw.WriteLine("// ReSharper disable once CheckNamespace");
             sw.WriteLine("namespace " + rpc.Space.Path());
             sw.WriteLine("{");
 

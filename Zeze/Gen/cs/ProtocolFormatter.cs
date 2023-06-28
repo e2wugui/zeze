@@ -23,6 +23,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             if (p.Comment.Length > 0)
                 sw.WriteLine(p.Comment);
+            sw.WriteLine("// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext");
+            sw.WriteLine("// ReSharper disable once CheckNamespace");
             sw.WriteLine("namespace " + p.Space.Path());
             sw.WriteLine("{");
 
@@ -36,15 +38,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             sw.WriteLine("        public override int ModuleId => ModuleId_;");
             sw.WriteLine("        public override int ProtocolId => ProtocolId_;");
-            sw.WriteLine();
             // declare enums
-            foreach (Types.Enum e in p.Enums)
-                sw.WriteLine($"        public const {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             if (p.Enums.Count > 0)
                 sw.WriteLine();
-            sw.WriteLine("        public " + p.Name + "()");
-            sw.WriteLine("        {");
-            sw.WriteLine("        }");
+            foreach (Types.Enum e in p.Enums)
+                sw.WriteLine($"        public const {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             /* 现在的bean不是所有的变量都可以赋值，还是先不支持吧。
             if (p.ArgumentType != null)
             {

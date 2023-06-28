@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using Zeze.Gen.cs;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.confcs
@@ -33,6 +32,8 @@ namespace Zeze.Gen.confcs
             sw.WriteLine();
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
+            sw.WriteLine("// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor PossibleNullReferenceException RedundantAssignment RedundantNameQualifier");
+            sw.WriteLine("// ReSharper disable once CheckNamespace");
             sw.WriteLine("namespace " + bean.Space.Path());
             sw.WriteLine("{");
             sw.WriteLine("    [System.Serializable]");
@@ -85,17 +86,17 @@ namespace Zeze.Gen.confcs
             if (false == string.IsNullOrEmpty(macro))
                 sw.WriteLine($"#if {macro}");
             {
-                cs.Tostring.Make(bean, sw, "        ", true);
-                cs.Encode.Make(bean, sw, "        ", true);
+                cs.Tostring.Make(bean, sw, "        ");
+                cs.Encode.Make(bean, sw, "        ");
                 // cs.NegativeCheck.Make(bean, sw, "        ");
             }
             if (false == string.IsNullOrEmpty(macro))
                 sw.WriteLine($"#endif // {macro}");
-            cs.Decode.Make(bean, sw, "        ", true);
+            cs.Decode.Make(bean, sw, "        ");
             if (followerApply)
                 FollowerApply.Make(bean, sw, "        ");
 
-            ClearParameters.Make(bean, sw, "        ");
+            cs.ClearParameters.Make(bean, sw, "        ");
         }
     }
 }
