@@ -208,6 +208,7 @@ public class Schemas implements Serializable {
 			compatibleTable.put("binary", 2);
 			compatibleTable.put("string", 2);
 			compatibleTable.put("list", 3);
+			compatibleTable.put("array", 3);
 			compatibleTable.put("set", 3);
 			compatibleTable.put("map", 4);
 			compatibleTable.put("vector2", 5);
@@ -321,6 +322,7 @@ public class Schemas implements Serializable {
 			// json
 			sqlTypeTable.put("dynamic", "TEXT");
 			sqlTypeTable.put("list", "TEXT");
+			sqlTypeTable.put("array", "TEXT");
 			sqlTypeTable.put("set", "TEXT");
 			sqlTypeTable.put("map", "TEXT");
 			// 下面的类型会被展开，这里的类型展开后的实际类型。
@@ -1001,6 +1003,7 @@ public class Schemas implements Serializable {
 
 			case "dynamic":
 			case "list":
+			case "array":
 			case "set":
 			case "map":
 				return KV.create(4, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。

@@ -27,7 +27,7 @@ xcopy /Y %zeze_src_dir%\Zeze\Net %project_dir%\Zeze\Net
 xcopy /Y %zeze_src_dir%\Zeze\IModule.cs %project_dir%\Zeze\
 xcopy /Y %zeze_src_dir%\Zeze\AppBase.cs %project_dir%\Zeze\
 xcopy /Y %zeze_src_dir%\Zeze\Config.cs  %project_dir%\Zeze\
-xcopy /Y %zeze_src_dir%\Zeze\Application.txt  %project_dir%\Zeze\Application.cs
+rem xcopy /Y %zeze_src_dir%\Zeze\Application.txt  %project_dir%\Zeze\Application.cs
 IF NOT EXIST "%project_dir%\Zeze\MyLog.cs" copy %zeze_src_dir%\Zeze\MyLog.cs  %project_dir%\Zeze\MyLog.cs
 
 md %project_dir%\Zeze\Util
