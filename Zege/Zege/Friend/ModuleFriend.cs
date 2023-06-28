@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Security.Cryptography.X509Certificates;
+using Zege.Message;
 using Zege.Notify;
 using Zeze.Builtin.Collections.LinkedMap;
 using Zeze.Net;
@@ -221,6 +222,28 @@ namespace Zege.Friend
             }
             await n.SendAsync(App.Connector.TryGetReadySocket());
             return group;
+        }
+
+        public async Task<CreateDepartment> CreateDepartment(string group, long departmentId, string name)
+        {
+            var r = new CreateDepartment();
+            r.Argument.Group = group;
+            r.Argument.DepartmentId = departmentId;
+            r.Argument.Name = name;
+
+            await r.SendAsync(App.Connector.TryGetReadySocket());
+            return r;
+        }
+
+        public async Task<long> AddDepartmentMember(string group, long departmentId, string account)
+        {
+            var r = new AddDepartmentMember();
+            r.Argument.Group = group;
+            r.Argument.DepartmentId = departmentId;
+            r.Argument.Account = account;
+
+            await r.SendAsync(App.Connector.TryGetReadySocket());
+            return r.ResultCode;
         }
 
         public async Task<long> AddFriend(string account)

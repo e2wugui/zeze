@@ -17,6 +17,7 @@ namespace Zege.Message
             : base(module, view)
         {
             Friend = friend;
+            view.SetTitle(friend);
 
             var rpc = new GetFriendMessage();
             rpc.Argument.Friend = friend;
@@ -47,7 +48,7 @@ namespace Zege.Message
             return Task.CompletedTask;
         }
 
-        public override async Task SendAsync(string message)
+        public override async Task<long> SendAsync(string message)
         {
             var rpc = new SendMessage();
             rpc.Argument.Friend = Friend;
@@ -72,6 +73,7 @@ namespace Zege.Message
                 rpc.Argument.Message.From = Module.App.Zege_User.Account;
                 View.AddTail(rpc.Argument.Message);
             }
+            return rpc.ResultCode;
         }
     }
 }

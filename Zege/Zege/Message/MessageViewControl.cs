@@ -16,8 +16,9 @@ namespace Zege.Message
         private ScrollView ScrollView;
         private AbsoluteLayout MessageLayout;
         private double NextMessageY = 5.0;
+        private Label Title;
 
-        public MessageViewControl(App app, Layout parent)
+        public MessageViewControl(App app, Layout parent, Label title)
         {
             App = app;
             Parent = parent;
@@ -28,6 +29,12 @@ namespace Zege.Message
             };
             MessageLayout = new AbsoluteLayout();
             ScrollView.Content = MessageLayout;
+            Title = title;
+        }
+
+        public void SetTitle(string title)
+        {
+            Title.Text = title;
         }
 
         private void MessageVisible(long messageId)
@@ -54,8 +61,8 @@ namespace Zege.Message
                     return;
                 }
             }
-            Parent.RemoveAt(0);
-            Parent.Insert(0, ScrollView);
+            Parent.RemoveAt(1);
+            Parent.Insert(1, ScrollView);
             MessageVisible(messageId);
         }
 

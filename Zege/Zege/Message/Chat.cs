@@ -74,7 +74,7 @@ namespace Zege.Message
             message.SecureMessage = new Binary(ByteBuffer.Encode(textMessage));
         }
 
-        public abstract Task SendAsync(string message);
+        public abstract Task<long> SendAsync(string message);
 
         public async Task OnNotifyMessage(NotifyMessage p)
         {

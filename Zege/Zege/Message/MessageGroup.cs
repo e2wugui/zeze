@@ -18,6 +18,8 @@ namespace Zege.Message
         {
             DepartmentKey = departmentKey;
 
+            view.SetTitle(DepartmentKey.Group + ":" + DepartmentKey.DepartmentId);
+
             var rpc = new GetGroupMessage();
             rpc.Argument.GroupDepartment = departmentKey;
             rpc.Argument.MessageIdFrom = ModuleMessage.eGetMessageFromAboutLast;
@@ -46,7 +48,7 @@ namespace Zege.Message
             return Task.CompletedTask;
         }
 
-        public override async Task SendAsync(string message)
+        public override async Task<long> SendAsync(string message)
         {
             var rpc = new SendDepartmentMessage();
             rpc.Argument.Group = DepartmentKey.Group;
@@ -75,6 +77,7 @@ namespace Zege.Message
                 View.AddTail(rpc.Argument.Message);
             }
             */
+            return rpc.ResultCode;
         }
     }
 }

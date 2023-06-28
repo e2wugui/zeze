@@ -1,4 +1,5 @@
 ﻿
+using System.Threading.Tasks.Sources;
 using Zege.Friend;
 using Zege.Message;
 using Zege.User;
@@ -18,12 +19,8 @@ namespace Zege
             FriendsListView.ItemSelected += OnFriendsItemSelected;
             FriendsListView.Scrolled += OnScrolled;
             app.Zege_Message.UpdateRedPoint = UpdateRedPoint;
-            app.Zege_Message.MessageViewFactory = () => new MessageViewControl(app, MessageParent);
+            app.Zege_Message.MessageViewFactory = () => new MessageViewControl(app, MessageParent, MessageTitle);
         }
-
-        public ScrollView MessageScrollView => _MessageScrollView;
-        public AbsoluteLayout MessageLayout => _MessageLayout;
-        public Layout MessageParent => _MessageParent;
 
         private void OnScrolled(object sender, ScrolledEventArgs args)
         {
@@ -73,8 +70,11 @@ namespace Zege
             if (null == AppShell.Instance.App.Zege_Message.CurrentChat) return;
 
             var message = MessageEditor.Text;
-            await AppShell.Instance.App.Zege_Message.CurrentChat?.SendAsync(message);
-            MessageEditor.Text = string.Empty;
+            var r = await AppShell.Instance.App.Zege_Message.CurrentChat?.SendAsync(message);
+            if (0 != r)
+                await AppShell.Instance.DisplayAlertAsync("Add Friend Error", "Code=" + r);
+            else
+                MessageEditor.Text = string.Empty;
         }
 
         private async void OnAddFriend(object sender, EventArgs e)
@@ -116,6 +116,30 @@ namespace Zege
                 CreateGroupWindow = new Window(new CreateGroup());
                 CreateGroupWindow.Destroying += OnCreateGroupWindowDestroying;
                 Microsoft.Maui.Controls.Application.Current.OpenWindow(CreateGroupWindow);
+            }
+        }
+
+        private async void OnCreateDepartment(object sender, EventArgs args)
+        {
+            if (string.IsNullOrEmpty(Editor.Text))
+                return;
+
+            var app = AppShell.Instance.App;
+            if (null == app)
+                return;
+
+            if (app.Zege_Message.CurrentChat is MessageGroup chatGroup)
+            {
+                var r = await app.Zege_Friend.CreateDepartment(chatGroup.DepartmentKey.Group, chatGroup.DepartmentKey.DepartmentId, Editor.Text);
+                if (0 != r.ResultCode)
+                {
+                    await AppShell.Instance.DisplayAlertAsync("SetTopmost Error", r.ToString());
+                    return;
+                }
+                // 把自己加入新创建的部门，测试代码。
+                var rc = await app.Zege_Friend.AddDepartmentMember(r.Result.Group, r.Result.DepartmentId, app.Zege_User.Account);
+                if (0 != rc)
+                    await AppShell.Instance.DisplayAlertAsync("SetTopmost Error", "Code=" + rc);
             }
         }
 

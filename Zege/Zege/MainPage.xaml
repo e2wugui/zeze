@@ -45,9 +45,11 @@
                     </ListView.ItemTemplate>
                 </ListView>
             </VerticalStackLayout>
-            <VerticalStackLayout x:Name="_MessageParent">
-                <ScrollView x:Name="_MessageScrollView" HeightRequest="450" WidthRequest="600">
-                    <AbsoluteLayout x:Name="_MessageLayout" />
+            <VerticalStackLayout x:Name="MessageParent">
+                <Label x:Name="MessageTitle" HeightRequest="25" WidthRequest="600"
+                       BackgroundColor="LightGray" VerticalTextAlignment="Center" HorizontalTextAlignment ="Center"/>
+                <ScrollView HeightRequest="450" WidthRequest="600">
+                    <AbsoluteLayout/>
                 </ScrollView>
                 <HorizontalStackLayout>
                     <Editor x:Name="MessageEditor" HeightRequest="150" WidthRequest="445"/>
@@ -60,6 +62,7 @@
                 <Button Text="置顶" Clicked="OnTopmost"/>
                 <Button Text="Return to Top" Clicked="OnReturnTop"/>
                 <Button Text="发起群聊" Clicked="OnCreateGroup"/>
+                <Button Text="创建部门" Clicked="OnCreateDepartment"/>
             </VerticalStackLayout>
 
         </HorizontalStackLayout>

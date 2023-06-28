@@ -12,6 +12,7 @@ namespace Zege.Message
     // 现在仅是草稿。
     public interface IMessageView
     {
+        public void SetTitle(string title);
         // 翻阅历史消息时用来加入消息。
         public void InsertHead(BMessage message);
 
