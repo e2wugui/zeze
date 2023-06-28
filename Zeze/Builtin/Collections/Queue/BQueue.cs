@@ -7,6 +7,9 @@ using Environment = System.Environment;
 				链表结构: (NewStackNode -＞) Head -＞ ... -＞ Tail (-＞ NewQueueNode)。
 				第一个用户是Table.GC，延迟删除记录。
 */
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor MergeConditionalExpression
+// ReSharper disable PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Collections.Queue
 {
     public interface BQueueReadOnly

@@ -1,4 +1,7 @@
 // auto generate
+
+// ReSharper disable RedundantNameQualifier UnusedParameter.Global UnusedVariable
+// ReSharper disable once CheckNamespace
 namespace Zeze.Component
 {
     public abstract class AbstractRedoQueueServer : Zeze.IModule 
@@ -14,7 +17,7 @@ namespace Zeze.Component
         public void RegisterProtocols(Zeze.Net.Service service)
         {
             // register protocol factory and handles
-            var _reflect = new Zeze.Util.Reflect(this.GetType());
+            var _reflect = new Zeze.Util.Reflect(GetType());
             service.AddFactoryHandle(47289120801215, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.RedoQueue.RunTask(),

@@ -4,6 +4,7 @@ using Zeze.Transaction;
 using System.Threading.Tasks;
 
 // key is 1, only one record
+// ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.Game.Bag
 {
     public sealed class tItemClasses : Table<int, Zeze.Builtin.Game.Bag.BItemClasses>, TableReadOnly<int, Zeze.Builtin.Game.Bag.BItemClasses, Zeze.Builtin.Game.Bag.BItemClassesReadOnly>

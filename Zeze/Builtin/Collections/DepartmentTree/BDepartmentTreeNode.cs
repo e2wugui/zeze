@@ -2,6 +2,9 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor MergeConditionalExpression
+// ReSharper disable PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Collections.DepartmentTree
 {
     public interface BDepartmentTreeNodeReadOnly
@@ -21,10 +24,10 @@ namespace Zeze.Builtin.Collections.DepartmentTree
     {
         long _ParentDepartment; // 0表示第一级部门
         readonly Zeze.Transaction.Collections.CollMap1<string, long> _Childs; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
-        Zeze.Transaction.Collections.CollMapReadOnly<string,long,long> _ChildsReadOnly;
+        readonly Zeze.Transaction.Collections.CollMapReadOnly<string,long,long> _ChildsReadOnly;
         string _Name;
         readonly Zeze.Transaction.Collections.CollMap2<string, Zeze.Transaction.DynamicBean> _Managers;
-        Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBeanReadOnly,Zeze.Transaction.DynamicBean> _ManagersReadOnly;
+        readonly Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBeanReadOnly,Zeze.Transaction.DynamicBean> _ManagersReadOnly;
         public static Zeze.Transaction.DynamicBean NewDynamicBeanManagers()
         {
             return new Zeze.Transaction.DynamicBean(4, Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId);

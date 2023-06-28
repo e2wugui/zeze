@@ -3,6 +3,7 @@ using Zeze.Serialize;
 using Zeze.Transaction;
 using System.Threading.Tasks;
 
+// ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.Game.Rank
 {
     public sealed class trank : Table<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList>, TableReadOnly<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList, Zeze.Builtin.Game.Rank.BRankListReadOnly>

@@ -2,6 +2,9 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor MergeConditionalExpression
+// ReSharper disable PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.ProviderDirect
 {
     public interface BModuleRedirectAllResultReadOnly
@@ -27,7 +30,7 @@ namespace Zeze.Builtin.ProviderDirect
         string _MethodFullName; // format="ModuleFullName:MethodName"
         long _SessionId; // 发起请求者初始化，返回结果时带回。
         readonly Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _Hashs; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
-        Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _HashsReadOnly;
+        readonly Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _HashsReadOnly;
 
         public int ModuleId
         {

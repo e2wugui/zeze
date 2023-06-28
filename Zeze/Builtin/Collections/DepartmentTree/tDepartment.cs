@@ -4,6 +4,7 @@ using Zeze.Transaction;
 using System.Threading.Tasks;
 
 // 群部门树根。普通用户也可以创建部门。暂不开放这个给个人。
+// ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.Collections.DepartmentTree
 {
     public sealed class tDepartment : Table<string, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot>, TableReadOnly<string, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly>

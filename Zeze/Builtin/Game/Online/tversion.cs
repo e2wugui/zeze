@@ -3,6 +3,7 @@ using Zeze.Serialize;
 using Zeze.Transaction;
 using System.Threading.Tasks;
 
+// ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.Game.Online
 {
     public sealed class tversion : Table<long, Zeze.Builtin.Game.Online.BVersion>, TableReadOnly<long, Zeze.Builtin.Game.Online.BVersion, Zeze.Builtin.Game.Online.BVersionReadOnly>

@@ -103,7 +103,7 @@ namespace Zeze.Gen.cs
         {
             sw.WriteLine("            // register protocol factory and handles");
             if (isFirst)
-                sw.WriteLine("            var _reflect = new Zeze.Util.Reflect(this.GetType());");
+                sw.WriteLine("            var _reflect = new Zeze.Util.Reflect(GetType());");
             Service serv = module.ReferenceService;
             if (serv != null)
             {
@@ -184,7 +184,6 @@ namespace Zeze.Gen.cs
             using StreamWriter sw = module.OpenWriter(genDir, $"Module{module.Name}Gen.cs");
             if (sw == null)
                 return;
-
             sw.WriteLine("// auto-generated");
             sw.WriteLine();
             sw.WriteLine("namespace " + module.Path());
@@ -319,6 +318,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             if (module.Comment.Length > 0)
                 sw.WriteLine(module.Comment);
+            sw.WriteLine("// ReSharper disable RedundantNameQualifier UnusedParameter.Global UnusedVariable");
+            sw.WriteLine("// ReSharper disable once CheckNamespace");
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public abstract class AbstractModule : Zeze.IModule");

@@ -27,6 +27,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             if (table.Comment.Length > 0)
                 sw.WriteLine(table.Comment);
+            sw.WriteLine("// ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier");
             sw.WriteLine("namespace " + table.Space.Path());
             sw.WriteLine("{");
             string key = TypeName.GetName(table.KeyType);

@@ -2,6 +2,9 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor MergeConditionalExpression
+// ReSharper disable PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Online
 {
     public interface BVersionsReadOnly
@@ -18,7 +21,7 @@ namespace Zeze.Builtin.Online
     public sealed class BVersions : Zeze.Transaction.Bean, BVersionsReadOnly
     {
         readonly Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BVersion> _Logins; // key is ClientId
-        Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BVersionReadOnly,Zeze.Builtin.Online.BVersion> _LoginsReadOnly;
+        readonly Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BVersionReadOnly,Zeze.Builtin.Online.BVersion> _LoginsReadOnly;
         long _LastLoginVersion; // 用来生成 account 登录版本号。每次递增。
 
         public Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BVersion> Logins => _Logins;

@@ -3,6 +3,7 @@ using Zeze.Serialize;
 using Zeze.Transaction;
 using System.Threading.Tasks;
 
+// ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.Online
 {
     public sealed class tlocal : Table<string, Zeze.Builtin.Online.BLocals>, TableReadOnly<string, Zeze.Builtin.Online.BLocals, Zeze.Builtin.Online.BLocalsReadOnly>

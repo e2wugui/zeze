@@ -26,8 +26,8 @@ namespace Zeze.Gen.cs
             if (beanKey.Comment.Length > 0)
                 sw.WriteLine(beanKey.Comment);
             sw.WriteLine("// ReSharper disable ArrangeThisQualifier JoinDeclarationAndInitializer NonReadonlyMemberInGetHashCode");
-            sw.WriteLine("// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment StringCompareToIsCultureSpecific");
-            sw.WriteLine("// ReSharper disable UselessBinaryOperation");
+            sw.WriteLine("// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment RedundantNameQualifier");
+            sw.WriteLine("// ReSharper disable StringCompareToIsCultureSpecific UselessBinaryOperation");
             sw.WriteLine("// ReSharper disable once CheckNamespace");
             sw.WriteLine("namespace " + beanKey.Space.Path());
             sw.WriteLine("{");

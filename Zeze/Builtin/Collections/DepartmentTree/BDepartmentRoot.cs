@@ -2,6 +2,9 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor MergeConditionalExpression
+// ReSharper disable PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Collections.DepartmentTree
 {
     public interface BDepartmentRootReadOnly
@@ -21,7 +24,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
     {
         string _Root; // 群主
         readonly Zeze.Transaction.Collections.CollMap2<string, Zeze.Transaction.DynamicBean> _Managers;
-        Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBeanReadOnly,Zeze.Transaction.DynamicBean> _ManagersReadOnly;
+        readonly Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBeanReadOnly,Zeze.Transaction.DynamicBean> _ManagersReadOnly;
         public static Zeze.Transaction.DynamicBean NewDynamicBeanManagers()
         {
             return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId);
@@ -39,7 +42,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
 
         long _NextDepartmentId; // 部门Id种子
         readonly Zeze.Transaction.Collections.CollMap1<string, long> _Childs; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
-        Zeze.Transaction.Collections.CollMapReadOnly<string,long,long> _ChildsReadOnly;
+        readonly Zeze.Transaction.Collections.CollMapReadOnly<string,long,long> _ChildsReadOnly;
 
         public string Root
         {

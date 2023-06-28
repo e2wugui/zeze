@@ -3,6 +3,7 @@ using Zeze.Serialize;
 using Zeze.Transaction;
 using System.Threading.Tasks;
 
+// ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.AutoKey
 {
     public sealed class tAutoKeys : Table<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey>, TableReadOnly<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey, Zeze.Builtin.AutoKey.BAutoKeyReadOnly>

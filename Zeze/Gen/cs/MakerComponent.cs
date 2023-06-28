@@ -84,6 +84,9 @@ namespace Zeze.Gen.cs
                 if (sw != null)
                 {
                     sw.WriteLine("// auto generate");
+                    sw.WriteLine();
+                    sw.WriteLine("// ReSharper disable RedundantNameQualifier UnusedParameter.Global UnusedVariable");
+                    sw.WriteLine("// ReSharper disable once CheckNamespace");
                     sw.WriteLine($"namespace {ns}");
                     sw.WriteLine("{");
                     sw.WriteLine($"    public abstract class Abstract{Project.Name} : Zeze.IModule ");

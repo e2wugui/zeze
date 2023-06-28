@@ -1,4 +1,7 @@
 // auto generate
+
+// ReSharper disable RedundantNameQualifier UnusedParameter.Global UnusedVariable
+// ReSharper disable once CheckNamespace
 namespace Zeze.Arch
 {
     public abstract class AbstractProviderDirect : Zeze.IModule 
@@ -15,7 +18,7 @@ namespace Zeze.Arch
         public void RegisterProtocols(Zeze.Net.Service service)
         {
             // register protocol factory and handles
-            var _reflect = new Zeze.Util.Reflect(this.GetType());
+            var _reflect = new Zeze.Util.Reflect(GetType());
             service.AddFactoryHandle(47286041114986, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.ProviderDirect.AnnounceProviderInfo(),

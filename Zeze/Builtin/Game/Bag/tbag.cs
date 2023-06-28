@@ -4,6 +4,7 @@ using Zeze.Transaction;
 using System.Threading.Tasks;
 
 // key is bag name
+// ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.Game.Bag
 {
     public sealed class tbag : Table<string, Zeze.Builtin.Game.Bag.BBag>, TableReadOnly<string, Zeze.Builtin.Game.Bag.BBag, Zeze.Builtin.Game.Bag.BBagReadOnly>

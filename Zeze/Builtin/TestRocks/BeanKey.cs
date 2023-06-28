@@ -3,8 +3,8 @@ using System;
 using Zeze.Serialize;
 
 // ReSharper disable ArrangeThisQualifier JoinDeclarationAndInitializer NonReadonlyMemberInGetHashCode
-// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment StringCompareToIsCultureSpecific
-// ReSharper disable UselessBinaryOperation
+// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment RedundantNameQualifier
+// ReSharper disable StringCompareToIsCultureSpecific UselessBinaryOperation
 // ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.TestRocks
 {

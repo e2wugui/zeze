@@ -25,6 +25,9 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
+            sw.WriteLine("// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor MergeConditionalExpression");
+            sw.WriteLine("// ReSharper disable PossibleNullReferenceException RedundantAssignment RedundantNameQualifier");
+            sw.WriteLine("// ReSharper disable once CheckNamespace");
             sw.WriteLine("namespace " + bean.Space.Path());
             sw.WriteLine("{");
             sw.WriteLine($"    public interface {bean.Name}ReadOnly");
@@ -132,7 +135,7 @@ namespace Zeze.Gen.cs
                         ? TypeName.GetName(pmap.ValueType) + "ReadOnly"
                         : TypeName.GetName(pmap.ValueType);
                     var readonlyTypeName = $"Zeze.Transaction.Collections.CollMapReadOnly<{key},{value},{TypeName.GetName(pmap.ValueType)}>";
-                    sw.WriteLine($"        {readonlyTypeName} {v.NamePrivate}ReadOnly;");
+                    sw.WriteLine($"        readonly {readonlyTypeName} {v.NamePrivate}ReadOnly;");
                 }
                 if (vt is TypeDynamic dy0)
                     GenDynamicSpecialMethod(sw, "        ", v, dy0, false);

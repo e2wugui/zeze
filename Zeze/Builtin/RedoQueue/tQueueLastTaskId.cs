@@ -3,6 +3,7 @@ using Zeze.Serialize;
 using Zeze.Transaction;
 using System.Threading.Tasks;
 
+// ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.RedoQueue
 {
     public sealed class tQueueLastTaskId : Table<string, Zeze.Builtin.RedoQueue.BTaskId>, TableReadOnly<string, Zeze.Builtin.RedoQueue.BTaskId, Zeze.Builtin.RedoQueue.BTaskIdReadOnly>

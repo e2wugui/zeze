@@ -3,6 +3,9 @@ using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
 // linkd to client
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor MergeConditionalExpression
+// ReSharper disable PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.LinkdBase
 {
     public interface BReportErrorReadOnly

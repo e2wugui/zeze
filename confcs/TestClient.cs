@@ -13,7 +13,7 @@ public class ModuleModule1 : AbstractModuleModule1
 {
     protected override Task<long> ProcessProtocol1(Protocol p)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<long>(0);
     }
 
     protected override Task<long> ProcessProtocol3(Protocol p)
@@ -21,12 +21,7 @@ public class ModuleModule1 : AbstractModuleModule1
         throw new NotImplementedException();
     }
 
-    protected override Task<long> ProcessProtocolNoProcedure(Protocol p)
-    {
-        throw new NotImplementedException();
-    }
-
-    protected override Task<long> ProcessRpc1Request(Protocol p)
+    protected override Task<long> ProcessRpc2Request(Protocol p)
     {
         throw new NotImplementedException();
     }

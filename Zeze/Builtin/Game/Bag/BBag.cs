@@ -2,6 +2,9 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor MergeConditionalExpression
+// ReSharper disable PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Game.Bag
 {
     public interface BBagReadOnly
@@ -19,7 +22,7 @@ namespace Zeze.Builtin.Game.Bag
     {
         int _Capacity;
         readonly Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Game.Bag.BItem> _Items; // key is bag position
-        Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Game.Bag.BItemReadOnly,Zeze.Builtin.Game.Bag.BItem> _ItemsReadOnly;
+        readonly Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Game.Bag.BItemReadOnly,Zeze.Builtin.Game.Bag.BItem> _ItemsReadOnly;
 
         public int Capacity
         {

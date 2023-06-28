@@ -2,6 +2,9 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor MergeConditionalExpression
+// ReSharper disable PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Online
 {
     public interface BLocalReadOnly
@@ -19,7 +22,7 @@ namespace Zeze.Builtin.Online
     {
         long _LoginVersion;
         readonly Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BAny> _Datas;
-        Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BAnyReadOnly,Zeze.Builtin.Online.BAny> _DatasReadOnly;
+        readonly Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BAnyReadOnly,Zeze.Builtin.Online.BAny> _DatasReadOnly;
 
         public string _zeze_map_key_string_ { get; set; }
 

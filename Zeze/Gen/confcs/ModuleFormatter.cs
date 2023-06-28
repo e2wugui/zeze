@@ -64,9 +64,9 @@ namespace Zeze.Gen.confcs
                 if (p is Rpc rpc)
                 {
                     // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
-                    sw.WriteLine($"            {serviceVar}.AddFactoryHandle({rpc.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
+                    sw.WriteLine($"            {serviceVar}.AddFactoryHandle({rpc.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle");
                     sw.WriteLine("            {");
-                    if ((rpc.HandleFlags & Program.HandleCSharpFlags) != 0)
+                    if ((rpc.HandleFlags & (Program.HandleClientFlag | Program.HandleScriptClientFlag)) != 0)
                     {
                         sw.WriteLine($"                Factory = () => new {rpc.Space.Path(".", rpc.Name)}(),");
                         sw.WriteLine($"                Handle = Process{rpc.Name}Request");
@@ -76,7 +76,7 @@ namespace Zeze.Gen.confcs
                     sw.WriteLine("            });");
                     continue;
                 }
-                if (0 != (p.HandleFlags & Program.HandleCSharpFlags))
+                if (0 != (p.HandleFlags & (Program.HandleClientFlag | Program.HandleScriptClientFlag)))
                 {
                     sw.WriteLine($"            {serviceVar}.AddFactoryHandle({p.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle");
                     sw.WriteLine("            {");
@@ -93,13 +93,13 @@ namespace Zeze.Gen.confcs
             {
                 if (p is Rpc rpc)
                 {
-                    if ((rpc.HandleFlags & Program.HandleCSharpFlags) != 0)
+                    if ((rpc.HandleFlags & (Program.HandleClientFlag | Program.HandleScriptClientFlag)) != 0)
                     {
                         sw.WriteLine();
                         sw.WriteLine($"        protected abstract System.Threading.Tasks.Task<long> Process{rpc.Name}Request(Zeze.Net.Protocol p);");
                     }
                 }
-                else if ((p.HandleFlags & Program.HandleCSharpFlags) != 0)
+                else if ((p.HandleFlags & (Program.HandleClientFlag | Program.HandleScriptClientFlag)) != 0)
                 {
                     sw.WriteLine();
                     sw.WriteLine($"        protected abstract System.Threading.Tasks.Task<long> Process{p.Name}(Zeze.Net.Protocol p);");

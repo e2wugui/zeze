@@ -4,6 +4,7 @@ using Zeze.Transaction;
 using System.Threading.Tasks;
 
 // key: LinkedMap的Name
+// ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.Collections.LinkedMap
 {
     public sealed class tLinkedMaps : Table<string, Zeze.Builtin.Collections.LinkedMap.BLinkedMap>, TableReadOnly<string, Zeze.Builtin.Collections.LinkedMap.BLinkedMap, Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly>

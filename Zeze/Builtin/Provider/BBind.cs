@@ -2,6 +2,9 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor MergeConditionalExpression
+// ReSharper disable PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Provider
 {
     public interface BBindReadOnly
@@ -21,7 +24,7 @@ namespace Zeze.Builtin.Provider
         public const int ResultFailed = 1;
 
         readonly Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
-        Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule> _modulesReadOnly;
+        readonly Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule> _modulesReadOnly;
         readonly Zeze.Transaction.Collections.CollSet1<long> _linkSids;
 
         public Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Provider.BModule> Modules => _modules;

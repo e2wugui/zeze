@@ -4,6 +4,7 @@ using Zeze.Transaction;
 using System.Threading.Tasks;
 
 // key: Queue的Name
+// ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.Collections.Queue
 {
     public sealed class tQueues : Table<string, Zeze.Builtin.Collections.Queue.BQueue>, TableReadOnly<string, Zeze.Builtin.Collections.Queue.BQueue, Zeze.Builtin.Collections.Queue.BQueueReadOnly>
