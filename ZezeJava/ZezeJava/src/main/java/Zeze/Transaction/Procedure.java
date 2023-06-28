@@ -40,6 +40,8 @@ public class Procedure {
 	}
 
 	private static final Logger logger = LogManager.getLogger(Procedure.class);
+	public static final boolean ENABLE_DEBUG_LOG = logger.isDebugEnabled();
+	public static final boolean ENABLE_TRACE_LOG = logger.isTraceEnabled();
 	@SuppressWarnings("CanBeFinal")
 	public static ILogAction logAction = Procedure::defaultLogAction;
 
@@ -50,7 +52,7 @@ public class Procedure {
 			level = Level.ERROR;
 		else if (result != 0)
 			level = p.zeze.getConfig().getProcessReturnErrorLogLevel();
-		else if (logger.isTraceEnabled())
+		else if (ENABLE_TRACE_LOG)
 			level = Level.TRACE;
 		else
 			return;
@@ -157,7 +159,10 @@ public class Procedure {
 			// 单独抓住这个异常，是为了能原样抛出，并且使用不同的级别记录日志。
 			// 对状态正确性没有影响。
 			currentT.rollback();
-			logger.debug("", gobackzeze);
+			if (ENABLE_DEBUG_LOG)
+				logger.debug("GoBackZeze:", gobackzeze);
+			else
+				logger.info("GoBackZeze: {}", gobackzeze.getMessage());
 			throw gobackzeze;
 		} catch (Throwable e) { // logger, rethrow AssertionError
 			// rollback.
