@@ -57,6 +57,7 @@ public partial class NotifyPage : ContentPage
                         var pkcs12 = Cert.DecryptAesWithRsa(cert, notify.Data.GetBytesUnsafe(), notify.Data.Offset, notify.Data.Count);
                         var base64 = Convert.ToBase64String(pkcs12);
                         await SecureStorage.Default.SetAsync(group + "." + lastCertIndex + ".pkcs12", base64);
+                        await SecureStorage.Default.SetAsync(group + ".LastCertIndex", lastCertIndex.ToString());
                     }
                     var r = new RemoveNotify();
                     r.Argument.Account = group;

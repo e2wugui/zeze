@@ -173,6 +173,42 @@ namespace Zege.Friend
             await AppShell.Instance.DisplayAlertAsync("!!!", "NotImplementedException");
         }
 
+        public async Task<long> SendGroupCertificate(string group, string account)
+        {
+            var notify = await EncryptGroupCertificateWith(group, account);
+            if (notify == null)
+                return ResultCode.Unknown;
+
+            var n = new SendNotify();
+            n.Argument.Group = group;
+            n.Argument.Notifys[account] = notify;
+            await n.SendAsync(App.Connector.TryGetReadySocket());
+            return n.ResultCode;
+        }
+
+        private async Task<BNotify> EncryptGroupCertificateWith(string group, string account)
+        {
+            var groupCert = await App.Zege_User.GetLastPrivateCertificate(group);
+            if (groupCert == null)
+                return null;
+
+            var pkcs12 = groupCert.Export(X509ContentType.Pkcs12, "");
+            var info = await App.Zege_Friend.GetPublicUserInfo(account);
+            if (info.Cert != null)
+            {
+                var encryptedCert = Cert.EncryptAesWithRsa(info.Cert, pkcs12);
+
+                var notify = new BNotify();
+                notify.Title = "Group Cert";
+                notify.Type = BNotify.eTypeGroupCert;
+                notify.Data = new Binary(encryptedCert);
+                notify.Properties["group"] = group;
+                notify.Properties["lastCertIndex"] = info.Bean.LastCertIndex.ToString();
+                return notify;
+            }
+            return null;
+        }
+
         public async Task<string> CreateGroup(IEnumerable<string> selected)
         { 
             var r = new CreateGroup();
@@ -195,30 +231,19 @@ namespace Zege.Friend
             var pkcs12 = cert.Export(X509ContentType.Pkcs12, "");
             var base64 = Convert.ToBase64String(pkcs12);
             await SecureStorage.Default.SetAsync(group + "." + r.Result.LastCertIndex + ".pkcs12", base64);
-            //await SecureStorage.Default.SetAsync(group + ".pkcs12", base64);
+            await SecureStorage.Default.SetAsync(group + ".LastCertIndex", r.Result.LastCertIndex.ToString());
+
+            await App.Zege_Friend.LoadPublicUserInfos(selected);
 
             var n = new SendNotify();
             n.Argument.Group = group;
 
-            await App.Zege_Friend.LoadPublicUserInfos(selected);
-
             foreach (var account in selected)
             {
-                var info = await App.Zege_Friend.GetPublicUserInfo(account);
-                if (info.Cert != null)
-                {
-                    var encryptedCert = Cert.EncryptAesWithRsa(info.Cert, pkcs12);
-
-                    var notify = new BNotify();
-                    notify.Title = "Group Cert";
-                    notify.Type = BNotify.eTypeGroupCert;
-                    notify.Data = new Binary(encryptedCert);
-                    notify.Properties["group"] = group;
-                    notify.Properties["lastCertIndex"] = info.Bean.LastCertIndex.ToString();
-
+                var notify = await EncryptGroupCertificateWith(group, account);
+                if (null != notify)
                     n.Argument.Notifys[account] = notify;
-                }
-                // else TODO report warning message
+                // else warning
             }
             await n.SendAsync(App.Connector.TryGetReadySocket());
             return group;

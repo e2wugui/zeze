@@ -156,7 +156,16 @@ namespace Zege
             {
                 var rc = await app.Zege_Friend.AddDepartmentMember(chatGroup.DepartmentKey.Group, chatGroup.DepartmentKey.DepartmentId, Editor.Text);
                 if (0 != rc)
+                {
                     await AppShell.Instance.DisplayAlertAsync("AddDepartmentMember Error", "Code=" + rc);
+                    return;
+                }
+                rc = await app.Zege_Friend.SendGroupCertificate(chatGroup.DepartmentKey.Group, Editor.Text);
+                if (0 != rc)
+                {
+                    await AppShell.Instance.DisplayAlertAsync("SendGroupCertificate Error", "Code=" + rc);
+                    return;
+                }
             }
         }
 
