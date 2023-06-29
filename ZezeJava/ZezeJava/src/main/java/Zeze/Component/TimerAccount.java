@@ -258,6 +258,8 @@ public class TimerAccount {
 				context.timer.cancel(offlineCustom.getTimerName());
 				var offlineTimers = context.timer.tAccountOfflineTimers()
 						.get(new BAccountClientId(offlineCustom.getAccount(), offlineCustom.getClientId()));
+				if (null == offlineTimers)
+					throw new RuntimeException("maybe operate before timer created.");
 				offlineTimers.getOfflineTimers().remove(offlineCustom.getTimerName());
 			}
 		}
@@ -339,8 +341,13 @@ public class TimerAccount {
 				return 0; // done
 			}
 
-			var customData = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers)
-					.getTimerIds().get(timerId).getCustomData().getBean();
+			var localBean = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
+			if (null == localBean)
+				throw new RuntimeException("local bean not exist");
+			var localTimer = localBean.getTimerIds().get(timerId);
+			if (null == localTimer)
+				throw new RuntimeException("local timer not exist");
+			var customData = localTimer.getCustomData().getBean();
 			if (customData instanceof EmptyBean)
 				customData = null;
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
@@ -414,8 +421,13 @@ public class TimerAccount {
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			var serialSaved = bTimer.getSerialId();
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
-				var customData = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers)
-						.getTimerIds().get(timerId).getCustomData().getBean();
+				var localBean = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
+				if (null == localBean)
+					throw new RuntimeException("local bean not exist");
+				var localTimer = localBean.getTimerIds().get(timerId);
+				if (null == localTimer)
+					throw new RuntimeException("local timer not exist");
+				var customData = localTimer.getCustomData().getBean();
 				if (customData instanceof EmptyBean)
 					customData = null;
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,

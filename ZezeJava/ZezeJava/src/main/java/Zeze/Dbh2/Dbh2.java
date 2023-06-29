@@ -501,7 +501,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		it.seek(Database.copyIf(middleKey.bytesUnsafe(), middleKey.getOffset(), middleKey.size()));
 		if (!it.isValid()) {
 			it.close();
-			throw new RocksDBException("middle key not found.");
+			return null;
 		}
 		return it;
 	}

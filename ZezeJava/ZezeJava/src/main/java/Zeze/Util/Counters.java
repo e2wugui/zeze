@@ -9,7 +9,14 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
 public class Counters {
-	public static volatile boolean enable = false;
+	private static volatile boolean enable = false;
+
+	public static void setEnable(boolean value) {
+		enable = value;
+	}
+	public static boolean isEnable() {
+		return enable;
+	}
 
 	private final String name;
 	private final ConcurrentSkipListMap<String, LongAdder> counters = new ConcurrentSkipListMap<>();

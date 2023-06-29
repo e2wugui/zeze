@@ -835,6 +835,7 @@ public class Test {
 				return Procedure.RaftRetry; // fast fail
 
 			TestStateMachine sm = stateMachine;
+			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (sm) {
 				sm.addCountAndWait(r);
 				r.SendResultCode(0);

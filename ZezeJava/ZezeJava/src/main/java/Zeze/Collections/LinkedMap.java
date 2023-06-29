@@ -182,11 +182,15 @@ public class LinkedMap<V extends Bean> {
 		var values = node.getValues();
 
 		// activate。优化：这个操作比较多，已经在目标位置，不调整。
+		var root = getRoot();
+		if (null == root)
+			throw new RuntimeException("root is null. maybe operate before create.");
+
 		if (ahead) {
-			if (values.get(0).getId().equals(id) && getRoot().getHeadNodeId() == nodeIdLong) // HeadNode && List.Last
+			if (values.get(0).getId().equals(id) && root.getHeadNodeId() == nodeIdLong) // HeadNode && List.Last
 				return nodeIdLong;
 		} else {
-			if (values.get(values.size() - 1).getId().equals(id) && getRoot().getTailNodeId() == nodeIdLong) // TailNode && List.Last
+			if (values.get(values.size() - 1).getId().equals(id) && root.getTailNodeId() == nodeIdLong) // TailNode && List.Last
 				return nodeIdLong;
 		}
 
@@ -231,6 +235,8 @@ public class LinkedMap<V extends Bean> {
 			nodeId.setNodeId(ahead ? addHeadUnsafe(newNodeValue) : addTailUnsafe(newNodeValue));
 			module._tValueIdToNodeId.insert(nodeIdKey, nodeId);
 			var root = getRoot();
+			if (null == root)
+				throw new RuntimeException("root is null. maybe operate before create.");
 			root.setCount(root.getCount() + 1);
 			return null;
 		}
@@ -307,6 +313,8 @@ public class LinkedMap<V extends Bean> {
 				values.remove(i);
 				module._tValueIdToNodeId.remove(nodeKey);
 				var root = getRoot();
+				if (null == root)
+					throw new RuntimeException("root is null. maybe operate before create.");
 				root.setCount(root.getCount() - 1);
 				if (values.isEmpty())
 					removeNodeUnsafe(nodeId.getNodeId(), node);
@@ -321,6 +329,8 @@ public class LinkedMap<V extends Bean> {
 		for (var e : node.getValues())
 			module._tValueIdToNodeId.remove(new BLinkedMapKey(name, e.getId()));
 		var root = getRoot();
+		if (null == root)
+			throw new RuntimeException("root is null. maybe operate before create.");
 		root.setCount(root.getCount() - node.getValues().size());
 		node.getValues().clear();
 		removeNodeUnsafe(nodeId, node);
@@ -411,6 +421,9 @@ public class LinkedMap<V extends Bean> {
 
 	private void removeNodeUnsafe(long nodeId, @NotNull BLinkedMapNode node) {
 		var root = getRoot();
+		if (null == root)
+			throw new RuntimeException("root is null. maybe operate before create.");
+
 		var prevNodeId = node.getPrevNodeId();
 		var nextNodeId = node.getNextNodeId();
 

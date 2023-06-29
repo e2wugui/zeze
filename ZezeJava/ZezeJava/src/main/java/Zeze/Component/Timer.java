@@ -234,11 +234,15 @@ public class Timer extends AbstractTimer {
 				} else {
 					// link to root head
 					var head = _tNodes.get(root.getHeadNodeId());
+					if (null == head)
+						throw new RuntimeException("head is null. maybe operate before create.");
 					head.setPrevNodeId(nodeId);
 					node.setNextNodeId(root.getHeadNodeId());
 					node.setPrevNodeId(root.getTailNodeId());
 					root.setHeadNodeId(nodeId);
 					var tailNode = _tNodes.get(root.getTailNodeId());
+					if (null == tailNode)
+						throw new RuntimeException("tailNode is null. maybe operate before create.");
 					tailNode.setNextNodeId(root.getHeadNodeId());
 				}
 			}
@@ -416,11 +420,15 @@ public class Timer extends AbstractTimer {
 				} else {
 					// link to root head
 					var head = _tNodes.get(root.getHeadNodeId());
+					if (null == head)
+						throw new RuntimeException("head is null. maybe operate before create.");
 					head.setPrevNodeId(nodeId);
 					node.setNextNodeId(root.getHeadNodeId());
 					node.setPrevNodeId(root.getTailNodeId());
 					root.setHeadNodeId(nodeId);
 					var tailNode = _tNodes.get(root.getTailNodeId());
+					if (null == tailNode)
+						throw new RuntimeException("tailNode is null. maybe operate before create.");
 					tailNode.setNextNodeId(root.getHeadNodeId());
 				}
 			}
@@ -663,7 +671,10 @@ public class Timer extends AbstractTimer {
 	}
 
 	public TimerRole getRoleTimer(String onlineSetName) {
-		return defaultOnline.getOnline(onlineSetName).getTimerRole();
+		var online = defaultOnline.getOnline(onlineSetName);
+		if (null == online)
+			throw new RuntimeException("online miss " + onlineSetName);
+		return online.getTimerRole();
 	}
 
 	/////////////////////////////////////////////////////////////
@@ -696,6 +707,8 @@ public class Timer extends AbstractTimer {
 				var prev = _tNodes.get(node.getPrevNodeId());
 				var next = _tNodes.get(node.getNextNodeId());
 				var root = _tNodeRoot.get(serverId);
+				if (null == root || null == prev || null == next)
+					throw new RuntimeException("maybe operate before timer created.");
 				if (root.getHeadNodeId() == root.getTailNodeId()) {
 					// only one node and will be removed.
 					root.setHeadNodeId(0L);
@@ -794,6 +807,8 @@ public class Timer extends AbstractTimer {
 			}
 
 			var timer = node.getTimers().get(timerId);
+			if (null == timer)
+				throw new RuntimeException("maybe operate before timer created.");
 			@SuppressWarnings("unchecked")
 			var handleClass = (Class<? extends TimerHandle>)Class.forName(timer.getHandleName());
 			final var handle = handleClass.getDeclaredConstructor().newInstance();
@@ -926,6 +941,8 @@ public class Timer extends AbstractTimer {
 				return 0; // procedure done
 			}
 			var timer = node.getTimers().get(timerId);
+			if (null == timer)
+				throw new RuntimeException("maybe operate before timer created.");
 			@SuppressWarnings("unchecked")
 			var handleClass = (Class<? extends TimerHandle>)Class.forName(timer.getHandleName());
 			final var handle = handleClass.getDeclaredConstructor().newInstance();
@@ -1019,6 +1036,9 @@ public class Timer extends AbstractTimer {
 			var srcTail = _tNodes.get(src.getTailNodeId());
 			var head = _tNodes.get(root.getHeadNodeId());
 			//var tail = _tNodes.get(root.getTailNodeId());
+
+			if (null == srcHead || null == srcTail || null == head)
+				throw new RuntimeException("maybe operate before timer created.");
 
 			// 先保存存储过程退出以后需要装载的timer范围。
 			first.value = src.getHeadNodeId();
