@@ -25,7 +25,7 @@ dependencies {
     implementation 'com.lmax:disruptor:3.4.4'
 
     // for rocketMQ
-    implementation('org.apache.rocketmq:rocketmq-client:4.9.6') {
+    implementation('org.apache.rocketmq:rocketmq-client:4.9.7') {
         exclude group: 'io.netty', module: 'netty-all'
     }
     implementation 'javax:javaee-api:8.0.1'

@@ -117,13 +117,13 @@
 		<log4j-core.version>2.20.0</log4j-core.version>
 		<annotations.version>24.0.1</annotations.version>
 		<pcollectons.version>4.0.1</pcollectons.version>
-		<rocksdbjni.version>8.1.1.1</rocksdbjni.version>
+		<rocksdbjni.version>8.3.2</rocksdbjni.version>
 		<netty.version>4.1.93.Final</netty.version>
 		<tikv.version>3.3.5</tikv.version>
 		<druid.version>1.2.18</druid.version>
 		<mysql-connector-j.version>8.0.33</mysql-connector-j.version>
 		<aws-java-sdk-dynamodb.version>1.12.486</aws-java-sdk-dynamodb.version>
-		<rocketmq-client.version>4.9.6</rocketmq-client.version>
+		<rocketmq-client.version>4.9.7</rocketmq-client.version>
 		<javaee-api.version>8.0.1</javaee-api.version>
 		<jgrapht-core.version>1.5.2</jgrapht-core.version>
 		<opencsv.version>5.7.1</opencsv.version>

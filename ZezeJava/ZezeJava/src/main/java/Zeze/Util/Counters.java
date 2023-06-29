@@ -14,6 +14,7 @@ public class Counters {
 	public static void setEnable(boolean value) {
 		enable = value;
 	}
+
 	public static boolean isEnable() {
 		return enable;
 	}
