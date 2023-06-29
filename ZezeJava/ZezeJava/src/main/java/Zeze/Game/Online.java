@@ -1429,7 +1429,7 @@ public class Online extends AbstractOnline {
 	@Override
 	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) throws Exception {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
-			logger.info("Loginp[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
+			logger.info("Login[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
 		if (null == onlineSet) {
 			var session = ProviderUserSession.get(rpc);
