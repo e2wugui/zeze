@@ -375,7 +375,7 @@ public final class Json implements Cloneable {
 	static final @NotNull Unsafe unsafe;
 	private static final @NotNull MethodHandle getDeclaredFields0MH;
 	private static final long OVERRIDE_OFFSET;
-	static final long STRING_VALUE_OFFSET;
+	static final long STRING_VALUE_OFFSET, STRING_CODE_OFFSET;
 	static final boolean BYTE_STRING;
 	static final int keyHashMultiplier = 0x100_0193; // 1677_7619 can be changed to another prime number
 	public static final Json instance = new Json();
@@ -414,6 +414,8 @@ public final class Json implements Cloneable {
 			Field valueField = getDeclaredField(String.class, "value");
 			STRING_VALUE_OFFSET = unsafe.objectFieldOffset(Objects.requireNonNull(valueField));
 			BYTE_STRING = valueField.getType() == byte[].class;
+			STRING_CODE_OFFSET = BYTE_STRING ?
+					unsafe.objectFieldOffset(Objects.requireNonNull(getDeclaredField(String.class, "coder"))) : 0;
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
