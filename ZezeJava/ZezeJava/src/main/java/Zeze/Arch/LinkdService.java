@@ -167,7 +167,7 @@ public class LinkdService extends HandshakeServer {
 
 		var pms = linkdApp.linkdProvider.getProviderModuleState(moduleId);
 		if (null != pms && pms.configType == BModule.ConfigTypeDynamic) {
-			logger.warn("dynamic module do not need choice. moduleId={}, protocolId={}",
+			logger.warn("dynamic module do not need choice. moduleId={}, protocolType={}",
 					moduleId, dispatch.Argument.getProtocolType());
 			return true; // skip ...
 		}

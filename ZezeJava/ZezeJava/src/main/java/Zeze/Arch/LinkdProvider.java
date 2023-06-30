@@ -22,12 +22,14 @@ import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Linkd上处理Provider协议的模块。
  */
 public class LinkdProvider extends AbstractLinkdProvider {
-	// private static final Logger logger = LogManager.getLogger(LinkdProvider.class);
+	private static final Logger logger = LogManager.getLogger(LinkdProvider.class);
 	protected static final String dumpFilename = System.getProperty("dumpLinkdOutput");
 	protected static final boolean enableDump = dumpFilename != null;
 
@@ -146,6 +148,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		if (providerModuleState.configType != BModule.ConfigTypeDynamic) {
 			var staticBinds = ((LinkdProviderSession)providerSocket.getUserState()).getStaticBinds();
 			linkSession.bind(linkdApp.linkdProviderService, link, staticBinds.keySet(), providerSocket);
+			logger.info("static bind: account={}, moduleIds=[{}], provider={}, configType={}, choiceType={}",
+					linkSession.account, staticBinds.size(), providerSocket.getRemoteAddress(),
+					providerModuleState.configType, providerModuleState.choiceType);
 		}
 		return true;
 	}
@@ -207,6 +212,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				if (link != null) {
 					var linkSession = (LinkdUserSession)link.getUserState();
 					linkSession.bind(linkdApp.linkdProviderService, link, bind.getModules().keySet(), rpc.getSender());
+					logger.info("dynamic bind: account={}, moduleIds={}, provider={}", linkSession.account,
+							bind.getModules().keySet(), rpc.getSender().getRemoteAddress());
 				}
 			}
 		}
