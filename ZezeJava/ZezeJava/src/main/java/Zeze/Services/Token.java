@@ -94,9 +94,9 @@ public final class Token extends AbstractToken {
 		public TokenClient(@Nullable Config config) {
 			super("TokenClient", config);
 			AddFactoryHandle(NewToken.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(NewToken::new, null,
-					TransactionLevel.None, DispatchMode.Direct)); // 11029, -633142956
+					TransactionLevel.None, DispatchMode.Normal)); // 11029, -633142956
 			AddFactoryHandle(GetToken.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(GetToken::new, null,
-					TransactionLevel.None, DispatchMode.Direct)); // 11029, -1570200909
+					TransactionLevel.None, DispatchMode.Normal)); // 11029, -1570200909
 		}
 
 		@Override
