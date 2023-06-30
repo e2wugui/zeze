@@ -164,6 +164,14 @@ public class LinkdService extends HandshakeServer {
 
 	public boolean choiceBindSend(AsyncSocket so, int moduleId, Dispatch dispatch) {
 		var provider = new OutLong();
+
+		var pms = linkdApp.linkdProvider.getProviderModuleState(moduleId);
+		if (null != pms && pms.configType == BModule.ConfigTypeDynamic) {
+			logger.warn("dynamic module do not need choice. moduleId={}, protocolId={}",
+					moduleId, dispatch.Argument.getProtocolType());
+			return true; // skip ...
+		}
+
 		if (linkdApp.linkdProvider.choiceProviderAndBind(moduleId, so, provider)) {
 			var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
 			if (providerSocket == null)

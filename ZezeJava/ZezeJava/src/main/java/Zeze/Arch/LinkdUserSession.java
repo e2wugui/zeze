@@ -28,7 +28,7 @@ public class LinkdUserSession {
 	}
 
 	public void setSessionId(LinkdProviderService linkdProviderService, long sessionId) {
-		updateLinkSessionId(linkdProviderService, sessionId);
+		//updateLinkSessionId(linkdProviderService, sessionId);
 		this.sessionId = sessionId;
 	}
 
@@ -156,6 +156,7 @@ public class LinkdUserSession {
 		return now - keepAliveTime > timeout;
 	}
 
+	/*
 	protected void updateLinkSessionId(LinkdProviderService linkdProviderService, long newSessionId) {
 		var writeLock = bindsLock.writeLock();
 		writeLock.lock();
@@ -173,6 +174,7 @@ public class LinkdUserSession {
 			writeLock.unlock();
 		}
 	}
+	*/
 
 	public void onClose(LinkdProviderService linkdProviderService) {
 		if (!isAuthed())
@@ -192,11 +194,15 @@ public class LinkdUserSession {
 		var bindProviders = new HashSet<AsyncSocket>();
 		for (var it = bindsSwap.iterator(); it.moveToNext(); ) {
 			var provider = linkdProviderService.GetSocket(it.value());
-			if (provider == null)
+			if (provider == null) {
+				logger.warn("bind provider miss {}", it.value());
 				continue;
+			}
 			var providerSession = (LinkdProviderSession)provider.getUserState();
-			if (providerSession == null)
+			if (providerSession == null) {
+				logger.warn("bind provider miss session {}", it.value());
 				continue;
+			}
 			providerSession.removeLinkSession(it.key(), sessionId);
 			bindProviders.add(provider); // 先收集， 去重。
 		}

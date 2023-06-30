@@ -138,8 +138,15 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
 		if (providerSocket == null)
 			return false;
-		var staticBinds = ((LinkdProviderSession)providerSocket.getUserState()).getStaticBinds();
-		linkSession.bind(linkdApp.linkdProviderService, link, staticBinds.keySet(), providerSocket);
+
+		// 动态模块允许使用这个方法查找provider，
+		// 但是不会主动注册到linkUserSession，每次都需要重新查找。
+		// 动态模块需要主动bind/unbind。
+		// XXX
+		if (providerModuleState.configType != BModule.ConfigTypeDynamic) {
+			var staticBinds = ((LinkdProviderSession)providerSocket.getUserState()).getStaticBinds();
+			linkSession.bind(linkdApp.linkdProviderService, link, staticBinds.keySet(), providerSocket);
+		}
 		return true;
 	}
 
