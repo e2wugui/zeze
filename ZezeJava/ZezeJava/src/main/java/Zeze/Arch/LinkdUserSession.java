@@ -28,7 +28,7 @@ public class LinkdUserSession {
 	}
 
 	public void setSessionId(LinkdProviderService linkdProviderService, long sessionId) {
-		//updateLinkSessionId(linkdProviderService, sessionId);
+		// updateLinkSessionId(linkdProviderService, sessionId);
 		this.sessionId = sessionId;
 	}
 
@@ -93,8 +93,8 @@ public class LinkdUserSession {
 				var exist = binds.get(moduleId);
 				if (exist != null && exist.longValue() != providerSessionId.longValue()) {
 					var s = linkdProviderService.GetSocket(exist);
-					logger.warn("LinkSession.Bind replace provider {} {} {}", moduleId,
-							s != null ? s.getRemoteAddress() : null, provider.getRemoteAddress());
+					logger.warn("bind: replace provider moduleId={}, account={}, from={}, to={}",
+							moduleId, account, s != null ? s.getRemoteAddress() : null, provider.getRemoteAddress());
 				}
 				binds.put(moduleId, providerSessionId);
 				var ps = (LinkdProviderSession)provider.getUserState();
@@ -123,6 +123,7 @@ public class LinkdUserSession {
 
 	public void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
 					   Iterable<Integer> moduleIds, AsyncSocket provider, boolean isOnProviderClose) {
+		int removeCount = 0;
 		var writeLock = bindsLock.writeLock();
 		writeLock.lock();
 		try {
@@ -130,7 +131,8 @@ public class LinkdUserSession {
 				var exist = binds.get(moduleId);
 				if (exist != null) {
 					if (exist == provider.getSessionId()) { // check owner? 也许不做这个检测更好？
-						binds.remove(moduleId);
+						if (binds.remove(moduleId) != null)
+							removeCount++;
 						if (!isOnProviderClose) {
 							var ps = (LinkdProviderSession)provider.getUserState();
 							if (ps != null)
@@ -146,6 +148,8 @@ public class LinkdUserSession {
 		} finally {
 			writeLock.unlock();
 		}
+		logger.info("unbind: account={}, moduleIds={}, removeCount={}, leftCount={}",
+				account, moduleIds, removeCount, binds.size());
 	}
 
 	public void keepAlive(Service linkdService) {
@@ -195,12 +199,14 @@ public class LinkdUserSession {
 		for (var it = bindsSwap.iterator(); it.moveToNext(); ) {
 			var provider = linkdProviderService.GetSocket(it.value());
 			if (provider == null) {
-				logger.warn("bind provider miss {}", it.value());
+				logger.warn("bind provider miss: account={}, moduleId={}, providerSessionId={}",
+						account, it.key(), it.value());
 				continue;
 			}
 			var providerSession = (LinkdProviderSession)provider.getUserState();
 			if (providerSession == null) {
-				logger.warn("bind provider miss session {}", it.value());
+				logger.warn("bind provider miss session: account={}, moduleId={}, providerSessionId={}",
+						account, it.key(), it.value());
 				continue;
 			}
 			providerSession.removeLinkSession(it.key(), sessionId);
