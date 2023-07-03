@@ -1,4 +1,6 @@
-﻿namespace Zeze.Net
+﻿using Zeze.Util;
+
+namespace Zeze.Net
 {
     // 这几个是应用层的选项，提供默认值。
     // 其他系统的选项不指定的话由系统提供默认值。
@@ -22,7 +24,7 @@
         public int Backlog = 128;
 
         // 其他杂项
-        public Config.LogLevel SocketLogLevel = Config.LogLevel.Trace; // 可以使用 NLog.LogLevel.FromString 从配置中读取
+        public LogLevel SocketLogLevel = LogLevel.Trace; // 可以使用 NLog.LogLevel.FromString 从配置中读取
         public string TimeThrottle;
         public int? TimeThrottleSeconds;
         public int? TimeThrottleLimit;

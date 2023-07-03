@@ -127,34 +127,34 @@ namespace Zeze.Util
             logger.Fatal(ex, "");
         }
 
-        public void Log(Config.LogLevel logLevel, string fmt, params object[] args)
+        public void Log(LogLevel logLevel, string fmt, params object[] args)
         {
             logger.Log(toNLogLevel(logLevel), fmt, args);
         }
 
-        public void Log(Config.LogLevel logLevel, Exception ex, string fmt, params object[] args)
+        public void Log(LogLevel logLevel, Exception ex, string fmt, params object[] args)
         {
             logger.Log(toNLogLevel(logLevel), ex, fmt, args);
         }
 
-        private static LogLevel toNLogLevel(Config.LogLevel logLevel)
+        private static NLog.LogLevel toNLogLevel(LogLevel logLevel)
         {
             switch (logLevel)
             {
-                case Config.LogLevel.Trace:
-                    return LogLevel.Trace;
-                case Config.LogLevel.Debug:
-                    return LogLevel.Debug;
-                case Config.LogLevel.Info:
-                    return LogLevel.Info;
-                case Config.LogLevel.Warn:
-                    return LogLevel.Warn;
-                case Config.LogLevel.Error:
-                    return LogLevel.Error;
-                case Config.LogLevel.Fatal:
-                    return LogLevel.Fatal;
-                case Config.LogLevel.Off:
-                    return LogLevel.Off;
+                case LogLevel.Trace:
+                    return NLog.LogLevel.Trace;
+                case LogLevel.Debug:
+                    return NLog.LogLevel.Debug;
+                case LogLevel.Info:
+                    return NLog.LogLevel.Info;
+                case LogLevel.Warn:
+                    return NLog.LogLevel.Warn;
+                case LogLevel.Error:
+                    return NLog.LogLevel.Error;
+                case LogLevel.Fatal:
+                    return NLog.LogLevel.Fatal;
+                case LogLevel.Off:
+                    return NLog.LogLevel.Off;
                 default:
                     throw new ArgumentException($"unknown logLevel={logLevel}");
             }

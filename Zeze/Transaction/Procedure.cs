@@ -38,9 +38,9 @@ namespace Zeze.Transaction
 
         public static void DefaultLogAction(Exception ex, long result, Procedure p, string message)
         {
-            var ll = ex != null ? Config.LogLevel.Error
+            var ll = ex != null ? LogLevel.Error
                 : result != 0 ? p.Zeze.Config.ProcessReturnErrorLogLevel
-                : Config.LogLevel.Trace;
+                : LogLevel.Trace;
 
             var module = "";
             if (result > 0)

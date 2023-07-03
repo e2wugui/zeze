@@ -237,7 +237,7 @@ namespace Zeze.Raft
             {
                 var report = new StringBuilder();
                 var level = ExpectCount.Get() != CurrentCount + ErrorsSum()
-                    ? Config.LogLevel.Fatal : Config.LogLevel.Info;
+                    ? LogLevel.Fatal : LogLevel.Info;
                 report.Append($"{Environment.NewLine}-------------------------------------------");
                 report.Append($"{Environment.NewLine}{stepName},");
                 report.Append($"Expect={ExpectCount.Get()},");
@@ -251,7 +251,7 @@ namespace Zeze.Raft
                     ExpectCount.GetAndSet(CurrentCount); // 下一个测试重新开始。
                     Errors.Clear();
                 }
-                return level == Config.LogLevel.Info;
+                return level == LogLevel.Info;
             }
             return true;
         }

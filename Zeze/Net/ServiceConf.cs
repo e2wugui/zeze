@@ -167,7 +167,7 @@ namespace Zeze.Net
             if (attr.Length > 0) SocketOptions.Backlog = int.Parse(attr);
             attr = self.GetAttribute("SocketLogLevel");
             if (attr.Length > 0)
-                SocketOptions.SocketLogLevel = (Config.LogLevel)Enum.Parse(typeof(Config.LogLevel), attr);
+                SocketOptions.SocketLogLevel = (LogLevel)Enum.Parse(typeof(LogLevel), attr);
             attr = self.GetAttribute("TimeThrottleSeconds");
             if (attr.Length > 0) SocketOptions.TimeThrottleSeconds = int.Parse(attr);
             attr = self.GetAttribute("TimeThrottleLimit");

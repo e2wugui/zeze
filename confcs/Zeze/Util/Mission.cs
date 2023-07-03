@@ -53,7 +53,7 @@ namespace Zeze.Util
             }
         }
 
-        public static volatile Action<Config.LogLevel, Exception, long, string> LogAction = DefaultLogAction;
+        public static volatile Action<LogLevel, Exception, long, string> LogAction = DefaultLogAction;
 
         public static void LogAndStatistics(Exception ex, long result, Protocol p, bool IsRequestSaved,
             string aName = null)
@@ -64,7 +64,7 @@ namespace Zeze.Util
 
             var ll = p?.Service?.Zeze != null
                 ? p.Service.Zeze.Config.ProcessReturnErrorLogLevel
-                : Config.LogLevel.Trace;
+                : LogLevel.Trace;
             LogAction?.Invoke(ll, ex, result, $"Action={actionName} {p}");
 
 #if ENABLE_STATISTICS
@@ -72,12 +72,12 @@ namespace Zeze.Util
 #endif
         }
 
-        public static void DefaultLogAction(Config.LogLevel level, Exception ex, long result, string message)
+        public static void DefaultLogAction(LogLevel level, Exception ex, long result, string message)
         {
             // exception -> Error
             // 0 != result -> level from parameter
             // others -> Trace
-            var ll = ex != null ? Config.LogLevel.Error : result != 0 ? level : Config.LogLevel.Trace;
+            var ll = ex != null ? LogLevel.Error : result != 0 ? level : LogLevel.Trace;
             var module = "";
             if (result > 0)
                 module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
@@ -194,8 +194,8 @@ namespace Zeze.Util
         }
 
 #if !USE_CONFCS
-        public static async Task<long> CallAsync(Procedure procedure, Net.Protocol from = null,
-            Action<Net.Protocol, long> actionWhenError = null)
+        public static async Task<long> CallAsync(Procedure procedure, Protocol from = null,
+            Action<Protocol, long> actionWhenError = null)
         {
             bool? isRequestSaved = from?.IsRequest;
             try
@@ -212,7 +212,7 @@ namespace Zeze.Util
                 // Procedure.Call处理了所有错误。除非内部错误或者单元测试异常，不会到这里。
                 if (isRequestSaved != null && isRequestSaved.Value)
                     actionWhenError?.Invoke(from, ResultCode.Exception);
-                LogAction?.Invoke(Config.LogLevel.Error, ex, ResultCode.Exception, procedure.ActionName);
+                LogAction?.Invoke(LogLevel.Error, ex, ResultCode.Exception, procedure.ActionName);
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (ex.GetType().Name == "AssertFailedException")

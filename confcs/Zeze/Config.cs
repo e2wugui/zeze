@@ -7,6 +7,7 @@ using System.Text;
 #endif
 using System.Xml;
 using Zeze.Net;
+using Zeze.Util;
 
 namespace Zeze
 {
@@ -16,17 +17,6 @@ namespace Zeze
         {
             string Name { get; }
             void Parse(XmlElement self);
-        }
-
-        public enum LogLevel
-        {
-            Trace,
-            Debug,
-            Info,
-            Warn,
-            Error,
-            Fatal,
-            Off
         }
 
         public ConcurrentDictionary<string, XmlElement> Customizes { get; } = new ConcurrentDictionary<string, XmlElement>();
