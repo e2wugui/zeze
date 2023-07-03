@@ -145,12 +145,15 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		// 但是不会主动注册到linkUserSession，每次都需要重新查找。
 		// 动态模块需要主动bind/unbind。
 		// XXX
-		if (providerModuleState.configType != BModule.ConfigTypeDynamic) {
+		if (providerModuleState.configType == BModule.ConfigTypeDefault) {
 			var staticBinds = ((LinkdProviderSession)providerSocket.getUserState()).getStaticBinds();
 			linkSession.bind(linkdApp.linkdProviderService, link, staticBinds.keySet(), providerSocket);
 			logger.info("static bind: account={}, moduleIds=[{}], provider={}, configType={}, choiceType={}",
 					linkSession.account, staticBinds.size(), providerSocket.getRemoteAddress(),
 					providerModuleState.configType, providerModuleState.choiceType);
+		} else if (providerModuleState.configType == BModule.ConfigTypeSpecial) {
+			// special 不跟随大部队，单独bind。
+			linkSession.bind(linkdApp.linkdProviderService, link, java.util.List.of(moduleId), providerSocket);
 		}
 		return true;
 	}
