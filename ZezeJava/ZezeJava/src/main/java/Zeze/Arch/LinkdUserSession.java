@@ -140,7 +140,7 @@ public class LinkdUserSession {
 						}
 					} else {
 						var s = linkdProviderService.GetSocket(exist);
-						logger.warn("LinkSession.UnBind not owner {} {} {}", moduleId,
+						logger.warn("unbind not owner: moduleId={}, owner={}, sender={}", moduleId,
 								s != null ? s.getRemoteAddress() : null, provider.getRemoteAddress());
 					}
 				}
