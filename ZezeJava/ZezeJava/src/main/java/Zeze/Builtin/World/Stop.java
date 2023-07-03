@@ -1,7 +1,6 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.World;
 
-// 此时BMove.WillTo不用填写。Direct是停止时的面向方向。
 public class Stop extends Zeze.Net.Protocol<Zeze.Builtin.World.BMove.Data> {
     public static final int ModuleId_ = 11031;
     public static final int ProtocolId_ = -1398851858; // 2896115438

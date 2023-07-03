@@ -103,6 +103,8 @@ public final class Application {
 
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
+		if (conf.getServerId() >= 16384) // 2bytes
+			throw new RuntimeException("serverId too big. >= 16384.");
 
 		// Start Thread Pool
 		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化

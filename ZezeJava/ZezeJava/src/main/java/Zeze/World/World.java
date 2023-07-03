@@ -29,7 +29,7 @@ public class World extends AbstractWorld {
 	protected long ProcessMove(Move p) throws Exception {
 		return 0;
 	}
-	
+
 	@Override
 	protected long ProcessStop(Stop p) throws Exception {
 		return 0;

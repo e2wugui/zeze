@@ -2,10 +2,13 @@ package Zeze.World;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Builtin.Game.Online.BOnline;
+import Zeze.Builtin.World.BObject;
+import Zeze.Serialize.Vector3;
 
 /**
  * 把二维空间划分成一个个相邻的Grid。
- * 地图中的玩家或者物品Id记录在所在的Grid中。
+ * 地图中的玩家或者物品记录在所在的Grid中。
  * 用来快速找到某个坐标周围的实体。
  */
 public class GridIndexMap {
@@ -21,10 +24,10 @@ public class GridIndexMap {
 		return gridY;
 	}
 
-	public final GridIndex toIndex(double x, double y, double z) {
+	public final GridIndex toIndex(Vector3 vector3) {
 		GridIndex tempVar = new GridIndex();
-		tempVar.setX((long)(x / gridX));
-		tempVar.setY((long)(y / gridY));
+		tempVar.setX((long)(vector3.x / gridX));
+		tempVar.setY((long)(vector3.y / gridY));
 		return tempVar;
 	}
 
@@ -32,13 +35,6 @@ public class GridIndexMap {
 		GridIndex tempVar = new GridIndex();
 		tempVar.setX((long)(x / gridX));
 		tempVar.setY((long)(y / gridY));
-		return tempVar;
-	}
-
-	public final GridIndex toIndex(long x, long y, long z) {
-		GridIndex tempVar = new GridIndex();
-		tempVar.setX(x / gridX);
-		tempVar.setY(y / gridY);
 		return tempVar;
 	}
 
@@ -81,5 +77,13 @@ public class GridIndexMap {
 	// 九宫格
 	public final ArrayList<Grid> gridsOf(GridIndex center) {
 		return gridsOf(center, 1, 1);
+	}
+
+	public final ArrayList<Grid> gridsOf(Vector3 center) {
+		return gridsOf(toIndex(center));
+	}
+
+	public final ArrayList<Grid> gridsOf(BObject center) {
+		return gridsOf(toIndex(center.getPosition()));
 	}
 }

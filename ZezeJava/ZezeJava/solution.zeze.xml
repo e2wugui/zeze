@@ -1563,7 +1563,8 @@
 			</beankey>
 
 			<bean name="BObject">
-				<variable id="1" name="Custom"  type="dynamic">
+				<variable id="1" name="Position" type="vector3"/>
+				<variable id="2" name="Data"  type="dynamic">
 					<GetSpecialTypeIdFromBean value="Zeze.World.World::getSpecialTypeIdFromBean"/>
 					<CreateBeanFromSpecialTypeId value="Zeze.World.World::createBeanFromSpecialTypeId"/>
 					<CreateDataFromSpecialTypeId value="Zeze.World.World::createDataFromSpecialTypeId"/>

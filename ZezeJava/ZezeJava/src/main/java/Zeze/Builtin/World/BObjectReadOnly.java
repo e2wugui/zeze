@@ -7,5 +7,6 @@ public interface BObjectReadOnly {
     boolean negativeCheck();
     BObject copy();
 
-    Zeze.Transaction.DynamicBeanReadOnly getCustomReadOnly();
+    Zeze.Serialize.Vector3 getPosition();
+    Zeze.Transaction.DynamicBeanReadOnly getDataReadOnly();
 }

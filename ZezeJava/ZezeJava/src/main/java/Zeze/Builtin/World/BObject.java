@@ -7,32 +7,64 @@ import Zeze.Serialize.ByteBuffer;
 public final class BObject extends Zeze.Transaction.Bean implements BObjectReadOnly {
     public static final long TYPEID = -2457457472033861643L;
 
-    private final Zeze.Transaction.DynamicBean _Custom;
+    private Zeze.Serialize.Vector3 _Position;
+    private final Zeze.Transaction.DynamicBean _Data;
 
-    public static Zeze.Transaction.DynamicBean newDynamicBean_Custom() {
-        return new Zeze.Transaction.DynamicBean(1, Zeze.World.World::getSpecialTypeIdFromBean, Zeze.World.World::createBeanFromSpecialTypeId);
+    public static Zeze.Transaction.DynamicBean newDynamicBean_Data() {
+        return new Zeze.Transaction.DynamicBean(2, Zeze.World.World::getSpecialTypeIdFromBean, Zeze.World.World::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_1(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean bean) {
         return Zeze.World.World.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_1(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long typeId) {
         return Zeze.World.World.createBeanFromSpecialTypeId(typeId);
     }
 
-    public Zeze.Transaction.DynamicBean getCustom() {
-        return _Custom;
+    @Override
+    public Zeze.Serialize.Vector3 getPosition() {
+        if (!isManaged())
+            return _Position;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Position;
+        var log = (Log__Position)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Position;
+    }
+
+    public void setPosition(Zeze.Serialize.Vector3 value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Position = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Position(this, 1, value));
+    }
+
+    public Zeze.Transaction.DynamicBean getData() {
+        return _Data;
     }
 
     @Override
-    public Zeze.Transaction.DynamicBeanReadOnly getCustomReadOnly() {
-        return _Custom;
+    public Zeze.Transaction.DynamicBeanReadOnly getDataReadOnly() {
+        return _Data;
     }
 
     @SuppressWarnings("deprecation")
     public BObject() {
-        _Custom = newDynamicBean_Custom();
+        _Position = Zeze.Serialize.Vector3.ZERO;
+        _Data = newDynamicBean_Data();
+    }
+
+    @SuppressWarnings("deprecation")
+    public BObject(Zeze.Serialize.Vector3 _Position_) {
+        if (_Position_ == null)
+            _Position_ = Zeze.Serialize.Vector3.ZERO;
+        _Position = _Position_;
+        _Data = newDynamicBean_Data();
     }
 
     @Override
@@ -48,11 +80,13 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     }
 
     public void assign(BObject.Data other) {
-        _Custom.assign(other._Custom);
+        setPosition(other._Position);
+        _Data.assign(other._Data);
     }
 
     public void assign(BObject other) {
-        _Custom.assign(other._Custom);
+        setPosition(other.getPosition());
+        _Data.assign(other._Data);
     }
 
     public BObject copyIfManaged() {
@@ -77,6 +111,13 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         return TYPEID;
     }
 
+    private static final class Log__Position extends Zeze.Transaction.Logs.LogVector3 {
+        public Log__Position(BObject bean, int varId, Zeze.Serialize.Vector3 value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BObject)getBelong())._Position = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -88,8 +129,9 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BObject: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Custom=").append(System.lineSeparator());
-        _Custom.getBean().buildString(sb, level + 4);
+        sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(getPosition()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Data=").append(System.lineSeparator());
+        _Data.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -111,9 +153,16 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = _Custom;
+            var _x_ = getPosition();
+            if (_x_ != null && !_x_.isZero()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.VECTOR3);
+                _o_.WriteVector3(_x_);
+            }
+        }
+        {
+            var _x_ = _Data;
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.DYNAMIC);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
             }
         }
@@ -125,7 +174,11 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadDynamic(_Custom, _t_);
+            setPosition(_o_.ReadVector3(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _o_.ReadDynamic(_Data, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -136,12 +189,12 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
 
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Custom.initRootInfo(root, this);
+        _Data.initRootInfo(root, this);
     }
 
     @Override
     protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Custom.initRootInfoWithRedo(root, this);
+        _Data.initRootInfoWithRedo(root, this);
     }
 
     @SuppressWarnings("unchecked")
@@ -153,31 +206,39 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Custom.followerApply(vlog); break;
+                case 1: _Position = ((Zeze.Transaction.Logs.LogVector3)vlog).value; break;
+                case 2: _Data.followerApply(vlog); break;
             }
         }
     }
 
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        parents.add("Position");
+        setPosition(Zeze.Serialize.Helper.decodeVector3(parents, rs));
+        parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonDynamic(_Custom, rs.getString(_parents_name_ + "Custom"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_Data, rs.getString(_parents_name_ + "Data"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        parents.add("Position");
+        Zeze.Serialize.Helper.encodeVector3(getPosition(), parents, st);
+        parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Custom", Zeze.Serialize.Helper.encodeJson(_Custom));
+        st.appendString(_parents_name_ + "Data", Zeze.Serialize.Helper.encodeJson(_Data));
     }
 
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -2457457472033861643L;
 
-    private final DynamicData_Custom _Custom;
+    private Zeze.Serialize.Vector3 _Position;
+    private final DynamicData_Data _Data;
 
-    public static final class DynamicData_Custom extends Zeze.Transaction.DynamicData {
+    public static final class DynamicData_Data extends Zeze.Transaction.DynamicData {
         static {
-            registerJsonParser(DynamicData_Custom.class);
+            registerJsonParser(DynamicData_Data.class);
         }
 
         @Override
@@ -191,25 +252,39 @@ public static final class Data extends Zeze.Transaction.Data {
         }
 
         @Override
-        public DynamicData_Custom copy() {
-            return (DynamicData_Custom)super.copy();
+        public DynamicData_Data copy() {
+            return (DynamicData_Data)super.copy();
         }
     }
 
-    public DynamicData_Custom getCustom() {
-        return _Custom;
+    public Zeze.Serialize.Vector3 getPosition() {
+        return _Position;
+    }
+
+    public void setPosition(Zeze.Serialize.Vector3 value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Position = value;
+    }
+
+    public DynamicData_Data getData() {
+        return _Data;
     }
 
     @SuppressWarnings("deprecation")
     public Data() {
-        _Custom = new DynamicData_Custom();
+        _Position = Zeze.Serialize.Vector3.ZERO;
+        _Data = new DynamicData_Data();
     }
 
     @SuppressWarnings("deprecation")
-    public Data(DynamicData_Custom _Custom_) {
-        if (_Custom_ == null)
-            _Custom_ = new DynamicData_Custom();
-        _Custom = _Custom_;
+    public Data(Zeze.Serialize.Vector3 _Position_, DynamicData_Data _Data_) {
+        if (_Position_ == null)
+            _Position_ = Zeze.Serialize.Vector3.ZERO;
+        _Position = _Position_;
+        if (_Data_ == null)
+            _Data_ = new DynamicData_Data();
+        _Data = _Data_;
     }
 
     @Override
@@ -225,11 +300,13 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BObject other) {
-        _Custom.assign(other._Custom);
+        _Position = other.getPosition();
+        _Data.assign(other._Data);
     }
 
     public void assign(BObject.Data other) {
-        _Custom.assign(other._Custom);
+        _Position = other._Position;
+        _Data.assign(other._Data);
     }
 
     @Override
@@ -266,8 +343,9 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BObject: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Custom=").append(System.lineSeparator());
-        _Custom.getData().buildString(sb, level + 4);
+        sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(_Position).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Data=").append(System.lineSeparator());
+        _Data.getData().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -289,9 +367,16 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = _Custom;
+            var _x_ = _Position;
+            if (_x_ != null && !_x_.isZero()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.VECTOR3);
+                _o_.WriteVector3(_x_);
+            }
+        }
+        {
+            var _x_ = _Data;
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.DYNAMIC);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
             }
         }
@@ -303,7 +388,11 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadDynamic(_Custom, _t_);
+            _Position = _o_.ReadVector3(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _o_.ReadDynamic(_Data, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
