@@ -1,5 +1,8 @@
 package Zeze.World;
 
+import Zeze.Builtin.World.Move;
+import Zeze.Builtin.World.Rotate;
+import Zeze.Builtin.World.Stop;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
@@ -21,5 +24,20 @@ public class World extends AbstractWorld {
 
 	public static Data createDataFromSpecialTypeId(long typeId) {
 		return beanFactory.createDataFromSpecialTypeId(typeId);
+	}
+
+	@Override
+	protected long ProcessMove(Move p) throws Exception {
+		return 0;
+	}
+
+	@Override
+	protected long ProcessRotate(Rotate p) throws Exception {
+		return 0;
+	}
+
+	@Override
+	protected long ProcessStop(Stop p) throws Exception {
+		return 0;
 	}
 }

@@ -1569,6 +1569,25 @@
 					<CreateDataFromSpecialTypeId value="Zeze.World.World::createDataFromSpecialTypeId"/>
 				</variable>
 			</bean>
+			
+			<bean name="BMove">
+				<variable id="1" name="Current"  type="vector3"/> 移动命令时客户端的真实位置。
+				<variable id="2" name="Direct"     type="vector3"/> 移动方向。
+				<variable id="3" name="Timestamp" type="long"/>  命令发起时刻的时戳。
+			</bean>
+
+			<bean name="BRotate">
+				<variable id="1" name="Current"  type="vector3"/> 转身命令时客户端的真实位置。
+				<variable id="2" name="Direct"     type="vector3"/> 转身命令时的面向方向。
+				<variable id="3" name="TurnDirect"  type="bool"/>  转身方向。
+				<variable id="4" name="Timestamp" type="long"/>  命令发起时刻的时戳。
+			</bean>
+
+			<!-- 最简单的3条移动协议，发给第三方也是用相同的协议，参数可能会被服务器调整。 -->
+			<protocol name="Move" argument="BMove" handle="client,server"/>
+			<protocol name="Stop" argument="BMove" handle="client,server"/> 此时BMove.WillTo不用填写。Direct是停止时的面向方向。
+			<protocol name="Rotate" argument="BRotate" handle="client,server"/> 同步原地转身。
+
 		</module>
 
 		<!--
