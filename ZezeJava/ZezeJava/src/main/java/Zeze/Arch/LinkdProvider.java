@@ -23,14 +23,12 @@ import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Linkd上处理Provider协议的模块。
  */
 public class LinkdProvider extends AbstractLinkdProvider {
-	private static final Logger logger = LogManager.getLogger(LinkdProvider.class);
+	// private static final Logger logger = LogManager.getLogger(LinkdProvider.class);
 	protected static final String dumpFilename = System.getProperty("dumpLinkdOutput");
 	protected static final boolean enableDump = dumpFilename != null;
 
@@ -149,13 +147,13 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		if (providerModuleState.configType == BModule.ConfigTypeDefault) {
 			var staticBinds = ((LinkdProviderSession)providerSocket.getUserState()).getStaticBinds();
 			linkSession.bind(linkdApp.linkdProviderService, link, staticBinds.keySet(), providerSocket);
-			logger.info("static bind: account={}, moduleIds=[{}], provider={}, configType={}, choiceType={}",
+			LinkdUserSession.logger.info("static bind: account={}, moduleIds=[{}], provider={}, configType={}, choiceType={}",
 					linkSession.account, staticBinds.size(), providerSocket.getRemoteAddress(),
 					providerModuleState.configType, providerModuleState.choiceType);
 		} else if (providerModuleState.configType == BModule.ConfigTypeSpecial) {
 			// special 不跟随大部队，单独bind。
 			linkSession.bind(linkdApp.linkdProviderService, link, List.of(moduleId), providerSocket);
-			logger.info("special bind: account={}, moduleId={}, provider={}, configType={}, choiceType={}",
+			LinkdUserSession.logger.info("special bind: account={}, moduleId={}, provider={}, configType={}, choiceType={}",
 					linkSession.account, moduleId, providerSocket.getRemoteAddress(),
 					providerModuleState.configType, providerModuleState.choiceType);
 		}
@@ -219,7 +217,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				if (link != null) {
 					var linkSession = (LinkdUserSession)link.getUserState();
 					linkSession.bind(linkdApp.linkdProviderService, link, bind.getModules().keySet(), rpc.getSender());
-					logger.info("dynamic bind: account={}, moduleIds={}, provider={}", linkSession.account,
+					LinkdUserSession.logger.info("dynamic bind: account={}, moduleIds={}, provider={}", linkSession.account,
 							bind.getModules().keySet(), rpc.getSender().getRemoteAddress());
 				}
 			}

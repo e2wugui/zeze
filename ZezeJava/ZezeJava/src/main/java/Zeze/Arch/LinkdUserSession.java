@@ -160,7 +160,6 @@ public class LinkdUserSession {
 		return now - keepAliveTime > timeout;
 	}
 
-	/*
 	protected void updateLinkSessionId(LinkdProviderService linkdProviderService, long newSessionId) {
 		var writeLock = bindsLock.writeLock();
 		writeLock.lock();
@@ -178,7 +177,6 @@ public class LinkdUserSession {
 			writeLock.unlock();
 		}
 	}
-	*/
 
 	public void onClose(LinkdProviderService linkdProviderService) {
 		if (!isAuthed())
