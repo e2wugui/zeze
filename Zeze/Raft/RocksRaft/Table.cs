@@ -1,12 +1,9 @@
 ﻿using RocksDbSharp;
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Zeze.Serialize;
+using Zeze.Util;
 
 namespace Zeze.Raft.RocksRaft
 {
@@ -75,7 +72,7 @@ namespace Zeze.Raft.RocksRaft
 
     public class Table<K, V> : Table where V : Bean, new()
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Table));
 
         public override void DecodeKey(ByteBuffer bb, out object key)
         {

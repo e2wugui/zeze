@@ -15,7 +15,8 @@ namespace Zeze.Arch
 	 */
 	public class RedirectBase
 	{
-		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+		// private static readonly ILogger logger = LogManager.GetLogger(typeof(RedirectBase));
+
 		public ConcurrentDictionary<string, RedirectHandle> Handles { get; } = new();
 		public ProviderApp ProviderApp { get; }
 

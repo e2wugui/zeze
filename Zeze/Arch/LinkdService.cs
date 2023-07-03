@@ -1,21 +1,16 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Zeze.Builtin.LinkdBase;
+﻿using Zeze.Builtin.LinkdBase;
 using Zeze.Builtin.Provider;
 using Zeze.Net;
 using Zeze.Serialize;
+using Zeze.Services;
 using Zeze.Transaction;
 using Zeze.Util;
 
 namespace Zeze.Arch
 {
-    public class LinkdService : Zeze.Services.HandshakeServer
+    public class LinkdService : HandshakeServer
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private new static readonly ILogger logger = LogManager.GetLogger(typeof(LinkdService));
 
         public LinkdApp LinkdApp { get; set; }
 
@@ -90,7 +85,7 @@ namespace Zeze.Arch
                 // 延迟关闭。等待客户端收到错误以后主动关闭，或者超时。
                 // 虽然使用了写完关闭(CloseGracefully)方法，但是等待一下，尽量让客户端主动关闭，有利于减少 TCP_TIME_WAIT?
                 if (closeLink)
-                    Scheduler.Schedule((ThisTask) => this.GetSocket(linkSid)?.CloseGracefully(), 2000);
+                    Scheduler.Schedule(_ => GetSocket(linkSid)?.CloseGracefully(), 2000);
             }
         }
 
@@ -130,7 +125,7 @@ namespace Zeze.Arch
 
         public class StableLinkSid
         {
-            public bool Removed { get; set; } = false;
+            public bool Removed { get; set; }
             public long LinkSid { get; set; }
             public AsyncSocket AuthedSocket { get; set; }
         }
@@ -218,11 +213,7 @@ namespace Zeze.Arch
             return false;
         }
 
-        public override void DispatchUnknownProtocol(
-            Zeze.Net.AsyncSocket so,
-            int moduleId,
-            int protocolId,
-            Zeze.Serialize.ByteBuffer data)
+        public override void DispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data)
         {
             var linkSession = so.UserState as LinkdUserSession;
             if (null == linkSession || string.IsNullOrEmpty(linkSession.Account))
@@ -231,16 +222,16 @@ namespace Zeze.Arch
                 return;
             }
 
-            if (moduleId == global::Zeze.Game.Online.ModuleId && protocolId == global::Zeze.Builtin.Game.Online.Login.ProtocolId_)
+            if (moduleId == Game.AbstractOnline.ModuleId && protocolId == Builtin.Game.Online.Login.ProtocolId_)
             {
                 var login = new global::Zeze.Builtin.Game.Online.Login();
-                login.Decode(Serialize.ByteBuffer.Wrap(data));
+                login.Decode(ByteBuffer.Wrap(data));
                 SetStableLinkSid(linkSession.Account, login.Argument.RoleId.ToString(), so);
             }
-            else if (moduleId == global::Zeze.Arch.Online.ModuleId && protocolId == global::Zeze.Builtin.Online.Login.ProtocolId_)
+            else if (moduleId == AbstractOnline.ModuleId && protocolId == Builtin.Online.Login.ProtocolId_)
             {
                 var login = new global::Zeze.Builtin.Online.Login();
-                login.Decode(Serialize.ByteBuffer.Wrap(data));
+                login.Decode(ByteBuffer.Wrap(data));
                 SetStableLinkSid(linkSession.Account, login.Argument.ClientId, so);
             }
 
@@ -248,7 +239,7 @@ namespace Zeze.Arch
             dispatch.Argument.LinkSid = so.SessionId;
             dispatch.Argument.Account = linkSession.Account;
             dispatch.Argument.ProtocolType = Protocol.MakeTypeId(moduleId, protocolId);
-            dispatch.Argument.ProtocolData = new Zeze.Net.Binary(data);
+            dispatch.Argument.ProtocolData = new Binary(data);
             dispatch.Argument.Context = linkSession.Context;
             dispatch.Argument.Contextx = linkSession.Contextx;
 
@@ -269,7 +260,7 @@ namespace Zeze.Arch
             ReportError(so.SessionId, BReportError.FromLink, BReportError.CodeNoProvider, "no provider.");
         }
 
-        public override void DispatchProtocol(Zeze.Net.Protocol p, ProtocolFactoryHandle factoryHandle)
+        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             if (null != factoryHandle.Handle)
             {
@@ -277,9 +268,7 @@ namespace Zeze.Arch
             }
             else
             {
-#if HAS_NLOG
-                logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), "Protocol Handle Not Found. {0}", p);
-#endif
+                logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}", p);
                 p.Sender.Close(null);
             }
         }
@@ -290,7 +279,7 @@ namespace Zeze.Arch
             base.OnSocketAccept(sender);
         }
 
-        public override void OnSocketClose(Zeze.Net.AsyncSocket so, System.Exception e)
+        public override void OnSocketClose(AsyncSocket so, System.Exception e)
         {
             base.OnSocketClose(so, e);
             var linkSession = so.UserState as LinkdUserSession;

@@ -1,9 +1,6 @@
-﻿using NLog;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Zeze.Builtin.ProviderDirect;
 using Zeze.Net;
@@ -14,7 +11,8 @@ namespace Zeze.Arch
 {
 	public class ProviderDirectService : Zeze.Services.HandshakeBoth
 	{
-		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+		private static readonly ILogger logger = LogManager.GetLogger(typeof(ProviderDirectService));
+
 		public ProviderApp ProviderApp;
 		public readonly ConcurrentDictionary<string, ProviderSession> ProviderByLoadName = new();
 		public readonly ConcurrentDictionary<int, ProviderSession> ProviderByServerId = new();

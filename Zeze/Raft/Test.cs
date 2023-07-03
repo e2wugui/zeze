@@ -179,7 +179,7 @@ namespace Zeze.Raft
             }
         }
 
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Test));
 
         private long GetCurrentCount()
         {
@@ -237,7 +237,7 @@ namespace Zeze.Raft
             {
                 var report = new StringBuilder();
                 var level = ExpectCount.Get() != CurrentCount + ErrorsSum()
-                    ? NLog.LogLevel.Fatal : NLog.LogLevel.Info;
+                    ? Config.LogLevel.Fatal : Config.LogLevel.Info;
                 report.Append($"{Environment.NewLine}-------------------------------------------");
                 report.Append($"{Environment.NewLine}{stepName},");
                 report.Append($"Expect={ExpectCount.Get()},");
@@ -251,7 +251,7 @@ namespace Zeze.Raft
                     ExpectCount.GetAndSet(CurrentCount); // 下一个测试重新开始。
                     Errors.Clear();
                 }
-                return level == NLog.LogLevel.Info;
+                return level == Config.LogLevel.Info;
             }
             return true;
         }
@@ -652,7 +652,7 @@ namespace Zeze.Raft
                                 raft.Raft.LogSequence.Close();
                             }
                         }
-                        NLog.LogManager.Shutdown();
+                        LogManager.Shutdown();
                         System.Diagnostics.Process.GetCurrentProcess().Kill();
                         /*
                         foreach (var raft in Rafts.Values)

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Zeze.Builtin.Provider;
 using Zeze.Net;
 using Zeze.Util;
@@ -11,7 +7,7 @@ namespace Zeze.Arch
 {
     public class LinkdUserSession
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(LinkdUserSession));
 
         public string Account { get; set; } // 为了接入更广泛的用户系统，使用string。
         public string Context { get; private set; } = "";

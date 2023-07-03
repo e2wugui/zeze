@@ -19,7 +19,7 @@ namespace Zeze.Util
 	/// </summary>
 	public sealed class TaskOneByOneByKey
     {
-		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+		private static readonly ILogger logger = LogManager.GetLogger(typeof(TaskOneByOneByKey));
 
 		private readonly TaskOneByOne[] concurrency;
 

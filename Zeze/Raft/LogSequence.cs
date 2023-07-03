@@ -129,7 +129,7 @@ namespace Zeze.Raft
 
     public class LogSequence
     {
-        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        internal static readonly ILogger logger = LogManager.GetLogger(typeof(LogSequence));
 
         public Raft Raft { get; }
 
@@ -1380,9 +1380,9 @@ namespace Zeze.Raft
                 return;
 
             logger.Fatal("================= logs ======================");
-            logger.Fatal(logs);
+            logger.Fatal(logs.ToString());
             logger.Fatal("================= copies ======================");
-            logger.Fatal(copies);
+            logger.Fatal(copies.ToString());
             Raft.FatalKill();
         }
     }

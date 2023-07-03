@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
-using Zeze.Transaction.Collections;
 using System.Runtime.CompilerServices;
 using Zeze.Serialize;
 using Zeze.Services;
@@ -14,7 +12,7 @@ namespace Zeze.Transaction
 {
     public sealed class Transaction
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Transaction));
 
         private static readonly AsyncLocal<Transaction> asyncLocal = new();
 
@@ -404,7 +402,7 @@ namespace Zeze.Transaction
                 catch (Exception e)
                 {
                     logger.Error(e, "Transaction.FinalCommit {0}", procedure);
-                    NLog.LogManager.Shutdown();
+                    LogManager.Shutdown();
                     Process.GetCurrentProcess().Kill();
                 }
             });

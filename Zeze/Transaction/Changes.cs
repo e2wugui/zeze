@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Zeze.Serialize;
 using Zeze.Transaction.Collections;
+using Zeze.Util;
 
 namespace Zeze.Transaction
 {
@@ -26,11 +25,9 @@ namespace Zeze.Transaction
 			public ISet<LogBean> LogBean { get; } = new HashSet<LogBean>();
 
 			public LogBean GetLogBean()
-			{ 
-				var it = LogBean.GetEnumerator();
-				if (it.MoveNext())
-					return it.Current;
-				return null;
+			{
+				using var it = LogBean.GetEnumerator();
+				return it.MoveNext() ? it.Current : null;
 			}
 
 			public Log GetVariableLog(int variableId)
@@ -41,7 +38,7 @@ namespace Zeze.Transaction
             }
 
 			// 所有的日志修改树，key is Record.Value。中间变量，不需要系列化。
-			public Util.IdentityHashMap<Bean, LogBean> LogBeans { get; } = new Util.IdentityHashMap<Bean, LogBean>();
+			public IdentityHashMap<Bean, LogBean> LogBeans { get; } = new IdentityHashMap<Bean, LogBean>();
 			public Table Table { get; }
 
 			public Record(Table table)
@@ -68,10 +65,10 @@ namespace Zeze.Transaction
 				}
 
 				State = Edit;
-				if (LogBeans.TryGetValue(ar.Origin.Value, out var logbean))
+				if (LogBeans.TryGetValue(ar.Origin.Value, out var logBean))
                 {
 					Value = ar.Origin.Value;
-					LogBean.Add(logbean); // edit
+					LogBean.Add(logBean); // edit
 				}
 			}
 
@@ -130,7 +127,7 @@ namespace Zeze.Transaction
 		// 收集记录的修改,以后需要系列化传输.
 		// 如果表没有监听者，则不会收集该表的改变。
 		public Dictionary<TableKey, Record> Records { get; } = new();
-		public Util.IdentityHashMap<Table, IReadOnlySet<ChangeListener>> Listeners { get; } = new();
+		public IdentityHashMap<Table, IReadOnlySet<ChangeListener>> Listeners { get; } = new();
 
 		public Changes(Transaction trans)
 		{
@@ -166,20 +163,17 @@ namespace Zeze.Transaction
 				return; // root
 			}
 
-			if (false == Beans.TryGetValue(log.Belong.ObjectId, out LogBean logbean))
+			if (false == Beans.TryGetValue(log.Belong.ObjectId, out LogBean logBean))
 			{
 				if (log.Belong is Collection) 
 				{
 					// 容器使用共享的日志。需要先去查询，没有的话才创建。
-					logbean = (LogBean)Transaction.Current.GetLog(log.Belong.Parent.ObjectId + log.Belong.VariableId);
+					logBean = (LogBean)Transaction.Current.GetLog(log.Belong.Parent.ObjectId + log.Belong.VariableId);
 				}
-				if (null == logbean)
-                {
-					logbean = log.Belong.CreateLogBean();
-				}
-				Beans.Add(log.Belong.ObjectId, logbean);
+				logBean ??= log.Belong.CreateLogBean();
+				Beans.Add(log.Belong.ObjectId, logBean);
 			}
-			logbean.Collect(this, log.Belong, log);
+			logBean.Collect(this, log.Belong, log);
 		}
 
 		public void CollectRecord(Transaction.RecordAccessed ar)
@@ -188,13 +182,13 @@ namespace Zeze.Transaction
 			if (false == Listeners.TryGetValue(ar.Origin.Table, out _))
 				return;
 
-			var tkey = ar.TableKey;
+			var tKey = ar.TableKey;
 
-			if (false == Records.TryGetValue(tkey, out var r))
+			if (false == Records.TryGetValue(tKey, out var r))
             {
 				// put record only
 				r = new Record(ar.Origin.Table);
-				Records.Add(tkey, r);
+				Records.Add(tKey, r);
 			}
 
 			r.Collect(ar);
@@ -207,7 +201,7 @@ namespace Zeze.Transaction
             return sb.ToString();
         }
 
-		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+		private static readonly ILogger logger = LogManager.GetLogger(typeof(Changes));
 
 		public void NotifyListener()
 		{

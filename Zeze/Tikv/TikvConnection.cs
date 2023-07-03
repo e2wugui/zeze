@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Zeze.Util;
 
 namespace Zeze.Tikv
 {
     public class TikvConnection : IDisposable
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(TikvConnection));
 
         public long ClientId { get; }
         public TikvTransaction Transaction { get; private set; }

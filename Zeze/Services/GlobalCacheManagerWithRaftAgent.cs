@@ -1,4 +1,3 @@
-
 using Zeze.Builtin.GlobalCacheManagerWithRaft;
 using System.Threading.Tasks;
 using System;
@@ -9,9 +8,10 @@ using Zeze.Util;
 
 namespace Zeze.Services
 {
-    public class GlobalCacheManagerWithRaftAgent : AbstractGlobalCacheManagerWithRaftAgent, Zeze.Transaction.IGlobalAgent
+    public class GlobalCacheManagerWithRaftAgent : AbstractGlobalCacheManagerWithRaftAgent, IGlobalAgent
     {
-        static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        static readonly ILogger logger = LogManager.GetLogger(typeof(GlobalCacheManagerWithRaftAgent));
+
         public Application Zeze { get; }
 
         public void Dispose()

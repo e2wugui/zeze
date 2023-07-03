@@ -1,16 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
 using Zeze.Util;
-using DotNext.Threading;
 
 namespace Zeze.Raft
 {
@@ -19,7 +15,7 @@ namespace Zeze.Raft
     /// </summary>
     public sealed class Raft
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Raft));
 
         public string Name => RaftConfig.Name;
         public string LeaderId { get; internal set; }
@@ -43,7 +39,7 @@ namespace Zeze.Raft
             IsShutdown = true;
             AtFatalKills?.Invoke();
             LogSequence.Close();
-            NLog.LogManager.Shutdown();
+            LogManager.Shutdown();
             System.Diagnostics.Process.GetCurrentProcess().Kill();
         }
 

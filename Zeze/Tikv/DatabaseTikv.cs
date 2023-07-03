@@ -1,17 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Zeze.Serialize;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Tikv
 {
     public sealed class DatabaseTikv : Database
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(DatabaseTikv));
 
         public DatabaseTikv(Application zeze, Config.DatabaseConf databaseConf)
             : base(zeze, databaseConf)

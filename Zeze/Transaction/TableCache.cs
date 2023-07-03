@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using Zeze.Services;
 using System.Threading.Tasks;
 using System.Threading;
+using Zeze.Util;
 
 // MESI？
 namespace Zeze.Transaction
@@ -26,7 +27,7 @@ namespace Zeze.Transaction
     /// <typeparam name="V"></typeparam>
     public class TableCache<K, V> where V : Bean, new()
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(TableCache<K, V>));
 
         internal ConcurrentDictionary<K, Record<K, V>> DataMap { get; }
 

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Zeze.Util;
@@ -9,7 +7,7 @@ namespace Zeze.Transaction
 {
     public class Procedure
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Procedure));
 
         public Application Zeze { get; }
 
@@ -40,24 +38,22 @@ namespace Zeze.Transaction
 
         public static void DefaultLogAction(Exception ex, long result, Procedure p, string message)
         {
-#if HAS_NLOG
-            NLog.LogLevel ll = (null != ex) ? NLog.LogLevel.Error
-                : (0 != result) ? Mission.NlogLogLevel(p.Zeze.Config.ProcessReturnErrorLogLevel)
-                : NLog.LogLevel.Trace;
+            var ll = ex != null ? Config.LogLevel.Error
+                : result != 0 ? p.Zeze.Config.ProcessReturnErrorLogLevel
+                : Config.LogLevel.Trace;
 
             var module = "";
             if (result > 0)
                 module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
 
             logger.Log(ll, ex, $"Procedure={p} Return={result}{module} {message}");
-#endif
         }
 
         public async Task<long> ExecuteAsync(Net.Protocol from = null, Action<Net.Protocol, long> actionWhenError = null)
         {
             var future = new TaskCompletionSource<long>();
             ExecutionContext.SuppressFlow();
-            _ = Task.Run(async () => future.TrySetResult(await Util.Mission.CallAsync(this, from, actionWhenError)));
+            _ = Task.Run(async () => future.TrySetResult(await Mission.CallAsync(this, from, actionWhenError)));
             ExecutionContext.RestoreFlow();
             return await future.Task;
         }
@@ -65,7 +61,7 @@ namespace Zeze.Transaction
         public void Execute(Net.Protocol from = null, Action<Net.Protocol, long> actionWhenError = null)
         {
             ExecutionContext.SuppressFlow();
-            Task.Run(async () => await Util.Mission.CallAsync(this, from, actionWhenError));
+            Task.Run(async () => await Mission.CallAsync(this, from, actionWhenError));
             ExecutionContext.RestoreFlow();
         }
 

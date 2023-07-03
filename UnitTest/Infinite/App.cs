@@ -5,7 +5,7 @@ namespace Infinite
 {
     public class App
     {
-        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        internal static readonly ILogger logger = LogManager.GetLogger(typeof(App));
 
         internal demo.App app;
         readonly Zeze.Config config;

@@ -84,7 +84,7 @@ namespace Zeze.Services
 
     public class HandshakeBase : Service
     {
-        private new static readonly ILogger logger = LogManager.Factory.GetLogger(typeof(HandshakeBase));
+        private new static readonly ILogger logger = LogManager.GetLogger(typeof(HandshakeBase));
 
         private readonly HashSet<long> HandshakeProtocols = new HashSet<long>();
 

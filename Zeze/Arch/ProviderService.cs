@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Builtin.Provider;
-using Zeze.Builtin.ProviderDirect;
 
 namespace Zeze.Arch
 {
     public class ProviderService : Zeze.Services.HandshakeClient
     {
-        //private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        // private static readonly ILogger logger = LogManager.GetLogger(typeof(ProviderService));
 
         public ProviderApp ProviderApp;
 

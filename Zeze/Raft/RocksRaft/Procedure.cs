@@ -9,7 +9,7 @@ namespace Zeze.Raft.RocksRaft
 {
     public class Procedure
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Procedure));
 
         public Func<Task<long>> Func { get; set; }
         public Rocks Rocks { get; set; }

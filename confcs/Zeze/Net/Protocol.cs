@@ -16,7 +16,7 @@ namespace Zeze.Net
             bool DecodeAndDispatch(Service service, long sessionId, long typeId, ByteBuffer _os_);
         }
 
-        private static readonly ILogger logger = LogManager.Factory.GetLogger(typeof(Protocol));
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Protocol));
 
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }

@@ -260,9 +260,9 @@ namespace Zeze.Raft.RocksRaft
             }
 		}
 
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        public Changes Changes { get; private set; }
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Transaction));
 
+        public Changes Changes { get; private set; }
 
         public void RunWhileCommit(Action action)
         {

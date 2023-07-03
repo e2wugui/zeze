@@ -1,5 +1,3 @@
-
-using Scriban.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -9,7 +7,7 @@ namespace Zeze.Util
 {
 	public class ConsistentHash<TNode>
 	{
-		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+		private static readonly ILogger logger = LogManager.GetLogger(typeof(ConsistentHash<TNode>));
 
 		private SortedMap<int, TNode> circle = new();
 		private Dictionary<TNode, int[]> nodes = new();

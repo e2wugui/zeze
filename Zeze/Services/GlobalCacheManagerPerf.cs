@@ -1,7 +1,5 @@
-
 using System.Collections.Concurrent;
 using System.Text;
-using System.Threading;
 using Zeze.Util;
 
 namespace Zeze.Services.GlobalCacheManager
@@ -9,7 +7,7 @@ namespace Zeze.Services.GlobalCacheManager
 	public class GlobalCacheManagerPerf
 	{
 		private const int ACQUIRE_STATE_COUNT = 3;
-		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+		private static readonly ILogger logger = LogManager.GetLogger(typeof(GlobalCacheManagerPerf));
 
 		private readonly Util.AtomicLong serialIdGenerator;
 		private long lastSerialId;

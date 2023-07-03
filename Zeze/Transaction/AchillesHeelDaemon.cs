@@ -5,7 +5,6 @@ using System.IO.MemoryMappedFiles;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using NLog;
 using Zeze.Serialize;
 using Zeze.Services;
 using Zeze.Util;
@@ -17,7 +16,7 @@ namespace Zeze.Transaction;
 /// </summary>
 public class AchillesHeelDaemon
 {
-    static readonly Logger logger = LogManager.GetCurrentClassLogger();
+    static readonly ILogger logger = LogManager.GetLogger(typeof(AchillesHeelDaemon));
 
     readonly Application Zeze;
     readonly GlobalAgentBase[] Agents;

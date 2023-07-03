@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Text;
 using Zeze.Gen;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Zeze.Util;
 
 namespace UnitTest.Zeze.Gen
 {
     [TestClass]
     public class TestGen
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(TestGen));
 
         [TestMethod]
         public void TestMain()

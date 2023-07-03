@@ -1,9 +1,4 @@
-﻿
-using System;
-using System.Net.NetworkInformation;
-using System.Text;
-using System.Text.Json;
-using Zeze.Util;
+﻿using Zeze.Util;
 using Zeze.Net;
 using Zeze.Arch;
 
@@ -11,7 +6,7 @@ namespace Zezex
 {
     public sealed partial class App
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(App));
 
         public override T ReplaceModuleInstance<T>(T module)
         {

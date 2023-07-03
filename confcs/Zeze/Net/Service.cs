@@ -13,7 +13,7 @@ namespace Zeze.Net
 {
     public class Service
     {
-        protected static readonly ILogger logger = LogManager.Factory.GetLogger(typeof(Service));
+        protected static readonly ILogger logger = LogManager.GetLogger(typeof(Service));
 
         /// <summary>
         /// 同一个 Service 下的所有连接都是用相同配置。

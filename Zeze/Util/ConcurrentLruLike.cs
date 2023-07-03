@@ -7,7 +7,7 @@ namespace Zeze.Util
 {
     public class ConcurrentLruLike<K, V>
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(ConcurrentLruLike<K, V>));
 
         class LruItem
         {

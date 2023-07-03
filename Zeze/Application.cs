@@ -1,31 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Transactions;
 using Zeze.Transaction;
 using Zeze.Services.ServiceManager;
 using System.Collections.Concurrent;
-using Zeze.Component;
+using Zeze.Serialize;
+using Zeze.Util;
 
 namespace Zeze
 {
     public sealed class Application
     {
-        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        internal static readonly ILogger logger = LogManager.GetLogger(typeof(Application));
 
-        public Dictionary<string, Database> Databases { get; private set; } = new Dictionary<string, Database>();
+        public Dictionary<string, Database> Databases { get; } = new Dictionary<string, Database>();
         public Config Config { get; private set; }
         public bool IsStart { get; private set; }
-        public Agent ServiceManager { get; private set; }
-        public Zeze.Arch.RedirectBase Redirect { get; set; }
+        public Agent ServiceManager { get; }
+        public Arch.RedirectBase Redirect { get; set; }
         internal IGlobalAgent GlobalAgent { get; private set; }
         public AchillesHeelDaemon AchillesHeelDaemon { get; private set; }
 
         public Component.AutoKey.Module AutoKeys { get; private set; }
         public Collections.Queue.Module Queues { get; private set; }
-        public Zeze.Component.DelayRemove DelayRemove { get; private set; }
+        public Component.DelayRemove DelayRemove { get; private set; }
         internal Locks Locks { get; } = new();
 
         public Component.AutoKey GetAutoKey(string name)
@@ -207,8 +206,8 @@ namespace Zeze
                 var hosts = Config.GlobalCacheManagerHostNameOrAddress.Split(';');
                 if (hosts.Length > 0)
                 {
-                    var israft = hosts[0].EndsWith(".xml");
-                    if (false == israft)
+                    var isRaft = hosts[0].EndsWith(".xml");
+                    if (false == isRaft)
                     {
                         var impl = new GlobalAgent(this, hosts, Config.GlobalCacheManagerPort);
                         GlobalAgent = impl;
@@ -217,7 +216,7 @@ namespace Zeze
                     }
                     else
                     {
-                        var impl = new Zeze.Services.GlobalCacheManagerWithRaftAgent(this, hosts);
+                        var impl = new Services.GlobalCacheManagerWithRaftAgent(this, hosts);
                         GlobalAgent = impl;
                         AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.Agents);
                         await impl.Start();
@@ -228,9 +227,9 @@ namespace Zeze
                 Checkpoint.Start(Config.CheckpointPeriod); // 定时模式可以和其他模式混用。
                 
                 /////////////////////////////////////////////////////
-                /// Schemas Check
+                // Schemas Check
                 Schemas.Compile();
-                var keyOfSchemas = Zeze.Serialize.ByteBuffer.Allocate();
+                var keyOfSchemas = ByteBuffer.Allocate();
                 keyOfSchemas.WriteString("zeze.Schemas." + Config.ServerId);
                 Database defaultDb = GetDatabase("");
                 while (true)
@@ -251,7 +250,7 @@ namespace Zeze
                         }
                         Schemas.CheckCompatible(SchemasPrevious, this);
                     }
-                    var newdata = Serialize.ByteBuffer.Allocate();
+                    var newdata = ByteBuffer.Allocate();
                     Schemas.Encode(newdata);
                     if (defaultDb.DirectOperates.SaveDataWithSameVersion(keyOfSchemas, newdata, ref version))
                         break;
@@ -315,6 +314,6 @@ namespace Zeze
             logger.Error(e, "UnhandledExceptionEventArgs");
         }
 
-        public Zeze.Util.TaskOneByOneByKey TaskOneByOneByKey { get; } = new Zeze.Util.TaskOneByOneByKey();
+        public TaskOneByOneByKey TaskOneByOneByKey { get; } = new TaskOneByOneByKey();
     }
 }

@@ -344,7 +344,8 @@ namespace Zeze.Transaction
 #if USE_DATABASE
     public sealed class DatabaseMySql : Database
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(DatabaseMySql));
+
         public MySqlConnectionStringBuilder MySqlConnectionStringBuilder { get; }
 
         public DatabaseMySql(Application zeze, Config.DatabaseConf databaseConf) : base(zeze, databaseConf)
@@ -824,7 +825,8 @@ namespace Zeze.Transaction
 
     public sealed class DatabaseSqlServer : Database
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(DatabaseSqlServer));
+
         public SqlConnectionStringBuilder SqlConnectionStringBuilder { get; }
 
         public DatabaseSqlServer(Application zeze, Config.DatabaseConf databaseConf) : base(zeze, databaseConf)

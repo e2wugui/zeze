@@ -9,7 +9,6 @@ using System.IO.MemoryMappedFiles;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using NLog;
 using Zeze.Serialize;
 using Zeze.Util;
 
@@ -20,7 +19,7 @@ public static class Daemon
     public const string PropertyNamePort = "Zeze.ProcessDaemon.Port";
     public const string PropertyNameClearInUse = "Zeze.Database.ClearInUse";
 
-    static readonly Logger logger = LogManager.GetCurrentClassLogger();
+    static readonly ILogger logger = LogManager.GetLogger(typeof(Daemon));
 
     // Key Is ServerId。每个Server对应一个Monitor。
     // 正常使用是一个Daemon对应一个Server。

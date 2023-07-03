@@ -10,7 +10,7 @@ namespace Zeze.Util
     /// </summary>
     public sealed class Scheduler
     {
-        private static readonly ILogger logger = LogManager.Factory.GetLogger(typeof(Scheduler));
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Scheduler));
         internal static readonly Scheduler Instance = new Scheduler();
 
         private readonly ConcurrentDictionary<SchedulerTask, SchedulerTask> Timers =

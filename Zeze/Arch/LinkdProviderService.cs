@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Zeze.Builtin.Provider;
 using Zeze.Net;
 using Zeze.Util;
@@ -12,7 +8,7 @@ namespace Zeze.Arch
 {
 	public class LinkdProviderService : Zeze.Services.HandshakeServer
 	{
-		//private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+		// private static readonly ILogger logger = LogManager.GetLogger(typeof(LinkdProviderService));
 		public LinkdApp LinkdApp { get; set; }
 		public ConcurrentDictionary<string, ProviderSession> ProviderSessions = new();
 

@@ -38,7 +38,7 @@ namespace Zeze.Net
         where TArgument : Serializable, new()
         where TResult : Serializable, new()
     {
-        private static readonly ILogger logger = LogManager.Factory.GetLogger(typeof(Rpc));
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Rpc));
 
         public TResult Result { get; set; } = new TResult();
 

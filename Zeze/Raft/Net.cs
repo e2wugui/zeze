@@ -1,11 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Serialize;
@@ -431,7 +426,7 @@ namespace Zeze.Raft
 
     public sealed class Agent
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Agent));
 
         // 保证在Raft-Server检查UniqueRequestId唯一性过期前唯一即可。
         // 使用持久化是为了避免短时间重启，Id重复。

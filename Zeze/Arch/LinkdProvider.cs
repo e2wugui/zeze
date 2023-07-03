@@ -1,5 +1,3 @@
-
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Zeze.Builtin.LinkdBase;
@@ -11,7 +9,7 @@ namespace Zeze.Arch
 {
     public class LinkdProvider : AbstractLinkdProvider
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(LinkdProvider));
         public LinkdApp LinkdApp { get; set; }
         public ProviderDistribute Distribute { get; set; }
 

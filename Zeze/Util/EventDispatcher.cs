@@ -98,7 +98,7 @@ namespace Zeze.Util
             }
         }
 
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(EventDispatcher));
 
         // 在当前线程中，创建新的存储过程并执行，忽略所有错误。
         public async Task TriggerProcedureIgnoreError(Application app, object sender, EventArgs arg)

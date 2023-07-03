@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Zeze.Net;
 using Zeze.Services;
 using System.Threading.Tasks;
-using NLog;
 using Zeze.Services.GlobalCacheManager;
 using Zeze.Serialize;
+using Zeze.Util;
 
 namespace Zeze.Transaction
 {
@@ -19,7 +17,8 @@ namespace Zeze.Transaction
 
     public sealed class GlobalAgent : IGlobalAgent
     {
-        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        internal static readonly ILogger logger = LogManager.GetLogger(typeof(GlobalAgent));
+
         public GlobalClient Client { get; private set; } // 未启用cache-sync时为空。
 
         public void Dispose()

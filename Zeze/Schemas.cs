@@ -1,32 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using Zeze.Serialize;
+using Zeze.Util;
 
-/// <summary>
-/// 1 启动数据库时，用来判断当前代码的数据定义结构是否和当前数据库的定义结构兼容。
-///   当前包含以下兼容检测。
-///   a) 对于每个 Variable.Id，Type不能修改。
-///   b) 不能复用已经删除的 Variable.Id。
-///      但是允许"反悔"，也就是说可以重新使用已经删除的Variable.Id时，只要Type和原来一样，就允许。
-///      这是为了处理多人使用同一个数据库进行开发时的冲突（具体不解释了）。
-///   c) beankey 被应用于map.Key或set.Value或table.Key以后就不能再删除变量了。
-///      当作key以后，如果删除变量，beankey.Encode() 就可能不再唯一。
-///      
-/// 2 通过查询类型信息，从数据转换到具体实例。合服可能需要。
-///   如果是通用合并的insert，应该在二进制接口上操作（目前还没有）。
-///   如果合并时需要处理冲突，此时应用是知道具体类型的。
-///   所以这个功能暂时先不提供了。
-///   
-/// </summary>
 namespace Zeze
 {
+    /// <summary>
+    /// 1 启动数据库时，用来判断当前代码的数据定义结构是否和当前数据库的定义结构兼容。
+    ///   当前包含以下兼容检测。
+    ///   a) 对于每个 Variable.Id，Type不能修改。
+    ///   b) 不能复用已经删除的 Variable.Id。
+    ///      但是允许"反悔"，也就是说可以重新使用已经删除的Variable.Id时，只要Type和原来一样，就允许。
+    ///      这是为了处理多人使用同一个数据库进行开发时的冲突（具体不解释了）。
+    ///   c) beankey 被应用于map.Key或set.Value或table.Key以后就不能再删除变量了。
+    ///      当作key以后，如果删除变量，beankey.Encode() 就可能不再唯一。
+    ///      
+    /// 2 通过查询类型信息，从数据转换到具体实例。合服可能需要。
+    ///   如果是通用合并的insert，应该在二进制接口上操作（目前还没有）。
+    ///   如果合并时需要处理冲突，此时应用是知道具体类型的。
+    ///   所以这个功能暂时先不提供了。
+    ///   
+    /// </summary>
     public class Schemas : Serializable
     {
         public class Checked
         {
-            public Bean Previous { get; set; }
-            public Bean Current { get; set; }
+            public Bean Previous { get; init; }
+            public Bean Current { get; init; }
 
             public override int GetHashCode()
             {
@@ -81,7 +81,7 @@ namespace Zeze
             public CheckResult GetCheckResult(Bean previous, Bean current)
             {
                 if (Checked.TryGetValue(
-                    new Schemas.Checked() { Previous = previous, Current = current },
+                    new Checked { Previous = previous, Current = current },
                     out var exist))
                     return exist;
                 return null;
@@ -89,7 +89,7 @@ namespace Zeze
 
             public void AddCheckResult(Bean previous, Bean current, CheckResult result)
             {
-                Checked.Add(new Schemas.Checked() { Previous = previous, Current = current }, result);
+                Checked.Add(new Checked { Previous = previous, Current = current }, result);
             }
 
             public CheckResult GetCopyBeanIfRemovedResult(Bean bean)
@@ -116,7 +116,7 @@ namespace Zeze
                 }
             }
 
-            private long ReNameCount = 0;
+            private long ReNameCount;
 
             public string GenerateUniqueName()
             {
@@ -243,7 +243,7 @@ namespace Zeze
             public string KeyName { get; set; } = "";
             public string ValueName { get; set; } = "";
             public Type Type { get; set; }
-            public bool Deleted { get; set; } = false;
+            public bool Deleted { get; set; }
 
             public void Decode(ByteBuffer bb)
             {
@@ -272,13 +272,13 @@ namespace Zeze
 
             public bool IsCompatible(Variable other, Context context)
             {
-                return this.Type.IsCompatible(other.Type, context,
-                    (bean) =>
+                return Type.IsCompatible(other.Type, context,
+                    bean =>
                     {
                         TypeName = bean.Name;
                         Type = bean;
                     },
-                    (bean) =>
+                    _ =>
                     {
                         KeyName = Type.KeyName;
                         ValueName = Type.ValueName;
@@ -287,19 +287,19 @@ namespace Zeze
 
             public void Update()
             {
-                KeyName = this.Type.KeyName;
-                ValueName = this.Type.ValueName;
+                KeyName = Type.KeyName;
+                ValueName = Type.ValueName;
             }
 
             public void TryCopyBeanIfRemoved(Context context)
             {
-                this.Type.TryCopyBeanIfRemoved(context,
-                    (bean) =>
+                Type.TryCopyBeanIfRemoved(context,
+                    bean =>
                     {
                         TypeName = bean.Name;
                         Type = bean;
                     },
-                    (bean)=>
+                    _=>
                     {
                         KeyName = Type.KeyName;
                         ValueName = Type.ValueName;
@@ -309,13 +309,13 @@ namespace Zeze
 
         public class Bean : Type
         {
-            private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+            private static readonly ILogger logger = LogManager.GetLogger(typeof(Bean));
 
             public SortedDictionary<int, Variable> Variables { get; } = new SortedDictionary<int, Variable>();
-            public bool IsBeanKey { get; set; } = false;
-            public int KeyRefCount { get; set; } = 0;
+            public bool IsBeanKey { get; set; }
+            public int KeyRefCount { get; set; }
             // 这个变量当前是不需要的，作为额外的属性记录下来，以后可能要用。
-            public bool Deleted { get; private set; } = false;
+            public bool Deleted { get; private set; }
             // 这里记录在当前版本Schemas中Bean的实际名字，只有生成的bean包含这个。
             public string RealName { get; private set; } = "";
 
@@ -323,8 +323,6 @@ namespace Zeze
             /// var可能增加，也可能删除，所以兼容仅判断var.id相同的。
             /// 并且和谁比较谁没有关系。
             /// </summary>
-            /// <param name="other"></param>
-            /// <returns></returns>
             public override bool IsCompatible(Type other, Context context, Action<Bean> Update, Action<Bean> UpdateVariable)
             {
                 if (other == null)
@@ -579,14 +577,14 @@ namespace Zeze
         public Dictionary<string, Table> Tables { get; } = new Dictionary<string, Table>();
         public Dictionary<string, Bean> Beans { get; } = new Dictionary<string, Bean>();
 
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        // private static readonly ILogger logger = LogManager.GetLogger(typeof(Table));
 
         public void CheckCompatible(Schemas other, Application app)
         {
             if (null == other)
                 return;
 
-            var context = new Context()
+            var context = new Context
             {
                 Current = this,
                 Previous = other,
@@ -663,11 +661,11 @@ namespace Zeze
             if (BasicTypes.TryGetValue($"{type}:{key}:{value}", out var o))
                 return o;
 
-            var n = new Type()
+            var n = new Type
             {
                 Name = type,
                 KeyName = key,
-                ValueName = value,
+                ValueName = value
             };
             BasicTypes.Add($"{type}:{key}:{value}", n);
             n.Compile(this); // 容器需要编译。这里的时机不是太好。

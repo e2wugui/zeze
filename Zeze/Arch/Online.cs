@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -26,7 +25,8 @@ namespace Zeze.Arch
             throw new InvalidOperationException("Online Memory Table Dynamic Only.");
         }
 
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Online));
+
         public ProviderApp ProviderApp { get; }
         public AppBase App { get; }
         public ProviderLoad Load { get; }

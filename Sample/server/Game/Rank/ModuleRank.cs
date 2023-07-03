@@ -1,11 +1,8 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Threading.Tasks;
 using Zeze.Net;
-using Zeze.Transaction;
 using Zeze.Arch;
 using Zeze.Util;
 
@@ -17,8 +14,7 @@ namespace Game.Rank
     /// 然后在数据变化时调用 RunUpdateRank 方法更行排行榜。
     public partial class ModuleRank : AbstractModule
     {
-
-        //private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        // private static readonly ILogger logger = LogManager.GetLogger(typeof(ModuleRank));
 
         public void Start(Game.App app)
         {

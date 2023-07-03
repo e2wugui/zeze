@@ -1,8 +1,7 @@
 ﻿using System;
 using Zeze.Serialize;
-#if USE_CONFCS
 using Zeze.Util;
-#else
+#if !USE_CONFCS
 using Zeze.Transaction;
 #endif
 
@@ -17,11 +16,7 @@ namespace Zeze.Net
             bool DecodeAndDispatch(Service service, long sessionId, long typeId, ByteBuffer _os_);
         }
 
-#if HAS_NLOG
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-#elif HAS_MYLOG
-        private static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(Protocol));
-#endif
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Protocol));
 
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }
@@ -100,9 +95,7 @@ namespace Zeze.Net
                 return false;
             Sender = so;
             Service = Sender.Service;
-#if HAS_NLOG || HAS_MYLOG
             logger.Debug($"Send {this}");
-#endif
             return so.Send(Encode());
         }
 

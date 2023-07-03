@@ -12,7 +12,7 @@ namespace Zeze.Transaction
 {
     public sealed class Checkpoint
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Checkpoint));
 
         private HashSet<Database> Databases { get; } = new HashSet<Database>();
 
@@ -236,7 +236,7 @@ namespace Zeze.Transaction
                 catch (Exception ex)
                 {
                     logger.Fatal(ex);
-                    NLog.LogManager.Shutdown();
+                    LogManager.Shutdown();
                     System.Diagnostics.Process.GetCurrentProcess().Kill();
                 }
             }
@@ -332,7 +332,7 @@ namespace Zeze.Transaction
                 catch (Exception ex)
                 {
                     logger.Fatal(ex);
-                    NLog.LogManager.Shutdown();
+                    LogManager.Shutdown();
                     System.Diagnostics.Process.GetCurrentProcess().Kill();
                 }
             }

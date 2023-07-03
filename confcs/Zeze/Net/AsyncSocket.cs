@@ -14,7 +14,7 @@ namespace Zeze.Net
     /// </summary>
     public sealed class AsyncSocket : IDisposable
     {
-        private static readonly ILogger logger = LogManager.Factory.GetLogger(typeof(AsyncSocket));
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(AsyncSocket));
 
         private byte[] _inputBuffer;
         private List<ArraySegment<byte>> _outputBufferList;

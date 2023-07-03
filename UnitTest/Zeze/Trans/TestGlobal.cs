@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading.Tasks;
 using Zeze.Transaction;
-using System.Threading;
 using Zeze.Util;
 
 namespace UnitTest.Zeze.Trans
@@ -12,7 +8,8 @@ namespace UnitTest.Zeze.Trans
     [TestClass]
     public class TestGlobal
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(TestGlobal));
+
         public class PrintLog : Log<demo.Module1.Value>
         {
             static volatile int lastInt = -1;

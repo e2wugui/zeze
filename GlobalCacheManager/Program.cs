@@ -1,13 +1,13 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using Zeze.Services;
 using Zeze.Raft;
+using Zeze.Util;
 
 namespace GlobalCacheManager
 {
     public class Program
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Program));
 
         public static void Main(string[] args)
         {

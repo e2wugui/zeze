@@ -33,6 +33,7 @@ copy /y %Zeze%\Util\Comparer.cs                %confcs%\Util\
 copy /y %Zeze%\Util\ConfBean.cs                %confcs%\Util\
 copy /y %Zeze%\Util\DispatchModeAttribute.cs   %confcs%\Util\
 copy /y %Zeze%\Util\FixedHash.cs               %confcs%\Util\
+copy /y %Zeze%\Util\Logger.cs                  %confcs%\Util\
 copy /y %Zeze%\Util\Mission.cs                 %confcs%\Util\
 copy /y %Zeze%\Util\Reflect.cs                 %confcs%\Util\
 copy /y %Zeze%\Util\ResultCode.cs              %confcs%\Util\

@@ -547,7 +547,7 @@ namespace Zeze.Services
             }
         }
 
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(ServiceManagerServer));
 
         private Task<long> ProcessRegister(Protocol p)
         {
@@ -1227,7 +1227,7 @@ namespace Zeze.Services.ServiceManager
             }
         }
 
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Agent));
 
         public async Task<ServiceInfo> RegisterService(
             string name, string identity,

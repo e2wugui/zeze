@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Text;
+using Zeze.Util;
 
 namespace Zeze.Transaction
 {
@@ -12,7 +11,7 @@ namespace Zeze.Transaction
     /// </summary>
     public class ProcedureStatistics
     {
-        static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        static readonly ILogger logger = LogManager.GetLogger(typeof(ProcedureStatistics));
 
         public static ProcedureStatistics Instance { get; } = new ProcedureStatistics();
 

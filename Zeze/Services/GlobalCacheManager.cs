@@ -57,8 +57,9 @@ namespace Zeze.Services
 
         public const int LoginBindSocketFail = 120;
 
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(GlobalCacheManagerServer));
         public static GlobalCacheManagerServer Instance { get; } = new GlobalCacheManagerServer();
+
         public ServerService Server { get; private set; }
         public AsyncSocket ServerSocket { get; private set; }
         private ConcurrentDictionary<Binary, CacheState> global;
@@ -893,7 +894,8 @@ namespace Zeze.Services
 
         public sealed class CacheHolder
         {
-            private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+            private static readonly ILogger logger = LogManager.GetLogger(typeof(CacheHolder));
+
             private long ActiveTime = Time.NowUnixMillis;
             private bool Logined = false;
             public bool DebugMode { get; set; }

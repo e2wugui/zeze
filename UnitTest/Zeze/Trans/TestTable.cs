@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Zeze.Serialize;
-using Zeze.Transaction;
 using Zeze.Util;
 
 namespace UnitTest.Zeze.Trans
@@ -12,7 +7,7 @@ namespace UnitTest.Zeze.Trans
     [TestClass]
     public class TestTable
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        // private static readonly ILogger logger = LogManager.GetLogger(typeof(TestTable));
 
         [TestInitialize]
         public void TestInit()

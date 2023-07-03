@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
 using Zeze.Services;
 using System.Threading.Tasks;
 using System.Threading;
 using DotNext.Threading;
+using Zeze.Util;
 
 namespace Zeze.Transaction
 {
@@ -121,7 +120,8 @@ namespace Zeze.Transaction
 
     public class Record<K, V> : Record where V : Bean, new()
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Record));
+
         public K Key { get; }
         public Table<K, V> TTable { get;  }
         public override Table Table => TTable;

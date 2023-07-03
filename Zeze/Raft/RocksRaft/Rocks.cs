@@ -12,7 +12,7 @@ namespace Zeze.Raft.RocksRaft
 {
     public class Rocks : StateMachine, IDisposable
     {
-        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        internal static readonly ILogger logger = LogManager.GetLogger(typeof(Rocks));
 
         public ConcurrentDictionary<string, TableTemplate> TableTemplates { get; } = new ConcurrentDictionary<string, TableTemplate>();  
         public ConcurrentDictionary<string, Table> Tables { get; } = new ConcurrentDictionary<string, Table>();

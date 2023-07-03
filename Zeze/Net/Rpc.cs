@@ -7,12 +7,6 @@ namespace Zeze.Net
 {
     public interface Rpc : Serializable
     {
-#if HAS_NLOG
-        protected static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-#elif HAS_MYLOG
-        protected static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(Rpc<TArgument, TResult>));
-#endif
-
 #if USE_CONFCS
         ConfBean ResultBean { get; }
 #else
@@ -44,6 +38,8 @@ namespace Zeze.Net
         where TArgument : Serializable, new()
         where TResult : Serializable, new()
     {
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Rpc));
+
         public TResult Result { get; set; } = new TResult();
 
 #if USE_CONFCS
@@ -184,13 +180,7 @@ namespace Zeze.Net
         {
             if (SendResultDone)
             {
-#if HAS_NLOG
-                Rpc.logger.Log(NLog.LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
-#elif HAS_MYLOG
-                Rpc.logger.Log(Config.LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
-#else
-                Console.Error.WriteLine($"Rpc.SendResult Already Done {Sender.Socket} {this}");
-#endif
+                logger.Error($"Rpc.SendResult Already Done {Sender.Socket} {this}");
                 return;
             }
             SendResultDone = true;
@@ -199,13 +189,7 @@ namespace Zeze.Net
             IsRequest = false;
             if (!base.Send(Sender))
             {
-#if HAS_NLOG
-                Rpc.logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), $"Rpc.SendResult Failed {Sender.Socket} {this}");
-#elif HAS_MYLOG
-                Rpc.logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Failed {Sender.Socket} {this}");
-#else
-                Console.Error.WriteLine($"Rpc.SendResult Failed {Sender.Socket} {this}");
-#endif
+                logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Failed {Sender.Socket} {this}");
             }
         }
 
@@ -230,13 +214,7 @@ namespace Zeze.Net
             var context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(SessionId);
             if (context == null)
             {
-#if HAS_NLOG
-                Rpc.logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), "rpc response: lost context, maybe timeout. {0}", this);
-#elif HAS_MYLOG
-                Rpc.logger.Log(Service.SocketOptions.SocketLogLevel, "rpc response: lost context, maybe timeout. {0}", this);
-#else
-                Console.Error.WriteLine("rpc response: lost context, maybe timeout. {this}");
-#endif
+                logger.Log(Service.SocketOptions.SocketLogLevel, "rpc response: lost context, maybe timeout. {0}", this);
                 return;
             }
 

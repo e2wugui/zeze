@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using Zeze.Serialize;
 using Zeze.Services;
 using System.Threading;
 using Zeze.Services.GlobalCacheManager;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
 using Zeze.Net;
+using Zeze.Util;
 
 namespace Zeze.Transaction
 {
@@ -64,7 +63,8 @@ namespace Zeze.Transaction
 
     public abstract class Table<K, V> : Table where V : Bean, new()
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Table));
+
         public Table(string name) : base(name)
         {
         }

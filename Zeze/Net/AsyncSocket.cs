@@ -14,11 +14,8 @@ namespace Zeze.Net
     /// </summary>
     public sealed class AsyncSocket : IDisposable
     {
-#if HAS_NLOG
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-#elif HAS_MYLOG
-        private static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(AsyncSocket));
-#endif
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(AsyncSocket));
+
         private byte[] _inputBuffer;
         private List<ArraySegment<byte>> _outputBufferList;
         private int _outputBufferListCountSum;
@@ -65,6 +62,7 @@ namespace Zeze.Net
         {
             return SessionIdGenFunc?.Invoke() ?? SessionIdGen.IncrementAndGet();
         }
+
         /// <summary>
         /// for server socket
         /// </summary>
@@ -337,11 +335,7 @@ namespace Zeze.Net
                     }
                     catch (Exception ex)
                     {
-#if HAS_NLOG || HAS_MYLOG
                         logger.Error(ex);
-#else
-                        Console.Error.WriteLine(ex);
-#endif
                     }
                 }
                 BeginAcceptAsync();
@@ -371,11 +365,7 @@ namespace Zeze.Net
                 }
                 catch (Exception ex)
                 {
-#if HAS_NLOG || HAS_MYLOG
                     logger.Error(ex);
-#else
-                    Console.Error.WriteLine(ex);
-#endif
                 }
                 Close(null);
             }
@@ -403,11 +393,7 @@ namespace Zeze.Net
                 }
                 catch (Exception ex)
                 {
-#if HAS_NLOG || HAS_MYLOG
                     logger.Error(ex);
-#else
-                    Console.Error.WriteLine(ex);
-#endif
                 }
                 Close(null);
             }
@@ -486,7 +472,7 @@ namespace Zeze.Net
             }
             else
             {
-                Close(new SocketException((int)e.SocketError)) ;
+                Close(new SocketException((int)e.SocketError));
             }
         }
 
@@ -549,7 +535,7 @@ namespace Zeze.Net
                     _outputBufferListSending.AddRange(_outputBufferList);
                     _outputBufferList = null;
                     _outputBufferListSendingCountSum = _outputBufferListCountSum
-                        + (_outputBufferListSendingCountSum - _bytesTransferred);
+                                                       + (_outputBufferListSendingCountSum - _bytesTransferred);
                     _outputBufferListCountSum = 0;
                 }
                 else
@@ -563,7 +549,6 @@ namespace Zeze.Net
                     eventArgsSend.BufferList = _outputBufferListSending;
                     if (!Socket.SendAsync(eventArgsSend))
                         ProcessSend(eventArgsSend);
-
                 }
                 else
                 {
@@ -580,13 +565,7 @@ namespace Zeze.Net
             LastException = e;
             if (e != null)
             {
-#if HAS_NLOG
-                logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), e, "Close");
-#elif HAS_MYLOG
                 logger.Log(Service.SocketOptions.SocketLogLevel, e, "Close");
-#else
-                Console.Error.WriteLine(e);
-#endif
             }
             Dispose();
         }
@@ -619,11 +598,7 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-#if HAS_NLOG || HAS_MYLOG
                 logger.Error(e);
-#else
-                Console.Error.WriteLine(e);
-#endif
             }
             try
             {
@@ -631,11 +606,7 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-#if HAS_NLOG || HAS_MYLOG
                 logger.Error(e);
-#else
-                Console.Error.WriteLine(e);
-#endif
             }
         }
 
@@ -649,7 +620,7 @@ namespace Zeze.Net
                 return 0;
             }
         }
- 
+
         private void RealClose()
         {
             try
@@ -659,11 +630,7 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-#if HAS_NLOG || HAS_MYLOG
                 logger.Error(e);
-#else
-                Console.Error.WriteLine(e);
-#endif
             }
 
             try
@@ -672,11 +639,7 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
-#if HAS_NLOG || HAS_MYLOG
                 logger.Error(e);
-#else
-                Console.Error.WriteLine(e);
-#endif
             }
 #if !USE_CONFCS
             TimeThrottle?.Close();
@@ -714,6 +677,5 @@ namespace Zeze.Net
         {
             return $"({Socket?.LocalEndPoint}-{Socket?.RemoteEndPoint})";
         }
-
     }
 }

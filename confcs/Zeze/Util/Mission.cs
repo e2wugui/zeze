@@ -9,7 +9,7 @@ namespace Zeze.Util
 {
     public class Mission
     {
-        private static readonly ILogger logger = LogManager.Factory.GetLogger(typeof(Mission));
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Mission));
 
         // 任何任务执行异常都会设置这个，用于单元测试程序报错用。
         public static async Task AwaitNullableTask(Task task)
@@ -54,23 +54,6 @@ namespace Zeze.Util
         }
 
         public static volatile Action<Config.LogLevel, Exception, long, string> LogAction = DefaultLogAction;
-
-#if HAS_NLOG
-        public static NLog.LogLevel NlogLogLevel(Config.LogLevel ll)
-        {
-            switch (ll)
-            {
-                case Config.LogLevel.Trace: return NLog.LogLevel.Trace;
-                case Config.LogLevel.Debug: return NLog.LogLevel.Debug;
-                case Config.LogLevel.Info: return NLog.LogLevel.Info;
-                case Config.LogLevel.Warn: return NLog.LogLevel.Warn;
-                case Config.LogLevel.Error: return NLog.LogLevel.Error;
-                case Config.LogLevel.Fatal: return NLog.LogLevel.Fatal;
-                case Config.LogLevel.Off: return NLog.LogLevel.Off;
-            }
-            throw new Exception($"Unknown LogLevel {ll}");
-        }
-#endif
 
         public static void LogAndStatistics(Exception ex, long result, Protocol p, bool IsRequestSaved,
             string aName = null)

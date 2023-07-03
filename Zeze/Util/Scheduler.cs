@@ -10,12 +10,7 @@ namespace Zeze.Util
     /// </summary>
     public sealed class Scheduler
     {
-#if HAS_NLOG
-        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-#elif HAS_MYLOG
-        internal static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(Scheduler));
-#endif
-
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Scheduler));
         internal static readonly Scheduler Instance = new Scheduler();
 
         private readonly ConcurrentDictionary<SchedulerTask, SchedulerTask> Timers =
@@ -89,11 +84,7 @@ namespace Zeze.Util
                 }
                 catch (Exception ex)
                 {
-#if HAS_NLOG || HAS_MYLOG
-                    Scheduler.logger.Error(ex);
-#else
-                    Console.Error.WriteLine(ex);
-#endif
+                    logger.Error(ex);
                 }
             }
         }

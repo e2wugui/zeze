@@ -671,7 +671,7 @@ namespace Zeze.Services
 
         private Rocks Rocks { get; set; }
         private AtomicLong SerialId { get; } = new();
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(GlobalCacheManagerWithRaft));
         private readonly Locks Locks = new();
 
         /// <summary>
