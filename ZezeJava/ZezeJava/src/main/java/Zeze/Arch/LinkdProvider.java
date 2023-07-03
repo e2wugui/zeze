@@ -2,6 +2,7 @@ package Zeze.Arch;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.function.Predicate;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.Provider.AnnounceProviderInfo;
@@ -153,7 +154,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 					providerModuleState.configType, providerModuleState.choiceType);
 		} else if (providerModuleState.configType == BModule.ConfigTypeSpecial) {
 			// special 不跟随大部队，单独bind。
-			linkSession.bind(linkdApp.linkdProviderService, link, java.util.List.of(moduleId), providerSocket);
+			linkSession.bind(linkdApp.linkdProviderService, link, List.of(moduleId), providerSocket);
+			logger.info("special bind: account={}, moduleId={}, provider={}, configType={}, choiceType={}",
+					linkSession.account, moduleId, providerSocket.getRemoteAddress(),
+					providerModuleState.configType, providerModuleState.choiceType);
 		}
 		return true;
 	}
