@@ -1555,13 +1555,35 @@
 			<rpc name="ReadWriteLockOperate" argument="BReadWriteLock" handle="server"/>
 		</module>
 
+		<module name="World" id="11031" UseData="true" DefaultTransactionLevel="None">
+			<beankey name="ObjectId">
+				<variable id="1" name="Type"  type="int"/>
+				<variable id="2" name="ConfigId"   type="int"/>
+				<variable id="3" name="InstanceId" type="long"/>
+			</beankey>
+
+			<bean name="BObject">
+				<variable id="1" name="Custom"  type="dynamic">
+					<GetSpecialTypeIdFromBean value="Zeze.World.World::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.World.World::createBeanFromSpecialTypeId"/>
+					<CreateDataFromSpecialTypeId value="Zeze.World.World::createDataFromSpecialTypeId"/>
+				</variable>
+			</bean>
+		</module>
+
 		<!--
-		可用id范围 [11031, 11100) [11102, 11999]
+		可用id范围 [11032, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="World" gendir="src/main/java" genrelativedir="Zeze/World" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.World"/>
+		</service>
+	</component>
+
 	<component name="Threading" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Threading"/>
