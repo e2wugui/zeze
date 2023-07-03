@@ -22,14 +22,6 @@ public abstract class AbstractWorld implements Zeze.IModule {
             service.AddFactoryHandle(47379751479219L, factoryHandle); // 11031, 1967237043
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.World.Rotate.class, Zeze.Builtin.World.Rotate.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.World.Rotate::new;
-            factoryHandle.Handle = this::ProcessRotate;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRotate", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRotate", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47377798104423L, factoryHandle); // 11031, 13862247
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.World.Stop.class, Zeze.Builtin.World.Stop.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.World.Stop::new;
             factoryHandle.Handle = this::ProcessStop;
@@ -41,7 +33,6 @@ public abstract class AbstractWorld implements Zeze.IModule {
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47379751479219L);
-        service.getFactorys().remove(47377798104423L);
         service.getFactorys().remove(47380680357614L);
     }
 
@@ -55,6 +46,5 @@ public abstract class AbstractWorld implements Zeze.IModule {
     }
 
     protected abstract long ProcessMove(Zeze.Builtin.World.Move p) throws Exception;
-    protected abstract long ProcessRotate(Zeze.Builtin.World.Rotate p) throws Exception;
     protected abstract long ProcessStop(Zeze.Builtin.World.Stop p) throws Exception;
 }

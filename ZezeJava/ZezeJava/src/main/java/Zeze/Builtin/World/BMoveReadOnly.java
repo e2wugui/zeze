@@ -9,5 +9,6 @@ public interface BMoveReadOnly {
 
     Zeze.Serialize.Vector3 getCurrent();
     Zeze.Serialize.Vector3 getDirect();
+    int getTurnDirect();
     long getTimestamp();
 }

@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.World;
 
-// 最简单的3条移动协议，发给第三方也是用相同的协议，参数可能会被服务器调整。
+// 最简单的移动协议，发给第三方也是用相同的协议，参数可能会被服务器调整。
 public class Move extends Zeze.Net.Protocol<Zeze.Builtin.World.BMove.Data> {
     public static final int ModuleId_ = 11031;
     public static final int ProtocolId_ = 1967237043;
