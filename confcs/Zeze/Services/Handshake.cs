@@ -84,11 +84,7 @@ namespace Zeze.Services
 
     public class HandshakeBase : Service
     {
-#if HAS_NLOG
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-#elif HAS_MYLOG
-        private static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(HandshakeBase));
-#endif
+        private new static readonly ILogger logger = LogManager.Factory.GetLogger(typeof(HandshakeBase));
 
         private readonly HashSet<long> HandshakeProtocols = new HashSet<long>();
 
@@ -212,9 +208,7 @@ namespace Zeze.Services
                     if (ipaddress.IsIPv4MappedToIPv6)
                         ipaddress = ipaddress.MapToIPv4();
                     byte[] key = Config.HandshakeOptions.SecureIp ?? ipaddress.GetAddressBytes();
-#if HAS_NLOG || HAS_MYLOG
-                    logger.Debug("{0} localip={1}", p.Sender.SessionId, BitConverter.ToString(key));
-#endif
+                    logger.Debug("{0} localIp={1}", p.Sender.SessionId, BitConverter.ToString(key));
                     int half = material.Length / 2;
                     inputKey = Digest.HmacMd5(key, material, 0, half);
                     response = Handshake.Helper.GenerateDHResponse(group, rand).ToByteArray();
@@ -316,9 +310,7 @@ namespace Zeze.Services
                             IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
                             if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
                             byte[] key = ipaddress.GetAddressBytes();
-#if HAS_NLOG || HAS_MYLOG
-                            logger.Debug("{0} remoteip={1}", p.Sender.SessionId, BitConverter.ToString(key));
-#endif
+                            logger.Debug("{0} remoteIp={1}", p.Sender.SessionId, BitConverter.ToString(key));
                             int half = material.Length / 2;
                             outputKey = Digest.HmacMd5(key, material, 0, half);
                             inputKey = Digest.HmacMd5(key, material, half, material.Length - half);

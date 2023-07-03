@@ -9,13 +9,9 @@ namespace Zeze.Util
 {
     public class Mission
     {
-#if HAS_NLOG
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-#elif HAS_MYLOG
-        private static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(Mission));
-#endif
-        // 任何任务执行异常都会设置这个，用于单元测试程序报错用。
+        private static readonly ILogger logger = LogManager.Factory.GetLogger(typeof(Mission));
 
+        // 任何任务执行异常都会设置这个，用于单元测试程序报错用。
         public static async Task AwaitNullableTask(Task task)
         {
             if (task != null)
@@ -30,11 +26,7 @@ namespace Zeze.Util
             }
             catch (Exception ex)
             {
-#if HAS_NLOG || HAS_MYLOG
                 logger.Error(ex, actionName);
-#else
-                Console.Error.WriteLine($"{actionName}: {ex}");
-#endif
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (ex.GetType().Name == "AssertFailedException")
@@ -52,11 +44,7 @@ namespace Zeze.Util
             }
             catch (Exception ex)
             {
-#if HAS_NLOG || HAS_MYLOG
                 logger.Error(ex, actionName);
-#else
-                Console.Error.WriteLine($"{actionName}: {ex}");
-#endif
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (ex.GetType().Name == "AssertFailedException")
@@ -103,23 +91,14 @@ namespace Zeze.Util
 
         public static void DefaultLogAction(Config.LogLevel level, Exception ex, long result, string message)
         {
-#if HAS_NLOG || HAS_MYLOG
             // exception -> Error
             // 0 != result -> level from parameter
             // others -> Trace
-            Config.LogLevel ll = ex != null ? Config.LogLevel.Error : (0 != result) ? level : Config.LogLevel.Trace;
+            var ll = ex != null ? Config.LogLevel.Error : result != 0 ? level : Config.LogLevel.Trace;
             var module = "";
             if (result > 0)
                 module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
-#endif
-#if HAS_NLOG
-            logger.Log(NlogLogLevel(ll), ex, $"Return={result}{module} {message}");
-#elif HAS_MYLOG
             logger.Log(ll, ex, $"Return={result}{module} {message}");
-#else
-            if (ex != null)
-                Console.Error.WriteLine($"Return={result} {message}: {ex}");
-#endif
         }
 
         public static async Task<long> CallAsync(Func<Task> aa, string actionName)
@@ -139,11 +118,7 @@ namespace Zeze.Util
             }
             catch (Exception ex)
             {
-#if HAS_NLOG || HAS_MYLOG
                 logger.Error(ex, actionName);
-#else
-                await Console.Error.WriteLineAsync($"{actionName}: {ex}");
-#endif
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (ex.GetType().Name == "AssertFailedException")
