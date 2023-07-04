@@ -12,12 +12,15 @@ namespace Zeze.Gen.java
 
         public static void Make(Bean bean, StreamWriter sw, string prefix, bool isData)
         {
-            sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void reset() {");
-            foreach (Variable var in bean.Variables)
-                var.VariableType.Accept(new Reset(var, sw, prefix + "    ", isData));
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            if (isData || bean.Variables.Count > 0)
+            {
+                sw.WriteLine(prefix + "@Override");
+                sw.WriteLine(prefix + "public void reset() {");
+                foreach (Variable var in bean.Variables)
+                    var.VariableType.Accept(new Reset(var, sw, prefix + "    ", isData));
+                sw.WriteLine(prefix + "}");
+                sw.WriteLine();
+            }
         }
 
         public Reset(Variable var, StreamWriter sw, string prefix, bool isData)

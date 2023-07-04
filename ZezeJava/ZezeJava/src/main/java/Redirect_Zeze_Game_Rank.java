@@ -77,6 +77,8 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
                 keyHint.decode(_b_);
                 return super.getRankAll(_hash_, keyHint);
             }, _result_ -> {
+                if (_result_ == null)
+                    return Zeze.Net.Binary.Empty;
                 var _r_ = (Zeze.Game.Rank.RRankList)_result_;
                 var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
                 _r_.rankList.encode(_b_);

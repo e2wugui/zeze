@@ -12,10 +12,6 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean implements BA
     }
 
     @Override
-    public void reset() {
-    }
-
-    @Override
     public Zeze.Builtin.Provider.BAnnounceLinkInfo.Data toData() {
         var data = new Zeze.Builtin.Provider.BAnnounceLinkInfo.Data();
         data.assign(this);

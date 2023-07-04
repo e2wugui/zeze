@@ -88,6 +88,7 @@ public abstract class DynamicData extends Data {
 		return typeId == EmptyBean.Data.TYPEID && data.getClass() == EmptyBean.Data.class;
 	}
 
+	@Override
 	public void reset() {
 		data = EmptyBean.Data.instance;
 		typeId = EmptyBean.Data.TYPEID;
