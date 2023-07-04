@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.World.BObject;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Benchmark;
 import org.junit.Assert;
 import org.junit.Test;
@@ -42,7 +43,8 @@ public class TestAoi {
 				cube.lock();
 			try {
 				var move = new Zeze.Builtin.World.Move();
-				var bb = move.encode();
+				var bb = ByteBuffer.Allocate();
+				move.encodeWithHead(bb);
 				for (var cube : cubes2d.values()) {
 					for (var obj : cube.getObjects().values()) {
 						Assert.assertTrue(connection.Send(bb.Bytes, bb.ReadIndex, bb.size()));
