@@ -16,7 +16,7 @@ public class TestAoi {
 		var center = map.toIndex(0, 0, 0);
 		var cubes2d = map.cubes2d(center, 1, 1);
 		var instanceId = 0L;
-		var objectCubeCount = 222;
+		var objectCubeCount = 222; // 222 * 9 ~= 2000
 		for (var cube : cubes2d.values()) {
 			for (int i = 0; i < objectCubeCount; ++i) {
 				var oid = new Zeze.Builtin.World.ObjectId(0, 0, instanceId++);
