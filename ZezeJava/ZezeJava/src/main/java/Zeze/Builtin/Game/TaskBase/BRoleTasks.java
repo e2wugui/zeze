@@ -37,6 +37,12 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
         _finishedTaskIds.variableId(2);
     }
 
+    @Override
+    public void reset() {
+        _processingTasks.clear();
+        _finishedTaskIds.clear();
+    }
+
     public void assign(BRoleTasks other) {
         _processingTasks.clear();
         for (var e : other._processingTasks.entrySet())

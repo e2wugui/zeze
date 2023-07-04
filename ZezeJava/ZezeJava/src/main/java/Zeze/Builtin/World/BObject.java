@@ -68,6 +68,12 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     }
 
     @Override
+    public void reset() {
+        setPosition(Zeze.Serialize.Vector3.ZERO);
+        _Data.reset();
+    }
+
+    @Override
     public Zeze.Builtin.World.BObject.Data toData() {
         var data = new Zeze.Builtin.World.BObject.Data();
         data.assign(this);
@@ -285,6 +291,12 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Data_ == null)
             _Data_ = new DynamicData_Data();
         _Data = _Data_;
+    }
+
+    @Override
+    public void reset() {
+        _Position = Zeze.Serialize.Vector3.ZERO;
+        _Data.reset();
     }
 
     @Override

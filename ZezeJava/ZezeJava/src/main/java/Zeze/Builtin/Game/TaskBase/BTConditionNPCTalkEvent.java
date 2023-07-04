@@ -87,6 +87,13 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
         _dialogOption = _dialogOption_;
     }
 
+    @Override
+    public void reset() {
+        setFinished(false);
+        setDialogId("");
+        setDialogOption(0);
+    }
+
     public void assign(BTConditionNPCTalkEvent other) {
         setFinished(other.isFinished());
         setDialogId(other.getDialogId());

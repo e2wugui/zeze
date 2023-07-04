@@ -172,6 +172,16 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         _CustomData = newDynamicBean_CustomData();
     }
 
+    @Override
+    public void reset() {
+        setTimerName("");
+        setAccount("");
+        setClientId("");
+        setLoginVersion(-1);
+        setHandleName("");
+        _CustomData.reset();
+    }
+
     public void assign(BOfflineAccountCustom other) {
         setTimerName(other.getTimerName());
         setAccount(other.getAccount());

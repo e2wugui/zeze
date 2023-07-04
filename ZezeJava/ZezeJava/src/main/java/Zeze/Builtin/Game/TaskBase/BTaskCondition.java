@@ -68,6 +68,12 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         _extendedData = newDynamicBean_ExtendedData();
     }
 
+    @Override
+    public void reset() {
+        setConditionType("");
+        _extendedData.reset();
+    }
+
     public void assign(BTaskCondition other) {
         setConditionType(other.getConditionType());
         _extendedData.assign(other._extendedData);

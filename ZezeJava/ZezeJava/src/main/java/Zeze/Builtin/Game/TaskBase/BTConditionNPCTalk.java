@@ -67,6 +67,13 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
         _dialogSelected.variableId(5);
     }
 
+    @Override
+    public void reset() {
+        setNpcId(0);
+        _dialogOptions.clear();
+        _dialogSelected.clear();
+    }
+
     public void assign(BTConditionNPCTalk other) {
         setNpcId(other.getNpcId());
         _dialogOptions.clear();

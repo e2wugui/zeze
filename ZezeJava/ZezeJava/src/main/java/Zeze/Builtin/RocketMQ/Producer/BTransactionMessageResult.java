@@ -60,6 +60,12 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
         _Timestamp = _Timestamp_;
     }
 
+    @Override
+    public void reset() {
+        setResult(false);
+        setTimestamp(0);
+    }
+
     public void assign(BTransactionMessageResult other) {
         setResult(other.isResult());
         setTimestamp(other.getTimestamp());

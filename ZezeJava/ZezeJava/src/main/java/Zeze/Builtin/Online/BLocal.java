@@ -64,6 +64,12 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         _Datas.variableId(2);
     }
 
+    @Override
+    public void reset() {
+        setLoginVersion(0);
+        _Datas.clear();
+    }
+
     public void assign(BLocal other) {
         setLoginVersion(other.getLoginVersion());
         _Datas.clear();

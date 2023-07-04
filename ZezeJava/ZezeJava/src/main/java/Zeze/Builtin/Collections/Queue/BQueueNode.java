@@ -53,6 +53,12 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         _Values.variableId(2);
     }
 
+    @Override
+    public void reset() {
+        setNextNodeId(0);
+        _Values.clear();
+    }
+
     public void assign(BQueueNode other) {
         setNextNodeId(other.getNextNodeId());
         _Values.clear();

@@ -25,6 +25,11 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
     }
 
     @Override
+    public void reset() {
+        _ErrorLinkSids.clear();
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BSendResult.Data toData() {
         var data = new Zeze.Builtin.Provider.BSendResult.Data();
         data.assign(this);
@@ -216,6 +221,11 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_ErrorLinkSids_ == null)
             _ErrorLinkSids_ = new java.util.ArrayList<>();
         _ErrorLinkSids = _ErrorLinkSids_;
+    }
+
+    @Override
+    public void reset() {
+        _ErrorLinkSids.clear();
     }
 
     @Override

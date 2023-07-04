@@ -71,6 +71,12 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
         _To = _To_;
     }
 
+    @Override
+    public void reset() {
+        setFrom(new Zeze.Builtin.Collections.DAG.BDAGNodeKey());
+        setTo(new Zeze.Builtin.Collections.DAG.BDAGNodeKey());
+    }
+
     public void assign(BDAGEdge other) {
         setFrom(other.getFrom());
         setTo(other.getTo());

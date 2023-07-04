@@ -181,6 +181,15 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         _SerialId = _SerialId_;
     }
 
+    @Override
+    public void reset() {
+        setAccount("");
+        setClientId("");
+        _TimerObj.reset();
+        setLoginVersion(0);
+        setSerialId(0);
+    }
+
     public void assign(BArchOnlineTimer other) {
         setAccount(other.getAccount());
         setClientId(other.getClientId());

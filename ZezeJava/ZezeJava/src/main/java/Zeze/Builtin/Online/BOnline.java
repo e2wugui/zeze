@@ -179,6 +179,17 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         _LogoutVersion = _LogoutVersion_;
     }
 
+    @Override
+    public void reset() {
+        setLink(new Zeze.Builtin.Online.BLink());
+        setLoginVersion(0);
+        _ReliableNotifyMark.clear();
+        setReliableNotifyIndex(0);
+        setReliableNotifyConfirmIndex(0);
+        setServerId(0);
+        setLogoutVersion(0);
+    }
+
     public void assign(BOnline other) {
         setLink(other.getLink());
         setLoginVersion(other.getLoginVersion());

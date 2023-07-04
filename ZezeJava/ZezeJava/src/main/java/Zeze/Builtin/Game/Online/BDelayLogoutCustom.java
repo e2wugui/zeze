@@ -87,6 +87,13 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         _OnlineSetName = _OnlineSetName_;
     }
 
+    @Override
+    public void reset() {
+        setRoleId(0);
+        setLoginVersion(0);
+        setOnlineSetName("");
+    }
+
     public void assign(BDelayLogoutCustom other) {
         setRoleId(other.getRoleId());
         setLoginVersion(other.getLoginVersion());

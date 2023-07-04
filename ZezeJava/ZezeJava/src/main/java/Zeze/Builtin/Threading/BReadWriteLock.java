@@ -88,6 +88,13 @@ public final class BReadWriteLock extends Zeze.Transaction.Bean implements BRead
     }
 
     @Override
+    public void reset() {
+        setLockName(new Zeze.Builtin.Threading.BLockName());
+        setOperateType(0);
+        setTimeoutMs(0);
+    }
+
+    @Override
     public Zeze.Builtin.Threading.BReadWriteLock.Data toData() {
         var data = new Zeze.Builtin.Threading.BReadWriteLock.Data();
         data.assign(this);
@@ -330,6 +337,13 @@ public static final class Data extends Zeze.Transaction.Data {
         _LockName = _LockName_;
         _OperateType = _OperateType_;
         _TimeoutMs = _TimeoutMs_;
+    }
+
+    @Override
+    public void reset() {
+        _LockName = new Zeze.Builtin.Threading.BLockName();
+        _OperateType = 0;
+        _TimeoutMs = 0;
     }
 
     @Override

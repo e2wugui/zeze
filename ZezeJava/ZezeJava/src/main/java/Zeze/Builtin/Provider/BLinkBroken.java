@@ -108,6 +108,14 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     }
 
     @Override
+    public void reset() {
+        setAccount("");
+        setLinkSid(0);
+        setReason(0);
+        _userState.reset();
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BLinkBroken.Data toData() {
         var data = new Zeze.Builtin.Provider.BLinkBroken.Data();
         data.assign(this);
@@ -396,6 +404,14 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_userState_ == null)
             _userState_ = new Zeze.Builtin.Provider.BUserState.Data();
         _userState = _userState_;
+    }
+
+    @Override
+    public void reset() {
+        _account = "";
+        _linkSid = 0;
+        _reason = 0;
+        _userState.reset();
     }
 
     @Override

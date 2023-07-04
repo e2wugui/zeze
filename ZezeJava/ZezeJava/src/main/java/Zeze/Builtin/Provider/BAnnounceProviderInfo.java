@@ -121,6 +121,14 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     }
 
     @Override
+    public void reset() {
+        setServiceNamePrefix("");
+        setServiceIndentity("");
+        setProviderDirectIp("");
+        setProviderDirectPort(0);
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BAnnounceProviderInfo.Data toData() {
         var data = new Zeze.Builtin.Provider.BAnnounceProviderInfo.Data();
         data.assign(this);
@@ -401,6 +409,14 @@ public static final class Data extends Zeze.Transaction.Data {
             _ProviderDirectIp_ = "";
         _ProviderDirectIp = _ProviderDirectIp_;
         _ProviderDirectPort = _ProviderDirectPort_;
+    }
+
+    @Override
+    public void reset() {
+        _ServiceNamePrefix = "";
+        _ServiceIndentity = "";
+        _ProviderDirectIp = "";
+        _ProviderDirectPort = 0;
     }
 
     @Override

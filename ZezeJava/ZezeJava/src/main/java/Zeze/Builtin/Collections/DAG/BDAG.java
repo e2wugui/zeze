@@ -114,6 +114,14 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         _EndNode = _EndNode_;
     }
 
+    @Override
+    public void reset() {
+        setNodeSum(0);
+        setEdgeSum(0);
+        setStartNode("");
+        setEndNode("");
+    }
+
     public void assign(BDAG other) {
         setNodeSum(other.getNodeSum());
         setEdgeSum(other.getEdgeSum());

@@ -82,6 +82,13 @@ public final class BLoginParam extends Zeze.Transaction.Bean implements BLoginPa
         _DebugMode = _DebugMode_;
     }
 
+    @Override
+    public void reset() {
+        setServerId(0);
+        setGlobalCacheManagerHashIndex(0);
+        setDebugMode(false);
+    }
+
     public void assign(BLoginParam other) {
         setServerId(other.getServerId());
         setGlobalCacheManagerHashIndex(other.getGlobalCacheManagerHashIndex());

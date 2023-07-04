@@ -130,6 +130,15 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         _Data = newDynamicBean_Data();
     }
 
+    @Override
+    public void reset() {
+        setParentDepartment(0);
+        _Childs.clear();
+        setName("");
+        _Managers.clear();
+        _Data.reset();
+    }
+
     public void assign(BDepartmentTreeNode other) {
         setParentDepartment(other.getParentDepartment());
         _Childs.clear();

@@ -128,6 +128,14 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
     }
 
     @Override
+    public void reset() {
+        setMaster("");
+        setDatabase("");
+        setTable("");
+        _Batch.reset();
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.BPrepareBatch.Data toData() {
         var data = new Zeze.Builtin.Dbh2.BPrepareBatch.Data();
         data.assign(this);
@@ -426,6 +434,14 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Batch_ == null)
             _Batch_ = new Zeze.Builtin.Dbh2.BBatch.Data();
         _Batch = _Batch_;
+    }
+
+    @Override
+    public void reset() {
+        _Master = "";
+        _Database = "";
+        _Table = "";
+        _Batch.reset();
     }
 
     @Override

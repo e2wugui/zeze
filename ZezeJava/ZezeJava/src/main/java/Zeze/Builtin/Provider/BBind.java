@@ -40,6 +40,12 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
     }
 
     @Override
+    public void reset() {
+        _modules.clear();
+        _linkSids.clear();
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BBind.Data toData() {
         var data = new Zeze.Builtin.Provider.BBind.Data();
         data.assign(this);
@@ -310,6 +316,12 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_linkSids_ == null)
             _linkSids_ = new java.util.HashSet<>();
         _linkSids = _linkSids_;
+    }
+
+    @Override
+    public void reset() {
+        _modules.clear();
+        _linkSids.clear();
     }
 
     @Override

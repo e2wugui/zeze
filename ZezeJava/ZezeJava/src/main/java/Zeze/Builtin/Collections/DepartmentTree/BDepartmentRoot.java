@@ -130,6 +130,15 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _Data = newDynamicBean_Data();
     }
 
+    @Override
+    public void reset() {
+        setRoot("");
+        _Managers.clear();
+        setNextDepartmentId(0);
+        _Childs.clear();
+        _Data.reset();
+    }
+
     public void assign(BDepartmentRoot other) {
         setRoot(other.getRoot());
         _Managers.clear();

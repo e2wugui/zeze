@@ -92,6 +92,13 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         _EnqueueTime = _EnqueueTime_;
     }
 
+    @Override
+    public void reset() {
+        setTableName("");
+        setEncodedKey(Zeze.Net.Binary.Empty);
+        setEnqueueTime(0);
+    }
+
     public void assign(BTableKey other) {
         setTableName(other.getTableName());
         setEncodedKey(other.getEncodedKey());

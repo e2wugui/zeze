@@ -98,6 +98,13 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
     }
 
     @Override
+    public void reset() {
+        setDatabase("");
+        setTable("");
+        setKey(Zeze.Net.Binary.Empty);
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.BGetArgument.Data toData() {
         var data = new Zeze.Builtin.Dbh2.BGetArgument.Data();
         data.assign(this);
@@ -336,6 +343,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Key_ == null)
             _Key_ = Zeze.Net.Binary.Empty;
         _Key = _Key_;
+    }
+
+    @Override
+    public void reset() {
+        _Database = "";
+        _Table = "";
+        _Key = Zeze.Net.Binary.Empty;
     }
 
     @Override

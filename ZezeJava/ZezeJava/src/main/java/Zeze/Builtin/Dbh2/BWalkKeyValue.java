@@ -71,6 +71,12 @@ public final class BWalkKeyValue extends Zeze.Transaction.Bean implements BWalkK
     }
 
     @Override
+    public void reset() {
+        setKey(Zeze.Net.Binary.Empty);
+        setValue(Zeze.Net.Binary.Empty);
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.BWalkKeyValue.Data toData() {
         var data = new Zeze.Builtin.Dbh2.BWalkKeyValue.Data();
         data.assign(this);
@@ -268,6 +274,12 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Value_ == null)
             _Value_ = Zeze.Net.Binary.Empty;
         _Value = _Value_;
+    }
+
+    @Override
+    public void reset() {
+        _Key = Zeze.Net.Binary.Empty;
+        _Value = Zeze.Net.Binary.Empty;
     }
 
     @Override

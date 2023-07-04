@@ -192,6 +192,18 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         _UserData = newDynamicBean_UserData();
     }
 
+    @Override
+    public void reset() {
+        setLink(new Zeze.Builtin.Game.Online.BLink());
+        setLoginVersion(0);
+        _ReliableNotifyMark.clear();
+        setReliableNotifyConfirmIndex(0);
+        setReliableNotifyIndex(0);
+        setServerId(0);
+        setLogoutVersion(0);
+        _UserData.reset();
+    }
+
     public void assign(BOnline other) {
         setLink(other.getLink());
         setLoginVersion(other.getLoginVersion());

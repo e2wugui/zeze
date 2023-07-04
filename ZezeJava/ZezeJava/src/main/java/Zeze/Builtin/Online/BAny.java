@@ -47,6 +47,11 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
         _Any = newDynamicBean_Any();
     }
 
+    @Override
+    public void reset() {
+        _Any.reset();
+    }
+
     public void assign(BAny other) {
         _Any.assign(other._Any);
     }

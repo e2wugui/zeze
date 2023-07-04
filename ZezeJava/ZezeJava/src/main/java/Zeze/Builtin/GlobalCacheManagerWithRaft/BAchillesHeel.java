@@ -87,6 +87,13 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
         _GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex_;
     }
 
+    @Override
+    public void reset() {
+        setServerId(0);
+        setSecureKey("");
+        setGlobalCacheManagerHashIndex(0);
+    }
+
     public void assign(BAchillesHeel other) {
         setServerId(other.getServerId());
         setSecureKey(other.getSecureKey());

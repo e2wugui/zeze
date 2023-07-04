@@ -44,6 +44,11 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
     }
 
     @Override
+    public void reset() {
+        setDatabase("");
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.Master.BCreateDatabase.Data toData() {
         var data = new Zeze.Builtin.Dbh2.Master.BCreateDatabase.Data();
         data.assign(this);
@@ -200,6 +205,11 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Database_ == null)
             _Database_ = "";
         _Database = _Database_;
+    }
+
+    @Override
+    public void reset() {
+        _Database = "";
     }
 
     @Override

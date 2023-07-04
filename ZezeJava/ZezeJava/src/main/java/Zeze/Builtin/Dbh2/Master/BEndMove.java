@@ -29,6 +29,11 @@ public final class BEndMove extends Zeze.Transaction.Bean implements BEndMoveRea
     }
 
     @Override
+    public void reset() {
+        _To.reset();
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.Master.BEndMove.Data toData() {
         var data = new Zeze.Builtin.Dbh2.Master.BEndMove.Data();
         data.assign(this);
@@ -195,6 +200,11 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_To_ == null)
             _To_ = new Zeze.Builtin.Dbh2.BBucketMeta.Data();
         _To = _To_;
+    }
+
+    @Override
+    public void reset() {
+        _To.reset();
     }
 
     @Override

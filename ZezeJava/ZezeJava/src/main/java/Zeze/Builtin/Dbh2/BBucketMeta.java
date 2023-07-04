@@ -152,6 +152,15 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     }
 
     @Override
+    public void reset() {
+        setDatabaseName("");
+        setTableName("");
+        setKeyFirst(Zeze.Net.Binary.Empty);
+        setKeyLast(Zeze.Net.Binary.Empty);
+        setRaftConfig("");
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.BBucketMeta.Data toData() {
         var data = new Zeze.Builtin.Dbh2.BBucketMeta.Data();
         data.assign(this);
@@ -472,6 +481,15 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_RaftConfig_ == null)
             _RaftConfig_ = "";
         _RaftConfig = _RaftConfig_;
+    }
+
+    @Override
+    public void reset() {
+        _DatabaseName = "";
+        _TableName = "";
+        _KeyFirst = Zeze.Net.Binary.Empty;
+        _KeyLast = Zeze.Net.Binary.Empty;
+        _RaftConfig = "";
     }
 
     @Override

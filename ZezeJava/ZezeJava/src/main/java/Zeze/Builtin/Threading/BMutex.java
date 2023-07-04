@@ -66,6 +66,12 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
     }
 
     @Override
+    public void reset() {
+        setLockName(new Zeze.Builtin.Threading.BLockName());
+        setTimeoutMs(0);
+    }
+
+    @Override
     public Zeze.Builtin.Threading.BMutex.Data toData() {
         var data = new Zeze.Builtin.Threading.BMutex.Data();
         data.assign(this);
@@ -272,6 +278,12 @@ public static final class Data extends Zeze.Transaction.Data {
             _LockName_ = new Zeze.Builtin.Threading.BLockName();
         _LockName = _LockName_;
         _TimeoutMs = _TimeoutMs_;
+    }
+
+    @Override
+    public void reset() {
+        _LockName = new Zeze.Builtin.Threading.BLockName();
+        _TimeoutMs = 0;
     }
 
     @Override

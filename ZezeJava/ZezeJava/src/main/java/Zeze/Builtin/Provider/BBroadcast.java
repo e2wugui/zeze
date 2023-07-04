@@ -88,6 +88,13 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
     }
 
     @Override
+    public void reset() {
+        setProtocolType(0);
+        setProtocolWholeData(Zeze.Net.Binary.Empty);
+        setTime(0);
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BBroadcast.Data toData() {
         var data = new Zeze.Builtin.Provider.BBroadcast.Data();
         data.assign(this);
@@ -321,6 +328,13 @@ public static final class Data extends Zeze.Transaction.Data {
             _protocolWholeData_ = Zeze.Net.Binary.Empty;
         _protocolWholeData = _protocolWholeData_;
         _time = _time_;
+    }
+
+    @Override
+    public void reset() {
+        _protocolType = 0;
+        _protocolWholeData = Zeze.Net.Binary.Empty;
+        _time = 0;
     }
 
     @Override

@@ -87,6 +87,13 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         _OnlineSetName = _OnlineSetName_;
     }
 
+    @Override
+    public void reset() {
+        setRoleId(0);
+        setReliableNotifyConfirmIndex(0);
+        setOnlineSetName("");
+    }
+
     public void assign(BReLogin other) {
         setRoleId(other.getRoleId());
         setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());

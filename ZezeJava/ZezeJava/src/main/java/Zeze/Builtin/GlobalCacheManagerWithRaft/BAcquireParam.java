@@ -66,6 +66,12 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
         _State = _State_;
     }
 
+    @Override
+    public void reset() {
+        setGlobalKey(Zeze.Net.Binary.Empty);
+        setState(0);
+    }
+
     public void assign(BAcquireParam other) {
         setGlobalKey(other.getGlobalKey());
         setState(other.getState());

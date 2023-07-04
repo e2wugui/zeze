@@ -183,6 +183,7 @@ namespace Zeze.Gen.java
 
             Property.Make(bean, sw, "    ");
             Construct.Make(bean, sw, "    ");
+            Reset.Make(bean, sw, "    ", false);
             Assign.Make(bean, sw, "    ", project);
             // Copy
             sw.WriteLine("    public " + bean.Name + " copyIfManaged() {");

@@ -74,6 +74,13 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
         _Timers.variableId(3);
     }
 
+    @Override
+    public void reset() {
+        setPrevNodeId(0);
+        setNextNodeId(0);
+        _Timers.clear();
+    }
+
     public void assign(BNode other) {
         setPrevNodeId(other.getPrevNodeId());
         setNextNodeId(other.getNextNodeId());

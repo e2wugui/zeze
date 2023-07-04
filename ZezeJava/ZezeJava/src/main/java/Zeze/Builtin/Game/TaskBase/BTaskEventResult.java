@@ -52,6 +52,12 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
         _changedTasks.variableId(2);
     }
 
+    @Override
+    public void reset() {
+        setResultCode(0);
+        _changedTasks.clear();
+    }
+
     public void assign(BTaskEventResult other) {
         setResultCode(other.getResultCode());
         _changedTasks.clear();

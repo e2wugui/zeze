@@ -109,6 +109,14 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         _LastNodeId = _LastNodeId_;
     }
 
+    @Override
+    public void reset() {
+        setHeadNodeId(0);
+        setTailNodeId(0);
+        setCount(0);
+        setLastNodeId(0);
+    }
+
     public void assign(BQueue other) {
         setHeadNodeId(other.getHeadNodeId());
         setTailNodeId(other.getTailNodeId());

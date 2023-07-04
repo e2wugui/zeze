@@ -66,6 +66,12 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         _OnlineSetName = _OnlineSetName_;
     }
 
+    @Override
+    public void reset() {
+        setRoleId(0);
+        setOnlineSetName("");
+    }
+
     public void assign(BLogin other) {
         setRoleId(other.getRoleId());
         setOnlineSetName(other.getOnlineSetName());

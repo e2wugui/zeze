@@ -48,6 +48,11 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
         _CustomData = newDynamicBean_CustomData();
     }
 
+    @Override
+    public void reset() {
+        _CustomData.reset();
+    }
+
     public void assign(BOnlineCustom other) {
         _CustomData.assign(other._CustomData);
     }

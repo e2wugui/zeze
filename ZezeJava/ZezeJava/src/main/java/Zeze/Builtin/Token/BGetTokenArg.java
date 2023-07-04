@@ -66,6 +66,12 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
     }
 
     @Override
+    public void reset() {
+        setToken("");
+        setMaxCount(0);
+    }
+
+    @Override
     public Zeze.Builtin.Token.BGetTokenArg.Data toData() {
         var data = new Zeze.Builtin.Token.BGetTokenArg.Data();
         data.assign(this);
@@ -263,6 +269,12 @@ public static final class Data extends Zeze.Transaction.Data {
             _token_ = "";
         _token = _token_;
         _maxCount = _maxCount_;
+    }
+
+    @Override
+    public void reset() {
+        _token = "";
+        _maxCount = 0;
     }
 
     @Override

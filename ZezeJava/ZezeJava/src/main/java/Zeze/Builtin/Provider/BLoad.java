@@ -109,6 +109,14 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     }
 
     @Override
+    public void reset() {
+        setOnline(0);
+        setProposeMaxOnline(0);
+        setOnlineNew(0);
+        setOverload(0);
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BLoad.Data toData() {
         var data = new Zeze.Builtin.Provider.BLoad.Data();
         data.assign(this);
@@ -377,6 +385,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _ProposeMaxOnline = _ProposeMaxOnline_;
         _OnlineNew = _OnlineNew_;
         _Overload = _Overload_;
+    }
+
+    @Override
+    public void reset() {
+        _Online = 0;
+        _ProposeMaxOnline = 0;
+        _OnlineNew = 0;
+        _Overload = 0;
     }
 
     @Override

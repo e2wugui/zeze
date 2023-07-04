@@ -38,6 +38,11 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
         _NodeId = _NodeId_;
     }
 
+    @Override
+    public void reset() {
+        setNodeId(0);
+    }
+
     public void assign(BLinkedMapNodeId other) {
         setNodeId(other.getNodeId());
     }

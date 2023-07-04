@@ -109,6 +109,14 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         _number = _number_;
     }
 
+    @Override
+    public void reset() {
+        setBagName("");
+        setPositionFrom(0);
+        setPositionTo(0);
+        setNumber(0);
+    }
+
     public void assign(BMove other) {
         setBagName(other.getBagName());
         setPositionFrom(other.getPositionFrom());

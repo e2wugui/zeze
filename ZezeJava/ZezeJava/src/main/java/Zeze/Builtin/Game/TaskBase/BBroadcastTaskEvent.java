@@ -38,6 +38,11 @@ public final class BBroadcastTaskEvent extends Zeze.Transaction.Bean implements 
         _isBreakIfAccepted = _isBreakIfAccepted_;
     }
 
+    @Override
+    public void reset() {
+        setIsBreakIfAccepted(false);
+    }
+
     public void assign(BBroadcastTaskEvent other) {
         setIsBreakIfAccepted(other.isIsBreakIfAccepted());
     }

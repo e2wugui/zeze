@@ -78,6 +78,10 @@ public class EmptyBean extends Bean {
 		}
 
 		@Override
+		public void reset() {
+		}
+
+		@Override
 		public @NotNull Data copy() {
 			return this; // EmptyBean.Data没有任何状态,返回相同实例是安全的
 		}

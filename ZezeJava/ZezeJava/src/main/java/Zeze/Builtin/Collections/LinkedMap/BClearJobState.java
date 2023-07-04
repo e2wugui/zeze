@@ -87,6 +87,13 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         _LinkedMapName = _LinkedMapName_;
     }
 
+    @Override
+    public void reset() {
+        setHeadNodeId(0);
+        setTailNodeId(0);
+        setLinkedMapName("");
+    }
+
     public void assign(BClearJobState other) {
         setHeadNodeId(other.getHeadNodeId());
         setTailNodeId(other.getTailNodeId());

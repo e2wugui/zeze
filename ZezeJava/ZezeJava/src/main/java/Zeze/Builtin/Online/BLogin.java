@@ -44,6 +44,11 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         _ClientId = _ClientId_;
     }
 
+    @Override
+    public void reset() {
+        setClientId("");
+    }
+
     public void assign(BLogin other) {
         setClientId(other.getClientId());
     }

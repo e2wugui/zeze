@@ -36,6 +36,11 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
         _Value = newDynamicBean_Value();
     }
 
+    @Override
+    public void reset() {
+        _Value.reset();
+    }
+
     public void assign(BDAGNode other) {
         _Value.assign(other._Value);
     }

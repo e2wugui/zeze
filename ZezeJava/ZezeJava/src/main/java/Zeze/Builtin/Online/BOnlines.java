@@ -52,6 +52,12 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
         _LastLoginVersion = _LastLoginVersion_;
     }
 
+    @Override
+    public void reset() {
+        _Logins.clear();
+        setLastLoginVersion(0);
+    }
+
     public void assign(BOnlines other) {
         _Logins.clear();
         for (var e : other._Logins.entrySet())

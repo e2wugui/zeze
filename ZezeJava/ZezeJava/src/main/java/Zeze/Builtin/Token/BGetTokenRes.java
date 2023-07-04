@@ -115,6 +115,14 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
     }
 
     @Override
+    public void reset() {
+        setContext(Zeze.Net.Binary.Empty);
+        setCount(0);
+        setTime(0);
+        setAddr("");
+    }
+
+    @Override
     public Zeze.Builtin.Token.BGetTokenRes.Data toData() {
         var data = new Zeze.Builtin.Token.BGetTokenRes.Data();
         data.assign(this);
@@ -389,6 +397,14 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_addr_ == null)
             _addr_ = "";
         _addr = _addr_;
+    }
+
+    @Override
+    public void reset() {
+        _context = Zeze.Net.Binary.Empty;
+        _count = 0;
+        _time = 0;
+        _addr = "";
     }
 
     @Override

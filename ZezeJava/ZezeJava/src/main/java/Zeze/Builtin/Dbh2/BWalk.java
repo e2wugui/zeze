@@ -88,6 +88,13 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     }
 
     @Override
+    public void reset() {
+        setExclusiveStartKey(Zeze.Net.Binary.Empty);
+        setProposeLimit(0);
+        setDesc(false);
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.BWalk.Data toData() {
         var data = new Zeze.Builtin.Dbh2.BWalk.Data();
         data.assign(this);
@@ -319,6 +326,13 @@ public static final class Data extends Zeze.Transaction.Data {
         _ExclusiveStartKey = _ExclusiveStartKey_;
         _ProposeLimit = _ProposeLimit_;
         _Desc = _Desc_;
+    }
+
+    @Override
+    public void reset() {
+        _ExclusiveStartKey = Zeze.Net.Binary.Empty;
+        _ProposeLimit = 0;
+        _Desc = false;
     }
 
     @Override

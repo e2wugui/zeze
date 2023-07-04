@@ -167,6 +167,16 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         _OnlineSetName = _OnlineSetName_;
     }
 
+    @Override
+    public void reset() {
+        setTimerName("");
+        setRoleId(0);
+        setLoginVersion(-1);
+        setHandleName("");
+        _CustomData.reset();
+        setOnlineSetName("");
+    }
+
     public void assign(BOfflineRoleCustom other) {
         setTimerName(other.getTimerName());
         setRoleId(other.getRoleId());

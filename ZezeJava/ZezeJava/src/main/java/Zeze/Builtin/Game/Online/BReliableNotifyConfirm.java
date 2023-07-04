@@ -60,6 +60,12 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
         _Sync = _Sync_;
     }
 
+    @Override
+    public void reset() {
+        setReliableNotifyConfirmIndex(0);
+        setSync(false);
+    }
+
     public void assign(BReliableNotifyConfirm other) {
         setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
         setSync(other.isSync());

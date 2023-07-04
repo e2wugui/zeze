@@ -43,6 +43,11 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
         _FullEncodedProtocol = _FullEncodedProtocol_;
     }
 
+    @Override
+    public void reset() {
+        setFullEncodedProtocol(Zeze.Net.Binary.Empty);
+    }
+
     public void assign(BNotify other) {
         setFullEncodedProtocol(other.getFullEncodedProtocol());
     }

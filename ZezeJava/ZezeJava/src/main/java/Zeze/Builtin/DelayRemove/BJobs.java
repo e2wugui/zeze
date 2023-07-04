@@ -24,6 +24,11 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
         _Jobs.variableId(1);
     }
 
+    @Override
+    public void reset() {
+        _Jobs.clear();
+    }
+
     public void assign(BJobs other) {
         _Jobs.clear();
         for (var e : other._Jobs.entrySet())

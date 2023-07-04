@@ -66,6 +66,12 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     @Override
+    public void reset() {
+        setDbh2RaftAcceptorName("");
+        setBucketCount(0);
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.Master.BRegister.Data toData() {
         var data = new Zeze.Builtin.Dbh2.Master.BRegister.Data();
         data.assign(this);
@@ -263,6 +269,12 @@ public static final class Data extends Zeze.Transaction.Data {
             _Dbh2RaftAcceptorName_ = "";
         _Dbh2RaftAcceptorName = _Dbh2RaftAcceptorName_;
         _BucketCount = _BucketCount_;
+    }
+
+    @Override
+    public void reset() {
+        _Dbh2RaftAcceptorName = "";
+        _BucketCount = 0;
     }
 
     @Override

@@ -38,6 +38,11 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
         _NextId = _NextId_;
     }
 
+    @Override
+    public void reset() {
+        setNextId(0);
+    }
+
     public void assign(BAutoKey other) {
         setNextId(other.getNextId());
     }

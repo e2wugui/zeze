@@ -39,6 +39,11 @@ public final class BBucketCount extends Zeze.Transaction.Bean implements BBucket
     }
 
     @Override
+    public void reset() {
+        setCount(0);
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.Master.BBucketCount.Data toData() {
         var data = new Zeze.Builtin.Dbh2.Master.BBucketCount.Data();
         data.assign(this);
@@ -195,6 +200,11 @@ public static final class Data extends Zeze.Transaction.Data {
     @SuppressWarnings("deprecation")
     public Data(int _Count_) {
         _Count = _Count_;
+    }
+
+    @Override
+    public void reset() {
+        _Count = 0;
     }
 
     @Override

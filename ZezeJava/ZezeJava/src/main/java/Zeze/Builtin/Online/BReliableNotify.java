@@ -52,6 +52,12 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
         _ReliableNotifyIndex = _ReliableNotifyIndex_;
     }
 
+    @Override
+    public void reset() {
+        _Notifies.clear();
+        setReliableNotifyIndex(0);
+    }
+
     public void assign(BReliableNotify other) {
         _Notifies.clear();
         _Notifies.addAll(other._Notifies);

@@ -82,6 +82,13 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         _SerialId = _SerialId_;
     }
 
+    @Override
+    public void reset() {
+        setServerId(0);
+        setNodeId(0);
+        setSerialId(0);
+    }
+
     public void assign(BIndex other) {
         setServerId(other.getServerId());
         setNodeId(other.getNodeId());

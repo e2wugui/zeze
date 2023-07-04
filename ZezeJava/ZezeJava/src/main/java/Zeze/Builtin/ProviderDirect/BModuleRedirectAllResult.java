@@ -146,6 +146,16 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
     }
 
     @Override
+    public void reset() {
+        setModuleId(0);
+        setServerId(0);
+        setSourceProvider(0);
+        setMethodFullName("");
+        setSessionId(0);
+        _Hashs.clear();
+    }
+
+    @Override
     public Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult.Data toData() {
         var data = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult.Data();
         data.assign(this);
@@ -535,6 +545,16 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Hashs_ == null)
             _Hashs_ = new java.util.HashMap<>();
         _Hashs = _Hashs_;
+    }
+
+    @Override
+    public void reset() {
+        _ModuleId = 0;
+        _ServerId = 0;
+        _SourceProvider = 0;
+        _MethodFullName = "";
+        _SessionId = 0;
+        _Hashs.clear();
     }
 
     @Override

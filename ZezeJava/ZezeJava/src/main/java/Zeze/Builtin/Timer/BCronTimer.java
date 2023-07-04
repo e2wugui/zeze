@@ -175,6 +175,17 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         _MissfirePolicy = _MissfirePolicy_;
     }
 
+    @Override
+    public void reset() {
+        setCronExpression("");
+        setNextExpectedTime(0);
+        setExpectedTime(0);
+        setHappenTime(0);
+        setRemainTimes(0);
+        setEndTime(0);
+        setMissfirePolicy(0);
+    }
+
     public void assign(BCronTimer other) {
         setCronExpression(other.getCronExpression());
         setNextExpectedTime(other.getNextExpectedTime());

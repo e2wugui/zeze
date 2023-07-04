@@ -25,6 +25,11 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
     }
 
     @Override
+    public void reset() {
+        _modules.clear();
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BSubscribe.Data toData() {
         var data = new Zeze.Builtin.Provider.BSubscribe.Data();
         data.assign(this);
@@ -229,6 +234,11 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_modules_ == null)
             _modules_ = new java.util.HashMap<>();
         _modules = _modules_;
+    }
+
+    @Override
+    public void reset() {
+        _modules.clear();
     }
 
     @Override

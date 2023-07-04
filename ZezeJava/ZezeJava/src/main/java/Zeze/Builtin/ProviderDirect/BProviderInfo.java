@@ -88,6 +88,13 @@ public final class BProviderInfo extends Zeze.Transaction.Bean implements BProvi
     }
 
     @Override
+    public void reset() {
+        setIp("");
+        setPort(0);
+        setServerId(0);
+    }
+
+    @Override
     public Zeze.Builtin.ProviderDirect.BProviderInfo.Data toData() {
         var data = new Zeze.Builtin.ProviderDirect.BProviderInfo.Data();
         data.assign(this);
@@ -321,6 +328,13 @@ public static final class Data extends Zeze.Transaction.Data {
         _Ip = _Ip_;
         _Port = _Port_;
         _ServerId = _ServerId_;
+    }
+
+    @Override
+    public void reset() {
+        _Ip = "";
+        _Port = 0;
+        _ServerId = 0;
     }
 
     @Override

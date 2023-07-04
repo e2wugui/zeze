@@ -53,6 +53,12 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
     }
 
     @Override
+    public void reset() {
+        setFromTransaction(false);
+        _Puts.clear();
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.BSplitPut.Data toData() {
         var data = new Zeze.Builtin.Dbh2.BSplitPut.Data();
         data.assign(this);
@@ -275,6 +281,12 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Puts_ == null)
             _Puts_ = new java.util.HashMap<>();
         _Puts = _Puts_;
+    }
+
+    @Override
+    public void reset() {
+        _fromTransaction = false;
+        _Puts.clear();
     }
 
     @Override

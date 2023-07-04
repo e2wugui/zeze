@@ -38,6 +38,11 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
         _TaskId = _TaskId_;
     }
 
+    @Override
+    public void reset() {
+        setTaskId(0);
+    }
+
     public void assign(BTaskId other) {
         setTaskId(other.getTaskId());
     }

@@ -96,6 +96,13 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     }
 
     @Override
+    public void reset() {
+        setFrom(0);
+        setCode(0);
+        setDesc("");
+    }
+
+    @Override
     public Zeze.Builtin.LinkdBase.BReportError.Data toData() {
         var data = new Zeze.Builtin.LinkdBase.BReportError.Data();
         data.assign(this);
@@ -337,6 +344,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_desc_ == null)
             _desc_ = "";
         _desc = _desc_;
+    }
+
+    @Override
+    public void reset() {
+        _from = 0;
+        _code = 0;
+        _desc = "";
     }
 
     @Override

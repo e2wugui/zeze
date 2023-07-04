@@ -66,6 +66,12 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
     }
 
     @Override
+    public void reset() {
+        setNull(false);
+        setValue(Zeze.Net.Binary.Empty);
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.BGetResult.Data toData() {
         var data = new Zeze.Builtin.Dbh2.BGetResult.Data();
         data.assign(this);
@@ -256,6 +262,12 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Value_ == null)
             _Value_ = Zeze.Net.Binary.Empty;
         _Value = _Value_;
+    }
+
+    @Override
+    public void reset() {
+        _Null = false;
+        _Value = Zeze.Net.Binary.Empty;
     }
 
     @Override

@@ -53,6 +53,12 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
     }
 
     @Override
+    public void reset() {
+        setState(0);
+        _Buckets.clear();
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.Commit.BTransactionState.Data toData() {
         var data = new Zeze.Builtin.Dbh2.Commit.BTransactionState.Data();
         data.assign(this);
@@ -276,6 +282,12 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Buckets_ == null)
             _Buckets_ = new java.util.ArrayList<>();
         _Buckets = _Buckets_;
+    }
+
+    @Override
+    public void reset() {
+        _State = 0;
+        _Buckets.clear();
     }
 
     @Override

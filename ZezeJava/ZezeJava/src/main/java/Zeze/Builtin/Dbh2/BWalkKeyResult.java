@@ -75,6 +75,13 @@ public final class BWalkKeyResult extends Zeze.Transaction.Bean implements BWalk
     }
 
     @Override
+    public void reset() {
+        _Keys.clear();
+        setBucketEnd(false);
+        setBucketRefuse(false);
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.BWalkKeyResult.Data toData() {
         var data = new Zeze.Builtin.Dbh2.BWalkKeyResult.Data();
         data.assign(this);
@@ -325,6 +332,13 @@ public static final class Data extends Zeze.Transaction.Data {
         _Keys = _Keys_;
         _BucketEnd = _BucketEnd_;
         _BucketRefuse = _BucketRefuse_;
+    }
+
+    @Override
+    public void reset() {
+        _Keys.clear();
+        _BucketEnd = false;
+        _BucketRefuse = false;
     }
 
     @Override

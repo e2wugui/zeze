@@ -177,6 +177,17 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         _currentSubPhaseId = _currentSubPhaseId_;
     }
 
+    @Override
+    public void reset() {
+        setPhaseId(0);
+        setPhaseName("");
+        setPhaseDescription("");
+        _prePhaseIds.clear();
+        setNextPhaseId(0);
+        _subPhases.clear();
+        setCurrentSubPhaseId(0);
+    }
+
     public void assign(BTaskPhase other) {
         setPhaseId(other.getPhaseId());
         setPhaseName(other.getPhaseName());

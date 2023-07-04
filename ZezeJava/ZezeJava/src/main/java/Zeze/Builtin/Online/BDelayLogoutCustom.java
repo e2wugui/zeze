@@ -92,6 +92,13 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         _LoginVersion = _LoginVersion_;
     }
 
+    @Override
+    public void reset() {
+        setAccount("");
+        setClientId("");
+        setLoginVersion(0);
+    }
+
     public void assign(BDelayLogoutCustom other) {
         setAccount(other.getAccount());
         setClientId(other.getClientId());

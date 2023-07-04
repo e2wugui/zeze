@@ -82,6 +82,13 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
         _ServerReleaseTimeout = _ServerReleaseTimeout_;
     }
 
+    @Override
+    public void reset() {
+        setMaxNetPing(0);
+        setServerProcessTime(0);
+        setServerReleaseTimeout(0);
+    }
+
     public void assign(BAchillesHeelConfig other) {
         setMaxNetPing(other.getMaxNetPing());
         setServerProcessTime(other.getServerProcessTime());

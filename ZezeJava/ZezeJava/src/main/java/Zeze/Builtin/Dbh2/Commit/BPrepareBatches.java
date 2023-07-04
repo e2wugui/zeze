@@ -25,6 +25,11 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
     }
 
     @Override
+    public void reset() {
+        _Datas.clear();
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.Commit.BPrepareBatches.Data toData() {
         var data = new Zeze.Builtin.Dbh2.Commit.BPrepareBatches.Data();
         data.assign(this);
@@ -229,6 +234,11 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Datas_ == null)
             _Datas_ = new java.util.HashMap<>();
         _Datas = _Datas_;
+    }
+
+    @Override
+    public void reset() {
+        _Datas.clear();
     }
 
     @Override

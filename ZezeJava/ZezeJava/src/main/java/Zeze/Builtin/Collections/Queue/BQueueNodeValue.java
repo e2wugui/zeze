@@ -62,6 +62,12 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
         _Value = newDynamicBean_Value();
     }
 
+    @Override
+    public void reset() {
+        setTimestamp(0);
+        _Value.reset();
+    }
+
     public void assign(BQueueNodeValue other) {
         setTimestamp(other.getTimestamp());
         _Value.assign(other._Value);

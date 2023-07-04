@@ -25,6 +25,11 @@ public final class BRefused extends Zeze.Transaction.Bean implements BRefusedRea
     }
 
     @Override
+    public void reset() {
+        _Refused.clear();
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.BRefused.Data toData() {
         var data = new Zeze.Builtin.Dbh2.BRefused.Data();
         data.assign(this);
@@ -229,6 +234,11 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Refused_ == null)
             _Refused_ = new java.util.HashMap<>();
         _Refused = _Refused_;
+    }
+
+    @Override
+    public void reset() {
+        _Refused.clear();
     }
 
     @Override

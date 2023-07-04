@@ -149,6 +149,16 @@ public final class BTConditionReachPosition extends Zeze.Transaction.Bean implem
         _Reached = _Reached_;
     }
 
+    @Override
+    public void reset() {
+        setDimension(0);
+        setX(0);
+        setY(0);
+        setZ(0);
+        setRadius(0);
+        setReached(false);
+    }
+
     public void assign(BTConditionReachPosition other) {
         setDimension(other.getDimension());
         setX(other.getX());

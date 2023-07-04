@@ -24,6 +24,11 @@ public final class BLocals extends Zeze.Transaction.Bean implements BLocalsReadO
         _Logins.variableId(1);
     }
 
+    @Override
+    public void reset() {
+        _Logins.clear();
+    }
+
     public void assign(BLocals other) {
         _Logins.clear();
         for (var e : other._Logins.entrySet())

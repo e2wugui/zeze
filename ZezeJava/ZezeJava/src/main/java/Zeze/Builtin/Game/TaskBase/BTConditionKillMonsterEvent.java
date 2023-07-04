@@ -24,6 +24,11 @@ public final class BTConditionKillMonsterEvent extends Zeze.Transaction.Bean imp
         _monsters.variableId(1);
     }
 
+    @Override
+    public void reset() {
+        _monsters.clear();
+    }
+
     public void assign(BTConditionKillMonsterEvent other) {
         _monsters.clear();
         _monsters.putAll(other._monsters);

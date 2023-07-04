@@ -74,6 +74,13 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         _todayTaskPhaseIds.variableId(3);
     }
 
+    @Override
+    public void reset() {
+        setEverydayTaskCount(0);
+        setFlushTime(0);
+        _todayTaskPhaseIds.clear();
+    }
+
     public void assign(BDailyTask other) {
         setEverydayTaskCount(other.getEverydayTaskCount());
         setFlushTime(other.getFlushTime());

@@ -65,6 +65,12 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         _State = _State_;
     }
 
+    @Override
+    public void reset() {
+        setGlobalKey(Zeze.Net.Binary.Empty);
+        setState(0);
+    }
+
     public void assign(BReduceParam other) {
         setGlobalKey(other.getGlobalKey());
         setState(other.getState());

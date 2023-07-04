@@ -57,6 +57,12 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
     }
 
     @Override
+    public void reset() {
+        setLinkSid(0);
+        _userState.reset();
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BSetUserState.Data toData() {
         var data = new Zeze.Builtin.Provider.BSetUserState.Data();
         data.assign(this);
@@ -266,6 +272,12 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_userState_ == null)
             _userState_ = new Zeze.Builtin.Provider.BUserState.Data();
         _userState = _userState_;
+    }
+
+    @Override
+    public void reset() {
+        _linkSid = 0;
+        _userState.reset();
     }
 
     @Override

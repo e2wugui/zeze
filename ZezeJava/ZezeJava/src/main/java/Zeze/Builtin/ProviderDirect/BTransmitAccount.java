@@ -139,6 +139,15 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     }
 
     @Override
+    public void reset() {
+        setActionName("");
+        setParameter(Zeze.Net.Binary.Empty);
+        _TargetAccounts.clear();
+        setSenderAccount("");
+        setSenderClientId("");
+    }
+
+    @Override
     public Zeze.Builtin.ProviderDirect.BTransmitAccount.Data toData() {
         var data = new Zeze.Builtin.ProviderDirect.BTransmitAccount.Data();
         data.assign(this);
@@ -485,6 +494,15 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_SenderClientId_ == null)
             _SenderClientId_ = "";
         _SenderClientId = _SenderClientId_;
+    }
+
+    @Override
+    public void reset() {
+        _ActionName = "";
+        _Parameter = Zeze.Net.Binary.Empty;
+        _TargetAccounts.clear();
+        _SenderAccount = "";
+        _SenderClientId = "";
     }
 
     @Override

@@ -104,6 +104,14 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         _LastNodeId = _LastNodeId_;
     }
 
+    @Override
+    public void reset() {
+        setHeadNodeId(0);
+        setTailNodeId(0);
+        setCount(0);
+        setLastNodeId(0);
+    }
+
     public void assign(BLinkedMap other) {
         setHeadNodeId(other.getHeadNodeId());
         setTailNodeId(other.getTailNodeId());

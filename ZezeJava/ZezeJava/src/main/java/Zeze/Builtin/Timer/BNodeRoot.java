@@ -82,6 +82,13 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         _LoadSerialNo = _LoadSerialNo_;
     }
 
+    @Override
+    public void reset() {
+        setHeadNodeId(0);
+        setTailNodeId(0);
+        setLoadSerialNo(0);
+    }
+
     public void assign(BNodeRoot other) {
         setHeadNodeId(other.getHeadNodeId());
         setTailNodeId(other.getTailNodeId());

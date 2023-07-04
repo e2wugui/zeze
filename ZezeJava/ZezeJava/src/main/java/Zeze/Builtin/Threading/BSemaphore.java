@@ -88,6 +88,13 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
     }
 
     @Override
+    public void reset() {
+        setLockName(new Zeze.Builtin.Threading.BLockName());
+        setPermits(0);
+        setTimeoutMs(0);
+    }
+
+    @Override
     public Zeze.Builtin.Threading.BSemaphore.Data toData() {
         var data = new Zeze.Builtin.Threading.BSemaphore.Data();
         data.assign(this);
@@ -330,6 +337,13 @@ public static final class Data extends Zeze.Transaction.Data {
         _LockName = _LockName_;
         _Permits = _Permits_;
         _TimeoutMs = _TimeoutMs_;
+    }
+
+    @Override
+    public void reset() {
+        _LockName = new Zeze.Builtin.Threading.BLockName();
+        _Permits = 0;
+        _TimeoutMs = 0;
     }
 
     @Override

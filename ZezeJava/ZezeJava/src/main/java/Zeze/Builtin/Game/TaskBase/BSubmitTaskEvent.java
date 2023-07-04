@@ -38,6 +38,11 @@ public final class BSubmitTaskEvent extends Zeze.Transaction.Bean implements BSu
         _taskId = _taskId_;
     }
 
+    @Override
+    public void reset() {
+        setTaskId(0);
+    }
+
     public void assign(BSubmitTaskEvent other) {
         setTaskId(other.getTaskId());
     }

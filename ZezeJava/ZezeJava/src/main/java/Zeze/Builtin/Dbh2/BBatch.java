@@ -133,6 +133,15 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @Override
+    public void reset() {
+        _Puts.clear();
+        _Deletes.clear();
+        setQueryIp("");
+        setQueryPort(0);
+        setTid(Zeze.Net.Binary.Empty);
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.BBatch.Data toData() {
         var data = new Zeze.Builtin.Dbh2.BBatch.Data();
         data.assign(this);
@@ -503,6 +512,15 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Tid_ == null)
             _Tid_ = Zeze.Net.Binary.Empty;
         _Tid = _Tid_;
+    }
+
+    @Override
+    public void reset() {
+        _Puts.clear();
+        _Deletes.clear();
+        _QueryIp = "";
+        _QueryPort = 0;
+        _Tid = Zeze.Net.Binary.Empty;
     }
 
     @Override

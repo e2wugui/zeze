@@ -43,6 +43,11 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         _SessionName = _SessionName_;
     }
 
+    @Override
+    public void reset() {
+        setSessionName("");
+    }
+
     public void assign(BLogin other) {
         setSessionName(other.getSessionName());
     }

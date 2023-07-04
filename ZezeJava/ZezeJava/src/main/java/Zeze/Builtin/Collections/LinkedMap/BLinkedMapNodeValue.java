@@ -67,6 +67,12 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
         _Value = newDynamicBean_Value();
     }
 
+    @Override
+    public void reset() {
+        setId("");
+        _Value.reset();
+    }
+
     public void assign(BLinkedMapNodeValue other) {
         setId(other.getId());
         _Value.assign(other._Value);

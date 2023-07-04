@@ -65,6 +65,12 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
         _Position = _Position_;
     }
 
+    @Override
+    public void reset() {
+        setBagName("");
+        setPosition(0);
+    }
+
     public void assign(BDestroy other) {
         setBagName(other.getBagName());
         setPosition(other.getPosition());

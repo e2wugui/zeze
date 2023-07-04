@@ -105,6 +105,13 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
     }
 
     @Override
+    public void reset() {
+        setChoiceType(0);
+        setConfigType(0);
+        setSubscribeType(0);
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BModule.Data toData() {
         var data = new Zeze.Builtin.Provider.BModule.Data();
         data.assign(this);
@@ -343,6 +350,13 @@ public static final class Data extends Zeze.Transaction.Data {
         _ChoiceType = _ChoiceType_;
         _ConfigType = _ConfigType_;
         _SubscribeType = _SubscribeType_;
+    }
+
+    @Override
+    public void reset() {
+        _ChoiceType = 0;
+        _ConfigType = 0;
+        _SubscribeType = 0;
     }
 
     @Override

@@ -37,6 +37,12 @@ public final class BTConditionSubmitItem extends Zeze.Transaction.Bean implement
         _itemsSubmitted.variableId(2);
     }
 
+    @Override
+    public void reset() {
+        _items.clear();
+        _itemsSubmitted.clear();
+    }
+
     public void assign(BTConditionSubmitItem other) {
         _items.clear();
         _items.putAll(other._items);

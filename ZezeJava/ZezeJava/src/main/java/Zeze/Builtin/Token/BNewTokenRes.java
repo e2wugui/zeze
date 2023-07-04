@@ -44,6 +44,11 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
     }
 
     @Override
+    public void reset() {
+        setToken("");
+    }
+
+    @Override
     public Zeze.Builtin.Token.BNewTokenRes.Data toData() {
         var data = new Zeze.Builtin.Token.BNewTokenRes.Data();
         data.assign(this);
@@ -200,6 +205,11 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_token_ == null)
             _token_ = "";
         _token = _token_;
+    }
+
+    @Override
+    public void reset() {
+        _token = "";
     }
 
     @Override

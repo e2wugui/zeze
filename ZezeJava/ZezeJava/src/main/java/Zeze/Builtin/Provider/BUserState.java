@@ -98,6 +98,13 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
     }
 
     @Override
+    public void reset() {
+        setContext("");
+        setContextx(Zeze.Net.Binary.Empty);
+        setOnlineSetName("");
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BUserState.Data toData() {
         var data = new Zeze.Builtin.Provider.BUserState.Data();
         data.assign(this);
@@ -336,6 +343,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_onlineSetName_ == null)
             _onlineSetName_ = "";
         _onlineSetName = _onlineSetName_;
+    }
+
+    @Override
+    public void reset() {
+        _context = "";
+        _contextx = Zeze.Net.Binary.Empty;
+        _onlineSetName = "";
     }
 
     @Override

@@ -136,6 +136,15 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         _PrevTaskId = _PrevTaskId_;
     }
 
+    @Override
+    public void reset() {
+        setQueueName("");
+        setTaskType(0);
+        setTaskId(0);
+        setTaskParam(Zeze.Net.Binary.Empty);
+        setPrevTaskId(0);
+    }
+
     public void assign(BQueueTask other) {
         setQueueName(other.getQueueName());
         setTaskType(other.getTaskType());

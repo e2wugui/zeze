@@ -52,6 +52,12 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
         _Items.variableId(2);
     }
 
+    @Override
+    public void reset() {
+        setCapacity(0);
+        _Items.clear();
+    }
+
     public void assign(BBag other) {
         setCapacity(other.getCapacity());
         _Items.clear();

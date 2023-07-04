@@ -87,6 +87,13 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
         _ValueEx = _ValueEx_;
     }
 
+    @Override
+    public void reset() {
+        setRoleId(0);
+        setValue(0);
+        setValueEx(Zeze.Net.Binary.Empty);
+    }
+
     public void assign(BRankValue other) {
         setRoleId(other.getRoleId());
         setValue(other.getValue());

@@ -38,6 +38,11 @@ public final class BSpecificTaskEvent extends Zeze.Transaction.Bean implements B
         _taskId = _taskId_;
     }
 
+    @Override
+    public void reset() {
+        setTaskId(0);
+    }
+
     public void assign(BSpecificTaskEvent other) {
         setTaskId(other.getTaskId());
     }

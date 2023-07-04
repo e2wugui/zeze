@@ -15,6 +15,8 @@ public abstract class Data implements Serializable, Cloneable {
 
 	public abstract @NotNull Bean toBean();
 
+	public abstract void reset(); // 重置Data的所有字段
+
 	public abstract @NotNull Data copy();
 
 	public void buildString(@NotNull StringBuilder sb, int level) {

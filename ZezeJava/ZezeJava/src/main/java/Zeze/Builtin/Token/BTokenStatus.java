@@ -110,6 +110,14 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
     }
 
     @Override
+    public void reset() {
+        setNewCount(0);
+        setCurCount(0);
+        setConnectCount(0);
+        setPerfLog("");
+    }
+
+    @Override
     public Zeze.Builtin.Token.BTokenStatus.Data toData() {
         var data = new Zeze.Builtin.Token.BTokenStatus.Data();
         data.assign(this);
@@ -379,6 +387,14 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_perfLog_ == null)
             _perfLog_ = "";
         _perfLog = _perfLog_;
+    }
+
+    @Override
+    public void reset() {
+        _newCount = 0;
+        _curCount = 0;
+        _connectCount = 0;
+        _perfLog = "";
     }
 
     @Override

@@ -95,6 +95,13 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
     }
 
     @Override
+    public void reset() {
+        setLinksid(0);
+        setCode(0);
+        setDesc("");
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BKick.Data toData() {
         var data = new Zeze.Builtin.Provider.BKick.Data();
         data.assign(this);
@@ -335,6 +342,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_desc_ == null)
             _desc_ = "";
         _desc = _desc_;
+    }
+
+    @Override
+    public void reset() {
+        _linksid = 0;
+        _code = 0;
+        _desc = "";
     }
 
     @Override

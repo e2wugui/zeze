@@ -78,6 +78,12 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
     }
 
     @Override
+    public void reset() {
+        setReturnCode(0);
+        setParams(Zeze.Net.Binary.Empty);
+    }
+
+    @Override
     public Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data toData() {
         var data = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data();
         data.assign(this);
@@ -275,6 +281,12 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Params_ == null)
             _Params_ = Zeze.Net.Binary.Empty;
         _Params = _Params_;
+    }
+
+    @Override
+    public void reset() {
+        _ReturnCode = 0;
+        _Params = Zeze.Net.Binary.Empty;
     }
 
     @Override

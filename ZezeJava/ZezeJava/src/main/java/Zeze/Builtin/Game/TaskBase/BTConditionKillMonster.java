@@ -37,6 +37,12 @@ public final class BTConditionKillMonster extends Zeze.Transaction.Bean implemen
         _monstersKilled.variableId(2);
     }
 
+    @Override
+    public void reset() {
+        _monsters.clear();
+        _monstersKilled.clear();
+    }
+
     public void assign(BTConditionKillMonster other) {
         _monsters.clear();
         _monsters.putAll(other._monsters);

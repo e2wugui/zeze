@@ -45,6 +45,12 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
     }
 
     @Override
+    public void reset() {
+        _From.reset();
+        _To.reset();
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.Master.BEndSplit.Data toData() {
         var data = new Zeze.Builtin.Dbh2.Master.BEndSplit.Data();
         data.assign(this);
@@ -256,6 +262,12 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_To_ == null)
             _To_ = new Zeze.Builtin.Dbh2.BBucketMeta.Data();
         _To = _To_;
+    }
+
+    @Override
+    public void reset() {
+        _From.reset();
+        _To.reset();
     }
 
     @Override

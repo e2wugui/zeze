@@ -110,6 +110,10 @@ public abstract class Bean implements Serializable {
 		return false;
 	}
 
+	// 重置Bean子类的所有字段
+	public void reset() {
+	}
+
 	public @NotNull Bean copy() {
 		throw new UnsupportedOperationException();
 	}

@@ -38,6 +38,11 @@ public final class BAcceptTaskEvent extends Zeze.Transaction.Bean implements BAc
         _taskId = _taskId_;
     }
 
+    @Override
+    public void reset() {
+        setTaskId(0);
+    }
+
     public void assign(BAcceptTaskEvent other) {
         setTaskId(other.getTaskId());
     }

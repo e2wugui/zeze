@@ -164,6 +164,16 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         _LoginVersion = _LoginVersion_;
     }
 
+    @Override
+    public void reset() {
+        setTimerId("");
+        _SimpleTimer.reset();
+        setHandleClass("");
+        setCustomClass("");
+        setCustomBean(Zeze.Net.Binary.Empty);
+        setLoginVersion(0);
+    }
+
     public void assign(BTransmitSimpleTimer other) {
         setTimerId(other.getTimerId());
         _SimpleTimer.assign(other._SimpleTimer);

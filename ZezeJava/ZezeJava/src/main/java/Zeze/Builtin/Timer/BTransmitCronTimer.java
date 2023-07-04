@@ -164,6 +164,16 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         _LoginVersion = _LoginVersion_;
     }
 
+    @Override
+    public void reset() {
+        setTimerId("");
+        _CronTimer.reset();
+        setHandleClass("");
+        setCustomClass("");
+        setCustomBean(Zeze.Net.Binary.Empty);
+        setLoginVersion(0);
+    }
+
     public void assign(BTransmitCronTimer other) {
         setTimerId(other.getTimerId());
         _CronTimer.assign(other._CronTimer);

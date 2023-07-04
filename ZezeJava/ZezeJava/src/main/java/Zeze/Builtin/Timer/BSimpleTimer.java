@@ -236,6 +236,20 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         _MissfirePolicy = _MissfirePolicy_;
     }
 
+    @Override
+    public void reset() {
+        setDelay(0);
+        setPeriod(0);
+        setRemainTimes(0);
+        setHappenTimes(0);
+        setStartTime(0);
+        setEndTime(0);
+        setNextExpectedTime(0);
+        setExpectedTime(0);
+        setHappenTime(0);
+        setMissfirePolicy(0);
+    }
+
     public void assign(BSimpleTimer other) {
         setDelay(other.getDelay());
         setPeriod(other.getPeriod());

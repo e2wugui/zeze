@@ -82,6 +82,13 @@ public final class BTConditionReachPositionEvent extends Zeze.Transaction.Bean i
         _z = _z_;
     }
 
+    @Override
+    public void reset() {
+        setX(0);
+        setY(0);
+        setZ(0);
+    }
+
     public void assign(BTConditionReachPositionEvent other) {
         setX(other.getX());
         setY(other.getY());

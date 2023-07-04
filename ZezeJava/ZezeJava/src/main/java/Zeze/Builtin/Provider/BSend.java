@@ -80,6 +80,13 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     }
 
     @Override
+    public void reset() {
+        _linkSids.clear();
+        setProtocolType(0);
+        setProtocolWholeData(Zeze.Net.Binary.Empty);
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BSend.Data toData() {
         var data = new Zeze.Builtin.Provider.BSend.Data();
         data.assign(this);
@@ -348,6 +355,13 @@ public static class Data extends Zeze.Transaction.Data {
         if (_protocolWholeData_ == null)
             _protocolWholeData_ = Zeze.Net.Binary.Empty;
         _protocolWholeData = _protocolWholeData_;
+    }
+
+    @Override
+    public void reset() {
+        _linkSids.clear();
+        _protocolType = 0;
+        _protocolWholeData = Zeze.Net.Binary.Empty;
     }
 
     @Override

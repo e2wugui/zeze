@@ -65,6 +65,12 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
     }
 
+    @Override
+    public void reset() {
+        setClientId("");
+        setReliableNotifyConfirmIndex(0);
+    }
+
     public void assign(BReLogin other) {
         setClientId(other.getClientId());
         setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());

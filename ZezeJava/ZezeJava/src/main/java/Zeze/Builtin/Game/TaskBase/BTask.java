@@ -249,6 +249,20 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         _extendedData = newDynamicBean_ExtendedData();
     }
 
+    @Override
+    public void reset() {
+        setRoleId(0);
+        setTaskId(0);
+        setTaskType("");
+        setTaskState(0);
+        setTaskName("");
+        setTaskDescription("");
+        _preTaskIds.clear();
+        setCurrentPhaseId(0);
+        _taskPhases.clear();
+        _extendedData.reset();
+    }
+
     public void assign(BTask other) {
         setRoleId(other.getRoleId());
         setTaskId(other.getTaskId());

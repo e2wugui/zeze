@@ -61,6 +61,12 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
     }
 
     @Override
+    public void reset() {
+        setServerId(0);
+        setAppSerialId(0);
+    }
+
+    @Override
     public Zeze.Builtin.Threading.BKeepAlive.Data toData() {
         var data = new Zeze.Builtin.Threading.BKeepAlive.Data();
         data.assign(this);
@@ -253,6 +259,12 @@ public static final class Data extends Zeze.Transaction.Data {
     public Data(int _ServerId_, long _AppSerialId_) {
         _ServerId = _ServerId_;
         _AppSerialId = _AppSerialId_;
+    }
+
+    @Override
+    public void reset() {
+        _ServerId = 0;
+        _AppSerialId = 0;
     }
 
     @Override

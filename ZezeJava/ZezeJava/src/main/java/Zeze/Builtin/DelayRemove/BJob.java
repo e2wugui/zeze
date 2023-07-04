@@ -82,6 +82,12 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
         _JobState = _JobState_;
     }
 
+    @Override
+    public void reset() {
+        setJobHandleName("");
+        setJobState(Zeze.Net.Binary.Empty);
+    }
+
     public void assign(BJob other) {
         setJobHandleName(other.getJobHandleName());
         setJobState(other.getJobState());

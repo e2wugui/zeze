@@ -134,6 +134,15 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     }
 
     @Override
+    public void reset() {
+        setActionName("");
+        _Roles.clear();
+        setSender(0);
+        setParameter(Zeze.Net.Binary.Empty);
+        setOnlineSetName("");
+    }
+
+    @Override
     public Zeze.Builtin.ProviderDirect.BTransmit.Data toData() {
         var data = new Zeze.Builtin.ProviderDirect.BTransmit.Data();
         data.assign(this);
@@ -484,6 +493,15 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_OnlineSetName_ == null)
             _OnlineSetName_ = "";
         _OnlineSetName = _OnlineSetName_;
+    }
+
+    @Override
+    public void reset() {
+        _ActionName = "";
+        _Roles.clear();
+        _Sender = 0;
+        _Parameter = Zeze.Net.Binary.Empty;
+        _OnlineSetName = "";
     }
 
     @Override

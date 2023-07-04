@@ -24,6 +24,11 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
         _RankList.variableId(1);
     }
 
+    @Override
+    public void reset() {
+        _RankList.clear();
+    }
+
     public void assign(BRankList other) {
         _RankList.clear();
         for (var e : other._RankList)

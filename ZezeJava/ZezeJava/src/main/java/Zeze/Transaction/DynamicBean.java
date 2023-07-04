@@ -119,6 +119,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return getTypeId() == EmptyBean.TYPEID && getBean().getClass() == EmptyBean.class;
 	}
 
+	@Override
 	public void reset() {
 		setBeanWithSpecialTypeId(EmptyBean.TYPEID, new EmptyBean());
 	}

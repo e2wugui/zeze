@@ -169,6 +169,13 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         _eventBean = newDynamicBean_EventBean();
     }
 
+    @Override
+    public void reset() {
+        setRoleId(0);
+        _eventType.reset();
+        _eventBean.reset();
+    }
+
     public void assign(BTaskEvent other) {
         setRoleId(other.getRoleId());
         _eventType.assign(other._eventType);

@@ -9,7 +9,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
 
     private Zeze.Serialize.Vector3 _Position; // 移动命令时客户端的真实位置。
     private Zeze.Serialize.Vector3 _Direct; // 移动命令时客户端真实的朝向。
-    private int _Command; // 0 直线，1 后退，2 左转，3 右转，4 停止
+    private int _Command; // 0 直线，1 后退，2 左转，3 右转，4 停止。
     private long _Timestamp; // 命令发起时刻的时戳。
 
     @Override
@@ -112,6 +112,14 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         _Direct = _Direct_;
         _Command = _Command_;
         _Timestamp = _Timestamp_;
+    }
+
+    @Override
+    public void reset() {
+        setPosition(Zeze.Serialize.Vector3.ZERO);
+        setDirect(Zeze.Serialize.Vector3.ZERO);
+        setCommand(0);
+        setTimestamp(0);
     }
 
     @Override
@@ -338,7 +346,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private Zeze.Serialize.Vector3 _Position; // 移动命令时客户端的真实位置。
     private Zeze.Serialize.Vector3 _Direct; // 移动命令时客户端真实的朝向。
-    private int _Command; // 0 直线，1 后退，2 左转，3 右转，4 停止
+    private int _Command; // 0 直线，1 后退，2 左转，3 右转，4 停止。
     private long _Timestamp; // 命令发起时刻的时戳。
 
     public Zeze.Serialize.Vector3 getPosition() {
@@ -393,6 +401,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _Direct = _Direct_;
         _Command = _Command_;
         _Timestamp = _Timestamp_;
+    }
+
+    @Override
+    public void reset() {
+        _Position = Zeze.Serialize.Vector3.ZERO;
+        _Direct = Zeze.Serialize.Vector3.ZERO;
+        _Command = 0;
+        _Timestamp = 0;
     }
 
     @Override

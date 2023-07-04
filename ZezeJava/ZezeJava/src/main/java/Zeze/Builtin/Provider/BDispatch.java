@@ -197,6 +197,17 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     }
 
     @Override
+    public void reset() {
+        setLinkSid(0);
+        setAccount("");
+        setProtocolType(0);
+        setProtocolData(Zeze.Net.Binary.Empty);
+        setContext("");
+        setContextx(Zeze.Net.Binary.Empty);
+        setOnlineSetName("");
+    }
+
+    @Override
     public Zeze.Builtin.Provider.BDispatch.Data toData() {
         var data = new Zeze.Builtin.Provider.BDispatch.Data();
         data.assign(this);
@@ -595,6 +606,17 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_onlineSetName_ == null)
             _onlineSetName_ = "";
         _onlineSetName = _onlineSetName_;
+    }
+
+    @Override
+    public void reset() {
+        _linkSid = 0;
+        _account = "";
+        _protocolType = 0;
+        _protocolData = Zeze.Net.Binary.Empty;
+        _context = "";
+        _contextx = Zeze.Net.Binary.Empty;
+        _onlineSetName = "";
     }
 
     @Override

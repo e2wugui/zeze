@@ -164,6 +164,16 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
     }
 
     @Override
+    public void reset() {
+        setModuleId(0);
+        setHashCode(0);
+        setRedirectType(0);
+        setMethodFullName("");
+        setParams(Zeze.Net.Binary.Empty);
+        setServiceNamePrefix("");
+    }
+
+    @Override
     public Zeze.Builtin.ProviderDirect.BModuleRedirectArgument.Data toData() {
         var data = new Zeze.Builtin.ProviderDirect.BModuleRedirectArgument.Data();
         data.assign(this);
@@ -515,6 +525,16 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_ServiceNamePrefix_ == null)
             _ServiceNamePrefix_ = "";
         _ServiceNamePrefix = _ServiceNamePrefix_;
+    }
+
+    @Override
+    public void reset() {
+        _ModuleId = 0;
+        _HashCode = 0;
+        _RedirectType = 0;
+        _MethodFullName = "";
+        _Params = Zeze.Net.Binary.Empty;
+        _ServiceNamePrefix = "";
     }
 
     @Override

@@ -149,6 +149,14 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         _SerialId = _SerialId_;
     }
 
+    @Override
+    public void reset() {
+        setRoleId(0);
+        _TimerObj.reset();
+        setLoginVersion(0);
+        setSerialId(0);
+    }
+
     public void assign(BGameOnlineTimer other) {
         setRoleId(other.getRoleId());
         _TimerObj.assign(other._TimerObj);

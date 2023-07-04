@@ -66,6 +66,12 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
     }
 
     @Override
+    public void reset() {
+        setContext(Zeze.Net.Binary.Empty);
+        setTtl(0);
+    }
+
+    @Override
     public Zeze.Builtin.Token.BNewTokenArg.Data toData() {
         var data = new Zeze.Builtin.Token.BNewTokenArg.Data();
         data.assign(this);
@@ -263,6 +269,12 @@ public static final class Data extends Zeze.Transaction.Data {
             _context_ = Zeze.Net.Binary.Empty;
         _context = _context_;
         _ttl = _ttl_;
+    }
+
+    @Override
+    public void reset() {
+        _context = Zeze.Net.Binary.Empty;
+        _ttl = 0;
     }
 
     @Override

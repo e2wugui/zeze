@@ -44,6 +44,11 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
     }
 
     @Override
+    public void reset() {
+        setTid(Zeze.Net.Binary.Empty);
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.BBatchTid.Data toData() {
         var data = new Zeze.Builtin.Dbh2.BBatchTid.Data();
         data.assign(this);
@@ -200,6 +205,11 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Tid_ == null)
             _Tid_ = Zeze.Net.Binary.Empty;
         _Tid = _Tid_;
+    }
+
+    @Override
+    public void reset() {
+        _Tid = Zeze.Net.Binary.Empty;
     }
 
     @Override

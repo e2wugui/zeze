@@ -96,6 +96,13 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         _Item = newDynamicBean_Item();
     }
 
+    @Override
+    public void reset() {
+        setId(0);
+        setNumber(0);
+        _Item.reset();
+    }
+
     public void assign(BItem other) {
         setId(other.getId());
         setNumber(other.getNumber());

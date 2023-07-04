@@ -39,6 +39,11 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     }
 
     @Override
+    public void reset() {
+        setLoad(0);
+    }
+
+    @Override
     public Zeze.Builtin.Dbh2.Master.BLoad.Data toData() {
         var data = new Zeze.Builtin.Dbh2.Master.BLoad.Data();
         data.assign(this);
@@ -188,6 +193,11 @@ public static final class Data extends Zeze.Transaction.Data {
     @SuppressWarnings("deprecation")
     public Data(double _Load_) {
         _Load = _Load_;
+    }
+
+    @Override
+    public void reset() {
+        _Load = 0;
     }
 
     @Override
