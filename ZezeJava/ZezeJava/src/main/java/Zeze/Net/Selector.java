@@ -6,6 +6,7 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,6 +27,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	private final @NotNull ByteBuffer readBuffer; // 此线程共享的buffer,只能临时使用
 	private final AtomicInteger wakeupNotified = new AtomicInteger();
 	private final ArrayList<ByteBuffer> bbPool = new ArrayList<>();
+	private final ConcurrentLinkedQueue<Runnable> taskQueue = new ConcurrentLinkedQueue<>();
 	private long selectCount;
 	private boolean firstAction;
 	private volatile boolean running = true;
@@ -53,6 +55,10 @@ public class Selector extends Thread implements ByteBufferAllocator {
 
 	public long getSelectCount() {
 		return selectCount;
+	}
+
+	public void addTask(Runnable task) {
+		taskQueue.offer(task);
 	}
 
 	@Override
@@ -233,6 +239,8 @@ public class Selector extends Thread implements ByteBufferAllocator {
 						}
 					}
 				}, selectTimeout);
+				for (Runnable r; (r = taskQueue.poll()) != null; )
+					r.run();
 			} catch (Throwable e) { // ??? 必须捕捉所有异常。
 				logger.error("Selector.run", e);
 			}
