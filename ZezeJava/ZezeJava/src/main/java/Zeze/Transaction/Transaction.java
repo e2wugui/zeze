@@ -704,14 +704,14 @@ public final class Transaction {
 
 	public void throwAbort(@Nullable String msg, @Nullable Throwable cause) {
 		if (state != TransactionState.Running)
-			throw new IllegalStateException("Abort: State Is Not Running: " + state);
+			throw new IllegalStateException("Abort: State Is Not Running: " + state + ", msg: " + msg, cause);
 		state = TransactionState.Abort;
 		GoBackZeze.Throw(msg, cause);
 	}
 
 	public void throwRedoAndReleaseLock(@Nullable String msg, @Nullable Throwable cause) {
 		if (state != TransactionState.Running)
-			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state);
+			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state + ", msg: " + msg, cause);
 		state = TransactionState.RedoAndReleaseLock;
 		if (Macro.enableStatistics) {
 			//noinspection ConstantConditions
@@ -722,7 +722,7 @@ public final class Transaction {
 
 	public void throwRedo() {
 		if (state != TransactionState.Running)
-			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state);
+			throw new IllegalStateException("Redo: State Is Not Running: " + state);
 		state = TransactionState.Redo;
 		GoBackZeze.Throw("Redo", null);
 	}
@@ -734,6 +734,6 @@ public final class Transaction {
 
 	public void verifyRunningOrCompleted() {
 		if (state != TransactionState.Running && state != TransactionState.Completed)
-			throw new IllegalStateException("State Is Not RunningOrCompleted: " + state);
+			throw new IllegalStateException("State Is Not Running or Completed: " + state);
 	}
 }
