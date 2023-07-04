@@ -20,7 +20,7 @@ public class TestAoi {
 		for (var cube : cubes2d.values()) {
 			for (int i = 0; i < objectCubeCount; ++i) {
 				var oid = new Zeze.Builtin.World.ObjectId(0, 0, instanceId++);
-				cube.addObject(oid, new BObject());
+				cube.add(oid, new BObject());
 			}
 		}
 		// total = objectCubeCount * 9;
@@ -46,7 +46,7 @@ public class TestAoi {
 				var bb = ByteBuffer.Allocate();
 				move.encodeWithHead(bb);
 				for (var cube : cubes2d.values()) {
-					for (var obj : cube.getObjects().values()) {
+					for (var obj : cube.objects().values()) {
 						Assert.assertTrue(connection.Send(bb.Bytes, bb.ReadIndex, bb.size()));
 					}
 				}

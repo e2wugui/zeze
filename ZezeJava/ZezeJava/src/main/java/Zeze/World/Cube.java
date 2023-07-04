@@ -17,15 +17,15 @@ public class Cube {
 		lock.unlock();
 	}
 
-	public final BObject getObject(ObjectId oid) {
+	public final BObject get(ObjectId oid) {
 		return objects.get(oid);
 	}
 
-	public final void addObject(ObjectId oid, BObject object) {
+	public final void add(ObjectId oid, BObject object) {
 		objects.put(oid, object);
 	}
 
-	public final HashMap<ObjectId, BObject> getObjects() {
+	public final HashMap<ObjectId, BObject> objects() {
 		return objects;
 	}
 }
