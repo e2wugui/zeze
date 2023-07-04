@@ -7,31 +7,31 @@ import Zeze.Serialize.ByteBuffer;
 public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly {
     public static final long TYPEID = 5823156345754273331L;
 
-    private Zeze.Serialize.Vector3 _Current; // 移动命令时客户端的真实位置。
-    private Zeze.Serialize.Vector3 _Direct; // 移动方向。
-    private int _TurnDirect; // 0 直线，1 左转，2 右转。转身方向。
+    private Zeze.Serialize.Vector3 _Position; // 移动命令时客户端的真实位置。
+    private Zeze.Serialize.Vector3 _Direct; // 移动命令时客户端真实的朝向。
+    private int _Command; // 0 直线，1 后退，2 左转，3 右转。
     private long _Timestamp; // 命令发起时刻的时戳。
 
     @Override
-    public Zeze.Serialize.Vector3 getCurrent() {
+    public Zeze.Serialize.Vector3 getPosition() {
         if (!isManaged())
-            return _Current;
+            return _Position;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _Current;
-        var log = (Log__Current)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _Current;
+            return _Position;
+        var log = (Log__Position)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Position;
     }
 
-    public void setCurrent(Zeze.Serialize.Vector3 value) {
+    public void setPosition(Zeze.Serialize.Vector3 value) {
         if (value == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Current = value;
+            _Position = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Current(this, 1, value));
+        txn.putLog(new Log__Position(this, 1, value));
     }
 
     @Override
@@ -57,23 +57,23 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     @Override
-    public int getTurnDirect() {
+    public int getCommand() {
         if (!isManaged())
-            return _TurnDirect;
+            return _Command;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _TurnDirect;
-        var log = (Log__TurnDirect)txn.getLog(objectId() + 3);
-        return log != null ? log.value : _TurnDirect;
+            return _Command;
+        var log = (Log__Command)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Command;
     }
 
-    public void setTurnDirect(int value) {
+    public void setCommand(int value) {
         if (!isManaged()) {
-            _TurnDirect = value;
+            _Command = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TurnDirect(this, 3, value));
+        txn.putLog(new Log__Command(this, 3, value));
     }
 
     @Override
@@ -98,19 +98,19 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
 
     @SuppressWarnings("deprecation")
     public BMove() {
-        _Current = Zeze.Serialize.Vector3.ZERO;
+        _Position = Zeze.Serialize.Vector3.ZERO;
         _Direct = Zeze.Serialize.Vector3.ZERO;
     }
 
     @SuppressWarnings("deprecation")
-    public BMove(Zeze.Serialize.Vector3 _Current_, Zeze.Serialize.Vector3 _Direct_, int _TurnDirect_, long _Timestamp_) {
-        if (_Current_ == null)
-            _Current_ = Zeze.Serialize.Vector3.ZERO;
-        _Current = _Current_;
+    public BMove(Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_, int _Command_, long _Timestamp_) {
+        if (_Position_ == null)
+            _Position_ = Zeze.Serialize.Vector3.ZERO;
+        _Position = _Position_;
         if (_Direct_ == null)
             _Direct_ = Zeze.Serialize.Vector3.ZERO;
         _Direct = _Direct_;
-        _TurnDirect = _TurnDirect_;
+        _Command = _Command_;
         _Timestamp = _Timestamp_;
     }
 
@@ -127,16 +127,16 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     public void assign(BMove.Data other) {
-        setCurrent(other._Current);
+        setPosition(other._Position);
         setDirect(other._Direct);
-        setTurnDirect(other._TurnDirect);
+        setCommand(other._Command);
         setTimestamp(other._Timestamp);
     }
 
     public void assign(BMove other) {
-        setCurrent(other.getCurrent());
+        setPosition(other.getPosition());
         setDirect(other.getDirect());
-        setTurnDirect(other.getTurnDirect());
+        setCommand(other.getCommand());
         setTimestamp(other.getTimestamp());
     }
 
@@ -162,11 +162,11 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         return TYPEID;
     }
 
-    private static final class Log__Current extends Zeze.Transaction.Logs.LogVector3 {
-        public Log__Current(BMove bean, int varId, Zeze.Serialize.Vector3 value) { super(bean, varId, value); }
+    private static final class Log__Position extends Zeze.Transaction.Logs.LogVector3 {
+        public Log__Position(BMove bean, int varId, Zeze.Serialize.Vector3 value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BMove)getBelong())._Current = value; }
+        public void commit() { ((BMove)getBelong())._Position = value; }
     }
 
     private static final class Log__Direct extends Zeze.Transaction.Logs.LogVector3 {
@@ -176,11 +176,11 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         public void commit() { ((BMove)getBelong())._Direct = value; }
     }
 
-    private static final class Log__TurnDirect extends Zeze.Transaction.Logs.LogInt {
-        public Log__TurnDirect(BMove bean, int varId, int value) { super(bean, varId, value); }
+    private static final class Log__Command extends Zeze.Transaction.Logs.LogInt {
+        public Log__Command(BMove bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BMove)getBelong())._TurnDirect = value; }
+        public void commit() { ((BMove)getBelong())._Command = value; }
     }
 
     private static final class Log__Timestamp extends Zeze.Transaction.Logs.LogLong {
@@ -201,9 +201,9 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BMove: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Current=").append(getCurrent()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(getPosition()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Direct=").append(getDirect()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TurnDirect=").append(getTurnDirect()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Command=").append(getCommand()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Timestamp=").append(getTimestamp()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -225,7 +225,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getCurrent();
+            var _x_ = getPosition();
             if (_x_ != null && !_x_.isZero()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.VECTOR3);
                 _o_.WriteVector3(_x_);
@@ -239,7 +239,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
             }
         }
         {
-            int _x_ = getTurnDirect();
+            int _x_ = getCommand();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
@@ -260,7 +260,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setCurrent(_o_.ReadVector3(_t_));
+            setPosition(_o_.ReadVector3(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
@@ -268,7 +268,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setTurnDirect(_o_.ReadInt(_t_));
+            setCommand(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
@@ -283,7 +283,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
 
     @Override
     public boolean negativeCheck() {
-        if (getTurnDirect() < 0)
+        if (getCommand() < 0)
             return true;
         if (getTimestamp() < 0)
             return true;
@@ -299,9 +299,9 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Current = ((Zeze.Transaction.Logs.LogVector3)vlog).value; break;
+                case 1: _Position = ((Zeze.Transaction.Logs.LogVector3)vlog).value; break;
                 case 2: _Direct = ((Zeze.Transaction.Logs.LogVector3)vlog).value; break;
-                case 3: _TurnDirect = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _Command = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 4: _Timestamp = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
@@ -309,46 +309,46 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
 
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        parents.add("Current");
-        setCurrent(Zeze.Serialize.Helper.decodeVector3(parents, rs));
+        parents.add("Position");
+        setPosition(Zeze.Serialize.Helper.decodeVector3(parents, rs));
         parents.remove(parents.size() - 1);
         parents.add("Direct");
         setDirect(Zeze.Serialize.Helper.decodeVector3(parents, rs));
         parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setTurnDirect(rs.getInt(_parents_name_ + "TurnDirect"));
+        setCommand(rs.getInt(_parents_name_ + "Command"));
         setTimestamp(rs.getLong(_parents_name_ + "Timestamp"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        parents.add("Current");
-        Zeze.Serialize.Helper.encodeVector3(getCurrent(), parents, st);
+        parents.add("Position");
+        Zeze.Serialize.Helper.encodeVector3(getPosition(), parents, st);
         parents.remove(parents.size() - 1);
         parents.add("Direct");
         Zeze.Serialize.Helper.encodeVector3(getDirect(), parents, st);
         parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "TurnDirect", getTurnDirect());
+        st.appendInt(_parents_name_ + "Command", getCommand());
         st.appendLong(_parents_name_ + "Timestamp", getTimestamp());
     }
 
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5823156345754273331L;
 
-    private Zeze.Serialize.Vector3 _Current; // 移动命令时客户端的真实位置。
-    private Zeze.Serialize.Vector3 _Direct; // 移动方向。
-    private int _TurnDirect; // 0 直线，1 左转，2 右转。转身方向。
+    private Zeze.Serialize.Vector3 _Position; // 移动命令时客户端的真实位置。
+    private Zeze.Serialize.Vector3 _Direct; // 移动命令时客户端真实的朝向。
+    private int _Command; // 0 直线，1 后退，2 左转，3 右转。
     private long _Timestamp; // 命令发起时刻的时戳。
 
-    public Zeze.Serialize.Vector3 getCurrent() {
-        return _Current;
+    public Zeze.Serialize.Vector3 getPosition() {
+        return _Position;
     }
 
-    public void setCurrent(Zeze.Serialize.Vector3 value) {
+    public void setPosition(Zeze.Serialize.Vector3 value) {
         if (value == null)
             throw new IllegalArgumentException();
-        _Current = value;
+        _Position = value;
     }
 
     public Zeze.Serialize.Vector3 getDirect() {
@@ -361,12 +361,12 @@ public static final class Data extends Zeze.Transaction.Data {
         _Direct = value;
     }
 
-    public int getTurnDirect() {
-        return _TurnDirect;
+    public int getCommand() {
+        return _Command;
     }
 
-    public void setTurnDirect(int value) {
-        _TurnDirect = value;
+    public void setCommand(int value) {
+        _Command = value;
     }
 
     public long getTimestamp() {
@@ -379,19 +379,19 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @SuppressWarnings("deprecation")
     public Data() {
-        _Current = Zeze.Serialize.Vector3.ZERO;
+        _Position = Zeze.Serialize.Vector3.ZERO;
         _Direct = Zeze.Serialize.Vector3.ZERO;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Serialize.Vector3 _Current_, Zeze.Serialize.Vector3 _Direct_, int _TurnDirect_, long _Timestamp_) {
-        if (_Current_ == null)
-            _Current_ = Zeze.Serialize.Vector3.ZERO;
-        _Current = _Current_;
+    public Data(Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_, int _Command_, long _Timestamp_) {
+        if (_Position_ == null)
+            _Position_ = Zeze.Serialize.Vector3.ZERO;
+        _Position = _Position_;
         if (_Direct_ == null)
             _Direct_ = Zeze.Serialize.Vector3.ZERO;
         _Direct = _Direct_;
-        _TurnDirect = _TurnDirect_;
+        _Command = _Command_;
         _Timestamp = _Timestamp_;
     }
 
@@ -408,16 +408,16 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BMove other) {
-        _Current = other.getCurrent();
+        _Position = other.getPosition();
         _Direct = other.getDirect();
-        _TurnDirect = other.getTurnDirect();
+        _Command = other.getCommand();
         _Timestamp = other.getTimestamp();
     }
 
     public void assign(BMove.Data other) {
-        _Current = other._Current;
+        _Position = other._Position;
         _Direct = other._Direct;
-        _TurnDirect = other._TurnDirect;
+        _Command = other._Command;
         _Timestamp = other._Timestamp;
     }
 
@@ -455,9 +455,9 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BMove: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Current=").append(_Current).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(_Position).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Direct=").append(_Direct).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TurnDirect=").append(_TurnDirect).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Command=").append(_Command).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Timestamp=").append(_Timestamp).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -479,7 +479,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = _Current;
+            var _x_ = _Position;
             if (_x_ != null && !_x_.isZero()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.VECTOR3);
                 _o_.WriteVector3(_x_);
@@ -493,7 +493,7 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
-            int _x_ = _TurnDirect;
+            int _x_ = _Command;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
@@ -514,7 +514,7 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _Current = _o_.ReadVector3(_t_);
+            _Position = _o_.ReadVector3(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
@@ -522,7 +522,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            _TurnDirect = _o_.ReadInt(_t_);
+            _Command = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {

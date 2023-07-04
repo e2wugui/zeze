@@ -7,8 +7,8 @@ public interface BMoveReadOnly {
     boolean negativeCheck();
     BMove copy();
 
-    Zeze.Serialize.Vector3 getCurrent();
+    Zeze.Serialize.Vector3 getPosition();
     Zeze.Serialize.Vector3 getDirect();
-    int getTurnDirect();
+    int getCommand();
     long getTimestamp();
 }
