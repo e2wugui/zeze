@@ -207,8 +207,8 @@ public final class GlobalAgent implements IGlobalAgent {
 				|| rpc.getResultCode() == GlobalCacheManagerConst.AcquireShareFailed) {
 			var trans = Transaction.getCurrent();
 			if (trans == null)
-				throw new GoBackZeze("GlobalAgent.Acquire Failed");
-			trans.throwAbort("GlobalAgent.Acquire Failed", null);
+				throw new GoBackZeze("GlobalAgent.Acquire Failed: " + gkey);
+			trans.throwAbort("GlobalAgent.Acquire Failed: " + gkey, null);
 			// never got here
 		}
 		var rc = rpc.getResultCode();

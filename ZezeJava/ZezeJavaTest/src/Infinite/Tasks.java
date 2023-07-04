@@ -325,7 +325,7 @@ public final class Tasks {
 							if (value != null)
 								sum += value.getInt_1();
 						} catch (IllegalStateException e) {
-							if ("Acquire Failed".equals(e.getMessage()))
+							if (e.getMessage() != null && e.getMessage().contains("Acquire Failed"))
 								key--; // retry
 							else
 								throw e;

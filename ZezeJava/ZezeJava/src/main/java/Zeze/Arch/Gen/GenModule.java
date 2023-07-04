@@ -329,6 +329,8 @@ public final class GenModule {
 				}
 				if (m.resultType != null && Serializable.class.isAssignableFrom(m.resultClass)) {
 					sbHandles.appendLine("            }, _result_ -> {");
+					sbHandles.appendLine("                if (_result_ == null)");
+					sbHandles.appendLine("                    return Zeze.Net.Binary.Empty;");
 					sbHandles.appendLine("                var _r_ = ({})_result_;", m.resultTypeName);
 					sbHandles.appendLine("                int _s_ = _r_.preAllocSize();");
 					sbHandles.appendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate(Math.min(_s_, 65536));");
@@ -340,6 +342,8 @@ public final class GenModule {
 					sbHandles.appendLine("            }));");
 				} else if (!m.resultFields.isEmpty()) {
 					sbHandles.appendLine("            }, _result_ -> {");
+					sbHandles.appendLine("                if (_result_ == null)");
+					sbHandles.appendLine("                    return Zeze.Net.Binary.Empty;");
 					sbHandles.appendLine("                var _r_ = ({})_result_;", m.resultTypeName);
 					sbHandles.appendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
 					for (var field : m.resultFields)
@@ -452,6 +456,8 @@ public final class GenModule {
 		}
 		if (m.resultTypeName != null && !m.resultFields.isEmpty()) {
 			sbHandles.appendLine("            }, _result_ -> {");
+			sbHandles.appendLine("                if (_result_ == null)");
+			sbHandles.appendLine("                    return Zeze.Net.Binary.Empty;");
 			sbHandles.appendLine("                var _r_ = ({})_result_;", m.resultTypeName);
 			sbHandles.appendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
 			for (var field : m.resultFields)
