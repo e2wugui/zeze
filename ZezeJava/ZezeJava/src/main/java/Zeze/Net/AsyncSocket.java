@@ -842,7 +842,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (acceptorOrConnector instanceof Acceptor)
 			selector.wakeup(); // Acceptor的socket需要selector在select开始时执行,所以wakeup一下尽早触发下次select
 		if (outputBuffer != null)
-			outputBuffer.close();
+			selector.addTask(outputBuffer::close);
 		if (null != timeThrottle)
 			timeThrottle.close();
 	}
