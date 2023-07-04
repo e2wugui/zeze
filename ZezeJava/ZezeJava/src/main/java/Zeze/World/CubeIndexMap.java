@@ -1,6 +1,7 @@
 package Zeze.World;
 
-import java.util.ArrayList;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.Vector3;
 
@@ -79,25 +80,25 @@ public class CubeIndexMap {
 	 * @param rangeY y轴左右
 	 * @return List Of Cube.
 	 */
-	public final ArrayList<Cube> cubes2D(CubeIndex center, int rangeX, int rangeY) {
-		var result = new ArrayList<Cube>();
+	public final SortedMap<CubeIndex, Cube> cubes2d(CubeIndex center, int rangeX, int rangeY) {
+		var result = new TreeMap<CubeIndex, Cube>();
 		for (long i = center.getX() - rangeX; i <= center.getX() + rangeX; ++i) {
 			for (long j = center.getY() - rangeY; j <= center.getY() + rangeY; ++j) {
 				var index = new CubeIndex();
 				index.setX(i);
 				index.setY(j);
 				var cube = cubs.computeIfAbsent(index, (key) -> new Cube());
-				result.add(cube);
+				result.put(index, cube);
 			}
 		}
 		return result;
 	}
 
-	public final ArrayList<Cube> cubes3d(Zeze.Util.CubeIndex center, int rangeX, int rangeY, int rangeZ) {
+	public final SortedMap<CubeIndex, Cube> cubes3d(Zeze.Util.CubeIndex center, int rangeX, int rangeY, int rangeZ) {
 		if (gridZ == 0)
 			throw new RuntimeException("cube 3d not enabled.");
 
-		var result = new ArrayList<Cube>();
+		var result = new TreeMap<CubeIndex, Cube>();
 		for (long i = center.getX() - rangeX; i <= center.getX() + rangeX; ++i) {
 			for (long j = center.getY() - rangeY; j <= center.getY() + rangeY; ++j) {
 				for (long k = center.getZ() - rangeZ; k <= center.getZ() + rangeZ; ++k) {
@@ -106,7 +107,7 @@ public class CubeIndexMap {
 					index.setY(j);
 					index.setZ(k);
 					var cube = cubs.computeIfAbsent(index, (key) -> new Cube());
-					result.add(cube);
+					result.put(index, cube);
 				}
 			}
 		}

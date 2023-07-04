@@ -13,10 +13,10 @@ public class TestAoi {
 	public void testMoveBench() throws Exception {
 		var map = new Zeze.World.CubeIndexMap(128, 128);
 		var center = map.toIndex(0, 0, 0);
-		var cubes2d = map.cubes2D(center, 1, 1);
+		var cubes2d = map.cubes2d(center, 1, 1);
 		var instanceId = 0L;
-		var objectCubeCount = 250;
-		for (var cube : cubes2d) {
+		var objectCubeCount = 222;
+		for (var cube : cubes2d.values()) {
 			for (int i = 0; i < objectCubeCount; ++i) {
 				var oid = new Zeze.Builtin.World.ObjectId(0, 0, instanceId++);
 				cube.addObject(oid, new BObject());
@@ -32,21 +32,30 @@ public class TestAoi {
 		connected.get();
 
 		var moveBenchCount = 10000;
+		// buffer要足够大，要不然会溢出。
 		connection.getService().getSocketOptions().setOutputBufferMaxSize((long)moveBenchCount * objectCubeCount * 9 * 200);
 
-		// 目前这个测试实际压力都在Socket上，先搭出框架。
+		// 目前这个测试还没有aoi运算内容，先搭出框架。
 		var b = new Benchmark();
 		for (int i = 0; i < moveBenchCount; ++i) {
-			for (var cube : cubes2d) {
-				for (var obj : cube.getObjects().values()) {
-					var move = new Zeze.Builtin.World.Move();
-					var bb = move.encode();
-					Assert.assertTrue(connection.Send(bb));
+			for (var cube : cubes2d.values())
+				cube.lock();
+			try {
+				var move = new Zeze.Builtin.World.Move();
+				var bb = move.encode();
+				for (var cube : cubes2d.values()) {
+					for (var obj : cube.getObjects().values()) {
+						Assert.assertTrue(connection.Send(bb.Bytes, bb.ReadIndex, bb.size()));
+					}
 				}
+			} finally {
+				for (var cube : cubes2d.values())
+					cube.unlock();
 			}
 		}
 		b.report("testAoiBench", moveBenchCount);
-		System.out.println("moveCount = " + moveCounter.get());
+		//Thread.sleep(2000);
+		System.out.println("moveCounter=" + moveCounter.get());
 		client.stop();
 		server.stop();;
 	}
@@ -61,6 +70,7 @@ public class TestAoi {
 		@Override
 		public void OnSocketConnected(AsyncSocket so) throws Exception {
 			super.OnSocketConnected(so);
+			System.out.println("connected");
 			connected.setResult(so);
 		}
 	}
