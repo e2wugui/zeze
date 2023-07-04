@@ -1574,13 +1574,12 @@
 			<bean name="BMove">
 				<variable id="1" name="Position"      type="vector3"/> 移动命令时客户端的真实位置。
 				<variable id="2" name="Direct"         type="vector3"/> 移动命令时客户端真实的朝向。
-				<variable id="3" name="Command"  type="int"/> 0 直线，1 后退，2 左转，3 右转。
+				<variable id="3" name="Command"  type="int"/> 0 直线，1 后退，2 左转，3 右转，4 停止
 				<variable id="4" name="Timestamp" type="long"/>  命令发起时刻的时戳。
 			</bean>
 
 			<!-- 最简单的移动协议，发给第三方也是用相同的协议，参数可能会被服务器调整。 -->
 			<protocol name="Move" argument="BMove" handle="client,server"/>
-			<protocol name="Stop" argument="BMove" handle="client,server"/>
 
 		</module>
 

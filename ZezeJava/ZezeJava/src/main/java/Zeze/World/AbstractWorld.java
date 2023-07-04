@@ -21,19 +21,10 @@ public abstract class AbstractWorld implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessMove", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47379751479219L, factoryHandle); // 11031, 1967237043
         }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.World.Stop.class, Zeze.Builtin.World.Stop.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.World.Stop::new;
-            factoryHandle.Handle = this::ProcessStop;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessStop", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessStop", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47380680357614L, factoryHandle); // 11031, -1398851858
-        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47379751479219L);
-        service.getFactorys().remove(47380680357614L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -46,5 +37,4 @@ public abstract class AbstractWorld implements Zeze.IModule {
     }
 
     protected abstract long ProcessMove(Zeze.Builtin.World.Move p) throws Exception;
-    protected abstract long ProcessStop(Zeze.Builtin.World.Stop p) throws Exception;
 }

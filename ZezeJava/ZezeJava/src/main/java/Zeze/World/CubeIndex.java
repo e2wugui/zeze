@@ -1,23 +1,27 @@
 package Zeze.World;
 
-public class GridIndex implements Comparable<GridIndex> {
+public class CubeIndex implements Comparable<CubeIndex> {
 	private long x;
 	private long y;
+	private long z;
 
 	public final long getX() {
 		return x;
 	}
-
-	public final void setX(long value) {
-		x = value;
-	}
-
 	public final long getY() {
 		return y;
 	}
-
+	public final long getZ() {
+		return z;
+	}
+	public final void setX(long value) {
+		x = value;
+	}
 	public final void setY(long value) {
 		y = value;
+	}
+	public final void setZ(long value) {
+		z = value;
 	}
 
 	@Override
@@ -34,18 +38,21 @@ public class GridIndex implements Comparable<GridIndex> {
 		if (obj == this)
 			return true;
 
-		if (obj instanceof GridIndex) {
-			GridIndex other = (GridIndex)obj;
-			return x == other.x && y == other.y;
+		if (obj instanceof CubeIndex) {
+			CubeIndex other = (CubeIndex)obj;
+			return x == other.x && y == other.y && z == other.z;
 		}
 		return false;
 	}
 
 	@Override
-	public final int compareTo(GridIndex other) {
+	public final int compareTo(CubeIndex other) {
 		int c = Long.compare(x, other.x);
 		if (c != 0)
 			return c;
-		return Long.compare(y, other.y);
+		c = Long.compare(y, other.y);
+		if (c != 0)
+			return c;
+		return Long.compare(z, other.z);
 	}
 }

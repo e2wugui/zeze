@@ -9,7 +9,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
 
     private Zeze.Serialize.Vector3 _Position; // 移动命令时客户端的真实位置。
     private Zeze.Serialize.Vector3 _Direct; // 移动命令时客户端真实的朝向。
-    private int _Command; // 0 直线，1 后退，2 左转，3 右转。
+    private int _Command; // 0 直线，1 后退，2 左转，3 右转，4 停止
     private long _Timestamp; // 命令发起时刻的时戳。
 
     @Override
@@ -338,7 +338,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private Zeze.Serialize.Vector3 _Position; // 移动命令时客户端的真实位置。
     private Zeze.Serialize.Vector3 _Direct; // 移动命令时客户端真实的朝向。
-    private int _Command; // 0 直线，1 后退，2 左转，3 右转。
+    private int _Command; // 0 直线，1 后退，2 左转，3 右转，4 停止
     private long _Timestamp; // 命令发起时刻的时戳。
 
     public Zeze.Serialize.Vector3 getPosition() {

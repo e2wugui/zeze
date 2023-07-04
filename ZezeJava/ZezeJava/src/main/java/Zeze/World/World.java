@@ -1,7 +1,6 @@
 package Zeze.World;
 
 import Zeze.Builtin.World.Move;
-import Zeze.Builtin.World.Stop;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
@@ -27,11 +26,6 @@ public class World extends AbstractWorld {
 
 	@Override
 	protected long ProcessMove(Move p) throws Exception {
-		return 0;
-	}
-
-	@Override
-	protected long ProcessStop(Stop p) throws Exception {
 		return 0;
 	}
 }
