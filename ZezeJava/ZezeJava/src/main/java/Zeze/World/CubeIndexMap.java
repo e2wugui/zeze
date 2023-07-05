@@ -130,10 +130,11 @@ public class CubeIndexMap {
 
 	////////////////////////////////////////////////////////////
 	// 2d
-	// 选出position面向direct方向distance距离内的cube。
-	// direct 向量有约定？就是归一化什么的？不清楚。
+
+	// 选出position开始，面向direct方向，distance距离，直线路径经过的cube。
 	public final SortedMap<CubeIndex, Cube> line2d(Vector3 position, Vector3 direct, int distance) {
 		// todo 计算结束cube的索引。
+		// direct 向量有约定？就是归一化什么的？不清楚。
 		var endX = position.x + distance * direct.x;
 		var endY = position.x + distance * direct.x;
 
@@ -142,9 +143,8 @@ public class CubeIndexMap {
 
 		// lineTo(beginIndex, endIndex)，收集直线路径上的所有cube。
 		var result = new TreeMap<CubeIndex, Cube>();
-		result.put(beginIndex, getOrAdd(beginIndex));
-		bresenham2d(beginIndex.x, beginIndex.y, endIndex.x, endIndex.y,
-				(x, y) -> collect(result, new CubeIndex(x, y)));
+		collect(result, beginIndex); // bresenham2d 不包括源点。
+		bresenham2d(beginIndex.x, beginIndex.y, endIndex.x, endIndex.y, (x, y) -> collect(result, new CubeIndex(x, y)));
 		return result;
 	}
 
