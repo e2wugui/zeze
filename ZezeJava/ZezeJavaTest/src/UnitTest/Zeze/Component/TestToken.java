@@ -10,10 +10,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class TestToken {
-	static {
-		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
-	}
-
 	private static final Logger logger = LogManager.getLogger(TestToken.class);
 
 	@Test

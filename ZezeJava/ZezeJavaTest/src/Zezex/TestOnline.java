@@ -18,7 +18,6 @@ import org.junit.Assert;
 
 public class TestOnline extends TestCase {
 	static {
-		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(Level.INFO);
 	}
 
@@ -35,7 +34,7 @@ public class TestOnline extends TestCase {
 
 	private void start() throws Exception {
 		for (int i = 0; i < LinkCount; ++i)
-			links.get(i).Start(-(i+1), 12000 + i, 15000 + i);
+			links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
 		for (int i = 0; i < ServerCount; ++i)
 			servers.get(i).Start(i + 50, 20000 + i);
 		Thread.sleep(2000); // wait server ready

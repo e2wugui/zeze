@@ -11,10 +11,6 @@ import demo.SimpleApp;
 import junit.framework.TestCase;
 
 public class TestRank extends TestCase {
-	static {
-		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
-	}
-
 	private static final int CONC_LEVEL = 100;
 	private static final int APP_COUNT = 3;
 	private static final int ROLE_ID_BEGIN = 1000;

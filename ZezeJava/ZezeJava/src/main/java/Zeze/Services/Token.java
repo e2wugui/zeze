@@ -52,10 +52,6 @@ TODO:
 2. token续期服务. 跟初始设置的ttl如何兼顾? 覆盖还是选最大值?
 */
 public final class Token extends AbstractToken {
-	static {
-		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
-	}
-
 	private static final Logger logger = LogManager.getLogger(Token.class);
 	private static final int DEFAULT_PORT = 5003;
 	private static final int TOKEN_CHAR_USED = 62; // 10+26+26
