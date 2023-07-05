@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<configuration status="WARN" monitorInterval="30" shutdownHook="disable">
+<Configuration status="WARN" monitorInterval="30" shutdownHook="disable">
 	<Properties>
-		<Property name="path">.</Property>
+		<Property name="path">${sys:logpath:-log}</Property>
 		<Property name="name">${sys:logname:-zeze}</Property>
 		<Property name="ext">.log</Property>
 	</Properties>
-	<appenders>
-		<console name="Console" target="SYSTEM_OUT">
+	<Appenders>
+		<Null name="Null" />
+
+		<Console name="Console" target="SYSTEM_OUT">
 			<PatternLayout pattern="%d{HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
-		</console>
+		</Console>
 
 		<RollingFile name="AllLog" fileName="${path}/${name}${ext}" filePattern="${path}/${name}.%d{yy-MM-dd}-%i${ext}">
 			<PatternLayout charset="UTF-8" pattern="%d{yy-MM-dd HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
@@ -27,16 +29,16 @@
 			</Policies>
 			<DefaultRolloverStrategy max="1000"/>
 		</RollingFile>
-	</appenders>
+	</Appenders>
 
-	<loggers>
-		<logger name="org" level="INFO" />
-		<logger name="io.netty" level="INFO" />
+	<Loggers>
+		<Logger name="org" level="INFO" />
+		<Logger name="io.netty" level="INFO" />
 
-		<root level="TRACE">
-			<appender-ref ref="Console" />
-			<appender-ref ref="AllLog" />
-			<appender-ref ref="ErrorLog" />
-		</root>
-	</loggers>
-</configuration>
+		<Root level="${sys:loglevel:-TRACE}">
+			<AppenderRef ref="${sys:logconsole:-Console}" />
+			<AppenderRef ref="AllLog" />
+			<AppenderRef ref="ErrorLog" />
+		</Root>
+	</Loggers>
+</Configuration>
