@@ -11,7 +11,7 @@ namespace Zeze.Arch
 {
 	public class ProviderDirectService : Zeze.Services.HandshakeBoth
 	{
-		private static readonly ILogger logger = LogManager.GetLogger(typeof(ProviderDirectService));
+		private static readonly new ILogger logger = LogManager.GetLogger(typeof(ProviderDirectService));
 
 		public ProviderApp ProviderApp;
 		public readonly ConcurrentDictionary<string, ProviderSession> ProviderByLoadName = new();
