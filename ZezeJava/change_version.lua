@@ -13,11 +13,11 @@ local files = {
 	{ 7, "test/Raft/raft.more.bat" },
 	{ 5, "test/Raft/raft.5x6node.bat" },
 	{ 2, "test/GlobalRaft/service&global_raft3.bat" },
-	{ 2, "test/InfiniteSimulate/simulate.bat" },
-	{ 2, "test/InfiniteSimulate/simulate - Bug.bat" },
-	{ 3, "test/InfiniteSimulate/simulate - ProcessDaemon.bat" },
+	{ 1, "test/InfiniteSimulate/simulate.bat" },
+	{ 1, "test/InfiniteSimulate/simulate - Bug.bat" },
+	{ 1, "test/InfiniteSimulate/simulate - ProcessDaemon.bat" },
 	{ 2, "test/GlobalRaft/service&global_raft3.bat" },
-	{ 2, "test/GlobalCacheManagerWithRaft/global_raft.bat" },
+	{ 1, "test/GlobalCacheManagerWithRaft/global_raft.bat" },
 }
 
 local old_version_pat = old_version:gsub("%.", "%%."):gsub("%-", "%%-")

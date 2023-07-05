@@ -4,8 +4,8 @@ pushd %~dp0
 
 cd ..
 
-java -DGenFileSrcRoot=ZezexJava/server/src   -cp ZezeJava;ZezeJava\build\classes\java\main;ZezeJava\lib\*;ZezexJava\server\build\classes\java\main Program
+java -DGenFileSrcRoot=ZezexJava/server/src   -cp ZezeJava;ZezeJava\build\classes\java\main;ZezeJava\build\resources\main;ZezeJava\lib\*;ZezexJava\server\build\classes\java\main Program
 echo.
-java -DGenFileSrcRoot=ZezeJava/src/main/java -cp ZezeJava;ZezeJava\build\classes\java\main;ZezeJava\lib\* Zeze.Util.RedirectGenMain
+java -DGenFileSrcRoot=ZezeJava/src/main/java -cp ZezeJava;ZezeJava\build\classes\java\main;ZezeJava\build\resources\main;ZezeJava\lib\* Zeze.Util.RedirectGenMain
 
 pause

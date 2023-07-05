@@ -2,7 +2,7 @@
 setlocal
 pushd %~dp0
 
-set classes=.;../../ZezeJava/build/classes/java/main;../../ZezeJava/lib/*
+set classes=.;../../ZezeJava/lib/*;../../ZezeJava/build/classes/java/main;../../ZezeJava/build/resources/main
 
 start "Master"   java -Dlogname=master   -Xmx4g -DZeze.Dbh2.Master.stat=100 -cp %classes% Zeze.Dbh2.Master.Main zeze.xml
 ping -n 3 127.1 > nul
