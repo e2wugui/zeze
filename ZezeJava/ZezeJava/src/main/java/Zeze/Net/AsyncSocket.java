@@ -211,7 +211,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/**
 	 * for server socket
 	 */
-	public AsyncSocket(@NotNull Service service, @Nullable InetSocketAddress localEP, @NotNull Acceptor acceptor) {
+	public AsyncSocket(@NotNull Service service, @Nullable InetSocketAddress localEP, @Nullable Acceptor acceptor) {
 		this.service = service;
 		this.acceptorOrConnector = acceptor;
 
@@ -262,10 +262,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			SocketChannel sc = null;
 			try {
 				sc = ((ServerSocketChannel)channel).accept();
-				if (sc != null) {
-					//noinspection DataFlowIssue
+				if (sc != null)
 					new AsyncSocket(service, sc, (Acceptor)acceptorOrConnector);
-				}
 			} catch (Exception e) {
 				if (sc != null)
 					sc.close();
@@ -297,7 +295,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/**
 	 * use inner. create when accepted;
 	 */
-	private AsyncSocket(@NotNull Service service, @NotNull SocketChannel sc, @NotNull Acceptor acceptor)
+	private AsyncSocket(@NotNull Service service, @NotNull SocketChannel sc, @Nullable Acceptor acceptor)
 			throws Exception {
 		this.service = service;
 		this.acceptorOrConnector = acceptor;
@@ -839,11 +837,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		} catch (Exception e) {
 			logger.error("Service.OnSocketDisposed", e);
 		}
-		if (acceptorOrConnector instanceof Acceptor)
-			selector.wakeup(); // Acceptor的socket需要selector在select开始时执行,所以wakeup一下尽早触发下次select
 		if (outputBuffer != null)
 			selector.addTask(outputBuffer::close);
-		if (null != timeThrottle)
+		selector.wakeup();
+		if (timeThrottle != null)
 			timeThrottle.close();
 	}
 

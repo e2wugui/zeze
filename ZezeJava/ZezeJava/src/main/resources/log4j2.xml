@@ -35,7 +35,7 @@
 		<Logger name="org" level="INFO" />
 		<Logger name="io.netty" level="INFO" />
 
-		<Root level="${sys:loglevel:-TRACE}">
+		<Root level="${sys:loglevel:-DEBUG}">
 			<AppenderRef ref="${sys:logconsole:-Console}" />
 			<AppenderRef ref="AllLog" />
 			<AppenderRef ref="ErrorLog" />

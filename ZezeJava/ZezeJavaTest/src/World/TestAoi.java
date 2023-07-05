@@ -6,6 +6,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Benchmark;
+import Zeze.Util.Task;
 import org.junit.Assert;
 import org.junit.Test;
 import Zeze.World.CubeIndexMap;
@@ -20,6 +21,8 @@ public class TestAoi {
 
 	@Test
 	public void testMoveBench() throws Exception {
+		Task.tryInitThreadPool(null, null, null);
+
 		var map = new Zeze.World.CubeIndexMap(128, 128);
 		var center = map.toIndex(0, 0, 0);
 		var cubes2d = map.center2d(center, 1, 1);
@@ -67,7 +70,7 @@ public class TestAoi {
 		//Thread.sleep(2000);
 		System.out.println("moveCounter=" + moveCounter.get());
 		client.stop();
-		server.stop();;
+		server.stop();
 	}
 
 	final Zeze.Util.TaskCompletionSource<AsyncSocket> connected = new Zeze.Util.TaskCompletionSource<>();
