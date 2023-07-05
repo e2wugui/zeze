@@ -260,7 +260,7 @@ public class Service {
 	}
 
 	public final @NotNull AsyncSocket newServerSocket(@Nullable String ipaddress, int port,
-													  @NotNull Acceptor acceptor) {
+													  @Nullable Acceptor acceptor) {
 		try {
 			return newServerSocket(InetAddress.getByName(ipaddress), port, acceptor);
 		} catch (UnknownHostException e) {
@@ -269,11 +269,11 @@ public class Service {
 	}
 
 	public final @NotNull AsyncSocket newServerSocket(@Nullable InetAddress ipaddress, int port,
-													  @NotNull Acceptor acceptor) {
+													  @Nullable Acceptor acceptor) {
 		return newServerSocket(new InetSocketAddress(ipaddress, port), acceptor);
 	}
 
-	public final @NotNull AsyncSocket newServerSocket(@Nullable InetSocketAddress localEP, @NotNull Acceptor acceptor) {
+	public final @NotNull AsyncSocket newServerSocket(@Nullable InetSocketAddress localEP, @Nullable Acceptor acceptor) {
 		return new AsyncSocket(this, localEP, acceptor);
 	}
 

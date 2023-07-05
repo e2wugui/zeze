@@ -78,8 +78,7 @@ public class CubeIndexMap {
 	}
 
 	// 优化的Bresenham算法,不包括源端点,只支持 7fffffff 以内的坐标
-	// todo 这个算法从以前 share/astar(a*) 扒出来的。看起来好像不支持小于0的。
-	// 另外原来的算法参数是int，现在扩展到long，里面的移位操作16改成了32。常量加了两个字节。
+	// 这个算法从以前 share/astar(a*) 扒出来的，原来的算法是int，现扩展到long，移位操作16改成了32，常量加了两个字节。
 	public static void bresenham2d(long srcx, long srcy, long dstx, long dsty, Action2dLong plot) {
 		if (srcx == dstx && srcy == dsty)
 			return;

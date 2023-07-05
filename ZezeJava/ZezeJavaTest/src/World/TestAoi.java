@@ -8,8 +8,16 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Benchmark;
 import org.junit.Assert;
 import org.junit.Test;
+import Zeze.World.CubeIndexMap;
 
 public class TestAoi {
+	@Test
+	public void testBresenham2d() {
+		CubeIndexMap.bresenham2d(0, 0, 1, 0, (x, y) -> System.out.print("(" + x + ", " + y + ")"));
+		System.out.println();
+		CubeIndexMap.bresenham2d(-2, 0, 1, 0, (x, y) -> System.out.print("(" + x + ", " + y + ")"));
+	}
+
 	@Test
 	public void testMoveBench() throws Exception {
 		var map = new Zeze.World.CubeIndexMap(128, 128);
