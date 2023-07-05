@@ -6,6 +6,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Benchmark;
+import Zeze.Util.Task;
 import Zeze.World.Graphics2D;
 import org.junit.Assert;
 import org.junit.Test;

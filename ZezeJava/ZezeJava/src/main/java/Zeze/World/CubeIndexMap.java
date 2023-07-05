@@ -78,16 +78,16 @@ public class CubeIndexMap {
 		result.put(index, getOrAdd(index));
 	}
 
+	////////////////////////////////////////////////////////////
+	// 2d
 	// 选出一个封闭多边形包含的cube。
 	// points，两两之间是一个线段，首尾连起来。
-	public final SortedMap<CubeIndex, Cube> polygon(java.util.List<Vector3> points, boolean convex) {
+	public final SortedMap<CubeIndex, Cube> polygon2d(java.util.List<Vector3> points, boolean convex) {
 		// cube-box 包围体
 		var boxMinX = Long.MAX_VALUE;
-		var boxMinY = Long.MAX_VALUE;
 		var boxMinZ = Long.MAX_VALUE;
 
 		var boxMaxX = Long.MIN_VALUE;
-		var boxMaxY = Long.MIN_VALUE;
 		var boxMaxZ = Long.MIN_VALUE;
 
 		// 转换成把CubeIndex看成点的多边形。
@@ -97,8 +97,6 @@ public class CubeIndexMap {
 
 			if (index.x < boxMinX) boxMinX = index.x;
 			if (index.x > boxMaxX) boxMaxX = index.x;
-			if (index.y < boxMinY) boxMinY = index.y;
-			if (index.y > boxMaxY) boxMaxY = index.y;
 			if (index.z < boxMinZ) boxMinZ = index.z;
 			if (index.z > boxMaxZ) boxMaxZ = index.z;
 
@@ -110,30 +108,24 @@ public class CubeIndexMap {
 		var result = new TreeMap<CubeIndex, Cube>();
 		if (convex) {
 			for (var i = boxMinX; i <= boxMaxX; ++i) {
-				for (var j = boxMinY; j <= boxMinY; ++j) {
-					for (var k = boxMinZ; k <= boxMaxZ; ++k) {
-						var index = new CubeIndex(i, j, k);
-						if (Graphics2D.insideConvexPolygon(index, cubePoints))
-							collect(result, index);
-					}
+				for (var k = boxMinZ; k <= boxMaxZ; ++k) {
+					var index = new CubeIndex(i, 0, k);
+					if (Graphics2D.insideConvexPolygon(index, cubePoints))
+						collect(result, index);
 				}
 			}
 		} else {
 			for (var i = boxMinX; i <= boxMaxX; ++i) {
-				for (var j = boxMinY; j <= boxMinY; ++j) {
-					for (var k = boxMinZ; k <= boxMaxZ; ++k) {
-						var index = new CubeIndex(i, j, k);
-						if (Graphics2D.insidePolygon(index, cubePoints))
-							collect(result, index);
-					}
+				for (var k = boxMinZ; k <= boxMaxZ; ++k) {
+					var index = new CubeIndex(i, 0, k);
+					if (Graphics2D.insidePolygon(index, cubePoints))
+						collect(result, index);
 				}
 			}
 		}
 		return result;
 	}
 
-	////////////////////////////////////////////////////////////
-	// 2d
 	// 选出position开始，面向direct方向，distance距离，直线路径经过的cube。
 	public final SortedMap<CubeIndex, Cube> line2d(Vector3 position, Vector3 direct, int distance) {
 		// todo 计算结束cube的索引。
