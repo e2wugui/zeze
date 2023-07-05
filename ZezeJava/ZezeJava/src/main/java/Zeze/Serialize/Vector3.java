@@ -86,7 +86,8 @@ public class Vector3 extends Vector2 {
 	}
 
 	public Vector3 normalized() {
-		return this;
+		double f = 1 / Math.sqrt((double)x * x + (double)y * y + (double)z * z);
+		return new Vector3((float)(x * f), (float)(y * f), (float)(z * f));
 	}
 
 	public static Vector3 cross(Vector3 left, Vector3 right) {
