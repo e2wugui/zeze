@@ -72,4 +72,27 @@ public class Vector3 extends Vector2 {
 	public @NotNull String toString() {
 		return "Vector3(" + x + ',' + y + ',' + z + ')';
 	}
+
+	public Vector3 add(Vector3 b) {
+		return new Vector3(x + b.x, y + b.y, z + b.z);
+	}
+
+	public Vector3 sub(Vector3 b) {
+		return new Vector3(x - b.x, y - b.y, z - b.z);
+	}
+
+	public Vector3 multiply(float m) {
+		return new Vector3(x * m, y * m, z * m);
+	}
+
+	public Vector3 normalized() {
+		return this;
+	}
+
+	public static Vector3 cross(Vector3 left, Vector3 right) {
+		var x = left.y * right.z - left.z * right.y;
+		var y = left.z * right.x - left.x * right.z;
+		var z = left.x * right.y - left.y * right.x;
+		return new Vector3(x, y, z);
+	}
 }

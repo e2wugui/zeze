@@ -1,5 +1,7 @@
 package Zeze.World;
 
+import Zeze.Serialize.Vector3;
+
 public class CubeIndex implements Comparable<CubeIndex> {
 	public final long x;
 	public final long y;
@@ -11,10 +13,14 @@ public class CubeIndex implements Comparable<CubeIndex> {
 		z = 0;
 	}
 
-	public CubeIndex(long x, long y) {
+	public Vector3 toVector3() {
+		return new Vector3(x, y, z);
+	}
+
+	public CubeIndex(long x, long z) {
 		this.x = x;
-		this.y = y;
-		this.z = 0;
+		this.y = 0;
+		this.z = z;
 	}
 
 	public CubeIndex(long x, long y, long z) {

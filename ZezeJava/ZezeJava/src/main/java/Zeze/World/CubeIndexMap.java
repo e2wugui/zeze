@@ -1,5 +1,6 @@
 package Zeze.World;
 
+import java.util.ArrayList;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,15 +30,15 @@ public class CubeIndexMap {
 
 	public final CubeIndex toIndex(Vector3 vector3) {
 		var x = (long)(vector3.x / gridX);
-		var y = (long)(vector3.y / gridY);
-		var z = gridZ != 0 ? (long)(vector3.z / gridZ) : 0;
+		var y = gridZ != 0 ? (long)(vector3.z / gridZ) : 0;
+		var z = (long)(vector3.y / gridY);
 		return new CubeIndex(x, y, z);
 	}
 
 	public final CubeIndex toIndex(float _x, float _y, float _z) {
 		var x = (long)(_x / gridX);
-		var y = (long)(_y / gridY);
-		var z = gridZ != 0 ? (long)(_z / gridZ) : 0;
+		var y = gridZ != 0 ? (long)(_z / gridZ) : 0;
+		var z = (long)(_y / gridY);
 		return new CubeIndex(x, y, z);
 	}
 
@@ -77,60 +78,62 @@ public class CubeIndexMap {
 		result.put(index, getOrAdd(index));
 	}
 
-	// 优化的Bresenham算法,不包括源端点,只支持 7fffffff 以内的坐标
-	// 这个算法从以前 share/astar(a*) 扒出来的，原来的算法是int，现扩展到long，移位操作16改成了32，常量加了两个字节。
-	public static void bresenham2d(long srcx, long srcy, long dstx, long dsty, Action2dLong plot) {
-		if (srcx == dstx && srcy == dsty)
-			return;
+	// 选出一个封闭多边形包含的cube。
+	// points，两两之间是一个线段，首尾连起来。
+	public final SortedMap<CubeIndex, Cube> polygon(java.util.List<Vector3> points, boolean convex) {
+		// cube-box 包围体
+		var boxMinX = Long.MAX_VALUE;
+		var boxMinY = Long.MAX_VALUE;
+		var boxMinZ = Long.MAX_VALUE;
 
-		boolean ylonger = false;
-		var lenmin = dsty - srcy;
-		var lenmax = dstx - srcx;
-		if(Math.abs(lenmin) > Math.abs(lenmax))
-		{
-			// swap(lenmin, lenmax)
-			var tmp = lenmin;
-			lenmin = lenmax;
-			lenmax = tmp;
-			ylonger = true;
+		var boxMaxX = Long.MIN_VALUE;
+		var boxMaxY = Long.MIN_VALUE;
+		var boxMaxZ = Long.MIN_VALUE;
+
+		// 转换成把CubeIndex看成点的多边形。
+		var cubePoints = new ArrayList<CubeIndex>();
+		for (var point : points) {
+			var index = toIndex(point);
+
+			if (index.x < boxMinX) boxMinX = index.x;
+			if (index.x > boxMaxX) boxMaxX = index.x;
+			if (index.y < boxMinY) boxMinY = index.y;
+			if (index.y > boxMaxY) boxMaxY = index.y;
+			if (index.z < boxMinZ) boxMinZ = index.z;
+			if (index.z > boxMaxZ) boxMaxZ = index.z;
+
+			// 第一个cube或者跟最近的一个不相等的时候加入。
+			if (cubePoints.isEmpty() || !cubePoints.get(cubePoints.size() - 1).equals(index))
+				cubePoints.add(index);
 		}
-		var delta = (lenmax == 0 ? 0 : (lenmin << 32) / lenmax);
-		delta += delta < 0 ? 1 : 0;  // 更接近原Bresenham算法的修正
 
-		if(ylonger)
-		{
-			if(lenmax > 0)
-			{
-				lenmax += srcy;
-				for(var i = 0x7fffffff + (srcx << 32) + delta; ++srcy <= lenmax; i += delta)
-					plot.run(i >> 32, srcy);
-
-				return; // done
+		var result = new TreeMap<CubeIndex, Cube>();
+		if (convex) {
+			for (var i = boxMinX; i <= boxMaxX; ++i) {
+				for (var j = boxMinY; j <= boxMinY; ++j) {
+					for (var k = boxMinZ; k <= boxMaxZ; ++k) {
+						var index = new CubeIndex(i, j, k);
+						if (Graphics2D.insideConvexPolygon(index, cubePoints))
+							collect(result, index);
+					}
+				}
 			}
-			lenmax += srcy;
-			for(var i = 0x80000000 + (srcx << 32) - delta; --srcy >= lenmax; i -= delta)
-				plot.run(i >> 32, srcy);
-
-			return; // done
+		} else {
+			for (var i = boxMinX; i <= boxMaxX; ++i) {
+				for (var j = boxMinY; j <= boxMinY; ++j) {
+					for (var k = boxMinZ; k <= boxMaxZ; ++k) {
+						var index = new CubeIndex(i, j, k);
+						if (Graphics2D.insidePolygon(index, cubePoints))
+							collect(result, index);
+					}
+				}
+			}
 		}
-
-		if(lenmax > 0)
-		{
-			lenmax += srcx;
-			for(var j = 0x7fffffff + (srcy << 32) + delta; ++srcx <= lenmax; j += delta)
-				plot.run(srcx, j >> 32);
-
-			return; // done
-		}
-		lenmax += srcx;
-		for(var j = 0x80000000 + (srcy << 32) - delta; --srcx >= lenmax; j -= delta)
-			plot.run(srcx, j >> 32);
-		// return; // done
+		return result;
 	}
 
 	////////////////////////////////////////////////////////////
 	// 2d
-
 	// 选出position开始，面向direct方向，distance距离，直线路径经过的cube。
 	public final SortedMap<CubeIndex, Cube> line2d(Vector3 position, Vector3 direct, int distance) {
 		// todo 计算结束cube的索引。
@@ -144,7 +147,8 @@ public class CubeIndexMap {
 		// lineTo(beginIndex, endIndex)，收集直线路径上的所有cube。
 		var result = new TreeMap<CubeIndex, Cube>();
 		collect(result, beginIndex); // bresenham2d 不包括源点。
-		bresenham2d(beginIndex.x, beginIndex.y, endIndex.x, endIndex.y, (x, y) -> collect(result, new CubeIndex(x, y)));
+		Graphics2D.bresenham2d(beginIndex.x, beginIndex.z, endIndex.x, endIndex.z,
+				(x, y) -> collect(result, new CubeIndex(x, y)));
 		return result;
 	}
 
