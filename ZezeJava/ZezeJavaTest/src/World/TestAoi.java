@@ -14,7 +14,7 @@ public class TestAoi {
 	public void testMoveBench() throws Exception {
 		var map = new Zeze.World.CubeIndexMap(128, 128);
 		var center = map.toIndex(0, 0, 0);
-		var cubes2d = map.cubes2d(center, 1, 1);
+		var cubes2d = map.center2d(center, 1, 1);
 		var instanceId = 0L;
 		var objectCubeCount = 222; // 222 * 9 ~= 2000
 		for (var cube : cubes2d.values()) {

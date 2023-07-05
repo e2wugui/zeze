@@ -1,27 +1,26 @@
 package Zeze.World;
 
 public class CubeIndex implements Comparable<CubeIndex> {
-	private long x;
-	private long y;
-	private long z;
+	public final long x;
+	public final long y;
+	public final long z;
 
-	public final long getX() {
-		return x;
+	public CubeIndex() {
+		x = 0;
+		y = 0;
+		z = 0;
 	}
-	public final long getY() {
-		return y;
+
+	public CubeIndex(long x, long y) {
+		this.x = x;
+		this.y = y;
+		this.z = 0;
 	}
-	public final long getZ() {
-		return z;
-	}
-	public final void setX(long value) {
-		x = value;
-	}
-	public final void setY(long value) {
-		y = value;
-	}
-	public final void setZ(long value) {
-		z = value;
+
+	public CubeIndex(long x, long y, long z) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
 	}
 
 	@Override
