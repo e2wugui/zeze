@@ -147,7 +147,7 @@ public class World extends AbstractWorld {
 	}
 
 	public void initializeDefault() throws Exception {
-		setMapManager(new MapManagerDefault());
-		installComponent(new MoveMmo());
+		setMapManager(new MapManagerDefault(this));
+		installComponent(new MoveMmo(this));
 	}
 }

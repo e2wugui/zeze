@@ -1593,6 +1593,39 @@
 				<variable id="4" name="Timestamp" type="long"/>  命令发起时刻的时戳。
 			</bean>
 
+			<!--
+			地图(场景)切换协议。这些协议实际上也可以定义成Command。由于比较重要，而且大概率可重用，就升级了。
+			一般流程：
+			client  send SwitchWorld(mapId) 对于一般游戏，第一次进入地图时，mapId设置为-1，此时服务器让玩家进入最后登录所在地图或者初始地图。
+			server send EnterWorld(mapId, mapInstanceId, position) 服务器通知玩家无条件切换地图。
+			client  load mapId's resource 客户端显示Loading界面（可选），装载资源。
+			client  send EnterConfirm(mapInstanceId) 客户端发送装载完成，服务器收到以后让这个玩家可以被其他人看到，并且开始同步数据。
+			server send PutData(data). 服务器开始发送动态数据，可能分批发送。
+			-->
+			<protocol name="SwitchWorld" argument="BSwitchWorld" handle="server"/> mapId==-1，进入地图由服务器控制，此时仅仅表示客户端准备好进入地图了。
+			<protocol name="EnterWorld" argument="BEnterWorld" handle="client"/>
+			<protocol name="EnterConfirm" argument="BEnterConfirm" handle="server"/>
+			<protocol name="PutData" argument="BPutData" handle="client"/>
+			<protocol name="RemoveData" argument="BRemoveData" handle="client"/>
+
+			<bean name="BSwitchWorld">
+				<variable id="1" name="MapId" type="int"/>
+			</bean>
+			<bean name="BEnterWorld">
+				<variable id="1" name="MapId" type="int"/>
+				<variable id="2" name="MapInstanceId" type="long"/>
+				<variable id="3" name="Position" type="vector3"/>
+				<variable id="4" name="PriorityData" type="BPutData"/> 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
+			</bean>
+			<bean name="BEnterConfirm">
+				<variable id="1" name="MapInstanceId" type="long"/>
+			</bean>
+			<bean name="BPutData">
+				<variable id="1" name="Datas" type="map[ObjectId, binary]"/>
+			</bean>
+			<bean name="BRemoveData">
+				<variable id="1" name="Keys" type="list[ObjectId]"/>
+			</bean>
 		</module>
 
 		<!--
