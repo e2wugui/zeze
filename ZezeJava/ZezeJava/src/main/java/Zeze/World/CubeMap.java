@@ -11,7 +11,7 @@ import Zeze.Serialize.Vector3;
  * 地图中的玩家或者物品记录在所在的Grid中。
  * 用来快速找到某个坐标周围的实体。
  */
-public class CubeIndexMap {
+public class CubeMap {
 	private final ConcurrentHashMap<CubeIndex, Cube> cubs = new ConcurrentHashMap<>();
 	private final int gridX;
 	private final int gridY;
@@ -47,7 +47,7 @@ public class CubeIndexMap {
 	 * @param gridX 切割长度
 	 * @param gridZ 切割宽度
 	 */
-	public CubeIndexMap(int gridX, int gridZ) {
+	public CubeMap(int gridX, int gridZ) {
 		this(gridX, 0, gridZ);
 	}
 
@@ -57,7 +57,7 @@ public class CubeIndexMap {
 	 * @param gridY 切割宽度
 	 * @param gridZ 切割高度
 	 */
-	public CubeIndexMap(int gridX, int gridY, int gridZ) {
+	public CubeMap(int gridX, int gridY, int gridZ) {
 		if (gridX <= 0)
 			throw new IllegalArgumentException("cubeSizeX <= 0");
 		if (gridY < 0)
