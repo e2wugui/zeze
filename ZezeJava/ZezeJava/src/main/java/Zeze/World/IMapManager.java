@@ -1,6 +1,6 @@
 package Zeze.World;
 
-public interface MapManager {
+public interface IMapManager {
 	/**
 	 * 地图切换。
 	 * @param mapId 地图配置id。

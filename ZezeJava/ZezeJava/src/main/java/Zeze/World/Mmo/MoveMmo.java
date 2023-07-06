@@ -4,11 +4,11 @@ import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.BMoveMmo;
 import Zeze.Builtin.World.Command;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.World.CommandHandler;
-import Zeze.World.Component;
+import Zeze.World.ICommandHandler;
+import Zeze.World.IComponent;
 import Zeze.World.World;
 
-public class MoveMmo implements Component, CommandHandler {
+public class MoveMmo implements IComponent, ICommandHandler {
 	public final World world;
 
 	public MoveMmo(World world) {

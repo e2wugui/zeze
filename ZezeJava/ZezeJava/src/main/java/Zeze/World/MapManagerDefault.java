@@ -1,12 +1,10 @@
 package Zeze.World;
 
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Component.AutoKey;
 import Zeze.Util.ConcurrentHashSet;
-import org.jetbrains.annotations.Nullable;
 
-public class MapManagerDefault implements MapManager {
+public class MapManagerDefault implements IMapManager {
 	private final AutoKey autoKeyInstanceId;
 	private final ConcurrentHashMap<Long, CubeMap> cubeMaps = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Integer, ConcurrentHashSet<Long>> maps = new ConcurrentHashMap<>();

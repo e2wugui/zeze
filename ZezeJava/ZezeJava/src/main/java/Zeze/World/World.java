@@ -7,7 +7,9 @@ import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
 import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.Command;
+import Zeze.Builtin.World.EnterConfirm;
 import Zeze.Builtin.World.Query;
+import Zeze.Builtin.World.SwitchWorld;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
@@ -60,22 +62,22 @@ public class World extends AbstractWorld {
 
 	// framework
 	public final ProviderApp providerApp;
-	private final ConcurrentHashMap<Integer, CommandHandler> commandHandlers = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<Integer, QueryHandler> queryHandlers = new ConcurrentHashMap<>();
-	private final HashSet<Component> componentHashSet = new HashSet<>();
+	private final ConcurrentHashMap<Integer, ICommandHandler> commandHandlers = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Integer, IQueryHandler> queryHandlers = new ConcurrentHashMap<>();
+	private final HashSet<IComponent> componentHashSet = new HashSet<>();
 
 	// world core
-	private MapManager mapManager;
+	private IMapManager mapManager;
 
-	public MapManager getMapManager() {
+	public IMapManager getMapManager() {
 		return mapManager;
 	}
 
-	public void setMapManager(MapManager mapManager) {
+	public void setMapManager(IMapManager mapManager) {
 		this.mapManager = mapManager;
 	}
 
-	public void registerCommand(int commandId, CommandHandler handler) {
+	public void registerCommand(int commandId, ICommandHandler handler) {
 		if (commandId > BCommand.eReserveCommandId)
 			throw new RuntimeException("command id is reserved");
 
@@ -83,12 +85,12 @@ public class World extends AbstractWorld {
 	}
 
 	// 内部使用，或者用来黑内部的command处理。
-	public void internalRegisterCommand(int commandId, CommandHandler handler) {
+	public void internalRegisterCommand(int commandId, ICommandHandler handler) {
 		if (null != commandHandlers.putIfAbsent(commandId, handler))
 			throw new RuntimeException("duplicate command id=" + commandId);
 	}
 
-	public void registerQuery(int commandId, QueryHandler handler) {
+	public void registerQuery(int commandId, IQueryHandler handler) {
 		if (commandId > BCommand.eReserveCommandId)
 			throw new RuntimeException("command id is reserved");
 
@@ -96,12 +98,12 @@ public class World extends AbstractWorld {
 	}
 
 	// 内部使用。
-	void internalRegisterQuery(int commandId, QueryHandler handler) {
+	void internalRegisterQuery(int commandId, IQueryHandler handler) {
 		if (null != queryHandlers.putIfAbsent(commandId, handler))
 			throw new RuntimeException("duplicate command id=" + commandId);
 	}
 
-	public void installComponent(Component c) throws Exception {
+	public void installComponent(IComponent c) throws Exception {
 		if (!componentHashSet.add(c))
 			throw new RuntimeException("component has installed. " + c);
 		c.install(this);
@@ -117,12 +119,22 @@ public class World extends AbstractWorld {
 	}
 
 	@Override
+	protected long ProcessEnterConfirm(EnterConfirm p) throws Exception {
+		return 0;
+	}
+
+	@Override
 	protected long ProcessQueryRequest(Query r) throws Exception {
 		var query = queryHandlers.get(r.Argument.getCommandId());
 		if (null == query)
 			return errorCode(eCommandHandlerMissing);
 
 		return query.handle(r);
+	}
+
+	@Override
+	protected long ProcessSwitchWorld(SwitchWorld p) throws Exception {
+		return 0;
 	}
 
 	public static @NotNull World create(@NotNull AppBase app) {
