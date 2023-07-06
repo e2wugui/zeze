@@ -7,13 +7,16 @@ import Zeze.Application;
 import Zeze.Builtin.Provider.AnnounceProviderInfo;
 import Zeze.Builtin.Provider.BAnnounceProviderInfo;
 import Zeze.Builtin.Provider.Bind;
+import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Subscribe;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
+import Zeze.Net.Protocol;
 import Zeze.Services.HandshakeClient;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Util.OutObject;
+import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -152,6 +155,17 @@ public class ProviderService extends HandshakeClient {
 			providerDynamicSubscribeCompleted.setResult(true);
 			return 0;
 		});
+	}
+
+	@Override
+	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+		if (p instanceof Dispatch) {
+			//noinspection RedundantCast,DataFlowIssue
+			getZeze().getTaskOneByOneByKey().Execute(((Dispatch)p).Argument.getAccount(),
+					() -> Task.call(() -> factoryHandle.Handle.handleProtocol(p), p, Protocol::trySendResultCode),
+					factoryHandle.Mode);
+		} else
+			super.dispatchProtocol(p, factoryHandle);
 	}
 
 	/*
