@@ -70,6 +70,10 @@ public class World extends AbstractWorld {
 		return mapManager;
 	}
 
+	public void setMapManager(MapManager mapManager) {
+		this.mapManager = mapManager;
+	}
+
 	public void registerCommand(int commandId, CommandHandler handler) {
 		if (commandId > BCommand.eReserveCommandId)
 			throw new RuntimeException("command id is reserved");
@@ -142,7 +146,7 @@ public class World extends AbstractWorld {
 	}
 
 	public void initializeDefault() throws Exception {
-		mapManager = new MapManagerDefault();
+		setMapManager(new MapManagerDefault());
 		installComponent(new MoveMmo());
 	}
 }
