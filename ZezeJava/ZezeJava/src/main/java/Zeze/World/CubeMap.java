@@ -7,43 +7,48 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.Vector3;
 
 /**
- * 把二维空间划分成一个个相邻的Grid。
- * 地图中的玩家或者物品记录在所在的Grid中。
+ * 把三维空间划分成一个个相邻的Cube。
+ * 地图中的玩家或者物品记录在所在的Cube中。
  * 用来快速找到某个坐标周围的实体。
  */
 public class CubeMap {
-	private final ConcurrentHashMap<CubeIndex, Cube> cubs = new ConcurrentHashMap<>();
-	private final int gridX;
-	private final int gridY;
-	private final int gridZ;
+	private final ConcurrentHashMap<CubeIndex, Cube> cubes = new ConcurrentHashMap<>();
+	private final int cubeX;
+	private final int cubeY; // 2d 切割时，cubeY 为 0.
+	private final int cubeZ;
 
-	public final int getGridX() {
-		return gridX;
+	// x-size of cube
+	public final int getCubeX() {
+		return cubeX;
 	}
 
-	public final int getGridY() {
-		return gridY;
+	// y-size of cube
+	public final int getCubeY() {
+		return cubeY;
 	}
-	public final int getGridZ() {
-		return gridZ;
+
+	// z-size of cube
+	public final int getCubeZ() {
+		return cubeZ;
 	}
 
 	public final CubeIndex toIndex(Vector3 vector3) {
-		var x = (long)(vector3.x / gridX);
-		var y = gridY != 0 ? (long)(vector3.y / gridY) : 0;
-		var z = (long)(vector3.z / gridZ);
+		var x = (long)(vector3.x / this.cubeX);
+		var y = this.cubeY != 0 ? (long)(vector3.y / this.cubeY) : 0;
+		var z = (long)(vector3.z / this.cubeZ);
 		return new CubeIndex(x, y, z);
 	}
 
 	public final CubeIndex toIndex(float _x, float _y, float _z) {
-		var x = (long)(_x / gridX);
-		var y = gridY != 0 ? (long)(_z / gridY) : 0;
-		var z = (long)(_y / gridZ);
+		var x = (long)(_x / this.cubeX);
+		var y = this.cubeY != 0 ? (long)(_z / this.cubeY) : 0;
+		var z = (long)(_y / this.cubeZ);
 		return new CubeIndex(x, y, z);
 	}
 
 	/**
 	 * 构造地图实例-2d切割，参数为切割长宽。
+	 * 2d切割时，使用x,z。y为0. 符合3d引擎的一般模式。
 	 * @param gridX 切割长度
 	 * @param gridZ 切割宽度
 	 */
@@ -65,13 +70,13 @@ public class CubeMap {
 		if (gridZ <= 0) // gridZ 可以为0，表示2d切割。
 			throw new IllegalArgumentException("cubeSizeZ <= 0");
 
-		this.gridX = gridX;
-		this.gridY = gridY;
-		this.gridZ = gridZ;
+		this.cubeX = gridX;
+		this.cubeY = gridY;
+		this.cubeZ = gridZ;
 	}
 
 	public final Cube getOrAdd(CubeIndex index) {
-		return cubs.computeIfAbsent(index, (key) -> new Cube());
+		return cubes.computeIfAbsent(index, (key) -> new Cube());
 	}
 
 	public final void collect(SortedMap<CubeIndex, Cube> result, CubeIndex index) {
@@ -134,16 +139,16 @@ public class CubeMap {
 			return result;
 
 		if (convex) {
-			for (var i = boxMinX; i <= boxMaxX; ++i) {
-				for (var k = boxMinZ; k <= boxMaxZ; ++k) {
+			for (var i = boxMinX + 1; i < boxMaxX; ++i) {
+				for (var k = boxMinZ + 1; k < boxMaxZ; ++k) {
 					var index = new CubeIndex(i, 0, k);
 					if (Graphics2D.insideConvexPolygon(index, cubePoints))
 						collect(result, index);
 				}
 			}
 		} else {
-			for (var i = boxMinX; i <= boxMaxX; ++i) {
-				for (var k = boxMinZ; k <= boxMaxZ; ++k) {
+			for (var i = boxMinX + 1; i < boxMaxX; ++i) {
+				for (var k = boxMinZ + 1; k < boxMaxZ; ++k) {
 					var index = new CubeIndex(i, 0, k);
 					if (Graphics2D.insidePolygon(index, cubePoints))
 						collect(result, index);
@@ -207,7 +212,7 @@ public class CubeMap {
 	}
 
 	public final SortedMap<CubeIndex, Cube> center3d(CubeIndex center, int rangeX, int rangeY, int rangeZ) {
-		if (gridZ == 0)
+		if (cubeZ == 0)
 			throw new RuntimeException("cube 3d not enabled.");
 
 		var result = new TreeMap<CubeIndex, Cube>();

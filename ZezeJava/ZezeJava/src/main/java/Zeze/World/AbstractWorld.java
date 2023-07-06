@@ -11,20 +11,31 @@ public abstract class AbstractWorld implements Zeze.IModule {
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
+    public static final int eCommandHandlerMissing = 1;
+
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.World.Move.class, Zeze.Builtin.World.Move.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.World.Move::new;
-            factoryHandle.Handle = this::ProcessMove;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessMove", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessMove", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47379751479219L, factoryHandle); // 11031, 1967237043
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.World.Command.class, Zeze.Builtin.World.Command.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.World.Command::new;
+            factoryHandle.Handle = this::ProcessCommand;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommand", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommand", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47378281792093L, factoryHandle); // 11031, 497549917
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.World.Query.class, Zeze.Builtin.World.Query.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.World.Query::new;
+            factoryHandle.Handle = this::ProcessQueryRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessQueryRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessQueryRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47381630294274L, factoryHandle); // 11031, -448915198
         }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
-        service.getFactorys().remove(47379751479219L);
+        service.getFactorys().remove(47378281792093L);
+        service.getFactorys().remove(47381630294274L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -36,5 +47,6 @@ public abstract class AbstractWorld implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    protected abstract long ProcessMove(Zeze.Builtin.World.Move p) throws Exception;
+    protected abstract long ProcessCommand(Zeze.Builtin.World.Command p) throws Exception;
+    protected abstract long ProcessQueryRequest(Zeze.Builtin.World.Query r) throws Exception;
 }

@@ -9,6 +9,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector3;
 import Zeze.Util.Benchmark;
 import Zeze.Util.Task;
+import Zeze.World.LockGuard;
 import Zeze.World.CubeMap;
 import Zeze.World.Graphics2D;
 import org.junit.Assert;
@@ -163,8 +164,8 @@ public class TestAoi {
 		}
 		// total = objectCubeCount * 9;
 		var server = new Service("testMoveBench.Server");
-		server.AddFactoryHandle(new Zeze.Builtin.World.Move().getTypeId(), new Service.ProtocolFactoryHandle<>(
-				Zeze.Builtin.World.Move::new, this::ProcessMove));
+		server.AddFactoryHandle(new Zeze.Builtin.World.Command().getTypeId(), new Service.ProtocolFactoryHandle<>(
+				Zeze.Builtin.World.Command::new, this::ProcessMove));
 		server.newServerSocket("127.0.0.1", 9999, null);
 		var client = new Client();
 		var connection = client.newClientSocket("127.0.0.1", 9999, null, null);
@@ -177,20 +178,15 @@ public class TestAoi {
 		// 目前这个测试还没有aoi运算内容，先搭出框架。
 		var b = new Benchmark();
 		for (int i = 0; i < moveBenchCount; ++i) {
-			for (var cube : cubes2d.values())
-				cube.lock();
-			try {
-				var move = new Zeze.Builtin.World.Move();
+			try (var ignoredGuard = new LockGuard(cubes2d)) {
+				var move = new Zeze.Builtin.World.Command();
 				var bb = ByteBuffer.Allocate();
 				move.encodeWithHead(bb);
 				for (var cube : cubes2d.values()) {
-					for (var obj : cube.objects().values()) {
+					for (var ignoredObj : cube.objects().values()) {
 						Assert.assertTrue(connection.Send(bb.Bytes, bb.ReadIndex, bb.size()));
 					}
 				}
-			} finally {
-				for (var cube : cubes2d.values())
-					cube.unlock();
 			}
 		}
 		b.report("testAoiBench", moveBenchCount);
@@ -217,7 +213,7 @@ public class TestAoi {
 
 	private final AtomicLong moveCounter = new AtomicLong();
 
-	private long ProcessMove(Zeze.Builtin.World.Move move) {
+	private long ProcessMove(Zeze.Builtin.World.Command move) {
 		moveCounter.incrementAndGet();
 		return 0;
 	}

@@ -1,11 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.World;
 
-public interface BMoveReadOnly {
+// MoveMmo
+public interface BMoveMmoReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BMove copy();
+    BMoveMmo copy();
 
     Zeze.Serialize.Vector3 getPosition();
     Zeze.Serialize.Vector3 getDirect();

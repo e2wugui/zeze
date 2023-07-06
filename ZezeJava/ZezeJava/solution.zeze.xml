@@ -1571,15 +1571,27 @@
 				</variable>
 			</bean>
 			
-			<bean name="BMove">
+			<enum name="eCommandHandlerMissing" value="1"/>
+
+			<!-- 抽象的交互协议，用来封装任意客户端服务器Protocol,Rpc -->
+			<bean name="BCommand">
+				<enum name="eReserveCommandId" value="2000"/> 保留Id给组件内部用。自定义的必须大于这个值。
+
+				<enum name="eMoveMmo" value="0"/>
+
+				<variable id="1" name="CommandId" type="int"/>
+				<variable id="2" name="Param" type="binary"/>
+			</bean>
+			<protocol name="Command" argument="BCommand" handle="client,server"/>
+			<rpc name="Query" argument="BCommand" result="BCommand" handle="server"/>
+
+			<!-- MoveMmo-->
+			<bean name="BMoveMmo">
 				<variable id="1" name="Position"      type="vector3"/> 移动命令时客户端的真实位置。
 				<variable id="2" name="Direct"         type="vector3"/> 移动命令时客户端真实的朝向。
 				<variable id="3" name="Command"  type="int"/> 0 直线，1 后退，2 左转，3 右转，4 停止。
 				<variable id="4" name="Timestamp" type="long"/>  命令发起时刻的时戳。
 			</bean>
-
-			<!-- 最简单的移动协议，发给第三方也是用相同的协议，参数可能会被服务器调整。 -->
-			<protocol name="Move" argument="BMove" handle="client,server"/>
 
 		</module>
 

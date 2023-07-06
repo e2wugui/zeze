@@ -3,9 +3,10 @@ package Zeze.Builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
 
+// MoveMmo
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
-public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly {
-    public static final long TYPEID = 5823156345754273331L;
+public final class BMoveMmo extends Zeze.Transaction.Bean implements BMoveMmoReadOnly {
+    public static final long TYPEID = 1608495588780938926L;
 
     private Zeze.Serialize.Vector3 _Position; // 移动命令时客户端的真实位置。
     private Zeze.Serialize.Vector3 _Direct; // 移动命令时客户端真实的朝向。
@@ -97,13 +98,13 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     @SuppressWarnings("deprecation")
-    public BMove() {
+    public BMoveMmo() {
         _Position = Zeze.Serialize.Vector3.ZERO;
         _Direct = Zeze.Serialize.Vector3.ZERO;
     }
 
     @SuppressWarnings("deprecation")
-    public BMove(Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_, int _Command_, long _Timestamp_) {
+    public BMoveMmo(Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_, int _Command_, long _Timestamp_) {
         if (_Position_ == null)
             _Position_ = Zeze.Serialize.Vector3.ZERO;
         _Position = _Position_;
@@ -123,44 +124,44 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     @Override
-    public Zeze.Builtin.World.BMove.Data toData() {
-        var data = new Zeze.Builtin.World.BMove.Data();
+    public Zeze.Builtin.World.BMoveMmo.Data toData() {
+        var data = new Zeze.Builtin.World.BMoveMmo.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.World.BMove.Data)other);
+        assign((Zeze.Builtin.World.BMoveMmo.Data)other);
     }
 
-    public void assign(BMove.Data other) {
+    public void assign(BMoveMmo.Data other) {
         setPosition(other._Position);
         setDirect(other._Direct);
         setCommand(other._Command);
         setTimestamp(other._Timestamp);
     }
 
-    public void assign(BMove other) {
+    public void assign(BMoveMmo other) {
         setPosition(other.getPosition());
         setDirect(other.getDirect());
         setCommand(other.getCommand());
         setTimestamp(other.getTimestamp());
     }
 
-    public BMove copyIfManaged() {
+    public BMoveMmo copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BMove copy() {
-        var copy = new BMove();
+    public BMoveMmo copy() {
+        var copy = new BMoveMmo();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BMove a, BMove b) {
-        BMove save = a.copy();
+    public static void swap(BMoveMmo a, BMoveMmo b) {
+        BMoveMmo save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -171,31 +172,31 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     private static final class Log__Position extends Zeze.Transaction.Logs.LogVector3 {
-        public Log__Position(BMove bean, int varId, Zeze.Serialize.Vector3 value) { super(bean, varId, value); }
+        public Log__Position(BMoveMmo bean, int varId, Zeze.Serialize.Vector3 value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BMove)getBelong())._Position = value; }
+        public void commit() { ((BMoveMmo)getBelong())._Position = value; }
     }
 
     private static final class Log__Direct extends Zeze.Transaction.Logs.LogVector3 {
-        public Log__Direct(BMove bean, int varId, Zeze.Serialize.Vector3 value) { super(bean, varId, value); }
+        public Log__Direct(BMoveMmo bean, int varId, Zeze.Serialize.Vector3 value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BMove)getBelong())._Direct = value; }
+        public void commit() { ((BMoveMmo)getBelong())._Direct = value; }
     }
 
     private static final class Log__Command extends Zeze.Transaction.Logs.LogInt {
-        public Log__Command(BMove bean, int varId, int value) { super(bean, varId, value); }
+        public Log__Command(BMoveMmo bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BMove)getBelong())._Command = value; }
+        public void commit() { ((BMoveMmo)getBelong())._Command = value; }
     }
 
     private static final class Log__Timestamp extends Zeze.Transaction.Logs.LogLong {
-        public Log__Timestamp(BMove bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Timestamp(BMoveMmo bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BMove)getBelong())._Timestamp = value; }
+        public void commit() { ((BMoveMmo)getBelong())._Timestamp = value; }
     }
 
     @Override
@@ -207,7 +208,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BMove: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BMoveMmo: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(getPosition()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Direct=").append(getDirect()).append(',').append(System.lineSeparator());
@@ -341,8 +342,9 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         st.appendLong(_parents_name_ + "Timestamp", getTimestamp());
     }
 
+// MoveMmo
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = 5823156345754273331L;
+    public static final long TYPEID = 1608495588780938926L;
 
     private Zeze.Serialize.Vector3 _Position; // 移动命令时客户端的真实位置。
     private Zeze.Serialize.Vector3 _Direct; // 移动命令时客户端真实的朝向。
@@ -412,25 +414,25 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public Zeze.Builtin.World.BMove toBean() {
-        var bean = new Zeze.Builtin.World.BMove();
+    public Zeze.Builtin.World.BMoveMmo toBean() {
+        var bean = new Zeze.Builtin.World.BMoveMmo();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BMove)other);
+        assign((BMoveMmo)other);
     }
 
-    public void assign(BMove other) {
+    public void assign(BMoveMmo other) {
         _Position = other.getPosition();
         _Direct = other.getDirect();
         _Command = other.getCommand();
         _Timestamp = other.getTimestamp();
     }
 
-    public void assign(BMove.Data other) {
+    public void assign(BMoveMmo.Data other) {
         _Position = other._Position;
         _Direct = other._Direct;
         _Command = other._Command;
@@ -438,13 +440,13 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BMove.Data copy() {
-        var copy = new BMove.Data();
+    public BMoveMmo.Data copy() {
+        var copy = new BMoveMmo.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BMove.Data a, BMove.Data b) {
+    public static void swap(BMoveMmo.Data a, BMoveMmo.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -456,8 +458,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BMove.Data clone() {
-        return (BMove.Data)super.clone();
+    public BMoveMmo.Data clone() {
+        return (BMoveMmo.Data)super.clone();
     }
 
     @Override
@@ -469,7 +471,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BMove: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BMoveMmo: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(_Position).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Direct=").append(_Direct).append(',').append(System.lineSeparator());
