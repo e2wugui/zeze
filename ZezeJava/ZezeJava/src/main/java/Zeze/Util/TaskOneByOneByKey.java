@@ -646,7 +646,7 @@ public final class TaskOneByOneByKey {
 					var threadPool = batch.mode == DispatchMode.Critical
 							? Zeze.Util.Task.getCriticalThreadPool()
 							: Zeze.Util.Task.getThreadPool();
-					threadPool.submit(batch);
+					threadPool.execute(batch);
 				}
 			} else if (task.cancel != null) {
 				try {
@@ -677,7 +677,7 @@ public final class TaskOneByOneByKey {
 				var threadPool = batch.mode == DispatchMode.Critical
 						? Zeze.Util.Task.getCriticalThreadPool()
 						: Zeze.Util.Task.getThreadPool();
-				threadPool.submit(batch);
+				threadPool.execute(batch);
 			}
 		}
 

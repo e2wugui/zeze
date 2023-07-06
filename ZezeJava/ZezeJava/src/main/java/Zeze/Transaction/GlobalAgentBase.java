@@ -5,8 +5,12 @@ import java.util.concurrent.Future;
 import Zeze.Application;
 import Zeze.Services.AchillesHeelConfig;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public abstract class GlobalAgentBase {
+	private static final Logger logger = LogManager.getLogger(GlobalAgentBase.class);
+
 	public final Application zeze;
 	private AchillesHeelConfig config;
 	private volatile long activeTime = System.currentTimeMillis();
@@ -76,7 +80,8 @@ public abstract class GlobalAgentBase {
 				if (endAction != null)
 					endAction.run();
 				return true;
-			} catch (Exception e) {
+			} catch (Throwable e) { // logger.error
+				logger.error("Releaser exception:", e);
 				return false;
 			}
 		}
