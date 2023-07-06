@@ -30,25 +30,25 @@ public class CubeIndexMap {
 
 	public final CubeIndex toIndex(Vector3 vector3) {
 		var x = (long)(vector3.x / gridX);
-		var y = gridZ != 0 ? (long)(vector3.z / gridZ) : 0;
-		var z = (long)(vector3.y / gridY);
+		var y = gridY != 0 ? (long)(vector3.y / gridY) : 0;
+		var z = (long)(vector3.z / gridZ);
 		return new CubeIndex(x, y, z);
 	}
 
 	public final CubeIndex toIndex(float _x, float _y, float _z) {
 		var x = (long)(_x / gridX);
-		var y = gridZ != 0 ? (long)(_z / gridZ) : 0;
-		var z = (long)(_y / gridY);
+		var y = gridY != 0 ? (long)(_z / gridY) : 0;
+		var z = (long)(_y / gridZ);
 		return new CubeIndex(x, y, z);
 	}
 
 	/**
 	 * 构造地图实例-2d切割，参数为切割长宽。
 	 * @param gridX 切割长度
-	 * @param gridY 切割宽度
+	 * @param gridZ 切割宽度
 	 */
-	public CubeIndexMap(int gridX, int gridY) {
-		this(gridX, gridY, 0);
+	public CubeIndexMap(int gridX, int gridZ) {
+		this(gridX, 0, gridZ);
 	}
 
 	/**
@@ -60,10 +60,10 @@ public class CubeIndexMap {
 	public CubeIndexMap(int gridX, int gridY, int gridZ) {
 		if (gridX <= 0)
 			throw new IllegalArgumentException("cubeSizeX <= 0");
-		if (gridY <= 0)
-			throw new IllegalArgumentException("cubeSizeY <= 0");
-		if (gridZ < 0) // gridZ 可以为0，表示2d切割。
-			throw new IllegalArgumentException("cubeSizeZ < 0");
+		if (gridY < 0)
+			throw new IllegalArgumentException("cubeSizeY < 0");
+		if (gridZ <= 0) // gridZ 可以为0，表示2d切割。
+			throw new IllegalArgumentException("cubeSizeZ <= 0");
 
 		this.gridX = gridX;
 		this.gridY = gridY;
@@ -105,18 +105,41 @@ public class CubeIndexMap {
 				cubePoints.add(index);
 		}
 
+		//System.out.println(cubePoints);
+		//System.out.println(boxMinX + "~" + boxMaxX + ", " + boxMinZ + "~" + boxMaxZ);
 		var result = new TreeMap<CubeIndex, Cube>();
+		if (cubePoints.size() < 3) {
+			for (var index : cubePoints)
+				collect(result, index);
+			return result;
+			// 不可能构成多边形。这实际上是多数情况。
+		}
+
+		// 边线用画线法得到。【因为后面的多边形内判断方式得不到边线的cube??? 需确认，另外画线法比后面的判断快】
+		for (int i = 0, j = cubePoints.size() - 1; i < cubePoints.size(); j = i, ++i) {
+			var p1 = cubePoints.get(i);
+			var p2 = cubePoints.get(j);
+			//System.out.println("bresenham2d " + p1 + "->" + p2);
+			Graphics2D.bresenham2d(p1.x, p1.z, p2.x, p2.z, (x, z) -> {
+				var index = new CubeIndex(x, 0, z);
+				//System.out.println("collect " + index);
+				collect(result, index);
+			});
+		}
+
+		// boxEmpty 时，下面的循环也很快，就不单独判断了。
+		// 【注意】绝大多数情况，box都是空的。所以根本不会进行多边形判断。
 		if (convex) {
-			for (var i = boxMinX; i <= boxMaxX; ++i) {
-				for (var k = boxMinZ; k <= boxMaxZ; ++k) {
+			for (var i = boxMinX + 1; i < boxMaxX; ++i) {
+				for (var k = boxMinZ + 1; k < boxMaxZ; ++k) {
 					var index = new CubeIndex(i, 0, k);
 					if (Graphics2D.insideConvexPolygon(index, cubePoints))
 						collect(result, index);
 				}
 			}
 		} else {
-			for (var i = boxMinX; i <= boxMaxX; ++i) {
-				for (var k = boxMinZ; k <= boxMaxZ; ++k) {
+			for (var i = boxMinX + 1; i < boxMaxX; ++i) {
+				for (var k = boxMinZ + 1; k < boxMaxZ; ++k) {
 					var index = new CubeIndex(i, 0, k);
 					if (Graphics2D.insidePolygon(index, cubePoints))
 						collect(result, index);
@@ -136,9 +159,7 @@ public class CubeIndexMap {
 		var endIndex = toIndex(endX, endY, 0);
 		var beginIndex = toIndex(position);
 
-		// lineTo(beginIndex, endIndex)，收集直线路径上的所有cube。
 		var result = new TreeMap<CubeIndex, Cube>();
-		collect(result, beginIndex); // bresenham2d 不包括源点。
 		Graphics2D.bresenham2d(beginIndex.x, beginIndex.z, endIndex.x, endIndex.z,
 				(x, y) -> collect(result, new CubeIndex(x, y)));
 		return result;

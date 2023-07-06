@@ -10,13 +10,16 @@ import Zeze.Serialize.Vector3;
 public class Graphics2D {
 	// 判断点落在凸多边形内。
 	public static boolean insideConvexPolygon(CubeIndex point, java.util.List<CubeIndex> convexPolygon) {
+		return insideConvexPolygon(point.toVector3(), toVector3(convexPolygon));
+	}
+
+	public static boolean insideConvexPolygon(Vector3 point, java.util.List<Vector3> convexPolygon) {
 		if (convexPolygon.size() < 3)
 			return false;
 
 		int j = convexPolygon.size() - 1;
-		boolean oddNodes = false;
-		for (int i = 0; i < convexPolygon.size(); ++i)
-		{
+		boolean oldNodes = false;
+		for (int i = 0; i < convexPolygon.size(); ++i) {
 			// y1 < y && y >= y2
 			// y2 < y && y >= y1
 			var z = point.z;
@@ -34,10 +37,10 @@ public class Graphics2D {
 			var difZPA = z1 - z;
 
 			var crossResult = difXPC * difZPA - difZPC * difXPA;
-			boolean cross = crossResult >= 0;
+			var cross = crossResult >= 0.0f;
 			if (i == 0)
-				oddNodes = cross;
-			if (cross != oddNodes)
+				oldNodes = cross;
+			if (cross != oldNodes)
 				return false;
 
 			j = i;
@@ -104,54 +107,73 @@ public class Graphics2D {
 		return !approximately(crossC, crossD);
 	}
 
-	// 优化的Bresenham算法,不包括源端点,只支持 7fffffff 以内的坐标
-	// 这个算法从以前 share/astar(a*) 扒出来的，原来的算法是int，现扩展到long，移位操作16改成了32，常量加了两个字节。
-	public static void bresenham2d(long srcx, long srcy, long dstx, long dsty, Action2dLong plot) {
-		if (srcx == dstx && srcy == dsty)
-			return;
+	public static long fastAbs(long v) {
+		return (v ^ (v >> 63)) - (v >> 63);
+	}
 
-		boolean ylonger = false;
-		var lenmin = dsty - srcy;
-		var lenmax = dstx - srcx;
-		if(Math.abs(lenmin) > Math.abs(lenmax))
-		{
-			// swap(lenmin, lenmax)
-			var tmp = lenmin;
-			lenmin = lenmax;
-			lenmax = tmp;
-			ylonger = true;
+	public static void bresenham2d(long x0, long y0, long x1, long y1, Action2dLong plot) {
+		var swapXY = fastAbs( y1 - y0 ) > fastAbs( x1 - x0 );
+		if ( swapXY ) {
+			// 交换 x 和 y
+			// 交换 x0 和 y0
+			var tmp = x0;
+			x0 = y0;
+			y0 = tmp;
+			// 交换 x1 和 y1
+			tmp = x1;
+			x1 = y1;
+			y1 = tmp;
 		}
-		var delta = (lenmax == 0 ? 0 : (lenmin << 32) / lenmax);
-		delta += delta < 0 ? 1 : 0;  // 更接近原Bresenham算法的修正
 
-		if(ylonger)
-		{
-			if(lenmax > 0)
-			{
-				lenmax += srcy;
-				for(var i = 0x7fffffff + (srcx << 32) + delta; ++srcy <= lenmax; i += delta)
-					plot.run(i >> 32, srcy);
+		if ( x0 > x1 ) {
+			// 确保 x0 < x1
+			// 交换 x0 和 x1
+			var tmp = x0;
+			x0 = x1;
+			x1 = tmp;
+			// 交换 y0 和 y1
+			tmp = y0;
+			y0 = y1;
+			y1 = tmp;
+		}
 
-				return; // done
+		var deltaX = x1 - x0;
+		var deltaY = fastAbs( y1 - y0 );
+		var error = deltaX / 2;
+		var y = y0;
+		var yStep = y0 < y1 ? 1 : -1;
+		/*
+		// 用下面这个替换下面两个分支循环，有性能损失吗？
+		Action2dLong action = swapXY ? (_x, _y) -> plot.run(_y, _x) : plot;
+		for (var x = x0; x <= x1; ++x){
+			action.run(x, y);
+			error -= deltaY;
+			if (error < 0) {
+				y += yStep;
+				error += deltaX;
 			}
-			lenmax += srcy;
-			for(var i = 0x80000000 + (srcx << 32) - delta; --srcy >= lenmax; i -= delta)
-				plot.run(i >> 32, srcy);
-
-			return; // done
 		}
-
-		if(lenmax > 0)
-		{
-			lenmax += srcx;
-			for(var j = 0x7fffffff + (srcy << 32) + delta; ++srcx <= lenmax; j += delta)
-				plot.run(srcx, j >> 32);
-
-			return; // done
+		*/
+		if( swapXY ) {
+			// Y / X
+			for (var x = x0; x <= x1; ++x){
+				plot.run(y, x);
+				error -= deltaY;
+				if (error < 0) {
+					y += yStep;
+					error += deltaX;
+				}
+			}
+		} else {
+			// X / Y
+			for (var x = x0; x <= x1; ++x){
+				plot.run(x, y);
+				error -= deltaY;
+				if (error < 0) {
+					y += yStep;
+					error += deltaX;
+				}
+			}
 		}
-		lenmax += srcx;
-		for(var j = 0x80000000 + (srcy << 32) - delta; --srcx >= lenmax; j -= delta)
-			plot.run(srcx, j >> 32);
-		// return; // done
 	}
 }

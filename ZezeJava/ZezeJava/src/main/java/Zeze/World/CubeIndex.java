@@ -60,4 +60,9 @@ public class CubeIndex implements Comparable<CubeIndex> {
 			return c;
 		return Long.compare(z, other.z);
 	}
+
+	@Override
+	public String toString() {
+		return "(" + x + "," + y + "," + z + ")";
+	}
 }

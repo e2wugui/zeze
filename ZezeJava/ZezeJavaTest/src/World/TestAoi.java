@@ -1,23 +1,82 @@
 package World;
 
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.World.BObject;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Vector3;
 import Zeze.Util.Benchmark;
 import Zeze.Util.Task;
+import Zeze.World.CubeIndexMap;
 import Zeze.World.Graphics2D;
 import org.junit.Assert;
 import org.junit.Test;
-import Zeze.World.CubeIndexMap;
 
 public class TestAoi {
 	@Test
 	public void testBresenham2d() {
-		Graphics2D.bresenham2d(0, 0, 1, 0, (x, y) -> System.out.print("(" + x + ", " + y + ")"));
+		System.out.println(Graphics2D.fastAbs(-1L));
+		Graphics2D.bresenham2d(0, 0, 0, 0, (x, y) -> System.out.print("(" + x + ", " + y + ")"));
+		System.out.println();
+		Graphics2D.bresenham2d(0, 2, 0, 0, (x, y) -> System.out.print("(" + x + ", " + y + ")"));
 		System.out.println();
 		Graphics2D.bresenham2d(-2, 0, 1, 0, (x, y) -> System.out.print("(" + x + ", " + y + ")"));
+	}
+
+	@Test
+	public void testMapPolygon() {
+		var map = new CubeIndexMap(64, 64);
+		var convex = new ArrayList<Vector3>();
+		// 一个正方形
+		convex.add(new Vector3(-128, 0, -128));
+		convex.add(new Vector3(128, 0, -128));
+		convex.add(new Vector3(128, 0, 128));
+		convex.add(new Vector3(-128, 0, 128));
+
+		Assert.assertTrue(Graphics2D.insideConvexPolygon(new Vector3(64, 0, 64), convex));
+		Assert.assertFalse(Graphics2D.insideConvexPolygon(new Vector3(129, 0, 129), convex));
+		// 边缘
+		Assert.assertTrue(Graphics2D.insideConvexPolygon(new Vector3(-128, 0, -128), convex));
+		Assert.assertTrue(Graphics2D.insideConvexPolygon(new Vector3(128, 0, -128), convex));
+		Assert.assertTrue(Graphics2D.insideConvexPolygon(new Vector3(128, 0, 128), convex));
+		Assert.assertTrue(Graphics2D.insideConvexPolygon(new Vector3(-128, 0, 128), convex));
+		Assert.assertTrue(Graphics2D.insideConvexPolygon(new Vector3(-128, 0, 0), convex));
+
+		var cubes = map.polygon2d(convex, true);
+		System.out.println(cubes.keySet());
+		System.out.println(cubes.size());
+	}
+
+	@Test
+	public void testConvexPolygon() {
+		var convex = new ArrayList<Vector3>();
+		// 一个正方形
+		convex.add(new Vector3(0, 0, 0));
+		convex.add(new Vector3(0, 0, 128));
+		convex.add(new Vector3(128, 0, 128));
+		convex.add(new Vector3(128, 0, 0));
+
+		Assert.assertTrue(Graphics2D.insideConvexPolygon(new Vector3(64, 0, 64), convex));
+		Assert.assertFalse(Graphics2D.insideConvexPolygon(new Vector3(129, 0, 129), convex));
+		// 边缘
+		Assert.assertFalse(Graphics2D.insideConvexPolygon(new Vector3(0, 0, 0), convex));
+	}
+
+	@Test
+	public void testPolygon() {
+		var polygon = new ArrayList<Vector3>();
+		// 一个正方形
+		polygon.add(new Vector3(0, 0, 0));
+		polygon.add(new Vector3(0, 0, 128));
+		polygon.add(new Vector3(128, 0, 128));
+		polygon.add(new Vector3(128, 0, 0));
+
+		Assert.assertTrue(Graphics2D.insidePolygon(new Vector3(64, 0, 64), polygon));
+		Assert.assertFalse(Graphics2D.insidePolygon(new Vector3(129, 0, 129), polygon));
+		// 边缘
+		Assert.assertFalse(Graphics2D.insidePolygon(new Vector3(0, 0, 0), polygon));
 	}
 
 	@Test
