@@ -3,6 +3,14 @@ package Zeze.Builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
 
+/*
+为了不污染根空间，定义成Command了。
+			<protocol name="SwitchWorld" argument="BSwitchWorld" handle="server"/> mapId==-1，进入地图由服务器控制，此时仅仅表示客户端准备好进入地图了。
+			<protocol name="EnterWorld" argument="BEnterWorld" handle="client"/>
+			<protocol name="EnterConfirm" argument="BEnterConfirm" handle="server"/>
+			<protocol name="PutData" argument="BPutData" handle="client"/>
+			<protocol name="RemoveData" argument="BRemoveData" handle="client"/>
+*/
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitchWorldReadOnly {
     public static final long TYPEID = 463822314787890974L;
@@ -180,6 +188,14 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
         st.appendInt(_parents_name_ + "MapId", getMapId());
     }
 
+/*
+为了不污染根空间，定义成Command了。
+			<protocol name="SwitchWorld" argument="BSwitchWorld" handle="server"/> mapId==-1，进入地图由服务器控制，此时仅仅表示客户端准备好进入地图了。
+			<protocol name="EnterWorld" argument="BEnterWorld" handle="client"/>
+			<protocol name="EnterConfirm" argument="BEnterConfirm" handle="server"/>
+			<protocol name="PutData" argument="BPutData" handle="client"/>
+			<protocol name="RemoveData" argument="BRemoveData" handle="client"/>
+*/
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 463822314787890974L;
 

@@ -1577,7 +1577,12 @@
 			<bean name="BCommand">
 				<enum name="eReserveCommandId" value="2000"/> 保留Id给组件内部用。自定义的必须大于这个值。
 
-				<enum name="eMoveMmo" value="0"/>
+				<enum name="eMoveMmo"   value="0"/> handle=server,client
+				<enum name="eSwitchWorld"  value="1"/> handle=server
+				<enum name="eEnterWorld"    value="2"/> handle=client
+				<enum name="eEnterConfirm" value="3"/> handle=server
+				<enum name="ePutData"          value="4"/> handle=client
+				<enum name="eRemoveData"  value="5"/> handle=client
 
 				<variable id="1" name="CommandId" type="int"/>
 				<variable id="2" name="Param" type="binary"/>
@@ -1602,11 +1607,13 @@
 			client  send EnterConfirm(mapInstanceId) 客户端发送装载完成，服务器收到以后让这个玩家可以被其他人看到，并且开始同步数据。
 			server send PutData(data). 服务器开始发送动态数据，可能分批发送。
 			-->
+			<!-- 为了不污染根空间，定义成Command了。
 			<protocol name="SwitchWorld" argument="BSwitchWorld" handle="server"/> mapId==-1，进入地图由服务器控制，此时仅仅表示客户端准备好进入地图了。
 			<protocol name="EnterWorld" argument="BEnterWorld" handle="client"/>
 			<protocol name="EnterConfirm" argument="BEnterConfirm" handle="server"/>
 			<protocol name="PutData" argument="BPutData" handle="client"/>
 			<protocol name="RemoveData" argument="BRemoveData" handle="client"/>
+			-->
 
 			<bean name="BSwitchWorld">
 				<variable id="1" name="MapId" type="int"/>

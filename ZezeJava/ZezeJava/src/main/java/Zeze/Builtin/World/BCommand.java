@@ -9,7 +9,12 @@ public final class BCommand extends Zeze.Transaction.Bean implements BCommandRea
     public static final long TYPEID = 3225161952412454913L;
 
     public static final int eReserveCommandId = 2000; // 保留Id给组件内部用。自定义的必须大于这个值。
-    public static final int eMoveMmo = 0;
+    public static final int eMoveMmo = 0; // handle=server,client
+    public static final int eSwitchWorld = 1; // handle=server
+    public static final int eEnterWorld = 2; // handle=client
+    public static final int eEnterConfirm = 3; // handle=server
+    public static final int ePutData = 4; // handle=client
+    public static final int eRemoveData = 5; // handle=client
 
     private int _CommandId;
     private Zeze.Net.Binary _Param;
@@ -243,7 +248,12 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 3225161952412454913L;
 
     public static final int eReserveCommandId = 2000; // 保留Id给组件内部用。自定义的必须大于这个值。
-    public static final int eMoveMmo = 0;
+    public static final int eMoveMmo = 0; // handle=server,client
+    public static final int eSwitchWorld = 1; // handle=server
+    public static final int eEnterWorld = 2; // handle=client
+    public static final int eEnterConfirm = 3; // handle=server
+    public static final int ePutData = 4; // handle=client
+    public static final int eRemoveData = 5; // handle=client
 
     private int _CommandId;
     private Zeze.Net.Binary _Param;

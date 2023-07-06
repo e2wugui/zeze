@@ -4,11 +4,11 @@ import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.BMoveMmo;
 import Zeze.Builtin.World.Command;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.World.ICommandHandler;
+import Zeze.World.ICommand;
 import Zeze.World.IComponent;
 import Zeze.World.World;
 
-public class MoveMmo implements IComponent, ICommandHandler {
+public class MoveMmo implements IComponent, ICommand {
 	public final World world;
 
 	public MoveMmo(World world) {
@@ -29,14 +29,12 @@ public class MoveMmo implements IComponent, ICommandHandler {
 	public long handle(Command c) throws Exception {
 		switch (c.Argument.getCommandId()) {
 		case BCommand.eMoveMmo:
-			var moveArg = new BMoveMmo();
-			moveArg.decode(ByteBuffer.Wrap(c.Argument.getParam()));
-			return onMove(moveArg);
+			return onMove(ICommand.decode(new BMoveMmo.Data(), c));
 		}
 		return 0;
 	}
 
-	private long onMove(BMoveMmo move) {
+	private long onMove(BMoveMmo.Data move) {
 		return 0;
 	}
 }
