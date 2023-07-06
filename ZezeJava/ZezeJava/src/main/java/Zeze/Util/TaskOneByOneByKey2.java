@@ -101,7 +101,7 @@ public final class TaskOneByOneByKey2 {
 
 			try {
 				run();
-			} catch (Exception ex) {
+			} catch (Throwable ex) { // logger.error
 				logger.error("{} run exception:", getName(), ex);
 			} finally {
 				// 成功执行
@@ -401,7 +401,7 @@ public final class TaskOneByOneByKey2 {
 			boolean process() {
 				try {
 					action.run();
-				} catch (Exception e) {
+				} catch (Throwable e) { // logger.error
 					logger.error("TaskAction run exception: {}", name, e);
 				}
 				return true;
@@ -420,7 +420,7 @@ public final class TaskOneByOneByKey2 {
 			boolean process() {
 				try {
 					func.call();
-				} catch (Exception e) {
+				} catch (Throwable e) { // logger.error
 					logger.error("TaskFunc run exception: {}", name, e);
 				}
 				return true;

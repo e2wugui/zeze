@@ -101,7 +101,7 @@ public final class TaskOneByOneByKey {
 
 				try {
 					run();
-				} catch (Exception ex) {
+				} catch (Throwable ex) { // logger.error
 					logger.error("{} run exception", getName(), ex);
 				} finally {
 					// 成功执行
@@ -125,7 +125,7 @@ public final class TaskOneByOneByKey {
 				try {
 					if (cancelAction != null)
 						cancelAction.run();
-				} catch (Exception ex) {
+				} catch (Throwable ex) { // logger.error
 					logger.error("{} cancel exception", getName(), ex);
 				} finally {
 					// 取消的时候，
@@ -486,7 +486,7 @@ public final class TaskOneByOneByKey {
 		boolean process(TaskOneByOne.BatchTask batch) {
 			try {
 				action.run();
-			} catch (Exception e) {
+			} catch (Throwable e) { // logger.error
 				logger.error("TaskOneByOne: {}", name, e);
 			}
 			return true;
@@ -510,7 +510,7 @@ public final class TaskOneByOneByKey {
 		boolean process(TaskOneByOne.BatchTask batch) {
 			try {
 				func.call();
-			} catch (Exception e) {
+			} catch (Throwable e) { // logger.error
 				logger.error("TaskOneByOne: {}", name, e);
 			}
 			return true;
@@ -651,7 +651,7 @@ public final class TaskOneByOneByKey {
 			} else if (task.cancel != null) {
 				try {
 					task.cancel.run();
-				} catch (Exception e) {
+				} catch (Throwable e) { // logger.error
 					logger.error("CancelAction={}", task.name, e);
 				}
 			}
@@ -700,7 +700,7 @@ public final class TaskOneByOneByKey {
 				if (task.cancel != null) {
 					try {
 						task.cancel.run();
-					} catch (Exception e) {
+					} catch (Throwable e) { // logger.error
 						logger.error("CancelAction={}", task.name, e);
 					}
 				}
