@@ -127,19 +127,23 @@ public class CubeIndexMap {
 			});
 		}
 
-		// boxEmpty 时，下面的循环也很快，就不单独判断了。
 		// 【注意】绝大多数情况，box都是空的。所以根本不会进行多边形判断。
+		// box 边线上面已经处理了，这里判空一下。
+		var boxEmpty = boxMaxX - boxMinX <= 1 || boxMaxZ - boxMinZ <= 1;
+		if (boxEmpty)
+			return result;
+
 		if (convex) {
-			for (var i = boxMinX + 1; i < boxMaxX; ++i) {
-				for (var k = boxMinZ + 1; k < boxMaxZ; ++k) {
+			for (var i = boxMinX; i <= boxMaxX; ++i) {
+				for (var k = boxMinZ; k <= boxMaxZ; ++k) {
 					var index = new CubeIndex(i, 0, k);
 					if (Graphics2D.insideConvexPolygon(index, cubePoints))
 						collect(result, index);
 				}
 			}
 		} else {
-			for (var i = boxMinX + 1; i < boxMaxX; ++i) {
-				for (var k = boxMinZ + 1; k < boxMaxZ; ++k) {
+			for (var i = boxMinX; i <= boxMaxX; ++i) {
+				for (var k = boxMinZ; k <= boxMaxZ; ++k) {
 					var index = new CubeIndex(i, 0, k);
 					if (Graphics2D.insidePolygon(index, cubePoints))
 						collect(result, index);
