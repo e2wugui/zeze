@@ -11,6 +11,7 @@ import Zeze.Builtin.World.Query;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
+import Zeze.World.Mmo.MoveMmo;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -81,8 +82,8 @@ public class World extends AbstractWorld {
 		internalRegisterCommand(commandId, handler);
 	}
 
-	// 内部使用。
-	void internalRegisterCommand(int commandId, CommandHandler handler) {
+	// 内部使用，或者用来黑内部的command处理。
+	public void internalRegisterCommand(int commandId, CommandHandler handler) {
 		if (null != commandHandlers.putIfAbsent(commandId, handler))
 			throw new RuntimeException("duplicate command id=" + commandId);
 	}
