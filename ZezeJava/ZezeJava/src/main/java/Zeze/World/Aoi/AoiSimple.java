@@ -34,7 +34,7 @@ public class AoiSimple implements IAoi {
 	private final int rangeY;
 	private final int rangeZ;
 
-	private final HashMap<BObjectId, Cube> objects = new HashMap<>();
+	private final HashMap<BObjectId, Cube> objectToCube = new HashMap<>();
 
 	public int getRangeX() {
 		return rangeX;
@@ -64,7 +64,7 @@ public class AoiSimple implements IAoi {
 		return map;
 	}
 
-	public void fastCollectX(SortedMap<CubeIndex, Cube> result, CubeIndex center, long dx) {
+	public void fastCollectWithFixedX(SortedMap<CubeIndex, Cube> result, CubeIndex center, long dx) {
 		if (dx != 0) {
 			var i = center.x + dx * rangeX;
 			for (var j = center.y - rangeY; j <= center.y + rangeY; ++j) {
@@ -75,7 +75,7 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
-	public void fastCollectY(SortedMap<CubeIndex, Cube> result, CubeIndex center, long dy) {
+	public void fastCollectWithFixedY(SortedMap<CubeIndex, Cube> result, CubeIndex center, long dy) {
 		if (dy != 0) {
 			// 2d never go here.
 			var j = center.y + dy * rangeY;
@@ -87,7 +87,7 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
-	public void fastCollectZ(SortedMap<CubeIndex, Cube> result, CubeIndex center, long dz) {
+	public void fastCollectWithFixedZ(SortedMap<CubeIndex, Cube> result, CubeIndex center, long dz) {
 		if (dz != 0) {
 			var k = center.z + dz * rangeZ;
 			for (var i = center.x - rangeX; i <= center.x + rangeX; ++i) {
@@ -100,7 +100,7 @@ public class AoiSimple implements IAoi {
 
 	@Override
 	public void moveTo(BObjectId oid, Vector3 position) throws Exception {
-		var cube = objects.get(oid);
+		var cube = objectToCube.get(oid);
 		if (null == cube) {
 			logger.error("object cube not found. oid={}", World.format(oid));
 			return;
@@ -108,17 +108,33 @@ public class AoiSimple implements IAoi {
 
 		var object = cube.objects.get(oid);
 		if (null == object) {
-			logger.error("object not found. oid={}, cube={}", World.format(oid), cube.index);
+			// 第一次进入，enter 视野。
+			// todo 新建对象初始化框架。
+			cube.objects.put(oid, object = new BObject());
+			objectToCube.put(oid, cube);
+			object.setPosition(position);
+			var newIndex = map.toIndex(position);
+			var enters = map.center(newIndex, rangeX, rangeY, rangeZ);
+			processEnters(cube, oid, object, enters);
 			return;
 		}
 
-		// 更新到新的坐标
-		object.setPosition(position);
 
 		// 计算新index，并根据进入新Cube的距离完成数据更新。
 
 		var newIndex = map.toIndex(position);
+		var newCube = map.getOrAdd(newIndex);
+
+		// 更新到新的坐标以及cube发生变化时移动数据。
+		object.setPosition(position);
+		if (cube != newCube) {
+			cube.objects.remove(oid);
+			newCube.objects.put(oid, object);
+			objectToCube.put(oid, newCube); // update to new cube
+		}
+
 		var dp = (int)cube.index.distancePerpendicular(newIndex);
+
 		switch (dp) {
 		case 0:
 			// same cube
@@ -134,14 +150,14 @@ public class AoiSimple implements IAoi {
 			var dz = newIndex.z - cube.index.z;
 
 			var fastEnters = new TreeMap<CubeIndex, Cube>();
-			fastCollectX(fastEnters, newIndex, dx);
-			fastCollectY(fastEnters, newIndex, dy);
-			fastCollectZ(fastEnters, newIndex, dz);
+			fastCollectWithFixedX(fastEnters, newIndex, dx);
+			fastCollectWithFixedY(fastEnters, newIndex, dy);
+			fastCollectWithFixedZ(fastEnters, newIndex, dz);
 
 			var fastLeaves = new TreeMap<CubeIndex, Cube>();
-			fastCollectX(fastLeaves, cube.index, -dx);
-			fastCollectY(fastLeaves, cube.index, -dy);
-			fastCollectZ(fastLeaves, cube.index, -dz);
+			fastCollectWithFixedX(fastLeaves, cube.index, -dx);
+			fastCollectWithFixedY(fastLeaves, cube.index, -dy);
+			fastCollectWithFixedZ(fastLeaves, cube.index, -dz);
 
 			processEnters(cube, oid, object, fastEnters);
 			processLeaves(cube, oid, object, fastLeaves);

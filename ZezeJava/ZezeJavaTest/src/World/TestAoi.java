@@ -57,20 +57,20 @@ public class TestAoi {
 
 		{
 			var tmp = new TreeMap<CubeIndex, Cube>();
-			aoi.fastCollectX(tmp, toIndex, dx);
+			aoi.fastCollectWithFixedX(tmp, toIndex, dx);
 			System.out.println("enterX=" + tmp.keySet());
 			var result = Set.of(new CubeIndex(2, 0, 0), new CubeIndex(2, 0, 1), new CubeIndex(2, 0, 2));
 			Assert.assertEquals(result, tmp.keySet());
 		}
 		{
 			var tmp = new TreeMap<CubeIndex, Cube>();
-			aoi.fastCollectY(tmp, toIndex, dy);
+			aoi.fastCollectWithFixedY(tmp, toIndex, dy);
 			System.out.println("enterY=" + tmp.keySet());
 			Assert.assertTrue(tmp.isEmpty());
 		}
 		{
 			var tmp = new TreeMap<CubeIndex, Cube>();
-			aoi.fastCollectZ(tmp, toIndex, dz);
+			aoi.fastCollectWithFixedZ(tmp, toIndex, dz);
 			System.out.println("enterZ=" + tmp.keySet());
 			var result = Set.of(new CubeIndex(0, 0, 2), new CubeIndex(1, 0, 2), new CubeIndex(2, 0, 2));
 			Assert.assertEquals(result, tmp.keySet());
@@ -78,32 +78,32 @@ public class TestAoi {
 
 		{
 			var tmp = new TreeMap<CubeIndex, Cube>();
-			aoi.fastCollectX(tmp, from.index, -dx);
+			aoi.fastCollectWithFixedX(tmp, from.index, -dx);
 			System.out.println("leaveX=" + tmp.keySet());
 			var result = Set.of(new CubeIndex(-1, 0, -1), new CubeIndex(-1, 0, 0), new CubeIndex(-1, 0, 1));
 			Assert.assertEquals(result, tmp.keySet());
 		}
 		{
 			var tmp = new TreeMap<CubeIndex, Cube>();
-			aoi.fastCollectY(tmp, from.index, -dy);
+			aoi.fastCollectWithFixedY(tmp, from.index, -dy);
 			System.out.println("leaveY=" + tmp.keySet());
 			Assert.assertTrue(tmp.isEmpty());
 		}
 		{
 			var tmp = new TreeMap<CubeIndex, Cube>();
-			aoi.fastCollectZ(tmp, from.index, -dz);
+			aoi.fastCollectWithFixedZ(tmp, from.index, -dz);
 			System.out.println("leaveZ=" + tmp.keySet());
 			var result = Set.of(new CubeIndex(-1, 0, -1), new CubeIndex(0, 0, -1), new CubeIndex(1, 0, -1));
 			Assert.assertEquals(result, tmp.keySet());
 		}
 
-		aoi.fastCollectX(enters, toIndex, dx);
-		aoi.fastCollectY(enters, toIndex, dy);
-		aoi.fastCollectZ(enters, toIndex, dz);
+		aoi.fastCollectWithFixedX(enters, toIndex, dx);
+		aoi.fastCollectWithFixedY(enters, toIndex, dy);
+		aoi.fastCollectWithFixedZ(enters, toIndex, dz);
 
-		aoi.fastCollectX(leaves, from.index, -dx);
-		aoi.fastCollectY(leaves, from.index, -dy);
-		aoi.fastCollectZ(leaves, from.index, -dz);
+		aoi.fastCollectWithFixedX(leaves, from.index, -dx);
+		aoi.fastCollectWithFixedY(leaves, from.index, -dy);
+		aoi.fastCollectWithFixedZ(leaves, from.index, -dz);
 
 		System.out.println("enters=" + enters.keySet());
 		System.out.println("leaves=" + leaves.keySet());
