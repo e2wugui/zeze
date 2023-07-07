@@ -7,8 +7,9 @@ public interface BObjectReadOnly {
     boolean negativeCheck();
     BObject copy();
 
+    Zeze.Transaction.DynamicBeanReadOnly getDataReadOnly();
     Zeze.Serialize.Vector3 getPosition();
     String getPlayerId();
-    long getLinksid();
-    Zeze.Transaction.DynamicBeanReadOnly getDataReadOnly();
+    String getLinkName();
+    long getLinkSid();
 }

@@ -1,5 +1,8 @@
 package Zeze.World;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -8,7 +11,9 @@ import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.ProviderWithOnline;
+import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.World.BCommand;
+import Zeze.Builtin.World.BObject;
 import Zeze.Builtin.World.Command;
 import Zeze.Builtin.World.BObjectId;
 import Zeze.Builtin.World.Query;
@@ -19,6 +24,8 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.World.Aoi.MapManager;
 import Zeze.World.Mmo.MoveMmo;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -51,6 +58,8 @@ import org.jetbrains.annotations.NotNull;
  *    d) Scene 多人
  */
 public class World extends AbstractWorld {
+	private static final Logger logger = LogManager.getLogger(World.class);
+
 	private final static BeanFactory beanFactory = new BeanFactory();
 	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return bean.typeId();
@@ -175,17 +184,50 @@ public class World extends AbstractWorld {
 		return "(" + oid.getType() + "," + oid.getConfigId() + "," + oid.getInstanceId() + ")";
 	}
 
-	public void sendCommand(long linkSid, int commandId, Data data) {
-		sendCommand(java.util.List.of(linkSid), commandId, data);
-	}
-
-	public void sendCommand(java.util.List<Long> linkSids, int commandId, Data data) {
+	public static ByteBuffer encodeSend(Collection<Long> linkSids, int commandId, Data data) {
 		var cmd = new Command();
 		cmd.Argument.setCommandId(commandId);
 		var bb = ByteBuffer.Allocate();
 		data.encode(bb);
 		cmd.Argument.setParam(new Binary(bb));
-		// todo send
+
+		var send = new Send();
+		send.Argument.getLinkSids().addAll(linkSids);
+		send.Argument.setProtocolType(cmd.getTypeId());
+		send.Argument.setProtocolWholeData(new Binary(cmd.encode()));
+
+		return send.encode();
+	}
+
+	public boolean sendLink(String linkName, ByteBuffer fullEncodedProtocol) {
+		var link = providerApp.providerService.getLinks().get(linkName);
+		if (null == link) {
+			logger.info("link not found: {}", linkName);
+			return false;
+		}
+		var socket = link.TryGetReadySocket();
+		if (null == socket) {
+			logger.info("link socket not ready. {}", linkName);
+			return false;
+		}
+		return socket.Send(fullEncodedProtocol);
+	}
+
+	public boolean sendCommand(String linkName, long linkSid, int commandId, Data data) {
+		return sendLink(linkName, encodeSend(java.util.List.of(linkSid), commandId, data));
+	}
+
+	public boolean sendCommand(Collection<BObject> targets, int commandId, Data data) {
+		var group = new HashMap<String, ArrayList<Long>>();
+		for (var target : targets) {
+			var link = group.computeIfAbsent(target.getLinkName(), (key) -> new ArrayList<>());
+			link.add(target.getLinkSid());
+		}
+		var result = true;
+		for (var e : group.entrySet()) {
+			result &= sendLink(e.getKey(), encodeSend(e.getValue(), commandId, data));
+		}
+		return result;
 	}
 
 }

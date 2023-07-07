@@ -163,7 +163,7 @@ public class AoiSimple implements IAoi {
 								 SortedMap<CubeIndex, Cube> enters) throws IOException {
 		for (var enter : enters.values()) {
 			// 收集玩家对象，用来发送自己进入的通知。
-			var linkSids = new ArrayList<Long>();
+			var targets = new ArrayList<BObject>();
 			try (var ignored = new LockGuard(enter)) {
 				var putData = new BCubePutData.Data();
 
@@ -179,16 +179,18 @@ public class AoiSimple implements IAoi {
 					encodeEdit(IAoi.eEditIdFull, e.getKey(), e.getValue(), editData);
 					putData.getDatas().add(editData);
 
-					linkSids.add(e.getValue().getLinksid());
+					if (e.getValue().getLinkName().isEmpty() && e.getValue().getLinkSid() > 0)
+						targets.add(e.getValue());
+
 					// 限制一次传输过多数据，达到数量，马上发送。
 					if (putData.getDatas().size() > 200) {
-						world.sendCommand(self.getLinksid(), BCommand.eCubePutData, putData);
+						world.sendCommand(self.getLinkName(), self.getLinkSid(), BCommand.eCubePutData, putData);
 						putData.getDatas().clear();
 					}
 				}
 
 				if (!putData.getDatas().isEmpty()) {
-					world.sendCommand(self.getLinksid(), BCommand.eCubePutData, putData);
+					world.sendCommand(self.getLinkName(), self.getLinkSid(), BCommand.eCubePutData, putData);
 				}
 			}
 			// encode 自己的数据。
@@ -202,7 +204,7 @@ public class AoiSimple implements IAoi {
 				editData.setEditId(IAoi.eEditIdFull);
 				encodeEdit(IAoi.eEditIdFull, oid, self, editData);
 				myData.getDatas().add(editData);
-				world.sendCommand(linkSids, BCommand.eCubePutData, myData);
+				world.sendCommand(targets, BCommand.eCubePutData, myData);
 			}
 		}
 	}
@@ -228,13 +230,15 @@ public class AoiSimple implements IAoi {
 		for (var leave : leaves.values()) {
 			indexes.getCubeIndexs().add(new BCubeIndex.Data(leave.index.x, leave.index.y, leave.index.z));
 		}
-		world.sendCommand(self.getLinksid(), BCommand.eCubeLeaves, indexes);
+		world.sendCommand(self.getLinkName(), self.getLinkSid(), BCommand.eCubeLeaves, indexes);
 
-		var linkSids = new ArrayList<Long>();
+		var targets = new ArrayList<BObject>();
 		try (var ignored = new LockGuard(leaves)) {
 			for (var cube : leaves.values()) {
-				for (var obj : cube.objects.values())
-					linkSids.add(obj.getLinksid());
+				for (var obj : cube.objects.values()) {
+					if (obj.getLinkName().isEmpty() && obj.getLinkSid() > 0)
+						targets.add(obj);
+				}
 			}
 		}
 
@@ -243,7 +247,7 @@ public class AoiSimple implements IAoi {
 		remove.getCubeIndex().setY(my.index.y);
 		remove.getCubeIndex().setZ(my.index.z);
 		remove.getKeys().add(oid);
-		world.sendCommand(linkSids, BCommand.eCubeRemoveData, remove);
+		world.sendCommand(targets, BCommand.eCubeRemoveData, remove);
 	}
 
 	/**

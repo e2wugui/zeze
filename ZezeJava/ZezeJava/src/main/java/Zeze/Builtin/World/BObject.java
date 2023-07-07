@@ -7,21 +7,32 @@ import Zeze.Serialize.ByteBuffer;
 public final class BObject extends Zeze.Transaction.Bean implements BObjectReadOnly {
     public static final long TYPEID = -2457457472033861643L;
 
-    private Zeze.Serialize.Vector3 _Position;
-    private String _PlayerId;
-    private long _Linksid;
     private final Zeze.Transaction.DynamicBean _Data;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Data() {
-        return new Zeze.Transaction.DynamicBean(4, Zeze.World.World::getSpecialTypeIdFromBean, Zeze.World.World::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(1, Zeze.World.World::getSpecialTypeIdFromBean, Zeze.World.World::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_4(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_1(Zeze.Transaction.Bean bean) {
         return Zeze.World.World.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_4(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_1(long typeId) {
         return Zeze.World.World.createBeanFromSpecialTypeId(typeId);
+    }
+
+    private Zeze.Serialize.Vector3 _Position;
+    private String _PlayerId;
+    private String _LinkName;
+    private long _LinkSid;
+
+    public Zeze.Transaction.DynamicBean getData() {
+        return _Data;
+    }
+
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getDataReadOnly() {
+        return _Data;
     }
 
     @Override
@@ -31,7 +42,7 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Position;
-        var log = (Log__Position)txn.getLog(objectId() + 1);
+        var log = (Log__Position)txn.getLog(objectId() + 2);
         return log != null ? log.value : _Position;
     }
 
@@ -43,7 +54,7 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Position(this, 1, value));
+        txn.putLog(new Log__Position(this, 2, value));
     }
 
     @Override
@@ -53,7 +64,7 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _PlayerId;
-        var log = (Log__PlayerId)txn.getLog(objectId() + 2);
+        var log = (Log__PlayerId)txn.getLog(objectId() + 3);
         return log != null ? log.value : _PlayerId;
     }
 
@@ -65,63 +76,81 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__PlayerId(this, 2, value));
+        txn.putLog(new Log__PlayerId(this, 3, value));
     }
 
     @Override
-    public long getLinksid() {
+    public String getLinkName() {
         if (!isManaged())
-            return _Linksid;
+            return _LinkName;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _Linksid;
-        var log = (Log__Linksid)txn.getLog(objectId() + 3);
-        return log != null ? log.value : _Linksid;
+            return _LinkName;
+        var log = (Log__LinkName)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _LinkName;
     }
 
-    public void setLinksid(long value) {
+    public void setLinkName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Linksid = value;
+            _LinkName = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Linksid(this, 3, value));
-    }
-
-    public Zeze.Transaction.DynamicBean getData() {
-        return _Data;
+        txn.putLog(new Log__LinkName(this, 4, value));
     }
 
     @Override
-    public Zeze.Transaction.DynamicBeanReadOnly getDataReadOnly() {
-        return _Data;
+    public long getLinkSid() {
+        if (!isManaged())
+            return _LinkSid;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _LinkSid;
+        var log = (Log__LinkSid)txn.getLog(objectId() + 5);
+        return log != null ? log.value : _LinkSid;
+    }
+
+    public void setLinkSid(long value) {
+        if (!isManaged()) {
+            _LinkSid = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__LinkSid(this, 5, value));
     }
 
     @SuppressWarnings("deprecation")
     public BObject() {
+        _Data = newDynamicBean_Data();
         _Position = Zeze.Serialize.Vector3.ZERO;
         _PlayerId = "";
-        _Data = newDynamicBean_Data();
+        _LinkName = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BObject(Zeze.Serialize.Vector3 _Position_, String _PlayerId_, long _Linksid_) {
+    public BObject(Zeze.Serialize.Vector3 _Position_, String _PlayerId_, String _LinkName_, long _LinkSid_) {
+        _Data = newDynamicBean_Data();
         if (_Position_ == null)
             _Position_ = Zeze.Serialize.Vector3.ZERO;
         _Position = _Position_;
         if (_PlayerId_ == null)
             _PlayerId_ = "";
         _PlayerId = _PlayerId_;
-        _Linksid = _Linksid_;
-        _Data = newDynamicBean_Data();
+        if (_LinkName_ == null)
+            _LinkName_ = "";
+        _LinkName = _LinkName_;
+        _LinkSid = _LinkSid_;
     }
 
     @Override
     public void reset() {
+        _Data.reset();
         setPosition(Zeze.Serialize.Vector3.ZERO);
         setPlayerId("");
-        setLinksid(0);
-        _Data.reset();
+        setLinkName("");
+        setLinkSid(0);
     }
 
     @Override
@@ -137,17 +166,19 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     }
 
     public void assign(BObject.Data other) {
+        _Data.assign(other._Data);
         setPosition(other._Position);
         setPlayerId(other._PlayerId);
-        setLinksid(other._Linksid);
-        _Data.assign(other._Data);
+        setLinkName(other._LinkName);
+        setLinkSid(other._LinkSid);
     }
 
     public void assign(BObject other) {
+        _Data.assign(other._Data);
         setPosition(other.getPosition());
         setPlayerId(other.getPlayerId());
-        setLinksid(other.getLinksid());
-        _Data.assign(other._Data);
+        setLinkName(other.getLinkName());
+        setLinkSid(other.getLinkSid());
     }
 
     public BObject copyIfManaged() {
@@ -186,11 +217,18 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         public void commit() { ((BObject)getBelong())._PlayerId = value; }
     }
 
-    private static final class Log__Linksid extends Zeze.Transaction.Logs.LogLong {
-        public Log__Linksid(BObject bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__LinkName extends Zeze.Transaction.Logs.LogString {
+        public Log__LinkName(BObject bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BObject)getBelong())._Linksid = value; }
+        public void commit() { ((BObject)getBelong())._LinkName = value; }
+    }
+
+    private static final class Log__LinkSid extends Zeze.Transaction.Logs.LogLong {
+        public Log__LinkSid(BObject bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BObject)getBelong())._LinkSid = value; }
     }
 
     @Override
@@ -204,12 +242,13 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BObject: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(getPosition()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("PlayerId=").append(getPlayerId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Linksid=").append(getLinksid()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Data=").append(System.lineSeparator());
         _Data.getBean().buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
+        sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(getPosition()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("PlayerId=").append(getPlayerId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LinkName=").append(getLinkName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LinkSid=").append(getLinkSid()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -230,31 +269,38 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
+            var _x_ = _Data;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.DYNAMIC);
+                _x_.encode(_o_);
+            }
+        }
+        {
             var _x_ = getPosition();
             if (_x_ != null && !_x_.isZero()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.VECTOR3);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.VECTOR3);
                 _o_.WriteVector3(_x_);
             }
         }
         {
             String _x_ = getPlayerId();
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            long _x_ = getLinksid();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
+            String _x_ = getLinkName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
             }
         }
         {
-            var _x_ = _Data;
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.DYNAMIC);
-                _x_.encode(_o_);
+            long _x_ = getLinkSid();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -265,19 +311,23 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setPosition(_o_.ReadVector3(_t_));
+            _o_.ReadDynamic(_Data, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setPlayerId(_o_.ReadString(_t_));
+            setPosition(_o_.ReadVector3(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setLinksid(_o_.ReadLong(_t_));
+            setPlayerId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
-            _o_.ReadDynamic(_Data, _t_);
+            setLinkName(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            setLinkSid(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -298,7 +348,7 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
 
     @Override
     public boolean negativeCheck() {
-        if (getLinksid() < 0)
+        if (getLinkSid() < 0)
             return true;
         return false;
     }
@@ -312,44 +362,46 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Position = ((Zeze.Transaction.Logs.LogVector3)vlog).value; break;
-                case 2: _PlayerId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _Linksid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _Data.followerApply(vlog); break;
+                case 1: _Data.followerApply(vlog); break;
+                case 2: _Position = ((Zeze.Transaction.Logs.LogVector3)vlog).value; break;
+                case 3: _PlayerId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 4: _LinkName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 5: _LinkSid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }
 
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        Zeze.Serialize.Helper.decodeJsonDynamic(_Data, rs.getString(_parents_name_ + "Data"));
         parents.add("Position");
         setPosition(Zeze.Serialize.Helper.decodeVector3(parents, rs));
         parents.remove(parents.size() - 1);
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setPlayerId(rs.getString(_parents_name_ + "PlayerId"));
         if (getPlayerId() == null)
             setPlayerId("");
-        setLinksid(rs.getLong(_parents_name_ + "Linksid"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(_Data, rs.getString(_parents_name_ + "Data"));
+        setLinkName(rs.getString(_parents_name_ + "LinkName"));
+        if (getLinkName() == null)
+            setLinkName("");
+        setLinkSid(rs.getLong(_parents_name_ + "LinkSid"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "Data", Zeze.Serialize.Helper.encodeJson(_Data));
         parents.add("Position");
         Zeze.Serialize.Helper.encodeVector3(getPosition(), parents, st);
         parents.remove(parents.size() - 1);
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "PlayerId", getPlayerId());
-        st.appendLong(_parents_name_ + "Linksid", getLinksid());
-        st.appendString(_parents_name_ + "Data", Zeze.Serialize.Helper.encodeJson(_Data));
+        st.appendString(_parents_name_ + "LinkName", getLinkName());
+        st.appendLong(_parents_name_ + "LinkSid", getLinkSid());
     }
 
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -2457457472033861643L;
 
-    private Zeze.Serialize.Vector3 _Position;
-    private String _PlayerId;
-    private long _Linksid;
     private final DynamicData_Data _Data;
 
     public static final class DynamicData_Data extends Zeze.Transaction.DynamicData {
@@ -373,6 +425,15 @@ public static final class Data extends Zeze.Transaction.Data {
         }
     }
 
+    private Zeze.Serialize.Vector3 _Position;
+    private String _PlayerId;
+    private String _LinkName;
+    private long _LinkSid;
+
+    public DynamicData_Data getData() {
+        return _Data;
+    }
+
     public Zeze.Serialize.Vector3 getPosition() {
         return _Position;
     }
@@ -393,45 +454,56 @@ public static final class Data extends Zeze.Transaction.Data {
         _PlayerId = value;
     }
 
-    public long getLinksid() {
-        return _Linksid;
+    public String getLinkName() {
+        return _LinkName;
     }
 
-    public void setLinksid(long value) {
-        _Linksid = value;
+    public void setLinkName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _LinkName = value;
     }
 
-    public DynamicData_Data getData() {
-        return _Data;
+    public long getLinkSid() {
+        return _LinkSid;
+    }
+
+    public void setLinkSid(long value) {
+        _LinkSid = value;
     }
 
     @SuppressWarnings("deprecation")
     public Data() {
+        _Data = new DynamicData_Data();
         _Position = Zeze.Serialize.Vector3.ZERO;
         _PlayerId = "";
-        _Data = new DynamicData_Data();
+        _LinkName = "";
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Serialize.Vector3 _Position_, String _PlayerId_, long _Linksid_, DynamicData_Data _Data_) {
+    public Data(DynamicData_Data _Data_, Zeze.Serialize.Vector3 _Position_, String _PlayerId_, String _LinkName_, long _LinkSid_) {
+        if (_Data_ == null)
+            _Data_ = new DynamicData_Data();
+        _Data = _Data_;
         if (_Position_ == null)
             _Position_ = Zeze.Serialize.Vector3.ZERO;
         _Position = _Position_;
         if (_PlayerId_ == null)
             _PlayerId_ = "";
         _PlayerId = _PlayerId_;
-        _Linksid = _Linksid_;
-        if (_Data_ == null)
-            _Data_ = new DynamicData_Data();
-        _Data = _Data_;
+        if (_LinkName_ == null)
+            _LinkName_ = "";
+        _LinkName = _LinkName_;
+        _LinkSid = _LinkSid_;
     }
 
     @Override
     public void reset() {
+        _Data.reset();
         _Position = Zeze.Serialize.Vector3.ZERO;
         _PlayerId = "";
-        _Linksid = 0;
-        _Data.reset();
+        _LinkName = "";
+        _LinkSid = 0;
     }
 
     @Override
@@ -447,17 +519,19 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BObject other) {
+        _Data.assign(other._Data);
         _Position = other.getPosition();
         _PlayerId = other.getPlayerId();
-        _Linksid = other.getLinksid();
-        _Data.assign(other._Data);
+        _LinkName = other.getLinkName();
+        _LinkSid = other.getLinkSid();
     }
 
     public void assign(BObject.Data other) {
+        _Data.assign(other._Data);
         _Position = other._Position;
         _PlayerId = other._PlayerId;
-        _Linksid = other._Linksid;
-        _Data.assign(other._Data);
+        _LinkName = other._LinkName;
+        _LinkSid = other._LinkSid;
     }
 
     @Override
@@ -494,12 +568,13 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BObject: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(_Position).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("PlayerId=").append(_PlayerId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Linksid=").append(_Linksid).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Data=").append(System.lineSeparator());
         _Data.getData().buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
+        sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(_Position).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("PlayerId=").append(_PlayerId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LinkName=").append(_LinkName).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LinkSid=").append(_LinkSid).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -520,31 +595,38 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
+            var _x_ = _Data;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.DYNAMIC);
+                _x_.encode(_o_);
+            }
+        }
+        {
             var _x_ = _Position;
             if (_x_ != null && !_x_.isZero()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.VECTOR3);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.VECTOR3);
                 _o_.WriteVector3(_x_);
             }
         }
         {
             String _x_ = _PlayerId;
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            long _x_ = _Linksid;
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
+            String _x_ = _LinkName;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
             }
         }
         {
-            var _x_ = _Data;
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.DYNAMIC);
-                _x_.encode(_o_);
+            long _x_ = _LinkSid;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -555,19 +637,23 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _Position = _o_.ReadVector3(_t_);
+            _o_.ReadDynamic(_Data, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            _PlayerId = _o_.ReadString(_t_);
+            _Position = _o_.ReadVector3(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            _Linksid = _o_.ReadLong(_t_);
+            _PlayerId = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
-            _o_.ReadDynamic(_Data, _t_);
+            _LinkName = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            _LinkSid = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
