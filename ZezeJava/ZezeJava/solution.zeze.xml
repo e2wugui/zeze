@@ -1556,7 +1556,7 @@
 		</module>
 
 		<module name="World" id="11031" UseData="true" DefaultTransactionLevel="None">
-			<beankey name="ObjectId">
+			<beankey name="BObjectId">
 				<variable id="1" name="Type"  type="int"/>
 				<variable id="2" name="ConfigId"   type="int"/>
 				<variable id="3" name="InstanceId" type="long"/>
@@ -1627,11 +1627,22 @@
 			<bean name="BEnterConfirm">
 				<variable id="1" name="MapInstanceId" type="long"/>
 			</bean>
+			<bean name="BEditData">
+				<variable id="1" name="CubeIndex" type="BCubeIndex"/>
+				<variable id="2" name="ObjectId" type="BObjectId"/>
+				<variable id="3" name="EditId" type="int"/>
+				<variable id="4" name="Data" type="binary"/>
+			</bean>
 			<bean name="BPutData">
-				<variable id="1" name="Datas" type="map[ObjectId, binary]"/>
+				<variable id="1" name="Datas" type="list[BEditData]"/>
 			</bean>
 			<bean name="BRemoveData">
-				<variable id="1" name="Keys" type="list[ObjectId]"/>
+				<variable id="1" name="Keys" type="list[BObjectId]"/>
+			</bean>
+			<bean name="BCubeIndex">
+				<variable id="1" name="X" type="long"/>
+				<variable id="2" name="Y" type="long"/>
+				<variable id="3" name="Z" type="long"/>
 			</bean>
 		</module>
 

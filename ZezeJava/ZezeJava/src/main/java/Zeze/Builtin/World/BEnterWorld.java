@@ -296,6 +296,8 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
             return true;
         if (getMapInstanceId() < 0)
             return true;
+        if (_PriorityData.negativeCheck())
+            return true;
         return false;
     }
 

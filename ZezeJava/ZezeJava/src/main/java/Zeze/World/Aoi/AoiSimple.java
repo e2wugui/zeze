@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import Zeze.Builtin.World.BObject;
+import Zeze.Builtin.World.BObjectId;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.World.CubeIndex;
 import Zeze.World.LockGuard;
 import Zeze.World.World;
-import Zeze.Builtin.World.ObjectId;
 import Zeze.Serialize.Vector3;
 import Zeze.World.Cube;
 import Zeze.World.CubeMap;
@@ -23,7 +25,7 @@ public class AoiSimple implements IAoi {
 	private final int rangeY;
 	private final int rangeZ;
 
-	private final HashMap<ObjectId, Cube> objects = new HashMap<>();
+	private final HashMap<BObjectId, Cube> objects = new HashMap<>();
 
 	public int getRangeX() {
 		return rangeX;
@@ -87,7 +89,7 @@ public class AoiSimple implements IAoi {
 	}
 
 	@Override
-	public void moveTo(ObjectId oid, Vector3 position) throws Exception {
+	public void moveTo(BObjectId oid, Vector3 position) throws Exception {
 		var cube = objects.get(oid);
 		if (null == cube) {
 			logger.error("object cube not found. oid={}", World.format(oid));
@@ -147,15 +149,18 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
-	private void processEnters(SortedMap<CubeIndex, Cube> enters) throws IOException {
+	protected void processEnters(SortedMap<CubeIndex, Cube> enters) throws IOException {
 		for (var enter : enters.values()) {
 			try (var ignored = new LockGuard(enter)) {
-
 			}
 		}
 	}
 
-	private void processLeaves(SortedMap<CubeIndex, Cube> leaves) {
+	protected void encodeEdit(int editId, BObjectId oid, BObject obj, ByteBuffer bb) {
+
+	}
+
+	protected void processLeaves(SortedMap<CubeIndex, Cube> leaves) {
 		// 【优化】客户端也使用CubeMap结构组织数据，那么只需要打包发送所有leaves的CubeIndex.
 		for (var leave : leaves.values()) {
 
@@ -166,7 +171,7 @@ public class AoiSimple implements IAoi {
 	 * 计算差异。
 	 * @param olds 旧的cubes，计算完成剩下的就是leave。
 	 * @param news 新的cubes，可能和olds有重叠，计算后保持不变。
-	 * @param enter 计算完成后，确实是新增的。
+	 * @param enters 计算完成后，确实是新增的。
 	 */
 	public static void diff(SortedMap<CubeIndex, Cube> olds, SortedMap<CubeIndex, Cube> news,
 							SortedMap<CubeIndex, Cube> enters) {
@@ -178,7 +183,7 @@ public class AoiSimple implements IAoi {
 	}
 
 	@Override
-	public void commitEdit(ObjectId oid, int editId) {
+	public void commitEdit(BObjectId oid, int editId) {
 
 	}
 }

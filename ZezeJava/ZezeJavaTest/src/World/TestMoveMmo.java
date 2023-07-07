@@ -24,7 +24,7 @@ public class TestMoveMmo {
 		var objectCubeCount = 222; // 222 * 9 ~= 2000
 		for (var cube : cubes2d.values()) {
 			for (int i = 0; i < objectCubeCount; ++i) {
-				var oid = new Zeze.Builtin.World.ObjectId(0, 0, instanceId++);
+				var oid = new Zeze.Builtin.World.BObjectId(0, 0, instanceId++);
 				cube.objects.put(oid, new BObject());
 			}
 		}

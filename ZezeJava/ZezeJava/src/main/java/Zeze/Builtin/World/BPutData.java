@@ -7,20 +7,20 @@ import Zeze.Serialize.ByteBuffer;
 public final class BPutData extends Zeze.Transaction.Bean implements BPutDataReadOnly {
     public static final long TYPEID = 4767639211156820067L;
 
-    private final Zeze.Transaction.Collections.PMap1<Zeze.Builtin.World.ObjectId, Zeze.Net.Binary> _Datas;
+    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BEditData> _Datas;
 
-    public Zeze.Transaction.Collections.PMap1<Zeze.Builtin.World.ObjectId, Zeze.Net.Binary> getDatas() {
+    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BEditData> getDatas() {
         return _Datas;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PMap1ReadOnly<Zeze.Builtin.World.ObjectId, Zeze.Net.Binary> getDatasReadOnly() {
-        return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_Datas);
+    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BEditData, Zeze.Builtin.World.BEditDataReadOnly> getDatasReadOnly() {
+        return new Zeze.Transaction.Collections.PList2ReadOnly<>(_Datas);
     }
 
     @SuppressWarnings("deprecation")
     public BPutData() {
-        _Datas = new Zeze.Transaction.Collections.PMap1<>(Zeze.Builtin.World.ObjectId.class, Zeze.Net.Binary.class);
+        _Datas = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.World.BEditData.class);
         _Datas.variableId(1);
     }
 
@@ -43,12 +43,17 @@ public final class BPutData extends Zeze.Transaction.Bean implements BPutDataRea
 
     public void assign(BPutData.Data other) {
         _Datas.clear();
-        _Datas.putAll(other._Datas);
+        for (var e : other._Datas) {
+            Zeze.Builtin.World.BEditData data = new Zeze.Builtin.World.BEditData();
+            data.assign(e);
+            _Datas.add(data);
+        }
     }
 
     public void assign(BPutData other) {
         _Datas.clear();
-        _Datas.putAll(other._Datas);
+        for (var e : other._Datas)
+            _Datas.add(e.copy());
     }
 
     public BPutData copyIfManaged() {
@@ -84,20 +89,19 @@ public final class BPutData extends Zeze.Transaction.Bean implements BPutDataRea
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BPutData: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Datas={");
+        sb.append(Zeze.Util.Str.indent(level)).append("Datas=[");
         if (!_Datas.isEmpty()) {
             sb.append(System.lineSeparator());
             level += 4;
-            for (var _kv_ : _Datas.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(System.lineSeparator());
-                _kv_.getKey().buildString(sb, level + 4);
+            for (var _item_ : _Datas) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
+                _item_.buildString(sb, level + 4);
                 sb.append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_kv_.getValue()).append(',').append(System.lineSeparator());
             }
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append('}').append(System.lineSeparator());
+        sb.append(']').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -121,11 +125,10 @@ public final class BPutData extends Zeze.Transaction.Bean implements BPutDataRea
             var _x_ = _Datas;
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
-                _o_.WriteMapType(_n_, ByteBuffer.BEAN, ByteBuffer.BYTES);
-                for (var _e_ : _x_.entrySet()) {
-                    _e_.getKey().encode(_o_);
-                    _o_.WriteBinary(_e_.getValue());
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.BEAN);
+                for (var _v_ : _x_) {
+                    _v_.encode(_o_);
                     _n_--;
                 }
                 if (_n_ != 0)
@@ -142,15 +145,11 @@ public final class BPutData extends Zeze.Transaction.Bean implements BPutDataRea
         if (_i_ == 1) {
             var _x_ = _Datas;
             _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
-                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
-                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new Zeze.Builtin.World.ObjectId(), _s_);
-                    var _v_ = _o_.ReadBinary(_t_);
-                    _x_.put(_k_, _v_);
-                }
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BEditData(), _t_));
             } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -167,6 +166,15 @@ public final class BPutData extends Zeze.Transaction.Bean implements BPutDataRea
     @Override
     protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
         _Datas.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
+    public boolean negativeCheck() {
+        for (var _v_ : _Datas) {
+            if (_v_.negativeCheck())
+                return true;
+        }
+        return false;
     }
 
     @SuppressWarnings("unchecked")
@@ -186,7 +194,7 @@ public final class BPutData extends Zeze.Transaction.Bean implements BPutDataRea
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Datas", _Datas, rs.getString(_parents_name_ + "Datas"));
+        Zeze.Serialize.Helper.decodeJsonList(_Datas, Zeze.Builtin.World.BEditData.class, rs.getString(_parents_name_ + "Datas"));
     }
 
     @Override
@@ -198,13 +206,13 @@ public final class BPutData extends Zeze.Transaction.Bean implements BPutDataRea
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4767639211156820067L;
 
-    private java.util.HashMap<Zeze.Builtin.World.ObjectId, Zeze.Net.Binary> _Datas;
+    private java.util.ArrayList<Zeze.Builtin.World.BEditData.Data> _Datas;
 
-    public java.util.HashMap<Zeze.Builtin.World.ObjectId, Zeze.Net.Binary> getDatas() {
+    public java.util.ArrayList<Zeze.Builtin.World.BEditData.Data> getDatas() {
         return _Datas;
     }
 
-    public void setDatas(java.util.HashMap<Zeze.Builtin.World.ObjectId, Zeze.Net.Binary> value) {
+    public void setDatas(java.util.ArrayList<Zeze.Builtin.World.BEditData.Data> value) {
         if (value == null)
             throw new IllegalArgumentException();
         _Datas = value;
@@ -212,13 +220,13 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @SuppressWarnings("deprecation")
     public Data() {
-        _Datas = new java.util.HashMap<>();
+        _Datas = new java.util.ArrayList<>();
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.HashMap<Zeze.Builtin.World.ObjectId, Zeze.Net.Binary> _Datas_) {
+    public Data(java.util.ArrayList<Zeze.Builtin.World.BEditData.Data> _Datas_) {
         if (_Datas_ == null)
-            _Datas_ = new java.util.HashMap<>();
+            _Datas_ = new java.util.ArrayList<>();
         _Datas = _Datas_;
     }
 
@@ -241,12 +249,17 @@ public static final class Data extends Zeze.Transaction.Data {
 
     public void assign(BPutData other) {
         _Datas.clear();
-        _Datas.putAll(other._Datas);
+        for (var e : other._Datas) {
+            Zeze.Builtin.World.BEditData.Data data = new Zeze.Builtin.World.BEditData.Data();
+            data.assign(e);
+            _Datas.add(data);
+        }
     }
 
     public void assign(BPutData.Data other) {
         _Datas.clear();
-        _Datas.putAll(other._Datas);
+        for (var e : other._Datas)
+            _Datas.add(e.copy());
     }
 
     @Override
@@ -283,20 +296,19 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BPutData: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Datas={");
+        sb.append(Zeze.Util.Str.indent(level)).append("Datas=[");
         if (!_Datas.isEmpty()) {
             sb.append(System.lineSeparator());
             level += 4;
-            for (var _kv_ : _Datas.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(System.lineSeparator());
-                _kv_.getKey().buildString(sb, level + 4);
+            for (var _item_ : _Datas) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
+                _item_.buildString(sb, level + 4);
                 sb.append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_kv_.getValue()).append(',').append(System.lineSeparator());
             }
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append('}').append(System.lineSeparator());
+        sb.append(']').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -320,11 +332,10 @@ public static final class Data extends Zeze.Transaction.Data {
             var _x_ = _Datas;
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
-                _o_.WriteMapType(_n_, ByteBuffer.BEAN, ByteBuffer.BYTES);
-                for (var _e_ : _x_.entrySet()) {
-                    _e_.getKey().encode(_o_);
-                    _o_.WriteBinary(_e_.getValue());
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.BEAN);
+                for (var _v_ : _x_) {
+                    _v_.encode(_o_);
                     _n_--;
                 }
                 if (_n_ != 0)
@@ -341,15 +352,11 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             var _x_ = _Datas;
             _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
-                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
-                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new Zeze.Builtin.World.ObjectId(), _s_);
-                    var _v_ = _o_.ReadBinary(_t_);
-                    _x_.put(_k_, _v_);
-                }
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BEditData.Data(), _t_));
             } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

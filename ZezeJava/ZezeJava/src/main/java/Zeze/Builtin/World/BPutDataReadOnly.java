@@ -7,5 +7,5 @@ public interface BPutDataReadOnly {
     boolean negativeCheck();
     BPutData copy();
 
-    Zeze.Transaction.Collections.PMap1ReadOnly<Zeze.Builtin.World.ObjectId, Zeze.Net.Binary> getDatasReadOnly();
+    Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BEditData, Zeze.Builtin.World.BEditDataReadOnly> getDatasReadOnly();
 }

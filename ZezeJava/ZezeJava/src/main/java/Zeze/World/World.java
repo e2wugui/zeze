@@ -10,7 +10,7 @@ import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.ProviderWithOnline;
 import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.Command;
-import Zeze.Builtin.World.ObjectId;
+import Zeze.Builtin.World.BObjectId;
 import Zeze.Builtin.World.Query;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
@@ -169,7 +169,7 @@ public class World extends AbstractWorld {
 		installComponent(new MoveMmo(this));
 	}
 
-	public static String format(ObjectId oid) {
+	public static String format(BObjectId oid) {
 		return "(" + oid.getType() + "," + oid.getConfigId() + "," + oid.getInstanceId() + ")";
 	}
 }

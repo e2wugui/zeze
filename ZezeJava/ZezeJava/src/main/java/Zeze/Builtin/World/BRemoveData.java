@@ -7,20 +7,20 @@ import Zeze.Serialize.ByteBuffer;
 public final class BRemoveData extends Zeze.Transaction.Bean implements BRemoveDataReadOnly {
     public static final long TYPEID = 8336269272864237990L;
 
-    private final Zeze.Transaction.Collections.PList1<Zeze.Builtin.World.ObjectId> _Keys;
+    private final Zeze.Transaction.Collections.PList1<Zeze.Builtin.World.BObjectId> _Keys;
 
-    public Zeze.Transaction.Collections.PList1<Zeze.Builtin.World.ObjectId> getKeys() {
+    public Zeze.Transaction.Collections.PList1<Zeze.Builtin.World.BObjectId> getKeys() {
         return _Keys;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Builtin.World.ObjectId> getKeysReadOnly() {
+    public Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Builtin.World.BObjectId> getKeysReadOnly() {
         return new Zeze.Transaction.Collections.PList1ReadOnly<>(_Keys);
     }
 
     @SuppressWarnings("deprecation")
     public BRemoveData() {
-        _Keys = new Zeze.Transaction.Collections.PList1<>(Zeze.Builtin.World.ObjectId.class);
+        _Keys = new Zeze.Transaction.Collections.PList1<>(Zeze.Builtin.World.BObjectId.class);
         _Keys.variableId(1);
     }
 
@@ -142,7 +142,7 @@ public final class BRemoveData extends Zeze.Transaction.Bean implements BRemoveD
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.ObjectId(), _t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BObjectId(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -189,7 +189,7 @@ public final class BRemoveData extends Zeze.Transaction.Bean implements BRemoveD
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(_Keys, Zeze.Builtin.World.ObjectId.class, rs.getString(_parents_name_ + "Keys"));
+        Zeze.Serialize.Helper.decodeJsonList(_Keys, Zeze.Builtin.World.BObjectId.class, rs.getString(_parents_name_ + "Keys"));
     }
 
     @Override
@@ -201,13 +201,13 @@ public final class BRemoveData extends Zeze.Transaction.Bean implements BRemoveD
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8336269272864237990L;
 
-    private java.util.ArrayList<Zeze.Builtin.World.ObjectId> _Keys;
+    private java.util.ArrayList<Zeze.Builtin.World.BObjectId> _Keys;
 
-    public java.util.ArrayList<Zeze.Builtin.World.ObjectId> getKeys() {
+    public java.util.ArrayList<Zeze.Builtin.World.BObjectId> getKeys() {
         return _Keys;
     }
 
-    public void setKeys(java.util.ArrayList<Zeze.Builtin.World.ObjectId> value) {
+    public void setKeys(java.util.ArrayList<Zeze.Builtin.World.BObjectId> value) {
         if (value == null)
             throw new IllegalArgumentException();
         _Keys = value;
@@ -219,7 +219,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.ArrayList<Zeze.Builtin.World.ObjectId> _Keys_) {
+    public Data(java.util.ArrayList<Zeze.Builtin.World.BObjectId> _Keys_) {
         if (_Keys_ == null)
             _Keys_ = new java.util.ArrayList<>();
         _Keys = _Keys_;
@@ -344,7 +344,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.ObjectId(), _t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BObjectId(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

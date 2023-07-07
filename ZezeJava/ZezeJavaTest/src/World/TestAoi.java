@@ -2,7 +2,6 @@ package World;
 
 import java.util.Set;
 import java.util.TreeMap;
-import Zeze.Serialize.Vector3;
 import Zeze.World.Aoi.AoiSimple;
 import Zeze.World.Cube;
 import Zeze.World.CubeIndex;

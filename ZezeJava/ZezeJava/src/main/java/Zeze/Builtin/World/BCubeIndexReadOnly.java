@@ -1,11 +1,13 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.World;
 
-public interface BRemoveDataReadOnly {
+public interface BCubeIndexReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BRemoveData copy();
+    BCubeIndex copy();
 
-    Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Builtin.World.BObjectId> getKeysReadOnly();
+    long getX();
+    long getY();
+    long getZ();
 }

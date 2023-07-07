@@ -5,16 +5,16 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
-public final class ObjectId implements Serializable, Comparable<ObjectId> {
+public final class BObjectId implements Serializable, Comparable<BObjectId> {
     private int _Type;
     private int _ConfigId;
     private long _InstanceId;
 
     // for decode only
-    public ObjectId() {
+    public BObjectId() {
     }
 
-    public ObjectId(int _Type_, int _ConfigId_, long _InstanceId_) {
+    public BObjectId(int _Type_, int _ConfigId_, long _InstanceId_) {
         this._Type = _Type_;
         this._ConfigId = _ConfigId_;
         this._InstanceId = _InstanceId_;
@@ -41,7 +41,7 @@ public final class ObjectId implements Serializable, Comparable<ObjectId> {
     }
 
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.ObjectId: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BObjectId: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Type=").append(_Type).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ConfigId=").append(_ConfigId).append(',').append(System.lineSeparator());
@@ -115,10 +115,10 @@ public final class ObjectId implements Serializable, Comparable<ObjectId> {
     public boolean equals(Object _o_) {
         if (_o_ == this)
             return true;
-        if (!(_o_ instanceof ObjectId))
+        if (!(_o_ instanceof BObjectId))
             return false;
         //noinspection PatternVariableCanBeUsed
-        var _b_ = (ObjectId)_o_;
+        var _b_ = (BObjectId)_o_;
         if (_Type != _b_._Type)
             return false;
         if (_ConfigId != _b_._ConfigId)
@@ -139,7 +139,7 @@ public final class ObjectId implements Serializable, Comparable<ObjectId> {
     }
 
     @Override
-    public int compareTo(ObjectId _o_) {
+    public int compareTo(BObjectId _o_) {
         if (_o_ == this)
             return 0;
         if (_o_ != null) {

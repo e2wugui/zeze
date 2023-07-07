@@ -1,6 +1,6 @@
 package Zeze.World;
 
-import Zeze.Builtin.World.ObjectId;
+import Zeze.Builtin.World.BObjectId;
 import Zeze.Serialize.Vector3;
 
 public interface IAoi {
@@ -10,7 +10,7 @@ public interface IAoi {
 	 * 3. 当目标是玩家时，还会装载新加入的Cube的数据。
 	 * 4. 等等。
 	 */
-	void moveTo(ObjectId oid, Vector3 position) throws Exception;
+	void moveTo(BObjectId oid, Vector3 position) throws Exception;
 
 	/**
 	 * 整个物体数据全量更新。
@@ -44,5 +44,5 @@ public interface IAoi {
 	 *
 	 * @param editId 编辑分类编号。
 	 */
-	void commitEdit(ObjectId oid, int editId) throws Exception;
+	void commitEdit(BObjectId oid, int editId) throws Exception;
 }
