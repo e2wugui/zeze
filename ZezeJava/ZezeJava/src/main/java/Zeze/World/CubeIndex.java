@@ -65,4 +65,18 @@ public class CubeIndex implements Comparable<CubeIndex> {
 	public String toString() {
 		return "(" + x + "," + y + "," + z + ")";
 	}
+
+	/**
+	 * 垂直距离。x,y,z轴方向上的最大差距的绝对值。
+	 *
+	 * @param other 另一个索引
+	 * @return 垂直距离。
+	 */
+	public long distancePerpendicular(CubeIndex other) {
+		var dx = Math.abs(x - other.x);
+		var dy = Math.abs(y - other.y);
+		var dz = Math.abs(z - other.z);
+
+		return Math.max(Math.max(dx, dy), dz);
+	}
 }

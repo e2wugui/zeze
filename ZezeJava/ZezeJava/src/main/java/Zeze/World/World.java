@@ -2,16 +2,20 @@ package Zeze.World;
 
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
+import Zeze.Arch.ProviderUserSession;
+import Zeze.Arch.ProviderWithOnline;
 import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.Command;
+import Zeze.Builtin.World.ObjectId;
 import Zeze.Builtin.World.Query;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
-import Zeze.World.Aoi.MapManagerDefault;
+import Zeze.World.Aoi.MapManager;
 import Zeze.World.Mmo.MoveMmo;
 import org.jetbrains.annotations.NotNull;
 
@@ -67,6 +71,8 @@ public class World extends AbstractWorld {
 
 	// world core
 	private IMapManager mapManager;
+	private final Function<ProviderUserSession, String> getPlayerId;
+
 
 	public IMapManager getMapManager() {
 		return mapManager;
@@ -110,20 +116,24 @@ public class World extends AbstractWorld {
 
 	@Override
 	protected long ProcessCommand(Command p) throws Exception {
+		var session = ProviderUserSession.get(p);
+
 		var command = commandHandlers.get(p.Argument.getCommandId());
 		if (null == command)
 			return errorCode(eCommandHandlerMissing);
 
-		return command.handle(p);
+		return command.handle(getPlayerId.apply(session), p);
 	}
 
 	@Override
 	protected long ProcessQueryRequest(Query r) throws Exception {
+		var session = ProviderUserSession.get(r);
+
 		var query = queryHandlers.get(r.Argument.getCommandId());
 		if (null == query)
 			return errorCode(eCommandHandlerMissing);
 
-		return query.handle(r);
+		return query.handle(getPlayerId.apply(session), r);
 	}
 
 	public static @NotNull World create(@NotNull AppBase app) {
@@ -134,6 +144,13 @@ public class World extends AbstractWorld {
 		providerApp = app.getZeze().redirect.providerApp;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
+
+		if (providerApp.providerImplement instanceof ProviderWithOnline)
+			getPlayerId = ProviderUserSession::getAccount;
+		else if (providerApp.providerImplement instanceof Zeze.Game.ProviderWithOnline)
+			getPlayerId = ProviderUserSession::getContext;
+		else
+			getPlayerId = null;
 	}
 
 	public void start() throws Exception {
@@ -147,8 +164,12 @@ public class World extends AbstractWorld {
 		// 以后需要了再说。
 	}
 
-	public void initializeDefault() throws Exception {
-		setMapManager(new MapManagerDefault(this));
+	public void initializeDefaultMmo() throws Exception {
+		setMapManager(new MapManager(this));
 		installComponent(new MoveMmo(this));
+	}
+
+	public static String format(ObjectId oid) {
+		return "(" + oid.getType() + "," + oid.getConfigId() + "," + oid.getInstanceId() + ")";
 	}
 }

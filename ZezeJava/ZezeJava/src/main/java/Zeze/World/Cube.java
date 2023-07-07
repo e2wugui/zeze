@@ -6,7 +6,10 @@ import Zeze.Builtin.World.BObject;
 import Zeze.Builtin.World.ObjectId;
 
 public class Cube {
-	private final HashMap<ObjectId, BObject> objects = new HashMap<>();
+	public final CubeIndex index;
+	public final HashMap<ObjectId, BObject> objects = new HashMap<>();
+	public final HashMap<ObjectId, BObject> pending = new HashMap<>();
+
 	private final ReentrantLock lock = new ReentrantLock();
 
 	public final void lock() {
@@ -17,15 +20,7 @@ public class Cube {
 		lock.unlock();
 	}
 
-	public final BObject get(ObjectId oid) {
-		return objects.get(oid);
-	}
-
-	public final void add(ObjectId oid, BObject object) {
-		objects.put(oid, object);
-	}
-
-	public final HashMap<ObjectId, BObject> objects() {
-		return objects;
+	public Cube(CubeIndex index) {
+		this.index = index;
 	}
 }

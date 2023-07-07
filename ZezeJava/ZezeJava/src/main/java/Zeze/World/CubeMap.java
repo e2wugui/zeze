@@ -17,6 +17,8 @@ public class CubeMap {
 	private final int cubeY; // 2d 切割时，cubeY 为 0.
 	private final int cubeZ;
 
+	private IAoi aoi;
+
 	// x-size of cube
 	public final int getCubeX() {
 		return cubeX;
@@ -30,6 +32,14 @@ public class CubeMap {
 	// z-size of cube
 	public final int getCubeZ() {
 		return cubeZ;
+	}
+
+	public IAoi getAoi() {
+		return aoi;
+	}
+
+	public void setAoi(IAoi aoi) {
+		this.aoi = aoi;
 	}
 
 	public final CubeIndex toIndex(Vector3 vector3) {
@@ -76,7 +86,7 @@ public class CubeMap {
 	}
 
 	public final Cube getOrAdd(CubeIndex index) {
-		return cubes.computeIfAbsent(index, (key) -> new Cube());
+		return cubes.computeIfAbsent(index, Cube::new);
 	}
 
 	public final void collect(SortedMap<CubeIndex, Cube> result, CubeIndex index) {
@@ -174,47 +184,18 @@ public class CubeMap {
 		return result;
 	}
 
-	/**
-	 * 返回 center 为中心，+-rangeX, +- rangeY 范围的内的所有Cube，2d切割没有z轴方向.
-	 * @param center 中心
-	 * @param rangeX x轴左右
-	 * @param rangeY y轴左右
-	 * @return cubes
-	 */
-	public final SortedMap<CubeIndex, Cube> center2d(CubeIndex center, int rangeX, int rangeY) {
-		var result = new TreeMap<CubeIndex, Cube>();
-		for (long i = center.x - rangeX; i <= center.x + rangeX; ++i) {
-			for (long j = center.y - rangeY; j <= center.y + rangeY; ++j) {
-				var index = new CubeIndex(i, j);
-				result.put(index, getOrAdd(index));
-			}
-		}
-		return result;
-	}
-
-	public final SortedMap<CubeIndex, Cube> center2d(Vector3 center, int rangeX, int rangeY) {
-		return center2d(toIndex(center), rangeX, rangeY);
-	}
-
-	public final SortedMap<CubeIndex, Cube> center2d(float centerX, float centerY, float centerZ, int rangeX, int rangeY) {
-		return center2d(toIndex(centerX, centerY, centerZ), rangeX, rangeY);
-	}
-
 	////////////////////////////////////////////////////////////
 	// 3d
-	public final SortedMap<CubeIndex, Cube> center3d(Vector3 center, int rangeX, int rangeY, int rangeZ) {
-		return center3d(toIndex(center), rangeX, rangeY,rangeZ);
+	public final SortedMap<CubeIndex, Cube> center(Vector3 center, int rangeX, int rangeY, int rangeZ) {
+		return center(toIndex(center), rangeX, rangeY,rangeZ);
 	}
 
-	public final SortedMap<CubeIndex, Cube> center3d(float centerX, float centerY, float centerZ,
+	public final SortedMap<CubeIndex, Cube> center(float centerX, float centerY, float centerZ,
 													 int rangeX, int rangeY, int rangeZ) {
-		return center3d(toIndex(centerX, centerY, centerZ), rangeX, rangeY,rangeZ);
+		return center(toIndex(centerX, centerY, centerZ), rangeX, rangeY,rangeZ);
 	}
 
-	public final SortedMap<CubeIndex, Cube> center3d(CubeIndex center, int rangeX, int rangeY, int rangeZ) {
-		if (cubeZ == 0)
-			throw new RuntimeException("cube 3d not enabled.");
-
+	public final SortedMap<CubeIndex, Cube> center(CubeIndex center, int rangeX, int rangeY, int rangeZ) {
 		var result = new TreeMap<CubeIndex, Cube>();
 		for (long i = center.x - rangeX; i <= center.x + rangeX; ++i) {
 			for (long j = center.y - rangeY; j <= center.y + rangeY; ++j) {
