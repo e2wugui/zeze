@@ -85,7 +85,7 @@ public class World extends AbstractWorld {
 	}
 
 	public void registerCommand(int commandId, ICommand handler) {
-		if (commandId > BCommand.eReserveCommandId)
+		if (commandId <= BCommand.eReserveCommandId)
 			throw new RuntimeException("command id is reserved");
 
 		internalRegisterCommand(commandId, handler);
