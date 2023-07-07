@@ -7,7 +7,6 @@ public interface BEditDataReadOnly {
     boolean negativeCheck();
     BEditData copy();
 
-    Zeze.Builtin.World.BCubeIndexReadOnly getCubeIndexReadOnly();
     Zeze.Builtin.World.BObjectId getObjectId();
     int getEditId();
     Zeze.Net.Binary getData();

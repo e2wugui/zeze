@@ -1,11 +1,19 @@
 package Zeze.World.Aoi;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import Zeze.Builtin.World.BCommand;
+import Zeze.Builtin.World.BCubeIndex;
+import Zeze.Builtin.World.BCubeIndexs;
+import Zeze.Builtin.World.BCubePutData;
+import Zeze.Builtin.World.BCubeRemoveData;
+import Zeze.Builtin.World.BEditData;
 import Zeze.Builtin.World.BObject;
 import Zeze.Builtin.World.BObjectId;
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.World.CubeIndex;
 import Zeze.World.LockGuard;
@@ -20,6 +28,7 @@ import org.apache.logging.log4j.Logger;
 public class AoiSimple implements IAoi {
 	private static final Logger logger = LogManager.getLogger(AoiSimple.class);
 
+	public final World world;
 	private final CubeMap map;
 	private final int rangeX;
 	private final int rangeY;
@@ -39,11 +48,12 @@ public class AoiSimple implements IAoi {
 		return rangeZ;
 	}
 
-	public AoiSimple(CubeMap map, int rangeX, int rangeZ) {
-		this(map, rangeX, 0, rangeZ);
+	public AoiSimple(World world, CubeMap map, int rangeX, int rangeZ) {
+		this(world, map, rangeX, 0, rangeZ);
 	}
 
-	public AoiSimple(CubeMap map, int rangeX, int rangeY, int rangeZ) {
+	public AoiSimple(World world, CubeMap map, int rangeX, int rangeY, int rangeZ) {
+		this.world = world;
 		this.map = map;
 		this.rangeX = rangeX;
 		this.rangeY = rangeY;
@@ -133,8 +143,8 @@ public class AoiSimple implements IAoi {
 			fastCollectY(fastLeaves, cube.index, -dy);
 			fastCollectZ(fastLeaves, cube.index, -dz);
 
-			processEnters(fastEnters);
-			processLeaves(fastLeaves);
+			processEnters(cube, oid, object, fastEnters);
+			processLeaves(cube, oid, object, fastLeaves);
 			break;
 
 		default:
@@ -143,28 +153,97 @@ public class AoiSimple implements IAoi {
 			var news = map.center(newIndex, rangeX, rangeY, rangeZ);
 			var enters = new TreeMap<CubeIndex, Cube>();
 			diff(olds, news, enters);
-			processEnters(enters);
-			processLeaves(olds);
+			processEnters(cube, oid, object, enters);
+			processLeaves(cube, oid, object, olds);
 			break;
 		}
 	}
 
-	protected void processEnters(SortedMap<CubeIndex, Cube> enters) throws IOException {
+	protected void processEnters(Cube my, BObjectId oid, BObject self,
+								 SortedMap<CubeIndex, Cube> enters) throws IOException {
 		for (var enter : enters.values()) {
+			// 收集玩家对象，用来发送自己进入的通知。
+			var linkSids = new ArrayList<Long>();
 			try (var ignored = new LockGuard(enter)) {
+				var putData = new BCubePutData.Data();
+
+				// 少new一个对象
+				putData.getCubeIndex().setX(enter.index.x);
+				putData.getCubeIndex().setY(enter.index.y);
+				putData.getCubeIndex().setZ(enter.index.z);
+
+				for (var e : enter.objects.entrySet()) {
+					var editData = new BEditData.Data();
+					editData.setObjectId(e.getKey());
+					editData.setEditId(IAoi.eEditIdFull);
+					encodeEdit(IAoi.eEditIdFull, e.getKey(), e.getValue(), editData);
+					putData.getDatas().add(editData);
+
+					linkSids.add(e.getValue().getLinksid());
+					// 限制一次传输过多数据，达到数量，马上发送。
+					if (putData.getDatas().size() > 200) {
+						world.sendCommand(self.getLinksid(), BCommand.eCubePutData, putData);
+						putData.getDatas().clear();
+					}
+				}
+
+				if (!putData.getDatas().isEmpty()) {
+					world.sendCommand(self.getLinksid(), BCommand.eCubePutData, putData);
+				}
+			}
+			// encode 自己的数据。
+			{
+				var myData = new BCubePutData.Data();
+				myData.getCubeIndex().setX(my.index.x);
+				myData.getCubeIndex().setY(my.index.y);
+				myData.getCubeIndex().setZ(my.index.z);
+				var editData = new BEditData.Data();
+				editData.setObjectId(oid);
+				editData.setEditId(IAoi.eEditIdFull);
+				encodeEdit(IAoi.eEditIdFull, oid, self, editData);
+				myData.getDatas().add(editData);
+				world.sendCommand(linkSids, BCommand.eCubePutData, myData);
 			}
 		}
 	}
 
-	protected void encodeEdit(int editId, BObjectId oid, BObject obj, ByteBuffer bb) {
+	@SuppressWarnings("MethodMayBeStatic")
+	public void encodeEdit(int editId, BObjectId oid, BObject data, BEditData.Data edit) {
+		if (editId != IAoi.eEditIdFull)
+			throw new RuntimeException("special editId found, but encodeEdit not override.");
 
+		// eEditIdFull 默认实现是传输整个对象数据。
+		// 实际上这个一般也需要定制。
+
+		var bb = ByteBuffer.Allocate();
+		data.encode(bb);
+		edit.setData(new Binary(bb));
 	}
 
-	protected void processLeaves(SortedMap<CubeIndex, Cube> leaves) {
-		// 【优化】客户端也使用CubeMap结构组织数据，那么只需要打包发送所有leaves的CubeIndex.
+	protected void processLeaves(Cube my, BObjectId oid, BObject self,
+								 SortedMap<CubeIndex, Cube> leaves) throws IOException {
+		// 【优化】
+		// 客户端也使用CubeMap结构组织数据，那么只需要打包发送所有leaves的CubeIndex.
+		var indexes = new BCubeIndexs.Data();
 		for (var leave : leaves.values()) {
-
+			indexes.getCubeIndexs().add(new BCubeIndex.Data(leave.index.x, leave.index.y, leave.index.z));
 		}
+		world.sendCommand(self.getLinksid(), BCommand.eCubeLeaves, indexes);
+
+		var linkSids = new ArrayList<Long>();
+		try (var ignored = new LockGuard(leaves)) {
+			for (var cube : leaves.values()) {
+				for (var obj : cube.objects.values())
+					linkSids.add(obj.getLinksid());
+			}
+		}
+
+		var remove = new BCubeRemoveData.Data();
+		remove.getCubeIndex().setX(my.index.x);
+		remove.getCubeIndex().setY(my.index.y);
+		remove.getCubeIndex().setZ(my.index.z);
+		remove.getKeys().add(oid);
+		world.sendCommand(linkSids, BCommand.eCubeRemoveData, remove);
 	}
 
 	/**

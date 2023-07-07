@@ -4,15 +4,13 @@ ConfigEditor 更多自动完成？普通的列默认最近使用的n个值，根
 ConfigEditor enum 现在不支持引用在其他文档定义的，有需要了再来加。
 ----------------------------------------------------------------------------------------------------------------------------------
 DatabaseTikv.OperatesTikv
-Universe Planet Star
 Task
-Focus Document
 c# fresh 有bug？
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 c# 并发上不去，只有4/8.
 c# GenModule.cs 根据 ResultHandle 是否异步，决定 async 和 NewProcedure 的生成方式。
-
+Focus Document
 Zege ChatControl 改成用WebView；
 Zege Notify客户端自行决定排序。
 Zege 消息已读；红点；
@@ -28,9 +26,9 @@ Zege Task
 	timeindex:  day ->set<taskid>
 	date begin <---> date end 限定半年 day ... day
 ------------------------------------------------------------------------------------------------------------------------------
-2023/7/14 v1.2.8 
+2023/7/14 v1.2.8 World Framework; 
 ------------------------------------------------------------------------------------------------------------------------------
-
+Wold Framework
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/6/30 v1.2.7 Dbh2 Move; Threading;  Zege;

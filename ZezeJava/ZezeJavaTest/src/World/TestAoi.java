@@ -43,7 +43,7 @@ public class TestAoi {
 	@Test
 	public void testAioSimple() {
 		var map = new CubeMap(64, 64);
-		var aoi = new AoiSimple(map, 1, 1);
+		var aoi = new AoiSimple(null, map, 1, 1);
 		map.setAoi(aoi); // not used in this test
 
 		var from = map.getOrAdd(new CubeIndex(0, 0, 0));

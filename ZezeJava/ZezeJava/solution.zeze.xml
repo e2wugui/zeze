@@ -1564,7 +1564,10 @@
 
 			<bean name="BObject">
 				<variable id="1" name="Position" type="vector3"/>
-				<variable id="2" name="Data"  type="dynamic">
+				<variable id="2" name="PlayerId" type="string"/>
+				<variable id="3" name="Linksid"  type="long"/>
+
+				<variable id="4" name="Data"      type="dynamic">
 					<GetSpecialTypeIdFromBean value="Zeze.World.World::getSpecialTypeIdFromBean"/>
 					<CreateBeanFromSpecialTypeId value="Zeze.World.World::createBeanFromSpecialTypeId"/>
 					<CreateDataFromSpecialTypeId value="Zeze.World.World::createDataFromSpecialTypeId"/>
@@ -1578,11 +1581,14 @@
 				<enum name="eReserveCommandId" value="2000"/> 保留Id给组件内部用。自定义的必须大于这个值。
 
 				<enum name="eMoveMmo"   value="0"/> handle=server,client
+
 				<enum name="eSwitchWorld"  value="1"/> handle=server
 				<enum name="eEnterWorld"    value="2"/> handle=client
 				<enum name="eEnterConfirm" value="3"/> handle=server
-				<enum name="ePutData"          value="4"/> handle=client
-				<enum name="eRemoveData"  value="5"/> handle=client
+
+				<enum name="eCubePutData"          value="4"/> handle=client
+				<enum name="eCubeRemoveData"  value="5"/> handle=client
+				<enum name="eCubeLeaves"            value="6"/> handle=client
 
 				<variable id="1" name="CommandId" type="int"/>
 				<variable id="2" name="Param" type="binary"/>
@@ -1622,22 +1628,26 @@
 				<variable id="1" name="MapId" type="int"/>
 				<variable id="2" name="MapInstanceId" type="long"/>
 				<variable id="3" name="Position" type="vector3"/>
-				<variable id="4" name="PriorityData" type="BPutData"/> 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
+				<variable id="4" name="PriorityData" type="list[BCubePutData]"/> 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
 			</bean>
 			<bean name="BEnterConfirm">
 				<variable id="1" name="MapInstanceId" type="long"/>
 			</bean>
 			<bean name="BEditData">
+				<variable id="1" name="ObjectId" type="BObjectId"/>
+				<variable id="2" name="EditId" type="int"/>
+				<variable id="3" name="Data" type="binary"/>
+			</bean>
+			<bean name="BCubePutData">
 				<variable id="1" name="CubeIndex" type="BCubeIndex"/>
-				<variable id="2" name="ObjectId" type="BObjectId"/>
-				<variable id="3" name="EditId" type="int"/>
-				<variable id="4" name="Data" type="binary"/>
+				<variable id="2" name="Datas" type="list[BEditData]"/>
 			</bean>
-			<bean name="BPutData">
-				<variable id="1" name="Datas" type="list[BEditData]"/>
+			<bean name="BCubeRemoveData">
+				<variable id="1" name="CubeIndex" type="BCubeIndex"/>
+				<variable id="2" name="Keys" type="list[BObjectId]"/>
 			</bean>
-			<bean name="BRemoveData">
-				<variable id="1" name="Keys" type="list[BObjectId]"/>
+			<bean name="BCubeIndexs">
+				<variable id="1" name="CubeIndexs" type="list[BCubeIndex]"/>
 			</bean>
 			<bean name="BCubeIndex">
 				<variable id="1" name="X" type="long"/>

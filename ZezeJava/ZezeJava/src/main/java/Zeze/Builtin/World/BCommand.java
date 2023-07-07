@@ -13,8 +13,9 @@ public final class BCommand extends Zeze.Transaction.Bean implements BCommandRea
     public static final int eSwitchWorld = 1; // handle=server
     public static final int eEnterWorld = 2; // handle=client
     public static final int eEnterConfirm = 3; // handle=server
-    public static final int ePutData = 4; // handle=client
-    public static final int eRemoveData = 5; // handle=client
+    public static final int eCubePutData = 4; // handle=client
+    public static final int eCubeRemoveData = 5; // handle=client
+    public static final int eCubeLeaves = 6; // handle=client
 
     private int _CommandId;
     private Zeze.Net.Binary _Param;
@@ -252,8 +253,9 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final int eSwitchWorld = 1; // handle=server
     public static final int eEnterWorld = 2; // handle=client
     public static final int eEnterConfirm = 3; // handle=server
-    public static final int ePutData = 4; // handle=client
-    public static final int eRemoveData = 5; // handle=client
+    public static final int eCubePutData = 4; // handle=client
+    public static final int eCubeRemoveData = 5; // handle=client
+    public static final int eCubeLeaves = 6; // handle=client
 
     private int _CommandId;
     private Zeze.Net.Binary _Param;

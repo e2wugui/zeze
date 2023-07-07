@@ -50,7 +50,7 @@ public class MapManager implements IMapManager, ICommand {
 
 	private CubeMap createCubeMap(long instanceId) {
 		var map = new CubeMap(64, 64);
-		map.setAoi(new AoiSimple(map, 1, 1));
+		map.setAoi(new AoiSimple(world, map, 1, 1));
 		return map;
 	}
 

@@ -13,6 +13,8 @@ import Zeze.Builtin.World.Command;
 import Zeze.Builtin.World.BObjectId;
 import Zeze.Builtin.World.Query;
 import Zeze.Collections.BeanFactory;
+import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.World.Aoi.MapManager;
@@ -172,4 +174,18 @@ public class World extends AbstractWorld {
 	public static String format(BObjectId oid) {
 		return "(" + oid.getType() + "," + oid.getConfigId() + "," + oid.getInstanceId() + ")";
 	}
+
+	public void sendCommand(long linkSid, int commandId, Data data) {
+		sendCommand(java.util.List.of(linkSid), commandId, data);
+	}
+
+	public void sendCommand(java.util.List<Long> linkSids, int commandId, Data data) {
+		var cmd = new Command();
+		cmd.Argument.setCommandId(commandId);
+		var bb = ByteBuffer.Allocate();
+		data.encode(bb);
+		cmd.Argument.setParam(new Binary(bb));
+		// todo send
+	}
+
 }
