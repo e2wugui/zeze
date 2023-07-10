@@ -8,5 +8,5 @@ public interface BCubePutDataReadOnly {
     BCubePutData copy();
 
     Zeze.Builtin.World.BCubeIndexReadOnly getCubeIndexReadOnly();
-    Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BEditData, Zeze.Builtin.World.BEditDataReadOnly> getDatasReadOnly();
+    Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BOperate, Zeze.Builtin.World.BOperateReadOnly> getDatasReadOnly();
 }

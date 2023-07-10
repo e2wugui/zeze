@@ -2,6 +2,7 @@ package Zeze.World;
 
 import Zeze.Builtin.World.BObjectId;
 import Zeze.Serialize.Vector3;
+import Zeze.Transaction.Data;
 
 public interface IAoi {
 	/**
@@ -17,15 +18,15 @@ public interface IAoi {
 	 * 1. 玩家视野Cube新增时，装载新增Cube内物体的全部数据。
 	 * 2. 物体视野Cube新增时，通知自己的全部数据给玩家。
  	 */
-	int eEditIdFull = 0;
+	int eOperateIdFull = 0;
 
 	/**
 	 * 物体发生了数据修改，使用这个方法发起变更广播。
-	 * editId > 0 是自定义编辑分类。
+	 * operateId > 0 是自定义编辑分类。
 	 * 例子：
-	 * 1. eEditIdEquip = 1; 玩家装备发生了变化。
-	 * 2. eEditIdHorse = 2; 玩家坐骑发生了变化。
-	 * 3. eEditIdFight = 3; 战斗属性发生了变化。
+	 * 1. eOperateIdEquip = 1; 玩家装备发生了变化。
+	 * 2. eOperateIdHorse = 2; 玩家坐骑发生了变化。
+	 * 3. eOperateIdFight = 3; 战斗属性发生了变化。
 	 * 4. ...
 	 *
 	 * 分类原则：
@@ -34,15 +35,17 @@ public interface IAoi {
 	 * 3. 分类适中。不要过细，也不要过粗。【废话】
 	 *
 	 * 问题：
-	 * 1. 有了分类，每次编辑确定了EditId以后，就不能随便修改编辑数据的范围。
-	 *    如果需求发生了变化，建议新增EditId。
+	 * 1. 有了分类，每次编辑确定了OperateId以后，就不能随便修改编辑数据的范围。
+	 *    如果需求发生了变化，建议新增OperateId。
 	 *
 	 * 自动增量更新探讨：
 	 * 1. zeze实际已有完备的增量更新机制，能精确的把任意改动用最小的带宽把变更传输到客户端并更新它的数据。
-	 * 2. 但是自动增量更新缺失了EditId这样的分类。客户端是拿到了最新的数据，但无法区分到底什么修改了，无法优化操作。
+	 * 2. 但是自动增量更新缺失了OperateId这样的分类。客户端是拿到了最新的数据，但无法区分到底什么修改了，无法优化操作。
 	 * 3. 所以这个方案只适合用来做自动复制之类的功能。比如Raft之间的复制。
 	 *
-	 * @param editId 编辑分类编号。
+	 * @param oid 编辑对象Id。
+	 * @param operateId 操作Id。
+	 * @param operate 编辑操作。仅客户端解释，需要能完成数据编辑，并且拥有完整的操作参数。
 	 */
-	void commitEdit(BObjectId oid, int editId) throws Exception;
+	void notify(BObjectId oid, int operateId, Data operate) throws Exception;
 }

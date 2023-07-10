@@ -10,11 +10,12 @@ import Zeze.Builtin.World.BCubeIndex;
 import Zeze.Builtin.World.BCubeIndexs;
 import Zeze.Builtin.World.BCubePutData;
 import Zeze.Builtin.World.BCubeRemoveData;
-import Zeze.Builtin.World.BEditData;
 import Zeze.Builtin.World.BObject;
 import Zeze.Builtin.World.BObjectId;
+import Zeze.Builtin.World.BOperate;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Data;
 import Zeze.World.CubeIndex;
 import Zeze.World.LockGuard;
 import Zeze.World.World;
@@ -136,10 +137,7 @@ public class AoiSimple implements IAoi {
 
 		// todo 先最大化锁住所有cube，保证可用。
 		//  一次锁住较少的cube的方案需要验证是否可行，备注-微信群里有点分析。
-		// 更新到新的坐标以及cube发生变化时移动数据。
-
 		var dp = (int)cube.index.distancePerpendicular(newIndex);
-
 		switch (dp) {
 		case 0:
 			try (var ignored = new LockGuard(cube, newCube)) {
@@ -211,10 +209,10 @@ public class AoiSimple implements IAoi {
 			putData.getCubeIndex().setZ(enter.index.z);
 
 			for (var e : enter.objects.entrySet()) {
-				var editData = new BEditData.Data();
+				var editData = new BOperate.Data();
 				editData.setObjectId(e.getKey());
-				editData.setEditId(IAoi.eEditIdFull);
-				encodeEdit(IAoi.eEditIdFull, e.getKey(), e.getValue(), editData);
+				editData.setOperateId(IAoi.eOperateIdFull);
+				encodeFull(IAoi.eOperateIdFull, e.getKey(), e.getValue(), editData);
 				putData.getDatas().add(editData);
 
 				if (e.getValue().getLinkName().isEmpty() && e.getValue().getLinkSid() > 0)
@@ -236,10 +234,10 @@ public class AoiSimple implements IAoi {
 				myData.getCubeIndex().setX(my.index.x);
 				myData.getCubeIndex().setY(my.index.y);
 				myData.getCubeIndex().setZ(my.index.z);
-				var editData = new BEditData.Data();
+				var editData = new BOperate.Data();
 				editData.setObjectId(oid);
-				editData.setEditId(IAoi.eEditIdFull);
-				encodeEdit(IAoi.eEditIdFull, oid, self, editData);
+				editData.setOperateId(IAoi.eOperateIdFull);
+				encodeFull(IAoi.eOperateIdFull, oid, self, editData);
 				myData.getDatas().add(editData);
 				world.sendCommand(targets, BCommand.eCubePutData, myData);
 			}
@@ -247,16 +245,15 @@ public class AoiSimple implements IAoi {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public void encodeEdit(int editId, BObjectId oid, BObject data, BEditData.Data edit) {
-		if (editId != IAoi.eEditIdFull)
+	public void encodeFull(int operateId, BObjectId oid, BObject data, BOperate.Data edit) {
+		if (operateId != IAoi.eOperateIdFull)
 			throw new RuntimeException("special editId found, but encodeEdit not override.");
 
-		// eEditIdFull 默认实现是传输整个对象数据。
-		// 实际上这个一般也需要定制。
-
+		// 默认实现是传输整个对象数据。
+		// 【实际上这个一般也需要定制】
 		var bb = ByteBuffer.Allocate();
 		data.encode(bb);
-		edit.setData(new Binary(bb));
+		edit.setParam(new Binary(bb));
 	}
 
 	protected void processLeaves(Cube my, BObjectId oid, BObject self,
@@ -301,7 +298,7 @@ public class AoiSimple implements IAoi {
 	}
 
 	@Override
-	public void commitEdit(BObjectId oid, int editId) {
+	public void notify(BObjectId oid, int operateId, Data operate) {
 
 	}
 }

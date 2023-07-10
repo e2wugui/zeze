@@ -8,7 +8,7 @@ public final class BCubePutData extends Zeze.Transaction.Bean implements BCubePu
     public static final long TYPEID = 302569036718701960L;
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.World.BCubeIndex> _CubeIndex;
-    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BEditData> _Datas;
+    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BOperate> _Datas;
 
     public Zeze.Builtin.World.BCubeIndex getCubeIndex() {
         return _CubeIndex.getValue();
@@ -23,12 +23,12 @@ public final class BCubePutData extends Zeze.Transaction.Bean implements BCubePu
         return _CubeIndex.getValue();
     }
 
-    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BEditData> getDatas() {
+    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BOperate> getDatas() {
         return _Datas;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BEditData, Zeze.Builtin.World.BEditDataReadOnly> getDatasReadOnly() {
+    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BOperate, Zeze.Builtin.World.BOperateReadOnly> getDatasReadOnly() {
         return new Zeze.Transaction.Collections.PList2ReadOnly<>(_Datas);
     }
 
@@ -36,7 +36,7 @@ public final class BCubePutData extends Zeze.Transaction.Bean implements BCubePu
     public BCubePutData() {
         _CubeIndex = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.World.BCubeIndex(), Zeze.Builtin.World.BCubeIndex.class);
         _CubeIndex.variableId(1);
-        _Datas = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.World.BEditData.class);
+        _Datas = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.World.BOperate.class);
         _Datas.variableId(2);
     }
 
@@ -64,7 +64,7 @@ public final class BCubePutData extends Zeze.Transaction.Bean implements BCubePu
         _CubeIndex.setValue(data_CubeIndex);
         _Datas.clear();
         for (var e : other._Datas) {
-            Zeze.Builtin.World.BEditData data = new Zeze.Builtin.World.BEditData();
+            Zeze.Builtin.World.BOperate data = new Zeze.Builtin.World.BOperate();
             data.assign(e);
             _Datas.add(data);
         }
@@ -185,7 +185,7 @@ public final class BCubePutData extends Zeze.Transaction.Bean implements BCubePu
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BEditData(), _t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BOperate(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -240,7 +240,7 @@ public final class BCubePutData extends Zeze.Transaction.Bean implements BCubePu
         _CubeIndex.decodeResultSet(parents, rs);
         parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(_Datas, Zeze.Builtin.World.BEditData.class, rs.getString(_parents_name_ + "Datas"));
+        Zeze.Serialize.Helper.decodeJsonList(_Datas, Zeze.Builtin.World.BOperate.class, rs.getString(_parents_name_ + "Datas"));
     }
 
     @Override
@@ -256,7 +256,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 302569036718701960L;
 
     private Zeze.Builtin.World.BCubeIndex.Data _CubeIndex;
-    private java.util.ArrayList<Zeze.Builtin.World.BEditData.Data> _Datas;
+    private java.util.ArrayList<Zeze.Builtin.World.BOperate.Data> _Datas;
 
     public Zeze.Builtin.World.BCubeIndex.Data getCubeIndex() {
         return _CubeIndex;
@@ -268,11 +268,11 @@ public static final class Data extends Zeze.Transaction.Data {
         _CubeIndex = value;
     }
 
-    public java.util.ArrayList<Zeze.Builtin.World.BEditData.Data> getDatas() {
+    public java.util.ArrayList<Zeze.Builtin.World.BOperate.Data> getDatas() {
         return _Datas;
     }
 
-    public void setDatas(java.util.ArrayList<Zeze.Builtin.World.BEditData.Data> value) {
+    public void setDatas(java.util.ArrayList<Zeze.Builtin.World.BOperate.Data> value) {
         if (value == null)
             throw new IllegalArgumentException();
         _Datas = value;
@@ -285,7 +285,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Builtin.World.BCubeIndex.Data _CubeIndex_, java.util.ArrayList<Zeze.Builtin.World.BEditData.Data> _Datas_) {
+    public Data(Zeze.Builtin.World.BCubeIndex.Data _CubeIndex_, java.util.ArrayList<Zeze.Builtin.World.BOperate.Data> _Datas_) {
         if (_CubeIndex_ == null)
             _CubeIndex_ = new Zeze.Builtin.World.BCubeIndex.Data();
         _CubeIndex = _CubeIndex_;
@@ -316,7 +316,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _CubeIndex.assign(other._CubeIndex.getValue());
         _Datas.clear();
         for (var e : other._Datas) {
-            Zeze.Builtin.World.BEditData.Data data = new Zeze.Builtin.World.BEditData.Data();
+            Zeze.Builtin.World.BOperate.Data data = new Zeze.Builtin.World.BOperate.Data();
             data.assign(e);
             _Datas.add(data);
         }
@@ -438,7 +438,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BEditData.Data(), _t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BOperate.Data(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

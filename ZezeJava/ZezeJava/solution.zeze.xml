@@ -1633,14 +1633,14 @@
 			<bean name="BEnterConfirm">
 				<variable id="1" name="MapInstanceId" type="long"/>
 			</bean>
-			<bean name="BEditData">
+			<bean name="BOperate">
 				<variable id="1" name="ObjectId" type="BObjectId"/>
-				<variable id="2" name="EditId" type="int"/>
-				<variable id="3" name="Data" type="binary"/>
+				<variable id="2" name="OperateId" type="int"/>
+				<variable id="3" name="Param" type="binary"/>
 			</bean>
 			<bean name="BCubePutData">
 				<variable id="1" name="CubeIndex" type="BCubeIndex"/>
-				<variable id="2" name="Datas" type="list[BEditData]"/>
+				<variable id="2" name="Datas" type="list[BOperate]"/>
 			</bean>
 			<bean name="BCubeRemoveData">
 				<variable id="1" name="CubeIndex" type="BCubeIndex"/>

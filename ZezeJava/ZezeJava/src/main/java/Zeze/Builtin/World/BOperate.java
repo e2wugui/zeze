@@ -4,12 +4,12 @@ package Zeze.Builtin.World;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
-public final class BEditData extends Zeze.Transaction.Bean implements BEditDataReadOnly {
-    public static final long TYPEID = 590891812398888016L;
+public final class BOperate extends Zeze.Transaction.Bean implements BOperateReadOnly {
+    public static final long TYPEID = 6459918055829108504L;
 
     private Zeze.Builtin.World.BObjectId _ObjectId;
-    private int _EditId;
-    private Zeze.Net.Binary _Data;
+    private int _OperateId;
+    private Zeze.Net.Binary _Param;
 
     @Override
     public Zeze.Builtin.World.BObjectId getObjectId() {
@@ -34,108 +34,108 @@ public final class BEditData extends Zeze.Transaction.Bean implements BEditDataR
     }
 
     @Override
-    public int getEditId() {
+    public int getOperateId() {
         if (!isManaged())
-            return _EditId;
+            return _OperateId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _EditId;
-        var log = (Log__EditId)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _EditId;
+            return _OperateId;
+        var log = (Log__OperateId)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _OperateId;
     }
 
-    public void setEditId(int value) {
+    public void setOperateId(int value) {
         if (!isManaged()) {
-            _EditId = value;
+            _OperateId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__EditId(this, 2, value));
+        txn.putLog(new Log__OperateId(this, 2, value));
     }
 
     @Override
-    public Zeze.Net.Binary getData() {
+    public Zeze.Net.Binary getParam() {
         if (!isManaged())
-            return _Data;
+            return _Param;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _Data;
-        var log = (Log__Data)txn.getLog(objectId() + 3);
-        return log != null ? log.value : _Data;
+            return _Param;
+        var log = (Log__Param)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Param;
     }
 
-    public void setData(Zeze.Net.Binary value) {
+    public void setParam(Zeze.Net.Binary value) {
         if (value == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Data = value;
+            _Param = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Data(this, 3, value));
+        txn.putLog(new Log__Param(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BEditData() {
+    public BOperate() {
         _ObjectId = new Zeze.Builtin.World.BObjectId();
-        _Data = Zeze.Net.Binary.Empty;
+        _Param = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BEditData(Zeze.Builtin.World.BObjectId _ObjectId_, int _EditId_, Zeze.Net.Binary _Data_) {
+    public BOperate(Zeze.Builtin.World.BObjectId _ObjectId_, int _OperateId_, Zeze.Net.Binary _Param_) {
         if (_ObjectId_ == null)
             _ObjectId_ = new Zeze.Builtin.World.BObjectId();
         _ObjectId = _ObjectId_;
-        _EditId = _EditId_;
-        if (_Data_ == null)
-            _Data_ = Zeze.Net.Binary.Empty;
-        _Data = _Data_;
+        _OperateId = _OperateId_;
+        if (_Param_ == null)
+            _Param_ = Zeze.Net.Binary.Empty;
+        _Param = _Param_;
     }
 
     @Override
     public void reset() {
         setObjectId(new Zeze.Builtin.World.BObjectId());
-        setEditId(0);
-        setData(Zeze.Net.Binary.Empty);
+        setOperateId(0);
+        setParam(Zeze.Net.Binary.Empty);
     }
 
     @Override
-    public Zeze.Builtin.World.BEditData.Data toData() {
-        var data = new Zeze.Builtin.World.BEditData.Data();
+    public Zeze.Builtin.World.BOperate.Data toData() {
+        var data = new Zeze.Builtin.World.BOperate.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.World.BEditData.Data)other);
+        assign((Zeze.Builtin.World.BOperate.Data)other);
     }
 
-    public void assign(BEditData.Data other) {
+    public void assign(BOperate.Data other) {
         setObjectId(other._ObjectId);
-        setEditId(other._EditId);
-        setData(other._Data);
+        setOperateId(other._OperateId);
+        setParam(other._Param);
     }
 
-    public void assign(BEditData other) {
+    public void assign(BOperate other) {
         setObjectId(other.getObjectId());
-        setEditId(other.getEditId());
-        setData(other.getData());
+        setOperateId(other.getOperateId());
+        setParam(other.getParam());
     }
 
-    public BEditData copyIfManaged() {
+    public BOperate copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BEditData copy() {
-        var copy = new BEditData();
+    public BOperate copy() {
+        var copy = new BOperate();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BEditData a, BEditData b) {
-        BEditData save = a.copy();
+    public static void swap(BOperate a, BOperate b) {
+        BOperate save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -146,24 +146,24 @@ public final class BEditData extends Zeze.Transaction.Bean implements BEditDataR
     }
 
     private static final class Log__ObjectId extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.World.BObjectId> {
-        public Log__ObjectId(BEditData bean, int varId, Zeze.Builtin.World.BObjectId value) { super(Zeze.Builtin.World.BObjectId.class, bean, varId, value); }
+        public Log__ObjectId(BOperate bean, int varId, Zeze.Builtin.World.BObjectId value) { super(Zeze.Builtin.World.BObjectId.class, bean, varId, value); }
 
         @Override
-        public void commit() { ((BEditData)getBelong())._ObjectId = value; }
+        public void commit() { ((BOperate)getBelong())._ObjectId = value; }
     }
 
-    private static final class Log__EditId extends Zeze.Transaction.Logs.LogInt {
-        public Log__EditId(BEditData bean, int varId, int value) { super(bean, varId, value); }
+    private static final class Log__OperateId extends Zeze.Transaction.Logs.LogInt {
+        public Log__OperateId(BOperate bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BEditData)getBelong())._EditId = value; }
+        public void commit() { ((BOperate)getBelong())._OperateId = value; }
     }
 
-    private static final class Log__Data extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Data(BEditData bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+    private static final class Log__Param extends Zeze.Transaction.Logs.LogBinary {
+        public Log__Param(BOperate bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BEditData)getBelong())._Data = value; }
+        public void commit() { ((BOperate)getBelong())._Param = value; }
     }
 
     @Override
@@ -175,13 +175,13 @@ public final class BEditData extends Zeze.Transaction.Bean implements BEditDataR
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BEditData: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BOperate: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ObjectId=").append(System.lineSeparator());
         getObjectId().buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("EditId=").append(getEditId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Data=").append(getData()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OperateId=").append(getOperateId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Param=").append(getParam()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -212,14 +212,14 @@ public final class BEditData extends Zeze.Transaction.Bean implements BEditDataR
                 _i_ = _j_;
         }
         {
-            int _x_ = getEditId();
+            int _x_ = getOperateId();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
-            var _x_ = getData();
+            var _x_ = getParam();
             if (_x_.size() != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
@@ -237,11 +237,11 @@ public final class BEditData extends Zeze.Transaction.Bean implements BEditDataR
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setEditId(_o_.ReadInt(_t_));
+            setOperateId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setData(_o_.ReadBinary(_t_));
+            setParam(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -254,7 +254,7 @@ public final class BEditData extends Zeze.Transaction.Bean implements BEditDataR
     public boolean negativeCheck() {
         if (getObjectId().negativeCheck())
             return true;
-        if (getEditId() < 0)
+        if (getOperateId() < 0)
             return true;
         return false;
     }
@@ -269,8 +269,8 @@ public final class BEditData extends Zeze.Transaction.Bean implements BEditDataR
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _ObjectId = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.World.BObjectId>)vlog).value; break;
-                case 2: _EditId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _Data = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 2: _OperateId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _Param = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }
@@ -281,10 +281,10 @@ public final class BEditData extends Zeze.Transaction.Bean implements BEditDataR
         getObjectId().decodeResultSet(parents, rs);
         parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setEditId(rs.getInt(_parents_name_ + "EditId"));
-        setData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Data")));
-        if (getData() == null)
-            setData(Zeze.Net.Binary.Empty);
+        setOperateId(rs.getInt(_parents_name_ + "OperateId"));
+        setParam(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Param")));
+        if (getParam() == null)
+            setParam(Zeze.Net.Binary.Empty);
     }
 
     @Override
@@ -293,16 +293,16 @@ public final class BEditData extends Zeze.Transaction.Bean implements BEditDataR
         getObjectId().encodeSQLStatement(parents, st);
         parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "EditId", getEditId());
-        st.appendBinary(_parents_name_ + "Data", getData());
+        st.appendInt(_parents_name_ + "OperateId", getOperateId());
+        st.appendBinary(_parents_name_ + "Param", getParam());
     }
 
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = 590891812398888016L;
+    public static final long TYPEID = 6459918055829108504L;
 
     private Zeze.Builtin.World.BObjectId _ObjectId;
-    private int _EditId;
-    private Zeze.Net.Binary _Data;
+    private int _OperateId;
+    private Zeze.Net.Binary _Param;
 
     public Zeze.Builtin.World.BObjectId getObjectId() {
         return _ObjectId;
@@ -314,80 +314,80 @@ public static final class Data extends Zeze.Transaction.Data {
         _ObjectId = value;
     }
 
-    public int getEditId() {
-        return _EditId;
+    public int getOperateId() {
+        return _OperateId;
     }
 
-    public void setEditId(int value) {
-        _EditId = value;
+    public void setOperateId(int value) {
+        _OperateId = value;
     }
 
-    public Zeze.Net.Binary getData() {
-        return _Data;
+    public Zeze.Net.Binary getParam() {
+        return _Param;
     }
 
-    public void setData(Zeze.Net.Binary value) {
+    public void setParam(Zeze.Net.Binary value) {
         if (value == null)
             throw new IllegalArgumentException();
-        _Data = value;
+        _Param = value;
     }
 
     @SuppressWarnings("deprecation")
     public Data() {
         _ObjectId = new Zeze.Builtin.World.BObjectId();
-        _Data = Zeze.Net.Binary.Empty;
+        _Param = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Builtin.World.BObjectId _ObjectId_, int _EditId_, Zeze.Net.Binary _Data_) {
+    public Data(Zeze.Builtin.World.BObjectId _ObjectId_, int _OperateId_, Zeze.Net.Binary _Param_) {
         if (_ObjectId_ == null)
             _ObjectId_ = new Zeze.Builtin.World.BObjectId();
         _ObjectId = _ObjectId_;
-        _EditId = _EditId_;
-        if (_Data_ == null)
-            _Data_ = Zeze.Net.Binary.Empty;
-        _Data = _Data_;
+        _OperateId = _OperateId_;
+        if (_Param_ == null)
+            _Param_ = Zeze.Net.Binary.Empty;
+        _Param = _Param_;
     }
 
     @Override
     public void reset() {
         _ObjectId = new Zeze.Builtin.World.BObjectId();
-        _EditId = 0;
-        _Data = Zeze.Net.Binary.Empty;
+        _OperateId = 0;
+        _Param = Zeze.Net.Binary.Empty;
     }
 
     @Override
-    public Zeze.Builtin.World.BEditData toBean() {
-        var bean = new Zeze.Builtin.World.BEditData();
+    public Zeze.Builtin.World.BOperate toBean() {
+        var bean = new Zeze.Builtin.World.BOperate();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BEditData)other);
+        assign((BOperate)other);
     }
 
-    public void assign(BEditData other) {
+    public void assign(BOperate other) {
         _ObjectId = other.getObjectId();
-        _EditId = other.getEditId();
-        _Data = other.getData();
+        _OperateId = other.getOperateId();
+        _Param = other.getParam();
     }
 
-    public void assign(BEditData.Data other) {
+    public void assign(BOperate.Data other) {
         _ObjectId = other._ObjectId;
-        _EditId = other._EditId;
-        _Data = other._Data;
+        _OperateId = other._OperateId;
+        _Param = other._Param;
     }
 
     @Override
-    public BEditData.Data copy() {
-        var copy = new BEditData.Data();
+    public BOperate.Data copy() {
+        var copy = new BOperate.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BEditData.Data a, BEditData.Data b) {
+    public static void swap(BOperate.Data a, BOperate.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -399,8 +399,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BEditData.Data clone() {
-        return (BEditData.Data)super.clone();
+    public BOperate.Data clone() {
+        return (BOperate.Data)super.clone();
     }
 
     @Override
@@ -412,13 +412,13 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BEditData: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BOperate: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ObjectId=").append(System.lineSeparator());
         _ObjectId.buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("EditId=").append(_EditId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Data=").append(_Data).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OperateId=").append(_OperateId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Param=").append(_Param).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -449,14 +449,14 @@ public static final class Data extends Zeze.Transaction.Data {
                 _i_ = _j_;
         }
         {
-            int _x_ = _EditId;
+            int _x_ = _OperateId;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
-            var _x_ = _Data;
+            var _x_ = _Param;
             if (_x_.size() != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
@@ -474,11 +474,11 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            _EditId = _o_.ReadInt(_t_);
+            _OperateId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            _Data = _o_.ReadBinary(_t_);
+            _Param = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
