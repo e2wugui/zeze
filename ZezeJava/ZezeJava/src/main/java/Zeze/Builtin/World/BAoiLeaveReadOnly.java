@@ -1,12 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.World;
 
-public interface BCubePutDataReadOnly {
+public interface BAoiLeaveReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BCubePutData copy();
+    BAoiLeave copy();
 
     Zeze.Builtin.World.BCubeIndexReadOnly getCubeIndexReadOnly();
-    Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BOperate, Zeze.Builtin.World.BOperateReadOnly> getDatasReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Builtin.World.BObjectId> getKeysReadOnly();
 }

@@ -16,7 +16,6 @@ public class LockGuard implements Closeable {
 		for (var cube : cubes.values())
 			cube.lock();
 		this.cubes = cubes;
-		this.cube = null;
 	}
 
 	public LockGuard(SortedMap<CubeIndex, Cube> cubes) {

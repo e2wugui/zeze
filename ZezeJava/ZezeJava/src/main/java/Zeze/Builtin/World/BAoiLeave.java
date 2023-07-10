@@ -4,8 +4,8 @@ package Zeze.Builtin.World;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
-public final class BCubeRemoveData extends Zeze.Transaction.Bean implements BCubeRemoveDataReadOnly {
-    public static final long TYPEID = -2639452320898616559L;
+public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveReadOnly {
+    public static final long TYPEID = -3352260530196898056L;
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.World.BCubeIndex> _CubeIndex;
     private final Zeze.Transaction.Collections.PList1<Zeze.Builtin.World.BObjectId> _Keys;
@@ -33,7 +33,7 @@ public final class BCubeRemoveData extends Zeze.Transaction.Bean implements BCub
     }
 
     @SuppressWarnings("deprecation")
-    public BCubeRemoveData() {
+    public BAoiLeave() {
         _CubeIndex = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.World.BCubeIndex(), Zeze.Builtin.World.BCubeIndex.class);
         _CubeIndex.variableId(1);
         _Keys = new Zeze.Transaction.Collections.PList1<>(Zeze.Builtin.World.BObjectId.class);
@@ -47,18 +47,18 @@ public final class BCubeRemoveData extends Zeze.Transaction.Bean implements BCub
     }
 
     @Override
-    public Zeze.Builtin.World.BCubeRemoveData.Data toData() {
-        var data = new Zeze.Builtin.World.BCubeRemoveData.Data();
+    public Zeze.Builtin.World.BAoiLeave.Data toData() {
+        var data = new Zeze.Builtin.World.BAoiLeave.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.World.BCubeRemoveData.Data)other);
+        assign((Zeze.Builtin.World.BAoiLeave.Data)other);
     }
 
-    public void assign(BCubeRemoveData.Data other) {
+    public void assign(BAoiLeave.Data other) {
         Zeze.Builtin.World.BCubeIndex data_CubeIndex = new Zeze.Builtin.World.BCubeIndex();
         data_CubeIndex.assign(other._CubeIndex);
         _CubeIndex.setValue(data_CubeIndex);
@@ -66,25 +66,25 @@ public final class BCubeRemoveData extends Zeze.Transaction.Bean implements BCub
         _Keys.addAll(other._Keys);
     }
 
-    public void assign(BCubeRemoveData other) {
+    public void assign(BAoiLeave other) {
         _CubeIndex.assign(other._CubeIndex);
         _Keys.clear();
         _Keys.addAll(other._Keys);
     }
 
-    public BCubeRemoveData copyIfManaged() {
+    public BAoiLeave copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BCubeRemoveData copy() {
-        var copy = new BCubeRemoveData();
+    public BAoiLeave copy() {
+        var copy = new BAoiLeave();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BCubeRemoveData a, BCubeRemoveData b) {
-        BCubeRemoveData save = a.copy();
+    public static void swap(BAoiLeave a, BAoiLeave b) {
+        BAoiLeave save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -103,7 +103,7 @@ public final class BCubeRemoveData extends Zeze.Transaction.Bean implements BCub
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BCubeRemoveData: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiLeave: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("CubeIndex=").append(System.lineSeparator());
         _CubeIndex.buildString(sb, level + 4);
@@ -248,7 +248,7 @@ public final class BCubeRemoveData extends Zeze.Transaction.Bean implements BCub
     }
 
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = -2639452320898616559L;
+    public static final long TYPEID = -3352260530196898056L;
 
     private Zeze.Builtin.World.BCubeIndex.Data _CubeIndex;
     private java.util.ArrayList<Zeze.Builtin.World.BObjectId> _Keys;
@@ -296,37 +296,37 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public Zeze.Builtin.World.BCubeRemoveData toBean() {
-        var bean = new Zeze.Builtin.World.BCubeRemoveData();
+    public Zeze.Builtin.World.BAoiLeave toBean() {
+        var bean = new Zeze.Builtin.World.BAoiLeave();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BCubeRemoveData)other);
+        assign((BAoiLeave)other);
     }
 
-    public void assign(BCubeRemoveData other) {
+    public void assign(BAoiLeave other) {
         _CubeIndex.assign(other._CubeIndex.getValue());
         _Keys.clear();
         _Keys.addAll(other._Keys);
     }
 
-    public void assign(BCubeRemoveData.Data other) {
+    public void assign(BAoiLeave.Data other) {
         _CubeIndex.assign(other._CubeIndex);
         _Keys.clear();
         _Keys.addAll(other._Keys);
     }
 
     @Override
-    public BCubeRemoveData.Data copy() {
-        var copy = new BCubeRemoveData.Data();
+    public BAoiLeave.Data copy() {
+        var copy = new BAoiLeave.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BCubeRemoveData.Data a, BCubeRemoveData.Data b) {
+    public static void swap(BAoiLeave.Data a, BAoiLeave.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -338,8 +338,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BCubeRemoveData.Data clone() {
-        return (BCubeRemoveData.Data)super.clone();
+    public BAoiLeave.Data clone() {
+        return (BAoiLeave.Data)super.clone();
     }
 
     @Override
@@ -351,7 +351,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BCubeRemoveData: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiLeave: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("CubeIndex=").append(System.lineSeparator());
         _CubeIndex.buildString(sb, level + 4);

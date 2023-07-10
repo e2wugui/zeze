@@ -1,11 +1,11 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.World;
 
-public interface BOperateReadOnly {
+public interface BAoiOperateReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BOperate copy();
+    BAoiOperate copy();
 
     Zeze.Builtin.World.BObjectId getObjectId();
     int getOperateId();

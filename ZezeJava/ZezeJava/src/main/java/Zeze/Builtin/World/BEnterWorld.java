@@ -10,7 +10,7 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
     private int _MapId;
     private long _MapInstanceId;
     private Zeze.Serialize.Vector3 _Position;
-    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BCubePutData> _PriorityData; // 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
+    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BAoiOperates> _PriorityData; // 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
 
     @Override
     public int getMapId() {
@@ -74,19 +74,19 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
         txn.putLog(new Log__Position(this, 3, value));
     }
 
-    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BCubePutData> getPriorityData() {
+    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BAoiOperates> getPriorityData() {
         return _PriorityData;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BCubePutData, Zeze.Builtin.World.BCubePutDataReadOnly> getPriorityDataReadOnly() {
+    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BAoiOperates, Zeze.Builtin.World.BAoiOperatesReadOnly> getPriorityDataReadOnly() {
         return new Zeze.Transaction.Collections.PList2ReadOnly<>(_PriorityData);
     }
 
     @SuppressWarnings("deprecation")
     public BEnterWorld() {
         _Position = Zeze.Serialize.Vector3.ZERO;
-        _PriorityData = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.World.BCubePutData.class);
+        _PriorityData = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.World.BAoiOperates.class);
         _PriorityData.variableId(4);
     }
 
@@ -97,7 +97,7 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
         if (_Position_ == null)
             _Position_ = Zeze.Serialize.Vector3.ZERO;
         _Position = _Position_;
-        _PriorityData = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.World.BCubePutData.class);
+        _PriorityData = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.World.BAoiOperates.class);
         _PriorityData.variableId(4);
     }
 
@@ -127,7 +127,7 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
         setPosition(other._Position);
         _PriorityData.clear();
         for (var e : other._PriorityData) {
-            Zeze.Builtin.World.BCubePutData data = new Zeze.Builtin.World.BCubePutData();
+            Zeze.Builtin.World.BAoiOperates data = new Zeze.Builtin.World.BAoiOperates();
             data.assign(e);
             _PriorityData.add(data);
         }
@@ -290,7 +290,7 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BCubePutData(), _t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BAoiOperates(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -349,7 +349,7 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
         parents.add("Position");
         setPosition(Zeze.Serialize.Helper.decodeVector3(parents, rs));
         parents.remove(parents.size() - 1);
-        Zeze.Serialize.Helper.decodeJsonList(_PriorityData, Zeze.Builtin.World.BCubePutData.class, rs.getString(_parents_name_ + "PriorityData"));
+        Zeze.Serialize.Helper.decodeJsonList(_PriorityData, Zeze.Builtin.World.BAoiOperates.class, rs.getString(_parents_name_ + "PriorityData"));
     }
 
     @Override
@@ -369,7 +369,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private int _MapId;
     private long _MapInstanceId;
     private Zeze.Serialize.Vector3 _Position;
-    private java.util.ArrayList<Zeze.Builtin.World.BCubePutData.Data> _PriorityData; // 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
+    private java.util.ArrayList<Zeze.Builtin.World.BAoiOperates.Data> _PriorityData; // 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
 
     public int getMapId() {
         return _MapId;
@@ -397,11 +397,11 @@ public static final class Data extends Zeze.Transaction.Data {
         _Position = value;
     }
 
-    public java.util.ArrayList<Zeze.Builtin.World.BCubePutData.Data> getPriorityData() {
+    public java.util.ArrayList<Zeze.Builtin.World.BAoiOperates.Data> getPriorityData() {
         return _PriorityData;
     }
 
-    public void setPriorityData(java.util.ArrayList<Zeze.Builtin.World.BCubePutData.Data> value) {
+    public void setPriorityData(java.util.ArrayList<Zeze.Builtin.World.BAoiOperates.Data> value) {
         if (value == null)
             throw new IllegalArgumentException();
         _PriorityData = value;
@@ -414,7 +414,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _MapId_, long _MapInstanceId_, Zeze.Serialize.Vector3 _Position_, java.util.ArrayList<Zeze.Builtin.World.BCubePutData.Data> _PriorityData_) {
+    public Data(int _MapId_, long _MapInstanceId_, Zeze.Serialize.Vector3 _Position_, java.util.ArrayList<Zeze.Builtin.World.BAoiOperates.Data> _PriorityData_) {
         _MapId = _MapId_;
         _MapInstanceId = _MapInstanceId_;
         if (_Position_ == null)
@@ -451,7 +451,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _Position = other.getPosition();
         _PriorityData.clear();
         for (var e : other._PriorityData) {
-            Zeze.Builtin.World.BCubePutData.Data data = new Zeze.Builtin.World.BCubePutData.Data();
+            Zeze.Builtin.World.BAoiOperates.Data data = new Zeze.Builtin.World.BAoiOperates.Data();
             data.assign(e);
             _PriorityData.add(data);
         }
@@ -594,7 +594,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BCubePutData.Data(), _t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BAoiOperates.Data(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

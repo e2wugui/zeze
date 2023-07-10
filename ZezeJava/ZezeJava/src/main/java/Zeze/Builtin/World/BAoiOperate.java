@@ -4,8 +4,8 @@ package Zeze.Builtin.World;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
-public final class BOperate extends Zeze.Transaction.Bean implements BOperateReadOnly {
-    public static final long TYPEID = 6459918055829108504L;
+public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOperateReadOnly {
+    public static final long TYPEID = 7467019147847621003L;
 
     private Zeze.Builtin.World.BObjectId _ObjectId;
     private int _OperateId;
@@ -76,13 +76,13 @@ public final class BOperate extends Zeze.Transaction.Bean implements BOperateRea
     }
 
     @SuppressWarnings("deprecation")
-    public BOperate() {
+    public BAoiOperate() {
         _ObjectId = new Zeze.Builtin.World.BObjectId();
         _Param = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BOperate(Zeze.Builtin.World.BObjectId _ObjectId_, int _OperateId_, Zeze.Net.Binary _Param_) {
+    public BAoiOperate(Zeze.Builtin.World.BObjectId _ObjectId_, int _OperateId_, Zeze.Net.Binary _Param_) {
         if (_ObjectId_ == null)
             _ObjectId_ = new Zeze.Builtin.World.BObjectId();
         _ObjectId = _ObjectId_;
@@ -100,42 +100,42 @@ public final class BOperate extends Zeze.Transaction.Bean implements BOperateRea
     }
 
     @Override
-    public Zeze.Builtin.World.BOperate.Data toData() {
-        var data = new Zeze.Builtin.World.BOperate.Data();
+    public Zeze.Builtin.World.BAoiOperate.Data toData() {
+        var data = new Zeze.Builtin.World.BAoiOperate.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.World.BOperate.Data)other);
+        assign((Zeze.Builtin.World.BAoiOperate.Data)other);
     }
 
-    public void assign(BOperate.Data other) {
+    public void assign(BAoiOperate.Data other) {
         setObjectId(other._ObjectId);
         setOperateId(other._OperateId);
         setParam(other._Param);
     }
 
-    public void assign(BOperate other) {
+    public void assign(BAoiOperate other) {
         setObjectId(other.getObjectId());
         setOperateId(other.getOperateId());
         setParam(other.getParam());
     }
 
-    public BOperate copyIfManaged() {
+    public BAoiOperate copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BOperate copy() {
-        var copy = new BOperate();
+    public BAoiOperate copy() {
+        var copy = new BAoiOperate();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BOperate a, BOperate b) {
-        BOperate save = a.copy();
+    public static void swap(BAoiOperate a, BAoiOperate b) {
+        BAoiOperate save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -146,24 +146,24 @@ public final class BOperate extends Zeze.Transaction.Bean implements BOperateRea
     }
 
     private static final class Log__ObjectId extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.World.BObjectId> {
-        public Log__ObjectId(BOperate bean, int varId, Zeze.Builtin.World.BObjectId value) { super(Zeze.Builtin.World.BObjectId.class, bean, varId, value); }
+        public Log__ObjectId(BAoiOperate bean, int varId, Zeze.Builtin.World.BObjectId value) { super(Zeze.Builtin.World.BObjectId.class, bean, varId, value); }
 
         @Override
-        public void commit() { ((BOperate)getBelong())._ObjectId = value; }
+        public void commit() { ((BAoiOperate)getBelong())._ObjectId = value; }
     }
 
     private static final class Log__OperateId extends Zeze.Transaction.Logs.LogInt {
-        public Log__OperateId(BOperate bean, int varId, int value) { super(bean, varId, value); }
+        public Log__OperateId(BAoiOperate bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BOperate)getBelong())._OperateId = value; }
+        public void commit() { ((BAoiOperate)getBelong())._OperateId = value; }
     }
 
     private static final class Log__Param extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Param(BOperate bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__Param(BAoiOperate bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BOperate)getBelong())._Param = value; }
+        public void commit() { ((BAoiOperate)getBelong())._Param = value; }
     }
 
     @Override
@@ -175,7 +175,7 @@ public final class BOperate extends Zeze.Transaction.Bean implements BOperateRea
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BOperate: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiOperate: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ObjectId=").append(System.lineSeparator());
         getObjectId().buildString(sb, level + 4);
@@ -298,7 +298,7 @@ public final class BOperate extends Zeze.Transaction.Bean implements BOperateRea
     }
 
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = 6459918055829108504L;
+    public static final long TYPEID = 7467019147847621003L;
 
     private Zeze.Builtin.World.BObjectId _ObjectId;
     private int _OperateId;
@@ -357,37 +357,37 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public Zeze.Builtin.World.BOperate toBean() {
-        var bean = new Zeze.Builtin.World.BOperate();
+    public Zeze.Builtin.World.BAoiOperate toBean() {
+        var bean = new Zeze.Builtin.World.BAoiOperate();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BOperate)other);
+        assign((BAoiOperate)other);
     }
 
-    public void assign(BOperate other) {
+    public void assign(BAoiOperate other) {
         _ObjectId = other.getObjectId();
         _OperateId = other.getOperateId();
         _Param = other.getParam();
     }
 
-    public void assign(BOperate.Data other) {
+    public void assign(BAoiOperate.Data other) {
         _ObjectId = other._ObjectId;
         _OperateId = other._OperateId;
         _Param = other._Param;
     }
 
     @Override
-    public BOperate.Data copy() {
-        var copy = new BOperate.Data();
+    public BAoiOperate.Data copy() {
+        var copy = new BAoiOperate.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BOperate.Data a, BOperate.Data b) {
+    public static void swap(BAoiOperate.Data a, BAoiOperate.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -399,8 +399,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BOperate.Data clone() {
-        return (BOperate.Data)super.clone();
+    public BAoiOperate.Data clone() {
+        return (BAoiOperate.Data)super.clone();
     }
 
     @Override
@@ -412,7 +412,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BOperate: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiOperate: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ObjectId=").append(System.lineSeparator());
         _ObjectId.buildString(sb, level + 4);

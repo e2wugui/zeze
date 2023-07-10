@@ -1586,9 +1586,10 @@
 				<enum name="eEnterWorld"    value="2"/> handle=client
 				<enum name="eEnterConfirm" value="3"/> handle=server
 
-				<enum name="eCubePutData"          value="4"/> handle=client
-				<enum name="eCubeRemoveData"  value="5"/> handle=client
-				<enum name="eCubeLeaves"            value="6"/> handle=client
+				<enum name="eAoiOperate"  value="4"/> handle=client
+				<enum name="eAoiEnter"       value="5"/> handle=client，客户端把eAoiOperate按Put原则处理数据时，可以和eAoiOperate一样的处理。
+				<enum name="eAoiLeave"      value="6"/> handle=client
+				<enum name="eAoiLeaves"    value="7"/> handle=client，Leave的优化版本，按Cube整体Leave。
 
 				<variable id="1" name="CommandId" type="int"/>
 				<variable id="2" name="Param" type="binary"/>
@@ -1611,14 +1612,17 @@
 			server send EnterWorld(mapId, mapInstanceId, position) 服务器通知玩家无条件切换地图。
 			client  load mapId's resource 客户端显示Loading界面（可选），装载资源。
 			client  send EnterConfirm(mapInstanceId) 客户端发送装载完成，服务器收到以后让这个玩家可以被其他人看到，并且开始同步数据。
-			server send PutData(data). 服务器开始发送动态数据，可能分批发送。
+			server send AoiEnter(data). 服务器开始发送动态数据，可能分批发送。还有一些重要的数据在上面的EnterWorld时就发送。
 			-->
-			<!-- 为了不污染根空间，定义成Command了。
+			<!-- 为了不污染根空间，改成Command了。
 			<protocol name="SwitchWorld" argument="BSwitchWorld" handle="server"/> mapId==-1，进入地图由服务器控制，此时仅仅表示客户端准备好进入地图了。
 			<protocol name="EnterWorld" argument="BEnterWorld" handle="client"/>
 			<protocol name="EnterConfirm" argument="BEnterConfirm" handle="server"/>
-			<protocol name="PutData" argument="BPutData" handle="client"/>
-			<protocol name="RemoveData" argument="BRemoveData" handle="client"/>
+
+			Aoi-Notify
+			<protocol name="AoiEnter" argument="BAoiEnter" handle="client"/>
+			<protocol name="AoiOperate" argument="BAoiOperate" handle="client"/>
+			<protocol name="AoiLeave" argument="BAoiLeave" handle="client"/>
 			-->
 
 			<bean name="BSwitchWorld">
@@ -1628,25 +1632,25 @@
 				<variable id="1" name="MapId" type="int"/>
 				<variable id="2" name="MapInstanceId" type="long"/>
 				<variable id="3" name="Position" type="vector3"/>
-				<variable id="4" name="PriorityData" type="list[BCubePutData]"/> 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
+				<variable id="4" name="PriorityData" type="list[BAoiOperates]"/> 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
 			</bean>
 			<bean name="BEnterConfirm">
 				<variable id="1" name="MapInstanceId" type="long"/>
 			</bean>
-			<bean name="BOperate">
+			<bean name="BAoiOperate">
 				<variable id="1" name="ObjectId" type="BObjectId"/>
 				<variable id="2" name="OperateId" type="int"/>
 				<variable id="3" name="Param" type="binary"/>
 			</bean>
-			<bean name="BCubePutData">
+			<bean name="BAoiOperates">
 				<variable id="1" name="CubeIndex" type="BCubeIndex"/>
-				<variable id="2" name="Datas" type="list[BOperate]"/>
+				<variable id="2" name="Operates" type="list[BAoiOperate]"/>
 			</bean>
-			<bean name="BCubeRemoveData">
+			<bean name="BAoiLeave">
 				<variable id="1" name="CubeIndex" type="BCubeIndex"/>
 				<variable id="2" name="Keys" type="list[BObjectId]"/>
 			</bean>
-			<bean name="BCubeIndexs">
+			<bean name="BAoiLeaves">
 				<variable id="1" name="CubeIndexs" type="list[BCubeIndex]"/>
 			</bean>
 			<bean name="BCubeIndex">

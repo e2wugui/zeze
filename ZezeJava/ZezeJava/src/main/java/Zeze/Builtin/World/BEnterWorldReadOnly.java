@@ -10,5 +10,5 @@ public interface BEnterWorldReadOnly {
     int getMapId();
     long getMapInstanceId();
     Zeze.Serialize.Vector3 getPosition();
-    Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BCubePutData, Zeze.Builtin.World.BCubePutDataReadOnly> getPriorityDataReadOnly();
+    Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BAoiOperates, Zeze.Builtin.World.BAoiOperatesReadOnly> getPriorityDataReadOnly();
 }

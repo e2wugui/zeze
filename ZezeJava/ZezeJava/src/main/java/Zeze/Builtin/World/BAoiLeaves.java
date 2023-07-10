@@ -4,8 +4,8 @@ package Zeze.Builtin.World;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
-public final class BCubeIndexs extends Zeze.Transaction.Bean implements BCubeIndexsReadOnly {
-    public static final long TYPEID = -2308609003851372978L;
+public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeavesReadOnly {
+    public static final long TYPEID = 8996759903837821029L;
 
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BCubeIndex> _CubeIndexs;
 
@@ -19,7 +19,7 @@ public final class BCubeIndexs extends Zeze.Transaction.Bean implements BCubeInd
     }
 
     @SuppressWarnings("deprecation")
-    public BCubeIndexs() {
+    public BAoiLeaves() {
         _CubeIndexs = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.World.BCubeIndex.class);
         _CubeIndexs.variableId(1);
     }
@@ -30,18 +30,18 @@ public final class BCubeIndexs extends Zeze.Transaction.Bean implements BCubeInd
     }
 
     @Override
-    public Zeze.Builtin.World.BCubeIndexs.Data toData() {
-        var data = new Zeze.Builtin.World.BCubeIndexs.Data();
+    public Zeze.Builtin.World.BAoiLeaves.Data toData() {
+        var data = new Zeze.Builtin.World.BAoiLeaves.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.World.BCubeIndexs.Data)other);
+        assign((Zeze.Builtin.World.BAoiLeaves.Data)other);
     }
 
-    public void assign(BCubeIndexs.Data other) {
+    public void assign(BAoiLeaves.Data other) {
         _CubeIndexs.clear();
         for (var e : other._CubeIndexs) {
             Zeze.Builtin.World.BCubeIndex data = new Zeze.Builtin.World.BCubeIndex();
@@ -50,25 +50,25 @@ public final class BCubeIndexs extends Zeze.Transaction.Bean implements BCubeInd
         }
     }
 
-    public void assign(BCubeIndexs other) {
+    public void assign(BAoiLeaves other) {
         _CubeIndexs.clear();
         for (var e : other._CubeIndexs)
             _CubeIndexs.add(e.copy());
     }
 
-    public BCubeIndexs copyIfManaged() {
+    public BAoiLeaves copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BCubeIndexs copy() {
-        var copy = new BCubeIndexs();
+    public BAoiLeaves copy() {
+        var copy = new BAoiLeaves();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BCubeIndexs a, BCubeIndexs b) {
-        BCubeIndexs save = a.copy();
+    public static void swap(BAoiLeaves a, BAoiLeaves b) {
+        BAoiLeaves save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -87,7 +87,7 @@ public final class BCubeIndexs extends Zeze.Transaction.Bean implements BCubeInd
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BCubeIndexs: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiLeaves: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("CubeIndexs=[");
         if (!_CubeIndexs.isEmpty()) {
@@ -204,7 +204,7 @@ public final class BCubeIndexs extends Zeze.Transaction.Bean implements BCubeInd
     }
 
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = -2308609003851372978L;
+    public static final long TYPEID = 8996759903837821029L;
 
     private java.util.ArrayList<Zeze.Builtin.World.BCubeIndex.Data> _CubeIndexs;
 
@@ -236,18 +236,18 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public Zeze.Builtin.World.BCubeIndexs toBean() {
-        var bean = new Zeze.Builtin.World.BCubeIndexs();
+    public Zeze.Builtin.World.BAoiLeaves toBean() {
+        var bean = new Zeze.Builtin.World.BAoiLeaves();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BCubeIndexs)other);
+        assign((BAoiLeaves)other);
     }
 
-    public void assign(BCubeIndexs other) {
+    public void assign(BAoiLeaves other) {
         _CubeIndexs.clear();
         for (var e : other._CubeIndexs) {
             Zeze.Builtin.World.BCubeIndex.Data data = new Zeze.Builtin.World.BCubeIndex.Data();
@@ -256,20 +256,20 @@ public static final class Data extends Zeze.Transaction.Data {
         }
     }
 
-    public void assign(BCubeIndexs.Data other) {
+    public void assign(BAoiLeaves.Data other) {
         _CubeIndexs.clear();
         for (var e : other._CubeIndexs)
             _CubeIndexs.add(e.copy());
     }
 
     @Override
-    public BCubeIndexs.Data copy() {
-        var copy = new BCubeIndexs.Data();
+    public BAoiLeaves.Data copy() {
+        var copy = new BAoiLeaves.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BCubeIndexs.Data a, BCubeIndexs.Data b) {
+    public static void swap(BAoiLeaves.Data a, BAoiLeaves.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -281,8 +281,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BCubeIndexs.Data clone() {
-        return (BCubeIndexs.Data)super.clone();
+    public BAoiLeaves.Data clone() {
+        return (BAoiLeaves.Data)super.clone();
     }
 
     @Override
@@ -294,7 +294,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BCubeIndexs: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiLeaves: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("CubeIndexs=[");
         if (!_CubeIndexs.isEmpty()) {
