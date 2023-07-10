@@ -48,7 +48,7 @@ public class MapManager implements IMapManager, ICommand {
 		return 0;
 	}
 
-	private CubeMap createCubeMap(long instanceId) {
+	public CubeMap createCubeMap(long instanceId) {
 		var map = new CubeMap(64, 64);
 		map.setAoi(new AoiSimple(world, map, 1, 1));
 		return map;
@@ -75,7 +75,7 @@ public class MapManager implements IMapManager, ICommand {
 		// client loading ...
 		// client send confirmEnter
 		// server public player
-		return 0;
+		return instanceId;
 	}
 
 	@Override

@@ -1,15 +1,119 @@
 package World;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import Zeze.Builtin.World.BObjectId;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Vector3;
+import Zeze.Transaction.Data;
+import Zeze.Util.Task;
 import Zeze.World.Aoi.AoiSimple;
 import Zeze.World.Cube;
 import Zeze.World.CubeIndex;
 import Zeze.World.CubeMap;
+import Zeze.World.Entity;
+import demo.App;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class TestAoi {
+
+	// 模拟客户端，用来接收enter,operate,leave。
+	// 多线程创建随机穿越Cube的aoi请求，
+	// 可以全局暂停多线程移动，然后验证这个”客户端“的数据是总是两两互相可见。
+	class TestLinkSender implements Zeze.World.ILinkSender {
+
+		@Override
+		public boolean sendLink(String linkName, ByteBuffer fullEncodedProtocol) {
+			return false;
+		}
+
+		@Override
+		public boolean sendCommand(String linkName, long linkSid, int commandId, Data data) {
+			return false;
+		}
+
+		@Override
+		public boolean sendCommand(Collection<Entity> targets, int commandId, Data data) {
+			return false;
+		}
+
+		public void verify() {
+
+		}
+	}
+
+	volatile boolean testRunning = true;
+
+	@Test
+	public void testAoiFull() throws Exception {
+		App.Instance.Start();
+
+		var world = Zeze.World.World.create(App.Instance);
+		world.initializeDefaultMmo();
+		var client = new TestLinkSender();
+		world.setLinkSender(client);
+
+		var mapInstanceId = world.getMapManager().enterMap(1);
+		var map = world.getMapManager().getCubeMap(mapInstanceId);
+		var aoi = map.getAoi();
+
+		var cubeNumber = 10;
+		var cubeObjectNumber = 10;
+		var xBase = 32;
+		var yBase = 0;
+		var zBase = 0;
+
+		var globalRWLock = new ReentrantReadWriteLock();
+		var players = new ArrayList<Future<?>>();
+		for (var i = 0; i < cubeNumber; ++i) {
+			for (var j = 0; j < cubeObjectNumber; ++j) {
+				var position = new Vector3(xBase + 64 * i, yBase, zBase);
+				var objInstanceId = i * cubeObjectNumber + j;
+				var oid = new BObjectId(0, 0, objInstanceId);
+				var cube = map.getOrAdd(map.toIndex(position));
+				var entity = cube.objects.computeIfAbsent(oid, Entity::new);
+				entity.getBean().setPosition(position);
+
+				// 创建假的Link信息。
+				entity.getBean().setLinkName("1");
+				entity.getBean().setLinkSid(objInstanceId);
+
+				players.add(Task.runUnsafe(() -> {
+					while (testRunning) {
+						var rLock = globalRWLock.readLock();
+						try {
+							rLock.lock();
+							var cubeX = Zeze.Util.Random.getInstance().nextInt(cubeNumber);
+							var p = new Vector3(xBase + 64 * cubeX, yBase, zBase);
+							aoi.moveTo(oid, p);
+						} finally {
+							rLock.unlock();
+						}
+					}
+				}, ""));
+			}
+		}
+
+		var wLock = globalRWLock.writeLock();
+		try {
+			wLock.lock();
+			// stop aoi.moveTo & verify
+			client.verify();
+		} finally {
+			wLock.unlock();
+		}
+
+		testRunning = false;
+		for (var player : players)
+			player.get();
+
+		App.Instance.Stop();
+	}
 
 	@Test
 	public void testDiff() {

@@ -45,15 +45,15 @@ public class CubeMap {
 	public final CubeIndex toIndex(Vector3 vector3) {
 		var x = (long)(vector3.x / this.cubeX);
 		// 允许最少1维，1维用来测试。
-		var y = this.cubeY != 0 ? (long)(vector3.y / this.cubeY) : 0;
-		var z = this.cubeZ != 0 ? (long)(vector3.z / this.cubeZ) : 0;
+		var y = this.cubeY > 0 ? (long)(vector3.y / this.cubeY) : 0;
+		var z = this.cubeZ > 0 ? (long)(vector3.z / this.cubeZ) : 0;
 		return new CubeIndex(x, y, z);
 	}
 
 	public final CubeIndex toIndex(float _x, float _y, float _z) {
 		var x = (long)(_x / this.cubeX);
-		var y = this.cubeY != 0 ? (long)(_z / this.cubeY) : 0;
-		var z = this.cubeZ != 0 ? (long)(_y / this.cubeZ) : 0;
+		var y = this.cubeY > 0 ? (long)(_z / this.cubeY) : 0;
+		var z = this.cubeZ > 0 ? (long)(_y / this.cubeZ) : 0;
 		return new CubeIndex(x, y, z);
 	}
 

@@ -121,12 +121,14 @@ public class AoiSimple implements IAoi {
 		if (null == entity) {
 			// 第一次进入，enter 视野。
 			// todo 新建对象初始化框架。
-			cube.objects.put(oid, entity = new Entity(oid));
-			objectToCube.put(oid, cube);
-			entity.getBean().setPosition(position);
 			var newIndex = map.toIndex(position);
 			var enters = map.center(newIndex, rangeX, rangeY, rangeZ);
-			processEnters(cube, entity, enters);
+			try (var ignored = new LockGuard(enters)) {
+				cube.objects.put(oid, entity = new Entity(oid));
+				objectToCube.put(oid, cube);
+				entity.getBean().setPosition(position);
+				processEnters(cube, entity, enters);
+			}
 			return;
 		}
 
@@ -199,41 +201,43 @@ public class AoiSimple implements IAoi {
 
 	protected void processEnters(Cube my, Entity self,
 								 SortedMap<CubeIndex, Cube> enters) throws IOException {
+		var targets = new ArrayList<Entity>();
 		for (var enter : enters.values()) {
 			// 收集玩家对象，用来发送自己进入的通知。
-			var targets = new ArrayList<Entity>();
-			var putData = new BAoiOperates.Data();
+			var aoiOperates = new BAoiOperates.Data();
 
 			// 少new一个对象
-			putData.getCubeIndex().setX(enter.index.x);
-			putData.getCubeIndex().setY(enter.index.y);
-			putData.getCubeIndex().setZ(enter.index.z);
+			aoiOperates.getCubeIndex().setX(enter.index.x);
+			aoiOperates.getCubeIndex().setY(enter.index.y);
+			aoiOperates.getCubeIndex().setZ(enter.index.z);
 
 			for (var e : enter.objects.entrySet()) {
-				Entity.buildTree(putData.getOperates(), e.getValue().root(), this::encodeEnter);
+				Entity.buildTree(aoiOperates.getOperates(), e.getValue().root(), this::encodeEnter);
 
 				if (e.getValue().isPlayer())
 					targets.add(e.getValue());
 
 				// 限制一次传输过多数据，达到数量，马上发送。
-				if (putData.getOperates().size() > 200) {
-					world.sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(), BCommand.eAoiEnter, putData);
-					putData.getOperates().clear();
+				if (aoiOperates.getOperates().size() > 200) {
+					world.getLinkSender().sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(),
+							BCommand.eAoiEnter, aoiOperates);
+					aoiOperates.getOperates().clear();
 				}
 
-				if (!putData.getOperates().isEmpty()) {
-					world.sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(), BCommand.eAoiEnter, putData);
+				if (!aoiOperates.getOperates().isEmpty()) {
+					world.getLinkSender().sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(),
+							BCommand.eAoiEnter, aoiOperates);
 				}
 			}
-			// encode 自己的数据。
-			{
-				var enterMe = new BAoiOperates.Data();
-				enterMe.getCubeIndex().setX(my.index.x);
-				enterMe.getCubeIndex().setY(my.index.y);
-				enterMe.getCubeIndex().setZ(my.index.z);
-				Entity.buildTree(putData.getOperates(), self.root(), this::encodeEnter);
-				world.sendCommand(targets, BCommand.eAoiEnter, enterMe);
-			}
+		}
+		// encode 自己的数据。
+		{
+			var enterMe = new BAoiOperates.Data();
+			enterMe.getCubeIndex().setX(my.index.x);
+			enterMe.getCubeIndex().setY(my.index.y);
+			enterMe.getCubeIndex().setZ(my.index.z);
+			Entity.buildTree(enterMe.getOperates(), self.root(), this::encodeEnter);
+			world.getLinkSender().sendCommand(targets, BCommand.eAoiEnter, enterMe);
 		}
 	}
 
@@ -245,7 +249,8 @@ public class AoiSimple implements IAoi {
 		for (var leave : leaves.values()) {
 			indexes.getCubeIndexs().add(new BCubeIndex.Data(leave.index.x, leave.index.y, leave.index.z));
 		}
-		world.sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(), BCommand.eAoiLeaves, indexes);
+		world.getLinkSender().sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(),
+				BCommand.eAoiLeaves, indexes);
 
 		var targets = new ArrayList<Entity>();
 		for (var cube : leaves.values()) {
@@ -260,7 +265,7 @@ public class AoiSimple implements IAoi {
 		remove.getCubeIndex().setY(my.index.y);
 		remove.getCubeIndex().setZ(my.index.z);
 		remove.getKeys().add(self.getId());
-		world.sendCommand(targets, BCommand.eAoiLeave, remove);
+		world.getLinkSender().sendCommand(targets, BCommand.eAoiLeave, remove);
 	}
 
 	/**
@@ -307,7 +312,7 @@ public class AoiSimple implements IAoi {
 						targets.add(entity);
 				}
 			}
-			world.sendCommand(targets, BCommand.eAoiOperate, aoiOperate);
+			world.getLinkSender().sendCommand(targets, BCommand.eAoiOperate, aoiOperate);
 		}
 	}
 }
