@@ -284,7 +284,7 @@ public class AoiSimple implements IAoi {
 		var centers = map.center(index, rangeX, rangeY, rangeZ);
 
 		// todo 由于notify的处理，客户端在没有enter时可以忽略。
-		// 这里应该可以一个一个cube锁定。先最大化锁定！
+		//  这里应该可以一个一个cube锁定。先最大化锁定！
 		try (var ignored = new LockGuard(centers)) {
 			var targets = new ArrayList<Entity>();
 			var aoiOperates = new BAoiOperates.Data();
