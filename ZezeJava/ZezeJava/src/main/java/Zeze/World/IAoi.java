@@ -10,6 +10,7 @@ import Zeze.Transaction.Data;
  * Aoi 接口。
  * 基本实现AoiSimple（简单的严格以自己为中心的周边格子组成的视野的同步）
  * 扩展实现AoiStable（处理玩家在格子分割线周边移动造成的不断Enter，Leave的问题）
+ * 扩展实现AoiSubscribe?（有限的订阅列表）
  */
 public interface IAoi {
 	/**

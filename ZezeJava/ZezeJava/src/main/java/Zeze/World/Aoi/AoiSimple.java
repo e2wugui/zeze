@@ -6,11 +6,9 @@ import java.util.HashMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import Zeze.Builtin.World.BAoiLeave;
-import Zeze.Builtin.World.BAoiLeaves;
 import Zeze.Builtin.World.BAoiOperate;
 import Zeze.Builtin.World.BAoiOperates;
 import Zeze.Builtin.World.BCommand;
-import Zeze.Builtin.World.BCubeIndex;
 import Zeze.Builtin.World.BObjectId;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -206,11 +204,6 @@ public class AoiSimple implements IAoi {
 			// 收集玩家对象，用来发送自己进入的通知。
 			var aoiOperates = new BAoiOperates.Data();
 
-			// 少new一个对象
-			aoiOperates.getCubeIndex().setX(enter.index.x);
-			aoiOperates.getCubeIndex().setY(enter.index.y);
-			aoiOperates.getCubeIndex().setZ(enter.index.z);
-
 			for (var e : enter.objects.entrySet()) {
 				Entity.buildTree(aoiOperates.getOperates(), e.getValue().root(), this::encodeEnter);
 
@@ -233,9 +226,6 @@ public class AoiSimple implements IAoi {
 		// encode 自己的数据。
 		{
 			var enterMe = new BAoiOperates.Data();
-			enterMe.getCubeIndex().setX(my.index.x);
-			enterMe.getCubeIndex().setY(my.index.y);
-			enterMe.getCubeIndex().setZ(my.index.z);
 			Entity.buildTree(enterMe.getOperates(), self.root(), this::encodeEnter);
 			world.getLinkSender().sendCommand(targets, BCommand.eAoiEnter, enterMe);
 		}
@@ -245,25 +235,27 @@ public class AoiSimple implements IAoi {
 								 SortedMap<CubeIndex, Cube> leaves) throws IOException {
 		// 【优化】
 		// 客户端也使用CubeMap结构组织数据，那么只需要打包发送所有leaves的CubeIndex.
-		var indexes = new BAoiLeaves.Data();
-		for (var leave : leaves.values()) {
-			indexes.getCubeIndexs().add(new BCubeIndex.Data(leave.index.x, leave.index.y, leave.index.z));
-		}
-		world.getLinkSender().sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(),
-				BCommand.eAoiLeaves, indexes);
-
+		var aoiLeave = new BAoiLeave.Data();
 		var targets = new ArrayList<Entity>();
-		for (var cube : leaves.values()) {
-			for (var obj : cube.objects.values()) {
-				if (obj.isPlayer())
-					targets.add(obj);
+		for (var leave : leaves.values()) {
+			for (var entity : leave.objects.values()) {
+				if (entity.isPlayer())
+					targets.add(entity); // 收集通知自己离开的目标。
+
+				aoiLeave.getKeys().add(entity.getId());
+				if (aoiLeave.getKeys().size() > 200) {
+					world.getLinkSender().sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(),
+							BCommand.eAoiLeave, aoiLeave);
+					aoiLeave.getKeys().clear();
+				}
 			}
+		}
+		if (!aoiLeave.getKeys().isEmpty()) {
+			world.getLinkSender().sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(),
+					BCommand.eAoiLeave, aoiLeave);
 		}
 
 		var remove = new BAoiLeave.Data();
-		remove.getCubeIndex().setX(my.index.x);
-		remove.getCubeIndex().setY(my.index.y);
-		remove.getCubeIndex().setZ(my.index.z);
 		remove.getKeys().add(self.getId());
 		world.getLinkSender().sendCommand(targets, BCommand.eAoiLeave, remove);
 	}
@@ -293,9 +285,6 @@ public class AoiSimple implements IAoi {
 		try (var ignored = new LockGuard(centers)) {
 			var targets = new ArrayList<Entity>();
 			var aoiOperates = new BAoiOperates.Data();
-			aoiOperates.getCubeIndex().setX(index.x);
-			aoiOperates.getCubeIndex().setY(index.y);
-			aoiOperates.getCubeIndex().setZ(index.z);
 
 			// operate 总是修改一个实体，不需要处理tree问题。
 			var aoiOperate = new BAoiOperate.Data();

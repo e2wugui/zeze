@@ -14,9 +14,8 @@ public final class BCommand extends Zeze.Transaction.Bean implements BCommandRea
     public static final int eEnterWorld = 2; // handle=client
     public static final int eEnterConfirm = 3; // handle=server
     public static final int eAoiOperate = 4; // handle=client，需要同步的其他任意操作，完全抽象。
-    public static final int eAoiEnter = 5; // handle=client，客户端把eAoiOperate按Put原则处理数据时，可以和eAoiOperate一样的处理。
+    public static final int eAoiEnter = 5; // handle=client
     public static final int eAoiLeave = 6; // handle=client
-    public static final int eAoiLeaves = 7; // handle=client，Leave的优化版本，按Cube整体Leave。
 
     private int _CommandId;
     private Zeze.Net.Binary _Param;
@@ -255,9 +254,8 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final int eEnterWorld = 2; // handle=client
     public static final int eEnterConfirm = 3; // handle=server
     public static final int eAoiOperate = 4; // handle=client，需要同步的其他任意操作，完全抽象。
-    public static final int eAoiEnter = 5; // handle=client，客户端把eAoiOperate按Put原则处理数据时，可以和eAoiOperate一样的处理。
+    public static final int eAoiEnter = 5; // handle=client
     public static final int eAoiLeave = 6; // handle=client
-    public static final int eAoiLeaves = 7; // handle=client，Leave的优化版本，按Cube整体Leave。
 
     private int _CommandId;
     private Zeze.Net.Binary _Param;

@@ -1589,7 +1589,6 @@
 				<enum name="eAoiOperate"  value="4"/> handle=client，需要同步的其他任意操作，完全抽象。
 				<enum name="eAoiEnter"       value="5"/> handle=client
 				<enum name="eAoiLeave"      value="6"/> handle=client
-				<enum name="eAoiLeaves"    value="7"/> handle=client，Leave的优化版本，按Cube整体Leave。
 
 				<variable id="1" name="CommandId" type="int"/>
 				<variable id="2" name="Param" type="binary"/>
@@ -1649,20 +1648,10 @@
 				<variable id="3" name="Children" type="map[BObjectId, BAoiOperate]"/>
 			</bean>
 			<bean name="BAoiOperates"> 命令 eAoiEnter,eAoiOperate的参数。
-				<variable id="1" name="CubeIndex" type="BCubeIndex"/>
-				<variable id="2" name="Operates" type="map[BObjectId, BAoiOperate]"/>
+				<variable id="1" name="Operates" type="map[BObjectId, BAoiOperate]"/>
 			</bean>
 			<bean name="BAoiLeave"> 命令 eAoiLeave 的参数。
-				<variable id="1" name="CubeIndex" type="BCubeIndex"/>
-				<variable id="2" name="Keys" type="list[BObjectId]"/>
-			</bean>
-			<bean name="BAoiLeaves"> 命令 eAoiLeaves 的参数。
-				<variable id="1" name="CubeIndexs" type="list[BCubeIndex]"/>
-			</bean>
-			<bean name="BCubeIndex">
-				<variable id="1" name="X" type="long"/>
-				<variable id="2" name="Y" type="long"/>
-				<variable id="3" name="Z" type="long"/>
+				<variable id="1" name="Keys" type="list[BObjectId]"/>
 			</bean>
 		</module>
 

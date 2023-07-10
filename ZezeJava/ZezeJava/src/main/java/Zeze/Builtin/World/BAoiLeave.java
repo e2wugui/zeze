@@ -8,21 +8,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveReadOnly {
     public static final long TYPEID = -3352260530196898056L;
 
-    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.World.BCubeIndex> _CubeIndex;
     private final Zeze.Transaction.Collections.PList1<Zeze.Builtin.World.BObjectId> _Keys;
-
-    public Zeze.Builtin.World.BCubeIndex getCubeIndex() {
-        return _CubeIndex.getValue();
-    }
-
-    public void setCubeIndex(Zeze.Builtin.World.BCubeIndex value) {
-        _CubeIndex.setValue(value);
-    }
-
-    @Override
-    public Zeze.Builtin.World.BCubeIndexReadOnly getCubeIndexReadOnly() {
-        return _CubeIndex.getValue();
-    }
 
     public Zeze.Transaction.Collections.PList1<Zeze.Builtin.World.BObjectId> getKeys() {
         return _Keys;
@@ -35,15 +21,12 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
 
     @SuppressWarnings("deprecation")
     public BAoiLeave() {
-        _CubeIndex = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.World.BCubeIndex(), Zeze.Builtin.World.BCubeIndex.class);
-        _CubeIndex.variableId(1);
         _Keys = new Zeze.Transaction.Collections.PList1<>(Zeze.Builtin.World.BObjectId.class);
-        _Keys.variableId(2);
+        _Keys.variableId(1);
     }
 
     @Override
     public void reset() {
-        _CubeIndex.reset();
         _Keys.clear();
     }
 
@@ -60,15 +43,11 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
     }
 
     public void assign(BAoiLeave.Data other) {
-        Zeze.Builtin.World.BCubeIndex data_CubeIndex = new Zeze.Builtin.World.BCubeIndex();
-        data_CubeIndex.assign(other._CubeIndex);
-        _CubeIndex.setValue(data_CubeIndex);
         _Keys.clear();
         _Keys.addAll(other._Keys);
     }
 
     public void assign(BAoiLeave other) {
-        _CubeIndex.assign(other._CubeIndex);
         _Keys.clear();
         _Keys.addAll(other._Keys);
     }
@@ -106,9 +85,6 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiLeave: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("CubeIndex=").append(System.lineSeparator());
-        _CubeIndex.buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Keys=[");
         if (!_Keys.isEmpty()) {
             sb.append(System.lineSeparator());
@@ -142,20 +118,10 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            int _a_ = _o_.WriteIndex;
-            int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
-            int _b_ = _o_.WriteIndex;
-            _CubeIndex.encode(_o_);
-            if (_b_ + 1 == _o_.WriteIndex)
-                _o_.WriteIndex = _a_;
-            else
-                _i_ = _j_;
-        }
-        {
             var _x_ = _Keys;
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.BEAN);
                 for (var _v_ : _x_) {
                     _v_.encode(_o_);
@@ -173,10 +139,6 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadBean(_CubeIndex, _t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
             var _x_ = _Keys;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
@@ -194,20 +156,16 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
 
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _CubeIndex.initRootInfo(root, this);
         _Keys.initRootInfo(root, this);
     }
 
     @Override
     protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _CubeIndex.initRootInfoWithRedo(root, this);
         _Keys.initRootInfoWithRedo(root, this);
     }
 
     @Override
     public boolean negativeCheck() {
-        if (_CubeIndex.negativeCheck())
-            return true;
         for (var _v_ : _Keys) {
             if (_v_.negativeCheck())
                 return true;
@@ -224,26 +182,19 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _CubeIndex.followerApply(vlog); break;
-                case 2: _Keys.followerApply(vlog); break;
+                case 1: _Keys.followerApply(vlog); break;
             }
         }
     }
 
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        parents.add("CubeIndex");
-        _CubeIndex.decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         Zeze.Serialize.Helper.decodeJsonList(_Keys, Zeze.Builtin.World.BObjectId.class, rs.getString(_parents_name_ + "Keys"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        parents.add("CubeIndex");
-        _CubeIndex.encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Keys", Zeze.Serialize.Helper.encodeJson(_Keys));
     }
@@ -252,18 +203,7 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3352260530196898056L;
 
-    private Zeze.Builtin.World.BCubeIndex.Data _CubeIndex;
     private java.util.ArrayList<Zeze.Builtin.World.BObjectId> _Keys;
-
-    public Zeze.Builtin.World.BCubeIndex.Data getCubeIndex() {
-        return _CubeIndex;
-    }
-
-    public void setCubeIndex(Zeze.Builtin.World.BCubeIndex.Data value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        _CubeIndex = value;
-    }
 
     public java.util.ArrayList<Zeze.Builtin.World.BObjectId> getKeys() {
         return _Keys;
@@ -277,15 +217,11 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @SuppressWarnings("deprecation")
     public Data() {
-        _CubeIndex = new Zeze.Builtin.World.BCubeIndex.Data();
         _Keys = new java.util.ArrayList<>();
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Builtin.World.BCubeIndex.Data _CubeIndex_, java.util.ArrayList<Zeze.Builtin.World.BObjectId> _Keys_) {
-        if (_CubeIndex_ == null)
-            _CubeIndex_ = new Zeze.Builtin.World.BCubeIndex.Data();
-        _CubeIndex = _CubeIndex_;
+    public Data(java.util.ArrayList<Zeze.Builtin.World.BObjectId> _Keys_) {
         if (_Keys_ == null)
             _Keys_ = new java.util.ArrayList<>();
         _Keys = _Keys_;
@@ -293,7 +229,6 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void reset() {
-        _CubeIndex.reset();
         _Keys.clear();
     }
 
@@ -310,13 +245,11 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BAoiLeave other) {
-        _CubeIndex.assign(other._CubeIndex.getValue());
         _Keys.clear();
         _Keys.addAll(other._Keys);
     }
 
     public void assign(BAoiLeave.Data other) {
-        _CubeIndex.assign(other._CubeIndex);
         _Keys.clear();
         _Keys.addAll(other._Keys);
     }
@@ -355,9 +288,6 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiLeave: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("CubeIndex=").append(System.lineSeparator());
-        _CubeIndex.buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Keys=[");
         if (!_Keys.isEmpty()) {
             sb.append(System.lineSeparator());
@@ -391,20 +321,10 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            int _a_ = _o_.WriteIndex;
-            int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
-            int _b_ = _o_.WriteIndex;
-            _CubeIndex.encode(_o_);
-            if (_b_ + 1 == _o_.WriteIndex)
-                _o_.WriteIndex = _a_;
-            else
-                _i_ = _j_;
-        }
-        {
             var _x_ = _Keys;
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.BEAN);
                 for (var _v_ : _x_) {
                     _v_.encode(_o_);
@@ -422,10 +342,6 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadBean(_CubeIndex, _t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
             var _x_ = _Keys;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {

@@ -8,6 +8,5 @@ public interface BAoiLeaveReadOnly {
     boolean negativeCheck();
     BAoiLeave copy();
 
-    Zeze.Builtin.World.BCubeIndexReadOnly getCubeIndexReadOnly();
     Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Builtin.World.BObjectId> getKeysReadOnly();
 }

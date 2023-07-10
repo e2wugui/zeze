@@ -54,6 +54,8 @@ public class MapManager implements IMapManager, ICommand {
 		return map;
 	}
 
+	// leave after bind
+	// current map instance. local leave aoi-notify.... leaveWorld(). enterMap(newMapId)
 	@Override
 	public long enterMap(int mapId) {
 		var set = maps.computeIfAbsent(mapId, (key) -> new ConcurrentHashSet<>());
