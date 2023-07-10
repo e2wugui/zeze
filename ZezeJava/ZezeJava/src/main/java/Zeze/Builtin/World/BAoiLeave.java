@@ -3,6 +3,7 @@ package Zeze.Builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
 
+// 命令 eAoiLeave 的参数。
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveReadOnly {
     public static final long TYPEID = -3352260530196898056L;
@@ -247,6 +248,7 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
         st.appendString(_parents_name_ + "Keys", Zeze.Serialize.Helper.encodeJson(_Keys));
     }
 
+// 命令 eAoiLeave 的参数。
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3352260530196898056L;
 

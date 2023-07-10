@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.World;
 
+// 命令 eAoiEnter,eAoiOperate的参数。
 public interface BAoiOperatesReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
@@ -8,5 +9,5 @@ public interface BAoiOperatesReadOnly {
     BAoiOperates copy();
 
     Zeze.Builtin.World.BCubeIndexReadOnly getCubeIndexReadOnly();
-    Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BAoiOperate, Zeze.Builtin.World.BAoiOperateReadOnly> getOperatesReadOnly();
+    Zeze.Transaction.Collections.PMap2ReadOnly<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate, Zeze.Builtin.World.BAoiOperateReadOnly> getOperatesReadOnly();
 }

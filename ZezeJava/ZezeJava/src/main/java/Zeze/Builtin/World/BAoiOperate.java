@@ -3,34 +3,25 @@ package Zeze.Builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
 
+// 一个具体的操作。
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOperateReadOnly {
     public static final long TYPEID = 7467019147847621003L;
 
-    private Zeze.Builtin.World.BObjectId _ObjectId;
     private int _OperateId;
     private Zeze.Net.Binary _Param;
+    private final Zeze.Transaction.Collections.PMap2<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate> _Children;
+
+    private transient Object __zeze_map_key__;
 
     @Override
-    public Zeze.Builtin.World.BObjectId getObjectId() {
-        if (!isManaged())
-            return _ObjectId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _ObjectId;
-        var log = (Log__ObjectId)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _ObjectId;
+    public Object mapKey() {
+        return __zeze_map_key__;
     }
 
-    public void setObjectId(Zeze.Builtin.World.BObjectId value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _ObjectId = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ObjectId(this, 1, value));
+    @Override
+    public void mapKey(Object value) {
+        __zeze_map_key__ = value;
     }
 
     @Override
@@ -40,7 +31,7 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _OperateId;
-        var log = (Log__OperateId)txn.getLog(objectId() + 2);
+        var log = (Log__OperateId)txn.getLog(objectId() + 1);
         return log != null ? log.value : _OperateId;
     }
 
@@ -50,7 +41,7 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__OperateId(this, 2, value));
+        txn.putLog(new Log__OperateId(this, 1, value));
     }
 
     @Override
@@ -60,7 +51,7 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Param;
-        var log = (Log__Param)txn.getLog(objectId() + 3);
+        var log = (Log__Param)txn.getLog(objectId() + 2);
         return log != null ? log.value : _Param;
     }
 
@@ -72,31 +63,40 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Param(this, 3, value));
+        txn.putLog(new Log__Param(this, 2, value));
+    }
+
+    public Zeze.Transaction.Collections.PMap2<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate> getChildren() {
+        return _Children;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PMap2ReadOnly<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate, Zeze.Builtin.World.BAoiOperateReadOnly> getChildrenReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Children);
     }
 
     @SuppressWarnings("deprecation")
     public BAoiOperate() {
-        _ObjectId = new Zeze.Builtin.World.BObjectId();
         _Param = Zeze.Net.Binary.Empty;
+        _Children = new Zeze.Transaction.Collections.PMap2<>(Zeze.Builtin.World.BObjectId.class, Zeze.Builtin.World.BAoiOperate.class);
+        _Children.variableId(3);
     }
 
     @SuppressWarnings("deprecation")
-    public BAoiOperate(Zeze.Builtin.World.BObjectId _ObjectId_, int _OperateId_, Zeze.Net.Binary _Param_) {
-        if (_ObjectId_ == null)
-            _ObjectId_ = new Zeze.Builtin.World.BObjectId();
-        _ObjectId = _ObjectId_;
+    public BAoiOperate(int _OperateId_, Zeze.Net.Binary _Param_) {
         _OperateId = _OperateId_;
         if (_Param_ == null)
             _Param_ = Zeze.Net.Binary.Empty;
         _Param = _Param_;
+        _Children = new Zeze.Transaction.Collections.PMap2<>(Zeze.Builtin.World.BObjectId.class, Zeze.Builtin.World.BAoiOperate.class);
+        _Children.variableId(3);
     }
 
     @Override
     public void reset() {
-        setObjectId(new Zeze.Builtin.World.BObjectId());
         setOperateId(0);
         setParam(Zeze.Net.Binary.Empty);
+        _Children.clear();
     }
 
     @Override
@@ -112,15 +112,22 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
     }
 
     public void assign(BAoiOperate.Data other) {
-        setObjectId(other._ObjectId);
         setOperateId(other._OperateId);
         setParam(other._Param);
+        _Children.clear();
+        for (var e : other._Children.entrySet()) {
+            Zeze.Builtin.World.BAoiOperate data = new Zeze.Builtin.World.BAoiOperate();
+            data.assign(e.getValue());
+            _Children.put(e.getKey(), data);
+        }
     }
 
     public void assign(BAoiOperate other) {
-        setObjectId(other.getObjectId());
         setOperateId(other.getOperateId());
         setParam(other.getParam());
+        _Children.clear();
+        for (var e : other._Children.entrySet())
+            _Children.put(e.getKey(), e.getValue().copy());
     }
 
     public BAoiOperate copyIfManaged() {
@@ -143,13 +150,6 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ObjectId extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.World.BObjectId> {
-        public Log__ObjectId(BAoiOperate bean, int varId, Zeze.Builtin.World.BObjectId value) { super(Zeze.Builtin.World.BObjectId.class, bean, varId, value); }
-
-        @Override
-        public void commit() { ((BAoiOperate)getBelong())._ObjectId = value; }
     }
 
     private static final class Log__OperateId extends Zeze.Transaction.Logs.LogInt {
@@ -177,11 +177,24 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiOperate: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ObjectId=").append(System.lineSeparator());
-        getObjectId().buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("OperateId=").append(getOperateId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Param=").append(getParam()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Param=").append(getParam()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Children={");
+        if (!_Children.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _kv_ : _Children.entrySet()) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(System.lineSeparator());
+                _kv_.getKey().buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
+                _kv_.getValue().buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append('}').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -202,27 +215,32 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            int _a_ = _o_.WriteIndex;
-            int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
-            int _b_ = _o_.WriteIndex;
-            getObjectId().encode(_o_);
-            if (_b_ + 1 == _o_.WriteIndex)
-                _o_.WriteIndex = _a_;
-            else
-                _i_ = _j_;
-        }
-        {
             int _x_ = getOperateId();
             if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
             var _x_ = getParam();
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
+            }
+        }
+        {
+            var _x_ = _Children;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.MAP);
+                _o_.WriteMapType(_n_, ByteBuffer.BEAN, ByteBuffer.BEAN);
+                for (var _e_ : _x_.entrySet()) {
+                    _e_.getKey().encode(_o_);
+                    _e_.getValue().encode(_o_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         _o_.WriteByte(0);
@@ -233,15 +251,25 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadBean(getObjectId(), _t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
             setOperateId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 3) {
+        if (_i_ == 2) {
             setParam(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            var _x_ = _Children;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadBean(new Zeze.Builtin.World.BObjectId(), _s_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.World.BAoiOperate(), _t_);
+                    _x_.put(_k_, _v_);
+                }
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -251,11 +279,23 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
     }
 
     @Override
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Children.initRootInfo(root, this);
+    }
+
+    @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Children.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
-        if (getObjectId().negativeCheck())
-            return true;
         if (getOperateId() < 0)
             return true;
+        for (var _v_ : _Children.values()) {
+            if (_v_.negativeCheck())
+                return true;
+        }
         return false;
     }
 
@@ -268,51 +308,38 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ObjectId = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.World.BObjectId>)vlog).value; break;
-                case 2: _OperateId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _Param = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _OperateId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 2: _Param = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 3: _Children.followerApply(vlog); break;
             }
         }
     }
 
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        parents.add("ObjectId");
-        getObjectId().decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setOperateId(rs.getInt(_parents_name_ + "OperateId"));
         setParam(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Param")));
         if (getParam() == null)
             setParam(Zeze.Net.Binary.Empty);
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Children", _Children, rs.getString(_parents_name_ + "Children"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        parents.add("ObjectId");
-        getObjectId().encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendInt(_parents_name_ + "OperateId", getOperateId());
         st.appendBinary(_parents_name_ + "Param", getParam());
+        st.appendString(_parents_name_ + "Children", Zeze.Serialize.Helper.encodeJson(_Children));
     }
 
+// 一个具体的操作。
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7467019147847621003L;
 
-    private Zeze.Builtin.World.BObjectId _ObjectId;
     private int _OperateId;
     private Zeze.Net.Binary _Param;
-
-    public Zeze.Builtin.World.BObjectId getObjectId() {
-        return _ObjectId;
-    }
-
-    public void setObjectId(Zeze.Builtin.World.BObjectId value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        _ObjectId = value;
-    }
+    private java.util.HashMap<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate.Data> _Children;
 
     public int getOperateId() {
         return _OperateId;
@@ -332,28 +359,38 @@ public static final class Data extends Zeze.Transaction.Data {
         _Param = value;
     }
 
-    @SuppressWarnings("deprecation")
-    public Data() {
-        _ObjectId = new Zeze.Builtin.World.BObjectId();
-        _Param = Zeze.Net.Binary.Empty;
+    public java.util.HashMap<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate.Data> getChildren() {
+        return _Children;
+    }
+
+    public void setChildren(java.util.HashMap<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate.Data> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Children = value;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Builtin.World.BObjectId _ObjectId_, int _OperateId_, Zeze.Net.Binary _Param_) {
-        if (_ObjectId_ == null)
-            _ObjectId_ = new Zeze.Builtin.World.BObjectId();
-        _ObjectId = _ObjectId_;
+    public Data() {
+        _Param = Zeze.Net.Binary.Empty;
+        _Children = new java.util.HashMap<>();
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(int _OperateId_, Zeze.Net.Binary _Param_, java.util.HashMap<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate.Data> _Children_) {
         _OperateId = _OperateId_;
         if (_Param_ == null)
             _Param_ = Zeze.Net.Binary.Empty;
         _Param = _Param_;
+        if (_Children_ == null)
+            _Children_ = new java.util.HashMap<>();
+        _Children = _Children_;
     }
 
     @Override
     public void reset() {
-        _ObjectId = new Zeze.Builtin.World.BObjectId();
         _OperateId = 0;
         _Param = Zeze.Net.Binary.Empty;
+        _Children.clear();
     }
 
     @Override
@@ -369,15 +406,22 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BAoiOperate other) {
-        _ObjectId = other.getObjectId();
         _OperateId = other.getOperateId();
         _Param = other.getParam();
+        _Children.clear();
+        for (var e : other._Children.entrySet()) {
+            Zeze.Builtin.World.BAoiOperate.Data data = new Zeze.Builtin.World.BAoiOperate.Data();
+            data.assign(e.getValue());
+            _Children.put(e.getKey(), data);
+        }
     }
 
     public void assign(BAoiOperate.Data other) {
-        _ObjectId = other._ObjectId;
         _OperateId = other._OperateId;
         _Param = other._Param;
+        _Children.clear();
+        for (var e : other._Children.entrySet())
+            _Children.put(e.getKey(), e.getValue().copy());
     }
 
     @Override
@@ -414,11 +458,24 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiOperate: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ObjectId=").append(System.lineSeparator());
-        _ObjectId.buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("OperateId=").append(_OperateId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Param=").append(_Param).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Param=").append(_Param).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Children={");
+        if (!_Children.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _kv_ : _Children.entrySet()) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(System.lineSeparator());
+                _kv_.getKey().buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
+                _kv_.getValue().buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append('}').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -439,27 +496,32 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            int _a_ = _o_.WriteIndex;
-            int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
-            int _b_ = _o_.WriteIndex;
-            _ObjectId.encode(_o_);
-            if (_b_ + 1 == _o_.WriteIndex)
-                _o_.WriteIndex = _a_;
-            else
-                _i_ = _j_;
-        }
-        {
             int _x_ = _OperateId;
             if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
             var _x_ = _Param;
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
+            }
+        }
+        {
+            var _x_ = _Children;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.MAP);
+                _o_.WriteMapType(_n_, ByteBuffer.BEAN, ByteBuffer.BEAN);
+                for (var _e_ : _x_.entrySet()) {
+                    _e_.getKey().encode(_o_);
+                    _e_.getValue().encode(_o_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
         _o_.WriteByte(0);
@@ -470,15 +532,25 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadBean(_ObjectId, _t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
             _OperateId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 3) {
+        if (_i_ == 2) {
             _Param = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            var _x_ = _Children;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadBean(new Zeze.Builtin.World.BObjectId(), _s_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.World.BAoiOperate.Data(), _t_);
+                    _x_.put(_k_, _v_);
+                }
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

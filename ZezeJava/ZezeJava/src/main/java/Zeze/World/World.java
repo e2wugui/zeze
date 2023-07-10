@@ -217,11 +217,11 @@ public class World extends AbstractWorld {
 		return sendLink(linkName, encodeSend(java.util.List.of(linkSid), commandId, data));
 	}
 
-	public boolean sendCommand(Collection<BObject> targets, int commandId, Data data) {
+	public boolean sendCommand(Collection<Entity> targets, int commandId, Data data) {
 		var group = new HashMap<String, ArrayList<Long>>();
 		for (var target : targets) {
-			var link = group.computeIfAbsent(target.getLinkName(), (key) -> new ArrayList<>());
-			link.add(target.getLinkSid());
+			var link = group.computeIfAbsent(target.getBean().getLinkName(), (key) -> new ArrayList<>());
+			link.add(target.getBean().getLinkSid());
 		}
 		var result = true;
 		for (var e : group.entrySet()) {

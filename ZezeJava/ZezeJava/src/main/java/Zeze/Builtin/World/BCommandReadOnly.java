@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.World;
 
-// 抽象的交互协议，用来封装任意客户端服务器Protocol,Rpc
+// 一个具体的操作。
 public interface BCommandReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);

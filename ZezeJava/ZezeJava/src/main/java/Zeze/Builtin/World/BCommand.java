@@ -3,17 +3,17 @@ package Zeze.Builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
 
-// 抽象的交互协议，用来封装任意客户端服务器Protocol,Rpc
+// 一个具体的操作。
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BCommand extends Zeze.Transaction.Bean implements BCommandReadOnly {
     public static final long TYPEID = 3225161952412454913L;
 
     public static final int eReserveCommandId = 2000; // 保留Id给组件内部用。自定义的必须大于这个值。
-    public static final int eMoveMmo = 0; // handle=server,client
-    public static final int eSwitchWorld = 1; // handle=server
+    public static final int eMoveMmo = 0; // handle=server,client 位置同步命令。
+    public static final int eSwitchWorld = 1; // handle=server，地图切换流程涉及的协议。
     public static final int eEnterWorld = 2; // handle=client
     public static final int eEnterConfirm = 3; // handle=server
-    public static final int eAoiOperate = 4; // handle=client
+    public static final int eAoiOperate = 4; // handle=client，需要同步的其他任意操作，完全抽象。
     public static final int eAoiEnter = 5; // handle=client，客户端把eAoiOperate按Put原则处理数据时，可以和eAoiOperate一样的处理。
     public static final int eAoiLeave = 6; // handle=client
     public static final int eAoiLeaves = 7; // handle=client，Leave的优化版本，按Cube整体Leave。
@@ -245,16 +245,16 @@ public final class BCommand extends Zeze.Transaction.Bean implements BCommandRea
         st.appendBinary(_parents_name_ + "Param", getParam());
     }
 
-// 抽象的交互协议，用来封装任意客户端服务器Protocol,Rpc
+// 一个具体的操作。
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 3225161952412454913L;
 
     public static final int eReserveCommandId = 2000; // 保留Id给组件内部用。自定义的必须大于这个值。
-    public static final int eMoveMmo = 0; // handle=server,client
-    public static final int eSwitchWorld = 1; // handle=server
+    public static final int eMoveMmo = 0; // handle=server,client 位置同步命令。
+    public static final int eSwitchWorld = 1; // handle=server，地图切换流程涉及的协议。
     public static final int eEnterWorld = 2; // handle=client
     public static final int eEnterConfirm = 3; // handle=server
-    public static final int eAoiOperate = 4; // handle=client
+    public static final int eAoiOperate = 4; // handle=client，需要同步的其他任意操作，完全抽象。
     public static final int eAoiEnter = 5; // handle=client，客户端把eAoiOperate按Put原则处理数据时，可以和eAoiOperate一样的处理。
     public static final int eAoiLeave = 6; // handle=client
     public static final int eAoiLeaves = 7; // handle=client，Leave的优化版本，按Cube整体Leave。

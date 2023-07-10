@@ -1,13 +1,13 @@
 package World;
 
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Builtin.World.BObject;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Benchmark;
 import Zeze.Util.Task;
 import Zeze.World.CubeMap;
+import Zeze.World.Entity;
 import Zeze.World.LockGuard;
 import org.junit.Assert;
 import org.junit.Test;
@@ -25,7 +25,7 @@ public class TestMoveMmo {
 		for (var cube : cubes2d.values()) {
 			for (int i = 0; i < objectCubeCount; ++i) {
 				var oid = new Zeze.Builtin.World.BObjectId(0, 0, instanceId++);
-				cube.objects.put(oid, new BObject());
+				cube.objects.put(oid, new Entity(oid));
 			}
 		}
 		// total = objectCubeCount * 9;

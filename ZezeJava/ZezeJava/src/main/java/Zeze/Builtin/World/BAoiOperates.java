@@ -3,12 +3,13 @@ package Zeze.Builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
 
+// 命令 eAoiEnter,eAoiOperate的参数。
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOperatesReadOnly {
     public static final long TYPEID = 8731977537695035170L;
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.World.BCubeIndex> _CubeIndex;
-    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BAoiOperate> _Operates;
+    private final Zeze.Transaction.Collections.PMap2<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate> _Operates;
 
     public Zeze.Builtin.World.BCubeIndex getCubeIndex() {
         return _CubeIndex.getValue();
@@ -23,20 +24,20 @@ public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOpe
         return _CubeIndex.getValue();
     }
 
-    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.World.BAoiOperate> getOperates() {
+    public Zeze.Transaction.Collections.PMap2<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate> getOperates() {
         return _Operates;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BAoiOperate, Zeze.Builtin.World.BAoiOperateReadOnly> getOperatesReadOnly() {
-        return new Zeze.Transaction.Collections.PList2ReadOnly<>(_Operates);
+    public Zeze.Transaction.Collections.PMap2ReadOnly<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate, Zeze.Builtin.World.BAoiOperateReadOnly> getOperatesReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Operates);
     }
 
     @SuppressWarnings("deprecation")
     public BAoiOperates() {
         _CubeIndex = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.World.BCubeIndex(), Zeze.Builtin.World.BCubeIndex.class);
         _CubeIndex.variableId(1);
-        _Operates = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.World.BAoiOperate.class);
+        _Operates = new Zeze.Transaction.Collections.PMap2<>(Zeze.Builtin.World.BObjectId.class, Zeze.Builtin.World.BAoiOperate.class);
         _Operates.variableId(2);
     }
 
@@ -63,18 +64,18 @@ public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOpe
         data_CubeIndex.assign(other._CubeIndex);
         _CubeIndex.setValue(data_CubeIndex);
         _Operates.clear();
-        for (var e : other._Operates) {
+        for (var e : other._Operates.entrySet()) {
             Zeze.Builtin.World.BAoiOperate data = new Zeze.Builtin.World.BAoiOperate();
-            data.assign(e);
-            _Operates.add(data);
+            data.assign(e.getValue());
+            _Operates.put(e.getKey(), data);
         }
     }
 
     public void assign(BAoiOperates other) {
         _CubeIndex.assign(other._CubeIndex);
         _Operates.clear();
-        for (var e : other._Operates)
-            _Operates.add(e.copy());
+        for (var e : other._Operates.entrySet())
+            _Operates.put(e.getKey(), e.getValue().copy());
     }
 
     public BAoiOperates copyIfManaged() {
@@ -113,19 +114,22 @@ public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOpe
         sb.append(Zeze.Util.Str.indent(level)).append("CubeIndex=").append(System.lineSeparator());
         _CubeIndex.buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Operates=[");
+        sb.append(Zeze.Util.Str.indent(level)).append("Operates={");
         if (!_Operates.isEmpty()) {
             sb.append(System.lineSeparator());
             level += 4;
-            for (var _item_ : _Operates) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
-                _item_.buildString(sb, level + 4);
+            for (var _kv_ : _Operates.entrySet()) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(System.lineSeparator());
+                _kv_.getKey().buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
+                _kv_.getValue().buildString(sb, level + 4);
                 sb.append(',').append(System.lineSeparator());
             }
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append(']').append(System.lineSeparator());
+        sb.append('}').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -159,10 +163,11 @@ public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOpe
             var _x_ = _Operates;
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BEAN);
-                for (var _v_ : _x_) {
-                    _v_.encode(_o_);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.MAP);
+                _o_.WriteMapType(_n_, ByteBuffer.BEAN, ByteBuffer.BEAN);
+                for (var _e_ : _x_.entrySet()) {
+                    _e_.getKey().encode(_o_);
+                    _e_.getValue().encode(_o_);
                     _n_--;
                 }
                 if (_n_ != 0)
@@ -183,11 +188,15 @@ public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOpe
         if (_i_ == 2) {
             var _x_ = _Operates;
             _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
-                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BAoiOperate(), _t_));
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadBean(new Zeze.Builtin.World.BObjectId(), _s_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.World.BAoiOperate(), _t_);
+                    _x_.put(_k_, _v_);
+                }
             } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -212,7 +221,7 @@ public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOpe
     public boolean negativeCheck() {
         if (_CubeIndex.negativeCheck())
             return true;
-        for (var _v_ : _Operates) {
+        for (var _v_ : _Operates.values()) {
             if (_v_.negativeCheck())
                 return true;
         }
@@ -240,7 +249,7 @@ public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOpe
         _CubeIndex.decodeResultSet(parents, rs);
         parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(_Operates, Zeze.Builtin.World.BAoiOperate.class, rs.getString(_parents_name_ + "Operates"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Operates", _Operates, rs.getString(_parents_name_ + "Operates"));
     }
 
     @Override
@@ -252,11 +261,12 @@ public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOpe
         st.appendString(_parents_name_ + "Operates", Zeze.Serialize.Helper.encodeJson(_Operates));
     }
 
+// 命令 eAoiEnter,eAoiOperate的参数。
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8731977537695035170L;
 
     private Zeze.Builtin.World.BCubeIndex.Data _CubeIndex;
-    private java.util.ArrayList<Zeze.Builtin.World.BAoiOperate.Data> _Operates;
+    private java.util.HashMap<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate.Data> _Operates;
 
     public Zeze.Builtin.World.BCubeIndex.Data getCubeIndex() {
         return _CubeIndex;
@@ -268,11 +278,11 @@ public static final class Data extends Zeze.Transaction.Data {
         _CubeIndex = value;
     }
 
-    public java.util.ArrayList<Zeze.Builtin.World.BAoiOperate.Data> getOperates() {
+    public java.util.HashMap<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate.Data> getOperates() {
         return _Operates;
     }
 
-    public void setOperates(java.util.ArrayList<Zeze.Builtin.World.BAoiOperate.Data> value) {
+    public void setOperates(java.util.HashMap<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate.Data> value) {
         if (value == null)
             throw new IllegalArgumentException();
         _Operates = value;
@@ -281,16 +291,16 @@ public static final class Data extends Zeze.Transaction.Data {
     @SuppressWarnings("deprecation")
     public Data() {
         _CubeIndex = new Zeze.Builtin.World.BCubeIndex.Data();
-        _Operates = new java.util.ArrayList<>();
+        _Operates = new java.util.HashMap<>();
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Builtin.World.BCubeIndex.Data _CubeIndex_, java.util.ArrayList<Zeze.Builtin.World.BAoiOperate.Data> _Operates_) {
+    public Data(Zeze.Builtin.World.BCubeIndex.Data _CubeIndex_, java.util.HashMap<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate.Data> _Operates_) {
         if (_CubeIndex_ == null)
             _CubeIndex_ = new Zeze.Builtin.World.BCubeIndex.Data();
         _CubeIndex = _CubeIndex_;
         if (_Operates_ == null)
-            _Operates_ = new java.util.ArrayList<>();
+            _Operates_ = new java.util.HashMap<>();
         _Operates = _Operates_;
     }
 
@@ -315,18 +325,18 @@ public static final class Data extends Zeze.Transaction.Data {
     public void assign(BAoiOperates other) {
         _CubeIndex.assign(other._CubeIndex.getValue());
         _Operates.clear();
-        for (var e : other._Operates) {
+        for (var e : other._Operates.entrySet()) {
             Zeze.Builtin.World.BAoiOperate.Data data = new Zeze.Builtin.World.BAoiOperate.Data();
-            data.assign(e);
-            _Operates.add(data);
+            data.assign(e.getValue());
+            _Operates.put(e.getKey(), data);
         }
     }
 
     public void assign(BAoiOperates.Data other) {
         _CubeIndex.assign(other._CubeIndex);
         _Operates.clear();
-        for (var e : other._Operates)
-            _Operates.add(e.copy());
+        for (var e : other._Operates.entrySet())
+            _Operates.put(e.getKey(), e.getValue().copy());
     }
 
     @Override
@@ -366,19 +376,22 @@ public static final class Data extends Zeze.Transaction.Data {
         sb.append(Zeze.Util.Str.indent(level)).append("CubeIndex=").append(System.lineSeparator());
         _CubeIndex.buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Operates=[");
+        sb.append(Zeze.Util.Str.indent(level)).append("Operates={");
         if (!_Operates.isEmpty()) {
             sb.append(System.lineSeparator());
             level += 4;
-            for (var _item_ : _Operates) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
-                _item_.buildString(sb, level + 4);
+            for (var _kv_ : _Operates.entrySet()) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(System.lineSeparator());
+                _kv_.getKey().buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
+                _kv_.getValue().buildString(sb, level + 4);
                 sb.append(',').append(System.lineSeparator());
             }
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append(']').append(System.lineSeparator());
+        sb.append('}').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -412,10 +425,11 @@ public static final class Data extends Zeze.Transaction.Data {
             var _x_ = _Operates;
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BEAN);
-                for (var _v_ : _x_) {
-                    _v_.encode(_o_);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.MAP);
+                _o_.WriteMapType(_n_, ByteBuffer.BEAN, ByteBuffer.BEAN);
+                for (var _e_ : _x_.entrySet()) {
+                    _e_.getKey().encode(_o_);
+                    _e_.getValue().encode(_o_);
                     _n_--;
                 }
                 if (_n_ != 0)
@@ -436,11 +450,15 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 2) {
             var _x_ = _Operates;
             _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
-                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BAoiOperate.Data(), _t_));
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadBean(new Zeze.Builtin.World.BObjectId(), _s_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.World.BAoiOperate.Data(), _t_);
+                    _x_.put(_k_, _v_);
+                }
             } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

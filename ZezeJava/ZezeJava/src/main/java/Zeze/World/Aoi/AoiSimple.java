@@ -7,16 +7,13 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import Zeze.Builtin.World.BAoiLeave;
 import Zeze.Builtin.World.BAoiLeaves;
-import Zeze.Builtin.World.BAoiOperate;
 import Zeze.Builtin.World.BAoiOperates;
 import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.BCubeIndex;
-import Zeze.Builtin.World.BObject;
 import Zeze.Builtin.World.BObjectId;
-import Zeze.Net.Binary;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Data;
 import Zeze.World.CubeIndex;
+import Zeze.World.Entity;
 import Zeze.World.LockGuard;
 import Zeze.World.World;
 import Zeze.Serialize.Vector3;
@@ -99,12 +96,12 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
-	private void updateSelf(BObjectId oid, BObject object, Vector3 position, Cube cube, Cube newCube) {
-		object.setPosition(position);
+	private void updateSelf(Entity self, Vector3 position, Cube cube, Cube newCube) {
+		self.getBean().setPosition(position);
 		if (cube != newCube) {
-			cube.objects.remove(oid);
-			newCube.objects.put(oid, object);
-			objectToCube.put(oid, newCube); // update to new cube
+			var entity = cube.objects.remove(self.getId());
+			newCube.objects.put(self.getId(), entity);
+			objectToCube.put(self.getId(), newCube); // update to new cube
 		}
 	}
 
@@ -112,20 +109,21 @@ public class AoiSimple implements IAoi {
 	public void moveTo(BObjectId oid, Vector3 position) throws Exception {
 		var cube = objectToCube.get(oid);
 		if (null == cube) {
-			logger.error("object cube not found. oid={}", World.format(oid));
-			return;
+			// 第一次访问aoi，创建对象。
+			var index = map.toIndex(position);
+			cube = map.getOrAdd(index);
 		}
 
-		var object = cube.objects.get(oid);
-		if (null == object) {
+		var entity = cube.objects.get(oid);
+		if (null == entity) {
 			// 第一次进入，enter 视野。
 			// todo 新建对象初始化框架。
-			cube.objects.put(oid, object = new BObject());
+			cube.objects.put(oid, entity = new Entity(oid));
 			objectToCube.put(oid, cube);
-			object.setPosition(position);
+			entity.getBean().setPosition(position);
 			var newIndex = map.toIndex(position);
 			var enters = map.center(newIndex, rangeX, rangeY, rangeZ);
-			processEnters(cube, oid, object, enters);
+			processEnters(cube, entity, enters);
 			return;
 		}
 
@@ -141,7 +139,7 @@ public class AoiSimple implements IAoi {
 		switch (dp) {
 		case 0:
 			try (var ignored = new LockGuard(cube, newCube)) {
-				updateSelf(oid, object, position, cube, newCube);
+				updateSelf(entity, position, cube, newCube);
 			}
 			// same cube
 			// 根据位置同步协议，可能需要向第三方广播一下。
@@ -170,9 +168,9 @@ public class AoiSimple implements IAoi {
 			locks1.putAll(fastEnters);
 			locks1.putAll(fastLeaves);
 			try (var ignored = new LockGuard(locks1)) {
-				updateSelf(oid, object, position, cube, newCube);
-				processEnters(cube, oid, object, fastEnters);
-				processLeaves(cube, oid, object, fastLeaves);
+				updateSelf(entity, position, cube, newCube);
+				processEnters(cube, entity, fastEnters);
+				processLeaves(cube, entity, fastLeaves);
 			}
 			break;
 
@@ -188,19 +186,19 @@ public class AoiSimple implements IAoi {
 			diff(olds, news, enters);
 
 			try (var ignored = new LockGuard(locks2)) {
-				updateSelf(oid, object, position, cube, newCube);
-				processEnters(cube, oid, object, enters);
-				processLeaves(cube, oid, object, olds);
+				updateSelf(entity, position, cube, newCube);
+				processEnters(cube, entity, enters);
+				processLeaves(cube, entity, olds);
 			}
 			break;
 		}
 	}
 
-	protected void processEnters(Cube my, BObjectId oid, BObject self,
+	protected void processEnters(Cube my, Entity self,
 								 SortedMap<CubeIndex, Cube> enters) throws IOException {
 		for (var enter : enters.values()) {
 			// 收集玩家对象，用来发送自己进入的通知。
-			var targets = new ArrayList<BObject>();
+			var targets = new ArrayList<Entity>();
 			var putData = new BAoiOperates.Data();
 
 			// 少new一个对象
@@ -209,23 +207,19 @@ public class AoiSimple implements IAoi {
 			putData.getCubeIndex().setZ(enter.index.z);
 
 			for (var e : enter.objects.entrySet()) {
-				var operate = new BAoiOperate.Data();
-				operate.setObjectId(e.getKey());
-				operate.setOperateId(IAoi.eOperateIdFull);
-				encodeOperateFull(IAoi.eOperateIdFull, e.getKey(), e.getValue(), operate);
-				putData.getOperates().add(operate);
+				Entity.buildTree(putData.getOperates(), e.getValue().root());
 
-				if (e.getValue().getLinkName().isEmpty() && e.getValue().getLinkSid() > 0)
+				if (e.getValue().getBean().getLinkName().isEmpty() && e.getValue().getBean().getLinkSid() > 0)
 					targets.add(e.getValue());
 
 				// 限制一次传输过多数据，达到数量，马上发送。
 				if (putData.getOperates().size() > 200) {
-					world.sendCommand(self.getLinkName(), self.getLinkSid(), BCommand.eAoiEnter, putData);
+					world.sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(), BCommand.eAoiEnter, putData);
 					putData.getOperates().clear();
 				}
 
 				if (!putData.getOperates().isEmpty()) {
-					world.sendCommand(self.getLinkName(), self.getLinkSid(), BCommand.eAoiEnter, putData);
+					world.sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(), BCommand.eAoiEnter, putData);
 				}
 			}
 			// encode 自己的数据。
@@ -234,30 +228,13 @@ public class AoiSimple implements IAoi {
 				enterMe.getCubeIndex().setX(my.index.x);
 				enterMe.getCubeIndex().setY(my.index.y);
 				enterMe.getCubeIndex().setZ(my.index.z);
-				var operate = new BAoiOperate.Data();
-				operate.setObjectId(oid);
-				operate.setOperateId(IAoi.eOperateIdFull);
-				encodeOperateFull(IAoi.eOperateIdFull, oid, self, operate);
-				enterMe.getOperates().add(operate);
+				Entity.buildTree(putData.getOperates(), self.root());
 				world.sendCommand(targets, BCommand.eAoiEnter, enterMe);
 			}
 		}
 	}
 
-	@SuppressWarnings("MethodMayBeStatic")
-	public void encodeOperateFull(int operateId, BObjectId oid, BObject data, BAoiOperate.Data operate) {
-		if (operateId != IAoi.eOperateIdFull)
-			throw new RuntimeException("special editId found, but encodeEdit not override.");
-
-		// 默认实现是传输整个对象数据。
-		// 【实际上这个一般也需要定制】
-		// 【不能把服务器定义的数据全部都传给客户端】
-		var bb = ByteBuffer.Allocate();
-		data.encode(bb);
-		operate.setParam(new Binary(bb));
-	}
-
-	protected void processLeaves(Cube my, BObjectId oid, BObject self,
+	protected void processLeaves(Cube my, Entity self,
 								 SortedMap<CubeIndex, Cube> leaves) throws IOException {
 		// 【优化】
 		// 客户端也使用CubeMap结构组织数据，那么只需要打包发送所有leaves的CubeIndex.
@@ -265,12 +242,12 @@ public class AoiSimple implements IAoi {
 		for (var leave : leaves.values()) {
 			indexes.getCubeIndexs().add(new BCubeIndex.Data(leave.index.x, leave.index.y, leave.index.z));
 		}
-		world.sendCommand(self.getLinkName(), self.getLinkSid(), BCommand.eAoiLeaves, indexes);
+		world.sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(), BCommand.eAoiLeaves, indexes);
 
-		var targets = new ArrayList<BObject>();
+		var targets = new ArrayList<Entity>();
 		for (var cube : leaves.values()) {
 			for (var obj : cube.objects.values()) {
-				if (obj.getLinkName().isEmpty() && obj.getLinkSid() > 0)
+				if (obj.getBean().getLinkName().isEmpty() && obj.getBean().getLinkSid() > 0)
 					targets.add(obj);
 			}
 		}
@@ -279,7 +256,7 @@ public class AoiSimple implements IAoi {
 		remove.getCubeIndex().setX(my.index.x);
 		remove.getCubeIndex().setY(my.index.y);
 		remove.getCubeIndex().setZ(my.index.z);
-		remove.getKeys().add(oid);
+		remove.getKeys().add(self.getId());
 		world.sendCommand(targets, BCommand.eAoiLeave, remove);
 	}
 

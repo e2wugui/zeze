@@ -1638,13 +1638,19 @@
 				<variable id="1" name="MapInstanceId" type="long"/>
 			</bean>
 			<bean name="BAoiOperate"> 一个具体的操作。
-				<variable id="1" name="ObjectId" type="BObjectId"/>
-				<variable id="2" name="OperateId" type="int"/>
-				<variable id="3" name="Param" type="binary"/>
+				<variable id="1" name="OperateId" type="int"/>
+				<variable id="2" name="Param" type="binary"/>
+				<!--
+				实体属于一颗树时，整颗树传输（过滤掉玩家）。
+				需要考虑去重，可能从多个叶子回溯到同一棵树。
+				整棵树传输的时候以第一次构建的数据为准，忽略后面重复的。
+				客户端更新整棵树到本地数据中需要遍历并把数据铺开，对每个实体，加入正确的Cube。
+				-->
+				<variable id="3" name="Children" type="map[BObjectId, BAoiOperate]"/>
 			</bean>
 			<bean name="BAoiOperates"> 命令 eAoiEnter,eAoiOperate的参数。
 				<variable id="1" name="CubeIndex" type="BCubeIndex"/>
-				<variable id="2" name="Operates" type="list[BAoiOperate]"/>
+				<variable id="2" name="Operates" type="map[BObjectId, BAoiOperate]"/>
 			</bean>
 			<bean name="BAoiLeave"> 命令 eAoiLeave 的参数。
 				<variable id="1" name="CubeIndex" type="BCubeIndex"/>
