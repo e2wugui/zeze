@@ -1577,16 +1577,16 @@
 			<enum name="eCommandHandlerMissing" value="1"/>
 
 			<!-- 抽象的交互协议，用来封装任意客户端服务器Protocol,Rpc -->
-			<bean name="BCommand">
+			<bean name="BCommand"> 一个具体的操作。
 				<enum name="eReserveCommandId" value="2000"/> 保留Id给组件内部用。自定义的必须大于这个值。
 
-				<enum name="eMoveMmo"   value="0"/> handle=server,client
+				<enum name="eMoveMmo"   value="0"/> handle=server,client 位置同步命令。
 
-				<enum name="eSwitchWorld"  value="1"/> handle=server
+				<enum name="eSwitchWorld"  value="1"/> handle=server，地图切换流程涉及的协议。
 				<enum name="eEnterWorld"    value="2"/> handle=client
 				<enum name="eEnterConfirm" value="3"/> handle=server
 
-				<enum name="eAoiOperate"  value="4"/> handle=client
+				<enum name="eAoiOperate"  value="4"/> handle=client，需要同步的其他任意操作，完全抽象。
 				<enum name="eAoiEnter"       value="5"/> handle=client，客户端把eAoiOperate按Put原则处理数据时，可以和eAoiOperate一样的处理。
 				<enum name="eAoiLeave"      value="6"/> handle=client
 				<enum name="eAoiLeaves"    value="7"/> handle=client，Leave的优化版本，按Cube整体Leave。
@@ -1637,20 +1637,20 @@
 			<bean name="BEnterConfirm">
 				<variable id="1" name="MapInstanceId" type="long"/>
 			</bean>
-			<bean name="BAoiOperate">
+			<bean name="BAoiOperate"> 一个具体的操作。
 				<variable id="1" name="ObjectId" type="BObjectId"/>
 				<variable id="2" name="OperateId" type="int"/>
 				<variable id="3" name="Param" type="binary"/>
 			</bean>
-			<bean name="BAoiOperates">
+			<bean name="BAoiOperates"> 命令 eAoiEnter,eAoiOperate的参数。
 				<variable id="1" name="CubeIndex" type="BCubeIndex"/>
 				<variable id="2" name="Operates" type="list[BAoiOperate]"/>
 			</bean>
-			<bean name="BAoiLeave">
+			<bean name="BAoiLeave"> 命令 eAoiLeave 的参数。
 				<variable id="1" name="CubeIndex" type="BCubeIndex"/>
 				<variable id="2" name="Keys" type="list[BObjectId]"/>
 			</bean>
-			<bean name="BAoiLeaves">
+			<bean name="BAoiLeaves"> 命令 eAoiLeaves 的参数。
 				<variable id="1" name="CubeIndexs" type="list[BCubeIndex]"/>
 			</bean>
 			<bean name="BCubeIndex">

@@ -212,7 +212,7 @@ public class AoiSimple implements IAoi {
 				var operate = new BAoiOperate.Data();
 				operate.setObjectId(e.getKey());
 				operate.setOperateId(IAoi.eOperateIdFull);
-				encodeFull(IAoi.eOperateIdFull, e.getKey(), e.getValue(), operate);
+				encodeOperateFull(IAoi.eOperateIdFull, e.getKey(), e.getValue(), operate);
 				putData.getOperates().add(operate);
 
 				if (e.getValue().getLinkName().isEmpty() && e.getValue().getLinkSid() > 0)
@@ -237,7 +237,7 @@ public class AoiSimple implements IAoi {
 				var operate = new BAoiOperate.Data();
 				operate.setObjectId(oid);
 				operate.setOperateId(IAoi.eOperateIdFull);
-				encodeFull(IAoi.eOperateIdFull, oid, self, operate);
+				encodeOperateFull(IAoi.eOperateIdFull, oid, self, operate);
 				enterMe.getOperates().add(operate);
 				world.sendCommand(targets, BCommand.eAoiEnter, enterMe);
 			}
@@ -245,12 +245,13 @@ public class AoiSimple implements IAoi {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public void encodeFull(int operateId, BObjectId oid, BObject data, BAoiOperate.Data operate) {
+	public void encodeOperateFull(int operateId, BObjectId oid, BObject data, BAoiOperate.Data operate) {
 		if (operateId != IAoi.eOperateIdFull)
 			throw new RuntimeException("special editId found, but encodeEdit not override.");
 
 		// 默认实现是传输整个对象数据。
 		// 【实际上这个一般也需要定制】
+		// 【不能把服务器定义的数据全部都传给客户端】
 		var bb = ByteBuffer.Allocate();
 		data.encode(bb);
 		operate.setParam(new Binary(bb));
