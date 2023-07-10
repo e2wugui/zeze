@@ -1,5 +1,6 @@
 package Zeze.World;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -230,4 +231,10 @@ public class World extends AbstractWorld {
 		return result;
 	}
 
+	// todo 抽象Skill时再来决定参数。
+	public void compute(Entity self, ICompute c) throws IOException {
+		try (var ignored = new LockGuard(c.selector().select(self))) {
+			c.compute();
+		}
+	}
 }
