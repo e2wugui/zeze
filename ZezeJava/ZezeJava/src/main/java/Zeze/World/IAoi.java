@@ -50,11 +50,11 @@ public interface IAoi {
 	 * 2. 但是自动增量更新缺失了OperateId这样的分类。客户端是拿到了最新的数据，但无法区分到底什么修改了，无法优化操作。
 	 * 3. 所以这个方案只适合用来做自动复制之类的功能。比如Raft之间的复制。
 	 *
-	 * @param oid 编辑对象Id。
+	 * @param self 编辑对象。
 	 * @param operateId 操作Id。
 	 * @param operate 编辑操作。仅客户端解释，需要能完成数据编辑，并且拥有完整的操作参数。
 	 */
-	void notify(BObjectId oid, int operateId, Data operate) throws Exception;
+	void notify(Entity self, int operateId, Data operate) throws Exception;
 
 	/**
 	 * 默认实现是传输整个对象数据。

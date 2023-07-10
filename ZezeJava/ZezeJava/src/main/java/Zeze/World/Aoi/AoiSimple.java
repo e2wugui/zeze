@@ -7,10 +7,13 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import Zeze.Builtin.World.BAoiLeave;
 import Zeze.Builtin.World.BAoiLeaves;
+import Zeze.Builtin.World.BAoiOperate;
 import Zeze.Builtin.World.BAoiOperates;
 import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.BCubeIndex;
 import Zeze.Builtin.World.BObjectId;
+import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Data;
 import Zeze.World.CubeIndex;
 import Zeze.World.Entity;
@@ -276,7 +279,34 @@ public class AoiSimple implements IAoi {
 	}
 
 	@Override
-	public void notify(BObjectId oid, int operateId, Data operate) {
+	public void notify(Entity self, int operateId, Data operate) throws IOException {
+		var index = map.toIndex(self.getBean().getPosition());
+		var centers = map.center(index, rangeX, rangeY, rangeZ);
+		// todo 由于notify的处理，客户端在没有enter时可以忽略。
+		// 这里应该可以一个一个cube锁定。先最大化锁定！
+		try (var ignored = new LockGuard(centers)) {
+			var targets = new ArrayList<Entity>();
+			var aoiOperates = new BAoiOperates.Data();
+			aoiOperates.getCubeIndex().setX(index.x);
+			aoiOperates.getCubeIndex().setY(index.y);
+			aoiOperates.getCubeIndex().setZ(index.z);
 
+			// operate 总是修改一个实体，不需要处理tree问题。
+			var aoiOperate = new BAoiOperate.Data();
+
+			aoiOperate.setOperateId(IAoi.eOperateIdFull);
+			var bb = ByteBuffer.Allocate();
+			operate.encode(bb);
+			aoiOperate.setParam(new Binary(bb));
+			aoiOperates.getOperates().put(self.getId(), aoiOperate);
+
+			for (var cube : centers.values()) {
+				for (var entity : cube.objects.values()) {
+					if (entity.isPlayer())
+						targets.add(entity);
+				}
+			}
+			world.sendCommand(targets, BCommand.eAoiOperate, aoiOperate);
+		}
 	}
 }
