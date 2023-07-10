@@ -8,7 +8,6 @@ import Zeze.Builtin.World.BAoiOperate;
 import Zeze.Builtin.World.BObject;
 import Zeze.Builtin.World.BObjectId;
 import Zeze.Net.Binary;
-import Zeze.Serialize.ByteBuffer;
 
 public class Entity {
 	private Entity parent;

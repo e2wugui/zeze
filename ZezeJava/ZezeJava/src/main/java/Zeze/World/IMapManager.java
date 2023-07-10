@@ -1,5 +1,10 @@
 package Zeze.World;
 
+/**
+ * 地图实例管理接口。
+ * 默认实现是 Aoi.MapManager。
+ * 可重用性高，一般不需要重写。
+ */
 public interface IMapManager {
 	/**
 	 * 地图切换。

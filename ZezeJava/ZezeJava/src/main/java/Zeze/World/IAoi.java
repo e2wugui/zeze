@@ -6,6 +6,11 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector3;
 import Zeze.Transaction.Data;
 
+/**
+ * Aoi 接口。
+ * 基本实现AoiSimple（简单的严格以自己为中心的周边格子组成的视野的同步）
+ * 扩展实现AoiStable（处理玩家在格子分割线周边移动造成的不断Enter，Leave的问题）
+ */
 public interface IAoi {
 	/**
 	 * 1. 移动到新的位置，会发起视野内的更新广播。
