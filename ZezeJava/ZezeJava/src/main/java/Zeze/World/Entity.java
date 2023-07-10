@@ -3,6 +3,7 @@ package Zeze.World;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.function.Function;
 import Zeze.Builtin.World.BAoiOperate;
 import Zeze.Builtin.World.BObject;
 import Zeze.Builtin.World.BObjectId;
@@ -20,10 +21,14 @@ public class Entity {
 		this.bean = new BObject();
 	}
 
+	public boolean isPlayer() {
+		return !bean.getLinkName().isEmpty() && bean.getLinkSid() > 0;
+	}
+
 	/**
 	 * 构建整颗树。
 	 */
-	public static void buildTree(Map<BObjectId, BAoiOperate.Data> result, Entity self) {
+	public static void buildTree(Map<BObjectId, BAoiOperate.Data> result, Entity self, Function<Entity, Binary> encoder) {
 		if (null != self.parent)
 			throw new RuntimeException("is not a root.");
 
@@ -31,27 +36,13 @@ public class Entity {
 			var child = new BAoiOperate.Data();
 
 			child.setOperateId(IAoi.eOperateIdFull);
-			// todo 暂定用继承来搞定自定义。
-			self.encodeOperateFull(IAoi.eOperateIdFull, self.id, self.bean, child);
+			child.setParam(encoder.apply(self));
 
 			result.put(self.id, child);
 			for (var c : self.children) {
-				buildTree(child.getChildren(), c);
+				buildTree(child.getChildren(), c, encoder);
 			}
 		}
-	}
-
-	@SuppressWarnings("MethodMayBeStatic")
-	public void encodeOperateFull(int operateId, BObjectId oid, BObject data, BAoiOperate.Data operate) {
-		if (operateId != IAoi.eOperateIdFull)
-			throw new RuntimeException("special editId found, but encodeEdit not override.");
-
-		// 默认实现是传输整个对象数据。
-		// 【实际上这个一般也需要定制】
-		// 【不能把服务器定义的数据全部都传给客户端】
-		var bb = ByteBuffer.Allocate();
-		data.encode(bb);
-		operate.setParam(new Binary(bb));
 	}
 
 	/**

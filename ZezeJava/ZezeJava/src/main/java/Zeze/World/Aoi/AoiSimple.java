@@ -207,9 +207,9 @@ public class AoiSimple implements IAoi {
 			putData.getCubeIndex().setZ(enter.index.z);
 
 			for (var e : enter.objects.entrySet()) {
-				Entity.buildTree(putData.getOperates(), e.getValue().root());
+				Entity.buildTree(putData.getOperates(), e.getValue().root(), this::encodeEnter);
 
-				if (e.getValue().getBean().getLinkName().isEmpty() && e.getValue().getBean().getLinkSid() > 0)
+				if (e.getValue().isPlayer())
 					targets.add(e.getValue());
 
 				// 限制一次传输过多数据，达到数量，马上发送。
@@ -228,7 +228,7 @@ public class AoiSimple implements IAoi {
 				enterMe.getCubeIndex().setX(my.index.x);
 				enterMe.getCubeIndex().setY(my.index.y);
 				enterMe.getCubeIndex().setZ(my.index.z);
-				Entity.buildTree(putData.getOperates(), self.root());
+				Entity.buildTree(putData.getOperates(), self.root(), this::encodeEnter);
 				world.sendCommand(targets, BCommand.eAoiEnter, enterMe);
 			}
 		}
@@ -247,7 +247,7 @@ public class AoiSimple implements IAoi {
 		var targets = new ArrayList<Entity>();
 		for (var cube : leaves.values()) {
 			for (var obj : cube.objects.values()) {
-				if (obj.getBean().getLinkName().isEmpty() && obj.getBean().getLinkSid() > 0)
+				if (obj.isPlayer())
 					targets.add(obj);
 			}
 		}

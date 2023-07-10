@@ -1,6 +1,8 @@
 package Zeze.World;
 
 import Zeze.Builtin.World.BObjectId;
+import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector3;
 import Zeze.Transaction.Data;
 
@@ -48,4 +50,16 @@ public interface IAoi {
 	 * @param operate 编辑操作。仅客户端解释，需要能完成数据编辑，并且拥有完整的操作参数。
 	 */
 	void notify(BObjectId oid, int operateId, Data operate) throws Exception;
+
+	/**
+	 * 默认实现是传输整个对象数据。
+	 * 【实际上这个一般也需要定制】
+	 * 【不能把服务器定义的数据全部都传给客户端】
+ 	 */
+	default Binary encodeEnter(Entity e) {
+		var bb = ByteBuffer.Allocate();
+		e.getBean().encode(bb);
+		return new Binary(bb);
+	}
+
 }
