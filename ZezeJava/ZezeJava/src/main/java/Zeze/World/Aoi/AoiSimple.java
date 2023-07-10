@@ -98,6 +98,15 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
+	private void updateSelf(BObjectId oid, BObject object, Vector3 position, Cube cube, Cube newCube) {
+		object.setPosition(position);
+		if (cube != newCube) {
+			cube.objects.remove(oid);
+			newCube.objects.put(oid, object);
+			objectToCube.put(oid, newCube); // update to new cube
+		}
+	}
+
 	@Override
 	public void moveTo(BObjectId oid, Vector3 position) throws Exception {
 		var cube = objectToCube.get(oid);
@@ -125,18 +134,17 @@ public class AoiSimple implements IAoi {
 		var newIndex = map.toIndex(position);
 		var newCube = map.getOrAdd(newIndex);
 
+		// todo 先最大化锁住所有cube，保证可用。
+		//  一次锁住较少的cube的方案需要验证是否可行，备注-微信群里有点分析。
 		// 更新到新的坐标以及cube发生变化时移动数据。
-		object.setPosition(position);
-		if (cube != newCube) {
-			cube.objects.remove(oid);
-			newCube.objects.put(oid, object);
-			objectToCube.put(oid, newCube); // update to new cube
-		}
 
 		var dp = (int)cube.index.distancePerpendicular(newIndex);
 
 		switch (dp) {
 		case 0:
+			try (var ignored = new LockGuard(cube, newCube)) {
+				updateSelf(oid, object, position, cube, newCube);
+			}
 			// same cube
 			// 根据位置同步协议，可能需要向第三方广播一下。
 			// 如果位置同步协议总是即时的依赖发起方的命令。
@@ -145,6 +153,7 @@ public class AoiSimple implements IAoi {
 
 		case 1:
 			// 【优化】进入到临近的cube，快速得到enter & leave。
+			// 对于较少的视野，比如就通知9宫格，这个优化应该不明显。
 			var dx = newIndex.x - cube.index.x;
 			var dy = newIndex.y - cube.index.y;
 			var dz = newIndex.z - cube.index.z;
@@ -159,18 +168,32 @@ public class AoiSimple implements IAoi {
 			fastCollectWithFixedY(fastLeaves, cube.index, -dy);
 			fastCollectWithFixedZ(fastLeaves, cube.index, -dz);
 
-			processEnters(cube, oid, object, fastEnters);
-			processLeaves(cube, oid, object, fastLeaves);
+			var locks1 = map.center(cube.index, rangeX, rangeY, rangeZ);
+			locks1.putAll(fastEnters);
+			locks1.putAll(fastLeaves);
+			try (var ignored = new LockGuard(locks1)) {
+				updateSelf(oid, object, position, cube, newCube);
+				processEnters(cube, oid, object, fastEnters);
+				processLeaves(cube, oid, object, fastLeaves);
+			}
 			break;
 
 		default:
 			// 跳过cube到达全新的位置
+			var locks2 = new TreeMap<CubeIndex, Cube>();
 			var olds = map.center(cube.index, rangeX, rangeY, rangeZ);
+			locks2.putAll(olds); // 必须先收集，后面的diff会修改olds。
 			var news = map.center(newIndex, rangeX, rangeY, rangeZ);
+			locks2.putAll(news);
+
 			var enters = new TreeMap<CubeIndex, Cube>();
 			diff(olds, news, enters);
-			processEnters(cube, oid, object, enters);
-			processLeaves(cube, oid, object, olds);
+
+			try (var ignored = new LockGuard(locks2)) {
+				updateSelf(oid, object, position, cube, newCube);
+				processEnters(cube, oid, object, enters);
+				processLeaves(cube, oid, object, olds);
+			}
 			break;
 		}
 	}
@@ -180,29 +203,27 @@ public class AoiSimple implements IAoi {
 		for (var enter : enters.values()) {
 			// 收集玩家对象，用来发送自己进入的通知。
 			var targets = new ArrayList<BObject>();
-			try (var ignored = new LockGuard(enter)) {
-				var putData = new BCubePutData.Data();
+			var putData = new BCubePutData.Data();
 
-				// 少new一个对象
-				putData.getCubeIndex().setX(enter.index.x);
-				putData.getCubeIndex().setY(enter.index.y);
-				putData.getCubeIndex().setZ(enter.index.z);
+			// 少new一个对象
+			putData.getCubeIndex().setX(enter.index.x);
+			putData.getCubeIndex().setY(enter.index.y);
+			putData.getCubeIndex().setZ(enter.index.z);
 
-				for (var e : enter.objects.entrySet()) {
-					var editData = new BEditData.Data();
-					editData.setObjectId(e.getKey());
-					editData.setEditId(IAoi.eEditIdFull);
-					encodeEdit(IAoi.eEditIdFull, e.getKey(), e.getValue(), editData);
-					putData.getDatas().add(editData);
+			for (var e : enter.objects.entrySet()) {
+				var editData = new BEditData.Data();
+				editData.setObjectId(e.getKey());
+				editData.setEditId(IAoi.eEditIdFull);
+				encodeEdit(IAoi.eEditIdFull, e.getKey(), e.getValue(), editData);
+				putData.getDatas().add(editData);
 
-					if (e.getValue().getLinkName().isEmpty() && e.getValue().getLinkSid() > 0)
-						targets.add(e.getValue());
+				if (e.getValue().getLinkName().isEmpty() && e.getValue().getLinkSid() > 0)
+					targets.add(e.getValue());
 
-					// 限制一次传输过多数据，达到数量，马上发送。
-					if (putData.getDatas().size() > 200) {
-						world.sendCommand(self.getLinkName(), self.getLinkSid(), BCommand.eCubePutData, putData);
-						putData.getDatas().clear();
-					}
+				// 限制一次传输过多数据，达到数量，马上发送。
+				if (putData.getDatas().size() > 200) {
+					world.sendCommand(self.getLinkName(), self.getLinkSid(), BCommand.eCubePutData, putData);
+					putData.getDatas().clear();
 				}
 
 				if (!putData.getDatas().isEmpty()) {
@@ -249,12 +270,10 @@ public class AoiSimple implements IAoi {
 		world.sendCommand(self.getLinkName(), self.getLinkSid(), BCommand.eCubeLeaves, indexes);
 
 		var targets = new ArrayList<BObject>();
-		try (var ignored = new LockGuard(leaves)) {
-			for (var cube : leaves.values()) {
-				for (var obj : cube.objects.values()) {
-					if (obj.getLinkName().isEmpty() && obj.getLinkSid() > 0)
-						targets.add(obj);
-				}
+		for (var cube : leaves.values()) {
+			for (var obj : cube.objects.values()) {
+				if (obj.getLinkName().isEmpty() && obj.getLinkSid() > 0)
+					targets.add(obj);
 			}
 		}
 
