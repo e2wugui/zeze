@@ -282,6 +282,7 @@ public class AoiSimple implements IAoi {
 	public void notify(Entity self, int operateId, Data operate) throws IOException {
 		var index = map.toIndex(self.getBean().getPosition());
 		var centers = map.center(index, rangeX, rangeY, rangeZ);
+
 		// todo 由于notify的处理，客户端在没有enter时可以忽略。
 		// 这里应该可以一个一个cube锁定。先最大化锁定！
 		try (var ignored = new LockGuard(centers)) {
