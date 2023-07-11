@@ -24,14 +24,28 @@ public class Entity {
 		return !bean.getLinkName().isEmpty() && bean.getLinkSid() > 0;
 	}
 
+	public static void buildPlayer(Map<BObjectId, BAoiOperate.Data> result,
+								   Entity self, Function<Entity, Binary> encoder) {
+		if (self != null && self.isPlayer()) {
+			var child = new BAoiOperate.Data();
+
+			child.setOperateId(IAoi.eOperateIdFull);
+			child.setParam(encoder.apply(self));
+
+			result.put(self.id, child);
+		}
+	}
+
 	/**
 	 * 构建整颗树。
 	 */
-	public static void buildTree(Map<BObjectId, BAoiOperate.Data> result, Entity self, Function<Entity, Binary> encoder) {
-		if (null != self.parent)
-			throw new RuntimeException("is not a root.");
+	public static void buildNonePlayerTree(Map<BObjectId, BAoiOperate.Data> result,
+										   Entity self, Function<Entity, Binary> encoder) {
+		if (null == self)
+			return; // helper 方便外面不检查就调用这个。
 
-		if (!result.containsKey(self.id)) {
+		// 过滤掉玩家
+		if (!self.isPlayer() && !result.containsKey(self.id)) {
 			var child = new BAoiOperate.Data();
 
 			child.setOperateId(IAoi.eOperateIdFull);
@@ -39,21 +53,21 @@ public class Entity {
 
 			result.put(self.id, child);
 			for (var c : self.children) {
-				buildTree(child.getChildren(), c, encoder);
+				buildNonePlayerTree(child.getChildren(), c, encoder);
 			}
 		}
 	}
 
 	/**
-	 * 找到关联树的根，鼓励节点返回this。
-	 * @return root
+	 * 如果存在关联树，找到关联树的根。
+	 * @return last parent, if no parent return null.
 	 */
-	public Entity root() {
-		var root = this;
+	public Entity lastParent() {
+		Entity last = null;
 		for (var p = parent; p != null; p = p.parent) {
-			root = p;
+			last = p;
 		}
-		return root;
+		return last;
 	}
 
 	public BObjectId getId() {

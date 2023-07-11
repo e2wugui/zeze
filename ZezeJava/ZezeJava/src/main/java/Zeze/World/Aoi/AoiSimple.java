@@ -205,7 +205,8 @@ public class AoiSimple implements IAoi {
 			var aoiOperates = new BAoiOperates.Data();
 
 			for (var e : enter.objects.entrySet()) {
-				Entity.buildTree(aoiOperates.getOperates(), e.getValue().root(), this::encodeEnter);
+				Entity.buildNonePlayerTree(aoiOperates.getOperates(), e.getValue().lastParent(), this::encodeEnter);
+				Entity.buildPlayer(aoiOperates.getOperates(), e.getValue(), this::encodeEnter);
 
 				if (e.getValue().isPlayer())
 					targets.add(e.getValue());
@@ -226,7 +227,7 @@ public class AoiSimple implements IAoi {
 		// encode 自己的数据。
 		{
 			var enterMe = new BAoiOperates.Data();
-			Entity.buildTree(enterMe.getOperates(), self.root(), this::encodeEnter);
+			Entity.buildPlayer(enterMe.getOperates(), self, this::encodeEnter);
 			world.getLinkSender().sendCommand(targets, BCommand.eAoiEnter, enterMe);
 		}
 	}
