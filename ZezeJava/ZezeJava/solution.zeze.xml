@@ -1566,6 +1566,8 @@
 				<variable id="3" name="PlayerId"     type="string"/>
 				<variable id="4" name="LinkName"  type="string"/>
 				<variable id="5" name="LinkSid"       type="long"/>
+				<variable id="6" name="Type"           type="int"/>
+				<variable id="7" name="ConfigId"     type="int"/>
 			</bean>
 			
 			<enum name="eCommandHandlerMissing" value="1"/>

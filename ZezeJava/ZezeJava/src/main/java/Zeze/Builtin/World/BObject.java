@@ -25,6 +25,8 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     private String _PlayerId;
     private String _LinkName;
     private long _LinkSid;
+    private int _Type;
+    private int _ConfigId;
 
     public Zeze.Transaction.DynamicBean getData() {
         return _Data;
@@ -112,6 +114,46 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         txn.putLog(new Log__LinkSid(this, 5, value));
     }
 
+    @Override
+    public int getType() {
+        if (!isManaged())
+            return _Type;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Type;
+        var log = (Log__Type)txn.getLog(objectId() + 6);
+        return log != null ? log.value : _Type;
+    }
+
+    public void setType(int value) {
+        if (!isManaged()) {
+            _Type = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Type(this, 6, value));
+    }
+
+    @Override
+    public int getConfigId() {
+        if (!isManaged())
+            return _ConfigId;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _ConfigId;
+        var log = (Log__ConfigId)txn.getLog(objectId() + 7);
+        return log != null ? log.value : _ConfigId;
+    }
+
+    public void setConfigId(int value) {
+        if (!isManaged()) {
+            _ConfigId = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__ConfigId(this, 7, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BObject() {
         _Data = newDynamicBean_Data();
@@ -122,7 +164,7 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     }
 
     @SuppressWarnings("deprecation")
-    public BObject(String _PlayerId_, String _LinkName_, long _LinkSid_) {
+    public BObject(String _PlayerId_, String _LinkName_, long _LinkSid_, int _Type_, int _ConfigId_) {
         _Data = newDynamicBean_Data();
         _Moving = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.World.BMove(), Zeze.Builtin.World.BMove.class);
         _Moving.variableId(2);
@@ -133,6 +175,8 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
             _LinkName_ = "";
         _LinkName = _LinkName_;
         _LinkSid = _LinkSid_;
+        _Type = _Type_;
+        _ConfigId = _ConfigId_;
     }
 
     @Override
@@ -142,6 +186,8 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         setPlayerId("");
         setLinkName("");
         setLinkSid(0);
+        setType(0);
+        setConfigId(0);
     }
 
     @Override
@@ -164,6 +210,8 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         setPlayerId(other._PlayerId);
         setLinkName(other._LinkName);
         setLinkSid(other._LinkSid);
+        setType(other._Type);
+        setConfigId(other._ConfigId);
     }
 
     public void assign(BObject other) {
@@ -172,6 +220,8 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         setPlayerId(other.getPlayerId());
         setLinkName(other.getLinkName());
         setLinkSid(other.getLinkSid());
+        setType(other.getType());
+        setConfigId(other.getConfigId());
     }
 
     public BObject copyIfManaged() {
@@ -217,6 +267,20 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         public void commit() { ((BObject)getBelong())._LinkSid = value; }
     }
 
+    private static final class Log__Type extends Zeze.Transaction.Logs.LogInt {
+        public Log__Type(BObject bean, int varId, int value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BObject)getBelong())._Type = value; }
+    }
+
+    private static final class Log__ConfigId extends Zeze.Transaction.Logs.LogInt {
+        public Log__ConfigId(BObject bean, int varId, int value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BObject)getBelong())._ConfigId = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -236,7 +300,9 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         sb.append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("PlayerId=").append(getPlayerId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("LinkName=").append(getLinkName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LinkSid=").append(getLinkSid()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LinkSid=").append(getLinkSid()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Type=").append(getType()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ConfigId=").append(getConfigId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -294,6 +360,20 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            int _x_ = getType();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = getConfigId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -321,6 +401,14 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
             setLinkSid(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 6) {
+            setType(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            setConfigId(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -345,6 +433,10 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
             return true;
         if (getLinkSid() < 0)
             return true;
+        if (getType() < 0)
+            return true;
+        if (getConfigId() < 0)
+            return true;
         return false;
     }
 
@@ -362,6 +454,8 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
                 case 3: _PlayerId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 4: _LinkName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 5: _LinkSid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 6: _Type = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 7: _ConfigId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }
@@ -380,6 +474,8 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         if (getLinkName() == null)
             setLinkName("");
         setLinkSid(rs.getLong(_parents_name_ + "LinkSid"));
+        setType(rs.getInt(_parents_name_ + "Type"));
+        setConfigId(rs.getInt(_parents_name_ + "ConfigId"));
     }
 
     @Override
@@ -392,6 +488,8 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         st.appendString(_parents_name_ + "PlayerId", getPlayerId());
         st.appendString(_parents_name_ + "LinkName", getLinkName());
         st.appendLong(_parents_name_ + "LinkSid", getLinkSid());
+        st.appendInt(_parents_name_ + "Type", getType());
+        st.appendInt(_parents_name_ + "ConfigId", getConfigId());
     }
 
 public static final class Data extends Zeze.Transaction.Data {
@@ -424,6 +522,8 @@ public static final class Data extends Zeze.Transaction.Data {
     private String _PlayerId;
     private String _LinkName;
     private long _LinkSid;
+    private int _Type;
+    private int _ConfigId;
 
     public DynamicData_Data getData() {
         return _Data;
@@ -467,6 +567,22 @@ public static final class Data extends Zeze.Transaction.Data {
         _LinkSid = value;
     }
 
+    public int getType() {
+        return _Type;
+    }
+
+    public void setType(int value) {
+        _Type = value;
+    }
+
+    public int getConfigId() {
+        return _ConfigId;
+    }
+
+    public void setConfigId(int value) {
+        _ConfigId = value;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _Data = new DynamicData_Data();
@@ -476,7 +592,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(DynamicData_Data _Data_, Zeze.Builtin.World.BMove.Data _Moving_, String _PlayerId_, String _LinkName_, long _LinkSid_) {
+    public Data(DynamicData_Data _Data_, Zeze.Builtin.World.BMove.Data _Moving_, String _PlayerId_, String _LinkName_, long _LinkSid_, int _Type_, int _ConfigId_) {
         if (_Data_ == null)
             _Data_ = new DynamicData_Data();
         _Data = _Data_;
@@ -490,6 +606,8 @@ public static final class Data extends Zeze.Transaction.Data {
             _LinkName_ = "";
         _LinkName = _LinkName_;
         _LinkSid = _LinkSid_;
+        _Type = _Type_;
+        _ConfigId = _ConfigId_;
     }
 
     @Override
@@ -499,6 +617,8 @@ public static final class Data extends Zeze.Transaction.Data {
         _PlayerId = "";
         _LinkName = "";
         _LinkSid = 0;
+        _Type = 0;
+        _ConfigId = 0;
     }
 
     @Override
@@ -519,6 +639,8 @@ public static final class Data extends Zeze.Transaction.Data {
         _PlayerId = other.getPlayerId();
         _LinkName = other.getLinkName();
         _LinkSid = other.getLinkSid();
+        _Type = other.getType();
+        _ConfigId = other.getConfigId();
     }
 
     public void assign(BObject.Data other) {
@@ -527,6 +649,8 @@ public static final class Data extends Zeze.Transaction.Data {
         _PlayerId = other._PlayerId;
         _LinkName = other._LinkName;
         _LinkSid = other._LinkSid;
+        _Type = other._Type;
+        _ConfigId = other._ConfigId;
     }
 
     @Override
@@ -571,7 +695,9 @@ public static final class Data extends Zeze.Transaction.Data {
         sb.append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("PlayerId=").append(_PlayerId).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("LinkName=").append(_LinkName).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LinkSid=").append(_LinkSid).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LinkSid=").append(_LinkSid).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Type=").append(_Type).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ConfigId=").append(_ConfigId).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -629,6 +755,20 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            int _x_ = _Type;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _ConfigId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -654,6 +794,14 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 5) {
             _LinkSid = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 6) {
+            _Type = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            _ConfigId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
