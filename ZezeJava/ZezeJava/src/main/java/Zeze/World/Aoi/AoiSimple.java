@@ -119,13 +119,13 @@ public class AoiSimple implements IAoi {
 		if (null == entity) {
 			// 第一次进入，enter 视野。
 			// todo 新建对象初始化框架。
-			var newIndex = map.toIndex(position);
-			var enters = map.center(newIndex, rangeX, rangeY, rangeZ);
-			try (var ignored = new LockGuard(enters)) {
+			var firstEnters = map.center(cube.index, rangeX, rangeY, rangeZ);
+			try (var ignored = new LockGuard(firstEnters)) {
 				cube.objects.put(oid, entity = new Entity(oid));
 				objectToCube.put(oid, cube);
 				entity.getBean().setPosition(position);
-				processEnters(cube, entity, enters);
+				// todo entity.getBean().setDirect(position);
+				processEnters(cube, entity, firstEnters);
 			}
 			return;
 		}
@@ -167,8 +167,8 @@ public class AoiSimple implements IAoi {
 			fastCollectWithFixedY(fastLeaves, cube.index, -dy);
 			fastCollectWithFixedZ(fastLeaves, cube.index, -dz);
 
-			var locks1 = map.center(cube.index, rangeX, rangeY, rangeZ);
-			locks1.putAll(fastEnters);
+			var locks1 = map.center(newCube.index, rangeX, rangeY, rangeZ);
+			//locks1.putAll(fastEnters); // fastEnters 肯定在以newCube为中心的"9"宫格内。
 			locks1.putAll(fastLeaves);
 			try (var ignored = new LockGuard(locks1)) {
 				updateSelf(entity, position, cube, newCube);
@@ -182,7 +182,7 @@ public class AoiSimple implements IAoi {
 			var locks2 = new TreeMap<CubeIndex, Cube>();
 			var olds = map.center(cube.index, rangeX, rangeY, rangeZ);
 			locks2.putAll(olds); // 必须先收集，后面的diff会修改olds。
-			var news = map.center(newIndex, rangeX, rangeY, rangeZ);
+			var news = map.center(newCube.index, rangeX, rangeY, rangeZ);
 			locks2.putAll(news);
 
 			var enters = new TreeMap<CubeIndex, Cube>();
@@ -205,6 +205,9 @@ public class AoiSimple implements IAoi {
 			var aoiOperates = new BAoiOperates.Data();
 
 			for (var e : enter.objects.entrySet()) {
+				if (self == e.getValue())
+					continue; // skip self
+
 				Entity.buildNonePlayerTree(aoiOperates.getOperates(), e.getValue().lastParent(), this::encodeEnter);
 				Entity.buildPlayer(aoiOperates.getOperates(), e.getValue(), this::encodeEnter);
 

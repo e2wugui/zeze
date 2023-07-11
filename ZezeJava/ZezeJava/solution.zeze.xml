@@ -1660,7 +1660,6 @@
 				</bean>
 				<bean name="BSwitchWorldResult">
 					<variable id="1" name="MapInstanceId"  type="long"/>
-					<variable id="2" name="ServerId"  type="int"/> 目前没有逻辑作用，用来调试。
 				</bean>
 				<rpc name="SwitchWorld" argument="BSwitchWorld" result="BSwitchWorldResult" handle="server"/>
 			</module>

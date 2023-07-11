@@ -8,5 +8,4 @@ public interface BSwitchWorldResultReadOnly {
     BSwitchWorldResult copy();
 
     long getMapInstanceId();
-    int getServerId();
 }

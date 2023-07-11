@@ -8,7 +8,6 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
     public static final long TYPEID = 5224332116004611997L;
 
     private long _MapInstanceId;
-    private int _ServerId; // 目前没有逻辑作用，用来调试。
 
     @Override
     public long getMapInstanceId() {
@@ -30,40 +29,18 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
         txn.putLog(new Log__MapInstanceId(this, 1, value));
     }
 
-    @Override
-    public int getServerId() {
-        if (!isManaged())
-            return _ServerId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _ServerId;
-        var log = (Log__ServerId)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _ServerId;
-    }
-
-    public void setServerId(int value) {
-        if (!isManaged()) {
-            _ServerId = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ServerId(this, 2, value));
-    }
-
     @SuppressWarnings("deprecation")
     public BSwitchWorldResult() {
     }
 
     @SuppressWarnings("deprecation")
-    public BSwitchWorldResult(long _MapInstanceId_, int _ServerId_) {
+    public BSwitchWorldResult(long _MapInstanceId_) {
         _MapInstanceId = _MapInstanceId_;
-        _ServerId = _ServerId_;
     }
 
     @Override
     public void reset() {
         setMapInstanceId(0);
-        setServerId(0);
     }
 
     @Override
@@ -80,12 +57,10 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
 
     public void assign(BSwitchWorldResult.Data other) {
         setMapInstanceId(other._MapInstanceId);
-        setServerId(other._ServerId);
     }
 
     public void assign(BSwitchWorldResult other) {
         setMapInstanceId(other.getMapInstanceId());
-        setServerId(other.getServerId());
     }
 
     public BSwitchWorldResult copyIfManaged() {
@@ -117,13 +92,6 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
         public void commit() { ((BSwitchWorldResult)getBelong())._MapInstanceId = value; }
     }
 
-    private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerId(BSwitchWorldResult bean, int varId, int value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BSwitchWorldResult)getBelong())._ServerId = value; }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -135,8 +103,7 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.Static.BSwitchWorldResult: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("MapInstanceId=").append(getMapInstanceId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(getServerId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("MapInstanceId=").append(getMapInstanceId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -163,13 +130,6 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
                 _o_.WriteLong(_x_);
             }
         }
-        {
-            int _x_ = getServerId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
         _o_.WriteByte(0);
     }
 
@@ -181,10 +141,6 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
             setMapInstanceId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 2) {
-            setServerId(_o_.ReadInt(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -194,8 +150,6 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
     @Override
     public boolean negativeCheck() {
         if (getMapInstanceId() < 0)
-            return true;
-        if (getServerId() < 0)
             return true;
         return false;
     }
@@ -210,7 +164,6 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _MapInstanceId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }
@@ -219,21 +172,18 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setMapInstanceId(rs.getLong(_parents_name_ + "MapInstanceId"));
-        setServerId(rs.getInt(_parents_name_ + "ServerId"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "MapInstanceId", getMapInstanceId());
-        st.appendInt(_parents_name_ + "ServerId", getServerId());
     }
 
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5224332116004611997L;
 
     private long _MapInstanceId;
-    private int _ServerId; // 目前没有逻辑作用，用来调试。
 
     public long getMapInstanceId() {
         return _MapInstanceId;
@@ -243,28 +193,18 @@ public static final class Data extends Zeze.Transaction.Data {
         _MapInstanceId = value;
     }
 
-    public int getServerId() {
-        return _ServerId;
-    }
-
-    public void setServerId(int value) {
-        _ServerId = value;
-    }
-
     @SuppressWarnings("deprecation")
     public Data() {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _MapInstanceId_, int _ServerId_) {
+    public Data(long _MapInstanceId_) {
         _MapInstanceId = _MapInstanceId_;
-        _ServerId = _ServerId_;
     }
 
     @Override
     public void reset() {
         _MapInstanceId = 0;
-        _ServerId = 0;
     }
 
     @Override
@@ -281,12 +221,10 @@ public static final class Data extends Zeze.Transaction.Data {
 
     public void assign(BSwitchWorldResult other) {
         _MapInstanceId = other.getMapInstanceId();
-        _ServerId = other.getServerId();
     }
 
     public void assign(BSwitchWorldResult.Data other) {
         _MapInstanceId = other._MapInstanceId;
-        _ServerId = other._ServerId;
     }
 
     @Override
@@ -323,8 +261,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.Static.BSwitchWorldResult: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("MapInstanceId=").append(_MapInstanceId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(_ServerId).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("MapInstanceId=").append(_MapInstanceId).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -351,13 +288,6 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteLong(_x_);
             }
         }
-        {
-            int _x_ = _ServerId;
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
         _o_.WriteByte(0);
     }
 
@@ -367,10 +297,6 @@ public static final class Data extends Zeze.Transaction.Data {
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
             _MapInstanceId = _o_.ReadLong(_t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            _ServerId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
