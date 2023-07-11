@@ -10,5 +10,5 @@ public interface BAoiOperateReadOnly {
 
     int getOperateId();
     Zeze.Net.Binary getParam();
-    Zeze.Transaction.Collections.PMap2ReadOnly<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate, Zeze.Builtin.World.BAoiOperateReadOnly> getChildrenReadOnly();
+    Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.World.BAoiOperate, Zeze.Builtin.World.BAoiOperateReadOnly> getChildrenReadOnly();
 }

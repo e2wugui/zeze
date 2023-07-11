@@ -1556,19 +1556,13 @@
 		</module>
 
 		<module name="World" id="11031" UseData="true" DefaultTransactionLevel="None">
-			<beankey name="BObjectId">
-				<variable id="1" name="Type"  type="int"/>
-				<variable id="2" name="ConfigId"   type="int"/>
-				<variable id="3" name="InstanceId" type="long"/>
-			</beankey>
-
 			<bean name="BObject">
 				<variable id="1" name="Data"      type="dynamic">
 					<GetSpecialTypeIdFromBean value="Zeze.World.World::getSpecialTypeIdFromBean"/>
 					<CreateBeanFromSpecialTypeId value="Zeze.World.World::createBeanFromSpecialTypeId"/>
 					<CreateDataFromSpecialTypeId value="Zeze.World.World::createDataFromSpecialTypeId"/>
 				</variable>
-				<variable id="2" name="Position"     type="vector3"/>
+				<variable id="2" name="Moving"      type="BMove"/>
 				<variable id="3" name="PlayerId"     type="string"/>
 				<variable id="4" name="LinkName"  type="string"/>
 				<variable id="5" name="LinkSid"       type="long"/>
@@ -1598,7 +1592,7 @@
 			<rpc name="Query" argument="BCommand" result="BCommand" handle="server"/>
 
 			<!-- MoveMmo-->
-			<bean name="BMoveMmo">
+			<bean name="BMove">
 				<variable id="1" name="Position"      type="vector3"/> 移动命令时客户端的真实位置。
 				<variable id="2" name="Direct"         type="vector3"/> 移动命令时客户端真实的朝向。
 				<variable id="3" name="Command"  type="int"/> 0 直线，1 后退，2 左转，3 右转，4 停止。
@@ -1642,13 +1636,13 @@
 				整棵树传输的时候以第一次构建的数据为准，忽略后面重复的。
 				客户端更新整棵树到本地数据中需要遍历并把数据铺开，对每个实体，加入正确的Cube。
 				-->
-				<variable id="3" name="Children" type="map[BObjectId, BAoiOperate]"/>
+				<variable id="3" name="Children" type="map[long, BAoiOperate]"/>
 			</bean>
 			<bean name="BAoiOperates"> 命令 eAoiEnter,eAoiOperate的参数。
-				<variable id="1" name="Operates" type="map[BObjectId, BAoiOperate]"/>
+				<variable id="1" name="Operates" type="map[long, BAoiOperate]"/>
 			</bean>
 			<bean name="BAoiLeaves"> 命令 eAoiLeave 的参数。
-				<variable id="1" name="Keys" type="list[BObjectId]"/>
+				<variable id="1" name="Keys" type="list[long]"/>
 			</bean>
 
 			<!-- World模块是dynamic的，但是部分协议需要常住，这些协议就定义到这里面。-->

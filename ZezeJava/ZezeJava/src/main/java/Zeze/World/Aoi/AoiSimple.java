@@ -9,7 +9,6 @@ import Zeze.Builtin.World.BAoiLeaves;
 import Zeze.Builtin.World.BAoiOperate;
 import Zeze.Builtin.World.BAoiOperates;
 import Zeze.Builtin.World.BCommand;
-import Zeze.Builtin.World.BObjectId;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Data;
@@ -33,7 +32,7 @@ public class AoiSimple implements IAoi {
 	private final int rangeY;
 	private final int rangeZ;
 
-	private final HashMap<BObjectId, Cube> objectToCube = new HashMap<>();
+	private final HashMap<Long, Cube> objectToCube = new HashMap<>();
 
 	public int getRangeX() {
 		return rangeX;
@@ -98,7 +97,7 @@ public class AoiSimple implements IAoi {
 	}
 
 	private void updateSelf(Entity self, Vector3 position, Cube cube, Cube newCube) {
-		self.getBean().setPosition(position);
+		self.getBean().getMoving().setPosition(position);
 		if (cube != newCube) {
 			var entity = cube.objects.remove(self.getId());
 			newCube.objects.put(self.getId(), entity);
@@ -106,7 +105,7 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
-	public void enter(Cube cube, BObjectId oid) throws IOException {
+	public void enter(Cube cube, long oid) throws IOException {
 		// 第一次访问aoi。
 		var firstEnters = map.center(cube.index, rangeX, rangeY, rangeZ);
 		try (var ignored = new LockGuard(firstEnters)) {
@@ -117,7 +116,7 @@ public class AoiSimple implements IAoi {
 	}
 
 	@Override
-	public void moveTo(BObjectId oid, Vector3 position) throws Exception {
+	public void moveTo(long oid, Vector3 position) throws Exception {
 		var cube = objectToCube.get(oid);
 		if (null == cube)
 			throw new RuntimeException(oid + " not enter.");
@@ -272,7 +271,7 @@ public class AoiSimple implements IAoi {
 
 	@Override
 	public void notify(Entity self, int operateId, Data operate) throws IOException {
-		var index = map.toIndex(self.getBean().getPosition());
+		var index = map.toIndex(self.getBean().getMoving().getPosition());
 		var centers = map.center(index, rangeX, rangeY, rangeZ);
 
 		// todo 由于notify的处理，客户端在没有enter时可以忽略。

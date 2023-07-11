@@ -12,8 +12,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Builtin.World.BAoiLeaves;
 import Zeze.Builtin.World.BAoiOperates;
 import Zeze.Builtin.World.BCommand;
-import Zeze.Builtin.World.BObjectId;
-import Zeze.Component.Threading;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector3;
 import Zeze.Transaction.Data;
@@ -34,8 +32,8 @@ public class TestAoi {
 	// 模拟客户端，用来接收enter,operate,leave。
 	// 多线程创建随机穿越Cube的aoi请求，
 	// 可以全局暂停多线程移动，然后验证这个”客户端“的数据是总是两两互相可见。
-	private final ConcurrentHashMap<BObjectId, Long> objectId2LinkSid = new ConcurrentHashMap<>();
-	public long objectId2LinkSid(BObjectId oid) {
+	private final ConcurrentHashMap<Long, Long> objectId2LinkSid = new ConcurrentHashMap<>();
+	public long objectId2LinkSid(long oid) {
 		return objectId2LinkSid.get(oid);
 	}
 
@@ -123,13 +121,13 @@ public class TestAoi {
 		for (var i = 0; i < cubeNumber; ++i) {
 			for (var j = 0; j < cubeObjectNumber; ++j) {
 				var position = new Vector3(xBase + 64 * i, yBase, zBase);
-				var objInstanceId = i * cubeObjectNumber + j + 1;
-				var oid = new BObjectId(0, 0, objInstanceId);
+				var objInstanceId = (long)(i * cubeObjectNumber + j + 1);
+				var oid = objInstanceId;
 				objectId2LinkSid.put(oid, (long)objInstanceId);
 				var cube = map.getOrAdd(map.toIndex(position));
 				try (var ignored = new LockGuard(cube)) {
 					var entity = cube.objects.computeIfAbsent(oid, Entity::new);
-					entity.getBean().setPosition(position);
+					entity.getBean().getMoving().setPosition(position);
 					// 创建假的Link信息。
 					entity.getBean().setLinkName("1");
 					entity.getBean().setLinkSid(objInstanceId);

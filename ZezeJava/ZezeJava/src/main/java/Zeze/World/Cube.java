@@ -2,12 +2,11 @@ package Zeze.World;
 
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantLock;
-import Zeze.Builtin.World.BObjectId;
 
 public class Cube {
 	public final CubeIndex index;
-	public final HashMap<BObjectId, Entity> objects = new HashMap<>();
-	public final HashMap<BObjectId, Entity> pending = new HashMap<>();
+	public final HashMap<Long, Entity> objects = new HashMap<>();
+	public final HashMap<Long, Entity> pending = new HashMap<>();
 
 	private final ReentrantLock lock = new ReentrantLock();
 

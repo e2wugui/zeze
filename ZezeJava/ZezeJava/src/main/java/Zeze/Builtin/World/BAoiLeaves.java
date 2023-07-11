@@ -8,20 +8,20 @@ import Zeze.Serialize.ByteBuffer;
 public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeavesReadOnly {
     public static final long TYPEID = 8996759903837821029L;
 
-    private final Zeze.Transaction.Collections.PList1<Zeze.Builtin.World.BObjectId> _Keys;
+    private final Zeze.Transaction.Collections.PList1<Long> _Keys;
 
-    public Zeze.Transaction.Collections.PList1<Zeze.Builtin.World.BObjectId> getKeys() {
+    public Zeze.Transaction.Collections.PList1<Long> getKeys() {
         return _Keys;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Builtin.World.BObjectId> getKeysReadOnly() {
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getKeysReadOnly() {
         return new Zeze.Transaction.Collections.PList1ReadOnly<>(_Keys);
     }
 
     @SuppressWarnings("deprecation")
     public BAoiLeaves() {
-        _Keys = new Zeze.Transaction.Collections.PList1<>(Zeze.Builtin.World.BObjectId.class);
+        _Keys = new Zeze.Transaction.Collections.PList1<>(Long.class);
         _Keys.variableId(1);
     }
 
@@ -90,9 +90,7 @@ public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeave
             sb.append(System.lineSeparator());
             level += 4;
             for (var _item_ : _Keys) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
-                _item_.buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
             }
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
@@ -122,9 +120,9 @@ public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeave
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BEAN);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
                 for (var _v_ : _x_) {
-                    _v_.encode(_o_);
+                    _o_.WriteLong(_v_);
                     _n_--;
                 }
                 if (_n_ != 0)
@@ -143,7 +141,7 @@ public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeave
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BObjectId(), _t_));
+                    _x_.add(_o_.ReadLong(_t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -167,7 +165,7 @@ public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeave
     @Override
     public boolean negativeCheck() {
         for (var _v_ : _Keys) {
-            if (_v_.negativeCheck())
+            if (_v_ < 0)
                 return true;
         }
         return false;
@@ -190,7 +188,7 @@ public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeave
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(_Keys, Zeze.Builtin.World.BObjectId.class, rs.getString(_parents_name_ + "Keys"));
+        Zeze.Serialize.Helper.decodeJsonList(_Keys, Long.class, rs.getString(_parents_name_ + "Keys"));
     }
 
     @Override
@@ -203,13 +201,13 @@ public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeave
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8996759903837821029L;
 
-    private java.util.ArrayList<Zeze.Builtin.World.BObjectId> _Keys;
+    private java.util.ArrayList<Long> _Keys;
 
-    public java.util.ArrayList<Zeze.Builtin.World.BObjectId> getKeys() {
+    public java.util.ArrayList<Long> getKeys() {
         return _Keys;
     }
 
-    public void setKeys(java.util.ArrayList<Zeze.Builtin.World.BObjectId> value) {
+    public void setKeys(java.util.ArrayList<Long> value) {
         if (value == null)
             throw new IllegalArgumentException();
         _Keys = value;
@@ -221,7 +219,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.ArrayList<Zeze.Builtin.World.BObjectId> _Keys_) {
+    public Data(java.util.ArrayList<Long> _Keys_) {
         if (_Keys_ == null)
             _Keys_ = new java.util.ArrayList<>();
         _Keys = _Keys_;
@@ -293,9 +291,7 @@ public static final class Data extends Zeze.Transaction.Data {
             sb.append(System.lineSeparator());
             level += 4;
             for (var _item_ : _Keys) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
-                _item_.buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
             }
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
@@ -325,9 +321,9 @@ public static final class Data extends Zeze.Transaction.Data {
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BEAN);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
                 for (var _v_ : _x_) {
-                    _v_.encode(_o_);
+                    _o_.WriteLong(_v_);
                     _n_--;
                 }
                 if (_n_ != 0)
@@ -346,7 +342,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.World.BObjectId(), _t_));
+                    _x_.add(_o_.ReadLong(_t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

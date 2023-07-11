@@ -1,7 +1,7 @@
 package Zeze.World.Mmo;
 
 import Zeze.Builtin.World.BCommand;
-import Zeze.Builtin.World.BMoveMmo;
+import Zeze.Builtin.World.BMove;
 import Zeze.Builtin.World.Command;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.World.ICommand;
@@ -29,12 +29,12 @@ public class MoveMmo implements IComponent, ICommand {
 	public long handle(String playerId, Command c) throws Exception {
 		switch (c.Argument.getCommandId()) {
 		case BCommand.eMoveMmo:
-			return onMove(playerId, ICommand.decode(new BMoveMmo.Data(), c));
+			return onMove(playerId, ICommand.decode(new BMove.Data(), c));
 		}
 		return 0;
 	}
 
-	private long onMove(String playerId, BMoveMmo.Data move) {
+	private long onMove(String playerId, BMove.Data move) {
 		return 0;
 	}
 }

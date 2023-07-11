@@ -6,16 +6,15 @@ import java.util.HashSet;
 import java.util.function.Function;
 import Zeze.Builtin.World.BAoiOperate;
 import Zeze.Builtin.World.BObject;
-import Zeze.Builtin.World.BObjectId;
 import Zeze.Net.Binary;
 
 public class Entity {
 	private Entity parent;
 	private final HashSet<Entity> children = new HashSet<>();
-	private final BObjectId id;
+	private final long id;
 	private final BObject bean;
 
-	public Entity(BObjectId id) {
+	public Entity(long id) {
 		this.id = id;
 		this.bean = new BObject();
 	}
@@ -24,7 +23,7 @@ public class Entity {
 		return !bean.getLinkName().isEmpty();
 	}
 
-	public static void buildPlayer(Map<BObjectId, BAoiOperate.Data> result,
+	public static void buildPlayer(Map<Long, BAoiOperate.Data> result,
 								   Entity self, Function<Entity, Binary> encoder) {
 		if (self != null && self.isPlayer()) {
 			var child = new BAoiOperate.Data();
@@ -39,7 +38,7 @@ public class Entity {
 	/**
 	 * 构建整颗树。
 	 */
-	public static void buildNonePlayerTree(Map<BObjectId, BAoiOperate.Data> result,
+	public static void buildNonePlayerTree(Map<Long, BAoiOperate.Data> result,
 										   Entity self, Function<Entity, Binary> encoder) {
 		if (null == self)
 			return; // helper 方便外面不检查就调用这个。
@@ -70,7 +69,7 @@ public class Entity {
 		return last;
 	}
 
-	public BObjectId getId() {
+	public long getId() {
 		return id;
 	}
 

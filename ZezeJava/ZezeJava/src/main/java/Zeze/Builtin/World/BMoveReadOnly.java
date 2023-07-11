@@ -2,11 +2,11 @@
 package Zeze.Builtin.World;
 
 // MoveMmo
-public interface BMoveMmoReadOnly {
+public interface BMoveReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BMoveMmo copy();
+    BMove copy();
 
     Zeze.Serialize.Vector3 getPosition();
     Zeze.Serialize.Vector3 getDirect();

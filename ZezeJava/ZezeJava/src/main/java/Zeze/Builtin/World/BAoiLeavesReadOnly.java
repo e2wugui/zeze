@@ -8,5 +8,5 @@ public interface BAoiLeavesReadOnly {
     boolean negativeCheck();
     BAoiLeaves copy();
 
-    Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Builtin.World.BObjectId> getKeysReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Long> getKeysReadOnly();
 }

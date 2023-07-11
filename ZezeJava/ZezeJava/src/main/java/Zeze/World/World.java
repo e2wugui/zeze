@@ -12,7 +12,6 @@ import Zeze.Arch.ProviderWithOnline;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.Command;
-import Zeze.Builtin.World.BObjectId;
 import Zeze.Builtin.World.Query;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
@@ -189,10 +188,6 @@ public class World extends AbstractWorld {
 	@RedirectToServer
 	public void redirectToServer(int serverId) {
 
-	}
-
-	public static String format(BObjectId oid) {
-		return "(" + oid.getType() + "," + oid.getConfigId() + "," + oid.getInstanceId() + ")";
 	}
 
 	// todo 抽象Skill时再来决定参数。

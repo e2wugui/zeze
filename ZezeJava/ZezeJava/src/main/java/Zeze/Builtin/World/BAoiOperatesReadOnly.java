@@ -8,5 +8,5 @@ public interface BAoiOperatesReadOnly {
     boolean negativeCheck();
     BAoiOperates copy();
 
-    Zeze.Transaction.Collections.PMap2ReadOnly<Zeze.Builtin.World.BObjectId, Zeze.Builtin.World.BAoiOperate, Zeze.Builtin.World.BAoiOperateReadOnly> getOperatesReadOnly();
+    Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.World.BAoiOperate, Zeze.Builtin.World.BAoiOperateReadOnly> getOperatesReadOnly();
 }

@@ -1,7 +1,6 @@
 package Zeze.World;
 
 import java.io.IOException;
-import Zeze.Builtin.World.BObjectId;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector3;
@@ -20,7 +19,7 @@ public interface IAoi {
 	 * @param oid oid
 	 * @throws IOException
 	 */
-	void enter(Cube cube, BObjectId oid) throws IOException;
+	void enter(Cube cube, long oid) throws IOException;
 
 	/**
 	 * 1. 移动到新的位置，会发起视野内的更新广播。
@@ -28,7 +27,7 @@ public interface IAoi {
 	 * 3. 当目标是玩家时，还会装载新加入的Cube的数据。
 	 * 4. 等等。
 	 */
-	void moveTo(BObjectId oid, Vector3 position) throws Exception;
+	void moveTo(long oid, Vector3 position) throws Exception;
 
 	/**
 	 * 整个物体数据全量更新。
