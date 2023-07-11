@@ -81,6 +81,10 @@ public final class Transaction {
 		return state == TransactionState.Running;
 	}
 
+	public boolean isCompleted() {
+		return state == TransactionState.Completed;
+	}
+
 	public @Nullable Procedure getTopProcedure() {
 		var stackSize = procedureStack.size();
 		return stackSize > 0 ? procedureStack.get(stackSize - 1) : null;
