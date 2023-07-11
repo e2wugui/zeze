@@ -148,7 +148,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				r.setState(acquire.resultState);
 				if (r.getState() == StateInvalid) {
 					var txn = Transaction.getCurrent();
-					if (txn == null)
+					if (txn == null || txn.isCompleted())
 						throw new IllegalStateException("Acquire Failed: " + tkey + ':' + r);
 					txn.throwRedoAndReleaseLock(tkey + ":" + r, null);
 				}
