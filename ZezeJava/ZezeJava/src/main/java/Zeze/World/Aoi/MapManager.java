@@ -3,9 +3,9 @@ package Zeze.World.Aoi;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.BEnterConfirm;
-import Zeze.Builtin.World.BSwitchWorld;
 import Zeze.Builtin.World.Command;
 import Zeze.Component.AutoKey;
+import Zeze.Serialize.Vector3;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.World.CubeMap;
 import Zeze.World.ICommand;
@@ -23,25 +23,17 @@ public class MapManager implements IMapManager, ICommand {
 		this.autoKeyInstanceId = world.providerApp.zeze.getAutoKey("Zeze.World.AutoKeyInstanceId");
 		this.world = world;
 
-		world.internalRegisterCommand(BCommand.eSwitchWorld, this);
 		world.internalRegisterCommand(BCommand.eEnterConfirm, this);
 	}
 
 	@Override
 	public long handle(String playerId, Command c) throws Exception {
 		switch (c.Argument.getCommandId()) {
-		case BCommand.eSwitchWorld:
-			return onSwitchWorld(playerId, ICommand.decode(new BSwitchWorld.Data(), c));
-
 		case BCommand.eEnterConfirm:
 			return onEnterConfirm(playerId, ICommand.decode(new BEnterConfirm.Data(), c));
 
 		}
 		return 0;
-	}
-
-	private long onSwitchWorld(String playerId, BSwitchWorld.Data arg) {
-		return enterMap(arg.getMapId());
 	}
 
 	private long onEnterConfirm(String playerId, BEnterConfirm.Data arg) {

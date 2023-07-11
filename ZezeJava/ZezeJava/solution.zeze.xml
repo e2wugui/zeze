@@ -1582,7 +1582,7 @@
 
 				<enum name="eMoveMmo"   value="0"/> handle=server,client 位置同步命令。
 
-				<enum name="eSwitchWorld"  value="1"/> handle=server，地图切换流程涉及的协议。
+				<!-- enum name="eSwitchWorld"  value="1"/> handle=server，地图切换流程涉及的协议。需要在静态模块里面定义。-->
 				<enum name="eEnterWorld"    value="2"/> handle=client
 				<enum name="eEnterConfirm" value="3"/> handle=server
 
@@ -1590,8 +1590,9 @@
 				<enum name="eAoiEnter"       value="5"/> handle=client
 				<enum name="eAoiLeave"      value="6"/> handle=client
 
-				<variable id="1" name="CommandId" type="int"/>
-				<variable id="2" name="Param" type="binary"/>
+				<variable id="1" name="MapInstanceId" type="long"/>
+				<variable id="2" name="CommandId" type="int"/>
+				<variable id="3" name="Param" type="binary"/>
 			</bean>
 			<protocol name="Command" argument="BCommand" handle="client,server"/>
 			<rpc name="Query" argument="BCommand" result="BCommand" handle="server"/>
@@ -1624,14 +1625,10 @@
 			<protocol name="AoiLeave" argument="BAoiLeave" handle="client"/>
 			-->
 
-			<bean name="BSwitchWorld">
-				<variable id="1" name="MapId" type="int"/>
-			</bean>
 			<bean name="BEnterWorld">
 				<variable id="1" name="MapId" type="int"/>
-				<variable id="2" name="MapInstanceId" type="long"/>
-				<variable id="3" name="Position" type="vector3"/>
-				<variable id="4" name="PriorityData" type="list[BAoiOperates]"/> 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
+				<variable id="2" name="Position" type="vector3"/>
+				<variable id="3" name="PriorityData" type="list[BAoiOperates]"/> 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
 			</bean>
 			<bean name="BEnterConfirm">
 				<variable id="1" name="MapInstanceId" type="long"/>
@@ -1653,16 +1650,35 @@
 			<bean name="BAoiLeave"> 命令 eAoiLeave 的参数。
 				<variable id="1" name="Keys" type="list[BObjectId]"/>
 			</bean>
+
+			<!-- World模块是dynamic的，但是部分协议需要常住，这些协议就定义到这里面。-->
+			<module name="Static" id="11032">
+				<bean name="BSwitchWorld">
+					<variable id="1" name="MapId"    type="int"/>
+					<variable id="2" name="Position" type="vector3"/>
+					<variable id="3" name="Direct"    type="vector3"/>
+				</bean>
+				<bean name="BSwitchWorldResult">
+					<variable id="1" name="MapInstanceId"  type="long"/>
+					<variable id="2" name="ServerId"  type="int"/> 目前没有逻辑作用，用来调试。
+				</bean>
+				<rpc name="SwitchWorld" argument="BSwitchWorld" result="BSwitchWorldResult" handle="server"/>
+			</module>
 		</module>
 
 		<!--
-		可用id范围 [11032, 11100) [11102, 11999]
+		可用id范围 [11033, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
-	<component name="World" gendir="src/main/java" genrelativedir="Zeze/World" platform="zeze+java">
+	<component name="WorldStatic" gendir="src/main/java" genrelativedir="Zeze/World" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.World.Static"/>
+		</service>
+	</component>
+	<component name="World" gendir="src/main/java" genrelativedir="Zeze/World" NoRecursiveModule="true" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.World"/>
 		</service>

@@ -1,5 +1,7 @@
 package Zeze.World;
 
+import Zeze.Serialize.Vector3;
+
 /**
  * 地图实例管理接口。
  * 默认实现是 Aoi.MapManager。

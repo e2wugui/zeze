@@ -8,6 +8,7 @@ public interface BCommandReadOnly {
     boolean negativeCheck();
     BCommand copy();
 
+    long getMapInstanceId();
     int getCommandId();
     Zeze.Net.Binary getParam();
 }

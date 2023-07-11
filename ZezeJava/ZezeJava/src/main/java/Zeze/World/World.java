@@ -79,6 +79,7 @@ public class World extends AbstractWorld {
 	private IMapManager mapManager;
 	private final Function<ProviderUserSession, String> getPlayerId;
 	private ILinkSender linkSender;
+	private final WorldStatic worldStatic;
 
 	public ILinkSender getLinkSender() {
 		return linkSender;
@@ -165,6 +166,8 @@ public class World extends AbstractWorld {
 			getPlayerId = ProviderUserSession::getContext;
 		else
 			getPlayerId = null;
+
+		worldStatic = new WorldStatic(this);
 	}
 
 	public void start() throws Exception {
