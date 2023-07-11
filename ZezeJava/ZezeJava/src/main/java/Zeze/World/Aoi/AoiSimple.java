@@ -106,33 +106,23 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
+	public void enter(Cube cube, BObjectId oid) throws IOException {
+		// 第一次访问aoi。
+		var firstEnters = map.center(cube.index, rangeX, rangeY, rangeZ);
+		try (var ignored = new LockGuard(firstEnters)) {
+			var self = cube.objects.get(oid);
+			objectToCube.put(oid, cube);
+			processEnters(cube, self, firstEnters);
+		}
+	}
+
 	@Override
 	public void moveTo(BObjectId oid, Vector3 position) throws Exception {
 		var cube = objectToCube.get(oid);
-		if (null == cube) {
-			// 第一次访问aoi，创建对象。
-			var index = map.toIndex(position);
-			cube = map.getOrAdd(index);
-		}
-
-		var entity = cube.objects.get(oid);
-		if (null == entity) {
-			// 第一次进入，enter 视野。
-			// todo 新建对象初始化框架。
-			var firstEnters = map.center(cube.index, rangeX, rangeY, rangeZ);
-			try (var ignored = new LockGuard(firstEnters)) {
-				cube.objects.put(oid, entity = new Entity(oid));
-				objectToCube.put(oid, cube);
-				entity.getBean().setPosition(position);
-				// todo entity.getBean().setDirect(position);
-				processEnters(cube, entity, firstEnters);
-			}
-			return;
-		}
-
+		if (null == cube)
+			throw new RuntimeException(oid + " not enter.");
 
 		// 计算新index，并根据进入新Cube的距离完成数据更新。
-
 		var newIndex = map.toIndex(position);
 		var newCube = map.getOrAdd(newIndex);
 
@@ -142,7 +132,8 @@ public class AoiSimple implements IAoi {
 		switch (dp) {
 		case 0:
 			try (var ignored = new LockGuard(cube)) {
-				updateSelf(entity, position, cube, newCube);
+				var self = cube.objects.get(oid);
+				updateSelf(self, position, cube, newCube);
 			}
 			// same cube
 			// 根据位置同步协议，可能需要向第三方广播一下。
@@ -171,9 +162,10 @@ public class AoiSimple implements IAoi {
 			//locks1.putAll(fastEnters); // fastEnters 肯定在以newCube为中心的"9"宫格内。
 			locks1.putAll(fastLeaves);
 			try (var ignored = new LockGuard(locks1)) {
-				updateSelf(entity, position, cube, newCube);
-				processEnters(cube, entity, fastEnters);
-				processLeaves(cube, entity, fastLeaves);
+				var self = cube.objects.get(oid);
+				updateSelf(self, position, cube, newCube);
+				processEnters(cube, self, fastEnters);
+				processLeaves(cube, self, fastLeaves);
 			}
 			break;
 
@@ -189,9 +181,10 @@ public class AoiSimple implements IAoi {
 			diff(olds, news, enters);
 
 			try (var ignored = new LockGuard(locks2)) {
-				updateSelf(entity, position, cube, newCube);
-				processEnters(cube, entity, enters);
-				processLeaves(cube, entity, olds);
+				var self = cube.objects.get(oid);
+				updateSelf(self, position, cube, newCube);
+				processEnters(cube, self, enters);
+				processLeaves(cube, self, olds);
 			}
 			break;
 		}
@@ -200,10 +193,9 @@ public class AoiSimple implements IAoi {
 	protected void processEnters(Cube my, Entity self,
 								 SortedMap<CubeIndex, Cube> enters) throws IOException {
 		var targets = new ArrayList<Entity>();
+		// 收集玩家对象，用来发送自己进入的通知。
+		var aoiEnters = new BAoiOperates.Data();
 		for (var enter : enters.values()) {
-			// 收集玩家对象，用来发送自己进入的通知。
-			var aoiEnters = new BAoiOperates.Data();
-
 			for (var e : enter.objects.entrySet()) {
 				Entity.buildNonePlayerTree(aoiEnters.getOperates(), e.getValue().lastParent(), this::encodeEnter);
 				Entity.buildPlayer(aoiEnters.getOperates(), e.getValue(), this::encodeEnter);
@@ -218,14 +210,14 @@ public class AoiSimple implements IAoi {
 					aoiEnters.getOperates().clear();
 				}
 			}
-
-			if (!aoiEnters.getOperates().isEmpty()) {
-				world.getLinkSender().sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(),
-						BCommand.eAoiEnter, aoiEnters);
-			}
 		}
-		// encode 自己的数据。
+		if (!aoiEnters.getOperates().isEmpty()) {
+			world.getLinkSender().sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(),
+					BCommand.eAoiEnter, aoiEnters);
+		}
+		if (!targets.isEmpty())
 		{
+			// encode 自己的数据。
 			var enterMe = new BAoiOperates.Data();
 			Entity.buildPlayer(enterMe.getOperates(), self, this::encodeEnter);
 			world.getLinkSender().sendCommand(targets, BCommand.eAoiEnter, enterMe);
@@ -256,9 +248,11 @@ public class AoiSimple implements IAoi {
 					BCommand.eAoiLeave, aoiLeaves);
 		}
 
-		var remove = new BAoiLeaves.Data();
-		remove.getKeys().add(self.getId());
-		world.getLinkSender().sendCommand(targets, BCommand.eAoiLeave, remove);
+		if (!targets.isEmpty()) {
+			var removeMe = new BAoiLeaves.Data();
+			removeMe.getKeys().add(self.getId());
+			world.getLinkSender().sendCommand(targets, BCommand.eAoiLeave, removeMe);
+		}
 	}
 
 	/**

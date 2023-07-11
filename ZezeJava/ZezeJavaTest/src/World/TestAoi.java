@@ -7,14 +7,17 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Builtin.World.BAoiLeaves;
 import Zeze.Builtin.World.BAoiOperates;
 import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.BObjectId;
+import Zeze.Component.Threading;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector3;
 import Zeze.Transaction.Data;
+import Zeze.Util.Benchmark;
 import Zeze.Util.Task;
 import Zeze.World.Aoi.AoiSimple;
 import Zeze.World.Cube;
@@ -52,14 +55,23 @@ public class TestAoi {
 			switch (commandId) {
 			case BCommand.eAoiEnter:
 				var aoiEnters = (BAoiOperates.Data)data;
+				var tmp = new HashSet<Long>();
 				for (var oid : aoiEnters.getOperates().keySet())
-					views.add(objectId2LinkSid(oid));
+					tmp.add(objectId2LinkSid(oid));
+				//System.out.println("AoiEnter: " + linkSid + " -> " + tmp);
+				views.addAll(tmp);
+				if (tmp.isEmpty()) {
+					System.out.println("what!!!");
+				}
 				break;
 
 			case BCommand.eAoiLeave:
 				var aoiLeaves = (BAoiLeaves.Data)data;
+				var tmp2 = new HashSet<Long>();
 				for (var oid : aoiLeaves.getKeys())
-					views.remove(objectId2LinkSid(oid));
+					tmp2.add(objectId2LinkSid(oid));
+				//System.out.println("AoiLeave: " + linkSid + " -> " + tmp2);
+				views.removeAll(tmp2);
 				break;
 			}
 			return true;
@@ -77,14 +89,15 @@ public class TestAoi {
 			for (var player : players.entrySet()) {
 				for (var see : player.getValue()) {
 					var other = players.get(see);
-					if (!other.contains(player.getKey()))
-						System.out.println(player + " - " + other);
+					Assert.assertTrue(other.contains(player.getKey()));
 				}
 			}
 		}
 	}
 
 	volatile boolean testRunning = true;
+
+	AtomicLong moveCount = new AtomicLong();
 
 	@Test
 	public void testAoiFull() throws Exception {
@@ -110,7 +123,7 @@ public class TestAoi {
 		for (var i = 0; i < cubeNumber; ++i) {
 			for (var j = 0; j < cubeObjectNumber; ++j) {
 				var position = new Vector3(xBase + 64 * i, yBase, zBase);
-				var objInstanceId = i * cubeObjectNumber + j;
+				var objInstanceId = i * cubeObjectNumber + j + 1;
 				var oid = new BObjectId(0, 0, objInstanceId);
 				objectId2LinkSid.put(oid, (long)objInstanceId);
 				var cube = map.getOrAdd(map.toIndex(position));
@@ -121,6 +134,9 @@ public class TestAoi {
 					entity.getBean().setLinkName("1");
 					entity.getBean().setLinkSid(objInstanceId);
 				}
+
+				aoi.enter(cube, oid);
+
 				players.add(Task.runUnsafe(() -> {
 					while (testRunning) {
 						var rLock = globalRWLock.readLock();
@@ -128,7 +144,9 @@ public class TestAoi {
 							rLock.lock();
 							var cubeX = Zeze.Util.Random.getInstance().nextInt(cubeNumber);
 							var p = new Vector3(xBase + 64 * cubeX, yBase, zBase);
+
 							aoi.moveTo(oid, p);
+							moveCount.incrementAndGet();
 						} finally {
 							rLock.unlock();
 						}
@@ -137,18 +155,27 @@ public class TestAoi {
 			}
 		}
 
-		var wLock = globalRWLock.writeLock();
-		try {
-			wLock.lock();
-			// stop aoi.moveTo & verify
-			client.verify();
-		} finally {
-			wLock.unlock();
+		for (int i = 0; i < 10000; ++i) {
+			var wLock = globalRWLock.writeLock();
+			try {
+				wLock.lock();
+				// stop aoi.moveTo & verify
+				client.verify();
+			} finally {
+				wLock.unlock();
+			}
 		}
+
+		var b = new Benchmark();
+		moveCount.set(0);
+
+		Thread.sleep(5000);
 
 		testRunning = false;
 		for (var player : players)
 			player.get();
+
+		b.report("Aoi.moveTo", moveCount.get());
 
 		App.Instance.Stop();
 	}

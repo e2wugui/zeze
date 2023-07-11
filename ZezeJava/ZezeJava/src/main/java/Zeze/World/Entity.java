@@ -21,7 +21,7 @@ public class Entity {
 	}
 
 	public boolean isPlayer() {
-		return !bean.getLinkName().isEmpty() && bean.getLinkSid() > 0;
+		return !bean.getLinkName().isEmpty();
 	}
 
 	public static void buildPlayer(Map<BObjectId, BAoiOperate.Data> result,

@@ -1,5 +1,6 @@
 package Zeze.World;
 
+import java.io.IOException;
 import Zeze.Builtin.World.BObjectId;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -13,6 +14,14 @@ import Zeze.Transaction.Data;
  * 扩展实现AoiSubscribe?（有限的订阅列表）
  */
 public interface IAoi {
+	/**
+	 * 进入aoi。
+	 * @param cube cube
+	 * @param oid oid
+	 * @throws IOException
+	 */
+	void enter(Cube cube, BObjectId oid) throws IOException;
+
 	/**
 	 * 1. 移动到新的位置，会发起视野内的更新广播。
 	 * 2. 当Cube发生了变更，还可能会发起enter，leave。
