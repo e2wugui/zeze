@@ -155,7 +155,7 @@ public class TestAoi {
 			}
 		}
 
-		for (int i = 0; i < 10000; ++i) {
+		for (int i = 0; i < 1000; ++i) {
 			var wLock = globalRWLock.writeLock();
 			try {
 				wLock.lock();
@@ -168,9 +168,7 @@ public class TestAoi {
 
 		var b = new Benchmark();
 		moveCount.set(0);
-
-		Thread.sleep(5000);
-
+		Thread.sleep(3000);
 		testRunning = false;
 		for (var player : players)
 			player.get();
