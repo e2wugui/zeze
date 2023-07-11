@@ -1647,7 +1647,7 @@
 			<bean name="BAoiOperates"> 命令 eAoiEnter,eAoiOperate的参数。
 				<variable id="1" name="Operates" type="map[BObjectId, BAoiOperate]"/>
 			</bean>
-			<bean name="BAoiLeave"> 命令 eAoiLeave 的参数。
+			<bean name="BAoiLeaves"> 命令 eAoiLeave 的参数。
 				<variable id="1" name="Keys" type="list[BObjectId]"/>
 			</bean>
 

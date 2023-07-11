@@ -5,8 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 // 命令 eAoiLeave 的参数。
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
-public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveReadOnly {
-    public static final long TYPEID = -3352260530196898056L;
+public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeavesReadOnly {
+    public static final long TYPEID = 8996759903837821029L;
 
     private final Zeze.Transaction.Collections.PList1<Zeze.Builtin.World.BObjectId> _Keys;
 
@@ -20,7 +20,7 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
     }
 
     @SuppressWarnings("deprecation")
-    public BAoiLeave() {
+    public BAoiLeaves() {
         _Keys = new Zeze.Transaction.Collections.PList1<>(Zeze.Builtin.World.BObjectId.class);
         _Keys.variableId(1);
     }
@@ -31,40 +31,40 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
     }
 
     @Override
-    public Zeze.Builtin.World.BAoiLeave.Data toData() {
-        var data = new Zeze.Builtin.World.BAoiLeave.Data();
+    public Zeze.Builtin.World.BAoiLeaves.Data toData() {
+        var data = new Zeze.Builtin.World.BAoiLeaves.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.World.BAoiLeave.Data)other);
+        assign((Zeze.Builtin.World.BAoiLeaves.Data)other);
     }
 
-    public void assign(BAoiLeave.Data other) {
+    public void assign(BAoiLeaves.Data other) {
         _Keys.clear();
         _Keys.addAll(other._Keys);
     }
 
-    public void assign(BAoiLeave other) {
+    public void assign(BAoiLeaves other) {
         _Keys.clear();
         _Keys.addAll(other._Keys);
     }
 
-    public BAoiLeave copyIfManaged() {
+    public BAoiLeaves copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BAoiLeave copy() {
-        var copy = new BAoiLeave();
+    public BAoiLeaves copy() {
+        var copy = new BAoiLeaves();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BAoiLeave a, BAoiLeave b) {
-        BAoiLeave save = a.copy();
+    public static void swap(BAoiLeaves a, BAoiLeaves b) {
+        BAoiLeaves save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -83,7 +83,7 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiLeave: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiLeaves: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Keys=[");
         if (!_Keys.isEmpty()) {
@@ -201,7 +201,7 @@ public final class BAoiLeave extends Zeze.Transaction.Bean implements BAoiLeaveR
 
 // 命令 eAoiLeave 的参数。
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = -3352260530196898056L;
+    public static final long TYPEID = 8996759903837821029L;
 
     private java.util.ArrayList<Zeze.Builtin.World.BObjectId> _Keys;
 
@@ -233,35 +233,35 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public Zeze.Builtin.World.BAoiLeave toBean() {
-        var bean = new Zeze.Builtin.World.BAoiLeave();
+    public Zeze.Builtin.World.BAoiLeaves toBean() {
+        var bean = new Zeze.Builtin.World.BAoiLeaves();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BAoiLeave)other);
+        assign((BAoiLeaves)other);
     }
 
-    public void assign(BAoiLeave other) {
+    public void assign(BAoiLeaves other) {
         _Keys.clear();
         _Keys.addAll(other._Keys);
     }
 
-    public void assign(BAoiLeave.Data other) {
+    public void assign(BAoiLeaves.Data other) {
         _Keys.clear();
         _Keys.addAll(other._Keys);
     }
 
     @Override
-    public BAoiLeave.Data copy() {
-        var copy = new BAoiLeave.Data();
+    public BAoiLeaves.Data copy() {
+        var copy = new BAoiLeaves.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BAoiLeave.Data a, BAoiLeave.Data b) {
+    public static void swap(BAoiLeaves.Data a, BAoiLeaves.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -273,8 +273,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BAoiLeave.Data clone() {
-        return (BAoiLeave.Data)super.clone();
+    public BAoiLeaves.Data clone() {
+        return (BAoiLeaves.Data)super.clone();
     }
 
     @Override
@@ -286,7 +286,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiLeave: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BAoiLeaves: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Keys=[");
         if (!_Keys.isEmpty()) {

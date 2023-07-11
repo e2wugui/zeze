@@ -2,10 +2,15 @@ package World;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import Zeze.Builtin.World.BAoiLeaves;
+import Zeze.Builtin.World.BAoiOperates;
+import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.BObjectId;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector3;
@@ -16,6 +21,7 @@ import Zeze.World.Cube;
 import Zeze.World.CubeIndex;
 import Zeze.World.CubeMap;
 import Zeze.World.Entity;
+import Zeze.World.LockGuard;
 import demo.App;
 import org.junit.Assert;
 import org.junit.Test;
@@ -25,25 +31,56 @@ public class TestAoi {
 	// 模拟客户端，用来接收enter,operate,leave。
 	// 多线程创建随机穿越Cube的aoi请求，
 	// 可以全局暂停多线程移动，然后验证这个”客户端“的数据是总是两两互相可见。
+	private final ConcurrentHashMap<BObjectId, Long> objectId2LinkSid = new ConcurrentHashMap<>();
+	public long objectId2LinkSid(BObjectId oid) {
+		return objectId2LinkSid.get(oid);
+	}
+
 	class TestLinkSender implements Zeze.World.ILinkSender {
+
+		// 下面的调用在cubes锁内。同一个玩家（用不同LinkSid区分），不会发生并发。
+		private final ConcurrentHashMap<Long, HashSet<Long>> players = new ConcurrentHashMap<>();
 
 		@Override
 		public boolean sendLink(String linkName, ByteBuffer fullEncodedProtocol) {
-			return false;
+			throw new RuntimeException("impossible!");
 		}
 
 		@Override
 		public boolean sendCommand(String linkName, long linkSid, int commandId, Data data) {
-			return false;
+			var views = players.computeIfAbsent(linkSid, (key) -> new HashSet<>());
+			switch (commandId) {
+			case BCommand.eAoiEnter:
+				var aoiEnters = (BAoiOperates.Data)data;
+				for (var oid : aoiEnters.getOperates().keySet())
+					views.add(objectId2LinkSid(oid));
+				break;
+
+			case BCommand.eAoiLeave:
+				var aoiLeaves = (BAoiLeaves.Data)data;
+				for (var oid : aoiLeaves.getKeys())
+					views.remove(objectId2LinkSid(oid));
+				break;
+			}
+			return true;
 		}
 
 		@Override
 		public boolean sendCommand(Collection<Entity> targets, int commandId, Data data) {
+			for (var player : targets) {
+				sendCommand("not used", player.getBean().getLinkSid(), commandId, data);
+			}
 			return false;
 		}
 
 		public void verify() {
-
+			for (var player : players.entrySet()) {
+				for (var see : player.getValue()) {
+					var other = players.get(see);
+					if (!other.contains(player.getKey()))
+						System.out.println(player + " - " + other);
+				}
+			}
 		}
 	}
 
@@ -75,14 +112,15 @@ public class TestAoi {
 				var position = new Vector3(xBase + 64 * i, yBase, zBase);
 				var objInstanceId = i * cubeObjectNumber + j;
 				var oid = new BObjectId(0, 0, objInstanceId);
+				objectId2LinkSid.put(oid, (long)objInstanceId);
 				var cube = map.getOrAdd(map.toIndex(position));
-				var entity = cube.objects.computeIfAbsent(oid, Entity::new);
-				entity.getBean().setPosition(position);
-
-				// 创建假的Link信息。
-				entity.getBean().setLinkName("1");
-				entity.getBean().setLinkSid(objInstanceId);
-
+				try (var ignored = new LockGuard(cube)) {
+					var entity = cube.objects.computeIfAbsent(oid, Entity::new);
+					entity.getBean().setPosition(position);
+					// 创建假的Link信息。
+					entity.getBean().setLinkName("1");
+					entity.getBean().setLinkSid(objInstanceId);
+				}
 				players.add(Task.runUnsafe(() -> {
 					while (testRunning) {
 						var rLock = globalRWLock.readLock();

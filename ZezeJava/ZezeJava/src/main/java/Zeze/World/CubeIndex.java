@@ -35,6 +35,7 @@ public class CubeIndex implements Comparable<CubeIndex> {
 		int result = 17;
 		result = prime * result + Long.hashCode(x);
 		result = prime * result + Long.hashCode(y);
+		result = prime * result + Long.hashCode(z);
 		return result;
 	}
 
