@@ -1562,11 +1562,11 @@
 					<CreateBeanFromSpecialTypeId value="Zeze.World.World::createBeanFromSpecialTypeId"/>
 					<CreateDataFromSpecialTypeId value="Zeze.World.World::createDataFromSpecialTypeId"/>
 				</variable>
-				<variable id="2" name="Moving"      type="BMove"/>
+				<variable id="2" name="Moving"      type="BMove"/> 命令型移动同步可以直接使用这个结构，如果其他模式，这里面部分变量可能未用。
 				<variable id="3" name="PlayerId"     type="string"/>
 				<variable id="4" name="LinkName"  type="string"/>
 				<variable id="5" name="LinkSid"       type="long"/>
-				<variable id="6" name="Type"           type="int"/>
+				<variable id="6" name="Type"           type="int"/> 逻辑？
 				<variable id="7" name="ConfigId"     type="int"/>
 			</bean>
 			

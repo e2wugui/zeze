@@ -21,11 +21,11 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         return Zeze.World.World.createBeanFromSpecialTypeId(typeId);
     }
 
-    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.World.BMove> _Moving;
+    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.World.BMove> _Moving; // 命令型移动同步可以直接使用这个结构，如果其他模式，这里面部分变量可能未用。
     private String _PlayerId;
     private String _LinkName;
     private long _LinkSid;
-    private int _Type;
+    private int _Type; // 逻辑？
     private int _ConfigId;
 
     public Zeze.Transaction.DynamicBean getData() {
@@ -518,11 +518,11 @@ public static final class Data extends Zeze.Transaction.Data {
         }
     }
 
-    private Zeze.Builtin.World.BMove.Data _Moving;
+    private Zeze.Builtin.World.BMove.Data _Moving; // 命令型移动同步可以直接使用这个结构，如果其他模式，这里面部分变量可能未用。
     private String _PlayerId;
     private String _LinkName;
     private long _LinkSid;
-    private int _Type;
+    private int _Type; // 逻辑？
     private int _ConfigId;
 
     public DynamicData_Data getData() {

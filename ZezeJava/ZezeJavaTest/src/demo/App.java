@@ -147,7 +147,7 @@ public class App extends Zeze.AppBase {
         TestServer = new demo.TestServer(Zeze);
     }
 
-    public synchronized void createModules() {
+    public synchronized void createModules() throws Exception {
         Zeze.initialize(this);
         var _modules_ = createRedirectModules(new Class[] {
             demo.Module1.ModuleModule1.class,

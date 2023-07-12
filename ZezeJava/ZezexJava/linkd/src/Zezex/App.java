@@ -112,7 +112,7 @@ public final class App extends Zeze.AppBase {
         ProviderService = new Zezex.ProviderService(Zeze);
     }
 
-    public synchronized void createModules() {
+    public synchronized void createModules() throws Exception {
         Zeze.initialize(this);
         var _modules_ = createRedirectModules(new Class[] {
             Zezex.Linkd.ModuleLinkd.class,

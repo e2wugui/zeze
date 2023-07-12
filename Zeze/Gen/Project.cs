@@ -375,8 +375,9 @@ namespace Zeze.Gen
                     }
 
                     // 警告，confcs.Maker为了简化，没有生成Gen目录，而是直接放到ProjectName下，这样和需要实现的代码混在一起，
-                    // 会导致自己实现代码被删除，这个platform有网络协议以及模块。
-                    // 需要重新写一份，选择需要生成的内容以及重新定义生成目录。
+                    // 会导致自己实现代码被删除，所以不能直接使用confcs.Maker。
+                    // 这个platform有网络协议以及模块。需要重新写一份MakeConfCsNet，
+                    // 选择需要生成的内容以及重新定义生成目录。
 
                     new cs.Maker(this).MakeConfCsNet(dependsFollowerApplyTables);
                     break;

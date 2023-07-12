@@ -43,7 +43,7 @@ public class ProviderWithOnline extends ProviderImplement {
 	}
 
 	// 创建默认的Online和指定name的若干Online,重复创建会抛异常
-	public synchronized void create(@NotNull AppBase app, @NotNull String... names) {
+	public synchronized void create(@NotNull AppBase app, @NotNull String... names) throws Exception {
 		if (online != null)
 			throw new IllegalStateException("duplicate default");
 		online = Online.create(app);

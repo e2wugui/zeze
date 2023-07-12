@@ -21,7 +21,7 @@ public class ProviderWithOnline extends ProviderImplement {
 		return Procedure.Success;
 	}
 
-	public void create(AppBase app) {
+	public void create(AppBase app) throws Exception {
 		online = Online.create(app);
 		online.Initialize(app);
 	}

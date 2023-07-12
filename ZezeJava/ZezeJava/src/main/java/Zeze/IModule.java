@@ -17,7 +17,7 @@ public interface IModule {
 		return false;
 	}
 
-	default void Initialize(AppBase app) {
+	default void Initialize(AppBase app) throws Exception {
 	}
 
 	default void UnRegister() { // 为了重新装载 Module 的补丁。注册在构造函数里面进行。

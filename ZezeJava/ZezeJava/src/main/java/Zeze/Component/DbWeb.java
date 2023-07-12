@@ -54,7 +54,7 @@ public class DbWeb extends AbstractDbWeb {
 	}
 
 	@Override
-	public void Initialize(AppBase app) {
+	public void Initialize(AppBase app) throws Exception {
 		super.Initialize(app);
 		zeze = app.getZeze();
 	}

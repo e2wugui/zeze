@@ -161,7 +161,7 @@ public class Online extends AbstractOnline {
 	 * @param name 在线集合名字
 	 * @return 返回新建的在线集合实例。返回值可以保存下来。
 	 */
-	protected @NotNull Online createOnlineSet(@NotNull AppBase app, @NotNull String name) {
+	protected @NotNull Online createOnlineSet(@NotNull AppBase app, @NotNull String name) throws Exception {
 		if (name.isEmpty())
 			throw new IllegalArgumentException("empty name");
 		if (this != defaultInstance)

@@ -156,6 +156,7 @@ public final class App extends Zeze.AppBase {
     public Game.Rank.ModuleRank Game_Rank;
     public Game.Timer.ModuleTimer Game_Timer;
     public Game.LongSet.ModuleLongSet Game_LongSet;
+    public Game.MyWorld.ModuleMyWorld Game_MyWorld;
 
     @Override
     public Zeze.Application getZeze() {
@@ -178,7 +179,7 @@ public final class App extends Zeze.AppBase {
         ServerDirect = new Game.ServerDirect(Zeze);
     }
 
-    public synchronized void createModules() {
+    public synchronized void createModules() throws Exception {
         Zeze.initialize(this);
         var _modules_ = createRedirectModules(new Class[] {
             Game.Login.ModuleLogin.class,
@@ -191,6 +192,7 @@ public final class App extends Zeze.AppBase {
             Game.Rank.ModuleRank.class,
             Game.Timer.ModuleTimer.class,
             Game.LongSet.ModuleLongSet.class,
+            Game.MyWorld.ModuleMyWorld.class,
         });
         if (_modules_ == null)
             return;
@@ -245,10 +247,16 @@ public final class App extends Zeze.AppBase {
         if (modules.put(Game_LongSet.getFullName(), Game_LongSet) != null)
             throw new RuntimeException("duplicate module name: Game_LongSet");
 
+        Game_MyWorld = (Game.MyWorld.ModuleMyWorld)_modules_[10];
+        Game_MyWorld.Initialize(this);
+        if (modules.put(Game_MyWorld.getFullName(), Game_MyWorld) != null)
+            throw new RuntimeException("duplicate module name: Game_MyWorld");
+
         Zeze.setSchemas(new Game.Schemas());
     }
 
     public synchronized void destroyModules() {
+        Game_MyWorld = null;
         Game_LongSet = null;
         Game_Timer = null;
         Game_Rank = null;
@@ -282,9 +290,12 @@ public final class App extends Zeze.AppBase {
         Game_Rank.Start(this);
         Game_Timer.Start(this);
         Game_LongSet.Start(this);
+        Game_MyWorld.Start(this);
     }
 
     public synchronized void stopModules() throws Exception {
+        if (Game_MyWorld != null)
+            Game_MyWorld.Stop(this);
         if (Game_LongSet != null)
             Game_LongSet.Stop(this);
         if (Game_Timer != null)

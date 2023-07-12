@@ -67,7 +67,7 @@ public class App extends Zeze.AppBase {
         ClientService = new ClientGame.ClientService(Zeze);
     }
 
-    public synchronized void createModules() {
+    public synchronized void createModules() throws Exception {
         Zeze.initialize(this);
         var _modules_ = createRedirectModules(new Class[] {
             Zeze.Builtin.Game.Online.ModuleOnline.class,

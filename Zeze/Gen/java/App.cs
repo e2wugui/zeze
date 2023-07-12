@@ -133,7 +133,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void createModules() {");
+            sw.WriteLine("    public synchronized void createModules() throws Exception {");
             sw.WriteLine("        Zeze.initialize(this);");
             if (project.AllOrderDefineModules.Count > 0)
             {
