@@ -17,12 +17,18 @@ namespace Zeze.Gen.java
         string Getter => var != null ? var.Getter : tmpvarname;
         string NamePrivate => var != null ? var.NamePrivate : tmpvarname;
 
-        public static void Make(Bean bean, StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix, bool withUnknown)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void decode(ByteBuffer _o_) {");
+            if (withUnknown)
+            {
+                sw.WriteLine(prefix + "public void decodeWithUnknown(ByteBuffer _o_) {");
+                sw.WriteLine(prefix + "    ByteBuffer _u_ = null;");
+            }
+            else
+                sw.WriteLine(prefix + "public void decode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
-            if (bean.VariablesIdOrder.Count > 0)
+            if (bean.VariablesIdOrder.Count > 0 || withUnknown)
                 sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
             else
                 sw.WriteLine(prefix + "    _o_.ReadTagSize(_t_);");
@@ -39,10 +45,13 @@ namespace Zeze.Gen.java
                         throw new Exception("unordered var.id");
                     if (v.Id - lastId > 1)
                     {
-                         sw.WriteLine(prefix + "    while ((_t_ & 0xff) > 1 && _i_ < " + v.Id + ") {");
-                         sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
-                         sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                         sw.WriteLine(prefix + "    }");
+                        sw.WriteLine(prefix + "    while ((_t_ & 0xff) > 1 && _i_ < " + v.Id + ") {");
+                        if (withUnknown)
+                            sw.WriteLine(prefix + "        _u_ = _o_.readUnknownField(_i_, _t_, _u_);");
+                        else
+                            sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
+                        sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
+                        sw.WriteLine(prefix + "    }");
                     }
                     lastId = v.Id;
                     sw.WriteLine(prefix + "    if (_i_ == " + v.Id + ") {");
@@ -65,17 +74,27 @@ namespace Zeze.Gen.java
                     sw.WriteLine(prefix + "    }");
             }
 
-            sw.WriteLine(prefix + "    while (_t_ != 0) {");
-            if (bean.Base != "")
+            if (bean.Base == "")
             {
+                if (withUnknown)
+                {
+                    sw.WriteLine(prefix + "    //noinspection ConstantValue");
+                    sw.WriteLine(prefix + "    _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);");
+                }
+                else
+                    sw.WriteLine(prefix + "    _o_.skipAllUnknownFields(_t_);");
+            }
+            else
+            {
+                sw.WriteLine(prefix + "    while (_t_ != 0) {");
                 sw.WriteLine(prefix + "        if (_t_ == 1) {");
                 sw.WriteLine(prefix + "            base.decode(_o_);");
                 sw.WriteLine(prefix + "            return;");
                 sw.WriteLine(prefix + "        }");
+                sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
+                sw.WriteLine(prefix + "        _o_.ReadTagSize(_t_ = _o_.ReadByte());");
+                sw.WriteLine(prefix + "    }");
             }
-            sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
-            sw.WriteLine(prefix + "        _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-            sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

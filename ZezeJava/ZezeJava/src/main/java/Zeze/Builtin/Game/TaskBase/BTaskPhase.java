@@ -186,6 +186,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         setNextPhaseId(0);
         _subPhases.clear();
         setCurrentSubPhaseId(0);
+        _unknown_ = null;
     }
 
     public void assign(BTaskPhase other) {
@@ -199,6 +200,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         for (var e : other._subPhases.entrySet())
             _subPhases.put(e.getKey(), e.getValue().copy());
         setCurrentSubPhaseId(other.getCurrentSubPhaseId());
+        _unknown_ = other._unknown_;
     }
 
     public BTaskPhase copyIfManaged() {
@@ -315,9 +317,17 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
+        while (_ui_ < 2) {
+            _i_ = _o_.writeUnknownField(_i_, _ui_, _u_);
+            _ui_ = _u_.readUnknownIndex();
+        }
         {
             long _x_ = getPhaseId();
             if (_x_ != 0) {
@@ -382,6 +392,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
                 _o_.WriteLong(_x_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -437,10 +448,64 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
             setCurrentSubPhaseId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        while ((_t_ & 0xff) > 1 && _i_ < 2) {
+            _u_ = _o_.readUnknownField(_i_, _t_, _u_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            setPhaseId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setPhaseName(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setPhaseDescription(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            var _x_ = _prePhaseIds;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadLong(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 6) {
+            setNextPhaseId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            var _x_ = _subPhases;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadLong(_s_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.Game.TaskBase.BSubPhase(), _t_);
+                    _x_.put(_k_, _v_);
+                }
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 8) {
+            setCurrentSubPhaseId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

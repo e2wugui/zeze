@@ -43,6 +43,7 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
     public void reset() {
         _modules.clear();
         _linkSids.clear();
+        _unknown_ = null;
     }
 
     @Override
@@ -66,6 +67,7 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
         }
         _linkSids.clear();
         _linkSids.addAll(other._linkSids);
+        _unknown_ = null;
     }
 
     public void assign(BBind other) {
@@ -74,6 +76,7 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
             _modules.put(e.getKey(), e.getValue().copy());
         _linkSids.clear();
         _linkSids.addAll(other._linkSids);
+        _unknown_ = other._unknown_;
     }
 
     public BBind copyIfManaged() {
@@ -150,8 +153,12 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             var _x_ = _modules;
@@ -182,6 +189,7 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -213,10 +221,40 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            var _x_ = _modules;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadInt(_s_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.Provider.BModule(), _t_);
+                    _x_.put(_k_, _v_);
+                }
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            var _x_ = _linkSids;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadLong(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

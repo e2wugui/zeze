@@ -75,7 +75,7 @@ namespace Zeze.Gen.java
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static long getSpecialTypeIdFromBean_{var.Id}(Zeze.Transaction.Bean bean) {{");
-            if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean)) 
+            if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean))
             {
                 // 根据配置的实际类型生成switch。
                 sw.WriteLine($"{prefix}    var _typeId_ = bean.typeId();");
@@ -211,7 +211,9 @@ namespace Zeze.Gen.java
             Log.Make(bean, sw, "    ");
             Tostring.Make(bean, sw, "    ", false);
             Encode.Make(bean, sw, "    ");
-            Decode.Make(bean, sw, "    ");
+            Decode.Make(bean, sw, "    ", false);
+            if (bean.Base == "")
+                Decode.Make(bean, sw, "    ", true);
             if (bean.Equalable)
             {
                 Equal.Make(bean, sw, "    ", false);

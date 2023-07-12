@@ -202,6 +202,7 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         _TimerObj.reset();
         _CustomData.reset();
         setConcurrentFireSerialNo(0);
+        _unknown_ = null;
     }
 
     public void assign(BTimer other) {
@@ -210,6 +211,7 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         _TimerObj.assign(other._TimerObj);
         _CustomData.assign(other._CustomData);
         setConcurrentFireSerialNo(other.getConcurrentFireSerialNo());
+        _unknown_ = other._unknown_;
     }
 
     public BTimer copyIfManaged() {
@@ -291,8 +293,12 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             String _x_ = getTimerName();
@@ -329,6 +335,7 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
                 _o_.WriteLong(_x_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -356,10 +363,36 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
             setConcurrentFireSerialNo(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setTimerName(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            setHandleName(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _o_.ReadDynamic(_TimerObj, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _o_.ReadDynamic(_CustomData, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            setConcurrentFireSerialNo(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

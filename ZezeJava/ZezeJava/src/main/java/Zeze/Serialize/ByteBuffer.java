@@ -1677,6 +1677,57 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
+	public void skipAllUnknownFields(int tag) {
+		while (tag != 0) {
+			SkipUnknownField(tag);
+			ReadTagSize(tag = ReadByte());
+		}
+	}
+
+	public @Nullable ByteBuffer readUnknownField(int idx, int tag, @Nullable ByteBuffer unknown) {
+		int beginIdx = ReadIndex;
+		SkipUnknownField(tag);
+		int size = ReadIndex - beginIdx;
+		if (size > 0) {
+			if (unknown == null)
+				unknown = ByteBuffer.Allocate(16);
+			unknown.WriteUInt(idx);
+			unknown.WriteByte(tag & TAG_MASK);
+			unknown.WriteUInt(size);
+			unknown.Append(Bytes, beginIdx, size);
+		} else
+			throw new UnsupportedOperationException("readUnknownField: unsupported for derived bean");
+		return unknown;
+	}
+
+	public @Nullable ByteBuffer readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
+		while (tag != 0) {
+			unknown = readUnknownField(idx, tag, unknown);
+			idx += ReadTagSize(tag = ReadByte());
+		}
+		return unknown;
+	}
+
+	public long readUnknownIndex() {
+		return ReadIndex < WriteIndex ? ReadUInt() : Long.MAX_VALUE;
+	}
+
+	public int writeUnknownField(int lastIdx, long idx, @NotNull ByteBuffer unknown) {
+		int i = (int)idx;
+		WriteTag(lastIdx, i, unknown.ReadByte());
+		int size = unknown.ReadUInt();
+		Append(unknown.Bytes, unknown.ReadIndex, size);
+		unknown.ReadIndex += size;
+		return i;
+	}
+
+	public void writeAllUnknownFields(int lastIdx, long idx, ByteBuffer unknown) {
+		while (idx != Long.MAX_VALUE) {
+			lastIdx = writeUnknownField(lastIdx, idx, unknown);
+			idx = unknown.readUnknownIndex();
+		}
+	}
+
 	public static <T> void BuildString(@NotNull StringBuilder sb, @Nullable Iterable<T> c) {
 		sb.append('[');
 		int i = sb.length();

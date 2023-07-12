@@ -153,6 +153,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         setMethodFullName("");
         setSessionId(0);
         _Hashs.clear();
+        _unknown_ = null;
     }
 
     @Override
@@ -179,6 +180,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             data.assign(e.getValue());
             _Hashs.put(e.getKey(), data);
         }
+        _unknown_ = null;
     }
 
     public void assign(BModuleRedirectAllResult other) {
@@ -190,6 +192,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         _Hashs.clear();
         for (var e : other._Hashs.entrySet())
             _Hashs.put(e.getKey(), e.getValue().copy());
+        _unknown_ = other._unknown_;
     }
 
     public BModuleRedirectAllResult copyIfManaged() {
@@ -295,8 +298,12 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             int _x_ = getModuleId();
@@ -348,6 +355,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -389,10 +397,50 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setModuleId(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            setServerId(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setSourceProvider(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setMethodFullName(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            setSessionId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 6) {
+            var _x_ = _Hashs;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadInt(_s_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash(), _t_);
+                    _x_.put(_k_, _v_);
+                }
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

@@ -92,6 +92,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         setModuleId(0);
         setServerId(0);
         setParams(Zeze.Net.Binary.Empty);
+        _unknown_ = null;
     }
 
     @Override
@@ -110,12 +111,14 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         setModuleId(other._ModuleId);
         setServerId(other._ServerId);
         setParams(other._Params);
+        _unknown_ = null;
     }
 
     public void assign(BModuleRedirectResult other) {
         setModuleId(other.getModuleId());
         setServerId(other.getServerId());
         setParams(other.getParams());
+        _unknown_ = other._unknown_;
     }
 
     public BModuleRedirectResult copyIfManaged() {
@@ -191,8 +194,12 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             int _x_ = getModuleId();
@@ -215,6 +222,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
                 _o_.WriteBinary(_x_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -234,10 +242,28 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
             setParams(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setModuleId(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            setServerId(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setParams(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

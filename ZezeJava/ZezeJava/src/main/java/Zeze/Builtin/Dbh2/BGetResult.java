@@ -69,6 +69,7 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
     public void reset() {
         setNull(false);
         setValue(Zeze.Net.Binary.Empty);
+        _unknown_ = null;
     }
 
     @Override
@@ -86,11 +87,13 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
     public void assign(BGetResult.Data other) {
         setNull(other._Null);
         setValue(other._Value);
+        _unknown_ = null;
     }
 
     public void assign(BGetResult other) {
         setNull(other.isNull());
         setValue(other.getValue());
+        _unknown_ = other._unknown_;
     }
 
     public BGetResult copyIfManaged() {
@@ -158,8 +161,12 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             boolean _x_ = isNull();
@@ -175,6 +182,7 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
                 _o_.WriteBinary(_x_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -190,10 +198,24 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
             setValue(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setNull(_o_.ReadBool(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            setValue(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @SuppressWarnings("unchecked")

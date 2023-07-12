@@ -30,12 +30,16 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "public void assign(" + bean.Name + ".Data other) {");
                 foreach (Variable var in bean.Variables)
                     var.VariableType.Accept(new Assign(var, sw, prefix + "    ", true));
+                if (bean.Base == "")
+                    sw.WriteLine(prefix + "    _unknown_ = null;");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
             }
             sw.WriteLine(prefix + "public void assign(" + bean.Name + " other) {");
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    ", false));
+            if (bean.Base == "")
+                sw.WriteLine(prefix + "    _unknown_ = other._unknown_;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

@@ -48,6 +48,7 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
     public void reset() {
         _From.reset();
         _To.reset();
+        _unknown_ = null;
     }
 
     @Override
@@ -69,11 +70,13 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
         Zeze.Builtin.Dbh2.BBucketMeta data_To = new Zeze.Builtin.Dbh2.BBucketMeta();
         data_To.assign(other._To);
         _To.setValue(data_To);
+        _unknown_ = null;
     }
 
     public void assign(BEndSplit other) {
         _From.assign(other._From);
         _To.assign(other._To);
+        _unknown_ = other._unknown_;
     }
 
     public BEndSplit copyIfManaged() {
@@ -131,8 +134,12 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             int _a_ = _o_.WriteIndex;
@@ -154,6 +161,7 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
             else
                 _i_ = _j_;
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -169,10 +177,24 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
             _o_.ReadBean(_To, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _o_.ReadBean(_From, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            _o_.ReadBean(_To, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

@@ -72,11 +72,13 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
     public void reset() {
         setConditionType("");
         _extendedData.reset();
+        _unknown_ = null;
     }
 
     public void assign(BTaskCondition other) {
         setConditionType(other.getConditionType());
         _extendedData.assign(other._extendedData);
+        _unknown_ = other._unknown_;
     }
 
     public BTaskCondition copyIfManaged() {
@@ -139,9 +141,17 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
+        while (_ui_ < 2) {
+            _i_ = _o_.writeUnknownField(_i_, _ui_, _u_);
+            _ui_ = _u_.readUnknownIndex();
+        }
         {
             String _x_ = getConditionType();
             if (!_x_.isEmpty()) {
@@ -156,6 +166,7 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
                 _x_.encode(_o_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -175,10 +186,28 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
             _o_.ReadDynamic(_extendedData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        while ((_t_ & 0xff) > 1 && _i_ < 2) {
+            _u_ = _o_.readUnknownField(_i_, _t_, _u_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            setConditionType(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _o_.ReadDynamic(_extendedData, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

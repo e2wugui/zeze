@@ -139,6 +139,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         setQueryIp("");
         setQueryPort(0);
         setTid(Zeze.Net.Binary.Empty);
+        _unknown_ = null;
     }
 
     @Override
@@ -161,6 +162,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         setQueryIp(other._QueryIp);
         setQueryPort(other._QueryPort);
         setTid(other._Tid);
+        _unknown_ = null;
     }
 
     public void assign(BBatch other) {
@@ -171,6 +173,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         setQueryIp(other.getQueryIp());
         setQueryPort(other.getQueryPort());
         setTid(other.getTid());
+        _unknown_ = other._unknown_;
     }
 
     public BBatch copyIfManaged() {
@@ -269,8 +272,12 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             var _x_ = _Puts;
@@ -322,6 +329,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
                 _o_.WriteBinary(_x_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -365,10 +373,52 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             setTid(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            var _x_ = _Puts;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadBinary(_s_);
+                    var _v_ = _o_.ReadBinary(_t_);
+                    _x_.put(_k_, _v_);
+                }
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            var _x_ = _Deletes;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadBinary(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setQueryIp(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setQueryPort(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            setTid(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

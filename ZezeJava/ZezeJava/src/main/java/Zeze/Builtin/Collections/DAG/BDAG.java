@@ -120,6 +120,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         setEdgeSum(0);
         setStartNode("");
         setEndNode("");
+        _unknown_ = null;
     }
 
     public void assign(BDAG other) {
@@ -127,6 +128,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         setEdgeSum(other.getEdgeSum());
         setStartNode(other.getStartNode());
         setEndNode(other.getEndNode());
+        _unknown_ = other._unknown_;
     }
 
     public BDAG copyIfManaged() {
@@ -210,8 +212,12 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             long _x_ = getNodeSum();
@@ -241,6 +247,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
                 _o_.WriteString(_x_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -264,10 +271,32 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
             setEndNode(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setNodeSum(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            setEdgeSum(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setStartNode(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setEndNode(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

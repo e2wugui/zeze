@@ -32,28 +32,56 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    _PRE_ALLOC_SIZE_ = size;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
+            if (bean.Base == "")
+            {
+                sw.WriteLine(prefix + "private ByteBuffer _unknown_;");
+                sw.WriteLine();
+            }
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void encode(ByteBuffer _o_) {");
-            if (bean.VariablesIdOrder.Count > 0)
+            if (bean.Base == "")
+            {
+                sw.WriteLine(prefix + "    var _u_ = _unknown_;");
+                sw.WriteLine(prefix + "    var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;");
+                sw.WriteLine(prefix + "    int _i_ = 0;");
+            }
+            else if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = 0;");
 
+            int lastId = 0;
             foreach (Variable v in bean.VariablesIdOrder)
             {
                 if (v.Transient)
                     continue;
 
+                if (v.Id > 0)
+                {
+                    if (v.Id <= lastId)
+                        throw new Exception("unordered var.id");
+                    if (v.Id - lastId > 1 && bean.Base == "")
+                    {
+                        sw.WriteLine(prefix + "    while (_ui_ < " + v.Id + ") {");
+                        sw.WriteLine(prefix + "        _i_ = _o_.writeUnknownField(_i_, _ui_, _u_);");
+                        sw.WriteLine(prefix + "        _ui_ = _u_.readUnknownIndex();");
+                        sw.WriteLine(prefix + "    }");
+                    }
+                    lastId = v.Id;
+                }
                 sw.WriteLine(prefix + "    {");
                 v.VariableType.Accept(new Encode(v, null, v.Id, "_o_", sw, prefix + "        ", false));
                 sw.WriteLine(prefix + "    }");
             }
 
-            if (bean.Base != "")
+            if (bean.Base == "")
+            {
+                sw.WriteLine(prefix + "    _o_.writeAllUnknownFields(_i_, _ui_, _u_);");
+                sw.WriteLine(prefix + "    _o_.WriteByte(0);");
+            }
+            else
             {
                 sw.WriteLine(prefix + "    _o_.WriteByte(1);");
                 sw.WriteLine(prefix + "    super.encode(_o_);");
             }
-            else
-                sw.WriteLine(prefix + "    _o_.WriteByte(0);");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

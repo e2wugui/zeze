@@ -97,6 +97,7 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
         setMapId(0);
         setPosition(Zeze.Serialize.Vector3.ZERO);
         setDirect(Zeze.Serialize.Vector3.ZERO);
+        _unknown_ = null;
     }
 
     @Override
@@ -115,12 +116,14 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
         setMapId(other._MapId);
         setPosition(other._Position);
         setDirect(other._Direct);
+        _unknown_ = null;
     }
 
     public void assign(BSwitchWorld other) {
         setMapId(other.getMapId());
         setPosition(other.getPosition());
         setDirect(other.getDirect());
+        _unknown_ = other._unknown_;
     }
 
     public BSwitchWorld copyIfManaged() {
@@ -196,8 +199,12 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             int _x_ = getMapId();
@@ -220,6 +227,7 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
                 _o_.WriteVector3(_x_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -239,10 +247,28 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
             setDirect(_o_.ReadVector3(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setMapId(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            setPosition(_o_.ReadVector3(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setDirect(_o_.ReadVector3(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

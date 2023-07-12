@@ -79,6 +79,7 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         setEverydayTaskCount(0);
         setFlushTime(0);
         _todayTaskPhaseIds.clear();
+        _unknown_ = null;
     }
 
     public void assign(BDailyTask other) {
@@ -86,6 +87,7 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         setFlushTime(other.getFlushTime());
         _todayTaskPhaseIds.clear();
         _todayTaskPhaseIds.addAll(other._todayTaskPhaseIds);
+        _unknown_ = other._unknown_;
     }
 
     public BDailyTask copyIfManaged() {
@@ -164,8 +166,12 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             int _x_ = getEverydayTaskCount();
@@ -195,6 +201,7 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -220,10 +227,34 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setEverydayTaskCount(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            setFlushTime(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            var _x_ = _todayTaskPhaseIds;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadLong(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

@@ -69,6 +69,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     public void reset() {
         setDbh2RaftAcceptorName("");
         setBucketCount(0);
+        _unknown_ = null;
     }
 
     @Override
@@ -86,11 +87,13 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     public void assign(BRegister.Data other) {
         setDbh2RaftAcceptorName(other._Dbh2RaftAcceptorName);
         setBucketCount(other._BucketCount);
+        _unknown_ = null;
     }
 
     public void assign(BRegister other) {
         setDbh2RaftAcceptorName(other.getDbh2RaftAcceptorName());
         setBucketCount(other.getBucketCount());
+        _unknown_ = other._unknown_;
     }
 
     public BRegister copyIfManaged() {
@@ -158,8 +161,12 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             String _x_ = getDbh2RaftAcceptorName();
@@ -175,6 +182,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
                 _o_.WriteInt(_x_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -190,10 +198,24 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
             setBucketCount(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setDbh2RaftAcceptorName(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            setBucketCount(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

@@ -202,6 +202,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         setServerId(0);
         setLogoutVersion(0);
         _UserData.reset();
+        _unknown_ = null;
     }
 
     public void assign(BOnline other) {
@@ -214,6 +215,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         setServerId(other.getServerId());
         setLogoutVersion(other.getLogoutVersion());
         _UserData.assign(other._UserData);
+        _unknown_ = other._unknown_;
     }
 
     public BOnline copyIfManaged() {
@@ -329,9 +331,17 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
+        while (_ui_ < 3) {
+            _i_ = _o_.writeUnknownField(_i_, _ui_, _u_);
+            _ui_ = _u_.readUnknownIndex();
+        }
         {
             int _a_ = _o_.WriteIndex;
             int _j_ = _o_.WriteTag(_i_, 3, ByteBuffer.BEAN);
@@ -398,6 +408,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
                 _x_.encode(_o_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -447,10 +458,58 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             _o_.ReadDynamic(_UserData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        while ((_t_ & 0xff) > 1 && _i_ < 3) {
+            _u_ = _o_.readUnknownField(_i_, _t_, _u_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 3) {
+            _o_.ReadBean(getLink(), _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setLoginVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            var _x_ = _ReliableNotifyMark;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadString(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 6) {
+            setReliableNotifyConfirmIndex(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            setReliableNotifyIndex(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 8) {
+            setServerId(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 9) {
+            setLogoutVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 10) {
+            _o_.ReadDynamic(_UserData, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

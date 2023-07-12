@@ -101,12 +101,14 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         setId(0);
         setNumber(0);
         _Item.reset();
+        _unknown_ = null;
     }
 
     public void assign(BItem other) {
         setId(other.getId());
         setNumber(other.getNumber());
         _Item.assign(other._Item);
+        _unknown_ = other._unknown_;
     }
 
     public BItem copyIfManaged() {
@@ -177,8 +179,12 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             int _x_ = getId();
@@ -201,6 +207,7 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
                 _x_.encode(_o_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -220,10 +227,28 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
             _o_.ReadDynamic(_Item, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setId(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            setNumber(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _o_.ReadDynamic(_Item, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

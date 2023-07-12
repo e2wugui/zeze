@@ -41,6 +41,7 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
     @Override
     public void reset() {
         setMapInstanceId(0);
+        _unknown_ = null;
     }
 
     @Override
@@ -57,10 +58,12 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
 
     public void assign(BSwitchWorldResult.Data other) {
         setMapInstanceId(other._MapInstanceId);
+        _unknown_ = null;
     }
 
     public void assign(BSwitchWorldResult other) {
         setMapInstanceId(other.getMapInstanceId());
+        _unknown_ = other._unknown_;
     }
 
     public BSwitchWorldResult copyIfManaged() {
@@ -120,8 +123,12 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             long _x_ = getMapInstanceId();
@@ -130,6 +137,7 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
                 _o_.WriteLong(_x_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -141,10 +149,20 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
             setMapInstanceId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setMapInstanceId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

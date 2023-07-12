@@ -126,6 +126,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         setServiceIndentity("");
         setProviderDirectIp("");
         setProviderDirectPort(0);
+        _unknown_ = null;
     }
 
     @Override
@@ -145,6 +146,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         setServiceIndentity(other._ServiceIndentity);
         setProviderDirectIp(other._ProviderDirectIp);
         setProviderDirectPort(other._ProviderDirectPort);
+        _unknown_ = null;
     }
 
     public void assign(BAnnounceProviderInfo other) {
@@ -152,6 +154,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         setServiceIndentity(other.getServiceIndentity());
         setProviderDirectIp(other.getProviderDirectIp());
         setProviderDirectPort(other.getProviderDirectPort());
+        _unknown_ = other._unknown_;
     }
 
     public BAnnounceProviderInfo copyIfManaged() {
@@ -235,8 +238,12 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         _PRE_ALLOC_SIZE_ = size;
     }
 
+    private ByteBuffer _unknown_;
+
     @Override
     public void encode(ByteBuffer _o_) {
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             String _x_ = getServiceNamePrefix();
@@ -266,6 +273,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
                 _o_.WriteInt(_x_);
             }
         }
+        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
 
@@ -289,10 +297,32 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
             setProviderDirectPort(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0) {
-            _o_.SkipUnknownField(_t_);
-            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        _o_.skipAllUnknownFields(_t_);
+    }
+
+    @Override
+    public void decodeWithUnknown(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setServiceNamePrefix(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            setServiceIndentity(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setProviderDirectIp(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setProviderDirectPort(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        //noinspection ConstantValue
+        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override

@@ -18,6 +18,8 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "public void reset() {");
                 foreach (Variable var in bean.Variables)
                     var.VariableType.Accept(new Reset(var, sw, prefix + "    ", isData));
+                if (!isData && bean.Base == "")
+                    sw.WriteLine(prefix + "    _unknown_ = null;");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
             }
