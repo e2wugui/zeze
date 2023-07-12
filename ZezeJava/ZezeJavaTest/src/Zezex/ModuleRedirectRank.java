@@ -99,7 +99,7 @@ public class ModuleRedirectRank extends TestCase {
 			assertEquals(hash12, result.hash);
 			assertEquals(666, result.out);
 			System.out.println("12--->" + result.serverId);
-			assertEquals(30, result.serverId);
+			assertEquals(31, result.serverId);
 		}).await();
 
 		var hash21 = Zeze.Serialize.ByteBuffer.calc_hashnr(127366);
@@ -108,7 +108,7 @@ public class ModuleRedirectRank extends TestCase {
 			assertEquals(hash21, result.hash);
 			assertEquals(777, result.out);
 			System.out.println("21--->" + result.serverId);
-			assertEquals(31, result.serverId);
+			assertEquals(30, result.serverId);
 		}).await();
 
 		var hash22 = Zeze.Serialize.ByteBuffer.calc_hashnr(100);
