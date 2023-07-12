@@ -282,7 +282,8 @@ public final class Task {
 				return func.call();
 			} catch (Throwable e) { // logger.error
 				logger.error("schedule", e);
-				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
+				forceThrow(e);
+				return null; // never run here
 			} finally {
 				//noinspection ConstantValue
 				if (PerfCounter.ENABLE_PERF && func != null)
@@ -886,7 +887,7 @@ public final class Task {
 			try {
 				task.get();
 			} catch (InterruptedException | ExecutionException e) {
-				throw new RuntimeException(e);
+				forceThrow(e);
 			}
 		}
 	}
@@ -896,9 +897,15 @@ public final class Task {
 			try {
 				task.get();
 			} catch (InterruptedException | ExecutionException e) {
-				throw new RuntimeException(e);
+				forceThrow(e);
 			}
 		}
+	}
+
+	// 利用编译器的漏洞(?)强制抛出任何异常,调用者不必声明throws或包装成RuntimeException,建议只在必要时使用
+	@SuppressWarnings("unchecked")
+	public static <E extends Throwable> void forceThrow(Throwable e) throws E {
+		throw (E)e;
 	}
 
 	private Task() {
