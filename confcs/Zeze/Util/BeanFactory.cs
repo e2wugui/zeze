@@ -11,7 +11,7 @@ namespace Zeze.Util
         where B : Zeze.Util.ConfBean
 #endif
     {
-        private readonly ConcurrentDictionary<long, Func<B>> factories = new();
+        private readonly ConcurrentDictionary<long, Func<B>> factories = new ConcurrentDictionary<long, Func<B>>();
 
         public B Create(long typeId)
         {

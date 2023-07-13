@@ -134,7 +134,9 @@ namespace Zeze.Gen.confcs
                             $"{prefix}        case {real.Value.TypeId}: return {real.Key}; // {real.Value.FullName}");
                     sw.WriteLine($"{prefix}    }}");
                 }
-                sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + bean.GetType());");
+                // confcs用于客户端，可能存在老的客户端，此时发现不支持新增bean，不抛出异常。
+                sw.WriteLine($"{prefix}    return null;");
+                //sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + bean.GetType());");
             }
             else
             {
@@ -156,7 +158,9 @@ namespace Zeze.Gen.confcs
                         sw.WriteLine($"{prefix}        case {real.Key}: return new {real.Value.FullName}();");
                     sw.WriteLine($"{prefix}    }}");
                 }
-                sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown TypeId! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + typeId);");
+                // confcs用于客户端，可能存在老的客户端，此时发现不支持新增bean，不抛出异常。
+                sw.WriteLine($"{prefix}    return null;");
+                //sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown TypeId! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + typeId);");
             }
             else
             {
