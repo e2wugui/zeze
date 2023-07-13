@@ -135,7 +135,7 @@ namespace Zeze.Gen.confcs
                     sw.WriteLine($"{prefix}    }}");
                 }
                 // confcs用于客户端，可能存在老的客户端，此时发现不支持新增bean，不抛出异常。
-                sw.WriteLine($"{prefix}    return null;");
+                sw.WriteLine($"{prefix}    return 0;");
                 //sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + bean.GetType());");
             }
             else
