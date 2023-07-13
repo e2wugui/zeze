@@ -106,5 +106,141 @@ namespace Zeze.Gen.confcs
                 }
             }
         }
+
+        // component or ...
+        public void DefineZezeTables(StreamWriter sw)
+        {
+            foreach (Table table in module.Tables.Values)
+            {
+                if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
+                {
+                    sw.WriteLine($"        internal {table.FullName} _{table.Name} = new();");
+                }
+            }
+        }
+
+        public void RegisterProtocols(StreamWriter sw, bool isFirst = true, string serviceVarName = null)
+        {
+            sw.WriteLine("            // register protocol factory and handles");
+            if (isFirst)
+                sw.WriteLine("            var _reflect = new Zeze.Util.Reflect(GetType());");
+            Service serv = module.ReferenceService;
+            if (serv != null)
+            {
+                var serviceVar = string.IsNullOrEmpty(serviceVarName) ? $"App.{serv.Name}" : serviceVarName;
+                int serviceHandleFlags = module.ReferenceService.HandleFlags;
+                foreach (Protocol p in module.Protocols.Values)
+                {
+                    if (p is Rpc rpc)
+                    {
+                        // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
+                        sw.WriteLine($"            {serviceVar}.AddFactoryHandle({rpc.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
+                        sw.WriteLine("            {");
+                        sw.WriteLine($"                Factory = () => new {rpc.Space.Path(".", rpc.Name)}(),");
+                        if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                        {
+                            sw.WriteLine($"                Handle = Process{rpc.Name}Request,");
+                            sw.WriteLine($"                TransactionLevel = _reflect.GetTransactionLevel(\"Process{rpc.Name}Request\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel}),");
+                            sw.WriteLine($"                Mode = _reflect.GetDispatchMode(\"Process{rpc.Name}Request\", Zeze.Transaction.DispatchMode.Normal),");
+                        }
+                        else
+                        {
+                            sw.WriteLine($"                TransactionLevel = _reflect.GetTransactionLevel(\"Process{rpc.Name}Response\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel}),");
+                            sw.WriteLine($"                Mode = _reflect.GetDispatchMode(\"Process{rpc.Name}Response\", Zeze.Transaction.DispatchMode.Normal),");
+                        }
+                        sw.WriteLine("            });");
+                        continue;
+                    }
+                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
+                    {
+                        sw.WriteLine($"            {serviceVar}.AddFactoryHandle({p.TypeId}, new Zeze.Net.Service.ProtocolFactoryHandle()");
+                        sw.WriteLine("            {");
+                        sw.WriteLine($"                Factory = () => new {p.Space.Path(".", p.Name)}(),");
+                        sw.WriteLine($"                Handle = Process{p.Name},");
+                        sw.WriteLine($"                TransactionLevel = _reflect.GetTransactionLevel(\"Process{p.Name}p\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel}),");
+                        sw.WriteLine($"                Mode = _reflect.GetDispatchMode(\"Process{p.Name}\", Zeze.Transaction.DispatchMode.Normal),");
+                        sw.WriteLine("            });");
+                    }
+                }
+            }
+        }
+
+        public void UnRegisterProtocols(StreamWriter sw, string serviceVarName = null)
+        {
+            Service serv = module.ReferenceService;
+            if (serv != null)
+            {
+                var serviceVar = string.IsNullOrEmpty(serviceVarName) ? $"App.{serv.Name}" : serviceVarName;
+                int serviceHandleFlags = module.ReferenceService.HandleFlags;
+                foreach (Protocol p in module.Protocols.Values)
+                {
+                    if (p is Rpc rpc)
+                    {
+                        // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
+                        sw.WriteLine($"            {serviceVar}.Factorys.TryRemove({rpc.TypeId}, out var _);");
+                        continue;
+                    }
+                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
+                    {
+                        sw.WriteLine($"            {serviceVar}.Factorys.TryRemove({p.TypeId}, out var _);");
+                    }
+                }
+            }
+        }
+
+        public void GenEmptyProtocolHandles(StreamWriter sw, bool shortIf = true)
+        {
+            if (module.ReferenceService != null)
+            {
+                int serviceHandleFlags = module.ReferenceService.HandleFlags;
+                foreach (Protocol p in module.Protocols.Values)
+                {
+                    if (p is Rpc rpc)
+                    {
+                        if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                        {
+                            sw.WriteLine($"        protected override async System.Threading.Tasks.Task<long> Process" + rpc.Name + "Request(Zeze.Net.Protocol _p)");
+                            sw.WriteLine("        {");
+                            sw.WriteLine($"            var p = _p as {(shortIf ? rpc.ShortNameIf(module) : rpc.FullName)};");
+                            sw.WriteLine("            return Zeze.Util.ResultCode.NotImplement;");
+                            sw.WriteLine("        }");
+                            sw.WriteLine();
+                        }
+                        continue;
+                    }
+                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
+                    {
+                        sw.WriteLine($"        protected override async System.Threading.Tasks.Task<long> Process" + p.Name + "(Zeze.Net.Protocol _p)");
+                        sw.WriteLine("        {");
+                        sw.WriteLine($"            var p = _p as {(shortIf ? p.ShortNameIf(module) : p.FullName)};");
+                        sw.WriteLine("            return Zeze.Util.ResultCode.NotImplement;");
+                        sw.WriteLine("        }");
+                        sw.WriteLine();
+                    }
+                }
+            }
+        }
+
+        public void RegisterZezeTables(StreamWriter sw, string zeze = null)
+        {
+            var zezeVar = string.IsNullOrEmpty(zeze) ? "App.Zeze" : zeze;
+            sw.WriteLine("            // register table");
+            foreach (Table table in module.Tables.Values)
+            {
+                if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
+                    sw.WriteLine($"            {zezeVar}.AddTable({zezeVar}.Config.GetTableConf(_{table.Name}.Name).DatabaseName, _{table.Name});");
+            }
+        }
+
+        public void UnRegisterZezeTables(StreamWriter sw, string zeze = null)
+        {
+            var zezeVar = string.IsNullOrEmpty(zeze) ? "App.Zeze" : zeze;
+            foreach (Table table in module.Tables.Values)
+            {
+                if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
+                    sw.WriteLine($"            {zezeVar}.RemoveTable({zezeVar}.Config.GetTableConf(_{table.Name}.Name).DatabaseName, _{table.Name});");
+            }
+        }
+
     }
 }

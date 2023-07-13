@@ -26,6 +26,10 @@ namespace Zeze.Gen
                     new Zeze.Gen.java.MakerComponent(this).Make();
                     break;
 
+                case "conf+cs+net":
+                    new Zeze.Gen.confcs.MakerComponent(this).Make();
+                    break;
+
                 default:
                     throw new Exception("Component: unsupport platform: " + Platform);
             }

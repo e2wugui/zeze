@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="Zeze" ModuleIdAllowRanges="">
+	<import file="../../ZezeJava/ZezeJava/solution.zeze.xml"/>
+	
+	<component name="World" genrelativedir="Zeze/World" platform="conf+cs+net" NoRecursiveModule="true">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.World"/>
+		</service>
+	</component>
+
+	<component name="WorldStatic" genrelativedir="Zeze/World" platform="conf+cs+net" >
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.World.Static"/>
+		</service>
+	</component>
+
+</solution>
