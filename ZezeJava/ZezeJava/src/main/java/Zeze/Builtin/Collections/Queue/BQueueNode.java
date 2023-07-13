@@ -138,13 +138,13 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    private Zeze.Net.Binary _unknown_;
+    private byte[] _unknown_;
 
     @Override
     public void encode(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
-        var _ub_ = _unknown_;
-        var _ui_ = _ub_ != null ? (_u_ = _ub_.Wrap()).readUnknownIndex() : Long.MAX_VALUE;
+        var _ua_ = _unknown_;
+        var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             long _x_ = getNextNodeId();

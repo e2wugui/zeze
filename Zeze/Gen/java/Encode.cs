@@ -34,7 +34,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             if (bean.Base == "")
             {
-                sw.WriteLine(prefix + "private Zeze.Net.Binary _unknown_;");
+                sw.WriteLine(prefix + "private byte[] _unknown_;");
                 sw.WriteLine();
             }
             sw.WriteLine(prefix + "@Override");
@@ -42,8 +42,8 @@ namespace Zeze.Gen.java
             if (bean.Base == "")
             {
                 sw.WriteLine(prefix + "    ByteBuffer _u_ = null;");
-                sw.WriteLine(prefix + "    var _ub_ = _unknown_;");
-                sw.WriteLine(prefix + "    var _ui_ = _ub_ != null ? (_u_ = _ub_.Wrap()).readUnknownIndex() : Long.MAX_VALUE;");
+                sw.WriteLine(prefix + "    var _ua_ = _unknown_;");
+                sw.WriteLine(prefix + "    var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;");
                 sw.WriteLine(prefix + "    int _i_ = 0;");
             }
             else if (bean.VariablesIdOrder.Count > 0)

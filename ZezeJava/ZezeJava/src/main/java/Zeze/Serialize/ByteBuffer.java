@@ -1733,12 +1733,12 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return unknown;
 	}
 
-	public @Nullable Binary readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
+	public @Nullable byte[] readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
 		while (tag != 0) {
 			unknown = readUnknownField(idx, tag, unknown);
 			idx += ReadTagSize(tag = ReadByte());
 		}
-		return unknown != null ? new Binary(unknown.CopyIf()) : null;
+		return unknown != null ? unknown.CopyIf() : null;
 	}
 
 	public long readUnknownIndex() {
@@ -1749,8 +1749,9 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		int i = (int)idx;
 		WriteTag(lastIdx, i, unknown.ReadByte());
 		int size = unknown.ReadUInt();
-		Append(unknown.Bytes, unknown.ReadIndex, size);
-		unknown.ReadIndex += size;
+		int ri = unknown.ReadIndex;
+		Append(unknown.Bytes, ri, size);
+		unknown.ReadIndex = ri + size;
 		return i;
 	}
 

@@ -422,4 +422,19 @@ public class TestByteBuffer extends TestCase {
 		assertEquals(bb.size(), bb2.size());
 		assertEquals(bb, bb2);
 	}
+
+	public void testUnknown() {
+		var a = new BValue();
+		a.setInt_1(123);
+		a.setShort5((short)456);
+		var bb1 = ByteBuffer.Allocate();
+		a.encode(bb1);
+		var b = new Bean1();
+		b.decodeWithUnknown(bb1);
+		bb1.ReadIndex = 0;
+		assertEquals(123, b.getV1());
+		var bb2 = ByteBuffer.Allocate();
+		b.encode(bb2);
+		assertEquals(bb1, bb2);
+	}
 }
