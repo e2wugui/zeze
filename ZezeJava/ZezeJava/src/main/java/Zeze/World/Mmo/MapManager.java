@@ -20,6 +20,7 @@ import Zeze.World.CubeMap;
 import Zeze.World.Entity;
 import Zeze.World.ICommand;
 import Zeze.World.IMapManager;
+import Zeze.World.LockGuard;
 import Zeze.World.World;
 
 public class MapManager implements IMapManager, ICommand {
@@ -88,16 +89,16 @@ public class MapManager implements IMapManager, ICommand {
 	}
 
 	@Override
-	public long handle(String playerId, Command c) throws Exception {
+	public long handle(String account, String playerId, Command c) throws Exception {
 		switch (c.Argument.getCommandId()) {
 		case BCommand.eEnterConfirm:
-			return onEnterConfirm(playerId, ICommand.decode(new BEnterConfirm.Data(), c));
+			return onEnterConfirm(account, playerId, ICommand.decode(new BEnterConfirm.Data(), c));
 
 		}
 		return 0;
 	}
 
-	private long onEnterConfirm(String playerId, BEnterConfirm.Data arg) throws IOException {
+	private long onEnterConfirm(String account, String playerId, BEnterConfirm.Data arg) throws IOException {
 		var map = cubeMaps.get(arg.getMapInstanceId());
 		if (null == map)
 			return Procedure.LogicError; // instance to found
@@ -105,6 +106,7 @@ public class MapManager implements IMapManager, ICommand {
 		return map.getAoi().enter(arg.getEntityId());
 	}
 
+	@Override
 	public CubeMap createMap() {
 		var instanceId = autoKeyMap.nextId();
 		return cubeMaps.computeIfAbsent(instanceId, (key) -> {
@@ -119,13 +121,13 @@ public class MapManager implements IMapManager, ICommand {
 	}
 
 	// todo，简版，仅考虑玩家数量，1. 待完善。 2. 可重载自定义。3. 创建地图现在在锁内，可能需要优化。
-	protected synchronized Long findOrCreateMapInstance(int mapId) {
+	protected synchronized CubeMap findOrCreateMapInstance(int mapId) {
 		if (serverLoadSum.getPlayerCount() > maxServerPlayer) // 本服总玩家限制。
 			return null;
 
 		var bLoadMap = maps.get(mapId);
 		if (null == bLoadMap) {
-			return createMap().getInstanceId();
+			return createMap();
 		}
 
 		if (bLoadMap.getLoadSum().getPlayerCount() > maxMapPlayer) // 地图总玩家限制
@@ -135,9 +137,9 @@ public class MapManager implements IMapManager, ICommand {
 		for (var e : bLoadMap.getInstances().entrySet()) {
 			if (e.getValue().getPlayerCount() > maxMapInstancePlayer) // 地图实例玩家限制
 				continue;
-			return e.getKey();
+			return cubeMaps.get(e.getKey());
 		}
-		return createMap().getInstanceId();
+		return createMap();
 	}
 
 	protected void linkBind(String linkName, long linkSid) {
@@ -162,20 +164,28 @@ public class MapManager implements IMapManager, ICommand {
 	// leave after bind
 	// current map instance. local leave aoi-notify.... leaveWorld(). enterMap(newMapId)
 	@Override
-	public long enterMap(ProviderUserSession session, int mapId) {
+	public long enterMap(ProviderUserSession session, int mapId, Vector3 position) throws Exception {
 		// find local
-		var instanceId = findOrCreateMapInstance(mapId);
-		if (null != instanceId) {
+		var instanceMap = findOrCreateMapInstance(mapId);
+		if (null != instanceMap) {
 			var entity = createEntity(); // todo 上下文参数
 
+			// 加入 cube map
+			var cube = instanceMap.getOrAdd(instanceMap.toIndex(position));
+			try (var ignored = new LockGuard(cube)) {
+				cube.pending.put(entity.getId(), entity);
+				instanceMap.indexes.put(entity.getId(), cube);
+			}
+
+			// link bind
 			var linkName = session.getLinkName();
 			var linkSid = session.getLinkSid();
-
 			linkBind(linkName, linkSid);
 
+			// send enter world to client
 			var param = new BEnterWorld.Data();
 			param.setMapId(mapId);
-			param.setMapInstanceId(instanceId);
+			param.setMapInstanceId(instanceMap.getInstanceId());
 			param.setEntityId(entity.getId());
 
 			// todo param
@@ -183,7 +193,7 @@ public class MapManager implements IMapManager, ICommand {
 			param.setDirect(Vector3.ZERO);
 
 			world.getLinkSender().sendCommand(linkName, linkSid, BCommand.eEnterWorld, param);
-			return instanceId;
+			return instanceMap.getInstanceId();
 		}
 
 		// todo find global
@@ -191,7 +201,7 @@ public class MapManager implements IMapManager, ICommand {
 	}
 
 	@Override
-	public CubeMap getCubeMap(long instanceId) {
+	public CubeMap getMap(long instanceId) {
 		return cubeMaps.get(instanceId);
 	}
 }

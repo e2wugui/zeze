@@ -145,7 +145,7 @@ public class World extends AbstractWorld {
 		if (null == command)
 			return errorCode(eCommandHandlerMissing);
 
-		return command.handle(getPlayerId.apply(session), p);
+		return command.handle(session.getAccount(), getPlayerId.apply(session), p);
 	}
 
 	@Override
@@ -156,7 +156,7 @@ public class World extends AbstractWorld {
 		if (null == query)
 			return errorCode(eCommandHandlerMissing);
 
-		return query.handle(getPlayerId.apply(session), r);
+		return query.handle(session.getAccount(), getPlayerId.apply(session), r);
 	}
 
 	public static @NotNull World create(@NotNull AppBase app) {

@@ -99,25 +99,6 @@ public class TestAoi {
 
 	AtomicLong moveCount = new AtomicLong();
 
-	public static class FakeProviderUserSession extends ProviderUserSession {
-		private final long linkSid;
-
-		public FakeProviderUserSession(long linkSid) {
-			super(new Dispatch());
-			this.linkSid = linkSid;
-		}
-
-		@Override
-		public String getLinkName() {
-			return "1";
-		}
-
-		@Override
-		public long getLinkSid() {
-			return linkSid;
-		}
-	}
-
 	@Test
 	public void testAoiFull() throws Exception {
 		App.Instance.Start();
@@ -127,9 +108,7 @@ public class TestAoi {
 		var client = new TestLinkSender();
 		world.setLinkSender(client);
 
-		var session = new FakeProviderUserSession(1);
-		var mapInstanceId = world.getMapManager().enterMap(session,1);
-		var map = world.getMapManager().getCubeMap(mapInstanceId);
+		var map = world.getMapManager().createMap();
 		var aoi = map.getAoi();
 
 		var cubeNumber = 10;
@@ -148,7 +127,7 @@ public class TestAoi {
 				objectId2LinkSid.put(oid, (long)objInstanceId);
 				var cube = map.getOrAdd(map.toIndex(position));
 				try (var ignored = new LockGuard(cube)) {
-					var entity = cube.objects.computeIfAbsent(oid, Entity::new);
+					var entity = cube.pending.computeIfAbsent(oid, Entity::new);
 					entity.getBean().getMoving().setPosition(position);
 					// 创建假的Link信息。
 					entity.getBean().setLinkName("1");

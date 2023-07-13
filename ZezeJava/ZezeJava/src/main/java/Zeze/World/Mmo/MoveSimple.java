@@ -25,15 +25,15 @@ public class MoveSimple implements IComponent, ICommand {
 	}
 
 	@Override
-	public long handle(String playerId, Command c) throws Exception {
+	public long handle(String account, String playerId, Command c) throws Exception {
 		switch (c.Argument.getCommandId()) {
 		case BCommand.eMoveMmo:
-			return onMove(playerId, ICommand.decode(new BMove.Data(), c));
+			return onMove(account, playerId, ICommand.decode(new BMove.Data(), c));
 		}
 		return 0;
 	}
 
-	private long onMove(String playerId, BMove.Data move) {
+	private long onMove(String account, String playerId, BMove.Data move) {
 		return 0;
 	}
 }
