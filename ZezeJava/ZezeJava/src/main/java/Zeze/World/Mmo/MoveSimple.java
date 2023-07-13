@@ -3,15 +3,14 @@ package Zeze.World.Mmo;
 import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.BMove;
 import Zeze.Builtin.World.Command;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.World.ICommand;
 import Zeze.World.IComponent;
 import Zeze.World.World;
 
-public class MoveMmo implements IComponent, ICommand {
+public class MoveSimple implements IComponent, ICommand {
 	public final World world;
 
-	public MoveMmo(World world) {
+	public MoveSimple(World world) {
 		this.world = world;
 	}
 

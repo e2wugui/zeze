@@ -17,7 +17,7 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.World.Mmo.MapManager;
-import Zeze.World.Mmo.MoveMmo;
+import Zeze.World.Mmo.MoveSimple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -182,7 +182,7 @@ public class World extends AbstractWorld {
 
 	public void initializeDefaultMmo() throws Exception {
 		setMapManager(new MapManager(this));
-		installComponent(new MoveMmo(this));
+		installComponent(new MoveSimple(this));
 	}
 
 	@RedirectToServer
