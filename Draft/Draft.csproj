@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\GlobalCacheManager\GlobalCacheManager.csproj" />
     <ProjectReference Include="..\Zeze\Zeze.csproj" />
   </ItemGroup>
 
