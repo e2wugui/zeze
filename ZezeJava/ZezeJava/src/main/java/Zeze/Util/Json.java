@@ -539,6 +539,16 @@ public final class Json implements Cloneable {
 			}
 		});
 
+		json.getClassMeta(byte[].class).setParser((reader, classMeta, obj, parent) -> reader.parseByteString());
+		json.getClassMeta(byte[].class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				writer.ensure(obj.length * 6 + 2);
+				writer.write(obj, false);
+			}
+		});
+
 		json.getClassMeta(DynamicBean.class).setParser((reader, classMeta, obj, parent) -> {
 			if (obj == null) {
 				if (parent instanceof PList2)
