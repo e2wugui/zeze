@@ -360,7 +360,7 @@ namespace Zeze.Gen
         public static readonly int HandleCSharpFlags = HandleServerFlag | HandleClientFlag; // 底层语言。如果c++需要生成协议之类的，也是用这个。
         public static readonly int HandleScriptFlags = HandleScriptServerFlag | HandleScriptClientFlag;
 
-        public static int ToHandleFlags(string handle)
+        public static int ToHandleFlags(string handle, string name)
         {
             int f = 0;
             string hs = handle.Trim().ToLower();
@@ -383,7 +383,7 @@ namespace Zeze.Gen
                     case "servlet":
                         f |= HandleServletFlag;
                         break;
-                    default: throw new Exception("unknown handle: " + handle);
+                    default: throw new Exception("unknown handle: '" + handle + "' for " + name);
                 }
             }
             return f;

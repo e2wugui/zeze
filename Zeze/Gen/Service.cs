@@ -45,7 +45,7 @@ namespace Zeze.Gen
             if (Name.Length > 0)
                 Program.CheckReserveName(Name, project.Name);
             Handle = self.GetAttribute("handle");
-            HandleFlags = Program.ToHandleFlags(Handle);
+            HandleFlags = Program.ToHandleFlags(Handle, FullName);
             if (HandleFlags == 0)
                 throw new Exception("handle miss. " + Name + " in project " + project.Name);
             Base = self.GetAttribute("base");

@@ -43,7 +43,7 @@ namespace Zeze.Gen
 
             Argument = self.GetAttribute("argument");
             Handle = self.GetAttribute("handle");
-            HandleFlags = Program.ToHandleFlags(Handle);
+            HandleFlags = Program.ToHandleFlags(Handle, FullName);
 
             var tlevel = self.GetAttribute("NoProcedure"); // 兼容旧的配置
             if (tlevel.Length > 0)
