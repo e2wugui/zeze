@@ -6,9 +6,9 @@ namespace Zeze.Util
 {
     public class BeanFactory<B>
 #if !USE_CONFCS
-        where B : Zeze.Transaction.Bean, new()
+        where B : Zeze.Transaction.Bean
 #else
-        where B : Zeze.Util.ConfBean, new()
+        where B : Zeze.Util.ConfBean
 #endif
     {
         private readonly ConcurrentDictionary<long, Func<B>> factories = new();
