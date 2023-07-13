@@ -10,6 +10,7 @@ namespace Zeze.Builtin.World
     public sealed class BEnterConfirm : Zeze.Util.ConfBean
     {
         public long MapInstanceId;
+        public long EntityId; // 自己的实体Id，来自BEnterWorld。
 
         public BEnterConfirm()
         {
@@ -30,7 +31,8 @@ namespace Zeze.Builtin.World
         {
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.World.BEnterConfirm: {").Append(Environment.NewLine);
             level += 4;
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("MapInstanceId").Append('=').Append(MapInstanceId).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("MapInstanceId").Append('=').Append(MapInstanceId).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("EntityId").Append('=').Append(EntityId).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -46,6 +48,14 @@ namespace Zeze.Builtin.World
                     _o_.WriteLong(_x_);
                 }
             }
+            {
+                long _x_ = EntityId;
+                if (_x_ != 0)
+                {
+                    _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                    _o_.WriteLong(_x_);
+                }
+            }
             _o_.WriteByte(0);
         }
 
@@ -58,6 +68,11 @@ namespace Zeze.Builtin.World
                 MapInstanceId = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
+            if (_i_ == 2)
+            {
+                EntityId = _o_.ReadLong(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -68,6 +83,7 @@ namespace Zeze.Builtin.World
         public override void ClearParameters()
         {
             MapInstanceId = 0;
+            EntityId = 0;
         }
     }
 }

@@ -8,7 +8,7 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
     public static final long TYPEID = 7682260201605989500L;
 
     private long _MapInstanceId;
-    private long _EntityId; // ×Ô¼ºµÄÊµÌåId£¬À´×ÔBEnterWorld¡£
+    private long _EntityId; // è‡ªå·±çš„å®ä½“Idï¼Œæ¥è‡ªBEnterWorldã€‚
 
     @Override
     public long getMapInstanceId() {
@@ -156,21 +156,12 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    private byte[] _unknown_;
-
-    public byte[] unknown() {
-        return _unknown_;
-    }
-
-    public void clearUnknown() {
-        _unknown_ = null;
-    }
+    private ByteBuffer _unknown_;
 
     @Override
     public void encode(ByteBuffer _o_) {
-        ByteBuffer _u_ = null;
-        var _ua_ = _unknown_;
-        var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
+        var _u_ = _unknown_;
+        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             long _x_ = getMapInstanceId();
@@ -264,7 +255,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7682260201605989500L;
 
     private long _MapInstanceId;
-    private long _EntityId; // ×Ô¼ºµÄÊµÌåId£¬À´×ÔBEnterWorld¡£
+    private long _EntityId; // è‡ªå·±çš„å®ä½“Idï¼Œæ¥è‡ªBEnterWorldã€‚
 
     public long getMapInstanceId() {
         return _MapInstanceId;
