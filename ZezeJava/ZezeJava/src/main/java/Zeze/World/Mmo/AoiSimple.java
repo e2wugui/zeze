@@ -1,4 +1,4 @@
-package Zeze.World.Aoi;
+package Zeze.World.Mmo;
 
 import java.io.IOException;
 import java.util.ArrayList;

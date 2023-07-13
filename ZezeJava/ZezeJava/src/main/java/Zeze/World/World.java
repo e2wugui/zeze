@@ -16,7 +16,7 @@ import Zeze.Builtin.World.Query;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
-import Zeze.World.Aoi.MapManager;
+import Zeze.World.Mmo.MapManager;
 import Zeze.World.Mmo.MoveMmo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

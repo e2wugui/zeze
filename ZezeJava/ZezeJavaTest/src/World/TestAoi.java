@@ -17,7 +17,7 @@ import Zeze.Serialize.Vector3;
 import Zeze.Transaction.Data;
 import Zeze.Util.Benchmark;
 import Zeze.Util.Task;
-import Zeze.World.Aoi.AoiSimple;
+import Zeze.World.Mmo.AoiSimple;
 import Zeze.World.Cube;
 import Zeze.World.CubeIndex;
 import Zeze.World.CubeMap;

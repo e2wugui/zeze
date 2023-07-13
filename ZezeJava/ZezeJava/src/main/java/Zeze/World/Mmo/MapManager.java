@@ -1,15 +1,15 @@
-package Zeze.World.Aoi;
+package Zeze.World.Mmo;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.BEnterConfirm;
 import Zeze.Builtin.World.Command;
 import Zeze.Component.AutoKey;
-import Zeze.Serialize.Vector3;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.World.CubeMap;
 import Zeze.World.ICommand;
 import Zeze.World.IMapManager;
+import Zeze.World.Mmo.AoiSimple;
 import Zeze.World.World;
 
 public class MapManager implements IMapManager, ICommand {
