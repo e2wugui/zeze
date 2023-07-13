@@ -11,7 +11,7 @@ namespace Zeze.Gen.java
         readonly bool isdata;
         readonly string transGetter;
 
-        public static void Make(Bean bean, StreamWriter sw, string prefix, Project project)
+        public static void Make(Bean bean, StreamWriter sw, string prefix, Project project, bool withUnknown)
         {
             if (Program.isData(bean))
             {
@@ -30,7 +30,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "public void assign(" + bean.Name + ".Data other) {");
                 foreach (Variable var in bean.Variables)
                     var.VariableType.Accept(new Assign(var, sw, prefix + "    ", true));
-                if (bean.Base == "")
+                if (withUnknown)
                     sw.WriteLine(prefix + "    _unknown_ = null;");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
@@ -38,7 +38,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "public void assign(" + bean.Name + " other) {");
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    ", false));
-            if (bean.Base == "")
+            if (withUnknown)
                 sw.WriteLine(prefix + "    _unknown_ = other._unknown_;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();

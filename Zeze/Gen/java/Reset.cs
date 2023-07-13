@@ -10,7 +10,7 @@ namespace Zeze.Gen.java
         readonly string prefix;
         readonly bool isData;
 
-        public static void Make(Bean bean, StreamWriter sw, string prefix, bool isData)
+        public static void Make(Bean bean, StreamWriter sw, string prefix, bool isData, bool withUnknown)
         {
             if (isData || bean.Variables.Count > 0)
             {
@@ -18,7 +18,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "public void reset() {");
                 foreach (Variable var in bean.Variables)
                     var.VariableType.Accept(new Reset(var, sw, prefix + "    ", isData));
-                if (!isData && bean.Base == "")
+                if (withUnknown)
                     sw.WriteLine(prefix + "    _unknown_ = null;");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();

@@ -430,7 +430,7 @@ public class TestByteBuffer extends TestCase {
 		var bb1 = ByteBuffer.Allocate();
 		a.encode(bb1);
 		var b = new Bean1();
-		b.decodeWithUnknown(bb1);
+		b.decode(bb1);
 		bb1.ReadIndex = 0;
 		assertEquals(123, b.getV1());
 		var bb2 = ByteBuffer.Allocate();

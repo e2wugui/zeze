@@ -18,7 +18,7 @@ namespace Zeze.Gen.java
         string Getter => var != null ? isData ? var.NamePrivate : var.Getter : varname;
         string NamePrivate => var != null ? var.NamePrivate : varname;
 
-        public static void Make(Bean bean, StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix, bool withUnknown)
         {
             sw.WriteLine(prefix + "private static int _PRE_ALLOC_SIZE_ = 16;");
             sw.WriteLine();
@@ -32,14 +32,22 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    _PRE_ALLOC_SIZE_ = size;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            if (bean.Base == "")
+            if (withUnknown)
             {
                 sw.WriteLine(prefix + "private byte[] _unknown_;");
+                sw.WriteLine();
+                sw.WriteLine(prefix + "public byte[] unknown() {");
+                sw.WriteLine(prefix + "    return _unknown_;");
+                sw.WriteLine(prefix + "}");
+                sw.WriteLine();
+                sw.WriteLine(prefix + "public void clearUnknown() {");
+                sw.WriteLine(prefix + "    _unknown_ = null;");
+                sw.WriteLine(prefix + "}");
                 sw.WriteLine();
             }
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void encode(ByteBuffer _o_) {");
-            if (bean.Base == "")
+            if (withUnknown)
             {
                 sw.WriteLine(prefix + "    ByteBuffer _u_ = null;");
                 sw.WriteLine(prefix + "    var _ua_ = _unknown_;");
@@ -59,7 +67,7 @@ namespace Zeze.Gen.java
                 {
                     if (v.Id <= lastId)
                         throw new Exception("unordered var.id");
-                    if (v.Id - lastId > 1 && bean.Base == "")
+                    if (v.Id - lastId > 1 && withUnknown)
                     {
                         sw.WriteLine(prefix + "    while (_ui_ < " + v.Id + ") {");
                         sw.WriteLine(prefix + "        _i_ = _o_.writeUnknownField(_i_, _ui_, _u_);");
@@ -73,7 +81,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "    }");
             }
 
-            if (bean.Base == "")
+            if (withUnknown)
             {
                 sw.WriteLine(prefix + "    _o_.writeAllUnknownFields(_i_, _ui_, _u_);");
                 sw.WriteLine(prefix + "    _o_.WriteByte(0);");

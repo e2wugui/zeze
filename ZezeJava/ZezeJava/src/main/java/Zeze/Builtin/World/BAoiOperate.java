@@ -214,6 +214,14 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
 
     private byte[] _unknown_;
 
+    public byte[] unknown() {
+        return _unknown_;
+    }
+
+    public void clearUnknown() {
+        _unknown_ = null;
+    }
+
     @Override
     public void encode(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
@@ -255,35 +263,6 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
 
     @Override
     public void decode(ByteBuffer _o_) {
-        int _t_ = _o_.ReadByte();
-        int _i_ = _o_.ReadTagSize(_t_);
-        if (_i_ == 1) {
-            setOperateId(_o_.ReadInt(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            setParam(_o_.ReadBinary(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            var _x_ = _Children;
-            _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
-                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
-                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadLong(_s_);
-                    var _v_ = _o_.ReadBean(new Zeze.Builtin.World.BAoiOperate(), _t_);
-                    _x_.put(_k_, _v_);
-                }
-            } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        _o_.skipAllUnknownFields(_t_);
-    }
-
-    @Override
-    public void decodeWithUnknown(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
@@ -302,7 +281,7 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadLong(_s_);
-                    var _v_ = _o_.ReadBeanWithUnknown(new Zeze.Builtin.World.BAoiOperate(), _t_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.World.BAoiOperate(), _t_);
                     _x_.put(_k_, _v_);
                 }
             } else

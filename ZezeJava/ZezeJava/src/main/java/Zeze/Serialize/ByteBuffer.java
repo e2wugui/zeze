@@ -1561,22 +1561,6 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return bean;
 	}
 
-	public <T extends Serializable> @NotNull T ReadBeanWithUnknown(@NotNull T bean, int tag) {
-		int type = tag & TAG_MASK;
-		if (type == BEAN)
-			bean.decodeWithUnknown(this);
-		else if (type == DYNAMIC) {
-			SkipLong();
-			bean.decodeWithUnknown(this);
-		} else if (IGNORE_INCOMPATIBLE_FIELD)
-			SkipUnknownField(tag);
-		else {
-			throw new IllegalStateException("can not ReadBean(" + bean.getClass().getName() + ") for type=" + type
-					+ " at " + ReadIndex + '/' + WriteIndex);
-		}
-		return bean;
-	}
-
 	public @NotNull DynamicBean ReadDynamic(@NotNull DynamicBean dynBean, int tag) {
 		int type = tag & TAG_MASK;
 		if (type == DYNAMIC) {
@@ -1585,23 +1569,6 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 		if (type == BEAN) {
 			dynBean.newBean(0).decode(this);
-			return dynBean;
-		}
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return dynBean;
-		}
-		throw new IllegalStateException("can not ReadDynamic for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public @NotNull DynamicBean ReadDynamicWithUnknown(@NotNull DynamicBean dynBean, int tag) {
-		int type = tag & TAG_MASK;
-		if (type == DYNAMIC) {
-			dynBean.decodeWithUnknown(this);
-			return dynBean;
-		}
-		if (type == BEAN) {
-			dynBean.newBean(0).decodeWithUnknown(this);
 			return dynBean;
 		}
 		if (IGNORE_INCOMPATIBLE_FIELD) {

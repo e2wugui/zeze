@@ -333,6 +333,14 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
 
     private byte[] _unknown_;
 
+    public byte[] unknown() {
+        return _unknown_;
+    }
+
+    public void clearUnknown() {
+        _unknown_ = null;
+    }
+
     @Override
     public void encode(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
@@ -415,55 +423,6 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
 
     @Override
     public void decode(ByteBuffer _o_) {
-        int _t_ = _o_.ReadByte();
-        int _i_ = _o_.ReadTagSize(_t_);
-        while ((_t_ & 0xff) > 1 && _i_ < 3) {
-            _o_.SkipUnknownField(_t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            _o_.ReadBean(getLink(), _t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 4) {
-            setLoginVersion(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 5) {
-            var _x_ = _ReliableNotifyMark;
-            _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
-                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadString(_t_));
-            } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 6) {
-            setReliableNotifyConfirmIndex(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 7) {
-            setReliableNotifyIndex(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 8) {
-            setServerId(_o_.ReadInt(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 9) {
-            setLogoutVersion(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 10) {
-            _o_.ReadDynamic(_UserData, _t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        _o_.skipAllUnknownFields(_t_);
-    }
-
-    @Override
-    public void decodeWithUnknown(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
@@ -506,7 +465,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 10) {
-            _o_.ReadDynamicWithUnknown(_UserData, _t_);
+            _o_.ReadDynamic(_UserData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue

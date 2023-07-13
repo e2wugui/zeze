@@ -228,6 +228,14 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
 
     private byte[] _unknown_;
 
+    public byte[] unknown() {
+        return _unknown_;
+    }
+
+    public void clearUnknown() {
+        _unknown_ = null;
+    }
+
     @Override
     public void encode(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
@@ -268,29 +276,6 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
 
     @Override
     public void decode(ByteBuffer _o_) {
-        int _t_ = _o_.ReadByte();
-        int _i_ = _o_.ReadTagSize(_t_);
-        if (_i_ == 1) {
-            setOnline(_o_.ReadInt(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            setProposeMaxOnline(_o_.ReadInt(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            setOnlineNew(_o_.ReadInt(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 4) {
-            setOverload(_o_.ReadInt(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        _o_.skipAllUnknownFields(_t_);
-    }
-
-    @Override
-    public void decodeWithUnknown(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);

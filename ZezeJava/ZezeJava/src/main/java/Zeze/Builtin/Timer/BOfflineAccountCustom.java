@@ -287,6 +287,14 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
 
     private byte[] _unknown_;
 
+    public byte[] unknown() {
+        return _unknown_;
+    }
+
+    public void clearUnknown() {
+        _unknown_ = null;
+    }
+
     @Override
     public void encode(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
@@ -341,38 +349,6 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
 
     @Override
     public void decode(ByteBuffer _o_) {
-        int _t_ = _o_.ReadByte();
-        int _i_ = _o_.ReadTagSize(_t_);
-        if (_i_ == 1) {
-            setTimerName(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            setAccount(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            setClientId(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 4) {
-            setLoginVersion(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        } else
-            setLoginVersion(0);
-        if (_i_ == 5) {
-            setHandleName(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 6) {
-            _o_.ReadDynamic(_CustomData, _t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        _o_.skipAllUnknownFields(_t_);
-    }
-
-    @Override
-    public void decodeWithUnknown(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
@@ -398,7 +374,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 6) {
-            _o_.ReadDynamicWithUnknown(_CustomData, _t_);
+            _o_.ReadDynamic(_CustomData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue

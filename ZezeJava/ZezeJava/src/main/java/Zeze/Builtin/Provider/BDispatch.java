@@ -349,6 +349,14 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
 
     private byte[] _unknown_;
 
+    public byte[] unknown() {
+        return _unknown_;
+    }
+
+    public void clearUnknown() {
+        _unknown_ = null;
+    }
+
     @Override
     public void encode(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
@@ -410,41 +418,6 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
 
     @Override
     public void decode(ByteBuffer _o_) {
-        int _t_ = _o_.ReadByte();
-        int _i_ = _o_.ReadTagSize(_t_);
-        if (_i_ == 1) {
-            setLinkSid(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            setAccount(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            setProtocolType(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 4) {
-            setProtocolData(_o_.ReadBinary(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 5) {
-            setContext(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 6) {
-            setContextx(_o_.ReadBinary(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 7) {
-            setOnlineSetName(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        _o_.skipAllUnknownFields(_t_);
-    }
-
-    @Override
-    public void decodeWithUnknown(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);

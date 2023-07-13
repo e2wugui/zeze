@@ -181,6 +181,7 @@ public abstract class Database {
 
 	public interface Table {
 		boolean isNew();
+
 		void waitReady();
 
 		@NotNull Database getDatabase();
@@ -274,11 +275,10 @@ public abstract class Database {
 											   @NotNull TableWalkKeyRaw callback);
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean>
-		V find(TableX<K, V> table, Object key) {
+		public <K extends Comparable<K>, V extends Bean> V find(TableX<K, V> table, Object key) {
 			var bbKey = table.encodeKey(key);
 			var bbValue = find(bbKey);
-			if (null == bbValue)
+			if (bbValue == null)
 				return null;
 			var value = table.newValue();
 			value.decode(bbValue);

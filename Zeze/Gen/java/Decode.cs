@@ -21,13 +21,9 @@ namespace Zeze.Gen.java
         public static void Make(Bean bean, StreamWriter sw, string prefix, bool withUnknown)
         {
             sw.WriteLine(prefix + "@Override");
+            sw.WriteLine(prefix + "public void decode(ByteBuffer _o_) {");
             if (withUnknown)
-            {
-                sw.WriteLine(prefix + "public void decodeWithUnknown(ByteBuffer _o_) {");
                 sw.WriteLine(prefix + "    ByteBuffer _u_ = null;");
-            }
-            else
-                sw.WriteLine(prefix + "public void decode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
             if (bean.VariablesIdOrder.Count > 0 || withUnknown)
                 sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
@@ -315,12 +311,8 @@ namespace Zeze.Gen.java
                     return bufname + ".ReadString(" + typeVar + ')';
                 case Bean:
                 case BeanKey:
-                    if (withUnknown)
-                        return bufname + ".ReadBeanWithUnknown(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                     return bufname + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                 case TypeDynamic:
-                    if (withUnknown)
-                        return bufname + ".ReadDynamicWithUnknown(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                     return bufname + ".ReadDynamic(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                 case TypeVector2:
                     return bufname + ".ReadVector2(" + typeVar + ')';
@@ -423,14 +415,7 @@ namespace Zeze.Gen.java
         public void Visit(Bean type)
         {
             if (id > 0)
-            {
-                if (withUnknown)
-                    sw.WriteLine(prefix + bufname + ".ReadBeanWithUnknown(" + NamePrivate + ", _t_);");
-                else
-                    sw.WriteLine(prefix + bufname + ".ReadBean(" + NamePrivate + ", _t_);");
-            }
-            else if (withUnknown)
-                sw.WriteLine(prefix + NamePrivate + ".decodeWithUnknown(" + bufname + ");");
+                sw.WriteLine(prefix + bufname + ".ReadBean(" + NamePrivate + ", _t_);");
             else
                 sw.WriteLine(prefix + NamePrivate + ".decode(" + bufname + ");");
         }
@@ -445,10 +430,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            if (withUnknown)
-                sw.WriteLine(prefix + bufname + ".ReadDynamicWithUnknown(" + NamePrivate + ", " + typeVarName + ");");
-            else
-                sw.WriteLine(prefix + bufname + ".ReadDynamic(" + NamePrivate + ", " + typeVarName + ");");
+            sw.WriteLine(prefix + bufname + ".ReadDynamic(" + NamePrivate + ", " + typeVarName + ");");
         }
 
         public void Visit(TypeQuaternion type)

@@ -133,7 +133,7 @@ namespace Zeze.Gen.javadata
 
             Property.Make(bean, sw, "    ");
             Construct.Make(bean, sw, "    ");
-            java.Reset.Make(bean, sw, "    ", true);
+            java.Reset.Make(bean, sw, "    ", true, false);
             Assign.Make(bean, sw, "    ");
             // Copy
             sw.WriteLine("    @Override");

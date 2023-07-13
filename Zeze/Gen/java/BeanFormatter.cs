@@ -140,9 +140,9 @@ namespace Zeze.Gen.java
             {
                 Type vt = v.VariableType;
                 string final = vt is TypeCollection
-                    || vt is TypeMap
-                    || vt is Bean
-                    || vt is TypeDynamic
+                               || vt is TypeMap
+                               || vt is Bean
+                               || vt is TypeDynamic
                     // || vt is TypeVector2
                     // || vt is TypeVector2Int
                     // || vt is TypeVector3
@@ -183,8 +183,8 @@ namespace Zeze.Gen.java
 
             Property.Make(bean, sw, "    ");
             Construct.Make(bean, sw, "    ");
-            Reset.Make(bean, sw, "    ", false);
-            Assign.Make(bean, sw, "    ", project);
+            Reset.Make(bean, sw, "    ", false, bean.Base == "");
+            Assign.Make(bean, sw, "    ", project, bean.Base == "");
             // Copy
             sw.WriteLine("    public " + bean.Name + " copyIfManaged() {");
             sw.WriteLine("        return isManaged() ? copy() : this;");
@@ -210,10 +210,8 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             Log.Make(bean, sw, "    ");
             Tostring.Make(bean, sw, "    ", false);
-            Encode.Make(bean, sw, "    ");
-            Decode.Make(bean, sw, "    ", false);
-            if (bean.Base == "")
-                Decode.Make(bean, sw, "    ", true);
+            Encode.Make(bean, sw, "    ", bean.Base == "");
+            Decode.Make(bean, sw, "    ", bean.Base == "");
             if (bean.Equalable)
             {
                 Equal.Make(bean, sw, "    ", false);

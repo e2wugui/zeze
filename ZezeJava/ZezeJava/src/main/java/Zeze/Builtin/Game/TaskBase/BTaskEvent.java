@@ -249,6 +249,14 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
 
     private byte[] _unknown_;
 
+    public byte[] unknown() {
+        return _unknown_;
+    }
+
+    public void clearUnknown() {
+        _unknown_ = null;
+    }
+
     @Override
     public void encode(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
@@ -282,6 +290,7 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
 
     @Override
     public void decode(ByteBuffer _o_) {
+        ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -294,26 +303,6 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         }
         if (_i_ == 3) {
             _o_.ReadDynamic(_eventBean, _t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        _o_.skipAllUnknownFields(_t_);
-    }
-
-    @Override
-    public void decodeWithUnknown(ByteBuffer _o_) {
-        ByteBuffer _u_ = null;
-        int _t_ = _o_.ReadByte();
-        int _i_ = _o_.ReadTagSize(_t_);
-        if (_i_ == 1) {
-            setRoleId(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            _o_.ReadDynamicWithUnknown(_eventType, _t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            _o_.ReadDynamicWithUnknown(_eventBean, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue

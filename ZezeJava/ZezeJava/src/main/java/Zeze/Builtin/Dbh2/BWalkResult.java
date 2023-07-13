@@ -195,6 +195,14 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
 
     private byte[] _unknown_;
 
+    public byte[] unknown() {
+        return _unknown_;
+    }
+
+    public void clearUnknown() {
+        _unknown_ = null;
+    }
+
     @Override
     public void encode(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
@@ -235,31 +243,6 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
 
     @Override
     public void decode(ByteBuffer _o_) {
-        int _t_ = _o_.ReadByte();
-        int _i_ = _o_.ReadTagSize(_t_);
-        if (_i_ == 1) {
-            var _x_ = _KeyValues;
-            _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
-                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.Dbh2.BWalkKeyValue(), _t_));
-            } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            setBucketEnd(_o_.ReadBool(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            setBucketRefuse(_o_.ReadBool(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        _o_.skipAllUnknownFields(_t_);
-    }
-
-    @Override
-    public void decodeWithUnknown(ByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
@@ -268,7 +251,7 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBeanWithUnknown(new Zeze.Builtin.Dbh2.BWalkKeyValue(), _t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.Dbh2.BWalkKeyValue(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
