@@ -13,11 +13,18 @@ import Zeze.Serialize.Vector3;
  */
 public class CubeMap {
 	private final ConcurrentHashMap<CubeIndex, Cube> cubes = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<Long, Cube> indexes = new ConcurrentHashMap<>();
+
 	private final int cubeX;
 	private final int cubeY; // 2d 切割时，cubeY 为 0.
 	private final int cubeZ;
 
 	private IAoi aoi;
+	private final long instanceId;
+
+	public long getInstanceId() {
+		return instanceId;
+	}
 
 	// x-size of cube
 	public final int getCubeX() {
@@ -63,8 +70,8 @@ public class CubeMap {
 	 * @param gridX 切割长度
 	 * @param gridZ 切割宽度
 	 */
-	public CubeMap(int gridX, int gridZ) {
-		this(gridX, 0, gridZ);
+	public CubeMap(long instanceId, int gridX, int gridZ) {
+		this(instanceId, gridX, 0, gridZ);
 	}
 
 	/**
@@ -73,7 +80,7 @@ public class CubeMap {
 	 * @param gridY 切割宽度
 	 * @param gridZ 切割高度
 	 */
-	public CubeMap(int gridX, int gridY, int gridZ) {
+	public CubeMap(long instanceId, int gridX, int gridY, int gridZ) {
 		if (gridX <= 0)
 			throw new IllegalArgumentException("cubeSizeX <= 0");
 		if (gridY < 0)
@@ -81,6 +88,7 @@ public class CubeMap {
 		if (gridZ < 0) // gridZ 可以为0，表示2d切割。
 			throw new IllegalArgumentException("cubeSizeZ <= 0");
 
+		this.instanceId = instanceId;
 		this.cubeX = gridX;
 		this.cubeY = gridY;
 		this.cubeZ = gridZ;

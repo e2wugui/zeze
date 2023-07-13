@@ -13,6 +13,7 @@ import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.World.BCommand;
 import Zeze.Builtin.World.Command;
 import Zeze.Builtin.World.Query;
+import Zeze.Builtin.World.tLoad;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
@@ -79,6 +80,14 @@ public class World extends AbstractWorld {
 	private final Function<ProviderUserSession, String> getPlayerId;
 	private ILinkSender linkSender;
 	private final WorldStatic worldStatic;
+
+	public WorldStatic getWorldStatic() {
+		return worldStatic;
+	}
+
+	public tLoad getLoads() {
+		return _tLoad;
+	}
 
 	public ILinkSender getLinkSender() {
 		return linkSender;

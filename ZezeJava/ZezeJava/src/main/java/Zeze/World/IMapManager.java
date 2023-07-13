@@ -1,5 +1,6 @@
 package Zeze.World;
 
+import Zeze.Arch.ProviderUserSession;
 import Zeze.Serialize.Vector3;
 
 /**
@@ -13,7 +14,7 @@ public interface IMapManager {
 	 * @param mapId 地图配置id。
 	 * @return error code, 0 success
 	 */
-	long enterMap(int mapId);
+	long enterMap(ProviderUserSession session, int mapId);
 
 	/**
 	 * 根据地图实例Id查找CubeMap实例。

@@ -15,11 +15,11 @@ import Zeze.Transaction.Data;
 public interface IAoi {
 	/**
 	 * 进入aoi。
-	 * @param cube cube
 	 * @param oid oid
 	 * @throws IOException
+	 * @return error code, 0 success.
 	 */
-	void enter(Cube cube, long oid) throws IOException;
+	long enter(long oid) throws IOException;
 
 	/**
 	 * 1. 移动到新的位置，会发起视野内的更新广播。

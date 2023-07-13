@@ -13,6 +13,8 @@ public abstract class AbstractWorld implements Zeze.IModule {
 
     public static final int eCommandHandlerMissing = 1;
 
+    protected final Zeze.Builtin.World.tLoad _tLoad = new Zeze.Builtin.World.tLoad();
+
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
@@ -39,9 +41,11 @@ public abstract class AbstractWorld implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
+        zeze.addTable(zeze.getConfig().getTableConf(_tLoad.getName()).getDatabaseName(), _tLoad);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
+        zeze.removeTable(zeze.getConfig().getTableConf(_tLoad.getName()).getDatabaseName(), _tLoad);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

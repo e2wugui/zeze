@@ -1623,11 +1623,15 @@
 
 			<bean name="BEnterWorld">
 				<variable id="1" name="MapId" type="int"/>
-				<variable id="2" name="Position" type="vector3"/>
-				<variable id="3" name="PriorityData" type="list[BAoiOperates]"/> 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
+				<variable id="2" name="MapInstanceId" type="long"/>
+				<variable id="3" name="EntityId" type="long"/> 自己的实体Id
+				<variable id="4" name="Position" type="vector3"/>
+				<variable id="5" name="Direct" type="vector3"/>
+				<variable id="6" name="PriorityData" type="list[BAoiOperates]"/> 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
 			</bean>
 			<bean name="BEnterConfirm">
 				<variable id="1" name="MapInstanceId" type="long"/>
+				<variable id="2" name="EntityId" type="long"/> 自己的实体Id，来自BEnterWorld。
 			</bean>
 			<bean name="BAoiOperate"> 一个具体的操作。
 				<variable id="1" name="OperateId" type="int"/>
@@ -1646,6 +1650,26 @@
 			<bean name="BAoiLeaves"> 命令 eAoiLeave 的参数。
 				<variable id="1" name="Keys" type="list[long]"/>
 			</bean>
+
+			<bean name="BLoad"> 地图实例（线）的负载
+				<variable id="1" name="PlayerCount" type="int"/> 玩家数量（可用于简单规则）
+				<variable id="2" name="ComputeCount" type="long"/> 逻辑计算计数（衡量CPU）
+
+				<!-- 用于进程内保存计算值，保存数据库和从数据库中读出时没有意义。 -->
+				<variable id="3" name="ComputeCountPS" type="long"/>
+				<variable id="4" name="ComputeCountLast" type="long"/>
+				<variable id="5" name="ComputeCountTime" type="long"/>
+			</bean>
+			<bean name="BLoadMap">
+				<variable id="1" name="MapId" type="int"/> 地图配置编号
+				<variable id="2" name="LoadSum" type="BLoad"/> 所有地图实例的累计
+				<variable id="3" name="Instances" type="map[long, BLoad]"/> 地图实例（线）的负载
+			</bean>
+			<beankey name="BServerMapKey">
+				<variable id="1" name="ServerId" type="int"/> 服务器编号
+				<variable id="2" name="MapId" type="int"/> 地图配置编号
+			</beankey>
+			<table name="tLoad" key="BServerMapKey" value="BLoadMap"/> key is serverId，一台服务器一个记录。
 
 			<!-- World模块是dynamic的，但是部分协议需要常住，这些协议就定义到这里面。-->
 			<module name="Static" id="11032">

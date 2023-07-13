@@ -11,7 +11,7 @@ import org.junit.Test;
 public class TestCubeMap {
 	@Test
 	public void testMapPolygon() {
-		var map = new CubeMap(64, 64);
+		var map = new CubeMap(0, 64, 64);
 		{
 			var convex = new ArrayList<Vector3>();
 			// 一个正方形

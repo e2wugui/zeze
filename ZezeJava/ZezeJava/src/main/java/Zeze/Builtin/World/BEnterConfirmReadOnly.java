@@ -8,4 +8,5 @@ public interface BEnterConfirmReadOnly {
     BEnterConfirm copy();
 
     long getMapInstanceId();
+    long getEntityId();
 }

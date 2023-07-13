@@ -36,6 +36,7 @@ c# beanFactory? @张路
 	这个方案需要考虑一下。
 	不一定需要实现成java的全部class搜索。
 	错误处理应该更加温和。
+	【实际实现，工厂在没有找到时返回null，并在DynamicBean里面设置EmptyBean】
 Gen component
 	客户端(c#)无实现时，看成普通模块引入生成即可。
 	客户端(c#)包含实现时的：

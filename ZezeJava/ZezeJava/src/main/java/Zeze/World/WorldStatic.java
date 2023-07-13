@@ -1,5 +1,7 @@
 package Zeze.World;
 
+import Zeze.Arch.ProviderUserSession;
+
 public class WorldStatic extends AbstractWorldStatic {
     public final World world;
 
@@ -13,7 +15,10 @@ public class WorldStatic extends AbstractWorldStatic {
 
     @Override
     protected long ProcessSwitchWorldRequest(Zeze.Builtin.World.Static.SwitchWorld r) {
-        r.Result.setMapInstanceId(world.getMapManager().enterMap(r.Argument.getMapId()));
+        var session = ProviderUserSession.get(r);
+        var instanceId = world.getMapManager().enterMap(session, r.Argument.getMapId());
+
+        r.Result.setMapInstanceId(instanceId);
         r.SendResult();
         return 0;
     }

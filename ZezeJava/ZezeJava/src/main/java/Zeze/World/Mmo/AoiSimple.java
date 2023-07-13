@@ -2,7 +2,6 @@ package Zeze.World.Mmo;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import Zeze.Builtin.World.BAoiLeaves;
@@ -12,6 +11,7 @@ import Zeze.Builtin.World.BCommand;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Data;
+import Zeze.Transaction.Procedure;
 import Zeze.World.CubeIndex;
 import Zeze.World.Entity;
 import Zeze.World.LockGuard;
@@ -31,8 +31,6 @@ public class AoiSimple implements IAoi {
 	private final int rangeX;
 	private final int rangeY;
 	private final int rangeZ;
-
-	private final HashMap<Long, Cube> objectToCube = new HashMap<>();
 
 	public int getRangeX() {
 		return rangeX;
@@ -96,30 +94,36 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
-	private void updateSelf(Entity self, Vector3 position, Cube cube, Cube newCube) {
+	protected void update(Entity self, Vector3 position, Cube cube, Cube newCube) {
 		self.getBean().getMoving().setPosition(position);
 		if (cube != newCube) {
 			var entity = cube.objects.remove(self.getId());
 			newCube.objects.put(self.getId(), entity);
-			objectToCube.put(self.getId(), newCube); // update to new cube
-		}
-	}
-
-	public void enter(Cube cube, long oid) throws IOException {
-		// 第一次访问aoi。
-		var firstEnters = map.center(cube.index, rangeX, rangeY, rangeZ);
-		try (var ignored = new LockGuard(firstEnters)) {
-			var self = cube.objects.get(oid);
-			objectToCube.put(oid, cube);
-			processEnters(cube, self, firstEnters);
+			map.indexes.put(self.getId(), newCube); // update to new cube
 		}
 	}
 
 	@Override
-	public void moveTo(long oid, Vector3 position) throws Exception {
-		var cube = objectToCube.get(oid);
+	public long enter(long oid) throws IOException {
+		var cube = map.indexes.get(oid);
 		if (null == cube)
-			throw new RuntimeException(oid + " not enter.");
+			return Procedure.LogicError;
+
+		// 第一次访问aoi。
+		var firstEnters = map.center(cube.index, rangeX, rangeY, rangeZ);
+		try (var ignored = new LockGuard(firstEnters)) {
+			var self = cube.pending.remove(oid);
+			cube.objects.put(oid, self);
+			processEnters(cube, self, firstEnters);
+		}
+		return 0;
+	}
+
+	@Override
+	public void moveTo(long oid, Vector3 position) throws Exception {
+		var cube = map.indexes.get(oid);
+		if (null == cube)
+			throw new RuntimeException("entity not found.");
 
 		// 计算新index，并根据进入新Cube的距离完成数据更新。
 		var newIndex = map.toIndex(position);
@@ -132,7 +136,7 @@ public class AoiSimple implements IAoi {
 		case 0:
 			try (var ignored = new LockGuard(cube)) {
 				var self = cube.objects.get(oid);
-				updateSelf(self, position, cube, newCube);
+				update(self, position, cube, newCube);
 			}
 			// same cube
 			// 根据位置同步协议，可能需要向第三方广播一下。
@@ -162,7 +166,7 @@ public class AoiSimple implements IAoi {
 			locks1.putAll(fastLeaves);
 			try (var ignored = new LockGuard(locks1)) {
 				var self = cube.objects.get(oid);
-				updateSelf(self, position, cube, newCube);
+				update(self, position, cube, newCube);
 				processEnters(cube, self, fastEnters);
 				processLeaves(cube, self, fastLeaves);
 			}
@@ -181,7 +185,7 @@ public class AoiSimple implements IAoi {
 
 			try (var ignored = new LockGuard(locks2)) {
 				var self = cube.objects.get(oid);
-				updateSelf(self, position, cube, newCube);
+				update(self, position, cube, newCube);
 				processEnters(cube, self, enters);
 				processLeaves(cube, self, olds);
 			}

@@ -9,6 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import Zeze.Arch.ProviderUserSession;
+import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.World.BAoiLeaves;
 import Zeze.Builtin.World.BAoiOperates;
 import Zeze.Builtin.World.BCommand;
@@ -97,6 +99,25 @@ public class TestAoi {
 
 	AtomicLong moveCount = new AtomicLong();
 
+	public static class FakeProviderUserSession extends ProviderUserSession {
+		private final long linkSid;
+
+		public FakeProviderUserSession(long linkSid) {
+			super(new Dispatch());
+			this.linkSid = linkSid;
+		}
+
+		@Override
+		public String getLinkName() {
+			return "1";
+		}
+
+		@Override
+		public long getLinkSid() {
+			return linkSid;
+		}
+	}
+
 	@Test
 	public void testAoiFull() throws Exception {
 		App.Instance.Start();
@@ -106,7 +127,8 @@ public class TestAoi {
 		var client = new TestLinkSender();
 		world.setLinkSender(client);
 
-		var mapInstanceId = world.getMapManager().enterMap(1);
+		var session = new FakeProviderUserSession(1);
+		var mapInstanceId = world.getMapManager().enterMap(session,1);
 		var map = world.getMapManager().getCubeMap(mapInstanceId);
 		var aoi = map.getAoi();
 
@@ -131,9 +153,10 @@ public class TestAoi {
 					// 创建假的Link信息。
 					entity.getBean().setLinkName("1");
 					entity.getBean().setLinkSid(objInstanceId);
+					map.indexes.put(oid, cube); // 实体索引。
 				}
 
-				aoi.enter(cube, oid);
+				aoi.enter(oid);
 
 				players.add(Task.runUnsafe(() -> {
 					while (testRunning) {
@@ -178,7 +201,7 @@ public class TestAoi {
 
 	@Test
 	public void testDiff() {
-		var map = new CubeMap(64, 64);
+		var map = new CubeMap(0, 64, 64);
 		{
 			var olds = map.center(new CubeIndex(0, 0, 0), 1, 0, 1);
 			var news = map.center(new CubeIndex(2, 0, 0), 1, 0, 1);
@@ -207,7 +230,7 @@ public class TestAoi {
 
 	@Test
 	public void testAioSimple() {
-		var map = new CubeMap(64, 64);
+		var map = new CubeMap(0, 64, 64);
 		var aoi = new AoiSimple(null, map, 1, 1);
 		map.setAoi(aoi); // not used in this test
 
