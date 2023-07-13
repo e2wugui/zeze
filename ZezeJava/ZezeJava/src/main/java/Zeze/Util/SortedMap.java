@@ -148,7 +148,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 			elements.add(index, Entry.create(key, value));
 			return index;
 		}
-		throw new RuntimeException("internal error");
+		throw new IllegalStateException("internal error");
 	}
 
 	// 返回冲突entry(原elements中的,未被覆盖)列表

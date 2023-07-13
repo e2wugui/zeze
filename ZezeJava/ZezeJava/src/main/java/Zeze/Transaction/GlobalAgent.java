@@ -15,6 +15,7 @@ import Zeze.Services.GlobalCacheManager.NormalClose;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerConst;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -65,7 +66,7 @@ public final class GlobalAgent implements IGlobalAgent {
 			var txn = Transaction.getCurrent();
 			if (txn != null)
 				txn.throwAbort(msg, cause);
-			throw new RuntimeException(msg, cause);
+			throw new IllegalStateException(msg, cause);
 		}
 
 		void verifyFastFail() {
@@ -157,10 +158,8 @@ public final class GlobalAgent implements IGlobalAgent {
 	public void close() {
 		try {
 			stop();
-		} catch (RuntimeException e) {
-			throw e;
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 
@@ -195,11 +194,11 @@ public final class GlobalAgent implements IGlobalAgent {
 			trans.throwAbort("Acquire", e);
 			// never got here
 		}
-			/*
-			if (rpc.ResultCode != 0) { // 这个用来跟踪调试，正常流程使用Result.State检查结果。
-			    logger.warn("Acquire ResultCode={} {}", rpc.ResultCode, rpc.Result);
-			}
-			*/
+		/*
+		if (rpc.ResultCode != 0) { // 这个用来跟踪调试，正常流程使用Result.State检查结果。
+			logger.warn("Acquire ResultCode={} {}", rpc.ResultCode, rpc.Result);
+		}
+		*/
 		if (!rpc.isTimeout())
 			agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
 

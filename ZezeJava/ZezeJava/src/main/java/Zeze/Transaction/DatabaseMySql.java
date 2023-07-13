@@ -14,6 +14,7 @@ import Zeze.Serialize.SQLStatement;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
+import Zeze.Util.Task;
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
@@ -65,7 +66,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			}
 			connection.commit();
 		} catch (SQLException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 
@@ -103,7 +104,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					}
 				} catch (SQLException e) {
 					if (!e.getMessage().contains("Deadlock"))
-						throw new RuntimeException(e);
+						Task.forceThrow(e);
 				}
 			}
 		}
@@ -121,7 +122,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					return cmd.getInt(3);
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return -1; // never run here
 			}
 		}
 
@@ -144,7 +146,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -173,7 +176,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -349,7 +353,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						throw ex;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -370,7 +374,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					return 1 == pre.executeUpdate();
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return false; // never run here
 			}
 		}
 
@@ -383,7 +388,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					pre.executeUpdate();
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 	}
@@ -516,7 +521,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				}
 			} catch (SQLException e) {
 				dropped = false; // rollback
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -552,7 +557,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
 				isNew = !resultSet.next();
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 			*/
 
@@ -568,7 +573,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				}
 			} catch (SQLException e) {
 				if (!e.getMessage().contains("already exist"))
-					throw new RuntimeException(e);
+					Task.forceThrow(e);
 				isNew = false;
 			}
 		}
@@ -622,7 +627,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					pre.executeUpdate();
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -649,7 +654,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			} finally {
 				if (PerfCounter.ENABLE_PERF)
 					PerfCounter.instance.addRunInfo("MySQL.select", System.nanoTime() - timeBegin);
@@ -671,7 +677,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				setParams(pre, stKey.params.size() + 1, stValue.params);
 				pre.executeUpdate();
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			} finally {
 				if (PerfCounter.ENABLE_PERF)
 					PerfCounter.instance.addRunInfo("MySQL.replace", System.nanoTime() - timeBegin);
@@ -691,7 +697,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				setParams(pre, 1, stKey.params);
 				pre.executeUpdate();
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			} finally {
 				if (PerfCounter.ENABLE_PERF)
 					PerfCounter.instance.addRunInfo("MySQL.delete", System.nanoTime() - timeBegin);
@@ -718,7 +724,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return -1; // never run here
 			}
 		}
 
@@ -762,7 +769,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					return lastKey.value;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -798,7 +806,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					return lastKey.value;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -846,7 +855,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return -1; // never run here
 			}
 		}
 
@@ -883,7 +893,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					return count;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return -1; // never run here
 			}
 		}
 
@@ -923,7 +934,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				}
 			} catch (SQLException e) {
 				dropped = false; // rollback
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -954,7 +965,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
 				isNew = !resultSet.next();
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				throw new AssertionError(); // never run here
 			}
 			*/
 
@@ -968,7 +980,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				}
 			} catch (SQLException e) {
 				if (!e.getMessage().contains("already exist"))
-					throw new RuntimeException(e);
+					Task.forceThrow(e);
 				isNew = false;
 			}
 
@@ -998,7 +1010,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			} finally {
 				if (PerfCounter.ENABLE_PERF)
 					PerfCounter.instance.addRunInfo("MySQL.select", System.nanoTime() - timeBegin);
@@ -1015,7 +1028,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				cmd.setBytes(1, key.CopyIf());
 				cmd.executeUpdate();
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			} finally {
 				if (PerfCounter.ENABLE_PERF)
 					PerfCounter.instance.addRunInfo("MySQL.delete", System.nanoTime() - timeBegin);
@@ -1033,7 +1046,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				cmd.setBytes(2, value.CopyIf());
 				cmd.executeUpdate();
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			} finally {
 				if (PerfCounter.ENABLE_PERF)
 					PerfCounter.instance.addRunInfo("MySQL.replace", System.nanoTime() - timeBegin);
@@ -1085,7 +1098,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					return count;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return -1; // never run here
 			}
 		}
 
@@ -1113,7 +1127,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					return count;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return -1; // never run here
 			}
 		}
 
@@ -1143,7 +1158,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -1173,7 +1189,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -1204,7 +1221,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -1235,7 +1253,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 	}

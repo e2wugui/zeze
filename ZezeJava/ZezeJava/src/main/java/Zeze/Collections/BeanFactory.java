@@ -11,6 +11,7 @@ import Zeze.Transaction.Data;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -144,7 +145,7 @@ public final class BeanFactory {
 					}
 					return (Class<? extends Bean>)cls;
 				} catch (ClassNotFoundException | NoClassDefFoundError e) {
-					throw new RuntimeException("load class failed: '" + obj + '\'', e);
+					throw new IllegalStateException("load class failed: '" + obj + '\'', e);
 				}
 			}
 			if (allClassNameMap.isEmpty() && loadAllClasses("", false) != 0)
@@ -173,7 +174,7 @@ public final class BeanFactory {
 					}
 					return (Class<? extends Data>)cls;
 				} catch (ClassNotFoundException | NoClassDefFoundError e) {
-					throw new RuntimeException("load class failed: '" + obj + '\'', e);
+					throw new IllegalStateException("load class failed: '" + obj + '\'', e);
 				}
 			}
 			if (allDataClassNameMap.isEmpty() && loadAllClasses("", false) != 0)
@@ -186,10 +187,9 @@ public final class BeanFactory {
 	public static <T extends Serializable> T invoke(@NotNull MethodHandle methodHandle) {
 		try {
 			return (T)methodHandle.invoke();
-		} catch (RuntimeException | Error e) {
-			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -198,10 +198,9 @@ public final class BeanFactory {
 		Serializable s;
 		try {
 			s = (Serializable)ctor.invoke();
-		} catch (RuntimeException | Error e) {
-			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 		if (s instanceof Bean) {
 			synchronized (writingBeanFactory) {
@@ -279,10 +278,9 @@ public final class BeanFactory {
 				throw new UnsupportedOperationException("unmatched bean typeId: " + beanTypeId + " != " + typeId);
 			register(beanTypeId, beanCtor);
 			return bean;
-		} catch (RuntimeException | Error e) {
-			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -313,10 +311,9 @@ public final class BeanFactory {
 				throw new UnsupportedOperationException("unmatched data typeId: " + dataTypeId + " != " + typeId);
 			registerData(dataTypeId, dataCtor);
 			return data;
-		} catch (RuntimeException | Error e) {
-			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 

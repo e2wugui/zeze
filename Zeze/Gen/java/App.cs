@@ -123,7 +123,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("    public synchronized void createZeze(Zeze.Config config) throws Exception {");
             sw.WriteLine("        if (Zeze != null)");
-            sw.WriteLine("            throw new RuntimeException(\"Zeze Has Created!\");");
+            sw.WriteLine("            throw new IllegalStateException(\"Zeze Has Created!\");");
             sw.WriteLine();
             sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Name}\", config);");
             sw.WriteLine("    }");
@@ -152,7 +152,7 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"        {fullname} = ({className})_modules_[" + index + "];");
                     sw.WriteLine($"        {fullname}.Initialize(this);");
                     sw.WriteLine($"        if (modules.put({fullname}.getFullName(), {fullname}) != null)");
-                    sw.WriteLine($"            throw new RuntimeException(\"duplicate module name: {fullname}\");");
+                    sw.WriteLine($"            throw new IllegalStateException(\"duplicate module name: {fullname}\");");
                     sw.WriteLine();
                     index++;
                 }

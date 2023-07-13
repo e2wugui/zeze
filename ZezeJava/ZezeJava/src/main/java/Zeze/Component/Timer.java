@@ -235,14 +235,14 @@ public class Timer extends AbstractTimer {
 					// link to root head
 					var head = _tNodes.get(root.getHeadNodeId());
 					if (null == head)
-						throw new RuntimeException("head is null. maybe operate before create.");
+						throw new IllegalStateException("head is null. maybe operate before create.");
 					head.setPrevNodeId(nodeId);
 					node.setNextNodeId(root.getHeadNodeId());
 					node.setPrevNodeId(root.getTailNodeId());
 					root.setHeadNodeId(nodeId);
 					var tailNode = _tNodes.get(root.getTailNodeId());
 					if (null == tailNode)
-						throw new RuntimeException("tailNode is null. maybe operate before create.");
+						throw new IllegalStateException("tailNode is null. maybe operate before create.");
 					tailNode.setNextNodeId(root.getHeadNodeId());
 				}
 			}
@@ -421,14 +421,14 @@ public class Timer extends AbstractTimer {
 					// link to root head
 					var head = _tNodes.get(root.getHeadNodeId());
 					if (null == head)
-						throw new RuntimeException("head is null. maybe operate before create.");
+						throw new IllegalStateException("head is null. maybe operate before create.");
 					head.setPrevNodeId(nodeId);
 					node.setNextNodeId(root.getHeadNodeId());
 					node.setPrevNodeId(root.getTailNodeId());
 					root.setHeadNodeId(nodeId);
 					var tailNode = _tNodes.get(root.getTailNodeId());
 					if (null == tailNode)
-						throw new RuntimeException("tailNode is null. maybe operate before create.");
+						throw new IllegalStateException("tailNode is null. maybe operate before create.");
 					tailNode.setNextNodeId(root.getHeadNodeId());
 				}
 			}
@@ -673,7 +673,7 @@ public class Timer extends AbstractTimer {
 	public TimerRole getRoleTimer(String onlineSetName) {
 		var online = defaultOnline.getOnline(onlineSetName);
 		if (null == online)
-			throw new RuntimeException("online miss " + onlineSetName);
+			throw new IllegalStateException("online miss " + onlineSetName);
 		return online.getTimerRole();
 	}
 
@@ -708,7 +708,7 @@ public class Timer extends AbstractTimer {
 				var next = _tNodes.get(node.getNextNodeId());
 				var root = _tNodeRoot.get(serverId);
 				if (null == root || null == prev || null == next)
-					throw new RuntimeException("maybe operate before timer created.");
+					throw new IllegalStateException("maybe operate before timer created.");
 				if (root.getHeadNodeId() == root.getTailNodeId()) {
 					// only one node and will be removed.
 					root.setHeadNodeId(0L);
@@ -808,7 +808,7 @@ public class Timer extends AbstractTimer {
 
 			var timer = node.getTimers().get(timerId);
 			if (null == timer)
-				throw new RuntimeException("maybe operate before timer created.");
+				throw new IllegalStateException("maybe operate before timer created.");
 			@SuppressWarnings("unchecked")
 			var handleClass = (Class<? extends TimerHandle>)Class.forName(timer.getHandleName());
 			final var handle = handleClass.getDeclaredConstructor().newInstance();
@@ -942,7 +942,7 @@ public class Timer extends AbstractTimer {
 			}
 			var timer = node.getTimers().get(timerId);
 			if (null == timer)
-				throw new RuntimeException("maybe operate before timer created.");
+				throw new IllegalStateException("maybe operate before timer created.");
 			@SuppressWarnings("unchecked")
 			var handleClass = (Class<? extends TimerHandle>)Class.forName(timer.getHandleName());
 			final var handle = handleClass.getDeclaredConstructor().newInstance();
@@ -1038,7 +1038,7 @@ public class Timer extends AbstractTimer {
 			//var tail = _tNodes.get(root.getTailNodeId());
 
 			if (null == srcHead || null == srcTail || null == head)
-				throw new RuntimeException("maybe operate before timer created.");
+				throw new IllegalStateException("maybe operate before timer created.");
 
 			// 先保存存储过程退出以后需要装载的timer范围。
 			first.value = src.getHeadNodeId();
@@ -1102,7 +1102,7 @@ public class Timer extends AbstractTimer {
 						break;
 
 					default:
-						throw new RuntimeException("Unknown MissFirePolicy");
+						throw new UnsupportedOperationException("Unknown MissFirePolicy: " + simpleTimer.getMissfirePolicy());
 					}
 				}
 				scheduleSimple(
@@ -1128,7 +1128,7 @@ public class Timer extends AbstractTimer {
 						break;
 
 					default:
-						throw new RuntimeException("Unknown MissFirePolicy");
+						throw new UnsupportedOperationException("Unknown MissFirePolicy: " + cronTimer.getMissfirePolicy());
 					}
 				}
 				scheduleCron(

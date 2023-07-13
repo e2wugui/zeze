@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -141,8 +142,9 @@ public class Selectors {
 			}
 			selectorList = tmp;
 			return this;
-		} catch (IOException ex) {
-			throw new RuntimeException(ex);
+		} catch (IOException e) {
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 

@@ -77,7 +77,7 @@ public class DelayRemove extends AbstractDelayRemove {
 
 	public void register(String handleName, JobHandle handle) {
 		if (jobHandles.putIfAbsent(handleName, handle) != null)
-			throw new RuntimeException("duplicate JobHandle Name = " + handleName);
+			throw new IllegalStateException("duplicate JobHandle Name = " + handleName);
 	}
 
 	public void addJob(String handleName, Bean state) {

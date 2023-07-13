@@ -37,7 +37,7 @@ public class ConsistentHash<E> {
 					virtual[i * 4 + j] = ByteBuffer.ToInt(hash4, j * 4);
 			}
 		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 
 		List<SortedMap.Entry<Integer, E>> conflicts;

@@ -6,6 +6,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import Zeze.Util.Task;
 
 public final class Helper {
 	public static final int MAX_BUFFER_SIZE = 0x4000_0000; // 1G
@@ -73,12 +74,12 @@ public final class Helper {
 	/**
 	 * 把 InetAddress 转换保存在 int(大端) 中。
 	 *
-	 * @throws RuntimeException if addr is not a ip4 address
+	 * @throws IllegalArgumentException if addr is not a ip4 address
 	 */
 	public static int ip4(InetAddress addr) {
 		byte[] addrs = addr.getAddress();
 		if (addrs.length != 4)
-			throw new RuntimeException(addr + " is not a ip4 address");
+			throw new IllegalArgumentException(addr + " is not a ip4 address");
 		return (int)Zeze.Serialize.ByteBuffer.intBeHandler.get(addrs, 0);
 	}
 
@@ -91,7 +92,8 @@ public final class Helper {
 			Zeze.Serialize.ByteBuffer.intBeHandler.set(addr, 0, address);
 			return InetAddress.getByAddress(addr);
 		} catch (UnknownHostException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -114,7 +116,7 @@ public final class Helper {
 		if (isIp6(address)) {
 			return isPrivateIPv6(address.toString());
 		}
-		throw new RuntimeException("Unknown InetAddress! address=" + address);
+		throw new UnsupportedOperationException("Unknown InetAddress! address=" + address);
 	}
 
 	public static boolean isPrivateIPv4(String ipAddress) {
@@ -168,8 +170,9 @@ public final class Helper {
 					return inetAddresses.nextElement().getHostAddress();
 			}
 			return "";
-		} catch (SocketException ex) {
-			throw new RuntimeException(ex);
+		} catch (SocketException e) {
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -185,8 +188,9 @@ public final class Helper {
 				}
 			}
 			return "";
-		} catch (Exception ex) {
-			throw new RuntimeException(ex);
+		} catch (Exception e) {
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -202,8 +206,9 @@ public final class Helper {
 				}
 			}
 			return "";
-		} catch (Exception ex) {
-			throw new RuntimeException(ex);
+		} catch (Exception e) {
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 }

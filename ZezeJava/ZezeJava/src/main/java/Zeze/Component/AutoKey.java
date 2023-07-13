@@ -146,7 +146,8 @@ public class AutoKey {
 				return Procedure.LogicError;
 			}, "AutoKey.setSeed"), DispatchMode.Critical).get();
 		} catch (InterruptedException | ExecutionException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return false; // never run here
 		}
 	}
 
@@ -165,7 +166,8 @@ public class AutoKey {
 				return 0;
 			}, "AutoKey.setSeed"), DispatchMode.Critical).get();
 		} catch (InterruptedException | ExecutionException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return false; // never run here
 		}
 	}
 
@@ -191,7 +193,8 @@ public class AutoKey {
 				return Procedure.LogicError;
 			}, "AutoKey.increaseSeed"), DispatchMode.Critical).get();
 		} catch (InterruptedException | ExecutionException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return false; // never run here
 		}
 	}
 
@@ -213,9 +216,10 @@ public class AutoKey {
 			if (ret == Procedure.Success)
 				return result.value;
 		} catch (InterruptedException | ExecutionException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return -1; // never run here
 		}
-		throw new RuntimeException("AutoKey.getSeed failed: " + ret);
+		throw new IllegalStateException("AutoKey.getSeed failed: " + ret);
 	}
 
 	private long nextSeed() {
@@ -264,9 +268,10 @@ public class AutoKey {
 						continue;
 					}
 				} catch (InterruptedException | ExecutionException e) {
-					throw new RuntimeException(e);
+					Task.forceThrow(e);
+					return -1; // never run here
 				}
-				throw new RuntimeException("AutoKey.nextSeed failed: " + ret);
+				throw new IllegalStateException("AutoKey.nextSeed failed: " + ret);
 			}
 		}
 	}

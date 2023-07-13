@@ -51,7 +51,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			closedHandle = lookup.findVarHandle(AsyncSocket.class, "closed", byte.class);
 			outputBufferSizeHandle = lookup.findVarHandle(AsyncSocket.class, "outputBufferSize", long.class);
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 
 		var str = System.getProperty("protocolLogExcept");
@@ -245,7 +246,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					logger.error("ServerSocketChannel.close", ex);
 				}
 			}
-			throw new RuntimeException("bind " + localEP, e);
+			throw new IllegalStateException("bind " + localEP, e);
 		}
 	}
 
@@ -385,7 +386,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					logger.error("SocketChannel.close", ex);
 				}
 			}
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // neven run here
 		}
 	}
 

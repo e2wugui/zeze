@@ -15,6 +15,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import Zeze.Net.Binary;
 import Zeze.Util.Random;
+import Zeze.Util.Task;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -309,8 +310,9 @@ public final class RaftConfig {
 			var is = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 			var doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
 			return new RaftConfig(doc, null, doc.getDocumentElement());
-		} catch (Exception ex) {
-			throw new RuntimeException(ex);
+		} catch (Exception e) {
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 

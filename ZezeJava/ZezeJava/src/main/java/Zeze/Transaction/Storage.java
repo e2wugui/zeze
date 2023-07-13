@@ -15,7 +15,7 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 		this.table = table;
 		if (table.isRelationalMapping() && database instanceof DatabaseMySql) {
 //			if (!(database instanceof DatabaseMySql))
-//				throw new RuntimeException("Only DatabaseMySql Support RelationalMapping.");
+//				throw new IllegalArgumentException("Only DatabaseMySql Support RelationalMapping.");
 			var mysql = (DatabaseMySql)database;
 			databaseTable = mysql.openRelationalTable(tableName);
 			return; // done

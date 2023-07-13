@@ -168,7 +168,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		try {
 			callback.run(); // 锁外回调，避免死锁风险。
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 

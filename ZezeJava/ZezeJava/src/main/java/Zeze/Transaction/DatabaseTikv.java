@@ -10,6 +10,7 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
+import Zeze.Util.Task;
 import org.tikv.common.BytePairWrapper;
 import org.tikv.common.ByteWrapper;
 import org.tikv.common.TiConfiguration;
@@ -101,7 +102,7 @@ public class DatabaseTikv extends Database {
 				table.replace(txn, key, bb);
 				txn.commit();
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 			return KV.create(version, true);
 		}
@@ -414,7 +415,7 @@ public class DatabaseTikv extends Database {
 					}
 				}, ver, 1000);
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			} finally {
 				version = ver;
 			}

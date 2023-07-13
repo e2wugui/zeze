@@ -15,6 +15,7 @@ import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DatabaseSqlServer;
 import Zeze.Transaction.DatabaseTikv;
+import Zeze.Util.Task;
 import com.amazonaws.regions.Regions;
 import org.apache.logging.log4j.Level;
 import org.jetbrains.annotations.NotNull;
@@ -417,7 +418,7 @@ public final class Config {
 				Document doc = db.newDocumentBuilder().parse(xmlFile);
 				parse(doc.getDocumentElement());
 			} catch (Exception ex) {
-				throw new RuntimeException(ex);
+				Task.forceThrow(ex);
 			}
 		}
 		if (getDefaultTableConf() == null)
@@ -568,7 +569,7 @@ public final class Config {
 			case "CustomizeConf":
 				var cname = e.getAttribute("Name").trim();
 				if (null != customizes.putIfAbsent(cname, e))
-					throw new RuntimeException("duplicate customize name=" + cname);
+					throw new IllegalStateException("duplicate customize name=" + cname);
 				break;
 
 			default:

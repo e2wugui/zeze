@@ -21,6 +21,7 @@ copy /y %confcs%\Transaction\TransactionLevel.cs %Zeze%\Transaction\
 copy /y %confcs%\Transaction\Collections\Log*.cs %Zeze%\Transaction\Collections\
 
 copy /y %confcs%\Util\AtomicLong.cs              %Zeze%\Util\
+copy /y %confcs%\Util\BeanFactory.cs             %Zeze%\Util\
 copy /y %confcs%\Util\Comparer.cs                %Zeze%\Util\
 copy /y %confcs%\Util\ConfBean.cs                %Zeze%\Util\
 copy /y %confcs%\Util\DispatchModeAttribute.cs   %Zeze%\Util\
@@ -32,7 +33,6 @@ copy /y %confcs%\Util\ResultCode.cs              %Zeze%\Util\
 copy /y %confcs%\Util\Scheduler.cs               %Zeze%\Util\
 copy /y %confcs%\Util\Str.cs                     %Zeze%\Util\
 copy /y %confcs%\Util\Time.cs                    %Zeze%\Util\
-copy /y %confcs%\Util\BeanFactory.cs                    %Zeze%\Util\
 rem copy /y %confcs%\Util\UnityHelpers.cs        %Zeze%\Util\
 
 pause

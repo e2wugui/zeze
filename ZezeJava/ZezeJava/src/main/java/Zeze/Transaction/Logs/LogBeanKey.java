@@ -5,6 +5,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.Meta1;
 import Zeze.Transaction.Log;
+import Zeze.Util.Task;
 
 public abstract class LogBeanKey<T extends Serializable> extends Log {
 	protected final Meta1<T> meta;
@@ -33,10 +34,8 @@ public abstract class LogBeanKey<T extends Serializable> extends Log {
 	public void decode(ByteBuffer bb) {
 		try {
 			value = (T)meta.valueFactory.invoke();
-		} catch (RuntimeException | Error e) {
-			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 		value.decode(bb);
 	}

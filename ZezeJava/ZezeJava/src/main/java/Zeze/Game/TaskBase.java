@@ -28,6 +28,7 @@ import Zeze.Game.Task.DailyTask;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.Task;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
@@ -205,7 +206,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				constructors.put(task.getType(), c);
 //				_tEventClasses.getOrAdd(1).getEventClasses().add(task.getExtendedBeanClass().getName()); // key is 1, only one record
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -222,7 +223,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				beanFactory.register(condition.getEventBeanClass());
 				conditionConstructors.put(condition.getType(), c);
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -250,7 +251,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				for (var preId : t.getBean().getPreTaskIds()) {
 					var preTask = taskNodes.get(preId);
 					if (null == preTask)
-						throw new RuntimeException("task " + task.getBean().getTaskId() + " preTask " + preId + " not found.");
+						throw new IllegalStateException("task " + task.getBean().getTaskId() + " preTask " + preId + " not found.");
 					taskGraph.addEdge(preId, task.getBean().getTaskId()); // 有向无环图，如果不合法会自动抛异常
 				}
 			}

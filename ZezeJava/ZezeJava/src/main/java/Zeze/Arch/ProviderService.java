@@ -75,7 +75,7 @@ public class ProviderService extends HandshakeClient {
 				try {
 					outC.value.start();
 				} catch (Exception e) {
-					throw new RuntimeException(e);
+					Task.forceThrow(e);
 				}
 			}
 			return outC.value;

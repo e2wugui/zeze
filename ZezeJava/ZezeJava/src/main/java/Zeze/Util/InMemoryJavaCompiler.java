@@ -200,7 +200,7 @@ public class InMemoryJavaCompiler {
 				cl.addCode(innerClass);
 				return innerClass;
 			} catch (Exception e) {
-				throw new RuntimeException("Error while creating in-memory output file for " + className, e);
+				throw new IllegalStateException("Error while creating in-memory output file for " + className, e);
 			}
 		}
 

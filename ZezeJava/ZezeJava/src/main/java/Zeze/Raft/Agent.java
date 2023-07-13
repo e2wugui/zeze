@@ -12,6 +12,7 @@ import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
+import Zeze.Net.RpcTimeoutException;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -442,7 +443,7 @@ public final class Agent {
 				continue;
 			r.setIsTimeout(true);
 			if (null != r.future) {
-				r.future.setException(new RuntimeException(reason));
+				r.future.setException(new RpcTimeoutException(reason));
 			} else {
 				try {
 					r.handle.applyAsLong(r);

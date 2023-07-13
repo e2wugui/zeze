@@ -39,6 +39,7 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -258,7 +259,7 @@ public final class Rocks extends StateMachine implements Closeable {
 					batch.commit(writeOptions);
 			}
 		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 
@@ -314,7 +315,7 @@ public final class Rocks extends StateMachine implements Closeable {
 						Files.copy(path, zos);
 						zos.closeEntry();
 					} catch (IOException e) {
-						throw new RuntimeException(e);
+						Task.forceThrow(e);
 					}
 				});
 			}
@@ -389,7 +390,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				if (raft != null)
 					raft.shutdown();
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			} finally {
 				setRaft(null);
 				if (storage != null) {

@@ -12,6 +12,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
+import Zeze.Util.Task;
 import org.rocksdb.RocksDBException;
 
 /**
@@ -81,8 +82,8 @@ public class RedoQueue extends HandshakeClient {
 			// 保存完整的rpc请求，重新发送的时候不用再次打包。
 			tableTaskQueue.put(key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 			tryStartSendNextTask(task, null);
-		} catch (RocksDBException ex) {
-			throw new RuntimeException(ex);
+		} catch (RocksDBException e) {
+			Task.forceThrow(e);
 		}
 	}
 

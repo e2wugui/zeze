@@ -9,6 +9,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import Zeze.Util.RocksDatabase;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDBException;
@@ -25,7 +26,8 @@ public class DatabaseRocksDb extends Database {
 			rocksDb = new RocksDatabase(homePath);
 			setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesRocksDb());
 		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 	}
 
@@ -52,7 +54,7 @@ public class DatabaseRocksDb extends Database {
 	// 多表原子查询。
 	public HashMap<String, Map<ByteBuffer, ByteBuffer>> finds(Map<String, Set<ByteBuffer>> tableKeys) {
 		if (null == verifyAction)
-			throw new RuntimeException("only work with flushAtomicTest=true");
+			throw new IllegalStateException("only work with flushAtomicTest=true");
 
 		var result = new HashMap<String, Map<ByteBuffer, ByteBuffer>>(tableKeys.size());
 		for (var tks : tableKeys.entrySet())
@@ -92,7 +94,7 @@ public class DatabaseRocksDb extends Database {
 			try {
 				table.put(getBatch(), key, value);
 			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -100,7 +102,7 @@ public class DatabaseRocksDb extends Database {
 			try {
 				table.delete(getBatch(), key);
 			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -114,16 +116,15 @@ public class DatabaseRocksDb extends Database {
 					try {
 						batch.commit(RocksDatabase.getDefaultWriteOptions());
 					} catch (RocksDBException e) {
-						throw new RuntimeException(e);
+						Task.forceThrow(e);
 					}
 				}
 			} else {
 				try {
 					batch.commit(RocksDatabase.getDefaultWriteOptions());
 				} catch (RocksDBException e) {
-					throw new RuntimeException(e);
+					Task.forceThrow(e);
 				}
-
 			}
 		}
 
@@ -144,7 +145,8 @@ public class DatabaseRocksDb extends Database {
 		try {
 			return rocksDb.getOrAddTable(name, isNew);
 		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -166,7 +168,8 @@ public class DatabaseRocksDb extends Database {
 				tables[i] = new TableRocksDb(rocksDbTables[i], isNews[i]);
 			return tables;
 		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -199,7 +202,8 @@ public class DatabaseRocksDb extends Database {
 				var value = table.get(key.Bytes, key.ReadIndex, key.size());
 				return value != null ? ByteBuffer.Wrap(value) : null;
 			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -378,7 +382,8 @@ public class DatabaseRocksDb extends Database {
 			try {
 				return DataWithVersion.decode(table.get(key.Bytes, key.ReadIndex, key.size()));
 			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -396,7 +401,8 @@ public class DatabaseRocksDb extends Database {
 				table.put(key.Bytes, key.ReadIndex, key.size(), value.Bytes, 0, value.WriteIndex);
 				return KV.create(version, true);
 			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 

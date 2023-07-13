@@ -50,7 +50,8 @@ public final class ZstdFactory {
 			mhDecompressStream = getMethodHandle(lookup, cls, "decompressStream", long.class, byte[].class, int.class,
 					byte[].class, int.class); // stream, dst, dstSize, src, srcEnd (read srcPos & dstPos, write srcPos & dstPos)
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 	}
 
@@ -110,10 +111,9 @@ public final class ZstdFactory {
 				int r = (int)mhResetCStream.invokeExact((ZstdOutputStreamNoFinalizer)this, ctxPtr);
 				if (r != 0)
 					throw new IllegalStateException("mhResetCStream = " + r);
-			} catch (RuntimeException | Error e) {
-				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				throw new AssertionError(); // never run here
 			}
 		}
 
@@ -130,10 +130,8 @@ public final class ZstdFactory {
 					dst.Append(dstBuf, 0, (int)fCDstPos.getLong(this));
 					srcPos = (int)fCSrcPos.getLong(this);
 				}
-			} catch (RuntimeException | Error e) {
-				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -150,10 +148,8 @@ public final class ZstdFactory {
 					dst.update(dstBuf, 0, (int)fCDstPos.getLong(this));
 					srcPos = (int)fCSrcPos.getLong(this);
 				}
-			} catch (RuntimeException | Error e) {
-				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -169,10 +165,8 @@ public final class ZstdFactory {
 						throw new IllegalStateException("mhFlushStream = " + r);
 					dst.Append(dstBuf, 0, (int)fCDstPos.getLong(this));
 				} while (r > 0);
-			} catch (RuntimeException | Error e) {
-				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -189,10 +183,8 @@ public final class ZstdFactory {
 					dst.update(dstBuf, 0, (int)fCDstPos.getLong(this));
 				} while (r > 0);
 				dst.flush();
-			} catch (RuntimeException | Error e) {
-				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -202,7 +194,7 @@ public final class ZstdFactory {
 			try {
 				super.close();
 			} catch (IOException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 	}
@@ -224,7 +216,7 @@ public final class ZstdFactory {
 				if (dstBufSize > 0)
 					dstBuf = new byte[dstBufSize];
 			} catch (IllegalAccessException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
@@ -256,10 +248,8 @@ public final class ZstdFactory {
 					dstPos = (int)fDDstPos.getLong(this);
 				}
 				dst.WriteIndex = dstPos;
-			} catch (RuntimeException | Error e) {
-				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -279,10 +269,8 @@ public final class ZstdFactory {
 					dst.update(dstBuf, 0, (int)fDDstPos.getLong(this));
 					srcPos = (int)fDSrcPos.getLong(this);
 				}
-			} catch (RuntimeException | Error e) {
-				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -292,7 +280,7 @@ public final class ZstdFactory {
 			try {
 				super.close();
 			} catch (IOException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 	}
@@ -301,7 +289,8 @@ public final class ZstdFactory {
 		try {
 			return new ZstdCompressStream();
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -309,7 +298,8 @@ public final class ZstdFactory {
 		try {
 			return new ZstdCompressStream(dstBufSize, compressLevel, windowLog);
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -317,7 +307,8 @@ public final class ZstdFactory {
 		try {
 			return new ZstdDecompressStream();
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -325,7 +316,8 @@ public final class ZstdFactory {
 		try {
 			return new ZstdDecompressStream(dstBufSize);
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 }

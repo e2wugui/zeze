@@ -9,6 +9,7 @@ import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
+import Zeze.Util.Task;
 
 public final class DatabaseSqlServer extends DatabaseJdbc {
 	public DatabaseSqlServer(Application zeze, DatabaseConf conf) {
@@ -51,7 +52,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -68,7 +69,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return cmd.getInt(3);
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return -1; // never run here
 			}
 		}
 
@@ -90,7 +92,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -119,7 +122,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -289,7 +293,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				}
 				connection.commit();
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 	}
@@ -321,7 +325,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
 				isNew = resultSet.next();
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				throw new AssertionError(); // never run here
 			}
 
 			try (var connection = dataSource.getConnection()) {
@@ -337,7 +342,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					cmd.executeUpdate();
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				throw new AssertionError(); // never run here
 			}
 		}
 
@@ -363,7 +369,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -375,7 +382,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				cmd.setBytes(1, key.CopyIf());
 				cmd.executeUpdate();
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -393,7 +400,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				cmd.setBytes(4, valueCopy);
 				cmd.executeUpdate();
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -416,7 +423,6 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		public long walkKeyDesc(TableWalkKeyRaw callback) {
 			return walkKey(callback, false);
 		}
-
 
 		private long walk(TableWalkHandleRaw callback, boolean asc) {
 			try (var connection = dataSource.getConnection()) {
@@ -441,7 +447,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return count;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return -1; // never run here
 			}
 		}
 
@@ -466,7 +473,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return count;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return -1; // never run here
 			}
 		}
 
@@ -496,7 +504,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -526,7 +535,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -557,7 +567,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
 
@@ -588,9 +599,9 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		}
-
 	}
 }

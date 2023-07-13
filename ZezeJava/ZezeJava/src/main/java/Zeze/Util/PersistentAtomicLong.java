@@ -61,7 +61,7 @@ public class PersistentAtomicLong {
 				}
 			}
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 
@@ -88,7 +88,8 @@ public class PersistentAtomicLong {
 			try {
 				return new RandomAccessFile(k, "rw");
 			} catch (FileNotFoundException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		});
 	}
@@ -119,8 +120,8 @@ public class PersistentAtomicLong {
 					lock.release();
 				}
 			}
-		} catch (Exception ex) {
-			throw new RuntimeException(ex);
+		} catch (Exception e) {
+			Task.forceThrow(e);
 		}
 	}
 }

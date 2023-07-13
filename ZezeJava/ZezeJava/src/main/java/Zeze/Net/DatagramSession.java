@@ -56,7 +56,7 @@ public class DatagramSession {
 			replayAttack = new ReplayAttackGrowRange();
 			break;
 		default:
-			throw new RuntimeException("unknown policy.");
+			throw new UnsupportedOperationException("unknown policy: " + policy);
 		}
 	}
 

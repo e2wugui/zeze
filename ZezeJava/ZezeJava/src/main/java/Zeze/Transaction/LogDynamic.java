@@ -4,6 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.Collection;
 import Zeze.Transaction.Collections.LogBean;
+import Zeze.Util.Task;
 
 public class LogDynamic extends LogBean {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.LogDynamic");
@@ -100,8 +101,8 @@ public class LogDynamic extends LogBean {
 				}
 				bean.decode(bb);
 				value = bean;
-			} catch (Exception ex) {
-				throw new RuntimeException(ex);
+			} catch (Exception e) {
+				Task.forceThrow(e);
 			}
 		} else {
 			var hasLogBean = bb.ReadBool();

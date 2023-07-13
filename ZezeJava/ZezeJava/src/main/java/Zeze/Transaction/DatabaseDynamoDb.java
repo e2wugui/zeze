@@ -8,6 +8,7 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
+import Zeze.Util.Task;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
@@ -83,7 +84,7 @@ public class DatabaseDynamoDb extends Database {
 				dataWithVersion.replace(trans, key, value);
 				trans.commit();
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 			return KV.create(version, true);
 		}

@@ -43,7 +43,8 @@ public class ThreadFactoryWithName implements ThreadFactory {
 			try {
 				t = (Thread)unstartedMethod.invoke(ofVirtual, r);
 			} catch (ReflectiveOperationException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 		} else {
 			t = new Thread(null, r, namePrefix + threadNumber.getAndIncrement(), 0);

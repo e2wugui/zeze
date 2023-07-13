@@ -23,6 +23,7 @@ import Zeze.IModule;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.InMemoryJavaCompiler;
 import Zeze.Util.StringBuilderCs;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -87,7 +88,8 @@ public final class GenModule {
 		try {
 			return newModule(Class.forName(GenModule.getRedirectClassName(moduleClass)), app);
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -171,8 +173,9 @@ public final class GenModule {
 			return modules;
 		} catch (Exception e) {
 			if (i < n)
-				throw new RuntimeException("module class: " + moduleClasses[i].getName(), e);
-			throw new RuntimeException(e);
+				throw new IllegalStateException("module class: " + moduleClasses[i].getName(), e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -353,7 +356,7 @@ public final class GenModule {
 				} else
 					sbHandles.appendLine("            }, null));");
 			} catch (Exception e) {
-				throw new RuntimeException("generate redirect method failed: " + m.method.getName() + " in " + moduleClass.getName(), e);
+				throw new IllegalStateException("generate redirect method failed: " + m.method.getName() + " in " + moduleClass.getName(), e);
 			}
 		}
 

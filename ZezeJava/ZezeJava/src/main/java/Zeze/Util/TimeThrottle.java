@@ -22,6 +22,6 @@ public interface TimeThrottle {
 		case "counter":
 			return new TimeThrottleCounter(seconds, limit, bandwidth);
 		}
-		throw new RuntimeException("unknown time throttle " + name);
+		throw new UnsupportedOperationException("unknown time throttle " + name);
 	}
 }

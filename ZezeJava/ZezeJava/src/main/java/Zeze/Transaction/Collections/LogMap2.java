@@ -7,6 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
@@ -99,10 +100,9 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			V value;
 			try {
 				value = (V)meta.valueFactory.invoke();
-			} catch (RuntimeException | Error e) {
-				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return; // never run here
 			}
 			value.decode(bb);
 			getReplaced().put(key, value);

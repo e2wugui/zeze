@@ -1,5 +1,6 @@
 package Zeze.Serialize;
 
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,7 +57,8 @@ public class Vector2 implements Comparable, Cloneable {
 		try {
 			return (Vector2)super.clone();
 		} catch (CloneNotSupportedException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 

@@ -8,6 +8,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
 import Zeze.Util.IntHashSet;
+import Zeze.Util.Task;
 
 public interface RedirectAllFuture<R extends RedirectResult> {
 	// 返回的future不能调用下面的接口方法,只用于给框架提供结果
@@ -84,10 +85,8 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 				throw new IllegalStateException();
 			try {
 				((Action1<R>)a).run(r);
-			} catch (RuntimeException e) {
-				throw e;
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 	}
@@ -167,7 +166,6 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 			return this; // 等有了result再处理
 		var hashes = getFinishedHashes();
 		var readyResults = new ArrayList<R>();
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (c) {
 			for (var it = c.getAllResults().iterator(); it.moveToNext(); ) {
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
@@ -190,10 +188,9 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	public RedirectAllFuture<R> OnResult(Action1<R> onResult) {
 		try {
 			return onResult(onResult);
-		} catch (RuntimeException e) {
-			throw e;
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -239,10 +236,9 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	public RedirectAllFuture<R> OnAllDone(Action1<RedirectAllContext<R>> onAllDone) {
 		try {
 			return onAllDone(onAllDone);
-		} catch (RuntimeException e) {
-			throw e;
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -256,7 +252,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 					while ((c = ctx) == null || !c.isCompleted())
 						cond.await();
 				} catch (InterruptedException e) {
-					throw new RuntimeException(e);
+					Task.forceThrow(e);
 				}
 			} finally {
 				lock.unlock();

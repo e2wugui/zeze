@@ -86,7 +86,7 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
                     sw.WriteLine($"{prefix}        return {real.Key}L; // {real.Value.FullName}");
                 }
-                sw.WriteLine($"{prefix}    throw new RuntimeException(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}\");");
+                sw.WriteLine($"{prefix}    throw new UnsupportedOperationException(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}\");");
             }
             else
             {

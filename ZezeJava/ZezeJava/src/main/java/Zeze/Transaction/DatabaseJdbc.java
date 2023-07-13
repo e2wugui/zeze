@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.sql.SQLException;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
+import Zeze.Util.Task;
 import com.alibaba.druid.pool.DruidDataSource;
 
 public abstract class DatabaseJdbc extends Database {
@@ -68,7 +69,7 @@ public abstract class DatabaseJdbc extends Database {
 				Connection = dataSource.getConnection();
 				Connection.setAutoCommit(false);
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -86,7 +87,7 @@ public abstract class DatabaseJdbc extends Database {
 			try {
 				Connection.commit();
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -95,7 +96,7 @@ public abstract class DatabaseJdbc extends Database {
 			try {
 				Connection.rollback();
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 	}

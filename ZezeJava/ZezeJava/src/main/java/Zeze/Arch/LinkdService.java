@@ -259,7 +259,7 @@ public class LinkdService extends HandshakeServer {
 			if (linkdApp.onServerSocketBindAction != null)
 				linkdApp.onServerSocketBindAction.run(ss);
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 

@@ -24,7 +24,8 @@ public final class TaskOneByOneByKey2 {
 		try {
 			vhSubmitted = MethodHandles.lookup().findVarHandle(TaskOneByOne.class, "submitted", boolean.class);
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 	}
 
@@ -73,7 +74,8 @@ public final class TaskOneByOneByKey2 {
 			try {
 				vhCount = MethodHandles.lookup().findVarHandle(Barrier.class, "count", int.class);
 			} catch (ReflectiveOperationException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				throw new AssertionError(); // never run here
 			}
 		}
 

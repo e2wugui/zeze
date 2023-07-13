@@ -522,7 +522,7 @@ public final class ServiceManagerServer implements Closeable {
 					}
 				});
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 			if (sessions.isEmpty())
 				return null;
@@ -711,10 +711,8 @@ public final class ServiceManagerServer implements Closeable {
 	public void close() throws IOException {
 		try {
 			stop();
-		} catch (RuntimeException | IOException e) {
-			throw e;
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 
@@ -794,7 +792,7 @@ public final class ServiceManagerServer implements Closeable {
 				if (value != null)
 					current = ByteBuffer.Wrap(value).ReadLong();
 			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -816,7 +814,7 @@ public final class ServiceManagerServer implements Closeable {
 			try {
 				sms.autoKeysDb.put(RocksDatabase.getDefaultWriteOptions(), key, bb.Bytes);
 			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 
 			rpc.Result.setCount(count);

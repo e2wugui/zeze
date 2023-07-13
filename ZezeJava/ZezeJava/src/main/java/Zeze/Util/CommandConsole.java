@@ -76,7 +76,7 @@ public class CommandConsole {
 
 	public void register(String name, Command cmd) {
 		if (null != commands.putIfAbsent(name, cmd))
-			throw new RuntimeException("duplicate command: " + name);
+			throw new IllegalStateException("duplicate command: " + name);
 	}
 
 	public void input(AsyncSocket sender, byte[] bytes) {
@@ -143,7 +143,7 @@ public class CommandConsole {
 			}
 		}
 		if (quotBegin != -1)
-			throw new RuntimeException("error command format: " + line);
+			throw new IllegalStateException("error command format: " + line);
 
 		if (line.length() > wordBegin)
 			words.add(line.substring(wordBegin));

@@ -22,6 +22,7 @@ import Zeze.Util.BitConverter;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashMap;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -1062,7 +1063,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			os.writeObject(obj);
 			WriteBytes(bs.toByteArray());
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 
@@ -1073,7 +1074,8 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			 var os = new ObjectInputStream(bs)) {
 			return (T)os.readObject();
 		} catch (IOException | ClassNotFoundException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 

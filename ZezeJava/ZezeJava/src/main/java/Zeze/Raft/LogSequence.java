@@ -252,7 +252,8 @@ public class LogSequence {
 			try {
 				table = database.getOrAddTable(tableName);
 			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				throw new AssertionError(); // never run here
 			}
 		}
 

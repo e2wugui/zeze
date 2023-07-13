@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
+import Zeze.Util.Task;
 
 public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
@@ -133,10 +134,9 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 			V value;
 			try {
 				value = (V)valueFactory.invoke();
-			} catch (RuntimeException | Error e) {
-				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return; // never run here
 			}
 			value.decode(bb);
 			put(key, value);

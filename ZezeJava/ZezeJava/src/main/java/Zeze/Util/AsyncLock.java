@@ -14,7 +14,8 @@ public final class AsyncLock {
 		try {
 			stateHandle = MethodHandles.lookup().findVarHandle(AsyncLock.class, "state", int.class);
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 	}
 

@@ -567,7 +567,7 @@ public class Online extends AbstractOnline {
 	// 在指定Online上发送
 	public void sendOnline(long roleId, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId, multiInstanceName, p);
@@ -627,7 +627,7 @@ public class Online extends AbstractOnline {
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendAllOnlines(long roleId, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId, "*", p);
@@ -638,14 +638,14 @@ public class Online extends AbstractOnline {
 	// 优先在上下文中的Online上发送
 	public void send(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		getOnlineByContext().sendOnline(roleIds, p);
 	}
 
 	// 在指定Online上发送
 	public void sendOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 
 		if (roleIds.isEmpty())
 			return;
@@ -668,7 +668,7 @@ public class Online extends AbstractOnline {
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 
 		if (roleIds.isEmpty())
 			return;
@@ -689,84 +689,84 @@ public class Online extends AbstractOnline {
 	// 优先在上下文中的Online上发送
 	public void sendWhileCommit(long roleId, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileCommit(() -> send(roleId, p));
 	}
 
 	// 在指定Online上发送
 	public void sendWhileCommitOnline(long roleId, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileCommit(() -> sendOnline(roleId, p));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendWhileCommitAllOnlines(long roleId, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileCommit(() -> sendAllOnlines(roleId, p));
 	}
 
 	// 优先在上下文中的Online上发送
 	public void sendWhileCommit(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileCommit(() -> send(roleIds, p));
 	}
 
 	// 在指定Online上发送
 	public void sendWhileCommitOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileCommit(() -> sendOnline(roleIds, p));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendWhileCommitAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileCommit(() -> sendAllOnlines(roleIds, p));
 	}
 
 	// 优先在上下文中的Online上发送
 	public void sendWhileRollback(long roleId, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileRollback(() -> send(roleId, p));
 	}
 
 	// 在指定Online上发送
 	public void sendWhileRollbackOnline(long roleId, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileRollback(() -> sendOnline(roleId, p));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendWhileRollbackAllOnlines(long roleId, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileRollback(() -> sendAllOnlines(roleId, p));
 	}
 
 	// 优先在上下文中的Online上发送
 	public void sendWhileRollback(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileRollback(() -> send(roleIds, p));
 	}
 
 	// 在指定Online上发送
 	public void sendWhileRollbackOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileRollback(() -> sendOnline(roleIds, p));
 	}
 
 	// 尝试给所有Onlines发送,可在任意Online上执行
 	public void sendWhileRollbackAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileRollback(() -> sendAllOnlines(roleIds, p));
 	}
 
@@ -859,7 +859,7 @@ public class Online extends AbstractOnline {
 
 	public boolean send(@Nullable Long roleId, @NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		var connector = providerApp.providerService.getLinks().get(linkName);
 		if (null == connector) {
 			logger.warn("link connector not found. name={}", linkName);
@@ -1089,7 +1089,7 @@ public class Online extends AbstractOnline {
 
 	public void sendReliableNotifyWhileCommit(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileCommit(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
@@ -1100,7 +1100,7 @@ public class Online extends AbstractOnline {
 
 	public void sendReliableNotifyWhileRollback(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		Transaction.whileRollback(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
@@ -1111,7 +1111,7 @@ public class Online extends AbstractOnline {
 
 	public void sendReliableNotify(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId + ":" + listenerName, p);
@@ -1365,7 +1365,7 @@ public class Online extends AbstractOnline {
 
 	public int broadcast(@NotNull Protocol<?> p, int time) {
 		if (p instanceof Rpc && p.isRequest())
-			throw new RuntimeException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);

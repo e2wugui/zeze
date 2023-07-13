@@ -795,10 +795,8 @@ public class GlobalCacheManagerWithRaft
 	public void close() {
 		try {
 			rocks.close();
-		} catch (RuntimeException e) {
-			throw e;
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 
@@ -918,7 +916,7 @@ public class GlobalCacheManagerWithRaft
 					logger.warn("Reduce send failed: {} peer={}, gkey={}", this, peer, gkey);
 				} else
 					logger.warn("Reduce invalid: {} gkey={}", this, gkey);
-			} catch (RuntimeException ex) {
+			} catch (Exception ex) {
 				if (ENABLE_PERF && reduce != null)
 					globalRaft.perf.onReduceCancel(reduce);
 				// 这里的异常只应该是网络发送异常。
@@ -948,7 +946,7 @@ public class GlobalCacheManagerWithRaft
 					return reduce;
 				}
 				logger.warn("ReduceWaitLater invalid: {} gkey={}", this, gkey);
-			} catch (RuntimeException ex) {
+			} catch (Exception ex) {
 				if (ENABLE_PERF && reduce != null)
 					globalRaft.perf.onReduceCancel(reduce);
 				// 这里的异常只应该是网络发送异常。

@@ -6,6 +6,7 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Services.GlobalCacheManagerConst;
+import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 
 /**
@@ -392,7 +393,7 @@ public final class RelativeRecordSet {
 				try {
 					this.wait();
 				} catch (InterruptedException e) {
-					throw new RuntimeException(e);
+					Task.forceThrow(e);
 				}
 			}
 		}

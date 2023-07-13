@@ -259,7 +259,7 @@ public class TimerAccount {
 				var offlineTimers = context.timer.tAccountOfflineTimers()
 						.get(new BAccountClientId(offlineCustom.getAccount(), offlineCustom.getClientId()));
 				if (null == offlineTimers)
-					throw new RuntimeException("maybe operate before timer created.");
+					throw new IllegalStateException("maybe operate before timer created.");
 				offlineTimers.getOfflineTimers().remove(offlineCustom.getTimerName());
 			}
 		}
@@ -343,10 +343,10 @@ public class TimerAccount {
 
 			var localBean = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
 			if (null == localBean)
-				throw new RuntimeException("local bean not exist");
+				throw new IllegalStateException("local bean not exist");
 			var localTimer = localBean.getTimerIds().get(timerId);
 			if (null == localTimer)
-				throw new RuntimeException("local timer not exist");
+				throw new IllegalStateException("local timer not exist");
 			var customData = localTimer.getCustomData().getBean();
 			if (customData instanceof EmptyBean)
 				customData = null;
@@ -423,10 +423,10 @@ public class TimerAccount {
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				var localBean = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
 				if (null == localBean)
-					throw new RuntimeException("local bean not exist");
+					throw new IllegalStateException("local bean not exist");
 				var localTimer = localBean.getTimerIds().get(timerId);
 				if (null == localTimer)
-					throw new RuntimeException("local timer not exist");
+					throw new IllegalStateException("local timer not exist");
 				var customData = localTimer.getCustomData().getBean();
 				if (customData instanceof EmptyBean)
 					customData = null;

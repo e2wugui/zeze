@@ -184,7 +184,7 @@ public class LinkedMap<V extends Bean> {
 		// activate。优化：这个操作比较多，已经在目标位置，不调整。
 		var root = getRoot();
 		if (null == root)
-			throw new RuntimeException("root is null. maybe operate before create.");
+			throw new IllegalStateException("root is null. maybe operate before create.");
 
 		if (ahead) {
 			if (values.get(0).getId().equals(id) && root.getHeadNodeId() == nodeIdLong) // HeadNode && List.Last
@@ -236,7 +236,7 @@ public class LinkedMap<V extends Bean> {
 			module._tValueIdToNodeId.insert(nodeIdKey, nodeId);
 			var root = getRoot();
 			if (null == root)
-				throw new RuntimeException("root is null. maybe operate before create.");
+				throw new IllegalStateException("root is null. maybe operate before create.");
 			root.setCount(root.getCount() + 1);
 			return null;
 		}
@@ -314,7 +314,7 @@ public class LinkedMap<V extends Bean> {
 				module._tValueIdToNodeId.remove(nodeKey);
 				var root = getRoot();
 				if (null == root)
-					throw new RuntimeException("root is null. maybe operate before create.");
+					throw new IllegalStateException("root is null. maybe operate before create.");
 				root.setCount(root.getCount() - 1);
 				if (values.isEmpty())
 					removeNodeUnsafe(nodeId.getNodeId(), node);
@@ -330,7 +330,7 @@ public class LinkedMap<V extends Bean> {
 			module._tValueIdToNodeId.remove(new BLinkedMapKey(name, e.getId()));
 		var root = getRoot();
 		if (null == root)
-			throw new RuntimeException("root is null. maybe operate before create.");
+			throw new IllegalStateException("root is null. maybe operate before create.");
 		root.setCount(root.getCount() - node.getValues().size());
 		node.getValues().clear();
 		removeNodeUnsafe(nodeId, node);
@@ -422,7 +422,7 @@ public class LinkedMap<V extends Bean> {
 	private void removeNodeUnsafe(long nodeId, @NotNull BLinkedMapNode node) {
 		var root = getRoot();
 		if (null == root)
-			throw new RuntimeException("root is null. maybe operate before create.");
+			throw new IllegalStateException("root is null. maybe operate before create.");
 
 		var prevNodeId = node.getPrevNodeId();
 		var nextNodeId = node.getNextNodeId();

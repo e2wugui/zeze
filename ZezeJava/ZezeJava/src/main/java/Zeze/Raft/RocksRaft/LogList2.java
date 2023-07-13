@@ -6,6 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.OutInt;
 import Zeze.Util.Reflect;
+import Zeze.Util.Task;
 
 public class LogList2<V extends Bean> extends LogList1<V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogList2<");
@@ -90,10 +91,8 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			if (op < OpLog.OP_REMOVE) {
 				try {
 					value = (V)valueFactory.invoke();
-				} catch (RuntimeException | Error e) {
-					throw e;
 				} catch (Throwable e) { // MethodHandle.invoke
-					throw new RuntimeException(e);
+					Task.forceThrow(e);
 				}
 				value.decode(bb);
 			}

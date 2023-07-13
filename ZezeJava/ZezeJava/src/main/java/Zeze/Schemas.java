@@ -337,7 +337,7 @@ public class Schemas implements Serializable {
 		public @NotNull String toSqlType(boolean isKey) {
 			var sqlType = sqlTypeTable.get(name);
 			if (null == sqlType)
-				throw new RuntimeException("unknown sql type=" + name);
+				throw new UnsupportedOperationException("unknown sql type=" + name);
 			if (name.equals("string") && isKey)
 				return "VARCHAR(256)";
 			return sqlType;
@@ -964,7 +964,7 @@ public class Schemas implements Serializable {
 
 		public @NotNull String createTableSql() {
 			if (current.isEmpty())
-				throw new RuntimeException("no column");
+				throw new IllegalStateException("no column");
 			var sb = new StringBuilder();
 			sb.append("CREATE TABLE IF NOT EXISTS ").append(tableName).append("(");
 			for (var c : current) {
@@ -1009,7 +1009,7 @@ public class Schemas implements Serializable {
 				return KV.create(4, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
 			//@formatter:on
 			}
-			throw new RuntimeException("unknown type=" + type);
+			throw new UnsupportedOperationException("unknown type=" + type);
 		}
 
 		// 检查兼容，并返回列是否需要change。
@@ -1017,9 +1017,9 @@ public class Schemas implements Serializable {
 			var aType = catType(a.variable.type.name);
 			var bType = catType(b.variable.type.name);
 			if (!Objects.equals(aType.getKey(), bType.getKey()))
-				throw new RuntimeException("type change not compatible, cat!");
+				throw new IllegalStateException("type change not compatible, cat!");
 			if (aType.getValue() < bType.getValue())
-				throw new RuntimeException("type change not compatible, type!");
+				throw new IllegalStateException("type change not compatible, type!");
 
 			// change detect
 			if (!a.name.equals(b.name))

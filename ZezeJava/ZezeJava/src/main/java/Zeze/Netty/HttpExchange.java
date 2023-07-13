@@ -66,7 +66,8 @@ public class HttpExchange {
 		try {
 			detachedHandle = MethodHandles.lookup().findVarHandle(HttpExchange.class, "detached", int.class);
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 	}
 
@@ -513,7 +514,7 @@ public class HttpExchange {
 				} else
 					fireEndStreamHandle();
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 		if (content != Unpooled.EMPTY_BUFFER) {

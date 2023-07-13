@@ -11,6 +11,7 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.IntHashSet;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
 
@@ -34,10 +35,9 @@ public class PList2<V extends Bean> extends PList<V> {
 	public @NotNull V createValue() {
 		try {
 			return (V)meta.valueFactory.invoke();
-		} catch (RuntimeException | Error e) {
-			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -243,10 +243,8 @@ public class PList2<V extends Bean> extends PList<V> {
 				value.decode(bb);
 				add(value);
 			}
-		} catch (RuntimeException | Error e) {
-			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 

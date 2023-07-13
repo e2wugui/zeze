@@ -49,7 +49,8 @@ public class Service {
 			overflowSizeHandle = l.findVarHandle(Service.class, "overflowSize", long.class);
 			overflowCountHandle = l.findVarHandle(Service.class, "overflowCount", int.class);
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 	}
 
@@ -264,7 +265,8 @@ public class Service {
 		try {
 			return newServerSocket(InetAddress.getByName(ipaddress), port, acceptor);
 		} catch (UnknownHostException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -337,7 +339,7 @@ public class Service {
 	 */
 	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
 		if (socketMap.size() > config.getMaxConnections())
-			throw new RuntimeException("too many connections");
+			throw new IllegalStateException("too many connections");
 		addSocket(so);
 		OnHandshakeDone(so);
 	}

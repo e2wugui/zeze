@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.Reflect;
+import Zeze.Util.Task;
 import org.pcollections.Empty;
 
 public class CollList2<V extends Bean> extends CollList<V> {
@@ -181,10 +182,9 @@ public class CollList2<V extends Bean> extends CollList<V> {
 			V value;
 			try {
 				value = (V)valueFactory.invoke();
-			} catch (RuntimeException | Error e) {
-				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return; // never run here
 			}
 			value.decode(bb);
 			add(value);

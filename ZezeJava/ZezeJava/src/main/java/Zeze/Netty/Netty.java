@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import Zeze.Util.Task;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
@@ -118,7 +119,7 @@ public class Netty implements Closeable {
 		try {
 			closeAsync().sync();
 		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 }

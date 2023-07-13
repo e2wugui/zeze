@@ -1,8 +1,14 @@
 package Zeze.Game;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Arch.ProviderDirect;
 import Zeze.Builtin.ProviderDirect.Transmit;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -20,10 +26,11 @@ public class ProviderDirectWithTransmit extends ProviderDirect {
 				try {
 					Class<?> cls = lookup.findClass(cn);
 					if (!Serializable.class.isAssignableFrom(cls))
-						throw new RuntimeException("not based on " + Serializable.class.getName());
+						throw new IllegalStateException("not based on " + Serializable.class.getName());
 					return lookup.findConstructor(cls, voidType);
 				} catch (ReflectiveOperationException e) {
-					throw new RuntimeException(e);
+					Task.forceThrow(e);
+					return null; // never run here
 				}
 			}).invoke();
 		} catch (Throwable e) { // MethodHandle.invoke

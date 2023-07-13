@@ -229,7 +229,7 @@ public class Test {
 				tasks.add(agent.sendForWait(req));
 				// logger.debug("+++++++ {} new AddCount {}", i, req.getUnique().getRequestId());
 				requests.add(req);
-			} catch (RuntimeException e) {
+			} catch (Exception e) {
 				//发送错误不统计。ErrorsAdd(Procedure.ErrorSendFail);
 			}
 			//logger.Debug("+++++++++ REQUEST {0} {1}", stepName, requests[i]);
@@ -771,9 +771,9 @@ public class Test {
 						try {
 							raft.getServer().start();
 							break;
-						} catch (BindException | RuntimeException be) {
-							if (!(be instanceof BindException) && !(be.getCause() instanceof BindException) || ++i > 30)
-								throw be;
+						} catch (Exception e) {
+							if (!(e instanceof BindException) && !(e.getCause() instanceof BindException) || ++i > 30)
+								throw e;
 							//noinspection BusyWait
 							Thread.sleep(100); // 稍等一小会,上个ServerSocket还没真正关闭
 						}

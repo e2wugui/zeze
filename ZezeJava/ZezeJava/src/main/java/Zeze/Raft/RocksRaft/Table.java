@@ -11,6 +11,7 @@ import Zeze.Util.Func1;
 import Zeze.Util.Func2;
 import Zeze.Util.Reflect;
 import Zeze.Util.RocksDatabase;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -50,7 +51,7 @@ public final class Table<K, V extends Bean> {
 		try {
 			rocksTable = rocks.openTable(name);
 		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 		lruCache = new ConcurrentLruLike<>(name, cacheCapacity, lruTryRemoveCallback, 200, 2000, 1024);
 	}
@@ -103,10 +104,9 @@ public final class Table<K, V extends Bean> {
 	public V newValue() {
 		try {
 			return (V)valueFactory.invoke();
-		} catch (RuntimeException | Error e) {
-			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -197,7 +197,8 @@ public final class Table<K, V extends Bean> {
 		try {
 			valueBytes = rocksTable.get(keyBB.Bytes, 0, keyBB.WriteIndex);
 		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 		if (valueBytes == null)
 			return null;

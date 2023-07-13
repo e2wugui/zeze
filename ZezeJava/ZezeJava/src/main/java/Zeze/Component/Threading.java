@@ -141,7 +141,7 @@ public class Threading extends AbstractThreading {
 			r.Argument.setPermits(permits);
 			r.SendForWait(service.GetSocket()).await();
 			if (r.getResultCode() != 0)
-				throw new RuntimeException("create error=" + IModule.getErrorCode(r.getResultCode()));
+				throw new IllegalStateException("create error=" + IModule.getErrorCode(r.getResultCode()));
 		}
 	}
 

@@ -209,7 +209,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 				if (volatileTmp.get())
 					return;
 			} catch (InterruptedException | ExecutionException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 			throw new IllegalStateException("login fail.");
 		}
@@ -220,7 +220,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			if (volatileTmp.isDone() && volatileTmp.get())
 				return;
 		} catch (InterruptedException | ExecutionException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 		// 只等待一次，不成功则失败。
 		throw new IllegalStateException("login timeout.");
@@ -317,10 +317,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			}
 			raftClient.sendForWait(new NormalClose()).await();
 			raftClient.stop();
-		} catch (RuntimeException | Error e) {
-			throw e;
 		} catch (Throwable e) { // rethrow RuntimeException
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 

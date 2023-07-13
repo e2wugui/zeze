@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Str;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class Data implements Serializable, Cloneable {
@@ -28,7 +29,8 @@ public abstract class Data implements Serializable, Cloneable {
 		try {
 			return (Data)super.clone();
 		} catch (CloneNotSupportedException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 }

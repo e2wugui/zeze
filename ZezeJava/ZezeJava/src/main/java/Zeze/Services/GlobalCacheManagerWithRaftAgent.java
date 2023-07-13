@@ -19,6 +19,7 @@ import Zeze.Transaction.GoBackZeze;
 import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -62,10 +63,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	public void close() throws IOException {
 		try {
 			stop();
-		} catch (IOException | RuntimeException e) {
-			throw e;
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 
@@ -157,7 +156,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			agent.setFastFail();
 			Transaction trans = Transaction.getCurrent();
 			if (trans == null)
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			trans.throwAbort("WaitLoginSuccess", e);
 			// never got here
 		}
@@ -236,7 +235,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			var txn = Transaction.getCurrent();
 			if (txn != null)
 				txn.throwAbort(msg, cause);
-			throw new RuntimeException(msg, cause);
+			throw new IllegalStateException(msg, cause);
 		}
 
 		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Application zeze,

@@ -10,6 +10,7 @@ import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -38,10 +39,9 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public @NotNull V createValue() {
 		try {
 			return (V)meta.valueFactory.invoke();
-		} catch (RuntimeException | Error e) {
-			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -214,10 +214,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 				value.decode(bb);
 				put(key, value);
 			}
-		} catch (RuntimeException | Error e) {
-			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 

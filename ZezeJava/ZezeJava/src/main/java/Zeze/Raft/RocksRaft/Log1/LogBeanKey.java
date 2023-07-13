@@ -6,6 +6,7 @@ import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Reflect;
+import Zeze.Util.Task;
 
 public class LogBeanKey<T extends Serializable> extends Log {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.Log<");
@@ -36,10 +37,8 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	public void decode(ByteBuffer bb) {
 		try {
 			value = (T)valueFactory.invoke();
-		} catch (RuntimeException | Error e) {
-			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 		value.decode(bb);
 	}

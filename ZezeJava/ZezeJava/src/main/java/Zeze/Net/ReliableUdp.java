@@ -74,7 +74,8 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 			selector = Selectors.getInstance().choice();
 			selector.register(datagramChannel, SelectionKey.OP_READ, this);
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 	}
 
@@ -84,7 +85,8 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 			var ep = new InetSocketAddress(InetAddress.getByName(peer), port);
 			return new Session(ep, handle);
 		} catch (UnknownHostException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 
@@ -187,7 +189,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 			p.encode(bb);
 			datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.WriteIndex), peer);
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 

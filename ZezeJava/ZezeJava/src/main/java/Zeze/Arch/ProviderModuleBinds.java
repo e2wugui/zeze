@@ -9,6 +9,7 @@ import Zeze.IModule;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.IntHashSet;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Document;
@@ -33,7 +34,7 @@ public final class ProviderModuleBinds {
 				Document doc = db.newDocumentBuilder().parse(xmlFile);
 				return new ProviderModuleBinds(doc.getDocumentElement());
 			} catch (Exception ex) {
-				throw new RuntimeException(ex);
+				Task.forceThrow(ex);
 			}
 		}
 		return new ProviderModuleBinds();

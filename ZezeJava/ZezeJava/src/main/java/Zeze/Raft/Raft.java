@@ -137,7 +137,7 @@ public final class Raft {
 //			}
 			condition.await();
 		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 
@@ -145,7 +145,8 @@ public final class Raft {
 		try {
 			return condition.await(time, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return false; // never run here
 		}
 	}
 

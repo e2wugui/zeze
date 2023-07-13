@@ -73,7 +73,8 @@ public class RocksDatabase implements Closeable {
 			c.setAccessible(true);
 			mhWriteBatchNew = lookup.unreflectConstructor(c);
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 	}
 
@@ -172,7 +173,7 @@ public class RocksDatabase implements Closeable {
 		case eTransactionDb:
 			return TransactionDB.open(options, transactionDbOptions, path, cfds, cfhs);
 		default:
-			throw new RuntimeException("unknown dbType=" + dbType);
+			throw new UnsupportedOperationException("unknown dbType=" + dbType);
 		}
 	}
 
@@ -723,10 +724,8 @@ public class RocksDatabase implements Closeable {
 			try {
 				mhWriteBatchPutCf.invokeExact(batch, batch.getNativeHandle(), key, keyLen, value, valueLen,
 						cfh.getNativeHandle());
-			} catch (RocksDBException | RuntimeException e) {
-				throw e;
 			} catch (Throwable e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -737,10 +736,8 @@ public class RocksDatabase implements Closeable {
 		public void delete(@NotNull ColumnFamilyHandle cfh, byte[] key, int keyLen) throws RocksDBException {
 			try {
 				mhWriteBatchDeleteCf.invokeExact(batch, batch.getNativeHandle(), key, keyLen, cfh.getNativeHandle());
-			} catch (RocksDBException | RuntimeException e) {
-				throw e;
 			} catch (Throwable e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 
@@ -792,10 +789,8 @@ public class RocksDatabase implements Closeable {
 			try (var wb = (WriteBatch)mhWriteBatchNew.invokeExact(
 					(long)mhWriteBatchNativeNew.invokeExact(bb.Bytes, bb.WriteIndex), true)) {
 				rocksDb.write(options, wb);
-			} catch (RocksDBException | RuntimeException e) {
-				throw e;
 			} catch (Throwable e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 			if (PerfCounter.ENABLE_PERF)
 				PerfCounter.instance.addRunInfo("RocksDB.write", System.nanoTime() - timeBegin);

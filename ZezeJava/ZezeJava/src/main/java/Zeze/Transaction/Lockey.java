@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Util.Macro;
+import Zeze.Util.Task;
 
 public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	private final TableKey tableKey;
@@ -67,7 +68,8 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 		try {
 			return rwLock.readLock().tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return false; // never run here
 		}
 	}
 
@@ -79,7 +81,8 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 		try {
 			return rwLock.writeLock().tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return false; // never run here
 		}
 	}
 

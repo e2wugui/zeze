@@ -3,6 +3,7 @@ package Zeze.Net;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import Zeze.Util.Json;
+import Zeze.Util.Task;
 
 // AES(CFB) Encrypt
 public final class Encrypt2 implements Codec {
@@ -32,7 +33,8 @@ public final class Encrypt2 implements Codec {
 			mhCryptInit = lookup.unreflect(mCryptInit);
 			mhCryptEncrypt = lookup.unreflect(mCryptEncrypt);
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 	}
 
@@ -50,7 +52,7 @@ public final class Encrypt2 implements Codec {
 				System.arraycopy(iv, 0, out, 0, BLOCK_SIZE);
 				mhCryptEncrypt.invoke(aesCrypt, out, 0, out, 0);
 			}
-		} catch (RuntimeException | Error e) {
+		} catch (Error e) {
 			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw new CodecException(e);
@@ -68,7 +70,7 @@ public final class Encrypt2 implements Codec {
 		writeIndex = 0;
 		try {
 			mhCryptEncrypt.invoke(aesCrypt, out, 0, out, 0);
-		} catch (RuntimeException | Error e) {
+		} catch (Error e) {
 			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw new CodecException(e);
@@ -84,7 +86,7 @@ public final class Encrypt2 implements Codec {
 			sinkIndex = 0;
 			try {
 				mhCryptEncrypt.invoke(aesCrypt, out, 0, out, 0);
-			} catch (RuntimeException | Error e) {
+			} catch (Error e) {
 				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke
 				throw new CodecException(e);
@@ -118,7 +120,7 @@ public final class Encrypt2 implements Codec {
 			while (off < end)
 				out[wi++] ^= data[off++];
 			writeIndex = wi;
-		} catch (RuntimeException | Error e) {
+		} catch (Error e) {
 			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw new CodecException(e);

@@ -6,6 +6,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Util.OutInt;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public class LogList2<V extends Bean> extends LogList1<V> {
@@ -87,10 +88,8 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			if (op < OpLog.OP_REMOVE) {
 				try {
 					value = (V)meta.valueFactory.invoke();
-				} catch (RuntimeException | Error e) {
-					throw e;
 				} catch (Throwable e) { // MethodHandle.invoke
-					throw new RuntimeException(e);
+					Task.forceThrow(e);
 				}
 				value.decode(bb);
 			}

@@ -5,6 +5,7 @@ import java.lang.invoke.VarHandle;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import Zeze.Util.Action1;
+import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.NotNull;
 
@@ -59,10 +60,8 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		if (onS != CALLED) {
 			try {
 				onS.run(r);
-			} catch (RuntimeException ex) {
-				throw ex;
-			} catch (Exception ex) {
-				throw new RuntimeException(ex);
+			} catch (Exception e) {
+				Task.forceThrow(e);
 			}
 		}
 	}
@@ -75,10 +74,8 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		if (onF != CALLED) {
 			try {
 				onF.run(e);
-			} catch (RuntimeException ex) {
-				throw ex;
 			} catch (Exception ex) {
-				throw new RuntimeException(ex);
+				Task.forceThrow(ex);
 			}
 		}
 	}

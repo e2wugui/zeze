@@ -9,6 +9,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Macro;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -23,7 +24,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		try {
 			LRU_NODE_HANDLE = MethodHandles.lookup().findVarHandle(Record1.class, "lruNode", ConcurrentHashMap.class);
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 	}
 

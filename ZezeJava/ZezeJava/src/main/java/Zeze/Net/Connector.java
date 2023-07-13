@@ -44,7 +44,8 @@ public class Connector {
 			Class<?> ccls = Class.forName(className);
 			return (Connector)ccls.getConstructor(Element.class).newInstance(e);
 		} catch (Exception ex) {
-			throw new RuntimeException(ex);
+			Task.forceThrow(ex);
+			return null; // never run here
 		}
 	}
 
@@ -139,7 +140,7 @@ public class Connector {
 		try {
 			return futureSocket.get(READY_TIMEOUT, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
-			throw new RuntimeException(getName(), e);
+			throw new IllegalStateException(getName(), e);
 		}
 	}
 

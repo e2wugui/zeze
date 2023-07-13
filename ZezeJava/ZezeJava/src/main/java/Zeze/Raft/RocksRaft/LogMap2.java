@@ -7,6 +7,7 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
+import Zeze.Util.Task;
 
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogMap2<");
@@ -91,10 +92,9 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			V value;
 			try {
 				value = (V)valueFactory.invoke();
-			} catch (RuntimeException | Error e) {
-				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return; // never run here
 			}
 			value.decode(bb);
 			getPutted().put(key, value);

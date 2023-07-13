@@ -37,7 +37,8 @@ public class Reflect {
 		try {
 			supplierMH = MethodHandles.lookup().findVirtual(Supplier.class, "get", MethodType.methodType(Object.class));
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 
 		stableNameMap.put(boolean.class, "bool");
@@ -84,7 +85,8 @@ public class Reflect {
 		try {
 			return MethodHandles.lookup().findConstructor(cls, MethodType.methodType(void.class));
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			return null; // never run here
 		}
 	}
 

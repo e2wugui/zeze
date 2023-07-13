@@ -11,6 +11,7 @@ import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Util.Reflect;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public final class SerializeHelper {
@@ -82,7 +83,8 @@ public final class SerializeHelper {
 			try {
 				obj = cls.getConstructor((Class<?>[])null).newInstance((Object[])null);
 			} catch (ReflectiveOperationException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 			((Serializable)obj).decode(bb);
 			return obj;
@@ -101,7 +103,8 @@ public final class SerializeHelper {
 			try {
 				obj = cls.getConstructor((Class<?>[])null).newInstance((Object[])null);
 			} catch (ReflectiveOperationException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 			((Serializable)obj).decode(bb);
 			return obj;

@@ -93,7 +93,7 @@ public final class Transaction {
 	public static @Nullable Object userState() {
 		var t = getCurrent();
 		if (t == null)
-			throw new RuntimeException("not in transaction.");
+			throw new IllegalStateException("not in transaction.");
 		return t.userState;
 	}
 

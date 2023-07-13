@@ -12,6 +12,7 @@ import Zeze.Transaction.DynamicBean;
 import Zeze.Util.Json;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
+import Zeze.Util.Task;
 
 public class Helper {
 	public static Vector4 decodeVector4(ArrayList<String> parents, ResultSet rs) throws SQLException {
@@ -133,7 +134,7 @@ public class Helper {
 			try {
 				JsonReader.local().buf(jsonStr).parse(json, bean, dynamicBeanMeta);
 			} catch (ReflectiveOperationException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 	}
@@ -144,7 +145,7 @@ public class Helper {
 			try {
 				JsonReader.local().buf(jsonStr).parseArray(json, list, valueClass);
 			} catch (ReflectiveOperationException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 	}
@@ -155,7 +156,7 @@ public class Helper {
 			try {
 				JsonReader.local().buf(jsonStr).parseArray(json, set, valueClass);
 			} catch (ReflectiveOperationException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 	}
@@ -168,7 +169,7 @@ public class Helper {
 				JsonReader.local().buf('{' + fieldName + ':' + jsonStr + '}').parse(json, parentBean,
 						(Class<? super Bean>)parentBean.getClass());
 			} catch (ReflectiveOperationException e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
 			}
 		}
 	}
