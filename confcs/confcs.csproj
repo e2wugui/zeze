@@ -1,13 +1,14 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>51933975-1a63-4210-88c0-2b0633ffa3a4</ProjectGuid>
+    <ProjectGuid>{51933975-1A63-4210-88C0-2B0633FFA3A4}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <AssemblyName>confcs</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -91,6 +92,7 @@
     <Compile Include="Zeze\Transaction\Log.cs" />
     <Compile Include="Zeze\Transaction\TransactionLevel.cs" />
     <Compile Include="Zeze\Util\AtomicLong.cs" />
+    <Compile Include="Zeze\Util\BeanFactory.cs" />
     <Compile Include="Zeze\Util\Comparer.cs" />
     <Compile Include="Zeze\Util\ConfBean.cs" />
     <Compile Include="Zeze\Util\DispatchModeAttribute.cs" />
@@ -105,4 +107,4 @@
     <Compile Include="Zeze\Util\UnityHelpers.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
- </Project>
+</Project>

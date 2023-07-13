@@ -32,6 +32,7 @@ copy /y %confcs%\Util\ResultCode.cs              %Zeze%\Util\
 copy /y %confcs%\Util\Scheduler.cs               %Zeze%\Util\
 copy /y %confcs%\Util\Str.cs                     %Zeze%\Util\
 copy /y %confcs%\Util\Time.cs                    %Zeze%\Util\
+copy /y %confcs%\Util\BeanFactory.cs                    %Zeze%\Util\
 rem copy /y %confcs%\Util\UnityHelpers.cs        %Zeze%\Util\
 
 pause
