@@ -331,12 +331,13 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    private ByteBuffer _unknown_;
+    private Zeze.Net.Binary _unknown_;
 
     @Override
     public void encode(ByteBuffer _o_) {
-        var _u_ = _unknown_;
-        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
+        ByteBuffer _u_ = null;
+        var _ub_ = _unknown_;
+        var _ui_ = _ub_ != null ? (_u_ = _ub_.Wrap()).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         while (_ui_ < 3) {
             _i_ = _o_.writeUnknownField(_i_, _ui_, _u_);
@@ -505,7 +506,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 10) {
-            _o_.ReadDynamic(_UserData, _t_);
+            _o_.ReadDynamicWithUnknown(_UserData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue

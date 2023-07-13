@@ -13,6 +13,7 @@ namespace Zeze.Gen.java
         readonly StreamWriter sw;
         readonly string prefix;
         readonly string typeVarName;
+        readonly bool withUnknown;
 
         string Getter => var != null ? var.Getter : tmpvarname;
         string NamePrivate => var != null ? var.NamePrivate : tmpvarname;
@@ -58,7 +59,7 @@ namespace Zeze.Gen.java
                 }
                 else
                     sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Decode(v, v.Id, "_o_", sw, prefix + "        "));
+                v.VariableType.Accept(new Decode(v, v.Id, "_o_", sw, prefix + "        ", withUnknown));
                 if (v.Id > 0)
                 {
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
@@ -131,7 +132,7 @@ namespace Zeze.Gen.java
                 }
                 else
                     sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Decode(v, v.Id, "_o_", sw, prefix + "        "));
+                v.VariableType.Accept(new Decode(v, v.Id, "_o_", sw, prefix + "        ", false));
                 if (v.Id > 0)
                 {
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
@@ -187,7 +188,7 @@ namespace Zeze.Gen.java
             }
         }
 
-        public Decode(Variable var, int id, string bufname, StreamWriter sw, string prefix)
+        public Decode(Variable var, int id, string bufname, StreamWriter sw, string prefix, bool withUnknown)
         {
             this.var = var;
             this.tmpvarname = null;
@@ -196,9 +197,10 @@ namespace Zeze.Gen.java
             this.sw = sw;
             this.prefix = prefix;
             this.typeVarName = "_t_";
+            this.withUnknown = withUnknown;
         }
 
-        public Decode(string tmpvarname, int id, string bufname, StreamWriter sw, string prefix, string typeVarName = null)
+        public Decode(string tmpvarname, int id, string bufname, StreamWriter sw, string prefix, bool withUnknown, string typeVarName = null)
         {
             this.var = null;
             this.tmpvarname = tmpvarname;
@@ -207,6 +209,7 @@ namespace Zeze.Gen.java
             this.sw = sw;
             this.prefix = prefix;
             this.typeVarName = typeVarName ?? "_t_";
+            this.withUnknown = withUnknown;
         }
 
         string AssignText(string value)
@@ -312,8 +315,12 @@ namespace Zeze.Gen.java
                     return bufname + ".ReadString(" + typeVar + ')';
                 case Bean:
                 case BeanKey:
+                    if (withUnknown)
+                        return bufname + ".ReadBeanWithUnknown(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                     return bufname + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                 case TypeDynamic:
+                    if (withUnknown)
+                        return bufname + ".ReadDynamicWithUnknown(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                     return bufname + ".ReadDynamic(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                 case TypeVector2:
                     return bufname + ".ReadVector2(" + typeVar + ')';
@@ -355,7 +362,7 @@ namespace Zeze.Gen.java
             {
                 sw.WriteLine(" {");
                 vt.Accept(new Define("_e_", sw, prefix + "        "));
-                vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        ", withUnknown));
                 sw.WriteLine($"{prefix}        _x_.add(_e_);");
                 sw.WriteLine($"{prefix}    }}");
             }
@@ -392,7 +399,7 @@ namespace Zeze.Gen.java
             if (IsOldStyleEncodeDecodeType(kt))
             {
                 kt.Accept(new Define("_k_", sw, prefix + "        "));
-                kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        ", "_s_"));
+                kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        ", withUnknown, "_s_"));
             }
             else
             {
@@ -401,7 +408,7 @@ namespace Zeze.Gen.java
             if (IsOldStyleEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_v_", sw, prefix + "        "));
-                vt.Accept(new Decode("_v_", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Decode("_v_", 0, bufname, sw, prefix + "        ", withUnknown));
             }
             else
             {
@@ -416,7 +423,14 @@ namespace Zeze.Gen.java
         public void Visit(Bean type)
         {
             if (id > 0)
-                sw.WriteLine(prefix + bufname + ".ReadBean(" + NamePrivate + ", _t_);");
+            {
+                if (withUnknown)
+                    sw.WriteLine(prefix + bufname + ".ReadBeanWithUnknown(" + NamePrivate + ", _t_);");
+                else
+                    sw.WriteLine(prefix + bufname + ".ReadBean(" + NamePrivate + ", _t_);");
+            }
+            else if (withUnknown)
+                sw.WriteLine(prefix + NamePrivate + ".decodeWithUnknown(" + bufname + ");");
             else
                 sw.WriteLine(prefix + NamePrivate + ".decode(" + bufname + ");");
         }
@@ -431,7 +445,10 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + bufname + ".ReadDynamic(" + NamePrivate + ", " + typeVarName + ");");
+            if (withUnknown)
+                sw.WriteLine(prefix + bufname + ".ReadDynamicWithUnknown(" + NamePrivate + ", " + typeVarName + ");");
+            else
+                sw.WriteLine(prefix + bufname + ".ReadDynamic(" + NamePrivate + ", " + typeVarName + ");");
         }
 
         public void Visit(TypeQuaternion type)

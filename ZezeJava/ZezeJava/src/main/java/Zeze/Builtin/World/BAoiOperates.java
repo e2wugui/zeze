@@ -123,12 +123,13 @@ public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOpe
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    private ByteBuffer _unknown_;
+    private Zeze.Net.Binary _unknown_;
 
     @Override
     public void encode(ByteBuffer _o_) {
-        var _u_ = _unknown_;
-        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
+        ByteBuffer _u_ = null;
+        var _ub_ = _unknown_;
+        var _ui_ = _ub_ != null ? (_u_ = _ub_.Wrap()).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             var _x_ = _Operates;
@@ -182,7 +183,7 @@ public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOpe
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadLong(_s_);
-                    var _v_ = _o_.ReadBean(new Zeze.Builtin.World.BAoiOperate(), _t_);
+                    var _v_ = _o_.ReadBeanWithUnknown(new Zeze.Builtin.World.BAoiOperate(), _t_);
                     _x_.put(_k_, _v_);
                 }
             } else

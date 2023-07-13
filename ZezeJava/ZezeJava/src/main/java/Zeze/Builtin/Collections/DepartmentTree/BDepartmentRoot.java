@@ -246,12 +246,13 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    private ByteBuffer _unknown_;
+    private Zeze.Net.Binary _unknown_;
 
     @Override
     public void encode(ByteBuffer _o_) {
-        var _u_ = _unknown_;
-        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
+        ByteBuffer _u_ = null;
+        var _ub_ = _unknown_;
+        var _ui_ = _ub_ != null ? (_u_ = _ub_.Wrap()).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             String _x_ = getRoot();
@@ -373,7 +374,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadString(_s_);
                     var _v_ = new Zeze.Transaction.DynamicBean(0, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
-                    _o_.ReadDynamic(_v_, _t_);
+                    _o_.ReadDynamicWithUnknown(_v_, _t_);
                     _x_.put(_k_, _v_);
                 }
             } else
@@ -399,7 +400,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 5) {
-            _o_.ReadDynamic(_Data, _t_);
+            _o_.ReadDynamicWithUnknown(_Data, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue

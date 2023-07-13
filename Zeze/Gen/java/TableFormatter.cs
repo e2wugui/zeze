@@ -100,7 +100,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("    @Override");
             sw.WriteLine("    public " + keyboxing + " decodeKey(ByteBuffer _os_) {");
             table.KeyType.Accept(new Define("_v_", sw, "        "));
-            table.KeyType.Accept(new Decode("_v_", -1, "_os_", sw, "        "));
+            table.KeyType.Accept(new Decode("_v_", -1, "_os_", sw, "        ", false));
             sw.WriteLine("        return _v_;");
             sw.WriteLine("    }");
             sw.WriteLine();

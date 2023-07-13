@@ -34,15 +34,16 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             if (bean.Base == "")
             {
-                sw.WriteLine(prefix + "private ByteBuffer _unknown_;");
+                sw.WriteLine(prefix + "private Zeze.Net.Binary _unknown_;");
                 sw.WriteLine();
             }
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void encode(ByteBuffer _o_) {");
             if (bean.Base == "")
             {
-                sw.WriteLine(prefix + "    var _u_ = _unknown_;");
-                sw.WriteLine(prefix + "    var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;");
+                sw.WriteLine(prefix + "    ByteBuffer _u_ = null;");
+                sw.WriteLine(prefix + "    var _ub_ = _unknown_;");
+                sw.WriteLine(prefix + "    var _ui_ = _ub_ != null ? (_u_ = _ub_.Wrap()).readUnknownIndex() : Long.MAX_VALUE;");
                 sw.WriteLine(prefix + "    int _i_ = 0;");
             }
             else if (bean.VariablesIdOrder.Count > 0)

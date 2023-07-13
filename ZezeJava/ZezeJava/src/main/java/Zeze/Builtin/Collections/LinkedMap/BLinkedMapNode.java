@@ -170,12 +170,13 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    private ByteBuffer _unknown_;
+    private Zeze.Net.Binary _unknown_;
 
     @Override
     public void encode(ByteBuffer _o_) {
-        var _u_ = _unknown_;
-        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
+        ByteBuffer _u_ = null;
+        var _ub_ = _unknown_;
+        var _ui_ = _ub_ != null ? (_u_ = _ub_.Wrap()).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             long _x_ = getPrevNodeId();
@@ -252,7 +253,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue(), _t_));
+                    _x_.add(_o_.ReadBeanWithUnknown(new Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

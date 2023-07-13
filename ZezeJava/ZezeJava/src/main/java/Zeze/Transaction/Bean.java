@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.KV;
@@ -124,10 +123,6 @@ public abstract class Bean implements Serializable {
 	}
 
 	public @NotNull Data toData() {
-		throw new UnsupportedOperationException();
-	}
-
-	public void decodeWithUnknown(@NotNull ByteBuffer bb) {
 		throw new UnsupportedOperationException();
 	}
 

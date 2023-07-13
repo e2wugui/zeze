@@ -267,12 +267,13 @@ public final class BTConditionReachPosition extends Zeze.Transaction.Bean implem
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    private ByteBuffer _unknown_;
+    private Zeze.Net.Binary _unknown_;
 
     @Override
     public void encode(ByteBuffer _o_) {
-        var _u_ = _unknown_;
-        var _ui_ = _u_ != null ? (_u_ = ByteBuffer.Wrap(_u_)).readUnknownIndex() : Long.MAX_VALUE;
+        ByteBuffer _u_ = null;
+        var _ub_ = _unknown_;
+        var _ui_ = _ub_ != null ? (_u_ = _ub_.Wrap()).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
             int _x_ = getDimension();
