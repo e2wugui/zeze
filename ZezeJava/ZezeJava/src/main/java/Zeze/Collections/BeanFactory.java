@@ -189,7 +189,7 @@ public final class BeanFactory {
 			return (T)methodHandle.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			Task.forceThrow(e);
-			return null; // never run here
+			throw new AssertionError(); // never run here
 		}
 	}
 

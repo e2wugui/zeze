@@ -1,7 +1,6 @@
 package Zeze.Services;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -708,7 +707,7 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		try {
 			stop();
 		} catch (Exception e) {

@@ -147,7 +147,7 @@ public class Reflect {
 		}
 	}
 
-	public static @NotNull ArrayList<String> collectClassNamesFromPath(String path) throws IOException {
+	public static @NotNull ArrayList<String> collectClassNamesFromPath(String path) {
 		var classNames = new ArrayList<String>();
 		collectClassFromPath("", new File(path), classNames);
 		return classNames;

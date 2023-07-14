@@ -264,7 +264,7 @@ public class HttpExchange {
 	}
 
 	@SuppressWarnings("DataFlowIssue")
-	private void fireBeginStream() throws Exception {
+	private void fireBeginStream() {
 		if (handler == null)
 			return;
 		var r = parseRange(HttpHeaderNames.CONTENT_RANGE);
@@ -286,7 +286,7 @@ public class HttpExchange {
 		}
 	}
 
-	private void fireStreamContentHandle(@NotNull HttpContent c) throws Exception {
+	private void fireStreamContentHandle(@NotNull HttpContent c) {
 		var handle = handler != null ? handler.StreamContentHandle : null;
 		if (handle == null)
 			return;
@@ -338,7 +338,7 @@ public class HttpExchange {
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	private void fireEndStreamHandle() throws Exception {
+	private void fireEndStreamHandle() {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			var p = server.zeze.newProcedure(() -> {
 				var handle = handler.EndStreamHandle;
@@ -371,7 +371,7 @@ public class HttpExchange {
 		}
 	}
 
-	private void fireWebSocket(@NotNull WebSocketFrame frame) throws Exception {
+	private void fireWebSocket(@NotNull WebSocketFrame frame) {
 		if (handler == null)
 			return;
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {

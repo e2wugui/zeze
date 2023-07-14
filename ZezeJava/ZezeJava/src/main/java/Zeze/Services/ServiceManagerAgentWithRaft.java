@@ -1,6 +1,5 @@
 package Zeze.Services;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import Zeze.Application;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
@@ -309,7 +308,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		try {
 			var tmp = loginFuture;
 			if (null != tmp) {

@@ -16,6 +16,7 @@ import javax.xml.transform.stream.StreamResult;
 import Zeze.Net.Binary;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -288,11 +289,11 @@ public final class RaftConfig {
 		}
 	}
 
-	public static RaftConfig load() throws Exception {
+	public static @NotNull RaftConfig load() throws Exception {
 		return load("raft.xml");
 	}
 
-	public static RaftConfig load(String xmlFile) throws Exception {
+	public static @NotNull RaftConfig load(String xmlFile) throws Exception {
 		if (new File(xmlFile).isFile()) {
 			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File(xmlFile));
 			return new RaftConfig(doc, xmlFile, doc.getDocumentElement());
@@ -301,18 +302,18 @@ public final class RaftConfig {
 		throw new FileNotFoundException(String.format("Raft.Config: '%s' not exists.", xmlFile));
 	}
 
-	public static RaftConfig loadFromSortedNames(String names) {
+	public static @NotNull RaftConfig loadFromSortedNames(String names) {
 		return new RaftConfig(names);
 	}
 
-	public static RaftConfig loadFromString(String content) {
+	public static @NotNull RaftConfig loadFromString(String content) {
 		try {
 			var is = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 			var doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
 			return new RaftConfig(doc, null, doc.getDocumentElement());
 		} catch (Exception e) {
 			Task.forceThrow(e);
-			return null; // never run here
+			throw new AssertionError(); // never run here
 		}
 	}
 

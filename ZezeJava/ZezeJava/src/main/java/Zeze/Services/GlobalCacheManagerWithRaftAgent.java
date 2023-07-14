@@ -1,6 +1,5 @@
 package Zeze.Services;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
@@ -60,7 +59,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		try {
 			stop();
 		} catch (Exception e) {

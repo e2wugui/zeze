@@ -106,7 +106,7 @@ public final class Table<K, V extends Bean> {
 			return (V)valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			Task.forceThrow(e);
-			return null; // never run here
+			throw new AssertionError(); // never run here
 		}
 	}
 
