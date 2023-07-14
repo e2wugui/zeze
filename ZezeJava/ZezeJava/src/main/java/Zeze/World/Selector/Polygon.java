@@ -57,6 +57,8 @@ public class Polygon implements ISelector {
 		for (var p : polygon) {
 			worldPolygon.add(p.add(originPosition));
 		}
+		//origin.getBean().getMoving().getDirect();
+		// todo rotate
 		var entities = new ArrayList<Entity>();
 		var cubes = CubeMap.polygon2d(origin.getCube().map, worldPolygon, isConvex);
 		var worldBox = box.add(originPosition);
