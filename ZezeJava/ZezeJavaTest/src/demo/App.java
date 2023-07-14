@@ -138,7 +138,7 @@ public class App extends Zeze.AppBase {
 
     public synchronized void createZeze(Zeze.Config config) throws Exception {
         if (Zeze != null)
-            throw new IllegalStateException("Zeze Has Created!");
+            throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("ZezeJavaTest", config);
     }
@@ -162,27 +162,27 @@ public class App extends Zeze.AppBase {
         demo_Module1 = (demo.Module1.ModuleModule1)_modules_[0];
         demo_Module1.Initialize(this);
         if (modules.put(demo_Module1.getFullName(), demo_Module1) != null)
-            throw new IllegalStateException("duplicate module name: demo_Module1");
+            throw new RuntimeException("duplicate module name: demo_Module1");
 
         demo_Module1_Module11 = (demo.Module1.Module11.ModuleModule11)_modules_[1];
         demo_Module1_Module11.Initialize(this);
         if (modules.put(demo_Module1_Module11.getFullName(), demo_Module1_Module11) != null)
-            throw new IllegalStateException("duplicate module name: demo_Module1_Module11");
+            throw new RuntimeException("duplicate module name: demo_Module1_Module11");
 
         demo_M6 = (demo.M6.ModuleM6)_modules_[2];
         demo_M6.Initialize(this);
         if (modules.put(demo_M6.getFullName(), demo_M6) != null)
-            throw new IllegalStateException("duplicate module name: demo_M6");
+            throw new RuntimeException("duplicate module name: demo_M6");
 
         demo_M6_M7 = (demo.M6.M7.ModuleM7)_modules_[3];
         demo_M6_M7.Initialize(this);
         if (modules.put(demo_M6_M7.getFullName(), demo_M6_M7) != null)
-            throw new IllegalStateException("duplicate module name: demo_M6_M7");
+            throw new RuntimeException("duplicate module name: demo_M6_M7");
 
         TaskTest_TaskExt = (TaskTest.TaskExt.ModuleTaskExt)_modules_[4];
         TaskTest_TaskExt.Initialize(this);
         if (modules.put(TaskTest_TaskExt.getFullName(), TaskTest_TaskExt) != null)
-            throw new IllegalStateException("duplicate module name: TaskTest_TaskExt");
+            throw new RuntimeException("duplicate module name: TaskTest_TaskExt");
 
         Zeze.setSchemas(new demo.Schemas());
     }

@@ -8,6 +8,74 @@ import Zeze.Serialize.Vector3;
  * 部分 2d 算法可以用把一个轴设成0来使用。
  */
 public class Graphics2D {
+	public static class BoxFloat {
+		public float minX;
+		public float maxX;
+		public float minZ;
+		public float maxZ;
+
+		public BoxFloat() {
+
+		}
+
+		public BoxFloat(float minX, float maxX, float minZ, float maxZ) {
+			this.minX = minX;
+			this.maxX = maxX;
+			this.minZ = minZ;
+			this.maxZ = maxZ;
+		}
+
+		public BoxFloat(java.util.List<Vector3> polygon) {
+			for (var p : polygon) {
+				if (p.x < minX) minX = p.x;
+				if (p.x > maxX) maxX = p.x;
+				if (p.z < minZ) minZ = p.z;
+				if (p.z > maxZ) maxZ = p.z;
+			}
+		}
+
+		/**
+		 * 是否在包围盒内，在边线也算在里面。
+		 * @param position 位置
+		 * @return true if inside.
+		 */
+		public boolean inside(Vector3 position) {
+			return position.x >= minX && position.x <= maxX && position.z >= minZ && position.z <= maxZ;
+		}
+
+		public BoxFloat add(Vector3 diff) {
+			return new BoxFloat(minX + diff.x, maxX + diff.x, minZ + diff.z, maxZ + diff.z);
+		}
+	}
+
+	// 暂时还没发现需要。CubeMap.polygin2d那样写可以少new一个对象。
+//	public static class BoxLong {
+//		public long minX;
+//		public long maxX;
+//		public long minZ;
+//		public long maxZ;
+//
+//		public BoxLong() {
+//
+//		}
+//
+//		public BoxLong(long minX, long maxX, long minZ, long maxZ) {
+//			this.minX = minX;
+//			this.maxX = maxX;
+//			this.minZ = minZ;
+//			this.maxZ = maxZ;
+//		}
+//
+//		/**
+//		 * 是否在包围盒内，在边线也算在里面。
+//		 * @param position 位置
+//		 * @return true if inside.
+//		 */
+//		public boolean inside(CubeIndex position) {
+//			return position.x >= minX && position.x <= maxX && position.z >= minZ && position.z <= maxZ;
+//		}
+//	}
+
 	// 判断点落在凸多边形内。
 	public static boolean insideConvexPolygon(CubeIndex point, java.util.List<CubeIndex> convexPolygon) {
 		return insideConvexPolygon(point.toVector3(), toVector3(convexPolygon));

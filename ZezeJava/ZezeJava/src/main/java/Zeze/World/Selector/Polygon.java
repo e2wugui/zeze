@@ -11,16 +11,15 @@ import Zeze.World.Entity;
 import Zeze.World.Graphics2D;
 import Zeze.World.ISelector;
 
+/**
+ * 选择多边形限定的范围的cubes和entities。
+ */
 public class Polygon implements ISelector {
 	private final java.util.List<Vector3> polygon;
 	private final boolean isConvex;
 
 	// 优化，初始化的时候算出包围盒，以后用来更快速的判断。
-	private float boxMinX = Float.MAX_VALUE;
-	private float boxMinZ = Float.MAX_VALUE;
-
-	private float boxMaxX = Float.MIN_VALUE;
-	private float boxMaxZ = Float.MIN_VALUE;
+	private final Graphics2D.BoxFloat box;
 
 	/**
 	 * 构造。
@@ -30,13 +29,7 @@ public class Polygon implements ISelector {
 	public Polygon(java.util.List<Vector3> polygon, boolean isConvex) {
 		this.polygon = polygon;
 		this.isConvex = isConvex;
-
-		for (var p : polygon) {
-			if (p.x < boxMinX) boxMinX = p.x;
-			if (p.x > boxMaxX) boxMaxX = p.x;
-			if (p.z < boxMinZ) boxMinZ = p.z;
-			if (p.z > boxMaxZ) boxMaxZ = p.z;
-		}
+		this.box = new Graphics2D.BoxFloat(polygon);
 	}
 
 	@Override
@@ -49,24 +42,30 @@ public class Polygon implements ISelector {
 		return CubeMap.polygon2d(origin.getCube().map, worldPolygon, isConvex);
 	}
 
-	private boolean insideBox(Vector3 point) {
-		return point.x >= boxMinX && point.x <= boxMaxX && point.z >= boxMinZ && point.z <= boxMaxZ;
-	}
-
+	/**
+	 * 选择多边形内的实体。
+	 * 【对于mmo战斗逻辑来说，这些实体还需要进行敌我识别过滤。是否在这里抽象还需确认。】
+	 *
+	 * @param origin 发起者
+	 * @return entities in polygon.
+	 */
 	@Override
 	public List<Entity> entities(Entity origin) {
 		// 转换成以origin为原定的坐标。
 		var worldPolygon = new ArrayList<Vector3>(polygon.size());
+		var originPosition = origin.getBean().getMoving().getPosition();
 		for (var p : polygon) {
-			worldPolygon.add(p.add(origin.getBean().getMoving().getPosition()));
+			worldPolygon.add(p.add(originPosition));
 		}
 		var entities = new ArrayList<Entity>();
 		var cubes = CubeMap.polygon2d(origin.getCube().map, worldPolygon, isConvex);
+		var worldBox = box.add(originPosition);
 		for (var cube : cubes.values()) {
 			for (var entity : cube.objects.values()) {
 				var position = entity.getBean().getMoving().getPosition();
-				if (!insideBox(position)) // 快速判断，优化，如果不在包围盒内，肯定不在多边形内。
+				if (!worldBox.inside(position)) // 快速判断，优化，如果不在包围盒内，肯定不在多边形内。
 					continue;
+
 				if (isConvex) {
 					if (Graphics2D.insideConvexPolygon(position, worldPolygon))
 						entities.add(entity);

@@ -25,7 +25,7 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
             return -6995089347718168392L; // Zeze.Builtin.Timer.BCronTimer
         if (_typeId_ == 1832177636612857692L)
             return 1832177636612857692L; // Zeze.Builtin.Timer.BSimpleTimer
-        throw new UnsupportedOperationException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BTimer:TimerObj");
+        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BTimer:TimerObj");
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_3(long typeId) {

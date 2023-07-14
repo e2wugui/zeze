@@ -169,7 +169,7 @@ public final class App extends Zeze.AppBase {
 
     public synchronized void createZeze(Zeze.Config config) throws Exception {
         if (Zeze != null)
-            throw new IllegalStateException("Zeze Has Created!");
+            throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("server", config);
     }
@@ -200,57 +200,57 @@ public final class App extends Zeze.AppBase {
         Game_Login = (Game.Login.ModuleLogin)_modules_[0];
         Game_Login.Initialize(this);
         if (modules.put(Game_Login.getFullName(), Game_Login) != null)
-            throw new IllegalStateException("duplicate module name: Game_Login");
+            throw new RuntimeException("duplicate module name: Game_Login");
 
         Game_Item = (Game.Item.ModuleItem)_modules_[1];
         Game_Item.Initialize(this);
         if (modules.put(Game_Item.getFullName(), Game_Item) != null)
-            throw new IllegalStateException("duplicate module name: Game_Item");
+            throw new RuntimeException("duplicate module name: Game_Item");
 
         Game_Fight = (Game.Fight.ModuleFight)_modules_[2];
         Game_Fight.Initialize(this);
         if (modules.put(Game_Fight.getFullName(), Game_Fight) != null)
-            throw new IllegalStateException("duplicate module name: Game_Fight");
+            throw new RuntimeException("duplicate module name: Game_Fight");
 
         Game_Skill = (Game.Skill.ModuleSkill)_modules_[3];
         Game_Skill.Initialize(this);
         if (modules.put(Game_Skill.getFullName(), Game_Skill) != null)
-            throw new IllegalStateException("duplicate module name: Game_Skill");
+            throw new RuntimeException("duplicate module name: Game_Skill");
 
         Game_Buf = (Game.Buf.ModuleBuf)_modules_[4];
         Game_Buf.Initialize(this);
         if (modules.put(Game_Buf.getFullName(), Game_Buf) != null)
-            throw new IllegalStateException("duplicate module name: Game_Buf");
+            throw new RuntimeException("duplicate module name: Game_Buf");
 
         Game_Equip = (Game.Equip.ModuleEquip)_modules_[5];
         Game_Equip.Initialize(this);
         if (modules.put(Game_Equip.getFullName(), Game_Equip) != null)
-            throw new IllegalStateException("duplicate module name: Game_Equip");
+            throw new RuntimeException("duplicate module name: Game_Equip");
 
         Game_Map = (Game.Map.ModuleMap)_modules_[6];
         Game_Map.Initialize(this);
         if (modules.put(Game_Map.getFullName(), Game_Map) != null)
-            throw new IllegalStateException("duplicate module name: Game_Map");
+            throw new RuntimeException("duplicate module name: Game_Map");
 
         Game_Rank = (Game.Rank.ModuleRank)_modules_[7];
         Game_Rank.Initialize(this);
         if (modules.put(Game_Rank.getFullName(), Game_Rank) != null)
-            throw new IllegalStateException("duplicate module name: Game_Rank");
+            throw new RuntimeException("duplicate module name: Game_Rank");
 
         Game_Timer = (Game.Timer.ModuleTimer)_modules_[8];
         Game_Timer.Initialize(this);
         if (modules.put(Game_Timer.getFullName(), Game_Timer) != null)
-            throw new IllegalStateException("duplicate module name: Game_Timer");
+            throw new RuntimeException("duplicate module name: Game_Timer");
 
         Game_LongSet = (Game.LongSet.ModuleLongSet)_modules_[9];
         Game_LongSet.Initialize(this);
         if (modules.put(Game_LongSet.getFullName(), Game_LongSet) != null)
-            throw new IllegalStateException("duplicate module name: Game_LongSet");
+            throw new RuntimeException("duplicate module name: Game_LongSet");
 
         Game_MyWorld = (Game.MyWorld.ModuleMyWorld)_modules_[10];
         Game_MyWorld.Initialize(this);
         if (modules.put(Game_MyWorld.getFullName(), Game_MyWorld) != null)
-            throw new IllegalStateException("duplicate module name: Game_MyWorld");
+            throw new RuntimeException("duplicate module name: Game_MyWorld");
 
         Zeze.setSchemas(new Game.Schemas());
     }

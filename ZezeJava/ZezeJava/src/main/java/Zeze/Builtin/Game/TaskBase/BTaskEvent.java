@@ -35,7 +35,7 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             return 2442000638159095225L; // Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent
         if (_typeId_ == 2627115510834301728L)
             return 2627115510834301728L; // Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent
-        throw new UnsupportedOperationException("Unknown Bean! dynamic@Zeze.Builtin.Game.TaskBase.BTaskEvent:eventType");
+        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Game.TaskBase.BTaskEvent:eventType");
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long typeId) {
