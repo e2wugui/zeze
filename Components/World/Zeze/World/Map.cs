@@ -66,10 +66,14 @@ namespace Zeze.World
 
                 case BCommand.eAoiEnter:
                     {
+                        // enter 最好使用单独的结构，不要和eAoiOperate混起来。
                         var enter = new BAoiOperates();
                         enter.Decode(ByteBuffer.Wrap(c.Param));
                         foreach (var e in enter.Operates)
+                        {
+                            // GetOrAdd 允许存在。存在时继续更新，一般是覆盖数据，Entity来决定。
                             Entities.GetOrAdd(e.Key, (key) => new Entity(key)).ProcessOperete(e.Value);
+                        }
                     }
                     break;
 
@@ -86,6 +90,16 @@ namespace Zeze.World
                     break;
 
                 case BCommand.eAoiOperate:
+                    {
+                        var operates = new BAoiOperates();
+                        operates.Decode(ByteBuffer.Wrap(c.Param));
+                        foreach (var e in operates.Operates)
+                        {
+                            // eAoiOperate 通知忽略不存在的。
+                            if (Entities.TryGetValue(e.Key, out var entity))
+                                entity.ProcessOperete(e.Value);
+                        }
+                    }
                     break;
             }
             return Task.FromResult(0L);

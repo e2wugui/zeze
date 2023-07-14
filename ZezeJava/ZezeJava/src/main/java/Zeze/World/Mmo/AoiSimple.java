@@ -300,7 +300,7 @@ public class AoiSimple implements IAoi {
 						targets.add(entity);
 				}
 			}
-			world.getLinkSender().sendCommand(targets, BCommand.eAoiOperate, aoiOperate);
+			world.getLinkSender().sendCommand(targets, BCommand.eAoiOperate, aoiOperates);
 		}
 	}
 }
