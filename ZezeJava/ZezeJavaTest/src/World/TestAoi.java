@@ -132,6 +132,7 @@ public class TestAoi {
 					// 创建假的Link信息。
 					entity.getBean().setLinkName("1");
 					entity.getBean().setLinkSid(objInstanceId);
+					entity.internalSetCube(cube);
 					map.indexes.put(oid, cube); // 实体索引。
 				}
 

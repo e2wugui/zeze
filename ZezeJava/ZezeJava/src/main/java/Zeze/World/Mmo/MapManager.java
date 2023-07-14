@@ -174,6 +174,7 @@ public class MapManager implements IMapManager, ICommand {
 			var cube = instanceMap.getOrAdd(instanceMap.toIndex(position));
 			try (var ignored = new LockGuard(cube)) {
 				cube.pending.put(entity.getId(), entity);
+				entity.internalSetCube(cube);
 				instanceMap.indexes.put(entity.getId(), cube);
 			}
 

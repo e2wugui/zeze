@@ -99,6 +99,7 @@ public class AoiSimple implements IAoi {
 		if (cube != newCube) {
 			var entity = cube.objects.remove(self.getId());
 			newCube.objects.put(self.getId(), entity);
+			entity.internalSetCube(newCube);
 			map.indexes.put(self.getId(), newCube); // update to new cube
 		}
 	}

@@ -13,6 +13,7 @@ public class Entity {
 	private final HashSet<Entity> children = new HashSet<>();
 	private final long id;
 	private final BObject bean;
+	private Cube cube;
 
 	public Entity(long id) {
 		this.id = id;
@@ -75,6 +76,14 @@ public class Entity {
 
 	public BObject getBean() {
 		return bean;
+	}
+
+	public Cube getCube() {
+		return cube;
+	}
+
+	public void internalSetCube(Cube cube) {
+		this.cube = cube;
 	}
 
 	public Set<Entity> getChildren() {

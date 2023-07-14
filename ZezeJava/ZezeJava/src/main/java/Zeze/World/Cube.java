@@ -7,6 +7,7 @@ public class Cube {
 	public final CubeIndex index;
 	public final HashMap<Long, Entity> objects = new HashMap<>();
 	public final HashMap<Long, Entity> pending = new HashMap<>();
+	public final CubeMap map;
 
 	private final ReentrantLock lock = new ReentrantLock();
 
@@ -18,7 +19,8 @@ public class Cube {
 		lock.unlock();
 	}
 
-	public Cube(CubeIndex index) {
+	public Cube(CubeIndex index, CubeMap map) {
 		this.index = index;
+		this.map = map;
 	}
 }

@@ -25,7 +25,9 @@ public class TestMoveMmo {
 		for (var cube : cubes2d.values()) {
 			for (int i = 0; i < objectCubeCount; ++i) {
 				var oid = instanceId++;
-				cube.objects.put(oid, new Entity(oid));
+				var entity = new Entity(oid);
+				cube.objects.put(oid, entity);
+				entity.internalSetCube(cube);
 			}
 		}
 		// total = objectCubeCount * 9;

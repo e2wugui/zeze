@@ -95,7 +95,7 @@ public class CubeMap {
 	}
 
 	public final Cube getOrAdd(CubeIndex index) {
-		return cubes.computeIfAbsent(index, Cube::new);
+		return cubes.computeIfAbsent(index, (key) -> new Cube(index, this));
 	}
 
 	public final void collect(SortedMap<CubeIndex, Cube> result, CubeIndex index) {
@@ -107,6 +107,10 @@ public class CubeMap {
 	// 选出一个封闭多边形包含的cube。
 	// points，两两之间是一个线段，首尾连起来。
 	public final SortedMap<CubeIndex, Cube> polygon2d(java.util.List<Vector3> points, boolean convex) {
+		return polygon2d(this, points, convex);
+	}
+
+	public static SortedMap<CubeIndex, Cube> polygon2d(CubeMap map, java.util.List<Vector3> points, boolean convex) {
 		// cube-box 包围体
 		var boxMinX = Long.MAX_VALUE;
 		var boxMinZ = Long.MAX_VALUE;
@@ -117,7 +121,7 @@ public class CubeMap {
 		// 转换成把CubeIndex看成点的多边形。
 		var cubePoints = new ArrayList<CubeIndex>();
 		for (var point : points) {
-			var index = toIndex(point);
+			var index = map.toIndex(point);
 
 			if (index.x < boxMinX) boxMinX = index.x;
 			if (index.x > boxMaxX) boxMaxX = index.x;
@@ -134,7 +138,7 @@ public class CubeMap {
 		var result = new TreeMap<CubeIndex, Cube>();
 		if (cubePoints.size() < 3) {
 			for (var index : cubePoints)
-				collect(result, index);
+				map.collect(result, index);
 			return result;
 			// 不可能构成多边形。这实际上是多数情况。
 		}
@@ -147,7 +151,7 @@ public class CubeMap {
 			Graphics2D.bresenham2d(p1.x, p1.z, p2.x, p2.z, (x, z) -> {
 				var index = new CubeIndex(x, 0, z);
 				//System.out.println("collect " + index);
-				collect(result, index);
+				map.collect(result, index);
 			});
 		}
 
@@ -162,7 +166,7 @@ public class CubeMap {
 				for (var k = boxMinZ + 1; k < boxMaxZ; ++k) {
 					var index = new CubeIndex(i, 0, k);
 					if (Graphics2D.insideConvexPolygon(index, cubePoints))
-						collect(result, index);
+						map.collect(result, index);
 				}
 			}
 		} else {
@@ -170,7 +174,7 @@ public class CubeMap {
 				for (var k = boxMinZ + 1; k < boxMaxZ; ++k) {
 					var index = new CubeIndex(i, 0, k);
 					if (Graphics2D.insidePolygon(index, cubePoints))
-						collect(result, index);
+						map.collect(result, index);
 				}
 			}
 		}
