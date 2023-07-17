@@ -2,7 +2,12 @@
 
 <solution name="Zeze" ModuleIdAllowRanges="">
 	<import file="../../ZezeJava/ZezeJava/solution.zeze.xml"/>
-	
+
+	<project name="WorldDemo" gendir=".." GenTables="client" platform="conf+cs+net">
+		<service name="ClientService" handle="client">
+		</service>
+	</project>
+
 	<component name="World" genrelativedir="Zeze/World" GenTables="client" platform="conf+cs+net" NoRecursiveModule="true">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.World"/>
