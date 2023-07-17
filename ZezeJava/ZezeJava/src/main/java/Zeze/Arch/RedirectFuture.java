@@ -46,7 +46,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 	public boolean setException(Throwable e) {
 		var ex = e instanceof RedirectException ? (RedirectException)e
 				: new RedirectException(RedirectException.GENERIC, e);
-		if (!super.setException(e))
+		if (!super.setException(ex))
 			return false;
 		tryTriggerOnFail(ex);
 		return true;
