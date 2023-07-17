@@ -185,6 +185,7 @@ namespace Zeze.Gen.Types
 
 		public void Compile(ModuleSpace space)
 		{
+			DynamicParams.Compile(space);
             VariableType = Types.Type.Compile(space, Type, Key, Value, this);
 			if (VariableType is TypeList list)
 			{

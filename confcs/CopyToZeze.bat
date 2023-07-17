@@ -7,6 +7,7 @@ set confcs=.\Zeze
 
 copy /y %confcs%\Config.cs                       %Zeze%\
 copy /y %confcs%\IModule.cs                      %Zeze%\
+copy /y %confcs%\AppBase.cs                      %Zeze%\
 
 copy /y %confcs%\Net\*.*                         %Zeze%\Net\
 

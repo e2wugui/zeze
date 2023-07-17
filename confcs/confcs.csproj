@@ -57,6 +57,7 @@
     <Compile Include="confcs\demo\Module1\Value.cs" />
     <Compile Include="confcs\demo\Module2\Value.cs" />
     <Compile Include="TestClient.cs" />
+    <Compile Include="Zeze\AppBase.cs" />
     <Compile Include="Zeze\Application.cs" />
     <Compile Include="Zeze\Config.cs" />
     <Compile Include="Zeze\IModule.cs" />

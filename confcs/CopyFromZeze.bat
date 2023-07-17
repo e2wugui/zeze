@@ -15,6 +15,7 @@ rem md %confcs%\Zeze\Util                    2> nul
 
 copy /y %Zeze%\Config.cs                       %confcs%\
 copy /y %Zeze%\IModule.cs                      %confcs%\
+copy /y %Zeze%\AppBase.cs                      %confcs%\
 
 copy /y %Zeze%\Net\*.*                         %confcs%\Net\
 
