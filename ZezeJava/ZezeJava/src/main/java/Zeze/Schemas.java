@@ -817,6 +817,16 @@ public class Schemas implements Serializable {
 	public final TreeMap<String, Bean> beans = new TreeMap<>();
 	private final TreeMap<String, Type> basicTypes = new TreeMap<>();
 
+	private int appPublishVersion = 0;
+
+	public int getAppPublishVersion() {
+		return appPublishVersion;
+	}
+
+	public void setAppPublishVersion(int version) {
+		appPublishVersion = version;
+	}
+
 	public void checkCompatible(@Nullable Schemas other, @NotNull Application app) throws Exception {
 		if (other == null)
 			return;
@@ -855,6 +865,10 @@ public class Schemas implements Serializable {
 			if (null != beans.put(bean.name, bean))
 				throw new IllegalStateException("duplicate bean=" + bean.name);
 		}
+		// 新增的appPublishVersion在旧版里面可能没有。
+		if (bb.WriteIndex > bb.ReadIndex) {
+			appPublishVersion = bb.ReadInt();
+		}
 	}
 
 	@Override
@@ -865,6 +879,7 @@ public class Schemas implements Serializable {
 		bb.WriteInt(beans.size());
 		for (var bean : beans.values())
 			bean.encode(bb);
+		bb.WriteInt(appPublishVersion);
 	}
 
 	public void compile() {

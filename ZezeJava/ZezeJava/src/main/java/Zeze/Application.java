@@ -354,6 +354,9 @@ public final class Application {
 						schemasPrevious = null;
 						logger.error("Schemas Implement Changed? serverId={}", serverId, ex);
 					}
+					if (schemas.getAppPublishVersion() < schemasPrevious.getAppPublishVersion())
+						return; // 当前的发布版本小于先前时，不做任何操作，直接返回。
+
 					ResetDB.checkAndRemoveTable(schemasPrevious, this);
 					version = dataVersion.version;
 				}
