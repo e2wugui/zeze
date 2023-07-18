@@ -665,6 +665,37 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
+	public boolean SendShared(@NotNull Protocol<?> p) {
+		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId()))
+			log("SEND", sessionId, p);
+
+		return submitAction(() -> { // 进selector线程调用
+			var bb = p.encodeShared();
+			var bytes = bb.Bytes;
+			var offset = bb.ReadIndex;
+			var length = bb.size();
+
+			var newSize = (long)outputBufferSizeHandle.getAndAdd(this, (long)length) + length;
+			if (!service.checkOverflow(this, newSize, bytes, offset, length)) {
+				outputBufferSizeHandle.getAndAdd(this, (long)-length);
+				return;
+			}
+			var codec = outputCodecChain;
+			if (codec != null) {
+				sendRawSize += length;
+				// 压缩加密等 codec 链操作。
+				int oldSize = outputBuffer.size();
+				codec.update(bytes, offset, length);
+				int deltaLen = outputBuffer.size() - oldSize - length;
+				if (deltaLen != 0)
+					outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
+			} else
+				outputBuffer.put(bytes, offset, length);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addSendInfo(bytes, offset, length);
+		});
+	}
+
 	public boolean Send(@NotNull Protocol<?> p) {
 		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId()))
 			log("SEND", sessionId, p);

@@ -20,6 +20,19 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	private transient @Nullable Object userState;
 	public TArgument Argument;
 	protected long resultCode;
+	private volatile ByteBuffer encodeShared;
+
+	public ByteBuffer encodeShared() {
+		var tmp = encodeShared;
+		if (null != tmp)
+			return tmp;
+		synchronized (this) {
+			if (null != encodeShared)
+				return encodeShared;
+			encodeShared = encode();
+			return encodeShared;
+		}
+	}
 
 	public int getFamilyClass() {
 		return FamilyClass.Protocol;
