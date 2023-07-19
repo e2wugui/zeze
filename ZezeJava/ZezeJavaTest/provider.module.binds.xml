@@ -35,6 +35,7 @@
 	-->
 	<module name="Game.UniqueModule" providers="0"/> providers里面填写 zeze.xml::ServerId，多个用','分开。
 	<module name="Game.Map" ConfigType="Dynamic" providers=""/> providers为空表示动态绑定，不会注册到StaticBinds中。
+	<module name="Zeze.World" ConfigType="Dynamic" providers=""/> providers为空表示动态绑定，不会注册到StaticBinds中。
 
 	<!--
 	表明该ServerId指定的服务器不注册默认模块。这个配置和module配置配合起来就能实现专用服务器。

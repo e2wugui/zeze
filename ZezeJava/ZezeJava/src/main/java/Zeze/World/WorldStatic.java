@@ -20,7 +20,8 @@ public class WorldStatic extends AbstractWorldStatic {
         var position = Vector3.ZERO; // todo 根据上下文得到初始位置：1. 地图的初始位置；2. 传送时到达的位置。
         var instanceId = world.getMapManager().enterMap(session, r.Argument.getMapId(), position);
         r.Result.setMapInstanceId(instanceId);
-        r.SendResult();
+
+        session.sendResponseDirect(r);
         return 0;
     }
 }

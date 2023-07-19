@@ -156,9 +156,7 @@ public class MapManager implements IMapManager, ICommand {
 		}
 		bind.Argument.getModules().put(world.getId(), bModule);
 
-		var encodedBind = ByteBuffer.Allocate();
-		bind.encode(encodedBind);
-		world.getLinkSender().sendLink(linkName, encodedBind);
+		world.getLinkSender().sendLink(linkName, bind.encode());
 	}
 
 	// leave after bind

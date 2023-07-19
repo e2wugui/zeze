@@ -1,6 +1,7 @@
 package Zeze.World;
 
 import java.util.Collection;
+import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Data;
 
