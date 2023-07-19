@@ -1,6 +1,7 @@
 package Zeze.World;
 
 import java.io.IOException;
+import Zeze.Builtin.World.BMove;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector3;
@@ -27,7 +28,7 @@ public interface IAoi {
 	 * 3. 当目标是玩家时，还会装载新加入的Cube的数据。
 	 * 4. 等等。
 	 */
-	void moveTo(long oid, Vector3 position) throws Exception;
+	void moveTo(long oid, BMove.Data move) throws Exception;
 
 	/**
 	 * 整个物体数据全量更新。
@@ -35,6 +36,7 @@ public interface IAoi {
 	 * 2. 物体视野Cube新增时，通知自己的全部数据给玩家。
  	 */
 	int eOperateIdFull = 0;
+	int eOperateIdMove = 1;
 
 	/**
 	 * 物体发生了数据修改，使用这个方法发起变更广播。

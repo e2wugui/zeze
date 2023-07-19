@@ -62,6 +62,7 @@ namespace Zeze.World
             switch (c.CommandId)
             {
                 case BCommand.eMoveMmo:
+                    Console.WriteLine($"Impossible!");
                     break;
 
                 case BCommand.eAoiEnter:

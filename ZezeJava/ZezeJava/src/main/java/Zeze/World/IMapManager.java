@@ -9,6 +9,7 @@ import Zeze.Serialize.Vector3;
  * 可重用性高，一般不需要重写。
  */
 public interface IMapManager {
+	World getWorld();
 	CubeMap createMap();
 
 	/**

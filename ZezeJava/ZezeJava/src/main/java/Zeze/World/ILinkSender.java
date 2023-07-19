@@ -1,6 +1,7 @@
 package Zeze.World;
 
 import java.util.Collection;
+import Zeze.Builtin.Provider.Send;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Data;
@@ -10,6 +11,7 @@ import Zeze.Transaction.Data;
  */
 public interface ILinkSender {
 	boolean sendLink(String linkName, ByteBuffer fullEncodedProtocol);
+	boolean sendLink(String linkName, Send send);
 	boolean sendCommand(String linkName, long linkSid, int commandId, Data data);
 	boolean sendCommand(Collection<Entity> targets, int commandId, Data data);
 }

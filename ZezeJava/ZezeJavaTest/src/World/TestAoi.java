@@ -9,11 +9,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import Zeze.Arch.ProviderUserSession;
-import Zeze.Builtin.Provider.Dispatch;
+import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.World.BAoiLeaves;
 import Zeze.Builtin.World.BAoiOperates;
 import Zeze.Builtin.World.BCommand;
+import Zeze.Builtin.World.BMove;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector3;
 import Zeze.Transaction.Data;
@@ -46,6 +46,11 @@ public class TestAoi {
 
 		@Override
 		public boolean sendLink(String linkName, ByteBuffer fullEncodedProtocol) {
+			throw new RuntimeException("impossible!");
+		}
+
+		@Override
+		public boolean sendLink(String linkName, Send send) {
 			throw new RuntimeException("impossible!");
 		}
 
@@ -145,8 +150,9 @@ public class TestAoi {
 							rLock.lock();
 							var cubeX = Zeze.Util.Random.getInstance().nextInt(cubeNumber);
 							var p = new Vector3(xBase + 64 * cubeX, yBase, zBase);
-
-							aoi.moveTo(oid, p);
+							var move = new BMove.Data();
+							move.setPosition(p);
+							aoi.moveTo(oid, move);
 							moveCount.incrementAndGet();
 						} finally {
 							rLock.unlock();
@@ -181,7 +187,7 @@ public class TestAoi {
 
 	@Test
 	public void testDiff() {
-		var map = new CubeMap(0, 64, 64);
+		var map = new CubeMap(null, 0, 64, 64);
 		{
 			var olds = map.center(new CubeIndex(0, 0, 0), 1, 0, 1);
 			var news = map.center(new CubeIndex(2, 0, 0), 1, 0, 1);
@@ -210,7 +216,7 @@ public class TestAoi {
 
 	@Test
 	public void testAioSimple() {
-		var map = new CubeMap(0, 64, 64);
+		var map = new CubeMap(null, 0, 64, 64);
 		var aoi = new AoiSimple(null, map, 1, 1);
 		map.setAoi(aoi); // not used in this test
 

@@ -3,11 +3,13 @@ package Zeze.World;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.World.Command;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Data;
+import Zeze.Util.LongList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -36,6 +38,28 @@ public class LinkSender implements ILinkSender {
 	}
 
 	@Override
+	public boolean sendLink(String linkName, Send send) {
+		var link = world.providerApp.providerService.getLinks().get(linkName);
+		if (null == link) {
+			logger.info("link not found: {}", linkName);
+			return false;
+		}
+		var socket = link.TryGetReadySocket();
+		if (null == socket) {
+			logger.info("link socket not ready. {}", linkName);
+			return false;
+		}
+		return send.Send(socket, rpc -> triggerLinkBroken(
+				linkName, send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids()));
+	}
+
+	private long triggerLinkBroken(String linkName, LongList errorSids) {
+		if (!errorSids.isEmpty())
+			logger.warn("{} errorSids={}", linkName, errorSids);
+		return 0;
+	}
+
+	@Override
 	public boolean sendCommand(String linkName, long linkSid, int commandId, Data data) {
 		logger.info("SendCommand {}:{} {}", linkName, linkSid, commandId);
 		var send = encodeSend(java.util.List.of(linkSid), Command.TypeId_, encodeCommand(commandId, data));
@@ -57,13 +81,13 @@ public class LinkSender implements ILinkSender {
 		return result;
 	}
 
-	public static ByteBuffer encodeSend(Collection<Long> linkSids, long typeId, ByteBuffer wholeProtocol) {
+	public static Send encodeSend(Collection<Long> linkSids, long typeId, ByteBuffer wholeProtocol) {
 		var send = new Send();
 		send.Argument.getLinkSids().addAll(linkSids);
 		send.Argument.setProtocolType(typeId);
 		send.Argument.setProtocolWholeData(new Binary(wholeProtocol));
 
-		return send.encode();
+		return send;
 	}
 
 	public static ByteBuffer encodeCommand(int commandId, Data data) {

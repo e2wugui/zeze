@@ -106,7 +106,6 @@ namespace Zeze.World
 
                     var confirm = new BEnterConfirm();
                     confirm.MapInstanceId = enter.MapInstanceId;
-                    confirm.EntityId = enter.EntityId;
 
                     Map.SendCommand(BCommand.eEnterConfirm, confirm);
 

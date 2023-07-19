@@ -20,8 +20,19 @@ namespace Zeze.World
         internal void ProcessOperete(BAoiOperate operate)
         {
             // 先直接使用服务器数据结构的定义。
-            var full = new BObject();
-            full.Decode(ByteBuffer.Wrap(operate.Param));
+            switch (operate.OperateId)
+            {
+                case 0:
+                    var full = new BObject();
+                    full.Decode(ByteBuffer.Wrap(operate.Param));
+                    break;
+
+                case 1:
+                    var move = new BMove();
+                    move.Decode(ByteBuffer.Wrap(operate.Param));
+                    Console.WriteLine($"OnMove {move}");
+                    break;
+            }
         }
     }
 }

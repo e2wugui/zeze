@@ -8,7 +8,6 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
     public static final long TYPEID = 7682260201605989500L;
 
     private long _MapInstanceId;
-    private long _EntityId; // 自己的实体Id，来自BEnterWorld。
 
     @Override
     public long getMapInstanceId() {
@@ -30,40 +29,18 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
         txn.putLog(new Log__MapInstanceId(this, 1, value));
     }
 
-    @Override
-    public long getEntityId() {
-        if (!isManaged())
-            return _EntityId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _EntityId;
-        var log = (Log__EntityId)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _EntityId;
-    }
-
-    public void setEntityId(long value) {
-        if (!isManaged()) {
-            _EntityId = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__EntityId(this, 2, value));
-    }
-
     @SuppressWarnings("deprecation")
     public BEnterConfirm() {
     }
 
     @SuppressWarnings("deprecation")
-    public BEnterConfirm(long _MapInstanceId_, long _EntityId_) {
+    public BEnterConfirm(long _MapInstanceId_) {
         _MapInstanceId = _MapInstanceId_;
-        _EntityId = _EntityId_;
     }
 
     @Override
     public void reset() {
         setMapInstanceId(0);
-        setEntityId(0);
         _unknown_ = null;
     }
 
@@ -81,13 +58,11 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
 
     public void assign(BEnterConfirm.Data other) {
         setMapInstanceId(other._MapInstanceId);
-        setEntityId(other._EntityId);
         _unknown_ = null;
     }
 
     public void assign(BEnterConfirm other) {
         setMapInstanceId(other.getMapInstanceId());
-        setEntityId(other.getEntityId());
         _unknown_ = other._unknown_;
     }
 
@@ -120,13 +95,6 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
         public void commit() { ((BEnterConfirm)getBelong())._MapInstanceId = value; }
     }
 
-    private static final class Log__EntityId extends Zeze.Transaction.Logs.LogLong {
-        public Log__EntityId(BEnterConfirm bean, int varId, long value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BEnterConfirm)getBelong())._EntityId = value; }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -138,8 +106,7 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BEnterConfirm: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("MapInstanceId=").append(getMapInstanceId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("EntityId=").append(getEntityId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("MapInstanceId=").append(getMapInstanceId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -179,13 +146,6 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
                 _o_.WriteLong(_x_);
             }
         }
-        {
-            long _x_ = getEntityId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -199,10 +159,6 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
             setMapInstanceId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 2) {
-            setEntityId(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -210,8 +166,6 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
     @Override
     public boolean negativeCheck() {
         if (getMapInstanceId() < 0)
-            return true;
-        if (getEntityId() < 0)
             return true;
         return false;
     }
@@ -226,7 +180,6 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _MapInstanceId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _EntityId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }
@@ -235,21 +188,18 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setMapInstanceId(rs.getLong(_parents_name_ + "MapInstanceId"));
-        setEntityId(rs.getLong(_parents_name_ + "EntityId"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "MapInstanceId", getMapInstanceId());
-        st.appendLong(_parents_name_ + "EntityId", getEntityId());
     }
 
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7682260201605989500L;
 
     private long _MapInstanceId;
-    private long _EntityId; // 自己的实体Id，来自BEnterWorld。
 
     public long getMapInstanceId() {
         return _MapInstanceId;
@@ -259,28 +209,18 @@ public static final class Data extends Zeze.Transaction.Data {
         _MapInstanceId = value;
     }
 
-    public long getEntityId() {
-        return _EntityId;
-    }
-
-    public void setEntityId(long value) {
-        _EntityId = value;
-    }
-
     @SuppressWarnings("deprecation")
     public Data() {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _MapInstanceId_, long _EntityId_) {
+    public Data(long _MapInstanceId_) {
         _MapInstanceId = _MapInstanceId_;
-        _EntityId = _EntityId_;
     }
 
     @Override
     public void reset() {
         _MapInstanceId = 0;
-        _EntityId = 0;
     }
 
     @Override
@@ -297,12 +237,10 @@ public static final class Data extends Zeze.Transaction.Data {
 
     public void assign(BEnterConfirm other) {
         _MapInstanceId = other.getMapInstanceId();
-        _EntityId = other.getEntityId();
     }
 
     public void assign(BEnterConfirm.Data other) {
         _MapInstanceId = other._MapInstanceId;
-        _EntityId = other._EntityId;
     }
 
     @Override
@@ -339,8 +277,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.BEnterConfirm: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("MapInstanceId=").append(_MapInstanceId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("EntityId=").append(_EntityId).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("MapInstanceId=").append(_MapInstanceId).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -367,13 +304,6 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteLong(_x_);
             }
         }
-        {
-            long _x_ = _EntityId;
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
         _o_.WriteByte(0);
     }
 
@@ -383,10 +313,6 @@ public static final class Data extends Zeze.Transaction.Data {
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
             _MapInstanceId = _o_.ReadLong(_t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            _EntityId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

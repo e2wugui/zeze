@@ -12,7 +12,6 @@ import Zeze.Builtin.World.BLoad;
 import Zeze.Builtin.World.BLoadMap;
 import Zeze.Builtin.World.Command;
 import Zeze.Component.AutoKey;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector3;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Procedure;
@@ -20,14 +19,23 @@ import Zeze.World.CubeMap;
 import Zeze.World.Entity;
 import Zeze.World.ICommand;
 import Zeze.World.IMapManager;
+import Zeze.World.LinkSender;
 import Zeze.World.LockGuard;
 import Zeze.World.World;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class MapManager implements IMapManager, ICommand {
+	private static final Logger logger = LogManager.getLogger(MapManager.class);
 	private final AutoKey autoKeyMap;
 	private final AutoKey autoKeyEntity;
 	private final ConcurrentHashMap<Long, CubeMap> cubeMaps = new ConcurrentHashMap<>();
 	public final World world;
+
+	@Override
+	public World getWorld() {
+		return world;
+	}
 
 	// 【本地】
 	// 1. 间隔短或者即时的负载统计。
@@ -103,14 +111,18 @@ public class MapManager implements IMapManager, ICommand {
 		if (null == map)
 			return Procedure.LogicError; // instance to found
 
-		return map.getAoi().enter(arg.getEntityId());
+		// todo 测试环境目前是roleId，但是测试代码没有实现role的登录登出，所以这些先用account。
+		var entityId = map.players.get(account);
+		if (null == entityId)
+			return Procedure.LogicError;
+		return map.getAoi().enter(entityId);
 	}
 
 	@Override
 	public CubeMap createMap() {
 		var instanceId = autoKeyMap.nextId();
 		return cubeMaps.computeIfAbsent(instanceId, (key) -> {
-			var map = new CubeMap(instanceId, 64, 64);
+			var map = new CubeMap(this, instanceId, 64, 64);
 			map.setAoi(new AoiSimple(world, map, 1, 1));
 			return map;
 		});
@@ -156,7 +168,17 @@ public class MapManager implements IMapManager, ICommand {
 		}
 		bind.Argument.getModules().put(world.getId(), bModule);
 
-		world.getLinkSender().sendLink(linkName, bind.encode());
+		var link = world.providerApp.providerService.getLinks().get(linkName);
+		if (null == link) {
+			logger.info("link not found: {}", linkName);
+			return;
+		}
+		var socket = link.TryGetReadySocket();
+		if (null == socket) {
+			logger.info("link socket not ready. {}", linkName);
+			return;
+		}
+		bind.Send(socket, rpc -> 0);
 	}
 
 	// leave after bind
@@ -168,12 +190,17 @@ public class MapManager implements IMapManager, ICommand {
 		if (null != instanceMap) {
 			var entity = createEntity(); // todo 上下文参数
 
+			entity.getBean().setLinkName(session.getLinkName());
+			entity.getBean().setLinkSid(session.getLinkSid());
+
 			// 加入 cube map
 			var cube = instanceMap.getOrAdd(instanceMap.toIndex(position));
 			try (var ignored = new LockGuard(cube)) {
 				cube.pending.put(entity.getId(), entity);
 				entity.internalSetCube(cube);
 				instanceMap.indexes.put(entity.getId(), cube);
+				// todo 测试环境目前是roleId，但是测试代码没有实现role的登录登出，所以这些先用account。
+				instanceMap.players.put(session.getAccount(), entity.getId());
 			}
 
 			// link bind

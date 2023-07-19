@@ -17,7 +17,7 @@ public class TestMoveMmo {
 	public void testMoveBench() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
 
-		var map = new CubeMap(0, 128, 128);
+		var map = new CubeMap(null, 0, 128, 128);
 		var center = map.toIndex(0, 0, 0);
 		var cubes2d = map.center(center, 1, 0, 1);
 		var instanceId = 0L;

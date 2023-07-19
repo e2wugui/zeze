@@ -8,6 +8,7 @@ import Zeze.Builtin.World.BAoiLeaves;
 import Zeze.Builtin.World.BAoiOperate;
 import Zeze.Builtin.World.BAoiOperates;
 import Zeze.Builtin.World.BCommand;
+import Zeze.Builtin.World.BMove;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Data;
@@ -16,7 +17,6 @@ import Zeze.World.CubeIndex;
 import Zeze.World.Entity;
 import Zeze.World.LockGuard;
 import Zeze.World.World;
-import Zeze.Serialize.Vector3;
 import Zeze.World.Cube;
 import Zeze.World.CubeMap;
 import Zeze.World.IAoi;
@@ -94,8 +94,8 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
-	protected void update(Entity self, Vector3 position, Cube cube, Cube newCube) {
-		self.getBean().getMoving().setPosition(position);
+	protected void update(Entity self, BMove.Data move, Cube cube, Cube newCube) {
+		self.getBean().setMoving(move);
 		if (cube != newCube) {
 			var entity = cube.objects.remove(self.getId());
 			newCube.objects.put(self.getId(), entity);
@@ -124,13 +124,13 @@ public class AoiSimple implements IAoi {
 	}
 
 	@Override
-	public void moveTo(long oid, Vector3 position) throws Exception {
+	public void moveTo(long oid, BMove.Data move) throws Exception {
 		var cube = map.indexes.get(oid);
 		if (null == cube)
 			throw new RuntimeException("entity not found.");
 
 		// 计算新index，并根据进入新Cube的距离完成数据更新。
-		var newIndex = map.toIndex(position);
+		var newIndex = map.toIndex(move.getPosition());
 		var newCube = map.getOrAdd(newIndex);
 
 		// todo 先最大化锁住所有cube，保证可用。
@@ -138,9 +138,11 @@ public class AoiSimple implements IAoi {
 		var dp = (int)cube.index.distancePerpendicular(newIndex);
 		switch (dp) {
 		case 0:
-			try (var ignored = new LockGuard(cube)) {
+			var cubes = map.center(cube.index, rangeX, rangeY, rangeZ);
+			try (var ignored = new LockGuard(cubes)) {
 				var self = cube.objects.get(oid);
-				update(self, position, cube, newCube);
+				update(self, move, cube, newCube);
+				processNotify(self, cubes, eOperateIdMove, move);
 			}
 			// same cube
 			// 根据位置同步协议，可能需要向第三方广播一下。
@@ -170,7 +172,7 @@ public class AoiSimple implements IAoi {
 			locks1.putAll(fastLeaves);
 			try (var ignored = new LockGuard(locks1)) {
 				var self = cube.objects.get(oid);
-				update(self, position, cube, newCube);
+				update(self, move, cube, newCube);
 				processEnters(cube, self, fastEnters);
 				processLeaves(cube, self, fastLeaves);
 			}
@@ -189,12 +191,35 @@ public class AoiSimple implements IAoi {
 
 			try (var ignored = new LockGuard(locks2)) {
 				var self = cube.objects.get(oid);
-				update(self, position, cube, newCube);
+				update(self, move, cube, newCube);
 				processEnters(cube, self, enters);
 				processLeaves(cube, self, olds);
 			}
 			break;
 		}
+	}
+
+	protected void processNotify(Entity self, SortedMap<CubeIndex, Cube> notifies, int operateId, Data operate) {
+		var targets = new ArrayList<Entity>();
+		var aoiOperates = new BAoiOperates.Data();
+
+		// operate 总是修改一个实体，不需要处理tree问题。
+		var aoiOperate = new BAoiOperate.Data();
+
+		aoiOperate.setOperateId(operateId);
+		var bb = ByteBuffer.Allocate();
+		operate.encode(bb);
+		aoiOperate.setParam(new Binary(bb));
+		aoiOperates.getOperates().put(self.getId(), aoiOperate);
+
+		for (var cube : notifies.values()) {
+			for (var entity : cube.objects.values()) {
+				if (entity.isPlayer())
+					targets.add(entity);
+			}
+		}
+		if (!targets.isEmpty())
+			world.getLinkSender().sendCommand(targets, BCommand.eAoiOperate, aoiOperates);
 	}
 
 	protected void processEnters(Cube my, Entity self,
@@ -285,25 +310,7 @@ public class AoiSimple implements IAoi {
 		// todo 由于notify的处理，客户端在没有enter时可以忽略。
 		//  这里应该可以一个一个cube锁定。先最大化锁定！
 		try (var ignored = new LockGuard(centers)) {
-			var targets = new ArrayList<Entity>();
-			var aoiOperates = new BAoiOperates.Data();
-
-			// operate 总是修改一个实体，不需要处理tree问题。
-			var aoiOperate = new BAoiOperate.Data();
-
-			aoiOperate.setOperateId(IAoi.eOperateIdFull);
-			var bb = ByteBuffer.Allocate();
-			operate.encode(bb);
-			aoiOperate.setParam(new Binary(bb));
-			aoiOperates.getOperates().put(self.getId(), aoiOperate);
-
-			for (var cube : centers.values()) {
-				for (var entity : cube.objects.values()) {
-					if (entity.isPlayer())
-						targets.add(entity);
-				}
-			}
-			world.getLinkSender().sendCommand(targets, BCommand.eAoiOperate, aoiOperates);
+			processNotify(self, centers, operateId, operate);
 		}
 	}
 }

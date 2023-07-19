@@ -12,12 +12,12 @@ public class Entity {
 	private Entity parent;
 	private final HashSet<Entity> children = new HashSet<>();
 	private final long id;
-	private final BObject bean;
+	private final BObject.Data bean;
 	private Cube cube;
 
 	public Entity(long id) {
 		this.id = id;
-		this.bean = new BObject();
+		this.bean = new BObject.Data();
 	}
 
 	public boolean isPlayer() {
@@ -74,7 +74,7 @@ public class Entity {
 		return id;
 	}
 
-	public BObject getBean() {
+	public BObject.Data getBean() {
 		return bean;
 	}
 

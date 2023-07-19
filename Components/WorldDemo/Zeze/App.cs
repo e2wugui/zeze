@@ -1,4 +1,5 @@
 
+using Zeze.Builtin.World;
 using Zeze.Net;
 using Zeze.Serialize;
 
@@ -34,6 +35,13 @@ namespace Zeze
             await auth.SendAsync(Connector.Socket);
 
             await World.SwitchWorld(1, new Vector3(), new Vector3());
+
+            for (var i = 0; i < 100; ++i)
+            {
+                var move = new BMove();
+                World.Map.SendCommand(BCommand.eMoveMmo, move);
+                await Task.Delay(1000);
+            }
         }
 
         public void Stop()

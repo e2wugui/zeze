@@ -1631,7 +1631,6 @@
 			</bean>
 			<bean name="BEnterConfirm">
 				<variable id="1" name="MapInstanceId" type="long"/>
-				<variable id="2" name="EntityId" type="long"/> 自己的实体Id，来自BEnterWorld。
 			</bean>
 			<bean name="BAoiOperate"> 一个具体的操作。
 				<variable id="1" name="OperateId" type="int"/>
