@@ -16,7 +16,7 @@ import Zeze.Transaction.Data;
 public interface IAoi {
 	/**
 	 * 进入aoi。
-	 * @param oid oid
+	 * @param entity entity
 	 * @throws IOException
 	 * @return error code, 0 success.
 	 */
@@ -42,9 +42,9 @@ public interface IAoi {
 	 * 物体发生了数据修改，使用这个方法发起变更广播。
 	 * operateId > 0 是自定义编辑分类。
 	 * 例子：
-	 * 1. eOperateIdEquip = 1; 玩家装备发生了变化。
-	 * 2. eOperateIdHorse = 2; 玩家坐骑发生了变化。
-	 * 3. eOperateIdFight = 3; 战斗属性发生了变化。
+	 * 1. eOperateIdEquip = 10; 玩家装备发生了变化。
+	 * 2. eOperateIdHorse = 11; 玩家坐骑发生了变化。
+	 * 3. eOperateIdFight = 12; 战斗属性发生了变化。
 	 * 4. ...
 	 *
 	 * 分类原则：
