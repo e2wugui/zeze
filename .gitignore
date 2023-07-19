@@ -43,3 +43,5 @@ x64/
 /UnitTest/Properties
 /Zeze/Arch/linkd
 /CxxTest/Gen
+/Components/WorldDemo/Gen
+/Components/WorldDemo/Zeze/Builtin
