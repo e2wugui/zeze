@@ -50,7 +50,7 @@ public class TestAoi {
 		}
 
 		@Override
-		public boolean sendCommand(String linkName, long linkSid, int commandId, Data data) {
+		public boolean sendCommand(String linkName, long linkSid, long mapInstanceId, int commandId, Data data) {
 			var views = players.computeIfAbsent(linkSid, (key) -> new HashSet<>());
 			switch (commandId) {
 			case BCommand.eAoiEnter:
@@ -71,9 +71,9 @@ public class TestAoi {
 		}
 
 		@Override
-		public boolean sendCommand(Collection<Entity> targets, int commandId, Data data) {
+		public boolean sendCommand(Collection<Entity> targets, long mapInstanceId, int commandId, Data data) {
 			for (var player : targets) {
-				sendCommand("not used", player.getBean().getLinkSid(), commandId, data);
+				sendCommand("not used", player.getBean().getLinkSid(), mapInstanceId, commandId, data);
 			}
 			return false;
 		}

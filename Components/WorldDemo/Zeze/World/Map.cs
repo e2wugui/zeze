@@ -59,6 +59,9 @@ namespace Zeze.World
 
         public Task<long> Handle(BCommand c)
         {
+            if (c.MapInstanceId != MapInstanceId)
+                return Task.FromResult(0L); // skip not current map commands。只处理当前map的协议。
+
             switch (c.CommandId)
             {
                 case BCommand.eMoveMmo:

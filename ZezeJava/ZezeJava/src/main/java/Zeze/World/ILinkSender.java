@@ -12,6 +12,6 @@ import Zeze.Transaction.Data;
 public interface ILinkSender {
 	boolean sendLink(String linkName, ByteBuffer fullEncodedProtocol);
 	boolean sendLink(String linkName, Send send);
-	boolean sendCommand(String linkName, long linkSid, int commandId, Data data);
-	boolean sendCommand(Collection<Entity> targets, int commandId, Data data);
+	boolean sendCommand(String linkName, long linkSid, long mapInstanceId, int commandId, Data data);
+	boolean sendCommand(Collection<Entity> targets, long mapInstanceId, int commandId, Data data);
 }

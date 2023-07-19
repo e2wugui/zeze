@@ -217,7 +217,9 @@ public class MapManager implements IMapManager, ICommand {
 			param.setPosition(Vector3.ZERO);
 			param.setDirect(Vector3.ZERO);
 
-			world.getLinkSender().sendCommand(linkName, linkSid, BCommand.eEnterWorld, param);
+			world.getLinkSender().sendCommand(
+					linkName, linkSid,
+					instanceMap.getInstanceId(), BCommand.eEnterWorld, param);
 			return instanceMap.getInstanceId();
 		}
 

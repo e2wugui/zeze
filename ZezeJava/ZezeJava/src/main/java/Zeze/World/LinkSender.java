@@ -60,23 +60,26 @@ public class LinkSender implements ILinkSender {
 	}
 
 	@Override
-	public boolean sendCommand(String linkName, long linkSid, int commandId, Data data) {
-		logger.info("SendCommand {}:{} {}", linkName, linkSid, commandId);
-		var send = encodeSend(java.util.List.of(linkSid), Command.TypeId_, encodeCommand(commandId, data));
+	public boolean sendCommand(String linkName, long linkSid, long mapInstanceId, int commandId, Data data) {
+		logger.info("SendCommand {} {} {}:{}", linkName, linkSid, mapInstanceId, commandId);
+		var send = encodeSend(
+				java.util.List.of(linkSid),
+				Command.TypeId_,
+				encodeCommand(mapInstanceId, commandId, data));
 		return sendLink(linkName, send);
 	}
 
 	@Override
-	public boolean sendCommand(Collection<Entity> targets, int commandId, Data data) {
+	public boolean sendCommand(Collection<Entity> targets, long mapInstanceId, int commandId, Data data) {
 		var group = new HashMap<String, ArrayList<Long>>();
 		for (var target : targets) {
 			var link = group.computeIfAbsent(target.getBean().getLinkName(), (key) -> new ArrayList<>());
 			link.add(target.getBean().getLinkSid());
 		}
 		var result = true;
-		var command = encodeCommand(commandId, data);
+		var command = encodeCommand(mapInstanceId, commandId, data);
 		for (var e : group.entrySet()) {
-			logger.info("SendCommand {}:{} {}", e.getKey(), e.getValue(), commandId);
+			logger.info("SendCommand {} {} {}:{}", e.getKey(), e.getValue(), mapInstanceId, commandId);
 			result &= sendLink(e.getKey(), encodeSend(e.getValue(), Command.TypeId_, command));
 		}
 		return result;
@@ -91,9 +94,10 @@ public class LinkSender implements ILinkSender {
 		return send;
 	}
 
-	public static ByteBuffer encodeCommand(int commandId, Data data) {
+	public static ByteBuffer encodeCommand(long mapInstanceId, int commandId, Data data) {
 		var cmd = new Command();
 		cmd.Argument.setCommandId(commandId);
+		cmd.Argument.setMapInstanceId(mapInstanceId);
 		var bb = ByteBuffer.Allocate();
 		data.encode(bb);
 		cmd.Argument.setParam(new Binary(bb));

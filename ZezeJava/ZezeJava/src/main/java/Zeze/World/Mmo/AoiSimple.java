@@ -209,7 +209,7 @@ public class AoiSimple implements IAoi {
 			}
 		}
 		if (!targets.isEmpty())
-			world.getLinkSender().sendCommand(targets, BCommand.eAoiOperate, aoiOperates);
+			world.getLinkSender().sendCommand(targets, map.getInstanceId(), BCommand.eAoiOperate, aoiOperates);
 	}
 
 	protected void processEnters(Entity self,
@@ -227,22 +227,24 @@ public class AoiSimple implements IAoi {
 
 				// 限制一次传输过多数据，达到数量，马上发送。
 				if (aoiEnters.getOperates().size() > 200) {
-					world.getLinkSender().sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(),
-							BCommand.eAoiEnter, aoiEnters);
+					world.getLinkSender().sendCommand(
+							self.getBean().getLinkName(), self.getBean().getLinkSid(),
+							map.getInstanceId(), BCommand.eAoiEnter, aoiEnters);
 					aoiEnters.getOperates().clear();
 				}
 			}
 		}
 		if (!aoiEnters.getOperates().isEmpty()) {
-			world.getLinkSender().sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(),
-					BCommand.eAoiEnter, aoiEnters);
+			world.getLinkSender().sendCommand(
+					self.getBean().getLinkName(), self.getBean().getLinkSid(),
+					map.getInstanceId(), BCommand.eAoiEnter, aoiEnters);
 		}
 		if (!targets.isEmpty())
 		{
 			// encode 自己的数据。
 			var enterMe = new BAoiOperates.Data();
 			Entity.buildPlayer(enterMe.getOperates(), self, this::encodeEnter);
-			world.getLinkSender().sendCommand(targets, BCommand.eAoiEnter, enterMe);
+			world.getLinkSender().sendCommand(targets, map.getInstanceId(), BCommand.eAoiEnter, enterMe);
 		}
 	}
 
@@ -259,21 +261,23 @@ public class AoiSimple implements IAoi {
 
 				aoiLeaves.getKeys().add(entity.getId());
 				if (aoiLeaves.getKeys().size() > 200) {
-					world.getLinkSender().sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(),
-							BCommand.eAoiLeave, aoiLeaves);
+					world.getLinkSender().sendCommand(
+							self.getBean().getLinkName(), self.getBean().getLinkSid(),
+							map.getInstanceId(), BCommand.eAoiLeave, aoiLeaves);
 					aoiLeaves.getKeys().clear();
 				}
 			}
 		}
 		if (!aoiLeaves.getKeys().isEmpty()) {
-			world.getLinkSender().sendCommand(self.getBean().getLinkName(), self.getBean().getLinkSid(),
-					BCommand.eAoiLeave, aoiLeaves);
+			world.getLinkSender().sendCommand(
+					self.getBean().getLinkName(), self.getBean().getLinkSid(),
+					map.getInstanceId(), BCommand.eAoiLeave, aoiLeaves);
 		}
 
 		if (!targets.isEmpty()) {
 			var removeMe = new BAoiLeaves.Data();
 			removeMe.getKeys().add(self.getId());
-			world.getLinkSender().sendCommand(targets, BCommand.eAoiLeave, removeMe);
+			world.getLinkSender().sendCommand(targets, map.getInstanceId(), BCommand.eAoiLeave, removeMe);
 		}
 	}
 
