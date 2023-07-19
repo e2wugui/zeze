@@ -80,18 +80,7 @@ namespace Zeze.Gen
 
         public StreamWriter OpenWriter(string baseDir, string fileName, bool overwrite = true)
         {
-            string fullDir = GetFullPath(baseDir);
-            //Program.Print("CreateDirectory:" + fullDir);
-            FileSystem.CreateDirectory(fullDir);
-            string fullFileName = System.IO.Path.Combine(fullDir, fileName);
-            bool exists = File.Exists(fullFileName);
-            if (!exists || overwrite)
-            {
-                //Program.Print("file " + (exists ? "overwrite" : "new") + " '" + fullFileName + "'");
-                return Program.OpenStreamWriter(fullFileName);
-            }
-            //Program.Print("file skip '" + fullFileName + "'");
-            return null;
+            return Program.OpenWriterNoPath(GetFullPath(baseDir), fileName, overwrite);
         }
 
         public Dictionary<string, Module> Modules { get; private set; } = new();

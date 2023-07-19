@@ -391,6 +391,7 @@ namespace Zeze.Gen
 
         public static StreamWriter OpenWriterNoPath(string baseDir, string fileName, bool overwrite = true)
         {
+            baseDir = Path.GetFullPath(baseDir);
             FileSystem.CreateDirectory(baseDir);
             string fullFileName = Path.Combine(baseDir, fileName);
             bool exists = File.Exists(fullFileName);
@@ -400,6 +401,7 @@ namespace Zeze.Gen
                 return OpenStreamWriter(fullFileName);
             }
             //Program.Print("file skip '" + fullFileName + "'");
+            Outputs[fullFileName] = null;
             return null;
         }
 
@@ -424,7 +426,7 @@ namespace Zeze.Gen
                         Print("Skip: " + fullPath, ConsoleColor.Gray);
                     return null;
                 }
-                oldWriter.Close();
+                oldWriter?.Close();
             }
             var sw = new StreamWriterOverwriteWhenChange(fullPath);
             Outputs[fullPath] = sw;
@@ -445,7 +447,7 @@ namespace Zeze.Gen
         {
             foreach (var output in Outputs)
             {
-                output.Value.Dispose();
+                output.Value?.Dispose();
             }
             OutputsAll.UnionWith(Outputs.Keys);
             Outputs.Clear();
