@@ -131,10 +131,6 @@ public class AoiSimple implements IAoi {
 				update(entity, move, cube, newCube);
 				processNotify(entity, cubes, eOperateIdMove, move);
 			}
-			// same cube
-			// 根据位置同步协议，可能需要向第三方广播一下。
-			// 如果位置同步协议总是即时的依赖发起方的命令。
-			// 那除非算法要求，同一个cube是不需要广播的。
 			break;
 
 		case 1:
@@ -155,17 +151,24 @@ public class AoiSimple implements IAoi {
 			fastCollectWithFixedZ(fastLeaves, cube.index, -dz);
 
 			var locks1 = map.center(newCube.index, rangeX, rangeY, rangeZ);
+			// 计算不变的部分Cube。
+			var notifies1 = new TreeMap<CubeIndex, Cube>();
+			for (var e : locks1.entrySet()) {
+				if (!fastEnters.containsKey(e.getKey()))
+					notifies1.put(e.getKey(), e.getValue());
+			}
 			//locks1.putAll(fastEnters); // fastEnters 肯定在以newCube为中心的"9"宫格内。
 			locks1.putAll(fastLeaves);
 			try (var ignored = new LockGuard(locks1)) {
 				update(entity, move, cube, newCube);
 				processEnters(entity, fastEnters);
 				processLeaves(entity, fastLeaves);
+				processNotify(entity, notifies1, eOperateIdMove, move);
 			}
 			break;
 
 		default:
-			// 到达变化步长超过1的新的位置
+			// 到达变化步长超过1的新的位置（这个实际上能处理任意步长）
 			var locks2 = new TreeMap<CubeIndex, Cube>();
 			var olds = map.center(cube.index, rangeX, rangeY, rangeZ);
 			locks2.putAll(olds); // 必须先收集，后面的diff会修改olds。
@@ -173,12 +176,14 @@ public class AoiSimple implements IAoi {
 			locks2.putAll(news);
 
 			var enters = new TreeMap<CubeIndex, Cube>();
-			diff(olds, news, enters);
+			var notifies = new TreeMap<CubeIndex, Cube>();
+			diff(olds, news, enters, notifies);
 
 			try (var ignored = new LockGuard(locks2)) {
 				update(entity, move, cube, newCube);
 				processEnters(entity, enters);
 				processLeaves(entity, olds);
+				processNotify(entity, notifies, eOperateIdMove, move);
 			}
 			break;
 		}
@@ -277,12 +282,16 @@ public class AoiSimple implements IAoi {
 	 * @param olds 旧的cubes，计算完成剩下的就是leave。
 	 * @param news 新的cubes，可能和olds有重叠，计算后保持不变。
 	 * @param enters 计算完成后，确实是新增的。
+	 * @param notifies 重叠的。
 	 */
 	public static void diff(SortedMap<CubeIndex, Cube> olds, SortedMap<CubeIndex, Cube> news,
-							SortedMap<CubeIndex, Cube> enters) {
+							SortedMap<CubeIndex, Cube> enters, SortedMap<CubeIndex, Cube> notifies) {
 		for (var cube : news.values()) {
-			if (null == olds.remove(cube.index)) {
-				enters.put(cube.index, cube);
+			var exist = olds.remove(cube.index);
+			if (null == exist) {
+				enters.put(cube.index, cube); // 新增的
+			} else {
+				notifies.put(cube.index, exist); // 重叠的
 			}
 		}
 	}

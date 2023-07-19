@@ -76,6 +76,7 @@ public class LinkSender implements ILinkSender {
 		var result = true;
 		var command = encodeCommand(commandId, data);
 		for (var e : group.entrySet()) {
+			logger.info("SendCommand {}:{} {}", e.getKey(), e.getValue(), commandId);
 			result &= sendLink(e.getKey(), encodeSend(e.getValue(), Command.TypeId_, command));
 		}
 		return result;

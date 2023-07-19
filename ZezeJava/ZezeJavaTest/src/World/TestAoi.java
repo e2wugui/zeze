@@ -62,6 +62,10 @@ public class TestAoi {
 				var aoiLeaves = (BAoiLeaves.Data)data;
 				aoiLeaves.getKeys().forEach(views::remove);
 				break;
+
+			case BCommand.eAoiOperate:
+				// skip now;
+				break;
 			}
 			return true;
 		}
@@ -178,10 +182,12 @@ public class TestAoi {
 			System.out.println("news=" + news.keySet());
 
 			var enters = new TreeMap<CubeIndex, Cube>();
-			AoiSimple.diff(olds, news, enters);
+			var notifies = new TreeMap<CubeIndex, Cube>();
+			AoiSimple.diff(olds, news, enters, notifies);
 
 			System.out.println("enters=" + enters.keySet());
 			System.out.println("leaves=" + olds.keySet());
+			System.out.println("notifies=" + notifies.keySet());
 
 			Assert.assertEquals(Set.of(
 					new CubeIndex(2,0,-1), new CubeIndex(2,0,0),
