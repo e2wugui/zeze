@@ -34,12 +34,7 @@ public class TestAoi {
 	// 模拟客户端，用来接收enter,operate,leave。
 	// 多线程创建随机穿越Cube的aoi请求，
 	// 可以全局暂停多线程移动，然后验证这个”客户端“的数据是总是两两互相可见。
-	private final ConcurrentHashMap<Long, Long> objectId2LinkSid = new ConcurrentHashMap<>();
-	public long objectId2LinkSid(long oid) {
-		return objectId2LinkSid.get(oid);
-	}
-
-	class TestLinkSender implements Zeze.World.ILinkSender {
+	static class TestLinkSender implements Zeze.World.ILinkSender {
 
 		// 下面的调用在cubes锁内。同一个玩家（用不同LinkSid区分），不会发生并发。
 		private final ConcurrentHashMap<Long, HashSet<Long>> players = new ConcurrentHashMap<>();
@@ -60,23 +55,12 @@ public class TestAoi {
 			switch (commandId) {
 			case BCommand.eAoiEnter:
 				var aoiEnters = (BAoiOperates.Data)data;
-				var tmp = new HashSet<Long>();
-				for (var oid : aoiEnters.getOperates().keySet())
-					tmp.add(objectId2LinkSid(oid));
-				//System.out.println("AoiEnter: " + linkSid + " -> " + tmp);
-				views.addAll(tmp);
-				if (tmp.isEmpty()) {
-					System.out.println("what!!!");
-				}
+				views.addAll(aoiEnters.getOperates().keySet());
 				break;
 
 			case BCommand.eAoiLeave:
 				var aoiLeaves = (BAoiLeaves.Data)data;
-				var tmp2 = new HashSet<Long>();
-				for (var oid : aoiLeaves.getKeys())
-					tmp2.add(objectId2LinkSid(oid));
-				//System.out.println("AoiLeave: " + linkSid + " -> " + tmp2);
-				views.removeAll(tmp2);
+				aoiLeaves.getKeys().forEach(views::remove);
 				break;
 			}
 			return true;
@@ -127,21 +111,20 @@ public class TestAoi {
 		for (var i = 0; i < cubeNumber; ++i) {
 			for (var j = 0; j < cubeObjectNumber; ++j) {
 				var position = new Vector3(xBase + 64 * i, yBase, zBase);
-				var objInstanceId = (long)(i * cubeObjectNumber + j + 1);
-				var oid = objInstanceId;
-				objectId2LinkSid.put(oid, (long)objInstanceId);
+				var entityId = (long)(i * cubeObjectNumber + j + 1);
 				var cube = map.getOrAdd(map.toIndex(position));
+				Entity entity;
 				try (var ignored = new LockGuard(cube)) {
-					var entity = cube.pending.computeIfAbsent(oid, Entity::new);
+					entity = cube.pending.computeIfAbsent(entityId, Entity::new);
 					entity.getBean().getMoving().setPosition(position);
 					// 创建假的Link信息。
 					entity.getBean().setLinkName("1");
-					entity.getBean().setLinkSid(objInstanceId);
+					entity.getBean().setLinkSid(entityId);
 					entity.internalSetCube(cube);
-					map.indexes.put(oid, cube); // 实体索引。
+					map.entities.put(entityId, entity); // 实体索引。
 				}
 
-				aoi.enter(oid);
+				aoi.enter(entity);
 
 				players.add(Task.runUnsafe(() -> {
 					while (testRunning) {
@@ -152,7 +135,7 @@ public class TestAoi {
 							var p = new Vector3(xBase + 64 * cubeX, yBase, zBase);
 							var move = new BMove.Data();
 							move.setPosition(p);
-							aoi.moveTo(oid, move);
+							aoi.moveTo(entity, move);
 							moveCount.incrementAndGet();
 						} finally {
 							rLock.unlock();

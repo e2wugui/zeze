@@ -13,7 +13,10 @@ import Zeze.Serialize.Vector3;
  */
 public class CubeMap {
 	private final ConcurrentHashMap<CubeIndex, Cube> cubes = new ConcurrentHashMap<>();
-	public final ConcurrentHashMap<Long, Cube> indexes = new ConcurrentHashMap<>();
+	// all: entityId to entities
+	public final ConcurrentHashMap<Long, Entity> entities = new ConcurrentHashMap<>();
+	// all players: playerId to entityId
+	public final ConcurrentHashMap<String, Entity> players = new ConcurrentHashMap<>();
 
 	private final int cubeX;
 	private final int cubeY; // 2d 切割时，cubeY 为 0.
@@ -22,9 +25,6 @@ public class CubeMap {
 	private IAoi aoi;
 	private final long instanceId;
 	private final IMapManager mapManager;
-
-	// playerId to entityId
-	public final ConcurrentHashMap<String, Long> players = new ConcurrentHashMap<>();
 
 	public IMapManager getMapManager() {
 		return mapManager;

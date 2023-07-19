@@ -12,7 +12,6 @@ import Zeze.Builtin.World.BMove;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Data;
-import Zeze.Transaction.Procedure;
 import Zeze.World.CubeIndex;
 import Zeze.World.Entity;
 import Zeze.World.LockGuard;
@@ -100,35 +99,24 @@ public class AoiSimple implements IAoi {
 			var entity = cube.objects.remove(self.getId());
 			newCube.objects.put(self.getId(), entity);
 			entity.internalSetCube(newCube);
-			map.indexes.put(self.getId(), newCube); // update to new cube
 		}
 	}
 
 	@Override
-	public long enter(long oid) throws IOException {
-		var cube = map.indexes.get(oid);
-		if (null == cube)
-			return Procedure.LogicError;
-
+	public long enter(Entity entity) throws IOException {
 		// 第一次访问aoi。
-		var firstEnters = map.center(cube.index, rangeX, rangeY, rangeZ);
+		var firstEnters = map.center(entity.getCube().index, rangeX, rangeY, rangeZ);
 		try (var ignored = new LockGuard(firstEnters)) {
-			var self = cube.pending.remove(oid);
-			if (null == self)
-				return Procedure.LogicError;
-
-			cube.objects.put(oid, self);
-			processEnters(cube, self, firstEnters);
+			var self = entity.getCube().pending.remove(entity.getId());
+			entity.getCube().objects.put(entity.getId(), entity);
+			processEnters(self, firstEnters);
 		}
 		return 0;
 	}
 
 	@Override
-	public void moveTo(long oid, BMove.Data move) throws Exception {
-		var cube = map.indexes.get(oid);
-		if (null == cube)
-			throw new RuntimeException("entity not found.");
-
+	public void moveTo(Entity entity, BMove.Data move) throws Exception {
+		var cube = entity.getCube();
 		// 计算新index，并根据进入新Cube的距离完成数据更新。
 		var newIndex = map.toIndex(move.getPosition());
 		var newCube = map.getOrAdd(newIndex);
@@ -140,9 +128,8 @@ public class AoiSimple implements IAoi {
 		case 0:
 			var cubes = map.center(cube.index, rangeX, rangeY, rangeZ);
 			try (var ignored = new LockGuard(cubes)) {
-				var self = cube.objects.get(oid);
-				update(self, move, cube, newCube);
-				processNotify(self, cubes, eOperateIdMove, move);
+				update(entity, move, cube, newCube);
+				processNotify(entity, cubes, eOperateIdMove, move);
 			}
 			// same cube
 			// 根据位置同步协议，可能需要向第三方广播一下。
@@ -171,10 +158,9 @@ public class AoiSimple implements IAoi {
 			//locks1.putAll(fastEnters); // fastEnters 肯定在以newCube为中心的"9"宫格内。
 			locks1.putAll(fastLeaves);
 			try (var ignored = new LockGuard(locks1)) {
-				var self = cube.objects.get(oid);
-				update(self, move, cube, newCube);
-				processEnters(cube, self, fastEnters);
-				processLeaves(cube, self, fastLeaves);
+				update(entity, move, cube, newCube);
+				processEnters(entity, fastEnters);
+				processLeaves(entity, fastLeaves);
 			}
 			break;
 
@@ -190,10 +176,9 @@ public class AoiSimple implements IAoi {
 			diff(olds, news, enters);
 
 			try (var ignored = new LockGuard(locks2)) {
-				var self = cube.objects.get(oid);
-				update(self, move, cube, newCube);
-				processEnters(cube, self, enters);
-				processLeaves(cube, self, olds);
+				update(entity, move, cube, newCube);
+				processEnters(entity, enters);
+				processLeaves(entity, olds);
 			}
 			break;
 		}
@@ -222,7 +207,7 @@ public class AoiSimple implements IAoi {
 			world.getLinkSender().sendCommand(targets, BCommand.eAoiOperate, aoiOperates);
 	}
 
-	protected void processEnters(Cube my, Entity self,
+	protected void processEnters(Entity self,
 								 SortedMap<CubeIndex, Cube> enters) throws IOException {
 		var targets = new ArrayList<Entity>();
 		// 收集玩家对象，用来发送自己进入的通知。
@@ -256,7 +241,7 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
-	protected void processLeaves(Cube my, Entity self,
+	protected void processLeaves(Entity self,
 								 SortedMap<CubeIndex, Cube> leaves) throws IOException {
 		// 【优化】
 		// 客户端也使用CubeMap结构组织数据，那么只需要打包发送所有leaves的CubeIndex.

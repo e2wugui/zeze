@@ -19,7 +19,6 @@ import Zeze.World.CubeMap;
 import Zeze.World.Entity;
 import Zeze.World.ICommand;
 import Zeze.World.IMapManager;
-import Zeze.World.LinkSender;
 import Zeze.World.LockGuard;
 import Zeze.World.World;
 import org.apache.logging.log4j.LogManager;
@@ -112,10 +111,10 @@ public class MapManager implements IMapManager, ICommand {
 			return Procedure.LogicError; // instance to found
 
 		// todo 测试环境目前是roleId，但是测试代码没有实现role的登录登出，所以这些先用account。
-		var entityId = map.players.get(account);
-		if (null == entityId)
+		var entity = map.players.get(account);
+		if (null == entity)
 			return Procedure.LogicError;
-		return map.getAoi().enter(entityId);
+		return map.getAoi().enter(entity);
 	}
 
 	@Override
@@ -198,9 +197,9 @@ public class MapManager implements IMapManager, ICommand {
 			try (var ignored = new LockGuard(cube)) {
 				cube.pending.put(entity.getId(), entity);
 				entity.internalSetCube(cube);
-				instanceMap.indexes.put(entity.getId(), cube);
+				instanceMap.entities.put(entity.getId(), entity);
 				// todo 测试环境目前是roleId，但是测试代码没有实现role的登录登出，所以这些先用account。
-				instanceMap.players.put(session.getAccount(), entity.getId());
+				instanceMap.players.put(session.getAccount(), entity);
 			}
 
 			// link bind

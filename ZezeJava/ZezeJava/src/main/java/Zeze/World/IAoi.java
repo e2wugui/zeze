@@ -20,7 +20,7 @@ public interface IAoi {
 	 * @throws IOException
 	 * @return error code, 0 success.
 	 */
-	long enter(long oid) throws IOException;
+	long enter(Entity entity) throws IOException;
 
 	/**
 	 * 1. 移动到新的位置，会发起视野内的更新广播。
@@ -28,7 +28,7 @@ public interface IAoi {
 	 * 3. 当目标是玩家时，还会装载新加入的Cube的数据。
 	 * 4. 等等。
 	 */
-	void moveTo(long oid, BMove.Data move) throws Exception;
+	void moveTo(Entity entity, BMove.Data move) throws Exception;
 
 	/**
 	 * 整个物体数据全量更新。
