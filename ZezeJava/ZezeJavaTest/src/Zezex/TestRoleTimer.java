@@ -1,8 +1,6 @@
 package Zezex;
 
 import java.util.ArrayList;
-import java.util.concurrent.Future;
-import javax.ejb.Timer;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;

@@ -1,16 +1,39 @@
 
+using Zeze.Net;
+using Zeze.Serialize;
+
 namespace Zeze
 {
     public sealed partial class App
     {
+        public Zeze.World.World World { get; private set; }
+        public Connector Connector { get; private set; }
+
         public void Start()
         {
-            CreateZeze();
+            CreateZeze(new Config());
             CreateService();
+
+            World = new Zeze.World.World(Zeze, ClientService);
+
             CreateModules();
             Zeze.StartAsync().Wait(); // 启动数据库
             StartModules(); // 启动模块，装载配置什么的。
+
+            ClientService.Config.TryGetOrAddConnector("127.0.0.1", 12000, false, out var connector);
             StartService(); // 启动网络
+
+            connector.GetReadySocket(); // Wait Ready.
+            Connector = connector;
+        }
+
+        public async Task Test(string account)
+        {
+            var auth = new Zezex.Linkd.Auth();
+            auth.Argument.Account = account;
+            await auth.SendAsync(Connector.Socket);
+
+            await World.SwitchWorld(1, new Vector3(), new Vector3());
         }
 
         public void Stop()

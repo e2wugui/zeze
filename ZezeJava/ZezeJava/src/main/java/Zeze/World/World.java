@@ -78,7 +78,7 @@ public class World extends AbstractWorld {
 	// world core
 	private IMapManager mapManager;
 	private final Function<ProviderUserSession, String> getPlayerId;
-	private ILinkSender linkSender;
+	private ILinkSender linkSender = new LinkSender(this);
 	private final WorldStatic worldStatic;
 
 	public WorldStatic getWorldStatic() {
@@ -145,6 +145,7 @@ public class World extends AbstractWorld {
 		if (null == command)
 			return errorCode(eCommandHandlerMissing);
 
+		logger.info("ProcessCommand {}:{} {}", session.getLinkName(), session.getLinkSid(), p.Argument.getCommandId());
 		return command.handle(session.getAccount(), getPlayerId.apply(session), p);
 	}
 
@@ -179,6 +180,9 @@ public class World extends AbstractWorld {
 	}
 
 	public void start() throws Exception {
+		providerApp.builtinModules.put(this.getFullName(), this);
+		providerApp.builtinModules.put(worldStatic.getFullName(), worldStatic);
+
 		for (var c : componentHashSet)
 			c.start(this);
 	}

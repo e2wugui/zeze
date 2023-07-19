@@ -11,6 +11,10 @@ namespace Zeze
 
         public Dictionary<string, Zeze.IModule> Modules { get; } = new Dictionary<string, Zeze.IModule>();
 
+        public Zeze.Builtin.LinkdBase.ModuleLinkdBase Zeze_Builtin_LinkdBase { get; set; }
+
+        public Zezex.Linkd.ModuleLinkd Zezex_Linkd { get; set; }
+
         public Zeze.ClientService ClientService { get; set; }
 
         public void CreateZeze(Zeze.Config config = null)
@@ -36,6 +40,14 @@ namespace Zeze
         {
             lock(this)
             {
+                Zeze_Builtin_LinkdBase = ReplaceModuleInstance(new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this));
+                Zeze_Builtin_LinkdBase.Initialize();
+                Zeze_Builtin_LinkdBase.Register();
+                Modules.Add(Zeze_Builtin_LinkdBase.FullName, Zeze_Builtin_LinkdBase);
+                Zezex_Linkd = ReplaceModuleInstance(new Zezex.Linkd.ModuleLinkd(this));
+                Zezex_Linkd.Initialize();
+                Zezex_Linkd.Register();
+                Modules.Add(Zezex_Linkd.FullName, Zezex_Linkd);
 
             }
         }
@@ -44,6 +56,8 @@ namespace Zeze
         {
             lock(this)
             {
+                Zezex_Linkd = null;
+                Zeze_Builtin_LinkdBase = null;
                 Modules.Clear();
             }
         }
@@ -68,6 +82,8 @@ namespace Zeze
         {
             lock(this)
             {
+                Zeze_Builtin_LinkdBase.Start(this);
+                Zezex_Linkd.Start(this);
 
             }
         }
@@ -76,6 +92,8 @@ namespace Zeze
         {
             lock(this)
             {
+                Zezex_Linkd?.Stop(this);
+                Zeze_Builtin_LinkdBase?.Stop(this);
             }
         }
 

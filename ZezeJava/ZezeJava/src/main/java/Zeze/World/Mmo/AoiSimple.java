@@ -114,6 +114,9 @@ public class AoiSimple implements IAoi {
 		var firstEnters = map.center(cube.index, rangeX, rangeY, rangeZ);
 		try (var ignored = new LockGuard(firstEnters)) {
 			var self = cube.pending.remove(oid);
+			if (null == self)
+				return Procedure.LogicError;
+
 			cube.objects.put(oid, self);
 			processEnters(cube, self, firstEnters);
 		}

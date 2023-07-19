@@ -1,6 +1,5 @@
 package Zeze.World;
 
-import java.security.Provider;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -38,6 +37,7 @@ public class LinkSender implements ILinkSender {
 
 	@Override
 	public boolean sendCommand(String linkName, long linkSid, int commandId, Data data) {
+		logger.info("SendCommand {}:{} {}", linkName, linkSid, commandId);
 		return sendLink(linkName, encodeSend(java.util.List.of(linkSid), commandId, data));
 	}
 

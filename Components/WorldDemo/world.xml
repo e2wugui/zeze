@@ -2,9 +2,12 @@
 
 <solution name="Zeze" ModuleIdAllowRanges="">
 	<import file="../../ZezeJava/ZezeJava/solution.zeze.xml"/>
+	<import file="../../ZezeJava/ZezexJava/solution.linkd.xml"/>
 
 	<project name="WorldDemo" gendir=".." GenTables="client" platform="conf+cs+net">
-		<service name="ClientService" handle="client">
+		<service name="ClientService" handle="client" base="Zeze.Services.HandshakeClient">
+			<module ref="Zeze.Builtin.LinkdBase"/>
+			<module ref="Zezex.Linkd"/>
 		</service>
 	</project>
 
