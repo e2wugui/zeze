@@ -22,7 +22,6 @@ namespace Zeze.Builtin.World
     {
         public int MapId;
         public long MapInstanceId;
-        public long EntityId; // 自己的实体Id
         public Zeze.Serialize.Vector3 Position;
         public Zeze.Serialize.Vector3 Direct;
         public System.Collections.Generic.List<Zeze.Builtin.World.BAoiOperates> PriorityData; // 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
@@ -51,7 +50,6 @@ namespace Zeze.Builtin.World
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("MapId").Append('=').Append(MapId).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("MapInstanceId").Append('=').Append(MapInstanceId).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("EntityId").Append('=').Append(EntityId).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Position").Append("=(").Append(Position.x).Append(',').Append(Position.y).Append(',').Append(Position.z).Append(')').Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Direct").Append("=(").Append(Direct.x).Append(',').Append(Direct.y).Append(',').Append(Direct.z).Append(')').Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("PriorityData").Append("=[").Append(Environment.NewLine);
@@ -88,19 +86,11 @@ namespace Zeze.Builtin.World
                 }
             }
             {
-                long _x_ = EntityId;
-                if (_x_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                    _o_.WriteLong(_x_);
-                }
-            }
-            {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.VECTOR3);
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.VECTOR3);
                 Position.Encode(_o_);
             }
             {
-                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.VECTOR3);
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.VECTOR3);
                 Direct.Encode(_o_);
             }
             {
@@ -108,7 +98,7 @@ namespace Zeze.Builtin.World
                 int _n_ = _x_.Count;
                 if (_n_ != 0)
                 {
-                    _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.LIST);
+                    _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.LIST);
                     _o_.WriteListType(_n_, ByteBuffer.BEAN);
                     foreach (var _v_ in _x_)
                     {
@@ -138,20 +128,15 @@ namespace Zeze.Builtin.World
             }
             if (_i_ == 3)
             {
-                EntityId = _o_.ReadLong(_t_);
+                Position.Decode(_o_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 4)
             {
-                Position.Decode(_o_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 5)
-            {
                 Direct.Decode(_o_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
-            if (_i_ == 6)
+            if (_i_ == 5)
             {
                 var _x_ = PriorityData;
                 _x_.Clear();
@@ -177,7 +162,6 @@ namespace Zeze.Builtin.World
         {
             MapId = 0;
             MapInstanceId = 0;
-            EntityId = 0;
             Position.Set(0, 0, 0);
             Direct.Set(0, 0, 0);
             PriorityData.Clear();

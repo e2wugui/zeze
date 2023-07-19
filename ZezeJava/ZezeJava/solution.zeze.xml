@@ -1624,10 +1624,9 @@
 			<bean name="BEnterWorld">
 				<variable id="1" name="MapId" type="int"/>
 				<variable id="2" name="MapInstanceId" type="long"/>
-				<variable id="3" name="EntityId" type="long"/> 自己的实体Id
-				<variable id="4" name="Position" type="vector3"/>
-				<variable id="5" name="Direct" type="vector3"/>
-				<variable id="6" name="PriorityData" type="list[BAoiOperates]"/> 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
+				<variable id="3" name="Position" type="vector3"/>
+				<variable id="4" name="Direct" type="vector3"/>
+				<variable id="5" name="PriorityData" type="list[BAoiOperates]"/> 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
 			</bean>
 			<bean name="BEnterConfirm">
 				<variable id="1" name="MapInstanceId" type="long"/>

@@ -20,7 +20,6 @@ public interface BEnterWorldReadOnly {
 
     int getMapId();
     long getMapInstanceId();
-    long getEntityId();
     Zeze.Serialize.Vector3 getPosition();
     Zeze.Serialize.Vector3 getDirect();
     Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.World.BAoiOperates, Zeze.Builtin.World.BAoiOperatesReadOnly> getPriorityDataReadOnly();

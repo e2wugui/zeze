@@ -211,7 +211,6 @@ public class MapManager implements IMapManager, ICommand {
 			var param = new BEnterWorld.Data();
 			param.setMapId(mapId);
 			param.setMapInstanceId(instanceMap.getInstanceId());
-			param.setEntityId(entity.getId());
 
 			// todo param
 			param.setPosition(Vector3.ZERO);
