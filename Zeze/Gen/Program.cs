@@ -151,11 +151,12 @@ namespace Zeze.Gen
             if (Solutions.ContainsKey(xmlFile))
                 return;
 
-            Console.WriteLine($"ImportSolution '{xmlFile}'");
+            if (Debug)
+                Console.WriteLine($"ImportSolution '{xmlFile}'");
 
             Solutions.Add(xmlFile, null); // 循环依赖。
             SavedCurrentDirectory.Add(Environment.CurrentDirectory);
-            Environment.CurrentDirectory = Path.GetDirectoryName(xmlFile);
+            Environment.CurrentDirectory = Path.GetDirectoryName(xmlFile)!;
             XmlDocument doc = new XmlDocument();
             doc.Load(xmlFile);
             Solution solution = new Solution(doc.DocumentElement);

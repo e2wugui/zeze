@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 
 namespace Zeze.Transaction.Collections
 {
@@ -32,7 +30,7 @@ namespace Zeze.Transaction.Collections
 
         public static void ApplyList2<E>(List<E> _list, Log _log)
 #if USE_CONFCS
-			where E : Util.ConfBean, new()
+            where E : Util.ConfBean, new()
 #else
             where E : Bean, new()
 #endif
@@ -63,9 +61,8 @@ namespace Zeze.Transaction.Collections
             // apply changed
             foreach (var e in log.Changed)
             {
-                if (newest.Contains(e.Value.Value))
-                    continue;
-                _list[e.Value.Value].FollowerApply(e.Key);
+                if (!newest.Contains(e.Value.Value))
+                    _list[e.Value.Value].FollowerApply(e.Key);
             }
         }
 
@@ -80,7 +77,7 @@ namespace Zeze.Transaction.Collections
 
         public static void ApplyMap2<K, V>(Dictionary<K, V> _map, Log _log)
 #if USE_CONFCS
-			where V : Util.ConfBean, new()
+            where V : Util.ConfBean, new()
 #else
             where V : Bean, new()
 #endif
@@ -96,9 +93,7 @@ namespace Zeze.Transaction.Collections
             foreach (var e in log.ChangedWithKey)
             {
                 if (_map.TryGetValue(e.Key, out var value))
-                {
                     value.FollowerApply(e.Value);
-                }
             }
         }
 
@@ -111,21 +106,16 @@ namespace Zeze.Transaction.Collections
 
         public static void ApplyOne<V>(ref V value, Log _log)
 #if USE_CONFCS
-			where V : Util.ConfBean, new()
+            where V : Util.ConfBean, new()
 #else
             where V : Bean, new()
 #endif
         {
             var log = (LogOne<V>)_log;
-            if (null != log.Value)
-            {
+            if (log.Value != null)
                 value = log.Value;
-            }
-            else if (null != log.LogBean)
-            {
+            else if (log.LogBean != null)
                 value.FollowerApply(log.LogBean);
-            }
-
         }
     }
 }

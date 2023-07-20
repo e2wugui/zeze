@@ -23,13 +23,13 @@ copy /y %Zeze%\Serialize\*.*                   %confcs%\Serialize\
 
 copy /y %Zeze%\Services\Handshake.cs           %confcs%\Services\
 
+copy /y %Zeze%\Transaction\ChangesRecord.cs    %confcs%\Transaction\
 copy /y %Zeze%\Transaction\DispatchMode.cs     %confcs%\Transaction\
 copy /y %Zeze%\Transaction\Log.cs              %confcs%\Transaction\
 copy /y %Zeze%\Transaction\TransactionLevel.cs %confcs%\Transaction\
-copy /y %Zeze%\Transaction\ChangesRecord.cs %confcs%\Transaction\
 
-copy /y %Zeze%\Transaction\Collections\Log*.cs %confcs%\Transaction\Collections\
 copy /y %Zeze%\Transaction\Collections\CollApply.cs %confcs%\Transaction\Collections\
+copy /y %Zeze%\Transaction\Collections\Log*.cs      %confcs%\Transaction\Collections\
 
 copy /y %Zeze%\Util\AtomicLong.cs              %confcs%\Util\
 copy /y %Zeze%\Util\BeanFactory.cs             %confcs%\Util\
