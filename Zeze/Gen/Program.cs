@@ -227,7 +227,7 @@ namespace Zeze.Gen
 
             foreach (string file in xmlFileList) // make 参数指定的 Solution
             {
-                if (Solutions.TryGetValue(file, out var sol))
+                if (Solutions.TryGetValue(Path.GetFullPath(file), out var sol))
                 {
                     if (xmlFileList.Count > 1 || Debug)
                         Print("   Make Solution: " + file, ConsoleColor.DarkCyan);
