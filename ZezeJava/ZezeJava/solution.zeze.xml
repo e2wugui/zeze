@@ -564,15 +564,15 @@
 		<module name="LinkdBase" id="11011" UseData="true">
 			<!-- linkd to client -->
 			<bean name="BReportError">
-				<enum name="FromLink"     value="0"/>
-				<enum name="FromProvider" value="1"/>
+				<enum name="FromLink"     value="0"/> code字段见下面Code开头的枚举
+				<enum name="FromProvider" value="1"/> code字段见BKick里定义的Error开头的枚举
 
 				<enum name="CodeMuteKick"     value="0"/> 只断客户端连接，不发送消息给客户端，用于重连时确保旧的连接快速断开
 				<enum name="CodeNotAuthed"    value="1"/>
 				<enum name="CodeNoProvider"   value="2"/>
 				<enum name="CodeProviderBusy" value="3"/>
 
-				<variable id="1" name="from" type="int"/>
+				<variable id="1" name="from" type="int"/> FromLink or FromProvider
 				<variable id="2" name="code" type="int"/>
 				<variable id="3" name="desc" type="string"/>
 			</bean>
@@ -1567,7 +1567,7 @@
 				<variable id="4" name="LinkName"  type="string"/>
 				<variable id="5" name="LinkSid"       type="long"/>
 			</bean>
-			
+
 			<enum name="eCommandHandlerMissing" value="1"/>
 
 			<!-- 抽象的交互协议，用来封装任意客户端服务器Protocol,Rpc -->

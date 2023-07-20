@@ -12,6 +12,8 @@ x64/
 ~$*
 
 /*.lnk
+/Components/WorldDemo/Gen
+/Components/WorldDemo/Zeze/Builtin
 /confcs/confcs
 /ConfigEditor/Output
 /CxxTest/Gen
@@ -42,6 +44,3 @@ x64/
 /UnitTest/gsd/Gen
 /UnitTest/Properties
 /Zeze/Arch/linkd
-/CxxTest/Gen
-/Components/WorldDemo/Gen
-/Components/WorldDemo/Zeze/Builtin

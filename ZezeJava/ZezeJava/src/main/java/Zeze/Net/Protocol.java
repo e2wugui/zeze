@@ -22,18 +22,6 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	protected long resultCode;
 	private volatile ByteBuffer encodeShared;
 
-	public ByteBuffer encodeShared() {
-		var tmp = encodeShared;
-		if (null != tmp)
-			return tmp;
-		synchronized (this) {
-			if (null != encodeShared)
-				return encodeShared;
-			encodeShared = encode();
-			return encodeShared;
-		}
-	}
-
 	public int getFamilyClass() {
 		return FamilyClass.Protocol;
 	}
@@ -166,6 +154,19 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		int size = bb.size() - saveSize - 4;
 		if (size > preAllocSize())
 			preAllocSize(size);
+	}
+
+	public ByteBuffer encodeShared() {
+		var tmp = encodeShared;
+		if (tmp != null)
+			return tmp;
+		synchronized (this) {
+			tmp = encodeShared;
+			if (tmp != null)
+				return tmp;
+			encodeShared = tmp = encode();
+			return tmp;
+		}
 	}
 
 	public boolean Send(@Nullable AsyncSocket so) {

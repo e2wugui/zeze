@@ -8,14 +8,14 @@ import Zeze.Serialize.ByteBuffer;
 public final class BReportError extends Zeze.Transaction.Bean implements BReportErrorReadOnly {
     public static final long TYPEID = -947669033141460287L;
 
-    public static final int FromLink = 0;
-    public static final int FromProvider = 1;
+    public static final int FromLink = 0; // code字段见下面Code开头的枚举
+    public static final int FromProvider = 1; // code字段见BKick里定义的Error开头的枚举
     public static final int CodeMuteKick = 0; // 只断客户端连接，不发送消息给客户端，用于重连时确保旧的连接快速断开
     public static final int CodeNotAuthed = 1;
     public static final int CodeNoProvider = 2;
     public static final int CodeProviderBusy = 3;
 
-    private int _from;
+    private int _from; // FromLink or FromProvider
     private int _code;
     private String _desc;
 
@@ -311,14 +311,14 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -947669033141460287L;
 
-    public static final int FromLink = 0;
-    public static final int FromProvider = 1;
+    public static final int FromLink = 0; // code字段见下面Code开头的枚举
+    public static final int FromProvider = 1; // code字段见BKick里定义的Error开头的枚举
     public static final int CodeMuteKick = 0; // 只断客户端连接，不发送消息给客户端，用于重连时确保旧的连接快速断开
     public static final int CodeNotAuthed = 1;
     public static final int CodeNoProvider = 2;
     public static final int CodeProviderBusy = 3;
 
-    private int _from;
+    private int _from; // FromLink or FromProvider
     private int _code;
     private String _desc;
 
