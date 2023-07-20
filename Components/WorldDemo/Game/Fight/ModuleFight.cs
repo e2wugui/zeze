@@ -11,10 +11,11 @@ namespace Game.Fight
         {
         }
 
-        protected override async System.Threading.Tasks.Task<long> ProcessAreYouFightRequest(Zeze.Net.Protocol _p)
+        protected override System.Threading.Tasks.Task<long> ProcessAreYouFightRequest(Zeze.Net.Protocol _p)
         {
             var p = _p as AreYouFight;
-            return Zeze.Util.ResultCode.NotImplement;
+            p.SendResult();
+            return Task.FromResult<long>(0);
         }
 
     }

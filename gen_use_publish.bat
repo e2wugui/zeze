@@ -45,5 +45,10 @@ echo -------- Gen ZezeJava\ZezexJava\solution.linkd.xml ...
 Gen.exe solution.linkd.xml
 cd ..\..
 
+cd Components\WorldDemo
+echo -------- Gen zeze\Components\WorldDemo\world.xml ...
+Gen.exe world.xml
+cd ..\..
+
 echo -------- Gen done!
 pause

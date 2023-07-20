@@ -48,7 +48,7 @@ namespace Zeze.Gen.cs
             foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
-                sw.WriteLine($"        public {m.Path(".", $"Module{m.Name}")} {fullname} {{ get; set; }}");
+                sw.WriteLine($"        public global::{m.Path(".", $"Module{m.Name}")} {fullname} {{ get; set; }}");
                 sw.WriteLine();
             }
 
@@ -85,7 +85,7 @@ namespace Zeze.Gen.cs
             foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
-                sw.WriteLine($"                {fullname} = ReplaceModuleInstance(new {m.Path(".", $"Module{m.Name}")}(this));");
+                sw.WriteLine($"                {fullname} = ReplaceModuleInstance(new global::{m.Path(".", $"Module{m.Name}")}(this));");
                 sw.WriteLine($"                {fullname}.Initialize();");
                 sw.WriteLine($"                {fullname}.Register();");
                 sw.WriteLine($"                Modules.Add({fullname}.FullName, {fullname});");
