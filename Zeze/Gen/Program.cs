@@ -146,19 +146,29 @@ namespace Zeze.Gen
 
         public static void ImportSolution(string xmlFile)
         {
-            xmlFile = Path.GetFullPath(xmlFile);
+            var fullXmlFile = Path.GetFullPath(xmlFile);
 
-            if (Solutions.ContainsKey(xmlFile))
+            if (Solutions.ContainsKey(fullXmlFile))
                 return;
 
-            if (Debug)
-                Console.WriteLine($"ImportSolution '{xmlFile}'");
+            if (!File.Exists(fullXmlFile) && SavedCurrentDirectory.Count > 0)
+            {
+                fullXmlFile = Path.GetFullPath(Path.Combine(SavedCurrentDirectory[0], xmlFile));
+                if (Solutions.ContainsKey(fullXmlFile))
+                    return;
 
-            Solutions.Add(xmlFile, null); // 循环依赖。
+                if (!File.Exists(fullXmlFile))
+                    throw new FileNotFoundException(xmlFile);
+            }
+
+            if (Debug)
+                Console.WriteLine($"ImportSolution '{fullXmlFile}'");
+
+            Solutions.Add(fullXmlFile, null); // 循环依赖。
             SavedCurrentDirectory.Add(Environment.CurrentDirectory);
-            Environment.CurrentDirectory = Path.GetDirectoryName(xmlFile)!;
+            Environment.CurrentDirectory = Path.GetDirectoryName(fullXmlFile)!;
             XmlDocument doc = new XmlDocument();
-            doc.Load(xmlFile);
+            doc.Load(fullXmlFile);
             Solution solution = new Solution(doc.DocumentElement);
             /*
             foreach (KeyValuePair<string, Solution> exist in solutions)
@@ -167,7 +177,7 @@ namespace Zeze.Gen
                     Console.WriteLine("WARN duplicate solution name: " + solution.Name + " in file: " + exist.Key + "," + xmlFile);
             }
             */
-            Solutions[xmlFile] = solution;
+            Solutions[fullXmlFile] = solution;
             Environment.CurrentDirectory = SavedCurrentDirectory[SavedCurrentDirectory.Count -1];
             SavedCurrentDirectory.RemoveAt(SavedCurrentDirectory.Count -1);
         }
