@@ -77,7 +77,7 @@ public class World extends AbstractWorld {
 
 	// world core
 	private IMapManager mapManager;
-	private final Function<ProviderUserSession, String> getPlayerId;
+	public final Function<ProviderUserSession, String> getPlayerId;
 	private ILinkSender linkSender = new LinkSender(this);
 	private final WorldStatic worldStatic;
 

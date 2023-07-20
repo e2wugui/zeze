@@ -142,12 +142,20 @@ namespace Zeze.Gen
             }
         }
 
+        private static List<string> SavedCurrentDirectory = new List<string>();
+
         public static void ImportSolution(string xmlFile)
         {
+            xmlFile = Path.GetFullPath(xmlFile);
+
             if (Solutions.ContainsKey(xmlFile))
                 return;
-            // Console.WriteLine($"ImportSolution '{xmlFile}'");
-            Solutions.Add(xmlFile, null);
+
+            Console.WriteLine($"ImportSolution '{xmlFile}'");
+
+            Solutions.Add(xmlFile, null); // 循环依赖。
+            SavedCurrentDirectory.Add(Environment.CurrentDirectory);
+            Environment.CurrentDirectory = Path.GetDirectoryName(xmlFile);
             XmlDocument doc = new XmlDocument();
             doc.Load(xmlFile);
             Solution solution = new Solution(doc.DocumentElement);
@@ -159,6 +167,8 @@ namespace Zeze.Gen
             }
             */
             Solutions[xmlFile] = solution;
+            Environment.CurrentDirectory = SavedCurrentDirectory[SavedCurrentDirectory.Count -1];
+            SavedCurrentDirectory.RemoveAt(SavedCurrentDirectory.Count -1);
         }
 
         public static void Main(string[] args)

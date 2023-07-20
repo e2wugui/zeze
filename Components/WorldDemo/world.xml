@@ -3,11 +3,14 @@
 <solution name="Zeze" ModuleIdAllowRanges="">
 	<import file="../../ZezeJava/ZezeJava/solution.zeze.xml"/>
 	<import file="../../ZezeJava/ZezexJava/solution.linkd.xml"/>
+	<import file="../../ZezeJava/ZezexJava/solution.xml"/>
 
 	<project name="WorldDemo" gendir=".." GenTables="client" platform="conf+cs+net">
 		<service name="ClientService" handle="client" base="Zeze.Services.HandshakeClient">
+			<module ref="Zeze.Builtin.Game.Online"/>
 			<module ref="Zeze.Builtin.LinkdBase"/>
 			<module ref="Zezex.Linkd"/>
+			<module ref="Game.Fight"/>
 		</service>
 	</project>
 

@@ -38,8 +38,8 @@ public class MoveSimple implements IComponent, ICommand {
 		var map = world.getMapManager().getMap(mapInstanceId);
 		if (null == map)
 			return Procedure.LogicError;
-		// todo 测试环境目前是roleId，但是测试代码没有实现role的登录登出，所以这些先用account。
-		var entity = map.players.get(account);
+
+		var entity = map.players.get(playerId);
 		if (null == entity)
 			return Procedure.LogicError;
 		map.getAoi().moveTo(entity, move);

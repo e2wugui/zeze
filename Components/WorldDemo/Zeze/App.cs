@@ -1,4 +1,5 @@
 
+using Zeze.Builtin.Game.Online;
 using Zeze.Builtin.World;
 using Zeze.Net;
 using Zeze.Serialize;
@@ -28,11 +29,15 @@ namespace Zeze
             Connector = connector;
         }
 
-        public async Task Test(string account)
+        public async Task Test(string account, long roleId)
         {
             var auth = new Zezex.Linkd.Auth();
             auth.Argument.Account = account;
             await auth.SendAsync(Connector.Socket);
+
+            var login = new Login();
+            login.Argument.RoleId = roleId;
+            await login.SendAsync(Connector.Socket);
 
             await World.SwitchWorld(1, new Vector3(), new Vector3());
 

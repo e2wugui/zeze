@@ -110,8 +110,7 @@ public class MapManager implements IMapManager, ICommand {
 		if (null == map)
 			return Procedure.LogicError; // instance to found
 
-		// todo 测试环境目前是roleId，但是测试代码没有实现role的登录登出，所以这些先用account。
-		var entity = map.players.get(account);
+		var entity = map.players.get(playerId);
 		if (null == entity)
 			return Procedure.LogicError;
 		return map.getAoi().enter(entity);
@@ -198,8 +197,7 @@ public class MapManager implements IMapManager, ICommand {
 				cube.pending.put(entity.getId(), entity);
 				entity.internalSetCube(cube);
 				instanceMap.entities.put(entity.getId(), entity);
-				// todo 测试环境目前是roleId，但是测试代码没有实现role的登录登出，所以这些先用account。
-				instanceMap.players.put(session.getAccount(), entity);
+				instanceMap.players.put(world.getPlayerId.apply(session), entity);
 			}
 
 			// link bind

@@ -105,6 +105,7 @@ public final class App extends Zeze.AppBase {
 			});
 			return 0;
 		});
+
 		createModules();
 		if (GenModule.instance.genFileSrcRoot != null) {
 			System.out.println("---------------");
