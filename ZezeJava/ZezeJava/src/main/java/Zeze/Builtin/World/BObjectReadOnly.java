@@ -12,6 +12,4 @@ public interface BObjectReadOnly {
     String getPlayerId();
     String getLinkName();
     long getLinkSid();
-    int getType();
-    int getConfigId();
 }

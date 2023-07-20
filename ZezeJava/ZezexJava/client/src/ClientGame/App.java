@@ -58,7 +58,7 @@ public class App extends Zeze.AppBase {
 
     public synchronized void createZeze(Zeze.Config config) throws Exception {
         if (Zeze != null)
-            throw new RuntimeException("Zeze Has Created!");
+            throw new IllegalStateException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("client", config);
     }
@@ -83,32 +83,32 @@ public class App extends Zeze.AppBase {
         Zeze_Builtin_Game_Online = (Zeze.Builtin.Game.Online.ModuleOnline)_modules_[0];
         Zeze_Builtin_Game_Online.Initialize(this);
         if (modules.put(Zeze_Builtin_Game_Online.getFullName(), Zeze_Builtin_Game_Online) != null)
-            throw new RuntimeException("duplicate module name: Zeze_Builtin_Game_Online");
+            throw new IllegalStateException("duplicate module name: Zeze_Builtin_Game_Online");
 
         Zeze_Builtin_Game_Bag = (Zeze.Builtin.Game.Bag.ModuleBag)_modules_[1];
         Zeze_Builtin_Game_Bag.Initialize(this);
         if (modules.put(Zeze_Builtin_Game_Bag.getFullName(), Zeze_Builtin_Game_Bag) != null)
-            throw new RuntimeException("duplicate module name: Zeze_Builtin_Game_Bag");
+            throw new IllegalStateException("duplicate module name: Zeze_Builtin_Game_Bag");
 
         Zeze_Builtin_LinkdBase = (Zeze.Builtin.LinkdBase.ModuleLinkdBase)_modules_[2];
         Zeze_Builtin_LinkdBase.Initialize(this);
         if (modules.put(Zeze_Builtin_LinkdBase.getFullName(), Zeze_Builtin_LinkdBase) != null)
-            throw new RuntimeException("duplicate module name: Zeze_Builtin_LinkdBase");
+            throw new IllegalStateException("duplicate module name: Zeze_Builtin_LinkdBase");
 
         ClientZezex_Linkd = (ClientZezex.Linkd.ModuleLinkd)_modules_[3];
         ClientZezex_Linkd.Initialize(this);
         if (modules.put(ClientZezex_Linkd.getFullName(), ClientZezex_Linkd) != null)
-            throw new RuntimeException("duplicate module name: ClientZezex_Linkd");
+            throw new IllegalStateException("duplicate module name: ClientZezex_Linkd");
 
         ClientGame_Login = (ClientGame.Login.ModuleLogin)_modules_[4];
         ClientGame_Login.Initialize(this);
         if (modules.put(ClientGame_Login.getFullName(), ClientGame_Login) != null)
-            throw new RuntimeException("duplicate module name: ClientGame_Login");
+            throw new IllegalStateException("duplicate module name: ClientGame_Login");
 
         ClientGame_Fight = (ClientGame.Fight.ModuleFight)_modules_[5];
         ClientGame_Fight.Initialize(this);
         if (modules.put(ClientGame_Fight.getFullName(), ClientGame_Fight) != null)
-            throw new RuntimeException("duplicate module name: ClientGame_Fight");
+            throw new IllegalStateException("duplicate module name: ClientGame_Fight");
 
         Zeze.setSchemas(new ClientGame.Schemas());
     }

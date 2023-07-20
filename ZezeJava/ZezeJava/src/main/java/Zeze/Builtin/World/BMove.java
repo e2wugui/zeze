@@ -8,10 +8,10 @@ import Zeze.Serialize.ByteBuffer;
 public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly {
     public static final long TYPEID = 5823156345754273331L;
 
-    private Zeze.Serialize.Vector3 _Position; // 移动命令时客户端的真实位置。
-    private Zeze.Serialize.Vector3 _Direct; // 移动命令时客户端真实的朝向。
-    private int _Command; // 0 直线，1 后退，2 左转，3 右转，4 停止。
-    private long _Timestamp; // 命令发起时刻的时戳。
+    private Zeze.Serialize.Vector3 _Position; // 命令时刻的客户端真实位置。
+    private Zeze.Serialize.Vector3 _Direct; // 命令时刻的客户端真实朝向。
+    private int _Command; // 0 前进，1 后退，2 左转，3 右转，4 停止，5 下滑，6 空中（分两种：允许或不允许转向？）。
+    private long _Timestamp; // 命令时刻的时戳。
 
     @Override
     public Zeze.Serialize.Vector3 getPosition() {
@@ -362,10 +362,10 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5823156345754273331L;
 
-    private Zeze.Serialize.Vector3 _Position; // 移动命令时客户端的真实位置。
-    private Zeze.Serialize.Vector3 _Direct; // 移动命令时客户端真实的朝向。
-    private int _Command; // 0 直线，1 后退，2 左转，3 右转，4 停止。
-    private long _Timestamp; // 命令发起时刻的时戳。
+    private Zeze.Serialize.Vector3 _Position; // 命令时刻的客户端真实位置。
+    private Zeze.Serialize.Vector3 _Direct; // 命令时刻的客户端真实朝向。
+    private int _Command; // 0 前进，1 后退，2 左转，3 右转，4 停止，5 下滑，6 空中（分两种：允许或不允许转向？）。
+    private long _Timestamp; // 命令时刻的时戳。
 
     public Zeze.Serialize.Vector3 getPosition() {
         return _Position;

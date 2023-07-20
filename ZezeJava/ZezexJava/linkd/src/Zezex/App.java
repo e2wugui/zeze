@@ -102,7 +102,7 @@ public final class App extends Zeze.AppBase {
 
     public synchronized void createZeze(Zeze.Config config) throws Exception {
         if (Zeze != null)
-            throw new RuntimeException("Zeze Has Created!");
+            throw new IllegalStateException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("linkd", config);
     }
@@ -123,7 +123,7 @@ public final class App extends Zeze.AppBase {
         Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)_modules_[0];
         Zezex_Linkd.Initialize(this);
         if (modules.put(Zezex_Linkd.getFullName(), Zezex_Linkd) != null)
-            throw new RuntimeException("duplicate module name: Zezex_Linkd");
+            throw new IllegalStateException("duplicate module name: Zezex_Linkd");
 
         Zeze.setSchemas(new Zezex.Schemas());
     }
