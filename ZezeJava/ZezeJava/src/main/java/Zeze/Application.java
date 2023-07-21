@@ -490,8 +490,8 @@ public final class Application {
 				timer.loadCustomClassAnd();
 		} else
 			startState = 2;
-		ProcedureStatistics.getInstance().start();
-		TableStatistics.getInstance().start();
+		ProcedureStatistics.getInstance().start(conf.getProcedureStatisticsReportPerod());
+		TableStatistics.getInstance().start(conf.getTableStatisticsReportPeriod());
 	}
 
 	public synchronized void stop() throws Exception {

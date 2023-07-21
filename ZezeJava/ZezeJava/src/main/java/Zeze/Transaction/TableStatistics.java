@@ -1,13 +1,15 @@
 package Zeze.Transaction;
 
-import java.util.TreeMap;
+import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.OutInt;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public final class TableStatistics {
 	private static final Logger logger = LogManager.getLogger(TableStatistics.class);
@@ -34,23 +36,24 @@ public final class TableStatistics {
 
 	private Future<?> timer;
 
-	public synchronized void start() {
+	public synchronized void start(long period) {
 		if (null != timer)
 			return;
-		timer = Task.scheduleUnsafe(Random.getInstance().nextLong(60000), 60000, this::report);
+		timer = Task.scheduleUnsafe(Random.getInstance().nextLong(period), period, this::report);
 	}
 
 	private void report() {
-		var sorted = new TreeMap<Long, Statistics>();
-		tables.forEach((e) -> sorted.put(e.getTableFindCount(), e));
+		var sorted = new Statistics[tables.size()];
+		var idx = new OutInt(0);
+		tables.forEach((e) -> sorted[idx.value++] = e);
+		Arrays.sort(sorted);
 
 		var sb = new StringBuilder();
-		var it = sorted.descendingMap().entrySet().iterator();
-		for (int i = 0; i < 20 && it.hasNext(); ++i) {
-			var e = it.next();
-			if (e.getKey() == 0)
+		var max = Math.max(sorted.length, 20);
+		for (int i = 0; i < max; ++i) {
+			var stat = sorted[i];
+			if (stat.getTableFindCount() == 0)
 				break;
-			var stat = e.getValue();
 			if (sb.length() == 0)
 				sb.append("TableStatistics:\n");
 			sb.append('\t').append(stat.getTableName());
@@ -69,7 +72,7 @@ public final class TableStatistics {
 		tables.clear();
 	}
 
-	public static final class Statistics {
+	public static final class Statistics implements Comparable<Statistics> {
 		private final long tableId; // 实际上是int，只是TableKey.tables存储成long了。
 		private final LongAdder readLockTimes = new LongAdder();
 		private final LongAdder writeLockTimes = new LongAdder();
@@ -162,6 +165,12 @@ public final class TableStatistics {
 			sb.append(prefix).append("WriteLocks=").append(getReadLockTimes().sum()).append(end);
 			sb.append(prefix).append("TryReadLocks=").append(getTryReadLockTimes().sum()).append(end);
 			sb.append(prefix).append("TryWriteLocks=").append(getTryWriteLockTimes().sum()).append(end);
+		}
+
+		@Override
+		public int compareTo(@NotNull TableStatistics.Statistics o) {
+			// 大的在前面。
+			return Long.compare(o.getTableFindCount(), getTableFindCount());
 		}
 	}
 }

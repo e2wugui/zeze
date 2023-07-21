@@ -97,6 +97,25 @@ public final class Config {
 	private int providerThreshold = 3000;
 	private int providerOverload = 5000;
 
+	private long procedureStatisticsReportPerod = 60000;
+	private long tableStatisticsReportPeriod = 60000;
+
+	public long getProcedureStatisticsReportPerod() {
+		return procedureStatisticsReportPerod;
+	}
+
+	public long getTableStatisticsReportPeriod() {
+		return tableStatisticsReportPeriod;
+	}
+
+	public void setProcedureStatisticsReportPerod(long value) {
+		procedureStatisticsReportPerod = value;
+	}
+
+	public void setTableStatisticsReportPeriod(long value) {
+		tableStatisticsReportPeriod = value;
+	}
+
 	public int getProviderThreshold() {
 		return providerThreshold;
 	}

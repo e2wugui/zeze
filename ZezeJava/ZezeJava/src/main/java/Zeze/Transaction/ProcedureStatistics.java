@@ -1,6 +1,6 @@
 package Zeze.Transaction;
 
-import java.util.TreeMap;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.LongAdder;
@@ -9,6 +9,7 @@ import Zeze.Util.Random;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 在Procedure中统计，由于嵌套存储过程存在，总数会比实际事务数多。
@@ -30,25 +31,24 @@ public final class ProcedureStatistics {
 
 	private Future<?> timer;
 
-	public synchronized void start() {
+	public synchronized void start(long period) {
 		if (null != timer)
 			return;
-		timer = Task.scheduleUnsafe(Random.getInstance().nextLong(60000), 60000, this::report);
+		timer = Task.scheduleUnsafe(Random.getInstance().nextLong(period), period, this::report);
 	}
 
 	private void report() {
-		var sorted = new TreeMap<Long, Statistics>();
-		for (var e : getProcedures().values()) {
-			var statResult = e.getResults().get(0L);
-			sorted.put(null == statResult ? 0L : statResult.sum(), e);
-		}
+		var sorted = new Statistics[getProcedures().size()];
+		getProcedures().values().toArray(sorted);
+		Arrays.sort(sorted);
+
 		var sb = new StringBuilder();
-		var it = sorted.descendingMap().entrySet().iterator();
-		for (int i = 0; i < 20 && it.hasNext(); ++i) {
-			var e = it.next();
-			if (e.getKey() == 0)
+		var max = Math.max(sorted.length, 20);
+		for (int i = 0; i < max; ++i) {
+			var stat = sorted[i];
+			var success = stat.getResults().get(0L);
+			if (null == success || success.sum() == 0)
 				break;
-			var stat = e.getValue();
 			if (sb.length() == 0)
 				sb.append("ProcedureStatistics:\n");
 			sb.append('\t').append(stat.getProcedureName());
@@ -75,7 +75,7 @@ public final class ProcedureStatistics {
 		return procedures.computeIfAbsent(procedureName, Statistics::new);
 	}
 
-	public static final class Statistics {
+	public static final class Statistics implements Comparable<Statistics> {
 		private final LongConcurrentHashMap<LongAdder> Results = new LongConcurrentHashMap<>();
 		private final String procedureName;
 
@@ -110,6 +110,18 @@ public final class ProcedureStatistics {
 		public void watch(long reachPerSecond, Runnable handle) {
 			var watcher = new Watcher(reachPerSecond, handle);
 			Task.schedule(Watcher.CheckPeriod * 1000, Watcher.CheckPeriod * 1000, watcher::check);
+		}
+
+		@Override
+		public int compareTo(@NotNull ProcedureStatistics.Statistics o) {
+			var success = o.getResults().get(0L);
+			var other = success != null ? success.sum() : 0L;
+
+			success = getResults().get(0L);
+			var self = success != null ? success.sum() : 0L;
+
+			// 大的在前面。
+			return Long.compare(other, self);
 		}
 
 		public final class Watcher {
