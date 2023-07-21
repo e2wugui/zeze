@@ -1,11 +1,14 @@
 package Zeze.Net;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.ProtocolFactoryFinder;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -15,12 +18,32 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	public static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
 	private static final Logger logger = LogManager.getLogger(Protocol.class);
 	private static final LongConcurrentHashMap<Class<? extends Protocol<?>>> protocolClasses = new LongConcurrentHashMap<>();
+	private static final VarHandle userStateHandle;
 
 	private transient Object sender; // AsyncSocket or DatagramSession
+	@SuppressWarnings("unused")
 	private transient @Nullable Object userState;
 	public TArgument Argument;
 	protected long resultCode;
-	private volatile ByteBuffer encodeShared;
+
+	static {
+		try {
+			userStateHandle = MethodHandles.lookup().findVarHandle(Protocol.class, "userState", Object.class);
+		} catch (ReflectiveOperationException e) {
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
+		}
+	}
+
+	private static final class UserStateWithEncoded {
+		private transient @Nullable Object userState;
+		private transient final @NotNull ByteBuffer encodeShared;
+
+		private UserStateWithEncoded(@Nullable Object userState, @NotNull ByteBuffer encodeShared) {
+			this.userState = userState;
+			this.encodeShared = encodeShared;
+		}
+	}
 
 	public int getFamilyClass() {
 		return FamilyClass.Protocol;
@@ -38,20 +61,43 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		return sender instanceof AsyncSocket ? ((AsyncSocket)sender).getService() : null;
 	}
 
-	public @Nullable Object getUserState() {
-		return userState;
-	}
-
-	public void setUserState(@Nullable Object userState) {
-		this.userState = userState;
-	}
-
 	public DatagramSession getDatagramSession() {
 		return (DatagramSession)sender;
 	}
 
 	public void setDatagramSession(DatagramSession datagramSession) {
 		sender = datagramSession;
+	}
+
+	public @Nullable Object getUserState() {
+		var us = userState;
+		return us instanceof UserStateWithEncoded ? ((UserStateWithEncoded)us).userState : us;
+	}
+
+	public void setUserState(@Nullable Object userState) {
+		for (var us = this.userState; ; ) {
+			if (us instanceof UserStateWithEncoded) {
+				((UserStateWithEncoded)us).userState = userState;
+				return;
+			}
+			if (userStateHandle.compareAndSet(this, us, userState))
+				return;
+			us = userStateHandle.getVolatile(this);
+		}
+	}
+
+	public @NotNull ByteBuffer encodeShared() {
+		var us = userState;
+		if (us instanceof UserStateWithEncoded)
+			return ((UserStateWithEncoded)us).encodeShared;
+		var bb = encode();
+		for (var newUs = new UserStateWithEncoded(us, bb); ; newUs.userState = us) {
+			if (userStateHandle.compareAndSet(this, us, newUs))
+				return bb;
+			us = userStateHandle.getVolatile(this);
+			if (us instanceof UserStateWithEncoded)
+				return ((UserStateWithEncoded)us).encodeShared;
+		}
 	}
 
 	public final long getResultCode() {
@@ -154,19 +200,6 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		int size = bb.size() - saveSize - 4;
 		if (size > preAllocSize())
 			preAllocSize(size);
-	}
-
-	public ByteBuffer encodeShared() {
-		var tmp = encodeShared;
-		if (tmp != null)
-			return tmp;
-		synchronized (this) {
-			tmp = encodeShared;
-			if (tmp != null)
-				return tmp;
-			encodeShared = tmp = encode();
-			return tmp;
-		}
 	}
 
 	public boolean Send(@Nullable AsyncSocket so) {
