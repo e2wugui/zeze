@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 public final class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	private static final Logger logger = LogManager.getLogger(Record1.class);
 	private static final boolean isTraceEnabled = logger.isTraceEnabled();
-	private static final VarHandle LRU_NODE_HANDLE;
+	private static final @NotNull VarHandle LRU_NODE_HANDLE;
 
 	static {
 		try {

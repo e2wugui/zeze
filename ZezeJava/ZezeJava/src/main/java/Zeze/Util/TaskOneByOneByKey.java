@@ -32,7 +32,7 @@ public final class TaskOneByOneByKey {
 	private final int hashMask;
 	private final @Nullable Executor executor;
 
-	public TaskOneByOneByKey(Executor executor) {
+	public TaskOneByOneByKey(@Nullable Executor executor) {
 		this(1024, executor);
 	}
 
@@ -148,7 +148,7 @@ public final class TaskOneByOneByKey {
 		}
 
 		@Override
-		String getName() {
+		@NotNull String getName() {
 			return procedure.getActionName();
 		}
 
@@ -169,7 +169,7 @@ public final class TaskOneByOneByKey {
 		}
 
 		@Override
-		String getName() {
+		@NotNull String getName() {
 			return actionName;
 		}
 
@@ -180,7 +180,7 @@ public final class TaskOneByOneByKey {
 	}
 
 	public synchronized <T> void executeCyclicBarrier(@NotNull Collection<T> keys, @NotNull Procedure procedure,
-													  Action0 cancel, DispatchMode mode) {
+													  @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
@@ -197,8 +197,9 @@ public final class TaskOneByOneByKey {
 		}
 	}
 
-	public synchronized <T> void executeCyclicBarrier(@NotNull Collection<T> keys, String actionName,
-													  @NotNull Action0 action, Action0 cancel, DispatchMode mode) {
+	public synchronized <T> void executeCyclicBarrier(@NotNull Collection<T> keys, @NotNull String actionName,
+													  @NotNull Action0 action, @Nullable Action0 cancel,
+													  @Nullable DispatchMode mode) {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
@@ -226,7 +227,7 @@ public final class TaskOneByOneByKey {
 			this.batchEnd = batchEnd;
 		}
 
-		public void run(T key) throws Exception {
+		public void run(@NotNull T key) throws Exception {
 			action.run(key);
 			if (keysCount.decrementAndGet() == 0)
 				batchEnd.run();
@@ -234,14 +235,14 @@ public final class TaskOneByOneByKey {
 	}
 
 	public <T> void executeBatch(@NotNull Collection<T> keys, @NotNull Action1<T> action, @NotNull Action0 batchEnd,
-								 DispatchMode mode) {
+								 @Nullable DispatchMode mode) {
 		var batch = new Batch<>(keys.size(), action, batchEnd);
 		for (var key : keys)
 			Execute(key, () -> batch.run(key), mode);
 	}
 
-	public void executeBatch(@NotNull LongList keys, @NotNull Action1<Long> action, Action0 batchEnd,
-							 DispatchMode mode) {
+	public void executeBatch(@NotNull LongList keys, @NotNull Action1<Long> action, @NotNull Action0 batchEnd,
+							 @Nullable DispatchMode mode) {
 		var batch = new Batch<>(keys.size(), action, batchEnd);
 		keys.foreach((key) -> Execute(key, () -> batch.run(key), mode));
 	}
@@ -250,19 +251,21 @@ public final class TaskOneByOneByKey {
 		Execute(key.hashCode(), action, DispatchMode.Normal);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull Action0 action, DispatchMode mode) {
+	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable DispatchMode mode) {
 		Execute(key.hashCode(), action, mode);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull Action0 action, String name) {
+	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name) {
 		Execute(key.hashCode(), action, name, DispatchMode.Normal);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull Action0 action, String name, DispatchMode mode) {
+	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name,
+						@Nullable DispatchMode mode) {
 		Execute(key.hashCode(), action, name, mode);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull Action0 action, String name, Action0 cancel, DispatchMode mode) {
+	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
+						@Nullable DispatchMode mode) {
 		Execute(key.hashCode(), action, name, cancel, mode);
 	}
 
@@ -270,19 +273,21 @@ public final class TaskOneByOneByKey {
 		Execute(key.hashCode(), func, DispatchMode.Normal);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull FuncLong func, DispatchMode mode) {
+	public void Execute(@NotNull Object key, @NotNull FuncLong func, @Nullable DispatchMode mode) {
 		Execute(key.hashCode(), func, mode);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull FuncLong func, String name) {
+	public void Execute(@NotNull Object key, @NotNull FuncLong func, @Nullable String name) {
 		Execute(key.hashCode(), func, name, DispatchMode.Normal);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull FuncLong func, String name, DispatchMode mode) {
+	public void Execute(@NotNull Object key, @NotNull FuncLong func, @Nullable String name,
+						@Nullable DispatchMode mode) {
 		Execute(key.hashCode(), func, name, mode);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull FuncLong func, String name, Action0 cancel, DispatchMode mode) {
+	public void Execute(@NotNull Object key, @NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel,
+						@Nullable DispatchMode mode) {
 		Execute(key.hashCode(), func, name, cancel, mode);
 	}
 
@@ -290,11 +295,12 @@ public final class TaskOneByOneByKey {
 		Execute(key.hashCode(), procedure, DispatchMode.Normal);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull Procedure procedure, DispatchMode mode) {
+	public void Execute(@NotNull Object key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
 		Execute(key.hashCode(), procedure, mode);
 	}
 
-	public void Execute(@NotNull Object key, @NotNull Procedure procedure, Action0 cancel, DispatchMode mode) {
+	public void Execute(@NotNull Object key, @NotNull Procedure procedure, @Nullable Action0 cancel,
+						@Nullable DispatchMode mode) {
 		Execute(key.hashCode(), procedure, cancel, mode);
 	}
 
@@ -302,19 +308,20 @@ public final class TaskOneByOneByKey {
 		Execute(key, action, null, null, DispatchMode.Normal);
 	}
 
-	public void Execute(int key, @NotNull Action0 action, DispatchMode mode) {
+	public void Execute(int key, @NotNull Action0 action, @Nullable DispatchMode mode) {
 		Execute(key, action, null, null, mode);
 	}
 
-	public void Execute(int key, @NotNull Action0 action, String name) {
+	public void Execute(int key, @NotNull Action0 action, @Nullable String name) {
 		Execute(key, action, name, null, DispatchMode.Normal);
 	}
 
-	public void Execute(int key, @NotNull Action0 action, String name, DispatchMode mode) {
+	public void Execute(int key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
 		Execute(key, action, name, null, mode);
 	}
 
-	public void Execute(int key, @NotNull Action0 action, String name, Action0 cancel, DispatchMode mode) {
+	public void Execute(int key, @NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
+						@Nullable DispatchMode mode) {
 		//noinspection ConstantValue
 		if (action == null)
 			throw new IllegalArgumentException("null action");
@@ -329,19 +336,20 @@ public final class TaskOneByOneByKey {
 		Execute(key, func, null, null, DispatchMode.Normal);
 	}
 
-	public void Execute(int key, @NotNull FuncLong func, DispatchMode mode) {
+	public void Execute(int key, @NotNull FuncLong func, @Nullable DispatchMode mode) {
 		Execute(key, func, null, null, mode);
 	}
 
-	public void Execute(int key, @NotNull FuncLong func, String name) {
+	public void Execute(int key, @NotNull FuncLong func, @Nullable String name) {
 		Execute(key, func, name, null, DispatchMode.Normal);
 	}
 
-	public void Execute(int key, @NotNull FuncLong func, String name, DispatchMode mode) {
+	public void Execute(int key, @NotNull FuncLong func, @Nullable String name, @Nullable DispatchMode mode) {
 		Execute(key, func, name, null, mode);
 	}
 
-	public void Execute(int key, @NotNull FuncLong func, String name, Action0 cancel, DispatchMode mode) {
+	public void Execute(int key, @NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel,
+						@Nullable DispatchMode mode) {
 		//noinspection ConstantValue
 		if (func == null)
 			throw new IllegalArgumentException("null func");
@@ -352,11 +360,11 @@ public final class TaskOneByOneByKey {
 		Execute(key, procedure, null, DispatchMode.Normal);
 	}
 
-	public void Execute(int key, @NotNull Procedure procedure, DispatchMode mode) {
+	public void Execute(int key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
 		Execute(key, procedure, null, mode);
 	}
 
-	public void Execute(int key, @NotNull Procedure procedure, Action0 cancel, DispatchMode mode) {
+	public void Execute(int key, @NotNull Procedure procedure, @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 		concurrency[hash(key) & hashMask].execute(procedure::call, procedure.getActionName(), cancel, mode);
 	}
 
@@ -364,19 +372,20 @@ public final class TaskOneByOneByKey {
 		Execute(Long.hashCode(key), action, DispatchMode.Normal);
 	}
 
-	public void Execute(long key, @NotNull Action0 action, DispatchMode mode) {
+	public void Execute(long key, @NotNull Action0 action, @Nullable DispatchMode mode) {
 		Execute(Long.hashCode(key), action, mode);
 	}
 
-	public void Execute(long key, @NotNull Action0 action, String name) {
+	public void Execute(long key, @NotNull Action0 action, @Nullable String name) {
 		Execute(Long.hashCode(key), action, name, DispatchMode.Normal);
 	}
 
-	public void Execute(long key, @NotNull Action0 action, String name, DispatchMode mode) {
+	public void Execute(long key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
 		Execute(Long.hashCode(key), action, name, mode);
 	}
 
-	public void Execute(long key, @NotNull Action0 action, String name, Action0 cancel, DispatchMode mode) {
+	public void Execute(long key, @NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
+						@Nullable DispatchMode mode) {
 		Execute(Long.hashCode(key), action, name, cancel, mode);
 	}
 
@@ -384,19 +393,20 @@ public final class TaskOneByOneByKey {
 		Execute(Long.hashCode(key), func, DispatchMode.Normal);
 	}
 
-	public void Execute(long key, @NotNull FuncLong func, DispatchMode mode) {
+	public void Execute(long key, @NotNull FuncLong func, @Nullable DispatchMode mode) {
 		Execute(Long.hashCode(key), func, mode);
 	}
 
-	public void Execute(long key, @NotNull FuncLong func, String name) {
+	public void Execute(long key, @NotNull FuncLong func, @Nullable String name) {
 		Execute(Long.hashCode(key), func, name, DispatchMode.Normal);
 	}
 
-	public void Execute(long key, @NotNull FuncLong func, String name, DispatchMode mode) {
+	public void Execute(long key, @NotNull FuncLong func, @Nullable String name, @Nullable DispatchMode mode) {
 		Execute(Long.hashCode(key), func, name, mode);
 	}
 
-	public void Execute(long key, @NotNull FuncLong func, String name, Action0 cancel, DispatchMode mode) {
+	public void Execute(long key, @NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel,
+						@Nullable DispatchMode mode) {
 		Execute(Long.hashCode(key), func, name, cancel, mode);
 	}
 
@@ -404,11 +414,11 @@ public final class TaskOneByOneByKey {
 		Execute(Long.hashCode(key), procedure, DispatchMode.Normal);
 	}
 
-	public void Execute(long key, @NotNull Procedure procedure, DispatchMode mode) {
+	public void Execute(long key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
 		Execute(Long.hashCode(key), procedure, mode);
 	}
 
-	public void Execute(long key, @NotNull Procedure procedure, Action0 cancel, DispatchMode mode) {
+	public void Execute(long key, @NotNull Procedure procedure, @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 		Execute(Long.hashCode(key), procedure, cancel, mode);
 	}
 
@@ -454,11 +464,11 @@ public final class TaskOneByOneByKey {
 	}
 
 	static abstract class Task {
-		final String name;
+		final @NotNull String name;
 		final @Nullable Action0 cancel;
-		final DispatchMode mode;
+		final @Nullable DispatchMode mode;
 
-		Task(String name, Action0 cancel, DispatchMode mode) {
+		Task(@NotNull String name, @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 			this.name = name;
 			this.cancel = cancel;
 			this.mode = mode;
@@ -470,9 +480,10 @@ public final class TaskOneByOneByKey {
 	}
 
 	static final class TaskAction extends Task {
-		private final Action0 action;
+		private final @NotNull Action0 action;
 
-		TaskAction(Action0 action, String name, Action0 cancel, DispatchMode mode) {
+		TaskAction(@NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
+				   @Nullable DispatchMode mode) {
 			super(name != null ? name : action.getClass().getName(), cancel, mode);
 			this.action = action;
 		}
@@ -483,7 +494,7 @@ public final class TaskOneByOneByKey {
 		}
 
 		@Override
-		boolean process(TaskOneByOne.BatchTask batch) {
+		boolean process(@NotNull TaskOneByOne.BatchTask batch) {
 			try {
 				action.run();
 			} catch (Throwable e) { // logger.error
@@ -494,10 +505,10 @@ public final class TaskOneByOneByKey {
 	}
 
 	static final class TaskFunc extends Task {
-		private final FuncLong func;
+		private final @NotNull FuncLong func;
 
-		TaskFunc(FuncLong func, String name, Action0 cancel, DispatchMode mode) {
-			super(name, cancel, mode);
+		TaskFunc(@NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel, @Nullable DispatchMode mode) {
+			super(name != null ? name : func.getClass().getName(), cancel, mode);
 			this.func = func;
 		}
 
@@ -507,7 +518,7 @@ public final class TaskOneByOneByKey {
 		}
 
 		@Override
-		boolean process(TaskOneByOne.BatchTask batch) {
+		boolean process(@NotNull TaskOneByOne.BatchTask batch) {
 			try {
 				func.call();
 			} catch (Throwable e) { // logger.error
@@ -521,7 +532,7 @@ public final class TaskOneByOneByKey {
 		private final @NotNull BarrierProcedure barrier;
 		private final int sum;
 
-		TaskBarrierProcedure(@NotNull BarrierProcedure barrier, int sum, DispatchMode mode) {
+		TaskBarrierProcedure(@NotNull BarrierProcedure barrier, int sum, @Nullable DispatchMode mode) {
 			super(barrier.getName(), barrier::cancel, mode);
 			this.barrier = barrier;
 			this.sum = sum;
@@ -542,7 +553,7 @@ public final class TaskOneByOneByKey {
 		private final @NotNull BarrierAction barrier;
 		private final int sum;
 
-		TaskBarrierAction(@NotNull BarrierAction barrier, int sum, DispatchMode mode) {
+		TaskBarrierAction(@NotNull BarrierAction barrier, int sum, @Nullable DispatchMode mode) {
 			super(barrier.actionName, barrier::cancel, mode);
 			this.barrier = barrier;
 			this.sum = sum;
@@ -561,23 +572,25 @@ public final class TaskOneByOneByKey {
 
 	final class TaskOneByOne {
 		private final ReentrantLock lock = new ReentrantLock();
-		private final Condition cond = lock.newCondition();
+		private final @NotNull Condition cond = lock.newCondition();
 		private final BatchTask batch = new BatchTask();
 		private @NotNull ArrayDeque<Task> queue = new ArrayDeque<>();
 		private boolean isShutdown;
 
-		void execute(@NotNull Action0 action, String name, Action0 cancel, DispatchMode mode) {
+		void execute(@NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
+					 @Nullable DispatchMode mode) {
 			execute(new TaskAction(action, name, cancel, mode));
 		}
 
-		void execute(@NotNull FuncLong func, String name, Action0 cancel, DispatchMode mode) {
+		void execute(@NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel,
+					 @Nullable DispatchMode mode) {
 			execute(new TaskFunc(func, name, cancel, mode));
 		}
 
 		final class BatchTask implements Runnable {
 			Task[] tasks;
 			int count;
-			DispatchMode mode;
+			@Nullable DispatchMode mode;
 			int processedCount;
 
 			void prepare() {
@@ -617,11 +630,11 @@ public final class TaskOneByOneByKey {
 			}
 		}
 
-		void executeBarrier(@NotNull BarrierProcedure barrier, int sum, DispatchMode mode) {
+		void executeBarrier(@NotNull BarrierProcedure barrier, int sum, @Nullable DispatchMode mode) {
 			execute(new TaskBarrierProcedure(barrier, sum, mode));
 		}
 
-		void executeBarrier(@NotNull BarrierAction barrier, int sum, DispatchMode mode) {
+		void executeBarrier(@NotNull BarrierAction barrier, int sum, @Nullable DispatchMode mode) {
 			execute(new TaskBarrierAction(barrier, sum, mode));
 		}
 

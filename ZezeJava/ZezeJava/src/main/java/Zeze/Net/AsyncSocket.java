@@ -39,7 +39,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static final boolean ENABLE_DEBUG_LOG = logger.isDebugEnabled();
 	public static final boolean ENABLE_PROTOCOL_LOG_OLD = "true".equalsIgnoreCase(System.getProperty("protocolLogOld"));
 	private static final LongHashSet protocolLogExcept = new LongHashSet();
-	private static final VarHandle closedHandle, outputBufferSizeHandle;
+	private static final @NotNull VarHandle closedHandle, outputBufferSizeHandle;
 	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED
 	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
 	private static final AtomicLong sessionIdGen = new AtomicLong(1);

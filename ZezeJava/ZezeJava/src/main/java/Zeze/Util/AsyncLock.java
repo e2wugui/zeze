@@ -4,11 +4,13 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 // 异步锁. 暂不支持重入
 public final class AsyncLock {
 	public static final boolean tryNextSync = "true".equalsIgnoreCase(System.getProperty("AsyncLock.tryNextSync"));
-	private static final VarHandle stateHandle;
+	private static final @NotNull VarHandle stateHandle;
 
 	static {
 		try {
@@ -22,8 +24,8 @@ public final class AsyncLock {
 	private volatile int state;
 	private final ConcurrentLinkedQueue<Action0> readyQueue = new ConcurrentLinkedQueue<>();
 	private final ArrayDeque<Action0> waitQueue = new ArrayDeque<>();
-	private Action0 current;
-	private Thread ownerThread;
+	private @Nullable Action0 current;
+	private @Nullable Thread ownerThread;
 
 	public boolean isLocked() {
 		return state != 0;

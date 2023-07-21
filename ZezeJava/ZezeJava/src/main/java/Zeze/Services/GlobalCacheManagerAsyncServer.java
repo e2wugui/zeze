@@ -43,6 +43,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerConst {
@@ -325,7 +326,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	public static final class CountDownFuture extends RedirectFuture<Object> {
-		private static final VarHandle vhCounter;
+		private static final @NotNull VarHandle vhCounter;
 
 		static {
 			try {

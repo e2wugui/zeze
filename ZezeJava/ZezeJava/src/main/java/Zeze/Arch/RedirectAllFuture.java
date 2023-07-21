@@ -9,15 +9,17 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface RedirectAllFuture<R extends RedirectResult> {
 	// 返回的future不能调用下面的接口方法,只用于给框架提供结果
-	static <R extends RedirectResult> RedirectAllFuture<R> result(R r) {
+	static <R extends RedirectResult> @NotNull RedirectAllFuture<R> result(R r) {
 		return new RedirectAllFutureFinished<>(r);
 	}
 
 	// 返回的future只能调用下面的asyncResult方法
-	static <R extends RedirectResult> RedirectAllFuture<R> async() {
+	static <R extends RedirectResult> @NotNull RedirectAllFuture<R> async() {
 		return new RedirectAllFutureAsync<>();
 	}
 
@@ -27,25 +29,26 @@ public interface RedirectAllFuture<R extends RedirectResult> {
 	}
 
 	// 只用于RedirectAll方法返回的future, 同一future的情况下,此方法不会跟其它的onResult和onAllDone并发,每个结果回调一次
-	default RedirectAllFuture<R> onResult(Action1<R> onResult) throws Exception {
+	default @NotNull RedirectAllFuture<R> onResult(@NotNull Action1<R> onResult) throws Exception {
 		throw new IllegalStateException();
 	}
 
-	default RedirectAllFuture<R> OnResult(Action1<R> onResult) {
+	default @NotNull RedirectAllFuture<R> OnResult(@NotNull Action1<R> onResult) {
 		throw new IllegalStateException();
 	}
 
 	// 只用于RedirectAll方法返回的future. 同一future的情况下,此方法不会跟onResult并发,只会回调一次
-	default RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) throws Exception {
+	default @NotNull RedirectAllFuture<R> onAllDone(@NotNull Action1<RedirectAllContext<R>> onAllDone)
+			throws Exception {
 		throw new IllegalStateException();
 	}
 
-	default RedirectAllFuture<R> OnAllDone(Action1<RedirectAllContext<R>> onAllDone) {
+	default @NotNull RedirectAllFuture<R> OnAllDone(@NotNull Action1<RedirectAllContext<R>> onAllDone) {
 		throw new IllegalStateException();
 	}
 
 	// 只用于RedirectAll方法返回的future
-	default RedirectAllFuture<R> await() {
+	default @NotNull RedirectAllFuture<R> await() {
 		throw new IllegalStateException();
 	}
 }
@@ -63,7 +66,7 @@ final class RedirectAllFutureFinished<R extends RedirectResult> implements Redir
 }
 
 final class RedirectAllFutureAsync<R extends RedirectResult> implements RedirectAllFuture<R> {
-	private static final VarHandle RESULT;
+	private static final @NotNull VarHandle RESULT;
 
 	static {
 		try {
@@ -93,7 +96,7 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Exception {
+	public @NotNull RedirectAllFuture<R> onResult(@NotNull Action1<R> onResult) throws Exception {
 		Object r = RESULT.getAndSet(this, onResult);
 		if (r != null) {
 			if (r instanceof RedirectResult)
@@ -106,7 +109,7 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 }
 
 final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectAllFuture<R> {
-	private static final VarHandle ON_ALL_DONE;
+	private static final @NotNull VarHandle ON_ALL_DONE;
 
 	static {
 		try {
@@ -116,14 +119,14 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		}
 	}
 
-	private volatile Action1<R> onResult;
-	private volatile Action1<RedirectAllContext<R>> onAllDone;
-	private volatile RedirectAllContext<R> ctx;
-	private IntHashSet finishedHashes; // lazy-init
+	private volatile @Nullable Action1<R> onResult;
+	private volatile @Nullable Action1<RedirectAllContext<R>> onAllDone;
+	private volatile @Nullable RedirectAllContext<R> ctx;
+	private @Nullable IntHashSet finishedHashes; // lazy-init
 	private final ReentrantLock lock = new ReentrantLock();
-	private final Condition cond = lock.newCondition();
+	private final @NotNull Condition cond = lock.newCondition();
 
-	private IntHashSet getFinishedHashes() {
+	private @NotNull IntHashSet getFinishedHashes() {
 		var hashes = finishedHashes;
 		if (hashes == null) {
 			var newHashes = new IntHashSet();
@@ -138,7 +141,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		return hashes;
 	}
 
-	void result(RedirectAllContext<R> ctx, R result) {
+	void result(@NotNull RedirectAllContext<R> ctx, @NotNull R result) {
 		if (this.ctx == null)
 			this.ctx = ctx;
 		if (onResult == null)
@@ -150,6 +153,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 				return;
 		}
 		ctx.getService().getZeze().newProcedure(() -> {
+			//noinspection DataFlowIssue
 			onResult.run(result);
 			return Procedure.Success;
 		}, "RedirectAllFutureImpl.result").call();
@@ -157,7 +161,8 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 
 	@SuppressWarnings("RedundantThrows")
 	@Override
-	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Exception {
+	public @NotNull RedirectAllFuture<R> onResult(@NotNull Action1<R> onResult) throws Exception {
+		//noinspection ConstantValue
 		if (onResult == null)
 			throw new IllegalArgumentException("null onResult");
 		this.onResult = onResult;
@@ -185,7 +190,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	}
 
 	@Override
-	public RedirectAllFuture<R> OnResult(Action1<R> onResult) {
+	public @NotNull RedirectAllFuture<R> OnResult(@NotNull Action1<R> onResult) {
 		try {
 			return onResult(onResult);
 		} catch (Exception e) {
@@ -194,7 +199,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		}
 	}
 
-	void allDone(RedirectAllContext<R> ctx) {
+	void allDone(@NotNull RedirectAllContext<R> ctx) {
 		if (this.ctx == null)
 			this.ctx = ctx;
 		@SuppressWarnings("unchecked")
@@ -215,7 +220,8 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 
 	@SuppressWarnings("RedundantThrows")
 	@Override
-	public RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) throws Exception {
+	public @NotNull RedirectAllFuture<R> onAllDone(@NotNull Action1<RedirectAllContext<R>> onAllDone) throws Exception {
+		//noinspection ConstantValue
 		if (onAllDone == null)
 			throw new IllegalArgumentException("null onAllDone");
 		var c = ctx;
@@ -233,7 +239,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	}
 
 	@Override
-	public RedirectAllFuture<R> OnAllDone(Action1<RedirectAllContext<R>> onAllDone) {
+	public @NotNull RedirectAllFuture<R> OnAllDone(@NotNull Action1<RedirectAllContext<R>> onAllDone) {
 		try {
 			return onAllDone(onAllDone);
 		} catch (Exception e) {
@@ -243,7 +249,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	}
 
 	@Override
-	public RedirectAllFuture<R> await() {
+	public @NotNull RedirectAllFuture<R> await() {
 		var c = ctx;
 		if (c == null || !c.isCompleted()) {
 			lock.lock();

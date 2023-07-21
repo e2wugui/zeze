@@ -23,7 +23,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 
 	private volatile @SuppressWarnings("unused") Object result;
 	private final ReentrantLock lock = new ReentrantLock();
-	private final Condition cond = lock.newCondition();
+	private final @NotNull Condition cond = lock.newCondition();
 
 	static {
 		try {
@@ -98,7 +98,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 	}
 
 	@Override
-	public R get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+	public R get(long timeout, @NotNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 		Object r = result;
 		if (r == null) {
 			timeout = unit.toMillis(timeout);

@@ -9,6 +9,8 @@ import java.util.function.BiPredicate;
 import Zeze.Transaction.TableWalkKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ConcurrentLruLike<K, V> {
 	private static final Logger logger = LogManager.getLogger(ConcurrentLruLike.class);
@@ -16,7 +18,7 @@ public class ConcurrentLruLike<K, V> {
 	private static final int SHRINK_NODE_COUNT = 8000; // shrink的目标节点数量
 
 	static final class LruItem<K, V> {
-		private static final VarHandle LRU_NODE_HANDLE;
+		private static final @NotNull VarHandle LRU_NODE_HANDLE;
 
 		static {
 			try {
@@ -27,10 +29,10 @@ public class ConcurrentLruLike<K, V> {
 			}
 		}
 
-		final V value;
-		volatile ConcurrentHashMap<K, LruItem<K, V>> lruNode;
+		final @NotNull V value;
+		volatile @NotNull ConcurrentHashMap<K, LruItem<K, V>> lruNode;
 
-		LruItem(V value, ConcurrentHashMap<K, LruItem<K, V>> lruNode) {
+		LruItem(@NotNull V value, @NotNull ConcurrentHashMap<K, LruItem<K, V>> lruNode) {
 			this.value = value;
 			this.lruNode = lruNode;
 		}
@@ -45,14 +47,15 @@ public class ConcurrentLruLike<K, V> {
 		}
 	}
 
-	private final String name;
-	private final ConcurrentHashMap<K, LruItem<K, V>> dataMap;
+	private final @NotNull String name;
+	private final @NotNull ConcurrentHashMap<K, LruItem<K, V>> dataMap;
 	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, LruItem<K, V>>> lruQueue = new ConcurrentLinkedQueue<>();
-	private volatile ConcurrentHashMap<K, LruItem<K, V>> lruHot;
+	@SuppressWarnings("NotNullFieldNotInitialized")
+	private volatile @NotNull ConcurrentHashMap<K, LruItem<K, V>> lruHot;
 	private int capacity;
 	private int lruInitialCapacity;
 	private int cleanPeriod;
-	private BiPredicate<K, V> tryRemoveCallback;
+	private @Nullable BiPredicate<K, V> tryRemoveCallback;
 	private int cleanPeriodWhenExceedCapacity = 1000;
 	private boolean continueWhenTryRemoveCallbackFail = true;
 
@@ -80,11 +83,11 @@ public class ConcurrentLruLike<K, V> {
 		cleanPeriod = value;
 	}
 
-	public final BiPredicate<K, V> getTryRemoveCallback() {
+	public final @Nullable BiPredicate<K, V> getTryRemoveCallback() {
 		return tryRemoveCallback;
 	}
 
-	public final void setTryRemoveCallback(BiPredicate<K, V> value) {
+	public final void setTryRemoveCallback(@Nullable BiPredicate<K, V> value) {
 		tryRemoveCallback = value;
 	}
 
@@ -104,25 +107,26 @@ public class ConcurrentLruLike<K, V> {
 		continueWhenTryRemoveCallbackFail = value;
 	}
 
-	public ConcurrentLruLike(String name, int capacity) {
+	public ConcurrentLruLike(@NotNull String name, int capacity) {
 		this(name, capacity, null, 200, 2000, 31);
 	}
 
-	public ConcurrentLruLike(String name, int capacity, BiPredicate<K, V> tryRemove) {
+	public ConcurrentLruLike(@NotNull String name, int capacity, @Nullable BiPredicate<K, V> tryRemove) {
 		this(name, capacity, tryRemove, 200, 2000, 31);
 	}
 
-	public ConcurrentLruLike(String name, int capacity, BiPredicate<K, V> tryRemove, int newLruHotPeriod) {
+	public ConcurrentLruLike(@NotNull String name, int capacity, @Nullable BiPredicate<K, V> tryRemove,
+							 int newLruHotPeriod) {
 		this(name, capacity, tryRemove, newLruHotPeriod, 2000, 31);
 	}
 
-	public ConcurrentLruLike(String name, int capacity, BiPredicate<K, V> tryRemove, int newLruHotPeriod,
-							 int cleanPeriod) {
+	public ConcurrentLruLike(@NotNull String name, int capacity, @Nullable BiPredicate<K, V> tryRemove,
+							 int newLruHotPeriod, int cleanPeriod) {
 		this(name, capacity, tryRemove, newLruHotPeriod, cleanPeriod, 31);
 	}
 
-	public ConcurrentLruLike(String name, int capacity, BiPredicate<K, V> tryRemove, int newLruHotPeriod,
-							 int cleanPeriod, int initialCapacity) {
+	public ConcurrentLruLike(@NotNull String name, int capacity, @Nullable BiPredicate<K, V> tryRemove,
+							 int newLruHotPeriod, int cleanPeriod, int initialCapacity) {
 		this.name = name;
 		dataMap = new ConcurrentHashMap<>(initialCapacity);
 		this.capacity = capacity;
@@ -139,7 +143,7 @@ public class ConcurrentLruLike<K, V> {
 		Task.schedule(this.cleanPeriod, this.cleanPeriod, this::cleanNow);
 	}
 
-	public long walkKey(TableWalkKey<K> callback) {
+	public long walkKey(@NotNull TableWalkKey<K> callback) {
 		long cw = 0;
 		for (var k : dataMap.keySet()) {
 			if (!callback.handle(k))
@@ -155,7 +159,8 @@ public class ConcurrentLruLike<K, V> {
 		lruQueue.add(newLru);
 	}
 
-	private void adjustLru(K key, LruItem<K, V> lruItem, ConcurrentHashMap<K, LruItem<K, V>> curLruHot) {
+	private void adjustLru(@NotNull K key, @NotNull LruItem<K, V> lruItem,
+						   @NotNull ConcurrentHashMap<K, LruItem<K, V>> curLruHot) {
 		var oldNode = lruItem.getAndSetLruNodeNull();
 		if (oldNode != null) {
 			oldNode.remove(key);
@@ -164,7 +169,7 @@ public class ConcurrentLruLike<K, V> {
 		}
 	}
 
-	public final V getOrAdd(K key, Factory<V> factory) {
+	public final @NotNull V getOrAdd(@NotNull K key, @NotNull Factory<V> factory) {
 		var lruHot = this.lruHot;
 		var lruItem = dataMap.get(key);
 		if (lruItem == null) { // slow-path
@@ -179,11 +184,11 @@ public class ConcurrentLruLike<K, V> {
 		return lruItem.value;
 	}
 
-	public final V get(K key) {
+	public final @Nullable V get(@NotNull K key) {
 		return get(key, true);
 	}
 
-	public final V get(K key, boolean adjustLru) {
+	public final @Nullable V get(@NotNull K key, boolean adjustLru) {
 		var lruItem = dataMap.get(key);
 		if (lruItem == null)
 			return null;
@@ -196,7 +201,7 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	// 自定义TryRemoveCallback时，需要调用这个方法真正删除。
-	public final V remove(K key) {
+	public final @Nullable V remove(@NotNull K key) {
 		var lruItemRemoved = dataMap.remove(key);
 		if (lruItemRemoved == null)
 			return null;
@@ -205,6 +210,7 @@ public class ConcurrentLruLike<K, V> {
 		// 1. GetOrAdd 需要 replace 更新
 		// 2. 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
 		var node = lruItemRemoved.lruNode;
+		//noinspection ConstantValue
 		if (node != null)
 			node.remove(key, lruItemRemoved);
 		return lruItemRemoved.value;

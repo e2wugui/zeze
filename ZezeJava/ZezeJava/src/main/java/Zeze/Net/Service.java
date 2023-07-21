@@ -34,9 +34,9 @@ import org.jetbrains.annotations.Nullable;
 public class Service {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
 	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(1);
-	private static final VarHandle closedRecvCountHandle, closedRecvSizeHandle;
-	private static final VarHandle closedSendCountHandle, closedSendSizeHandle, closedSendRawSizeHandle;
-	protected static final VarHandle overflowSizeHandle, overflowCountHandle;
+	private static final @NotNull VarHandle closedRecvCountHandle, closedRecvSizeHandle;
+	private static final @NotNull VarHandle closedSendCountHandle, closedSendSizeHandle, closedSendRawSizeHandle;
+	protected static final @NotNull VarHandle overflowSizeHandle, overflowCountHandle;
 
 	static {
 		var l = MethodHandles.lookup();

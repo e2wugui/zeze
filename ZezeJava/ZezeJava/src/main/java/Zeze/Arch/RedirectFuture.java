@@ -10,8 +10,7 @@ import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.NotNull;
 
 public class RedirectFuture<R> extends TaskCompletionSource<R> {
-	private static final @NotNull VarHandle ON_SUCCESS;
-	private static final @NotNull VarHandle ON_FAIL;
+	private static final @NotNull VarHandle ON_SUCCESS, ON_FAIL;
 	private static final Action1<?> CALLED = __ -> {
 		throw new UnsupportedOperationException();
 	};
