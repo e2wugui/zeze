@@ -16,9 +16,6 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 
 public class Bag {
-	// 根据物品Id查询物品堆叠数量。不设置这个方法，全部max==1，都不能堆叠。
-	public static volatile IntUnaryOperator funcItemPileMax;
-
 	// 物品加入包裹时，自动注册；
 	// 注册的Bean.ClassName会被持久化保存下来。
 	// Module.Start的时候自动装载注册的ClassName。
@@ -32,10 +29,10 @@ public class Bag {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
-	// private final Module module;
+	private final Module module;
 
 	Bag(Module module, String bagName) {
-		// this.module = module;
+		this.module = module;
 		this.name = bagName;
 		this.bean = module._tbag.getOrAdd(bagName);
 	}
@@ -137,7 +134,7 @@ public class Bag {
 		// 自动注册加入的BItem.Item的class。
 		Module.register(itemAdd.getItem().getBean());
 
-		int pileMax = getItemPileMax(itemAdd.getId());
+		int pileMax = module.getItemPileMax(itemAdd.getId());
 
 		// 优先加到提示格子
 		if (positionHint >= 0 && positionHint < bean.getCapacity()) {
@@ -210,13 +207,6 @@ public class Bag {
 		return -1;
 	}
 
-	private static int getItemPileMax(int itemId) {
-		var tmp = funcItemPileMax;
-		if (null == tmp)
-			return 1;
-		return tmp.applyAsInt(itemId);
-	}
-
 	/**
 	 * 移动物品，从一个格子移动到另一个格子。实现功能：移动，交换，叠加，拆分。
 	 *
@@ -240,7 +230,7 @@ public class Bag {
 			number = itemFrom.getNumber(); // move all
 		}
 
-		int pileMax = getItemPileMax(itemFrom.getId());
+		int pileMax = module.getItemPileMax(itemFrom.getId());
 		var itemTo = bean.getItems().get(to);
 		if (null != itemTo) {
 			if (itemFrom.getId() != itemTo.getId()) {
@@ -310,14 +300,25 @@ public class Bag {
 		private final ConcurrentHashMap<String, Bag> bags = new ConcurrentHashMap<>();
 		public ProviderApp providerApp;
 		public final Application zeze;
+		public volatile IntUnaryOperator funcItemPileMax;
+
+		// 根据物品Id查询物品堆叠数量。不设置这个方法，全部max==1，都不能堆叠。
 
 		// 用于UserApp服务，可以处理客户端发送的协议。
-		public Module(ProviderApp pa) {
+		public Module(ProviderApp pa, IntUnaryOperator funcItemPileMax) {
 			providerApp = pa;
 			zeze = providerApp.zeze;
 			RegisterProtocols(providerApp.providerService);
 			RegisterZezeTables(zeze);
 			providerApp.builtinModules.put(this.getFullName(), this);
+			this.funcItemPileMax = funcItemPileMax;
+		}
+
+		public int getItemPileMax(int itemId) {
+			var tmp = funcItemPileMax;
+			if (null == tmp)
+				return 1;
+			return tmp.applyAsInt(itemId);
 		}
 
 		@Override

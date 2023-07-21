@@ -61,6 +61,7 @@ public class App extends Zeze.AppBase {
 		}
 	}
 
+	public ProviderApp providerApp;
 	private boolean started = false;
 	public void Start(Config config) throws Exception {
 		if (started)
@@ -73,13 +74,13 @@ public class App extends Zeze.AppBase {
 		createZeze(config);
 		createService();
 		var provider = new ProviderWithOnline();
-		new ProviderApp(Zeze, provider,
+		providerApp = new ProviderApp(Zeze, provider,
 				new ProviderService("Server", Zeze), "DemoApp#", new ProviderDirectWithTransmit(),
 				new ProviderDirectService("ServerDirect", Zeze), "DemoLinkd", new LoadConfig());
 		provider.create(this);
 		createModules();
 		LinkedMapModule = new LinkedMap.Module(Zeze);
-		BagModule = new Bag.Module(Zeze);
+		BagModule = new Bag.Module(providerApp, null);
 		RocketMQProducer = new Producer(Zeze);
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的

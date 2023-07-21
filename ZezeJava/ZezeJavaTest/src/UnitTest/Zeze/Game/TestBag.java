@@ -26,7 +26,7 @@ public class TestBag {
 		demo.App.getInstance().Stop();
 		demo.App.getInstance().Start();
 		// 设置下可堆叠个数
-		Bag.funcItemPileMax = itemId -> MAX_GRID_CAPACITY;
+		App.Instance.BagModule.funcItemPileMax = itemId -> MAX_GRID_CAPACITY;
 	}
 
 	@After
