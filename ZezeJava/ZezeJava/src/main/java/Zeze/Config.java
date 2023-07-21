@@ -557,6 +557,14 @@ public final class Config {
 		if (!attr.isBlank())
 			providerOverload = Integer.parseInt(attr);
 
+		attr = self.getAttribute("ProcedureStatisticsReportPerod");
+		if (!attr.isBlank())
+			procedureStatisticsReportPerod = Long.parseLong(attr);
+
+		attr = self.getAttribute("TableStatisticsReportPeriod");
+		if (!attr.isBlank())
+			tableStatisticsReportPeriod = Long.parseLong(attr);
+
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {
 			Node node = childNodes.item(i);
