@@ -49,8 +49,8 @@ public final class TableStatistics {
 		Arrays.sort(sorted);
 
 		var sb = new StringBuilder();
-		var max = Math.max(sorted.length, 20);
-		for (int i = 0; i < max; ++i) {
+		var min = Math.min(sorted.length, 20);
+		for (int i = 0; i < min; ++i) {
 			var stat = sorted[i];
 			if (stat.getTableFindCount() == 0)
 				break;

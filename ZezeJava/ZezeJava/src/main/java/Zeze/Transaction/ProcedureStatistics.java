@@ -43,8 +43,8 @@ public final class ProcedureStatistics {
 		Arrays.sort(sorted);
 
 		var sb = new StringBuilder();
-		var max = Math.max(sorted.length, 20);
-		for (int i = 0; i < max; ++i) {
+		var min = Math.min(sorted.length, 20);
+		for (int i = 0; i < min; ++i) {
 			var stat = sorted[i];
 			var success = stat.getResults().get(0L);
 			if (null == success || success.sum() == 0)
