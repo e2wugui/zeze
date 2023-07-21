@@ -7,8 +7,8 @@ dependencies {
     implementation 'org.jetbrains:annotations:24.0.1'
     implementation 'org.pcollections:pcollections:4.0.1'
     implementation 'org.rocksdb:rocksdbjni:8.3.2'
-    implementation 'io.netty:netty-codec-http:4.1.93.Final'
-    implementation 'io.netty:netty-transport-native-epoll:4.1.93.Final:linux-x86_64'
+    implementation 'io.netty:netty-codec-http:4.1.95.Final'
+    implementation 'io.netty:netty-transport-native-epoll:4.1.95.Final:linux-x86_64'
 
     // optional dependencies
     // for tikv
@@ -21,7 +21,7 @@ dependencies {
     compileOnly 'com.mysql:mysql-connector-j:8.0.33'
 
     // dynamodb
-    compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.486'
+    compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.510'
 
     // for rocketmq
     compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.7'
@@ -32,7 +32,7 @@ dependencies {
     compileOnly 'com.opencsv:opencsv:5.7.1'
 
     // for new Compress/Decompress Codec in Zeze.Net
-    compileOnly 'com.github.luben:zstd-jni:1.5.5-4'
+    compileOnly 'com.github.luben:zstd-jni:1.5.5-5'
 }
 
 tasks.withType(JavaCompile) {
