@@ -17,7 +17,7 @@ public interface IMapManager {
 	 * @param mapId 地图配置id。
 	 * @return error code, 0 success
 	 */
-	long enterMap(ProviderUserSession session, int mapId, Vector3 position) throws Exception;
+	long enterMap(ProviderUserSession session, int mapId, int fromMapId, int fromGateId) throws Exception;
 
 	/**
 	 * 根据地图实例Id查找CubeMap实例。

@@ -1557,15 +1557,26 @@
 
 		<module name="World" id="11031" UseData="true" DefaultTransactionLevel="None">
 			<bean name="BObject">
+				<!-- 自定义数据。 -->
 				<variable id="1" name="Data"      type="dynamic">
 					<GetSpecialTypeIdFromBean value="Zeze.World.World::getSpecialTypeIdFromBean"/>
 					<CreateBeanFromSpecialTypeId value="Zeze.World.World::createBeanFromSpecialTypeId"/>
 					<CreateDataFromSpecialTypeId value="Zeze.World.World::createDataFromSpecialTypeId"/>
 				</variable>
-				<variable id="2" name="Moving"      type="BMove"/> 命令型移动同步可以直接使用这个结构，如果其他模式，这里面部分变量可能未用。
-				<variable id="3" name="PlayerId"     type="string"/> Account或RoleId，自动根据Online类型从ProviderUserSession里面读取。总是用String表示。
+
+				<!-- 命令型移动同步可以直接使用这个结构，如果其他模式，这里面部分变量可能未用。 -->
+				<variable id="2" name="Moving"      type="BMove"/>
+
+				<!-- 玩家的Account或RoleId，自动根据Online类型从ProviderUserSession里面读取。总是用String表示。非玩家为空。 -->
+				<variable id="3" name="PlayerId"     type="string"/>
+
+				<!-- 玩家在Link上的信息，用来与玩家通讯。非玩家LinkName为空，LinkSid为0. -->
 				<variable id="4" name="LinkName"  type="string"/>
 				<variable id="5" name="LinkSid"       type="long"/>
+
+				<!-- 实体的类型和配置Id，用来索引配置数据。 -->
+				<variable id="6" name="Type"           type="int"/>
+				<variable id="7" name="ConfigId"     type="int"/>
 			</bean>
 
 			<enum name="eCommandHandlerMissing" value="1"/>
@@ -1595,8 +1606,31 @@
 			<bean name="BMove">
 				<variable id="1" name="Position"      type="vector3"/> 命令时刻的客户端真实位置。
 				<variable id="2" name="Direct"         type="vector3"/> 命令时刻的客户端真实朝向。
-				<variable id="3" name="Command"  type="int"/> 0 前进，1 后退，2 左转，3 右转，4 停止，5 下滑，6 空中（分两种：允许或不允许转向？）。
-				<variable id="4" name="Timestamp" type="long"/>  命令时刻的时戳。
+				<variable id="3" name="State"           type="int"/> 状态
+				<variable id="4" name="Control"       type="int"/> 控制命令 
+				<variable id="5" name="Timestamp" type="long"/>  命令时刻的时戳。
+
+				<!-- State: 互斥，用低4描述，其他位保留，必须为0 -->
+				<enum name="eStateMask"  value="0xf"/>
+
+				<enum name="eStateStand"                    value="0"/> 站立，静止状态
+				<enum name="eStateSlide"                      value="1"/> 滑动（斜坡）这是一种失控状态，滑动方向由斜坡决定
+				<enum name="eStateFly"                          value="2"/> 空中允许转向
+				<enum name="eStateFlyLine"                    value="3"/> 空中不允许转向
+				<enum name="eStateSwim"                      value="4"/> 水面（游泳）
+				<enum name="eStateSwimUnderwater"   value="5"/> 水中（游泳）
+				<enum name="eStateStandUnderwater"   value="6"/> 水中（游泳）
+
+				<!-- Control: 按键命令Flags -->
+				<enum name="eControlMoveMask"       value="0x3"/>
+				<enum name="eControlMoveNone"       value="0"/>
+				<enum name="eControlMoveForward"   value="1"/>
+				<enum name="eControlMoveBack"         value="2"/>
+
+				<enum name="eControlTurnMask"       value="0xc"/>
+				<enum name="eControlTurnNone"       value="0"/>
+				<enum name="eControlTurnLeft"          value="4"/>
+				<enum name="eControlTurnRight"        value="8"/>
 			</bean>
 
 			<!--
@@ -1671,8 +1705,8 @@
 			<module name="Static" id="11032">
 				<bean name="BSwitchWorld">
 					<variable id="1" name="MapId"    type="int"/>
-					<variable id="2" name="Position" type="vector3"/>
-					<variable id="3" name="Direct"    type="vector3"/>
+					<variable id="2" name="FromMapId"   type="int"/>
+					<variable id="3" name="FromGateId"   type="int"/>
 				</bean>
 				<bean name="BSwitchWorldResult">
 					<variable id="1" name="MapInstanceId"  type="long"/>

@@ -8,9 +8,27 @@ import Zeze.Serialize.ByteBuffer;
 public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly {
     public static final long TYPEID = 5823156345754273331L;
 
+    public static final int eStateMask = 0xf;
+    public static final int eStateStand = 0; // 站立，静止状态
+    public static final int eStateSlide = 1; // 滑动（斜坡）这是一种失控状态，滑动方向由斜坡决定
+    public static final int eStateFly = 2; // 空中允许转向
+    public static final int eStateFlyLine = 3; // 空中不允许转向
+    public static final int eStateSwim = 4; // 水面（游泳）
+    public static final int eStateSwimUnderwater = 5; // 水中（游泳）
+    public static final int eStateStandUnderwater = 6; // 水中（游泳）
+    public static final int eControlMoveMask = 0x3;
+    public static final int eControlMoveNone = 0;
+    public static final int eControlMoveForward = 1;
+    public static final int eControlMoveBack = 2;
+    public static final int eControlTurnMask = 0xc;
+    public static final int eControlTurnNone = 0;
+    public static final int eControlTurnLeft = 4;
+    public static final int eControlTurnRight = 8;
+
     private Zeze.Serialize.Vector3 _Position; // 命令时刻的客户端真实位置。
     private Zeze.Serialize.Vector3 _Direct; // 命令时刻的客户端真实朝向。
-    private int _Command; // 0 前进，1 后退，2 左转，3 右转，4 停止，5 下滑，6 空中（分两种：允许或不允许转向？）。
+    private int _State; // 状态
+    private int _Control; // 控制命令
     private long _Timestamp; // 命令时刻的时戳。
 
     @Override
@@ -58,23 +76,43 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     @Override
-    public int getCommand() {
+    public int getState() {
         if (!isManaged())
-            return _Command;
+            return _State;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _Command;
-        var log = (Log__Command)txn.getLog(objectId() + 3);
-        return log != null ? log.value : _Command;
+            return _State;
+        var log = (Log__State)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _State;
     }
 
-    public void setCommand(int value) {
+    public void setState(int value) {
         if (!isManaged()) {
-            _Command = value;
+            _State = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Command(this, 3, value));
+        txn.putLog(new Log__State(this, 3, value));
+    }
+
+    @Override
+    public int getControl() {
+        if (!isManaged())
+            return _Control;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Control;
+        var log = (Log__Control)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _Control;
+    }
+
+    public void setControl(int value) {
+        if (!isManaged()) {
+            _Control = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Control(this, 4, value));
     }
 
     @Override
@@ -84,7 +122,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Timestamp;
-        var log = (Log__Timestamp)txn.getLog(objectId() + 4);
+        var log = (Log__Timestamp)txn.getLog(objectId() + 5);
         return log != null ? log.value : _Timestamp;
     }
 
@@ -94,7 +132,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Timestamp(this, 4, value));
+        txn.putLog(new Log__Timestamp(this, 5, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -104,14 +142,15 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     @SuppressWarnings("deprecation")
-    public BMove(Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_, int _Command_, long _Timestamp_) {
+    public BMove(Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_, int _State_, int _Control_, long _Timestamp_) {
         if (_Position_ == null)
             _Position_ = Zeze.Serialize.Vector3.ZERO;
         _Position = _Position_;
         if (_Direct_ == null)
             _Direct_ = Zeze.Serialize.Vector3.ZERO;
         _Direct = _Direct_;
-        _Command = _Command_;
+        _State = _State_;
+        _Control = _Control_;
         _Timestamp = _Timestamp_;
     }
 
@@ -119,7 +158,8 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     public void reset() {
         setPosition(Zeze.Serialize.Vector3.ZERO);
         setDirect(Zeze.Serialize.Vector3.ZERO);
-        setCommand(0);
+        setState(0);
+        setControl(0);
         setTimestamp(0);
         _unknown_ = null;
     }
@@ -139,7 +179,8 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     public void assign(BMove.Data other) {
         setPosition(other._Position);
         setDirect(other._Direct);
-        setCommand(other._Command);
+        setState(other._State);
+        setControl(other._Control);
         setTimestamp(other._Timestamp);
         _unknown_ = null;
     }
@@ -147,7 +188,8 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     public void assign(BMove other) {
         setPosition(other.getPosition());
         setDirect(other.getDirect());
-        setCommand(other.getCommand());
+        setState(other.getState());
+        setControl(other.getControl());
         setTimestamp(other.getTimestamp());
         _unknown_ = other._unknown_;
     }
@@ -188,11 +230,18 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         public void commit() { ((BMove)getBelong())._Direct = value; }
     }
 
-    private static final class Log__Command extends Zeze.Transaction.Logs.LogInt {
-        public Log__Command(BMove bean, int varId, int value) { super(bean, varId, value); }
+    private static final class Log__State extends Zeze.Transaction.Logs.LogInt {
+        public Log__State(BMove bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BMove)getBelong())._Command = value; }
+        public void commit() { ((BMove)getBelong())._State = value; }
+    }
+
+    private static final class Log__Control extends Zeze.Transaction.Logs.LogInt {
+        public Log__Control(BMove bean, int varId, int value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BMove)getBelong())._Control = value; }
     }
 
     private static final class Log__Timestamp extends Zeze.Transaction.Logs.LogLong {
@@ -215,7 +264,8 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(getPosition()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Direct=").append(getDirect()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Command=").append(getCommand()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(getState()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Control=").append(getControl()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Timestamp=").append(getTimestamp()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -264,16 +314,23 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
             }
         }
         {
-            int _x_ = getCommand();
+            int _x_ = getState();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
-            long _x_ = getTimestamp();
+            int _x_ = getControl();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            long _x_ = getTimestamp();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
@@ -295,10 +352,14 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setCommand(_o_.ReadInt(_t_));
+            setState(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
+            setControl(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
             setTimestamp(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -308,7 +369,9 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
 
     @Override
     public boolean negativeCheck() {
-        if (getCommand() < 0)
+        if (getState() < 0)
+            return true;
+        if (getControl() < 0)
             return true;
         if (getTimestamp() < 0)
             return true;
@@ -326,8 +389,9 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
             switch (vlog.getVariableId()) {
                 case 1: _Position = ((Zeze.Transaction.Logs.LogVector3)vlog).value; break;
                 case 2: _Direct = ((Zeze.Transaction.Logs.LogVector3)vlog).value; break;
-                case 3: _Command = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 4: _Timestamp = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _State = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 4: _Control = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 5: _Timestamp = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }
@@ -341,7 +405,8 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         setDirect(Zeze.Serialize.Helper.decodeVector3(parents, rs));
         parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setCommand(rs.getInt(_parents_name_ + "Command"));
+        setState(rs.getInt(_parents_name_ + "State"));
+        setControl(rs.getInt(_parents_name_ + "Control"));
         setTimestamp(rs.getLong(_parents_name_ + "Timestamp"));
     }
 
@@ -354,7 +419,8 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         Zeze.Serialize.Helper.encodeVector3(getDirect(), parents, st);
         parents.remove(parents.size() - 1);
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "Command", getCommand());
+        st.appendInt(_parents_name_ + "State", getState());
+        st.appendInt(_parents_name_ + "Control", getControl());
         st.appendLong(_parents_name_ + "Timestamp", getTimestamp());
     }
 
@@ -362,9 +428,27 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5823156345754273331L;
 
+    public static final int eStateMask = 0xf;
+    public static final int eStateStand = 0; // 站立，静止状态
+    public static final int eStateSlide = 1; // 滑动（斜坡）这是一种失控状态，滑动方向由斜坡决定
+    public static final int eStateFly = 2; // 空中允许转向
+    public static final int eStateFlyLine = 3; // 空中不允许转向
+    public static final int eStateSwim = 4; // 水面（游泳）
+    public static final int eStateSwimUnderwater = 5; // 水中（游泳）
+    public static final int eStateStandUnderwater = 6; // 水中（游泳）
+    public static final int eControlMoveMask = 0x3;
+    public static final int eControlMoveNone = 0;
+    public static final int eControlMoveForward = 1;
+    public static final int eControlMoveBack = 2;
+    public static final int eControlTurnMask = 0xc;
+    public static final int eControlTurnNone = 0;
+    public static final int eControlTurnLeft = 4;
+    public static final int eControlTurnRight = 8;
+
     private Zeze.Serialize.Vector3 _Position; // 命令时刻的客户端真实位置。
     private Zeze.Serialize.Vector3 _Direct; // 命令时刻的客户端真实朝向。
-    private int _Command; // 0 前进，1 后退，2 左转，3 右转，4 停止，5 下滑，6 空中（分两种：允许或不允许转向？）。
+    private int _State; // 状态
+    private int _Control; // 控制命令
     private long _Timestamp; // 命令时刻的时戳。
 
     public Zeze.Serialize.Vector3 getPosition() {
@@ -387,12 +471,20 @@ public static final class Data extends Zeze.Transaction.Data {
         _Direct = value;
     }
 
-    public int getCommand() {
-        return _Command;
+    public int getState() {
+        return _State;
     }
 
-    public void setCommand(int value) {
-        _Command = value;
+    public void setState(int value) {
+        _State = value;
+    }
+
+    public int getControl() {
+        return _Control;
+    }
+
+    public void setControl(int value) {
+        _Control = value;
     }
 
     public long getTimestamp() {
@@ -410,14 +502,15 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_, int _Command_, long _Timestamp_) {
+    public Data(Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_, int _State_, int _Control_, long _Timestamp_) {
         if (_Position_ == null)
             _Position_ = Zeze.Serialize.Vector3.ZERO;
         _Position = _Position_;
         if (_Direct_ == null)
             _Direct_ = Zeze.Serialize.Vector3.ZERO;
         _Direct = _Direct_;
-        _Command = _Command_;
+        _State = _State_;
+        _Control = _Control_;
         _Timestamp = _Timestamp_;
     }
 
@@ -425,7 +518,8 @@ public static final class Data extends Zeze.Transaction.Data {
     public void reset() {
         _Position = Zeze.Serialize.Vector3.ZERO;
         _Direct = Zeze.Serialize.Vector3.ZERO;
-        _Command = 0;
+        _State = 0;
+        _Control = 0;
         _Timestamp = 0;
     }
 
@@ -444,14 +538,16 @@ public static final class Data extends Zeze.Transaction.Data {
     public void assign(BMove other) {
         _Position = other.getPosition();
         _Direct = other.getDirect();
-        _Command = other.getCommand();
+        _State = other.getState();
+        _Control = other.getControl();
         _Timestamp = other.getTimestamp();
     }
 
     public void assign(BMove.Data other) {
         _Position = other._Position;
         _Direct = other._Direct;
-        _Command = other._Command;
+        _State = other._State;
+        _Control = other._Control;
         _Timestamp = other._Timestamp;
     }
 
@@ -491,7 +587,8 @@ public static final class Data extends Zeze.Transaction.Data {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(_Position).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Direct=").append(_Direct).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Command=").append(_Command).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(_State).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Control=").append(_Control).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Timestamp=").append(_Timestamp).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -527,16 +624,23 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
-            int _x_ = _Command;
+            int _x_ = _State;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
-            long _x_ = _Timestamp;
+            int _x_ = _Control;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            long _x_ = _Timestamp;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
@@ -556,10 +660,14 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            _Command = _o_.ReadInt(_t_);
+            _State = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
+            _Control = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
             _Timestamp = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }

@@ -104,7 +104,8 @@ public class CubeMap {
 	}
 
 	public final Cube getOrAdd(CubeIndex index) {
-		return cubes.computeIfAbsent(index, (key) -> new Cube(index, this));
+		return cubes.computeIfAbsent(index,
+				(key) -> getMapManager().getWorld().getMyWorld().createCube(this, index));
 	}
 
 	public final void collect(SortedMap<CubeIndex, Cube> result, CubeIndex index) {

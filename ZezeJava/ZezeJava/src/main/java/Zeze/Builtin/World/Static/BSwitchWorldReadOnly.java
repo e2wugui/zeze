@@ -8,6 +8,6 @@ public interface BSwitchWorldReadOnly {
     BSwitchWorld copy();
 
     int getMapId();
-    Zeze.Serialize.Vector3 getPosition();
-    Zeze.Serialize.Vector3 getDirect();
+    int getFromMapId();
+    int getFromGateId();
 }

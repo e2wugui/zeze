@@ -80,6 +80,15 @@ public class World extends AbstractWorld {
 	public final Function<ProviderUserSession, String> getPlayerId;
 	private ILinkSender linkSender = new LinkSender(this);
 	private final WorldStatic worldStatic;
+	private IMyWorld myWorld;
+
+	public IMyWorld getMyWorld() {
+		return myWorld;
+	}
+
+	public void setMyWorld(IMyWorld myWorld) {
+		this.myWorld = myWorld;
+	}
 
 	public WorldStatic getWorldStatic() {
 		return worldStatic;
@@ -195,6 +204,7 @@ public class World extends AbstractWorld {
 
 	public void initializeDefaultMmo() throws Exception {
 		setMapManager(new MapManager(this));
+		setMyWorld(new IMyWorld() {});
 		installComponent(new MoveSimple(this));
 	}
 

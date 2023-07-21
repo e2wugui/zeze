@@ -12,7 +12,6 @@ import Zeze.Builtin.World.BLoad;
 import Zeze.Builtin.World.BLoadMap;
 import Zeze.Builtin.World.Command;
 import Zeze.Component.AutoKey;
-import Zeze.Serialize.Vector3;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.World.CubeMap;
@@ -116,22 +115,20 @@ public class MapManager implements IMapManager, ICommand {
 		return map.getAoi().enter(entity);
 	}
 
+	/**
+	 * 可重载
+	 *
+	 * @return 返回新建的CubeMap实例。
+	 */
 	@Override
 	public CubeMap createMap() {
 		var instanceId = autoKeyMap.nextId();
-		return cubeMaps.computeIfAbsent(instanceId, (key) -> {
-			var map = new CubeMap(this, instanceId, 64, 64);
-			map.setAoi(new AoiSimple(world, map, 1, 1));
-			return map;
-		});
-	}
-
-	public Entity createEntity() {
-		return new Entity(autoKeyEntity.nextId());
+		return cubeMaps.computeIfAbsent(instanceId,
+				(key) -> world.getMyWorld().createMap(this, instanceId));
 	}
 
 	// todo，简版，仅考虑玩家数量，1. 待完善。 2. 可重载自定义。3. 创建地图现在在锁内，可能需要优化。
-	protected synchronized CubeMap findOrCreateMapInstance(int mapId) {
+	public synchronized CubeMap findOrCreateMapInstance(int mapId) {
 		if (serverLoadSum.getPlayerCount() > maxServerPlayer) // 本服总玩家限制。
 			return null;
 
@@ -182,22 +179,27 @@ public class MapManager implements IMapManager, ICommand {
 	// leave after bind
 	// current map instance. local leave aoi-notify.... leaveWorld(). enterMap(newMapId)
 	@Override
-	public long enterMap(ProviderUserSession session, int mapId, Vector3 position) throws Exception {
+	public long enterMap(ProviderUserSession session, int mapId, int fromMapId, int fromGateId) throws Exception {
 		// find local
 		var instanceMap = findOrCreateMapInstance(mapId);
 		if (null != instanceMap) {
-			var entity = createEntity(); // todo 上下文参数
+			var playerId = world.getPlayerId.apply(session);
+			var player = new Entity(autoKeyEntity.nextId());
 
-			entity.getBean().setLinkName(session.getLinkName());
-			entity.getBean().setLinkSid(session.getLinkSid());
+			player.getBean().setPlayerId(playerId);
+			player.getBean().setLinkName(session.getLinkName());
+			player.getBean().setLinkSid(session.getLinkSid());
 
+			world.getMyWorld().onCreatePlayer(player, mapId, fromMapId, fromGateId);
+
+			var position = player.getBean().getMoving().getPosition();
 			// 加入 cube map
 			var cube = instanceMap.getOrAdd(instanceMap.toIndex(position));
 			try (var ignored = new LockGuard(cube)) {
-				cube.pending.put(entity.getId(), entity);
-				entity.internalSetCube(cube);
-				instanceMap.entities.put(entity.getId(), entity);
-				instanceMap.players.put(world.getPlayerId.apply(session), entity);
+				cube.pending.put(player.getId(), player);
+				player.internalSetCube(cube);
+				instanceMap.entities.put(player.getId(), player);
+				instanceMap.players.put(playerId, player);
 			}
 
 			// link bind
@@ -207,16 +209,16 @@ public class MapManager implements IMapManager, ICommand {
 
 			// send enter world to client
 			var param = new BEnterWorld.Data();
+
 			param.setMapId(mapId);
 			param.setMapInstanceId(instanceMap.getInstanceId());
-
-			// todo param
-			param.setPosition(Vector3.ZERO);
-			param.setDirect(Vector3.ZERO);
+			param.setPosition(player.getBean().getMoving().getPosition());
+			param.setDirect(player.getBean().getMoving().getDirect());
 
 			world.getLinkSender().sendCommand(
 					linkName, linkSid,
 					instanceMap.getInstanceId(), BCommand.eEnterWorld, param);
+
 			return instanceMap.getInstanceId();
 		}
 

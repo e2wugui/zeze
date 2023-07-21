@@ -8,8 +8,8 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
     public static final long TYPEID = -2702601729537956678L;
 
     private int _MapId;
-    private Zeze.Serialize.Vector3 _Position;
-    private Zeze.Serialize.Vector3 _Direct;
+    private int _FromMapId;
+    private int _FromGateId;
 
     @Override
     public int getMapId() {
@@ -32,71 +32,61 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
     }
 
     @Override
-    public Zeze.Serialize.Vector3 getPosition() {
+    public int getFromMapId() {
         if (!isManaged())
-            return _Position;
+            return _FromMapId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _Position;
-        var log = (Log__Position)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _Position;
+            return _FromMapId;
+        var log = (Log__FromMapId)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _FromMapId;
     }
 
-    public void setPosition(Zeze.Serialize.Vector3 value) {
-        if (value == null)
-            throw new IllegalArgumentException();
+    public void setFromMapId(int value) {
         if (!isManaged()) {
-            _Position = value;
+            _FromMapId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Position(this, 2, value));
+        txn.putLog(new Log__FromMapId(this, 2, value));
     }
 
     @Override
-    public Zeze.Serialize.Vector3 getDirect() {
+    public int getFromGateId() {
         if (!isManaged())
-            return _Direct;
+            return _FromGateId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _Direct;
-        var log = (Log__Direct)txn.getLog(objectId() + 3);
-        return log != null ? log.value : _Direct;
+            return _FromGateId;
+        var log = (Log__FromGateId)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _FromGateId;
     }
 
-    public void setDirect(Zeze.Serialize.Vector3 value) {
-        if (value == null)
-            throw new IllegalArgumentException();
+    public void setFromGateId(int value) {
         if (!isManaged()) {
-            _Direct = value;
+            _FromGateId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Direct(this, 3, value));
+        txn.putLog(new Log__FromGateId(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
     public BSwitchWorld() {
-        _Position = Zeze.Serialize.Vector3.ZERO;
-        _Direct = Zeze.Serialize.Vector3.ZERO;
     }
 
     @SuppressWarnings("deprecation")
-    public BSwitchWorld(int _MapId_, Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_) {
+    public BSwitchWorld(int _MapId_, int _FromMapId_, int _FromGateId_) {
         _MapId = _MapId_;
-        if (_Position_ == null)
-            _Position_ = Zeze.Serialize.Vector3.ZERO;
-        _Position = _Position_;
-        if (_Direct_ == null)
-            _Direct_ = Zeze.Serialize.Vector3.ZERO;
-        _Direct = _Direct_;
+        _FromMapId = _FromMapId_;
+        _FromGateId = _FromGateId_;
     }
 
     @Override
     public void reset() {
         setMapId(0);
-        setPosition(Zeze.Serialize.Vector3.ZERO);
-        setDirect(Zeze.Serialize.Vector3.ZERO);
+        setFromMapId(0);
+        setFromGateId(0);
         _unknown_ = null;
     }
 
@@ -114,15 +104,15 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
 
     public void assign(BSwitchWorld.Data other) {
         setMapId(other._MapId);
-        setPosition(other._Position);
-        setDirect(other._Direct);
+        setFromMapId(other._FromMapId);
+        setFromGateId(other._FromGateId);
         _unknown_ = null;
     }
 
     public void assign(BSwitchWorld other) {
         setMapId(other.getMapId());
-        setPosition(other.getPosition());
-        setDirect(other.getDirect());
+        setFromMapId(other.getFromMapId());
+        setFromGateId(other.getFromGateId());
         _unknown_ = other._unknown_;
     }
 
@@ -155,18 +145,18 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
         public void commit() { ((BSwitchWorld)getBelong())._MapId = value; }
     }
 
-    private static final class Log__Position extends Zeze.Transaction.Logs.LogVector3 {
-        public Log__Position(BSwitchWorld bean, int varId, Zeze.Serialize.Vector3 value) { super(bean, varId, value); }
+    private static final class Log__FromMapId extends Zeze.Transaction.Logs.LogInt {
+        public Log__FromMapId(BSwitchWorld bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSwitchWorld)getBelong())._Position = value; }
+        public void commit() { ((BSwitchWorld)getBelong())._FromMapId = value; }
     }
 
-    private static final class Log__Direct extends Zeze.Transaction.Logs.LogVector3 {
-        public Log__Direct(BSwitchWorld bean, int varId, Zeze.Serialize.Vector3 value) { super(bean, varId, value); }
+    private static final class Log__FromGateId extends Zeze.Transaction.Logs.LogInt {
+        public Log__FromGateId(BSwitchWorld bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSwitchWorld)getBelong())._Direct = value; }
+        public void commit() { ((BSwitchWorld)getBelong())._FromGateId = value; }
     }
 
     @Override
@@ -181,8 +171,8 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.Static.BSwitchWorld: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("MapId=").append(getMapId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(getPosition()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Direct=").append(getDirect()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("FromMapId=").append(getFromMapId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("FromGateId=").append(getFromGateId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -223,17 +213,17 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
             }
         }
         {
-            var _x_ = getPosition();
-            if (_x_ != null && !_x_.isZero()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.VECTOR3);
-                _o_.WriteVector3(_x_);
+            int _x_ = getFromMapId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
             }
         }
         {
-            var _x_ = getDirect();
-            if (_x_ != null && !_x_.isZero()) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.VECTOR3);
-                _o_.WriteVector3(_x_);
+            int _x_ = getFromGateId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
             }
         }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
@@ -250,11 +240,11 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setPosition(_o_.ReadVector3(_t_));
+            setFromMapId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setDirect(_o_.ReadVector3(_t_));
+            setFromGateId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -264,6 +254,10 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
     @Override
     public boolean negativeCheck() {
         if (getMapId() < 0)
+            return true;
+        if (getFromMapId() < 0)
+            return true;
+        if (getFromGateId() < 0)
             return true;
         return false;
     }
@@ -278,8 +272,8 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _MapId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _Position = ((Zeze.Transaction.Logs.LogVector3)vlog).value; break;
-                case 3: _Direct = ((Zeze.Transaction.Logs.LogVector3)vlog).value; break;
+                case 2: _FromMapId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _FromGateId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }
@@ -288,32 +282,24 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setMapId(rs.getInt(_parents_name_ + "MapId"));
-        parents.add("Position");
-        setPosition(Zeze.Serialize.Helper.decodeVector3(parents, rs));
-        parents.remove(parents.size() - 1);
-        parents.add("Direct");
-        setDirect(Zeze.Serialize.Helper.decodeVector3(parents, rs));
-        parents.remove(parents.size() - 1);
+        setFromMapId(rs.getInt(_parents_name_ + "FromMapId"));
+        setFromGateId(rs.getInt(_parents_name_ + "FromGateId"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendInt(_parents_name_ + "MapId", getMapId());
-        parents.add("Position");
-        Zeze.Serialize.Helper.encodeVector3(getPosition(), parents, st);
-        parents.remove(parents.size() - 1);
-        parents.add("Direct");
-        Zeze.Serialize.Helper.encodeVector3(getDirect(), parents, st);
-        parents.remove(parents.size() - 1);
+        st.appendInt(_parents_name_ + "FromMapId", getFromMapId());
+        st.appendInt(_parents_name_ + "FromGateId", getFromGateId());
     }
 
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -2702601729537956678L;
 
     private int _MapId;
-    private Zeze.Serialize.Vector3 _Position;
-    private Zeze.Serialize.Vector3 _Direct;
+    private int _FromMapId;
+    private int _FromGateId;
 
     public int getMapId() {
         return _MapId;
@@ -323,48 +309,38 @@ public static final class Data extends Zeze.Transaction.Data {
         _MapId = value;
     }
 
-    public Zeze.Serialize.Vector3 getPosition() {
-        return _Position;
+    public int getFromMapId() {
+        return _FromMapId;
     }
 
-    public void setPosition(Zeze.Serialize.Vector3 value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        _Position = value;
+    public void setFromMapId(int value) {
+        _FromMapId = value;
     }
 
-    public Zeze.Serialize.Vector3 getDirect() {
-        return _Direct;
+    public int getFromGateId() {
+        return _FromGateId;
     }
 
-    public void setDirect(Zeze.Serialize.Vector3 value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        _Direct = value;
+    public void setFromGateId(int value) {
+        _FromGateId = value;
     }
 
     @SuppressWarnings("deprecation")
     public Data() {
-        _Position = Zeze.Serialize.Vector3.ZERO;
-        _Direct = Zeze.Serialize.Vector3.ZERO;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _MapId_, Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_) {
+    public Data(int _MapId_, int _FromMapId_, int _FromGateId_) {
         _MapId = _MapId_;
-        if (_Position_ == null)
-            _Position_ = Zeze.Serialize.Vector3.ZERO;
-        _Position = _Position_;
-        if (_Direct_ == null)
-            _Direct_ = Zeze.Serialize.Vector3.ZERO;
-        _Direct = _Direct_;
+        _FromMapId = _FromMapId_;
+        _FromGateId = _FromGateId_;
     }
 
     @Override
     public void reset() {
         _MapId = 0;
-        _Position = Zeze.Serialize.Vector3.ZERO;
-        _Direct = Zeze.Serialize.Vector3.ZERO;
+        _FromMapId = 0;
+        _FromGateId = 0;
     }
 
     @Override
@@ -381,14 +357,14 @@ public static final class Data extends Zeze.Transaction.Data {
 
     public void assign(BSwitchWorld other) {
         _MapId = other.getMapId();
-        _Position = other.getPosition();
-        _Direct = other.getDirect();
+        _FromMapId = other.getFromMapId();
+        _FromGateId = other.getFromGateId();
     }
 
     public void assign(BSwitchWorld.Data other) {
         _MapId = other._MapId;
-        _Position = other._Position;
-        _Direct = other._Direct;
+        _FromMapId = other._FromMapId;
+        _FromGateId = other._FromGateId;
     }
 
     @Override
@@ -426,8 +402,8 @@ public static final class Data extends Zeze.Transaction.Data {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.World.Static.BSwitchWorld: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("MapId=").append(_MapId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(_Position).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Direct=").append(_Direct).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("FromMapId=").append(_FromMapId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("FromGateId=").append(_FromGateId).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -455,17 +431,17 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
-            var _x_ = _Position;
-            if (_x_ != null && !_x_.isZero()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.VECTOR3);
-                _o_.WriteVector3(_x_);
+            int _x_ = _FromMapId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
             }
         }
         {
-            var _x_ = _Direct;
-            if (_x_ != null && !_x_.isZero()) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.VECTOR3);
-                _o_.WriteVector3(_x_);
+            int _x_ = _FromGateId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -480,11 +456,11 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            _Position = _o_.ReadVector3(_t_);
+            _FromMapId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            _Direct = _o_.ReadVector3(_t_);
+            _FromGateId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

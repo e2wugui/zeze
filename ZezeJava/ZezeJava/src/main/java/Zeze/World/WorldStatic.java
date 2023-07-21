@@ -17,8 +17,10 @@ public class WorldStatic extends AbstractWorldStatic {
     @Override
     protected long ProcessSwitchWorldRequest(Zeze.Builtin.World.Static.SwitchWorld r) throws Exception {
         var session = ProviderUserSession.get(r);
-        var position = Vector3.ZERO; // todo 根据上下文得到初始位置：1. 地图的初始位置；2. 传送时到达的位置。
-        var instanceId = world.getMapManager().enterMap(session, r.Argument.getMapId(), position);
+
+        var fromMapId = r.Argument.getFromMapId();
+        var fromGateId = r.Argument.getFromGateId();
+        var instanceId = world.getMapManager().enterMap(session, r.Argument.getMapId(), fromMapId, fromGateId);
         r.Result.setMapInstanceId(instanceId);
 
         session.sendResponseDirect(r);
