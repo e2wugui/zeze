@@ -12,7 +12,7 @@ package Zeze.World.Astar;
  * 这对于ai是很合适的。
  *
  * IResourceMap 有width,height，可以包装成一个新的限制搜索范围，
- * ResourceMapLimit(offsetWidth, offsetHeight, width, height);
+ * ResourceMapView(offsetWidth, offsetHeight, width, height);
  */
 public class ScanNodesFixed implements IScanNodes {
 	private final int maxWidth;

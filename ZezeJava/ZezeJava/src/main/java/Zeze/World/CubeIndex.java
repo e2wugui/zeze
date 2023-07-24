@@ -73,11 +73,15 @@ public class CubeIndex implements Comparable<CubeIndex> {
 	 * @param other 另一个索引
 	 * @return 垂直距离。
 	 */
-	public long distancePerpendicular(CubeIndex other) {
+	public int distancePerpendicular(CubeIndex other) {
 		var dx = Math.abs(x - other.x);
 		var dy = Math.abs(y - other.y);
 		var dz = Math.abs(z - other.z);
 
 		return Math.max(Math.max(dx, dy), dz);
+	}
+
+	public CubeIndex sub(CubeIndex other) {
+		return new CubeIndex(x - other.x, y - other.y, z - other.z);
 	}
 }
