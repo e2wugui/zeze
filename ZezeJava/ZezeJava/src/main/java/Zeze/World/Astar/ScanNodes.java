@@ -1,5 +1,7 @@
 package Zeze.World.Astar;
 
+import java.util.HashMap;
+
 /**
  * 一次性分配所有nodes。避免内存分配。
  * 用于服务器。
@@ -14,52 +16,39 @@ package Zeze.World.Astar;
  * IResourceMap 有width,height，可以包装成一个新的限制搜索范围，
  * ResourceMapView(offsetWidth, offsetHeight, width, height);
  */
-public class ScanNodesFixed implements IScanNodes {
+public class ScanNodes {
 	private final int maxWidth;
 	private final int maxHeight;
-	private final Node[][] nodes;
+	private final HashMap<Index, Node> nodes = new HashMap<>();
 	private int onClosedList;  // 记录，节点是否是关闭的标志。用来避免初始化节点。
 	private int onOpenList;
 
-	private void allocate() {
-		for (var i = 0; i < this.maxWidth; ++i) {
-			for (var j = 0; j < this.maxHeight; ++j)
-				nodes[i][j] = new Node();
-		}
-	}
-
-	public ScanNodesFixed(int maxWidth, int maxHeight) {
+	public ScanNodes(int maxWidth, int maxHeight) {
 		this.maxWidth = maxWidth;
 		this.maxHeight = maxHeight;
-		this.nodes = new Node[this.maxWidth][];
-		allocate();
 	}
 
-	@Override
 	public boolean isOutofRange(IResourceMap amap) {
 		return amap.getWidth() > maxWidth || amap.getHeight() > maxHeight;
 	}
 
-	@Override
 	public int getMaxWidth() {
 		return maxWidth;
 	}
 
-	@Override
 	public int getMaxHeight() {
 		return maxHeight;
 	}
 
-	@Override
-	public Node getNode(int x, int z) {
-		return nodes[x][z];
+	public Node getNode(Index index) {
+		// todo NodeAllocator
+		return nodes.computeIfAbsent(index, Node::new);
 	}
 
-	@Override
 	public void initialize() {
 		if (onClosedList == 0) {
 			// 标志已经超出整数范围，循环回来。重新初始化一次节点的标志位。
-			allocate();
+			// todo 新建一个 NodeAllocator;
 			onOpenList   = 1;
 			onClosedList = 2;
 		} else {
@@ -68,23 +57,19 @@ public class ScanNodesFixed implements IScanNodes {
 		}
 	}
 
-	@Override
 	public void open(Node node, Node parent, int cost, Node target) {
 		node.open(parent, cost, target);
 		node.whichList = onOpenList;
 	}
 
-	@Override
 	public void close(Node node) {
 		node.whichList = onClosedList;
 	}
 
-	@Override
 	public boolean isClosed(Node node) {
 		return onClosedList == node.whichList;
 	}
 
-	@Override
 	public boolean isOpen(Node node) {
 		return onOpenList == node.whichList;
 	}

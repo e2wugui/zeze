@@ -1,33 +1,36 @@
 package Zeze.World.Astar;
 
+import Zeze.Serialize.Vector3;
 import Zeze.Util.FastPriorityQueue;
-import Zeze.World.CubeIndex;
-import java.util.LinkedList;
+import java.util.Deque;
 
 public class Astar {
-	private final IScanNodes scanNodes;
+	private final ScanNodes scanNodes;
+	private final FastPriorityQueue<Node> openList;
 
-	public Astar(IScanNodes scanNodes) {
+	public Astar(ScanNodes scanNodes) {
 		this.scanNodes = scanNodes;
+		this.openList = new FastPriorityQueue<>(1000, Integer.MAX_VALUE);
 	}
 
-	public boolean find(IResourceMap amap, CubeIndex from, CubeIndex to, LinkedList<Node> path /* out */) {
-		if (scanNodes.isOutofRange(amap))
+	public boolean find(IResourceMap map, Vector3 fromV3, Vector3 toV3, Deque<Node> path /* out */) {
+		if (scanNodes.isOutofRange(map))
 			return false; // 地图大小超过限制（see ScanNodesFixed 说明）
 
-		//if (!amap.walkable(targetX, targetY)) return false; // 目标点不可达,起始点允许是障碍
-		// 这个对于体素（3d），需要from，to；对于grid2d，仅本grid即可描述，怎么抽象？
+		var to = map.toIndex(toV3);
+		if (!map.walkable(to.x, to.z))
+			return false; // 目标点不可达,起始点允许是障碍
 
+		var from = map.toIndex(fromV3);
 		if (from.equals(to))
 			return false; // 起始点==目标点，后面的算法不能处理这种情况。
 
 		// Reset some variables that need to be cleared
 		scanNodes.initialize();
-		var openList = new FastPriorityQueue<Node>(1000, Integer.MAX_VALUE);
 
 		// 准备起始点和目标点。把起始点加入到打开列表。
-		var target = scanNodes.getNode(to.x, to.y);
-		var start = scanNodes.getNode(from.x, from.y);
+		var target = scanNodes.getNode(to);
+		var start = scanNodes.getNode(from);
 		start.gcost = 0; // 设置起始点的权值，作为初始parent的参数。fcost 没有使用，不初始化了。
 		openList.enqueue(start);
 
@@ -38,36 +41,37 @@ public class Astar {
 			scanNodes.close(parent);
 
 			// ugly 可以提高10%性能。循环的写法也比较烦。很多判断。代码后便注释里面。
-			ACORNER(amap, openList, parent, target, -1, -1, 7, 0, -1, -1, 0);
-			ACROSS(amap, openList, parent, target, 0, -1, 5);
-			ACORNER(amap, openList, parent, target, +1, -1, 7, 0, -1, +1, 0);
-			ACROSS(amap, openList, parent, target, -1,  0, 5);
-			ACROSS(amap, openList, parent, target, +1,  0, 5);
-			ACORNER(amap, openList, parent, target, -1, +1, 7, -1, 0,  0, +1);
-			ACROSS(amap, openList, parent, target, 0, +1, 5);
-			ACORNER(amap, openList, parent, target,+1, +1, 7, +1, 0, 0, +1);
+			ACORNER(map, openList, parent, target, -1, -1, 7, 0, -1, -1, 0);
+			ACROSS(map, openList, parent, target, 0, -1, 5);
+			ACORNER(map, openList, parent, target, +1, -1, 7, 0, -1, +1, 0);
+			ACROSS(map, openList, parent, target, -1,  0, 5);
+			ACROSS(map, openList, parent, target, +1,  0, 5);
+			ACORNER(map, openList, parent, target, -1, +1, 7, -1, 0,  0, +1);
+			ACROSS(map, openList, parent, target, 0, +1, 5);
+			ACORNER(map, openList, parent, target,+1, +1, 7, +1, 0, 0, +1);
 
 			// 当目标加入打开列表，查找成功。
 			if (scanNodes.isOpen(target)) {
 				path.clear();
 				for (var p = target; p != start; p = p.parent)
-					path.add(0, p);
+					path.addFirst(p);
 				//path.add(0, start); // insert start.
+				openList.clear();
 				return true;
 			}
 		}
+		openList.clear();
 		return false;
 	}
 
-	public void ACORNER(IResourceMap amap, FastPriorityQueue<Node> openList,
+	public void ACORNER(IResourceMap map, FastPriorityQueue<Node> openList,
 						Node parent, Node target,
-						int cx, int cy, int cost, int cx0, int cy0, int cx1, int cy1) {
-		var x = parent.x + cx;
-		var y = parent.y + cy;
-		if (amap.walkable(x, y)
-				&& amap.walkable(parent.x + cx0, parent.y + cy0)
-				&& amap.walkable(parent.x + cx1, parent.y + cy1)) {
-			var child = scanNodes.getNode(x, y);
+						int cx, int cz, int cost, int cx0, int cz0, int cx1, int cz1) {
+		var to = map.toIndex(parent.index.x + cx, parent.index.z + cz);
+		if (map.walkable(parent.index.x, parent.index.z, to.x, to.z)
+				&& map.walkable(parent.index.x, parent.index.z, parent.index.x + cx0, parent.index.z + cz0)
+				&& map.walkable(parent.index.x, parent.index.z, parent.index.x + cx1, parent.index.z + cz1)) {
+			var child = scanNodes.getNode(to);
 			if (!scanNodes.isClosed(child)) {
 				if (!scanNodes.isOpen(child)) {
 					scanNodes.open(child, parent, cost, target);
@@ -83,10 +87,9 @@ public class Astar {
 	public void ACROSS(IResourceMap amap, FastPriorityQueue<Node> openList,
 					   Node parent, Node target,
 					   int cx, int cy, int cost) {
-		var x = parent.x + cx;
-		var y = parent.y + cy;
-		if (amap.walkable(x, y)) {
-			var child = scanNodes.getNode(x, y);
+		var to = amap.toIndex(parent.index.x + cx, parent.index.z + cy);
+		if (amap.walkable(parent.index.x, parent.index.z, to.x, to.z)) {
+			var child = scanNodes.getNode(to);
 			if (!scanNodes.isClosed(child)) {
 				if (!scanNodes.isOpen(child)) {
 					scanNodes.open(child, parent, cost, target);

@@ -7,16 +7,21 @@ import Zeze.World.CubeIndex;
  * 限制搜索范围.
  */
 public class ResourceMapView implements IResourceMap {
-	private final CubeIndex offset;
+	private final Index offset;
 	private final IResourceMap map;
 	private final int width;
 	private final int height;
 
-	public ResourceMapView(CubeIndex center, CubeIndex range, IResourceMap map) {
-		this.offset = center.sub(range);
+	public ResourceMapView(Index center, Index range, IResourceMap map) {
+		if (range.x <= 0 || range.z <= 0)
+			throw new RuntimeException("invalid range. " + range);
+
+		var x = center.x - range.x;
+		var z = center.z - range.z;
+		this.offset = map.toIndex(x, z);
 		this.map = map;
-		this.width = range.x << 1 + 1;
-		this.height = range.z << 1 + 1;
+		this.width = (range.x << 1) + 1;
+		this.height= (range.z << 1) + 1;
 	}
 
 	@Override
@@ -30,9 +35,20 @@ public class ResourceMapView implements IResourceMap {
 	}
 
 	@Override
+	public float getUnitWidth() {
+		return map.getUnitWidth();
+	}
+
+	@Override
+	public float getUnitHeight() {
+		return map.getUnitHeight();
+	}
+
+	@Override
 	public boolean walkable(int x, int z) {
 		if (x >= width || z >= height)
 			return false;
+
 		return map.walkable(x + offset.x, z + offset.z);
 	}
 
@@ -41,7 +57,10 @@ public class ResourceMapView implements IResourceMap {
 		if (fromX >= width || fromZ >= height
 				|| toX >= width || toZ >= height)
 			return false;
-		return map.walkable(fromX + offset.x, fromZ + offset.z, toX + offset.x, toZ + offset.z);
+
+		return map.walkable(
+				fromX + offset.x, fromZ + offset.z,
+				toX + offset.x, toZ + offset.z);
 	}
 
 	@Override
