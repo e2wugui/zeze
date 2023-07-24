@@ -29,12 +29,12 @@ public class Astar {
 		var target = scanNodes.getNode(to.x, to.y);
 		var start = scanNodes.getNode(from.x, from.y);
 		start.gcost = 0; // 设置起始点的权值，作为初始parent的参数。fcost 没有使用，不初始化了。
-		openList.Enqueue(start);
+		openList.enqueue(start);
 
 		// 开始查找，如果打开列表为空。查找失败。
-		while (openList.Count() > 0) {
+		while (openList.count() > 0) {
 			// Pop the first item off the open list.
-			var parent = openList.Dequeue();
+			var parent = openList.dequeue();
 			scanNodes.close(parent);
 
 			// ugly 可以提高10%性能。循环的写法也比较烦。很多判断。代码后便注释里面。
@@ -71,9 +71,9 @@ public class Astar {
 			if (!scanNodes.isClosed(child)) {
 				if (!scanNodes.isOpen(child)) {
 					scanNodes.open(child, parent, cost, target);
-					openList.Enqueue(child);
+					openList.enqueue(child);
 				} else {
-					openList.UpdatePriority(child);
+					openList.updatePriority(child);
 					//if (child.adjust(parent, cost))
 					//	openList.adjust(child);
 				}
@@ -91,9 +91,9 @@ public class Astar {
 			if (!scanNodes.isClosed(child)) {
 				if (!scanNodes.isOpen(child)) {
 					scanNodes.open(child, parent, cost, target);
-					openList.Enqueue(child);
+					openList.enqueue(child);
 				} else {
-					openList.UpdatePriority(child);
+					openList.updatePriority(child);
 					//if (child.adjust(parent, cost))
 					//	openList.adjust(child);
 				}
