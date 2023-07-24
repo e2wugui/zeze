@@ -58,17 +58,17 @@ public class CubeMap {
 	}
 
 	public final CubeIndex toIndex(Vector3 vector3) {
-		var x = (long)(vector3.x / this.cubeX);
+		var x = (int)(vector3.x / this.cubeX);
 		// 允许最少1维，1维用来测试。
-		var y = this.cubeY > 0 ? (long)(vector3.y / this.cubeY) : 0;
-		var z = this.cubeZ > 0 ? (long)(vector3.z / this.cubeZ) : 0;
+		var y = this.cubeY > 0 ? (int)(vector3.y / this.cubeY) : 0;
+		var z = this.cubeZ > 0 ? (int)(vector3.z / this.cubeZ) : 0;
 		return new CubeIndex(x, y, z);
 	}
 
 	public final CubeIndex toIndex(float _x, float _y, float _z) {
-		var x = (long)(_x / this.cubeX);
-		var y = this.cubeY > 0 ? (long)(_z / this.cubeY) : 0;
-		var z = this.cubeZ > 0 ? (long)(_y / this.cubeZ) : 0;
+		var x = (int)(_x / this.cubeX);
+		var y = this.cubeY > 0 ? (int)(_z / this.cubeY) : 0;
+		var z = this.cubeZ > 0 ? (int)(_y / this.cubeZ) : 0;
 		return new CubeIndex(x, y, z);
 	}
 
@@ -122,11 +122,11 @@ public class CubeMap {
 
 	public static SortedMap<CubeIndex, Cube> polygon2d(CubeMap map, java.util.List<Vector3> points, boolean convex) {
 		// cube-box 包围体
-		var boxMinX = Long.MAX_VALUE;
-		var boxMinZ = Long.MAX_VALUE;
+		var boxMinX = Integer.MAX_VALUE;
+		var boxMinZ = Integer.MAX_VALUE;
 
-		var boxMaxX = Long.MIN_VALUE;
-		var boxMaxZ = Long.MIN_VALUE;
+		var boxMaxX = Integer.MIN_VALUE;
+		var boxMaxZ = Integer.MIN_VALUE;
 
 		// 转换成把CubeIndex看成点的多边形。
 		var cubePoints = new ArrayList<CubeIndex>();
@@ -221,9 +221,9 @@ public class CubeMap {
 
 	public final SortedMap<CubeIndex, Cube> center(CubeIndex center, int rangeX, int rangeY, int rangeZ) {
 		var result = new TreeMap<CubeIndex, Cube>();
-		for (long i = center.x - rangeX; i <= center.x + rangeX; ++i) {
-			for (long j = center.y - rangeY; j <= center.y + rangeY; ++j) {
-				for (long k = center.z - rangeZ; k <= center.z + rangeZ; ++k) {
+		for (var i = center.x - rangeX; i <= center.x + rangeX; ++i) {
+			for (var j = center.y - rangeY; j <= center.y + rangeY; ++j) {
+				for (var k = center.z - rangeZ; k <= center.z + rangeZ; ++k) {
 					var index = new CubeIndex(i, j, k);
 					result.put(index, getOrAdd(index));
 				}

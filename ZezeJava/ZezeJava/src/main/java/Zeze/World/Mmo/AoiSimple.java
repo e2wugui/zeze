@@ -59,7 +59,7 @@ public class AoiSimple implements IAoi {
 		return map;
 	}
 
-	public void fastCollectWithFixedX(SortedMap<CubeIndex, Cube> result, CubeIndex center, long dx) {
+	public void fastCollectWithFixedX(SortedMap<CubeIndex, Cube> result, CubeIndex center, int dx) {
 		if (dx != 0) {
 			var i = center.x + dx * rangeX;
 			for (var j = center.y - rangeY; j <= center.y + rangeY; ++j) {
@@ -70,7 +70,7 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
-	public void fastCollectWithFixedY(SortedMap<CubeIndex, Cube> result, CubeIndex center, long dy) {
+	public void fastCollectWithFixedY(SortedMap<CubeIndex, Cube> result, CubeIndex center, int dy) {
 		if (dy != 0) {
 			// 2d never go here.
 			var j = center.y + dy * rangeY;
@@ -82,7 +82,7 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
-	public void fastCollectWithFixedZ(SortedMap<CubeIndex, Cube> result, CubeIndex center, long dz) {
+	public void fastCollectWithFixedZ(SortedMap<CubeIndex, Cube> result, CubeIndex center, int dz) {
 		if (dz != 0) {
 			var k = center.z + dz * rangeZ;
 			for (var i = center.x - rangeX; i <= center.x + rangeX; ++i) {

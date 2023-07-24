@@ -3,9 +3,9 @@ package Zeze.World;
 import Zeze.Serialize.Vector3;
 
 public class CubeIndex implements Comparable<CubeIndex> {
-	public final long x;
-	public final long y;
-	public final long z;
+	public final int x;
+	public final int y;
+	public final int z;
 
 	public CubeIndex() {
 		x = 0;
@@ -17,13 +17,13 @@ public class CubeIndex implements Comparable<CubeIndex> {
 		return new Vector3(x, y, z);
 	}
 
-	public CubeIndex(long x, long z) {
+	public CubeIndex(int x, int z) {
 		this.x = x;
 		this.y = 0;
 		this.z = z;
 	}
 
-	public CubeIndex(long x, long y, long z) {
+	public CubeIndex(int x, int y, int z) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
@@ -33,9 +33,9 @@ public class CubeIndex implements Comparable<CubeIndex> {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 17;
-		result = prime * result + Long.hashCode(x);
-		result = prime * result + Long.hashCode(y);
-		result = prime * result + Long.hashCode(z);
+		result = prime * result + Integer.hashCode(x);
+		result = prime * result + Integer.hashCode(y);
+		result = prime * result + Integer.hashCode(z);
 		return result;
 	}
 

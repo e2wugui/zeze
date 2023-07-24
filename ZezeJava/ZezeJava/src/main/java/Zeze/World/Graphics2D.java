@@ -175,12 +175,8 @@ public class Graphics2D {
 		return !approximately(crossC, crossD);
 	}
 
-	public static long fastAbs(long v) {
-		return (v ^ (v >> 63)) - (v >> 63);
-	}
-
-	public static void bresenham2d(long x0, long y0, long x1, long y1, Action2dLong plot) {
-		var swapXY = fastAbs( y1 - y0 ) > fastAbs( x1 - x0 );
+	public static void bresenham2d(int x0, int y0, int x1, int y1, Action2dInt plot) {
+		var swapXY = Math.abs( y1 - y0 ) > Math.abs( x1 - x0 );
 		if ( swapXY ) {
 			// 交换 x 和 y
 			// 交换 x0 和 y0
@@ -206,7 +202,7 @@ public class Graphics2D {
 		}
 
 		var deltaX = x1 - x0;
-		var deltaY = fastAbs( y1 - y0 );
+		var deltaY = Math.abs( y1 - y0 );
 		var error = deltaX >> 1;
 		var y = y0;
 		var yStep = y0 < y1 ? 1 : -1;

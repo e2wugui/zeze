@@ -9,7 +9,7 @@ import org.junit.Test;
 public class TestGraphics2D {
 	@Test
 	public void testBresenham2d() {
-		System.out.println(Graphics2D.fastAbs(-1L));
+		System.out.println(Math.abs(-1L));
 		Graphics2D.bresenham2d(0, 0, 0, 0, (x, y) -> System.out.print("(" + x + ", " + y + ")"));
 		System.out.println();
 		Graphics2D.bresenham2d(0, 2, 0, 0, (x, y) -> System.out.print("(" + x + ", " + y + ")"));
