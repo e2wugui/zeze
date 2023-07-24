@@ -76,6 +76,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> {
 		int i = node.getQueueIndex();
 		if (i <= 1)
 			return;
+		T[] nodes = this.nodes;
 		int parent = i >> 1;
 		T parentNode = nodes[parent];
 		if (parentNode.hasHigherOrEqualPriority(node))
@@ -109,10 +110,12 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> {
 		int childLeftIndex = 2 * finalQueueIndex;
 
 		// If leaf node, we're done
+		int numNodes = this.numNodes;
 		if (childLeftIndex > numNodes)
 			return;
 
 		// Check if the left-child is higher-priority than the current node
+		T[] nodes = this.nodes;
 		int childRightIndex = childLeftIndex + 1;
 		T childLeft = nodes[childLeftIndex];
 		if (childLeft.hasHigherPriority(node)) {
@@ -208,10 +211,12 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> {
 	 * O(log n)
 	 */
 	public T dequeue() {
+		T[] nodes = this.nodes;
 		T returnMe = nodes[1];
+		int numNodes = this.numNodes;
 		if (numNodes == 1) { // If the node is already the last node, we can remove it immediately
 			nodes[1] = null;
-			numNodes = 0;
+			this.numNodes = 0;
 			return returnMe;
 		}
 
@@ -220,6 +225,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> {
 		nodes[1] = formerLastNode;
 		formerLastNode.setQueueIndex(1);
 		nodes[numNodes--] = null;
+		this.numNodes = numNodes;
 
 		// Now bubble formerLastNode (which is no longer the last node) down
 		cascadeDown(formerLastNode);
@@ -275,9 +281,12 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> {
 	 * O(log n)
 	 */
 	public void remove(final T node) {
+		T[] nodes = this.nodes;
+		int numNodes = this.numNodes;
 		int i = node.getQueueIndex();
 		if (i == numNodes) { // If the node is already the last node, we can remove it immediately
 			nodes[numNodes--] = null;
+			this.numNodes = numNodes;
 			return;
 		}
 
@@ -286,6 +295,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> {
 		nodes[i] = formerLastNode;
 		formerLastNode.setQueueIndex(i);
 		nodes[numNodes--] = null;
+		this.numNodes = numNodes;
 
 		// Now bubble formerLastNode (which is no longer the last node) up or down as appropriate
 		onNodeUpdated(formerLastNode);
@@ -312,6 +322,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> {
 	 * Checks to make sure the queue is still in a valid state.  Used for testing/debugging the queue.
 	 */
 	public boolean isValidQueue() {
+		T[] nodes = this.nodes;
 		for (int i = 1; i < nodes.length; i++) {
 			if (nodes[i] != null) {
 				int childLeftIndex = 2 * i;

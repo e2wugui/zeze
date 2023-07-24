@@ -10,13 +10,13 @@ public interface FastPriorityQueueNode<T> {
 
 	/**
 	 * Returns true if 'higher' has higher priority than 'lower', false otherwise.
-	 * Note that calling HasHigherPriority(node, node) (ie. both arguments the same node) will return false
+	 * Note that calling hasHigherPriority(node, node) (ie. both arguments the same node) will return false
 	 */
 	boolean hasHigherPriority(T lower);
 
 	/**
 	 * Returns true if 'higher' has higher priority than 'lower', false otherwise.
-	 * Note that calling HasHigherOrEqualPriority(node, node) (ie. both arguments the same node) will return true
+	 * Note that calling hasHigherOrEqualPriority(node, node) (ie. both arguments the same node) will return true
 	 */
 	boolean hasHigherOrEqualPriority(T lower);
 }
