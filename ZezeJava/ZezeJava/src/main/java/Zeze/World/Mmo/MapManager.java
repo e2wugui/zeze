@@ -11,6 +11,7 @@ import Zeze.Builtin.World.BEnterWorld;
 import Zeze.Builtin.World.BLoad;
 import Zeze.Builtin.World.BLoadMap;
 import Zeze.Builtin.World.Command;
+import Zeze.Builtin.World.Static.BSwitchWorld;
 import Zeze.Component.AutoKey;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Procedure;
@@ -179,7 +180,8 @@ public class MapManager implements IMapManager, ICommand {
 	// leave after bind
 	// current map instance. local leave aoi-notify.... leaveWorld(). enterMap(newMapId)
 	@Override
-	public long enterMap(ProviderUserSession session, int mapId, int fromMapId, int fromGateId) throws Exception {
+	public long enterMap(ProviderUserSession session, BSwitchWorld.Data switchWorld) throws Exception {
+		var mapId = switchWorld.getMapId();
 		// find local
 		var instanceMap = findOrCreateMapInstance(mapId);
 		if (null != instanceMap) {
@@ -190,7 +192,7 @@ public class MapManager implements IMapManager, ICommand {
 			player.getBean().setLinkName(session.getLinkName());
 			player.getBean().setLinkSid(session.getLinkSid());
 
-			world.getMyWorld().onCreatePlayer(player, mapId, fromMapId, fromGateId);
+			world.getMyWorld().onCreatePlayer(player, switchWorld);
 
 			var position = player.getBean().getMoving().getPosition();
 			// 加入 cube map

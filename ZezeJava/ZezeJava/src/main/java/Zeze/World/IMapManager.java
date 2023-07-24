@@ -1,6 +1,8 @@
 package Zeze.World;
 
 import Zeze.Arch.ProviderUserSession;
+import Zeze.Builtin.World.Static.BSwitchWorld;
+import Zeze.Dbh2.BenchServer;
 import Zeze.Serialize.Vector3;
 
 /**
@@ -14,10 +16,10 @@ public interface IMapManager {
 
 	/**
 	 * 地图切换。
-	 * @param mapId 地图配置id。
+	 * @param switchWorld 地图切换参数，直接使用SwitchWorld的参数，便于扩展。
 	 * @return error code, 0 success
 	 */
-	long enterMap(ProviderUserSession session, int mapId, int fromMapId, int fromGateId) throws Exception;
+	long enterMap(ProviderUserSession session, BSwitchWorld.Data switchWorld) throws Exception;
 
 	/**
 	 * 根据地图实例Id查找CubeMap实例。

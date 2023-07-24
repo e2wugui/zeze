@@ -1,5 +1,6 @@
 package Zeze.World;
 
+import Zeze.Builtin.World.Static.BSwitchWorld;
 import Zeze.World.Mmo.AoiSimple;
 
 /**
@@ -22,12 +23,10 @@ public interface IMyWorld {
 	 * 重载并初始化玩家数据。
 	 * 一般需要初始化position,direct。
 	 *
-	 * @param toMapId 当前进入的地图资源编号。
-	 * @param fromMapId 从哪个地图来的，0表示第一次进入，没有来源。
-	 * @param fromGateId 存在fromMapId时，来的地图的传送门编号。
+	 * @param switchWorld 切换地图参数，用来初始化玩家切换地图的初始位置。
 	 * @param player player
 	 */
-	default void onCreatePlayer(Entity player, int toMapId, int fromMapId, int fromGateId) {
+	default void onCreatePlayer(Entity player, BSwitchWorld.Data switchWorld) {
 
 	}
 
@@ -45,11 +44,19 @@ public interface IMyWorld {
 
 	/**
 	 * 用来初始化Cube。
+	 * 场景编辑器把里面的实体按Map<CubeIndex, List<EntityConf>>方式组织数据。
+	 * 根据玩家的活动，根据需要，一个一个的初始化Cube。
 	 *
 	 * @param cube cube
 	 */
 	default void onCreateCube(Cube cube) {
-
+		/*
+		 * 初始化Cube的基本操作是装载配置的Entity；
+		 * 然后根据Entity的数据类型，进一步初始化相关服务，比如AI。
+		 * 最灵活的服务器初始化是在这里做。
+		 *
+		 * 基础服务功能增加或者定义出抽象接口以后，再细化Cube初始化的模式。
+		 */
 	}
 
 	/**

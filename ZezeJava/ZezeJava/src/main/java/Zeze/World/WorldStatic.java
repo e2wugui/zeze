@@ -18,9 +18,7 @@ public class WorldStatic extends AbstractWorldStatic {
     protected long ProcessSwitchWorldRequest(Zeze.Builtin.World.Static.SwitchWorld r) throws Exception {
         var session = ProviderUserSession.get(r);
 
-        var fromMapId = r.Argument.getFromMapId();
-        var fromGateId = r.Argument.getFromGateId();
-        var instanceId = world.getMapManager().enterMap(session, r.Argument.getMapId(), fromMapId, fromGateId);
+        var instanceId = world.getMapManager().enterMap(session, r.Argument);
         r.Result.setMapInstanceId(instanceId);
 
         session.sendResponseDirect(r);
