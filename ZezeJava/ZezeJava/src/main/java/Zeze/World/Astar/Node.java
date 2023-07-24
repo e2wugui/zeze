@@ -1,7 +1,6 @@
 package Zeze.World.Astar;
 
 import Zeze.Util.FastPriorityQueueNode;
-import Zeze.World.Graphics2D;
 
 public class Node implements FastPriorityQueueNode<Node> {
 	// Node的信息多数都可以根据上下文计算得到。为了速度，采用冗余方式。
@@ -21,23 +20,34 @@ public class Node implements FastPriorityQueueNode<Node> {
 		this.fcost  = this.gcost + 5 * (Math.abs(target.x - this.x) + Math.abs(target.y - this.y));
 	}
 
+	public boolean adjust(Node parent, int cost) {
+		int newGCost = parent.gcost + cost;
+		if (newGCost < this.gcost) {
+			this.fcost = newGCost + this.fcost - this.gcost;
+			this.gcost = newGCost;
+			this.parent = parent;
+			return true;
+		}
+		return false;
+	}
+
 	@Override
 	public int getQueueIndex() {
-		return 0;
+		return openpos;
 	}
 
 	@Override
 	public void setQueueIndex(int value) {
-
+		this.openpos = value;
 	}
 
 	@Override
 	public boolean hasHigherPriority(Node lower) {
-		return false;
+		return gcost < lower.gcost;
 	}
 
 	@Override
 	public boolean hasHigherOrEqualPriority(Node lower) {
-		return false;
+		return gcost <= lower.gcost;
 	}
 }

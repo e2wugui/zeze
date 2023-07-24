@@ -73,9 +73,8 @@ public class Astar {
 					scanNodes.open(child, parent, cost, target);
 					openList.enqueue(child);
 				} else {
-					openList.updatePriority(child);
-					//if (child.adjust(parent, cost))
-					//	openList.adjust(child);
+					if (child.adjust(parent, cost))
+						openList.updatePriority(child);
 				}
 			}
 		}
@@ -93,9 +92,8 @@ public class Astar {
 					scanNodes.open(child, parent, cost, target);
 					openList.enqueue(child);
 				} else {
-					openList.updatePriority(child);
-					//if (child.adjust(parent, cost))
-					//	openList.adjust(child);
+					if (child.adjust(parent, cost))
+						openList.updatePriority(child);
 				}
 			}
 		}
