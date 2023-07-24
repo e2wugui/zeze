@@ -215,8 +215,11 @@ public class World extends AbstractWorld {
 
 	// todo 抽象Skill时再来决定参数。
 	public void compute(Entity self, ICompute c) throws IOException {
-		try (var ignored = new LockGuard(c.selector().cubes(self))) {
-			c.compute();
+		var selector = c.selector();
+		var context = selector.beginSelect();
+		context.compute = c;
+		try (var ignored = new LockGuard(c.selector().cubes(context))) {
+			c.compute(selector.entities(context));
 		}
 	}
 }

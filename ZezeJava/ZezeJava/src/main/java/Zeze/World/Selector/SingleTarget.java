@@ -5,6 +5,7 @@ import java.util.TreeMap;
 import Zeze.World.Cube;
 import Zeze.World.CubeIndex;
 import Zeze.World.Entity;
+import Zeze.World.ICompute;
 import Zeze.World.ISelector;
 
 /**
@@ -22,16 +23,17 @@ public class SingleTarget implements ISelector {
 	}
 
 	@Override
-	public SortedMap<CubeIndex, Cube> cubes(Entity origin) {
-		var cubes = new TreeMap<CubeIndex, Cube>();
-		cubes.put(origin.getCube().index, origin.getCube());
+	public SortedMap<CubeIndex, Cube> cubes(ICompute.Context context) {
+		var origin = context.compute.caster();
+		context.cubes = new TreeMap<>();
+		context.cubes.put(origin.getCube().index, origin.getCube());
 		if (origin != target)
-			cubes.put(target.getCube().index, target.getCube());
-		return cubes;
+			context.cubes.put(target.getCube().index, target.getCube());
+		return context.cubes;
 	}
 
 	@Override
-	public java.util.List<Entity> entities(Entity origin) {
+	public java.util.List<Entity> entities(ICompute.Context context) {
 		return java.util.List.of(target);
 	}
 }
