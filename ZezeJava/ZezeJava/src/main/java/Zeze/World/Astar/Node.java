@@ -32,12 +32,12 @@ public class Node implements FastPriorityQueueNode<Node> {
 	}
 
 	@Override
-	public boolean HasHigherPriority(Node lower) {
+	public boolean hasHigherPriority(Node lower) {
 		return false;
 	}
 
 	@Override
-	public boolean HasHigherOrEqualPriority(Node lower) {
+	public boolean hasHigherOrEqualPriority(Node lower) {
 		return false;
 	}
 }
