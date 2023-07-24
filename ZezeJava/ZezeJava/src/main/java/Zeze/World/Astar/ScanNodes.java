@@ -19,7 +19,7 @@ import java.util.HashMap;
 public class ScanNodes {
 	private final int maxWidth;
 	private final int maxHeight;
-	private final HashMap<Index, Node> nodes = new HashMap<>();
+	private final HashMap<NodeIndex, Node> nodes = new HashMap<>();
 	private int onClosedList;  // 记录，节点是否是关闭的标志。用来避免初始化节点。
 	private int onOpenList;
 
@@ -40,7 +40,7 @@ public class ScanNodes {
 		return maxHeight;
 	}
 
-	public Node getNode(Index index) {
+	public Node getNode(NodeIndex index) {
 		// todo NodeAllocator
 		return nodes.computeIfAbsent(index, Node::new);
 	}

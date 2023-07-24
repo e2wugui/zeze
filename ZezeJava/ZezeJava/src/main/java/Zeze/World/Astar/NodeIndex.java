@@ -1,14 +1,13 @@
 package Zeze.World.Astar;
 
-import javax.persistence.criteria.CriteriaBuilder;
 import org.jetbrains.annotations.NotNull;
 
-public class Index implements Comparable<Index> {
+public class NodeIndex implements Comparable<NodeIndex> {
 	public final int x;
 	public final int z;
 	public final int yIndex;
 
-	public Index(int x, int z, int yIndex) {
+	public NodeIndex(int x, int z, int yIndex) {
 		this.x = x;
 		this.z = z;
 		this.yIndex = yIndex;
@@ -16,15 +15,15 @@ public class Index implements Comparable<Index> {
 
 	@Override
 	public boolean equals(Object o) {
-		if (o instanceof Index) {
-			var other = (Index)o;
+		if (o instanceof NodeIndex) {
+			var other = (NodeIndex)o;
 			return x == other.x && z == other.z && yIndex == other.yIndex;
 		}
 		return false;
 	}
 
 	@Override
-	public int compareTo(@NotNull Index o) {
+	public int compareTo(@NotNull NodeIndex o) {
 		var c = Integer.compare(x, o.x);
 		if (0 != c)
 			return c;
@@ -34,7 +33,7 @@ public class Index implements Comparable<Index> {
 		return Integer.compare(yIndex, o.yIndex);
 	}
 
-	public Index sub(Index o, IResourceMap map) {
+	public NodeIndex sub(NodeIndex o, IResourceMap map) {
 		var x = this.x - o.x;
 		var z = this.z - o.z;
 		return map.toIndex(x, z);

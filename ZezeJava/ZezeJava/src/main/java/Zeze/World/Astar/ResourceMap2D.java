@@ -2,8 +2,6 @@ package Zeze.World.Astar;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
-import Zeze.World.CubeIndex;
 
 public class ResourceMap2D implements IResourceMap {
 	private final byte [] masks;
@@ -39,7 +37,14 @@ public class ResourceMap2D implements IResourceMap {
 	}
 
 	@Override
-	public List<CubeIndex> ways(int x, int z) {
-		return null;
+	public void traverseNeighbors(IIAstar astar, Node current, Node target) {
+		astar.traverseCorner(this, current, target, -1, -1, 7, 0, -1, -1, 0);
+		astar.traverseCross(this, current, target, toIndex(current.index.x, current.index.z - 1), 5);
+		astar.traverseCorner(this, current, target, +1, -1, 7, 0, -1, +1, 0);
+		astar.traverseCross(this, current, target, toIndex(current.index.x - 1, current.index.z), 5);
+		astar.traverseCross(this, current, target, toIndex(current.index.x + 1, current.index.z), 5);
+		astar.traverseCorner(this, current, target, -1, +1, 7, -1, 0,  0, +1);
+		astar.traverseCross(this, current, target, toIndex(current.index.x - 1, current.index.z + 1), 5);
+		astar.traverseCorner(this, current, target,+1, +1, 7, +1, 0, 0, +1);
 	}
 }
