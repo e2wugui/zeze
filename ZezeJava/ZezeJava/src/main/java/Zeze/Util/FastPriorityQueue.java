@@ -9,7 +9,7 @@ import java.util.Iterator;
  *
  * @param <T> The values in the queue.  Must extend the FastPriorityQueueNode class
  */
-public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> {
+public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements Iterable<T> {
 	private final int maxCapacity;
 	private int numNodes;
 	private T[] nodes;
@@ -301,7 +301,8 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> {
 		onNodeUpdated(formerLastNode);
 	}
 
-	public Iterator<T> GetEnumerator() {
+	@Override
+	public Iterator<T> iterator() {
 		return new Iterator<>() {
 			private int i = 1;
 
