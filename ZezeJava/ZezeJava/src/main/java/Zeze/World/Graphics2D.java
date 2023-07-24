@@ -207,7 +207,7 @@ public class Graphics2D {
 
 		var deltaX = x1 - x0;
 		var deltaY = fastAbs( y1 - y0 );
-		var error = deltaX / 2;
+		var error = deltaX >> 1;
 		var y = y0;
 		var yStep = y0 < y1 ? 1 : -1;
 		/*
