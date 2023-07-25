@@ -232,7 +232,7 @@ public final class Agent {
 	}
 
 	public void stop() throws Exception {
-		mutex.lock();
+		mutex.lock(); // stop 不中断
 		try {
 			if (resendTask != null) {
 				resendTask.cancel(true);

@@ -188,7 +188,7 @@ public final class Raft {
 	}
 
 	public void addAtFatalKill(Action0 action) {
-		atFatalKillsLock.lock();
+		atFatalKillsLock.lock(); // atFatalKill 不中断
 		try {
 			atFatalKills.add(action);
 		} finally {
@@ -252,7 +252,7 @@ public final class Raft {
 	}
 
 	private void cancelAllReceiveSnapshotting() {
-		receiveSnapshottingLock.lock();
+		receiveSnapshottingLock.lock(); // cancel 不中断
 		try {
 			receiveSnapshotting.values().forEach(file -> {
 				try {
