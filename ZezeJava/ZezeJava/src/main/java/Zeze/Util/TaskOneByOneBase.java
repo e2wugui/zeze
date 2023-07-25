@@ -16,12 +16,7 @@ public abstract class TaskOneByOneBase {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
-		keys.sort(new Comparator<T>() {
-			@Override
-			public int compare(T o1, T o2) {
-				return o1.compareTo(o2);
-			}
-		});
+		keys.sort(Comparable::compareTo);
 		var group = new HashMap<TaskOneByOneQueue, OutInt>();
 		int count = 0;
 		for (var key : keys) {
@@ -41,13 +36,7 @@ public abstract class TaskOneByOneBase {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
-		keys.sort(new Comparator<T>() {
-			@Override
-			public int compare(T o1, T o2) {
-				return o1.compareTo(o2);
-			}
-		});
-
+		keys.sort(Comparable::compareTo);
 		var group = new HashMap<TaskOneByOneQueue, OutInt>();
 		int count = 0;
 		for (var key : keys) {
