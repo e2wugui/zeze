@@ -63,7 +63,9 @@ public final class TaskOneByOneByKey extends TaskOneByOneBase {
 
 	@Override
 	protected @NotNull TaskOneByOneQueue getAndLockQueue(@NotNull Object key) {
-		return concurrency[hash(key.hashCode()) & hashMask];
+		var queue = concurrency[hash(key.hashCode()) & hashMask];
+		queue.lock();
+		return queue;
 	}
 
 	public void shutdown() {

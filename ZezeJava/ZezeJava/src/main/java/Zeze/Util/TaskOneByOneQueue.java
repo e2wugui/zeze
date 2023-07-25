@@ -121,17 +121,12 @@ public class TaskOneByOneQueue {
 
 	public Runnable submit(@NotNull Task task) {
 		boolean submit = false;
-		lock.lock();
-		try {
-			if (!isShutdown) {
-				queue.addLast(task);
-				if (queue.size() != 1)
-					return null; // 有任务正在执行,不需要进一步调度.
-				submit = true;
-				batch.prepare();
-			}
-		} finally {
-			lock.unlock();
+		if (!isShutdown) {
+			queue.addLast(task);
+			if (queue.size() != 1)
+				return null; // 有任务正在执行,不需要进一步调度.
+			submit = true;
+			batch.prepare();
 		}
 		var submit2 = submit;
 		return () -> {
