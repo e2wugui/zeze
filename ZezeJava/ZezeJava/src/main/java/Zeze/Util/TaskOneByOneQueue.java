@@ -18,9 +18,9 @@ public class TaskOneByOneQueue {
 	private final @NotNull Condition cond = lock.newCondition();
 	private final BatchTask batch = new BatchTask();
 	private @NotNull ArrayDeque<Task> queue = new ArrayDeque<>();
-	private boolean isShutdown;
 	private final Executor executor;
-	private boolean removed = false;
+	private boolean isShutdown;
+	private boolean removed;
 
 	public void lock() {
 		lock.lock();
@@ -120,33 +120,32 @@ public class TaskOneByOneQueue {
 	*/
 
 	public Runnable submit(@NotNull Task task) {
-		boolean submit = false;
 		if (!isShutdown) {
 			queue.addLast(task);
 			if (queue.size() != 1)
 				return null; // 有任务正在执行,不需要进一步调度.
-			submit = true;
 			batch.prepare();
-		}
-		var submit2 = submit;
-		return () -> {
-			if (submit2) {
-				if (executor != null) {
+			return () -> {
+				if (executor != null)
 					executor.execute(batch);
-				} else {
+				else {
 					var threadPool = batch.mode == DispatchMode.Critical
 							? Zeze.Util.Task.getCriticalThreadPool()
 							: Zeze.Util.Task.getThreadPool();
 					threadPool.execute(batch);
 				}
-			} else if (task.cancel != null) {
+			};
+		}
+		if (task.cancel != null) {
+			return () -> {
 				try {
 					task.cancel.run();
 				} catch (Throwable e) { // logger.error
 					logger.error("CancelAction={}", task.name, e);
 				}
-			}
-		};
+			};
+		}
+		return null;
 	}
 
 	private void runNext(int count) {

@@ -41,8 +41,8 @@ public class Node implements FastPriorityQueueNode<Node> {
 	}
 
 	@Override
-	public void setQueueIndex(int value) {
-		this.openpos = value;
+	public void setQueueIndex(int index) {
+		this.openpos = index;
 	}
 
 	@Override

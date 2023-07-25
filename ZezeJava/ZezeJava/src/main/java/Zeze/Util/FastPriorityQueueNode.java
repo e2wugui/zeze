@@ -6,17 +6,17 @@ public interface FastPriorityQueueNode<T> {
 	 */
 	int getQueueIndex();
 
-	void setQueueIndex(int value);
+	void setQueueIndex(int index);
 
 	/**
-	 * Returns true if 'higher' has higher priority than 'lower', false otherwise.
-	 * Note that calling hasHigherPriority(node, node) (ie. both arguments the same node) will return false
+	 * Returns true if 'this' has higher priority than 'lower', false otherwise.
+	 * Note that calling node.hasHigherPriority(node) (ie. both arguments the same node) will return false
 	 */
 	boolean hasHigherPriority(T lower);
 
 	/**
-	 * Returns true if 'higher' has higher priority than 'lower', false otherwise.
-	 * Note that calling hasHigherOrEqualPriority(node, node) (ie. both arguments the same node) will return true
+	 * Returns true if 'this' has higher priority than 'lower', false otherwise.
+	 * Note that calling node.hasHigherOrEqualPriority(node) (ie. both arguments the same node) will return true
 	 */
 	boolean hasHigherOrEqualPriority(T lower);
 }

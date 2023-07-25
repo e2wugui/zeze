@@ -86,7 +86,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 		nodes[i] = parentNode;
 		parentNode.setQueueIndex(i);
 
-		node.setQueueIndex(parent);
+		node.setQueueIndex(i = parent);
 
 		while (parent > 1) {
 			parent >>= 1;
@@ -98,7 +98,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 			nodes[i] = parentNode;
 			parentNode.setQueueIndex(i);
 
-			node.setQueueIndex(parent);
+			node.setQueueIndex(i = parent);
 		}
 
 		nodes[i] = node;
