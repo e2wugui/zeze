@@ -52,7 +52,7 @@ public class ResourceMapVoxel implements IResourceMap {
 	}
 
 	@Override
-	public void traverseNeighbors(IIAstar astar, Node current, Node target) {
+	public void traverseNeighbors(IAstar astar, Node current, Node target) {
 		// todo
 		var to = toIndex(0, 0);
 		astar.traverseCross(this, current, target, to, 5);

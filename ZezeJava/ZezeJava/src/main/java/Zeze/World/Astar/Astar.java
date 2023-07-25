@@ -4,7 +4,7 @@ import Zeze.Serialize.Vector3;
 import Zeze.Util.FastPriorityQueue;
 import java.util.Deque;
 
-public class Astar implements IIAstar {
+public class Astar implements IAstar {
 	private final ScanNodes scanNodes;
 	private final FastPriorityQueue<Node> openList;
 
@@ -13,6 +13,7 @@ public class Astar implements IIAstar {
 		this.openList = new FastPriorityQueue<>(1000, Integer.MAX_VALUE);
 	}
 
+	@Override
 	public boolean find(IResourceMap map, Vector3 fromV3, Vector3 toV3, Deque<Node> path /* out */) {
 		if (scanNodes.isOutofRange(map))
 			return false; // 地图大小超过限制（see ScanNodesFixed 说明）

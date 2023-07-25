@@ -1,5 +1,7 @@
 package Zeze.World.Astar;
 
+import java.util.Deque;
+import Zeze.Serialize.Vector3;
 
 /**
  * 限制搜索范围.
@@ -69,7 +71,7 @@ public class ResourceMapView implements IResourceMap {
 	}
 
 	@Override
-	public void traverseNeighbors(IIAstar astar, Node current, Node target) {
+	public void traverseNeighbors(IAstar astar, Node current, Node target) {
 		// save
 		var currentIndex = current.index;
 		var targetIndex = target.index;
@@ -83,15 +85,20 @@ public class ResourceMapView implements IResourceMap {
 		target.index = targetIndex;
 	}
 
-	class AstarWrapper implements IIAstar {
-		private final IIAstar astar;
+	class AstarWrapper implements IAstar {
+		private final IAstar astar;
 		private final NodeIndex current;
 		private final NodeIndex target;
 
-		AstarWrapper(IIAstar astar, NodeIndex current, NodeIndex target) {
+		AstarWrapper(IAstar astar, NodeIndex current, NodeIndex target) {
 			this.astar = astar;
 			this.current = current;
 			this.target = target;
+		}
+
+		@Override
+		public boolean find(IResourceMap map, Vector3 fromV3, Vector3 toV3, Deque<Node> path) {
+			return astar.find(map, fromV3, toV3, path);
 		}
 
 		@Override

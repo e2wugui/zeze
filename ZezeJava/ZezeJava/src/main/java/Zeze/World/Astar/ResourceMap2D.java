@@ -37,7 +37,7 @@ public class ResourceMap2D implements IResourceMap {
 	}
 
 	@Override
-	public void traverseNeighbors(IIAstar astar, Node current, Node target) {
+	public void traverseNeighbors(IAstar astar, Node current, Node target) {
 		astar.traverseCorner(this, current, target, -1, -1, 7, 0, -1, -1, 0);
 		astar.traverseCross(this, current, target, toIndex(current.index.x, current.index.z - 1), 5);
 		astar.traverseCorner(this, current, target, +1, -1, 7, 0, -1, +1, 0);

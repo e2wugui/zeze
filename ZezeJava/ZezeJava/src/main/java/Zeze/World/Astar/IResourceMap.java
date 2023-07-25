@@ -41,6 +41,9 @@ public interface IResourceMap {
 	// 从from到to是否可达,from,to是相邻的.
 	// grid2d 放回walkable(to.x, to.z);
 	// voxel 判断斜率;
+	// to展开,没用Index类型是为了在不是必要的时候少创建一个对象.
+	// from是已经扫描过的Node,index肯定创建好了.
+	// 这样有点不一致的感觉,但也有好处,不同的类型比起一串int要好理解一点.
 	default boolean walkable(NodeIndex from, int toX, int toZ, int toYIndex) {
 		return walkable(toX, toZ);
 	}
@@ -52,5 +55,5 @@ public interface IResourceMap {
 	 * @param current current
 	 * @param target target,这个参数抽象不好,属于上下文信息.
 	 */
-	void traverseNeighbors(IIAstar astar, Node current, Node target);
+	void traverseNeighbors(IAstar astar, Node current, Node target);
 }
