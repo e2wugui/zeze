@@ -4,7 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.Map.Entry;
 import java.util.concurrent.Future;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -22,6 +22,7 @@ import org.apache.logging.log4j.Logger;
  * <li>超时任务不使用接口Runnable，而是定义新的接口Timeout，这样便于在同一个类中实现。
  * </ul>
  */
+@SuppressWarnings("ALL")
 public final class TimeoutManager {
 	private static final Logger logger = LogManager.getLogger(TimeoutExecutor.class);
 
@@ -46,11 +47,56 @@ public final class TimeoutManager {
 
 	private final ConcurrentMap<Timeout, Long> tasks = new ConcurrentHashMap<>();
 
-	public interface Timeout {
+	public static abstract class Timeout {
 		/**
 		 * 超时发生时回调这个函数。仅限于实现一些简单快捷的操作。
 		 */
-		void onTimeout();
+		public abstract void onTimeout() throws Exception;
+
+		protected void processThread(Thread worker) throws Exception {
+			if (worker == null)
+				return;
+
+			// todo 更多策略.
+			//var workingId = working.get();
+			worker.interrupt();
+			/*
+			// 1. interrupt以后,首先等待中断成功: worker继续运行,并且通过了至少一次SafePoint, 即workingId发生了改变.
+			// 2. 如果仍然超时: 尝试stop.
+			// 3. stop成功尝试执行recoverAction.
+			if (stop(worker) && null != recoverAction) {
+				recoverAction.run();
+			}
+			// 4. stop失败: 看看worker是否恢复, 即working计数发生了改变,
+			// 5. 如果恢复, 处理完成; 否则再次尝试处理(走完整的这个流程 or 走stop流程).
+			// 6. 访问这个Timeout的机制: 在worker开始跑任务的时候设置到worker的threadLocal中.
+			//    然后worker就可以调用setMaybeSafeToStop.
+			*/
+		}
+
+		// todo 下面的方法目前没有使用,用来描述机制.
+		private final AtomicLong working = new AtomicLong();
+		private boolean maybeSafeToStop = false;
+		private Action0 recoverAction;
+		// 修改安全点状态.
+		public void setMaybeSafeToStop(boolean safe) {
+			working.incrementAndGet();
+			maybeSafeToStop = safe;
+		}
+
+		public boolean stop(Thread worker) {
+			//if (maybeSafeToStop)
+			//	worker.stop();
+			return maybeSafeToStop;
+		}
+
+		// 由子类设置.
+		protected static ThreadLocal<Timeout> threadLocal = new ThreadLocal<>();
+
+		// worker 通过这个得到Timeout引用.
+		public static Timeout getThreadLocal() {
+			return threadLocal.get();
+		}
 	}
 
 	/**

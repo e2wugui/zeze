@@ -149,14 +149,7 @@ public class TimeoutExecutor implements ExecutorService {
 		executor.execute(decorate(command, defaultTimeout));
 	}
 
-	private static void processTimeout(Thread worker) {
-		// todo 更多策略.
-		if (worker != null) {
-			worker.interrupt();
-		}
-	}
-
-	static class TimeoutRunnable implements Runnable, TimeoutManager.Timeout {
+	static class TimeoutRunnable extends TimeoutManager.Timeout implements Runnable {
 		private final Runnable inner;
 		private final long timeout;
 		private volatile Thread runner;
@@ -184,12 +177,12 @@ public class TimeoutExecutor implements ExecutorService {
 		}
 
 		@Override
-		public void onTimeout() {
-			processTimeout(runner);
+		public void onTimeout() throws Exception {
+			processThread(runner);
 		}
 	}
 
-	static class TimeoutCallable<V> implements Callable<V>, TimeoutManager.Timeout {
+	static class TimeoutCallable<V> extends TimeoutManager.Timeout implements Callable<V> {
 		private final Callable<V> inner;
 		private final long timeout;
 		private volatile Thread runner;
@@ -217,8 +210,8 @@ public class TimeoutExecutor implements ExecutorService {
 		}
 
 		@Override
-		public void onTimeout() {
-			processTimeout(runner);
+		public void onTimeout() throws Exception {
+			processThread(runner);
 		}
 	}
 }
