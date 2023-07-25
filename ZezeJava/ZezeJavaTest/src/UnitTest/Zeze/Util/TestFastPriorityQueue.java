@@ -60,13 +60,12 @@ public class TestFastPriorityQueue {
 		}
 
 		int n = 0;
-		var nodeMark = new boolean[testCount + 1];
+		var nodeMark = new boolean[testCount];
 		for (var node : fq) {
 			Assert.assertFalse(nodeMark[node.getQueueIndex()]);
 			nodeMark[node.getQueueIndex()] = true;
 			n++;
 		}
-		Assert.assertFalse(nodeMark[0]);
 		Assert.assertEquals(testCount, n);
 
 		Assert.assertEquals(0, fq.first().value);
