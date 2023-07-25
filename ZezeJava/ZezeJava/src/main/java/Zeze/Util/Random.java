@@ -41,4 +41,26 @@ public final class Random {
 		}
 		return list;
 	}
+
+	public static int @NotNull [] shuffle(int @NotNull [] list) {
+		var random = getInstance();
+		for (int i = 1, n = list.length; i < n; i++) {
+			int pos = random.nextInt(i + 1);
+			var x = list[i];
+			list[i] = list[pos];
+			list[pos] = x;
+		}
+		return list;
+	}
+
+	public static long @NotNull [] shuffle(long @NotNull [] list) {
+		var random = getInstance();
+		for (int i = 1, n = list.length; i < n; i++) {
+			int pos = random.nextInt(i + 1);
+			var x = list[i];
+			list[i] = list[pos];
+			list[pos] = x;
+		}
+		return list;
+	}
 }
