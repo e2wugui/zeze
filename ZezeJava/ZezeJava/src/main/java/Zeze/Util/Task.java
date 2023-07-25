@@ -60,6 +60,19 @@ public final class Task {
 	}
 
 	// 固定数量的线程池, 普通优先级, 自动支持虚拟线程, 用于处理普通任务
+	public static @NotNull ExecutorService newFixedThreadPool(int threadCount, @NotNull String threadNamePrefix) {
+		try {
+			//noinspection JavaReflectionMemberAccess
+			var r = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
+					(Class<?>[])null).invoke(null);
+			logger.info("newFixedThreadPool({},{}) use virtual thread pool", threadCount, threadNamePrefix);
+			return r;
+		} catch (ReflectiveOperationException ignored) {
+		}
+
+		return Executors.newFixedThreadPool(threadCount, new ThreadFactoryWithName(threadNamePrefix));
+	}
+
 	// 关键线程池, 普通优先级+1, 不使用虚拟线程, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
 	public static @NotNull ExecutorService newCriticalThreadPool(@NotNull String threadNamePrefix) {
 		return Executors.newCachedThreadPool(new ThreadFactoryWithName(threadNamePrefix) {
@@ -108,19 +121,6 @@ public final class Task {
 			threadPoolScheduled = scheduled;
 		threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
 		return true;
-	}
-
-	public static @NotNull ExecutorService newFixedThreadPool(int threadCount, @NotNull String threadNamePrefix) {
-		try {
-			//noinspection JavaReflectionMemberAccess
-			var r = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
-					(Class<?>[])null).invoke(null);
-			logger.info("newFixedThreadPool({},{}) use virtual thread pool", threadCount, threadNamePrefix);
-			return r;
-		} catch (ReflectiveOperationException ignored) {
-		}
-
-		return Executors.newFixedThreadPool(threadCount, new ThreadFactoryWithName(threadNamePrefix));
 	}
 
 	public static void call(@NotNull Action0 action, @Nullable String name) {
