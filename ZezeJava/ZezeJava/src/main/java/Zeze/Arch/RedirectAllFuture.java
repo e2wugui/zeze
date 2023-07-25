@@ -130,11 +130,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		var hashes = finishedHashes;
 		if (hashes == null) {
 			var newHashes = new IntHashSet();
-			try {
-				lock.lockInterruptibly();
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
-			}
+			lock.lock();
 			try {
 				if ((hashes = finishedHashes) == null)
 					finishedHashes = hashes = newHashes;
@@ -214,11 +210,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 				return Procedure.Success;
 			}, "RedirectAllFutureImpl.allDone").call();
 		}
-		try {
-			lock.lockInterruptibly();
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		}
+		lock.lock();
 		try {
 			cond.signalAll();
 		} finally {
@@ -260,11 +252,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	public @NotNull RedirectAllFuture<R> await() {
 		var c = ctx;
 		if (c == null || !c.isCompleted()) {
-			try {
-				lock.lockInterruptibly();
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
-			}
+			lock.lock();
 			try {
 				try {
 					while ((c = ctx) == null || !c.isCompleted())
