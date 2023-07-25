@@ -1,7 +1,6 @@
 package Zeze.Util;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -26,7 +25,7 @@ public abstract class TaskOneByOneBase {
 		var barrier = new TaskOneByOneQueue.BarrierProcedure(procedure, count, cancel);
 		for (var e : group.entrySet()) {
 			var sum = e.getValue().value;
-			executeAndUnlock(e.getKey(), new TaskOneByOneQueue.TaskBarrierProcedure(barrier, sum, mode));
+			executeAndUnlock(e.getKey(), new TaskOneByOneQueue.TaskBarrierProcedure(barrier, sum, mode), sum);
 		}
 	}
 
@@ -46,7 +45,7 @@ public abstract class TaskOneByOneBase {
 		var barrier = new TaskOneByOneQueue.BarrierAction(actionName, action, count, cancel);
 		for (var e : group.entrySet()) {
 			var sum = e.getValue().value;
-			executeAndUnlock(e.getKey(), new TaskOneByOneQueue.TaskBarrierAction(barrier, sum, mode));
+			executeAndUnlock(e.getKey(), new TaskOneByOneQueue.TaskBarrierAction(barrier, sum, mode), sum);
 		}
 	}
 
@@ -200,7 +199,19 @@ public abstract class TaskOneByOneBase {
 		try {
 			submit = lockedQueue.submit(task);
 		} finally {
-			lockedQueue.unlockAllHoldCount();
+			lockedQueue.unlock();
+		}
+		if (submit != null)
+			submit.run();
+	}
+
+	protected static void executeAndUnlock(TaskOneByOneQueue lockedQueue, TaskOneByOneQueue.Task task, int lockTimes) {
+		Runnable submit;
+		try {
+			submit = lockedQueue.submit(task);
+		} finally {
+			for (var i = 0; i < lockTimes; ++i)
+				lockedQueue.unlock();
 		}
 		if (submit != null)
 			submit.run();

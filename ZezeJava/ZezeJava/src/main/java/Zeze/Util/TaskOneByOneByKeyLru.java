@@ -71,7 +71,7 @@ public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 			}
 			return false;
 		} finally {
-			queue.unlockAllHoldCount();
+			queue.unlock();
 		}
 	}
 
@@ -82,7 +82,7 @@ public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 			queue.lock();
 			if (!queue.isRemoved()) // 防止获得删除掉的queue.
 				return queue;
-			queue.unlockAllHoldCount();
+			queue.unlock();
 		}
 	}
 
