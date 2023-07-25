@@ -11,17 +11,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class TaskOneByOneBase {
-	protected static void executeAndUnlock(TaskOneByOneQueue queue, TaskOneByOneQueue.Task task) {
-		Runnable job;
-		try {
-			job = queue.submit(task);
-		} finally {
-			queue.unlockAllHoldCount();
-		}
-		if (null != job)
-			job.run();
-	}
-
 	public synchronized <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull Procedure procedure,
 													  @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 		if (keys.isEmpty())
@@ -204,20 +193,20 @@ public abstract class TaskOneByOneBase {
 
 	// 为了避免装箱,这里区分出类型,子类需要优化的时候重载.
 	protected void execute(int key, TaskOneByOneQueue.Task task) {
-		execute(getAndLockQueue(key), task);
+		executeAndUnlock(getAndLockQueue(key), task);
 	}
 
 	// 为了避免装箱,这里区分出类型,子类需要优化的时候重载.
 	protected void execute(long key, TaskOneByOneQueue.Task task) {
-		execute(getAndLockQueue(key), task);
+		executeAndUnlock(getAndLockQueue(key), task);
 	}
 
 	// 其他类型.
 	protected void execute(Object key, TaskOneByOneQueue.Task task) {
-		execute(getAndLockQueue(key), task);
+		executeAndUnlock(getAndLockQueue(key), task);
 	}
 
-	protected static void execute(TaskOneByOneQueue lockedQueue, TaskOneByOneQueue.Task task) {
+	protected static void executeAndUnlock(TaskOneByOneQueue lockedQueue, TaskOneByOneQueue.Task task) {
 		Runnable submit;
 		try {
 			submit = lockedQueue.submit(task);

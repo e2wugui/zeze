@@ -63,12 +63,12 @@ public final class TaskOneByOneByKey extends TaskOneByOneBase {
 
 	@Override
 	protected void execute(int key, TaskOneByOneQueue.Task task) {
-		execute(getAndLockQueueWithHash(key), task);
+		executeAndUnlock(getAndLockQueueWithHash(key), task);
 	}
 
 	@Override
 	protected void execute(long key, TaskOneByOneQueue.Task task) {
-		execute(getAndLockQueueWithHash(Long.hashCode(key)), task);
+		executeAndUnlock(getAndLockQueueWithHash(Long.hashCode(key)), task);
 	}
 
 	@Override

@@ -80,9 +80,9 @@ public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 		while (true) {
 			var queue = queues.getOrAdd(key, () -> new TaskOneByOneQueue(executor));
 			queue.lock();
-			if (queue.isRemoved()) // 防止获得删除掉的queue.
-				continue;
-			return queue;
+			if (!queue.isRemoved()) // 防止获得删除掉的queue.
+				return queue;
+			queue.unlockAllHoldCount();
 		}
 	}
 
