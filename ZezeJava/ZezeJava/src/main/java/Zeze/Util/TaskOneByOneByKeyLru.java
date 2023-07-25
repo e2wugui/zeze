@@ -35,23 +35,23 @@ import java.util.concurrent.Executor;
  * 未来: 以后virtual-thread不需要调整,默认size够大了.
  *
  */
-public class TaskOneByOneMapKey extends TaskOneByOneBase {
+public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 	private final ConcurrentLruLike<Object, TaskOneByOneQueue> queues;
 	private final Executor executor;
 
-	public TaskOneByOneMapKey() {
+	public TaskOneByOneByKeyLru() {
 		this("Zeze.Util.TaskOneByOneMapKey", 10_0000, null);
 	}
 
-	public TaskOneByOneMapKey(Executor executor) {
+	public TaskOneByOneByKeyLru(Executor executor) {
 		this("Zeze.Util.TaskOneByOneMapKey", 10_0000, executor);
 	}
 
-	public TaskOneByOneMapKey(String name, int capacity) {
+	public TaskOneByOneByKeyLru(String name, int capacity) {
 		this(name, capacity, null);
 	}
 
-	public TaskOneByOneMapKey(String name, int capacity, Executor executor) {
+	public TaskOneByOneByKeyLru(String name, int capacity, Executor executor) {
 		this.queues = new ConcurrentLruLike<>(name, capacity, this::tryRemove);
 		this.executor = executor;
 	}
