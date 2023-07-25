@@ -49,9 +49,4 @@ public class Node implements FastPriorityQueueNode<Node> {
 	public boolean hasHigherPriority(Node lower) {
 		return gcost < lower.gcost;
 	}
-
-	@Override
-	public boolean hasHigherOrEqualPriority(Node lower) {
-		return gcost <= lower.gcost;
-	}
 }

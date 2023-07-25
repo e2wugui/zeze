@@ -29,11 +29,6 @@ public class TestFastPriorityQueue {
 		public boolean hasHigherPriority(Node lower) {
 			return value < lower.value;
 		}
-
-		@Override
-		public boolean hasHigherOrEqualPriority(Node lower) {
-			return value <= lower.value;
-		}
 	}
 
 	@Test

@@ -83,7 +83,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 		T[] nodes = this.nodes;
 		int parent = (i - 1) >> 1;
 		T parentNode = nodes[parent];
-		if (parentNode.hasHigherOrEqualPriority(node))
+		if (!node.hasHigherPriority(parentNode))
 			return;
 
 		do {
@@ -96,7 +96,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 				break;
 			parent = (parent - 1) >> 1;
 			parentNode = nodes[parent];
-		} while (!parentNode.hasHigherOrEqualPriority(node));
+		} while (node.hasHigherPriority(parentNode));
 
 		node.setQueueIndex(i);
 		nodes[i] = node;
