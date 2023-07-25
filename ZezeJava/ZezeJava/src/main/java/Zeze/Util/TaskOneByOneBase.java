@@ -1,6 +1,8 @@
 package Zeze.Util;
 
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Transaction.DispatchMode;
@@ -14,17 +16,23 @@ public abstract class TaskOneByOneBase {
 		try {
 			job = queue.submit(task);
 		} finally {
-			queue.unlock();
+			queue.unlockAllHoldCount();
 		}
 		if (null != job)
 			job.run();
 	}
 
-	public synchronized <T> void executeCyclicBarrier(@NotNull Collection<T> keys, @NotNull Procedure procedure,
+	public synchronized <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull Procedure procedure,
 													  @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
+		keys.sort(new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				return o1.compareTo(o2);
+			}
+		});
 		var group = new HashMap<TaskOneByOneQueue, OutInt>();
 		int count = 0;
 		for (var key : keys) {
@@ -39,11 +47,18 @@ public abstract class TaskOneByOneBase {
 		}
 	}
 
-	public synchronized <T> void executeCyclicBarrier(@NotNull Collection<T> keys, @NotNull String actionName,
+	public synchronized <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull String actionName,
 													  @NotNull Action0 action, @Nullable Action0 cancel,
 													  @Nullable DispatchMode mode) {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
+
+		keys.sort(new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				return o1.compareTo(o2);
+			}
+		});
 
 		var group = new HashMap<TaskOneByOneQueue, OutInt>();
 		int count = 0;
@@ -194,7 +209,7 @@ public abstract class TaskOneByOneBase {
 		try {
 			submit = queue.submit(task);
 		} finally {
-			queue.unlock();
+			queue.unlockAllHoldCount();
 		}
 		if (submit != null)
 			submit.run();

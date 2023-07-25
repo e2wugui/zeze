@@ -70,7 +70,7 @@ public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 			}
 			return false;
 		} finally {
-			queue.unlock();
+			queue.unlockAllHoldCount();
 		}
 	}
 

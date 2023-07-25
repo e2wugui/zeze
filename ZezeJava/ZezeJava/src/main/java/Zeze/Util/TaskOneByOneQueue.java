@@ -26,8 +26,10 @@ public class TaskOneByOneQueue {
 		lock.lock();
 	}
 
-	public void unlock() {
-		lock.unlock();
+	public void unlockAllHoldCount() {
+		var holdCount = lock.getHoldCount();
+		for (int i = 0; i < holdCount; ++i)
+			lock.unlock();
 	}
 
 	void setRemoved() {
