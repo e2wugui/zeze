@@ -27,6 +27,7 @@ import Zeze.World.Entity;
 import Zeze.World.LockGuard;
 import demo.App;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestAoi {
@@ -92,12 +93,14 @@ public class TestAoi {
 
 	AtomicLong moveCount = new AtomicLong();
 
+	@Before
+	public void before() throws Exception {
+		App.Instance.Start();
+	}
+
 	@Test
 	public void testAoiFull() throws Exception {
-		App.Instance.Start();
-
-		var world = Zeze.World.World.create(App.Instance);
-		world.initializeDefaultMmo();
+		var world = App.Instance.world;
 		var client = new TestLinkSender();
 		world.setLinkSender(client);
 
@@ -168,13 +171,11 @@ public class TestAoi {
 			player.get();
 
 		b.report("Aoi.moveTo", moveCount.get());
-
-		App.Instance.Stop();
 	}
 
 	@Test
-	public void testDiff() {
-		var map = new CubeMap(null, 0, 64, 64);
+	public void testDiff() throws Exception {
+		var map = new CubeMap(App.Instance.world.getMapManager(), 0, 64, 64);
 		{
 			var olds = map.center(new CubeIndex(0, 0, 0), 1, 0, 1);
 			var news = map.center(new CubeIndex(2, 0, 0), 1, 0, 1);
@@ -204,9 +205,9 @@ public class TestAoi {
 	}
 
 	@Test
-	public void testAioSimple() {
-		var map = new CubeMap(null, 0, 64, 64);
-		var aoi = new AoiSimple(null, map, 1, 1);
+	public void testAioSimple() throws Exception {
+		var map = new CubeMap(App.Instance.world.getMapManager(), 0, 64, 64);
+		var aoi = new AoiSimple(App.Instance.world, map, 1, 1);
 		map.setAoi(aoi); // not used in this test
 
 		var from = map.getOrAdd(new CubeIndex(0, 0, 0));

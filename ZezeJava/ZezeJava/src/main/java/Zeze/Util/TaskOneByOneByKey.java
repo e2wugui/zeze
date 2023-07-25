@@ -62,8 +62,22 @@ public final class TaskOneByOneByKey extends TaskOneByOneBase {
 	}
 
 	@Override
+	protected void execute(int key, TaskOneByOneQueue.Task task) {
+		execute(getAndLockQueueWithHash(key), task);
+	}
+
+	@Override
+	protected void execute(long key, TaskOneByOneQueue.Task task) {
+		execute(getAndLockQueueWithHash(Long.hashCode(key)), task);
+	}
+
+	@Override
 	protected @NotNull TaskOneByOneQueue getAndLockQueue(@NotNull Object key) {
-		var queue = concurrency[hash(key.hashCode()) & hashMask];
+		return getAndLockQueueWithHash(key.hashCode());
+	}
+
+	private TaskOneByOneQueue getAndLockQueueWithHash(int hash) {
+		var queue = concurrency[hash(hash) & hashMask];
 		queue.lock();
 		return queue;
 	}

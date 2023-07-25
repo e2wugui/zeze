@@ -18,7 +18,7 @@ import java.util.concurrent.Executor;
  * 缺点: 多个key会被映射到相同的队列,
  * 未来: 以后virtual-thread可以增加concurrency.
  *
- * 2. TaskOneByOneMapKey
+ * 2. TaskOneByOneByKeyLru(This File)
  * ConcurrentLruLike<key, Queue> queues;
  * executeTask(key, task) {
  *     queue = queues.computeIfAbsent(key, Queue::new);
@@ -29,6 +29,7 @@ import java.util.concurrent.Executor;
  * 优点: 每个key有自己独立的队列,更符合需求.
  * 缺点: a)内存占用较大,默认capacity=10_0000;
  *      b)对需求有限制,同时存在的Key数量不能超过capacity.
+ *      [当然]对于一台服务器来说,把capacity设置为100万,基本可以确定不会超出容量了.
  *      写这个第一需求就是为了把用户请求按账号排队.
  *      而一台服务器同时存在的需要执行的任务数量是有限的,
  *      受最大在线数量限制.

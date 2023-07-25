@@ -13,6 +13,7 @@ import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderWithOnline;
 import Zeze.Services.RocketMQ.Producer;
 import Zeze.Util.ShutdownHook;
+import Zeze.World.World;
 
 public class App extends Zeze.AppBase {
 	public static void main(String[] args) throws Exception {
@@ -45,6 +46,7 @@ public class App extends Zeze.AppBase {
 	public LinkedMap.Module LinkedMapModule;
 	public Bag.Module BagModule;
 	public Producer RocketMQProducer;
+	public World world;
 
 	public void Start() throws Exception {
 		Start(Config.load("./zeze.xml"));
@@ -79,11 +81,15 @@ public class App extends Zeze.AppBase {
 				new ProviderDirectService("ServerDirect", Zeze), "DemoLinkd", new LoadConfig());
 		provider.create(this);
 		createModules();
+		world = World.create(this);
+		world.Initialize(this);
+		world.initializeDefaultMmo();
 		LinkedMapModule = new LinkedMap.Module(Zeze);
 		BagModule = new Bag.Module(providerApp, null);
 		RocketMQProducer = new Producer(Zeze);
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的
+		world.start();
 		Zeze.endStart();
 		startService(); // 启动网络
 
@@ -95,6 +101,7 @@ public class App extends Zeze.AppBase {
 			return;
 		started = false;
 		stopService(); // 关闭网络
+		world.stop();
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null) {
 			Zeze.stop(); // 关闭数据库
@@ -111,6 +118,7 @@ public class App extends Zeze.AppBase {
 				RocketMQProducer = null;
 			}
 		}
+		world = null;
 		destroyModules();
 		destroyServices();
 		destroyZeze();

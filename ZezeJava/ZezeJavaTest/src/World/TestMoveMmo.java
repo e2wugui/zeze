@@ -9,15 +9,22 @@ import Zeze.Util.Task;
 import Zeze.World.CubeMap;
 import Zeze.World.Entity;
 import Zeze.World.LockGuard;
+import demo.App;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestMoveMmo {
+	@Before
+	public void before() throws Exception {
+		App.Instance.Start();
+	}
+
 	@Test
 	public void testMoveBench() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
 
-		var map = new CubeMap(null, 0, 128, 128);
+		var map = new CubeMap(App.Instance.world.getMapManager(), 0, 128, 128);
 		var center = map.toIndex(0, 0, 0);
 		var cubes2d = map.center(center, 1, 0, 1);
 		var instanceId = 0L;

@@ -5,13 +5,20 @@ import Zeze.Serialize.Vector3;
 import Zeze.Util.Benchmark;
 import Zeze.World.CubeMap;
 import Zeze.World.Graphics2D;
+import demo.App;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestCubeMap {
+	@Before
+	public void before() throws Exception {
+		App.Instance.Start();
+	}
+
 	@Test
-	public void testMapPolygon() {
-		var map = new CubeMap(null, 0, 64, 64);
+	public void testMapPolygon() throws Exception {
+		var map = new CubeMap(App.Instance.world.getMapManager(), 0, 64, 64);
 		{
 			var convex = new ArrayList<Vector3>();
 			// 一个正方形

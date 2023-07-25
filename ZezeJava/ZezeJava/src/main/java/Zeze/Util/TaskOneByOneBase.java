@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class TaskOneByOneBase {
-	private static void executeAndUnlock(TaskOneByOneQueue queue, TaskOneByOneQueue.Task task) {
+	protected static void executeAndUnlock(TaskOneByOneQueue queue, TaskOneByOneQueue.Task task) {
 		Runnable job;
 		try {
 			job = queue.submit(task);
@@ -42,7 +42,6 @@ public abstract class TaskOneByOneBase {
 		var barrier = new TaskOneByOneQueue.BarrierProcedure(procedure, count, cancel);
 		for (var e : group.entrySet()) {
 			var sum = e.getValue().value;
-			// todo 边提交边解锁. 需要确认.
 			executeAndUnlock(e.getKey(), new TaskOneByOneQueue.TaskBarrierProcedure(barrier, sum, mode));
 		}
 	}
@@ -95,70 +94,70 @@ public abstract class TaskOneByOneBase {
 								 @Nullable DispatchMode mode) {
 		var batch = new Batch<>(keys.size(), action, batchEnd);
 		for (var key : keys)
-			Execute(key, () -> batch.run(key), mode);
+			Execute(key, () -> batch.run(key), null, null, mode);
 	}
 
 	public void executeBatch(@NotNull LongList keys, @NotNull Action1<Long> action, @NotNull Action0 batchEnd,
 							 @Nullable DispatchMode mode) {
 		var batch = new Batch<>(keys.size(), action, batchEnd);
-		keys.foreach((key) -> Execute(key, () -> batch.run(key), mode));
+		keys.foreach((key) -> Execute(key, () -> batch.run(key), null, null, mode));
 	}
 
 	public void Execute(@NotNull Object key, @NotNull Action0 action) {
-		Execute(key.hashCode(), action, DispatchMode.Normal);
+		Execute(key, action, null, null, DispatchMode.Normal);
 	}
 
 	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable DispatchMode mode) {
-		Execute(key.hashCode(), action, mode);
+		Execute(key, action, null, null, mode);
 	}
 
 	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name) {
-		Execute(key.hashCode(), action, name, DispatchMode.Normal);
+		Execute(key, action, name, null, DispatchMode.Normal);
 	}
 
 	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name,
 						@Nullable DispatchMode mode) {
-		Execute(key.hashCode(), action, name, mode);
+		Execute(key, action, name, null, mode);
 	}
 
 	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
-		Execute(key.hashCode(), action, name, cancel, mode);
+		execute(key, new TaskOneByOneQueue.TaskAction(action, name, cancel, mode));
 	}
 
 	public void Execute(@NotNull Object key, @NotNull FuncLong func) {
-		Execute(key.hashCode(), func, DispatchMode.Normal);
+		Execute(key, func, null, null, DispatchMode.Normal);
 	}
 
 	public void Execute(@NotNull Object key, @NotNull FuncLong func, @Nullable DispatchMode mode) {
-		Execute(key.hashCode(), func, mode);
+		Execute(key, func, null, null, mode);
 	}
 
 	public void Execute(@NotNull Object key, @NotNull FuncLong func, @Nullable String name) {
-		Execute(key.hashCode(), func, name, DispatchMode.Normal);
+		Execute(key, func, name, null, DispatchMode.Normal);
 	}
 
 	public void Execute(@NotNull Object key, @NotNull FuncLong func, @Nullable String name,
 						@Nullable DispatchMode mode) {
-		Execute(key.hashCode(), func, name, mode);
+		Execute(key, func, name, null, mode);
 	}
 
 	public void Execute(@NotNull Object key, @NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
-		Execute(key.hashCode(), func, name, cancel, mode);
+		execute(key, new TaskOneByOneQueue.TaskFunc(func, name, cancel, mode));
 	}
 
 	public void Execute(@NotNull Object key, @NotNull Procedure procedure) {
-		Execute(key.hashCode(), procedure, DispatchMode.Normal);
+		Execute(key, procedure, null, DispatchMode.Normal);
 	}
 
 	public void Execute(@NotNull Object key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
-		Execute(key.hashCode(), procedure, mode);
+		Execute(key, procedure, null, mode);
 	}
 
 	public void Execute(@NotNull Object key, @NotNull Procedure procedure, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
-		Execute(key.hashCode(), procedure, cancel, mode);
+		execute(key, new TaskOneByOneQueue.TaskFunc(procedure::call, procedure.getActionName(), cancel, mode));
 	}
 
 	public void Execute(int key, @NotNull Action0 action) {
@@ -203,13 +202,27 @@ public abstract class TaskOneByOneBase {
 		Execute(key, func, name, null, mode);
 	}
 
-	private void execute(int key, TaskOneByOneQueue.Task task) {
-		TaskOneByOneQueue queue = getAndLockQueue(key);
+	// 为了避免装箱,这里区分出类型,子类需要优化的时候重载.
+	protected void execute(int key, TaskOneByOneQueue.Task task) {
+		execute(getAndLockQueue(key), task);
+	}
+
+	// 为了避免装箱,这里区分出类型,子类需要优化的时候重载.
+	protected void execute(long key, TaskOneByOneQueue.Task task) {
+		execute(getAndLockQueue(key), task);
+	}
+
+	// 其他类型.
+	protected void execute(Object key, TaskOneByOneQueue.Task task) {
+		execute(getAndLockQueue(key), task);
+	}
+
+	protected static void execute(TaskOneByOneQueue lockedQueue, TaskOneByOneQueue.Task task) {
 		Runnable submit;
 		try {
-			submit = queue.submit(task);
+			submit = lockedQueue.submit(task);
 		} finally {
-			queue.unlockAllHoldCount();
+			lockedQueue.unlockAllHoldCount();
 		}
 		if (submit != null)
 			submit.run();
@@ -236,57 +249,57 @@ public abstract class TaskOneByOneBase {
 	}
 
 	public void Execute(long key, @NotNull Action0 action) {
-		Execute(Long.hashCode(key), action, DispatchMode.Normal);
+		Execute(key, action, null, null, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, @NotNull Action0 action, @Nullable DispatchMode mode) {
-		Execute(Long.hashCode(key), action, mode);
+		Execute(key, action, null, null, mode);
 	}
 
 	public void Execute(long key, @NotNull Action0 action, @Nullable String name) {
-		Execute(Long.hashCode(key), action, name, DispatchMode.Normal);
+		Execute(key, action, name, null, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
-		Execute(Long.hashCode(key), action, name, mode);
+		Execute(key, action, name, null, mode);
 	}
 
 	public void Execute(long key, @NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
-		Execute(Long.hashCode(key), action, name, cancel, mode);
+		execute(key, new TaskOneByOneQueue.TaskAction(action, name, cancel, mode));
 	}
 
 	public void Execute(long key, @NotNull FuncLong func) {
-		Execute(Long.hashCode(key), func, DispatchMode.Normal);
+		Execute(key, func, null, null, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, @NotNull FuncLong func, @Nullable DispatchMode mode) {
-		Execute(Long.hashCode(key), func, mode);
+		Execute(key, func, null, null, mode);
 	}
 
 	public void Execute(long key, @NotNull FuncLong func, @Nullable String name) {
-		Execute(Long.hashCode(key), func, name, DispatchMode.Normal);
+		Execute(key, func, name, null, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, @NotNull FuncLong func, @Nullable String name, @Nullable DispatchMode mode) {
-		Execute(Long.hashCode(key), func, name, mode);
+		Execute(key, func, name, null, mode);
 	}
 
 	public void Execute(long key, @NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
-		Execute(Long.hashCode(key), func, name, cancel, mode);
+		execute(key, new TaskOneByOneQueue.TaskFunc(func, name, cancel, mode));
 	}
 
 	public void Execute(long key, @NotNull Procedure procedure) {
-		Execute(Long.hashCode(key), procedure, DispatchMode.Normal);
+		Execute(key, procedure, null, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
-		Execute(Long.hashCode(key), procedure, mode);
+		Execute(key, procedure, null, mode);
 	}
 
 	public void Execute(long key, @NotNull Procedure procedure, @Nullable Action0 cancel, @Nullable DispatchMode mode) {
-		Execute(Long.hashCode(key), procedure, cancel, mode);
+		execute(key, new TaskOneByOneQueue.TaskFunc(procedure::call, procedure.getActionName(), cancel, mode));
 	}
 
 }
