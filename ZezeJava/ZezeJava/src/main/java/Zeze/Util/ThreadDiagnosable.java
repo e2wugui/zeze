@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -49,6 +48,7 @@ public class ThreadDiagnosable extends Thread {
 	}
 
 	void diagnose() {
+		logger.info("INTERRUPT thread '{}' for task timeout", getName());
 		interrupt();
 		// todo more more ...
 	}
@@ -65,7 +65,7 @@ public class ThreadDiagnosable extends Thread {
 		return c;
 	}
 
-	public class Critical implements Closeable {
+	public class Critical implements AutoCloseable {
 		private final boolean critical;
 
 		public Critical(boolean critical) {
@@ -85,7 +85,7 @@ public class ThreadDiagnosable extends Thread {
 
 	public void onTimer(long now) {
 		for (var timeout : timeouts) {
-			if (timeout.timeoutTime > now) {
+			if (timeout.timeoutTime <= now) {
 				// 每个timeout仅触发一次.
 				if (timeouts.remove(timeout) != null)
 					diagnoseScheduler.execute(timeout);
@@ -94,7 +94,7 @@ public class ThreadDiagnosable extends Thread {
 		}
 	}
 
-	public class Timeout implements Closeable, Runnable {
+	public class Timeout implements Runnable, AutoCloseable {
 		private final long timeoutTime;
 
 		public Timeout(long timeout) {

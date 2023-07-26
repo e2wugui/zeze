@@ -17,12 +17,10 @@ public class TestThreadDiagnosable {
 		var executor = Executors.newSingleThreadExecutor(ThreadDiagnosable.newFactory("testExecutor"));
 		executor.execute(() -> {
 			try (var ignored = Task.createTimeout(500)) {
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					System.out.println("Interrupted!");
-					r.setResult(true);
-				}
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				System.out.println("Interrupted!");
+				r.setResult(true);
 			}
 		});
 

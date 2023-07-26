@@ -358,22 +358,19 @@ public final class Task {
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
 		var future = new TimerFuture<>();
 		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			future.lock();
 			try (var ignored = createTimeout(defaultTimeout)) {
 				if (future.isCancelled())
 					return;
-				var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-				try {
-					action.run();
-				} catch (Throwable e) { // logger.error
-					logger.error("schedule", e);
-				} finally {
-					//noinspection ConstantValue
-					if (PerfCounter.ENABLE_PERF && action != null)
-						PerfCounter.instance.addRunInfo(action.getClass(), System.nanoTime() - timeBegin);
-				}
+				action.run();
+			} catch (Throwable e) { // logger.error
+				logger.error("schedule", e);
 			} finally {
 				future.unlock();
+				//noinspection ConstantValue
+				if (PerfCounter.ENABLE_PERF && action != null)
+					PerfCounter.instance.addRunInfo(action.getClass(), System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, period, TimeUnit.MILLISECONDS));
 		return future;

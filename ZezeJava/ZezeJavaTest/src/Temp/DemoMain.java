@@ -5,19 +5,18 @@ import Zeze.Util.Task;
 import Zeze.Util.ThreadDiagnosable;
 
 public class DemoMain {
-	public static void main(String [] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		ThreadDiagnosable.startDiagnose(10);
 		var executor = Executors.newSingleThreadExecutor(ThreadDiagnosable.newFactory("testExecutor"));
 		executor.execute(() -> {
 			System.out.println(1);
 			try (var ignored = Task.createTimeout(1000)) {
-				try {
-					System.out.println(2);
-					Thread.sleep(2000);
-					System.out.println(3);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+				System.out.println(2);
+				Thread.sleep(2000);
+				System.out.println(3);
+			} catch (InterruptedException e) {
+				System.out.println("Interrupted!");
+				e.printStackTrace();
 			}
 			System.out.println(4);
 		});
