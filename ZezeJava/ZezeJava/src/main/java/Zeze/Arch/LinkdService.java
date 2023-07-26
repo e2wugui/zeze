@@ -162,13 +162,18 @@ public class LinkdService extends HandshakeServer {
 		return false;
 	}
 
-	public boolean choiceBindSend(AsyncSocket so, int moduleId, Dispatch dispatch) {
+	public boolean choiceBindSend(LinkdUserSession linkSession, AsyncSocket so, int moduleId, Dispatch dispatch) {
 		var provider = new OutLong();
 
 		var pms = linkdApp.linkdProvider.getProviderModuleState(moduleId);
 		if (null != pms && pms.configType == BModule.ConfigTypeDynamic) {
 			logger.warn("dynamic module do not need choice. moduleId={}, protocolType={}",
 					moduleId, dispatch.Argument.getProtocolType());
+			var curTime = System.currentTimeMillis();
+			if (curTime - linkSession.lastReportUnbindDynamicModuleTime >= 1000) {
+				linkSession.lastReportUnbindDynamicModuleTime = curTime;
+				new ReportError(new BReportError.Data(BReportError.FromDynamicModule, moduleId, null)).Send(so);
+			}
 			return true; // skip ...
 		}
 
@@ -200,7 +205,7 @@ public class LinkdService extends HandshakeServer {
 		var dispatch = createDispatch(linkSession, so, moduleId, protocolId, data);
 		if (findSend(linkSession, moduleId, dispatch))
 			return;
-		if (choiceBindSend(so, moduleId, dispatch))
+		if (choiceBindSend(linkSession, so, moduleId, dispatch))
 			return;
 		reportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
 				"no provider: " + moduleId + ", " + protocolId);

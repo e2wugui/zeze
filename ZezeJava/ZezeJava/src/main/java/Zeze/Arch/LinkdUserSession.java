@@ -21,6 +21,7 @@ public class LinkdUserSession {
 	protected IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
 	protected long sessionId; // Linkd.SessionId
 	protected long keepAliveTime = System.currentTimeMillis();
+	protected long lastReportUnbindDynamicModuleTime;
 	protected volatile boolean authed;
 
 	public LinkdUserSession(long sessionId) {

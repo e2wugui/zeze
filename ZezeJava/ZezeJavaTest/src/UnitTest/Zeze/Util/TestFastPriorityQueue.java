@@ -72,10 +72,11 @@ public class TestFastPriorityQueue {
 		fq.enqueue(node);
 		fq.remove(node);
 
+		Assert.assertEquals(testCount, fq.count());
 		for (int i = 0; i < testCount; i++)
 			Assert.assertEquals(i, fq.dequeue().value);
+		Assert.assertEquals(0, fq.count());
 
 		fq.clear();
-		Assert.assertEquals(0, fq.count());
 	}
 }
