@@ -30,7 +30,7 @@ public final class Task {
 		void run(Throwable ex, long result, Protocol<?> p, String actionName);
 	}
 
-	public volatile static long defaultTimeout = 60_000; // 1 minute
+	public volatile static long defaultTimeout = 300_000; // 5 minutes
 
 	static final Logger logger = LogManager.getLogger(Task.class);
 	private static ExecutorService threadPoolDefault;
@@ -106,6 +106,7 @@ public final class Task {
 		threadPoolDefault = pool;
 		threadPoolScheduled = scheduled;
 		threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
+		ThreadDiagnosable.startDiagnose(30_000);
 	}
 
 	public static synchronized boolean tryInitThreadPool(@Nullable Application app, @Nullable ExecutorService pool,
@@ -132,6 +133,7 @@ public final class Task {
 		} else
 			threadPoolScheduled = scheduled;
 		threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
+		ThreadDiagnosable.startDiagnose(30_000);
 		return true;
 	}
 
