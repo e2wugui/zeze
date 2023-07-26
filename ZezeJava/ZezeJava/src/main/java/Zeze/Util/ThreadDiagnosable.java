@@ -2,7 +2,6 @@ package Zeze.Util;
 
 import java.io.Closeable;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,7 +16,7 @@ public class ThreadDiagnosable extends Thread {
 
 	// 这个线程池子绝对不能饥饿，使用独立的。
 	private static ExecutorService diagnoseExecutor;
-	private final HashSet<Timeout> timeouts = new HashSet<>();
+	private final ConcurrentHashMap<Timeout, Timeout> timeouts = new ConcurrentHashMap<>();
 	private final ArrayList<Critical> criticalStack = new ArrayList<>();
 
 	private static final AtomicLong startSerial = new AtomicLong();
@@ -30,14 +29,16 @@ public class ThreadDiagnosable extends Thread {
 				diagnoseExecutor = Executors.newCachedThreadPool(new ThreadFactoryWithName("diagnoseExecutor"));
 			diagnoseExecutor.execute(() -> {
 				while (current == startSerial.get()) {
-					try {
-						Thread.sleep(period); // todo 可配置。
-						var now = System.currentTimeMillis();
-						for (var worker : workers.values()) {
-							worker.onTimer(now);
+					synchronized (workers) {
+						try {
+							Thread.sleep(period);
+							var now = System.currentTimeMillis();
+							for (var worker : workers.values()) {
+								worker.onTimer(now);
+							}
+						} catch (Throwable ex) {
+							logger.error("", ex);
 						}
-					} catch (Throwable ex) {
-						logger.error("", ex);
 					}
 				}
 			});
@@ -60,7 +61,7 @@ public class ThreadDiagnosable extends Thread {
 
 	public Timeout createTimeout(long timeout) {
 		var t = new Timeout(timeout);
-		timeouts.add(t);
+		timeouts.put(t, t);
 		return t;
 	}
 
@@ -84,7 +85,7 @@ public class ThreadDiagnosable extends Thread {
 		}
 	}
 	public void onTimer(long now) {
-		for (var timeout : timeouts) {
+		for (var timeout : timeouts.values()) {
 			if (timeout.timeoutTime > now) {
 				// 每个timeout仅触发一次.
 				timeouts.remove(timeout);
