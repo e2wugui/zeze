@@ -838,6 +838,7 @@ public class Timer extends AbstractTimer {
 
 			// continue period
 			long delay = simpleTimer.getNextExpectedTime() - System.currentTimeMillis();
+			cancelFuture(timerId);
 			scheduleSimple(timerSerialId, serverId, timerId, delay, concurrentSerialNo + 1);
 
 			return 0L;
@@ -971,6 +972,7 @@ public class Timer extends AbstractTimer {
 
 			// continue period
 			long delay = cronTimer.getNextExpectedTime() - System.currentTimeMillis();
+			cancelFuture(timerId);
 			scheduleCronNext(timerSerialId, serverId, timerId, delay, concurrentSerialNo + 1);
 			return 0L; // procedure done
 		}, "Timer.fireCron"))) {
