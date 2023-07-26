@@ -30,6 +30,8 @@ public final class Task {
 		void run(Throwable ex, long result, Protocol<?> p, String actionName);
 	}
 
+	public volatile static long defaultTimeout = 60_000; // 1 minute
+
 	static final Logger logger = LogManager.getLogger(Task.class);
 	private static ExecutorService threadPoolDefault;
 	private static ScheduledExecutorService threadPoolScheduled;
@@ -61,6 +63,8 @@ public final class Task {
 
 	// 固定数量的线程池, 普通优先级, 自动支持虚拟线程, 用于处理普通任务
 	public static @NotNull ExecutorService newFixedThreadPool(int threadCount, @NotNull String threadNamePrefix) {
+		return Executors.newFixedThreadPool(threadCount, ThreadDiagnosable.newFactory(threadNamePrefix));
+		/*
 		try {
 			//noinspection JavaReflectionMemberAccess
 			var r = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
@@ -71,10 +75,13 @@ public final class Task {
 		}
 
 		return Executors.newFixedThreadPool(threadCount, new ThreadFactoryWithName(threadNamePrefix));
+		*/
 	}
 
 	// 关键线程池, 普通优先级+1, 不使用虚拟线程, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
 	public static @NotNull ExecutorService newCriticalThreadPool(@NotNull String threadNamePrefix) {
+		return Executors.newCachedThreadPool(ThreadDiagnosable.newFactory(threadNamePrefix));
+		/*
 		return Executors.newCachedThreadPool(new ThreadFactoryWithName(threadNamePrefix) {
 			@Override
 			public Thread newThread(Runnable r) {
@@ -85,6 +92,7 @@ public final class Task {
 				return t;
 			}
 		});
+		*/
 	}
 
 	public static synchronized void initThreadPool(@NotNull ExecutorService pool,
@@ -116,7 +124,11 @@ public final class Task {
 			int workerThreads = app == null ? 8 : (app.getConfig().getScheduledThreads() > 0
 					? app.getConfig().getScheduledThreads() : Runtime.getRuntime().availableProcessors());
 			threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
+					ThreadDiagnosable.newFactory("ZezeScheduledPool"));
+			/*
+			threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
 					new ThreadFactoryWithName("ZezeScheduledPool"));
+			*/
 		} else
 			threadPoolScheduled = scheduled;
 		threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
@@ -213,7 +225,7 @@ public final class Task {
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try {
+			try (var ignored = createTimeout(defaultTimeout)){
 				action.run();
 			} catch (Throwable e) { // logger.error
 				//noinspection ConstantValue
@@ -253,7 +265,7 @@ public final class Task {
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
 				//noinspection ConstantValue
@@ -279,7 +291,7 @@ public final class Task {
 	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action) {
 		return threadPoolScheduled.schedule(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
 				logger.error("schedule", e);
@@ -294,7 +306,7 @@ public final class Task {
 	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func) {
 		return threadPoolScheduled.schedule(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				return func.call();
 			} catch (Throwable e) { // logger.error
 				logger.error("schedule", e);
@@ -351,7 +363,7 @@ public final class Task {
 		var future = new TimerFuture<>();
 		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			future.lock();
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				if (future.isCancelled())
 					return;
 				var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
@@ -542,7 +554,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				return call(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
@@ -574,7 +586,7 @@ public final class Task {
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				call(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
@@ -702,7 +714,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				return call(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -722,7 +734,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				return call(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -757,7 +769,7 @@ public final class Task {
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				call(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -774,7 +786,7 @@ public final class Task {
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				call(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -827,7 +839,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> { // rpcResponseThreadPool
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				return call(procedure);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -849,7 +861,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> { // rpcResponseThreadPool
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				return call(func, p);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", p != null ? p.getClass().getName() : null, e);
@@ -870,7 +882,7 @@ public final class Task {
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> { // rpcResponseThreadPool
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				call(procedure);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -890,7 +902,7 @@ public final class Task {
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> { // rpcResponseThreadPool
-			try {
+			try (var ignored = createTimeout(defaultTimeout)) {
 				call(func, p);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", p != null ? p.getClass().getName() : null, e);

@@ -117,6 +117,8 @@ public class ThreadDiagnosable extends Thread {
 		super(r);
 		this.setDaemon(true);
 		this.setName(executorName + "." + this.getId());
+		this.setPriority(Thread.NORM_PRIORITY + 2);
+		this.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));
 	}
 
 	@Override
