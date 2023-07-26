@@ -1,10 +1,10 @@
 package Zeze.Util;
 
-import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,11 +15,13 @@ public class ThreadDiagnosable extends Thread {
 	private static final AtomicLong currentSerial = new AtomicLong();
 
 	// 这个线程池子绝对不能饥饿，使用独立的。
-	private static final ScheduledExecutorService diagnoseScheduler = Executors.newSingleThreadScheduledExecutor(
-			new ThreadFactoryWithName("DiagnoseThread"));
+	private static final ScheduledExecutorService diagnoseScheduler
+			= Executors.newScheduledThreadPool(5, new ThreadFactoryWithName("DiagnoseThread"));
 
 	private final ConcurrentHashSet<Timeout> timeouts = new ConcurrentHashSet<>();
-	private final ArrayList<Critical> criticalStack = new ArrayList<>();
+
+	// 这个实现方式预计还需要修改。
+	private final AtomicInteger criticalCount = new AtomicInteger();
 
 	// 修改period，请重新调用。
 	public static void startDiagnose(long period) {
@@ -61,7 +63,7 @@ public class ThreadDiagnosable extends Thread {
 
 	public Critical enterCritical(boolean critical) {
 		var c = new Critical(critical);
-		criticalStack.add(c);
+		criticalCount.incrementAndGet();
 		return c;
 	}
 
@@ -79,7 +81,7 @@ public class ThreadDiagnosable extends Thread {
 		@Override
 		public void close() {
 			// leave critical
-			criticalStack.remove(criticalStack.size() - 1);
+			criticalCount.decrementAndGet();
 		}
 	}
 
