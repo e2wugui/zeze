@@ -123,6 +123,22 @@ public final class Task {
 		return true;
 	}
 
+	public static ThreadDiagnosable.Timeout createTimeout(long timeout) {
+		var thread = Thread.currentThread();
+		if (thread instanceof ThreadDiagnosable) {
+			return ((ThreadDiagnosable)thread).createTimeout(timeout);
+		}
+		return null;
+	}
+
+	public static ThreadDiagnosable.Critical enterCritical(boolean critical) {
+		var thread = Thread.currentThread();
+		if (thread instanceof ThreadDiagnosable) {
+			return ((ThreadDiagnosable)thread).enterCritical(critical);
+		}
+		return null;
+	}
+
 	public static void call(@NotNull Action0 action, @Nullable String name) {
 		var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 		try {
