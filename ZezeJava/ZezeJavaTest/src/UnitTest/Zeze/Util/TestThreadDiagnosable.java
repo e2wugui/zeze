@@ -29,6 +29,6 @@ public class TestThreadDiagnosable {
 
 		Assert.assertTrue(r.get());
 		executor.shutdown();
-		ThreadDiagnosable.stopDiagnose();
+		//ThreadDiagnosable.stopDiagnose(); // 诊断是全局的，没有处理好多次启动重启，为了不影响其他测试，不做停止。
 	}
 }
