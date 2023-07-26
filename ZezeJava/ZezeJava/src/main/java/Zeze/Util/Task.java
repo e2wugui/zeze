@@ -30,7 +30,7 @@ public final class Task {
 		void run(Throwable ex, long result, Protocol<?> p, String actionName);
 	}
 
-	public static volatile long defaultTimeout = 300_000; // 5 minutes
+	public volatile static long defaultTimeout = 120_000; // 2 minutes
 
 	static final Logger logger = LogManager.getLogger(Task.class);
 	private static ExecutorService threadPoolDefault;
