@@ -158,4 +158,8 @@ public class ThreadDiagnosable extends Thread {
 	public static ThreadFactory newFactory(String executorName, int priority) {
 		return new WorkerFactory(executorName, priority);
 	}
+
+	public static ThreadFactory newFactory(String executorName) {
+		return new WorkerFactory(executorName, Thread.NORM_PRIORITY);
+	}
 }

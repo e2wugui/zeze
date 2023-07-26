@@ -30,7 +30,7 @@ public final class Task {
 		void run(Throwable ex, long result, Protocol<?> p, String actionName);
 	}
 
-	public volatile static long defaultTimeout = 300_000; // 5 minutes
+	public static volatile long defaultTimeout = 300_000; // 5 minutes
 
 	static final Logger logger = LogManager.getLogger(Task.class);
 	private static ExecutorService threadPoolDefault;
@@ -63,8 +63,7 @@ public final class Task {
 
 	// 固定数量的线程池, 普通优先级, 自动支持虚拟线程, 用于处理普通任务
 	public static @NotNull ExecutorService newFixedThreadPool(int threadCount, @NotNull String threadNamePrefix) {
-		return Executors.newFixedThreadPool(threadCount,
-				ThreadDiagnosable.newFactory(threadNamePrefix, Thread.NORM_PRIORITY));
+		return Executors.newFixedThreadPool(threadCount, ThreadDiagnosable.newFactory(threadNamePrefix));
 		/*
 		try {
 			//noinspection JavaReflectionMemberAccess
@@ -126,7 +125,7 @@ public final class Task {
 			int workerThreads = app == null ? 8 : (app.getConfig().getScheduledThreads() > 0
 					? app.getConfig().getScheduledThreads() : Runtime.getRuntime().availableProcessors());
 			threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
-					ThreadDiagnosable.newFactory("ZezeScheduledPool", Thread.NORM_PRIORITY));
+					ThreadDiagnosable.newFactory("ZezeScheduledPool"));
 			/*
 			threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
 					new ThreadFactoryWithName("ZezeScheduledPool"));
