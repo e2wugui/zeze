@@ -568,10 +568,11 @@
 				<enum name="FromProvider"      value="1"/> code字段见BKick里定义的Error开头的枚举
 				<enum name="FromDynamicModule" value="2"/> code字段是moduleId
 
-				<enum name="CodeMuteKick"     value="0"/> 只断客户端连接，不发送消息给客户端，用于重连时确保旧的连接快速断开
-				<enum name="CodeNotAuthed"    value="1"/>
-				<enum name="CodeNoProvider"   value="2"/>
-				<enum name="CodeProviderBusy" value="3"/>
+				<enum name="CodeMuteKick"       value="0"/> 只断客户端连接，不发送消息给客户端，用于重连时确保旧的连接快速断开
+				<enum name="CodeNotAuthed"      value="1"/>
+				<enum name="CodeNoProvider"     value="2"/>
+				<enum name="CodeProviderBusy"   value="3"/>
+				<enum name="CodeProviderBroken" value="4"/> link跟provider断开,跟此provider静态绑定的客户端需要收到此协议执行重新登录流程
 
 				<variable id="1" name="from" type="int"/> FromLink, FromProvider, or FromDynamicModule
 				<variable id="2" name="code" type="int"/>

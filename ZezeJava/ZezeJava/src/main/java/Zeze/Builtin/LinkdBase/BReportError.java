@@ -15,6 +15,7 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     public static final int CodeNotAuthed = 1;
     public static final int CodeNoProvider = 2;
     public static final int CodeProviderBusy = 3;
+    public static final int CodeProviderBroken = 4; // link跟provider断开,跟此provider静态绑定的客户端需要收到此协议执行重新登录流程
 
     private int _from; // FromLink, FromProvider, or FromDynamicModule
     private int _code;
@@ -319,6 +320,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final int CodeNotAuthed = 1;
     public static final int CodeNoProvider = 2;
     public static final int CodeProviderBusy = 3;
+    public static final int CodeProviderBroken = 4; // link跟provider断开,跟此provider静态绑定的客户端需要收到此协议执行重新登录流程
 
     private int _from; // FromLink, FromProvider, or FromDynamicModule
     private int _code;

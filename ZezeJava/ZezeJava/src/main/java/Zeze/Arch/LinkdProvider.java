@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.Predicate;
 import Zeze.Builtin.LinkdBase.BReportError;
+import Zeze.Builtin.LinkdBase.ReportError;
 import Zeze.Builtin.Provider.AnnounceProviderInfo;
 import Zeze.Builtin.Provider.BBind;
 import Zeze.Builtin.Provider.BModule;
@@ -176,12 +177,19 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (linkSessionIds) {
 			for (var it = linkSessionIds.iterator(); it.moveToNext(); ) {
+				int moduleId = it.key();
+				var p = moduleId == Online.ModuleId || moduleId == Zeze.Game.Online.ModuleId
+						? new ReportError(new BReportError.Data(BReportError.FromLink, BReportError.CodeProviderBroken,
+						null)) : null;
 				for (var it2 = it.value().iterator(); it2.moveToNext(); ) {
 					var link = linkdApp.linkdService.GetSocket(it2.value());
 					if (link != null) {
 						var linkSession = (LinkdUserSession)link.getUserState();
-						if (linkSession != null)
-							linkSession.unbind(linkdApp.linkdProviderService, link, it.key(), provider, true);
+						if (linkSession != null) {
+							linkSession.unbind(linkdApp.linkdProviderService, link, moduleId, provider, true);
+							if (p != null)
+								p.Send(link);
+						}
 					}
 				}
 			}
