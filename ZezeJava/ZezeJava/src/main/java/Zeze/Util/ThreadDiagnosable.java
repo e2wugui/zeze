@@ -4,7 +4,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,7 +20,7 @@ public class ThreadDiagnosable extends Thread {
 	private final ConcurrentHashSet<Timeout> timeouts = new ConcurrentHashSet<>();
 
 	// 这个实现方式预计还需要修改。
-	private final AtomicInteger criticalCount = new AtomicInteger();
+	private boolean critical = true;
 
 	// 修改period，请重新调用。
 	public static void startDiagnose(long period) {
@@ -61,27 +60,23 @@ public class ThreadDiagnosable extends Thread {
 		return t;
 	}
 
-	public Critical enterCritical(boolean critical) {
-		var c = new Critical(critical);
-		criticalCount.incrementAndGet();
-		return c;
+	public Critical enterCritical(boolean c) {
+		var cry = new Critical(critical);
+		critical = c;
+		return cry;
 	}
 
 	public class Critical implements AutoCloseable {
-		private final boolean critical;
+		private final boolean saved;
 
-		public Critical(boolean critical) {
-			this.critical = critical;
-		}
-
-		public boolean isCritical() {
-			return critical;
+		public Critical(boolean current) {
+			this.saved = current;
 		}
 
 		@Override
 		public void close() {
-			// leave critical
-			criticalCount.decrementAndGet();
+			// restore
+			critical = saved;
 		}
 	}
 
