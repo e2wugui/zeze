@@ -720,8 +720,12 @@ public class Timer extends AbstractTimer {
 
 	private void scheduleSimple(long timerSerialId, int serverId, @NotNull String timerId, long delay, long concurrentSerialNo) {
 		Transaction.whileCommit(
-				() -> timersFuture.put(timerId, Task.scheduleUnsafe(delay,
-						() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false))));
+				() -> {
+					if (!timersFuture.containsKey(timerId)) {
+						timersFuture.put(timerId, Task.scheduleUnsafe(delay,
+								() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false)));
+					}
+				});
 	}
 
 	public static void initSimpleTimer(@NotNull BSimpleTimer simpleTimer,
@@ -859,8 +863,12 @@ public class Timer extends AbstractTimer {
 
 	private void scheduleCronNext(long timerSerialId, int serverId, @NotNull String timerName, long delay, long concurrentSerialNo) {
 		Transaction.whileCommit(
-				() -> timersFuture.put(timerName, Task.scheduleUnsafe(delay,
-						() -> fireCron(timerSerialId, serverId, timerName, concurrentSerialNo, false))));
+				() -> {
+					if (!timersFuture.containsKey(timerName)) {
+						timersFuture.put(timerName, Task.scheduleUnsafe(delay,
+								() -> fireCron(timerSerialId, serverId, timerName, concurrentSerialNo, false)));
+					}
+				});
 	}
 
 	public static long cronNextTime(@NotNull String cron, long time) throws ParseException {
