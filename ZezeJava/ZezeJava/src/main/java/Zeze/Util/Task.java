@@ -63,7 +63,8 @@ public final class Task {
 
 	// 固定数量的线程池, 普通优先级, 自动支持虚拟线程, 用于处理普通任务
 	public static @NotNull ExecutorService newFixedThreadPool(int threadCount, @NotNull String threadNamePrefix) {
-		return Executors.newFixedThreadPool(threadCount, ThreadDiagnosable.newFactory(threadNamePrefix));
+		return Executors.newFixedThreadPool(threadCount,
+				ThreadDiagnosable.newFactory(threadNamePrefix, Thread.NORM_PRIORITY));
 		/*
 		try {
 			//noinspection JavaReflectionMemberAccess
@@ -80,7 +81,7 @@ public final class Task {
 
 	// 关键线程池, 普通优先级+1, 不使用虚拟线程, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
 	public static @NotNull ExecutorService newCriticalThreadPool(@NotNull String threadNamePrefix) {
-		return Executors.newCachedThreadPool(ThreadDiagnosable.newFactory(threadNamePrefix));
+		return Executors.newCachedThreadPool(ThreadDiagnosable.newFactory(threadNamePrefix, Thread.NORM_PRIORITY + 2));
 		/*
 		return Executors.newCachedThreadPool(new ThreadFactoryWithName(threadNamePrefix) {
 			@Override
@@ -125,7 +126,7 @@ public final class Task {
 			int workerThreads = app == null ? 8 : (app.getConfig().getScheduledThreads() > 0
 					? app.getConfig().getScheduledThreads() : Runtime.getRuntime().availableProcessors());
 			threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
-					ThreadDiagnosable.newFactory("ZezeScheduledPool"));
+					ThreadDiagnosable.newFactory("ZezeScheduledPool", Thread.NORM_PRIORITY));
 			/*
 			threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
 					new ThreadFactoryWithName("ZezeScheduledPool"));
@@ -139,18 +140,12 @@ public final class Task {
 
 	public static ThreadDiagnosable.Timeout createTimeout(long timeout) {
 		var thread = Thread.currentThread();
-		if (thread instanceof ThreadDiagnosable) {
-			return ((ThreadDiagnosable)thread).createTimeout(timeout);
-		}
-		return null;
+		return thread instanceof ThreadDiagnosable ? ((ThreadDiagnosable)thread).createTimeout(timeout) : null;
 	}
 
 	public static ThreadDiagnosable.Critical enterCritical(boolean critical) {
 		var thread = Thread.currentThread();
-		if (thread instanceof ThreadDiagnosable) {
-			return ((ThreadDiagnosable)thread).enterCritical(critical);
-		}
-		return null;
+		return thread instanceof ThreadDiagnosable ? ((ThreadDiagnosable)thread).enterCritical(critical) : null;
 	}
 
 	public static void call(@NotNull Action0 action, @Nullable String name) {
@@ -227,7 +222,7 @@ public final class Task {
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var ignored = createTimeout(defaultTimeout)){
+			try (var ignored = createTimeout(defaultTimeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
 				//noinspection ConstantValue

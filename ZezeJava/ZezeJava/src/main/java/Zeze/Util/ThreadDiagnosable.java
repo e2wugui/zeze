@@ -2,66 +2,60 @@ package Zeze.Util;
 
 import java.io.Closeable;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class ThreadDiagnosable extends Thread {
 	private static final Logger logger = LogManager.getLogger(ThreadDiagnosable.class);
-	private static final ConcurrentHashMap<Long, ThreadDiagnosable> workers = new ConcurrentHashMap<>();
+	private static final ConcurrentHashSet<ThreadDiagnosable> workers = new ConcurrentHashSet<>();
+	private static final AtomicLong currentSerial = new AtomicLong();
 
 	// 这个线程池子绝对不能饥饿，使用独立的。
-	private static ExecutorService diagnoseExecutor;
-	private final ConcurrentHashMap<Timeout, Timeout> timeouts = new ConcurrentHashMap<>();
-	private final ArrayList<Critical> criticalStack = new ArrayList<>();
+	private static final ScheduledExecutorService diagnoseScheduler = Executors.newSingleThreadScheduledExecutor(
+			new ThreadFactoryWithName("DiagnoseThread"));
 
-	private static final AtomicLong startSerial = new AtomicLong();
+	private final ConcurrentHashSet<Timeout> timeouts = new ConcurrentHashSet<>();
+	private final ArrayList<Critical> criticalStack = new ArrayList<>();
 
 	// 修改period，请重新调用。
 	public static void startDiagnose(long period) {
-		var current = startSerial.incrementAndGet();
-		synchronized (workers) {
-			if (null == diagnoseExecutor)
-				diagnoseExecutor = Executors.newCachedThreadPool(new ThreadFactoryWithName("diagnoseExecutor"));
-			diagnoseExecutor.execute(() -> {
-				while (current == startSerial.get()) {
-					synchronized (workers) {
-						try {
-							Thread.sleep(period);
-							var now = System.currentTimeMillis();
-							for (var worker : workers.values()) {
-								worker.onTimer(now);
-							}
-						} catch (Throwable ex) {
-							logger.error("", ex);
-						}
-					}
+		var current = currentSerial.incrementAndGet();
+		diagnoseScheduler.schedule(new Runnable() {
+			@Override
+			public void run() {
+				if (current != currentSerial.get())
+					return;
+				try {
+					var now = System.currentTimeMillis();
+					for (var worker : workers)
+						worker.onTimer(now);
+				} catch (Throwable e) { // logger.error
+					logger.error("", e);
+				} finally {
+					diagnoseScheduler.schedule(this, period, TimeUnit.MILLISECONDS);
 				}
-			});
-		}
+			}
+		}, period, TimeUnit.MILLISECONDS);
 	}
 
 	// 停止诊断检测。
 	public static void stopDiagnose() {
-		synchronized (workers) {
-			startSerial.incrementAndGet(); // 让正在运行的诊断任务退出。
-			diagnoseExecutor.shutdown();
-			diagnoseExecutor = null;
-		}
+		currentSerial.incrementAndGet(); // 让正在运行的诊断任务退出。
 	}
 
 	void diagnose() {
-		ThreadDiagnosable.this.interrupt();
+		interrupt();
 		// todo more more ...
 	}
 
 	public Timeout createTimeout(long timeout) {
 		var t = new Timeout(timeout);
-		timeouts.put(t, t);
+		timeouts.add(t);
 		return t;
 	}
 
@@ -72,10 +66,14 @@ public class ThreadDiagnosable extends Thread {
 	}
 
 	public class Critical implements Closeable {
-		final boolean critical;
+		private final boolean critical;
 
 		public Critical(boolean critical) {
 			this.critical = critical;
+		}
+
+		public boolean isCritical() {
+			return critical;
 		}
 
 		@Override
@@ -84,21 +82,23 @@ public class ThreadDiagnosable extends Thread {
 			criticalStack.remove(criticalStack.size() - 1);
 		}
 	}
+
 	public void onTimer(long now) {
-		for (var timeout : timeouts.values()) {
+		for (var timeout : timeouts) {
 			if (timeout.timeoutTime > now) {
 				// 每个timeout仅触发一次.
-				timeouts.remove(timeout);
-				diagnoseExecutor.execute(timeout);
+				if (timeouts.remove(timeout) != null)
+					diagnoseScheduler.execute(timeout);
 				break; // 开始诊断,就不需要继续了. 【如果需要继续检查，要注意此时在遍历timeouts】。
 			}
 		}
 	}
 
 	public class Timeout implements Closeable, Runnable {
-		final long timeoutTime;
+		private final long timeoutTime;
+
 		public Timeout(long timeout) {
-			this.timeoutTime = System.currentTimeMillis() + timeout;
+			timeoutTime = System.currentTimeMillis() + timeout;
 		}
 
 		@Override
@@ -113,38 +113,41 @@ public class ThreadDiagnosable extends Thread {
 		}
 	}
 
-	private ThreadDiagnosable(String executorName, Runnable r) {
-		super(r);
-		this.setDaemon(true);
-		this.setName(executorName + "." + this.getId());
-		this.setPriority(Thread.NORM_PRIORITY + 2);
-		this.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));
+	private ThreadDiagnosable(String threadName, Runnable r, int priority) {
+		super(r, threadName);
+		setDaemon(true);
+		if (getPriority() != priority)
+			setPriority(priority);
+		setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));
 	}
 
 	@Override
 	public void run() {
-		workers.put(getId(), this);
+		workers.add(this);
 		try {
 			super.run();
-		} catch (Throwable ex) {
-			logger.error("", ex);
+		} catch (Throwable e) { // logger.error
+			logger.error("", e);
 		} finally {
-			workers.remove(getId());
+			workers.remove(this);
 		}
 	}
 
 	private static class WorkerFactory implements ThreadFactory {
-		private final String executorName;
+		private final String threadNamePrefix;
+		private final int priority;
+		private final AtomicLong threadNumber = new AtomicLong();
 
-		public WorkerFactory(String executorName) {
-			this.executorName = executorName;
+		public WorkerFactory(String executorName, int priority) {
+			threadNamePrefix = executorName + '-';
+			this.priority = priority;
 		}
 
 		@Override
 		public Thread newThread(Runnable r) {
-			return new ThreadDiagnosable(executorName, r);
+			return new ThreadDiagnosable(threadNamePrefix + threadNumber.incrementAndGet(), r, priority);
 		}
-	};
+	}
 
 	/**
 	 * 根据给定的名字创建线程工厂。这个工厂创建的线程都会以此名字为前缀命名。 一般用于 ThreadPoolExecutor。
@@ -152,7 +155,7 @@ public class ThreadDiagnosable extends Thread {
 	 * @param executorName executorName
 	 * @return ThreadFactory
 	 */
-	public static ThreadFactory newFactory(String executorName) {
-		return new WorkerFactory(executorName);
+	public static ThreadFactory newFactory(String executorName, int priority) {
+		return new WorkerFactory(executorName, priority);
 	}
 }

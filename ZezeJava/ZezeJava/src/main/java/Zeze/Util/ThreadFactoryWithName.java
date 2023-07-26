@@ -2,7 +2,7 @@ package Zeze.Util;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -11,7 +11,7 @@ public class ThreadFactoryWithName implements ThreadFactory {
 	private static final @Nullable Method unstartedMethod;
 	// private static final AtomicInteger poolNumber = new AtomicInteger(1);
 
-	protected final AtomicInteger threadNumber = new AtomicInteger(1);
+	protected final AtomicLong threadNumber = new AtomicLong();
 	protected final @NotNull String namePrefix;
 
 	static {
@@ -47,7 +47,7 @@ public class ThreadFactoryWithName implements ThreadFactory {
 				return null; // never run here
 			}
 		} else {
-			t = new Thread(null, r, namePrefix + threadNumber.getAndIncrement(), 0);
+			t = new Thread(r, namePrefix + threadNumber.incrementAndGet());
 			//if (t.isDaemon())
 			//    t.setDaemon(false);
 			t.setDaemon(true); // 先不考虑安全关闭，以后再调整。
