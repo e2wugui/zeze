@@ -17,6 +17,8 @@ public class ThreadDiagnosable extends Thread {
 	private static final ScheduledExecutorService diagnoseScheduler
 			= Executors.newScheduledThreadPool(5, new ThreadFactoryWithName("DiagnoseThread"));
 
+	public static volatile boolean disableInterrupt = Reflect.inDebugMode;
+
 	private final ConcurrentHashSet<Timeout> timeouts = new ConcurrentHashSet<>();
 
 	// 这个实现方式预计还需要修改。
@@ -49,7 +51,7 @@ public class ThreadDiagnosable extends Thread {
 	}
 
 	void diagnose() {
-		if (Reflect.inDebugMode)
+		if (disableInterrupt)
 			return;
 		logger.info("INTERRUPT thread '{}' for task timeout", getName());
 		interrupt();
