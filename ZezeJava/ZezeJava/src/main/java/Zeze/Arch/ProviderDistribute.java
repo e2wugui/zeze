@@ -119,7 +119,7 @@ public class ProviderDistribute {
 		return true;
 	}
 
-	public boolean choiceLoad(Agent.SubscribeState providers, OutLong provider) {
+	public boolean choiceLoad(Agent.SubscribeState providers, OutLong provider, int maxAppVersion) {
 		provider.value = 0L;
 
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
@@ -144,6 +144,9 @@ public class ProviderDistribute {
 
 			if (ps.load.getOverload() == BLoad.eOverload)
 				continue; // 忽略过载的服务器
+
+			if (ps.appVersion != maxAppVersion)
+				continue;
 
 			all.add(ps);
 
@@ -178,7 +181,7 @@ public class ProviderDistribute {
 	}
 
 	// 查找时增加索引，和喂饱时增加索引，需要原子化。提高并发以后慢慢想，这里应该足够快了。
-	public synchronized boolean choiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider) {
+	public synchronized boolean choiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider, int maxAppVersion) {
 		provider.value = 0L;
 
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
@@ -203,6 +206,9 @@ public class ProviderDistribute {
 
 			// 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
 			if (ps.load.getOnlineNew() > loadConfig.getMaxOnlineNew())
+				continue;
+
+			if (ps.appVersion != maxAppVersion)
 				continue;
 
 			provider.value = ps.getSessionId();

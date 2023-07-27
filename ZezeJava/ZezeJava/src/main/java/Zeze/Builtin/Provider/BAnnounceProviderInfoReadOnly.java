@@ -12,4 +12,5 @@ public interface BAnnounceProviderInfoReadOnly {
     String getServiceIndentity();
     String getProviderDirectIp();
     int getProviderDirectPort();
+    int getAppVersion();
 }

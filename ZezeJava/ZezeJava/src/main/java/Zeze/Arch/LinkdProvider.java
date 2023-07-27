@@ -3,6 +3,7 @@ package Zeze.Arch;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
@@ -44,6 +45,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	// 内部的Provider可以支持完全不同的solution，不过这个仅仅保留给未来扩展用，
 	// 不建议在一个项目里面使用多个Prefix。
 	private String serverServiceNamePrefix = "";
+	private final AtomicInteger maxAppVersion = new AtomicInteger();
 
 	protected FileOutputStream dumpFile;
 	protected AsyncSocket dumpSocket;
@@ -120,7 +122,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			break; // bind static later
 
 		case BModule.ChoiceTypeFeedFullOneByOne:
-			if (!distribute.choiceFeedFullOneByOne(providers, provider))
+			if (!distribute.choiceFeedFullOneByOne(providers, provider, maxAppVersion.get()))
 				return false;
 			break; // bind static later
 
@@ -133,7 +135,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			break; // bind static later
 
 		default:
-			if (!distribute.choiceLoad(providers, provider))
+			if (!distribute.choiceLoad(providers, provider, maxAppVersion.get()))
 				return false;
 			break; // bind static later
 		}
@@ -412,11 +414,22 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	@Override
 	protected long ProcessAnnounceProviderInfo(AnnounceProviderInfo protocol) {
 		var session = (LinkdProviderSession)protocol.getSender().getUserState();
-		session.setInfo(protocol.Argument);
+		session.setInfo(protocol.Argument); // 全部记住
+
+		// 下面再记录一份到其他需要的地方。这里有冗余。
 		serverServiceNamePrefix = protocol.Argument.getServiceNamePrefix();
 		session.serverLoadIp = protocol.Argument.getProviderDirectIp();
 		session.serverLoadPort = protocol.Argument.getProviderDirectPort();
+		session.appVersion = protocol.Argument.getAppVersion();
 		linkdApp.linkdProviderService.providerSessions.put(session.getServerLoadName(), session);
+
+		while (true) {
+			var current = maxAppVersion.get();
+			if (protocol.Argument.getAppVersion() > current) {
+				if (maxAppVersion.compareAndSet(current, protocol.Argument.getAppVersion()))
+					break;
+			}
+		}
 
 		return Procedure.Success;
 	}

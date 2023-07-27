@@ -138,8 +138,13 @@ public class ProviderService extends HandshakeClient {
 		super.OnHandshakeDone(so);
 		so.setUserState(newSession(so));
 
-		var announce = new AnnounceProviderInfo(new BAnnounceProviderInfo.Data(providerApp.serverServiceNamePrefix,
-				String.valueOf(getZeze().getConfig().getServerId()), providerApp.directIp, providerApp.directPort));
+		var announce = new AnnounceProviderInfo();
+		announce.Argument.setServiceNamePrefix(providerApp.serverServiceNamePrefix);
+		announce.Argument.setServiceIndentity(String.valueOf(getZeze().getConfig().getServerId()));
+		announce.Argument.setProviderDirectIp(providerApp.directIp);
+		announce.Argument.setProviderDirectPort(providerApp.directPort);
+		announce.Argument.setAppVersion(providerApp.zeze.getSchemas().getAppPublishVersion());
+
 		announce.Send(so);
 
 		// static binds
