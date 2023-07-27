@@ -267,7 +267,8 @@ public class Timer extends AbstractTimer {
 
 				scheduleSimple(index.getSerialId(), serverId, timerId,
 						simpleTimer.getExpectedTime() - System.currentTimeMillis(),
-						timer.getConcurrentFireSerialNo());
+						timer.getConcurrentFireSerialNo(),
+						false);
 				return timerId;
 			}
 			nodeId = nodeIdAutoKey.nextId();
@@ -451,7 +452,10 @@ public class Timer extends AbstractTimer {
 					timer.getCustomData().setBean(customData);
 				}
 
-				scheduleCron(index.getSerialId(), serverId, timerId, cronTimer, timer.getConcurrentFireSerialNo());
+				scheduleCron(index.getSerialId(), serverId,
+						timerId, cronTimer,
+						timer.getConcurrentFireSerialNo(),
+						false);
 				return timerId;
 			}
 			nodeId = nodeIdAutoKey.nextId();
@@ -731,10 +735,13 @@ public class Timer extends AbstractTimer {
 		_tIndexs.remove(timerName);
 	}
 
-	private void scheduleSimple(long timerSerialId, int serverId, @NotNull String timerId, long delay, long concurrentSerialNo) {
+	private void scheduleSimple(long timerSerialId, int serverId,
+								@NotNull String timerId, long delay,
+								long concurrentSerialNo,
+								boolean putIfAbsent) {
 		Transaction.whileCommit(
 				() -> {
-					if (!timersFuture.containsKey(timerId)) {
+					if (!putIfAbsent || !timersFuture.containsKey(timerId)) {
 						timersFuture.put(timerId, Task.scheduleUnsafe(delay,
 								() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false)));
 					}
@@ -853,8 +860,7 @@ public class Timer extends AbstractTimer {
 
 			// continue period
 			long delay = simpleTimer.getNextExpectedTime() - System.currentTimeMillis();
-			cancelFuture(timerId);
-			scheduleSimple(timerSerialId, serverId, timerId, delay, concurrentSerialNo + 1);
+			scheduleSimple(timerSerialId, serverId, timerId, delay, concurrentSerialNo + 1, false);
 
 			return 0L;
 		}, "Timer.fireSimple"))) {
@@ -866,21 +872,26 @@ public class Timer extends AbstractTimer {
 		return 0L;
 	}
 
-	private void scheduleCron(long timerSerialId, int serverId, @NotNull String timerName, @NotNull BCronTimer cron,
-							  long concurrentSerialNo) {
+	private void scheduleCron(long timerSerialId, int serverId,
+							  @NotNull String timerName, @NotNull BCronTimer cron,
+							  long concurrentSerialNo,
+							  boolean putIfAbsent) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext(timerSerialId, serverId, timerName, delay, concurrentSerialNo);
+			scheduleCronNext(timerSerialId, serverId, timerName, delay, concurrentSerialNo, putIfAbsent);
 		} catch (Exception ex) {
 			// 这个错误是在不好处理。先只记录日志吧。
 			logger.error("", ex);
 		}
 	}
 
-	private void scheduleCronNext(long timerSerialId, int serverId, @NotNull String timerName, long delay, long concurrentSerialNo) {
+	private void scheduleCronNext(long timerSerialId, int serverId,
+								  @NotNull String timerName, long delay,
+								  long concurrentSerialNo,
+								  boolean putIfAbsent) {
 		Transaction.whileCommit(
 				() -> {
-					if (!timersFuture.containsKey(timerName)) {
+					if (!putIfAbsent || !timersFuture.containsKey(timerName)) {
 						timersFuture.put(timerName, Task.scheduleUnsafe(delay,
 								() -> fireCron(timerSerialId, serverId, timerName, concurrentSerialNo, false)));
 					}
@@ -989,8 +1000,7 @@ public class Timer extends AbstractTimer {
 
 			// continue period
 			long delay = cronTimer.getNextExpectedTime() - System.currentTimeMillis();
-			cancelFuture(timerId);
-			scheduleCronNext(timerSerialId, serverId, timerId, delay, concurrentSerialNo + 1);
+			scheduleCronNext(timerSerialId, serverId, timerId, delay, concurrentSerialNo + 1, false);
 			return 0L; // procedure done
 		}, "Timer.fireCron"))) {
 			Task.call(zeze.newProcedure(() -> {
@@ -1086,7 +1096,14 @@ public class Timer extends AbstractTimer {
 			first.value = last; // 马上结束外面的循环。last仅用在这里。
 			return 0; // when root is empty。no node。skip error.
 		}
-		first.value = node.getNextNodeId(); // 设置下一个node。
+		// BUG 修复，如果fitst.value直接设置，在发生redo时，当前node会被跳过。
+		// 这是因为first是in&out的。另一个解决办法是，first改成只out，当前node用另一个值参数传入。
+		Transaction.whileCommit(() -> {
+			first.value = node.getNextNodeId(); // 设置下一个node。
+		});
+		Transaction.whileRollback(() -> {
+			first.value = node.getNextNodeId(); // 设置下一个node。
+		});
 
 		var now = System.currentTimeMillis();
 		for (var timer : node.getTimers().values()) {
@@ -1119,7 +1136,8 @@ public class Timer extends AbstractTimer {
 						index.getSerialId(),
 						serverId, timer.getTimerName(),
 						simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
-						timer.getConcurrentFireSerialNo());
+						timer.getConcurrentFireSerialNo(),
+						true);
 			} else {
 				var cronTimer = (BCronTimer)timer.getTimerObj().getBean();
 				if (cronTimer.getNextExpectedTime() < now) {
@@ -1143,7 +1161,9 @@ public class Timer extends AbstractTimer {
 				}
 				scheduleCron(
 						index.getSerialId(),
-						serverId, timer.getTimerName(), cronTimer, timer.getConcurrentFireSerialNo());
+						serverId, timer.getTimerName(), cronTimer,
+						timer.getConcurrentFireSerialNo(),
+						true);
 			}
 			if (serverId != zeze.getConfig().getServerId()) {
 				index.setServerId(serverId);
