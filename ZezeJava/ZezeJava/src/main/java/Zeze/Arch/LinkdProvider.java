@@ -176,7 +176,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 		// unbind LinkSession
 		var linkSessionIds = providerSession.getLinkSessionIds();
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (linkSessionIds) {
 			for (var it = linkSessionIds.iterator(); it.moveToNext(); ) {
 				int moduleId = it.key();
@@ -425,10 +424,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 		while (true) {
 			var current = maxAppVersion.get();
-			if (protocol.Argument.getAppVersion() > current) {
-				if (maxAppVersion.compareAndSet(current, protocol.Argument.getAppVersion()))
-					break;
-			}
+			if (protocol.Argument.getAppVersion() <= current
+					|| maxAppVersion.compareAndSet(current, protocol.Argument.getAppVersion()))
+				break;
 		}
 
 		return Procedure.Success;

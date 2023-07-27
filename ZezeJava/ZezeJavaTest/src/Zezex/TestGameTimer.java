@@ -147,7 +147,10 @@ public class TestGameTimer {
 			sleep(100, 11);
 			Assert.assertTrue(newNamedBean2.getTestValue() >= 10);
 			log("测试三通过");
-
+		} catch (Throwable e) {
+			//noinspection CallToPrintStackTrace
+			e.printStackTrace();
+			throw e;
 		} finally {
 			stopAll();
 		}
@@ -213,7 +216,10 @@ public class TestGameTimer {
 			login(client1, roleId);
 
 			sleep(100, 5);
-
+		} catch (Throwable e) {
+			//noinspection CallToPrintStackTrace
+			e.printStackTrace();
+			throw e;
 		} finally {
 			stopAll();
 		}

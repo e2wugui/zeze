@@ -49,6 +49,8 @@ public class ThreadDiagnosable extends Thread {
 	}
 
 	void diagnose() {
+		if (Reflect.inDebugMode)
+			return;
 		logger.info("INTERRUPT thread '{}' for task timeout", getName());
 		interrupt();
 		// todo more more ...
