@@ -5,7 +5,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Builtin.Provider.AnnounceProviderInfo;
-import Zeze.Builtin.Provider.BAnnounceProviderInfo;
 import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Subscribe;

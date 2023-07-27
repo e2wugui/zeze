@@ -235,10 +235,8 @@ public final class ServiceConf {
 			getHandshakeOptions().setDhGroups(new IntHashSet());
 			for (String dg : attr.split(",", -1)) {
 				String dgTmp = dg.strip();
-				if (dgTmp.length() == 0) {
-					continue;
-				}
-				getHandshakeOptions().addDhGroup(Integer.parseInt(dgTmp));
+				if (!dgTmp.isEmpty())
+					getHandshakeOptions().addDhGroup(Integer.parseInt(dgTmp));
 			}
 		}
 		attr = self.getAttribute("SecureIp");

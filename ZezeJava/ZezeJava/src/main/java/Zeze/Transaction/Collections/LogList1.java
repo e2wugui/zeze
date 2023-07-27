@@ -155,7 +155,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public final void merge(@NotNull LogList1<V> from) {
-		if (from.opLogs.size() > 0) {
+		if (!from.opLogs.isEmpty()) {
 			if (from.opLogs.get(0).op == OpLog.OP_CLEAR)
 				opLogs.clear();
 			opLogs.addAll(from.opLogs);

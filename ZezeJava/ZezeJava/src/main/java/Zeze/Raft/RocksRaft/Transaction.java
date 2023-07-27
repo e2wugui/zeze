@@ -27,7 +27,7 @@ public final class Transaction {
 	}
 
 	public static void destroy() {
-		threadLocal.set(null);
+		threadLocal.remove();
 	}
 
 	public static Transaction getCurrent() {

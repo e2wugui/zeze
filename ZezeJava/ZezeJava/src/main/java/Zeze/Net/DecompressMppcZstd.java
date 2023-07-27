@@ -17,7 +17,7 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 
 		@Override
 		public int read() {
-			return buffer.size() > 0 ? buffer.ReadByte() : -1;
+			return buffer.isEmpty() ? -1 : buffer.ReadByte() & 0xff;
 		}
 
 		@Override

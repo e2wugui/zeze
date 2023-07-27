@@ -46,7 +46,7 @@ public final class Ranges {
 
 	public Ranges(String str) {
 		for (String s : str.split(",", -1)) {
-			if (s.length() == 0)
+			if (s.isEmpty())
 				continue;
 			String[] pair = s.split("-", -1);
 			if (pair.length == 0)

@@ -469,7 +469,7 @@ public class LogSequence {
 		rafts.put(writeOptions, raftsNodeReadyKey, 0, raftsNodeReadyKey.length, value.Bytes, 0, value.WriteIndex);
 	}
 
-	public UniqueRequestState tryGetRequestState(Protocol<?> p) throws RocksDBException {
+	UniqueRequestState tryGetRequestState(Protocol<?> p) throws RocksDBException {
 		var raftRpc = (IRaftRpc)p;
 
 		var create = raftRpc.getCreateTime();
@@ -819,7 +819,7 @@ public class LogSequence {
 		return Paths.get(raft.getRaftConfig().getDbHome(), snapshotFileName).toString();
 	}
 
-	public void endReceiveInstallSnapshot(String path, InstallSnapshot r) throws Exception {
+	void endReceiveInstallSnapshot(String path, InstallSnapshot r) throws Exception {
 		logsAvailable = false; // cancel RemoveLogBefore
 		var removeLogBeforeFuture = this.removeLogBeforeFuture;
 		if (removeLogBeforeFuture != null)
@@ -1015,7 +1015,7 @@ public class LogSequence {
 		}
 	}
 
-	public void trySendAppendEntries(Server.ConnectorEx connector, AppendEntries pending) throws Exception {
+	void trySendAppendEntries(Server.ConnectorEx connector, AppendEntries pending) throws Exception {
 		// Pending 处理必须完成。
 		connector.setAppendLogActiveTime(System.currentTimeMillis());
 		if (connector.getPending() != pending)
@@ -1109,7 +1109,7 @@ public class LogSequence {
 		}
 	}
 
-	public long followerOnAppendEntries(AppendEntries r) throws Exception {
+	long followerOnAppendEntries(AppendEntries r) throws Exception {
 		setLeaderActiveTime(System.currentTimeMillis());
 		r.Result.setTerm(term); // maybe rewrite later
 		r.Result.setSuccess(false); // set default false

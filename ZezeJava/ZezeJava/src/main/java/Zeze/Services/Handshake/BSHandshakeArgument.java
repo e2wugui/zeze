@@ -16,7 +16,7 @@ public final class BSHandshakeArgument extends Bean {
 		compressC2s = bb.ReadInt();
 
 		// 兼容旧版
-		if (bb.size() > 0)
+		if (!bb.isEmpty())
 			encryptType = bb.ReadInt();
 		else
 			encryptType = encryptParam.length != 0 ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable;

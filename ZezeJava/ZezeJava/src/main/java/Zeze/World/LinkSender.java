@@ -3,7 +3,6 @@ package Zeze.World;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Map;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.World.Command;
 import Zeze.Net.Binary;
@@ -53,7 +52,7 @@ public class LinkSender implements ILinkSender {
 				linkName, send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids()));
 	}
 
-	private long triggerLinkBroken(String linkName, LongList errorSids) {
+	private static long triggerLinkBroken(String linkName, LongList errorSids) {
 		if (!errorSids.isEmpty())
 			logger.warn("{} errorSids={}", linkName, errorSids);
 		return 0;

@@ -156,7 +156,7 @@ public final class OutputBuffer implements Codec, Closeable {
 			}
 		}
 		if (r > 0)
-			size -= r;
+			size -= (int)r;
 		return r;
 	}
 

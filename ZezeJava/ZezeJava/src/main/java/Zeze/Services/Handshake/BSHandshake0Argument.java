@@ -31,7 +31,7 @@ public class BSHandshake0Argument extends Bean {
 		supportedCompressList.clear();
 
 		// 兼容旧版
-		if (bb.size() > 0) {
+		if (!bb.isEmpty()) {
 			for (int count = bb.ReadInt(); count > 0; --count)
 				supportedEncryptList.add(bb.ReadInt());
 			compressS2c = bb.ReadInt();

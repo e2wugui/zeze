@@ -153,6 +153,7 @@ public final class GenModule {
 						try (var fos = new FileOutputStream(file)) {
 							fos.write(newBytes);
 						} catch (IOException e) {
+							//noinspection CallToPrintStackTrace
 							e.printStackTrace();
 						}
 					}
@@ -246,7 +247,7 @@ public final class GenModule {
 				sb.appendLine("{}_a_.setHashCode({});", prefix, m.hashOrServerIdParameter.getName());
 				sb.appendLine("{}_a_.setMethodFullName(\"{}:{}\");", prefix, moduleFullName, m.method.getName());
 				sb.appendLine("{}_a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);", prefix);
-				if (m.inputParameters.size() > 0) {
+				if (!m.inputParameters.isEmpty()) {
 					sb.appendLine("{}var _b_ = Zeze.Serialize.ByteBuffer.Allocate();", prefix);
 					Gen.instance.genEncode(sb, prefix, "_b_", m.inputParameters);
 					sb.appendLine("{}_a_.setParams(new Zeze.Net.Binary(_b_));", prefix);
@@ -424,7 +425,7 @@ public final class GenModule {
 		sb.appendLine("        _a_.setMethodFullName(\"{}:{}\");", moduleFullName, m.method.getName());
 		sb.appendLine("        _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);");
 		sb.appendLine("        _a_.setSessionId(_redirect_.providerApp.providerDirectService.addManualContextWithTimeout(_c_, {}));", ((RedirectAll)m.annotation).timeout());
-		if (m.inputParameters.size() > 0) {
+		if (!m.inputParameters.isEmpty()) {
 			sb.appendLine("        var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
 			Gen.instance.genEncode(sb, "        ", "_b_", m.inputParameters);
 			sb.appendLine("        _a_.setParams(new Zeze.Net.Binary(_b_));");

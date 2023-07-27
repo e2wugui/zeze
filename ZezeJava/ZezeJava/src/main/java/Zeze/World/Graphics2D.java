@@ -175,6 +175,7 @@ public class Graphics2D {
 		return !approximately(crossC, crossD);
 	}
 
+	@SuppressWarnings("SuspiciousNameCombination")
 	public static void bresenham2d(int x0, int y0, int x1, int y1, Action2dInt plot) {
 		var swapXY = Math.abs( y1 - y0 ) > Math.abs( x1 - x0 );
 		if ( swapXY ) {

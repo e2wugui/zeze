@@ -90,7 +90,7 @@ public class ThreadingServer extends AbstractThreadingServer {
             return mutexes.computeIfAbsent(name, (k) -> new ReentrantLock());
         }
 
-        public SemaphoreAcquired getSemaphore(String name) {
+        SemaphoreAcquired getSemaphore(String name) {
             // ref cache
             var semaphoreAcq = semaphoreRefs.get(name);
             if (null != semaphoreAcq)

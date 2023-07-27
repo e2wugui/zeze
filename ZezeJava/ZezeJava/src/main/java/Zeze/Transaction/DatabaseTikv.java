@@ -51,7 +51,7 @@ public class DatabaseTikv extends Database {
 	}
 
 	@Override
-	public TikvTable openTable(String name) {
+	public AbstractKVTable openTable(String name) {
 		return new TikvTable(name);
 	}
 

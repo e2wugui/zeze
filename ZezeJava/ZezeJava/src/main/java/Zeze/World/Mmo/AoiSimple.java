@@ -93,7 +93,7 @@ public class AoiSimple implements IAoi {
 		}
 	}
 
-	protected void update(Entity self, BMove.Data move, Cube cube, Cube newCube) {
+	protected static void update(Entity self, BMove.Data move, Cube cube, Cube newCube) {
 		self.getBean().setMoving(move);
 		if (cube != newCube) {
 			var entity = cube.objects.remove(self.getId());
@@ -123,7 +123,7 @@ public class AoiSimple implements IAoi {
 
 		// todo 先最大化锁住所有cube，保证可用。
 		//  一次锁住较少的cube的方案需要验证是否可行，备注-微信群里有点分析。
-		var dp = (int)cube.index.distancePerpendicular(newIndex);
+		var dp = cube.index.distancePerpendicular(newIndex);
 		switch (dp) {
 		case 0:
 			var cubes = map.center(cube.index, rangeX, rangeY, rangeZ);

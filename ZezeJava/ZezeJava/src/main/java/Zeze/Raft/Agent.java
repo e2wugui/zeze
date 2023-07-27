@@ -359,7 +359,7 @@ public final class Agent {
 
 	public void cancelPending() {
 		// 不包括UrgentPending
-		if (pending.size() == 0)
+		if (pending.isEmpty())
 			return;
 
 		var removed = new ArrayList<RaftRpc<?, ?>>();

@@ -263,8 +263,8 @@ public final class Test {
 				SimpleAssert.isTrue(null != r);
 				SimpleAssert.isNull(r.getPutValue());
 				SimpleAssert.areEqual(Changes.Record.Remove, r.getState());
-				SimpleAssert.isTrue(r.getLogBeans().size() == 1);
-				SimpleAssert.isTrue(r.getLogBean().size() == 0);
+				SimpleAssert.areEqual(1, r.getLogBeans().size());
+				SimpleAssert.areEqual(0, r.getLogBean().size());
 			});
 			return 0L;
 		}).call();

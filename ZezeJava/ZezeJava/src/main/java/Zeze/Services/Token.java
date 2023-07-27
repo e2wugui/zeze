@@ -413,6 +413,7 @@ public final class Token extends AbstractToken {
 
 	public static void main(String[] args) throws Exception {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+			//noinspection CallToPrintStackTrace
 			e.printStackTrace();
 			logger.error("uncaught exception in {}:", t, e);
 		});

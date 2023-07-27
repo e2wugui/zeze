@@ -30,7 +30,8 @@ public final class Task {
 		void run(Throwable ex, long result, Protocol<?> p, String actionName);
 	}
 
-	public volatile static long defaultTimeout = 120_000; // 2 minutes
+	@SuppressWarnings("CanBeFinal")
+	public static volatile long defaultTimeout = 120_000; // 2 minutes
 
 	static final Logger logger = LogManager.getLogger(Task.class);
 	private static ExecutorService threadPoolDefault;

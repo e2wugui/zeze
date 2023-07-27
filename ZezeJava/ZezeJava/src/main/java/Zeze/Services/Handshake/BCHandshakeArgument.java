@@ -16,7 +16,7 @@ public final class BCHandshakeArgument extends Bean {
 		encryptParam = bb.ReadBytes();
 
 		// 兼容旧版
-		if (bb.size() > 0) {
+		if (!bb.isEmpty()) {
 			compressS2c = bb.ReadInt();
 			compressC2s = bb.ReadInt();
 		} else {

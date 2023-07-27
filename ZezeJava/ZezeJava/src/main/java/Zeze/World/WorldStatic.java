@@ -1,7 +1,6 @@
 package Zeze.World;
 
 import Zeze.Arch.ProviderUserSession;
-import Zeze.Serialize.Vector3;
 
 public class WorldStatic extends AbstractWorldStatic {
     public final World world;

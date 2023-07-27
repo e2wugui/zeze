@@ -1082,6 +1082,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 	public static void main(String[] args) throws Exception {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+			//noinspection CallToPrintStackTrace
 			e.printStackTrace();
 			logger.error("uncaught exception in {}:", t, e);
 		});

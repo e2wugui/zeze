@@ -2,8 +2,6 @@ package Zeze.World;
 
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.World.Static.BSwitchWorld;
-import Zeze.Dbh2.BenchServer;
-import Zeze.Serialize.Vector3;
 
 /**
  * 地图实例管理接口。

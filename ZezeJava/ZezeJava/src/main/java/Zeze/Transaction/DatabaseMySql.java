@@ -153,9 +153,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		@Override
 		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
-			if (key.size() == 0) {
+			if (key.isEmpty())
 				throw new IllegalArgumentException("key is empty.");
-			}
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);

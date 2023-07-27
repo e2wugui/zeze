@@ -29,7 +29,7 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 		return hashResults;
 	}
 
-	public RedirectAllFutureImpl<R> getFuture() {
+	public RedirectAllFuture<R> getFuture() {
 		return future;
 	}
 

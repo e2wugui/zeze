@@ -1036,7 +1036,7 @@ public final class Config {
 			if (!attr.isBlank())
 				setCacheMaxLruInitialCapacity(Integer.parseInt(attr));
 
-			if (getName().length() > 0) {
+			if (!getName().isEmpty()) {
 				if (conf.getTableConfMap().putIfAbsent(getName(), this) != null)
 					throw new IllegalStateException("Duplicate Table '" + getName() + "'");
 			} else if (conf.getDefaultTableConf() == null)

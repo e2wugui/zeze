@@ -164,7 +164,7 @@ public class RedirectBase {
 		}
 
 		// 没有转发成功的provider的hash分组，马上报告结果。
-		if (miss.Argument.getHashs().size() > 0) {
+		if (!miss.Argument.getHashs().isEmpty()) {
 			miss.Argument.setModuleId(req.Argument.getModuleId());
 			miss.Argument.setMethodFullName(req.Argument.getMethodFullName());
 			miss.Argument.setSourceProvider(req.Argument.getSourceProvider()); // not used

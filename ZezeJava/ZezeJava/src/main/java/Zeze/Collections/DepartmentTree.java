@@ -295,7 +295,7 @@ public class DepartmentTree<
 		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
 		if (null == department)
 			return module.errorCode(Module.ErrorDepartmentNotExist);
-		if (!recursive && department.getChilds().size() > 0)
+		if (!recursive && !department.getChilds().isEmpty())
 			return module.errorCode(Module.ErrorDeleteDepartmentRemainChilds);
 		for (var child : department.getChilds().values()) {
 			deleteDepartment(child, true);

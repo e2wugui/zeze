@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Properties;
 import Zeze.Util.StringSpan;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -378,8 +379,8 @@ public class Mimes {
 			var file = new File("mimes.properties");
 			if (file.exists())
 				load(new FileReader(file, StandardCharsets.UTF_8));
-		} catch (IOException skip) {
-			skip.printStackTrace();
+		} catch (IOException e) {
+			Task.forceThrow(e);
 		}
 	}
 

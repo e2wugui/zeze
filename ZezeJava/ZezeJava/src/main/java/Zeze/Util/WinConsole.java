@@ -46,6 +46,7 @@ public final class WinConsole {
 				try {
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
+					//noinspection CallToPrintStackTrace
 					e.printStackTrace();
 				}
 				System.out.println("shutdown hook sleep end");

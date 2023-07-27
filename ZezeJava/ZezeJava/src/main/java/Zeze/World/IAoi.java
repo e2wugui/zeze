@@ -4,7 +4,6 @@ import java.io.IOException;
 import Zeze.Builtin.World.BMove;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.Vector3;
 import Zeze.Transaction.Data;
 
 /**
@@ -17,7 +16,6 @@ public interface IAoi {
 	/**
 	 * 进入aoi。
 	 * @param entity entity
-	 * @throws IOException
 	 * @return error code, 0 success.
 	 */
 	long enter(Entity entity) throws IOException;

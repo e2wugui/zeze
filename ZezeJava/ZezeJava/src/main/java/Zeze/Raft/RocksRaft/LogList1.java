@@ -12,7 +12,7 @@ public class LogList1<V> extends LogList<V> {
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
 
-	static final class OpLog<V> {
+	protected static final class OpLog<V> {
 		static final int OP_MODIFY = 0;
 		static final int OP_ADD = 1;
 		static final int OP_REMOVE = 2;
@@ -44,7 +44,7 @@ public class LogList1<V> extends LogList<V> {
 		this.valueCodecFuncs = valueCodecFuncs;
 	}
 
-	public final ArrayList<OpLog<V>> getOpLogs() {
+	protected final ArrayList<OpLog<V>> getOpLogs() {
 		return opLogs;
 	}
 
@@ -142,7 +142,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public final void merge(LogList1<V> from) {
-		if (from.opLogs.size() > 0) {
+		if (!from.opLogs.isEmpty()) {
 			if (from.opLogs.get(0).op == OpLog.OP_CLEAR)
 				opLogs.clear();
 			opLogs.addAll(from.opLogs);

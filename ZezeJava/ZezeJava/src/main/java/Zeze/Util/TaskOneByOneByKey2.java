@@ -26,7 +26,7 @@ public final class TaskOneByOneByKey2 {
 		try {
 			vhSubmitted = MethodHandles.lookup().findVarHandle(TaskOneByOne.class, "submitted", boolean.class);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
+			Zeze.Util.Task.forceThrow(e);
 			throw new AssertionError(); // never run here
 		}
 	}
@@ -76,7 +76,7 @@ public final class TaskOneByOneByKey2 {
 			try {
 				vhCount = MethodHandles.lookup().findVarHandle(Barrier.class, "count", int.class);
 			} catch (ReflectiveOperationException e) {
-				Task.forceThrow(e);
+				Zeze.Util.Task.forceThrow(e);
 				throw new AssertionError(); // never run here
 			}
 		}
@@ -387,57 +387,57 @@ public final class TaskOneByOneByKey2 {
 				: Zeze.Util.Task.getThreadPool());
 	}
 
+	static abstract class Task {
+		final @NotNull String name;
+		final @Nullable DispatchMode mode;
+
+		Task(@NotNull String name, @Nullable DispatchMode mode) {
+			this.name = name;
+			this.mode = mode;
+		}
+
+		abstract boolean process();
+	}
+
+	static final class TaskAction extends Task {
+		private final @NotNull Action0 action;
+
+		TaskAction(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
+			super(name != null ? name : action.getClass().getName(), mode);
+			this.action = action;
+		}
+
+		@Override
+		boolean process() {
+			try {
+				action.run();
+			} catch (Throwable e) { // logger.error
+				logger.error("TaskAction run exception: {}", name, e);
+			}
+			return true;
+		}
+	}
+
+	static final class TaskFunc extends Task {
+		private final @NotNull Func0<?> func;
+
+		TaskFunc(@NotNull Func0<?> func, @Nullable String name, @Nullable DispatchMode mode) {
+			super(name != null ? name : func.getClass().getName(), mode);
+			this.func = func;
+		}
+
+		@Override
+		boolean process() {
+			try {
+				func.call();
+			} catch (Throwable e) { // logger.error
+				logger.error("TaskFunc run exception: {}", name, e);
+			}
+			return true;
+		}
+	}
+
 	final class TaskOneByOne implements Runnable {
-		abstract class Task {
-			final @NotNull String name;
-			final @Nullable DispatchMode mode;
-
-			Task(@NotNull String name, @Nullable DispatchMode mode) {
-				this.name = name;
-				this.mode = mode;
-			}
-
-			abstract boolean process();
-		}
-
-		final class TaskAction extends Task {
-			private final @NotNull Action0 action;
-
-			TaskAction(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
-				super(name != null ? name : action.getClass().getName(), mode);
-				this.action = action;
-			}
-
-			@Override
-			boolean process() {
-				try {
-					action.run();
-				} catch (Throwable e) { // logger.error
-					logger.error("TaskAction run exception: {}", name, e);
-				}
-				return true;
-			}
-		}
-
-		final class TaskFunc extends Task {
-			private final @NotNull Func0<?> func;
-
-			TaskFunc(@NotNull Func0<?> func, @Nullable String name, @Nullable DispatchMode mode) {
-				super(name != null ? name : func.getClass().getName(), mode);
-				this.func = func;
-			}
-
-			@Override
-			boolean process() {
-				try {
-					func.call();
-				} catch (Throwable e) { // logger.error
-					logger.error("TaskFunc run exception: {}", name, e);
-				}
-				return true;
-			}
-		}
-
 		final class TaskBarrierProcedure extends Task {
 			private final @NotNull BarrierProcedure barrier;
 			private final int sum;

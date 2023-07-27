@@ -1234,7 +1234,7 @@ public class Online extends AbstractOnline {
 			transmit.Send(socket);
 		}
 		assert groupLocal != null;
-		if (groupLocal.accounts.size() > 0)
+		if (!groupLocal.accounts.isEmpty())
 			processTransmit(account, clientId, actionName, groupLocal.accounts, parameter);
 	}
 

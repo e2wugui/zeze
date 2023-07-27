@@ -191,7 +191,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		}
 
 		// send remain
-		if (resArg.getHashs().size() > 0)
+		if (!resArg.getHashs().isEmpty())
 			sendResult(p.getSender(), res);
 		return Procedure.Success;
 	}
