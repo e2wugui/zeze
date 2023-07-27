@@ -42,7 +42,17 @@ c) 热更最根本的操作是生成Module的新实例，并发布，即更新�
 d) HotReadWriteLock 所有的线程执行的时候加读锁，热更的时候加写锁。进程内热更需要加锁的主要是发布引用，很快，其他步骤不需要的尽量锁外执行。
 这个锁内多个Module一起热更，所以顺便解决了上面热更顺序问题。
 e) App的Module构造|初始化|Start顺序定义继续保留，是否需要修订？列出这个，备注一下。
-f) 所有服务器为单位原子的热更。上面第一个问题。可以实现，能不能用就看实际疗效了。
+f) 所有服务器为单位进行原子的热更。上面第一个问题，避免新旧版本同时运行就可以实现了，能不能用就看实际疗效了。
+g) AppVersion更新；自动打包工具；自动检测需要更新的模块，可行？
+h) 原则：模块引用不能保存；模块直接保留Table的引用不能保存；模块暴露的所有引用？数据对象(如Bean)允许保存下来？
+
+var A = new ClassLoaderA();
+var data = A.class.instance.getData();
+A = new ClassLoaderA(); // A 被替换
+var data2 = A.class.instance.getData();
+
+data = data2; // data 被替换，旧的data引用垃圾回收？
+// 所有旧ClassLoaderA相关的实例都回收了，ClassLoaderA的旧引用会怎样？
 
 技术笔记：
 OSGi ClassLoader 将按照下面的顺序进行类搜索：
@@ -53,7 +63,7 @@ OSGi ClassLoader 将按照下面的顺序进行类搜索：
 5）否则，查找类是否在自己的Fragment Bundle中，如果在，则委派给Fragment Bundle的类加载器加载。
 6）否则，查找Dynamic Import列表的Bundle，委派给对应Bundle的类加载器加载。
 7）否则，类查找失败。
-【选择】OSGi 特性是很多的，大砍特砍，仅保留热更。
+【选择】OSGi 特性是很多的，大砍特砍，仅保留热更发布。
 【选择】模块多版本同时存在需求考虑一下。目前判断是不可行。
 
 4. Arch.Linkd.ChoiceProvider 机制上花招。
