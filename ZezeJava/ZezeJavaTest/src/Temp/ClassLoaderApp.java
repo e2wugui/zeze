@@ -15,10 +15,14 @@ public class ClassLoaderApp {
 		// 新旧代码双向是否都能合理的使用。
 
 		ClassLoaderApp.instance = new ClassLoaderApp();
-		ClassLoaderApp.instance.a.callB();
+		var a = (IModuleA)ClassLoaderApp.instance.aLoader.loadClass("Temp.ModuleA").getConstructor(int.class).newInstance(1);
+		a.callB(ClassLoaderApp.instance.aLoader);
+		a.callB(ClassLoaderApp.instance.bLoader);
 
+		/*
 		ClassLoaderApp.instance.hotUpdate("Temp.ModuleB", 2);
 		ClassLoaderApp.instance.a.callB();
+		*/
 
 		ClassLoaderApp.instance = null;
 		System.gc();
@@ -32,8 +36,8 @@ public class ClassLoaderApp {
 		aLoader = new ModuleClassLoader(classpath, "Temp.ModuleA");
 		bLoader = new ModuleClassLoader(classpath, "Temp.ModuleB");
 
-		a = (ModuleA)aLoader.findClass("Temp.ModuleA").getConstructor(int.class).newInstance(1);
-		b = (ModuleB)bLoader.findClass("Temp.ModuleB").getConstructor(int.class).newInstance(1);
+//		a = (ModuleA)aLoader.loadClass("Temp.ModuleA").getConstructor(int.class).newInstance(1);
+//		b = (ModuleB)bLoader.loadClass("Temp.ModuleB").getConstructor(int.class).newInstance(1);
 	}
 
 	public void hotUpdate(String moduleName, int version) throws Exception {
@@ -41,21 +45,21 @@ public class ClassLoaderApp {
 
 		if (moduleName.equals("Temp.ModuleA")) {
 			aLoader = new ModuleClassLoader(classpath, "Temp.ModuleA");
-			a = (ModuleA)aLoader.findClass("Temp.ModuleA").getConstructor(int.class).newInstance(version);
+			a = (ModuleA)aLoader.loadClass("Temp.ModuleA").getConstructor(int.class).newInstance(version);
 
 			return;
 		}
 
 		if (moduleName.equals("Temp.ModuleB")) {
 			bLoader = new ModuleClassLoader(classpath, "Temp.ModuleB");
-			b = (ModuleB)bLoader.findClass("Temp.ModuleB").getConstructor(int.class).newInstance(version);
+			b = (ModuleB)bLoader.loadClass("Temp.ModuleB").getConstructor(int.class).newInstance(version);
 		}
 	}
 
 	public ModuleClassLoader aLoader;
 	public ModuleClassLoader bLoader;
 
-	static class ModuleClassLoader extends ClassLoader {
+	public static class ModuleClassLoader extends ClassLoader {
 		private final String classpath;
 		private final String moduleName;
 
@@ -65,20 +69,27 @@ public class ClassLoaderApp {
 		}
 
 		@Override
-		protected Class<?> findClass(String name) throws ClassNotFoundException {
-			var file = getClassFile(name);
-			System.out.println(file);
-			try {
-				byte[] classBytes = Files.readAllBytes(Path.of(file));
-				var define = defineClass(name, classBytes, 0, classBytes.length);
-				if (null != define) {
-					System.out.println("load success. " + name);
-					return define;
+		public Class<?> loadClass(String name) throws ClassNotFoundException {
+			if (name.startsWith("Temp.")) {
+
+				if (name.endsWith("ModuleClassLoader") || name.endsWith(".IModuleA")) {
+					System.out.println("super.loadClass " + name + "@" + this);
+					return super.loadClass(name);
 				}
-			} catch (IOException e) {
-				throw new RuntimeException(e);
+				var file = getClassFile(name);
+				System.out.println("try load " + file);
+				try {
+					byte[] classBytes = Files.readAllBytes(Path.of(file));
+					var define = defineClass(name, classBytes, 0, classBytes.length);
+					if (null != define) {
+						System.out.println("load success. " + name);
+						return define;
+					}
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
 			}
-			return super.findClass(name);
+			return super.loadClass(name);
 		}
 
 		private String getClassFile(String name) {
