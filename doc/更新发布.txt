@@ -98,6 +98,7 @@ public class HotClassLoader extends ClassLoader {
 	// 目录管理规则（TODO，这个规则是一个限制，但能自动化，是否需要更自由配置方式？）：
 	// 1. 目录是一个模块目录时，开启一个新的热更单位；
 	// 2. 目录不是模块目录时，它就属于往上级目录方向的最近的热更模块。
+	prvate final HotManager manager;
 
 	public HotClassLoader() {
 	}
@@ -108,6 +109,15 @@ public class HotClassLoader extends ClassLoader {
 
 	@Override
 	public Class<?> loadClass(String className) {
+		// osgi 横向查找ClassLoader思路。
+		// 下面这个写法是纯动态。效率不高。
+		var hot = manager.find(className);
+		if (null != hot) // maybe self
+			return hot.doLoadClass(className);
+		return super.loadClass(className);
+	}
+
+	public Class<?> doLoadClass(String className) {
 		// 优先匹配长的名字。是否有更优算法？
 		// 子目录肯定都在namespace中，精确判断需要这样吧？
 		for (var path : paths) {
