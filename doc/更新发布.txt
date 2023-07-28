@@ -89,16 +89,15 @@ timer class.forName还是需要实验一下。这里是不是也涉及到了impo
 Zeze已经提供了一个受限动态表，可能需要参考这个，重新设计这块的功能。
 *) timerAccount timerRole 原来为了优化直接保存Handle，需要改成className，用class.forName动态化。还有没有其他方案？
 *) Online模块：事件订阅和LocalData的升级。
-*) Zeze的某些全局定制服务加限制，只能由应用全局设置（不会热更），不能在module里面设置。
+*) Zeze的某些全局定制服务加限制，只能由应用全局设置（不会热更），不能在module里面设置。caller.classLoader!=Zeze.classLoader，能判断这个？
 *) more more。
 
 public class HotClassLoader extends ClassLoader {
 	private final String namespace; // 模块名字空间，会作为Key加入全局排序HotClassLoader管理器。
-	private final HashSet<String> paths; // 模块子目录。不包括子模块。
+	private final HashSet<String> classes; // 本热更单位包含的所有类，如果jar.contains够快，这里维护jar即可，否则装载一次。
 	// 目录管理规则（TODO，这个规则是一个限制，但能自动化，是否需要更自由配置方式？）：
 	// 1. 目录是一个模块目录时，开启一个新的热更单位；
 	// 2. 目录不是模块目录时，它就属于往上级目录方向的最近的热更模块。
-	prvate final HotManager manager;
 
 	public HotClassLoader() {
 	}
@@ -109,23 +108,14 @@ public class HotClassLoader extends ClassLoader {
 
 	@Override
 	public Class<?> loadClass(String className) {
-		// osgi 横向查找ClassLoader思路。
-		// 下面这个写法是纯动态。效率不高。
-		var hot = manager.find(className);
-		if (null != hot) // maybe self
-			return hot.doLoadClass(className);
-		return super.loadClass(className);
-	}
+		if (isInterface(className)) // intefface 版本管理需要自动生成发布的interface名字，使用特殊后缀方式，用来快速识别。
+			return super.loadClass(className); // 虽然是模块定义的，但由外面装载。要求外面的classLoader支持动态增加classpath【确认】。
 
-	public Class<?> doLoadClass(String className) {
-		// 优先匹配长的名字。是否有更优算法？
-		// 子目录肯定都在namespace中，精确判断需要这样吧？
-		for (var path : paths) {
-			if (className.startsWith(path))
-				return loadModuleClass(className);
-		}
-		if (className.startsWith(namespace))
+		// 优先load本模块，这个违背了java默认的双亲-Parent优先的规则。
+		// 实际上限制了热更模块除了上面的interface特殊处理，它的class不会存在其他地方。
+		if (classes.contains(className)) // 现在够快了。
 			return loadModuleClass(className);
+
 		return super.loadClass(className);
 	}
 
@@ -137,6 +127,7 @@ public class HotClassLoader extends ClassLoader {
 public class HotManager {
 	private final TreeMap<String, HotClassLoader> classLoaders = new TreeMap<>();
 
+	// ModuleInterface 采用其他管理措施以后，这个方法很可能不需要了。
 	public HotClassLoader find(String className) {
 		// 因为存在子模块：
 		// 优先匹配长的名字。TreeMap是否有更优算法？
