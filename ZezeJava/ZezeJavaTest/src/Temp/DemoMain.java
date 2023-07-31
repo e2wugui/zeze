@@ -1,12 +1,12 @@
 package Temp;
 
-import java.util.TreeMap;
-
 public class DemoMain {
 	public static void main(String[] args) throws Exception {
-		var map = new TreeMap<String, String>();
-		map.descendingMap().entrySet();
-		args[0].s
-		ClassLoaderApp.test();
+		var jarFile = "C:\\code\\zeze\\ZezeJava\\ZezeJavaTest\\build\\classes\\java\\main\\m.jar";
+		var hot = new Zeze.Hot.HotClassLoader("", new java.io.File(jarFile));
+		var configClass = hot.loadModuleClass("Temp.ModuleA");
+		var config = (Temp.IModuleInterface)configClass.getConstructor().newInstance();
+		config.helloWorld();
+		// TODO interface 使用问题？
 	}
 }
