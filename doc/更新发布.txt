@@ -156,6 +156,35 @@ public class HotManager {
 	}
 }
 
+开发代码，保持不变，所以旧代码完全不受影响。
+ModuleA implements AbstraceModule {
+}
+
+生成代码
+1. 没有热更，保持不变。
+class AbstractModule implements Zeze.IModule
+class ModuleMy extends AbstractModule
+
+2. 启用热更。(手写接口方案)
+a) class ModuleMy extends AbstractModule implements IMyHotInterface
+"HotInterface"是用来快速判断类是不是接口的后缀。需要选一个好名字。
+interface IMyHotInterface extends Zeze.HotInterface 【另开始一个体系还是在IModule上扩展？为了兼容不启用热更，另一个体系比较合适】
+
+b) 新版本接口
+interface IMy1HotInterface extends IMyHotInterface {
+	// new method
+}
+c) 模板方式获得，需要手动更新到新版本接口。
+public <IVersion extends Zeze.HotInterface> IVersion getModule(String moduleNamespace) {
+	return (IVersion)modules.get(moduleNamespace);
+}
+这个在模块install，start(还没定start干什么)，后注册到HotManager。
+由于这个仅仅转换一下类型，没啥大的性能损失，使用服务即时获取，不保存。
+或者，如果保存的话，需要在实际服务卸载的时候通知引用失效（由于java特性，引用实际上不会失效，只是概念上的失效）。
+或者，不考虑服务卸载（这是一开始的想法，只有install,upgrade两种）。
+d) Gen改变：App中展开的ModuleInstance不再生成。启用热更，必须使用getModule()得到服务接口。
+e) Module互相引用限制，install过程不能引用其他module。问题大吗？
+
 【重新总结】
 module是唯一的第一公开服务，有其他公开接口，也通过module得到；
 module默认所有的public方法，除了注解声明不公开外，都是接口的一部分；
