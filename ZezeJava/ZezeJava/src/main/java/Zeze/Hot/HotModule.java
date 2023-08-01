@@ -29,8 +29,8 @@ public class HotModule extends ClassLoader {
 	}
 
 	// stop 不能清除本地进程状态，后面需要用来升级。
-	public void stop() {
-
+	public void stop() throws Exception {
+		jar.close();
 	}
 
 	// 先用这个类管理所有热更需求。
