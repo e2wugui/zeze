@@ -160,7 +160,7 @@ public class HotManager {
 ModuleA implements AbstraceModule {
 }
 
-生成代码
+【接口和Module的一些改变】
 1. 没有热更，保持不变。
 class AbstractModule implements Zeze.IModule
 class ModuleMy extends AbstractModule

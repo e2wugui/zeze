@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
 
 public class HotClassLoader extends ClassLoader {
 	// 目录管理规则（TODO，这个规则是一个限制，但能自动化，是否需要更自由配置方式？）：
@@ -15,16 +16,30 @@ public class HotClassLoader extends ClassLoader {
 
 	// 本热更单位包含的所有类，如果jar.contains够快，这里维护jar即可，否则装载一次。
 	private final HashSet<String> classes = new HashSet<>();
+	private final HashSet<String> interfaces = new HashSet<>();
 	private final JarFile jar;
 
 	public HotClassLoader(String namespace, File moduleJar) throws IOException {
 		this.namespace = namespace;
 		this.jar = new JarFile(moduleJar);
+
 		for (var it = jar.entries(); it.hasMoreElements(); ) {
 			var e = it.nextElement();
 			if (!e.isDirectory() && e.getName().endsWith(".class")) {
-				String className = e.getName().replace('/', '.'); // including ".class"
-				classes.add(className.substring(0, className.length() - ".class".length()));
+				var className = e.getName().replace('/', '.'); // including ".class"
+				className = className.substring(0, className.length() - ".class".length()); // remove ".class"
+
+				// todo 打开的时候就全部load一遍，判断是否interface，影响初始化速度。
+				//  最好打包的时候预处理，把分类做好保存在Meta里面或者其他更好办法。
+				// 现方案希望的结果
+				// 0. 不是interface已经装载了，以后loadClass里面的findLoadedClass肯定成功。
+				// 1. interface也会被这个ClassLoader装载；这里装载进来仅仅用来判断；
+				// 2. 程序里面真正使用的interface.class是parent装载的；
+				// ?. 问题：这个loadModuleClass在装载interface时会抛出重复异常。
+				if (loadModuleClass(className, e).isInterface())
+					interfaces.add(className);
+				else
+					classes.add(className);
 			}
 		}
 	}
@@ -35,28 +50,30 @@ public class HotClassLoader extends ClassLoader {
 
 	@Override
 	public Class<?> loadClass(String className) throws ClassNotFoundException {
-		if (isInterface(className)) {
+		if (interfaces.contains(className)) {
 			// 虽然是模块定义的，但由外面装载。要求外面的classLoader支持动态增加classpath【确认】。
-			return super.loadClass(className);
+			return getParent().loadClass(className);
 		}
 
 		// 优先load本模块，这个违背了java默认的双亲-Parent优先的规则。
 		// 实际上限制了热更模块除了上面的interface特殊处理，它的class不会存在其他地方。
-		if (classes.contains(className))
+		if (classes.contains(className)) {
+			var loaded = findLoadedClass(className);
+			if (null != loaded)
+				return loaded;
 			return loadModuleClass(className);
+		}
 
-		return super.loadClass(className);
-	}
-
-	private static boolean isInterface(String className) {
-		// interface 版本管理需要自动生成发布的interface名字，使用特殊后缀方式，用来快速识别。
-		return className.endsWith("Interface"); // TODO 选一个合适的名字。
+		return getParent().loadClass(className);
 	}
 
 	public Class<?> loadModuleClass(String className) {
 		String classFileName = className.replace('.', '/') + ".class";
-		jar.getEntry(classFileName);
 		var entry = jar.getEntry(classFileName);
+		return loadModuleClass(className, entry);
+	}
+
+	private Class<?> loadModuleClass(String className, ZipEntry entry) {
 		try (var inputStream = jar.getInputStream(entry)) {
 			var bytes = inputStream.readAllBytes();
 			return defineClass(className, bytes, 0, bytes.length);
