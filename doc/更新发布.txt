@@ -209,8 +209,6 @@ get service实现细节还没想，应该是每次接口变化都检测生成？
 1. interface打成一个独立的jar，module安装的时候加入parent.classpath；
 2. module.class打成一个独立的jar，由HotClassLoader装载；
 3. HotClassLoader不再违背双亲规则，只老老实实的实现findClass，装载module.class即可，interface自动优先判断parent得到。
-4. 存在一个问题，module upgrade的时候，HotClassLoader是新new，旧的回收即可；interface.jar发布到parent.classpath中，
-需要parent.cl支持classpath修改，能load到新版的interface。
 
 技术笔记：
 OSGi ClassLoader 将按照下面的顺序进行类搜索：

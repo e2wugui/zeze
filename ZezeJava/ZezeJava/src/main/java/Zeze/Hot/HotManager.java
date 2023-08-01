@@ -63,7 +63,7 @@ public class HotManager extends ClassLoader {
 		return module;
 	}
 
-	public HotManager(Path directory) throws IOException {
+	public HotManager(Path directory) throws Exception {
 		this.directory = directory;
 
 		// 1. 先创建注册
