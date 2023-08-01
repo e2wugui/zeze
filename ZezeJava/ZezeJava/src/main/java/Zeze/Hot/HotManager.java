@@ -23,7 +23,7 @@ public class HotManager extends ClassLoader {
 	private final FewModifySortedMap<String, HotModule> modules = new FewModifySortedMap<>();
 
 	// 采用其他管理措施以后，这个方法很可能不需要了。
-	public HotModule find(String className) {
+	private HotModule find(String className) {
 		// 因为存在子模块：
 		// 优先匹配长的名字。
 		// TreeMap是否有更优算法？
