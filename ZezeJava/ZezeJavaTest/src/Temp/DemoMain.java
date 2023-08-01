@@ -7,6 +7,8 @@ public class DemoMain {
 		var configClass = hot.loadModuleClass("Temp.ModuleA");
 		var config = (Temp.IModuleInterface)configClass.getConstructor().newInstance();
 		config.helloWorld();
+		System.out.println(Temp.IModuleInterface.class.getClassLoader());
+		System.out.println(config.getClass().getClassLoader());
 		// TODO interface 使用问题？
 	}
 }

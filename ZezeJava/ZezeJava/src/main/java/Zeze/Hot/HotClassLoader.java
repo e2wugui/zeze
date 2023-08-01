@@ -58,9 +58,6 @@ public class HotClassLoader extends ClassLoader {
 		// 优先load本模块，这个违背了java默认的双亲-Parent优先的规则。
 		// 实际上限制了热更模块除了上面的interface特殊处理，它的class不会存在其他地方。
 		if (classes.contains(className)) {
-			var loaded = findLoadedClass(className);
-			if (null != loaded)
-				return loaded;
 			return loadModuleClass(className);
 		}
 
@@ -74,6 +71,9 @@ public class HotClassLoader extends ClassLoader {
 	}
 
 	private Class<?> loadModuleClass(String className, ZipEntry entry) {
+		var loaded = findLoadedClass(className);
+		if (null != loaded)
+			return loaded;
 		try (var inputStream = jar.getInputStream(entry)) {
 			var bytes = inputStream.readAllBytes();
 			return defineClass(className, bytes, 0, bytes.length);
