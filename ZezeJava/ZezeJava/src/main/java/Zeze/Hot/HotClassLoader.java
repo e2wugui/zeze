@@ -31,11 +31,8 @@ public class HotClassLoader extends ClassLoader {
 
 				// todo 打开的时候就全部load一遍，判断是否interface，影响初始化速度。
 				//  最好打包的时候预处理，把分类做好保存在Meta里面或者其他更好办法。
-				// 现方案希望的结果
-				// 0. 不是interface已经装载了，以后loadClass里面的findLoadedClass肯定成功。
-				// 1. interface也会被这个ClassLoader装载；这里装载进来仅仅用来判断；
-				// 2. 程序里面真正使用的interface.class是parent装载的；
-				// ?. 问题：这个loadModuleClass在装载interface时会抛出重复异常。
+				// 这里interface还是由parent装载的。
+				// 在现有module的jar方式下能工作了，但如果按分包(interface分成独立的jar)需要重新验证可以工作。
 				if (loadModuleClass(className, e).isInterface())
 					interfaces.add(className);
 				else
