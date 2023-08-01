@@ -1,5 +1,7 @@
 package Temp;
 
-public interface IModuleInterface {
+import Zeze.Hot.HotService;
+
+public interface IModuleInterface extends HotService {
 	void helloWorld();
 }

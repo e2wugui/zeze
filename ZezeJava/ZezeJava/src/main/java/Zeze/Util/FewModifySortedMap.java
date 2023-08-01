@@ -3,6 +3,7 @@ package Zeze.Util;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -189,6 +190,12 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	@Override
 	public Set<Entry<K, V>> entrySet() {
 		return prepareRead().entrySet();
+	}
+
+	// 这个方法暴露了可写的操作，不安全。
+	public NavigableMap<K, V> descendingMap() {
+		var tree = (TreeMap<K, V>)prepareRead();
+		return tree.descendingMap();
 	}
 
 	@Override
