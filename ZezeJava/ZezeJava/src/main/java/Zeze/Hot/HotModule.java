@@ -2,8 +2,10 @@ package Zeze.Hot;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.WeakHashMap;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
+import Zeze.Util.WeakHashSet;
 
 // 目录管理规则（TODO，这个规则是一个限制，但能自动化，是否需要更自由配置方式？）：
 // 1. 目录是一个模块目录时，开启一个新的热更单位；
@@ -11,6 +13,8 @@ import java.util.zip.ZipEntry;
 public class HotModule extends ClassLoader {
 	private final JarFile jar; // 模块的class（interface除外）必须打包成一个jar，只支持一个。
 	private final HotService service;
+	// todo Zeze.Util.WeakHashSet 没有遍历，先使用jdk的。
+	private final WeakHashMap<HotModuleContext, HotModuleContext> refs = new WeakHashMap<>();
 
 	public HotModule(HotManager parent, String namespace, File jarFile) throws Exception {
 		super(namespace, parent);
@@ -19,8 +23,14 @@ public class HotModule extends ClassLoader {
 		service = (HotService)loadClass(namespace + ".ModuleA").getConstructor().newInstance();
 	}
 
-	public <T extends HotService> T getService() {
-		return (T)service;
+	public HotModuleContext createContext() {
+		var context = new HotModuleContext(this);
+		refs.put(context, context);
+		return context;
+	}
+
+	public HotService getService() {
+		return service;
 	}
 
 	// start 用来初始化，还没想好可能需要的初始化。
@@ -35,6 +45,11 @@ public class HotModule extends ClassLoader {
 
 	// 先用这个类管理所有热更需求。
 	public void upgrade(HotModule old) {
+		refs.putAll(old.refs);
+		for (var ref : refs.keySet()) {
+			ref.setModule(this);
+		}
+		// todo call app upgrade
 	}
 
 	@Override

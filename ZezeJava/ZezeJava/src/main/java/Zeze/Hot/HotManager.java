@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
@@ -32,6 +33,16 @@ public class HotManager extends ClassLoader {
 	private volatile boolean running = true;
 	private final Thread worker;
 
+	private final ReentrantReadWriteLock hotLock = new ReentrantReadWriteLock();
+
+	public HotGuard enterReadLock() {
+		return new HotGuard(hotLock.readLock());
+	}
+
+	public HotGuard enterWriteLock() {
+		return new HotGuard(hotLock.writeLock());
+	}
+
 	// 采用其他管理措施以后，这个方法很可能不需要了。
 	private HotModule find(String className) {
 		// 因为存在子模块：
@@ -44,21 +55,20 @@ public class HotManager extends ClassLoader {
 		return null; // throw ?
 	}
 
-	public HotModule getModule(String moduleNamespace) {
-		return modules.get(moduleNamespace);
+	public HotModuleContext getModuleContext(String moduleNamespace) {
+		var module = modules.get(moduleNamespace);
+		if (null == module)
+			throw new RuntimeException("module not exist. " + moduleNamespace);
+		return module.createContext();
 	}
 
 	public HotModule install(String namespace) throws Exception {
-		// 使用临时文件名拷贝文件到工作目录。后面rename，减少锁定时间。
-		var moduleSrc = Path.of(distributeDir.toString(), namespace + ".jar");
-		var moduleTmp = Path.of(workingDir.toString(), "modules", namespace + ".install.jar");
-		var interfaceSrc = Path.of(distributeDir.toString(), namespace + ".interface.jar");
-		var interfaceTmp = Path.of(workingDir.toString(), "interfaces", namespace + ".interface.install.jar");
-		Files.copy(moduleSrc, moduleTmp);
-		Files.copy(interfaceSrc, interfaceTmp);
+		var moduleSrc = Path.of(distributeDir.toString(), namespace + ".jar").toFile();
+		var interfaceSrc = Path.of(distributeDir.toString(), namespace + ".interface.jar").toFile();
+		if (!moduleSrc.exists() || !interfaceSrc.exists())
+			throw new RuntimeException("distributes not ready.");
 
-		// todo 同步方式需要修改成读写锁，跟系统运行互斥。
-		synchronized (this) {
+		try (var ignored = enterWriteLock()) {
 			// todo 生命期管理，确定服务是否可用，等等。
 			// 安装 interface
 			var interfaceDstAbsolute = Path.of(workingDir.toString(), "interfaces", namespace + ".interface.jar")
@@ -67,8 +77,8 @@ public class HotManager extends ClassLoader {
 			if (null != oldI)
 				oldI.close();
 			Files.deleteIfExists(interfaceDstAbsolute.toPath());
-			if (!interfaceTmp.toFile().renameTo(interfaceDstAbsolute))
-				throw new RuntimeException("rename fail. " + interfaceTmp + "->" + interfaceDstAbsolute);
+			if (!interfaceSrc.renameTo(interfaceDstAbsolute))
+				throw new RuntimeException("rename fail. " + interfaceSrc + "->" + interfaceDstAbsolute);
 			jars.put(interfaceDstAbsolute, new JarFile(interfaceDstAbsolute));
 
 			// 安装 module
@@ -77,8 +87,8 @@ public class HotManager extends ClassLoader {
 			if (exist != null)
 				exist.stop();
 			Files.deleteIfExists(moduleDst.toPath());
-			if (!moduleTmp.toFile().renameTo(moduleDst))
-				throw new RuntimeException("rename fail. " + moduleTmp + "->" + moduleDst);
+			if (!moduleSrc.renameTo(moduleDst))
+				throw new RuntimeException("rename fail. " + moduleSrc + "->" + moduleDst);
 			var module = new HotModule(this, namespace, moduleDst);
 			if (exist != null)
 				module.upgrade(exist);
@@ -93,7 +103,9 @@ public class HotManager extends ClassLoader {
 		this.workingDir = workingDir;
 		this.distributeDir = distributeDir;
 
-		this.loadExistJar(workingDir.toFile());
+		this.loadExistInterfaces(Path.of(workingDir.toString(), "interfaces").toFile());
+		this.loadExistModules(Path.of(workingDir.toString(), "modules").toFile());
+
 		var watcher = FileSystems.getDefault().newWatchService();
 		workingDir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
 		worker = new Thread(() -> this.watch(watcher));
@@ -101,7 +113,26 @@ public class HotManager extends ClassLoader {
 		worker.start();;
 	}
 
-	private void loadExistJar(File dir) throws IOException {
+	private void loadExistModules(File dir) throws Exception {
+		var files = dir.listFiles();
+		if (null == files)
+			return;
+
+		for (var file : files) {
+			var filename = file.getName();
+			if (filename.endsWith(".jar")) {
+				var namespace = filename.substring(0, filename.indexOf(".jar")); // Temp.jar
+				var module = new HotModule(this, namespace, file);
+				module.start();
+				modules.put(namespace, module);
+			}
+
+			if (file.isDirectory())
+				loadExistModules(file);
+		}
+	}
+
+	private void loadExistInterfaces(File dir) throws IOException {
 		var files = dir.listFiles();
 		if (null == files)
 			return;
@@ -111,7 +142,7 @@ public class HotManager extends ClassLoader {
 				jars.put(file.getAbsoluteFile(), new JarFile(file));
 
 			if (file.isDirectory())
-				loadExistJar(file);
+				loadExistInterfaces(file);
 		}
 	}
 
@@ -177,13 +208,15 @@ public class HotManager extends ClassLoader {
 					continue;
 				}
 
-				// The filename is the context of the event.
-				var ev = (WatchEvent<Path>)event;
-				var filename = ev.context().toAbsolutePath(); // 获得稳定的相对路径名。
-				if (filename.endsWith(".jar")) {
-					System.out.println(filename + " ++++++++++++");
-					// todo 检查更新安装包准备好（Module的两个jar都存在），自动调用install。
-					// install("");
+				if (kind == ENTRY_CREATE) {
+					// The filename is the context of the event.
+					var ev = (WatchEvent<Path>)event;
+					var filename = ev.context().toAbsolutePath(); // 获得稳定的相对路径名。
+					if (filename.endsWith(".jar")) {
+						System.out.println(filename + " ++++++++++++");
+						// todo 检查更新安装包准备好（Module的两个jar都存在），自动调用install。
+						// install("");
+					}
 				}
 			}
 

@@ -92,105 +92,13 @@ Zeze已经提供了一个受限动态表，可能需要参考这个，重新设�
 *) Zeze的某些全局定制服务加限制，只能由应用全局设置（不会热更），不能在module里面设置。caller.classLoader!=Zeze.classLoader，能判断这个？
 *) more more。
 
-public class HotClassLoader extends ClassLoader {
-	private final String namespace; // 模块名字空间，会作为Key加入全局排序HotClassLoader管理器。
-	private final HashSet<String> classes; // 本热更单位包含的所有类，如果jar.contains够快，这里维护jar即可，否则装载一次。
-	// 目录管理规则（TODO，这个规则是一个限制，但能自动化，是否需要更自由配置方式？）：
-	// 1. 目录是一个模块目录时，开启一个新的热更单位；
-	// 2. 目录不是模块目录时，它就属于往上级目录方向的最近的热更模块。
-
-	public HotClassLoader() {
-	}
-
-	public String getNamespace() {
-		return namespace;
-	}
-
-	@Override
-	public Class<?> loadClass(String className) {
-		if (isInterface(className)) // intefface 版本管理需要自动生成发布的interface名字，使用特殊后缀方式，用来快速识别。
-			return super.loadClass(className); // 虽然是模块定义的，但由外面装载。要求外面的classLoader支持动态增加classpath【确认】。
-
-		// 优先load本模块，这个违背了java默认的双亲-Parent优先的规则。
-		// 实际上限制了热更模块除了上面的interface特殊处理，它的class不会存在其他地方。
-		if (classes.contains(className)) // 现在够快了。
-			return loadModuleClass(className);
-
-		return super.loadClass(className);
-	}
-
-	// 先用这个类管理所有热更需求。
-	public void upgrade(HotClassLoader old) {
-	}
-}
-
-public class HotManager {
-	private final TreeMap<String, HotClassLoader> classLoaders = new TreeMap<>();
-
-	// ModuleInterface 采用其他管理措施以后，这个方法很可能不需要了。
-	public HotClassLoader find(String className) {
-		// 因为存在子模块：
-		// 优先匹配长的名字。TreeMap是否有更优算法？
-		for (var e : classLoaders.descendingMap().entrySet()) {
-			if (className.startsWith(e.getKey()))
-				return e.getValue();
-		}
-		return null; // throw ?
-	}
-
-	public void install(HotClassLoader hot /* 先用这个类描述热更单位 */) {
-		if (null != classLoaders.putIfAbsent(hot.getNamespace(), hot))
-			throw new RuntimeException();
-		hot.start();
-	}
-
-	public void upgrade(HotClassLoader hot) {
-		var old = classLoaders.get(hot.getNamespace());
-		if (null == old)
-			throw new RuntimeException();
-		old.stop();
-		hot.upgrade(old);
-		hot.start();
-		classLoaders.put(hot.getNamespace(), hot);
-		// 模块生命期管理：不支持uninstall。细节还没定。
-	}
-}
-
-开发代码，保持不变，所以旧代码完全不受影响。
-ModuleA implements AbstraceModule {
-}
-
-【接口和Module的一些改变】
-1. 没有热更，保持不变。
-class AbstractModule implements Zeze.IModule
-class ModuleMy extends AbstractModule
-
-2. 启用热更。(手写接口方案)
-a) class ModuleMy extends AbstractModule implements IMyHotInterface
-"HotInterface"是用来快速判断类是不是接口的后缀。需要选一个好名字。
-interface IMyHotInterface extends Zeze.HotInterface 【另开始一个体系还是在IModule上扩展？为了兼容不启用热更，另一个体系比较合适】
-
-b) 新版本接口
-interface IMy1HotInterface extends IMyHotInterface {
-	// new method
-}
-c) 模板方式获得，需要手动更新到新版本接口。
-public <IVersion extends Zeze.HotInterface> IVersion getModule(String moduleNamespace) {
-	return (IVersion)modules.get(moduleNamespace);
-}
-这个在模块install，start(还没定start干什么)，后注册到HotManager。
-由于这个仅仅转换一下类型，没啥大的性能损失，使用服务即时获取，不保存。
-或者，如果保存的话，需要在实际服务卸载的时候通知引用失效（由于java特性，引用实际上不会失效，只是概念上的失效）。
-或者，不考虑服务卸载（这是一开始的想法，只有install,upgrade两种）。
-d) Gen改变：App中展开的ModuleInstance不再生成。启用热更，必须使用getModule()得到服务接口。
-e) Module互相引用限制，install过程不能引用其他module。问题大吗？
-
-【重新总结】
+【规则重新总结】
 module是唯一的第一公开服务，有其他公开接口，也通过module得到；
 module默认所有的public方法，除了注解声明不公开外，都是接口的一部分；
 接口所有参数都必须是外部cl装载的类或接口；
 发布的时候，接口自动生成，检测变化，生成不同版本；
 新版本的接口兼容旧版本，old extends new [XXX]。
+“所有”线程任务都必须通过Task管理，用来和热更互斥，当然也有允许例外，即确定不需要保护时也可以自己管理线程。
 
 【不同版本怎么管理？】
 （提过，还不知道是否可行，但已经不满意，作为一个开始）idea 编译递增buildtimes；
@@ -210,17 +118,20 @@ get service实现细节还没想，应该是每次接口变化都检测生成？
 2. module.class打成一个独立的jar，由HotClassLoader装载；
 3. HotClassLoader不再违背双亲规则，只老老实实的实现findClass，装载module.class即可，interface自动优先判断parent得到。
 
-Today
-“所有”线程任务都必须通过Task 新增规则
- 监视目录变更还是需要 
+Today Done
 jar 名字里面的 Interface 改成 interface
 HotModule WeakRef<ModuleRef>；
 ModuleRef.<T>getService（）
 task HotGuard 希望没启用的时候完全被优化掉
+
+Today
+ 监视目录变更还是需要 【差临门一脚】
+
 App gen Hot 设计，看 txt
 HotManager 定义到 App 中；
 改造Zezex
 module 生成 interface 工具（预计下周）
+
 
 技术笔记：
 OSGi ClassLoader 将按照下面的顺序进行类搜索：

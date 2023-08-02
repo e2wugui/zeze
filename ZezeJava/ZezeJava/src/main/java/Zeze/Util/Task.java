@@ -10,6 +10,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import Zeze.Application;
+import Zeze.Hot.HotGuard;
 import Zeze.IModule;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolErrorHandle;
@@ -26,6 +27,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class Task {
+	// 默认不开启热更，这个实现希望能被优化掉，几乎不造成影响。
+	// 开启热更时，由App.HotManager初始化的时候设置。
+	public static volatile Factory<HotGuard> hotGuard = () -> null;
+
 	public interface ILogAction {
 		void run(Throwable ex, long result, Protocol<?> p, String actionName);
 	}
@@ -222,7 +227,7 @@ public final class Task {
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
 				//noinspection ConstantValue
@@ -262,7 +267,7 @@ public final class Task {
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
 				//noinspection ConstantValue
@@ -288,7 +293,7 @@ public final class Task {
 	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action) {
 		return threadPoolScheduled.schedule(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
 				logger.error("schedule", e);
@@ -303,7 +308,7 @@ public final class Task {
 	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func) {
 		return threadPoolScheduled.schedule(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				return func.call();
 			} catch (Throwable e) { // logger.error
 				logger.error("schedule", e);
@@ -361,7 +366,7 @@ public final class Task {
 		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			future.lock();
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				if (future.isCancelled())
 					return;
 				action.run();
@@ -548,7 +553,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				return call(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
@@ -580,7 +585,7 @@ public final class Task {
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				call(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
@@ -708,7 +713,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				return call(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -728,7 +733,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				return call(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -763,7 +768,7 @@ public final class Task {
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				call(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -780,7 +785,7 @@ public final class Task {
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				call(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -833,7 +838,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> { // rpcResponseThreadPool
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				return call(procedure);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -855,7 +860,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> { // rpcResponseThreadPool
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				return call(func, p);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", p != null ? p.getClass().getName() : null, e);
@@ -876,7 +881,7 @@ public final class Task {
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> { // rpcResponseThreadPool
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				call(procedure);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -896,7 +901,7 @@ public final class Task {
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> { // rpcResponseThreadPool
-			try (var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
 				call(func, p);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", p != null ? p.getClass().getName() : null, e);

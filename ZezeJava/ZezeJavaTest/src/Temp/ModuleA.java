@@ -8,7 +8,7 @@ public class ModuleA implements IModuleInterface {
 
 	@Override
 	public void test(HotManager manager) {
-		var module = manager.getModule("Temp");
+		var module = manager.getModuleContext("Temp");
 		var service = module.<IModuleInterface>getService();
 		if (service == this)
 			System.out.println("Just Me!");
