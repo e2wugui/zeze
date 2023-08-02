@@ -8,10 +8,12 @@ import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchService;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
 import Zeze.AppBase;
+import Zeze.IModule;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
 import static java.nio.file.StandardWatchEventKinds.*;
@@ -26,8 +28,8 @@ import java.util.List;
  * 3. jar覆盖的时候，能装载里面新加入的class，但是同名的已经loadClass的类不会改变。
  */
 public class HotManager extends ClassLoader {
-	private final Path workingDir;
-	private final Path distributeDir;
+	private final String workingDir;
+	private final String distributeDir;
 
 	private final FewModifyMap<File, JarFile> jars = new FewModifyMap<>();
 
@@ -38,6 +40,17 @@ public class HotManager extends ClassLoader {
 
 	private final ReentrantReadWriteLock hotLock = new ReentrantReadWriteLock();
 	private final AppBase app;
+
+	public void destroyModules() {
+		modules.clear();
+	}
+
+	public void initialize(Map<String, IModule> modulesOut) throws Exception {
+		for (var module : modules.values()) {
+			var iModule = (IModule)module.getService();
+			iModule.Initialize(app);
+		}
+	}
 
 	public HotGuard enterReadLock() {
 		return new HotGuard(hotLock.readLock());
@@ -93,14 +106,14 @@ public class HotManager extends ClassLoader {
 	 * @throws Exception error
 	 */
 	private HotModule _install(String namespace) throws Exception {
-		var moduleSrc = Path.of(distributeDir.toString(), namespace + ".jar").toFile();
-		var interfaceSrc = Path.of(distributeDir.toString(), namespace + ".interface.jar").toFile();
+		var moduleSrc = Path.of(distributeDir, namespace + ".jar").toFile();
+		var interfaceSrc = Path.of(distributeDir, namespace + ".interface.jar").toFile();
 		if (!moduleSrc.exists() || !interfaceSrc.exists())
 			throw new RuntimeException("distributes not ready.");
 
 		// todo 生命期管理，确定服务是否可用，等等。
 		// 安装 interface
-		var interfaceDstAbsolute = Path.of(workingDir.toString(), "interfaces", namespace + ".interface.jar")
+		var interfaceDstAbsolute = Path.of(workingDir, "interfaces", namespace + ".interface.jar")
 				.toFile().getAbsoluteFile();
 		var oldI = jars.remove(interfaceDstAbsolute);
 		if (null != oldI)
@@ -112,7 +125,7 @@ public class HotManager extends ClassLoader {
 
 		// 安装 module
 		HotModule exist = modules.remove(namespace);
-		var moduleDst = Path.of(workingDir.toString(), "modules", namespace + ".jar").toFile();
+		var moduleDst = Path.of(workingDir, "modules", namespace + ".jar").toFile();
 		if (exist != null)
 			exist.stop();
 		Files.deleteIfExists(moduleDst.toPath());
@@ -126,7 +139,7 @@ public class HotManager extends ClassLoader {
 		return module;
 	}
 
-	public HotManager(AppBase app, Path workingDir, Path distributeDir) throws Exception {
+	public HotManager(AppBase app, String workingDir, String distributeDir) throws Exception {
 		this.workingDir = workingDir;
 		this.distributeDir = distributeDir;
 		this.app = app;
@@ -135,15 +148,21 @@ public class HotManager extends ClassLoader {
 		// todo 检查 distributeDir 不能是 workingDir/modules/ 的子目录。
 		// todo 检查 workingDir 不能是 distributeDir 的子目录。
 
-		this.loadExistInterfaces(Path.of(workingDir.toString(), "interfaces").toFile());
-		this.loadExistModules(app, Path.of(workingDir.toString(), "modules").toFile());
+		this.loadExistInterfaces(Path.of(workingDir, "interfaces").toFile());
+		this.loadExistModules(app, Path.of(workingDir, "modules").toFile());
 		startWatch();
 	}
 
-	public void startModules() throws Exception {
+	public void startModules(List<String> startOrder) throws Exception {
 		// todo 根据solution定义的顺序启动。
 		for (var module : modules.values())
 			module.start();
+	}
+
+	public void stopModules(List<String> stopOrder) throws Exception {
+		// todo 根据solution定义的顺序启动。
+		for (var module : modules.values())
+			module.stop();
 	}
 
 	private void loadExistModules(AppBase app, File dir) throws Exception {
@@ -178,11 +197,11 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
-	public Path getWorkingDir() {
+	public String getWorkingDir() {
 		return workingDir;
 	}
 
-	public Path getDistributeDir() {
+	public String getDistributeDir() {
 		return distributeDir;
 	}
 
@@ -216,7 +235,8 @@ public class HotManager extends ClassLoader {
 			return;
 
 		var watcher = FileSystems.getDefault().newWatchService();
-		workingDir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+		var distributePath = Path.of(distributeDir);
+		distributePath.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
 		worker = new Thread(() -> this.watch(watcher));
 		worker.setDaemon(true);
 		worker.start();;

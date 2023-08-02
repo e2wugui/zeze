@@ -1,5 +1,7 @@
 package Temp;
 
+import Zeze.Hot.HotService;
+
 public class ModuleTemp implements IModuleInterface {
 	private final TempApp app;
 
@@ -9,6 +11,11 @@ public class ModuleTemp implements IModuleInterface {
 
 	@Override
 	public void stop() {
+
+	}
+
+	@Override
+	public void upgrade(HotService old) {
 
 	}
 

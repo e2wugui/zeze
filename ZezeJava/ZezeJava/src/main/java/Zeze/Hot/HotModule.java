@@ -53,12 +53,12 @@ public class HotModule extends ClassLoader {
 	}
 
 	// 先用这个类管理所有热更需求。
-	public void upgrade(HotModule old) {
+	public void upgrade(HotModule old) throws Exception {
 		refs.putAll(old.refs);
 		for (var ref : refs.keySet()) {
 			ref.setModule(this);
 		}
-		// todo call app upgrade
+		service.upgrade(old.service);
 	}
 
 	@Override

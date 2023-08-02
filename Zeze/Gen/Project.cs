@@ -106,7 +106,7 @@ namespace Zeze.Gen
                 throw new Exception("duplicate project name: " + Name);
             Solution.Projects.Add(Path.Combine(GenRelativeDir, Name), this);
 
-            Hot = self.GetAttribute("Hot").Equals("true");
+            Hot = self.GetAttribute("hot").Equals("true");
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

@@ -143,21 +143,10 @@ public final class App extends Zeze.AppBase {
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
     public Zeze.Application Zeze;
     public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();
+    public Zeze.Hot.HotManager HotManager;
 
     public Game.Server Server;
     public Game.ServerDirect ServerDirect;
-
-    public Game.Login.ModuleLogin Game_Login;
-    public Game.Item.ModuleItem Game_Item;
-    public Game.Fight.ModuleFight Game_Fight;
-    public Game.Skill.ModuleSkill Game_Skill;
-    public Game.Buf.ModuleBuf Game_Buf;
-    public Game.Equip.ModuleEquip Game_Equip;
-    public Game.Map.ModuleMap Game_Map;
-    public Game.Rank.ModuleRank Game_Rank;
-    public Game.Timer.ModuleTimer Game_Timer;
-    public Game.LongSet.ModuleLongSet Game_LongSet;
-    public Game.MyWorld.ModuleMyWorld Game_MyWorld;
 
     @Override
     public Zeze.Application getZeze() {
@@ -182,92 +171,13 @@ public final class App extends Zeze.AppBase {
 
     public synchronized void createModules() throws Exception {
         Zeze.initialize(this);
-        var _modules_ = createRedirectModules(new Class[] {
-            Game.Login.ModuleLogin.class,
-            Game.Item.ModuleItem.class,
-            Game.Fight.ModuleFight.class,
-            Game.Skill.ModuleSkill.class,
-            Game.Buf.ModuleBuf.class,
-            Game.Equip.ModuleEquip.class,
-            Game.Map.ModuleMap.class,
-            Game.Rank.ModuleRank.class,
-            Game.Timer.ModuleTimer.class,
-            Game.LongSet.ModuleLongSet.class,
-            Game.MyWorld.ModuleMyWorld.class,
-        });
-        if (_modules_ == null)
-            return;
-
-        Game_Login = (Game.Login.ModuleLogin)_modules_[0];
-        Game_Login.Initialize(this);
-        if (modules.put(Game_Login.getFullName(), Game_Login) != null)
-            throw new IllegalStateException("duplicate module name: Game_Login");
-
-        Game_Item = (Game.Item.ModuleItem)_modules_[1];
-        Game_Item.Initialize(this);
-        if (modules.put(Game_Item.getFullName(), Game_Item) != null)
-            throw new IllegalStateException("duplicate module name: Game_Item");
-
-        Game_Fight = (Game.Fight.ModuleFight)_modules_[2];
-        Game_Fight.Initialize(this);
-        if (modules.put(Game_Fight.getFullName(), Game_Fight) != null)
-            throw new IllegalStateException("duplicate module name: Game_Fight");
-
-        Game_Skill = (Game.Skill.ModuleSkill)_modules_[3];
-        Game_Skill.Initialize(this);
-        if (modules.put(Game_Skill.getFullName(), Game_Skill) != null)
-            throw new IllegalStateException("duplicate module name: Game_Skill");
-
-        Game_Buf = (Game.Buf.ModuleBuf)_modules_[4];
-        Game_Buf.Initialize(this);
-        if (modules.put(Game_Buf.getFullName(), Game_Buf) != null)
-            throw new IllegalStateException("duplicate module name: Game_Buf");
-
-        Game_Equip = (Game.Equip.ModuleEquip)_modules_[5];
-        Game_Equip.Initialize(this);
-        if (modules.put(Game_Equip.getFullName(), Game_Equip) != null)
-            throw new IllegalStateException("duplicate module name: Game_Equip");
-
-        Game_Map = (Game.Map.ModuleMap)_modules_[6];
-        Game_Map.Initialize(this);
-        if (modules.put(Game_Map.getFullName(), Game_Map) != null)
-            throw new IllegalStateException("duplicate module name: Game_Map");
-
-        Game_Rank = (Game.Rank.ModuleRank)_modules_[7];
-        Game_Rank.Initialize(this);
-        if (modules.put(Game_Rank.getFullName(), Game_Rank) != null)
-            throw new IllegalStateException("duplicate module name: Game_Rank");
-
-        Game_Timer = (Game.Timer.ModuleTimer)_modules_[8];
-        Game_Timer.Initialize(this);
-        if (modules.put(Game_Timer.getFullName(), Game_Timer) != null)
-            throw new IllegalStateException("duplicate module name: Game_Timer");
-
-        Game_LongSet = (Game.LongSet.ModuleLongSet)_modules_[9];
-        Game_LongSet.Initialize(this);
-        if (modules.put(Game_LongSet.getFullName(), Game_LongSet) != null)
-            throw new IllegalStateException("duplicate module name: Game_LongSet");
-
-        Game_MyWorld = (Game.MyWorld.ModuleMyWorld)_modules_[10];
-        Game_MyWorld.Initialize(this);
-        if (modules.put(Game_MyWorld.getFullName(), Game_MyWorld) != null)
-            throw new IllegalStateException("duplicate module name: Game_MyWorld");
-
+        HotManager = new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir());
+        HotManager.initialize(modules);
         Zeze.setSchemas(new Game.Schemas());
     }
 
     public synchronized void destroyModules() {
-        Game_MyWorld = null;
-        Game_LongSet = null;
-        Game_Timer = null;
-        Game_Rank = null;
-        Game_Map = null;
-        Game_Equip = null;
-        Game_Buf = null;
-        Game_Skill = null;
-        Game_Fight = null;
-        Game_Item = null;
-        Game_Login = null;
+        HotManager.destroyModules();
         modules.clear();
     }
 
@@ -281,42 +191,13 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void startModules() throws Exception {
-        Game_Login.Start(this);
-        Game_Item.Start(this);
-        Game_Fight.Start(this);
-        Game_Skill.Start(this);
-        Game_Buf.Start(this);
-        Game_Equip.Start(this);
-        Game_Map.Start(this);
-        Game_Rank.Start(this);
-        Game_Timer.Start(this);
-        Game_LongSet.Start(this);
-        Game_MyWorld.Start(this);
+        var definedOrder = new java.util.ArrayList<String>();
+        HotManager.startModules(definedOrder);
     }
 
     public synchronized void stopModules() throws Exception {
-        if (Game_MyWorld != null)
-            Game_MyWorld.Stop(this);
-        if (Game_LongSet != null)
-            Game_LongSet.Stop(this);
-        if (Game_Timer != null)
-            Game_Timer.Stop(this);
-        if (Game_Rank != null)
-            Game_Rank.Stop(this);
-        if (Game_Map != null)
-            Game_Map.Stop(this);
-        if (Game_Equip != null)
-            Game_Equip.Stop(this);
-        if (Game_Buf != null)
-            Game_Buf.Stop(this);
-        if (Game_Skill != null)
-            Game_Skill.Stop(this);
-        if (Game_Fight != null)
-            Game_Fight.Stop(this);
-        if (Game_Item != null)
-            Game_Item.Stop(this);
-        if (Game_Login != null)
-            Game_Login.Stop(this);
+        var definedOrderReverse = new java.util.ArrayList<String>();
+        HotManager.stopModules(definedOrderReverse);
     }
 
     public synchronized void startService() throws Exception {

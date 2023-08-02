@@ -99,6 +99,24 @@ public final class Config {
 
 	private long procedureStatisticsReportPerod = 60000;
 	private long tableStatisticsReportPeriod = 60000;
+	private String hotWorkingDir = "";
+	private String hotDistributeDir = "distributes";
+
+	public String getHotWorkingDir() {
+		return hotWorkingDir;
+	}
+
+	public String getHotDistributeDir() {
+		return hotDistributeDir;
+	}
+
+	public void setHotWorkingDir(String value) {
+		hotWorkingDir = value;
+	}
+
+	public void setHotDistributeDir(String value) {
+		hotDistributeDir = value;
+	}
 
 	public long getProcedureStatisticsReportPerod() {
 		return procedureStatisticsReportPerod;

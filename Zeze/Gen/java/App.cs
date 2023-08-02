@@ -263,32 +263,14 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("    public synchronized void createModules() throws Exception {");
             sw.WriteLine("        Zeze.initialize(this);");
-            if (project.AllOrderDefineModules.Count > 0)
-            {
-                sw.WriteLine("        var _modules_ = createRedirectModules(new Class[] {");
-                foreach (Module m in project.AllOrderDefineModules)
-                    sw.WriteLine("            " + m.Path(".", "Module" + Program.Upper1(m.Name)) + ".class,");
-                sw.WriteLine("        });");
-                sw.WriteLine("        if (_modules_ == null)");
-                sw.WriteLine("            return;");
-                sw.WriteLine();
-                int index = 0;
-                foreach (Module m in project.AllOrderDefineModules)
-                {
-                    string className = m.Path(".", "Module" + Program.Upper1(m.Name));
-                    var fullname = m.Path("_");
-                    sw.WriteLine($"        {fullname} = ({className})_modules_[" + index + "];");
-                    sw.WriteLine($"        {fullname}.Initialize(this);");
-                    sw.WriteLine($"        if (modules.put({fullname}.getFullName(), {fullname}) != null)");
-                    sw.WriteLine($"            throw new IllegalStateException(\"duplicate module name: {fullname}\");");
-                    sw.WriteLine();
-                    index++;
-                }
-            }
+            sw.WriteLine("        HotManager = new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir());");
+            sw.WriteLine("        HotManager.initialize(modules);");
             sw.WriteLine("        Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void destroyModules() {");
+            sw.WriteLine("        HotManager.destroyModules();");
+            sw.WriteLine("        modules.clear();");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void destroyServices() {");
@@ -301,32 +283,20 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void startModules() throws Exception {");
+            sw.WriteLine("        var definedOrder = new java.util.ArrayList<String>();");
             foreach (var m in project.ModuleStartOrder)
-                sw.WriteLine("        " + m.Path("_") + ".Start(this);");
-            foreach (Module m in project.AllOrderDefineModules)
-            {
-                if (!project.ModuleStartOrder.Contains(m))
-                    sw.WriteLine("        " + m.Path("_") + ".Start(this);");
-            }
+                sw.WriteLine($"        definedOrder.add(\"{m.Path()}\");");
+            sw.WriteLine("        HotManager.startModules(definedOrder);");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void stopModules() throws Exception {");
-            for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
-            {
-                var m = project.AllOrderDefineModules[i];
-                if (!project.ModuleStartOrder.Contains(m))
-                {
-                    var name = m.Path("_");
-                    sw.WriteLine("        if (" + name + " != null)");
-                    sw.WriteLine("            " + name + ".Stop(this);");
-                }
-            }
+            sw.WriteLine("        var definedOrderReverse = new java.util.ArrayList<String>();");
             for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
             {
-                var name = project.ModuleStartOrder[i].Path("_");
-                sw.WriteLine("        if (" + name + " != null)");
-                sw.WriteLine("            " + name + ".Stop(this);");
+                var name = project.ModuleStartOrder[i].Path();
+                sw.WriteLine($"        definedOrderReverse.add(\"{name}\");");
             }
+            sw.WriteLine("        HotManager.stopModules(definedOrderReverse);");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void startService() throws Exception {");
