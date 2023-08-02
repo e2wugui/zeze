@@ -42,16 +42,17 @@ public class HotModule extends ClassLoader {
 		return loadModuleClass(className);
 	}
 
-	public Class<?> loadModuleClass(String className) {
+	private Class<?> loadModuleClass(String className) {
 		String classFileName = className.replace('.', '/') + ".class";
 		var entry = jar.getEntry(classFileName);
 		return loadModuleClass(className, entry);
 	}
 
 	private Class<?> loadModuleClass(String className, ZipEntry entry) {
-		var loaded = findLoadedClass(className);
-		if (null != loaded)
-			return loaded;
+		// 采用标准方式重载findClass以后，不需要判断这个了。
+//		var loaded = findLoadedClass(className);
+//		if (null != loaded)
+//			return loaded;
 		try (var inputStream = jar.getInputStream(entry)) {
 			var bytes = inputStream.readAllBytes();
 			return defineClass(className, bytes, 0, bytes.length);

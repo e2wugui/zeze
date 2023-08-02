@@ -210,6 +210,18 @@ get service实现细节还没想，应该是每次接口变化都检测生成？
 2. module.class打成一个独立的jar，由HotClassLoader装载；
 3. HotClassLoader不再违背双亲规则，只老老实实的实现findClass，装载module.class即可，interface自动优先判断parent得到。
 
+Today
+“所有”线程任务都必须通过Task 新增规则
+ 监视目录变更还是需要 
+jar 名字里面的 Interface 改成 interface
+HotModule WeakRef<ModuleRef>；
+ModuleRef.<T>getService（）
+task HotGuard 希望没启用的时候完全被优化掉
+App gen Hot 设计，看 txt
+HotManager 定义到 App 中；
+改造Zezex
+module 生成 interface 工具（预计下周）
+
 技术笔记：
 OSGi ClassLoader 将按照下面的顺序进行类搜索：
 1）将以java.*开头的类委派给父类加载器加载。
