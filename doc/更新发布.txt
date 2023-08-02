@@ -84,11 +84,9 @@ Zeze已经提供了一个受限动态表，可能需要参考这个，重新设�
 *) Zeze的某些全局定制服务加限制，只能由应用全局设置（不会热更），不能在module里面设置。caller.classLoader!=Zeze.classLoader，能判断这个？
 *) more more。
 
-Today
+TODO
  监视目录变更还是需要 【差临门一脚】
-App gen Hot
-HotManager 定义到 App 中；
-改造Zezex
+hot 发布打包工具。idea直接运行时，实际上hot功能不会生效，但是App已经要求Hot装载所有模块，所以还是需要发布一下jar。Hot才能创建模块。
 module 生成 interface 工具（预计下周）
 
 0. 原则
