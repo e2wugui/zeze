@@ -7,12 +7,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchService;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
 import static java.nio.file.StandardWatchEventKinds.*;
+import java.util.List;
 
 /**
  * 装载所有的模块接口。
@@ -62,41 +64,61 @@ public class HotManager extends ClassLoader {
 		return module.createContext();
 	}
 
+	public List<HotModule> install(List<String> namespaces) throws Exception {
+		try (var ignored = enterWriteLock()) {
+			var result = new ArrayList<HotModule>();
+			for (var namespace : namespaces)
+				result.add(_install(namespace));
+			return result;
+		}
+	}
+
 	public HotModule install(String namespace) throws Exception {
+		try (var ignored = enterWriteLock()) {
+			return _install(namespace);
+		}
+	}
+
+	/**
+	 * todo【警告】安装过程目前没有事务性，如果安装出现错误，可能导致某些模块出错。
+	 *
+	 * @param namespace module name
+	 * @return HotModule
+	 * @throws Exception error
+	 */
+	private HotModule _install(String namespace) throws Exception {
 		var moduleSrc = Path.of(distributeDir.toString(), namespace + ".jar").toFile();
 		var interfaceSrc = Path.of(distributeDir.toString(), namespace + ".interface.jar").toFile();
 		if (!moduleSrc.exists() || !interfaceSrc.exists())
 			throw new RuntimeException("distributes not ready.");
 
-		try (var ignored = enterWriteLock()) {
-			// todo 生命期管理，确定服务是否可用，等等。
-			// 安装 interface
-			var interfaceDstAbsolute = Path.of(workingDir.toString(), "interfaces", namespace + ".interface.jar")
-					.toFile().getAbsoluteFile();
-			var oldI = jars.remove(interfaceDstAbsolute);
-			if (null != oldI)
-				oldI.close();
-			Files.deleteIfExists(interfaceDstAbsolute.toPath());
-			if (!interfaceSrc.renameTo(interfaceDstAbsolute))
-				throw new RuntimeException("rename fail. " + interfaceSrc + "->" + interfaceDstAbsolute);
-			jars.put(interfaceDstAbsolute, new JarFile(interfaceDstAbsolute));
+		// todo 生命期管理，确定服务是否可用，等等。
+		// 安装 interface
+		var interfaceDstAbsolute = Path.of(workingDir.toString(), "interfaces", namespace + ".interface.jar")
+				.toFile().getAbsoluteFile();
+		var oldI = jars.remove(interfaceDstAbsolute);
+		if (null != oldI)
+			oldI.close();
+		Files.deleteIfExists(interfaceDstAbsolute.toPath());
+		if (!interfaceSrc.renameTo(interfaceDstAbsolute))
+			throw new RuntimeException("rename fail. " + interfaceSrc + "->" + interfaceDstAbsolute);
+		jars.put(interfaceDstAbsolute, new JarFile(interfaceDstAbsolute));
 
-			// 安装 module
-			HotModule exist = modules.remove(namespace);
-			var moduleDst = Path.of(workingDir.toString(), "modules", namespace + ".jar").toFile();
-			if (exist != null)
-				exist.stop();
-			Files.deleteIfExists(moduleDst.toPath());
-			if (!moduleSrc.renameTo(moduleDst))
-				throw new RuntimeException("rename fail. " + moduleSrc + "->" + moduleDst);
-			var module = new HotModule(this, namespace, moduleDst);
-			if (exist != null)
-				module.upgrade(exist);
+		// 安装 module
+		HotModule exist = modules.remove(namespace);
+		var moduleDst = Path.of(workingDir.toString(), "modules", namespace + ".jar").toFile();
+		if (exist != null)
+			exist.stop();
+		Files.deleteIfExists(moduleDst.toPath());
+		if (!moduleSrc.renameTo(moduleDst))
+			throw new RuntimeException("rename fail. " + moduleSrc + "->" + moduleDst);
+		var module = new HotModule(this, namespace, moduleDst);
+		if (exist != null)
+			module.upgrade(exist);
 
-			module.start();
-			modules.put(module.getName(), module);
-			return module;
-		}
+		module.start();
+		modules.put(module.getName(), module);
+		return module;
 	}
 
 	public HotManager(Path workingDir, Path distributeDir) throws Exception {
