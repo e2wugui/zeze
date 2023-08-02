@@ -1,12 +1,15 @@
 package Game.Fight;
 
+import Game.Buf.IModuleBuf;
+import Game.Equip.IModuleEquip;
+import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
-public final class ModuleFight extends AbstractModule {
+public final class ModuleFight extends AbstractModule implements IModuleFight {
 	public void Start(App app) {
 	}
 
@@ -23,23 +26,42 @@ public final class ModuleFight extends AbstractModule {
 		Fighter fighter = new Fighter(fighterId, new BFighter());
 		switch (fighterId.getType()) {
 			case BFighterId.TypeRole:
-				Game.App.getInstance().Game_Buf.GetBufs(fighterId.getInstanceId()).CalculateFighter(fighter);
-				Game.App.getInstance().Game_Equip.CalculateFighter(fighter);
+				var contextBuf = App.Instance.HotManager.<IModuleBuf>getModuleContext("Game.Buf");
+				var contextEquip = App.Instance.HotManager.<IModuleEquip>getModuleContext("Game.Equip");
+				contextBuf.getService().GetBufs(fighterId.getInstanceId()).CalculateFighter(fighter);
+				contextEquip.getService().CalculateFighter(fighter);
 				break;
 		}
 		_tfighters.getOrAdd(fighterId).assign(fighter.getBean());
 		return Procedure.Success;
 	}
 
+	@Override
 	public void StartCalculateFighter(long roleId) {
 		BFighterId fighterId = new BFighterId(BFighterId.TypeRole, roleId);
 		Zeze.Util.Task.run(Game.App.getInstance().Zeze.newProcedure(() -> CalculateFighter(fighterId),
 				"CalculateFighter"), null, null, DispatchMode.Normal);
 	}
 
+	@Override
+	public void start() throws Exception {
+		Start(App);
+	}
+
+	@Override
+	public void stop() throws Exception {
+		Stop(App);
+	}
+
+	@Override
+	public void upgrade(HotService old) throws Exception {
+
+	}
+
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
     public ModuleFight(Game.App app) {
         super(app);
     }
+
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

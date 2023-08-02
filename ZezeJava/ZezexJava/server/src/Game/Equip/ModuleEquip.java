@@ -2,6 +2,7 @@ package Game.Equip;
 
 import Game.Fight.*;
 import Zeze.Arch.ProviderUserSession;
+import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
 import Zeze.Transaction.Collections.LogMap2;
@@ -10,12 +11,27 @@ import Zeze.Transaction.Collections.LogMap2;
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 
-public final class ModuleEquip extends AbstractModule {
+public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	public void Start(App app) {
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
 	}
 
 	public void Stop(App app) {
+	}
+
+	@Override
+	public void start() throws Exception {
+		Start(App);
+	}
+
+	@Override
+	public void stop() throws Exception {
+		Stop(App);
+	}
+
+	@Override
+	public void upgrade(HotService old) throws Exception {
+
 	}
 
 	private static class ItemsChangeListener implements ChangeListener {
@@ -152,6 +168,7 @@ public final class ModuleEquip extends AbstractModule {
 		return null;
 	}
 
+	@Override
 	public void CalculateFighter(Fighter fighter) {
 		if (fighter.getId().getType() != BFighterId.TypeRole) {
 			return;

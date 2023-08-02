@@ -1,5 +1,6 @@
 package Game.Buf;
 
+import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
 import Zeze.Transaction.Collections.LogMap2;
@@ -7,12 +8,27 @@ import Zeze.Transaction.Collections.LogMap2;
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
-public class ModuleBuf extends AbstractModule {
+public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	public final void Start(App app) {
 		_tbufs.getChangeListenerMap().addListener(new BufChangeListener("Game.Buf.Bufs"));
 	}
 
 	public final void Stop(App app) {
+	}
+
+	@Override
+	public void start() throws Exception {
+		Start(App);
+	}
+
+	@Override
+	public void stop() throws Exception {
+		Stop(App);
+	}
+
+	@Override
+	public void upgrade(HotService old) throws Exception {
+
 	}
 
 	private static class BufChangeListener implements ChangeListener {
@@ -65,6 +81,7 @@ public class ModuleBuf extends AbstractModule {
 	// 如果宠物什么的如果也有buf，看情况处理：
 	// 统一存到一个表格中（使用BFighetId），或者分开存储。
 	// 【建议分开处理】。
+	@Override
 	public final Bufs GetBufs(long roleId) {
 		return new Bufs(roleId, _tbufs.getOrAdd(roleId));
 	}

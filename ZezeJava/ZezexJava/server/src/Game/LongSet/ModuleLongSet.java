@@ -4,10 +4,11 @@ import java.util.Map;
 import java.util.function.Predicate;
 import Game.Timer.ModuleTimer;
 import Zeze.Component.AutoKey;
+import Zeze.Hot.HotService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class ModuleLongSet extends AbstractModule {
+public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 	private static final Logger logger = LogManager.getLogger(ModuleLongSet.class);
 
 	public static final int CountPerNode = 500;
@@ -20,23 +21,8 @@ public class ModuleLongSet extends AbstractModule {
 	public void Stop(Game.App app) throws Exception {
 	}
 
-	public static boolean add(String name, NameValue value) {
-		return Game.App.Instance.Game_LongSet._add(name, value);
-	}
-
-	public static boolean remove(String name, NameValue value) {
-		return Game.App.Instance.Game_LongSet._remove(name, value);
-	}
-
-	public static void clear(String name) {
-		Game.App.Instance.Game_LongSet._clear(name);
-	}
-
-	public static void foreach(String name, Predicate<Map.Entry<NameValue, Timestamp>> func1) {
-		Game.App.Instance.Game_LongSet._foreach(name, func1);
-	}
-
-	private boolean _add(String name, NameValue value) {
+	@Override
+	public boolean add(String name, NameValue value) {
 		var root = _tNodeRoot.getOrAdd(name);
 		var nodeId = root.getHeadNodeId();
 		if (nodeId == 0) { // no node
@@ -78,7 +64,8 @@ public class ModuleLongSet extends AbstractModule {
 		}
 	}
 
-	private boolean _remove(String name, NameValue value) {
+	@Override
+	public boolean remove(String name, NameValue value) {
 		var indexKey = name + "#" + value.getName() + "=" + value.getValue();
 		var index = _tIndexs.get(indexKey);
 		if (index == null)
@@ -112,29 +99,32 @@ public class ModuleLongSet extends AbstractModule {
 			// 把当前空的Node加入垃圾回收。
 			// 由于Nodes并发访问的原因，不能马上删除。延迟一定时间就安全了。
 			// 不删除的话就会在数据库留下垃圾。
-			ModuleLongSet.add(ModuleTimer.GC_LinkedNodesName, new NameValue(_tNodes.getName(), index.getNodeId()));
+			_tNodes.delayRemove(index.getNodeId());
 		}
 		return result;
 	}
 
-	private void _clear(String name) {
+	@Override
+	public void clear(String name) {
 		try {
-			_foreach(name, (e) -> _remove(name, e.getKey()));
+			foreach(name, (e) -> remove(name, e.getKey()));
 		} catch (Throwable ex) {
 			// print stacktrace.
 			logger.error("_clear", ex);
 		}
 	}
 
-	private void _foreach(String name, Predicate<Map.Entry<NameValue, Timestamp>> func1) {
+	@Override
+	public void foreach(String name, Predicate<Map.Entry<NameValue, Timestamp>> func1) {
 		var root = _tNodeRoot.get(name);
 		if (null == root)
 			return;
 
-		_foreach(root.getHeadNodeId(), root.getHeadNodeId(), func1);
+		foreach(root.getHeadNodeId(), root.getHeadNodeId(), func1);
 	}
 
-	private void _foreach(long first, long last, Predicate<Map.Entry<NameValue, Timestamp>> func1) {
+	@Override
+	public void foreach(long first, long last, Predicate<Map.Entry<NameValue, Timestamp>> func1) {
 		while (true) {
 			var node = _tNodes.selectDirty(first);
 			if (node == null)
@@ -158,6 +148,20 @@ public class ModuleLongSet extends AbstractModule {
 			if (first == last)
 				break;
 		}
+	}
+	@Override
+	public void start() throws Exception {
+		Start(App);
+	}
+
+	@Override
+	public void stop() throws Exception {
+		Stop(App);
+	}
+
+	@Override
+	public void upgrade(HotService old) throws Exception {
+
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

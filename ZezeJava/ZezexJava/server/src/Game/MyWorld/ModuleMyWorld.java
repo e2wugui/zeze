@@ -1,9 +1,10 @@
 package Game.MyWorld;
 
 import Zeze.AppBase;
+import Zeze.Hot.HotService;
 import Zeze.World.World;
 
-public class ModuleMyWorld extends AbstractModule {
+public class ModuleMyWorld extends AbstractModule implements IModuleMyWorld {
     private World world;
 
     public World getWorld() {
@@ -22,6 +23,21 @@ public class ModuleMyWorld extends AbstractModule {
 
     public void Stop(Game.App app) throws Exception {
         world.stop();
+    }
+
+    @Override
+    public void start() throws Exception {
+        Start(App);
+    }
+
+    @Override
+    public void stop() throws Exception {
+        Stop(App);
+    }
+
+    @Override
+    public void upgrade(HotService old) throws Exception {
+
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

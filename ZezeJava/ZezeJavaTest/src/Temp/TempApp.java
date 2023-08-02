@@ -12,7 +12,7 @@ public class TempApp extends AppBase {
 		var workingDir = "ZezeJavaTest\\hot";
 		var distributeDir = "ZezeJavaTest\\hot\\distributes";
 		manager = new HotManager(this, workingDir, distributeDir);
-		manager.startModules();
+		manager.startModules(java.util.List.of());
 	}
 
 	@Override

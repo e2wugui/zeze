@@ -3,9 +3,10 @@ package Game.Login;
 import Game.App;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Component.AutoKey;
+import Zeze.Hot.HotService;
 import Zeze.Transaction.Procedure;
 
-public final class ModuleLogin extends AbstractModule {
+public final class ModuleLogin extends AbstractModule implements IModuleLogin {
 	private AutoKey autoKey;
 
 	public void Start(App app) {
@@ -65,6 +66,21 @@ public final class ModuleLogin extends AbstractModule {
 
 		session.sendResponseWhileCommit(rpc);
 		return Procedure.Success;
+	}
+
+	@Override
+	public void start() throws Exception {
+		Start(App);
+	}
+
+	@Override
+	public void stop() throws Exception {
+		Stop(App);
+	}
+
+	@Override
+	public void upgrade(HotService old) throws Exception {
+
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

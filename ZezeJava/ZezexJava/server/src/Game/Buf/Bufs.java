@@ -1,6 +1,7 @@
 package Game.Buf;
 
 import Game.*;
+import Game.Fight.IModuleFight;
 
 public class Bufs {
 	private final long RoleId;
@@ -28,7 +29,11 @@ public class Bufs {
 	public final void Detach(int id) {
 		if (bean.getBufs().remove(id) != null) {
 			// 因为没有取消Scheduler，所以可能发生删除不存在的buf。
-			App.Instance.Game_Fight.StartCalculateFighter(getRoleId());
+
+			// context 可以缓存，demo就不考虑了。
+			var context = App.Instance.HotManager.<IModuleFight>getModuleContext("Game.Fight");
+			var fight = context.getService();
+			fight.StartCalculateFighter(getRoleId());
 		}
 	}
 
@@ -48,7 +53,10 @@ public class Bufs {
 		bean.getBufs().put(buf.getId(), buf.getBean());
 
 		Zeze.Util.Task.schedule(buf.getContinueTime(), () -> Detach(buf.getId()));
-		App.Instance.Game_Fight.StartCalculateFighter(getRoleId());
+		// context 可以缓存，demo就不考虑了。
+		var context = App.Instance.HotManager.<IModuleFight>getModuleContext("Game.Fight");
+		var fight = context.getService();
+		fight.StartCalculateFighter(getRoleId());
 	}
 
 	public final void CalculateFighter(Game.Fight.Fighter fighter) {

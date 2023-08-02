@@ -14,6 +14,7 @@ import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
+import Zeze.Hot.HotService;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -31,7 +32,7 @@ import org.apache.logging.log4j.Logger;
  * 然后在数据变化时调用 RunUpdateRank 方法更行排行榜。
  */
 @SuppressWarnings({"MethodMayBeStatic", "RedundantSuppression"})
-public class ModuleRank extends AbstractModule {
+public class ModuleRank extends AbstractModule implements IModuleRank {
 	private static final Logger logger = LogManager.getLogger(ModuleRank.class);
 	public static final long RebuildTime = 5 * 60 * 1000; // 5 min
 
@@ -90,6 +91,21 @@ public class ModuleRank extends AbstractModule {
 			tempVar2.setValueEx(valueEx);
 			rank.getRankList().add(tempVar2);
 		}
+	}
+
+	@Override
+	public void start() throws Exception {
+		Start(App);
+	}
+
+	@Override
+	public void stop() throws Exception {
+		Stop(App);
+	}
+
+	@Override
+	public void upgrade(HotService old) throws Exception {
+
 	}
 
 	public static class Rank {
@@ -458,6 +474,7 @@ public class ModuleRank extends AbstractModule {
 		public int serverId;
 	}
 
+	@Override
 	@RedirectToServer // 单发给某个serverId执行(找不到或没连接会抛异常),可以是本服. 返回类型可以是void或RedirectFuture<自定义结果类型或Long(resultCode)>
 	public RedirectFuture<TestToServerResult> TestToServer(int serverId, int in) { // 首个参数serverId是固定必要的特殊参数,后面是自定义输入参数
 		TestToServerResult result = new TestToServerResult();
@@ -486,6 +503,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	// 第一个参数hash是固定的特殊参数
+	@Override
 	@RedirectHash // 单发给某个hash值指定的server执行,可能是本服,找不到hash节点也会在本服执行. 返回类型同ToServer
 	public RedirectFuture<TestHashResult> TestHash(int hash, int in) { // 首个参数hash是固定必要的特殊参数,后面是自定义输入参数
 		var f = new RedirectFuture<TestHashResult>();
@@ -516,6 +534,7 @@ public class ModuleRank extends AbstractModule {
 		}
 	}
 
+	@Override
 	@RedirectAll // 广播请求并获取所有回复结果
 	public RedirectAllFuture<TestToAllResult> TestToAll(int hash, int in) throws Exception { // 首个参数hash在发起方是hash总数,处理方是当前hash,后面是自定义参数列表
 		System.out.println("TestToAll hash=" + hash + ", in=" + in);

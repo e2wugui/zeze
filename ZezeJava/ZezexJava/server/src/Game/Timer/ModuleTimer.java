@@ -6,6 +6,7 @@ import Game.LongSet.ModuleLongSet;
 import Game.LongSet.NameValue;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Component.AutoKey;
+import Zeze.Hot.HotService;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Action2;
@@ -16,10 +17,7 @@ import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class ModuleTimer extends AbstractModule {
-	// 需要一个全局Timer（所有服务器只有一个）执行逻辑。
-	public final static String GC_LinkedNodesName = "Zezex.GcLinkedNodesName";
-
+public class ModuleTimer extends AbstractModule implements IModuleTimer {
 	private static final Logger logger = LogManager.getLogger(ModuleTimer.class);
 
 	public static final int TimerCountPerNode = 200;
@@ -40,38 +38,8 @@ public class ModuleTimer extends AbstractModule {
 	// 一般在Module.Initialize中注册即可。
 	private final ConcurrentHashMap<String, Action2<Long, String>> TimerHandles = new ConcurrentHashMap<>();
 
-	public static void removeTimerHandle(String name) {
-		Game.App.Instance.Game_Timer.TimerHandles.remove(name);
-	}
-
-	public static void addTimerHandle(String name, Action2<Long, String> action) {
-		if (null != Game.App.Instance.Game_Timer.TimerHandles.putIfAbsent(name, action))
-			throw new RuntimeException("duplicate timer handle name of: " + name);
-	}
-
-	// 取消一个具体的Timer实例。
-	public static void cancel(long timerId) {
-		Game.App.Instance.Game_Timer._cancel(timerId);
-	}
-
-	// 调度一个Timer实例。
-	// name为静态注册到这个模块的处理名字。
-	// 相同的name可以调度多个timer实例。
-	// @return 返回 TimerId。
-	public static long schedule(long delay, long period, String name) {
-		return Game.App.Instance.Game_Timer._schedule(delay, period, -1, name);
-	}
-
-	public static long schedule(long delay, long period, long times, String name) {
-		return Game.App.Instance.Game_Timer._schedule(delay, period, times, name);
-	}
-
-	// 调度一个Timeout，即仅执行一次的Timer。
-	public static long schedule(long delay, String name) {
-		return Game.App.Instance.Game_Timer._schedule(delay, -1, 1, name);
-	}
-
-	public void _cancel(long timerId) {
+	@Override
+	public void cancel(long timerId) {
 		var index = _tIndexs.get(timerId);
 		if (index == null) {
 			// 尽可能的执行取消操作，不做严格判断。
@@ -134,11 +102,12 @@ public class ModuleTimer extends AbstractModule {
 			// 把当前空的Node加入垃圾回收。
 			// 由于Nodes并发访问的原因，不能马上删除。延迟一定时间就安全了。
 			// 不删除的话就会在数据库留下垃圾。
-			ModuleLongSet.add(GC_LinkedNodesName, new NameValue(_tNodes.getName(), nodeId));
+			_tNodes.delayRemove(nodeId);
 		}
 	}
 
-	public long _schedule(long delay, long period, long times, String name) {
+	@Override
+	public long schedule(long delay, long period, long times, String name) {
 		if (delay < 0)
 			throw new IllegalArgumentException();
 
@@ -321,9 +290,25 @@ public class ModuleTimer extends AbstractModule {
 		return 0L;
 	}
 
+	@Override
+	public void start() throws Exception {
+		Start(App);
+	}
+
+	@Override
+	public void stop() throws Exception {
+		Stop(App);
+	}
+
+	@Override
+	public void upgrade(HotService old) throws Exception {
+
+	}
+
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleTimer(Game.App app) {
         super(app);
     }
+
 	// ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on
 }
