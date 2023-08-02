@@ -94,6 +94,12 @@ namespace Zeze.Gen.java
 
         void AppGen(StreamWriter sw)
         {
+            if (project.Hot)
+            {
+                AppGenHot(sw);
+                return;
+            }
+
             sw.WriteLine("    public Zeze.Application Zeze;");
             sw.WriteLine("    public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();");
             sw.WriteLine();
@@ -168,6 +174,121 @@ namespace Zeze.Gen.java
                 sw.WriteLine("        " + fullname + " = null;");
             }
             sw.WriteLine("        modules.clear();");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public synchronized void destroyServices() {");
+            foreach (Service m in project.Services.Values)
+                sw.WriteLine("        " + m.Name + " = null;");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public synchronized void destroyZeze() {");
+            sw.WriteLine("        Zeze = null;");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public synchronized void startModules() throws Exception {");
+            foreach (var m in project.ModuleStartOrder)
+                sw.WriteLine("        " + m.Path("_") + ".Start(this);");
+            foreach (Module m in project.AllOrderDefineModules)
+            {
+                if (!project.ModuleStartOrder.Contains(m))
+                    sw.WriteLine("        " + m.Path("_") + ".Start(this);");
+            }
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public synchronized void stopModules() throws Exception {");
+            for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
+            {
+                var m = project.AllOrderDefineModules[i];
+                if (!project.ModuleStartOrder.Contains(m))
+                {
+                    var name = m.Path("_");
+                    sw.WriteLine("        if (" + name + " != null)");
+                    sw.WriteLine("            " + name + ".Stop(this);");
+                }
+            }
+            for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
+            {
+                var name = project.ModuleStartOrder[i].Path("_");
+                sw.WriteLine("        if (" + name + " != null)");
+                sw.WriteLine("            " + name + ".Stop(this);");
+            }
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public synchronized void startService() throws Exception {");
+            foreach (Service m in project.Services.Values)
+                sw.WriteLine("        " + m.Name + ".start();");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public synchronized void stopService() throws Exception {");
+            foreach (Service m in project.Services.Values)
+            {
+                sw.WriteLine("        if (" + m.Name + " != null)");
+                sw.WriteLine("            " + m.Name + ".stop();");
+            }
+            sw.WriteLine("    }");
+        }
+
+        void AppGenHot(StreamWriter sw)
+        {
+            sw.WriteLine("    public Zeze.Application Zeze;");
+            sw.WriteLine("    public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();");
+            sw.WriteLine("    public Zeze.Hot.HotManager HotManager;");
+            sw.WriteLine();
+
+            foreach (Service m in project.Services.Values)
+                sw.WriteLine("    public " + m.FullName + " " + m.Name + ";");
+            if (project.Services.Count > 0)
+                sw.WriteLine();
+
+            sw.WriteLine("    @Override");
+            sw.WriteLine("    public Zeze.Application getZeze() {");
+            sw.WriteLine("        return Zeze;");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public void createZeze() throws Exception {");
+            sw.WriteLine("        createZeze(null);");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public synchronized void createZeze(Zeze.Config config) throws Exception {");
+            sw.WriteLine("        if (Zeze != null)");
+            sw.WriteLine("            throw new IllegalStateException(\"Zeze Has Created!\");");
+            sw.WriteLine();
+            sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Name}\", config);");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public synchronized void createService() {");
+            foreach (Service m in project.Services.Values)
+                sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public synchronized void createModules() throws Exception {");
+            sw.WriteLine("        Zeze.initialize(this);");
+            if (project.AllOrderDefineModules.Count > 0)
+            {
+                sw.WriteLine("        var _modules_ = createRedirectModules(new Class[] {");
+                foreach (Module m in project.AllOrderDefineModules)
+                    sw.WriteLine("            " + m.Path(".", "Module" + Program.Upper1(m.Name)) + ".class,");
+                sw.WriteLine("        });");
+                sw.WriteLine("        if (_modules_ == null)");
+                sw.WriteLine("            return;");
+                sw.WriteLine();
+                int index = 0;
+                foreach (Module m in project.AllOrderDefineModules)
+                {
+                    string className = m.Path(".", "Module" + Program.Upper1(m.Name));
+                    var fullname = m.Path("_");
+                    sw.WriteLine($"        {fullname} = ({className})_modules_[" + index + "];");
+                    sw.WriteLine($"        {fullname}.Initialize(this);");
+                    sw.WriteLine($"        if (modules.put({fullname}.getFullName(), {fullname}) != null)");
+                    sw.WriteLine($"            throw new IllegalStateException(\"duplicate module name: {fullname}\");");
+                    sw.WriteLine();
+                    index++;
+                }
+            }
+            sw.WriteLine("        Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public synchronized void destroyModules() {");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void destroyServices() {");

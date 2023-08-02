@@ -41,6 +41,7 @@ namespace Zeze.Gen
         public bool IsUnity { get; private set; } = false;
         public bool NoRecursiveModule { get; private set; } = false;
         public bool RelationalMapping { get; private set; } = false;
+        public bool Hot { get; private set; } = false;
 
         public List<Module> GetAllOrderdRefModules()
         {
@@ -104,6 +105,8 @@ namespace Zeze.Gen
             if (Solution.Projects.ContainsKey(Name))
                 throw new Exception("duplicate project name: " + Name);
             Solution.Projects.Add(Path.Combine(GenRelativeDir, Name), this);
+
+            Hot = self.GetAttribute("Hot").Equals("true");
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

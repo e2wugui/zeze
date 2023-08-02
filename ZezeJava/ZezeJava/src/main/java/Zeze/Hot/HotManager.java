@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
+import Zeze.AppBase;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
 import static java.nio.file.StandardWatchEventKinds.*;
@@ -33,9 +34,10 @@ public class HotManager extends ClassLoader {
 	// module namespace -> HotModule
 	private final FewModifySortedMap<String, HotModule> modules = new FewModifySortedMap<>();
 	private volatile boolean running = true;
-	private final Thread worker;
+	private volatile Thread worker;
 
 	private final ReentrantReadWriteLock hotLock = new ReentrantReadWriteLock();
+	private final AppBase app;
 
 	public HotGuard enterReadLock() {
 		return new HotGuard(hotLock.readLock());
@@ -57,11 +59,11 @@ public class HotManager extends ClassLoader {
 		return null; // throw ?
 	}
 
-	public HotModuleContext getModuleContext(String moduleNamespace) {
+	public <T extends HotService> HotModuleContext<T> getModuleContext(String moduleNamespace) {
 		var module = modules.get(moduleNamespace);
 		if (null == module)
 			throw new RuntimeException("module not exist. " + moduleNamespace);
-		return module.createContext();
+		return module.<T>createContext();
 	}
 
 	public List<HotModule> install(List<String> namespaces) throws Exception {
@@ -69,13 +71,17 @@ public class HotManager extends ClassLoader {
 			var result = new ArrayList<HotModule>();
 			for (var namespace : namespaces)
 				result.add(_install(namespace));
+			for (var module : result)
+				module.start();
 			return result;
 		}
 	}
 
 	public HotModule install(String namespace) throws Exception {
 		try (var ignored = enterWriteLock()) {
-			return _install(namespace);
+			var module = _install(namespace);
+			module.start();
+			return module;
 		}
 	}
 
@@ -112,30 +118,35 @@ public class HotManager extends ClassLoader {
 		Files.deleteIfExists(moduleDst.toPath());
 		if (!moduleSrc.renameTo(moduleDst))
 			throw new RuntimeException("rename fail. " + moduleSrc + "->" + moduleDst);
-		var module = new HotModule(this, namespace, moduleDst);
+		var module = new HotModule(app,this, namespace, moduleDst);
 		if (exist != null)
 			module.upgrade(exist);
 
-		module.start();
 		modules.put(module.getName(), module);
 		return module;
 	}
 
-	public HotManager(Path workingDir, Path distributeDir) throws Exception {
+	public HotManager(AppBase app, Path workingDir, Path distributeDir) throws Exception {
 		this.workingDir = workingDir;
 		this.distributeDir = distributeDir;
+		this.app = app;
+
+		// todo 检查 distributeDir 不能是 workingDir/interfaces/ 的子目录。
+		// todo 检查 distributeDir 不能是 workingDir/modules/ 的子目录。
+		// todo 检查 workingDir 不能是 distributeDir 的子目录。
 
 		this.loadExistInterfaces(Path.of(workingDir.toString(), "interfaces").toFile());
-		this.loadExistModules(Path.of(workingDir.toString(), "modules").toFile());
-
-		var watcher = FileSystems.getDefault().newWatchService();
-		workingDir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
-		worker = new Thread(() -> this.watch(watcher));
-		worker.setDaemon(true);
-		worker.start();;
+		this.loadExistModules(app, Path.of(workingDir.toString(), "modules").toFile());
+		startWatch();
 	}
 
-	private void loadExistModules(File dir) throws Exception {
+	public void startModules() throws Exception {
+		// todo 根据solution定义的顺序启动。
+		for (var module : modules.values())
+			module.start();
+	}
+
+	private void loadExistModules(AppBase app, File dir) throws Exception {
 		var files = dir.listFiles();
 		if (null == files)
 			return;
@@ -144,13 +155,12 @@ public class HotManager extends ClassLoader {
 			var filename = file.getName();
 			if (filename.endsWith(".jar")) {
 				var namespace = filename.substring(0, filename.indexOf(".jar")); // Temp.jar
-				var module = new HotModule(this, namespace, file);
-				module.start();
+				var module = new HotModule(app, this, namespace, file);
 				modules.put(namespace, module);
 			}
 
 			if (file.isDirectory())
-				loadExistModules(file);
+				loadExistModules(app, file);
 		}
 	}
 
@@ -201,10 +211,28 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
+	public synchronized void startWatch() throws IOException {
+		if (null != worker)
+			return;
+
+		var watcher = FileSystems.getDefault().newWatchService();
+		workingDir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+		worker = new Thread(() -> this.watch(watcher));
+		worker.setDaemon(true);
+		worker.start();;
+	}
+
 	// 严格的话，最好调用这个停止监视线程。
-	public void stopAndJoin() throws InterruptedException {
+	public void stopWatchAndJoin() throws InterruptedException {
 		running = false;
-		worker.join();
+
+		var tmp = worker;
+		if (null != tmp)
+			tmp.join();
+
+		synchronized (this) {
+			worker = null;
+		}
 	}
 
 	private void watch(WatchService watcher) {

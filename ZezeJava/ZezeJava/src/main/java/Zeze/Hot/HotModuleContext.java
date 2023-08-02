@@ -4,7 +4,7 @@ package Zeze.Hot;
  * module 引用其他 module 时，可以保存下来获得服务，
  * 不用每次都去查询。
  */
-public class HotModuleContext {
+public class HotModuleContext<T extends HotService> {
 	private volatile HotModule module;
 
 	HotModuleContext(HotModule module) {
@@ -15,7 +15,7 @@ public class HotModuleContext {
 		this.module = module;
 	}
 
-	public <T extends HotService> T getService() {
+	public T getService() {
 		return (T)module.getService();
 	}
 }
