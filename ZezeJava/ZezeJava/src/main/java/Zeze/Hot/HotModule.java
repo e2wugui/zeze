@@ -15,6 +15,7 @@ public class HotModule extends ClassLoader {
 	private final HotService service;
 	// todo Zeze.Util.WeakHashSet 没有遍历，先使用jdk的。
 	private final WeakHashMap<HotModuleContext<?>, HotModuleContext<?>> refs = new WeakHashMap<>();
+	private boolean started = false;
 
 	public HotModule(AppBase app, HotManager parent, String namespace, File jarFile) throws Exception {
 		super(namespace, parent);
@@ -43,13 +44,19 @@ public class HotModule extends ClassLoader {
 
 	// start 用来初始化，还没想好可能需要的初始化。
 	public void start() throws Exception {
-		service.start();
+		if (!started) {
+			started = true;
+			service.start();
+		}
 	}
 
 	// stop 不能清除本地进程状态，后面需要用来升级。
 	public void stop() throws Exception {
-		service.stop();
-		jar.close();
+		if (started) {
+			started = false;
+			service.stop();
+			jar.close();
+		}
 	}
 
 	// 先用这个类管理所有热更需求。

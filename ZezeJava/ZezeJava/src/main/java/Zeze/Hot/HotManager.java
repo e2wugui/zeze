@@ -140,29 +140,64 @@ public class HotManager extends ClassLoader {
 	}
 
 	public HotManager(AppBase app, String workingDir, String distributeDir) throws Exception {
+		System.out.println(workingDir);
+		System.out.println(distributeDir);
+
+		var distributePath = Path.of(distributeDir);
+		var interfacesPath = Path.of(workingDir, "interfaces");
+		if (distributePath.startsWith(interfacesPath))
+			throw new RuntimeException("distributeDir is sub-dir of workingDir/interfaces/");
+
+		var modulePath = Path.of(workingDir, "modules");
+		if (distributePath.startsWith(modulePath))
+			throw new RuntimeException("distributeDir is sub-dir of workingDir/modules/");
+
+		if (Path.of(workingDir).startsWith(distributePath))
+			throw new RuntimeException("workingDir is sub-dir of distributeDir");
+
 		this.workingDir = workingDir;
 		this.distributeDir = distributeDir;
 		this.app = app;
 
-		// todo 检查 distributeDir 不能是 workingDir/interfaces/ 的子目录。
-		// todo 检查 distributeDir 不能是 workingDir/modules/ 的子目录。
-		// todo 检查 workingDir 不能是 distributeDir 的子目录。
-
-		this.loadExistInterfaces(Path.of(workingDir, "interfaces").toFile());
-		this.loadExistModules(app, Path.of(workingDir, "modules").toFile());
+		this.loadExistInterfaces(interfacesPath.toFile());
+		this.loadExistModules(app, modulePath.toFile());
 		startWatch();
 	}
 
 	public void startModules(List<String> startOrder) throws Exception {
-		// todo 根据solution定义的顺序启动。
-		for (var module : modules.values())
+		// 先按定义顺序启动模块。
+		for (var start : startOrder) {
+			var module = modules.get(start);
+			if (module != null)
+				module.start();
+		}
+		// 启动剩余的模块。
+		for (var module : modules.values()) {
+			// 这个是list，可以做点优化：module里面允许重复调用，但只执行一次。
+//			if (startOrder.contains(module.getName()))
+//				continue; // 忽略已经启动的。
 			module.start();
+		}
 	}
 
 	public void stopModules(List<String> stopOrder) throws Exception {
-		// todo 根据solution定义的顺序启动。
-		for (var module : modules.values())
+		// 逆序
+		// 先停止没定义的。
+		for (var module : modules.values()) {
+			// startModules 的 list.contains 做了优化，但是 stop 需要先停没定义的，没法优化了。
+			// 这里用一个HashSet过重了。一般list元素不会太多的话，这里不会有问题。
+			// 另外还有个办法，程序退出的时候就不要执行stop，直接退出。
+			// 或者stop也先停定义的？
+			if (stopOrder.contains(module.getName()))
+				continue;
 			module.stop();
+		}
+		// 按定义顺序停止。
+		for (var stop : stopOrder) {
+			var module = modules.get(stop);
+			if (null != module)
+				module.stop();
+		}
 	}
 
 	private void loadExistModules(AppBase app, File dir) throws Exception {
