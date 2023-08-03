@@ -28,8 +28,8 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 			case BFighterId.TypeRole:
 				var contextBuf = App.HotManager.getModuleContext("Game.Buf", IModuleBuf.class);
 				var contextEquip = App.HotManager.getModuleContext("Game.Equip", IModuleEquip.class);
-				contextBuf.getService().GetBufs(fighterId.getInstanceId()).CalculateFighter(fighter);
-				contextEquip.getService().CalculateFighter(fighter);
+				contextBuf.getService().getBufs(fighterId.getInstanceId()).calculateFighter(fighter);
+				contextEquip.getService().calculateFighter(fighter);
 				break;
 		}
 		_tfighters.getOrAdd(fighterId).assign(fighter.getBean());

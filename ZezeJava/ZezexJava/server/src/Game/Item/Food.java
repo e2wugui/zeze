@@ -1,19 +1,39 @@
 package Game.Item;
 
-public class Food extends Item {
+import Game.Equip.BItem;
+import Game.Fight.IFighter;
+
+public class Food implements IFood {
+	private final BItem item;
 	private final BFoodExtra extra;
 
-	public Food(Game.Equip.BItem bItem, BFoodExtra extra) {
-		super(bItem);
+	public Food(BItem item, BFoodExtra extra) {
+		this.item = item;
 		this.extra = extra;
 	}
 
-	public final int getAccount() {
+	@Override
+	public final int getAmount() {
 		return extra.getAmmount();
 	}
 
 	@Override
-	public boolean Use() {
+	public int getId() {
+		return item.getId();
+	}
+
+	@Override
+	public boolean use() {
 		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public String formatTip() {
+		return "food" + getId();
+	}
+
+	@Override
+	public void calculateFighter(IFighter fighter) {
+
 	}
 }

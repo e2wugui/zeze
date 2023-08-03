@@ -1,20 +1,32 @@
 package Game.Equip;
 
-public class Equip extends Game.Item.Item {
+public class Equip implements IEquip {
+	private final BItem item;
+	private final BEquipExtra equip;
 
 	public Equip(Game.Equip.BItem bItem, BEquipExtra extra) {
-		super(bItem);
-
+		this.item = bItem;
+		this.equip = extra;
 	}
 
 	@Override
-	public void CalculateFighter(Game.Fight.Fighter fighter) {
-		fighter.getBean().setAttack(fighter.getBean().getAttack() + 20.0f);
-		fighter.getBean().setDefence(fighter.getBean().getDefence() + 20.0f);
+	public void calculateFighter(Game.Fight.IFighter fighter) {
+		fighter.setAttack(fighter.getAttack() + 20.0f);
+		fighter.setDefence(fighter.getDefence() + 20.0f);
 	}
 
 	@Override
-	public boolean Use() {
+	public int getId() {
+		return item.getId();
+	}
+
+	@Override
+	public boolean use() {
 		return false;
+	}
+
+	@Override
+	public String formatTip() {
+		return "equip" + getId();
 	}
 }

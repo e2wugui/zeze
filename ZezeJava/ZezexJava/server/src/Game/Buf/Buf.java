@@ -1,6 +1,6 @@
 package Game.Buf;
 
-public abstract class Buf {
+public abstract class Buf implements IBuf {
 	private final BBuf bean;
 
 	public final int getId() {
@@ -21,10 +21,8 @@ public abstract class Buf {
 		this.bean = bean;
 	}
 
-	public abstract void CalculateFighter(Game.Fight.Fighter fighter);
-
 	// 可以重载用来实现加入时的特殊操作。
 	public void Attach(Bufs bufs) {
-		bufs.Attach(this);
+		bufs.attach(this);
 	}
 }

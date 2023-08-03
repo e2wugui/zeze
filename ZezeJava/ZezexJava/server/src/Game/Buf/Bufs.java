@@ -3,7 +3,7 @@ package Game.Buf;
 import Game.*;
 import Game.Fight.IModuleFight;
 
-public class Bufs {
+public class Bufs implements IBufs {
 	private final long RoleId;
 	public final long getRoleId() {
 		return RoleId;
@@ -15,7 +15,8 @@ public class Bufs {
 		this.bean = bean;
 	}
 
-	public final Buf GetBuf(int id) {
+	@Override
+	public IBuf getBuf(int id) {
 		var bBuf = bean.getBufs().get(id);
 		if (null != bBuf) {
 			var extraTypeId = bBuf.getExtra().getTypeId();
@@ -26,7 +27,7 @@ public class Bufs {
 		return null;
 	}
 
-	public final void Detach(int id) {
+	public final void detach(int id) {
 		if (bean.getBufs().remove(id) != null) {
 			// 因为没有取消Scheduler，所以可能发生删除不存在的buf。
 
@@ -37,7 +38,7 @@ public class Bufs {
 		}
 	}
 
-	public final void Attach(int id) {
+	public final void attach(int id) {
 		// config: create Buf by id.
 		BBuf buf = new BBuf();
 		buf.setId(id);
@@ -48,20 +49,23 @@ public class Bufs {
 		(new BufExtra(buf, buf.getExtra_Game_Buf_BBufExtra())).Attach(this);
 	}
 
-	public final void Attach(Buf buf) {
+	public final void attach(Buf buf) {
 		// config: conflict 等
 		bean.getBufs().put(buf.getId(), buf.getBean());
 
-		Zeze.Util.Task.schedule(buf.getContinueTime(), () -> Detach(buf.getId()));
+		Zeze.Util.Task.schedule(buf.getContinueTime(), () -> detach(buf.getId()));
 		// context 可以缓存，demo就不考虑了。
 		var context = App.Instance.HotManager.getModuleContext("Game.Fight", IModuleFight.class);
 		var fight = context.getService();
 		fight.StartCalculateFighter(getRoleId());
 	}
 
-	public final void CalculateFighter(Game.Fight.Fighter fighter) {
-		for (var bufid : bean.getBufs().keySet()) {
-			GetBuf(bufid).CalculateFighter(fighter);
+	@Override
+	public void calculateFighter(Game.Fight.IFighter fighter) {
+		for (var bufId : bean.getBufs().keySet()) {
+			var buf = getBuf(bufId);
+			if (null != buf)
+				buf.calculateFighter(fighter);
 		}
 	}
 }

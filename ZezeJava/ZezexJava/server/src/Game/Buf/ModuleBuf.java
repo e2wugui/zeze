@@ -82,7 +82,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	// 统一存到一个表格中（使用BFighetId），或者分开存储。
 	// 【建议分开处理】。
 	@Override
-	public final Bufs GetBufs(long roleId) {
+	public final Bufs getBufs(long roleId) {
 		return new Bufs(roleId, _tbufs.getOrAdd(roleId));
 	}
 

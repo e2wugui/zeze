@@ -1,18 +1,40 @@
 package Game.Fight;
 
-public class Fighter {
-	private final BFighterId Id;
-	public final BFighterId getId() {
-		return Id;
+public class Fighter implements IFighter {
+	private final BFighterId id;
+	private final BFighter bean;
+
+	@Override
+	public BFighterId getId() {
+		return id;
 	}
-	private final BFighter Bean;
-	public final BFighter getBean() {
-		return Bean;
+
+	public BFighter getBean() {
+		return bean;
 	}
 
 	public Fighter(BFighterId id, BFighter bean) {
-		this.Id = id;
-		this.Bean = bean;
+		this.id = id;
+		this.bean = bean;
 	}
 
+	@Override
+	public float getAttack() {
+		return bean.getAttack();
+	}
+
+	@Override
+	public float getDefence() {
+		return bean.getDefence();
+	}
+
+	@Override
+	public void setAttack(float value) {
+		bean.setAttack(value);
+	}
+
+	@Override
+	public void setDefence(float value) {
+		bean.setDefence(value);
+	}
 }

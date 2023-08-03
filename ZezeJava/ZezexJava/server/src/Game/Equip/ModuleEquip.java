@@ -152,12 +152,12 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		return errorCode(ResultCodeEquipNotFound);
 	}
 
-	public Game.Item.Item GetEquipItem(long roleId, int position) {
+	public Game.Item.IItem getEquipItem(long roleId, int position) {
 		BEquips equips = _tequip.getOrAdd(roleId);
-		return GetEquipItem(equips, position);
+		return getEquipItem(equips, position);
 	}
 
-	public Game.Item.Item GetEquipItem(BEquips equips, int position) {
+	public Game.Item.IItem getEquipItem(BEquips equips, int position) {
 		var equip = equips.getItems().get(position);
 		if (null != equip) {
 			var extraTypeId = equip.getExtra().getBean().typeId();
@@ -169,14 +169,16 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	}
 
 	@Override
-	public void CalculateFighter(Fighter fighter) {
+	public void calculateFighter(IFighter fighter) {
 		if (fighter.getId().getType() != BFighterId.TypeRole) {
 			return;
 		}
 
 		BEquips equips = _tequip.getOrAdd(fighter.getId().getInstanceId());
 		for (var pos : equips.getItems().keySet()) {
-			GetEquipItem(equips, pos).CalculateFighter(fighter);
+			var equip = getEquipItem(equips, pos);
+			if (null != equip)
+				equip.calculateFighter(fighter);
 		}
 	}
 

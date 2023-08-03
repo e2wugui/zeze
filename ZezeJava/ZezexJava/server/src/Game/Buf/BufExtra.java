@@ -9,8 +9,8 @@ public class BufExtra extends Buf {
 	}
 
 	@Override
-	public void CalculateFighter(Game.Fight.Fighter fighter) {
-		fighter.getBean().setAttack(fighter.getBean().getAttack() + 10.0f);
-		fighter.getBean().setDefence(fighter.getBean().getDefence() + 10.0f);
+	public void calculateFighter(Game.Fight.IFighter fighter) {
+		fighter.setAttack(fighter.getAttack() + 10.0f);
+		fighter.setDefence(fighter.getDefence() + 10.0f);
 	}
 }
