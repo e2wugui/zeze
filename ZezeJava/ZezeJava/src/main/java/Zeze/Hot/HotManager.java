@@ -72,11 +72,11 @@ public class HotManager extends ClassLoader {
 		return null; // throw ?
 	}
 
-	public <T extends HotService> HotModuleContext<T> getModuleContext(String moduleNamespace) {
+	public <T extends HotService> HotModuleContext<T> getModuleContext(String moduleNamespace, Class<T> serviceClass) {
 		var module = modules.get(moduleNamespace);
 		if (null == module)
 			throw new RuntimeException("module not exist. " + moduleNamespace);
-		return module.<T>createContext();
+		return module.getContext(serviceClass);
 	}
 
 	public List<HotModule> install(List<String> namespaces) throws Exception {

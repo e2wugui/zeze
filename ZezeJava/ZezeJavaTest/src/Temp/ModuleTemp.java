@@ -22,7 +22,7 @@ public class ModuleTemp implements IModuleInterface {
 	@Override
 	public void start() {
 		var manager = app.manager;
-		var module = manager.<IModuleInterface>getModuleContext("Temp");
+		var module = manager.getModuleContext("Temp", IModuleInterface.class);
 		var service = module.getService();
 		if (service == this)
 			System.out.println("Just Me!");

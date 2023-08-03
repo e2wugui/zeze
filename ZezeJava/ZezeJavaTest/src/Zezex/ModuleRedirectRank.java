@@ -64,7 +64,7 @@ public class ModuleRedirectRank extends TestCase {
 
 	public void testRedirect() throws Exception {
 		// RedirectToServer
-		var context = app1.HotManager.<IModuleRank>getModuleContext("Game.Rank");
+		var context = app1.HotManager.getModuleContext("Game.Rank", IModuleRank.class);
 		var rank = context.getService();
 		rank.TestToServer(30, 111).then(result -> {
 			assertEquals(111, result.out);

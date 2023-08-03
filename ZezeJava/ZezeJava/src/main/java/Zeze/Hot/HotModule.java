@@ -2,7 +2,7 @@ package Zeze.Hot;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.WeakHashMap;
+import java.util.HashMap;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 import Zeze.AppBase;
@@ -13,8 +13,9 @@ import Zeze.AppBase;
 public class HotModule extends ClassLoader {
 	private final JarFile jar; // 模块的class（interface除外）必须打包成一个jar，只支持一个。
 	private final HotService service;
-	// todo Zeze.Util.WeakHashSet 没有遍历，先使用jdk的。
-	private final WeakHashMap<HotModuleContext<?>, HotModuleContext<?>> refs = new WeakHashMap<>();
+
+	// 每个版本的接口一个上下文。
+	private final HashMap<Class<?>, HotModuleContext<?>> contexts = new HashMap<>();
 	private boolean started = false;
 
 	public HotModule(AppBase app, HotManager parent, String namespace, File jarFile) throws Exception {
@@ -32,10 +33,8 @@ public class HotModule extends ClassLoader {
 		return ns[ns.length - 1];
 	}
 
-	public <T extends HotService> HotModuleContext<T> createContext() {
-		var context = new HotModuleContext<T>(this);
-		refs.put(context, context);
-		return context;
+	public <T extends HotService> HotModuleContext<T> getContext(Class<T> serviceClass) {
+		return (HotModuleContext<T>)contexts.computeIfAbsent(serviceClass, (key) -> new HotModuleContext<T>(this));
 	}
 
 	public HotService getService() {
@@ -61,9 +60,9 @@ public class HotModule extends ClassLoader {
 
 	// 先用这个类管理所有热更需求。
 	public void upgrade(HotModule old) throws Exception {
-		refs.putAll(old.refs);
-		for (var ref : refs.keySet()) {
-			ref.setModule(this);
+		contexts.putAll(old.contexts);
+		for (var context : contexts.values()) {
+			context.setModule(this);
 		}
 		service.upgrade(old.service);
 	}
