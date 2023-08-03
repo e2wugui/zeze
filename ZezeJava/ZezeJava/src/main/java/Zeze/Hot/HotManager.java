@@ -140,8 +140,8 @@ public class HotManager extends ClassLoader {
 	}
 
 	public HotManager(AppBase app, String workingDir, String distributeDir) throws Exception {
-		System.out.println(workingDir);
-		System.out.println(distributeDir);
+		//System.out.println(workingDir);
+		//System.out.println(distributeDir);
 
 		var distributePath = Path.of(distributeDir);
 		var interfacesPath = Path.of(workingDir, "interfaces");
