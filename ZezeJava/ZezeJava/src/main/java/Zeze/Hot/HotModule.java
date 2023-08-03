@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 import Zeze.AppBase;
+import Zeze.Arch.Gen.GenModule;
+import Zeze.IModule;
 
 // 目录管理规则（TODO，这个规则是一个限制，但能自动化，是否需要更自由配置方式？）：
 // 1. 目录是一个模块目录时，开启一个新的热更单位；
@@ -25,7 +27,9 @@ public class HotModule extends ClassLoader {
 		// App.ModuleClassName：MySolution.MyName.ModuleMyName，namespace=MySolution.MyName
 		// MyName 一般就叫模块名字。
 		var moduleClassName = namespace + ".Module" + last(namespace);
-		service = (HotService)loadClass(moduleClassName).getConstructor(app.getClass()).newInstance(app);
+		var moduleClass = loadClass(moduleClassName);
+		var iModules = GenModule.instance.createRedirectModules(app, new Class[] { moduleClass });
+		service = (HotService)iModules[0];
 	}
 
 	private static String last(String namespace) {

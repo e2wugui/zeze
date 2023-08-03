@@ -177,8 +177,10 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void destroyModules() {
-        HotManager.destroyModules();
-        modules.clear();
+        if (null != HotManager) {
+            HotManager.destroyModules();
+            modules.clear();
+        }
     }
 
     public synchronized void destroyServices() {

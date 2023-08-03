@@ -269,8 +269,10 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void destroyModules() {");
-            sw.WriteLine("        HotManager.destroyModules();");
-            sw.WriteLine("        modules.clear();");
+            sw.WriteLine("        if (null != HotManager) {");
+            sw.WriteLine("            HotManager.destroyModules();");
+            sw.WriteLine("            modules.clear();");
+            sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void destroyServices() {");
