@@ -583,6 +583,11 @@ public final class Config {
 		if (!attr.isBlank())
 			tableStatisticsReportPeriod = Long.parseLong(attr);
 
+		hotWorkingDir = self.getAttribute("HotWorkingDir");
+		attr = self.getAttribute("HotDistributeDir");
+		if (!attr.isBlank())
+			hotDistributeDir = attr;
+
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {
 			Node node = childNodes.item(i);
