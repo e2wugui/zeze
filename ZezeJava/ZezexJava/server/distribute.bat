@@ -3,6 +3,7 @@
 setlocal
 pushd %~dp0
 
+rmdir /S /q hot
 mkdir hot
 mkdir hot/distributes
 
