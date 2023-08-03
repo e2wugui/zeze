@@ -8,11 +8,13 @@ import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchService;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
 import Zeze.AppBase;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.IModule;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
@@ -80,6 +82,22 @@ public class HotManager extends ClassLoader {
 		return module.getContext(serviceClass);
 	}
 
+	private IModule[] createModuleInstance(Collection<HotModule> result) throws Exception {
+		var moduleClasses = new Class[result.size()];
+		var i = 0;
+		for (var module : result)
+			moduleClasses[i++] = module.getModuleClass();
+		var iModules = GenModule.instance.createRedirectModules(app, moduleClasses);
+		if (null == iModules) {
+			// todo @张路 这种情况是不是内部处理掉比较好。
+			// redirect return null, try new without redirect.
+			iModules = new IModule[moduleClasses.length];
+			for (var ii = 0; ii < moduleClasses.length; ++ii)
+				iModules[ii] = (IModule)moduleClasses[ii].getConstructor(app.getClass()).newInstance(app);
+		}
+		return iModules;
+	}
+
 	public List<HotModule> install(List<String> namespaces) throws Exception {
 		try (var ignored = enterWriteLock()) {
 			var result = new ArrayList<HotModule>(namespaces.size());
@@ -96,8 +114,17 @@ public class HotManager extends ClassLoader {
 					exist.stop();
 			}
 			// install
-			for (var i = 0; i < namespaces.size(); ++i)
-				result.add(_install(namespaces.get(i), exists.get(i)));
+			for (var namespace : namespaces)
+				result.add(_install(namespace));
+			// batch load redirect
+			var iModules = createModuleInstance(result);
+			for (var ii = 0; ii < iModules.length; ++ii) {
+				var exist = exists.get(ii);
+				var module = result.get(ii);
+				module.setService(iModules[ii]);
+				if (null != exist)
+					module.upgrade(exist);
+			}
 			// start ordered
 			for (var module : result)
 				module.start();
@@ -110,7 +137,14 @@ public class HotManager extends ClassLoader {
 			var exist = modules.remove(namespace);
 			if (null != exist)
 				exist.stop();
-			var module = _install(namespace, exist);
+			var module = _install(namespace);
+			var iModules = GenModule.instance.createRedirectModules(app, new Class[] { module.getModuleClass() });
+			// redirect return null, try new without redirect.
+			module.setService(iModules == null
+					? module.getModuleClass().getConstructor(app.getClass()).newInstance(app)
+					: iModules[0]);
+			if (exist != null)
+				module.upgrade(exist);
 			module.start();
 			return module;
 		}
@@ -123,7 +157,7 @@ public class HotManager extends ClassLoader {
 	 * @return HotModule
 	 * @throws Exception error
 	 */
-	private HotModule _install(String namespace, HotModule exist) throws Exception {
+	private HotModule _install(String namespace) throws Exception {
 		var moduleSrc = Path.of(distributeDir, namespace + ".jar").toFile();
 		var interfaceSrc = Path.of(distributeDir, namespace + ".interface.jar").toFile();
 		if (!moduleSrc.exists() || !interfaceSrc.exists())
@@ -146,10 +180,7 @@ public class HotManager extends ClassLoader {
 		Files.deleteIfExists(moduleDst.toPath());
 		if (!moduleSrc.renameTo(moduleDst))
 			throw new RuntimeException("rename fail. " + moduleSrc + "->" + moduleDst);
-		var module = new HotModule(app,this, namespace, moduleDst);
-		if (exist != null)
-			module.upgrade(exist);
-
+		var module = new HotModule(this, namespace, moduleDst);
 		modules.put(module.getName(), module);
 		return module;
 	}
@@ -175,7 +206,14 @@ public class HotManager extends ClassLoader {
 		this.app = app;
 
 		this.loadExistInterfaces(interfacesPath.toFile());
-		this.loadExistModules(app, modulePath.toFile());
+		this.loadExistModules(modulePath.toFile());
+		var iModules = createModuleInstance(modules.values());
+		var i = 0;
+		// 这里要求modules.values()遍历顺序稳定，在modules没有改变时，应该是符合要求的吧。
+		for (var module : modules.values()) {
+			module.setService(iModules[i++]);
+		}
+
 		startWatch();
 	}
 
@@ -215,7 +253,7 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
-	private void loadExistModules(AppBase app, File dir) throws Exception {
+	private void loadExistModules(File dir) throws Exception {
 		var files = dir.listFiles();
 		if (null == files)
 			return;
@@ -224,12 +262,12 @@ public class HotManager extends ClassLoader {
 			var filename = file.getName();
 			if (filename.endsWith(".jar")) {
 				var namespace = filename.substring(0, filename.indexOf(".jar")); // Temp.jar
-				var module = new HotModule(app, this, namespace, file);
+				var module = new HotModule(this, namespace, file);
 				modules.put(namespace, module);
 			}
 
 			if (file.isDirectory())
-				loadExistModules(app, file);
+				loadExistModules(file);
 		}
 	}
 

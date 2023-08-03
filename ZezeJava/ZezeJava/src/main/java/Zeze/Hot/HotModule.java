@@ -14,22 +14,30 @@ import Zeze.IModule;
 // 2. 目录不是模块目录时，它就属于往上级目录方向的最近的热更模块。
 public class HotModule extends ClassLoader {
 	private final JarFile jar; // 模块的class（interface除外）必须打包成一个jar，只支持一个。
-	private final HotService service;
+	private final Class<?> moduleClass;
+	private HotService service;
 
 	// 每个版本的接口一个上下文。
 	private final HashMap<Class<?>, HotModuleContext<?>> contexts = new HashMap<>();
 	private boolean started = false;
 
-	public HotModule(AppBase app, HotManager parent, String namespace, File jarFile) throws Exception {
+	// 为了支持批量装载redirect.class，构造只初始化moduleClass，service下一步处理。
+	public HotModule(HotManager parent, String namespace, File jarFile) throws Exception {
 		super(namespace, parent);
 		this.jar = new JarFile(jarFile);
 
 		// App.ModuleClassName：MySolution.MyName.ModuleMyName，namespace=MySolution.MyName
 		// MyName 一般就叫模块名字。
 		var moduleClassName = namespace + ".Module" + last(namespace);
-		var moduleClass = loadClass(moduleClassName);
-		var iModules = GenModule.instance.createRedirectModules(app, new Class[] { moduleClass });
-		service = (HotService)iModules[0];
+		this.moduleClass = loadClass(moduleClassName);
+	}
+
+	Class<?> getModuleClass() {
+		return moduleClass;
+	}
+
+	void setService(Object service) {
+		this.service = (HotService)service;
 	}
 
 	private static String last(String namespace) {
