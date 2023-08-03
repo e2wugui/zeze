@@ -81,9 +81,23 @@ public class HotManager extends ClassLoader {
 
 	public List<HotModule> install(List<String> namespaces) throws Exception {
 		try (var ignored = enterWriteLock()) {
-			var result = new ArrayList<HotModule>();
-			for (var namespace : namespaces)
-				result.add(_install(namespace));
+			var result = new ArrayList<HotModule>(namespaces.size());
+			var exists = new ArrayList<HotModule>(namespaces.size());
+
+			// remove
+			for (var namespace : namespaces) {
+				exists.add(modules.remove(namespace));
+			}
+			// reverse stop
+			for (var reverseI = exists.size() - 1; reverseI >= 0; --reverseI) {
+				var exist = exists.get(reverseI);
+				if (exist != null)
+					exist.stop();
+			}
+			// install
+			for (var i = 0; i < namespaces.size(); ++i)
+				result.add(_install(namespaces.get(i), exists.get(i)));
+			// start ordered
 			for (var module : result)
 				module.start();
 			return result;
@@ -92,7 +106,10 @@ public class HotManager extends ClassLoader {
 
 	public HotModule install(String namespace) throws Exception {
 		try (var ignored = enterWriteLock()) {
-			var module = _install(namespace);
+			var exist = modules.remove(namespace);
+			if (null != exist)
+				exist.stop();
+			var module = _install(namespace, exist);
 			module.start();
 			return module;
 		}
@@ -105,7 +122,7 @@ public class HotManager extends ClassLoader {
 	 * @return HotModule
 	 * @throws Exception error
 	 */
-	private HotModule _install(String namespace) throws Exception {
+	private HotModule _install(String namespace, HotModule exist) throws Exception {
 		var moduleSrc = Path.of(distributeDir, namespace + ".jar").toFile();
 		var interfaceSrc = Path.of(distributeDir, namespace + ".interface.jar").toFile();
 		if (!moduleSrc.exists() || !interfaceSrc.exists())
@@ -124,10 +141,7 @@ public class HotManager extends ClassLoader {
 		jars.put(interfaceDstAbsolute, new JarFile(interfaceDstAbsolute));
 
 		// 安装 module
-		HotModule exist = modules.remove(namespace);
 		var moduleDst = Path.of(workingDir, "modules", namespace + ".jar").toFile();
-		if (exist != null)
-			exist.stop();
 		Files.deleteIfExists(moduleDst.toPath());
 		if (!moduleSrc.renameTo(moduleDst))
 			throw new RuntimeException("rename fail. " + moduleSrc + "->" + moduleDst);
