@@ -75,7 +75,7 @@ public class HotManager extends ClassLoader {
 	public <T extends HotService> HotModuleContext<T> getModuleContext(String moduleNamespace, Class<T> serviceClass) {
 		var module = modules.get(moduleNamespace);
 		if (null == module)
-			throw new RuntimeException("module not exist. " + moduleNamespace);
+			return null; // 允许外面主动判断，用于动态判断服务。
 		return module.getContext(serviceClass);
 	}
 
