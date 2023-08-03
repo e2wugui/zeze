@@ -36,6 +36,5 @@ public final class ModuleSkill extends AbstractModule implements IModuleSkill {
     public ModuleSkill(Game.App app) {
         super(app);
     }
-
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

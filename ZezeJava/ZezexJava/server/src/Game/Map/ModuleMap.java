@@ -51,6 +51,5 @@ public final class ModuleMap extends AbstractModule implements IModuleMap {
     public ModuleMap(Game.App app) {
         super(app);
     }
-
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

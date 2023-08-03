@@ -290,13 +290,15 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void stopModules() throws Exception {");
-            sw.WriteLine("        var definedOrderReverse = new java.util.ArrayList<String>();");
+            sw.WriteLine("        if (null != HotManager) {");
+            sw.WriteLine("            var definedOrderReverse = new java.util.ArrayList<String>();");
             for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
             {
                 var name = project.ModuleStartOrder[i].Path();
-                sw.WriteLine($"        definedOrderReverse.add(\"{name}\");");
+                sw.WriteLine($"            definedOrderReverse.add(\"{name}\");");
             }
-            sw.WriteLine("        HotManager.stopModules(definedOrderReverse);");
+            sw.WriteLine("            HotManager.stopModules(definedOrderReverse);");
+            sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void startService() throws Exception {");

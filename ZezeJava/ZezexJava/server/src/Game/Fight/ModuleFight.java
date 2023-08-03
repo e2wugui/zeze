@@ -62,6 +62,5 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
     public ModuleFight(Game.App app) {
         super(app);
     }
-
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

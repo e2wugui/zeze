@@ -49,6 +49,7 @@ public class HotManager extends ClassLoader {
 		for (var module : modules.values()) {
 			var iModule = (IModule)module.getService();
 			iModule.Initialize(app);
+			modulesOut.put(module.getName(), iModule);
 		}
 	}
 

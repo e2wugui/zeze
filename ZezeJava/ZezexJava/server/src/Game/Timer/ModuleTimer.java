@@ -309,6 +309,5 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
     public ModuleTimer(Game.App app) {
         super(app);
     }
-
 	// ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on
 }

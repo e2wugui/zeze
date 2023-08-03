@@ -32,6 +32,5 @@ public final class ModuleItem extends AbstractModule implements IModuleItem {
     public ModuleItem(Game.App app) {
         super(app);
     }
-
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

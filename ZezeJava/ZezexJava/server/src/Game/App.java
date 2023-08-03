@@ -196,8 +196,10 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void stopModules() throws Exception {
-        var definedOrderReverse = new java.util.ArrayList<String>();
-        HotManager.stopModules(definedOrderReverse);
+        if (null != HotManager) {
+            var definedOrderReverse = new java.util.ArrayList<String>();
+            HotManager.stopModules(definedOrderReverse);
+        }
     }
 
     public synchronized void startService() throws Exception {

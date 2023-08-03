@@ -22,6 +22,16 @@ public class TestGameTimer {
 	final ArrayList<Zezex.App> links = new ArrayList<>();
 	final ArrayList<Game.App> servers = new ArrayList<>();
 
+	private static void waitLinkdProvider(Zezex.App linkd) throws InterruptedException {
+		while (true) {
+			System.out.println(linkd.LinkdApp.zeze.getServiceManager().getSubscribeStates().values());
+			if (!linkd.LinkdApp.zeze.getServiceManager().getSubscribeStates().isEmpty())
+				break;
+			System.out.println("wait Linkd Provider.");
+			Thread.sleep(1000);
+		}
+	}
+
 	private void prepareNewEnvironment(int clientCount, int linkCount, int serverCount, int roleCount) throws Exception {
 		clients.clear();
 		links.clear();
@@ -41,7 +51,9 @@ public class TestGameTimer {
 			servers.get(i - 40).getZeze().getTimer().initializeOnlineTimer(servers.get(i - 40).ProviderApp);
 			servers.get(i - 40).getZeze().getTimer().start();
 		}
-		//Thread.sleep(2000);
+		for (var link : links) {
+			waitLinkdProvider(link);
+		}
 		for (int i = 0; i < clientCount; ++i) {
 			var link = links.get(i % linkCount);
 			var ipport = link.LinkdService.getOnePassiveAddress();
