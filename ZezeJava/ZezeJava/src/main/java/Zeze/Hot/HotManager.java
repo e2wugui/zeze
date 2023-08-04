@@ -98,7 +98,7 @@ public class HotManager extends ClassLoader {
 		var i = 0;
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
-		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses);
+		IModule[] iModules = null; // GenModule.instance.createRedirectModules(app, moduleClasses);
 		if (null == iModules) {
 			// todo @张路 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.
@@ -188,10 +188,9 @@ public class HotManager extends ClassLoader {
 			try {
 				if (Files.deleteIfExists(interfaceDstAbsolute.toPath()))
 					break;
-			} catch (Exception ex) {
-				logger.error("", ex);
+			} catch (Exception ignored) {
 			}
-			System.out.println("delete interface fail=" + i + ":" + interfaceDstAbsolute);
+			//System.out.println("delete interface fail=" + i + ":" + interfaceDstAbsolute);
 			Thread.sleep(100);
 		}
 		if (!interfaceSrc.renameTo(interfaceDstAbsolute))
@@ -204,10 +203,9 @@ public class HotManager extends ClassLoader {
 			try {
 				if (Files.deleteIfExists(moduleDst))
 					break;
-			} catch (Exception ex) {
-				logger.error("", ex);
+			} catch (Exception ignored) {
 			}
-			System.out.println("delete module fail=" + i + ":" + moduleDst);
+			//System.out.println("delete module fail=" + i + ":" + moduleDst);
 			Thread.sleep(100);
 		}
 		var moduleDstFile = moduleDst.toFile();

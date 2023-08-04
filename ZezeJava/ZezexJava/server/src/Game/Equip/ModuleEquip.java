@@ -18,7 +18,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	public void hotHelloworld() {
-		System.out.println("hot hello world. 4");
+		System.out.println("hot hello world. 4******");
 	}
 
 	public void Stop(App app) {
