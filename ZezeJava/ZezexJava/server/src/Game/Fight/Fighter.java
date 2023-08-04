@@ -4,7 +4,7 @@ public class Fighter implements IFighter {
 	private final BFighterId id;
 	private final BFighter bean;
 
-	@Override
+	//@Override
 	public BFighterId getId() {
 		return id;
 	}

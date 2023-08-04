@@ -16,7 +16,7 @@ public class Distribute {
 		// 搜索classes目录，自动识别Module并打包。
 		// 每个Module打成两个包。一个interface，一个其他。
 		// Module除外的打成一个包，不热更。可能有例外需要处理。
-		// todo 例外，下面的类放在了全局空间，看需要打入相应的模块：
+		// todo 例外，下面的类放在了全局空间，需要打入相应的模块：
 		// build zezex 的时候，redirect.class生成到build目录了，这个不是即时编译，仅在内存的吗？
 		// 是不是zezex特殊处理了（好像是）。
 

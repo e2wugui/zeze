@@ -6,9 +6,9 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
-import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -18,6 +18,8 @@ import Zeze.Arch.Gen.GenModule;
 import Zeze.IModule;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import static java.nio.file.StandardWatchEventKinds.*;
 import java.util.List;
 
@@ -30,6 +32,8 @@ import java.util.List;
  * 3. jar覆盖的时候，能装载里面新加入的class，但是同名的已经loadClass的类不会改变。
  */
 public class HotManager extends ClassLoader {
+	private static final Logger logger = LogManager.getLogger(HotManager.class);
+
 	private final String workingDir;
 	private final String distributeDir;
 
@@ -63,6 +67,7 @@ public class HotManager extends ClassLoader {
 		return new HotGuard(hotLock.writeLock());
 	}
 
+	/*
 	// 采用其他管理措施以后，这个方法很可能不需要了。
 	private HotModule find(String className) {
 		// 因为存在子模块：
@@ -74,6 +79,7 @@ public class HotManager extends ClassLoader {
 		}
 		return null; // throw ?
 	}
+	*/
 
 	public <T extends HotService> HotModuleContext<T> getModuleContext(String moduleNamespace, Class<T> serviceClass) {
 		var module = modules.get(moduleNamespace);
@@ -82,6 +88,7 @@ public class HotManager extends ClassLoader {
 		return module.getContext(serviceClass);
 	}
 
+	@SuppressWarnings("unchecked")
 	private IModule[] createModuleInstance(Collection<HotModule> result) throws Exception {
 		var moduleClasses = new Class[result.size()];
 		var i = 0;
@@ -92,8 +99,9 @@ public class HotManager extends ClassLoader {
 			// todo @张路 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.
 			iModules = new IModule[moduleClasses.length];
-			for (var ii = 0; ii < moduleClasses.length; ++ii)
+			for (var ii = 0; ii < moduleClasses.length; ++ii) {
 				iModules[ii] = (IModule)moduleClasses[ii].getConstructor(app.getClass()).newInstance(app);
+			}
 		}
 		return iModules;
 	}
@@ -322,10 +330,7 @@ public class HotManager extends ClassLoader {
 		if (null != worker)
 			return;
 
-		var watcher = FileSystems.getDefault().newWatchService();
-		var distributePath = Path.of(distributeDir);
-		distributePath.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
-		worker = new Thread(() -> this.watch(watcher));
+		worker = new Thread(this::watch);
 		worker.setDaemon(true);
 		worker.start();;
 	}
@@ -343,15 +348,29 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
-	private void watch(WatchService watcher) {
-		try {
-			doWatch(watcher);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+	private void watch() {
+		while (running) {
+			try {
+				doWatch();
+			} catch (Exception ex) {
+				logger.error("", ex);
+			}
 		}
 	}
 
-	public void doWatch(WatchService watcher) throws Exception {
+	public void doWatch() throws Exception {
+		var foundJars = new HashSet<String>();
+
+		// 1. 注册订阅文件变更事件。
+		var watcher = FileSystems.getDefault().newWatchService();
+		var distributePath = Path.of(distributeDir);
+		distributePath.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+
+		// 2. 先装载已经存在的jar。
+		loadExistDistributes(foundJars);
+
+		// 3. 按这个顺序，新加入的jar不会丢失。但是需要处理可能重复的（目前用Files.exists判断一下，见下面）。
+
 		while (running) {
 			var key = watcher.poll(200, TimeUnit.MILLISECONDS);
 			if (null == key)
@@ -368,13 +387,12 @@ public class HotManager extends ClassLoader {
 
 				if (kind == ENTRY_CREATE) {
 					// The filename is the context of the event.
+					@SuppressWarnings("unchecked")
 					var ev = (WatchEvent<Path>)event;
-					var filename = ev.context().toAbsolutePath(); // 获得稳定的相对路径名。
-					if (filename.endsWith(".jar")) {
-						System.out.println(filename + " ++++++++++++");
-						// todo 检查更新安装包准备好（Module的两个jar都存在），自动调用install。
-						// install("");
-					}
+					var file = ev.context();
+					var filename = file.getFileName().toString();
+					if (filename.endsWith(".jar") && Files.exists(file))
+						tryInstall(foundJars, filename);
 				}
 			}
 
@@ -384,6 +402,43 @@ public class HotManager extends ClassLoader {
 			if (!key.reset()) {
 				break;
 			}
+		}
+	}
+
+	private void tryInstall(HashSet<String> foundJars, String jarFileName) {
+		try {
+			final var fileName = jarFileName.substring(0, jarFileName.indexOf(".jar"));
+
+			if (fileName.endsWith(".interface")) {
+				var namespace = fileName.substring(0, fileName.indexOf(".interface"));
+				if (foundJars.remove(namespace)) {
+					install(namespace);
+					return; // done
+				}
+			} else {
+				var interfaceJar = fileName + ".interface";
+				if (foundJars.remove(interfaceJar)) {
+					install(fileName);
+					return; // done
+				}
+			}
+			// 两个jar包只发现了一个，先存下来。
+			foundJars.add(fileName);
+		} catch (Exception ex) {
+			logger.error("", ex);
+		}
+	}
+
+	private void loadExistDistributes(HashSet<String> foundJars) {
+		var files = new File(distributeDir).listFiles();
+		if (null == files)
+			return;
+
+		for (var file : files) {
+			if (file.isDirectory())
+				continue; // 不支持子目录。
+
+			tryInstall(foundJars, file.getName());
 		}
 	}
 }

@@ -85,7 +85,9 @@ Zeze已经提供了一个受限动态表，可能需要参考这个，重新设�
 *) more more。
 
 TODO
- 监视目录变更还是需要 【差临门一脚】
+install new modiule need register sm,还需要module config  choice type
+table 替换，可能有点麻烦；protocol 替换，已有包装，由hot调一下unreg
+zezex 热更测试
 module 生成 interface 工具（预计下周）
 
 0. 原则

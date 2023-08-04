@@ -170,6 +170,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	public void calculateFighter(IFighter fighter) {
+		// todo 加上getId()以后才能用。
+		/*
 		if (fighter.getId().getType() != BFighterId.TypeRole) {
 			return;
 		}
@@ -180,6 +182,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			if (null != equip)
 				equip.calculateFighter(fighter);
 		}
+		*/
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
