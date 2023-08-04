@@ -98,7 +98,7 @@ public class HotManager extends ClassLoader {
 		var i = 0;
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
-		IModule[] iModules = null; // GenModule.instance.createRedirectModules(app, moduleClasses);
+		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses);
 		if (null == iModules) {
 			// todo @张路 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.
@@ -150,7 +150,7 @@ public class HotManager extends ClassLoader {
 			if (null != exist)
 				exist.stop();
 			var module = _install(namespace);
-			var iModules = GenModule.instance.createRedirectModules(app, new Class[] { module.getModuleClass() });
+			var iModules = createModuleInstance(List.of(module));
 			// redirect return null, try new without redirect.
 			module.setService(iModules == null
 					? (IModule)module.getModuleClass().getConstructor(app.getClass()).newInstance(app)
