@@ -619,7 +619,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			}
 			sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(")");
 
-			System.out.println(sb);
+			//System.out.println(sb);
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				try (var pre = conn.prepareStatement(sb.toString())) {

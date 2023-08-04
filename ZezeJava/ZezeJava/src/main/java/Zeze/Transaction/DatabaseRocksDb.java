@@ -183,6 +183,15 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
+		public void clear() {
+			try {
+				table.clear();
+			} catch (RocksDBException ex) {
+				Task.forceThrow(ex);
+			}
+		}
+
+		@Override
 		public DatabaseRocksDb getDatabase() {
 			return DatabaseRocksDb.this;
 		}

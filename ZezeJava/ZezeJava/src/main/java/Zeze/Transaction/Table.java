@@ -8,6 +8,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.rocksdb.RocksDBException;
 
 public abstract class Table {
 	private final int originalId;
@@ -125,7 +126,9 @@ public abstract class Table {
 
 	public abstract Schemas.RelationalTable getRelationalTable();
 
-	public abstract void open(Table exist);
+	public abstract void open(Table exist, Application app, Schemas.RelationalTable relational);
 
 	public abstract void disable();
+
+	public abstract DatabaseRocksDb.Table getLocalRocksCacheTable();
 }

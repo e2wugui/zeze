@@ -1093,25 +1093,30 @@ public class Schemas implements Serializable {
 		}
 	}
 
+	// 根据新旧Schemas.Table信息，新建Schemas.RelationalTable。
+	public static Schemas.RelationalTable newRelationalTable(Schemas.Table cur, Schemas.Table other) {
+		var relational = new RelationalTable(cur.name);
+		relational.currentKeyColumns = cur.buildRelationalColumns(relational.current);
+		//System.out.println(relational.createTableSql());
+
+		// build other. prepare to alter.
+		// is null if new table
+		if (null != other) {
+			other.buildRelationalColumns(relational.previous);
+			relational.diff();
+		}
+		return relational;
+	}
+
+	// 构建整个应用的需要关系映射的表。
 	public void buildRelationalTables(@NotNull Application zeze, @Nullable Schemas other) {
 		for (var db : zeze.getDatabases().values()) {
 			for (var table : db.getTables()) {
 				if (table.isRelationalMapping()) {
-					var tableName = table.getName();
-					var relational = new RelationalTable(tableName);
-					var cur = this.tables.get(tableName);
-					relational.currentKeyColumns = cur.buildRelationalColumns(relational.current);
-					relationalTables.put(tableName, relational);
-					//System.out.println(relational.createTableSql());
-
-					// build other. prepare to alter.
-					if (null != other) {
-						var pre = other.tables.get(tableName);
-						if (pre != null) { // is null if new table
-							pre.buildRelationalColumns(relational.previous);
-							relational.diff();
-						}
-					}
+					var relational = newRelationalTable(
+							this.tables.get(table.getName()),
+							other != null ? other.tables.get(table.getName()) : null);
+					relationalTables.put(table.getName(), relational);
 				}
 			}
 		}

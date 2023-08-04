@@ -15,6 +15,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.rocksdb.RocksDBException;
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
@@ -47,6 +48,15 @@ public abstract class Database {
 		this.zeze = zeze;
 		this.conf = conf;
 		databaseUrl = conf.getDatabaseUrl();
+	}
+
+	void replaceStorage(Storage<?, ?> exist, Storage<?, ?> replace) {
+		for (var i = 0; i < storages.size(); ++i) {
+			if (storages.get(i) == exist) {
+				storages.set(i, replace);
+				break;
+			}
+		}
 	}
 
 	public @NotNull Application getZeze() {
@@ -237,6 +247,10 @@ public abstract class Database {
 		long walkDatabaseKeyDesc(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback);
 
 		void close();
+
+		default void clear() {
+			// rocksdb支持；
+		}
 	}
 
 	// KV表辅助类，实现所有的下沉的带类型接口。

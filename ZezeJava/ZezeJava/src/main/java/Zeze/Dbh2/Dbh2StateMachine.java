@@ -218,23 +218,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	private static final Binary emptyBucketMetaKey = new Binary(new byte[] {1} );
 
-	private void deleteToEnd(RocksIterator it) throws RocksDBException {
-		if (it.isValid()) {
-			var first = it.key();
-			it.seekToLast();
-			if (it.isValid()) {
-				var last = it.key();
-				// deleteRange 不包含last，需要制造一个比当前last后面的key。
-				last = Arrays.copyOf(last, last.length + 1);
-				bucket.getData().deleteRange(first, last);
-			}
-		}
-	}
-
 	public void endMove(BBucketMeta.Data to) {
 		try (var it = bucket.getData().iterator()){
 			it.seekToFirst();
-			deleteToEnd(it);
+			bucket.getData().deleteToEnd(it);
 
 			// 被移走的桶Meta置空（使用相同的非空key）。
 			// 将会拒绝所有对这个桶的访问。
@@ -253,7 +240,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
 		try (var it = bucket.getData().iterator()){
 			it.seek(from.getKeyLast().copyIf());
-			deleteToEnd(it);
+			bucket.getData().deleteToEnd(it);
 			bucket.setBucketMeta(from);
 			bucket.addSplitMetaHistory(from, to);
 			bucket.deleteSplittingMeta();

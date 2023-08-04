@@ -698,6 +698,24 @@ public class RocksDatabase implements Closeable {
 			if (PerfCounter.ENABLE_PERF)
 				PerfCounter.instance.addRunInfo("RocksDB.compact", System.nanoTime() - timeBegin);
 		}
+
+		public void clear() throws RocksDBException {
+			deleteToEnd(iterator());
+		}
+
+		public void deleteToEnd(RocksIterator it) throws RocksDBException {
+			if (it.isValid()) {
+				var first = it.key();
+				it.seekToLast();
+				if (it.isValid()) {
+					var last = it.key();
+					// deleteRange 不包含last，需要制造一个比当前last后面的key。
+					last = Arrays.copyOf(last, last.length + 1);
+					deleteRange(first, last);
+				}
+			}
+		}
+
 	}
 
 	public class Batch implements Closeable {

@@ -220,15 +220,20 @@ public final class Application {
 		return db;
 	}
 
+	// todo 临时让编译通过，需要解决关系表参数。
+	public @NotNull Database replaceTable(@NotNull String dbName, @NotNull Table table) {
+		return replaceTable(dbName, table, null);
+	}
+
 	// 用于热更的时候替换Table.
 	// 热更不会调用addTable,removeTable。
-	public @NotNull Database replaceTable(@NotNull String dbName, @NotNull Table table) {
+	public @NotNull Database replaceTable(@NotNull String dbName, @NotNull Table table, Schemas.RelationalTable relational) {
 		TableKey.tables.put(table.getId(), table.getName()); // always put
 		var db = getDatabase(dbName);
 		var exist = tables.put(table.getId(), table);
 		if (null != exist) {
 			// 旧表存在，新表需要处理open，但这个open跟第一次启动不一样，有一些状态从旧表得到。
-			table.open(exist);
+			table.open(exist, this, relational);
 			// 旧表禁用。防止应用保留了旧表引用，还去使用导致错误。
 			exist.disable();
 		}

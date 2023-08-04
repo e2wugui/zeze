@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.rocksdb.RocksDBException;
 import static Zeze.Services.GlobalCacheManagerConst.StateInvalid;
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
@@ -34,39 +35,41 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private boolean useRelationalMapping;
 
 	@Override
-	public void open(Table exist) {
-		/*
-		@SuppressWarnings("unchecked")
-		var other = (TableX<K, V>)exist;
-		this.autoKey = other.autoKey;
-		this.cache = new TableCache<>(app, this);
-		this.storage = other.storage;
-		this.oldTable = other.oldTable;
-		this.localRocksCacheTable = other.localRocksCacheTable;
-		this.useRelationalMapping = other.useRelationalMapping;
-		// todo 能继承就不用修改database里面的引用。否则需要新的replace。
-		// todo 需要仔细考虑这个过程。旧的open代码如下。
-		// todo 还有上一层Table类的成员变量。
-		// todo 热更的时候，K,V类型必须不变（兼容？）。
+	public void open(Table exist, Application app, Schemas.RelationalTable relational) {
+		if (getId() != exist.getId())
+			throw new IllegalStateException("hot table's id changed.");
+
+		// database 继承，实际上热更新表也没法读到新的database配置。
+		var database = exist.getDatabase();
+
 		if (cache != null)
 			throw new IllegalStateException("table has opened: " + getName());
 
 		setZeze(app);
 		setDatabase(database);
 
-		if (isAutoKey())
+		if (isAutoKey()) // autoKey可以发生变化，重新读取。
 			autoKey = app.getServiceManager().getAutoKey(getName());
 
-		setTableConf(app.getConfig().getTableConf(getName()));
-		cache = new TableCache<>(app, this);
-		relationalTable = getZeze().getSchemas().relationalTables.get(getName()); // maybe null
-		storage = isMemory() ? null : new Storage<>(this, database, getName());
-		oldTable = getTableConf().getDatabaseOldMode() == 1
-				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName()) : null;
-		localRocksCacheTable = localTable != null ? localTable : app.getLocalRocksCacheDb().openTable(getName());
-		useRelationalMapping = isRelationalMapping() && database instanceof DatabaseMySql;
-		return storage;
-		*/
+		setTableConf(exist.getTableConf()); // Old
+		cache = new TableCache<>(app, this); // New
+		relationalTable = relational; // New. maybe null; may not change.
+		storage = isMemory() ? null : new Storage<>(this, database, getName()); // New
+		database.replaceStorage(exist.getStorage(), storage);
+		if (null != relational) // must after init storage.
+			tryAlter();
+
+		oldTable = exist.getOldTable(); // Old
+		// Old 但是需要清除
+		localRocksCacheTable = exist.getLocalRocksCacheTable();
+		localRocksCacheTable.clear();
+		// Old：oldConfig & oldDatabase 刚好是oldRseRelationalMapping
+		useRelationalMapping = exist.isRelationalMapping() && database instanceof DatabaseMySql;
+	}
+
+	@Override
+	public DatabaseRocksDb.Table getLocalRocksCacheTable() {
+		return localRocksCacheTable;
 	}
 
 	@Override
@@ -106,10 +109,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	@Override
 	final @Nullable Database.Table getOldTable() {
 		return oldTable;
-	}
-
-	final DatabaseRocksDb.Table getLocalRocksCacheTable() {
-		return localRocksCacheTable;
 	}
 
 	public boolean isUseRelationalMapping() {
