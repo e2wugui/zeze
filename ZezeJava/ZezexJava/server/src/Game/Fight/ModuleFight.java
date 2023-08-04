@@ -2,15 +2,40 @@ package Game.Fight;
 
 import Game.Buf.IModuleBuf;
 import Game.Equip.IModuleEquip;
+import Zeze.Game.LoginArgument;
+import Zeze.Game.Online;
 import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
+import Zeze.Util.TaskCompletionSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class ModuleFight extends AbstractModule implements IModuleFight {
+	private static final Logger logger = LogManager.getLogger(App.class);
+	public TaskCompletionSource<Boolean> areYouFight = new TaskCompletionSource<>();
+
+
+	@Override
+	public boolean isAreYouFightDone() {
+		return areYouFight.isDone();
+	}
+
 	public void Start(App app) {
+		app.Provider.getOnline().getLoginEvents().getRunEmbedEvents().add((sender, arg) -> {
+			var online = (Online)sender;
+			var login = (LoginArgument)arg;
+			online.sendOnlineRpc(login.roleId, new AreYouFight(), (p) -> {
+				logger.info("AreYouFight done.");
+				areYouFight.setResult(true);
+				return 0;
+			});
+			return 0;
+		});
+
 	}
 
 	public void Stop(App app) {

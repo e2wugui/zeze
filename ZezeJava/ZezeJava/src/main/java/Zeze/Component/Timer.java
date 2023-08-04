@@ -616,7 +616,10 @@ public class Timer extends AbstractTimer {
 	 *
 	 * @param timerId timerId
 	 */
-	public void cancel(@NotNull String timerId) {
+	public void cancel(String timerId) {
+		if (null == timerId)
+			return; // 忽略没有初始化的timerId。
+
 		/*
 		try {
 			// XXX 统一通过这里取消定时器，可能会浪费一次内存表查询。
@@ -632,7 +635,6 @@ public class Timer extends AbstractTimer {
 			return; // done;
 		}
 		*/
-
 		var index = _tIndexs.get(timerId);
 		if (null != index) {
 			cancel(index.getServerId(), timerId, index, _tNodes.get(index.getNodeId()));

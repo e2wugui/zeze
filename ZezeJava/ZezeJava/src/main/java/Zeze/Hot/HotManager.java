@@ -98,7 +98,7 @@ public class HotManager extends ClassLoader {
 		var i = 0;
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
-		var iModules = GenModule.instance.createRedirectModules(app, moduleClasses);
+		IModule[] iModules = null; // GenModule.instance.createRedirectModules(app, moduleClasses);
 		if (null == iModules) {
 			// todo @张路 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.
@@ -153,7 +153,7 @@ public class HotManager extends ClassLoader {
 			var iModules = GenModule.instance.createRedirectModules(app, new Class[] { module.getModuleClass() });
 			// redirect return null, try new without redirect.
 			module.setService(iModules == null
-					? module.getModuleClass().getConstructor(app.getClass()).newInstance(app)
+					? (IModule)module.getModuleClass().getConstructor(app.getClass()).newInstance(app)
 					: iModules[0]);
 			if (exist != null)
 				module.upgrade(exist);
@@ -179,20 +179,41 @@ public class HotManager extends ClassLoader {
 		// 安装 interface
 		var interfaceDstAbsolute = Path.of(workingDir, "interfaces", namespace + ".interface.jar")
 				.toFile().getAbsoluteFile();
-		var oldI = jars.remove(interfaceDstAbsolute);
-		if (null != oldI)
-			oldI.close();
-		Files.deleteIfExists(interfaceDstAbsolute.toPath());
+		{
+			var oldI = jars.remove(interfaceDstAbsolute);
+			if (null != oldI)
+				oldI.close();
+		}
+		for (var i = 0; i < 10; ++i) {
+			try {
+				if (Files.deleteIfExists(interfaceDstAbsolute.toPath()))
+					break;
+			} catch (Exception ex) {
+				logger.error("", ex);
+			}
+			System.out.println("delete interface fail=" + i + ":" + interfaceDstAbsolute);
+			Thread.sleep(100);
+		}
 		if (!interfaceSrc.renameTo(interfaceDstAbsolute))
 			throw new RuntimeException("rename fail. " + interfaceSrc + "->" + interfaceDstAbsolute);
 		jars.put(interfaceDstAbsolute, new JarFile(interfaceDstAbsolute));
 
 		// 安装 module
-		var moduleDst = Path.of(workingDir, "modules", namespace + ".jar").toFile();
-		Files.deleteIfExists(moduleDst.toPath());
-		if (!moduleSrc.renameTo(moduleDst))
+		var moduleDst = Path.of(workingDir, "modules", namespace + ".jar");
+		for (var i = 0; i < 10; ++i) {
+			try {
+				if (Files.deleteIfExists(moduleDst))
+					break;
+			} catch (Exception ex) {
+				logger.error("", ex);
+			}
+			System.out.println("delete module fail=" + i + ":" + moduleDst);
+			Thread.sleep(100);
+		}
+		var moduleDstFile = moduleDst.toFile();
+		if (!moduleSrc.renameTo(moduleDstFile))
 			throw new RuntimeException("rename fail. " + moduleSrc + "->" + moduleDst);
-		var module = new HotModule(this, namespace, moduleDst);
+		var module = new HotModule(this, namespace, moduleDstFile);
 		modules.put(module.getName(), module);
 		return module;
 	}
@@ -315,8 +336,10 @@ public class HotManager extends ClassLoader {
 	protected Class<?> findClass(String className) throws ClassNotFoundException {
 		for (var jar : jars.values()) {
 			var loaded = loadInterfaceClass(className, jar);
-			if (null != loaded)
+			if (null != loaded) {
+				//System.out.println("HotManger.interface=" + className);
 				return loaded;
+			}
 		}
 		return super.findClass(className);
 	}
@@ -324,6 +347,8 @@ public class HotManager extends ClassLoader {
 	private Class<?> loadInterfaceClass(String className, JarFile jar) {
 		String classFileName = className.replace('.', '/') + ".class";
 		var entry = jar.getEntry(classFileName);
+		if (null == entry)
+			return null;
 		// 采用标准方式重载findClass以后，不需要判断这个了。
 //		var loaded = findLoadedClass(className);
 //		if (null != loaded)
@@ -418,6 +443,7 @@ public class HotManager extends ClassLoader {
 	private void tryInstall(HashSet<String> foundJars, String jarFileName) {
 		try {
 			final var fileName = jarFileName.substring(0, jarFileName.indexOf(".jar"));
+			System.out.println("tryInstall " + fileName);
 
 			if (fileName.endsWith(".interface")) {
 				var namespace = fileName.substring(0, fileName.indexOf(".interface"));
@@ -441,10 +467,13 @@ public class HotManager extends ClassLoader {
 
 	private void loadExistDistributes(HashSet<String> foundJars) {
 		var files = new File(distributeDir).listFiles();
-		if (null == files)
+		if (null == files) {
+			System.out.println("is null.");
 			return;
+		}
 
 		for (var file : files) {
+			System.out.println(file + " " + file.isDirectory());
 			if (file.isDirectory())
 				continue; // 不支持子目录。
 

@@ -16,6 +16,11 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
 	}
 
+	@Override
+	public void hotHelloworld() {
+		System.out.println("hot hello world. 4");
+	}
+
 	public void Stop(App app) {
 	}
 

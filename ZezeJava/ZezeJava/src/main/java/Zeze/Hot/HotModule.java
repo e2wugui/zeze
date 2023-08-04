@@ -11,7 +11,7 @@ import Zeze.IModule;
 // 1. 目录是一个模块目录时，开启一个新的热更单位；
 // 2. 目录不是模块目录时，它就属于往上级目录方向的最近的热更模块。
 public class HotModule extends ClassLoader {
-	private final JarFile jar; // 模块的class（interface除外）必须打包成一个jar，只支持一个。
+	private JarFile jar; // 模块的class（interface除外）必须打包成一个jar，只支持一个。
 	private final Class<?> moduleClass;
 	private HotService service;
 
@@ -34,7 +34,7 @@ public class HotModule extends ClassLoader {
 		return moduleClass;
 	}
 
-	void setService(Object service) {
+	void setService(IModule service) {
 		this.service = (HotService)service;
 	}
 
@@ -68,6 +68,8 @@ public class HotModule extends ClassLoader {
 			var iModule = (IModule)service;
 			iModule.UnRegister();
 			jar.close();
+			jar = null;
+			System.out.println(getName() + " stop");
 		}
 	}
 

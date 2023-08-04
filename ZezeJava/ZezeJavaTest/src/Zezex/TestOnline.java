@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
+import Game.Fight.IModuleFight;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
@@ -61,7 +62,8 @@ public class TestOnline extends TestCase {
 	private void areYouFight() throws InterruptedException {
 		while (true) {
 			for (var server : servers) {
-				if (server.areYouFight.isDone())
+				var fightModule = server.HotManager.getModuleContext("Game.Fight", IModuleFight.class);
+				if (fightModule.getService().isAreYouFightDone())
 					return;
 			}
 			Thread.sleep(1);

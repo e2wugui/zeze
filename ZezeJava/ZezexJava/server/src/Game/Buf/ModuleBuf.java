@@ -1,19 +1,35 @@
 package Game.Buf;
 
+import Game.Equip.IModuleEquip;
+import Zeze.Component.TimerContext;
+import Zeze.Component.TimerHandle;
 import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
 import Zeze.Transaction.Collections.LogMap2;
+import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public class ModuleBuf extends AbstractModule implements IModuleBuf {
+	private String timerIdHot;
+
 	public final void Start(App app) {
 		_tbufs.getChangeListenerMap().addListener(new BufChangeListener("Game.Buf.Bufs"));
+		Task.run(() -> {
+			for (var i = 0; i < 1000; ++i) {
+				var module = Game.App.Instance.HotManager.getModuleContext("Game.Equip", IModuleEquip.class);
+				var service = module.getService();
+				service.hotHelloworld();
+				Thread.sleep(2000);
+			}
+		}, "timer hot");
 	}
 
 	public final void Stop(App app) {
+		App.Zeze.getTimer().cancel(timerIdHot);
 	}
 
 	@Override
