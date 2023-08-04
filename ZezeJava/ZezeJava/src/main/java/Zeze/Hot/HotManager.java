@@ -213,7 +213,7 @@ public class HotManager extends ClassLoader {
 		if (Path.of(workingDir).startsWith(distributePath))
 			throw new RuntimeException("workingDir is sub-dir of distributeDir");
 
-		if (!Files.isDirectory(distributePath)) {
+		if (!Files.isDirectory(distributePath) && GenModule.instance.genFileSrcRoot == null) {
 			throw new FileNotFoundException("distributePath = " + distributePath
 					+ ", curPath = " + new File(".").getAbsolutePath());
 		}
@@ -231,7 +231,8 @@ public class HotManager extends ClassLoader {
 			module.setService(iModules[i++]);
 		}
 
-		startWatch();
+		if (GenModule.instance.genFileSrcRoot == null)
+			startWatch();
 	}
 
 	public void startModules(List<String> startOrder) throws Exception {

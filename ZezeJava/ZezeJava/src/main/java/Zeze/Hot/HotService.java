@@ -1,7 +1,5 @@
 package Zeze.Hot;
 
-import Zeze.AppBase;
-
 public interface HotService {
 	void start() throws Exception;
 

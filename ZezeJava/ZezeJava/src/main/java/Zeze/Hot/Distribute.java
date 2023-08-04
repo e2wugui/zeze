@@ -12,6 +12,7 @@ import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
 public class Distribute {
+	@SuppressWarnings("ResultOfMethodCallIgnored")
 	public static void main(String [] args) throws Exception {
 		// 搜索classes目录，自动识别Module并打包。
 		// 每个Module打成两个包。一个interface，一个其他。
@@ -61,7 +62,7 @@ public class Distribute {
 			if (module.isEmpty()) {
 				// todo server.jar，需要得到项目的名字。
 				var serverJarFile = Path.of(workingDir, "server.jar").toFile();
-				try (var serverJar = new JarOutputStream(new FileOutputStream(serverJarFile), interfaceManifest);) {
+				try (var serverJar = new JarOutputStream(new FileOutputStream(serverJarFile), interfaceManifest)) {
 					for (var file : classes) {
 						var classFile = home.relativize(file.toPath()).toString().replace("\\", "/");
 						var entry = new ZipEntry(classFile);

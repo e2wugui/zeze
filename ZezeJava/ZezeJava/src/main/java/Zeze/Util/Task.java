@@ -29,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 public final class Task {
 	// 默认不开启热更，这个实现希望能被优化掉，几乎不造成影响。
 	// 开启热更时，由App.HotManager初始化的时候设置。
+	@SuppressWarnings("CanBeFinal")
 	public static volatile Factory<HotGuard> hotGuard = () -> null;
 
 	public interface ILogAction {
