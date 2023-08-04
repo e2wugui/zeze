@@ -3,16 +3,13 @@ package Zeze.Hot;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.WatchEvent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
 import Zeze.AppBase;
@@ -20,12 +17,9 @@ import Zeze.Arch.Gen.GenModule;
 import Zeze.IModule;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
-import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
 /**
  * 装载所有的模块接口。
@@ -45,9 +39,6 @@ public class HotManager extends ClassLoader {
 
 	// module namespace -> HotModule
 	private final FewModifySortedMap<String, HotModule> modules = new FewModifySortedMap<>();
-	private volatile boolean running = true;
-	private volatile Thread worker;
-
 	private final ReentrantReadWriteLock hotLock = new ReentrantReadWriteLock();
 	private final AppBase app;
 
@@ -110,7 +101,7 @@ public class HotManager extends ClassLoader {
 		return iModules;
 	}
 
-	public List<HotModule> install(List<String> namespaces) throws Exception {
+	private List<HotModule> install(List<String> namespaces) throws Exception {
 		try (var ignored = enterWriteLock()) {
 			var result = new ArrayList<HotModule>(namespaces.size());
 			var exists = new ArrayList<HotModule>(namespaces.size());
@@ -141,24 +132,6 @@ public class HotManager extends ClassLoader {
 			for (var module : result)
 				module.start();
 			return result;
-		}
-	}
-
-	public HotModule install(String namespace) throws Exception {
-		try (var ignored = enterWriteLock()) {
-			var exist = modules.remove(namespace);
-			if (null != exist)
-				exist.stop();
-			var module = _install(namespace);
-			var iModules = createModuleInstance(List.of(module));
-			// redirect return null, try new without redirect.
-			module.setService(iModules == null
-					? (IModule)module.getModuleClass().getConstructor(app.getClass()).newInstance(app)
-					: iModules[0]);
-			if (exist != null)
-				module.upgrade(exist);
-			module.start();
-			return module;
 		}
 	}
 
@@ -249,6 +222,16 @@ public class HotManager extends ClassLoader {
 		for (var module : modules.values()) {
 			module.setService(iModules[i++]);
 		}
+
+		// todo 先能工作，使用即时命令，可以更快速的得到响应。
+		//  准备把 Distribute.java 发展成发布工具。
+		//  支持远程，多服务器发布。
+		//  支持原子发布。
+		var ready = Path.of(distributeDir, "ready");
+		Task.schedule(1000, 1000, () -> {
+			if (Files.exists(ready) && Files.deleteIfExists(ready))
+				installReadies();
+		});
 	}
 
 	public void startModules(List<String> startOrder) throws Exception {
@@ -265,7 +248,6 @@ public class HotManager extends ClassLoader {
 //				continue; // 忽略已经启动的。
 			module.start();
 		}
-		startWatch();
 	}
 
 	public void stopModules(List<String> stopOrder) throws Exception {
@@ -357,86 +339,15 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
-	public synchronized void startWatch() throws IOException {
-		if (null != worker)
-			return;
-
-		worker = new Thread(this::watch);
-		worker.setDaemon(true);
-		worker.start();
-	}
-
-	// 严格的话，最好调用这个停止监视线程。
-	public void stopWatchAndJoin() throws InterruptedException {
-		running = false;
-
-		var tmp = worker;
-		if (null != tmp)
-			tmp.join();
-
-		synchronized (this) {
-			worker = null;
-		}
-	}
-
-	private void watch() {
-		while (running) {
-			try {
-				doWatch();
-			} catch (Exception ex) {
-				logger.error("", ex);
-			}
-		}
-	}
-
-	public void doWatch() throws Exception {
+	public List<HotModule> installReadies() throws Exception {
 		var foundJars = new HashSet<String>();
-
-		// 1. 注册订阅文件变更事件。
-		var watcher = FileSystems.getDefault().newWatchService();
-		var distributePath = Path.of(distributeDir);
-		distributePath.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
-
-		// 2. 先装载已经存在的jar。
-		loadExistDistributes(foundJars);
-
-		// 3. 按这个顺序，新加入的jar不会丢失。但是需要处理可能重复的（目前用Files.exists判断一下，见下面）。
-
-		while (running) {
-			var key = watcher.poll(200, TimeUnit.MILLISECONDS);
-			if (null == key)
-				continue;
-			for (var event: key.pollEvents()) {
-				var kind = event.kind();
-
-				// This key is registered only for ENTRY_CREATE events,
-				// but an OVERFLOW event can occur regardless if events
-				// are lost or discarded.
-				if (kind == OVERFLOW) {
-					continue;
-				}
-
-				if (kind == ENTRY_CREATE) {
-					// The filename is the context of the event.
-					@SuppressWarnings("unchecked")
-					var ev = (WatchEvent<Path>)event;
-					var file = ev.context();
-					var filename = file.getFileName().toString();
-					if (filename.endsWith(".jar") && Files.exists(file))
-						tryInstall(foundJars, filename);
-				}
-			}
-
-			// Reset the key -- this step is critical if you want to
-			// receive further watch events.  If the key is no longer valid,
-			// the directory is inaccessible so exit the loop.
-			if (!key.reset()) {
-				break;
-			}
-		}
+		var readies = new ArrayList<String>();
+		loadExistDistributes(foundJars, readies);
+		// todo install order. howto?
+		return install(readies);
 	}
 
-	private void tryInstall(HashSet<String> foundJars, String jarFileName) {
+	private static void tryReady(HashSet<String> foundJars, String jarFileName, ArrayList<String> readies) {
 		try {
 			final var fileName = jarFileName.substring(0, jarFileName.indexOf(".jar"));
 			System.out.println("tryInstall " + fileName);
@@ -444,13 +355,13 @@ public class HotManager extends ClassLoader {
 			if (fileName.endsWith(".interface")) {
 				var namespace = fileName.substring(0, fileName.indexOf(".interface"));
 				if (foundJars.remove(namespace)) {
-					install(namespace);
+					readies.add(namespace);
 					return; // done
 				}
 			} else {
 				var interfaceJar = fileName + ".interface";
 				if (foundJars.remove(interfaceJar)) {
-					install(fileName);
+					readies.add(fileName);
 					return; // done
 				}
 			}
@@ -461,7 +372,7 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
-	private void loadExistDistributes(HashSet<String> foundJars) {
+	private void loadExistDistributes(HashSet<String> foundJars, ArrayList<String> readies) {
 		var files = new File(distributeDir).listFiles();
 		if (null == files) {
 			System.out.println("is null.");
@@ -473,7 +384,7 @@ public class HotManager extends ClassLoader {
 			if (file.isDirectory())
 				continue; // 不支持子目录。
 
-			tryInstall(foundJars, file.getName());
+			tryReady(foundJars, file.getName(), readies);
 		}
 	}
 }

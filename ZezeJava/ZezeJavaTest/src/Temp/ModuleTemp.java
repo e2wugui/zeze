@@ -1,8 +1,9 @@
 package Temp;
 
 import Zeze.Hot.HotService;
+import Zeze.IModule;
 
-public class ModuleTemp implements IModuleInterface {
+public class ModuleTemp implements IModuleInterface, IModule {
 	private final TempApp app;
 
 	public ModuleTemp(TempApp app) {
@@ -34,5 +35,20 @@ public class ModuleTemp implements IModuleInterface {
 	@Override
 	public void helloWorld() {
 		System.out.println("hello world.");
+	}
+
+	@Override
+	public String getFullName() {
+		return "Temp";
+	}
+
+	@Override
+	public String getName() {
+		return "Temp";
+	}
+
+	@Override
+	public int getId() {
+		return 0;
 	}
 }
