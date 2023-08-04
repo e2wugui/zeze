@@ -19,9 +19,11 @@ Redirect_*.java
 /ZezeJavaTest/test.ks
 /ZezeJavaTest/CommitRocks*
 /ZezeJavaTest/DiffLockAndNoLock
+/ZezeJavaTest/hot/distributes
 /ZezeJavaTest/RocksDB
 /ZezeJavaTest/manager*
 /ZezeJavaTest/master
+/ZezexJava/server/hot
 /test/Dbh2/CommitRocks*
 /test/Dbh2/manager*
 /test/Dbh2/master

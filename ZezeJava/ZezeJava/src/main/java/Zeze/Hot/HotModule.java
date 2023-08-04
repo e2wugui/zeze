@@ -43,6 +43,7 @@ public class HotModule extends ClassLoader {
 		return ns[ns.length - 1];
 	}
 
+	@SuppressWarnings("unchecked")
 	public <T extends HotService> HotModuleContext<T> getContext(Class<T> serviceClass) {
 		return (HotModuleContext<T>)contexts.computeIfAbsent(serviceClass, (key) -> new HotModuleContext<T>(this));
 	}

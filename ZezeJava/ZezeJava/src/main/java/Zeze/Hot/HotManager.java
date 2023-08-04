@@ -1,6 +1,7 @@
 package Zeze.Hot;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -9,6 +10,7 @@ import java.nio.file.WatchEvent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -20,8 +22,10 @@ import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import static java.nio.file.StandardWatchEventKinds.*;
-import java.util.List;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
 /**
  * 装载所有的模块接口。
@@ -209,6 +213,11 @@ public class HotManager extends ClassLoader {
 		if (Path.of(workingDir).startsWith(distributePath))
 			throw new RuntimeException("workingDir is sub-dir of distributeDir");
 
+		if (!Files.isDirectory(distributePath)) {
+			throw new FileNotFoundException("distributePath = " + distributePath
+					+ ", curPath = " + new File(".").getAbsolutePath());
+		}
+
 		this.workingDir = workingDir;
 		this.distributeDir = distributeDir;
 		this.app = app;
@@ -332,7 +341,7 @@ public class HotManager extends ClassLoader {
 
 		worker = new Thread(this::watch);
 		worker.setDaemon(true);
-		worker.start();;
+		worker.start();
 	}
 
 	// 严格的话，最好调用这个停止监视线程。

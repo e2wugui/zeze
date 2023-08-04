@@ -15,6 +15,7 @@ public class HotModuleContext<T extends HotService> {
 		this.module = module;
 	}
 
+	@SuppressWarnings("unchecked")
 	public T getService() {
 		return (T)module.getService();
 	}

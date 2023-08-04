@@ -32,6 +32,7 @@ public class ProviderWithOnline extends ProviderImplement {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
 			logger.info("LinkBroken[{}]: {}", p.getSender().getSessionId(), AsyncSocket.toStr(p.Argument));
 		// 目前仅需设置online状态。
+		var online = this.online;
 		if (!p.Argument.getUserState().getContext().isEmpty() && online != null) {
 			var roleId = Long.parseLong(p.Argument.getUserState().getContext());
 			var onlineSet = online.getOnline(p.Argument.getUserState().getOnlineSetName());
