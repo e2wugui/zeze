@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
+import Zeze.IModule;
 
 // 目录管理规则（TODO，这个规则是一个限制，但能自动化，是否需要更自由配置方式？）：
 // 1. 目录是一个模块目录时，开启一个新的热更单位；
@@ -63,6 +64,8 @@ public class HotModule extends ClassLoader {
 		if (started) {
 			started = false;
 			service.stop();
+			var iModule = (IModule)service;
+			iModule.UnRegister();
 			jar.close();
 		}
 	}

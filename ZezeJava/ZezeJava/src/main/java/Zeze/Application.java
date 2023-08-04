@@ -220,6 +220,23 @@ public final class Application {
 		return db;
 	}
 
+	// 用于热更的时候替换Table.
+	// 热更不会调用addTable,removeTable。
+	public @NotNull Database replaceTable(@NotNull String dbName, @NotNull Table table) {
+		TableKey.tables.put(table.getId(), table.getName()); // always put
+		var db = getDatabase(dbName);
+		var exist = tables.put(table.getId(), table);
+		if (null != exist) {
+			// 旧表存在，新表需要处理open，但这个open跟第一次启动不一样，有一些状态从旧表得到。
+			table.open(exist);
+			// 旧表禁用。防止应用保留了旧表引用，还去使用导致错误。
+			exist.disable();
+		}
+		tableNameMap.put(table.getName(), table); // always put, 操作在tables阶段完成。
+		db.replaceTable(table);
+		return db;
+	}
+
 	public synchronized void openDynamicTable(@NotNull String dbName, @NotNull Table table) {
 		addTable(dbName, table).openDynamicTable(this, table);
 	}

@@ -326,7 +326,10 @@ namespace Zeze.Gen.java
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
                 {
-                    sw.WriteLine($"        {zezeVar}.addTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                    if (project.Hot)
+                        sw.WriteLine($"        {zezeVar}.replaceTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                    else
+                        sw.WriteLine($"        {zezeVar}.addTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
                 }
             }
         }
@@ -361,7 +364,8 @@ namespace Zeze.Gen.java
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
                 {
-                    sw.WriteLine($"        {zezeVar}.removeTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                    if (false == project.Hot)
+                        sw.WriteLine($"        {zezeVar}.removeTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
                 }
             }
         }

@@ -124,4 +124,8 @@ public abstract class Table {
 	public abstract void tryAlter();
 
 	public abstract Schemas.RelationalTable getRelationalTable();
+
+	public abstract void open(Table exist);
+
+	public abstract void disable();
 }

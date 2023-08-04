@@ -61,6 +61,10 @@ public abstract class Database {
 		return tables.get(name);
 	}
 
+	public final void replaceTable(@NotNull Zeze.Transaction.Table table) {
+		tables.put(table.getName(), table); // always put.
+	}
+
 	public final void addTable(@NotNull Zeze.Transaction.Table table) {
 		if (null != tables.putIfAbsent(table.getName(), table))
 			throw new IllegalStateException("duplicate table=" + table.getName());

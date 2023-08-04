@@ -27,11 +27,54 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private static final boolean isTraceEnabled = logger.isTraceEnabled();
 
 	private @Nullable AutoKey autoKey;
-	private TableCache<K, V> cache;
-	private @Nullable Storage<K, V> storage;
+	private volatile TableCache<K, V> cache;
+	private volatile @Nullable Storage<K, V> storage;
 	private @Nullable Database.Table oldTable;
 	private DatabaseRocksDb.Table localRocksCacheTable;
 	private boolean useRelationalMapping;
+
+	@Override
+	public void open(Table exist) {
+		/*
+		@SuppressWarnings("unchecked")
+		var other = (TableX<K, V>)exist;
+		this.autoKey = other.autoKey;
+		this.cache = new TableCache<>(app, this);
+		this.storage = other.storage;
+		this.oldTable = other.oldTable;
+		this.localRocksCacheTable = other.localRocksCacheTable;
+		this.useRelationalMapping = other.useRelationalMapping;
+		// todo 能继承就不用修改database里面的引用。否则需要新的replace。
+		// todo 需要仔细考虑这个过程。旧的open代码如下。
+		// todo 还有上一层Table类的成员变量。
+		// todo 热更的时候，K,V类型必须不变（兼容？）。
+		if (cache != null)
+			throw new IllegalStateException("table has opened: " + getName());
+
+		setZeze(app);
+		setDatabase(database);
+
+		if (isAutoKey())
+			autoKey = app.getServiceManager().getAutoKey(getName());
+
+		setTableConf(app.getConfig().getTableConf(getName()));
+		cache = new TableCache<>(app, this);
+		relationalTable = getZeze().getSchemas().relationalTables.get(getName()); // maybe null
+		storage = isMemory() ? null : new Storage<>(this, database, getName());
+		oldTable = getTableConf().getDatabaseOldMode() == 1
+				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName()) : null;
+		localRocksCacheTable = localTable != null ? localTable : app.getLocalRocksCacheDb().openTable(getName());
+		useRelationalMapping = isRelationalMapping() && database instanceof DatabaseMySql;
+		return storage;
+		*/
+	}
+
+	@Override
+	public void disable() {
+		// 去掉这些，应该所有的操作都无法完成了。
+		this.cache = null;
+		this.storage = null; // 【这里不处理storage的关闭】
+	}
 
 	public TableX(int id, @NotNull String name) {
 		super(id, name);
@@ -647,12 +690,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	final void close() {
-		if (storage != null) {
-			storage.close();
+		var st = storage;
+		if (st != null) {
+			st.close();
 			storage = null;
 		}
-		if (cache != null) {
-			cache.close();
+		var ca = cache;
+		if (ca != null) {
+			ca.close();
 			cache = null;
 		}
 	}
@@ -721,6 +766,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final K walk(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback,
 						@Nullable Runnable afterLock) {
+		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walk(this, exclusiveStartKey, proposeLimit, callback, afterLock);
@@ -732,6 +778,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final K walkDesc(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback,
 							@Nullable Runnable afterLock) {
+		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDesc(this, exclusiveStartKey, proposeLimit, callback, afterLock);
@@ -743,6 +790,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final K walkKey(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkKey<K> callback,
 						   @Nullable Runnable afterLock) {
+		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkKey(this, exclusiveStartKey, proposeLimit, callback, afterLock);
@@ -754,12 +802,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final K walkKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkKey<K> callback,
 							   @Nullable Runnable afterLock) {
+		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkKeyDesc(this, exclusiveStartKey, proposeLimit, callback, afterLock);
 	}
 
 	public final long walk(@NotNull TableWalkHandle<K, V> callback, @Nullable Runnable afterLock) {
+		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walk(this, callback, afterLock);
@@ -770,6 +820,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final long walkDesc(@NotNull TableWalkHandle<K, V> callback, @Nullable Runnable afterLock) {
+		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDesc(this, callback, afterLock);
@@ -784,6 +835,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final long walkDatabaseKey(@NotNull TableWalkKey<K> callback) {
+		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDatabaseKey(this, callback);
@@ -797,6 +849,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return count
 	 */
 	public final long walkDatabase(@NotNull TableWalkHandleRaw callback) {
+		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
@@ -805,6 +858,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final long walkDatabaseDesc(@NotNull TableWalkHandleRaw callback) {
+		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
@@ -820,12 +874,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return count
 	 */
 	public final long walkDatabase(@NotNull TableWalkHandle<K, V> callback) {
+		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDatabase(this, callback);
 	}
 
 	public final long walkDatabaseDesc(@NotNull TableWalkHandle<K, V> callback) {
+		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDatabaseDesc(this, callback);
@@ -923,6 +979,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	public final boolean isNew() {
+		var storage = this.storage;
 		return storage == null // memory table always return true
 				|| storage.getDatabaseTable().isNew();
 	}
@@ -947,6 +1004,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	public void tryAlter() {
+		var storage = this.storage;
 		var dbTable = storage != null ? storage.getDatabaseTable() : null;
 		if (dbTable instanceof DatabaseMySql.TableMysqlRelational)
 			((DatabaseMySql.TableMysqlRelational)dbTable).tryAlter();
