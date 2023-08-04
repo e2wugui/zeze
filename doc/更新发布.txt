@@ -84,12 +84,6 @@ Zeze已经提供了一个受限动态表，可能需要参考这个，重新设�
 *) Zeze的某些全局定制服务加限制，只能由应用全局设置（不会热更），不能在module里面设置。caller.classLoader!=Zeze.classLoader，能判断这个？
 *) more more。
 
-TODO
-install new modiule need register sm,还需要module config  choice type
-table 替换，可能有点麻烦；protocol 替换，已有包装，由hot调一下unreg
-zezex 热更测试
-module 生成 interface 工具（预计下周）
-
 0. 原则
 模块interface 化，所有被其他模块访问的功能和数据对象都是interface；
 inteface新版兼容旧版。
