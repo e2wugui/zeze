@@ -67,9 +67,10 @@ public class HotModule extends ClassLoader {
 			service.stop();
 			var iModule = (IModule)service;
 			iModule.UnRegister();
+		}
+		if (jar != null) {
 			jar.close();
 			jar = null;
-			System.out.println(getName() + " stop");
 		}
 	}
 

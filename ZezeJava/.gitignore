@@ -24,6 +24,7 @@ Redirect_*.java
 /ZezeJavaTest/manager*
 /ZezeJavaTest/master
 /ZezexJava/server/hot
+/ZezexJava/server/hotrun
 /test/Dbh2/CommitRocks*
 /test/Dbh2/manager*
 /test/Dbh2/master

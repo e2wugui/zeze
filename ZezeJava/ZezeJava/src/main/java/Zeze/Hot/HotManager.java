@@ -251,9 +251,6 @@ public class HotManager extends ClassLoader {
 		for (var module : modules.values()) {
 			module.setService(iModules[i++]);
 		}
-
-		if (GenModule.instance.genFileSrcRoot == null)
-			startWatch();
 	}
 
 	public void startModules(List<String> startOrder) throws Exception {
@@ -270,6 +267,7 @@ public class HotManager extends ClassLoader {
 //				continue; // 忽略已经启动的。
 			module.start();
 		}
+		startWatch();
 	}
 
 	public void stopModules(List<String> stopOrder) throws Exception {
