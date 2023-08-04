@@ -232,6 +232,8 @@ public class HotManager extends ClassLoader {
 			if (Files.exists(ready) && Files.deleteIfExists(ready))
 				installReadies();
 		});
+
+		Task.hotGuard = this::enterReadLock;
 	}
 
 	public void startModules(List<String> startOrder) throws Exception {
