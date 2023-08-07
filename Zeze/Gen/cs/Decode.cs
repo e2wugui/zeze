@@ -281,17 +281,29 @@ namespace Zeze.Gen.cs
                 case TypeDynamic:
                     return bufname + ".ReadDynamic(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                 case TypeVector2:
-                    return $"{bufname}.ReadVector2({typeVar})";
+                    return Project.MakingInstance.IsUnity
+                        ? $"Zeze.Util.UnityVectorHelper.ReadVector2({bufname}, {typeVar})"
+                        : $"{bufname}.ReadVector2({typeVar})";
                 case TypeVector3:
-                    return $"{bufname}.ReadVector3({typeVar})";
+                    return Project.MakingInstance.IsUnity
+                        ? $"Zeze.Util.UnityVectorHelper.ReadVector3({bufname}, {typeVar})"
+                        : $"{bufname}.ReadVector3({typeVar})";
                 case TypeVector4:
-                    return $"{bufname}.ReadVector4({typeVar})";
+                    return Project.MakingInstance.IsUnity
+                        ? $"Zeze.Util.UnityVectorHelper.ReadVector4({bufname}, {typeVar})"
+                        : $"{bufname}.ReadVector4({typeVar})";
                 case TypeQuaternion:
-                    return $"{bufname}.ReadQuaternion({typeVar})";
+                    return Project.MakingInstance.IsUnity
+                        ? $"Zeze.Util.UnityVectorHelper.ReadQuaternion({bufname}, {typeVar})"
+                        : $"{bufname}.ReadQuaternion({typeVar})";
                 case TypeVector2Int:
-                    return $"{bufname}.ReadVector2Int({typeVar})";
+                    return Project.MakingInstance.IsUnity
+                        ? $"Zeze.Util.UnityVectorHelper.ReadVector2Int({bufname}, {typeVar})"
+                        : $"{bufname}.ReadVector2Int({typeVar})";
                 case TypeVector3Int:
-                    return $"{bufname}.ReadVector3Int({typeVar})";
+                    return Project.MakingInstance.IsUnity
+                        ? $"Zeze.Util.UnityVectorHelper.ReadVector3Int({bufname}, {typeVar})"
+                        : $"{bufname}.ReadVector3Int({typeVar})";
 
                 default:
                     throw new Exception("invalid collection element type: " + type);
