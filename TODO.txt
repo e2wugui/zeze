@@ -34,6 +34,7 @@ Hot install new modiule need register sm,还需要module config  choice type
 Hot module 生成 interface 工具（预计下周）
 Hot redirect
 Hot bean
+Hot zeze 功能
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/11 v1.3.0 Timer Bug; Hot;
