@@ -3,6 +3,7 @@ package Zeze.Serialize;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.invoke.MethodHandles;
@@ -1859,5 +1860,20 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	@Override
 	public int compareTo(@NotNull ByteBuffer o) {
 		return Arrays.compareUnsigned(Bytes, ReadIndex, WriteIndex, o.Bytes, o.ReadIndex, o.WriteIndex);
+	}
+
+	/** 从输入流中读取未知长度的数据,一直取到无法获取为止 */
+	public @NotNull ByteBuffer readStream(@NotNull InputStream is) throws IOException {
+		for (int wi = WriteIndex; ; ) {
+			EnsureWrite(8192);
+			byte[] buf = Bytes;
+			int n = is.read(buf, wi, buf.length - wi);
+			if (n <= 0) {
+				WriteIndex = wi;
+				break;
+			}
+			wi += n;
+		}
+		return this;
 	}
 }

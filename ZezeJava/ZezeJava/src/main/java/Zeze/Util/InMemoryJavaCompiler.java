@@ -109,6 +109,14 @@ public class InMemoryJavaCompiler {
 		return classLoader.findClass(className);
 	}
 
+	public byte[] compileToByteCode(String className, String sourceCode) throws ClassNotFoundException {
+		sourceCodes.clear();
+		String exMsg = addSource(className, sourceCode).compileAll();
+		if (exMsg != null)
+			throw new IllegalStateException(exMsg);
+		return classLoader.getCode(className);
+	}
+
 	public void compileAll(Map<String, String> classNameAndCodes, Map<String, Class<?>> classNameAndClasses)
 			throws ClassNotFoundException {
 		sourceCodes.clear();
@@ -123,10 +131,30 @@ public class InMemoryJavaCompiler {
 		}
 	}
 
+	public void compileAllToByteCode(Map<String, String> classNameAndCodes, Map<String, byte[]> classNameAndByteCodes)
+			throws ClassNotFoundException {
+		sourceCodes.clear();
+		for (Map.Entry<String, String> e : classNameAndCodes.entrySet())
+			addSource(e.getKey(), e.getValue());
+		String exMsg = compileAll();
+		if (exMsg != null)
+			throw new IllegalStateException(exMsg);
+		if (classNameAndByteCodes != null) {
+			for (String className : classNameAndCodes.keySet())
+				classNameAndByteCodes.put(className, classLoader.getCode(className));
+		}
+	}
+
 	public Map<String, Class<?>> compileAll(Map<String, String> classNameAndCodes) throws ClassNotFoundException {
 		var classNameAndClasses = new HashMap<String, Class<?>>(classNameAndCodes.size());
 		compileAll(classNameAndCodes, classNameAndClasses);
 		return classNameAndClasses;
+	}
+
+	public Map<String, byte[]> compileAllToByteCode(Map<String, String> classNameAndCodes) throws ClassNotFoundException {
+		var classNameAndByteCodes = new HashMap<String, byte[]>(classNameAndCodes.size());
+		compileAllToByteCode(classNameAndCodes, classNameAndByteCodes);
+		return classNameAndByteCodes;
 	}
 
 	private static final class SourceCode extends SimpleJavaFileObject {
@@ -169,6 +197,11 @@ public class InMemoryJavaCompiler {
 
 		void addCode(CompiledCode cc) {
 			customCompiledCode.put(cc.getName(), cc);
+		}
+
+		byte[] getCode(String name) {
+			CompiledCode cc = customCompiledCode.get(name);
+			return cc != null ? cc.getByteCode() : null;
 		}
 
 		@Override

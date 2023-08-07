@@ -2,21 +2,29 @@ package Zeze.Util;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.instrument.ClassDefinition;
 import java.lang.instrument.Instrumentation;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
+import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import Zeze.Serialize.ByteBuffer;
+import com.sun.tools.attach.VirtualMachine;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /*
-MANIFEST.MF 需要定义以下2行:
+MANIFEST.MF 需要定义以下2行("Premain-Class"可换成"Agent-Class"):
 Premain-Class: Zeze.Util.ClassReloader
 Can-Redefine-Classes: true
 
@@ -31,13 +39,67 @@ public final class ClassReloader {
 	private ClassReloader() {
 	}
 
-	public static Instrumentation getInstrumentation() {
-		return inst;
-	}
-
-	/** Java Agent 入口 */
+	/** Java Agent 入口(通过Premain-Class) */
 	public static void premain(@SuppressWarnings("unused") String args, Instrumentation inst) {
 		ClassReloader.inst = inst;
+	}
+
+	/** Java Agent 入口(通过Agent-Class) */
+	public static void agentmain(String args, Instrumentation inst) {
+		premain(args, inst);
+	}
+
+	public static void main(String[] args) throws Exception {
+		if (args.length != 2) {
+			System.exit(-1);
+			return;
+		}
+		try {
+			VirtualMachine vm = VirtualMachine.attach(args[0]);
+			vm.loadAgent(args[1], null);
+			vm.detach();
+		} catch (Throwable e) {
+			//noinspection CallToPrintStackTrace
+			e.printStackTrace();
+			System.exit(-2);
+		}
+	}
+
+	public static Instrumentation getInst() {
+		return inst != null ? inst : loadAgent();
+	}
+
+	private static Instrumentation loadAgent() {
+		try {
+			String fullClassName = ClassReloader.class.getName();
+			File agentJar = File.createTempFile("agent", ".jar");
+			agentJar.deleteOnExit();
+			Manifest manifest = new Manifest();
+			Attributes attrs = manifest.getMainAttributes();
+			attrs.put(Attributes.Name.MANIFEST_VERSION, "1.0");
+			attrs.put(new Attributes.Name("Agent-Class"), fullClassName);
+			attrs.put(new Attributes.Name("Premain-Class"), fullClassName);
+			attrs.put(new Attributes.Name("Can-Redefine-Classes"), "true");
+			attrs.put(new Attributes.Name("Can-Retransform-Classes"), "true");
+			try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(agentJar), manifest)) {
+				String classFileName = fullClassName.replace('.', '/') + ".class";
+				jos.putNextEntry(new JarEntry(classFileName));
+				try (InputStream in = ClassReloader.class.getClassLoader().getResourceAsStream(classFileName)) {
+					assert in != null;
+					jos.write(in.readAllBytes());
+				}
+				jos.closeEntry();
+			}
+			String path = agentJar.getAbsolutePath();
+			String nameOfRunningVM = ManagementFactory.getRuntimeMXBean().getName();
+			String pid = nameOfRunningVM.substring(0, nameOfRunningVM.indexOf('@'));
+			int r = Runtime.getRuntime().exec(new String[]{"java", "-cp", path, fullClassName, pid, path}).waitFor();
+			if (r != 0)
+				throw new IllegalStateException("loadAgent process = " + r);
+		} catch (Exception e) {
+			Task.forceThrow(e);
+		}
+		return inst;
 	}
 
 	/** 从class数据里获取完整类名 */
@@ -50,7 +112,6 @@ public final class ClassReloader {
 		String[] strings = new String[constCount];
 		for (int i = 0; i < constCount; i++) {
 			int t = dis.read();
-			// System.out.println(String.format("%6X: %4d/%4d = %d", classData.length - dis.available(), i + 1, constCount, t));
 			switch (t) {
 			case 1: // CONSTANT_Utf8
 				strings[i] = dis.readUTF();
@@ -84,21 +145,25 @@ public final class ClassReloader {
 	}
 
 	/** 热更一个class数据 */
-	public static void reloadClass(byte @NotNull [] classData) throws Exception {
-		if (inst == null)
-			throw new IllegalStateException("Instrumentation not initialized");
-		inst.redefineClasses(new ClassDefinition(Class.forName(getClassPathFromData(classData)), classData));
+	public static void reloadClass(byte @NotNull [] classData, @Nullable ClassLoader classLoader) throws Exception {
+		String fullClassName = getClassPathFromData(classData);
+		Class<?> cls = classLoader != null ?
+				Class.forName(fullClassName, true, classLoader) : Class.forName(fullClassName);
+		getInst().redefineClasses(new ClassDefinition(cls, classData));
 	}
 
 	/** 批量热更多个class数据 */
-	public static void reloadClasses(@NotNull Collection<byte[]> classDatas) throws Exception {
-		if (inst == null)
-			throw new IllegalStateException("Instrumentation not initialized");
+	public static void reloadClasses(@NotNull Collection<byte[]> classDatas, @Nullable ClassLoader classLoader)
+			throws Exception {
 		int i = 0, n = classDatas.size();
 		ClassDefinition[] clsDefs = new ClassDefinition[n];
-		for (byte[] classData : classDatas)
-			clsDefs[i++] = new ClassDefinition(Class.forName(getClassPathFromData(classData)), classData);
-		inst.redefineClasses(clsDefs);
+		for (byte[] classData : classDatas) {
+			String fullClassName = getClassPathFromData(classData);
+			Class<?> cls = classLoader != null ?
+					Class.forName(fullClassName, true, classLoader) : Class.forName(fullClassName);
+			clsDefs[i++] = new ClassDefinition(cls, classData);
+		}
+		getInst().redefineClasses(clsDefs);
 	}
 
 	/**
@@ -117,8 +182,6 @@ public final class ClassReloader {
 	 */
 	public static int reloadClasses(@NotNull ZipFile zipFile, @Nullable ClassLoader classLoader,
 									@Nullable Appendable log) throws Exception {
-		if (inst == null)
-			throw new IllegalStateException("Instrumentation not initialized");
 		ArrayList<byte[]> classDatas = new ArrayList<>();
 		ByteBuffer buf0 = ByteBuffer.Allocate(), buf1 = ByteBuffer.Allocate();
 		for (Enumeration<? extends ZipEntry> zipEnum = zipFile.entries(); zipEnum.hasMoreElements(); ) {
@@ -128,7 +191,7 @@ public final class ClassReloader {
 				continue;
 			buf1.Reset();
 			try (InputStream is = zipFile.getInputStream(ze)) {
-				readStream(is, buf1);
+				buf1.readStream(is);
 			}
 			if (buf1.isEmpty())
 				continue;
@@ -136,7 +199,7 @@ public final class ClassReloader {
 				try (InputStream is = classLoader.getResourceAsStream(name)) {
 					if (is != null) {
 						buf0.Reset();
-						readStream(is, buf0);
+						buf0.readStream(is);
 						if (buf0.equals(buf1))
 							continue;
 					}
@@ -146,24 +209,7 @@ public final class ClassReloader {
 				log.append(name).append('\n');
 			classDatas.add(buf1.Copy());
 		}
-		reloadClasses(classDatas);
+		reloadClasses(classDatas, classLoader);
 		return classDatas.size();
-	}
-
-	/** 从输入流中读取未知长度的数据,一直取到无法获取为止 */
-	public static @NotNull ByteBuffer readStream(@NotNull InputStream is, @Nullable ByteBuffer bb) throws IOException {
-		if (bb == null)
-			bb = ByteBuffer.Allocate();
-		for (int wi = bb.WriteIndex; ; ) {
-			bb.EnsureWrite(8192);
-			byte[] buf = bb.Bytes;
-			int n = is.read(buf, wi, buf.length - wi);
-			if (n <= 0) {
-				bb.WriteIndex = wi;
-				break;
-			}
-			wi += n;
-		}
-		return bb;
 	}
 }
