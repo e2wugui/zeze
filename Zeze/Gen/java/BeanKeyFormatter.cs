@@ -28,7 +28,7 @@ namespace Zeze.Gen.java
             if (beanKey.Comment.Length > 0)
                 sw.WriteLine(beanKey.Comment);
             sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"RedundantSuppression\", \"MethodMayBeStatic\", \"PatternVariableCanBeUsed\", \"NullableProblems\", \"SuspiciousNameCombination\"})");
-            sw.WriteLine($"public final class {beanKey.Name} implements Serializable, Comparable<{beanKey.Name}> {{");
+            sw.WriteLine($"public final class {beanKey.Name} implements Zeze.Transaction.BeanKey, Comparable<{beanKey.Name}> {{");
 
             // declare enums
             foreach (Enum e in beanKey.Enums)

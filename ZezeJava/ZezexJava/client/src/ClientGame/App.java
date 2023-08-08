@@ -69,8 +69,6 @@ public class App extends Zeze.AppBase {
 
     public synchronized void createModules() throws Exception {
         Zeze.initialize(this);
-        Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));
-        Zeze.getHotManager().initialize(modules);
         var _modules_ = createRedirectModules(new Class[] {
             Zeze.Builtin.Game.Online.ModuleOnline.class,
             Zeze.Builtin.Game.Bag.ModuleBag.class,
@@ -140,10 +138,6 @@ public class App extends Zeze.AppBase {
         ClientZezex_Linkd.Start(this);
         ClientGame_Login.Start(this);
         ClientGame_Fight.Start(this);
-        if (null != Zeze.getHotManager()) {
-            var definedOrder = new java.util.HashSet<String>();
-            Zeze.getHotManager().startModulesExcept(definedOrder);
-        }
     }
 
     public synchronized void stopModules() throws Exception {
@@ -159,10 +153,6 @@ public class App extends Zeze.AppBase {
             Zeze_Builtin_Game_Bag.Stop(this);
         if (Zeze_Builtin_Game_Online != null)
             Zeze_Builtin_Game_Online.Stop(this);
-        if (null != Zeze.getHotManager()) {
-            var definedOrder = new java.util.HashSet<String>();
-            Zeze.getHotManager().stopModulesExcept(definedOrder);
-        }
     }
 
     public synchronized void startService() throws Exception {

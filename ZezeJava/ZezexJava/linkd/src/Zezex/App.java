@@ -114,8 +114,6 @@ public final class App extends Zeze.AppBase {
 
     public synchronized void createModules() throws Exception {
         Zeze.initialize(this);
-        Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));
-        Zeze.getHotManager().initialize(modules);
         var _modules_ = createRedirectModules(new Class[] {
             Zezex.Linkd.ModuleLinkd.class,
         });
@@ -146,19 +144,11 @@ public final class App extends Zeze.AppBase {
 
     public synchronized void startModules() throws Exception {
         Zezex_Linkd.Start(this);
-        if (null != Zeze.getHotManager()) {
-            var definedOrder = new java.util.HashSet<String>();
-            Zeze.getHotManager().startModulesExcept(definedOrder);
-        }
     }
 
     public synchronized void stopModules() throws Exception {
         if (Zezex_Linkd != null)
             Zezex_Linkd.Stop(this);
-        if (null != Zeze.getHotManager()) {
-            var definedOrder = new java.util.HashSet<String>();
-            Zeze.getHotManager().stopModulesExcept(definedOrder);
-        }
     }
 
     public synchronized void startService() throws Exception {

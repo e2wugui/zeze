@@ -86,7 +86,12 @@ public class Distribute {
 					className = className.substring(0, className.indexOf(".class")); // remove ".class"
 					var entry = new ZipEntry(classFile);
 					entry.setTime(file.lastModified());
-					if (Class.forName(className).isInterface()) {
+					var cls = Class.forName(className);
+					if (cls.isInterface()
+						|| Zeze.Transaction.Bean.class.isAssignableFrom(cls)
+						|| Zeze.Transaction.Data.class.isAssignableFrom(cls)
+						|| Zeze.Transaction.BeanKey.class.isAssignableFrom(cls)
+					) {
 						interfaceJar.putNextEntry(entry);
 						interfaceJar.write(Files.readAllBytes(file.toPath()));
 					} else {
