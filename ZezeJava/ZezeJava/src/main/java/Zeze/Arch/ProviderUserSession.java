@@ -158,6 +158,13 @@ public class ProviderUserSession {
 		}
 	}
 
+	public void trySendResponse(@NotNull Protocol<?> p, long resultCode) {
+		if (p.isRequest()) {
+			p.setResultCode(resultCode);
+			sendResponse(p);
+		}
+	}
+
 	public void sendResponse(@NotNull Protocol<?> p) {
 		p.setRequest(false);
 		protocolLogSend(p);

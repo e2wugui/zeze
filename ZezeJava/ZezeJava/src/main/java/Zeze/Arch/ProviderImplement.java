@@ -148,10 +148,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					// protocol or rpc request
 					var handler = factoryHandle.Handle;
 					return handler != null ? handler.handleProtocol(p3) : Procedure.NotImplement;
-				}, null, factoryHandle.Level, session), outProtocol, (p4, code) -> {
-					p4.setResultCode(code);
-					session.sendResponse(p4);
-				});
+				}, null, factoryHandle.Level, session), outProtocol, session::trySendResponse);
 				if (PerfCounter.ENABLE_PERF) {
 					PerfCounter.instance.addRecvInfo(typeId, factoryHandle.Class,
 							Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
@@ -184,10 +181,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				// protocol or rpc request
 				var handler = factoryHandle.Handle;
 				return handler != null ? handler.handleProtocol(p3) : Procedure.NotImplement;
-			}, p3, (p4, code) -> {
-				p4.setResultCode(code);
-				session.sendResponse(p4);
-			});
+			}, p3, session::trySendResponse);
 			if (PerfCounter.ENABLE_PERF) {
 				PerfCounter.instance.addRecvInfo(typeId, factoryHandle.Class,
 						Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
