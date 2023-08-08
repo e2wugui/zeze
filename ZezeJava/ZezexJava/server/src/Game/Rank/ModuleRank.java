@@ -215,10 +215,6 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 		return Rank;
 	}
 
-	public static class RRankList extends RedirectResult {
-		public BRankList rankList = new BRankList(); // 目前要求输出结构的所有字段都不能为null,需要构造时创建
-	}
-
 	public RedirectAllFuture<RRankList> GetRank(BConcurrentKey keyHint) {
 		return GetRank(GetConcurrentLevel(keyHint.getRankType()), keyHint);
 	}
@@ -468,39 +464,14 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	}
 
 	/******************************** ModuleRedirect 测试 *****************************************/
-	public static class TestToServerResult { // 必须是public的,内部类必须声明static,有public的默认构造方法
-		public long resultCode; // 类型是long,名字是resultCode是特殊字段,表示远程执行的结果,0表示正常,如果是超时或异常则可能得不到正确的其它字段值. 此字段是可选的
-		public int out; // 以下是其它的自定义字段,支持所有基本类型,String,Binary,Bean及JDK可序列化类型. 序列化时会按字段名排序
-		public int serverId;
-	}
-
 	// 单发给某个serverId执行(找不到或没连接会抛异常),可以是本服. 返回类型可以是void或RedirectFuture<自定义结果类型或Long(resultCode)>
 	@Override
 	@RedirectToServer(version = 1)
 	public RedirectFuture<TestToServerResult> TestToServer(int serverId, int in) { // 首个参数serverId是固定必要的特殊参数,后面是自定义输入参数
-		TestToServerResult result = new TestToServerResult();
-		result.out = in;
-		result.serverId = App.Zeze.getConfig().getServerId();
+		var result = new TestToServerResult();
+		result.setOut(in);
+		result.setServerId(App.Zeze.getConfig().getServerId());
 		return RedirectFuture.finish(result); // 同步完成则先finish再返回,异步则可在返回后在其它位置调用finish完成
-	}
-
-	public static class TestHashResult { // 同ToServer的要求
-		public int hash;
-		public int out;
-		public int serverId;
-		public boolean _boolean;
-		public byte _byte;
-		public short _short;
-		public long _long;
-		public float _float;
-		public double _double;
-		public String _string = "";
-		public byte[] _bytes = ByteBuffer.Empty;
-		public Binary _binary = Binary.Empty;
-		public final EmptyBean bean = EmptyBean.instance; // 使用Bean自己的序列化,需要序列化的引用类型成员在构造后不能为null
-		public Date date = new Date(); // 使用JDK自带的序列化
-		public transient String str; // 不会序列化transient
-		protected Object obj; // 不会序列化非public
 	}
 
 	// 第一个参数hash是固定的特殊参数
@@ -510,29 +481,13 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 		var f = new RedirectFuture<TestHashResult>();
 		Task.run(App.Zeze.newProcedure(() -> {
 			TestHashResult result = new TestHashResult();
-			result.hash = hash;
-			result.out = in;
-			result.serverId = App.Zeze.getConfig().getServerId();
+			result.setHash(hash);
+			result.setOut(in);
+			result.setServerId(App.Zeze.getConfig().getServerId());
 			f.setResult(result); // 异步完成
 			return Procedure.Success;
 		}, "TestHashAsync"), null, null, DispatchMode.Normal);
 		return f;
-	}
-
-	public static class TestToAllResult extends RedirectResult { // RedirectAll的结果类型必须继承RedirectResult(其中包含resultCode),其它同ToServer
-		public int out;
-
-		public TestToAllResult() {
-		}
-
-		public TestToAllResult(int out) {
-			this.out = out;
-		}
-
-		@Override
-		public String toString() {
-			return "{r:" + getResultCode() + ",out:" + out + '}';
-		}
 	}
 
 	@Override
@@ -542,7 +497,9 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 		switch (hash) {
 		case 0: // local sync
 		case 1: // remote sync
-			return RedirectAllFuture.result(new TestToAllResult(in));
+			var result = new TestToAllResult();
+			result.out = in;
+			return RedirectAllFuture.result(result);
 		case 2: // local exception
 		case 3: // remote exception
 			throw new Exception("not bug, only for test");
@@ -550,7 +507,9 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 		case 5: // remote async
 			var future = RedirectAllFuture.<TestToAllResult>async(); // 启用异步方式,之后在future.asyncResult()时回复结果
 			Task.run(App.Zeze.newProcedure(() -> {
-				future.asyncResult(new TestToAllResult(in));
+				var result1 = new TestToAllResult();
+				result1.out = in;
+				future.asyncResult(result1);
 				return Procedure.Success;
 			}, "TestToAllAsync"), null, null, DispatchMode.Normal);
 			return future;

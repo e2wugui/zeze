@@ -234,6 +234,32 @@
 
 		<protocol name="CGetRankList" argument="BGetRankList" handle="server"/>
 		<protocol name="SGetRankList" argument="BRankListResult" handle="client"/>
+
+		<bean name="RRankList" RedirectResult="true">
+			<variable id="1" name="rankList"  type="BRankList"/>
+		</bean>
+		<bean name="TestToServerResult">
+			<variable id="1" name="resultCode"  type="long"/>
+			<variable id="2" name="out"  type="int"/>
+			<variable id="3" name="serverId"  type="int"/>
+		</bean>
+		<bean name="TestHashResult">
+			<variable id="1" name="hash"  type="int"/>
+			<variable id="2" name="out"  type="int"/>
+			<variable id="3" name="serverId"  type="int"/>
+			<variable id="4" name="b_oolean"  type="bool"/>
+			<variable id="5" name="b_yte"  type="byte"/>
+			<variable id="6" name="s_hort"  type="short"/>
+			<variable id="7" name="f_loat"  type="float"/>
+			<variable id="8" name="l_ong"  type="long"/>
+			<variable id="9" name="d_ouble"  type="double"/>
+			<variable id="10" name="s_tring"  type="string"/>
+			<variable id="11" name="b_inary"  type="binary"/>
+			<variable id="12" name="b_ean"  type="TestToServerResult"/>
+		</bean>
+		<bean name="TestToAllResult" RedirectResult="true">
+			<variable id="1" name="out"  type="int"/>
+		</bean>
 	</module>
 
 	<module name="Timer" id="11" hot="true">

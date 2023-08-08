@@ -11,7 +11,7 @@ namespace Zeze.Gen.java
         readonly string beanName;
         readonly string varName;
 
-		public static void Make(Bean bean, StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
 			sw.WriteLine(prefix + "@SuppressWarnings(\"deprecation\")");
 			sw.WriteLine(prefix + "public " + bean.Name + "() {");

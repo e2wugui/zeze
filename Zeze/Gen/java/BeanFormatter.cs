@@ -14,6 +14,26 @@ namespace Zeze.Gen.java
         {
             this.bean = bean;
         }
+        
+        public void MakeRedirectResult(string baseDir, Project project)
+        {
+            using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".java");
+            if (sw == null)
+                return;
+
+            sw.WriteLine("// auto-generated @formatter:off");
+            sw.WriteLine("package " + bean.Space.Path() + ";");
+            sw.WriteLine();
+            sw.WriteLine("");
+            sw.WriteLine($"public class {bean.Name} extends Zeze.Arch.RedirectResult {{");
+            foreach (var v in bean.Variables)
+            {
+                sw.WriteLine($"    public {TypeName.GetName(v.VariableType)} {v.Name};");
+            }
+            sw.WriteLine("");
+            ConstructRedirectResult.Make(bean, sw, "    ");
+            sw.WriteLine("}");
+        }
 
         public void MakeReadOnly(string baseDir)
         {
@@ -35,6 +55,12 @@ namespace Zeze.Gen.java
 
         public void Make(string baseDir, Project project)
         {
+            if (bean.RedirectResult)
+            {
+                MakeRedirectResult(baseDir, project);
+                return;
+            }
+
             MakeReadOnly(baseDir);
 
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".java");

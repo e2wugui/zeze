@@ -67,60 +67,60 @@ public class ModuleRedirectRank extends TestCase {
 		var context = app1.Zeze.getHotManager().getModuleContext("Game.Rank", IModuleRank.class);
 		var rank = context.getService();
 		rank.TestToServer(30, 111).then(result -> {
-			assertEquals(111, result.out);
-			assertEquals(30, result.serverId);
+			assertEquals(111, result.getOut());
+			assertEquals(30, result.getServerId());
 		}).await();
 
 		rank.TestToServer(31, 222).then(result -> {
-			assertEquals(222, result.out);
-			assertEquals(31, result.serverId);
+			assertEquals(222, result.getOut());
+			assertEquals(31, result.getServerId());
 		}).await();
 
 		rank.TestToServer(30, 333).then(result -> {
-			assertEquals(333, result.out);
-			assertEquals(30, result.serverId);
+			assertEquals(333, result.getOut());
+			assertEquals(30, result.getServerId());
 		}).await();
 
 		rank.TestToServer(31, 444).then(result -> {
-			assertEquals(444, result.out);
-			assertEquals(31, result.serverId);
+			assertEquals(444, result.getOut());
+			assertEquals(31, result.getServerId());
 		}).await();
 
 		// RedirectHash
 		var hash11 = Zeze.Serialize.ByteBuffer.calc_hashnr(127366);
 		System.out.println("11--->" + hash11);
 		rank.TestHash(hash11, 555).then(result -> {
-			assertEquals(hash11, result.hash);
-			assertEquals(555, result.out);
-			System.out.println("11--->" + result.serverId);
-			assertEquals(30, result.serverId);
+			assertEquals(hash11, result.getHash());
+			assertEquals(555, result.getOut());
+			System.out.println("11--->" + result.getServerId());
+			assertEquals(30, result.getServerId());
 		}).await();
 
 		var hash12 = Zeze.Serialize.ByteBuffer.calc_hashnr(100);
 		System.out.println("12--->" + hash12);
 		rank.TestHash(hash12, 666).then(result -> {
-			assertEquals(hash12, result.hash);
-			assertEquals(666, result.out);
-			System.out.println("12--->" + result.serverId);
-			assertEquals(31, result.serverId);
+			assertEquals(hash12, result.getHash());
+			assertEquals(666, result.getOut());
+			System.out.println("12--->" + result.getServerId());
+			assertEquals(31, result.getServerId());
 		}).await();
 
 		var hash21 = Zeze.Serialize.ByteBuffer.calc_hashnr(127366);
 		System.out.println("21--->" + hash21);
 		rank.TestHash(hash21, 777).then(result -> {
-			assertEquals(hash21, result.hash);
-			assertEquals(777, result.out);
-			System.out.println("21--->" + result.serverId);
-			assertEquals(30, result.serverId);
+			assertEquals(hash21, result.getHash());
+			assertEquals(777, result.getOut());
+			System.out.println("21--->" + result.getServerId());
+			assertEquals(30, result.getServerId());
 		}).await();
 
 		var hash22 = Zeze.Serialize.ByteBuffer.calc_hashnr(100);
 		System.out.println("22--->" + hash22);
 		rank.TestHash(hash22, 888).then(result -> {
-			assertEquals(hash22, result.hash);
-			assertEquals(888, result.out);
-			System.out.println("22--->" + result.serverId);
-			assertEquals(31, result.serverId);
+			assertEquals(hash22, result.getHash());
+			assertEquals(888, result.getOut());
+			System.out.println("22--->" + result.getServerId());
+			assertEquals(31, result.getServerId());
 		}).await();
 
 		// RedirectAll

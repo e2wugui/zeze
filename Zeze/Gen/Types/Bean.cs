@@ -171,6 +171,7 @@ namespace Zeze.Gen.Types
 			}
 		}
 		public bool Hot { get; private set; } = false;
+		public bool RedirectResult { get; private set; } = false;
 
 		public static void BeautifulVariableId(XmlElement self)
 		{
@@ -275,8 +276,9 @@ namespace Zeze.Gen.Types
 				"false" => false,
 				_ => space.UseData
 			};
+			RedirectResult = self.GetAttribute("RedirectResult").Equals("true");
 
-			XmlNodeList childNodes = self.ChildNodes;
+            XmlNodeList childNodes = self.ChildNodes;
 			foreach (XmlNode node in childNodes)
 			{
 				if (XmlNodeType.Element != node.NodeType)

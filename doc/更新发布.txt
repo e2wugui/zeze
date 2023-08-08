@@ -69,6 +69,7 @@ c) start依赖意味着此时可能缓存了其他创建的数据，那么也通
 2. app一般建议即时编译，因为InMemoryJavaCompiler支持设置parent classloader，所以，启用了热更，可能设置一下就没有问题了。【即时编译这点需要确认】。 
 【但是】Zezex Build 的时候redirect在名字空间生成了，这个需要确认一下，不用修改。打包(Zeze.Hot.Distribute)的时候需要把这个class归类到对应的module里面。
 
+ 
 【热更启动顺序】
 多个模块一起热更的时候，已经支持顺序。但是顺序定义从哪来？暂定在发布集合里增加一个顺序配置程序。
 

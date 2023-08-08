@@ -91,6 +91,7 @@ public class Distribute {
 						|| Zeze.Transaction.Bean.class.isAssignableFrom(cls)
 						|| Zeze.Transaction.Data.class.isAssignableFrom(cls)
 						|| Zeze.Transaction.BeanKey.class.isAssignableFrom(cls)
+						|| Zeze.Arch.RedirectResult.class.isAssignableFrom(cls)
 					) {
 						interfaceJar.putNextEntry(entry);
 						interfaceJar.write(Files.readAllBytes(file.toPath()));
