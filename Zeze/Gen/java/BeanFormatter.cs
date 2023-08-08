@@ -228,6 +228,7 @@ namespace Zeze.Gen.java
 
         public void ToPrevious(Bean bean, StreamWriter sw, string prefix)
         {
+            sw.WriteLine();
             sw.WriteLine($"{prefix}public int toPrevious() {{");
             var refName = bean.Name;
             var version = bean.TryParseHotName(ref refName);
