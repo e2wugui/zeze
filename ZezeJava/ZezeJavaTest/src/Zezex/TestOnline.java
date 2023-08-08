@@ -62,7 +62,7 @@ public class TestOnline extends TestCase {
 	private void areYouFight() throws InterruptedException {
 		while (true) {
 			for (var server : servers) {
-				var fightModule = server.HotManager.getModuleContext("Game.Fight", IModuleFight.class);
+				var fightModule = server.Zeze.getHotManager().getModuleContext("Game.Fight", IModuleFight.class);
 				if (fightModule.getService().isAreYouFightDone())
 					return;
 			}

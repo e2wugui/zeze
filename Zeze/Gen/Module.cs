@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing.Text;
 using System.Xml;
 using Zeze.Gen.Types;
 
@@ -25,6 +26,7 @@ namespace Zeze.Gen
 
         public string FullName => Path();
         public string Comment { get; private set; }
+        public bool Hot { get; private set; }
 
         public static void BeautifulVariableId(XmlElement self)
         {
@@ -52,6 +54,7 @@ namespace Zeze.Gen
 
         public Module(ModuleSpace space, XmlElement self) : base(space, self, true)
         {
+            Hot = self.GetAttribute("hot").Equals("true");
             if (space.Modules.ContainsKey(Name))
                 throw new Exception("duplicate module name：" + Name);
             space.Modules.Add(Name, this);

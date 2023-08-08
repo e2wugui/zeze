@@ -223,6 +223,18 @@ namespace Zeze.Gen.java
             FollowerApply.Make(bean, sw, "    ");
             DecodeResultSet.Make(bean, sw, "    ");
             EncodeSQLStatement.Make(bean, sw, "    ");
+            ToPrevious(bean, sw, "    ");
+        }
+
+        public void ToPrevious(Bean bean, StreamWriter sw, string prefix)
+        {
+            sw.WriteLine($"{prefix}public int toPrevious() {{");
+            var refName = bean.Name;
+            var version = bean.TryParseHotName(ref refName);
+            version--;
+            var oldName = version == 0 ? refName : refName + "_" + version + "_";
+            sw.WriteLine($"{prefix}    return 0; // todo {oldName}");
+            sw.WriteLine($"{prefix}}}");
         }
     }
 }

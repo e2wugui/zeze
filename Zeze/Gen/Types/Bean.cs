@@ -170,6 +170,7 @@ namespace Zeze.Gen.Types
 				return VariablesIdOrder_;
 			}
 		}
+		public bool Hot { get; private set; } = false;
 
 		public static void BeautifulVariableId(XmlElement self)
 		{
@@ -195,6 +196,46 @@ namespace Zeze.Gen.Types
 		{
         }
 
+		public string GetBaseHotName(string name)
+		{
+			var refName = name;
+			TryParseHotName(ref refName);
+			return refName;
+		}
+
+        public int TryParseHotName(ref string name)
+		{
+			if (false == Hot)
+				return 0;
+
+			if (!name.EndsWith("_"))
+				throw new Exception($"invalid hot name {name}");
+
+			// reverse find
+			var versionEnd = name.Length - 1;
+            for (; versionEnd >= 0; versionEnd--)
+			{
+				if (name[versionEnd] == '_')
+					continue; // 忽略结束的下划线，现在的写法允许多个结束的下划线。
+			}
+
+			var versionBegin = versionEnd;
+			for (; versionBegin >= 0; versionBegin--)
+			{
+				if (name[versionBegin] == '_')
+					break;
+			}
+			if (versionBegin < 0)
+				throw new Exception($"invalid hot name {name}");
+
+			name = name.Substring(0, versionBegin);
+			versionBegin++;
+			var version = int.Parse(name.Substring(versionBegin, versionEnd - versionBegin + 1));
+			if (version <= 0)
+				throw new Exception($"invalid hot name {name} version must great than 0.");
+			return version;
+		}
+
         // ///////////////////////////////////////////
         public Bean(ModuleSpace space, XmlElement self)
 		{
@@ -203,7 +244,8 @@ namespace Zeze.Gen.Types
 			Kind = self.GetAttribute("kind").Trim();
 			if (string.IsNullOrEmpty(Kind))
 				Kind = "bean"; // default
-			Program.CheckReserveName(_name, space.Path());
+			Hot = self.GetAttribute("hot").Equals("true");
+			Program.CheckReserveName(_name, space.Path(), Hot);
 			Type.Add(space, this);
 			space.Add(this);
 
@@ -213,7 +255,11 @@ namespace Zeze.Gen.Types
 			Base = self.GetAttribute("base");
 			if (Base != "" && !Base.Contains('.'))
 				Base = Space.Path(".", Base);
-			var hashTypeId = Util.FixedHash.Hash64(space.Path(".", _name));
+			var hashTypeId = Util.FixedHash.Hash64(space.Path(".", GetBaseHotName(_name)));
+			// 这里的写法：hot bean 允许自定义TypeId，
+			// 但是java的Bean禁止了自定义功能，
+			// 而Hot目前仅用于java，
+			// 所以实际上还是不准自定义的。
 			TypeId = attr.Length > 0 ? int.Parse(attr) : hashTypeId;
 			CustomTypeId = TypeId != hashTypeId;
 			if (false == Program.BeanTypeIdDuplicateChecker.Add(TypeId))

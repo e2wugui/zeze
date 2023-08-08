@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
 import Zeze.AppBase;
@@ -241,39 +242,31 @@ public class HotManager extends ClassLoader {
 		Task.hotGuard = this::enterReadLock;
 	}
 
-	public void startModules(List<String> startOrder) throws Exception {
-		// 先按定义顺序启动模块。
-		for (var start : startOrder) {
-			var module = modules.get(start);
-			if (module != null)
-				module.start();
-		}
-		// 启动剩余的模块。
+	public void startModule(String moduleName) throws Exception {
+		var module = modules.get(moduleName);
+		if (null != module)
+			module.start();
+	}
+
+	public void startModulesExcept(Set<String> except) throws Exception {
 		for (var module : modules.values()) {
-			// 这个是list，可以做点优化：module里面允许重复调用，但只执行一次。
-//			if (startOrder.contains(module.getName()))
-//				continue; // 忽略已经启动的。
+			if (except.contains(module.getName()))
+				continue;
 			module.start();
 		}
 	}
 
-	public void stopModules(List<String> stopOrder) throws Exception {
-		// 逆序
-		// 先停止没定义的。
+	public void stopModule(String moduleName) throws Exception {
+		var module = modules.get(moduleName);
+		if (null != module)
+			module.stop();
+	}
+
+	public void stopModulesExcept(Set<String> except) throws Exception {
 		for (var module : modules.values()) {
-			// startModules 的 list.contains 做了优化，但是 stop 需要先停没定义的，没法优化了。
-			// 这里用一个HashSet过重了。一般list元素不会太多的话，这里不会有问题。
-			// 另外还有个办法，程序退出的时候就不要执行stop，直接退出。
-			// 或者stop也先停定义的？
-			if (stopOrder.contains(module.getName()))
+			if (except.contains(module.getName()))
 				continue;
 			module.stop();
-		}
-		// 按定义顺序停止。
-		for (var stop : stopOrder) {
-			var module = modules.get(stop);
-			if (null != module)
-				module.stop();
 		}
 	}
 

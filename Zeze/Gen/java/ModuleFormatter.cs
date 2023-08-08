@@ -326,7 +326,7 @@ namespace Zeze.Gen.java
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
                 {
-                    if (project.Hot)
+                    if (project.Hot && module.Hot)
                         sw.WriteLine($"        {zezeVar}.replaceTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
                     else
                         sw.WriteLine($"        {zezeVar}.addTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
@@ -364,7 +364,7 @@ namespace Zeze.Gen.java
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
                 {
-                    if (false == project.Hot)
+                    if (false == module.Hot || false == project.Hot)
                         sw.WriteLine($"        {zezeVar}.removeTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
                 }
             }

@@ -19,7 +19,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	public final void Start(App app) {
 		_tbufs.getChangeListenerMap().addListener(new BufChangeListener("Game.Buf.Bufs"));
 		Task.schedule(2000, 2000, () -> {
-			var module = Game.App.Instance.HotManager.getModuleContext("Game.Equip", IModuleEquip.class);
+			var module = Game.App.Instance.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
 			var service = module.getService();
 			service.hotHelloworld();
 		});

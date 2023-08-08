@@ -51,8 +51,8 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 		Fighter fighter = new Fighter(fighterId, new BFighter());
 		switch (fighterId.getType()) {
 			case BFighterId.TypeRole:
-				var contextBuf = App.HotManager.getModuleContext("Game.Buf", IModuleBuf.class);
-				var contextEquip = App.HotManager.getModuleContext("Game.Equip", IModuleEquip.class);
+				var contextBuf = App.Zeze.getHotManager().getModuleContext("Game.Buf", IModuleBuf.class);
+				var contextEquip = App.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
 				contextBuf.getService().getBufs(fighterId.getInstanceId()).calculateFighter(fighter);
 				contextEquip.getService().calculateFighter(fighter);
 				break;

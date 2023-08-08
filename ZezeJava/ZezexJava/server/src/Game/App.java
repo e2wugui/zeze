@@ -128,10 +128,10 @@ public final class App extends Zeze.AppBase {
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
     public Zeze.Application Zeze;
     public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();
-    public Zeze.Hot.HotManager HotManager;
 
     public Game.Server Server;
     public Game.ServerDirect ServerDirect;
+
 
     @Override
     public Zeze.Application getZeze() {
@@ -156,16 +156,22 @@ public final class App extends Zeze.AppBase {
 
     public synchronized void createModules() throws Exception {
         Zeze.initialize(this);
-        HotManager = new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir());
-        HotManager.initialize(modules);
+        Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));
+        Zeze.getHotManager().initialize(modules);
+        var _modules_ = createRedirectModules(new Class[] {
+        });
+        if (_modules_ == null)
+            return;
+
         Zeze.setSchemas(new Game.Schemas());
     }
 
     public synchronized void destroyModules() {
-        if (null != HotManager) {
-            HotManager.destroyModules();
-            modules.clear();
+        if (null != Zeze.getHotManager()) {
+            Zeze.getHotManager().destroyModules();
+            Zeze.setHotManager(null);
         }
+        modules.clear();
     }
 
     public synchronized void destroyServices() {
@@ -178,14 +184,16 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void startModules() throws Exception {
-        var definedOrder = new java.util.ArrayList<String>();
-        HotManager.startModules(definedOrder);
+        if (null != Zeze.getHotManager()) {
+            var definedOrder = new java.util.HashSet<String>();
+            Zeze.getHotManager().startModulesExcept(definedOrder);
+        }
     }
 
     public synchronized void stopModules() throws Exception {
-        if (null != HotManager) {
-            var definedOrderReverse = new java.util.ArrayList<String>();
-            HotManager.stopModules(definedOrderReverse);
+        if (null != Zeze.getHotManager()) {
+            var definedOrder = new java.util.HashSet<String>();
+            Zeze.getHotManager().stopModulesExcept(definedOrder);
         }
     }
 

@@ -32,7 +32,7 @@ public class Bufs implements IBufs {
 			// 因为没有取消Scheduler，所以可能发生删除不存在的buf。
 
 			// context 可以缓存，demo就不考虑了。
-			var context = App.Instance.HotManager.getModuleContext("Game.Fight", IModuleFight.class);
+			var context = App.Instance.Zeze.getHotManager().getModuleContext("Game.Fight", IModuleFight.class);
 			var fight = context.getService();
 			fight.StartCalculateFighter(getRoleId());
 		}
@@ -55,7 +55,7 @@ public class Bufs implements IBufs {
 
 		Zeze.Util.Task.schedule(buf.getContinueTime(), () -> detach(buf.getId()));
 		// context 可以缓存，demo就不考虑了。
-		var context = App.Instance.HotManager.getModuleContext("Game.Fight", IModuleFight.class);
+		var context = App.Instance.Zeze.getHotManager().getModuleContext("Game.Fight", IModuleFight.class);
 		var fight = context.getService();
 		fight.StartCalculateFighter(getRoleId());
 	}

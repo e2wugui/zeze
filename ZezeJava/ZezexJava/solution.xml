@@ -4,7 +4,7 @@
 	<import file="solution.linkd.xml"/>
 	<import file="../ZezeJava/solution.zeze.xml"/>
 
-	<module name="Login" id="1">
+	<module name="Login" id="1" hot="true">
 		<enum name="ResultCodeCreateRoleDuplicateRoleName" value="1"/>
 
 		<bean name="BCreateRole">
@@ -37,7 +37,7 @@
 		<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
 	</module>
 
-	<module name="Item" id="3">
+	<module name="Item" id="3" hot="true">
 		<bean name="BFoodExtra">
 			<variable id="1" name="Ammount" type="int"/>
 		</bean>
@@ -48,7 +48,7 @@
 		<!-- 不需要定义自己的 table，一般物品都存储在 Bag 中。 -->
 	</module>
 
-	<module name="Fight" id="4">
+	<module name="Fight" id="4" hot="true">
 		<bean name="BFighter"> 战斗相关属性，用于技能等。
 			<variable id="1" name="Attack" type="float"/>
 			<variable id="2" name="Defence" type="float"/>
@@ -67,7 +67,7 @@
 		<rpc name="AreYouFight" handle="client"/>
 	</module>
 
-	<module name="Skill" id="5">
+	<module name="Skill" id="5" hot="true">
 		<bean name="BSkill">
 			<variable id="1" name="Id" type="int"/>
 			<variable id="2" name="Extra" type="dynamic">
@@ -83,7 +83,7 @@
 		<table name="tskills" key="long" value="BSkills"/>
 	</module>
 
-	<module name="Buf" id="6">
+	<module name="Buf" id="6" hot="true">
 		<!-- buf 应该尽量通过配置控制：冲突，覆盖，增加属性，生命期等 -->
 		<bean name="BBuf">
 			<variable id="1" name="Id" type="int"/>
@@ -115,7 +115,7 @@
 		<protocol name="SChanged" argument="BBufChanged" handle="client"/> 所有的buf改变都通过这个协议发送，通过ChangeListener订阅。
 	</module>
 
-	<module name="Equip" id="7">
+	<module name="Equip" id="7" hot="true">
 		<enum name="ResultCodeCannotEquip"   value="1"/>
 		<enum name="ResultCodeItemNotFound"  value="2"/>
 		<enum name="ResultCodeBagIsFull"     value="3"/>
@@ -162,7 +162,7 @@
 		<table name="tequip" key="long" value="BEquips"/>
 	</module>
 
-	<module name="Map" id="8">
+	<module name="Map" id="8" hot="true">
 		<bean name="BEnterWorldNow">
 			<variable id="1" name="MapInstanceId" type="int"/>
 			<!-- role postion -->
@@ -181,7 +181,7 @@
 		<protocol name="CEnterWorldDone" argument="BEnterWorldDone" handle="server"/> client load resource done
 	</module>
 
-	<module name="Rank" id="9">
+	<module name="Rank" id="9" hot="true">
 		<beankey name="BConcurrentKey">
 			<enum name="RankTypeGold" value="1"/>
 
@@ -236,7 +236,7 @@
 		<protocol name="SGetRankList" argument="BRankListResult" handle="client"/>
 	</module>
 
-	<module name="Timer" id="11">
+	<module name="Timer" id="11" hot="true">
 		<bean name="BNodeRoot">
 			<variable id="1" name="HeadNodeId" type="long"/>
 			<variable id="2" name="TailNodeId" type="long"/>
@@ -269,7 +269,7 @@
 		<table name="tIndexs" key="long" value="BIndex" /> key is timerId
 	</module>
 
-	<module name="LongSet" id="12">
+	<module name="LongSet" id="12" hot="true">
 		<bean name="BNodeRoot">
 			<variable id="1" name="HeadNodeId" type="long"/>
 			<variable id="2" name="TailNodeId" type="long"/>
@@ -295,7 +295,7 @@
 	</module>
 
 	<!-- 用来封装和扩展Zeze.World，可能需要定义表，但一般不需要定义协议（就是不直接跟客户端交互）。 -->
-	<module name="MyWorld" id="13">
+	<module name="MyWorld" id="13" hot="true">
 	</module>
 
 	<!--
