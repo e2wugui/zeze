@@ -13,6 +13,7 @@ import Zeze.Component.AutoKeyOld;
 import Zeze.Component.DelayRemove;
 import Zeze.Component.Timer;
 import Zeze.Dbh2.Dbh2AgentManager;
+import Zeze.Hot.HotManager;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Daemon;
 import Zeze.Services.GlobalCacheManagerWithRaftAgent;
@@ -83,6 +84,24 @@ public final class Application {
 	private DatabaseRocksDb LocalRocksCacheDb;
 
 	private Dbh2AgentManager dbh2AgentManager;
+	private HotManager hotManager;
+
+	// verifyCallerNotHot(jdk.internal.reflect.Reflection.getCallerClass());
+	// caller必须外部调用得到。
+	public void verifyCallerNotHot(Class<?> caller) {
+		var callerCl = caller.getClassLoader();
+		// 只限制我们自己的HotModule，其他都允许。
+		if (null != hotManager && hotManager.isHotModule(callerCl))
+			throw new RuntimeException("caller must not hot.");
+	}
+
+	public void setHotManager(HotManager value) {
+		hotManager = value;
+	}
+
+	public HotManager getHotManager() {
+		return hotManager;
+	}
 
 	public Dbh2AgentManager getDbh2AgentManager() {
 		return dbh2AgentManager;

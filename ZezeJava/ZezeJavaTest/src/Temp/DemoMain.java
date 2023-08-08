@@ -27,6 +27,7 @@ public class DemoMain {
 	""";
 
 	public static void main(String[] args) throws Exception {
+		System.out.println(ClassLoader.getSystemClassLoader());
 		var compiler = new Zeze.Util.InMemoryJavaCompiler();
 		var abClass = compiler.compile("Ab", Impl);
 		System.out.println(abClass.getClassLoader());

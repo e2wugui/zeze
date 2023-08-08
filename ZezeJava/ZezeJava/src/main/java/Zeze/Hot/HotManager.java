@@ -42,6 +42,11 @@ public class HotManager extends ClassLoader {
 	private final ReentrantReadWriteLock hotLock = new ReentrantReadWriteLock();
 	private final AppBase app;
 
+	public boolean isHotModule(ClassLoader cl) {
+		return cl.getClass() == HotModule.class;
+		// return modules.containsKey(cl.getName());
+	}
+
 	public void destroyModules() {
 		modules.clear();
 	}
@@ -314,6 +319,12 @@ public class HotManager extends ClassLoader {
 
 	@Override
 	protected Class<?> findClass(String className) throws ClassNotFoundException {
+		// todo 优化，循环遍历所有jar有点慢。
+		//  初始化的时候就读取所有jars.entry并建立统一索引；
+		//  索引名字转换成java类名风格；
+		//  索引重复的以第一个为准；
+		//  jar被替换时需要重建索引；
+		//  *重建时直接覆盖索引，不需要删除再加入，因为这里的jar里面的entry只会增加不会删除；
 		for (var jar : jars.values()) {
 			var loaded = loadInterfaceClass(className, jar);
 			if (null != loaded) {
