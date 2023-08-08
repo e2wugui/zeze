@@ -139,8 +139,11 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("    public synchronized void createModules() throws Exception {");
             sw.WriteLine("        Zeze.initialize(this);");
-            sw.WriteLine("        Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));");
-            sw.WriteLine("        Zeze.getHotManager().initialize(modules);");
+            if (project.Hot)
+            {
+                sw.WriteLine("        Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));");
+                sw.WriteLine("        Zeze.getHotManager().initialize(modules);");
+            }
             if (project.AllOrderDefineModules.Count > 0)
             {
                 sw.WriteLine("        var _modules_ = createRedirectModules(new Class[] {");
@@ -219,14 +222,17 @@ namespace Zeze.Gen.java
                 if (!project.ModuleStartOrder.Contains(m) && (false == project.Hot || false == m.Hot))
                     sw.WriteLine("        " + m.Path("_") + ".Start(this);");
             }
-            sw.WriteLine("        if (null != Zeze.getHotManager()) {");
-            sw.WriteLine("            var definedOrder = new java.util.HashSet<String>();");
-            foreach (var m in project.ModuleStartOrder)
+            if (project.Hot)
             {
-                sw.WriteLine($"            definedOrder.add(\"{m.Path()}\");");
+                sw.WriteLine("        if (null != Zeze.getHotManager()) {");
+                sw.WriteLine("            var definedOrder = new java.util.HashSet<String>();");
+                foreach (var m in project.ModuleStartOrder)
+                {
+                    sw.WriteLine($"            definedOrder.add(\"{m.Path()}\");");
+                }
+                sw.WriteLine("            Zeze.getHotManager().startModulesExcept(definedOrder);");
+                sw.WriteLine("        }");
             }
-            sw.WriteLine("            Zeze.getHotManager().startModulesExcept(definedOrder);");
-            sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void stopModules() throws Exception {");
@@ -240,14 +246,17 @@ namespace Zeze.Gen.java
                     sw.WriteLine("            " + name + ".Stop(this);");
                 }
             }
-            sw.WriteLine("        if (null != Zeze.getHotManager()) {");
-            sw.WriteLine("            var definedOrder = new java.util.HashSet<String>();");
-            foreach (var m in project.ModuleStartOrder)
+            if (project.Hot)
             {
-                sw.WriteLine($"            definedOrder.add(\"{m.Path()}\");");
+                sw.WriteLine("        if (null != Zeze.getHotManager()) {");
+                sw.WriteLine("            var definedOrder = new java.util.HashSet<String>();");
+                foreach (var m in project.ModuleStartOrder)
+                {
+                    sw.WriteLine($"            definedOrder.add(\"{m.Path()}\");");
+                }
+                sw.WriteLine("            Zeze.getHotManager().stopModulesExcept(definedOrder);");
+                sw.WriteLine("        }");
             }
-            sw.WriteLine("            Zeze.getHotManager().stopModulesExcept(definedOrder);");
-            sw.WriteLine("        }");
             for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
             {
                 var m = project.ModuleStartOrder[i];
