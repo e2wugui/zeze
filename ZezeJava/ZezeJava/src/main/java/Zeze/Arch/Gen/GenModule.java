@@ -247,6 +247,11 @@ public final class GenModule {
 				sb.appendLine("{}_a_.setHashCode({});", prefix, m.hashOrServerIdParameter.getName());
 				sb.appendLine("{}_a_.setMethodFullName(\"{}:{}\");", prefix, moduleFullName, m.method.getName());
 				sb.appendLine("{}_a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);", prefix);
+				int version = m.annotation instanceof RedirectHash
+						? ((RedirectHash)m.annotation).version()
+						: ((RedirectToServer)m.annotation).version();
+				if (version != 0)
+					sb.appendLine("{}_a_.setVersion({});", prefix, version);
 				if (!m.inputParameters.isEmpty()) {
 					sb.appendLine("{}var _b_ = Zeze.Serialize.ByteBuffer.Allocate();", prefix);
 					Gen.instance.genEncode(sb, prefix, "_b_", m.inputParameters);
@@ -343,7 +348,7 @@ public final class GenModule {
 					sbHandles.appendLine("                if (_t_ > _s_)");
 					sbHandles.appendLine("                    _r_.preAllocSize(_t_);");
 					sbHandles.appendLine("                return new Zeze.Net.Binary(_b_);");
-					sbHandles.appendLine("            }));");
+					sbHandles.appendLine("            }, {}));", version);
 				} else if (!m.resultFields.isEmpty()) {
 					sbHandles.appendLine("            }, _result_ -> {");
 					sbHandles.appendLine("                if (_result_ == null)");
@@ -353,9 +358,9 @@ public final class GenModule {
 					for (var field : m.resultFields)
 						Gen.instance.genEncode(sbHandles, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
 					sbHandles.appendLine("                return new Zeze.Net.Binary(_b_);");
-					sbHandles.appendLine("            }));");
+					sbHandles.appendLine("            }, {}));", version);
 				} else
-					sbHandles.appendLine("            }, null));");
+					sbHandles.appendLine("            }, null, {}));", version);
 			} catch (Exception e) {
 				throw new IllegalStateException("generate redirect method failed: " + m.method.getName() + " in " + moduleClass.getName(), e);
 			}
@@ -425,6 +430,9 @@ public final class GenModule {
 		sb.appendLine("        _a_.setMethodFullName(\"{}:{}\");", moduleFullName, m.method.getName());
 		sb.appendLine("        _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);");
 		sb.appendLine("        _a_.setSessionId(_redirect_.providerApp.providerDirectService.addManualContextWithTimeout(_c_, {}));", ((RedirectAll)m.annotation).timeout());
+		int version = ((RedirectAll)m.annotation).version();
+		if (version != 0)
+			sb.appendLine("        _a_.setVersion({});", version);
 		if (!m.inputParameters.isEmpty()) {
 			sb.appendLine("        var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
 			Gen.instance.genEncode(sb, "        ", "_b_", m.inputParameters);
@@ -467,8 +475,8 @@ public final class GenModule {
 			for (var field : m.resultFields)
 				Gen.instance.genEncode(sbHandles, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
 			sbHandles.appendLine("                return new Zeze.Net.Binary(_b_);");
-			sbHandles.appendLine("            }));");
+			sbHandles.appendLine("            }, {}));", version);
 		} else
-			sbHandles.appendLine("            }, null));");
+			sbHandles.appendLine("            }, null, {}));", version);
 	}
 }

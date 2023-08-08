@@ -83,7 +83,7 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
                 var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
                 _r_.rankList.encode(_b_);
                 return new Zeze.Net.Binary(_b_);
-            }));
+            }, 0));
         _app_.getZeze().redirect.handles.put("Zeze.Game.Rank:updateRank", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
                 var keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();
@@ -96,6 +96,6 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
                 value = _b_.ReadLong();
                 valueEx = _b_.ReadBinary();
                 return super.updateRank(_hash_, keyHint, roleId, value, valueEx);
-            }, null));
+            }, null, 0));
     }
 }

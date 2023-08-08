@@ -15,4 +15,5 @@ public interface BModuleRedirectAllRequestReadOnly {
     String getMethodFullName();
     Zeze.Net.Binary getParams();
     String getServiceNamePrefix();
+    int getVersion();
 }

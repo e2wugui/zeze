@@ -450,6 +450,7 @@
 				<variable name="Params"         id="5" type="binary"/>
 
 				<variable name="ServiceNamePrefix" id="6" type="string"/>
+				<variable name="Version"           id="7" type="int"/> 用于验证请求方和处理方的版本一致
 			</bean>
 
 			<bean name="BModuleRedirectResult">
@@ -473,6 +474,7 @@
 				<enum name="ResultCodeMethodFullNameNotFound" value="1"/>
 				<enum name="ResultCodeHandleException" value="2"/>
 				<enum name="ResultCodeHandleError" value="3"/>
+				<enum name="ResultCodeHandleVersion" value="4"/>
 
 				<enum name="ResultCodeLinkdTimeout"    value="10"/>
 				<enum name="ResultCodeLinkdNoProvider" value="11"/>
@@ -490,6 +492,7 @@
 				<variable name="Params"                  id="7" type="binary"/>
 
 				<variable name="ServiceNamePrefix"       id="8" type="string"/>
+				<variable name="Version"                 id="9" type="int"/> 用于验证请求方和处理方的版本一致
 			</bean>
 
 			<bean name="BModuleRedirectAllHash">

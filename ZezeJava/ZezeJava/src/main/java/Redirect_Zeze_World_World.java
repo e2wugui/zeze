@@ -31,6 +31,6 @@ public class Redirect_Zeze_World_World extends Zeze.World.World {
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
                 super.redirectToServer(_hash_);
                 return null;
-            }, null));
+            }, null, 0));
     }
 }

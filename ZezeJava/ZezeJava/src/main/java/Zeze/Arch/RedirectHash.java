@@ -11,4 +11,6 @@ public @interface RedirectHash {
 	String ConcurrentLevelSource() default "";
 
 	int timeout() default 5000;
+
+	int version() default 0;
 }

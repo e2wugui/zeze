@@ -29,6 +29,7 @@ public class ModuleRedirect extends Zeze.Net.Rpc<Zeze.Builtin.ProviderDirect.BMo
     public static final int ResultCodeMethodFullNameNotFound = 1;
     public static final int ResultCodeHandleException = 2;
     public static final int ResultCodeHandleError = 3;
+    public static final int ResultCodeHandleVersion = 4;
     public static final int ResultCodeLinkdTimeout = 10;
     public static final int ResultCodeLinkdNoProvider = 11;
     public static final int ResultCodeRequestTimeout = 12;

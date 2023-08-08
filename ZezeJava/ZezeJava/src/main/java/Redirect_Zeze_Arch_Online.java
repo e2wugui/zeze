@@ -37,6 +37,6 @@ public class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
                 account = _b_.ReadString();
                 super.redirectRemoveLocal(_hash_, account);
                 return null;
-            }, null));
+            }, null, 0));
     }
 }

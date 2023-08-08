@@ -40,6 +40,6 @@ public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
                 instanceName = _b_.ReadString();
                 super.redirectRemoveLocal(_hash_, roleId, instanceName);
                 return null;
-            }, null));
+            }, null, 0));
     }
 }

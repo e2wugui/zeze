@@ -99,6 +99,7 @@ public class RedirectBase {
 			exist.Argument.setSourceProvider(req.Argument.getSourceProvider());
 			exist.Argument.setSessionId(req.Argument.getSessionId());
 			exist.Argument.setParams(req.Argument.getParams());
+			exist.Argument.setVersion(req.Argument.getVersion());
 			transmits.put(provider, exist);
 		}
 		exist.Argument.getHashCodes().add(index);

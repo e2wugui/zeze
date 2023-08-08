@@ -37,6 +37,6 @@ public class Redirect_Zeze_Component_Timer extends Zeze.Component.Timer {
                 timerId = _b_.ReadString();
                 super.redirectCancel(_hash_, timerId);
                 return null;
-            }, null));
+            }, null, 0));
     }
 }

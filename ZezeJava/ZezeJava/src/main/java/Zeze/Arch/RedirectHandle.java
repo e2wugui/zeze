@@ -17,12 +17,21 @@ public class RedirectHandle {
 	public final TransactionLevel requestTransactionLevel;
 	public final IRequestHandle requestHandle;
 	public final Function<Object, Binary> resultEncoder;
+	public final int version;
 
 	public RedirectHandle(TransactionLevel requestTransactionLevel,
 						  IRequestHandle requestHandle,
 						  Function<Object, Binary> resultEncoder) {
+		this(requestTransactionLevel, requestHandle, resultEncoder, 0);
+	}
+
+	public RedirectHandle(TransactionLevel requestTransactionLevel,
+						  IRequestHandle requestHandle,
+						  Function<Object, Binary> resultEncoder,
+						  int version) {
 		this.requestTransactionLevel = requestTransactionLevel;
 		this.requestHandle = requestHandle;
 		this.resultEncoder = resultEncoder;
+		this.version = version;
 	}
 }

@@ -38,6 +38,10 @@ public class ProviderDirect extends AbstractProviderDirect {
 			rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
 			return Procedure.LogicError;
 		}
+		if (handle.version != rpcArg.getVersion()) {
+			rpc.SendResultCode(ModuleRedirect.ResultCodeHandleVersion);
+			return Procedure.LogicError;
+		}
 
 		Object result;
 		switch (handle.requestTransactionLevel) {
@@ -142,15 +146,17 @@ public class ProviderDirect extends AbstractProviderDirect {
 		resArg.setMethodFullName(pa.getMethodFullName());
 
 		var handle = providerApp.zeze.redirect.handles.get(pa.getMethodFullName());
-		if (handle == null) {
-			res.setResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
+		int rc = handle == null ? ModuleRedirect.ResultCodeMethodFullNameNotFound
+				: handle.version != pa.getVersion() ? ModuleRedirect.ResultCodeHandleVersion
+				: ModuleRedirect.ResultCodeSuccess;
+		res.setResultCode(rc);
+		if (rc != ModuleRedirect.ResultCodeSuccess) {
 			// 失败了，需要把hash返回。此时是没有处理结果的。
 			for (var hash : pa.getHashCodes())
 				resArg.getHashs().put(hash, new BModuleRedirectAllHash.Data(Procedure.NotImplement, null));
 			sendResult(p.getSender(), res);
 			return Procedure.LogicError;
 		}
-		res.setResultCode(ModuleRedirect.ResultCodeSuccess);
 
 		for (var hash : pa.getHashCodes()) {
 			// 嵌套存储过程，某个分组处理失败不影响其他分组。
