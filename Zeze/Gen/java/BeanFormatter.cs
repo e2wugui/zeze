@@ -24,13 +24,14 @@ namespace Zeze.Gen.java
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + bean.Space.Path() + ";");
             sw.WriteLine();
-            sw.WriteLine("");
+            if (bean.Comment.Length > 0)
+                sw.WriteLine(bean.Comment);
             sw.WriteLine($"public class {bean.Name} extends Zeze.Arch.RedirectResult {{");
             foreach (var v in bean.Variables)
             {
-                sw.WriteLine($"    public {TypeName.GetName(v.VariableType)} {v.Name};");
+                sw.WriteLine($"    public {TypeName.GetName(v.VariableType)} {v.Name};{v.Comment}");
             }
-            sw.WriteLine("");
+            sw.WriteLine();
             ConstructRedirectResult.Make(bean, sw, "    ");
             sw.WriteLine("}");
         }

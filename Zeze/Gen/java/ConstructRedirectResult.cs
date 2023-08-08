@@ -19,7 +19,6 @@ namespace Zeze.Gen.java
                 var.VariableType.Accept(new ConstructRedirectResult(sw, var, prefix + "    ", bean.Name, var.Name));
             }
             sw.WriteLine(prefix + "}");
-            sw.WriteLine();
         }
 
         public ConstructRedirectResult(StreamWriter sw, Variable variable, string prefix, string beanName, string varName)
@@ -86,7 +85,7 @@ namespace Zeze.Gen.java
         public void Visit(TypeList type)
         {
             if (type.ValueType is TypeDynamic)
-                throw new System.Exception("RedirectResult not surpport dynamic.");
+                throw new System.Exception("RedirectResult not support dynamic.");
             string typeName = $"java.util.ArrayList<{BoxingName.GetBoxingName(type.ValueType)}>";
             sw.WriteLine(prefix + varName + $" = new {typeName}();");
         }
@@ -94,7 +93,7 @@ namespace Zeze.Gen.java
         public void Visit(TypeSet type)
         {
             if (type.ValueType is TypeDynamic)
-                throw new System.Exception("RedirectResult not surpport dynamic.");
+                throw new System.Exception("RedirectResult not support dynamic.");
             string typeName = $"java.util.HashSet<{BoxingName.GetBoxingName(type.ValueType)}>";
             sw.WriteLine(prefix + varName + $" = new {typeName}();");
         }
@@ -102,9 +101,9 @@ namespace Zeze.Gen.java
         public void Visit(TypeMap type)
         {
             if (type.ValueType is TypeDynamic)
-                throw new System.Exception("RedirectResult not surpport dynamic.");
+                throw new System.Exception("RedirectResult not support dynamic.");
             if (type.KeyType is TypeDynamic)
-                throw new System.Exception("RedirectResult not surpport dynamic.");
+                throw new System.Exception("RedirectResult not support dynamic.");
 
             string typeName = $"java.util.HashMap<{BoxingName.GetBoxingName(type.KeyType)}, {BoxingName.GetBoxingName(type.ValueType)}>";
             sw.WriteLine(prefix + varName + $" = new {typeName}();");
@@ -123,7 +122,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            throw new System.Exception("RedirectResult not surpport dynamic.");
+            throw new System.Exception("RedirectResult not support dynamic.");
         }
 
         void InitialVector(Type type)

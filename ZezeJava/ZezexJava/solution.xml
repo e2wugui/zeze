@@ -235,12 +235,12 @@
 		<protocol name="CGetRankList" argument="BGetRankList" handle="server"/>
 		<protocol name="SGetRankList" argument="BRankListResult" handle="client"/>
 
-		<bean name="RRankList" RedirectResult="true">
-			<variable id="1" name="rankList"  type="BRankList"/>
+		<bean name="RRankList" RedirectResult="true"> 生成继承RedirectResult的全public字段的类(不是标准Bean),用于RedirectAll的结果类型
+			<variable id="1" name="rankList"  type="BRankList"/> 构造时都会初始化,不能为null
 		</bean>
 		<bean name="TestToServerResult">
-			<variable id="1" name="resultCode"  type="long"/>
-			<variable id="2" name="out"  type="int"/>
+			<variable id="1" name="resultCode"  type="long"/> 类型是long,名字是resultCode是特殊字段,表示远程执行的结果,0表示正常,如果是超时或异常则可能得不到正确的其它字段值. 此字段是可选的
+			<variable id="2" name="out"  type="int"/> 以下是其它的自定义字段
 			<variable id="3" name="serverId"  type="int"/>
 		</bean>
 		<bean name="TestHashResult">

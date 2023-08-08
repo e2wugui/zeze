@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing.Text;
 using System.Xml;
 using Zeze.Gen.Types;
 
@@ -102,7 +101,7 @@ namespace Zeze.Gen
                         // 引进其他模块定义的协议。由于引入的协议Id对一个进程不能重复。
                         // 所以再次没法引入本Project.Service中已经包含的协议。
                         // 这个功能用来引入在其他Project.Module中定义的协议。
-                        // 【注意】引入的协议保留原来的moduleid，逻辑如果需要判断moduleid的话自己特殊处理。
+                        // 【注意】引入的协议保留原来的moduleId，逻辑如果需要判断moduleId的话自己特殊处理。
                         break;
                     case "servlet":
                         new Servlet(this, e);
