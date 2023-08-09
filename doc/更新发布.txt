@@ -77,10 +77,7 @@ TODO Gen是c#的，为了使用发布包，需要一个解析发布包的java服
 TODO Gen工具支持，需要装载当前发布版本的bean。
 当xml.bean发生了变化，需要检测出来并让用户取新版本的名字（自动？）；
 反之，没有变化但名字变化了也要报错（或警告）。新版本bean保持typeId不变的具体实现？细节？
-TODO 模块内的bean跟随module.interface.jar发布。
-TODO 多版本Bean的TypeId需要一样。
 TODO 模块热更需要更新BeanFactory。
-TODO 多版本Bean采用继承或者全新New？
 
 【Zeze服务限制】（这部分需要写到zeze.docx里面）
 
