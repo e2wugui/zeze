@@ -68,9 +68,7 @@ public class HotManager extends ClassLoader {
 		return new HotGuard(hotLock.writeLock());
 	}
 
-	/*
-	// 采用其他管理措施以后，这个方法很可能不需要了。
-	private HotModule find(String className) {
+	public HotModule findHotModule(String className) {
 		// 因为存在子模块：
 		// 优先匹配长的名字。
 		// TreeMap是否有更优算法？
@@ -78,9 +76,8 @@ public class HotManager extends ClassLoader {
 			if (className.startsWith(e.getKey()))
 				return e.getValue();
 		}
-		return null; // throw ?
+		return null;
 	}
-	*/
 
 	public <T extends HotService> HotModuleContext<T> getModuleContext(String moduleNamespace, Class<T> serviceClass) {
 		var module = modules.get(moduleNamespace);
