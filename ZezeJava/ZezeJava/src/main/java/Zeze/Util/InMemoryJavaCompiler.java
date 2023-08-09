@@ -85,7 +85,8 @@ public class InMemoryJavaCompiler {
 		if (sourceCodes.isEmpty())
 			return null;
 		DiagnosticCollector<JavaFileObject> collector = new DiagnosticCollector<>();
-		javac.getTask(null, new ExtendedJavaFileManager(javac.getStandardFileManager(null, null, null), classLoader),
+		javac.getTask(null, new ExtendedJavaFileManager(
+				javac.getStandardFileManager(null, null, null), classLoader),
 				collector, options, null, sourceCodes).call();
 		if (!collector.getDiagnostics().isEmpty()) {
 			StringBuilder exceptionMsg = new StringBuilder("Unable to compile the source");

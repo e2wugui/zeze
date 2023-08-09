@@ -30,6 +30,10 @@ public class HotModule extends ClassLoader {
 		this.moduleClass = loadClass(moduleClassName);
 	}
 
+	public String getJarFileName() {
+		return jar.getName();
+	}
+
 	Class<?> getModuleClass() {
 		return moduleClass;
 	}

@@ -86,12 +86,25 @@ public class HotManager extends ClassLoader {
 		return module.getContext(serviceClass);
 	}
 
+	public String buildCp() throws IOException {
+		var sb = new StringBuilder();
+		for (var jar : jars.keySet()) {
+			sb.append(jar).append(File.pathSeparator);
+		}
+		for (var module : modules.values()) {
+			sb.append(module.getJarFileName()).append(File.pathSeparator);
+		}
+		//System.out.println(sb);
+		return sb.toString();
+	}
+
 	@SuppressWarnings("unchecked")
 	private IModule[] createModuleInstance(Collection<HotModule> result) throws Exception {
 		var moduleClasses = new Class[result.size()];
 		var i = 0;
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
+		GenModule.instance.getCompiler().useOptions("-cp", buildCp());
 		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses, new HotRedirect(this));
 		if (null == iModules) {
 			// todo @张路 这种情况是不是内部处理掉比较好。

@@ -51,6 +51,10 @@ public final class GenModule {
 	private final InMemoryJavaCompiler compiler = new InMemoryJavaCompiler();
 	private final HashMap<String, Class<?>> genClassMap = new HashMap<>();
 
+	public InMemoryJavaCompiler getCompiler() {
+		return compiler;
+	}
+
 	private GenModule() {
 		compiler.ignoreWarnings();
 	}
