@@ -71,20 +71,16 @@ c) start依赖意味着此时可能缓存了其他创建的数据，那么也通
 createRedirectModules 调用两次：热更模块单独调用。这个不需要优化成一次性调用了吧。优先级低！
 
 【Bean多版本管理】
+TODO Name解析已经完成，还差多个版本的class或java的管理（需要引入一个发布的概念），
+TODO 还有toPrevious()的实现。
+TODO Gen是c#的，为了使用发布包，需要一个解析发布包的java服务程序。
+TODO Gen工具支持，需要装载当前发布版本的bean。
+当xml.bean发生了变化，需要检测出来并让用户取新版本的名字（自动？）；
+反之，没有变化但名字变化了也要报错（或警告）。新版本bean保持typeId不变的具体实现？细节？
+TODO 模块内的bean跟随module.interface.jar发布。
+TODO 多版本Bean的TypeId需要一样。
+TODO 模块热更需要更新BeanFactory。
+TODO 多版本Bean采用继承或者全新New？
 
 【Zeze服务限制】（这部分需要写到zeze.docx里面）
-启用了模块热更新支持以后，Zeze服务需要一定限制。
-A)	只能由应用的非热更部分调用，Zeze会阻止违规调用。
-	Timer.schedule(... Class<? extends TimerHandle> handle...) 所有以这种形式提供handle的注册方法都会进行限制。
-	...【还有什么，需要帮忙，免得遗漏】
-B)	可以自由调用，这种就不需要标明了。
-C)	热更新模块必须使用特别接口。
-	Timer. scheduleHot(... Class<? extends HotService>moduleClass, Class<? extends TimerHandle> handle...) 方法名字增加Hot，明确区分原有方法，参数增加moduleClass。TODO 暂定方案需要确认。
-	...【还有什么，需要帮忙，免得遗漏】
 
-【异想天开】
-0. 兼容是开发人员绕不开的问题，只能降低难度，但永远避免不了。特别是服务器开发人员。
-1. 客户端也支持按模块热更就完美了。
-2. 后端数据库需求，高效的设置不安全点，此后较长一段时间（如，一天）的数据修改可以全部快速回滚，
-当然也可以设为安全，把修改提交，然后一切正常继续。用于版本更新时，减少重大bug引起的大问题。
-对于游戏，回滚期间产生的高价值掉落，通过log给玩家补上。

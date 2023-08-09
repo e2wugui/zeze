@@ -267,6 +267,6 @@ public abstract class Bean implements Serializable {
 	}
 
 	public Bean toPrevious() {
-		throw new UnsupportedOperationException();
+		return this;
 	}
 }

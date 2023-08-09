@@ -36,6 +36,21 @@ Hot zeze 功能
 HotManager interface.jar findClass 方式一个一个搜索有效率。
 dbh2 rocks 层调用不允许出错，有点过于相信底层了，怎么解决？出错了现在是abort，改成reset raft？
 
+直接暴露数据表【zeze.docx使用手册】
+HotTable<K, V extends Bean> 必须在方法里面暴露这个接口，TableX会实现这个接口，最新版本的接口，可以直接返回模块内的表变量。
+HotTableToPrevious<K, V extends Bean, Kold, Vold extends Bean> 辅助类。用来兼容旧版暴露的表。
+如：
+HotTable<Long, BeanSome> getTableSome() {
+	// 可以保存成模块成员变量，不用每次创建。
+	return new HotTableToPrevious<Long, BeanSome_1_, Long, BeanSome>(_tableSome);
+}
+
+HotTable<Long, BeanSome_1_> getTableSome_1_() {
+	return _tableSome;
+}
+
+暴露的表接口不能保存下来，只能临时使用。
+
 Hot 支持输出TableX 好像不大可能了，提供一个ITable新的体系？
 	ITable<Long, BeanSome> getTableSome(); // old version
 	ITable<Long, BeanSome_1_> getTableSome(); // new version，此时old version用 return new TableToPrevious(current); 提供
