@@ -80,6 +80,8 @@ public class Distribute {
 			try (var interfaceJar = new JarOutputStream(new FileOutputStream(interfaceJarFile), interfaceManifest);
 				 var moduleJar = new JarOutputStream(new FileOutputStream(moduleJarFile), moduleManifest)
 				) {
+				var beanNames = new HashSet<String>();
+				var logClasses = new ArrayList<LogEntry>();
 				for (var file : classes) {
 					var classFile = home.relativize(file.toPath()).toString().replace("\\", "/");
 					var className = classFile.replace("/", ".");
@@ -87,17 +89,31 @@ public class Distribute {
 					var entry = new ZipEntry(classFile);
 					entry.setTime(file.lastModified());
 					var cls = Class.forName(className);
-					if (cls.isInterface()
+					if (Zeze.Transaction.Log.class.isAssignableFrom(cls)) {
+						// log 收集下来，后面再确认它确实是Bean里面的Log才加入interface.jar。
+						logClasses.add(new LogEntry(cls, entry, file));
+					} else if (cls.isInterface()
 						|| Zeze.Transaction.Bean.class.isAssignableFrom(cls)
 						|| Zeze.Transaction.Data.class.isAssignableFrom(cls)
 						|| Zeze.Transaction.BeanKey.class.isAssignableFrom(cls)
 						|| Zeze.Arch.RedirectResult.class.isAssignableFrom(cls)
 					) {
+						if (Zeze.Transaction.Bean.class.isAssignableFrom(cls))
+							beanNames.add(cls.getName()); // bean 收集下来，用来下一步判断log.class。
 						interfaceJar.putNextEntry(entry);
 						interfaceJar.write(Files.readAllBytes(file.toPath()));
 					} else {
 						moduleJar.putNextEntry(entry);
 						moduleJar.write(Files.readAllBytes(file.toPath()));
+					}
+				}
+				for (var e : logClasses) {
+					if (e.isBeanLog(beanNames)) {
+						interfaceJar.putNextEntry(e.entry);
+						interfaceJar.write(Files.readAllBytes(e.file.toPath()));
+					} else {
+						moduleJar.putNextEntry(e.entry);
+						moduleJar.write(Files.readAllBytes(e.file.toPath()));
 					}
 				}
 			}
@@ -109,6 +125,26 @@ public class Distribute {
 		}
 	}
 
+	public static class LogEntry {
+		public Class<?> logClass;
+		public ZipEntry entry;
+		public File file;
+
+		public boolean isBeanLog(HashSet<String> beanNames) {
+			var logName = logClass.getName();
+			var innerIdx = logName.indexOf('$');
+			if (innerIdx == -1) // bean.log 肯定是内部类。
+				return false;
+			var beanName = logName.substring(0, innerIdx);
+			return beanNames.contains(beanName);
+		}
+
+		public LogEntry(Class<?> logClass, ZipEntry entry, File file) {
+			this.logClass = logClass;
+			this.entry = entry;
+			this.file = file;
+		}
+	}
 	public static void pack(Path home, String workingDir, Path dir, ArrayList<Package> packages) throws Exception {
 		var files = dir.toFile().listFiles();
 		if (null == files)
