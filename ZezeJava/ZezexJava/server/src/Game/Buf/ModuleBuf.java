@@ -1,5 +1,6 @@
 package Game.Buf;
 
+import java.util.concurrent.Future;
 import Game.Equip.IModuleEquip;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
@@ -14,19 +15,20 @@ import org.jetbrains.annotations.NotNull;
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public class ModuleBuf extends AbstractModule implements IModuleBuf {
-	private String timerIdHot;
+	private Future<?> timerIdHot;
 
 	public final void Start(App app) {
 		_tbufs.getChangeListenerMap().addListener(new BufChangeListener("Game.Buf.Bufs"));
-		Task.schedule(2000, 2000, () -> {
-			var module = Game.App.Instance.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
+		timerIdHot = Task.scheduleUnsafe(2000, 2000, () -> {
+			var module = app.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
 			var service = module.getService();
 			service.hotHelloworld();
 		});
 	}
 
 	public final void Stop(App app) {
-		App.Zeze.getTimer().cancel(timerIdHot);
+		if (null != timerIdHot)
+			timerIdHot.cancel(true);
 	}
 
 	@Override
