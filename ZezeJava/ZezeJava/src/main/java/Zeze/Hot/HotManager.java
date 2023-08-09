@@ -18,6 +18,7 @@ import Zeze.Arch.Gen.GenModule;
 import Zeze.IModule;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
+import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -89,12 +90,14 @@ public class HotManager extends ClassLoader {
 	public String buildCp() throws IOException {
 		var sb = new StringBuilder();
 		for (var jar : jars.keySet()) {
-			sb.append(jar).append(File.pathSeparator);
+			sb.append(jar).append(File.pathSeparatorChar);
 		}
 		for (var module : modules.values()) {
-			sb.append(module.getJarFileName()).append(File.pathSeparator);
+			sb.append(module.getJarFileName()).append(File.pathSeparatorChar);
 		}
-		//System.out.println(sb);
+		for (var path : Reflect.collectClassPaths(ClassLoader.getSystemClassLoader()))
+			sb.append(path).append(File.pathSeparatorChar);
+		// System.out.println(sb);
 		return sb.toString();
 	}
 

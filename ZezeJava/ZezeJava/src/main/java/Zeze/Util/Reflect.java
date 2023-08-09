@@ -187,4 +187,9 @@ public class Reflect {
 		}
 		return classNames;
 	}
+
+	public static @NotNull String @NotNull [] collectClassPaths(@NotNull ClassLoader classLoader) {
+		var isWin = System.getProperty("os.name").toLowerCase().startsWith("win");
+		return System.getProperty("java.class.path").split(isWin ? ";" : ":");
+	}
 }

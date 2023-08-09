@@ -9,7 +9,7 @@ public class HotRedirect extends ClassLoader {
 	}
 
 	@Override
-	public Class<?> loadClass(String name) throws ClassNotFoundException {
+	public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
 		// 1. Redirect编译Module子类的时候，需要装载Module的类。
 		// 2. 如果使用Cl树，那么编译每个HotModule都需要设置一个子Cl。
 		// 3. 参考osgi机制。横向把请求转给HotModule来装载类。
@@ -19,6 +19,6 @@ public class HotRedirect extends ClassLoader {
 		var cl = manager.findHotModule(name);
 		if (null != cl)
 			return cl.loadClass(name);
-		return super.loadClass(name);
+		return super.loadClass(name, resolve);
 	}
 }

@@ -86,7 +86,7 @@ public class InMemoryJavaCompiler {
 			return null;
 		DiagnosticCollector<JavaFileObject> collector = new DiagnosticCollector<>();
 		javac.getTask(null, new ExtendedJavaFileManager(
-				javac.getStandardFileManager(null, null, null), classLoader),
+						javac.getStandardFileManager(null, null, null), classLoader),
 				collector, options, null, sourceCodes).call();
 		if (!collector.getDiagnostics().isEmpty()) {
 			StringBuilder exceptionMsg = new StringBuilder("Unable to compile the source");
@@ -103,6 +103,7 @@ public class InMemoryJavaCompiler {
 					break;
 				}
 				exceptionMsg.append('\n').append("[kind=").append(d.getKind());
+				exceptionMsg.append(", ").append("class=").append(((SourceCode)d.getSource()).getClassName());
 				exceptionMsg.append(", ").append("line=").append(d.getLineNumber());
 				exceptionMsg.append(", ").append("message=").append(d.getMessage(Locale.US)).append(']');
 			}
@@ -169,11 +170,17 @@ public class InMemoryJavaCompiler {
 	}
 
 	private static final class SourceCode extends SimpleJavaFileObject {
+		private final String className;
 		private final String contents;
 
 		SourceCode(String className, String contents) {
 			super(URI.create("string:///" + className.replace('.', '/') + Kind.SOURCE.extension), Kind.SOURCE);
+			this.className = className;
 			this.contents = contents;
+		}
+
+		public String getClassName() {
+			return className;
 		}
 
 		@Override
