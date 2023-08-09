@@ -33,10 +33,13 @@ choiceHash 加入AppVersion。首先需要考虑需求。
 Hot install new modiule need register sm,还需要module config  choice type
 Hot module 生成 interface 工具（预计下周）
 Hot zeze 功能
+HotManager interface.jar findClass 方式一个一个搜索有效率。
+dbh2 rocks 层调用不允许出错，有点过于相信底层了，怎么解决？出错了现在是abort，改成reset raft？
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/11 v1.3.0 Timer Bug; Hot;
 ------------------------------------------------------------------------------------------------------------------------------
+Hot Timer 限制和新接口。
 【Redirect】Zezex Build 的时候redirect在名字空间生成了，这个需要确认一下，不用修改。
 	打包(Zeze.Hot.Distribute)的时候需要把这个class归类到对应的module里面。
 HotRedirect & GenModule.compile @张路
