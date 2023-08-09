@@ -24,7 +24,7 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * 装载所有的模块接口。
- *
+ * <p>
  * 0. 参数指定工作目录和更新来源目录，
  * 1. 监视更新来源目录，自动安装升级。
  * 2. 一般全局一个实例。
@@ -92,7 +92,7 @@ public class HotManager extends ClassLoader {
 		var i = 0;
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
-		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses);
+		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses, new HotRedirect(this));
 		if (null == iModules) {
 			// todo @张路 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.

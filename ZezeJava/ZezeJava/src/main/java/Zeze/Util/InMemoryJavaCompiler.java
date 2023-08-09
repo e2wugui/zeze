@@ -31,8 +31,12 @@ public class InMemoryJavaCompiler {
 	private boolean ignoreWarnings;
 
 	public InMemoryJavaCompiler() {
+		this(ClassLoader.getSystemClassLoader());
+	}
+
+	public InMemoryJavaCompiler(ClassLoader parent) {
 		javac = ToolProvider.getSystemJavaCompiler();
-		classLoader = new DynamicClassLoader(ClassLoader.getSystemClassLoader());
+		classLoader = new DynamicClassLoader(parent);
 	}
 
 	/**
@@ -40,6 +44,12 @@ public class InMemoryJavaCompiler {
 	 */
 	public ClassLoader getClassloader() {
 		return classLoader;
+	}
+
+	public void setClassLoader(ClassLoader classLoader) {
+		if (!(classLoader instanceof DynamicClassLoader))
+			throw new IllegalArgumentException("classLoader is not DynamicClassLoader");
+		this.classLoader = (DynamicClassLoader)classLoader;
 	}
 
 	public InMemoryJavaCompiler useParentClassLoader(ClassLoader parent) {
