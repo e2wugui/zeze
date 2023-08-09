@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.jar.JarOutputStream;
@@ -17,9 +18,7 @@ public class Distribute {
 		// 搜索classes目录，自动识别Module并打包。
 		// 每个Module打成两个包。一个interface，一个其他。
 		// Module除外的打成一个包，不热更。可能有例外需要处理。
-		// todo 例外，下面的类放在了全局空间，需要打入相应的模块：
-		// build zezex 的时候，redirect.class生成到build目录了，这个不是即时编译，仅在内存的吗？
-		// 是不是zezex特殊处理了（好像是）。
+		// 【例外】Redirect_生成的类放在了全局空间，需要打入相应的模块：
 
 		var classes = "build/classes/java/main";
 		var workingDir = "hot";
@@ -39,6 +38,8 @@ public class Distribute {
 		assert packages.size() == 1;
 		packages.get(0).pack(home, workingDir);
 	}
+
+	public static final HashMap<String, JarOutputStream> moduleJars = new HashMap<>();
 
 	public static class Package {
 		private final File dir;
@@ -65,6 +66,20 @@ public class Distribute {
 				try (var serverJar = new JarOutputStream(new FileOutputStream(serverJarFile), interfaceManifest)) {
 					for (var file : classes) {
 						var classFile = home.relativize(file.toPath()).toString().replace("\\", "/");
+						if (classFile.indexOf('/') == -1 && classFile.startsWith("Redirect_")) {
+							// 是Redirect生成的子类。
+							// 解析名字；根据名字找到相应的module.jar；并打包进去。
+							var moduleClassName = classFile.substring("Redirect_".length(), classFile.length() - ".class".length())
+									.replace("_", ".");
+							var moduleNamespace = moduleClassName.substring(0, moduleClassName.lastIndexOf('.'));
+							var moduleJar = moduleJars.get(moduleNamespace);
+							var entry = new ZipEntry(classFile);
+							entry.setTime(file.lastModified());
+							moduleJar.putNextEntry(entry);
+							moduleJar.write(Files.readAllBytes(file.toPath()));
+
+							continue;
+						}
 						var entry = new ZipEntry(classFile);
 						entry.setTime(file.lastModified());
 						serverJar.putNextEntry(entry);
@@ -72,14 +87,20 @@ public class Distribute {
 					}
 				}
 
+				for (var e : moduleJars.entrySet()) {
+					//System.out.println(e.getKey() + " ---- close");
+					e.getValue().close();
+				}
+				moduleJars.clear();
 				return; // done;
 			}
 
 			var interfaceJarFile = Path.of(workingDir, "interfaces", module + ".interface.jar").toFile();
 			var moduleJarFile = Path.of(workingDir, "modules", module + ".jar").toFile();
-			try (var interfaceJar = new JarOutputStream(new FileOutputStream(interfaceJarFile), interfaceManifest);
-				 var moduleJar = new JarOutputStream(new FileOutputStream(moduleJarFile), moduleManifest)
-				) {
+			try (var interfaceJar = new JarOutputStream(new FileOutputStream(interfaceJarFile), interfaceManifest)) {
+				// moduleJar 后面还可能添加文件，这里不关闭。
+				var moduleJar = new JarOutputStream(new FileOutputStream(moduleJarFile), moduleManifest);
+				moduleJars.put(module, moduleJar);
 				var beanNames = new HashSet<String>();
 				var logClasses = new ArrayList<LogEntry>();
 				for (var file : classes) {
