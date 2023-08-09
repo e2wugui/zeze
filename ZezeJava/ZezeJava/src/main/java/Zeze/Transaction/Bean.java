@@ -265,4 +265,8 @@ public abstract class Bean implements Serializable {
 			sb.append(name).append("_");
 		return sb.toString();
 	}
+
+	public Bean toPrevious() {
+		throw new UnsupportedOperationException();
+	}
 }

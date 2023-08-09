@@ -256,12 +256,13 @@ namespace Zeze.Gen.java
         public void ToPrevious(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public int toPrevious() {{");
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine($"{prefix}public Zeze.Transaction.Bean toPrevious() {{");
             var refName = bean.Name;
             var version = bean.TryParseHotName(ref refName);
-            version--;
-            var oldName = version == 0 ? refName : refName + "_" + version + "_";
-            sw.WriteLine($"{prefix}    return 0; // todo {oldName}");
+            var oldVersion = version == 0 ? 0 : version - 1;
+            var oldName = oldVersion == 0 ? refName : refName + "_" + oldVersion + "_";
+            sw.WriteLine($"{prefix}    return null; // todo {oldName}");
             sw.WriteLine($"{prefix}}}");
         }
     }

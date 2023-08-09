@@ -275,5 +275,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		// CheckpointMode.Table
 		snapshotKey = null;
 		snapshotValue = null;
+		snapshotKeyLocal = null;
+		snapshotValueLocal = null;
 	}
 }

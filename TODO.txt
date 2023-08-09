@@ -36,10 +36,32 @@ Hot zeze 功能
 HotManager interface.jar findClass 方式一个一个搜索有效率。
 dbh2 rocks 层调用不允许出错，有点过于相信底层了，怎么解决？出错了现在是abort，改成reset raft？
 
+Hot 支持输出TableX 好像不大可能了，提供一个ITable新的体系？
+	ITable<Long, BeanSome> getTableSome(); // old version
+	ITable<Long, BeanSome_1_> getTableSome(); // new version，此时old version用 return new TableToPrevious(current); 提供
+	提供一个
+	class TableToPrevious<Long, BeanSome_1_> implements ITable<Long, BeanSome> {
+		ITable<Long, BeanSome_1_> current;
+		TableToPrevious(ITable<Long, BeanSome_1_> current) { this.current = current; } // 支持多个旧版，可以嵌套。
+		public V get(K key) { current.get(key)?.toPrevious(); }
+	}
+	ITable和TableToPrevious都可以写好，另外Zeze.Transaction.TableX implements ITable<K, V>，这样？
+	*** 4个版本参数？传递给基类？可以这样写？
+	class TableToPrevious<K, V, KOld, VOld> implements ITable<KOld, VOld>
+
+Hot Timer 限制和新接口。
+	1. 原回调方案：Timer.schedule(... Class<? extends TimerHandle> handle...)
+	里面记录handle.className，回调的时候Class.forName().newInstance()【这里可以弄个缓存优化一下】
+	这是由于Timer分布式和持久化，需要使用className。
+	2. HotModule回调方案：Timer. scheduleHot(... Class<? extends HotService>moduleClass, Class<? extends TimerHandle> handle...) 
+	增加moduleClass，内部还是保存module.className，用class比string稳定。
+	里面在module.className不空的时候去查询HotManager得到HotModule然后让他装载handle.className。
+	后面newInstance再回调了。【这里也可以建立cache】
+	module.className空不空是兼容的基础。
+
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/11 v1.3.0 Timer Bug; Hot;
 ------------------------------------------------------------------------------------------------------------------------------
-Hot Timer 限制和新接口。
 【Redirect】Zezex Build 的时候redirect在名字空间生成了，这个需要确认一下，不用修改。
 	打包(Zeze.Hot.Distribute)的时候需要把这个class归类到对应的module里面。
 HotRedirect & GenModule.compile @张路
