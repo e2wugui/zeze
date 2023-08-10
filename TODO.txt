@@ -29,15 +29,48 @@ dbh2 raftagent会建立所有node的连接并保持，由于已有新链接建�
 	manager上有多个桶，每个桶都有独立连接，可以考虑用代理隧道复用连接使得一个manager只需要一个连接。
 	优先级不高，后期优化再考虑。
 
+dbh2 rocks 层调用不允许出错，有点过于相信底层了，怎么解决？出错了现在是abort，改成reset raft？
 choiceHash 加入AppVersion。首先需要考虑需求。
 Hot install new modiule need register sm,还需要module config  choice type
 Hot module 生成 interface 工具（预计下周）
-Hot zeze 功能
+Hot zeze 功能【Zeze服务限制】（这部分需要写到zeze.docx里面）
 HotManager interface.jar findClass 方式一个一个搜索有效率。
-dbh2 rocks 层调用不允许出错，有点过于相信底层了，怎么解决？出错了现在是abort，改成reset raft？
+【热更启动顺序】
+多个模块一起热更的时候，已经支持顺序。但是顺序定义从哪来？暂定在发布集合里增加一个顺序配置程序。
+
+【Gen.App】
+createRedirectModules 调用两次：热更模块单独调用。这个不需要优化成一次性调用了吧。优先级低！
+
+【Bean多版本管理】
+TODO 模块热更需要更新BeanFactory。
+
+TODO Name解析已经完成，还差多个版本的class或java的管理（需要引入一个发布的概念），
+TODO 还有toPrevious()的实现。
+TODO Gen是c#的，为了使用发布包，需要一个解析发布包的java服务程序。
+TODO Gen工具支持，需要装载当前发布版本的bean。
+当xml.bean发生了变化，需要检测出来并让用户取新版本的名字（自动？）；
+反之，没有变化但名字变化了也要报错（或警告）。新版本bean保持typeId不变的具体实现？细节？
+
+Bean.toPrevious() 实现方案选择：
+1. reflect 有风险，需要准确识别var，有一点点会影响扩充bean的方法，最大的问题是varid不好找了。
+2. reflect 还是用这个方案，生成bean的时候，在getter方法里面生成注解，标明varid，有这个注解的就是var并且varid也有了。
+3. 定义下面的Variable结构，生成提供原始信息。
+public static class Variable implements Serializable {
+	public final int id;
+	public final String name;
+	public final String type;
+	public final String key;
+	public final String value;
+}
+public List<Variable> Bean.variables() {
+	return List.of();
+}
+
+GenModule.instance.compiler.classloader 只设置一次，只维护一个实例。
+Timer 热更模块Handle测试。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/8/11 v1.3.0 Timer Bug; Hot; Record1.snapshotValueLocal clear;
+2023/8/11 v1.3.0 Timer Bug; Hot; Record1.snapshotValueLocal clear Bug; Timer For Hot; 
 ------------------------------------------------------------------------------------------------------------------------------
 Hot Timer：HotRedirect + Cache: 关键 Cache 在模块热更后怎么清除？
 Hot TimerRole & TimerAccount
