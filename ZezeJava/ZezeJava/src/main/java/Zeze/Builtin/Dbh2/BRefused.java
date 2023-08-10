@@ -226,6 +226,13 @@ public final class BRefused extends Zeze.Transaction.Bean implements BRefusedRea
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "Refused", "map", "string", "BBatch"));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BRefused
     }

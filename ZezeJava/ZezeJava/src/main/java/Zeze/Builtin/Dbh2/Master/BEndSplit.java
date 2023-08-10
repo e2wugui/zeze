@@ -239,6 +239,14 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "From", "Zeze.Builtin.Dbh2.BBucketMeta", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "To", "Zeze.Builtin.Dbh2.BBucketMeta", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BEndSplit
     }

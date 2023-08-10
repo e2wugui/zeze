@@ -258,6 +258,14 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "Logins", "map", "string", "BOnline"));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "LastLoginVersion", "long", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BOnlines
     }

@@ -187,6 +187,13 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "Any", "dynamic", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BAny
     }

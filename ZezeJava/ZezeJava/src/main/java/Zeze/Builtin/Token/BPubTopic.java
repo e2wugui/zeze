@@ -298,6 +298,15 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "topic", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "content", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "broadcast", "bool", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BPubTopic
     }

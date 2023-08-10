@@ -311,6 +311,15 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "KeyValues", "list", "", "BWalkKeyValue"));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "BucketEnd", "bool", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "BucketRefuse", "bool", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BWalkResult
     }

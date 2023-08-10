@@ -432,6 +432,17 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "Account", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "ClientId", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "TimerObj", "dynamic", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "LoginVersion", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "SerialId", "long", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BArchOnlineTimer
     }

@@ -233,6 +233,14 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "Timestamp", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "Value", "dynamic", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BQueueNodeValue
     }

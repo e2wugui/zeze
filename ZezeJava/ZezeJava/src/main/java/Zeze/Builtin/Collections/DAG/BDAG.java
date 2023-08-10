@@ -334,6 +334,16 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "NodeSum", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "EdgeSum", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "StartNode", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "EndNode", "string", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BDAG
     }

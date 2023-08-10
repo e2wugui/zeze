@@ -447,6 +447,17 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "MapId", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "MapInstanceId", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "Position", "vector3", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "Direct", "vector3", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "PriorityData", "list", "", "BAoiOperates"));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BEnterWorld
     }

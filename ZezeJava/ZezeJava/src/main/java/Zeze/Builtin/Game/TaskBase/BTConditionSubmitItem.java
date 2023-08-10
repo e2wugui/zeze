@@ -267,6 +267,14 @@ public final class BTConditionSubmitItem extends Zeze.Transaction.Bean implement
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "items", "map", "long", "int"));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "itemsSubmitted", "map", "long", "int"));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BTConditionSubmitItem
     }

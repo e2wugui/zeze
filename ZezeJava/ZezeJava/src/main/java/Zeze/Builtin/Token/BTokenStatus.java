@@ -349,6 +349,16 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "newCount", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "curCount", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "connectCount", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "perfLog", "string", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BTokenStatus
     }

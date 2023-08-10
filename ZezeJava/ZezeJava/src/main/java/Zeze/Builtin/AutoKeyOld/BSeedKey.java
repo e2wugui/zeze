@@ -2,7 +2,6 @@
 package Zeze.Builtin.AutoKeyOld;
 
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
 public final class BSeedKey implements Zeze.Transaction.BeanKey, Comparable<BSeedKey> {

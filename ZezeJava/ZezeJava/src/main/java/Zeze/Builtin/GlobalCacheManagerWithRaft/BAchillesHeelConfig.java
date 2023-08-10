@@ -276,6 +276,15 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "MaxNetPing", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "ServerProcessTime", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "ServerReleaseTimeout", "int", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BAchillesHeelConfig
     }

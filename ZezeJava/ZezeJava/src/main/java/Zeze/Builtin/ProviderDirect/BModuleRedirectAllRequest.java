@@ -626,6 +626,21 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "ModuleId", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "HashCodeConcurrentLevel", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "HashCodes", "set", "", "int"));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "SourceProvider", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "SessionId", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(6, "MethodFullName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(7, "Params", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(8, "ServiceNamePrefix", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(9, "Version", "int", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BModuleRedirectAllRequest
     }

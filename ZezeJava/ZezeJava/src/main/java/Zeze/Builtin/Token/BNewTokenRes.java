@@ -197,6 +197,13 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "token", "string", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BNewTokenRes
     }

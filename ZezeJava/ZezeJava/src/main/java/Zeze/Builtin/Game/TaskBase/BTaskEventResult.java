@@ -252,6 +252,14 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "resultCode", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "changedTasks", "list", "", "BTask"));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BTaskEventResult
     }

@@ -354,6 +354,16 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "context", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "count", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "time", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "addr", "string", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BGetTokenRes
     }

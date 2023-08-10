@@ -213,6 +213,13 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "ErrorLinkSids", "list", "", "long"));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BSendResult
     }

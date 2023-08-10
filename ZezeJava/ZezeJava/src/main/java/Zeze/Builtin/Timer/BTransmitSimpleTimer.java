@@ -448,6 +448,18 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "TimerId", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "SimpleTimer", "BSimpleTimer", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "HandleClass", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "CustomClass", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "CustomBean", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(6, "LoginVersion", "long", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BTransmitSimpleTimer
     }

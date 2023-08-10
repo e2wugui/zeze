@@ -264,6 +264,14 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "processingTasks", "map", "long", "BTask"));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "finishedTaskIds", "set", "", "long"));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BRoleTasks
     }

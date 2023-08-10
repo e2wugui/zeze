@@ -2,7 +2,6 @@
 package Zeze.Builtin.Collections.DAG;
 
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.Serializable;
 
 // 有向图的结点Key
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})

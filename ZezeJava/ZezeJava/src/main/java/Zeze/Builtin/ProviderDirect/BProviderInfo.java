@@ -300,6 +300,15 @@ public final class BProviderInfo extends Zeze.Transaction.Bean implements BProvi
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "Ip", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "Port", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "ServerId", "int", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BProviderInfo
     }

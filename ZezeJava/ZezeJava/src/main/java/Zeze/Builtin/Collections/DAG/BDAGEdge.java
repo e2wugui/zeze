@@ -246,6 +246,14 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "From", "BDAGNodeKey", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "To", "BDAGNodeKey", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BDAGEdge
     }

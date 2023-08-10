@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
@@ -263,7 +264,7 @@ public abstract class Bean implements Serializable {
 
 		var sb = new StringBuilder();
 		for (var name : parents)
-			sb.append(name).append("_");
+			sb.append(name).append('_');
 		return sb.toString();
 	}
 
@@ -271,7 +272,7 @@ public abstract class Bean implements Serializable {
 		return this;
 	}
 
-	public java.util.List<Variable> variables() {
+	public List<Variable> variables() {
 		return new ArrayList<>();
 	}
 

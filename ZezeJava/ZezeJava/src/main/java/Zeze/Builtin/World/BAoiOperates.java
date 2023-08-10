@@ -227,6 +227,13 @@ public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOpe
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "Operates", "map", "long", "BAoiOperate"));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BAoiOperates
     }

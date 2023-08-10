@@ -234,6 +234,14 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "GlobalKey", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "State", "int", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BAcquireParam
     }

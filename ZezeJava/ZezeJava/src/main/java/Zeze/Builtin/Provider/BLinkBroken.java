@@ -359,6 +359,16 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "account", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "linkSid", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "reason", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "userState", "BUserState", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BLinkBroken
     }

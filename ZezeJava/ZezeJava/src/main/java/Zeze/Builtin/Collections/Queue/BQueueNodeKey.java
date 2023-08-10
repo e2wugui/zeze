@@ -2,7 +2,6 @@
 package Zeze.Builtin.Collections.Queue;
 
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
 public final class BQueueNodeKey implements Zeze.Transaction.BeanKey, Comparable<BQueueNodeKey> {

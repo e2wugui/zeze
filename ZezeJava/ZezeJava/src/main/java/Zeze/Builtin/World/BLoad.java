@@ -406,6 +406,17 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "PlayerCount", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "ComputeCount", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "ComputeCountPS", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "ComputeCountLast", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "ComputeCountTime", "long", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BLoad
     }

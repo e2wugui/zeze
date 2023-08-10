@@ -509,6 +509,19 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "Data", "dynamic", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "Moving", "BMove", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "PlayerId", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "LinkName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "LinkSid", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(6, "Type", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(7, "ConfigId", "int", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BObject
     }

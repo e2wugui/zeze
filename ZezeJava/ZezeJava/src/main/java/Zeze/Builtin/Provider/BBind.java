@@ -290,6 +290,14 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "modules", "map", "int", "BModule"));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "linkSids", "set", "", "long"));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BBind
     }

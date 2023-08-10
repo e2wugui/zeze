@@ -433,6 +433,17 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "ParentDepartment", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "Childs", "map", "string", "long"));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "Name", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "Managers", "map", "string", "dynamic"));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "Data", "dynamic", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BDepartmentTreeNode
     }

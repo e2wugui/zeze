@@ -506,6 +506,19 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "ModuleId", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "HashCode", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "RedirectType", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "MethodFullName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "Params", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(6, "ServiceNamePrefix", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(7, "Version", "int", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BModuleRedirectArgument
     }

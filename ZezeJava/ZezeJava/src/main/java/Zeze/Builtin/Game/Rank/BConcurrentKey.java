@@ -2,7 +2,6 @@
 package Zeze.Builtin.Game.Rank;
 
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
 public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparable<BConcurrentKey> {

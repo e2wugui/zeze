@@ -2,7 +2,6 @@
 package Zeze.Builtin.Threading;
 
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
 public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLockName> {

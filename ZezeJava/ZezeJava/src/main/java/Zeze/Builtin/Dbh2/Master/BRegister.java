@@ -251,6 +251,14 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "Dbh2RaftAcceptorName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "BucketCount", "int", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BRegister
     }

@@ -2,7 +2,6 @@
 package Zeze.Builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
 public final class BServerMapKey implements Zeze.Transaction.BeanKey, Comparable<BServerMapKey> {

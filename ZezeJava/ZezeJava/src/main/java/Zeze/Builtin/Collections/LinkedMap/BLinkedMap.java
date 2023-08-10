@@ -324,6 +324,16 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "HeadNodeId", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "TailNodeId", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "Count", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "LastNodeId", "long", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BLinkedMap
     }

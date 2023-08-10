@@ -281,6 +281,15 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "ServerId", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "SecureKey", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "GlobalCacheManagerHashIndex", "int", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BAchillesHeel
     }

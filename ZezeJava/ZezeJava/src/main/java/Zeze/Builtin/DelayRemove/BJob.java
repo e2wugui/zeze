@@ -245,6 +245,14 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "JobHandleName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "JobState", "binary", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BJob
     }

@@ -449,6 +449,17 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "Puts", "map", "binary", "binary"));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "Deletes", "set", "", "binary"));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "QueryIp", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "QueryPort", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "Tid", "binary", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BBatch
     }

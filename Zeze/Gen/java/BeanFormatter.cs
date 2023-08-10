@@ -256,18 +256,22 @@ namespace Zeze.Gen.java
 
         public void GenVariables(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine($"{prefix}@Override");
-            sw.WriteLine($"{prefix}public java.util.List<Zeze.Transaction.Bean.Variable> variables() {{");
-            sw.WriteLine($"{prefix}    var vars = super.variables();");
-            foreach (var v in bean.VariablesIdOrder)
-                sw.WriteLine($"{prefix}    vars.add(new Zeze.Transaction.Bean.Variable({v.Id}, \"{v.Name}\", \"{v.Type}\", \"{v.Key}\", \"{v.Value}\"));");
-            sw.WriteLine($"{prefix}    return vars;");
-            sw.WriteLine($"{prefix}}}");
-            sw.WriteLine();
+            if (bean.VariablesIdOrder.Count > 0)
+            {
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}@Override");
+                sw.WriteLine($"{prefix}public java.util.List<Zeze.Transaction.Bean.Variable> variables() {{");
+                sw.WriteLine($"{prefix}    var vars = super.variables();");
+                foreach (var v in bean.VariablesIdOrder)
+                    sw.WriteLine($"{prefix}    vars.add(new Zeze.Transaction.Bean.Variable({v.Id}, \"{v.Name}\", \"{v.Type}\", \"{v.Key}\", \"{v.Value}\"));");
+                sw.WriteLine($"{prefix}    return vars;");
+                sw.WriteLine($"{prefix}}}");
+            }
         }
 
         public void ToPrevious(Bean bean, StreamWriter sw, string prefix)
         {
+            sw.WriteLine();
             sw.WriteLine($"{prefix}@Override");
             sw.WriteLine($"{prefix}public Zeze.Transaction.Bean toPrevious() {{");
             var refName = bean.Name;
@@ -276,7 +280,6 @@ namespace Zeze.Gen.java
             var oldName = oldVersion == 0 ? refName : refName + "_" + oldVersion + "_";
             sw.WriteLine($"{prefix}    return null; // todo {oldName}");
             sw.WriteLine($"{prefix}}}");
-            sw.WriteLine();
         }
     }
 }

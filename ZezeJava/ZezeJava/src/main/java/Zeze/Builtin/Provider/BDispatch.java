@@ -517,6 +517,19 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "linkSid", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "account", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "protocolType", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "protocolData", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "context", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(6, "contextx", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(7, "onlineSetName", "string", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BDispatch
     }

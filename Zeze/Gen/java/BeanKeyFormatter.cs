@@ -22,7 +22,6 @@ namespace Zeze.Gen.java
             sw.WriteLine("package " + beanKey.Space.Path() + ";");
             sw.WriteLine();
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
-            sw.WriteLine("import Zeze.Serialize.Serializable;");
 
             sw.WriteLine();
             if (beanKey.Comment.Length > 0)

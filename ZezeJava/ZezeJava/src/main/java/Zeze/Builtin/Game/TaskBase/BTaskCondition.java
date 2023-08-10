@@ -242,6 +242,14 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "conditionType", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "extendedData", "dynamic", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BTaskCondition
     }

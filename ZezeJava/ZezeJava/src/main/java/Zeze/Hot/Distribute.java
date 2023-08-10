@@ -148,9 +148,9 @@ public class Distribute {
 	}
 
 	public static class LogEntry {
-		public Class<?> logClass;
-		public ZipEntry entry;
-		public File file;
+		public final Class<?> logClass;
+		public final ZipEntry entry;
+		public final File file;
 
 		public boolean isBeanLog(HashSet<String> beanNames) {
 			var logName = logClass.getName();

@@ -413,6 +413,17 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "DatabaseName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "TableName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "KeyFirst", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "KeyLast", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "RaftConfig", "string", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BBucketMeta
     }

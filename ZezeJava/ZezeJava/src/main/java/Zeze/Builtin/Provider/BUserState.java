@@ -305,6 +305,15 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "context", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "contextx", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "onlineSetName", "string", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BUserState
     }

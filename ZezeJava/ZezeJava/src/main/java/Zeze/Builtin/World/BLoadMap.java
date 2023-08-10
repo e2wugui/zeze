@@ -332,6 +332,15 @@ public final class BLoadMap extends Zeze.Transaction.Bean implements BLoadMapRea
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "MapId", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "LoadSum", "BLoad", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "Instances", "map", "long", "BLoad"));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BLoadMap
     }

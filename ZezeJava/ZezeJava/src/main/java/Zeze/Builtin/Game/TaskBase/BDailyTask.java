@@ -297,6 +297,15 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "everydayTaskCount", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "flushTime", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "todayTaskPhaseIds", "list", "", "long"));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BDailyTask
     }

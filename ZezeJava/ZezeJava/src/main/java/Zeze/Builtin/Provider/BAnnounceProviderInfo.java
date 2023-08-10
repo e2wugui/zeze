@@ -409,6 +409,17 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "ServiceNamePrefix", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "ServiceIndentity", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "ProviderDirectIp", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "ProviderDirectPort", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "AppVersion", "int", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BAnnounceProviderInfo
     }

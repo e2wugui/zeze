@@ -234,6 +234,14 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "RoleId", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "OnlineSetName", "string", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BLogin
     }

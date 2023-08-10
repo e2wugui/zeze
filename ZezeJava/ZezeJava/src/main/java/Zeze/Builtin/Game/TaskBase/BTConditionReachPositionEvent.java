@@ -265,6 +265,15 @@ public final class BTConditionReachPositionEvent extends Zeze.Transaction.Bean i
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "x", "double", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "y", "double", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "z", "double", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BTConditionReachPositionEvent
     }

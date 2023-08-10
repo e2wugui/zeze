@@ -196,7 +196,7 @@ public class App extends Zeze.AppBase {
         Zeze.setSchemas(new demo.Schemas());
     }
 
-    public synchronized void destroyModules() {
+    public synchronized void destroyModules() throws Exception {
         TaskTest_TaskExt = null;
         demo_M6_M7 = null;
         demo_M6 = null;

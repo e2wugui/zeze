@@ -293,6 +293,15 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "Id", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "Number", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "Item", "dynamic", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BItem
     }

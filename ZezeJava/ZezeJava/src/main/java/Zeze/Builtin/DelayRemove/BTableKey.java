@@ -286,6 +286,15 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "TableName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "EncodedKey", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "EnqueueTime", "long", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BTableKey
     }

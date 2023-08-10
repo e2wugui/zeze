@@ -411,6 +411,18 @@ public final class BTConditionReachPosition extends Zeze.Transaction.Bean implem
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "dimension", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "x", "double", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "y", "double", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "z", "double", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "radius", "double", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(6, "Reached", "bool", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BTConditionReachPosition
     }

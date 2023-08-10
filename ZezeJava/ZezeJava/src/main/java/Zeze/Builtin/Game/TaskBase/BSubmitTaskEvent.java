@@ -180,6 +180,13 @@ public final class BSubmitTaskEvent extends Zeze.Transaction.Bean implements BSu
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "taskId", "long", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BSubmitTaskEvent
     }

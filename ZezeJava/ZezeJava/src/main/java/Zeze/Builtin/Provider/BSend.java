@@ -322,6 +322,15 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "linkSids", "list", "", "long"));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "protocolType", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "protocolWholeData", "binary", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BSend
     }

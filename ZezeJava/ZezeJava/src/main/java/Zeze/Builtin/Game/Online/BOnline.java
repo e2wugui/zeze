@@ -553,6 +553,20 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "Link", "BLink", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "LoginVersion", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "ReliableNotifyMark", "set", "", "string"));
+        vars.add(new Zeze.Transaction.Bean.Variable(6, "ReliableNotifyConfirmIndex", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(7, "ReliableNotifyIndex", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(8, "ServerId", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(9, "LogoutVersion", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(10, "UserData", "dynamic", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BOnline
     }

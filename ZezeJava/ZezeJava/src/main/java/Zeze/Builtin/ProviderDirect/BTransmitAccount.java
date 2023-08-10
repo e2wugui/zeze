@@ -426,6 +426,17 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "ActionName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "Parameter", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "TargetAccounts", "set", "", "string"));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "SenderAccount", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "SenderClientId", "string", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BTransmitAccount
     }

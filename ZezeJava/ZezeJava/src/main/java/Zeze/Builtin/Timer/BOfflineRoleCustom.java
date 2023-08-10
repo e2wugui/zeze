@@ -443,6 +443,18 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "TimerName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "RoleId", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "LoginVersion", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "HandleName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "CustomData", "dynamic", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(6, "OnlineSetName", "string", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BOfflineRoleCustom
     }

@@ -448,6 +448,18 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "TimerName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "Account", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "ClientId", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "LoginVersion", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "HandleName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(6, "CustomData", "dynamic", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BOfflineAccountCustom
     }

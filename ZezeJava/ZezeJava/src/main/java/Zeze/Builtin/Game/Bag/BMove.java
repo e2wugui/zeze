@@ -329,6 +329,16 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "BagName", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "PositionFrom", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "PositionTo", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "number", "int", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BMove
     }

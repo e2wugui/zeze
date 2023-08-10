@@ -298,6 +298,15 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "ExclusiveStartKey", "binary", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "ProposeLimit", "int", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "Desc", "bool", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BWalk
     }

@@ -287,6 +287,15 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "finished", "bool", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(4, "dialogId", "string", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(5, "dialogOption", "int", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BTConditionNPCTalkEvent
     }

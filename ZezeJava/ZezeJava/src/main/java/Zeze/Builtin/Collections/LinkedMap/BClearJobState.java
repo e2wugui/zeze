@@ -281,6 +281,15 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "HeadNodeId", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(2, "TailNodeId", "long", "", ""));
+        vars.add(new Zeze.Transaction.Bean.Variable(3, "LinkedMapName", "string", "", ""));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BClearJobState
     }

@@ -201,6 +201,13 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
     }
 
     @Override
+    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+        var vars = super.variables();
+        vars.add(new Zeze.Transaction.Bean.Variable(1, "OfflineTimers", "map", "string", "int"));
+        return vars;
+    }
+
+    @Override
     public Zeze.Transaction.Bean toPrevious() {
         return null; // todo BOfflineTimers
     }
