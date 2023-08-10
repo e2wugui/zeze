@@ -68,6 +68,8 @@ public final class Token extends AbstractToken {
 	private static final int DEFAULT_PORT = 5003;
 	private static final int TOKEN_CHAR_USED = 62; // 10+26+26
 	private static final byte[] tokenCharTable = new byte[TOKEN_CHAR_USED];
+	private static final boolean canLogNotifyTopic = AsyncSocket.ENABLE_PROTOCOL_LOG
+			&& AsyncSocket.canLogProtocol(NotifyTopic.TypeId_);
 
 	static {
 		int i = 0;
@@ -220,8 +222,7 @@ public final class Token extends AbstractToken {
 	private static final class TokenServer extends Service {
 		private static final class Session {
 			final @NotNull AsyncSocket so;
-			final ReentrantLock lock = new ReentrantLock();
-			final HashSet<String> subTopics = new HashSet<>(); // 该session已订阅的主题
+			final HashSet<String> subTopics = new HashSet<>(); // 该session已订阅的主题,只在Session所在的IO线程访问,不需要考虑并发
 
 			Session(@NotNull AsyncSocket so) {
 				this.so = so;
@@ -235,41 +236,26 @@ public final class Token extends AbstractToken {
 		}
 
 		boolean subTopic(@NotNull Session session, @NotNull String topic) {
-			session.lock.lock();
-			try {
-				if (!session.subTopics.add(topic))
-					return false;
-				topicMap.computeIfAbsent(topic, __ -> new CopyOnWriteArrayList<>()).add(session);
-			} finally {
-				session.lock.unlock();
-			}
+			if (!session.subTopics.add(topic))
+				return false;
+			topicMap.computeIfAbsent(topic, __ -> new CopyOnWriteArrayList<>()).add(session);
 			return true;
 		}
 
 		boolean unsubTopic(@NotNull Session session, @NotNull String topic) {
-			session.lock.lock();
-			try {
-				if (!session.subTopics.remove(topic))
-					return false;
-				var sessions = topicMap.get(topic);
-				if (sessions != null && sessions.remove(session) && sessions.isEmpty())
-					topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
-			} finally {
-				session.lock.unlock();
-			}
+			if (!session.subTopics.remove(topic))
+				return false;
+			var sessions = topicMap.get(topic);
+			if (sessions != null && sessions.remove(session) && sessions.isEmpty())
+				topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
 			return true;
 		}
 
 		void unsubAllTopics(@NotNull Session session) {
-			session.lock.lock();
-			try {
-				for (var topic : session.subTopics) {
-					var sessions = topicMap.get(topic);
-					if (sessions != null && sessions.remove(session) && sessions.isEmpty())
-						topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
-				}
-			} finally {
-				session.lock.unlock();
+			for (var topic : session.subTopics) {
+				var sessions = topicMap.get(topic);
+				if (sessions != null && sessions.remove(session) && sessions.isEmpty())
+					topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
 			}
 		}
 
@@ -279,8 +265,8 @@ public final class Token extends AbstractToken {
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
-			super.OnSocketClose(so, e);
+		public void OnSocketDisposed(@NotNull AsyncSocket so) throws Exception {
+			super.OnSocketDisposed(so);
 			var session = (Session)so.getUserState();
 			if (session != null) {
 				so.setUserState(null);
@@ -576,9 +562,6 @@ public final class Token extends AbstractToken {
 		r.SendResultCode(((TokenServer)service).unsubTopic(session, r.Argument.getTopic()) ? 0 : 1);
 		return Procedure.Success;
 	}
-
-	private static final boolean canLogNotifyTopic = AsyncSocket.ENABLE_PROTOCOL_LOG
-			&& AsyncSocket.canLogProtocol(NotifyTopic.TypeId_);
 
 	@Override
 	protected long ProcessPubTopicRequest(PubTopic r) {

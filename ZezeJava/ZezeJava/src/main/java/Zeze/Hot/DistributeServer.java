@@ -20,12 +20,17 @@ public class DistributeServer {
 		int port = 4545;
 
 		for (var i = 0; i < args.length; ++i) {
-			if (args[i].equals("-solution"))
+			switch (args[i]) {
+			case "-solution":
 				solution = args[++i];
-			else if (args[i].equals("-host"))
+				break;
+			case "-host":
 				host = args[++i];
-			else if (args[i].equals("-port"))
+				break;
+			case "-port":
 				port = Integer.parseInt(args[++i]);
+				break;
+			}
 		}
 
 		if (null == solution)

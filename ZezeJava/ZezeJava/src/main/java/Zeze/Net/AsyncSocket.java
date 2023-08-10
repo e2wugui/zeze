@@ -865,13 +865,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		} catch (Exception e) {
 			logger.error("SocketChannel.close", e);
 		}
-		try {
-			service.OnSocketDisposed(this);
-		} catch (Exception e) {
-			logger.error("Service.OnSocketDisposed", e);
-		}
-		if (outputBuffer != null)
-			selector.addTask(outputBuffer::close);
+		selector.addTask(() -> {
+			if (outputBuffer != null)
+				outputBuffer.close();
+			try {
+				service.OnSocketDisposed(this);
+			} catch (Exception e) {
+				logger.error("Service.OnSocketDisposed", e);
+			}
+		});
 		selector.wakeup();
 		if (timeThrottle != null)
 			timeThrottle.close();
