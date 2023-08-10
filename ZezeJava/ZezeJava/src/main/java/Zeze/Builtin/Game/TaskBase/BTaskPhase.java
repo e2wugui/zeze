@@ -542,7 +542,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
     }
 
     @Override
-    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "phaseId", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "phaseName", "string", "", ""));

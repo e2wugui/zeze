@@ -252,7 +252,7 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
     }
 
     @Override
-    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "resultCode", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "changedTasks", "list", "", "BTask"));

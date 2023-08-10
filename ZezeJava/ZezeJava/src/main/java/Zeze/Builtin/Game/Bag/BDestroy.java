@@ -233,7 +233,7 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
     }
 
     @Override
-    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "BagName", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Position", "int", "", ""));

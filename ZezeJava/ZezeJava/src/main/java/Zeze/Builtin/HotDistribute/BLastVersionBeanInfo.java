@@ -280,7 +280,7 @@ public final class BLastVersionBeanInfo extends Zeze.Transaction.Bean implements
     }
 
     @Override
-    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Name", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Variables", "list", "", "BVariable"));

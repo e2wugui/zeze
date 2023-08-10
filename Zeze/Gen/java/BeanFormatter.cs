@@ -260,7 +260,7 @@ namespace Zeze.Gen.java
             {
                 sw.WriteLine();
                 sw.WriteLine($"{prefix}@Override");
-                sw.WriteLine($"{prefix}public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {{");
+                sw.WriteLine($"{prefix}public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {{");
                 sw.WriteLine($"{prefix}    var vars = super.variables();");
                 foreach (var v in bean.VariablesIdOrder)
                     sw.WriteLine($"{prefix}    vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data({v.Id}, \"{v.Name}\", \"{v.Type}\", \"{v.Key}\", \"{v.Value}\"));");

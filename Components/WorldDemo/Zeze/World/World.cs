@@ -77,8 +77,6 @@ namespace Zeze.World
         {
             var r = new SwitchWorld();
             r.Argument.MapId = mapId;
-            r.Argument.Position = position;
-            r.Argument.Direct = direcet;
 
             await r.SendAsync(Service.GetSocket());
             if (r.ResultCode != ResultCode.Success)

@@ -188,7 +188,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
     }
 
     @Override
-    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "CustomData", "dynamic", "", ""));
         return vars;

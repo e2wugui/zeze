@@ -226,7 +226,7 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
     }
 
     @Override
-    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Result", "bool", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Timestamp", "long", "", ""));

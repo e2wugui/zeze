@@ -509,7 +509,7 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     }
 
     @Override
-    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Data", "dynamic", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Moving", "BMove", "", ""));

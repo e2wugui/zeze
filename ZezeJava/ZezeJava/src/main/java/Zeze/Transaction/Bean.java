@@ -2,11 +2,9 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.HotDistribute.BVariable;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.KV;
@@ -273,7 +271,7 @@ public abstract class Bean implements Serializable {
 		return this;
 	}
 
-	public List<BVariable.Data> variables() {
+	public ArrayList<BVariable.Data> variables() {
 		return new ArrayList<>();
 	}
 }

@@ -264,7 +264,7 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
     }
 
     @Override
-    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "State", "int", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Buckets", "list", "", "string"));

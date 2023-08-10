@@ -449,7 +449,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @Override
-    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Puts", "map", "binary", "binary"));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Deletes", "set", "", "binary"));

@@ -201,7 +201,7 @@ public final class BTConditionKillMonsterEvent extends Zeze.Transaction.Bean imp
     }
 
     @Override
-    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "monsters", "map", "long", "int"));
         return vars;
