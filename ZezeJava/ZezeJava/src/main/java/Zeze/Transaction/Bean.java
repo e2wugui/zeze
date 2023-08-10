@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.KV;
@@ -268,5 +269,63 @@ public abstract class Bean implements Serializable {
 
 	public Bean toPrevious() {
 		return this;
+	}
+
+	public java.util.List<Variable> variables() {
+		return new ArrayList<>();
+	}
+
+	public static class Variable implements Serializable {
+		private int id;
+		private String name;
+		private String type;
+		private String key;
+		private String value;
+
+		public int getId() {
+			return id;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public String getType() {
+			return type;
+		}
+
+		public String getKey() {
+			return key;
+		}
+
+		public String getValue() {
+			return value;
+		}
+
+		public Variable(int id, String name, String type, String key, String value) {
+			this.id = id;
+			this.name = name;
+			this.type = type;
+			this.key = key;
+			this.value = value;
+		}
+
+		@Override
+		public void encode(@NotNull ByteBuffer bb) {
+			bb.WriteInt(id);
+			bb.WriteString(name);
+			bb.WriteString(type);
+			bb.WriteString(key);
+			bb.WriteString(value);
+		}
+
+		@Override
+		public void decode(@NotNull ByteBuffer bb) {
+			id = bb.ReadInt();
+			name = bb.ReadString();
+			type = bb.ReadString();
+			key = bb.ReadString();
+			value = bb.ReadString();
+		}
 	}
 }

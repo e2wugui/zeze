@@ -51,10 +51,13 @@ TODO Gen工具支持，需要装载当前发布版本的bean。
 当xml.bean发生了变化，需要检测出来并让用户取新版本的名字（自动？）；
 反之，没有变化但名字变化了也要报错（或警告）。新版本bean保持typeId不变的具体实现？细节？
 
+------------------------------------------------------------------------------------------------------------------------------
+2023/8/11 v1.3.0 Timer Bug; Hot; Record1.snapshotValueLocal clear Bug; Timer For Hot; Bean.variables
+------------------------------------------------------------------------------------------------------------------------------
 Bean.toPrevious() 实现方案选择：
 1. reflect 有风险，需要准确识别var，有一点点会影响扩充bean的方法，最大的问题是varid不好找了。
 2. reflect 还是用这个方案，生成bean的时候，在getter方法里面生成注解，标明varid，有这个注解的就是var并且varid也有了。
-3. 定义下面的Variable结构，生成提供原始信息。
+【3选定】. 定义下面的Variable结构，生成提供原始信息。
 public static class Variable implements Serializable {
 	public final int id;
 	public final String name;
@@ -63,12 +66,10 @@ public static class Variable implements Serializable {
 	public final String value;
 }
 public List<Variable> Bean.variables() {
-	return List.of();
+	var vars = super.vaiables();
+	vars.add();
+	return vars;
 }
-
-------------------------------------------------------------------------------------------------------------------------------
-2023/8/11 v1.3.0 Timer Bug; Hot; Record1.snapshotValueLocal clear Bug; Timer For Hot; 
-------------------------------------------------------------------------------------------------------------------------------
 GenModule.instance.compiler.classloader 只设置一次，只维护一个实例。
 Timer 热更模块Handle测试。
 Hot Timer：HotRedirect + Cache: 关键 Cache 在模块热更后怎么清除？
