@@ -509,15 +509,15 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "Data", "dynamic", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "Moving", "BMove", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "PlayerId", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "LinkName", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(5, "LinkSid", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(6, "Type", "int", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(7, "ConfigId", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Data", "dynamic", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Moving", "BMove", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "PlayerId", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LinkName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "LinkSid", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Type", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "ConfigId", "int", "", ""));
         return vars;
     }
 

@@ -279,11 +279,11 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "ClientId", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "ReliableNotifyConfirmIndex", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "Sync", "bool", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ClientId", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ReliableNotifyConfirmIndex", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Sync", "bool", "", ""));
         return vars;
     }
 

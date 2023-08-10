@@ -542,15 +542,15 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "phaseId", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "phaseName", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "phaseDescription", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(5, "prePhaseIds", "list", "", "long"));
-        vars.add(new Zeze.Transaction.Bean.Variable(6, "nextPhaseId", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(7, "subPhases", "map", "long", "BSubPhase"));
-        vars.add(new Zeze.Transaction.Bean.Variable(8, "currentSubPhaseId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "phaseId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "phaseName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "phaseDescription", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "prePhaseIds", "list", "", "long"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "nextPhaseId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "subPhases", "map", "long", "BSubPhase"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "currentSubPhaseId", "long", "", ""));
         return vars;
     }
 

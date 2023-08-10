@@ -441,13 +441,13 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "TimerName", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "HandleName", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "TimerObj", "dynamic", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "CustomData", "dynamic", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(5, "ConcurrentFireSerialNo", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TimerName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "HandleName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TimerObj", "dynamic", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "CustomData", "dynamic", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "ConcurrentFireSerialNo", "long", "", ""));
         return vars;
     }
 

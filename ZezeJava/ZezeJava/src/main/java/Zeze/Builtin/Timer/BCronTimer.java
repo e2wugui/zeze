@@ -473,15 +473,15 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "CronExpression", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "NextExpectedTime", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "ExpectedTime", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "HappenTime", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(5, "RemainTimes", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(6, "EndTime", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(7, "MissfirePolicy", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "CronExpression", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "NextExpectedTime", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ExpectedTime", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "HappenTime", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "RemainTimes", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "EndTime", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "MissfirePolicy", "int", "", ""));
         return vars;
     }
 

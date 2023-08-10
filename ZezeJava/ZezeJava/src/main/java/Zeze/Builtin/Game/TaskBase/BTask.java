@@ -679,18 +679,18 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "roleId", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "taskId", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "taskType", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "taskState", "int", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(5, "taskName", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(6, "taskDescription", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(7, "preTaskIds", "list", "", "long"));
-        vars.add(new Zeze.Transaction.Bean.Variable(8, "currentPhaseId", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(9, "taskPhases", "map", "long", "BTaskPhase"));
-        vars.add(new Zeze.Transaction.Bean.Variable(10, "extendedData", "dynamic", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "roleId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "taskId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "taskType", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "taskState", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "taskName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "taskDescription", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "preTaskIds", "list", "", "long"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "currentPhaseId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "taskPhases", "map", "long", "BTaskPhase"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "extendedData", "dynamic", "", ""));
         return vars;
     }
 

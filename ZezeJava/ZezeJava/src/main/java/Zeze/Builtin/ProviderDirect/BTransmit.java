@@ -430,13 +430,13 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "ActionName", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "Roles", "set", "", "long"));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "Sender", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "Parameter", "binary", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(5, "OnlineSetName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ActionName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Roles", "set", "", "long"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Sender", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Parameter", "binary", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "OnlineSetName", "string", "", ""));
         return vars;
     }
 

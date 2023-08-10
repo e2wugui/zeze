@@ -254,10 +254,10 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "LoginVersion", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "Datas", "map", "string", "BAny"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "LoginVersion", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Datas", "map", "string", "BAny"));
         return vars;
     }
 

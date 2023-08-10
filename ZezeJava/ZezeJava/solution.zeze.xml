@@ -1736,13 +1736,36 @@
 			</module>
 		</module>
 
+		<module name="HotDistribute" id="11033" UseData="true" DefaultTransactionLevel="None">
+			<bean name="BVariable">
+				<variable id="1" name="Id" type="int"/>
+				<variable id="2" name="Name" type="string"/>
+				<variable id="3" name="Type" type="string"/>
+				<variable id="4" name="Key" type="string"/>
+				<variable id="5" name="Value" type="string"/>
+			</bean>
+			<bean name="BeanName">
+				<variable id="1" name="Name" type="string"/>
+			</bean>
+			<bean name="BLastVersionBeanInfo">
+				<variable id="1" name="Name" type="string"/>
+				<variable id="2" name="Variables" type="list[BVariable]"/>
+			</bean>
+			<rpc name="GetLastVersionBeanInfo" argument="BeanName" result="BLastVersionBeanInfo" handle="server"/>
+		</module>
 		<!--
-		可用id范围 [11033, 11100) [11102, 11999]
+		可用id范围 [11034, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="HotDistribute" gendir="src/main/java" genrelativedir="Zeze/Hot" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.HotDistribute"/>
+		</service>
+	</component>
+
 	<component name="WorldStatic" gendir="src/main/java" genrelativedir="Zeze/World" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.World.Static"/>

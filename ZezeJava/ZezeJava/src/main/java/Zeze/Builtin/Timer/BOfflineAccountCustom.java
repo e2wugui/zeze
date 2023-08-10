@@ -448,14 +448,14 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "TimerName", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "Account", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "ClientId", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "LoginVersion", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(5, "HandleName", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(6, "CustomData", "dynamic", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TimerName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Account", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ClientId", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LoginVersion", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "HandleName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "CustomData", "dynamic", "", ""));
         return vars;
     }
 

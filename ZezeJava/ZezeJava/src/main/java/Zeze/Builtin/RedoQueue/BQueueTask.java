@@ -382,13 +382,13 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "QueueName", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "TaskType", "int", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "TaskId", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "TaskParam", "binary", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(5, "PrevTaskId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "QueueName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TaskType", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TaskId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "TaskParam", "binary", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "PrevTaskId", "long", "", ""));
         return vars;
     }
 

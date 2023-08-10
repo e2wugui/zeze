@@ -213,9 +213,9 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "ErrorLinkSids", "list", "", "long"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ErrorLinkSids", "list", "", "long"));
         return vars;
     }
 

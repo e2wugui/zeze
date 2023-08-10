@@ -281,11 +281,11 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "RoleId", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "Value", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "ValueEx", "binary", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "RoleId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Value", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ValueEx", "binary", "", ""));
         return vars;
     }
 

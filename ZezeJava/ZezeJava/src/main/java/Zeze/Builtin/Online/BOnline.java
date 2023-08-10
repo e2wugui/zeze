@@ -511,15 +511,15 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "Link", "BLink", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "LoginVersion", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "ReliableNotifyMark", "set", "", "string"));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "ReliableNotifyIndex", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(5, "ReliableNotifyConfirmIndex", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(6, "ServerId", "int", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(7, "LogoutVersion", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Link", "BLink", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "LoginVersion", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ReliableNotifyMark", "set", "", "string"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "ReliableNotifyIndex", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "ReliableNotifyConfirmIndex", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "ServerId", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "LogoutVersion", "long", "", ""));
         return vars;
     }
 

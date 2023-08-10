@@ -197,9 +197,9 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "Tid", "binary", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Tid", "binary", "", ""));
         return vars;
     }
 

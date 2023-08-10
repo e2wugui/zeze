@@ -298,11 +298,11 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "topic", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "content", "binary", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "broadcast", "bool", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "topic", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "content", "binary", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "broadcast", "bool", "", ""));
         return vars;
     }
 

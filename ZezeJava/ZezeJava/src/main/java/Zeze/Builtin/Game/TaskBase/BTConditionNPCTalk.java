@@ -331,11 +331,11 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "npcId", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "dialogOptions", "map", "string", "int"));
-        vars.add(new Zeze.Transaction.Bean.Variable(5, "dialogSelected", "map", "string", "int"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "npcId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "dialogOptions", "map", "string", "int"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "dialogSelected", "map", "string", "int"));
         return vars;
     }
 

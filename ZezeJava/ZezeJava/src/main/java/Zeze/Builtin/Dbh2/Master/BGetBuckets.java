@@ -251,10 +251,10 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "Database", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "Table", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Database", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Table", "string", "", ""));
         return vars;
     }
 

@@ -197,9 +197,9 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "token", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "token", "string", "", ""));
         return vars;
     }
 

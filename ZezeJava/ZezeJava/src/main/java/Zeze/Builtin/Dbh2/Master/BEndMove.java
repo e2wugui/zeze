@@ -192,9 +192,9 @@ public final class BEndMove extends Zeze.Transaction.Bean implements BEndMoveRea
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "To", "Zeze.Builtin.Dbh2.BBucketMeta", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "To", "Zeze.Builtin.Dbh2.BBucketMeta", "", ""));
         return vars;
     }
 

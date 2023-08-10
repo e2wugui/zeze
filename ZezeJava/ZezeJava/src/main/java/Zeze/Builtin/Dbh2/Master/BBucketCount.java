@@ -197,9 +197,9 @@ public final class BBucketCount extends Zeze.Transaction.Bean implements BBucket
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "Count", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Count", "int", "", ""));
         return vars;
     }
 

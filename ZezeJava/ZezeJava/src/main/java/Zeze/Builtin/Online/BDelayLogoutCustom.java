@@ -286,11 +286,11 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "Account", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "ClientId", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "LoginVersion", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Account", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ClientId", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "LoginVersion", "long", "", ""));
         return vars;
     }
 

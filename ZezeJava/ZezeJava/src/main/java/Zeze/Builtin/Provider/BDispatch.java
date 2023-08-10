@@ -517,15 +517,15 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "linkSid", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "account", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "protocolType", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "protocolData", "binary", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(5, "context", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(6, "contextx", "binary", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(7, "onlineSetName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "linkSid", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "account", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "protocolType", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "protocolData", "binary", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "context", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "contextx", "binary", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "onlineSetName", "string", "", ""));
         return vars;
     }
 

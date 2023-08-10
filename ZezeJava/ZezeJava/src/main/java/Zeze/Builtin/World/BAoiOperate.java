@@ -348,11 +348,11 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "OperateId", "int", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "Param", "binary", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "Children", "map", "long", "BAoiOperate"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "OperateId", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Param", "binary", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Children", "map", "long", "BAoiOperate"));
         return vars;
     }
 

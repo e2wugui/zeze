@@ -381,12 +381,12 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "Master", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "Database", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "Table", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "Batch", "BBatch", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Master", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Database", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Table", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Batch", "BBatch", "", ""));
         return vars;
     }
 

@@ -214,9 +214,9 @@ public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeave
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "Keys", "list", "", "long"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Keys", "list", "", "long"));
         return vars;
     }
 

@@ -433,13 +433,13 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "ParentDepartment", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "Childs", "map", "string", "long"));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "Name", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "Managers", "map", "string", "dynamic"));
-        vars.add(new Zeze.Transaction.Bean.Variable(5, "Data", "dynamic", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ParentDepartment", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Childs", "map", "string", "long"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Name", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Managers", "map", "string", "dynamic"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Data", "dynamic", "", ""));
         return vars;
     }
 

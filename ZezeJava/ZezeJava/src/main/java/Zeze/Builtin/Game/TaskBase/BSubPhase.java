@@ -361,12 +361,12 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "subPhaseId", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "completeType", "string", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "nextSubPhaseId", "long", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "conditions", "list", "", "BTaskCondition"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "subPhaseId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "completeType", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "nextSubPhaseId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "conditions", "list", "", "BTaskCondition"));
         return vars;
     }
 

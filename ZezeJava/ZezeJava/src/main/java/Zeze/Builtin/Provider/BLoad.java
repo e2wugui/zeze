@@ -348,12 +348,12 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "Online", "int", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(2, "ProposeMaxOnline", "int", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(3, "OnlineNew", "int", "", ""));
-        vars.add(new Zeze.Transaction.Bean.Variable(4, "Overload", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Online", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ProposeMaxOnline", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "OnlineNew", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Overload", "int", "", ""));
         return vars;
     }
 

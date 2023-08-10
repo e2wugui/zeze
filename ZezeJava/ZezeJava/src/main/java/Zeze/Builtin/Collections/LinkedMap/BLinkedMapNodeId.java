@@ -180,9 +180,9 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
     }
 
     @Override
-    public java.util.List<Zeze.Transaction.Bean.Variable> variables() {
+    public java.util.List<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Transaction.Bean.Variable(1, "NodeId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "NodeId", "long", "", ""));
         return vars;
     }
 
