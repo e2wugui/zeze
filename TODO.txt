@@ -25,6 +25,7 @@ Zege Task
 	task table: taskid -> btask
 	timeindex:  day ->set<taskid>
 	date begin <---> date end 限定半年 day ... day
+
 dbh2 raftagent会建立所有node的连接并保持，由于已有新链接建立能力，发现leader后可以关闭其他node的连接；
 	manager上有多个桶，每个桶都有独立连接，可以考虑用代理隧道复用连接使得一个manager只需要一个连接。
 	优先级不高，后期优化再考虑。
@@ -32,24 +33,85 @@ dbh2 raftagent会建立所有node的连接并保持，由于已有新链接建�
 dbh2 rocks 层调用不允许出错，有点过于相信底层了，怎么解决？出错了现在是abort，改成reset raft？
 choiceHash 加入AppVersion。首先需要考虑需求。
 Hot install new modiule need register sm,还需要module config  choice type
-Hot module 生成 interface 工具（预计下周）
+----------------------------------------------------------------------------------------------------------
+0. 当前版本的发布运行目录，需要提供一份供Gen使用。
+没有发布过，即开发期，这个目录为空。有无发布用 hasDistribute 表示。
+开发期间不能使用模块热更。
+
+1. Hot 从 Module 生成 interface 的【工具】。
+void hotModuleInterface(File javaSource) {
+	if (hasDistribute()) {
+		var hotInterfaces = 列出Module的HotService体系;
+		var oldMethods = 列出所有hotInterfaces的所有接口。
+		var curMethods = 列出Module当前的public方法，除了【注解】标记不公开的。
+		var (add, remove) = diff(oldMethods, curMethods);
+		if (!remove.isEmpty())
+			throw new RuntimeException(); // 先禁止删除接口中的方法。
+		if (add.isEmpty())
+			return;
+		GenNewVersionInterface(add);
+		修改Module相关方法的@Override；
+		修改Module的implements到最新的HotService接口。
+
+		return; // done
+	}
+	var hotInterfaces = 列出Module的HotService体系;
+	if (hotInterfaces.size() > 1)
+		throw new RuntimeException(); // 开发期间，不维护多个interface。
+	var hotInterface1 = hotInterfaces.size() == 1 ? hotinterfaces.get(0) : new hotInterface();
+	var oldMethods = 列出所有hotInterfaces的所有接口。
+	var curMethods = 列出Module当前的public方法，除了【注解】标记不公开的。
+	var (add, remove) = diff(oldMethods, curMethods);
+	add(add, hotInterface1);
+	修改Module相关方法的@Override；
+	remove(remove, hotInterface1);
+	*** 不修改Module相关方法的@Override；remove方法需要自己【手动】确认删除。
+	hotInterface1.save();
+}
+
+2. Bean Version Managed. (多个版本如：BeanSome_2_, BeanSome_1_, BeanSome（版本为0的Bean不适用后缀，兼容非多版本模式）)
+{
+	if (hasDistribute())
+	{
+		var lastVersion = GetLastVersionBean();
+		var curVersion = Gen.GetBean(); // 当前xml的Bean。
+		if (null == lastVersion)
+		{
+			if (curVersion.Name is versioned)
+				throw new Exception(); // 第一个版本不能用版本方式命名。
+			GenWithoutToPrevious();
+			return; // done
+		}
+		var lastVars = lastVersion.Variables();
+		var curVars = curVersion.Variables();
+		var (add, remove) = diff(lastVars, curVars);
+		var versionDistance = distanceVersion(lastVersion, curVersion); // 版本号差异。
+		if (versionDistance > 1)
+			throw new Exception("version distance > 1");
+		if (add.empty() && remove.empty() && versionDistance > 0)
+			throw new Exception("var no change, but bean version changed."); // 这个或者警告即可。
+
+		if (versionDistance == 0)
+			throw new Exception("var change, but bean version not change.");
+		GenWithToPrevious(add, remove); // 这里包括add,remove都是空的，总是生成旧版兼容。
+
+		return; // done
+	}
+	var curVersion = Gen.GetBean(); // 当前xml的Bean。
+	if (curVersion.Name is versioned)
+		throw new Exception(); // 开发期间，不能用版本方式命名。
+	GenWithoutToPrevious();
+}
+
+3. DistributeServer. 发布包服务器（java），Gen(c#）需要访问获得发布Bean的信息。
+
+
 Hot zeze 功能【Zeze服务限制】（这部分需要写到zeze.docx里面）
 HotManager interface.jar findClass 方式一个一个搜索有效率。
 【热更启动顺序】
 多个模块一起热更的时候，已经支持顺序。但是顺序定义从哪来？暂定在发布集合里增加一个顺序配置程序。
-
-【Gen.App】
-createRedirectModules 调用两次：热更模块单独调用。这个不需要优化成一次性调用了吧。优先级低！
-
 【Bean多版本管理】
 TODO 模块热更需要更新BeanFactory。
-
-TODO Name解析已经完成，还差多个版本的class或java的管理（需要引入一个发布的概念），
-TODO 还有toPrevious()的实现。
-TODO Gen是c#的，为了使用发布包，需要一个解析发布包的java服务程序。
-TODO Gen工具支持，需要装载当前发布版本的bean。
-当xml.bean发生了变化，需要检测出来并让用户取新版本的名字（自动？）；
-反之，没有变化但名字变化了也要报错（或警告）。新版本bean保持typeId不变的具体实现？细节？
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/11 v1.3.0 Timer Bug; Hot; Record1.snapshotValueLocal clear Bug; Timer For Hot; Bean.variables
