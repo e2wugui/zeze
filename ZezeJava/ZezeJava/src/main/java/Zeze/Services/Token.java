@@ -11,6 +11,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.SecureRandom;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -18,6 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import Zeze.Builtin.Token.BGetTokenArg;
 import Zeze.Builtin.Token.BGetTokenRes;
 import Zeze.Builtin.Token.BNewTokenArg;
@@ -45,7 +47,6 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -97,6 +98,7 @@ public final class Token extends AbstractToken {
 
 	public static class TokenClient extends Service {
 		private Connector connector;
+		private final ConcurrentHashMap<String, Consumer<NotifyTopic>> notifyTopicHandlers = new ConcurrentHashMap<>();
 
 		public TokenClient(@Nullable Config config) {
 			super("TokenClient", config);
@@ -114,6 +116,12 @@ public final class Token extends AbstractToken {
 					TransactionLevel.None, DispatchMode.Normal));
 			AddFactoryHandle(NotifyTopic.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(NotifyTopic::new,
 					this::ProcessNotifyTopic, TransactionLevel.None, DispatchMode.Normal));
+		}
+
+		public boolean registerNotifyTopicHandler(@NotNull String topic, @Nullable Consumer<NotifyTopic> handler) {
+			return handler != null
+					? notifyTopicHandlers.put(topic, handler) == null
+					: notifyTopicHandlers.remove(topic) != null;
 		}
 
 		@Override
@@ -200,16 +208,20 @@ public final class Token extends AbstractToken {
 			return new PubTopic(new BPubTopic.Data(topic, content, broadcast)).Send(connector.getSocket(), handler);
 		}
 
-		@SuppressWarnings("MethodMayBeStatic")
 		protected long ProcessNotifyTopic(NotifyTopic p) {
-			return Procedure.NotImplement;
+			var handler = notifyTopicHandlers.get(p.Argument.getTopic());
+			if (handler == null)
+				return Procedure.NotImplement;
+			handler.accept(p);
+			return Procedure.Success;
 		}
 	}
 
 	private static final class TokenServer extends Service {
 		private static final class Session {
 			final @NotNull AsyncSocket so;
-			final ConcurrentHashSet<String> subTopics = new ConcurrentHashSet<>();
+			final ReentrantLock lock = new ReentrantLock();
+			final HashSet<String> subTopics = new HashSet<>(); // 该session已订阅的主题
 
 			Session(@NotNull AsyncSocket so) {
 				this.so = so;
@@ -223,26 +235,41 @@ public final class Token extends AbstractToken {
 		}
 
 		boolean subTopic(@NotNull Session session, @NotNull String topic) {
-			if (!session.subTopics.add(topic))
-				return false;
-			topicMap.computeIfAbsent(topic, __ -> new CopyOnWriteArrayList<>()).add(session);
+			session.lock.lock();
+			try {
+				if (!session.subTopics.add(topic))
+					return false;
+				topicMap.computeIfAbsent(topic, __ -> new CopyOnWriteArrayList<>()).add(session);
+			} finally {
+				session.lock.unlock();
+			}
 			return true;
 		}
 
 		boolean unsubTopic(@NotNull Session session, @NotNull String topic) {
-			if (session.subTopics.remove(topic) == null)
-				return false;
-			var sessions = topicMap.get(topic);
-			if (sessions != null && sessions.remove(session) && sessions.isEmpty())
-				topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
+			session.lock.lock();
+			try {
+				if (!session.subTopics.remove(topic))
+					return false;
+				var sessions = topicMap.get(topic);
+				if (sessions != null && sessions.remove(session) && sessions.isEmpty())
+					topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
+			} finally {
+				session.lock.unlock();
+			}
 			return true;
 		}
 
 		void unsubAllTopics(@NotNull Session session) {
-			for (var topic : session.subTopics) {
-				var sessions = topicMap.get(topic);
-				if (sessions != null && sessions.remove(session) && sessions.isEmpty())
-					topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
+			session.lock.lock();
+			try {
+				for (var topic : session.subTopics) {
+					var sessions = topicMap.get(topic);
+					if (sessions != null && sessions.remove(session) && sessions.isEmpty())
+						topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
+				}
+			} finally {
+				session.lock.unlock();
 			}
 		}
 
@@ -530,7 +557,7 @@ public final class Token extends AbstractToken {
 			r.SendResultCode(-2);
 			return Procedure.Success;
 		}
-		r.setResultCode(((TokenServer)service).subTopic(session, r.Argument.getTopic()) ? 0 : 1);
+		r.SendResultCode(((TokenServer)service).subTopic(session, r.Argument.getTopic()) ? 0 : 1);
 		return Procedure.Success;
 	}
 
@@ -546,9 +573,12 @@ public final class Token extends AbstractToken {
 			r.SendResultCode(-2);
 			return Procedure.Success;
 		}
-		r.setResultCode(((TokenServer)service).unsubTopic(session, r.Argument.getTopic()) ? 0 : 1);
+		r.SendResultCode(((TokenServer)service).unsubTopic(session, r.Argument.getTopic()) ? 0 : 1);
 		return Procedure.Success;
 	}
+
+	private static final boolean canLogNotifyTopic = AsyncSocket.ENABLE_PROTOCOL_LOG
+			&& AsyncSocket.canLogProtocol(NotifyTopic.TypeId_);
 
 	@Override
 	protected long ProcessPubTopicRequest(PubTopic r) {
@@ -557,28 +587,51 @@ public final class Token extends AbstractToken {
 			r.SendResultCode(-1);
 			return Procedure.Success;
 		}
+		int n = 0;
 		var arg = r.Argument;
 		var sessions = ((TokenServer)service).topicMap.get(arg.getTopic());
-		var encoded = new NotifyTopic(arg).encode();
-		int n = 0;
-		if (arg.isBroadcast()) {
-			for (var session : sessions) {
-				if (session.so.Send(encoded))
-					n++;
-			}
-		} else {
-			for (int i = 0; i < 10; i++) {
-				try {
-					var it = sessions.listIterator(ThreadLocalRandom.current().nextInt(sessions.size()));
-					if (it.hasNext() && it.next().so.Send(encoded)) {
-						n = 1;
-						break;
+		if (sessions != null) {
+			var sb = canLogNotifyTopic ? new StringBuilder() : null;
+			var p = new NotifyTopic(arg);
+			var encoded = p.encode();
+			if (arg.isBroadcast()) {
+				for (var session : sessions) {
+					var so = session.so;
+					if (so.Send(encoded)) {
+						n++;
+						if (canLogNotifyTopic)
+							sb.append(so.getSessionId()).append(',');
 					}
-				} catch (IndexOutOfBoundsException ignored) { // 小概率事件
 				}
+				if (canLogNotifyTopic && sb.length() > 0) {
+					sb.setLength(sb.length() - 1);
+					AsyncSocket.log("SEND", sb.toString(), p);
+				}
+			} else {
+				int count = sessions.size();
+				int i = count > 1 ? ThreadLocalRandom.current().nextInt(count) : 0;
+				long sessionId = 0;
+				for (int tryCount = count; tryCount > 0; tryCount--) {
+					try {
+						var so = sessions.get(i).so;
+						if (so.Send(encoded)) {
+							n = 1;
+							sessionId = so.getSessionId();
+							break;
+						}
+					} catch (IndexOutOfBoundsException ignored) { // 小概率事件
+					}
+					count = sessions.size();
+					if (count <= 0)
+						break;
+					if (++i >= count)
+						i = 0;
+				}
+				if (canLogNotifyTopic && n > 0)
+					AsyncSocket.log("SEND", sessionId, p);
 			}
 		}
-		r.setResultCode(n);
+		r.SendResultCode(n);
 		return Procedure.Success;
 	}
 
