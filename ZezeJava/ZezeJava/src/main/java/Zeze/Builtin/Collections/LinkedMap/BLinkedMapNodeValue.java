@@ -231,4 +231,9 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
         st.appendString(_parents_name_ + "Id", getId());
         st.appendString(_parents_name_ + "Value", Zeze.Serialize.Helper.encodeJson(_Value));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BLinkedMapNodeValue
+    }
 }

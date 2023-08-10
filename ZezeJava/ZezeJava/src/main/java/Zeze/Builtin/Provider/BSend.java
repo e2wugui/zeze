@@ -321,6 +321,11 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
         st.appendBinary(_parents_name_ + "protocolWholeData", getProtocolWholeData());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BSend
+    }
+
 public static class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 545774009128015305L;
 

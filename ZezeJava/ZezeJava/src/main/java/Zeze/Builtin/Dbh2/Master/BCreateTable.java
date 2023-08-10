@@ -250,6 +250,11 @@ public final class BCreateTable extends Zeze.Transaction.Bean implements BCreate
         st.appendString(_parents_name_ + "Table", getTable());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BCreateTable
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4850419110709483952L;
 

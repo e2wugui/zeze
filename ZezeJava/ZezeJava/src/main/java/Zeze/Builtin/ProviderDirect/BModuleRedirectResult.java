@@ -299,6 +299,11 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         st.appendBinary(_parents_name_ + "Params", getParams());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BModuleRedirectResult
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 6325051164605397555L;
 

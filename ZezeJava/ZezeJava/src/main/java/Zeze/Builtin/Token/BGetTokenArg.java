@@ -250,6 +250,11 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
         st.appendLong(_parents_name_ + "maxCount", getMaxCount());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BGetTokenArg
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 3072398246496713168L;
 

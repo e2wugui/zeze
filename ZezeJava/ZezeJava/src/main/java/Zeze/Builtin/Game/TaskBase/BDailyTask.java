@@ -295,4 +295,9 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         st.appendLong(_parents_name_ + "flushTime", getFlushTime());
         st.appendString(_parents_name_ + "todayTaskPhaseIds", Zeze.Serialize.Helper.encodeJson(_todayTaskPhaseIds));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BDailyTask
+    }
 }

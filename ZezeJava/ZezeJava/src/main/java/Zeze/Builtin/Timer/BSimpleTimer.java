@@ -610,4 +610,9 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         st.appendLong(_parents_name_ + "HappenTime", getHappenTime());
         st.appendInt(_parents_name_ + "MissfirePolicy", getMissfirePolicy());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BSimpleTimer
+    }
 }

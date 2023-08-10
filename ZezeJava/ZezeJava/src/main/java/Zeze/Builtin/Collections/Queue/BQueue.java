@@ -327,4 +327,9 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         st.appendLong(_parents_name_ + "Count", getCount());
         st.appendLong(_parents_name_ + "LastNodeId", getLastNodeId());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BQueue
+    }
 }

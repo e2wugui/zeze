@@ -6,7 +6,7 @@ import Zeze.Serialize.Serializable;
 
 // tables
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
-public final class BLink implements Serializable, Comparable<BLink> {
+public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> {
     private String _LinkName;
     private long _LinkSid;
     private int _State;

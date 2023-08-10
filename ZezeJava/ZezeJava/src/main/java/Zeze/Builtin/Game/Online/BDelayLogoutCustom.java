@@ -279,4 +279,9 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
         st.appendString(_parents_name_ + "OnlineSetName", getOnlineSetName());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BDelayLogoutCustom
+    }
 }

@@ -431,4 +431,9 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         st.appendString(_parents_name_ + "Managers", Zeze.Serialize.Helper.encodeJson(_Managers));
         st.appendString(_parents_name_ + "Data", Zeze.Serialize.Helper.encodeJson(_Data));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BDepartmentTreeNode
+    }
 }

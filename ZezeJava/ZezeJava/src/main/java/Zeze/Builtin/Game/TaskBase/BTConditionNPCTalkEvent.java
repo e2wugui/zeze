@@ -285,4 +285,9 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
         st.appendString(_parents_name_ + "dialogId", getDialogId());
         st.appendInt(_parents_name_ + "dialogOption", getDialogOption());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTConditionNPCTalkEvent
+    }
 }

@@ -408,6 +408,11 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         st.appendInt(_parents_name_ + "AppVersion", getAppVersion());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BAnnounceProviderInfo
+    }
+
 // gs to link
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4964769950995033065L;

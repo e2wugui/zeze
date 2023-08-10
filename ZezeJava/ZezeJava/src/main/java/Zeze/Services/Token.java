@@ -13,15 +13,24 @@ import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Token.BGetTokenArg;
 import Zeze.Builtin.Token.BGetTokenRes;
 import Zeze.Builtin.Token.BNewTokenArg;
 import Zeze.Builtin.Token.BNewTokenRes;
+import Zeze.Builtin.Token.BPubTopic;
+import Zeze.Builtin.Token.BTopic;
 import Zeze.Builtin.Token.GetToken;
 import Zeze.Builtin.Token.NewToken;
+import Zeze.Builtin.Token.NotifyTopic;
+import Zeze.Builtin.Token.PubTopic;
+import Zeze.Builtin.Token.SubTopic;
 import Zeze.Builtin.Token.TokenStatus;
+import Zeze.Builtin.Token.UnsubTopic;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
@@ -33,8 +42,10 @@ import Zeze.Net.Selectors;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -84,15 +95,25 @@ public final class Token extends AbstractToken {
 		return new String(tokenBytes, StandardCharsets.ISO_8859_1);
 	}
 
-	public static final class TokenClient extends Service {
+	public static class TokenClient extends Service {
 		private Connector connector;
 
 		public TokenClient(@Nullable Config config) {
 			super("TokenClient", config);
 			AddFactoryHandle(NewToken.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(NewToken::new, null,
-					TransactionLevel.None, DispatchMode.Normal)); // 11029, -633142956
+					TransactionLevel.None, DispatchMode.Normal));
 			AddFactoryHandle(GetToken.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(GetToken::new, null,
-					TransactionLevel.None, DispatchMode.Normal)); // 11029, -1570200909
+					TransactionLevel.None, DispatchMode.Normal));
+			AddFactoryHandle(TokenStatus.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(TokenStatus::new, null,
+					TransactionLevel.None, DispatchMode.Normal));
+			AddFactoryHandle(SubTopic.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(SubTopic::new, null,
+					TransactionLevel.None, DispatchMode.Normal));
+			AddFactoryHandle(UnsubTopic.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(UnsubTopic::new, null,
+					TransactionLevel.None, DispatchMode.Normal));
+			AddFactoryHandle(PubTopic.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(PubTopic::new, null,
+					TransactionLevel.None, DispatchMode.Normal));
+			AddFactoryHandle(NotifyTopic.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(NotifyTopic::new,
+					this::ProcessNotifyTopic, TransactionLevel.None, DispatchMode.Normal));
 		}
 
 		@Override
@@ -150,11 +171,94 @@ public final class Token extends AbstractToken {
 								@NotNull ProtocolHandle<Rpc<BGetTokenArg.Data, BGetTokenRes.Data>> handler) {
 			return new GetToken(new BGetTokenArg.Data(token, maxCount)).Send(connector.getSocket(), handler);
 		}
+
+		public @NotNull TaskCompletionSource<EmptyBean.Data> subTopic(@NotNull String topic) {
+			return new SubTopic(new BTopic.Data(topic)).SendForWait(connector.getSocket());
+		}
+
+		public boolean subTopic(@NotNull String topic,
+								@NotNull ProtocolHandle<Rpc<BTopic.Data, EmptyBean.Data>> handler) {
+			return new SubTopic(new BTopic.Data(topic)).Send(connector.getSocket(), handler);
+		}
+
+		public @NotNull TaskCompletionSource<EmptyBean.Data> unsubTopic(@NotNull String topic) {
+			return new UnsubTopic(new BTopic.Data(topic)).SendForWait(connector.getSocket());
+		}
+
+		public boolean unsubTopic(@NotNull String topic,
+								  @NotNull ProtocolHandle<Rpc<BTopic.Data, EmptyBean.Data>> handler) {
+			return new UnsubTopic(new BTopic.Data(topic)).Send(connector.getSocket(), handler);
+		}
+
+		public @NotNull TaskCompletionSource<EmptyBean.Data> pubTopic(@NotNull String topic, @Nullable Binary content,
+																	  boolean broadcast) {
+			return new PubTopic(new BPubTopic.Data(topic, content, broadcast)).SendForWait(connector.getSocket());
+		}
+
+		public boolean pubTopic(@NotNull String topic, @Nullable Binary content, boolean broadcast,
+								@NotNull ProtocolHandle<Rpc<BPubTopic.Data, EmptyBean.Data>> handler) {
+			return new PubTopic(new BPubTopic.Data(topic, content, broadcast)).Send(connector.getSocket(), handler);
+		}
+
+		@SuppressWarnings("MethodMayBeStatic")
+		protected long ProcessNotifyTopic(NotifyTopic p) {
+			return Procedure.NotImplement;
+		}
 	}
 
 	private static final class TokenServer extends Service {
+		private static final class Session {
+			final @NotNull AsyncSocket so;
+			final ConcurrentHashSet<String> subTopics = new ConcurrentHashSet<>();
+
+			Session(@NotNull AsyncSocket so) {
+				this.so = so;
+			}
+		}
+
+		private final ConcurrentHashMap<String, CopyOnWriteArrayList<Session>> topicMap = new ConcurrentHashMap<>(); // key:topic
+
 		TokenServer(Config config) {
 			super("TokenServer", config);
+		}
+
+		boolean subTopic(@NotNull Session session, @NotNull String topic) {
+			if (!session.subTopics.add(topic))
+				return false;
+			topicMap.computeIfAbsent(topic, __ -> new CopyOnWriteArrayList<>()).add(session);
+			return true;
+		}
+
+		boolean unsubTopic(@NotNull Session session, @NotNull String topic) {
+			if (session.subTopics.remove(topic) == null)
+				return false;
+			var sessions = topicMap.get(topic);
+			if (sessions != null && sessions.remove(session) && sessions.isEmpty())
+				topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
+			return true;
+		}
+
+		void unsubAllTopics(@NotNull Session session) {
+			for (var topic : session.subTopics) {
+				var sessions = topicMap.get(topic);
+				if (sessions != null && sessions.remove(session) && sessions.isEmpty())
+					topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
+			}
+		}
+
+		@Override
+		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+			so.setUserState(new Session(so));
+		}
+
+		@Override
+		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+			super.OnSocketClose(so, e);
+			var session = (Session)so.getUserState();
+			if (session != null) {
+				so.setUserState(null);
+				unsubAllTopics(session);
+			}
 		}
 
 		@Override
@@ -169,6 +273,7 @@ public final class Token extends AbstractToken {
 	}
 
 	private static final class TokenState {
+		final ReentrantLock lock = new ReentrantLock();
 		final @Nullable InetSocketAddress remoteAddr;
 		final @NotNull Binary context; // 绑定的上下文
 		final long createTime; // 创建时间戳(毫秒)
@@ -377,8 +482,8 @@ public final class Token extends AbstractToken {
 		}
 		res.setAddr(state.getRemoteAddr());
 		var maxCount = arg.getMaxCount();
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (state) {
+		state.lock.lock();
+		try {
 			var time = System.currentTimeMillis();
 			if (time >= state.endTime) {
 				tokenMap.remove(token, state);
@@ -394,13 +499,15 @@ public final class Token extends AbstractToken {
 					res.setTime(time - state.createTime);
 				}
 			}
+		} finally {
+			state.lock.unlock();
 		}
 		r.SendResultCode(0);
 		return Procedure.Success;
 	}
 
 	@Override
-	protected long ProcessTokenStatusRequest(TokenStatus r) throws Exception {
+	protected long ProcessTokenStatusRequest(TokenStatus r) {
 		var res = r.Result;
 		res.setNewCount(newCounter.sum());
 		res.setCurCount(tokenMap.size());
@@ -408,6 +515,70 @@ public final class Token extends AbstractToken {
 		res.setConnectCount(s != null ? s.getSocketCount() : -1);
 		res.setPerfLog(PerfCounter.instance.getLastLog());
 		r.SendResultCode(0);
+		return Procedure.Success;
+	}
+
+	@Override
+	protected long ProcessSubTopicRequest(SubTopic r) {
+		var session = ((TokenServer.Session)r.getSender().getUserState());
+		if (session == null) {
+			r.SendResultCode(-1);
+			return Procedure.Success;
+		}
+		var service = r.getService();
+		if (!(service instanceof TokenServer)) {
+			r.SendResultCode(-2);
+			return Procedure.Success;
+		}
+		r.setResultCode(((TokenServer)service).subTopic(session, r.Argument.getTopic()) ? 0 : 1);
+		return Procedure.Success;
+	}
+
+	@Override
+	protected long ProcessUnsubTopicRequest(UnsubTopic r) {
+		var session = ((TokenServer.Session)r.getSender().getUserState());
+		if (session == null) {
+			r.SendResultCode(-1);
+			return Procedure.Success;
+		}
+		var service = r.getService();
+		if (!(service instanceof TokenServer)) {
+			r.SendResultCode(-2);
+			return Procedure.Success;
+		}
+		r.setResultCode(((TokenServer)service).unsubTopic(session, r.Argument.getTopic()) ? 0 : 1);
+		return Procedure.Success;
+	}
+
+	@Override
+	protected long ProcessPubTopicRequest(PubTopic r) {
+		var service = r.getService();
+		if (!(service instanceof TokenServer)) {
+			r.SendResultCode(-1);
+			return Procedure.Success;
+		}
+		var arg = r.Argument;
+		var sessions = ((TokenServer)service).topicMap.get(arg.getTopic());
+		var encoded = new NotifyTopic(arg).encode();
+		int n = 0;
+		if (arg.isBroadcast()) {
+			for (var session : sessions) {
+				if (session.so.Send(encoded))
+					n++;
+			}
+		} else {
+			for (int i = 0; i < 10; i++) {
+				try {
+					var it = sessions.listIterator(ThreadLocalRandom.current().nextInt(sessions.size()));
+					if (it.hasNext() && it.next().so.Send(encoded)) {
+						n = 1;
+						break;
+					}
+				} catch (IndexOutOfBoundsException ignored) { // 小概率事件
+				}
+			}
+		}
+		r.setResultCode(n);
 		return Procedure.Success;
 	}
 

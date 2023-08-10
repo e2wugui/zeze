@@ -332,4 +332,9 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         st.appendString(_parents_name_ + "StartNode", getStartNode());
         st.appendString(_parents_name_ + "EndNode", getEndNode());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BDAG
+    }
 }

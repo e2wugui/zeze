@@ -6,7 +6,7 @@ import Zeze.Serialize.Serializable;
 
 // 有向图的边Key
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
-public final class BDAGEdgeKey implements Serializable, Comparable<BDAGEdgeKey> {
+public final class BDAGEdgeKey implements Zeze.Transaction.BeanKey, Comparable<BDAGEdgeKey> {
     private String _Name; // 有向图的自己的名字
     private String _ValueId; // 有向图边的Key转成字符串类型
 

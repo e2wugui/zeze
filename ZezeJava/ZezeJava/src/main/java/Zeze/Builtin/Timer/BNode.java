@@ -304,4 +304,9 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
         st.appendLong(_parents_name_ + "NextNodeId", getNextNodeId());
         st.appendString(_parents_name_ + "Timers", Zeze.Serialize.Helper.encodeJson(_Timers));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BNode
+    }
 }

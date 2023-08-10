@@ -6,7 +6,7 @@ import Zeze.Serialize.Serializable;
 
 // 有向图的结点Key
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
-public final class BDAGNodeKey implements Serializable, Comparable<BDAGNodeKey> {
+public final class BDAGNodeKey implements Zeze.Transaction.BeanKey, Comparable<BDAGNodeKey> {
     private String _Name; // 有向图自己的名字
     private String _ValueId; // 有向图结点的Key转成字符串类型（如：任务的id）
 

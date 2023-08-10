@@ -250,6 +250,11 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         st.appendInt(_parents_name_ + "BucketCount", getBucketCount());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BRegister
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3200018963971290421L;
 

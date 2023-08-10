@@ -540,4 +540,9 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         st.appendString(_parents_name_ + "subPhases", Zeze.Serialize.Helper.encodeJson(_subPhases));
         st.appendLong(_parents_name_ + "currentSubPhaseId", getCurrentSubPhaseId());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTaskPhase
+    }
 }

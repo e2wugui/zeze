@@ -259,6 +259,11 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
         st.appendInt(_parents_name_ + "TimeoutMs", getTimeoutMs());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BMutex
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7224301299276482451L;
 

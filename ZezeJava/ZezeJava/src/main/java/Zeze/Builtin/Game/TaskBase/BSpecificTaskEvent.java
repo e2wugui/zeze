@@ -178,4 +178,9 @@ public final class BSpecificTaskEvent extends Zeze.Transaction.Bean implements B
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "taskId", getTaskId());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BSpecificTaskEvent
+    }
 }

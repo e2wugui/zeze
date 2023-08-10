@@ -446,4 +446,9 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         st.appendBinary(_parents_name_ + "CustomBean", getCustomBean());
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTransmitSimpleTimer
+    }
 }

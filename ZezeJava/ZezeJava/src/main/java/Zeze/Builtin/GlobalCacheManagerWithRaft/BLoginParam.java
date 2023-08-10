@@ -272,4 +272,9 @@ public final class BLoginParam extends Zeze.Transaction.Bean implements BLoginPa
         st.appendInt(_parents_name_ + "GlobalCacheManagerHashIndex", getGlobalCacheManagerHashIndex());
         st.appendBoolean(_parents_name_ + "DebugMode", isDebugMode());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BLoginParam
+    }
 }

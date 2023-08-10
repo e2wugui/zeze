@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
-public final class BGlobalThreadId implements Serializable, Comparable<BGlobalThreadId> {
+public final class BGlobalThreadId implements Zeze.Transaction.BeanKey, Comparable<BGlobalThreadId> {
     private int _ServerId;
     private long _ThreadId;
 

@@ -322,4 +322,9 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         st.appendLong(_parents_name_ + "Count", getCount());
         st.appendLong(_parents_name_ + "LastNodeId", getLastNodeId());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BLinkedMap
+    }
 }

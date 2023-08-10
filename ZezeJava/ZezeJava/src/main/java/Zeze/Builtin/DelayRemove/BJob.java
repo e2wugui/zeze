@@ -243,4 +243,9 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
         st.appendString(_parents_name_ + "JobHandleName", getJobHandleName());
         st.appendBinary(_parents_name_ + "JobState", getJobState());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BJob
+    }
 }

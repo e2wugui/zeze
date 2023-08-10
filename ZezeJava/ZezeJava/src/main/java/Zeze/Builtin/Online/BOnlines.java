@@ -256,4 +256,9 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
         st.appendString(_parents_name_ + "Logins", Zeze.Serialize.Helper.encodeJson(_Logins));
         st.appendLong(_parents_name_ + "LastLoginVersion", getLastLoginVersion());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BOnlines
+    }
 }

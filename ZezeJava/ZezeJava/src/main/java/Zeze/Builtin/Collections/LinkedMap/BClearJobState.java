@@ -279,4 +279,9 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         st.appendLong(_parents_name_ + "TailNodeId", getTailNodeId());
         st.appendString(_parents_name_ + "LinkedMapName", getLinkedMapName());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BClearJobState
+    }
 }

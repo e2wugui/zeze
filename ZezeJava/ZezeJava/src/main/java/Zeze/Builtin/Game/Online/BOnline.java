@@ -551,4 +551,9 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         st.appendLong(_parents_name_ + "LogoutVersion", getLogoutVersion());
         st.appendString(_parents_name_ + "UserData", Zeze.Serialize.Helper.encodeJson(_UserData));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BOnline
+    }
 }

@@ -1508,6 +1508,21 @@
 			<rpc name="NewToken" argument="BNewTokenArg" result="BNewTokenRes" handle="server"/> 申请新token
 			<rpc name="GetToken" argument="BGetTokenArg" result="BGetTokenRes" handle="server"/> 获取token状态(也可用于验证和删除token)
 			<rpc name="TokenStatus" result="BTokenStatus" handle="server"/> 获取token服务器的全局状态
+
+			<bean name="BTopic">
+				<variable id="1" name="topic"  type="string"/> 主题
+			</bean>
+
+			<bean name="BPubTopic">
+				<variable id="1" name="topic"     type="string"/> 主题
+				<variable id="2" name="content"   type="binary"/> 内容
+				<variable id="3" name="broadcast" type="bool"/> false:只随机通知一个订阅者; true:通知所有订阅者
+			</bean>
+
+			<rpc      name="SubTopic"    argument="BTopic"    handle="server"/> 订阅topic. 回复的resultCode=0:成功订阅; 1:之前已订阅
+			<rpc      name="UnsubTopic"  argument="BTopic"    handle="server"/> 取消订阅topic. 回复的resultCode=0:成功取消订阅; 1:之前未订阅
+			<rpc      name="PubTopic"    argument="BPubTopic" handle="server"/> 发布topic. 回复的resultCode大于等于0表示已通知订阅者数
+			<protocol name="NotifyTopic" argument="BPubTopic" handle="client"/> 通知订阅者
 		</module>
 
 		<module name="Threading" id="11030" UseData="true" DefaultTransactionLevel="None">
@@ -1518,7 +1533,7 @@
 
 			<beankey name="BLockName">
 				<variable id="1" name="GlobalThreadId" type="BGlobalThreadId"/>
-				<variable id="2" name="Name"                type="string"/>
+				<variable id="2" name="Name"           type="string"/>
 			</beankey>
 
 			<bean name="BMutex">
@@ -1527,10 +1542,10 @@
 			</bean>
 
 			<rpc name="MutexTryLock" argument="BMutex" handle="server"/>
-			<rpc name="MutexUnlock" argument="BMutex" handle="server"/> 这个rpc实际上没有使用参数TimeoutMs
+			<rpc name="MutexUnlock"  argument="BMutex" handle="server"/> 这个rpc实际上没有使用参数TimeoutMs
 
 			<bean name="BKeepAlive">
-				<variable id="1" name="ServerId" type="int"/>
+				<variable id="1" name="ServerId"    type="int"/>
 				<variable id="2" name="AppSerialId" type="long"/>
 			</bean>
 
@@ -1539,23 +1554,23 @@
 
 			<bean name="BSemaphore">
 				<variable id="1" name="LockName"  type="BLockName"/>
-				<variable id="2" name="Permits"       type="int"/>
+				<variable id="2" name="Permits"   type="int"/>
 				<variable id="3" name="TimeoutMs" type="int"/>
 			</bean>
 
-			<rpc name="SemaphoreCreate" argument="BSemaphore" handle="server"/> 这个rpc实际上没有使用参数TimeoutMs
+			<rpc name="SemaphoreCreate"     argument="BSemaphore" handle="server"/> 这个rpc实际上没有使用参数TimeoutMs
 			<rpc name="SemaphoreTryAcquire" argument="BSemaphore" handle="server"/>
-			<rpc name="SemaphoreRelease" argument="BSemaphore" handle="server"/> 这个rpc实际上没有使用参数TimeoutMs
+			<rpc name="SemaphoreRelease"    argument="BSemaphore" handle="server"/> 这个rpc实际上没有使用参数TimeoutMs
 
 			<enum name="eEnterRead"  value="0"/>
 			<enum name="eEnterWrite" value="1"/>
-			<enum name="eExitRead"    value="2"/>
-			<enum name="eExitWrite"   value="3"/>
+			<enum name="eExitRead"   value="2"/>
+			<enum name="eExitWrite"  value="3"/>
 
 			<bean name="BReadWriteLock">
-				<variable id="1" name="LockName"  type="BLockName"/>
-				<variable id="2" name="OperateType"   type="int"/> see enum above
-				<variable id="3" name="TimeoutMs" type="int"/> 部分操作实际上没有使用这个参数
+				<variable id="1" name="LockName"    type="BLockName"/>
+				<variable id="2" name="OperateType" type="int"/> see enum above
+				<variable id="3" name="TimeoutMs"   type="int"/> 部分操作实际上没有使用这个参数
 			</bean>
 
 			<rpc name="ReadWriteLockOperate" argument="BReadWriteLock" handle="server"/>

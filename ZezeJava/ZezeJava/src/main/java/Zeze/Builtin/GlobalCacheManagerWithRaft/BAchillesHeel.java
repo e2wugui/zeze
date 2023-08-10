@@ -279,4 +279,9 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
         st.appendString(_parents_name_ + "SecureKey", getSecureKey());
         st.appendInt(_parents_name_ + "GlobalCacheManagerHashIndex", getGlobalCacheManagerHashIndex());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BAchillesHeel
+    }
 }

@@ -225,6 +225,11 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
         st.appendString(_parents_name_ + "modules", Zeze.Serialize.Helper.encodeJson(_modules));
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BSubscribe
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 1112180088628051173L;
 

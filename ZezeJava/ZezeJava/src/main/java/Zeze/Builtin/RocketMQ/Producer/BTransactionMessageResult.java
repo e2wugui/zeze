@@ -224,4 +224,9 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
         st.appendBoolean(_parents_name_ + "Result", isResult());
         st.appendLong(_parents_name_ + "Timestamp", getTimestamp());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTransactionMessageResult
+    }
 }

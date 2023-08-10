@@ -284,4 +284,9 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         st.appendBinary(_parents_name_ + "EncodedKey", getEncodedKey());
         st.appendLong(_parents_name_ + "EnqueueTime", getEnqueueTime());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTableKey
+    }
 }

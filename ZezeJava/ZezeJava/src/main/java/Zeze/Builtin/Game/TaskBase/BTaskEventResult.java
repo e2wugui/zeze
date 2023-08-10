@@ -250,4 +250,9 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
         st.appendLong(_parents_name_ + "resultCode", getResultCode());
         st.appendString(_parents_name_ + "changedTasks", Zeze.Serialize.Helper.encodeJson(_changedTasks));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTaskEventResult
+    }
 }

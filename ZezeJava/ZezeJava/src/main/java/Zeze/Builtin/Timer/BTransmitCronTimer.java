@@ -446,4 +446,9 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         st.appendBinary(_parents_name_ + "CustomBean", getCustomBean());
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTransmitCronTimer
+    }
 }

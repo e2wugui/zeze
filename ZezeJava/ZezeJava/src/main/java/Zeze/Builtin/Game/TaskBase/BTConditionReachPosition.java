@@ -409,4 +409,9 @@ public final class BTConditionReachPosition extends Zeze.Transaction.Bean implem
         st.appendDouble(_parents_name_ + "radius", getRadius());
         st.appendBoolean(_parents_name_ + "Reached", isReached());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTConditionReachPosition
+    }
 }

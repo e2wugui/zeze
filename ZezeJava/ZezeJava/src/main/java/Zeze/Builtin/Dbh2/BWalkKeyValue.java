@@ -250,6 +250,11 @@ public final class BWalkKeyValue extends Zeze.Transaction.Bean implements BWalkK
         st.appendBinary(_parents_name_ + "Value", getValue());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BWalkKeyValue
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -7541456034311652913L;
 

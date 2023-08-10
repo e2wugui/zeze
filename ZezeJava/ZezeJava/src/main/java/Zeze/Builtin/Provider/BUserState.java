@@ -304,6 +304,11 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         st.appendString(_parents_name_ + "onlineSetName", getOnlineSetName());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BUserState
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5802054934505091577L;
 

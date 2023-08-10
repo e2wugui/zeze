@@ -446,4 +446,9 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         st.appendString(_parents_name_ + "HandleName", getHandleName());
         st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(_CustomData));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BOfflineAccountCustom
+    }
 }

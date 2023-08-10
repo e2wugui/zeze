@@ -193,4 +193,9 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Jobs", Zeze.Serialize.Helper.encodeJson(_Jobs));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BJobs
+    }
 }

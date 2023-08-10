@@ -191,6 +191,11 @@ public final class BEndMove extends Zeze.Transaction.Bean implements BEndMoveRea
         parents.remove(parents.size() - 1);
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BEndMove
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 1744858924397766646L;
 

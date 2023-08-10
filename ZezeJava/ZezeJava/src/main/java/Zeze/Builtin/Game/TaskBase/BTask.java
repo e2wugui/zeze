@@ -677,4 +677,9 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         st.appendString(_parents_name_ + "taskPhases", Zeze.Serialize.Helper.encodeJson(_taskPhases));
         st.appendString(_parents_name_ + "extendedData", Zeze.Serialize.Helper.encodeJson(_extendedData));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTask
+    }
 }

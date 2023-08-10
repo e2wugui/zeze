@@ -327,4 +327,9 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         st.appendInt(_parents_name_ + "PositionTo", getPositionTo());
         st.appendInt(_parents_name_ + "number", getNumber());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BMove
+    }
 }

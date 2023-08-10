@@ -196,6 +196,11 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
         st.appendString(_parents_name_ + "token", getToken());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BNewTokenRes
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4376622442286005260L;
 

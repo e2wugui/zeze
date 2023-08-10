@@ -250,6 +250,11 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
         st.appendString(_parents_name_ + "Table", getTable());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BGetBuckets
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 2441476428484688763L;
 

@@ -361,4 +361,9 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         st.appendString(_parents_name_ + "eventType", Zeze.Serialize.Helper.encodeJson(_eventType));
         st.appendString(_parents_name_ + "eventBean", Zeze.Serialize.Helper.encodeJson(_eventBean));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTaskEvent
+    }
 }

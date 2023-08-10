@@ -329,4 +329,9 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
         st.appendString(_parents_name_ + "dialogOptions", Zeze.Serialize.Helper.encodeJson(_dialogOptions));
         st.appendString(_parents_name_ + "dialogSelected", Zeze.Serialize.Helper.encodeJson(_dialogSelected));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTConditionNPCTalk
+    }
 }

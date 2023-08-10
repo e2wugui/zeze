@@ -231,4 +231,9 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         st.appendString(_parents_name_ + "ClientId", getClientId());
         st.appendLong(_parents_name_ + "ReliableNotifyConfirmIndex", getReliableNotifyConfirmIndex());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BReLogin
+    }
 }

@@ -199,4 +199,9 @@ public final class BTConditionSubmitItemEvent extends Zeze.Transaction.Bean impl
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "items", Zeze.Serialize.Helper.encodeJson(_items));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTConditionSubmitItemEvent
+    }
 }

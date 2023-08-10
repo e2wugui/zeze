@@ -372,4 +372,9 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
         st.appendLong(_parents_name_ + "SerialId", getSerialId());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BGameOnlineTimer
+    }
 }

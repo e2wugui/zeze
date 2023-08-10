@@ -308,6 +308,11 @@ public final class BCommand extends Zeze.Transaction.Bean implements BCommandRea
         st.appendBinary(_parents_name_ + "Param", getParam());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BCommand
+    }
+
 // 一个具体的操作。
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 3225161952412454913L;

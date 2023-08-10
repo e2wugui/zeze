@@ -240,4 +240,9 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         st.appendString(_parents_name_ + "conditionType", getConditionType());
         st.appendString(_parents_name_ + "extendedData", Zeze.Serialize.Helper.encodeJson(_extendedData));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTaskCondition
+    }
 }

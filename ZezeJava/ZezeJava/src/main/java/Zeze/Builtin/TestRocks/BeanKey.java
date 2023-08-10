@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
-public final class BeanKey implements Serializable, Comparable<BeanKey> {
+public final class BeanKey implements Zeze.Transaction.BeanKey, Comparable<BeanKey> {
     private int _Id;
     private String _Name;
 

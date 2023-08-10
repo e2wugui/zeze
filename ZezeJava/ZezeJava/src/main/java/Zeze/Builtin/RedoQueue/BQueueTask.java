@@ -380,4 +380,9 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         st.appendBinary(_parents_name_ + "TaskParam", getTaskParam());
         st.appendLong(_parents_name_ + "PrevTaskId", getPrevTaskId());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BQueueTask
+    }
 }

@@ -256,4 +256,9 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
         st.appendInt(_parents_name_ + "Capacity", getCapacity());
         st.appendString(_parents_name_ + "Items", Zeze.Serialize.Helper.encodeJson(_Items));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BBag
+    }
 }

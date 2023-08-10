@@ -6,7 +6,7 @@ import Zeze.Serialize.Serializable;
 
 // ======================================== Task的Bean数据 ========================================
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
-public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
+public final class BTaskKey implements Zeze.Transaction.BeanKey, Comparable<BTaskKey> {
     private long _TaskId;
 
     // for decode only

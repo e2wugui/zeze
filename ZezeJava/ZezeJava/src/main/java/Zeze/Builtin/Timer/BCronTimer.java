@@ -471,4 +471,9 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         st.appendLong(_parents_name_ + "EndTime", getEndTime());
         st.appendInt(_parents_name_ + "MissfirePolicy", getMissfirePolicy());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BCronTimer
+    }
 }

@@ -244,4 +244,9 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
         getTo().encodeSQLStatement(parents, st);
         parents.remove(parents.size() - 1);
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BDAGEdge
+    }
 }

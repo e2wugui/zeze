@@ -225,6 +225,11 @@ public final class BRefused extends Zeze.Transaction.Bean implements BRefusedRea
         st.appendString(_parents_name_ + "Refused", Zeze.Serialize.Helper.encodeJson(_Refused));
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BRefused
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7657223106255732406L;
 

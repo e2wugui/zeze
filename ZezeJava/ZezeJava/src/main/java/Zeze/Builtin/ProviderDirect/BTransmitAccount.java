@@ -425,6 +425,11 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         st.appendString(_parents_name_ + "SenderClientId", getSenderClientId());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTransmitAccount
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 2637210793748287339L;
 

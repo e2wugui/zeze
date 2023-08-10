@@ -178,4 +178,9 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendBinary(_parents_name_ + "FullEncodedProtocol", getFullEncodedProtocol());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BNotify
+    }
 }

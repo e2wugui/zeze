@@ -439,4 +439,9 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(_CustomData));
         st.appendLong(_parents_name_ + "ConcurrentFireSerialNo", getConcurrentFireSerialNo());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTimer
+    }
 }

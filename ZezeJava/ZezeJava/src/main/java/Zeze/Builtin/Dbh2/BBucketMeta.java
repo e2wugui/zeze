@@ -412,6 +412,11 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         st.appendString(_parents_name_ + "RaftConfig", getRaftConfig());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BBucketMeta
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8589859502117192635L;
 

@@ -359,4 +359,9 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         st.appendLong(_parents_name_ + "nextSubPhaseId", getNextSubPhaseId());
         st.appendString(_parents_name_ + "conditions", Zeze.Serialize.Helper.encodeJson(_conditions));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BSubPhase
+    }
 }

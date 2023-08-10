@@ -231,4 +231,9 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
         st.appendString(_parents_name_ + "BagName", getBagName());
         st.appendInt(_parents_name_ + "Position", getPosition());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BDestroy
+    }
 }

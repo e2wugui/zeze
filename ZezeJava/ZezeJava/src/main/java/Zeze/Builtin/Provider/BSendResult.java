@@ -212,6 +212,11 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
         st.appendString(_parents_name_ + "ErrorLinkSids", Zeze.Serialize.Helper.encodeJson(_ErrorLinkSids));
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BSendResult
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -7186434891670297524L;
 

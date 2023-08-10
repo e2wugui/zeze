@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
-public final class BQueueNodeKey implements Serializable, Comparable<BQueueNodeKey> {
+public final class BQueueNodeKey implements Zeze.Transaction.BeanKey, Comparable<BQueueNodeKey> {
     private String _Name; // LinkedMap的Name
     private long _NodeId;
 

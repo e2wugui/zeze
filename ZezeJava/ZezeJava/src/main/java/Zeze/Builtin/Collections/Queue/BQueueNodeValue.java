@@ -231,4 +231,9 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
         st.appendLong(_parents_name_ + "Timestamp", getTimestamp());
         st.appendString(_parents_name_ + "Value", Zeze.Serialize.Helper.encodeJson(_Value));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BQueueNodeValue
+    }
 }

@@ -199,4 +199,9 @@ public final class BTConditionKillMonsterEvent extends Zeze.Transaction.Bean imp
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "monsters", Zeze.Serialize.Helper.encodeJson(_monsters));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTConditionKillMonsterEvent
+    }
 }

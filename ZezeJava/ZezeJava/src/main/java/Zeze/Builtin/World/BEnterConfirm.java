@@ -196,6 +196,11 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
         st.appendLong(_parents_name_ + "MapInstanceId", getMapInstanceId());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BEnterConfirm
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7682260201605989500L;
 

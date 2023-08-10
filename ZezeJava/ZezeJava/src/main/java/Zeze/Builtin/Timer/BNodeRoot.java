@@ -274,4 +274,9 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         st.appendLong(_parents_name_ + "TailNodeId", getTailNodeId());
         st.appendLong(_parents_name_ + "LoadSerialNo", getLoadSerialNo());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BNodeRoot
+    }
 }

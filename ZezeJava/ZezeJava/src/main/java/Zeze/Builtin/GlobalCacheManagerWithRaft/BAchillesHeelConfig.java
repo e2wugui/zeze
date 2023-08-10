@@ -274,4 +274,9 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
         st.appendInt(_parents_name_ + "ServerProcessTime", getServerProcessTime());
         st.appendInt(_parents_name_ + "ServerReleaseTimeout", getServerReleaseTimeout());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BAchillesHeelConfig
+    }
 }

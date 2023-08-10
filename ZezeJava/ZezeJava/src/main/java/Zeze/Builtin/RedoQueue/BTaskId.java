@@ -178,4 +178,9 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "TaskId", getTaskId());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTaskId
+    }
 }

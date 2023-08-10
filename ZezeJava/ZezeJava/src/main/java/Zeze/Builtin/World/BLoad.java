@@ -405,6 +405,11 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         st.appendLong(_parents_name_ + "ComputeCountTime", getComputeCountTime());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BLoad
+    }
+
 // 地图实例（线）的负载
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3855690854900982322L;

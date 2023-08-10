@@ -178,4 +178,9 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "NodeId", getNodeId());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BLinkedMapNodeId
+    }
 }

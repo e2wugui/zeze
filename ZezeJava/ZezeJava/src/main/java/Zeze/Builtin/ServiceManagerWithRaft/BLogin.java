@@ -178,4 +178,9 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "SessionName", getSessionName());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BLogin
+    }
 }

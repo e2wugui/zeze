@@ -251,4 +251,9 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         st.appendLong(_parents_name_ + "NextNodeId", getNextNodeId());
         st.appendString(_parents_name_ + "Values", Zeze.Serialize.Helper.encodeJson(_Values));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BQueueNode
+    }
 }

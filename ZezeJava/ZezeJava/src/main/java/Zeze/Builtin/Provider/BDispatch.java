@@ -516,6 +516,11 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         st.appendString(_parents_name_ + "onlineSetName", getOnlineSetName());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BDispatch
+    }
+
 // link to gs
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -496680173908943081L;

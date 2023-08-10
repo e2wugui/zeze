@@ -263,4 +263,9 @@ public final class BTConditionReachPositionEvent extends Zeze.Transaction.Bean i
         st.appendDouble(_parents_name_ + "y", getY());
         st.appendDouble(_parents_name_ + "z", getZ());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTConditionReachPositionEvent
+    }
 }

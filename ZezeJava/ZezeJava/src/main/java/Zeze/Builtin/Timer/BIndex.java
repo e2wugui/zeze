@@ -274,4 +274,9 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         st.appendLong(_parents_name_ + "NodeId", getNodeId());
         st.appendLong(_parents_name_ + "SerialId", getSerialId());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BIndex
+    }
 }

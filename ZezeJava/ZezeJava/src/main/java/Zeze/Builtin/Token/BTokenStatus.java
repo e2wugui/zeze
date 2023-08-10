@@ -348,6 +348,11 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         st.appendString(_parents_name_ + "perfLog", getPerfLog());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTokenStatus
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 3897751576670303080L;
 

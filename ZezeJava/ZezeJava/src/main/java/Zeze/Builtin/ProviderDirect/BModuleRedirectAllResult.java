@@ -481,6 +481,11 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         st.appendString(_parents_name_ + "Hashs", Zeze.Serialize.Helper.encodeJson(_Hashs));
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BModuleRedirectAllResult
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -6979067915808179070L;
 

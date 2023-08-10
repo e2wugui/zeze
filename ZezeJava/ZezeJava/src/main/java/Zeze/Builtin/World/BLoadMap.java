@@ -331,6 +331,11 @@ public final class BLoadMap extends Zeze.Transaction.Bean implements BLoadMapRea
         st.appendString(_parents_name_ + "Instances", Zeze.Serialize.Helper.encodeJson(_Instances));
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BLoadMap
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4047532170397087334L;
 

@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
-public final class BConcurrentKey implements Serializable, Comparable<BConcurrentKey> {
+public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparable<BConcurrentKey> {
     public static final int TimeTypeTotal = 0; // 所有时间
     public static final int TimeTypeDay = 1; // 每天：Year为当前时间的年份，Offset为天
     public static final int TimeTypeWeek = 2; // 每周：Year为当前时间的年份，Offset为周

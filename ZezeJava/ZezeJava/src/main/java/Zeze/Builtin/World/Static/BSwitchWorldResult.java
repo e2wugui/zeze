@@ -196,6 +196,11 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
         st.appendLong(_parents_name_ + "MapInstanceId", getMapInstanceId());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BSwitchWorldResult
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5224332116004611997L;
 

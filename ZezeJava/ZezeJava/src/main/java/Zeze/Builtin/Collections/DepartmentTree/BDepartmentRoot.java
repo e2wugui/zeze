@@ -431,4 +431,9 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         st.appendString(_parents_name_ + "Childs", Zeze.Serialize.Helper.encodeJson(_Childs));
         st.appendString(_parents_name_ + "Data", Zeze.Serialize.Helper.encodeJson(_Data));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BDepartmentRoot
+    }
 }

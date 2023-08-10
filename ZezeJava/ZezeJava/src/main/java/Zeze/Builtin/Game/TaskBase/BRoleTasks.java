@@ -262,4 +262,9 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
         st.appendString(_parents_name_ + "processingTasks", Zeze.Serialize.Helper.encodeJson(_processingTasks));
         st.appendString(_parents_name_ + "finishedTaskIds", Zeze.Serialize.Helper.encodeJson(_finishedTaskIds));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BRoleTasks
+    }
 }

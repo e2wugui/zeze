@@ -178,4 +178,9 @@ public final class BAcceptTaskEvent extends Zeze.Transaction.Bean implements BAc
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "taskId", getTaskId());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BAcceptTaskEvent
+    }
 }

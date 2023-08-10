@@ -430,4 +430,9 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
         st.appendLong(_parents_name_ + "SerialId", getSerialId());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BArchOnlineTimer
+    }
 }

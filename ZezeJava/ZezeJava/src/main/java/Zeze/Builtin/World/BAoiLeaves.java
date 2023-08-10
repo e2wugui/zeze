@@ -213,6 +213,11 @@ public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeave
         st.appendString(_parents_name_ + "Keys", Zeze.Serialize.Helper.encodeJson(_Keys));
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BAoiLeaves
+    }
+
 // 命令 eAoiLeave 的参数。
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8996759903837821029L;

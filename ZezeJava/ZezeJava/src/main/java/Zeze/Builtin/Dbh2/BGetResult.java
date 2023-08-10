@@ -243,6 +243,11 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
         st.appendBinary(_parents_name_ + "Value", getValue());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BGetResult
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3248537090181056461L;
 

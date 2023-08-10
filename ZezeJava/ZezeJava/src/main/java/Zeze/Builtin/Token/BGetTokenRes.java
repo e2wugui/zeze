@@ -353,6 +353,11 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         st.appendString(_parents_name_ + "addr", getAddr());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BGetTokenRes
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4780430105301681046L;
 

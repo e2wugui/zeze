@@ -174,4 +174,9 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Value", Zeze.Serialize.Helper.encodeJson(_Value));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BDAGNode
+    }
 }

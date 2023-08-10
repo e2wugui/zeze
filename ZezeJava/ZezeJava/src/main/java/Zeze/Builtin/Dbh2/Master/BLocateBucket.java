@@ -310,6 +310,11 @@ public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocat
         st.appendBinary(_parents_name_ + "Key", getKey());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BLocateBucket
+    }
+
 /*
 				Dbh2发现桶没找到错误时，使用GetBuckets得到完整的信息。
 				因为只LocateBucket最新的桶信息虽然能用，但是出现桶没找到错误时，通常意味着前一个桶的信息也需要更新。

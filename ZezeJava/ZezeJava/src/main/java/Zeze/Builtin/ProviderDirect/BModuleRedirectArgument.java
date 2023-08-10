@@ -505,6 +505,11 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         st.appendInt(_parents_name_ + "Version", getVersion());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BModuleRedirectArgument
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -5561456902586805165L;
 

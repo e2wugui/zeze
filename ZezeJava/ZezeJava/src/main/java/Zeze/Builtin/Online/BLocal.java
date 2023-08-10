@@ -264,4 +264,9 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
         st.appendString(_parents_name_ + "Datas", Zeze.Serialize.Helper.encodeJson(_Datas));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BLocal
+    }
 }

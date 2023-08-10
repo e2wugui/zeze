@@ -232,4 +232,9 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
         st.appendBinary(_parents_name_ + "GlobalKey", getGlobalKey());
         st.appendInt(_parents_name_ + "State", getState());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BAcquireParam
+    }
 }

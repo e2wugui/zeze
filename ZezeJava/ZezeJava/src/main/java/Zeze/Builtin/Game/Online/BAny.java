@@ -185,4 +185,9 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Any", Zeze.Serialize.Helper.encodeJson(_Any));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BAny
+    }
 }

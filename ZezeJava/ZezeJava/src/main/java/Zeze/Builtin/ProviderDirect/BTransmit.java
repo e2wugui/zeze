@@ -429,6 +429,11 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         st.appendString(_parents_name_ + "OnlineSetName", getOnlineSetName());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BTransmit
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7395081565293443928L;
 

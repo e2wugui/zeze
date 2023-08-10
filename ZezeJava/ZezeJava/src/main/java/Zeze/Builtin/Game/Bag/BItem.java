@@ -291,4 +291,9 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         st.appendInt(_parents_name_ + "Number", getNumber());
         st.appendString(_parents_name_ + "Item", Zeze.Serialize.Helper.encodeJson(_Item));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BItem
+    }
 }

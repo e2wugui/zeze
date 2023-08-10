@@ -171,4 +171,9 @@ public final class BBroadcastTaskEvent extends Zeze.Transaction.Bean implements 
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendBoolean(_parents_name_ + "isBreakIfAccepted", isIsBreakIfAccepted());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BBroadcastTaskEvent
+    }
 }

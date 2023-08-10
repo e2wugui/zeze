@@ -309,6 +309,11 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         st.appendString(_parents_name_ + "desc", getDesc());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BReportError
+    }
+
 // linkd to client
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -947669033141460287L;

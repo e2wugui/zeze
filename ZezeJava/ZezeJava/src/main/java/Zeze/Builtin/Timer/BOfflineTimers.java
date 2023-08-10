@@ -199,4 +199,9 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "OfflineTimers", Zeze.Serialize.Helper.encodeJson(_OfflineTimers));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BOfflineTimers
+    }
 }

@@ -316,6 +316,11 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         st.appendInt(_parents_name_ + "SubscribeType", getSubscribeType());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BModule
+    }
+
 // gs to link
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5883923521926593765L;

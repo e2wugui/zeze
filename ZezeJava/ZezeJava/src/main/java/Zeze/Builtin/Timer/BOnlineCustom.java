@@ -186,4 +186,9 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(_CustomData));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BOnlineCustom
+    }
 }

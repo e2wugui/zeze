@@ -308,6 +308,11 @@ public final class BReadWriteLock extends Zeze.Transaction.Bean implements BRead
         st.appendInt(_parents_name_ + "TimeoutMs", getTimeoutMs());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BReadWriteLock
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5310988726582781550L;
 

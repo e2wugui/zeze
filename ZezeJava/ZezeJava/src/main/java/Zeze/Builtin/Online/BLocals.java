@@ -202,4 +202,9 @@ public final class BLocals extends Zeze.Transaction.Bean implements BLocalsReadO
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Logins", Zeze.Serialize.Helper.encodeJson(_Logins));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BLocals
+    }
 }

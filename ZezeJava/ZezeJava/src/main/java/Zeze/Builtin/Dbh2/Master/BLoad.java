@@ -189,6 +189,11 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         st.appendDouble(_parents_name_ + "Load", getLoad());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BLoad
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -4353513939405897032L;
 

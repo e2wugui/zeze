@@ -279,4 +279,9 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
         st.appendLong(_parents_name_ + "Value", getValue());
         st.appendBinary(_parents_name_ + "ValueEx", getValueEx());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BRankValue
+    }
 }

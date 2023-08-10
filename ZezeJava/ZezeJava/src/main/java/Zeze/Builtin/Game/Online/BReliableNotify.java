@@ -243,4 +243,9 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
         st.appendString(_parents_name_ + "Notifies", Zeze.Serialize.Helper.encodeJson(_Notifies));
         st.appendLong(_parents_name_ + "ReliableNotifyIndex", getReliableNotifyIndex());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BReliableNotify
+    }
 }

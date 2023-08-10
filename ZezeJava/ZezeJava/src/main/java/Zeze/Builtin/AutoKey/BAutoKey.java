@@ -178,4 +178,9 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "NextId", getNextId());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BAutoKey
+    }
 }

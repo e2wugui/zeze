@@ -277,4 +277,9 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
         st.appendLong(_parents_name_ + "ReliableNotifyConfirmIndex", getReliableNotifyConfirmIndex());
         st.appendBoolean(_parents_name_ + "Sync", isSync());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BReliableNotifyConfirm
+    }
 }

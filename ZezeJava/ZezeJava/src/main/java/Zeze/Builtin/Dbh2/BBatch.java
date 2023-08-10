@@ -448,6 +448,11 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         st.appendBinary(_parents_name_ + "Tid", getTid());
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BBatch
+    }
+
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -2614323448581124612L;
 

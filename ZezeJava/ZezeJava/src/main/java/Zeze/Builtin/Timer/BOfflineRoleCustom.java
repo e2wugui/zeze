@@ -441,4 +441,9 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(_CustomData));
         st.appendString(_parents_name_ + "OnlineSetName", getOnlineSetName());
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BOfflineRoleCustom
+    }
 }

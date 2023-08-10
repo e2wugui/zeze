@@ -226,6 +226,11 @@ public final class BAoiOperates extends Zeze.Transaction.Bean implements BAoiOpe
         st.appendString(_parents_name_ + "Operates", Zeze.Serialize.Helper.encodeJson(_Operates));
     }
 
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BAoiOperates
+    }
+
 // 命令 eAoiEnter,eAoiOperate的参数。
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8731977537695035170L;

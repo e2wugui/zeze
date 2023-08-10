@@ -196,4 +196,9 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "RankList", Zeze.Serialize.Helper.encodeJson(_RankList));
     }
+
+    @Override
+    public Zeze.Transaction.Bean toPrevious() {
+        return null; // todo BRankList
+    }
 }
