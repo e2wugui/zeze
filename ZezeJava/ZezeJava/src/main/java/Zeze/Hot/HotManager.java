@@ -91,7 +91,7 @@ public class HotManager extends ClassLoader {
 		return module.getContext(serviceClass);
 	}
 
-	public String buildCp() throws IOException {
+	public String buildCp() {
 		var sb = new StringBuilder();
 		for (var jar : jars.keySet()) {
 			sb.append(jar).append(File.pathSeparatorChar);
@@ -101,7 +101,7 @@ public class HotManager extends ClassLoader {
 		}
 		for (var path : Reflect.collectClassPaths(ClassLoader.getSystemClassLoader()))
 			sb.append(path).append(File.pathSeparatorChar);
-		// System.out.println(sb);
+		System.out.println(sb);
 		return sb.toString();
 	}
 
@@ -111,8 +111,7 @@ public class HotManager extends ClassLoader {
 		var i = 0;
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
-		GenModule.instance.getCompiler().useOptions("-cp", buildCp());
-		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses, hotRedirect);
+		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses);
 		if (null == iModules) {
 			// todo @张路 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.

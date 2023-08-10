@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
+import Zeze.Arch.Gen.GenModule;
 
 public class Distribute {
 	@SuppressWarnings("ResultOfMethodCallIgnored")
@@ -66,7 +67,7 @@ public class Distribute {
 				try (var serverJar = new JarOutputStream(new FileOutputStream(serverJarFile), interfaceManifest)) {
 					for (var file : classes) {
 						var classFile = home.relativize(file.toPath()).toString().replace("\\", "/");
-						if (classFile.indexOf('/') == -1 && classFile.startsWith("Redirect_")) {
+						if (classFile.indexOf('/') == -1 && classFile.startsWith(GenModule.REDIRECT_PREFIX)) {
 							// 是Redirect生成的子类。
 							// 解析名字；根据名字找到相应的module.jar；并打包进去。
 							var moduleClassName = classFile.substring("Redirect_".length(), classFile.length() - ".class".length())

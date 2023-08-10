@@ -1,6 +1,7 @@
 package Game.Buf;
 
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import Game.Equip.IModuleEquip;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
@@ -17,6 +18,20 @@ import org.jetbrains.annotations.NotNull;
 public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	private Future<?> timerIdHot;
 
+	public static class HotTimer implements TimerHandle {
+		public static AtomicInteger counter = new AtomicInteger();
+
+		@Override
+		public void onTimer(@NotNull TimerContext context) throws Exception {
+			System.out.println("HotTimer " + counter.incrementAndGet());
+		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
+		}
+	}
+
 	public final void Start(App app) {
 		_tbufs.getChangeListenerMap().addListener(new BufChangeListener("Game.Buf.Bufs"));
 		timerIdHot = Task.scheduleUnsafe(2000, 2000, () -> {
@@ -24,6 +39,11 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 			var service = module.getService();
 			service.hotHelloworld();
 		});
+
+		Task.call(app.Zeze.newProcedure(() -> {
+			app.Zeze.getTimer().schedule(2000, 2000, HotTimer.class, null);
+			return 0;
+		}, "hotTimer"));
 	}
 
 	public final void Stop(App app) {

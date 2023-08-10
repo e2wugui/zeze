@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.RedirectBase;
 import Zeze.Component.AutoKey;
 import Zeze.Component.AutoKeyOld;
@@ -97,6 +98,12 @@ public final class Application {
 
 	public void setHotManager(HotManager value) {
 		hotManager = value;
+
+		if (hotManager != null) {
+			// 设置进来的时候才修改环境。
+			GenModule.instance.getCompiler().useOptions("-cp", hotManager.buildCp());
+			GenModule.instance.getCompiler().useParentClassLoader(hotManager.getHotRedirect());
+		}
 	}
 
 	public HotManager getHotManager() {

@@ -39,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
  * 可以提供和原来模块一致的接口。
  */
 public final class GenModule {
-	private static final String REDIRECT_PREFIX = "Redirect_";
+	public static final String REDIRECT_PREFIX = "Redirect_";
 	public static final GenModule instance = new GenModule();
 
 	/**
@@ -98,16 +98,6 @@ public final class GenModule {
 	}
 
 	public synchronized IModule[] createRedirectModules(@NotNull AppBase userApp, Class<?> @NotNull [] moduleClasses) {
-		return createRedirectModules(userApp, moduleClasses, null);
-	}
-
-	public synchronized IModule[] createRedirectModules(@NotNull AppBase userApp, Class<?> @NotNull [] moduleClasses,
-														@Nullable ClassLoader classLoader) {
-		ClassLoader oldClassLoader = null;
-		if (classLoader != null) {
-			oldClassLoader = compiler.getClassloader();
-			compiler.useParentClassLoader(classLoader);
-		}
 		int i = 0, n = moduleClasses.length;
 		try {
 			var classNames = new String[n];
@@ -191,9 +181,6 @@ public final class GenModule {
 				throw new IllegalStateException("module class: " + moduleClasses[i].getName(), e);
 			Task.forceThrow(e);
 			return null; // never run here
-		} finally {
-			if (oldClassLoader != null)
-				compiler.setClassLoader(oldClassLoader);
 		}
 	}
 

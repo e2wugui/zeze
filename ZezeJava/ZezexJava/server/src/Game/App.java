@@ -2,10 +2,13 @@ package Game;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
+import Zeze.Component.TimerContext;
+import Zeze.Component.TimerHandle;
 import Zeze.Config;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderWithOnline;
@@ -13,8 +16,10 @@ import Zeze.Game.TaskBase;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public final class App extends Zeze.AppBase {
 	private static final Logger logger = LogManager.getLogger(App.class);
@@ -107,6 +112,25 @@ public final class App extends Zeze.AppBase {
 		startService(); // 启动网络
 		// 服务准备好以后才注册和订阅。
 		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
+
+		Task.call(Zeze.newProcedure(() -> {
+			Zeze.getTimer().schedule(2000, 2000, ColdTimer.class, null);
+			return 0;
+		}, "coldTimer"));
+	}
+
+	public static class ColdTimer implements TimerHandle {
+		public static AtomicInteger counter = new AtomicInteger();
+
+		@Override
+		public void onTimer(@NotNull TimerContext context) throws Exception {
+			System.out.println("ColdTimer " + counter.incrementAndGet());
+		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
+		}
 	}
 
 	public void Stop() throws Exception {

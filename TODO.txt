@@ -67,11 +67,11 @@ public List<Variable> Bean.variables() {
 }
 
 GenModule.instance.compiler.classloader 只设置一次，只维护一个实例。
-Timer 热更模块Handle测试。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/11 v1.3.0 Timer Bug; Hot; Record1.snapshotValueLocal clear Bug; Timer For Hot; 
 ------------------------------------------------------------------------------------------------------------------------------
+Timer 热更模块Handle测试。
 Hot Timer：HotRedirect + Cache: 关键 Cache 在模块热更后怎么清除？
 Hot TimerRole & TimerAccount
 	这两个handle不会持久化，只发生在本进程中，原来直接传入引用。
