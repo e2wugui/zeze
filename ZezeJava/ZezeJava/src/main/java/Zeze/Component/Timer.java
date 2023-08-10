@@ -2,6 +2,7 @@ package Zeze.Component;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.AppBase;
@@ -22,6 +23,8 @@ import Zeze.Builtin.Timer.tAccountTimers;
 import Zeze.Builtin.Timer.tIndexs;
 import Zeze.Collections.BeanFactory;
 import Zeze.Game.Online;
+import Zeze.Hot.HotManager;
+import Zeze.Hot.HotModule;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
@@ -64,6 +67,9 @@ public class Timer extends AbstractTimer {
 
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
 	final ConcurrentHashMap<String, Future<?>> timersFuture = new ConcurrentHashMap<>();
+	// handle class name -> TimerHandle
+	private final ConcurrentHashMap<String, TimerHandle> handleCache = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<HotModule, HashSet<String>> classNameWithHotModule = new ConcurrentHashMap<>();
 
 	public static @NotNull Timer create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Timer.class, app);
@@ -113,6 +119,44 @@ public class Timer extends AbstractTimer {
 	 */
 	public void stop() {
 		UnRegisterZezeTables(this.zeze);
+	}
+
+	private void onHotModuleStop(HotModule hot) {
+		var classNames = classNameWithHotModule.remove(hot);
+		if (null == classNames)
+			return;
+
+		for (var name : classNames) {
+			handleCache.remove(name);
+		}
+	}
+
+	TimerHandle findTimerHandle(String handleClassName) throws Exception {
+		var handle = handleCache.get(handleClassName);
+		if (null != handle)
+			return handle;
+
+		synchronized (handleCache) {
+			handle = handleCache.get(handleClassName);
+			if (null != handle)
+				return handle;
+
+			Class<?> handleClass = (null == zeze.getHotManager())
+					? Class.forName(handleClassName)
+					: zeze.getHotManager().getHotRedirect().loadClass(handleClassName);
+
+			var cl = handleClass.getClassLoader();
+			if (HotManager.isHotModule(cl)) {
+				var hotModule = (HotModule)cl;
+				// 这里每次都注册，简化框架关联。
+				classNameWithHotModule.computeIfAbsent(hotModule, (key) -> new HashSet<>()).add(handleClassName);
+				hotModule.stopEvents.add(this::onHotModuleStop);
+			}
+
+			handle = (TimerHandle)handleClass.getConstructor().newInstance();
+			handleCache.put(handleClassName, handle);
+			return handle;
+		}
 	}
 
 	/////////////////////////////////////////////////////////////////////////
@@ -822,9 +866,7 @@ public class Timer extends AbstractTimer {
 			var timer = node.getTimers().get(timerId);
 			if (null == timer)
 				throw new IllegalStateException("maybe operate before timer created.");
-			@SuppressWarnings("unchecked")
-			var handleClass = (Class<? extends TimerHandle>)Class.forName(timer.getHandleName());
-			final var handle = handleClass.getDeclaredConstructor().newInstance();
+			final var handle = findTimerHandle(timer.getHandleName());
 			var simpleTimer = timer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
 
@@ -965,9 +1007,7 @@ public class Timer extends AbstractTimer {
 			var timer = node.getTimers().get(timerId);
 			if (null == timer)
 				throw new IllegalStateException("maybe operate before timer created.");
-			@SuppressWarnings("unchecked")
-			var handleClass = (Class<? extends TimerHandle>)Class.forName(timer.getHandleName());
-			final var handle = handleClass.getDeclaredConstructor().newInstance();
+			final var handle = findTimerHandle(timer.getHandleName());
 			var cronTimer = timer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
 				final var context = new TimerContext(this, timer, cronTimer.getHappenTime(),

@@ -88,10 +88,10 @@ public final class Application {
 
 	// verifyCallerNotHot(jdk.internal.reflect.Reflection.getCallerClass());
 	// caller必须外部调用得到。
-	public void verifyCallerNotHot(Class<?> caller) {
+	public void verifyCallerCold(Class<?> caller) {
 		var callerCl = caller.getClassLoader();
 		// 只限制我们自己的HotModule，其他都允许。
-		if (null != hotManager && hotManager.isHotModule(callerCl))
+		if (null != hotManager && HotManager.isHotModule(callerCl))
 			throw new RuntimeException("caller must not hot.");
 	}
 

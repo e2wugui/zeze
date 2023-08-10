@@ -43,10 +43,14 @@ public class HotManager extends ClassLoader {
 	private final FewModifySortedMap<String, HotModule> modules = new FewModifySortedMap<>();
 	private final ReentrantReadWriteLock hotLock = new ReentrantReadWriteLock();
 	private final AppBase app;
+	private final HotRedirect hotRedirect;
 
-	public boolean isHotModule(ClassLoader cl) {
+	public static boolean isHotModule(ClassLoader cl) {
 		return cl.getClass() == HotModule.class;
-		// return modules.containsKey(cl.getName());
+	}
+
+	public HotRedirect getHotRedirect() {
+		return hotRedirect;
 	}
 
 	public void destroyModules() {
@@ -108,7 +112,7 @@ public class HotManager extends ClassLoader {
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
 		GenModule.instance.getCompiler().useOptions("-cp", buildCp());
-		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses, new HotRedirect(this));
+		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses, hotRedirect);
 		if (null == iModules) {
 			// todo @张路 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.
@@ -219,7 +223,7 @@ public class HotManager extends ClassLoader {
 
 		var modulePath = Path.of(workingDir, "modules");
 		if (distributePath.startsWith(modulePath))
-			throw new RuntimeException("distributeDir is sub-dir of workingDir/modules/");
+			throw new RuntimeException("distributeDir is sub-dir of workingDir/modulebus/");
 
 		if (Path.of(workingDir).startsWith(distributePath))
 			throw new RuntimeException("workingDir is sub-dir of distributeDir");
@@ -232,6 +236,7 @@ public class HotManager extends ClassLoader {
 		this.workingDir = workingDir;
 		this.distributeDir = distributeDir;
 		this.app = app;
+		this.hotRedirect = new HotRedirect(this);
 
 		this.loadExistInterfaces(interfacesPath.toFile());
 		this.loadExistModules(modulePath.toFile());

@@ -36,25 +36,16 @@ Hot zeze 功能
 HotManager interface.jar findClass 方式一个一个搜索有效率。
 dbh2 rocks 层调用不允许出错，有点过于相信底层了，怎么解决？出错了现在是abort，改成reset raft？
 
+------------------------------------------------------------------------------------------------------------------------------
+2023/8/11 v1.3.0 Timer Bug; Hot; Record1.snapshotValueLocal clear;
+------------------------------------------------------------------------------------------------------------------------------
+Hot Timer：HotRedirect + Cache: 关键 Cache 在模块热更后怎么清除？
 Hot TimerRole & TimerAccount
 	这两个handle不会持久化，只发生在本进程中，原来直接传入引用。
 	旧版限制只能非热更模块使用；
 	新版接口如下：
 	scheduleHot(... Class<? extends TimerHandle> handleClass, Class<? extends TimerHandle> handle...) 
 	方法名字增加Hot，明确区分原有方法，参数改成handleClass。
-
-------------------------------------------------------------------------------------------------------------------------------
-2023/8/11 v1.3.0 Timer Bug; Hot; Record1.snapshotValueLocal clear;
-------------------------------------------------------------------------------------------------------------------------------
-Hot Timer：HotRedirect + Cache: 关键 Cache 在模块热更后怎么清除？
-	Cache <className, TimerHandle>
-	HotModule???
-		// Map<handle, Set<Class<?>>> regs;
-		void register(handle, Class<?> loaded);
-		void stop() {
-			for (var e : regs.entrySet())
-				e.getKey().invoke(e.getValue());
-		}
 直接暴露数据表 @张路
 TODO 模块内的bean跟随module.interface.jar发布。
 TODO 多版本Bean的TypeId需要一样。
