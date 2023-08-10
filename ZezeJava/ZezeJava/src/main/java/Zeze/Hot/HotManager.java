@@ -101,7 +101,7 @@ public class HotManager extends ClassLoader {
 		}
 		for (var path : Reflect.collectClassPaths(ClassLoader.getSystemClassLoader()))
 			sb.append(path).append(File.pathSeparatorChar);
-		System.out.println(sb);
+
 		return sb.toString();
 	}
 
@@ -239,6 +239,9 @@ public class HotManager extends ClassLoader {
 
 		this.loadExistInterfaces(interfacesPath.toFile());
 		this.loadExistModules(modulePath.toFile());
+	}
+
+	public void start() throws Exception {
 		var iModules = createModuleInstance(modules.values());
 		var i = 0;
 		// 这里要求modules.values()遍历顺序稳定，在modules没有改变时，应该是符合要求的吧。

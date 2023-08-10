@@ -175,7 +175,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void destroyModules() {");
+            sw.WriteLine("    public synchronized void destroyModules() throws Exception {");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];

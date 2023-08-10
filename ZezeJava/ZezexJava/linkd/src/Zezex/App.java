@@ -128,7 +128,7 @@ public final class App extends Zeze.AppBase {
         Zeze.setSchemas(new Zezex.Schemas());
     }
 
-    public synchronized void destroyModules() {
+    public synchronized void destroyModules() throws Exception {
         Zezex_Linkd = null;
         modules.clear();
     }

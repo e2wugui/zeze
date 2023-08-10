@@ -188,7 +188,7 @@ public final class App extends Zeze.AppBase {
         Zeze.setSchemas(new Game.Schemas());
     }
 
-    public synchronized void destroyModules() {
+    public synchronized void destroyModules() throws Exception {
         if (null != Zeze.getHotManager()) {
             Zeze.getHotManager().destroyModules();
             Zeze.setHotManager(null);

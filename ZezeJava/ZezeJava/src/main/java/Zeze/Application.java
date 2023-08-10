@@ -96,13 +96,14 @@ public final class Application {
 			throw new RuntimeException("caller must not hot.");
 	}
 
-	public void setHotManager(HotManager value) {
+	public void setHotManager(HotManager value) throws Exception {
 		hotManager = value;
 
 		if (hotManager != null) {
 			// 设置进来的时候才修改环境。
 			GenModule.instance.getCompiler().useOptions("-cp", hotManager.buildCp());
 			GenModule.instance.getCompiler().useParentClassLoader(hotManager.getHotRedirect());
+			hotManager.start();
 		}
 	}
 

@@ -113,7 +113,7 @@ public class App extends Zeze.AppBase {
         Zeze.setSchemas(new ClientGame.Schemas());
     }
 
-    public synchronized void destroyModules() {
+    public synchronized void destroyModules() throws Exception {
         ClientGame_Fight = null;
         ClientGame_Login = null;
         ClientZezex_Linkd = null;
