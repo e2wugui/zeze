@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
 import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.IModule;
@@ -38,6 +39,17 @@ public class HotManager extends ClassLoader {
 	private final String distributeDir;
 
 	private final FewModifyMap<File, JarFile> jars = new FewModifyMap<>();
+	public static class JarEntry {
+		public final JarFile jar;
+		public final ZipEntry entry;
+
+		public JarEntry(JarFile jar, ZipEntry entry) {
+			this.jar = jar;
+			this.entry = entry;
+		}
+	}
+
+	private final FewModifyMap<String, JarEntry> zipEntries = new FewModifyMap<>();
 
 	// module namespace -> HotModule
 	private final FewModifySortedMap<String, HotModule> modules = new FewModifySortedMap<>();
@@ -113,7 +125,7 @@ public class HotManager extends ClassLoader {
 			moduleClasses[i++] = module.getModuleClass();
 		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses);
 		if (null == iModules) {
-			// todo @张路 这种情况是不是内部处理掉比较好。
+			// 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.
 			iModules = new IModule[moduleClasses.length];
 			for (var ii = 0; ii < moduleClasses.length; ++ii) {
@@ -157,6 +169,21 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
+	private void putJar(File file) throws IOException {
+		file = file.getCanonicalFile();
+
+		var jar = new JarFile(file);
+		// replace all entry
+		// 新的jar的entry会完全覆盖旧的，所以不用考虑删除。
+		for (var e = jar.entries(); e.hasMoreElements(); ) {
+			var entry = e.nextElement();
+			var eName = entry.getName().replace('\\', '/').replace('/', '.');
+			var javaClassName = eName.substring(0, eName.length() - ".class".length());
+			zipEntries.put(javaClassName, new JarEntry(jar, entry));
+		}
+		jars.put(file, jar);
+	}
+
 	/**
 	 * todo【警告】安装过程目前没有事务性，如果安装出现错误，可能导致某些模块出错。
 	 *
@@ -172,25 +199,24 @@ public class HotManager extends ClassLoader {
 
 		// todo 生命期管理，确定服务是否可用，等等。
 		// 安装 interface
-		var interfaceDstAbsolute = Path.of(workingDir, "interfaces", namespace + ".interface.jar")
-				.toFile().getAbsoluteFile();
+		var interfaceDst = Path.of(workingDir, "interfaces", namespace + ".interface.jar").toFile();
 		{
-			var oldI = jars.remove(interfaceDstAbsolute);
+			var oldI = jars.remove(interfaceDst);
 			if (null != oldI)
 				oldI.close();
 		}
 		for (var i = 0; i < 10; ++i) {
 			try {
-				if (Files.deleteIfExists(interfaceDstAbsolute.toPath()))
+				if (Files.deleteIfExists(interfaceDst.toPath()))
 					break;
 			} catch (Exception ignored) {
 			}
 			//System.out.println("delete interface fail=" + i + ":" + interfaceDstAbsolute);
 			Thread.sleep(100);
 		}
-		if (!interfaceSrc.renameTo(interfaceDstAbsolute))
-			throw new RuntimeException("rename fail. " + interfaceSrc + "->" + interfaceDstAbsolute);
-		jars.put(interfaceDstAbsolute, new JarFile(interfaceDstAbsolute));
+		if (!interfaceSrc.renameTo(interfaceDst))
+			throw new RuntimeException("rename fail. " + interfaceSrc + "->" + interfaceDst);
+		putJar(interfaceDst);
 
 		// 安装 module
 		var moduleDst = Path.of(workingDir, "modules", namespace + ".jar");
@@ -228,8 +254,9 @@ public class HotManager extends ClassLoader {
 			throw new RuntimeException("workingDir is sub-dir of distributeDir");
 
 		if (!Files.isDirectory(distributePath) && GenModule.instance.genFileSrcRoot == null) {
-			throw new FileNotFoundException("distributePath = " + distributePath
-					+ ", curPath = " + new File(".").getAbsolutePath());
+			throw new FileNotFoundException(
+					"distributePath = " + distributePath
+					+ ", curPath = " + new File("."));
 		}
 
 		this.workingDir = workingDir;
@@ -315,7 +342,7 @@ public class HotManager extends ClassLoader {
 
 		for (var file : files) {
 			if (file.getName().endsWith(".jar"))
-				jars.put(file.getAbsoluteFile(), new JarFile(file));
+				putJar(file);
 
 			if (file.isDirectory())
 				loadExistInterfaces(file);
@@ -332,37 +359,16 @@ public class HotManager extends ClassLoader {
 
 	@Override
 	protected Class<?> findClass(String className) throws ClassNotFoundException {
-		// todo 优化，循环遍历所有jar有点慢。
-		//  初始化的时候就读取所有jars.entry并建立统一索引；
-		//  索引名字转换成java类名风格；
-		//  索引重复的以第一个为准；
-		//  jar被替换时需要重建索引；
-		//  *重建时直接覆盖索引，不需要删除再加入，因为这里的jar里面的entry只会增加不会删除；
-		for (var jar : jars.values()) {
-			var loaded = loadInterfaceClass(className, jar);
-			if (null != loaded) {
-				//System.out.println("HotManger.interface=" + className);
-				return loaded;
+		var e = zipEntries.get(className);
+		if (null != e) {
+			try (var inputStream = e.jar.getInputStream(e.entry)) {
+				var bytes = inputStream.readAllBytes();
+				return defineClass(className, bytes, 0, bytes.length);
+			} catch (IOException ex) {
+				Task.forceThrow(ex);
 			}
 		}
 		return super.findClass(className);
-	}
-
-	private Class<?> loadInterfaceClass(String className, JarFile jar) {
-		String classFileName = className.replace('.', '/') + ".class";
-		var entry = jar.getEntry(classFileName);
-		if (null == entry)
-			return null;
-		// 采用标准方式重载findClass以后，不需要判断这个了。
-//		var loaded = findLoadedClass(className);
-//		if (null != loaded)
-//			return loaded;
-		try (var inputStream = jar.getInputStream(entry)) {
-			var bytes = inputStream.readAllBytes();
-			return defineClass(className, bytes, 0, bytes.length);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	public List<HotModule> installReadies() throws Exception {

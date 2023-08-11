@@ -69,7 +69,6 @@ void hotModuleInterface(File javaSource) {
 	hotInterface1.save();
 }
 Hot zeze 功能【Zeze服务限制】（这部分需要写到zeze.docx里面）
-HotManager interface.jar findClass 方式一个一个搜索有效率。
 【热更启动顺序】
 多个模块一起热更的时候，已经支持顺序。但是顺序定义从哪来？暂定在发布集合里增加一个顺序配置程序。
 【Bean多版本管理】
@@ -83,6 +82,7 @@ Data & BeanKey
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/11 v1.3.0 Timer Bug; Hot; Record1 snapshotXLocal Bug; Timer Hot; Bean.variables & toPrevious
 ------------------------------------------------------------------------------------------------------------------------------
+HotManager interface.jar findClass 方式一个一个搜索有效率。
 2. Bean Version Managed. 多个版本如：BeanSome_2_, BeanSome_1_, BeanSome，版本为0的Bean没有后缀，兼容非多版本模式.
 3. DistributeServer. 发布包服务器（java），Gen(c#）需要访问获得发布Bean的信息。
 Bean.toPrevious() 实现方案选择：
