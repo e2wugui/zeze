@@ -44,11 +44,12 @@ public class DistributeServer {
 		var b = new Benchmark();
 		for (var path : Reflect.collectClassPaths(ClassLoader.getSystemClassLoader())) {
 			if (path.endsWith(".jar")) {
+				//System.out.println("---->" + path);
 				loadJar(path);
 				continue;
 			}
 			if (path.endsWith(".class")) {
-				System.out.println(path + " not load.");
+				System.out.println(path + "<----------------");
 				continue;
 			}
 			var file = new File(path);
@@ -59,7 +60,8 @@ public class DistributeServer {
 			}
 			System.out.println(path + " what?");
 		}
-		b.report("DistributeServer", count);
+		b.report("DistributeServer Classes", count);
+		b.report("DistributeServer Beans", beans.size());
 
 		var server = new ServerService();
 		var hotDistribute = new HotDistribute();
@@ -80,7 +82,6 @@ public class DistributeServer {
 	}
 
 	private static void loadJar(String path) throws Exception {
-		//System.out.println("---->" + path);
 		try (var jar = new JarFile(path)) {
 
 			for (var e = jar.entries(); e.hasMoreElements(); ) {

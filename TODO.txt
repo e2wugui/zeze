@@ -36,7 +36,7 @@ Hot install new modiule need register sm,还需要module config  choice type
 ----------------------------------------------------------------------------------------------------------
 0. 当前版本的发布运行目录，需要提供一份供Gen使用。
 没有发布过，即开发期，这个目录为空。有无发布用 hasDistribute 表示。
-开发期间不能使用模块热更。
+开发期间一般不使用模块热更。
 
 1. Hot 从 Module 生成 interface 的【工具】。
 void hotModuleInterface(File javaSource) {
@@ -68,44 +68,6 @@ void hotModuleInterface(File javaSource) {
 	*** 不修改Module相关方法的@Override；remove方法需要自己【手动】确认删除。
 	hotInterface1.save();
 }
-
-2. Bean Version Managed. 多个版本如：BeanSome_2_, BeanSome_1_, BeanSome，版本为0的Bean没有后缀，兼容非多版本模式.
-{
-	if (hasDistribute())
-	{
-		var lastVersion = GetLastVersionBean();
-		var curVersion = Gen.GetBean(); // 当前xml的Bean。
-		if (null == lastVersion)
-		{
-			if (curVersion.Name is versioned)
-				throw new Exception(); // 第一个版本不能用版本方式命名。
-			GenWithoutToPrevious();
-			return; // done
-		}
-		var lastVars = lastVersion.Variables();
-		var curVars = curVersion.Variables();
-		var (add, remove) = diff(lastVars, curVars);
-		var versionDistance = distanceVersion(lastVersion, curVersion); // 版本号差异。
-		if (versionDistance > 1)
-			throw new Exception("version distance > 1");
-		if (add.empty() && remove.empty() && versionDistance > 0)
-			throw new Exception("var no change, but bean version changed."); // 这个或者警告即可。
-
-		if (versionDistance == 0)
-			throw new Exception("var change, but bean version not change.");
-		GenWithToPrevious(add, remove); // 这里包括add,remove都是空的，总是生成旧版兼容。
-
-		return; // done
-	}
-	var curVersion = Gen.GetBean(); // 当前xml的Bean。
-	if (curVersion.Name is versioned)
-		throw new Exception(); // 开发期间，不能用版本方式命名。
-	GenWithoutToPrevious();
-}
-
-3. DistributeServer. 发布包服务器（java），Gen(c#）需要访问获得发布Bean的信息。
-
-
 Hot zeze 功能【Zeze服务限制】（这部分需要写到zeze.docx里面）
 HotManager interface.jar findClass 方式一个一个搜索有效率。
 【热更启动顺序】
@@ -114,8 +76,10 @@ HotManager interface.jar findClass 方式一个一个搜索有效率。
 TODO 模块热更需要更新BeanFactory。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/8/11 v1.3.0 Timer Bug; Hot; Record1.snapshotValueLocal clear Bug; Timer For Hot; Bean.variables
+2023/8/11 v1.3.0 Timer Bug; Hot; Record1 snapshotXLocal Bug; Timer Hot; Bean.variables & toPrevious
 ------------------------------------------------------------------------------------------------------------------------------
+2. Bean Version Managed. 多个版本如：BeanSome_2_, BeanSome_1_, BeanSome，版本为0的Bean没有后缀，兼容非多版本模式.
+3. DistributeServer. 发布包服务器（java），Gen(c#）需要访问获得发布Bean的信息。
 Bean.toPrevious() 实现方案选择：
 1. reflect 有风险，需要准确识别var，有一点点会影响扩充bean的方法，最大的问题是varid不好找了。
 2. reflect 还是用这个方案，生成bean的时候，在getter方法里面生成注解，标明varid，有这个注解的就是var并且varid也有了。
