@@ -114,10 +114,12 @@ public final class App extends Zeze.AppBase {
 		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
 
 		Task.call(Zeze.newProcedure(() -> {
-			Zeze.getTimer().schedule(2000, 2000, ColdTimer.class, null);
+			coldTimerId = Zeze.getTimer().schedule(2000, 2000, ColdTimer.class, null);
 			return 0;
 		}, "coldTimer"));
 	}
+
+	String coldTimerId;
 
 	public static class ColdTimer implements TimerHandle {
 		public static AtomicInteger counter = new AtomicInteger();
@@ -134,6 +136,11 @@ public final class App extends Zeze.AppBase {
 	}
 
 	public void Stop() throws Exception {
+		Task.call(Zeze.newProcedure(() -> {
+			Zeze.getTimer().cancel(coldTimerId);
+			return 0;
+		}, "cancelColdTimer"));
+
 		if (Provider != null)
 			Provider.stop();
 		stopService(); // 关闭网络

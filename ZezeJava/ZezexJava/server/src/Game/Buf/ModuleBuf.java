@@ -41,12 +41,19 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 		});
 
 		Task.call(app.Zeze.newProcedure(() -> {
-			app.Zeze.getTimer().schedule(2000, 2000, HotTimer.class, null);
+			hotTimerId = app.Zeze.getTimer().schedule(2000, 2000, HotTimer.class, null);
 			return 0;
 		}, "hotTimer"));
 	}
 
+	String hotTimerId;
+
 	public final void Stop(App app) {
+		Task.call(app.Zeze.newProcedure(() -> {
+			app.Zeze.getTimer().cancel(hotTimerId);
+			return 0;
+		}, "hotTimer"));
+
 		if (null != timerIdHot)
 			timerIdHot.cancel(true);
 	}
