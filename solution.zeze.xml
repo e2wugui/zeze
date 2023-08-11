@@ -761,14 +761,38 @@
 			<table name="tlocal" key="string" memory="true" value="BLocals"/>
 		</module> Online 11100
 
+		<module name="HotDistribute" id="11033" UseData="true" DefaultTransactionLevel="None">
+			<bean name="BVariable">
+				<variable id="1" name="Id" type="int"/>
+				<variable id="2" name="Name" type="string"/>
+				<variable id="3" name="Type" type="string"/>
+				<variable id="4" name="Key" type="string"/>
+				<variable id="5" name="Value" type="string"/>
+			</bean>
+			<bean name="BeanName">
+				<variable id="1" name="Name" type="string"/>
+			</bean>
+			<bean name="BLastVersionBeanInfo">
+				<variable id="1" name="Name" type="string"/>
+				<variable id="2" name="Variables" type="list[BVariable]"/>
+			</bean>
+			<rpc name="GetLastVersionBeanInfo" argument="BeanName" result="BLastVersionBeanInfo" handle="server"/>
+		</module>
+
 		<!--
-		可用id范围 [11016, 11100) [11103, 12000]
+		可用id范围 [11034, 11100) [11103, 12000]
 		<module name="" id="11016">
 		</module>
 		<module name="" id="11103">
 		</module>
 		-->
 	</module> Builtin
+
+	<component name="HotDistribute" genrelativedir="Zeze/Gen/java" GenTables="client" platform="zeze+cs" NoRecursiveModule="true" AutoDelete="false">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.HotDistribute"/>
+		</service>
+	</component>
 
 	<!-- Linkd 服务模块基类，仅用来生成代码 -->
 
