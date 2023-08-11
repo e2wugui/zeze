@@ -74,6 +74,11 @@ HotManager interface.jar findClass 方式一个一个搜索有效率。
 多个模块一起热更的时候，已经支持顺序。但是顺序定义从哪来？暂定在发布集合里增加一个顺序配置程序。
 【Bean多版本管理】
 TODO 模块热更需要更新BeanFactory。
+ToPrevious递归。
+	Var.Bean包含Bean需要检查是否版本转换。
+	Var.Collection包含Bean需要检查是否版本转换。
+	Var.Dynamic（包括容器）。
+Data & BeanKey
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/11 v1.3.0 Timer Bug; Hot; Record1 snapshotXLocal Bug; Timer Hot; Bean.variables & toPrevious

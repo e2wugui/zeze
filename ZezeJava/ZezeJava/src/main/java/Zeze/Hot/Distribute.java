@@ -14,6 +14,11 @@ import java.util.zip.ZipEntry;
 import Zeze.Arch.Gen.GenModule;
 
 public class Distribute {
+	static String classes = "build/classes/java/main";
+	static String workingDir = "hot";
+	static boolean exportBean = true;
+	static Path home;
+
 	@SuppressWarnings("ResultOfMethodCallIgnored")
 	public static void main(String [] args) throws Exception {
 		// 搜索classes目录，自动识别Module并打包。
@@ -21,23 +26,28 @@ public class Distribute {
 		// Module除外的打成一个包，不热更。可能有例外需要处理。
 		// 【例外】Redirect_生成的类放在了全局空间，需要打入相应的模块：
 
-		var classes = "build/classes/java/main";
-		var workingDir = "hot";
 		for (var i = 0; i < args.length; ++i) {
-			if (args[i].equals("-classes"))
+			switch (args[i]) {
+			case "-classes":
 				classes = args[++i];
-			else if (args[i].equals("-workingDir"))
+				break;
+			case "-workingDir":
 				workingDir = args[++i];
+				break;
+			case "-privateBean":
+				exportBean = false;
+				break;
+			}
 		}
 		Path.of(workingDir, "interfaces").toFile().mkdirs();
 		Path.of(workingDir, "modules").toFile().mkdirs();
 
-		var home = Path.of(classes);
+		home = Path.of(classes);
 		var packages = new ArrayList<Package>();
 		packages.add(new Package(home.toFile()));
-		pack(home, workingDir, home, packages);
+		pack(home, packages);
 		assert packages.size() == 1;
-		packages.get(0).pack(home, workingDir);
+		packages.get(0).pack();
 	}
 
 	public static final HashMap<String, JarOutputStream> moduleJars = new HashMap<>();
@@ -54,7 +64,7 @@ public class Distribute {
 			classes.add(file);
 		}
 
-		public void pack(Path home, String workingDir) throws Exception {
+		public void pack() throws Exception {
 			var module = home.relativize(dir.toPath()).toString()
 					.replace("\\", "/")
 					.replace("/", ".");
@@ -114,13 +124,13 @@ public class Distribute {
 					if (Zeze.Transaction.Log.class.isAssignableFrom(cls)) {
 						// log 收集下来，后面再确认它确实是Bean里面的Log才加入interface.jar。
 						logClasses.add(new LogEntry(cls, entry, file));
-					} else if (cls.isInterface()
-						|| Zeze.Transaction.Bean.class.isAssignableFrom(cls)
-						|| Zeze.Transaction.Data.class.isAssignableFrom(cls)
-						|| Zeze.Transaction.BeanKey.class.isAssignableFrom(cls)
-						|| Zeze.Arch.RedirectResult.class.isAssignableFrom(cls)
-					) {
-						if (Zeze.Transaction.Bean.class.isAssignableFrom(cls))
+					} else if (cls.isInterface() || (exportBean && (
+							Zeze.Transaction.Bean.class.isAssignableFrom(cls)
+							|| Zeze.Transaction.Data.class.isAssignableFrom(cls)
+							|| Zeze.Transaction.BeanKey.class.isAssignableFrom(cls)
+							|| Zeze.Arch.RedirectResult.class.isAssignableFrom(cls)
+							))) {
+						if (exportBean && Zeze.Transaction.Bean.class.isAssignableFrom(cls))
 							beanNames.add(cls.getName()); // bean 收集下来，用来下一步判断log.class。
 						interfaceJar.putNextEntry(entry);
 						interfaceJar.write(Files.readAllBytes(file.toPath()));
@@ -167,7 +177,7 @@ public class Distribute {
 			this.file = file;
 		}
 	}
-	public static void pack(Path home, String workingDir, Path dir, ArrayList<Package> packages) throws Exception {
+	public static void pack(Path dir, ArrayList<Package> packages) throws Exception {
 		var files = dir.toFile().listFiles();
 		if (null == files)
 			return;
@@ -177,10 +187,10 @@ public class Distribute {
 				var module = isModuleDir(file);
 				if (module)
 					packages.add(new Package(file));
-				pack(home, workingDir, file.toPath(), packages);
+				pack(file.toPath(), packages);
 				if (module) {
 					var doneModule = packages.remove(packages.size() - 1);
-					doneModule.pack(home, workingDir);
+					doneModule.pack();
 				}
 				continue;
 			}
