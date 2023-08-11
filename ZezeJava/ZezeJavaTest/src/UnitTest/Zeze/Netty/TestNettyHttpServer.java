@@ -109,6 +109,7 @@ public class TestNettyHttpServer {
 
 		@Override
 		public void onError(Throwable ex) {
+			//noinspection CallToPrintStackTrace
 			ex.printStackTrace();
 		}
 	}
@@ -201,6 +202,7 @@ public class TestNettyHttpServer {
 
 					@Override
 					public void onError(WebSocket ws, Throwable ex) {
+						//noinspection CallToPrintStackTrace
 						ex.printStackTrace();
 					}
 				}).get();

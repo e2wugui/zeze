@@ -246,10 +246,9 @@ public final class Transaction {
 										finalCommit(procedure);
 										// 正常一次成功的不统计，用来观察redo多不多。
 										// 失败在 Procedure.cs 中的统计。
-										if (tryCount > 0) {
-											if (Macro.enableStatistics) {
-												ProcedureStatistics.getInstance().getOrAdd("Zeze.Transaction.TryCount").getOrAdd(tryCount).increment();
-											}
+										if (Macro.enableStatistics && tryCount > 0) {
+											ProcedureStatistics.getInstance().getOrAdd("Zeze.Transaction.TryCount")
+													.getOrAdd(tryCount).increment();
 										}
 										return Procedure.Success;
 									}
@@ -382,7 +381,7 @@ public final class Transaction {
 				} else {
 					typeStr = "rollback";
 				}
-				logger.error("{} Procedure {} Action {}", typeStr, procedure.getActionName(), action.getClass().getName(), e);
+				logger.error("{} Procedure={} Action={}", typeStr, procedure.getActionName(), action.getClass().getName(), e);
 			}
 		}
 	}
