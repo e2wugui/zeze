@@ -1,4 +1,6 @@
 
+using Zeze.Gen.Types;
+
 namespace Zeze.Gen.java
 {
     public class HotDistribute : AbstractHotDistribute
