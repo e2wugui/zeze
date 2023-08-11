@@ -69,7 +69,7 @@ void hotModuleInterface(File javaSource) {
 	hotInterface1.save();
 }
 
-2. Bean Version Managed. (多个版本如：BeanSome_2_, BeanSome_1_, BeanSome（版本为0的Bean不适用后缀，兼容非多版本模式）)
+2. Bean Version Managed. 多个版本如：BeanSome_2_, BeanSome_1_, BeanSome，版本为0的Bean没有后缀，兼容非多版本模式.
 {
 	if (hasDistribute())
 	{
