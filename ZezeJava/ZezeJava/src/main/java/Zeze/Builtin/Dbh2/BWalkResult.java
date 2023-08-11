@@ -319,11 +319,6 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BWalkResult
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -5849543620068480348L;
 

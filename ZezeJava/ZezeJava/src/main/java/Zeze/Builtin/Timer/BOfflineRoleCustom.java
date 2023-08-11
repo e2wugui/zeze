@@ -453,9 +453,4 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "OnlineSetName", "string", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BOfflineRoleCustom
-    }
 }

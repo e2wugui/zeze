@@ -283,9 +283,4 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "LoadSerialNo", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BNodeRoot
-    }
 }

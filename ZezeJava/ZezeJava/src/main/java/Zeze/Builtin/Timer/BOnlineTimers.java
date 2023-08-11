@@ -201,9 +201,4 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TimerIds", "map", "string", "BOnlineCustom"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BOnlineTimers
-    }
 }

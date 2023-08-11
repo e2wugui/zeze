@@ -185,9 +185,4 @@ public final class BSubmitTaskEvent extends Zeze.Transaction.Bean implements BSu
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "taskId", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BSubmitTaskEvent
-    }
 }

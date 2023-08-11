@@ -203,11 +203,6 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BCreateDatabase
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -4068258744708449065L;
 

@@ -232,11 +232,6 @@ public final class BRefused extends Zeze.Transaction.Bean implements BRefusedRea
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BRefused
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7657223106255732406L;
 

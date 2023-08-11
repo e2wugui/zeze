@@ -640,11 +640,6 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BModuleRedirectAllRequest
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -1938324199607833342L;
 

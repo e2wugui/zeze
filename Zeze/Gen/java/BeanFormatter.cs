@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Zeze.Gen.Types;
+using static Zeze.Gen.java.HotDistribute;
 using Enum = Zeze.Gen.Types.Enum;
 using Type = Zeze.Gen.Types.Type;
 
@@ -9,10 +10,12 @@ namespace Zeze.Gen.java
     public class BeanFormatter
     {
         readonly Bean bean;
+        readonly ToPrevious toPrevious;
 
-        public BeanFormatter(Bean bean)
+        public BeanFormatter(Bean bean, ToPrevious toPrevious)
         {
             this.bean = bean;
+            this.toPrevious = toPrevious;
         }
         
         public void MakeRedirectResult(string baseDir, Project project)
@@ -251,7 +254,7 @@ namespace Zeze.Gen.java
             DecodeResultSet.Make(bean, sw, "    ");
             EncodeSQLStatement.Make(bean, sw, "    ");
             GenVariables(bean, sw, "    ");
-            ToPrevious(bean, sw, "    ");
+            toPrevious?.Gen(bean, sw, "    ");
         }
 
         public void GenVariables(Bean bean, StreamWriter sw, string prefix)
@@ -269,17 +272,22 @@ namespace Zeze.Gen.java
             }
         }
 
+        /*
         public void ToPrevious(Bean bean, StreamWriter sw, string prefix)
         {
+            if (null == lastVersion)
+                return; // 第一个版本，不需要生成ToPrevious。
+
             sw.WriteLine();
             sw.WriteLine($"{prefix}@Override");
             sw.WriteLine($"{prefix}public Zeze.Transaction.Bean toPrevious() {{");
             var refName = bean.Name;
-            var version = bean.TryParseHotName(ref refName);
+            var version = Bean.GetVersionAndParseBaseName(ref refName);
             var oldVersion = version == 0 ? 0 : version - 1;
             var oldName = oldVersion == 0 ? refName : refName + "_" + oldVersion + "_";
             sw.WriteLine($"{prefix}    return null; // todo {oldName}");
             sw.WriteLine($"{prefix}}}");
         }
+        */
     }
 }

@@ -458,9 +458,4 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "LoginVersion", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTransmitCronTimer
-    }
 }

@@ -258,9 +258,4 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "changedTasks", "list", "", "BTask"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTaskEventResult
-    }
 }

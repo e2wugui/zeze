@@ -450,9 +450,4 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "ConcurrentFireSerialNo", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTimer
-    }
 }

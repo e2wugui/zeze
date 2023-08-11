@@ -313,11 +313,6 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BUserState
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5802054934505091577L;
 

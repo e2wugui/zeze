@@ -435,11 +435,6 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BMove
-    }
-
 // MoveMmo
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5823156345754273331L;

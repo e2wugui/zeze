@@ -239,9 +239,4 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Value", "dynamic", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BLinkedMapNodeValue
-    }
 }

@@ -553,9 +553,4 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "currentSubPhaseId", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTaskPhase
-    }
 }

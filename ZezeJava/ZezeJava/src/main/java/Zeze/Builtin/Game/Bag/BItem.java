@@ -300,9 +300,4 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Item", "dynamic", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BItem
-    }
 }

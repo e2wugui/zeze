@@ -287,11 +287,6 @@ public final class BLastVersionBeanInfo extends Zeze.Transaction.Bean implements
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BLastVersionBeanInfo
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -6575391224958548024L;
 

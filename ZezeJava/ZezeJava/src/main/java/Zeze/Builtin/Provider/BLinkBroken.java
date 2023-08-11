@@ -368,11 +368,6 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BLinkBroken
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 1424702393060691138L;
 

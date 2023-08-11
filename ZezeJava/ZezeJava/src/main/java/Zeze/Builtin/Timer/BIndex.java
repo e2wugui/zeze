@@ -283,9 +283,4 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "SerialId", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BIndex
-    }
 }

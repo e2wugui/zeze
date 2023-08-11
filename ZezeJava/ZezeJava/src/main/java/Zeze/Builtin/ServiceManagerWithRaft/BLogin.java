@@ -185,9 +185,4 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "SessionName", "string", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BLogin
-    }
 }

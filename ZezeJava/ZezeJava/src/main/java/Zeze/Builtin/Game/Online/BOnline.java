@@ -565,9 +565,4 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "UserData", "dynamic", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BOnline
-    }
 }

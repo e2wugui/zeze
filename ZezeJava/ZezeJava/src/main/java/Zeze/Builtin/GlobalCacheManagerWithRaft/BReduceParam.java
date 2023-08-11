@@ -239,9 +239,4 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "State", "int", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BReduceParam
-    }
 }

@@ -181,9 +181,4 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Value", "dynamic", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BDAGNode
-    }
 }

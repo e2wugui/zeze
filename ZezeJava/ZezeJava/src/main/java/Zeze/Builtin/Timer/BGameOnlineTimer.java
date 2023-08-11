@@ -382,9 +382,4 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "SerialId", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BGameOnlineTimer
-    }
 }

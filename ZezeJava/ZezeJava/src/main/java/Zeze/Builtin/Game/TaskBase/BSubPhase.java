@@ -369,9 +369,4 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "conditions", "list", "", "BTaskCondition"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BSubPhase
-    }
 }

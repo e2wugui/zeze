@@ -332,9 +332,4 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LastNodeId", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BLinkedMap
-    }
 }

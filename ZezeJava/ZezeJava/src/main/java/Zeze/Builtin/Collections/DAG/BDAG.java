@@ -342,9 +342,4 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "EndNode", "string", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BDAG
-    }
 }

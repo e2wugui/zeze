@@ -313,9 +313,4 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Timers", "map", "string", "BTimer"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BNode
-    }
 }

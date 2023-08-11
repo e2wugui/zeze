@@ -203,11 +203,6 @@ public final class BBucketCount extends Zeze.Transaction.Bean implements BBucket
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BBucketCount
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 2147869342393134029L;
 

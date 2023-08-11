@@ -248,9 +248,4 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "extendedData", "dynamic", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTaskCondition
-    }
 }

@@ -288,9 +288,4 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "OnlineSetName", "string", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BDelayLogoutCustom
-    }
 }

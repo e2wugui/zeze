@@ -391,9 +391,4 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "PrevTaskId", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BQueueTask
-    }
 }

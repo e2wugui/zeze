@@ -261,11 +261,6 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BSetUserState
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -4860388989628287875L;
 

@@ -521,11 +521,6 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BObject
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -2457457472033861643L;
 

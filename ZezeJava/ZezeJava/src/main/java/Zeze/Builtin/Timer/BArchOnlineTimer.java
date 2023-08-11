@@ -441,9 +441,4 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "SerialId", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BArchOnlineTimer
-    }
 }

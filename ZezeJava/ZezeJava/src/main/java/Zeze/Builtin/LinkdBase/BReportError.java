@@ -318,11 +318,6 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BReportError
-    }
-
 // linkd to client
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -947669033141460287L;

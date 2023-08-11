@@ -283,9 +283,4 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ServerReleaseTimeout", "int", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BAchillesHeelConfig
-    }
 }

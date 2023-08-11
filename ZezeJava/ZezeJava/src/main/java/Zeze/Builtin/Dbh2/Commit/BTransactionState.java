@@ -271,11 +271,6 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTransactionState
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7092279656883376454L;
 

@@ -259,9 +259,4 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Values", "list", "", "BQueueNodeValue"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BQueueNode
-    }
 }

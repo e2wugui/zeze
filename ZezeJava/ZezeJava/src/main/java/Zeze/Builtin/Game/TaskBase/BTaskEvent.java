@@ -370,9 +370,4 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "eventBean", "dynamic", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTaskEvent
-    }
 }

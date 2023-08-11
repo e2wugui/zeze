@@ -273,9 +273,4 @@ public final class BTConditionKillMonster extends Zeze.Transaction.Bean implemen
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "monstersKilled", "map", "long", "int"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTConditionKillMonster
-    }
 }

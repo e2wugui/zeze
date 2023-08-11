@@ -308,11 +308,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BBroadcast
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -6926497733546172658L;
 

@@ -246,11 +246,6 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BEndSplit
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7116513531049088703L;
 

@@ -457,11 +457,6 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BEnterWorld
-    }
-
 /*
 为了不污染根空间，改成Command了。
 			<protocol name="SwitchWorld" argument="BSwitchWorld" handle="server"/> mapId==-1，进入地图由服务器控制，此时仅仅表示客户端准备好进入地图了。

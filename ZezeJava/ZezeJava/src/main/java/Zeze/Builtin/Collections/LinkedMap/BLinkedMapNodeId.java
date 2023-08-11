@@ -185,9 +185,4 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "NodeId", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BLinkedMapNodeId
-    }
 }

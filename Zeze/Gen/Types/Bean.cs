@@ -197,23 +197,25 @@ namespace Zeze.Gen.Types
 		{
         }
 
-		public string GetBaseHotName(string name)
+		public string GetBaseName(string name)
 		{
-			var refName = name;
-			TryParseHotName(ref refName);
-			return refName;
+			if (Hot)
+				GetVersionAndParseBaseName(ref name);
+			return name;
 		}
 
-        public int TryParseHotName(ref string name)
+		public static int GetVersion(string name)
 		{
-			if (false == Hot)
-				return 0;
+			return GetVersionAndParseBaseName(ref name);
+        }
 
-			if (!name.EndsWith("_"))
-				throw new Exception($"invalid hot name {name}");
+        public static int GetVersionAndParseBaseName(ref string name)
+		{
+			if (false == name.EndsWith("_"))
+				return 0; // 基础名字，版本为0.
 
-			// reverse find
-			var versionEnd = name.Length - 1;
+            // reverse find
+            var versionEnd = name.Length - 1;
             for (; versionEnd >= 0; versionEnd--)
 			{
 				if (name[versionEnd] == '_')
@@ -232,8 +234,9 @@ namespace Zeze.Gen.Types
 			name = name.Substring(0, versionBegin);
 			versionBegin++;
 			var version = int.Parse(name.Substring(versionBegin, versionEnd - versionBegin + 1));
-			if (version <= 0)
-				throw new Exception($"invalid hot name {name} version must great than 0.");
+			if (version <= 0)  // = 0 是第一个版本，此时必须使用基础名字，需要指明的版本号必须大于0.
+                throw new Exception($"invalid hot name {name} version must great than 0.");
+
 			return version;
 		}
 
@@ -256,7 +259,7 @@ namespace Zeze.Gen.Types
 			Base = self.GetAttribute("base");
 			if (Base != "" && !Base.Contains('.'))
 				Base = Space.Path(".", Base);
-			var hashTypeId = Util.FixedHash.Hash64(space.Path(".", GetBaseHotName(_name)));
+			var hashTypeId = Util.FixedHash.Hash64(space.Path(".", GetBaseName(_name)));
 			// 这里的写法：hot bean 允许自定义TypeId，
 			// 但是java的Bean禁止了自定义功能，
 			// 而Hot目前仅用于java，
@@ -377,6 +380,14 @@ namespace Zeze.Gen.Types
 			}
 
 			return comment;
+		}
+
+		public Variable GetVariable(int id)
+		{
+			foreach (var v in Variables)
+				if (v.Id == id)
+					return v;
+			return null;
 		}
 
 		public Variable GetVariable(string name)

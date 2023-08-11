@@ -442,9 +442,4 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Data", "dynamic", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BDepartmentRoot
-    }
 }

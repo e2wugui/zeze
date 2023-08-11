@@ -203,11 +203,6 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTopic
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -8399522464290840620L;
 

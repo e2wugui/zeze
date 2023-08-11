@@ -253,11 +253,6 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BKeepAlive
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -6747942781414109078L;
 

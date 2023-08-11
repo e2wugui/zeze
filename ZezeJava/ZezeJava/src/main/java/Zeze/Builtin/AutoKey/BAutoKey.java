@@ -185,9 +185,4 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "NextId", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BAutoKey
-    }
 }

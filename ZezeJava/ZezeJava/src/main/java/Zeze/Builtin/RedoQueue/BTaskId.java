@@ -185,9 +185,4 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TaskId", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTaskId
-    }
 }

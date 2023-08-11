@@ -293,9 +293,4 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "EnqueueTime", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTableKey
-    }
 }

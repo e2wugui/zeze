@@ -203,11 +203,6 @@ public final class BeanName extends Zeze.Transaction.Bean implements BeanNameRea
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BeanName
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -1975096028535811269L;
 

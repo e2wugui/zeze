@@ -306,11 +306,6 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BPubTopic
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -1295819062894155861L;
 

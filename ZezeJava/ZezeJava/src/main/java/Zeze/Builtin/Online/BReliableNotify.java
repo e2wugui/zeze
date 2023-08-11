@@ -251,9 +251,4 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ReliableNotifyIndex", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BReliableNotify
-    }
 }

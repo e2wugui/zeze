@@ -26,10 +26,13 @@ namespace Zeze.Gen.java
 
             Program.AddGenDir(genDir);
 
+            var host = "127.0.0.1";
+            var port = 4545;
+            var hotDistribute = new HotDistribute(host, port, Project, genCommonDir);
             // gen common
             foreach (Bean bean in Project.AllBeans.Values)
             {
-                new BeanFormatter(bean).Make(genCommonDir, Project);
+                hotDistribute.GenBean(bean);
             }
             foreach (BeanKey beanKey in Project.AllBeanKeys.Values)
             {

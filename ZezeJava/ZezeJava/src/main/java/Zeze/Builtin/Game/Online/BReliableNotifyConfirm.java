@@ -232,9 +232,4 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Sync", "bool", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BReliableNotifyConfirm
-    }
 }

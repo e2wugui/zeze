@@ -264,9 +264,4 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Items", "map", "int", "BItem"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BBag
-    }
 }

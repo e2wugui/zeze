@@ -185,9 +185,4 @@ public final class BAcceptTaskEvent extends Zeze.Transaction.Bean implements BAc
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "taskId", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BAcceptTaskEvent
-    }
 }

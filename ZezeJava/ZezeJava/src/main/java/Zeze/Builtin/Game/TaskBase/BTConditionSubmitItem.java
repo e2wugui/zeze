@@ -273,9 +273,4 @@ public final class BTConditionSubmitItem extends Zeze.Transaction.Bean implement
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "itemsSubmitted", "map", "long", "int"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTConditionSubmitItem
-    }
 }

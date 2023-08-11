@@ -304,9 +304,4 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "todayTaskPhaseIds", "list", "", "long"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BDailyTask
-    }
 }

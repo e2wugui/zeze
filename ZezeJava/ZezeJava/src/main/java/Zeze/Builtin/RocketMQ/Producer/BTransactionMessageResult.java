@@ -232,9 +232,4 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Timestamp", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTransactionMessageResult
-    }
 }

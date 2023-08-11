@@ -281,9 +281,4 @@ public final class BLoginParam extends Zeze.Transaction.Bean implements BLoginPa
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "DebugMode", "bool", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BLoginParam
-    }
 }

@@ -206,9 +206,4 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "OfflineTimers", "map", "string", "int"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BOfflineTimers
-    }
 }

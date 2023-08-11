@@ -421,9 +421,4 @@ public final class BTConditionReachPosition extends Zeze.Transaction.Bean implem
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Reached", "bool", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTConditionReachPosition
-    }
 }

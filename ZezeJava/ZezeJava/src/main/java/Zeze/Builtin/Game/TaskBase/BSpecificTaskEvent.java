@@ -185,9 +185,4 @@ public final class BSpecificTaskEvent extends Zeze.Transaction.Bean implements B
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "taskId", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BSpecificTaskEvent
-    }
 }

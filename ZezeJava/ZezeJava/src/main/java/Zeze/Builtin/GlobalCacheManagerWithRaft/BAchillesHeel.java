@@ -288,9 +288,4 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "GlobalCacheManagerHashIndex", "int", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BAchillesHeel
-    }
 }

@@ -203,9 +203,4 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "RankList", "list", "", "BRankValue"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BRankList
-    }
 }

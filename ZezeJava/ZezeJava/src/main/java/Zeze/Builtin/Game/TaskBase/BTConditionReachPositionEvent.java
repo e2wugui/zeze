@@ -272,9 +272,4 @@ public final class BTConditionReachPositionEvent extends Zeze.Transaction.Bean i
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "z", "double", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTConditionReachPositionEvent
-    }
 }

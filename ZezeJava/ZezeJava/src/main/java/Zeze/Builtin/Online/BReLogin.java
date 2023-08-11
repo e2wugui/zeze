@@ -239,9 +239,4 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ReliableNotifyConfirmIndex", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BReLogin
-    }
 }

@@ -192,9 +192,4 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Any", "dynamic", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BAny
-    }
 }

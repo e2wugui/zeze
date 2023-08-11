@@ -185,9 +185,4 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "FullEncodedProtocol", "binary", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BNotify
-    }
 }

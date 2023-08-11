@@ -258,11 +258,6 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BNewTokenArg
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 2668590583481037382L;
 

@@ -252,9 +252,4 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "To", "BDAGNodeKey", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BDAGEdge
-    }
 }

@@ -442,9 +442,4 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Data", "dynamic", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BDepartmentTreeNode
-    }
 }

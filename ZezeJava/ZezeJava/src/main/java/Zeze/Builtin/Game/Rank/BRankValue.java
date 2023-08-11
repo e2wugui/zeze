@@ -288,9 +288,4 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ValueEx", "binary", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BRankValue
-    }
 }

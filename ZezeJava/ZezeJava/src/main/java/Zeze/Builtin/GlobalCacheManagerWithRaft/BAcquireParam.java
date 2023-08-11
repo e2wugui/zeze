@@ -240,9 +240,4 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "State", "int", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BAcquireParam
-    }
 }

@@ -270,11 +270,6 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BSplitPut
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5420980520394401381L;
 

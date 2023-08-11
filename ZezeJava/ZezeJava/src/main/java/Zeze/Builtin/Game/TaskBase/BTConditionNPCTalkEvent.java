@@ -294,9 +294,4 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "dialogOption", "int", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTConditionNPCTalkEvent
-    }
 }

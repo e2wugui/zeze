@@ -626,9 +626,4 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "MissfirePolicy", "int", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BSimpleTimer
-    }
 }

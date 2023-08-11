@@ -112,6 +112,14 @@ namespace Zeze.Gen.Types
 			self.SetAttribute("id", varId.ToString());
 		}
 
+		public Variable(int id, string name, string type, string key, string value)
+		{
+			Id = id;
+			Name = name;
+			Type = type;
+			Key = key;
+			Value = value;
+		}
 
         public Variable(Type bean, XmlElement self)
 		{

@@ -288,9 +288,4 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "LinkedMapName", "string", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BClearJobState
-    }
 }

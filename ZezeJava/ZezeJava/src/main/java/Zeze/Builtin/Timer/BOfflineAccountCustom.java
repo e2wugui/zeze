@@ -458,9 +458,4 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "CustomData", "dynamic", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BOfflineAccountCustom
-    }
 }

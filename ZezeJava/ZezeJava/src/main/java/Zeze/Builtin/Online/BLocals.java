@@ -209,9 +209,4 @@ public final class BLocals extends Zeze.Transaction.Bean implements BLocalsReadO
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Logins", "map", "string", "BLocal"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BLocals
-    }
 }

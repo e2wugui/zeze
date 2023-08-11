@@ -251,11 +251,6 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BGetResult
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3248537090181056461L;
 

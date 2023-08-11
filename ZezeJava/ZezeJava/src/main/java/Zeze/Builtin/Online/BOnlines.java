@@ -264,9 +264,4 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "LastLoginVersion", "long", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BOnlines
-    }
 }

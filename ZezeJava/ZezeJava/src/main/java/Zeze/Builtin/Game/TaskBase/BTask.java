@@ -693,9 +693,4 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "extendedData", "dynamic", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BTask
-    }
 }

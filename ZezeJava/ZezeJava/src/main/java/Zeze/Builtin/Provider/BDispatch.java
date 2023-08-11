@@ -529,11 +529,6 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BDispatch
-    }
-
 // link to gs
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -496680173908943081L;

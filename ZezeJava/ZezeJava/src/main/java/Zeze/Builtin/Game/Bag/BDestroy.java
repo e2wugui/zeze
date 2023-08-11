@@ -239,9 +239,4 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Position", "int", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BDestroy
-    }
 }

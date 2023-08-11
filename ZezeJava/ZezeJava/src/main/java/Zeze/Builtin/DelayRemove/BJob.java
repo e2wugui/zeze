@@ -251,9 +251,4 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "JobState", "binary", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BJob
-    }
 }

@@ -357,11 +357,6 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BLoad
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8972064501607813483L;
 

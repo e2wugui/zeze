@@ -45,7 +45,7 @@ namespace Zeze.Gen.java
                 if (bean.IsRocks)
                     new rrjava.BeanFormatter(bean).Make(genDir);
                 else
-                    new BeanFormatter(bean).Make(genDir, Project);
+                    new BeanFormatter(bean, null).Make(genDir, Project);
             }
             foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
                 new BeanKeyFormatter(beanKey).Make(genDir);

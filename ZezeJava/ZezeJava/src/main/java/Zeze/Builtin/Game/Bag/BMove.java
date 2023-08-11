@@ -337,9 +337,4 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "number", "int", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BMove
-    }
 }

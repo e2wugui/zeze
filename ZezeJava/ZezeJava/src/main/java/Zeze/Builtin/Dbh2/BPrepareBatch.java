@@ -390,11 +390,6 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BPrepareBatch
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 216908947802855063L;
 

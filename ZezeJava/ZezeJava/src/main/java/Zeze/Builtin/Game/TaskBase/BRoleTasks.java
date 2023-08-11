@@ -270,9 +270,4 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "finishedTaskIds", "set", "", "long"));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BRoleTasks
-    }
 }

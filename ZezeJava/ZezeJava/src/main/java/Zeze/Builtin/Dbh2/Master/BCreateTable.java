@@ -258,11 +258,6 @@ public final class BCreateTable extends Zeze.Transaction.Bean implements BCreate
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BCreateTable
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4850419110709483952L;
 

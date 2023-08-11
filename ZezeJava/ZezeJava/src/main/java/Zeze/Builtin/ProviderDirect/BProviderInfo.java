@@ -308,11 +308,6 @@ public final class BProviderInfo extends Zeze.Transaction.Bean implements BProvi
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BProviderInfo
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 858135112612157161L;
 

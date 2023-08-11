@@ -193,9 +193,4 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "CustomData", "dynamic", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BOnlineCustom
-    }
 }

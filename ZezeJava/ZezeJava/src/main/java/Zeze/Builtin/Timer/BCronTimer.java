@@ -484,9 +484,4 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "MissfirePolicy", "int", "", ""));
         return vars;
     }
-
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BCronTimer
-    }
 }

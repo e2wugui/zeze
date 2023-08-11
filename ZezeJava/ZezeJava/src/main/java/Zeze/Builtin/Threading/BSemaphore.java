@@ -317,11 +317,6 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
         return vars;
     }
 
-    @Override
-    public Zeze.Transaction.Bean toPrevious() {
-        return null; // todo BSemaphore
-    }
-
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -308167851404701538L;
 
