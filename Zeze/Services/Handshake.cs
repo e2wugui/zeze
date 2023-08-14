@@ -185,9 +185,9 @@ namespace Zeze.Services
                 byte[] inputKey = null;
                 byte[] outputKey = null;
                 byte[] response = Array.Empty<byte>();
-                int group = 1;
+                const int group = 1;
 
-                Handshake.CHandshake p = (Handshake.CHandshake)_p;
+                var p = (Handshake.CHandshake)_p;
                 if (p.Argument.EncryptType == Constant.eEncryptTypeAes)
                 {
                     // 当group采用客户端参数时需要检查参数正确性，现在统一采用了1，不需要检查了。
@@ -247,21 +247,21 @@ namespace Zeze.Services
             {
                 var tmp = new Handshake.SHandshake();
                 HandshakeProtocols.Add(tmp.TypeId);
-                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle()
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
                 {
                     Factory = () => new Handshake.SHandshake(),
                     Handle = ProcessSHandshake,
-                    TransactionLevel = Transaction.TransactionLevel.None,
+                    TransactionLevel = Transaction.TransactionLevel.None
                 });
             }
             {
                 var tmp = new Handshake.SHandshake0();
                 HandshakeProtocols.Add(tmp.TypeId);
-                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle()
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
                 {
                     Factory = () => new Handshake.SHandshake0(),
                     Handle = ProcessSHandshake0,
-                    TransactionLevel = Transaction.TransactionLevel.None,
+                    TransactionLevel = Transaction.TransactionLevel.None
                 });
             }
         }
@@ -370,12 +370,10 @@ namespace Zeze.Services
                 cHandshake.Argument.CompressS2c = ClientCompress(arg.CompressS2c);
                 cHandshake.Argument.CompressC2s = ClientCompress(arg.CompressC2s);
                 cHandshake.Send(so);
-                ctx.TimeoutTask = Scheduler.Schedule((thisTask) =>
+                ctx.TimeoutTask = Scheduler.Schedule(thisTask =>
                 {
-                    if (DHContext.TryRemove(so.SessionId, out var _))
-                    {
+                    if (DHContext.TryRemove(so.SessionId, out _))
                         so.Close(new Exception("Handshake Timeout"));
-                    }
                 }, 5000);
             }
             catch (Exception ex)

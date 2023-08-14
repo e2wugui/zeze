@@ -28,7 +28,7 @@ namespace Zeze.Util
             throw new Exception($"{className} Not Found.");
         }
 
-        public Reflect(Type type)
+        public Reflect(IReflect type)
         {
             foreach (var m in type.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
             {

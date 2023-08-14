@@ -1077,9 +1077,7 @@ namespace Zeze.Serialize
 
         public Binary ReadBinary()
         {
-            if (BinaryNoCopy)
-                return new Binary(ReadByteBuffer());
-            return new Binary(ReadBytes());
+            return BinaryNoCopy ? new Binary(ReadByteBuffer()) : new Binary(ReadBytes());
         }
 
         public byte[] ReadBytes()
@@ -1307,7 +1305,7 @@ namespace Zeze.Serialize
 
         public static ByteBuffer Encode(Serializable sa)
         {
-            ByteBuffer bb = Allocate();
+            var bb = Allocate();
             sa.Encode(bb);
             return bb;
         }

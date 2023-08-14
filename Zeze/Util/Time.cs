@@ -10,7 +10,7 @@ namespace Zeze.Util
 
         public static DateTime UnixMillisToDateTime(long unixMillis)
         {
-            DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            var origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
             return origin.AddMilliseconds(unixMillis);
         }
 
@@ -23,7 +23,7 @@ namespace Zeze.Util
 
         public static long DateTimeToUnixMillis(DateTime time)
         {
-            DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            var origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
             TimeSpan diff = time.ToUniversalTime() - origin;
             return (long)diff.TotalMilliseconds;
         }
@@ -31,7 +31,7 @@ namespace Zeze.Util
         public static int GetWeekOfYear(DateTime time)
         {
             // Gets the Calendar instance associated with a CultureInfo.
-            CultureInfo myCI = CultureInfo.CurrentCulture;
+            var myCI = CultureInfo.CurrentCulture;
             // FirstDayOfWeek在中国是周一，所以程序需要配置CurrentCulture。
             Calendar myCal = myCI.Calendar;
             // Gets the DTFI properties required by GetWeekOfYear.

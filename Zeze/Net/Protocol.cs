@@ -71,14 +71,14 @@ namespace Zeze.Net
                 throw new Exception($"mid:pid={mid}:{pid} mismatch {p.ModuleId}:{p.ProtocolId}");
             var size = bb.ReadInt4();
             if (size > bb.Size)
-                throw new Exception($"protocol data not enough.");
+                throw new Exception("protocol data not enough.");
             p.Decode(bb);
             return p;
         }
 
         public ByteBuffer Encode()
         {
-            ByteBuffer bb = ByteBuffer.Allocate(1024);
+            var bb = ByteBuffer.Allocate(1024);
 
             bb.WriteInt4(ModuleId);
             bb.WriteInt4(ProtocolId);
@@ -146,7 +146,7 @@ namespace Zeze.Net
 
             Protocol p = null;
             var factoryHandle = service.FindProtocolFactoryHandle(MakeTypeId(moduleId, protocolId));
-            if (factoryHandle != null && factoryHandle.Factory != null)
+            if (factoryHandle?.Factory != null)
             {
                 p = factoryHandle.Factory();
                 p.Decode(singleEncodedProtocol);

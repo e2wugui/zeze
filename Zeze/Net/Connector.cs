@@ -124,9 +124,7 @@ namespace Zeze.Net
         public AsyncSocket TryGetReadySocket(int timeout)
         {
             var volatileTmp = FutureSocket;
-            if (volatileTmp.Task.Wait(timeout))
-                return volatileTmp.Task.Result;
-            return null;
+            return volatileTmp.Task.Wait(timeout) ? volatileTmp.Task.Result : null;
         }
 
 #if NET
@@ -199,7 +197,7 @@ namespace Zeze.Net
                     if (ReConnectDelay > MaxReconnectDelay)
                         ReConnectDelay = MaxReconnectDelay;
                 }
-                ReconnectTask = Util.Scheduler.Schedule((ThisTask) => Start(), ReConnectDelay);
+                ReconnectTask = Util.Scheduler.Schedule(ThisTask => Start(), ReConnectDelay);
             }
         }
 

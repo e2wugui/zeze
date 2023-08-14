@@ -441,7 +441,7 @@ namespace Zeze.Net
                 }
                 else
                 {
-                    ByteBuffer avoidCopy = ByteBuffer.Wrap(_inputBuffer, 0, e.BytesTransferred);
+                    var avoidCopy = ByteBuffer.Wrap(_inputBuffer, 0, e.BytesTransferred);
 
                     Service.OnSocketProcessInputBuffer(this, avoidCopy);
 

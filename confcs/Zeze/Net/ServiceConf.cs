@@ -61,18 +61,14 @@ namespace Zeze.Net
         /// <returns>true if addNew</returns>
         public bool TryGetOrAddConnector(string host, int port, bool autoReconnect, out Connector getOrAdd)
         {
-            var name = $"{host}:{port}";
-
             bool addNew = false;
-
-            getOrAdd = Connectors.GetOrAdd(name, _ =>
+            getOrAdd = Connectors.GetOrAdd($"{host}:{port}", _ =>
             {
                 var add = new Connector(host, port, autoReconnect);
                 add.SetService(Service);
                 addNew = true;
                 return add;
             });
-
             return addNew;
         }
 
@@ -204,22 +200,17 @@ namespace Zeze.Net
             if (attr.Length > 0) HandshakeOptions.EncryptType = int.Parse(attr);
 
             if (string.IsNullOrEmpty(Name))
-            {
                 conf.DefaultServiceConf = this;
-            }
             else if (!conf.ServiceConfMap.TryAdd(Name, this))
-            {
                 throw new Exception($"Duplicate ServiceConf '{Name}'");
-            }
 
             // connection creator options
-            XmlNodeList childNodes = self.ChildNodes;
-            foreach (XmlNode node in childNodes)
+            foreach (XmlNode node in self.ChildNodes)
             {
-                if (XmlNodeType.Element != node.NodeType)
+                if (node.NodeType != XmlNodeType.Element)
                     continue;
 
-                XmlElement e = (XmlElement)node;
+                var e = (XmlElement)node;
                 switch (e.Name)
                 {
                     case "Acceptor":

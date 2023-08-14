@@ -155,7 +155,7 @@ namespace Zeze
         {
             if (File.Exists(xmlFile))
             {
-                XmlDocument doc = new XmlDocument();
+                var doc = new XmlDocument();
                 doc.Load(xmlFile);
                 Parse(doc.DocumentElement);
             }
@@ -248,13 +248,12 @@ namespace Zeze
                 DelayRemoveDays = int.Parse(attr);
 
 #endif
-            XmlNodeList childNodes = self.ChildNodes;
-            foreach (XmlNode node in childNodes)
+            foreach (XmlNode node in self.ChildNodes)
             {
                 if (XmlNodeType.Element != node.NodeType)
                     continue;
 
-                XmlElement e = (XmlElement)node;
+                var e = (XmlElement)node;
                 switch (e.Name)
                 {
 #if !USE_CONFCS

@@ -73,9 +73,7 @@ namespace Zeze.Net
         /// <returns></returns>
         public virtual AsyncSocket GetSocket(long serialNo)
         {
-            if (SocketMap.TryGetValue(serialNo, out var value))
-                return value;
-            return null;
+            return SocketMap.TryGetValue(serialNo, out var value) ? value : null;
         }
 
         public virtual AsyncSocket GetSocket()
