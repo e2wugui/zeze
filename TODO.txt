@@ -29,60 +29,26 @@ Zege Task
 dbh2 raftagent会建立所有node的连接并保持，由于已有新链接建立能力，发现leader后可以关闭其他node的连接；
 	manager上有多个桶，每个桶都有独立连接，可以考虑用代理隧道复用连接使得一个manager只需要一个连接。
 	优先级不高，后期优化再考虑。
-
 dbh2 rocks 层调用不允许出错，有点过于相信底层了，怎么解决？出错了现在是abort，改成reset raft？
 choiceHash 加入AppVersion。首先需要考虑需求。
 Hot install new modiule need register sm,还需要module config  choice type
 ----------------------------------------------------------------------------------------------------------
-0. 当前版本的发布运行目录，需要提供一份供Gen使用。
-没有发布过，即开发期，这个目录为空。有无发布用 hasDistribute 表示。
-开发期间一般不使用模块热更。
-
-1. Hot 从 Module 生成 interface 的【工具】。
-void hotModuleInterface(File javaSource) {
-	if (hasDistribute()) {
-		var hotInterfaces = 列出Module的HotService体系;
-		var oldMethods = 列出所有hotInterfaces的所有接口。
-		var curMethods = 列出Module当前的public方法，除了【注解】标记不公开的。
-		var (add, remove) = diff(oldMethods, curMethods);
-		if (!remove.isEmpty())
-			throw new RuntimeException(); // 先禁止删除接口中的方法。
-		if (add.isEmpty())
-			return;
-		GenNewVersionInterface(add);
-		修改Module相关方法的@Override；
-		修改Module的implements到最新的HotService接口。
-
-		return; // done
-	}
-	var hotInterfaces = 列出Module的HotService体系;
-	if (hotInterfaces.size() > 1)
-		throw new RuntimeException(); // 开发期间，不维护多个interface。
-	var hotInterface1 = hotInterfaces.size() == 1 ? hotinterfaces.get(0) : new hotInterface();
-	var oldMethods = 列出所有hotInterfaces的所有接口。
-	var curMethods = 列出Module当前的public方法，除了【注解】标记不公开的。
-	var (add, remove) = diff(oldMethods, curMethods);
-	add(add, hotInterface1);
-	修改Module相关方法的@Override；
-	remove(remove, hotInterface1);
-	*** 不修改Module相关方法的@Override；remove方法需要自己【手动】确认删除。
-	hotInterface1.save();
-}
 Hot zeze 功能【Zeze服务限制】（这部分需要写到zeze.docx里面）
-【热更启动顺序】
-多个模块一起热更的时候，已经支持顺序。但是顺序定义从哪来？暂定在发布集合里增加一个顺序配置程序。
-【Bean多版本管理】
-TODO 模块热更需要更新BeanFactory。
-ToPrevious递归。
-	Var.Bean包含Bean需要检查是否版本转换。
-	Var.Collection包含Bean需要检查是否版本转换。
-	Var.Dynamic（包括容器）。
-Data & BeanKey
+*) Online模块：事件订阅和LocalData的升级。
+
+【Bean热更，用现有的字节码热更库】
+	当前版本的发布运行目录，需要提供一份供Gen使用。没有发布过，即开发期，这个目录为空。有无发布用 hasDistribute 表示。开发期间一般不使用模块热更。
+	spring-loaded,dcevm
+	DistributeServer 用来识别不支持热更的bean需改，这种修改需要重启服务器更新。
+	Bean.Hot 删除，以及删除名字相关的操作代码。【明天来删除吧，先保留一天】
+所有服务器为单位进行原子的热更。避免新旧版本同时运行就可以实现了，能不能用就看实际疗效了。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/8/25 v1.3.1 
+2023/8/25 v1.3.1 Hot; 
 ------------------------------------------------------------------------------------------------------------------------------
-
+Test 热更后Zeze里面Table的引用替换;
+Test 热更后重新注册协议。
+【多个模块一起热更的启动顺序】已经支持顺序。但是顺序定义从哪来？暂定在发布集合里增加一个顺序配置程序。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/11 v1.3.0 Timer Bug; Hot; Record1 snapshotXLocal Bug; Timer Hot; Bean.variables & toPrevious

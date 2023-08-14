@@ -1,15 +1,4 @@
 3. 基于ClassLoader局部模块热更。
-方案实现草稿：【下面几乎都是TODO，不单独标出来了】
-a) 可选的定义App版本号，任何Module需要更新，都会同时更新App版本号。这样方案1的Linkd只给新版分发新登录会自动生效。
-b) 每个Module一个ClassLoader，这是实现热更的技术基础。
-c) 热更最根本的操作是生成Module的新实例，并发布，即更新相关地方的引用。如：App里的全局引用，Zeze里面Table的引用，重新注册协议。
-d) HotReadWriteLock 所有的线程执行的时候加读锁，热更的时候加写锁。进程内热更需要加锁的主要是发布引用，很快，其他步骤不需要的尽量锁外执行。
-这个锁内多个Module一起热更，所以顺便解决了上面热更顺序问题。
-e) App的Module构造|初始化|Start顺序定义继续保留，是否需要修订？列出这个，备注一下。
-f) 所有服务器为单位进行原子的热更。上面第一个问题，避免新旧版本同时运行就可以实现了，能不能用就看实际疗效了。
-g) AppVersion更新；自动打包工具；自动检测需要更新的模块，可行？
-h) 原则：模块引用不能保存；模块直接保留Table的引用不能保存；模块暴露的所有引用？数据对象(如Bean)允许保存下来？
-
 我准备先按纯interface的方式，设想一下整个热更发布系统。
 规则0：纯interface+不能把从别的module.classloader装载得到的对象引用保存下来。
 规则1：module暴露自己内部的table出去不能使用最终类型，必须是Zeze.Transaction.Table。这个还需要实验一下。
@@ -18,10 +7,6 @@ h) 原则：模块引用不能保存；模块直接保留Table的引用不能保
 规则4：module interface 的函数参数类型只能是本名字空间下的interface和其他。都必须是能由框架loader装载的。
 这里本空间的interface需要特殊判断。参数是lamda是可以的，它也是interface的一种。
 规则5：静态变量和静态方法也需要用interface包装。
-规则6：zeze不准备支持热更，暴露的服务如果有订阅注册，全部需要规划。先举个例子：timer使用className和callback跟外面交互，
-其中className方式具有自动动态特性，刚好符合要求，但是callback需要处理（改造成className？）。等等。
-这是基本版，当出现需要保存得到的interface引用时，看看能不能制定出合适的规则。
-timer class.forName还是需要实验一下。这里是不是也涉及到了import class。
 影响开发的规则：
 0. 接口参数限制，基本类型，bean会自动得到支持，自定义类型必须interface化。
 1. 不能保存别的模块得到的引用。确实需要再看怎么解决。
@@ -29,32 +14,6 @@ timer class.forName还是需要实验一下。这里是不是也涉及到了impo
 4. “所有”线程任务都必须通过Task管理，用来和热更互斥，当然也有允许例外，即确定不需要保护时也可以自己管理线程。
 5. 新版本的接口兼容旧版本。
 *. 开发限制应该就这几条了。其他尽量框架自动解决。
-【规则重新总结】
-module是唯一的第一公开服务，有其他公开接口，也通过module得到；
-module默认所有的public方法，除了注解声明不公开外，都是接口的一部分；
-发布的时候，接口自动生成，检测变化，生成不同版本；
-
-热更发布开发计划(碰到问题，很有可能需要回头修改规则)
-0. Bean 接口化。Bean接口必须兼容旧版的，多版本管理问题？
-1. 模块 Table 暴露出去使用Zeze.Transaction.Table<Key, ValueBean>，由于Zeze稳定，这里预计不会碰到问题，需要实验。
-2. Module接口规范，其中最基本要求是新版接口兼容旧版。多版本管理问题？
-3. Module接口自动生成，需要工具进行自动解析并生成接口，并且检查是否符合规范，是否兼容性（需要保存就发布的接口，多版本管理问题）。
-4. Zeze各种服务需要动态化或者能重新注册。
-*) 协议重新注册。
-*) Zeze内管理的Table实例覆盖（重新注册的一种，由于table有初始化需求，原来是启动静态处理的，需要能动态支持）。
-Zeze已经提供了一个受限动态表，可能需要参考这个，重新设计这块的功能。
-*) timerAccount timerRole 原来为了优化直接保存Handle，需要改成className，用class.forName动态化。还有没有其他方案？
-*) Online模块：事件订阅和LocalData的升级。
-*) Zeze的某些全局定制服务加限制，只能由应用全局设置（不会热更），不能在module里面设置。caller.classLoader!=Zeze.classLoader，能判断这个？
-*) more more。
-
-第一阶段：模块是无状态的。
-start 初始化启动时，solution里面可以描述启动顺序，解决依赖问题。
-热更一个模块时，其他模块都是准备好的，它的依赖没问题；
-依赖它的模块根据无状态和服务接口兼容特性，在运行中会得到新模块的新的interface，使用起来也没问题。
-热更多个模块时，这个更新集合跟其他部分没问题，集合内部也存在start依赖，这个可以在提交热更集合时定义好顺序。
-现在HotManager.install参数是List，可以描述顺序。
-?  只定义这两个要求是否足够 1. 第一次启动顺序，2. 热更集合启动顺序
 
 第二阶段：模块是有状态的。
 a) 模块内部自己的私有数据，void upgrade(HotService old); 这里访问old的私有数据目前考虑也只能通过接口得到。
@@ -63,4 +22,39 @@ b) 模块缓存了其他模块创建的数据，void refresh(HotService current)
 这个只是抽象，可能还需要解决一些问题。预感没这么简单。
 c) start依赖意味着此时可能缓存了其他创建的数据，那么也通过refresh刷新。
 *) 有状态的a,b两种应该都不需要递归，通知一级就行，依赖关系最好能自动，实在不行就配置。这点需要继续考虑。
- 
+
+0. 发布（或最新）jar需要指定给gen使用。
+AppVersion更新；
+自动打包工具；
+自动检测需要更新的模块，可行？
+
+1. Hot 从 Module 生成 interface 的【工具】。
+void hotModuleInterface(File javaSource) {
+	if (hasDistribute()) {
+		var hotInterfaces = 列出Module的HotService体系;
+		var oldMethods = 列出所有hotInterfaces的所有接口。
+		var curMethods = 列出Module当前的public方法，除了【注解】标记不公开的。
+		var (add, remove) = diff(oldMethods, curMethods);
+		if (!remove.isEmpty())
+			throw new RuntimeException(); // 先禁止删除接口中的方法。
+		if (add.isEmpty())
+			return;
+		GenNewVersionInterface(add);
+		修改Module相关方法的@Override；
+		修改Module的implements到最新的HotService接口。
+
+		return; // done
+	}
+	var hotInterfaces = 列出Module的HotService体系;
+	if (hotInterfaces.size() > 1)
+		throw new RuntimeException(); // 开发期间，不维护多个interface。
+	var hotInterface1 = hotInterfaces.size() == 1 ? hotinterfaces.get(0) : new hotInterface();
+	var oldMethods = 列出所有hotInterfaces的所有接口。
+	var curMethods = 列出Module当前的public方法，除了【注解】标记不公开的。
+	var (add, remove) = diff(oldMethods, curMethods);
+	add(add, hotInterface1);
+	修改Module相关方法的@Override；
+	remove(remove, hotInterface1);
+	*** 不修改Module相关方法的@Override；remove方法需要自己【手动】确认删除。
+	hotInterface1.save();
+}

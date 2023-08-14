@@ -373,13 +373,24 @@ public class HotManager extends ClassLoader {
 
 	public List<HotModule> installReadies() throws Exception {
 		var foundJars = new HashSet<String>();
-		var readies = new ArrayList<String>();
+		var readies = new HashSet<String>();
 		loadExistDistributes(foundJars, readies);
-		// todo install order. howto?
-		return install(readies);
+
+		var readiesOrder = new ArrayList<String>();
+		var fOrder = new File(distributeDir, "start.order.txt");
+		if (fOrder.exists()) {
+			var lines = Files.readAllLines(fOrder.toPath());
+			for (var line : lines) {
+				if (readies.remove(line))
+					readiesOrder.add(line);
+			}
+		}
+		// add remain
+		readiesOrder.addAll(readies);
+		return install(readiesOrder);
 	}
 
-	private static void tryReady(HashSet<String> foundJars, String jarFileName, ArrayList<String> readies) {
+	private static void tryReady(HashSet<String> foundJars, String jarFileName, HashSet<String> readies) {
 		try {
 			final var fileName = jarFileName.substring(0, jarFileName.indexOf(".jar"));
 			System.out.println("tryInstall " + fileName);
@@ -404,7 +415,7 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
-	private void loadExistDistributes(HashSet<String> foundJars, ArrayList<String> readies) {
+	private void loadExistDistributes(HashSet<String> foundJars, HashSet<String> readies) {
 		var files = new File(distributeDir).listFiles();
 		if (null == files) {
 			System.out.println("is null.");
