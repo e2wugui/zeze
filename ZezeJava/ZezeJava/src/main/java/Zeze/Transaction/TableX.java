@@ -665,7 +665,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	public final @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database,
-									   @Nullable DatabaseRocksDb.Table localTable) {
+											  @Nullable DatabaseRocksDb.Table localTable) {
 		if (cache != null)
 			throw new IllegalStateException("table has opened: " + getName());
 

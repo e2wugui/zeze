@@ -14,6 +14,7 @@ copy /y %confcs%\Net\*.*                         %Zeze%\Net\
 copy /y %confcs%\Serialize\*.*                   %Zeze%\Serialize\
 
 copy /y %confcs%\Services\Handshake.cs           %Zeze%\Services\
+copy /y %confcs%\Services\ToLuaService2.cs       %Zeze%\Services\
 
 copy /y %confcs%\Transaction\ChangesRecord.cs    %Zeze%\Transaction\
 copy /y %confcs%\Transaction\DispatchMode.cs     %Zeze%\Transaction\

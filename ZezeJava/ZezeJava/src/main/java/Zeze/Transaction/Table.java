@@ -89,7 +89,7 @@ public abstract class Table {
 	}
 
 	public abstract @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database,
-										  @Nullable DatabaseRocksDb.Table localTable);
+												 @Nullable DatabaseRocksDb.Table localTable);
 
 	abstract void close();
 

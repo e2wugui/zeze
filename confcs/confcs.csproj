@@ -79,6 +79,7 @@
     <Compile Include="Zeze\Serialize\SerializeHelper.cs" />
     <Compile Include="Zeze\Serialize\Vector3.cs" />
     <Compile Include="Zeze\Services\Handshake.cs" />
+    <Compile Include="Zeze\Services\ToLuaService2.cs" />
     <Compile Include="Zeze\Transaction\ChangesRecord.cs" />
     <Compile Include="Zeze\Transaction\Collections\CollApply.cs" />
     <Compile Include="Zeze\Transaction\Collections\LogBean.cs" />

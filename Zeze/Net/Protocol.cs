@@ -13,7 +13,7 @@ namespace Zeze.Net
 
         public interface IDecodeAndDispatch
         {
-            bool DecodeAndDispatch(Service service, long sessionId, long typeId, ByteBuffer _os_);
+            bool DecodeAndDispatch(Service service, long sessionId, long typeId, ByteBuffer os);
         }
 
         private static readonly ILogger logger = LogManager.GetLogger(typeof(Protocol));
