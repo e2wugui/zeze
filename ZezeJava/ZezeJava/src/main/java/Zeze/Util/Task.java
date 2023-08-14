@@ -368,6 +368,7 @@ public final class Task {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			future.lock();
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+				//System.out.println(action);
 				if (future.isCancelled())
 					return;
 				action.run();

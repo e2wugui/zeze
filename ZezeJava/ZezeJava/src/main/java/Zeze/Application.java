@@ -263,6 +263,9 @@ public final class Application {
 			table.open(exist, this, relational);
 			// 旧表禁用。防止应用保留了旧表引用，还去使用导致错误。
 			exist.disable();
+		} else if (this.startState == 2) {
+			// new table
+			table.open(this, db, null);
 		}
 		tableNameMap.put(table.getName(), table); // always put, 操作在tables阶段完成。
 		db.replaceTable(table);

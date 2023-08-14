@@ -126,6 +126,7 @@ public class ThreadDiagnosable extends Thread {
 	public void run() {
 		workers.add(this);
 		try {
+
 			super.run();
 		} catch (Throwable e) { // logger.error
 			logger.error("", e);

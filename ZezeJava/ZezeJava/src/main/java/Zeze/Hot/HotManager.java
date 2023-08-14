@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
@@ -136,6 +137,7 @@ public class HotManager extends ClassLoader {
 	}
 
 	private List<HotModule> install(List<String> namespaces) throws Exception {
+		logger.info("install {}", namespaces);
 		try (var ignored = enterWriteLock()) {
 			var result = new ArrayList<HotModule>(namespaces.size());
 			var exists = new ArrayList<HotModule>(namespaces.size());
@@ -170,8 +172,6 @@ public class HotManager extends ClassLoader {
 	}
 
 	private void putJar(File file) throws IOException {
-		file = file.getCanonicalFile();
-
 		var jar = new JarFile(file);
 		// replace all entry
 		// 新的jar的entry会完全覆盖旧的，所以不用考虑删除。
@@ -199,7 +199,7 @@ public class HotManager extends ClassLoader {
 
 		// todo 生命期管理，确定服务是否可用，等等。
 		// 安装 interface
-		var interfaceDst = Path.of(workingDir, "interfaces", namespace + ".interface.jar").toFile();
+		var interfaceDst = Path.of(workingDir, "interfaces", namespace + ".interface.jar").toFile().getCanonicalFile();
 		{
 			var oldI = jars.remove(interfaceDst);
 			if (null != oldI)
@@ -281,12 +281,16 @@ public class HotManager extends ClassLoader {
 		//  支持远程，多服务器发布。
 		//  支持原子发布。
 		var ready = Path.of(distributeDir, "ready");
-		Task.schedule(1000, 1000, () -> {
+		Task.getScheduledThreadPool().scheduleAtFixedRate(() -> {
 			if (Files.exists(ready)) {
-				installReadies();
-				Files.deleteIfExists(ready);
+				try {
+					installReadies();
+					Files.deleteIfExists(ready);
+				} catch (Exception ex) {
+					logger.error("", ex);
+				}
 			}
-		});
+		}, 1000, 1000, TimeUnit.MILLISECONDS);
 
 		Task.hotGuard = this::enterReadLock;
 	}
@@ -344,7 +348,7 @@ public class HotManager extends ClassLoader {
 
 		for (var file : files) {
 			if (file.getName().endsWith(".jar"))
-				putJar(file);
+				putJar(file.getCanonicalFile());
 
 			if (file.isDirectory())
 				loadExistInterfaces(file);

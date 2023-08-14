@@ -154,6 +154,7 @@
 		<bean name="BEquipExtra">
 			<variable id="1" name="Attack" type="int"/>
 			<variable id="2" name="Defence" type="int"/>
+			<variable id="3" name="HotTest" type="int"/>
 		</bean>
 
 		<bean name="BEquips">

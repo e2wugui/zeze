@@ -664,7 +664,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	final @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database,
+	public final @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database,
 									   @Nullable DatabaseRocksDb.Table localTable) {
 		if (cache != null)
 			throw new IllegalStateException("table has opened: " + getName());
@@ -677,6 +677,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		setTableConf(app.getConfig().getTableConf(getName()));
 		cache = new TableCache<>(app, this);
+		// todo relationalTable for add table
 		relationalTable = getZeze().getSchemas().relationalTables.get(getName()); // maybe null
 		storage = isMemory() ? null : new Storage<>(this, database, getName());
 		oldTable = getTableConf().getDatabaseOldMode() == 1
