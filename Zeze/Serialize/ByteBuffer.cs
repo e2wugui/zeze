@@ -77,9 +77,10 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Wraps(byte[] bytes)
+        public ByteBuffer Wraps(byte[] bytes)
         {
             Wraps(bytes, 0, bytes.Length);
+            return this;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

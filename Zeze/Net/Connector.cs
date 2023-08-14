@@ -121,35 +121,27 @@ namespace Zeze.Net
             throw new Exception("GetReadySocket Timeout.");
         }
 
-        public AsyncSocket TryGetReadySocket(int timeout)
-        {
-            var volatileTmp = FutureSocket;
-            if (volatileTmp.Task.Wait(timeout))
-                return volatileTmp.Task.Result;
-            return null;
-        }
-
 #if NET
         public async Task<AsyncSocket> GetReadySocketAsync()
-        {
+         {
              var volatileTmp = FutureSocket;
              return await volatileTmp.Task.WaitAsync(TimeSpan.FromMilliseconds(ReadyTimeout));
-        }
+         }
 
-        public virtual AsyncSocket TryGetReadySocket()
-        {
-            var volatileTmp = FutureSocket;
-            try
-            {
-                if (volatileTmp.Task.IsCompletedSuccessfully)
-                    return volatileTmp.Task.Result;
-            }
-            catch (Exception)
-            {
-                // skip
-            }
-            return null;
-        }
+         public virtual AsyncSocket TryGetReadySocket()
+         {
+             var volatileTmp = FutureSocket;
+             try
+             {
+                 if (volatileTmp.Task.IsCompletedSuccessfully)
+                     return volatileTmp.Task.Result;
+             }
+             catch (Exception)
+             {
+                 // skip
+             }
+             return null;
+         }
 #endif
 
         public virtual void OnSocketClose(AsyncSocket closed, Exception e)

@@ -47,7 +47,10 @@ namespace Zeze.Util
         {
         }
 
-        public abstract void ClearParameters();
+        public virtual void ClearParameters()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public class ConfEmptyBean : ConfBean

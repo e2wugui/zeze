@@ -228,7 +228,7 @@ namespace Zeze.Util
                 bb.SkipUnknownField(tag);
                 return new UnityEngine.Vector2();
             }
-            throw new Exception("can not ReadVector2 for type=" + type);
+            throw new System.Exception("can not ReadVector2 for type=" + type);
         }
 
         public static UnityEngine.Vector2Int ReadVector2Int(ByteBuffer bb, int tag)
@@ -274,7 +274,7 @@ namespace Zeze.Util
                 bb.SkipUnknownField(tag);
                 return new UnityEngine.Vector2Int();
             }
-            throw new Exception("can not ReadVector2Int for type=" + type);
+            throw new System.Exception("can not ReadVector2Int for type=" + type);
         }
 
         public static UnityEngine.Vector3 ReadVector3(ByteBuffer bb, int tag)
@@ -320,7 +320,7 @@ namespace Zeze.Util
                 bb.SkipUnknownField(tag);
                 return new UnityEngine.Vector3();
             }
-            throw new Exception("can not ReadVector3 for type=" + type);
+            throw new System.Exception("can not ReadVector3 for type=" + type);
         }
 
         public static UnityEngine.Vector3Int ReadVector3Int(ByteBuffer bb, int tag)
@@ -366,7 +366,7 @@ namespace Zeze.Util
                 bb.SkipUnknownField(tag);
                 return new UnityEngine.Vector3Int();
             }
-            throw new Exception("can not ReadVector3Int for type=" + type);
+            throw new System.Exception("can not ReadVector3Int for type=" + type);
         }
 
         public static UnityEngine.Vector4 ReadVector4(ByteBuffer bb, int tag)
@@ -411,7 +411,7 @@ namespace Zeze.Util
                 bb.SkipUnknownField(tag);
                 return new UnityEngine.Vector4();
             }
-            throw new Exception("can not ReadVector4 for type=" + type);
+            throw new System.Exception("can not ReadVector4 for type=" + type);
         }
 
         public static UnityEngine.Quaternion ReadQuaternion(ByteBuffer bb, int tag)
@@ -456,7 +456,7 @@ namespace Zeze.Util
                 bb.SkipUnknownField(tag);
                 return new UnityEngine.Quaternion();
             }
-            throw new Exception("can not ReadQuaternion for type=" + type);
+            throw new System.Exception("can not ReadQuaternion for type=" + type);
         }
 #pragma warning restore CS0162 // Unreachable code detected
     }

@@ -15,6 +15,7 @@
     <file url="file://$PROJECT_DIR$/Zeze/Game/Online.cs" charset="GBK" />
     <file url="file://$PROJECT_DIR$/Zeze/Game/Rank.cs" charset="GBK" />
     <file url="file://$PROJECT_DIR$/Zeze/Gen/Types/Variable.cs" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/Zeze/Gen/java/HotDistribute.cs" charset="GBK" />
     <file url="file://$PROJECT_DIR$/Zeze/Services/GlobalCacheManagerWithRaft.cs" charset="GBK" />
     <file url="file://$PROJECT_DIR$/Zeze/Transaction/Collections/CollList.cs" charset="GBK" />
     <file url="PROJECT" charset="UTF-8" />

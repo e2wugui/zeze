@@ -23,7 +23,7 @@ namespace Zeze.Gen.java
 
             // 等待500ms，对于Gen的整体流程应该影响不大。
             // 对方积极拒绝，时间应该更短。没有验证过。
-            Connector.TryGetReadySocket(500);
+            Connector.TryGetReadySocket(); // (500);
 
             Project = project;
             BaseDir = baseDir;

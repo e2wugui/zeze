@@ -12,7 +12,7 @@ namespace Zeze.Net
     /// 使用Socket的BeginXXX,EndXXX XXXAsync方法的异步包装类。
     /// 目前只支持Tcp。
     /// </summary>
-    public sealed class AsyncSocket : IDisposable
+    public class AsyncSocket : IDisposable
     {
         private static readonly ILogger logger = LogManager.GetLogger(typeof(AsyncSocket));
 
@@ -153,6 +153,13 @@ namespace Zeze.Net
             Dns.BeginGetHostAddresses(hostNameOrAddress, OnAsyncGetHostAddresses, port);
         }
 
+        protected AsyncSocket(Service service, object userState = null)
+        {
+            Service = service;
+            UserState = userState;
+            SessionId = NextSessionId();
+        }
+
         public void SetOutputSecurityCodec(byte[] key, int compress)
         {
             lock (this)
@@ -219,7 +226,7 @@ namespace Zeze.Net
         /// <param name="bytes"></param>
         /// <param name="offset"></param>
         /// <param name="length"></param>
-        public bool Send(byte[] bytes, int offset, int length)
+        public virtual bool Send(byte[] bytes, int offset, int length)
         {
             ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
@@ -560,7 +567,7 @@ namespace Zeze.Net
                 RealClose();
         }
 
-        public void Close(Exception e)
+        public virtual void Close(Exception e)
         {
             LastException = e;
             if (e != null)
@@ -646,7 +653,7 @@ namespace Zeze.Net
 #endif
         }
 
-        public void Dispose()
+        public virtual void Dispose()
         {
             if (0 != ClosedState(1))
                 return;
