@@ -6,6 +6,7 @@ import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
 import Zeze.Transaction.Collections.LogMap2;
+import Zeze.Util.OutInt;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -17,8 +18,18 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	}
 
 	@Override
-	public void hotHelloworld() {
-		System.out.println("hot hello world. 55555");
+	public int hotHelloworld() {
+		var version = new OutInt(0);
+		//*
+		App.Zeze.newProcedure(() -> {
+					var record = _tHotTest.getOrAdd(1L);
+					record.setAttack(record.getAttack() + 1);
+					version.value = record.getAttack();
+					return 0;
+				}, "").call();
+		// */
+		System.out.println("hot hello world. " + version.value);
+		return version.value;
 	}
 
 	public void Stop(App app) {

@@ -160,6 +160,7 @@
 			<variable id="1" name="Items" type="map" key="int" value="BItem"/> key is equip position
 		</bean>
 		<table name="tequip" key="long" value="BEquips"/>
+		<table name="tHotTest" key="long" value="BEquipExtra"/>
 	</module>
 
 	<module name="Map" id="8" hot="true">

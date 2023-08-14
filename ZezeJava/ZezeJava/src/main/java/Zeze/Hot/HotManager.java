@@ -282,8 +282,10 @@ public class HotManager extends ClassLoader {
 		//  支持原子发布。
 		var ready = Path.of(distributeDir, "ready");
 		Task.schedule(1000, 1000, () -> {
-			if (Files.exists(ready) && Files.deleteIfExists(ready))
+			if (Files.exists(ready)) {
 				installReadies();
+				Files.deleteIfExists(ready);
+			}
 		});
 
 		Task.hotGuard = this::enterReadLock;
@@ -384,6 +386,8 @@ public class HotManager extends ClassLoader {
 				if (readies.remove(line))
 					readiesOrder.add(line);
 			}
+			//noinspection ResultOfMethodCallIgnored
+			fOrder.delete();
 		}
 		// add remain
 		readiesOrder.addAll(readies);
@@ -393,7 +397,7 @@ public class HotManager extends ClassLoader {
 	private static void tryReady(HashSet<String> foundJars, String jarFileName, HashSet<String> readies) {
 		try {
 			final var fileName = jarFileName.substring(0, jarFileName.indexOf(".jar"));
-			System.out.println("tryInstall " + fileName);
+			//System.out.println("tryInstall " + fileName);
 
 			if (fileName.endsWith(".interface")) {
 				var namespace = fileName.substring(0, fileName.indexOf(".interface"));
@@ -423,11 +427,12 @@ public class HotManager extends ClassLoader {
 		}
 
 		for (var file : files) {
-			System.out.println(file + " " + file.isDirectory());
+			//System.out.println(file + " " + file.isDirectory());
 			if (file.isDirectory())
 				continue; // 不支持子目录。
 
-			tryReady(foundJars, file.getName(), readies);
+			if (file.getName().endsWith(".jar"))
+				tryReady(foundJars, file.getName(), readies);
 		}
 	}
 }

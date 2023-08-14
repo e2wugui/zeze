@@ -37,7 +37,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 		timerIdHot = Task.scheduleUnsafe(2000, 2000, () -> {
 			var module = app.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
 			var service = module.getService();
-			service.hotHelloworld();
+			System.out.println(service.hotHelloworld());
 		});
 
 		Task.call(app.Zeze.newProcedure(() -> {

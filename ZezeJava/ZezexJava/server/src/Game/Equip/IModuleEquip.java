@@ -5,5 +5,5 @@ import Zeze.Hot.HotService;
 
 public interface IModuleEquip extends HotService {
 	void calculateFighter(IFighter fighter);
-	void hotHelloworld();
+	int hotHelloworld();
 }
