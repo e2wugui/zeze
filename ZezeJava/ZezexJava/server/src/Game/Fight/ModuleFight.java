@@ -7,6 +7,7 @@ import Zeze.Game.Online;
 import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
+import Zeze.Util.EventDispatcher;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,16 +26,17 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 	}
 
 	public void Start(App app) {
-		app.Provider.getOnline().getLoginEvents().getRunEmbedEvents().add((sender, arg) -> {
-			var online = (Online)sender;
-			var login = (LoginArgument)arg;
-			online.sendOnlineRpc(login.roleId, new AreYouFight(), (p) -> {
-				logger.info("AreYouFight done.");
-				areYouFight.setResult(true);
-				return 0;
-			});
-			return 0;
-		});
+		app.Provider.getOnline().getLoginEvents().add(EventDispatcher.Mode.RunEmbed,
+				(sender, arg) -> {
+					var online = (Online)sender;
+					var login = (LoginArgument)arg;
+					online.sendOnlineRpc(login.roleId, new AreYouFight(), (p) -> {
+						logger.info("AreYouFight done.");
+						areYouFight.setResult(true);
+						return 0;
+					});
+					return 0;
+				});
 
 	}
 

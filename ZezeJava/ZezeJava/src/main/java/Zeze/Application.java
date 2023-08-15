@@ -14,6 +14,7 @@ import Zeze.Component.AutoKeyOld;
 import Zeze.Component.DelayRemove;
 import Zeze.Component.Timer;
 import Zeze.Dbh2.Dbh2AgentManager;
+import Zeze.Hot.HotHandle;
 import Zeze.Hot.HotManager;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Daemon;
@@ -37,6 +38,7 @@ import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TableStatistics;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.PerfCounter;
@@ -76,6 +78,12 @@ public final class Application {
 
 	private int startState; // 0:未start; 1:开始start但未完成; 2:完成了start
 	public RedirectBase redirect;
+	private final HotHandle<EventDispatcher.EventHandle> hotHandle = new HotHandle<>();
+
+	public HotHandle<EventDispatcher.EventHandle> getHotHandle() {
+		return hotHandle;
+	}
+
 	/**
 	 * 本地Rocks缓存数据库虽然也用了Database接口，但它不给用户提供事务操作的表。
 	 * 1. 不需要加入到Databases里面。

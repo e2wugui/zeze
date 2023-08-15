@@ -62,10 +62,10 @@ public class Online extends AbstractOnline {
 	private final ProviderLoad load;
 	private final AtomicLong loginTimes = new AtomicLong();
 
-	private final EventDispatcher loginEvents = new EventDispatcher("Online.Login");
-	private final EventDispatcher reloginEvents = new EventDispatcher("Online.Relogin");
-	private final EventDispatcher logoutEvents = new EventDispatcher("Online.Logout");
-	private final EventDispatcher localRemoveEvents = new EventDispatcher("Online.Local.Remove");
+	private final EventDispatcher loginEvents;
+	private final EventDispatcher reloginEvents;
+	private final EventDispatcher logoutEvents;
+	private final EventDispatcher localRemoveEvents;
 
 	public interface TransmitAction {
 		/**
@@ -103,6 +103,12 @@ public class Online extends AbstractOnline {
 
 	protected Online(@NotNull AppBase app) {
 		var zeze = app.getZeze();
+
+		loginEvents = new EventDispatcher(zeze,"Online.Login");
+		reloginEvents = new EventDispatcher(zeze,"Online.Relogin");
+		logoutEvents = new EventDispatcher(zeze,"Online.Logout");
+		localRemoveEvents = new EventDispatcher(zeze, "Online.Local.Remove");
+
 		providerApp = zeze.redirect.providerApp;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);

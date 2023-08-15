@@ -37,6 +37,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.util.CronExpression;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import Zeze.Hot.HotHandle;
+
 
 public class Timer extends AbstractTimer {
 	private static final BeanFactory beanFactory = new BeanFactory();
@@ -67,9 +69,7 @@ public class Timer extends AbstractTimer {
 
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
 	final ConcurrentHashMap<String, Future<?>> timersFuture = new ConcurrentHashMap<>();
-	// handle class name -> TimerHandle
-	private final ConcurrentHashMap<String, TimerHandle> handleCache = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<HotModule, HashSet<String>> classNameWithHotModule = new ConcurrentHashMap<>();
+	private HotHandle<TimerHandle> hotHandle = new HotHandle<>();
 
 	public static @NotNull Timer create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Timer.class, app);
@@ -121,42 +121,8 @@ public class Timer extends AbstractTimer {
 		UnRegisterZezeTables(this.zeze);
 	}
 
-	private void onHotModuleStop(HotModule hot) {
-		var classNames = classNameWithHotModule.remove(hot);
-		if (null == classNames)
-			return;
-
-		for (var name : classNames) {
-			handleCache.remove(name);
-		}
-	}
-
 	TimerHandle findTimerHandle(String handleClassName) throws Exception {
-		var handle = handleCache.get(handleClassName);
-		if (null != handle)
-			return handle;
-
-		synchronized (handleCache) {
-			handle = handleCache.get(handleClassName);
-			if (null != handle)
-				return handle;
-
-			Class<?> handleClass = (null == zeze.getHotManager())
-					? Class.forName(handleClassName)
-					: zeze.getHotManager().getHotRedirect().loadClass(handleClassName);
-
-			var cl = handleClass.getClassLoader();
-			if (HotManager.isHotModule(cl)) {
-				var hotModule = (HotModule)cl;
-				// 这里每次都注册，简化框架关联。
-				classNameWithHotModule.computeIfAbsent(hotModule, (key) -> new HashSet<>()).add(handleClassName);
-				hotModule.stopEvents.add(this::onHotModuleStop);
-			}
-
-			handle = (TimerHandle)handleClass.getConstructor().newInstance();
-			handleCache.put(handleClassName, handle);
-			return handle;
-		}
+		return hotHandle.findHandle(zeze, handleClassName);
 	}
 
 	/////////////////////////////////////////////////////////////////////////

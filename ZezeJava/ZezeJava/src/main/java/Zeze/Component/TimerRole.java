@@ -46,8 +46,8 @@ public class TimerRole {
 		online.getTransmitActions().put(eTransmitCronTimer, this::transmitCronTimerHandle);
 		online.getTransmitActions().put(eTransmitSimpleTimer, this::transmitSimpleTimerHandle);
 		// online timer 生命期和 Online.Local 一致。
-		online.getLocalRemoveEvents().getRunEmbedEvents().offer(this::onLocalRemoveEvent);
-		online.getLoginEvents().getRunEmbedEvents().offer(this::onLoginEvent);
+		online.getLocalRemoveEvents().add(EventDispatcher.Mode.RunEmbed, this::onLocalRemoveEvent);
+		online.getLoginEvents().add(EventDispatcher.Mode.RunEmbed, this::onLoginEvent);
 	}
 
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。

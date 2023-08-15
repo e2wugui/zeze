@@ -75,11 +75,11 @@ public class Online extends AbstractOnline {
 	private final AtomicLong loginTimes = new AtomicLong();
 	private final TimerRole timerRole;
 
-	private final EventDispatcher loginEvents = new EventDispatcher("Online.Login");
-	private final EventDispatcher reloginEvents = new EventDispatcher("Online.Relogin");
-	private final EventDispatcher logoutEvents = new EventDispatcher("Online.Logout");
-	private final EventDispatcher localRemoveEvents = new EventDispatcher("Online.Local.Remove");
-	private final EventDispatcher linkBrokenEvents = new EventDispatcher("Online.LinkBroken");
+	private final EventDispatcher loginEvents;
+	private final EventDispatcher reloginEvents;
+	private final EventDispatcher logoutEvents;
+	private final EventDispatcher localRemoveEvents;
+	private final EventDispatcher linkBrokenEvents;
 
 	public interface TransmitAction {
 		/**
@@ -133,6 +133,12 @@ public class Online extends AbstractOnline {
 	protected Online(@NotNull AppBase app) {
 		super("");
 		var zeze = app.getZeze();
+		loginEvents = new EventDispatcher(zeze,"Online.Login");
+		reloginEvents = new EventDispatcher(zeze,"Online.Relogin");
+		logoutEvents = new EventDispatcher(zeze,"Online.Logout");
+		localRemoveEvents = new EventDispatcher(zeze,"Online.Local.Remove");
+		linkBrokenEvents = new EventDispatcher(zeze,"Online.LinkBroken");
+
 		providerApp = zeze.redirect.providerApp;
 		defaultInstance = this;
 		RegisterProtocols(providerApp.providerService);
@@ -146,6 +152,13 @@ public class Online extends AbstractOnline {
 	// 创建新的OnlineSet使用这个构造函数。独立OnlineSet不装载redirect子类。
 	private Online(@NotNull AppBase app, @NotNull String name) {
 		super(name);
+		var zeze = app.getZeze();
+		loginEvents = new EventDispatcher(zeze,"Online.Login");
+		reloginEvents = new EventDispatcher(zeze,"Online.Relogin");
+		logoutEvents = new EventDispatcher(zeze,"Online.Logout");
+		localRemoveEvents = new EventDispatcher(zeze,"Online.Local.Remove");
+		linkBrokenEvents = new EventDispatcher(zeze,"Online.LinkBroken");
+
 		providerApp = app.getZeze().redirect.providerApp;
 		RegisterZezeTables(providerApp.zeze);
 		// load报告仅定义在默认online实例中，OnlineSet不报告load，
