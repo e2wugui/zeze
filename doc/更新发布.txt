@@ -28,6 +28,12 @@ AppVersion更新；
 自动打包工具；
 自动检测需要更新的模块，可行？
 
+【Bean热更，用现有的字节码热更库】
+	spring-loaded,jrebel,dcevm
+	当前版本的发布运行目录，需要提供一份供Gen使用。没有发布过，即开发期，这个目录为空。开发期间一般不使用模块热更。
+	DistributeServer 用来识别不支持热更的bean需改，这种修改需要重启服务器更新。
+	依赖Bean热更，全局同一个Bean的概念：Online.LocalData, timer.CustomBean 等dynamic的地方。
+
 1. Hot 从 Module 生成 interface 的【工具】。
 void hotModuleInterface(File javaSource) {
 	if (hasDistribute()) {
