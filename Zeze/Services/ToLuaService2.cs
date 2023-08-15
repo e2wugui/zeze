@@ -834,7 +834,7 @@ namespace Zeze.Services.ToLuaService2
 
                 try
                 {
-                    DecodeBean(luaState, os, beanMeta);
+                    DecodeBean(luaState, os, beanMeta, cacheRef != (int)LuaDefine.NoRef && PushTableField(luaState));
                 }
                 catch (Exception e)
                 {
@@ -858,7 +858,7 @@ namespace Zeze.Services.ToLuaService2
 
                 try
                 {
-                    DecodeBean(luaState, os, beanMeta);
+                    DecodeBean(luaState, os, beanMeta, cacheRef != (int)LuaDefine.NoRef && PushTableField(luaState));
                 }
                 catch (Exception e)
                 {
@@ -909,17 +909,18 @@ namespace Zeze.Services.ToLuaService2
         {
             long type = os.ReadLong8();
             if (beanMetas.TryGetValue(type, out var beanMeta))
-                DecodeBean(luaState, os, beanMeta);
+                DecodeBean(luaState, os, beanMeta, false);
             else
                 throw new Exception($"beanMeta type({type}) is not found");
         }
 
-        void DecodeBean(IntPtr luaState, ByteBuffer bb, BeanMeta beanMeta)
+        void DecodeBean(IntPtr luaState, ByteBuffer bb, BeanMeta beanMeta, bool hasTable)
         {
             if (beanMeta == null)
                 throw new Exception("beanMeta type is not found");
 
-            Lua.CreateTable(luaState, 0, beanMeta.Variables.Count);
+            if (!hasTable)
+                Lua.CreateTable(luaState, 0, beanMeta.Variables.Count);
             Lua.RawGetI(luaState, Lua.LuaRegistryIndex, tableRefId);
             Lua.RawGetI(luaState, -1, beanMeta.MetatableRef);
             Lua.SetMetatable(luaState, -3);
@@ -960,8 +961,13 @@ namespace Zeze.Services.ToLuaService2
                         if (variableMeta.Type == ByteBuffer.LIST || variableMeta.Type == ByteBuffer.MAP)
                         {
                             Lua.PushString(luaState, variableMeta.Name);
-                            Lua.CreateTable(luaState, 0, 0);
-                            Lua.SetTable(luaState, -3);
+                            if (hasTable && PushTableField(luaState))
+                                Lua.Pop(luaState, 2);
+                            else
+                            {
+                                Lua.CreateTable(luaState, 0, 0);
+                                Lua.SetTable(luaState, -3);
+                            }
                         }
                     }
 
@@ -974,9 +980,10 @@ namespace Zeze.Services.ToLuaService2
             }
         }
 
-        void DecodeStruct(IntPtr luaState, ByteBuffer bb, BeanMeta beanMeta)
+        void DecodeStruct(IntPtr luaState, ByteBuffer bb, BeanMeta beanMeta, bool hasTable)
         {
-            Lua.CreateTable(luaState, 0, beanMeta.Variables.Count);
+            if (!hasTable)
+                Lua.CreateTable(luaState, 0, beanMeta.Variables.Count);
             Lua.RawGetI(luaState, Lua.LuaRegistryIndex, tableRefId);
             Lua.RawGetI(luaState, -1, beanMeta.MetatableRef);
             Lua.SetMetatable(luaState, -3);
@@ -1007,7 +1014,8 @@ namespace Zeze.Services.ToLuaService2
             return structMetas.TryGetValue(type, out var beanMeta) ? beanMeta : null;
         }
 
-        void DecodeVariable(IntPtr luaState, ByteBuffer bb, int tagType, VariableMeta varMeta, BeanMeta beanMeta = null)
+        void DecodeVariable(IntPtr luaState, ByteBuffer bb, int tagType, VariableMeta varMeta, BeanMeta beanMeta = null,
+            bool isKV = false)
         {
             switch (tagType)
             {
@@ -1033,12 +1041,13 @@ namespace Zeze.Services.ToLuaService2
                 {
                     int t = bb.ReadByte();
                     int n = bb.ReadTagSize(t);
-                    Lua.CreateTable(luaState, Math.Min(n, 1000), 0);
+                    if (isKV || !PushTableField(luaState))
+                        Lua.CreateTable(luaState, Math.Min(n, 1000), 0);
                     var valueBeanMeta = GetBeanMeta(varMeta.ValueType, varMeta.ValueBeanTypeId);
                     for (int i = 1; i <= n; i++) // 从1开始？
                     {
                         Lua.PushInteger(luaState, i);
-                        DecodeVariable(luaState, bb, varMeta.ValueType, varMeta, valueBeanMeta);
+                        DecodeVariable(luaState, bb, varMeta.ValueType, varMeta, valueBeanMeta, true);
                         Lua.SetTable(luaState, -3);
                     }
                     break;
@@ -1051,39 +1060,45 @@ namespace Zeze.Services.ToLuaService2
                     int n = bb.ReadUInt();
                     var keyBeanMeta = GetBeanMeta(s, varMeta.KeyBeanTypeId);
                     var valueBeanMeta = GetBeanMeta(t, varMeta.ValueBeanTypeId);
-                    Lua.CreateTable(luaState, 0, Math.Min(n, 1000));
+                    if (isKV || !PushTableField(luaState))
+                        Lua.CreateTable(luaState, 0, Math.Min(n, 1000));
                     for (; n > 0; n--)
                     {
-                        DecodeVariable(luaState, bb, varMeta.KeyType, varMeta, keyBeanMeta);
-                        DecodeVariable(luaState, bb, varMeta.ValueType, varMeta, valueBeanMeta);
+                        DecodeVariable(luaState, bb, varMeta.KeyType, varMeta, keyBeanMeta, true);
+                        DecodeVariable(luaState, bb, varMeta.ValueType, varMeta, valueBeanMeta, true);
                         Lua.SetTable(luaState, -3);
                     }
                     break;
                 }
                 case ByteBuffer.BEAN:
+                {
                     if (beanMeta == null)
                         beanMeta = GetBeanMeta(varMeta.Type, varMeta.TypeBeanTypeId);
-                    DecodeBean(luaState, bb, beanMeta);
+                    DecodeBean(luaState, bb, beanMeta, !isKV && PushTableField(luaState));
                     break;
+                }
                 case ByteBuffer.DYNAMIC:
                 {
+                    bool hasTable = !isKV && PushTableField(luaState);
                     long beanTypeId = bb.ReadLong();
                     if (varMeta.DynamicMeta.SpecialTypeIdToBean.TryGetValue(beanTypeId, out var dynamicBeanMeta))
                     {
                         // os.BeginReadSegment(out var state);
-                        DecodeBean(luaState, bb, dynamicBeanMeta);
+                        DecodeBean(luaState, bb, dynamicBeanMeta, hasTable);
                         // os.EndReadSegment(state);
                     }
                     else
                     {
                         bb.SkipUnknownField(ByteBuffer.BEAN);
-                        Lua.CreateTable(luaState, 0, 0);
+                        if (!hasTable)
+                            Lua.CreateTable(luaState, 0, 0);
                     }
                     // else
                     // {
                     //     // empty bean 先特殊处理一下，反正要改到c版本去，就不管了
                     //     bb.ReadInt();
-                    //     Lua.CreateTable(luaState, 0, 0);
+                    //     if (!hasTable)
+                    //         Lua.CreateTable(luaState, 0, 0);
                     // }
                     break;
                 }
@@ -1092,10 +1107,12 @@ namespace Zeze.Services.ToLuaService2
                 case ByteBuffer.VECTOR3:
                 case ByteBuffer.VECTOR3INT:
                 case ByteBuffer.VECTOR4:
+                {
                     if (beanMeta == null)
                         beanMeta = GetStructMeta(tagType);
-                    DecodeStruct(luaState, bb, beanMeta);
+                    DecodeStruct(luaState, bb, beanMeta, !isKV && PushTableField(luaState));
                     break;
+                }
                 default:
                     throw new Exception($"Unknown Tag Type {tagType} {varMeta}");
             }
@@ -1224,6 +1241,16 @@ namespace Zeze.Services.ToLuaService2
             meta.CacheRef = Lua.LuaL_ref(luaState, -2); // [refTable]
             Lua.Pop(luaState, 1);
             return true;
+        }
+
+        bool PushTableField(IntPtr luaState)
+        {
+            Lua.PushValue(luaState, -1); // [table, key, key]
+            Lua.RawGet(luaState, -3); // [table, key, value]
+            if (Lua.IsTable(luaState, -1))
+                return true;
+            Lua.Pop(luaState, 1);
+            return false;
         }
 
         void CleanLuaTable(IntPtr luaState, int depth = 0)
