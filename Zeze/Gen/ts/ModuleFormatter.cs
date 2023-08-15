@@ -144,7 +144,7 @@ namespace Zeze.Gen.ts
                 if (sw == null)
                     return;
 
-                sw.WriteLine("/* eslint-disable camelcase, class-methods-use-this, import/no-cycle, import/order, lines-between-class-members, new-cap, no-unused-vars, no-useless-constructor, prettier/prettier */");
+                sw.WriteLine("/* eslint-disable camelcase, class-methods-use-this, import/no-cycle, import/no-duplicates, import/order, lines-between-class-members, new-cap, no-unused-vars, no-useless-constructor, prettier/prettier */");
                 sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport);
                 Import(sw);
                 sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport);
