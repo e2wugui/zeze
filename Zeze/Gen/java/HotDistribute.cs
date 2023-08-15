@@ -78,41 +78,11 @@ namespace Zeze.Gen.java
             return (add, remove);
         }
 
-        public static int distanceVersion(Bean curVersion, BLastVersionBeanInfo lastVersion)
-        {
-            return Bean.GetVersion(curVersion.Name) - Bean.GetVersion(lastVersion.Name);
-        }
-
         public class ToPrevious
         {
             public BLastVersionBeanInfo LastVersion { get; set; }
             public List<int> Add { get; set; }
             public List<int> Remove { get; set; }
-
-            public void Gen(Bean bean, StreamWriter sw, string prefix)
-            {
-                sw.WriteLine($"{prefix}@Override");
-                sw.WriteLine($"{prefix}public Zeze.Transaction.Bean toPrevious() {{");
-                sw.WriteLine($"{prefix}    var previous = new {LastVersion.Name}();");
-                foreach (var var in LastVersion.Variables)
-                {
-                    if (Remove.Contains(var.Id))
-                    {
-                        sw.WriteLine($"{prefix}    // remove={var.Id}:{var.Name}");
-                    }
-                    else
-                    {
-                        sw.WriteLine($"{prefix}    previous.set{Program.Upper1(var.Name)}({Program.Upper1(bean.GetVariable(var.Id).Name)});");
-                    }
-                }
-                foreach (var id in Add)
-                {
-                    var var = bean.GetVariable(id);
-                    sw.WriteLine($"{prefix}    // add={var.Id}:{var.Name}");
-                }
-                sw.WriteLine($"{prefix}    return previous;");
-                sw.WriteLine($"{prefix}}}");
-            }
         }
 
         public void GenBean(Bean bean)
@@ -124,41 +94,20 @@ namespace Zeze.Gen.java
 
 				if (null == lastVersion)
 				{
-					if (Bean.GetVersion(curVersion.Name) > 0) // curVersion.Name is versioned
-						throw new Exception("First Version Bean With Versioned Name."); // 第一个版本不能用版本方式命名。
-                    new BeanFormatter(bean, null).Make(BaseDir, Project); // GenWithoutToPrevious();
+                    new BeanFormatter(bean).Make(BaseDir, Project);
 					return; // done
 				}
-
+                // 检测是否出现无法热更(spring-loaded)的修改。
+                /*
 				var lastVars = lastVersion.Variables;
 				var curVars = curVersion.VariablesIdOrder;
 				var (add, remove) = diff(lastVars, curVars);
-				var versionDistance = distanceVersion(curVersion, lastVersion); // 版本号差异。
-				if (versionDistance > 1 || versionDistance < 0)
-					throw new Exception("version distance > 1 or < 0");
-
-                // 这个或者警告即可。
-                if (add.Count == 0 && remove.Count == 0 && versionDistance > 0)
-					throw new Exception("var no change, but bean version changed.");
-
-				if ((add.Count > 0 || remove.Count > 0) && (versionDistance == 0))
-					throw new Exception("var change, but bean version not change.");
-
-                // GenWithToPrevious(add, remove); 这里可能包括add,remove都是空的，总是生成旧版兼容。
-                var toPrevious = new ToPrevious()
-                {
-                    LastVersion = lastVersion,
-                    Add = add,
-                    Remove = remove
-                };
-                new BeanFormatter(bean, toPrevious).Make(BaseDir, Project);
+                */
+                new BeanFormatter(bean).Make(BaseDir, Project);
 			}
             else
             {
-                var curVersion = bean; // 当前xml的Bean。
-                if (Bean.GetVersion(curVersion.Name) > 0) // curVersion.Name is versioned)
-                    throw new Exception("no distribute, but bean name is versioned."); // 开发期间，不能用版本方式命名。
-                new BeanFormatter(bean, null).Make(BaseDir, Project); // GenWithoutToPrevious();
+                new BeanFormatter(bean).Make(BaseDir, Project); // GenWithoutToPrevious();
             }
         }
 

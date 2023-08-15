@@ -170,7 +170,7 @@ namespace Zeze.Gen.Types
 				return VariablesIdOrder_;
 			}
 		}
-		public bool Hot { get; private set; } = false;
+
 		public bool RedirectResult { get; private set; } = false;
 
 		public static void BeautifulVariableId(XmlElement self)
@@ -197,49 +197,6 @@ namespace Zeze.Gen.Types
 		{
         }
 
-		public string GetBaseName(string name)
-		{
-			if (Hot)
-				GetVersionAndParseBaseName(ref name);
-			return name;
-		}
-
-		public static int GetVersion(string name)
-		{
-			return GetVersionAndParseBaseName(ref name);
-        }
-
-        public static int GetVersionAndParseBaseName(ref string name)
-		{
-			if (false == name.EndsWith("_"))
-				return 0; // 基础名字，版本为0.
-
-            // reverse find
-            var versionEnd = name.Length - 1;
-            for (; versionEnd >= 0; versionEnd--)
-			{
-				if (name[versionEnd] == '_')
-					continue; // 忽略结束的下划线，现在的写法允许多个结束的下划线。
-			}
-
-			var versionBegin = versionEnd;
-			for (; versionBegin >= 0; versionBegin--)
-			{
-				if (name[versionBegin] == '_')
-					break;
-			}
-			if (versionBegin < 0)
-				throw new Exception($"invalid hot name {name}");
-
-			name = name.Substring(0, versionBegin);
-			versionBegin++;
-			var version = int.Parse(name.Substring(versionBegin, versionEnd - versionBegin + 1));
-			if (version <= 0)  // = 0 是第一个版本，此时必须使用基础名字，需要指明的版本号必须大于0.
-                throw new Exception($"invalid hot name {name} version must great than 0.");
-
-			return version;
-		}
-
         // ///////////////////////////////////////////
         public Bean(ModuleSpace space, XmlElement self)
 		{
@@ -248,8 +205,8 @@ namespace Zeze.Gen.Types
 			Kind = self.GetAttribute("kind").Trim();
 			if (string.IsNullOrEmpty(Kind))
 				Kind = "bean"; // default
-			Hot = self.GetAttribute("hot").Equals("true");
-			Program.CheckReserveName(_name, space.Path(), Hot);
+
+			Program.CheckReserveName(_name, space.Path(), false);
 			Type.Add(space, this);
 			space.Add(this);
 
@@ -259,7 +216,7 @@ namespace Zeze.Gen.Types
 			Base = self.GetAttribute("base");
 			if (Base != "" && !Base.Contains('.'))
 				Base = Space.Path(".", Base);
-			var hashTypeId = Util.FixedHash.Hash64(space.Path(".", GetBaseName(_name)));
+			var hashTypeId = Util.FixedHash.Hash64(space.Path(".", _name));
 			// 这里的写法：hot bean 允许自定义TypeId，
 			// 但是java的Bean禁止了自定义功能，
 			// 而Hot目前仅用于java，
