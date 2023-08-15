@@ -13,6 +13,7 @@ namespace Zeze.Net
 
         public interface IDecodeAndDispatch
         {
+            // ReSharper disable once UnusedParameter.Global
             bool DecodeAndDispatch(Service service, long sessionId, long typeId, ByteBuffer os);
         }
 
