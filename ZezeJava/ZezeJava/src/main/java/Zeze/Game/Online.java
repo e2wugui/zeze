@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -55,6 +54,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
@@ -88,19 +88,18 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	private final EventDispatcher linkBrokenEvents;
 
 	// 缓存拥有Local数据的HotModule，用来优化。
-	private HashSet<HotModule> freshStopModule;
+	private final ConcurrentHashSet<HotModule> hotModuleThatHasLocal = new ConcurrentHashSet<>();
+	private boolean freshStopModule = false;
 
 	private void onHotModuleStop(HotModule hot) {
-		if (null == freshStopModule)
-			freshStopModule = new HashSet<>();
-		freshStopModule.add(hot);
+		freshStopModule |= hotModuleThatHasLocal.remove(hot) != null;
 	}
 
 	@Override
 	public boolean hasFreshStopModuleOnce() {
 		var tmp = freshStopModule;
-		freshStopModule = null;
-		return null != tmp && !tmp.isEmpty();
+		freshStopModule = false;
+		return tmp;
 	}
 
 	static class Retreat {
@@ -388,6 +387,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var hotModule = (HotModule)bean.getClass().getClassLoader();
 			Transaction.whileCommit(() -> {
 				hotModule.stopEvents.add(this::onHotModuleStop);
+				hotModuleThatHasLocal.add(hotModule);
 			});
 		}
 		bLocal.getDatas().put(key, bAny);
@@ -422,6 +422,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var hotModule = (HotModule)defaultHint.getClass().getClassLoader();
 			Transaction.whileCommit(() -> {
 				hotModule.stopEvents.add(this::onHotModuleStop);
+				hotModuleThatHasLocal.add(hotModule);
 			});
 		}
 		return defaultHint;
