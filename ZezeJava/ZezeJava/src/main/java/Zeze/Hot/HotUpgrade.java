@@ -9,4 +9,6 @@ import Zeze.Transaction.Bean;
  */
 public interface HotUpgrade {
 	void upgrade(ArrayList<HotModule> removes, ArrayList<HotModule> currents, Function<Bean, Bean> retreatFunc);
+
+	boolean hasFreshStopModuleOnce();
 }

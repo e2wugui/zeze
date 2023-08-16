@@ -47,7 +47,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongList;
@@ -73,10 +72,19 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	private final EventDispatcher localRemoveEvents;
 
 	// 缓存拥有Local数据的HotModule，用来优化。
-	private final ConcurrentHashSet<HotModule> hotModuleThatHasLocal = new ConcurrentHashSet<>();
+	private HashSet<HotModule> freshStopModule;
 
 	private void onHotModuleStop(HotModule hot) {
-		hotModuleThatHasLocal.remove(hot);
+		if (null == freshStopModule)
+			freshStopModule = new HashSet<>();
+		freshStopModule.add(hot);
+	}
+
+	@Override
+	public boolean hasFreshStopModuleOnce() {
+		var tmp = freshStopModule;
+		freshStopModule = null;
+		return null != tmp && !tmp.isEmpty();
 	}
 
 	static class Retreat {
@@ -95,17 +103,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	@Override
 	public void upgrade(ArrayList<HotModule> removes, ArrayList<HotModule> currents, Function<Bean, Bean> retreatFunc) {
-		if (!hotModuleThatHasLocal.containsAny(removes))
-			return; // 当前更新的模块没有拥有任何local。不用升级。
-
 		// 如果需要，重建_tlocal内存表的用户设置的bean。
 		var retreats = new ArrayList<Retreat>();
 		_tlocal.walkMemory((account, locals) -> {
 			for (var login : locals.getLogins()) {
 				var clientId = login.getKey();
 				for (var e : login.getValue().getDatas()) {
-					var retreatBean = retreatFunc.apply(e.getValue());
+					var retreatBean = retreatFunc.apply(e.getValue().getAny().getBean());
 					if (retreatBean != null) {
+						beanFactory.register(retreatBean); // 覆盖beanFactory.
 						retreats.add(new Retreat(account, clientId, e.getKey(), retreatBean));
 						if (retreats.size() > 50) {
 							saveRetreats(retreats);
@@ -280,7 +286,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var hotModule = (HotModule)bean.getClass().getClassLoader();
 			Transaction.whileCommit(() -> {
 				hotModule.stopEvents.add(this::onHotModuleStop);
-				hotModuleThatHasLocal.add(hotModule);
 			});
 		}
 		login.getDatas().put(key, bAny);
@@ -322,7 +327,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var hotModule = (HotModule)defaultHint.getClass().getClassLoader();
 			Transaction.whileCommit(() -> {
 				hotModule.stopEvents.add(this::onHotModuleStop);
-				hotModuleThatHasLocal.add(hotModule);
 			});
 		}
 		return defaultHint;

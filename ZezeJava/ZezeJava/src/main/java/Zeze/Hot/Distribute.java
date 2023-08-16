@@ -124,12 +124,14 @@ public class Distribute {
 					if (Zeze.Transaction.Log.class.isAssignableFrom(cls)) {
 						// log 收集下来，后面再确认它确实是Bean里面的Log才加入interface.jar。
 						logClasses.add(new LogEntry(cls, entry, file));
-					} else if (cls.isInterface() || (exportBean && (
-							Zeze.Transaction.Bean.class.isAssignableFrom(cls)
-							|| Zeze.Transaction.Data.class.isAssignableFrom(cls)
-							|| Zeze.Transaction.BeanKey.class.isAssignableFrom(cls)
-							|| Zeze.Arch.RedirectResult.class.isAssignableFrom(cls)
-							))) {
+						// bean's ReadOnly interface 也需要跟随bean一起打包。
+					} else if (cls.isInterface() && !(cls.getName().endsWith("ReadOnly"))
+							|| (exportBean && (
+									Zeze.Transaction.Bean.class.isAssignableFrom(cls)
+								|| Zeze.Transaction.Data.class.isAssignableFrom(cls)
+								|| Zeze.Transaction.BeanKey.class.isAssignableFrom(cls)
+								|| Zeze.Arch.RedirectResult.class.isAssignableFrom(cls)
+					))) {
 						if (exportBean && Zeze.Transaction.Bean.class.isAssignableFrom(cls))
 							beanNames.add(cls.getName()); // bean 收集下来，用来下一步判断log.class。
 						interfaceJar.putNextEntry(entry);

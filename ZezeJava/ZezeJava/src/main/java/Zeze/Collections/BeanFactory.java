@@ -221,13 +221,13 @@ public final class BeanFactory {
 		var ctor = Reflect.getDefaultConstructor(s.getClass());
 		if (s instanceof Bean) {
 			synchronized (writingBeanFactory) {
-				if (writingBeanFactory.putIfAbsent(s.typeId(), ctor) == null)
-					readingBeanFactory = null;
+				writingBeanFactory.put(s.typeId(), ctor);
+				readingBeanFactory = null;
 			}
 		} else if (s instanceof Data) {
 			synchronized (writingDataFactory) {
-				if (writingDataFactory.putIfAbsent(s.typeId(), ctor) == null)
-					readingDataFactory = null;
+				writingDataFactory.put(s.typeId(), ctor);
+				readingDataFactory = null;
 			}
 		} else
 			throw new IllegalArgumentException("not Bean or Data: " + s.getClass().getName());

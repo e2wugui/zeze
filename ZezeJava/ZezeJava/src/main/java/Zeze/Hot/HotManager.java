@@ -137,7 +137,7 @@ public class HotManager extends ClassLoader {
 		var i = 0;
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
-		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses);
+		IModule[] iModules = null; //GenModule.instance.createRedirectModules(app, moduleClasses);
 		if (null == iModules) {
 			// 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.
@@ -155,16 +155,20 @@ public class HotManager extends ClassLoader {
 			var cl = bean.getClass().getClassLoader();
 			if (HotManager.isHotModule(cl)) {
 				var indexHot = removes.indexOf((HotModule)cl);
+				// removes 里面可能存在null。
+				// indexOf找得到，currents里面就肯定有。
 				if (indexHot >= 0) {
 					var curClass = currents.get(indexHot).loadClass(bean.getClass().getName());
 					var curBean = (Bean)curClass.getConstructor().newInstance();
 					var bb = ByteBuffer.Allocate();
 					bean.encode(bb);
 					curBean.decode(bb);
+//					logger.info("<------ retreat ------> {} \r\n{} \r\n{}",
+//							bean.getClass().getName(), bean.variables(), curBean.variables());
 					return curBean;
 				}
 			}
-		} catch (Exception ex) {
+		} catch (Throwable ex) {
 			logger.error("", ex);
 		}
 		return null;
@@ -186,6 +190,12 @@ public class HotManager extends ClassLoader {
 				if (exist != null)
 					exist.stop();
 			}
+			var freshHotUpgrades = new ArrayList<HotUpgrade>();
+			for (var hotUpgrade : hotUpgrades) {
+				if (hotUpgrade.hasFreshStopModuleOnce()) {
+					freshHotUpgrades.add(hotUpgrade);
+				}
+			}
 			// install
 			for (var namespace : namespaces)
 				result.add(_install(namespace));
@@ -199,7 +209,7 @@ public class HotManager extends ClassLoader {
 					module.upgrade(exist);
 			}
 			// internal upgrade
-			for (var hotUpgrade : hotUpgrades)
+			for (var hotUpgrade : freshHotUpgrades)
 				hotUpgrade.upgrade(exists, result, (bean) -> retreat(exists, result, bean));
 			// start ordered
 			for (var module : result)

@@ -25,6 +25,10 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 					var record = _tHotTest.getOrAdd(1L);
 					record.setAttack(record.getAttack() + 1);
 					version.value = record.getAttack();
+					// 由于没有真正登录的role，
+					// 这里roleId==1L需要修改Zeze.Game.Online.setLocalBean里面的
+					// _tlocal.get为_tlocal.getOrAdd才能测试。
+					// App.Provider.getOnline().setLocalBean(1L, "RetreatTestLocal", new BRetreatTestLocal());
 					return 0;
 				}, "").call();
 		// */

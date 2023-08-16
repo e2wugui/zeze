@@ -18,6 +18,7 @@ public class HotHandle<THandle> {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public THandle findHandle(Application zeze, String handleClassName) throws Exception {
 		var handle = handleCache.get(handleClassName);
 		if (null != handle)

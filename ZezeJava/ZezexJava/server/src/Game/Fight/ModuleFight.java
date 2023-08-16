@@ -11,6 +11,7 @@ import Zeze.Util.EventDispatcher;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -25,19 +26,29 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 		return areYouFight.isDone();
 	}
 
-	public void Start(App app) {
-		app.Provider.getOnline().getLoginEvents().add(EventDispatcher.Mode.RunEmbed,
-				(sender, arg) -> {
-					var online = (Online)sender;
-					var login = (LoginArgument)arg;
-					online.sendOnlineRpc(login.roleId, new AreYouFight(), (p) -> {
-						logger.info("AreYouFight done.");
-						areYouFight.setResult(true);
-						return 0;
-					});
-					return 0;
-				});
+	@Override
+	public void setAreYouFightResult(boolean value) {
+		areYouFight.setResult(value);
+	}
 
+	public static class LoginEventHandle implements EventDispatcher.EventHandle {
+		@Override
+		public long invoke(@NotNull Object sender, EventDispatcher.EventArgument arg) throws Exception {
+			var online = (Online)sender;
+			var login = (LoginArgument)arg;
+			var context = online.providerApp.zeze.getHotManager().getModuleContext("Game.Fight", IModuleFight.class);
+			var service = context.getService();
+			online.sendOnlineRpc(login.roleId, new AreYouFight(), (p) -> {
+				logger.info("AreYouFight done.");
+				service.setAreYouFightResult(true);
+				return 0;
+			});
+			return 0;
+		}
+	}
+
+	public void Start(App app) {
+		app.Provider.getOnline().getLoginEvents().addHot(EventDispatcher.Mode.RunEmbed, LoginEventHandle.class);
 	}
 
 	public void Stop(App app) {

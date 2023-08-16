@@ -120,6 +120,10 @@
 		<enum name="ResultCodeItemNotFound"  value="2"/>
 		<enum name="ResultCodeBagIsFull"     value="3"/>
 		<enum name="ResultCodeEquipNotFound" value="4"/>
+		
+		<bean name="BRetreatTestLocal">
+			<variable id="1" name="VarInt1" type="int"/>
+		</bean>
 
 		<bean name="BEquipement"> 穿上装备
 			<variable id="1" name="BagPos" type="int"/>
