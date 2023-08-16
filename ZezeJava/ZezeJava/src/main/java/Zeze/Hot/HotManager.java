@@ -20,6 +20,7 @@ import Zeze.Arch.Gen.GenModule;
 import Zeze.IModule;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
 import Zeze.Util.Reflect;
@@ -40,8 +41,8 @@ public class HotManager extends ClassLoader {
 
 	private final String workingDir;
 	private final String distributeDir;
-
 	private final FewModifyMap<File, JarFile> jars = new FewModifyMap<>();
+
 	public static class JarEntry {
 		public final JarFile jar;
 		public final ZipEntry entry;
@@ -59,6 +60,16 @@ public class HotManager extends ClassLoader {
 	private final ReentrantReadWriteLock hotLock = new ReentrantReadWriteLock();
 	private final AppBase app;
 	private final HotRedirect hotRedirect;
+
+	private final ConcurrentHashSet<HotUpgrade> hotUpgrades = new ConcurrentHashSet<>();
+
+	public void addHotUpgrade(HotUpgrade hotUpgrade) {
+		hotUpgrades.add(hotUpgrade);
+	}
+
+	public void removeHotUpgrade(HotUpgrade hotUpgrade) {
+		hotUpgrades.remove(hotUpgrade);
+	}
 
 	public static boolean isHotModule(ClassLoader cl) {
 		return cl.getClass() == HotModule.class;
@@ -138,12 +149,12 @@ public class HotManager extends ClassLoader {
 		return iModules;
 	}
 
-	private Bean retreat(ArrayList<HotModule> removes, ArrayList<HotModule> currents, Bean bean) {
+	private static Bean retreat(ArrayList<HotModule> removes, ArrayList<HotModule> currents, Bean bean) {
 		// 判断是否当前正在热更的模块创建的。
 		try {
 			var cl = bean.getClass().getClassLoader();
 			if (HotManager.isHotModule(cl)) {
-				var indexHot = removes.indexOf(cl);
+				var indexHot = removes.indexOf((HotModule)cl);
 				if (indexHot >= 0) {
 					var curClass = currents.get(indexHot).loadClass(bean.getClass().getName());
 					var curBean = (Bean)curClass.getConstructor().newInstance();
@@ -187,6 +198,9 @@ public class HotManager extends ClassLoader {
 				if (null != exist)
 					module.upgrade(exist);
 			}
+			// internal upgrade
+			for (var hotUpgrade : hotUpgrades)
+				hotUpgrade.upgrade(exists, result, (bean) -> retreat(exists, result, bean));
 			// start ordered
 			for (var module : result)
 				module.start();

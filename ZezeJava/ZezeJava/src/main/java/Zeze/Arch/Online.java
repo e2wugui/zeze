@@ -121,9 +121,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private void saveRetreats(ArrayList<Retreat> retreats) {
-		// 【注意，这里不使用 Task.call or run，因为这个在热更流程中调用】
-		// todo 确认事务可以在更新流程中可以使用。
-		// todo 也许更优化的方法是为这个更新实现一个不是事务的版本。
+		// 【注意，这里不使用 Task.call or run，因为这个在热更流程中调用，避免去使用hotGuard。】
+		// 确认事务可以在更新流程中可以使用。
+		// 也许更优化的方法是为这个更新实现一个不是事务的版本。
 		providerApp.zeze.newProcedure(() -> {
 			for (var r : retreats)
 				setLocalBean(r.account, r.clientId, r.key, r.bean);
@@ -185,9 +185,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		load.start();
 		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal); // at 3:10 - 6:10
 		providerApp.builtinModules.put(this.getFullName(), this);
+		var hotManager = providerApp.zeze.getHotManager();
+		if (null != hotManager)
+			hotManager.addHotUpgrade(this);
 	}
 
 	public void stop() {
+		var hotManager = providerApp.zeze.getHotManager();
+		if (null != hotManager)
+			hotManager.removeHotUpgrade(this);
 		instance = null;
 		load.stop();
 		if (verifyLocalTimer != null)
@@ -312,6 +318,13 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (bAny.getAny().getBean().typeId() == defaultHint.typeId())
 			return (T)bAny.getAny().getBean();
 		bAny.getAny().setBean(defaultHint);
+		if (HotManager.isHotModule(defaultHint.getClass().getClassLoader())) {
+			var hotModule = (HotModule)defaultHint.getClass().getClassLoader();
+			Transaction.whileCommit(() -> {
+				hotModule.stopEvents.add(this::onHotModuleStop);
+				hotModuleThatHasLocal.add(hotModule);
+			});
+		}
 		return defaultHint;
 	}
 

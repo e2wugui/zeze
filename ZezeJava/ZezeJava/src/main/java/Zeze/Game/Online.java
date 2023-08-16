@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import Zeze.AppBase;
 import Zeze.Arch.Beans.BSend;
 import Zeze.Arch.Gen.GenModule;
@@ -36,6 +38,9 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerRole;
+import Zeze.Hot.HotManager;
+import Zeze.Hot.HotModule;
+import Zeze.Hot.HotUpgrade;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -49,6 +54,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
@@ -65,7 +71,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class Online extends AbstractOnline {
+public class Online extends AbstractOnline implements HotUpgrade {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
 	protected static final BeanFactory beanFactory = new BeanFactory();
 	protected static @Nullable Online defaultInstance; // 默认Online实例,stop后会置null
@@ -80,6 +86,60 @@ public class Online extends AbstractOnline {
 	private final EventDispatcher logoutEvents;
 	private final EventDispatcher localRemoveEvents;
 	private final EventDispatcher linkBrokenEvents;
+
+	// 缓存拥有Local数据的HotModule，用来优化。
+	private final ConcurrentHashSet<HotModule> hotModuleThatHasLocal = new ConcurrentHashSet<>();
+
+	private void onHotModuleStop(HotModule hot) {
+		hotModuleThatHasLocal.remove(hot);
+	}
+
+	static class Retreat {
+		final long roleId;
+		final String key;
+		final Bean bean;
+
+		public Retreat(long roleId, String key, Bean bean) {
+			this.roleId = roleId;
+			this.key = key;
+			this.bean = bean;
+		}
+	}
+
+	@Override
+	public void upgrade(ArrayList<HotModule> removes, ArrayList<HotModule> currents, Function<Bean, Bean> retreatFunc) {
+		if (!hotModuleThatHasLocal.containsAny(removes))
+			return; // 当前更新的模块没有拥有任何local。不用升级。
+
+		// 如果需要，重建_tlocal内存表的用户设置的bean。
+		var retreats = new ArrayList<Retreat>();
+		_tlocal.walkMemory((roleId, locals) -> {
+			for (var data : locals.getDatas()) {
+				var retreatBean = retreatFunc.apply(data.getValue());
+				if (retreatBean != null) {
+					retreats.add(new Retreat(roleId, data.getKey(), retreatBean));
+					if (retreats.size() > 50) {
+						saveRetreats(retreats);
+						retreats.clear();
+					}
+				}
+			}
+			return true;
+		});
+		if (!retreats.isEmpty())
+			saveRetreats(retreats);
+	}
+
+	private void saveRetreats(ArrayList<Retreat> retreats) {
+		// 【注意，这里不使用 Task.call or run，因为这个在热更流程中调用，避免去使用hotGuard。】
+		// 确认事务可以在更新流程中可以使用。
+		// 也许更优化的方法是为这个更新实现一个不是事务的版本。
+		providerApp.zeze.newProcedure(() -> {
+			for (var r : retreats)
+				setLocalBean(r.roleId, r.key, r.bean);
+			return 0;
+		}, "saveRetreats").call();
+	}
 
 	public interface TransmitAction {
 		/**
@@ -211,9 +271,16 @@ public class Online extends AbstractOnline {
 					online.start();
 			});
 		}
+		var hotManager = providerApp.zeze.getHotManager();
+		if (null != hotManager)
+			hotManager.addHotUpgrade(this);
 	}
 
 	public void stop() {
+		var hotManager = providerApp.zeze.getHotManager();
+		if (null != hotManager)
+			hotManager.removeHotUpgrade(this);
+
 		// default online 负责停止所有的online set。
 		if (defaultInstance == this) {
 			getProviderWithOnline().foreachOnline(online -> {
@@ -310,6 +377,13 @@ public class Online extends AbstractOnline {
 		beanFactory.register(bean);
 		var bAny = new BAny();
 		bAny.getAny().setBean(bean);
+		if (HotManager.isHotModule(bean.getClass().getClassLoader())) {
+			var hotModule = (HotModule)bean.getClass().getClassLoader();
+			Transaction.whileCommit(() -> {
+				hotModule.stopEvents.add(this::onHotModuleStop);
+				hotModuleThatHasLocal.add(hotModule);
+			});
+		}
 		bLocal.getDatas().put(key, bAny);
 	}
 
@@ -338,6 +412,13 @@ public class Online extends AbstractOnline {
 		if (data.getAny().getBean().typeId() == defaultHint.typeId())
 			return (T)data.getAny().getBean();
 		data.getAny().setBean(defaultHint);
+		if (HotManager.isHotModule(defaultHint.getClass().getClassLoader())) {
+			var hotModule = (HotModule)defaultHint.getClass().getClassLoader();
+			Transaction.whileCommit(() -> {
+				hotModule.stopEvents.add(this::onHotModuleStop);
+				hotModuleThatHasLocal.add(hotModule);
+			});
+		}
 		return defaultHint;
 	}
 
