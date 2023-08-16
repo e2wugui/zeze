@@ -171,8 +171,8 @@ namespace Zeze.Services.ToLuaService2
         LuaType GetGlobal(IntPtr luaState, string name);
 
         int LuaRegistryIndex { get; }
-        int LuaL_ref(IntPtr luaState, int t);
-        void LuaL_unref(IntPtr luaState, int t, int reference);
+        int LuaL_ref(IntPtr luaState, int t); // [-1, +0, m]
+        void LuaL_unref(IntPtr luaState, int t, int reference); // [-0, +0, -]
 
         int PCallPrepare(IntPtr luaState, int funcRef);
         void PCall(IntPtr luaState, int arguments, int results, int errFunc);
@@ -210,18 +210,14 @@ namespace Zeze.Services.ToLuaService2
 #endif
             public long ArgumentBeanTypeId;
             public long ResultBeanTypeId;
-
             public bool IsRpc;
-
-            // public long TypeId;
             public int MetatableRef;
             public int CacheRef = (int)LuaDefine.NoRef; // 存放缓存的table
+            public List<int> cacheRefPool;
         }
 
         class BeanMeta
         {
-            // public string Name;
-            // public long BeanTypeId;
             public int MetatableRef;
             public readonly SortedDictionary<int, VariableMeta> Variables = new SortedDictionary<int, VariableMeta>();
         }
@@ -415,8 +411,6 @@ namespace Zeze.Services.ToLuaService2
                 int metatableRef = Lua.LuaL_ref(luaState, -5); // [table, refTable, table.beans, beanName, bean]
                 var beanMeta = new BeanMeta
                 {
-                    // Name = beanName,
-                    // BeanTypeId = beanTypeId,
                     MetatableRef = metatableRef
                 };
                 ParseVariableMeta(luaState, beanName2BeanId, dynamicMetas, beanMeta.Variables);
@@ -435,8 +429,6 @@ namespace Zeze.Services.ToLuaService2
                 int metatableRef = Lua.LuaL_ref(luaState, -5); // [table, refTable, table.structs, structName, struct]
                 var beanMeta = new BeanMeta
                 {
-                    // Name = beanName,
-                    // BeanTypeId = typeId,
                     MetatableRef = metatableRef
                 };
                 ParseVariableMeta(luaState, beanName2BeanId, dynamicMetas, beanMeta.Variables);
@@ -468,7 +460,6 @@ namespace Zeze.Services.ToLuaService2
                     ProtocolName = protocolName,
 #endif
                     ArgumentBeanTypeId = argumentTypeId,
-                    // TypeId = typeId,
                     MetatableRef = metatableRef
                 };
                 if (!Lua.IsNil(luaState, -1)) // 存在result就把他视为rpc协议
@@ -775,13 +766,21 @@ namespace Zeze.Services.ToLuaService2
             }
 
             int cacheRef = pa.CacheRef;
-            if (cacheRef == (int)LuaDefine.NoRef)
-                Lua.CreateTable(luaState, 0, 8);
+            if (cacheRef != (int)LuaDefine.NoRef)
+                Lua.RawGetI(luaState, Lua.LuaRegistryIndex, cacheRef);
             else
             {
-                Lua.RawGetI(luaState, Lua.LuaRegistryIndex, tableRefId); // [refTable]
-                Lua.RawGetI(luaState, -1, pa.CacheRef); // [refTable, cache]
-                Lua.Replace(luaState, -2); // [cache]
+                int n;
+                var pool = pa.cacheRefPool;
+                if (pool != null && (n = pool.Count) > 0)
+                {
+                    cacheRef = pool[--n];
+                    pool.RemoveAt(n);
+                    Lua.RawGetI(luaState, Lua.LuaRegistryIndex, cacheRef);
+                    Lua.LuaL_unref(luaState, Lua.LuaRegistryIndex, cacheRef);
+                }
+                else
+                    Lua.CreateTable(luaState, 0, 8);    
             }
 
             if (service is IFromLua2 fromLua) // 必须是，不报错了。
@@ -880,11 +879,9 @@ namespace Zeze.Services.ToLuaService2
             UnityEngine.Profiling.Profiler.EndSample();
 #endif
 
-            if (cacheRef != (int)LuaDefine.NoRef)
+            if (pa.CacheRef != (int)LuaDefine.NoRef)
             {
-                Lua.RawGetI(luaState, Lua.LuaRegistryIndex, tableRefId); // [refTable]
-                Lua.RawGetI(luaState, -1, pa.CacheRef); // [refTable, cache]
-                Lua.Replace(luaState, -2); // [cache]
+                Lua.RawGetI(luaState, Lua.LuaRegistryIndex, cacheRef); // [cache]
                 CleanLuaTable(luaState);
                 Lua.Pop(luaState, 1);
             }
@@ -1231,15 +1228,31 @@ namespace Zeze.Services.ToLuaService2
             return UpdateLuaState != default && DecodeAndDispatch(UpdateLuaState, service, typeId, os);
         }
 
+        // 自动回收指定协议的table,要求处理该类型协议后不能继续持有table,每个类型协议只需调用一次
         // 如果返回false,说明还没调用LoadMeta或者protoTypeId未定义
         public bool AddProtocolCache(IntPtr luaState, int moduleId, int protocolId)
         {
             if (!protocolMetas.TryGetValue(Protocol.MakeTypeId(moduleId, protocolId), out var meta))
                 return false;
-            Lua.RawGetI(luaState, Lua.LuaRegistryIndex, tableRefId); // [refTable]
-            Lua.CreateTable(luaState, 0, 8); // [refTable, cacheTable]
-            meta.CacheRef = Lua.LuaL_ref(luaState, -2); // [refTable]
-            Lua.Pop(luaState, 1);
+            Lua.CreateTable(luaState, 0, 8); // [cacheTable]
+            meta.CacheRef = Lua.LuaL_ref(luaState, Lua.LuaRegistryIndex);
+            return true;
+        }
+
+        // 手动回收一个协议的table,要求lua栈顶是待回收的协议table,该table会在以后接收此协议时被复用
+        // 如果返回false,说明还没调用LoadMeta或者protoTypeId未定义或者该协议类型已被指定自动回收(AddProtocolCache)或者已回收过多
+        public bool RecycleProtocolTable(IntPtr luaState, int moduleId, int protocolId)
+        {
+            if (!protocolMetas.TryGetValue(Protocol.MakeTypeId(moduleId, protocolId), out var meta)
+                || meta.CacheRef != (int)LuaDefine.NoRef)
+                return false;
+            var pool = meta.cacheRefPool;
+            if (pool == null)
+                meta.cacheRefPool = pool = new List<int>();
+            else if (pool.Count >= 1000)
+                return false;
+            Lua.PushValue(luaState, -1); // [protoTable, protoTable]
+            pool.Add(Lua.LuaL_ref(luaState, Lua.LuaRegistryIndex)); // [protoTable]
             return true;
         }
 
