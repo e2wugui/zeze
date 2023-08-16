@@ -18,6 +18,8 @@ import java.util.zip.ZipEntry;
 import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.IModule;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
 import Zeze.Util.Reflect;
@@ -134,6 +136,27 @@ public class HotManager extends ClassLoader {
 			}
 		}
 		return iModules;
+	}
+
+	private Bean retreat(ArrayList<HotModule> removes, ArrayList<HotModule> currents, Bean bean) {
+		// 判断是否当前正在热更的模块创建的。
+		try {
+			var cl = bean.getClass().getClassLoader();
+			if (HotManager.isHotModule(cl)) {
+				var indexHot = removes.indexOf(cl);
+				if (indexHot >= 0) {
+					var curClass = currents.get(indexHot).loadClass(bean.getClass().getName());
+					var curBean = (Bean)curClass.getConstructor().newInstance();
+					var bb = ByteBuffer.Allocate();
+					bean.encode(bb);
+					curBean.decode(bb);
+					return curBean;
+				}
+			}
+		} catch (Exception ex) {
+			logger.error("", ex);
+		}
+		return null;
 	}
 
 	private List<HotModule> install(List<String> namespaces) throws Exception {

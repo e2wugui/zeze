@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import Zeze.AppBase;
 import Zeze.Arch.Beans.BSend;
 import Zeze.Arch.Gen.GenModule;
@@ -48,7 +49,6 @@ import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.EventDispatcher;
-import Zeze.Util.Func1;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongList;
 import Zeze.Util.OutObject;
@@ -79,12 +79,56 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		hotModuleThatHasLocal.remove(hot);
 	}
 
+	static class Retreat {
+		final String account;
+		final String clientId;
+		final String key;
+		final Bean bean;
+
+		public Retreat(String account, String clientId, String key, Bean bean) {
+			this.account = account;
+			this.clientId = clientId;
+			this.key = key;
+			this.bean = bean;
+		}
+	}
+
 	@Override
-	public void upgrade(ArrayList<HotModule> removes, ArrayList<HotModule> currents, Func1<Bean, Bean> retreatFunc) {
+	public void upgrade(ArrayList<HotModule> removes, ArrayList<HotModule> currents, Function<Bean, Bean> retreatFunc) {
 		if (!hotModuleThatHasLocal.containsAny(removes))
 			return; // 当前更新的模块没有拥有任何local。不用升级。
 
-		// todo 更新_tlocal内存表。
+		// 如果需要，重建_tlocal内存表的用户设置的bean。
+		var retreats = new ArrayList<Retreat>();
+		_tlocal.walkMemory((account, locals) -> {
+			for (var login : locals.getLogins()) {
+				var clientId = login.getKey();
+				for (var e : login.getValue().getDatas()) {
+					var retreatBean = retreatFunc.apply(e.getValue());
+					if (retreatBean != null) {
+						retreats.add(new Retreat(account, clientId, e.getKey(), retreatBean));
+						if (retreats.size() > 50) {
+							saveRetreats(retreats);
+							retreats.clear();
+						}
+					}
+				}
+			}
+			return true;
+		});
+		if (!retreats.isEmpty())
+			saveRetreats(retreats);
+	}
+
+	private void saveRetreats(ArrayList<Retreat> retreats) {
+		// 【注意，这里不使用 Task.call or run，因为这个在热更流程中调用】
+		// todo 确认事务可以在更新流程中可以使用。
+		// todo 也许更优化的方法是为这个更新实现一个不是事务的版本。
+		providerApp.zeze.newProcedure(() -> {
+			for (var r : retreats)
+				setLocalBean(r.account, r.clientId, r.key, r.bean);
+			return 0;
+		}, "saveRetreats").call();
 	}
 
 	public interface TransmitAction {
