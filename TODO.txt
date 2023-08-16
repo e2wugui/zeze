@@ -42,6 +42,7 @@ Hot Zeze服务保存的状态（一般是dynamic里面的bean）
 	_tInnerTable.cache.clear();
 	_tInnerTable.BeanFactory.put(BeanName) & BeanFactory 使用 HotRedirect 能找到模块内的新的类。
 	* 【按我理解，替换的时候覆盖成新名字即可。确认？】
+Hot Redirect 返回结果参数是自定义结构时不能作为接口暴露，怎么处理比较好。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/25 v1.3.1 Hot; EventDispatcher; MemoryTable.SoftReference; 

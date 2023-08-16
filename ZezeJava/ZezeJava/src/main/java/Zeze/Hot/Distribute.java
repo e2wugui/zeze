@@ -113,7 +113,8 @@ public class Distribute {
 				var moduleJar = new JarOutputStream(new FileOutputStream(moduleJarFile), moduleManifest);
 				moduleJars.put(module, moduleJar);
 				var beanNames = new HashSet<String>();
-				var logClasses = new ArrayList<LogEntry>();
+				var logClasses = new ArrayList<PackEntry>();
+				var beanReadonlyMaybe = new ArrayList<PackEntry>();
 				for (var file : classes) {
 					var classFile = home.relativize(file.toPath()).toString().replace("\\", "/");
 					var className = classFile.replace("/", ".");
@@ -123,31 +124,53 @@ public class Distribute {
 					var cls = Class.forName(className);
 					if (Zeze.Transaction.Log.class.isAssignableFrom(cls)) {
 						// log 收集下来，后面再确认它确实是Bean里面的Log才加入interface.jar。
-						logClasses.add(new LogEntry(cls, entry, file));
+						logClasses.add(new PackEntry(cls, entry, file));
 						// bean's ReadOnly interface 也需要跟随bean一起打包。
-					} else if (cls.isInterface() && !(cls.getName().endsWith("ReadOnly"))
-							|| (exportBean && (
+					} else if (cls.isInterface()) {
+						if (!cls.getName().endsWith("ReadOnly")) {
+							interfaceJar.putNextEntry(entry);
+							interfaceJar.write(Files.readAllBytes(file.toPath()));
+						} else {
+							// 怀疑是Bean的生成的interface，先保存下来。
+							beanReadonlyMaybe.add(new PackEntry(cls, entry, file));
+						}
+					}
+					else if (exportBean && (
 									Zeze.Transaction.Bean.class.isAssignableFrom(cls)
 								|| Zeze.Transaction.Data.class.isAssignableFrom(cls)
 								|| Zeze.Transaction.BeanKey.class.isAssignableFrom(cls)
-								|| Zeze.Arch.RedirectResult.class.isAssignableFrom(cls)
-					))) {
-						if (exportBean && Zeze.Transaction.Bean.class.isAssignableFrom(cls))
+								|| Zeze.Arch.RedirectResult.class.isAssignableFrom(cls))) {
+						if (Zeze.Transaction.Bean.class.isAssignableFrom(cls))
 							beanNames.add(cls.getName()); // bean 收集下来，用来下一步判断log.class。
 						interfaceJar.putNextEntry(entry);
 						interfaceJar.write(Files.readAllBytes(file.toPath()));
 					} else {
+						if (Zeze.Transaction.Bean.class.isAssignableFrom(cls))
+							beanNames.add(cls.getName()); // bean 收集下来，用来下一步判断log.class。
 						moduleJar.putNextEntry(entry);
 						moduleJar.write(Files.readAllBytes(file.toPath()));
 					}
 				}
 				for (var e : logClasses) {
-					if (e.isBeanLog(beanNames)) {
+					if (exportBean && e.isBeanLog(beanNames)) {
+						// 确实是Bean的Log类，
 						interfaceJar.putNextEntry(e.entry);
 						interfaceJar.write(Files.readAllBytes(e.file.toPath()));
 					} else {
 						moduleJar.putNextEntry(e.entry);
 						moduleJar.write(Files.readAllBytes(e.file.toPath()));
+					}
+				}
+				// 使用名字更精确的判断是否是Bean的生成的interface。
+				for (var e : beanReadonlyMaybe) {
+					var clsName = e.class1.getName();
+					var beanName = clsName.substring(0, clsName.length() - "ReadOnly".length());
+					if (!exportBean & beanNames.contains(beanName)) {
+						moduleJar.putNextEntry(e.entry);
+						moduleJar.write(Files.readAllBytes(e.file.toPath()));
+					} else {
+						interfaceJar.putNextEntry(e.entry);
+						interfaceJar.write(Files.readAllBytes(e.file.toPath()));
 					}
 				}
 			}
@@ -159,13 +182,13 @@ public class Distribute {
 		}
 	}
 
-	public static class LogEntry {
-		public final Class<?> logClass;
+	public static class PackEntry {
+		public final Class<?> class1;
 		public final ZipEntry entry;
 		public final File file;
 
 		public boolean isBeanLog(HashSet<String> beanNames) {
-			var logName = logClass.getName();
+			var logName = class1.getName();
 			var innerIdx = logName.indexOf('$');
 			if (innerIdx == -1) // bean.log 肯定是内部类。
 				return false;
@@ -173,8 +196,8 @@ public class Distribute {
 			return beanNames.contains(beanName);
 		}
 
-		public LogEntry(Class<?> logClass, ZipEntry entry, File file) {
-			this.logClass = logClass;
+		public PackEntry(Class<?> logClass, ZipEntry entry, File file) {
+			this.class1 = logClass;
 			this.entry = entry;
 			this.file = file;
 		}
