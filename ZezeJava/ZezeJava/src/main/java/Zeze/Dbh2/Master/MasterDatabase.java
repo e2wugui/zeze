@@ -99,7 +99,6 @@ public class MasterDatabase {
 			return table;
 		}
 
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			// 加锁后再次检查一次。
 			if (table.created) {
@@ -184,7 +183,6 @@ public class MasterDatabase {
 		if (null == table)
 			return master.errorCode(Master.eTableNotFound);
 
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 			var bucketNew = r.Argument.getTo();
@@ -221,7 +219,6 @@ public class MasterDatabase {
 		if (null == table)
 			return master.errorCode(Master.eTableNotFound);
 
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 			var bucketNew = r.Argument.getTo();
@@ -262,7 +259,6 @@ public class MasterDatabase {
 		}
 
 		var table = splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			if (table.buckets.get(bucket.getKeyFirst()) != null) {
 				// 桶已经存在，断点续传由manager自己负责，不能重复创建桶。

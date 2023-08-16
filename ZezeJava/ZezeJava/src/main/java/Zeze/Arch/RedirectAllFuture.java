@@ -147,7 +147,6 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		if (onResult == null)
 			return; // 等设置了onResult再处理
 		var hashes = getFinishedHashes();
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (hashes) {
 			if (!hashes.add(result.getHash())) // 跟onResult并发时有可能失败,谁加成功谁执行回调
 				return;
@@ -173,7 +172,6 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		var readyResults = new ArrayList<R>();
 		synchronized (c) {
 			for (var it = c.getAllResults().iterator(); it.moveToNext(); ) {
-				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (hashes) {
 					if (hashes.add(it.key())) // 跟onResult并发时有可能失败,谁加成功谁执行回调
 						readyResults.add(it.value());

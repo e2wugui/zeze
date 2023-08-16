@@ -556,7 +556,6 @@ public final class ServiceManagerServer implements Closeable {
 		r.Argument.sessionId = r.getSender().getSessionId();
 
 		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (state) {
 			state.serviceInfos.put(r.Argument.getServiceIdentity(), r.Argument);
 			r.SendResultCode(Register.Success);
@@ -569,7 +568,6 @@ public final class ServiceManagerServer implements Closeable {
 	public ServerState unRegisterNow(long sessionId, BServiceInfo info) {
 		var state = serverStates.get(info.getServiceName());
 		if (state != null) {
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (state) {
 				var exist = state.serviceInfos.remove(info.getServiceIdentity());
 				if (exist != null && exist.sessionId == sessionId) {
@@ -633,7 +631,6 @@ public final class ServiceManagerServer implements Closeable {
 			default:
 				return null;
 			}
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (state) {
 				if (subState.remove(sessionId) != null)
 					return state;
@@ -875,7 +872,7 @@ public final class ServiceManagerServer implements Closeable {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			oneByOneByKey.Execute(p.getSender(),
 					() -> Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode), factoryHandle.Mode);
-			// 不支持事务，由于这里直接onebyone执行，所以下面两个方法就不重载了。
+			// 不支持事务，由于这里直接OneByOne执行，所以下面两个方法就不重载了。
 		}
 		/*
 		@Override

@@ -46,7 +46,6 @@ public class PersistentAtomicLong {
 
 		try {
 			var fs = open(fileName);
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (fs) {
 				var lock = fs.getChannel().lock();
 				try {
@@ -98,7 +97,6 @@ public class PersistentAtomicLong {
 		try {
 			// 应该尽量减少allocate的次数，所以这里文件就不保持打开了。
 			var fs = open(fileName);
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (fs) {
 				var lock = fs.getChannel().lock();
 				try {

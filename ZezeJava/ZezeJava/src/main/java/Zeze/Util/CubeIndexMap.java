@@ -76,7 +76,6 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	public final void tryPerform(CubeIndex index, CubeHandle<TCube> action) {
 		var cube = cubes.get(index);
 		if (cube != null) {
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (cube) {
 				if (cube.getState() != Cube.StateRemoved)
 					action.handle(index, cube);
@@ -91,7 +90,6 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	public final void perform(CubeIndex index, CubeHandle<TCube> action) {
 		while (true) {
 			var cube = cubes.computeIfAbsent(index, __ -> factory.create());
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (cube) {
 				if (cube.getState() == Cube.StateRemoved)
 					continue;

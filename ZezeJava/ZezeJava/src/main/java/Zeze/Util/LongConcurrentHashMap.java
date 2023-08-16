@@ -390,7 +390,6 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 				tab = helpTransfer(tab, f);
 			else {
 				V oldVal = null;
-				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (f) {
 					if (tabAt(tab, i) == f) {
 						binCount = 1;
@@ -463,7 +462,6 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 			else {
 				V oldVal = null;
 				boolean validated = false;
-				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (f) {
 					if (tabAt(tab, i) == f) {
 						validated = true;
@@ -515,7 +513,6 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 				tab = helpTransfer(tab, f);
 				i = 0; // restart
 			} else {
-				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (f) {
 					if (tabAt(tab, i) == f) {
 						do {
@@ -807,7 +804,6 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 			else if (f.val == null) // MOVED
 				advance = true; // already processed
 			else {
-				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (f) {
 					if (tabAt(tab, i) == f) {
 						Node<V> ln, hn;

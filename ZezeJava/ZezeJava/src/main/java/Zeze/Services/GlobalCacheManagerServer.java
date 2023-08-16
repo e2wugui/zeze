@@ -352,7 +352,6 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private int release(CacheHolder sender, Binary _gKey, boolean noWait) throws InterruptedException {
 		while (true) {
 			CacheState cs = global.computeIfAbsent(_gKey, CacheState::new);
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (cs) { //await 等锁
 				if (cs.acquireStatePending == StateRemoved) {
 					// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。

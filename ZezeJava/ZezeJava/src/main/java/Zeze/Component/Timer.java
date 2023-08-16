@@ -2,7 +2,6 @@ package Zeze.Component;
 
 import java.text.ParseException;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.AppBase;
@@ -23,8 +22,7 @@ import Zeze.Builtin.Timer.tAccountTimers;
 import Zeze.Builtin.Timer.tIndexs;
 import Zeze.Collections.BeanFactory;
 import Zeze.Game.Online;
-import Zeze.Hot.HotManager;
-import Zeze.Hot.HotModule;
+import Zeze.Hot.HotHandle;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
@@ -37,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.util.CronExpression;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import Zeze.Hot.HotHandle;
 
 
 public class Timer extends AbstractTimer {
@@ -69,7 +66,7 @@ public class Timer extends AbstractTimer {
 
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
 	final ConcurrentHashMap<String, Future<?>> timersFuture = new ConcurrentHashMap<>();
-	private HotHandle<TimerHandle> hotHandle = new HotHandle<>();
+	private final HotHandle<TimerHandle> hotHandle = new HotHandle<>();
 
 	public static @NotNull Timer create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Timer.class, app);
