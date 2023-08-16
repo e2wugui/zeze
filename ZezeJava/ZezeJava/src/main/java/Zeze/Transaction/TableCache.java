@@ -24,7 +24,7 @@ import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
  * 通用类的写法需要在V外面包装一层。这里直接使用Record来达到这个目的。
  * 这样，这个类就不通用了。通用类需要包装，多创建一个对象，还需要包装接口。
  */
-class TableCache<K extends Comparable<K>, V extends Bean> {
+public class TableCache<K extends Comparable<K>, V extends Bean> {
 	private static final Logger logger = LogManager.getLogger(TableCache.class);
 	private static final int MAX_NODE_COUNT = 8640; // 最大的LRU节点数量,超过时会触发shrink
 	private static final int SHRINK_NODE_COUNT = 8000; // shrink的目标节点数量
@@ -60,7 +60,7 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 		return Math.max(table.getTableConf().getCacheInitialCapacity(), 31);
 	}
 
-	long walkKey(TableWalkKey<K> callback) {
+	public long walkKey(TableWalkKey<K> callback) {
 		long cw = 0;
 		for (var k : dataMap.keySet()) {
 			if (!callback.handle(k))
@@ -81,7 +81,7 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 		lruQueue.add(newLru);
 	}
 
-	final Record1<K, V> getOrAdd(K key, Factory<Record1<K, V>> valueFactory) {
+	public final Record1<K, V> getOrAdd(K key, Factory<Record1<K, V>> valueFactory) {
 		var lruHot = this.lruHot;
 		var result = dataMap.get(key);
 		if (result == null) { // slow-path

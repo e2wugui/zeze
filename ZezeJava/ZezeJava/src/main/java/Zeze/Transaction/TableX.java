@@ -896,9 +896,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return walkCache(callback, null);
 	}
 
+	// 内存表遍历。
 	public final long walkCache(@NotNull TableWalkHandle<K, V> callback, @Nullable Runnable afterLock) {
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
+		if (storage != null)
+			throw new IllegalStateException("this is not a memory table.");
 
 		int count = 0;
 		for (var entry : cache.getDataMap().entrySet()) {
@@ -906,8 +909,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			var lockey = getZeze().getLocks().get(new TableKey(getId(), entry.getKey()));
 			lockey.enterReadLock();
 			try {
-				if (r.getState() == StateShare
-						|| r.getState() == StateModify) {
+				// 这个条件表示本地拥有读或写状态的才能遍历到。对于内存表，能看到全部。
+				if (r.getState() == StateShare || r.getState() == StateModify) {
 					@SuppressWarnings("unchecked")
 					var strongRef = (V)r.getSoftValue();
 					if (strongRef == null)

@@ -32,6 +32,9 @@ import Zeze.Builtin.ProviderDirect.TransmitAccount;
 import Zeze.Collections.BeanFactory;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
+import Zeze.Hot.HotManager;
+import Zeze.Hot.HotModule;
+import Zeze.Hot.HotUpgrade;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -43,7 +46,9 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.EventDispatcher;
+import Zeze.Util.Func1;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongList;
 import Zeze.Util.OutObject;
@@ -55,7 +60,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class Online extends AbstractOnline {
+public class Online extends AbstractOnline implements HotUpgrade {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
 
 	public final ProviderApp providerApp;
@@ -66,6 +71,21 @@ public class Online extends AbstractOnline {
 	private final EventDispatcher reloginEvents;
 	private final EventDispatcher logoutEvents;
 	private final EventDispatcher localRemoveEvents;
+
+	// 缓存拥有Local数据的HotModule，用来优化。
+	private final ConcurrentHashSet<HotModule> hotModuleThatHasLocal = new ConcurrentHashSet<>();
+
+	private void onHotModuleStop(HotModule hot) {
+		hotModuleThatHasLocal.remove(hot);
+	}
+
+	@Override
+	public void upgrade(ArrayList<HotModule> removes, ArrayList<HotModule> currents, Func1<Bean, Bean> retreatFunc) {
+		if (!hotModuleThatHasLocal.containsAny(removes))
+			return; // 当前更新的模块没有拥有任何local。不用升级。
+
+		// todo 更新_tlocal内存表。
+	}
 
 	public interface TransmitAction {
 		/**
@@ -206,6 +226,13 @@ public class Online extends AbstractOnline {
 		}
 		var bAny = new BAny();
 		bAny.getAny().setBean(bean);
+		if (HotManager.isHotModule(bean.getClass().getClassLoader())) {
+			var hotModule = (HotModule)bean.getClass().getClassLoader();
+			Transaction.whileCommit(() -> {
+				hotModule.stopEvents.add(this::onHotModuleStop);
+				hotModuleThatHasLocal.add(hotModule);
+			});
+		}
 		login.getDatas().put(key, bAny);
 	}
 

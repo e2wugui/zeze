@@ -40,16 +40,23 @@ Hot replace relationalTable获得
 Hot Zeze服务保存的状态（一般是dynamic里面的bean）
 	1. Online.LocalData, Timer.CustomData
 	upgrade() { bb = current.encode(); Cl.Class.newInstance().deocde(bb); }
+	tlocal 实际上是内存表，这个表不能clear，只能升级。
 	2. Collections.LinkedMap
 	_tInnerTable.cache.clear();
 	_tInnerTable.BeanFactory.put(BeanName) & BeanFactory 使用 HotRedirect 能找到模块内的新的类。
 	* 【按我理解，替换的时候覆盖成新名字即可。确认？】
+怎么快速更新Cache（内存表）。
+内存表怎么让local_cache生效，可以让SoftReference生效。
+	setDirty永远不会true，并且不引用成strongDirtyValue，
+	这样SoftReference就能生效，看看有没有其他问题。
+	【关键点验证这个：内存表的dirty没什么意义，除了soft这里，checkpoint不会跟它打交道。】
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/25 v1.3.1 Hot; EventDispatcher; 
 ------------------------------------------------------------------------------------------------------------------------------
+TableX.walkCache 有Bug，SoftReference 被回收，会遍历不到。【由于内存表肯定是脏的，不会被切换出去，所以刚好可以工作】
 Bean.Hot 删除，以及删除名字相关的操作代码。
-Online模块：事件订阅（EventDispatch）
+Online模块：事件订阅（EventDispatcher）
 HotHandle Ok, HotClass 不缓存，直接依赖Cl的缓存即可。
 Test 热更后重新注册协议【重新注册已经确认，但没有测试协议生效】。
 Test 热更后Zeze里面Table的引用替换。
