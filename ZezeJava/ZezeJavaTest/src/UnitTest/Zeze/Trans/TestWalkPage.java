@@ -248,7 +248,7 @@ public class TestWalkPage {
 		var t = TestWalkPage.prepareTable();
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
-		t.walkCache((key, value) -> {
+		t.walkMemory((key, value) -> {
 			walkTimes.value += 1;
 			walkedKeys.add(key);
 			return true;

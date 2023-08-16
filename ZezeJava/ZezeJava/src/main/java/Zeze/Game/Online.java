@@ -268,7 +268,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public long walkLocal(@NotNull TableWalkHandle<Long, BLocal> walker) {
-		return _tlocal.walkCache(walker);
+		return _tlocal.walkMemory(walker);
 	}
 
 	public long getLoginTimes() {
@@ -1387,7 +1387,7 @@ public class Online extends AbstractOnline {
 
 	private void verifyLocal() {
 		var roleId = new OutLong();
-		_tlocal.walkCache((k, v) -> {
+		_tlocal.walkMemory((k, v) -> {
 			// 先得到roleId
 			roleId.value = k;
 			return true;

@@ -892,12 +892,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 *
 	 * @return count
 	 */
-	public final long walkCache(@NotNull TableWalkHandle<K, V> callback) {
-		return walkCache(callback, null);
+	public final long walkMemory(@NotNull TableWalkHandle<K, V> callback) {
+		return walkMemory(callback, null);
 	}
 
 	// 内存表遍历。
-	public final long walkCache(@NotNull TableWalkHandle<K, V> callback, @Nullable Runnable afterLock) {
+	public final long walkMemory(@NotNull TableWalkHandle<K, V> callback, @Nullable Runnable afterLock) {
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
 		if (storage != null)

@@ -187,7 +187,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public long walkLocal(@NotNull TableWalkHandle<String, BLocals> walker) {
-		return _tlocal.walkCache(walker);
+		return _tlocal.walkMemory(walker);
 	}
 
 	public long getLoginTimes() {
@@ -1332,7 +1332,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	private void verifyLocal() {
 		var account = new OutObject<String>();
-		_tlocal.walkCache((k, v) -> {
+		_tlocal.walkMemory((k, v) -> {
 			// 先得到roleId
 			account.value = k;
 			return true;
