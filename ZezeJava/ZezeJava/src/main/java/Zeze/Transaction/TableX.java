@@ -906,15 +906,22 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		int count = 0;
 		for (var entry : cache.getDataMap().entrySet()) {
 			var r = entry.getValue();
-			var lockey = getZeze().getLocks().get(new TableKey(getId(), entry.getKey()));
+			var tKey = new TableKey(getId(), entry.getKey());
+			var lockey = getZeze().getLocks().get(tKey);
 			lockey.enterReadLock();
 			try {
 				// 这个条件表示本地拥有读或写状态的才能遍历到。对于内存表，能看到全部。
 				if (r.getState() == StateShare || r.getState() == StateModify) {
 					@SuppressWarnings("unchecked")
 					var strongRef = (V)r.getSoftValue();
-					if (strongRef == null)
-						continue;
+					if (strongRef == null) {
+						strongRef = localRocksCacheTable.find(this, r.getObjectKey());
+						if (strongRef == null)
+							continue;
+						// 被交换出去的记录，装载以后临时用，不保存下来。
+						//strongRef.initRootInfo(r.createRootInfoIfNeed(tKey), null);
+						//r.setSoftValue(strongRef);
+					}
 					count++;
 					if (!callback.handle(r.getObjectKey(), strongRef))
 						break;
