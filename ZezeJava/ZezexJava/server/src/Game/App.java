@@ -7,6 +7,7 @@ import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
+import Zeze.Collections.LinkedMap;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Config;
@@ -33,6 +34,7 @@ public final class App extends Zeze.AppBase {
 	public ProviderWithOnline Provider;
 	public ProviderApp ProviderApp;
 	public ProviderDirectWithTransmit ProviderDirect;
+	public LinkedMap.Module LinkedMapModule;
 
 	public ProviderWithOnline getProvider() {
 		return Provider;
@@ -101,6 +103,7 @@ public final class App extends Zeze.AppBase {
 			System.exit(0);
 		}
 		taskModule = new TaskBase.Module(getZeze());
+		LinkedMapModule = new LinkedMap.Module(Zeze);
 
 		// start
 		Zeze.start(); // 启动数据库
@@ -145,8 +148,13 @@ public final class App extends Zeze.AppBase {
 			Provider.stop();
 		stopService(); // 关闭网络
 		stopModules(); // 关闭模块，卸载配置什么的。
-		if (Zeze != null)
+		if (Zeze != null) {
 			Zeze.stop(); // 关闭数据库
+			if (LinkedMapModule != null) {
+				LinkedMapModule.UnRegisterZezeTables(Zeze);
+				LinkedMapModule = null;
+			}
+		}
 		destroyModules();
 		destroyServices();
 		destroyZeze();

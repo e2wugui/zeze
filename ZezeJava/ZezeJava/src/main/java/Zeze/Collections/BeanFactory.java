@@ -47,13 +47,13 @@ public final class BeanFactory {
 		for (JarFile jf : hotModules)
 			reloadClassesFromJar(jf);
 
-		var hm = zeze.getHotManager();
+		var hotRedirect = zeze.getHotManager().getHotRedirect();
 		for (BeanFactory bf : beanFactories) {
 			synchronized (bf.writingBeanFactory) {
 				bf.writingBeanFactory.foreach((typeId, beanCtor) -> {
 					try {
 						var className = ((Bean)beanCtor.invoke()).getClass().getName();
-						bf.register(typeId, Reflect.getDefaultConstructor(hm.loadClass(className)));
+						bf.register(typeId, Reflect.getDefaultConstructor(hotRedirect.loadClass(className)));
 					} catch (Throwable e) { // MethodHandle.invoke
 						Task.forceThrow(e);
 					}
@@ -64,7 +64,7 @@ public final class BeanFactory {
 				bf.writingDataFactory.foreach((typeId, dataCtor) -> {
 					try {
 						var className = ((Data)dataCtor.invoke()).getClass().getName();
-						bf.registerData(typeId, Reflect.getDefaultConstructor(hm.loadClass(className)));
+						bf.registerData(typeId, Reflect.getDefaultConstructor(hotRedirect.loadClass(className)));
 					} catch (Throwable e) { // MethodHandle.invoke
 						Task.forceThrow(e);
 					}
@@ -210,7 +210,10 @@ public final class BeanFactory {
 				return (Class<? extends Bean>)obj;
 			if (obj instanceof String) {
 				try {
-					var cls = Class.forName((String)obj, true, zeze.getHotManager());
+					var cls = null == zeze || null == zeze.getHotManager()
+							? Class.forName((String)obj)
+							: Class.forName((String)obj, true, zeze.getHotManager().getHotRedirect());
+
 					if (Bean.class.isAssignableFrom(cls))
 						allClassNameMap.put(typeId, cls);
 					else {

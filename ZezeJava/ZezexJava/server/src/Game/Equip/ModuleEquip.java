@@ -22,15 +22,24 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		var version = new OutInt(0);
 		//*
 		App.Zeze.newProcedure(() -> {
-					var record = _tHotTest.getOrAdd(1L);
-					record.setAttack(record.getAttack() + 1);
-					version.value = record.getAttack();
-					// 由于没有真正登录的role，
-					// 这里roleId==1L需要修改Zeze.Game.Online.setLocalBean里面的
-					// _tlocal.get为_tlocal.getOrAdd才能测试。
-					// App.Provider.getOnline().setLocalBean(1L, "RetreatTestLocal", new BRetreatTestLocal());
-					return 0;
-				}, "").call();
+			var record = _tHotTest.getOrAdd(1L);
+			record.setAttack(record.getAttack() + 1);
+			version.value = record.getAttack();
+			// 由于没有真正登录的role，
+			// 这里roleId==1L需要修改Zeze.Game.Online.setLocalBean里面的
+			// _tlocal.get为_tlocal.getOrAdd才能测试。
+			// App.Provider.getOnline().setLocalBean(1L, "RetreatTestLocal", new BRetreatTestLocal());
+
+			var linkedMap = App.LinkedMapModule.open("ZezexJava.HotTest", BEquipExtra.class);
+			var version0 = linkedMap.getOrAdd(String.valueOf(0));
+			version0.setAttack(5555);
+			System.out.println(version0);
+			var versionN = linkedMap.getOrAdd(String.valueOf(version.value));
+			versionN.setAttack(version.value);
+			System.out.println(versionN);
+			return 0;
+		}, "").call();
+
 		// */
 		System.out.println("hot hello world. " + version.value);
 		return version.value;
