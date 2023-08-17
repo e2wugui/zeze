@@ -3,6 +3,8 @@ package Zeze.Collections;
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.util.List;
+import java.util.jar.JarFile;
 import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -17,22 +19,19 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import java.util.jar.JarFile;
 
 public final class BeanFactory {
 	private static final Logger logger = LogManager.getLogger(BeanFactory.class);
 	private static final LongHashMap<Object> allClassNameMap = new LongHashMap<>();
 	private static final LongHashMap<Object> allDataClassNameMap = new LongHashMap<>();
+	private static Application zeze;
 
 	private final LongHashMap<MethodHandle> writingBeanFactory = new LongHashMap<>();
 	private volatile @Nullable LongHashMap<MethodHandle> readingBeanFactory;
 	private final LongHashMap<MethodHandle> writingDataFactory = new LongHashMap<>();
 	private volatile @Nullable LongHashMap<MethodHandle> readingDataFactory;
 
-	private static Application zeze;
-
-	public static void setApplication(Application zeze) {
+	public static void setApplication(@NotNull Application zeze) {
 		BeanFactory.zeze = zeze;
 	}
 
@@ -41,10 +40,38 @@ public final class BeanFactory {
 	 * 【Bean 只会修改或增加，不会删除，内部实现时采取put方式即可。】
 	 *
 	 * @param beanFactories 相关的 BeanFactories
-	 * @param hotModules 相关的 HotModule's JarFile
+	 * @param hotModules    相关的 HotModule's JarFile
 	 */
-	public static void resetHot(List<BeanFactory> beanFactories, List<JarFile> hotModules) {
+	public static void resetHot(@NotNull List<BeanFactory> beanFactories, @NotNull List<JarFile> hotModules)
+			throws IOException {
+		for (JarFile jf : hotModules)
+			reloadClassesFromJar(jf);
 
+		var hm = zeze.getHotManager();
+		for (BeanFactory bf : beanFactories) {
+			synchronized (bf.writingBeanFactory) {
+				bf.writingBeanFactory.foreach((typeId, beanCtor) -> {
+					try {
+						var className = ((Bean)beanCtor.invoke()).getClass().getName();
+						bf.register(typeId, Reflect.getDefaultConstructor(hm.loadClass(className)));
+					} catch (Throwable e) { // MethodHandle.invoke
+						Task.forceThrow(e);
+					}
+				});
+				bf.readingBeanFactory = null;
+			}
+			synchronized (bf.writingDataFactory) {
+				bf.writingDataFactory.foreach((typeId, dataCtor) -> {
+					try {
+						var className = ((Data)dataCtor.invoke()).getClass().getName();
+						bf.registerData(typeId, Reflect.getDefaultConstructor(hm.loadClass(className)));
+					} catch (Throwable e) { // MethodHandle.invoke
+						Task.forceThrow(e);
+					}
+				});
+				bf.readingDataFactory = null;
+			}
+		}
 	}
 
 	/**
@@ -95,12 +122,26 @@ public final class BeanFactory {
 		return n;
 	}
 
+	public static int reloadClassesFromJar(@NotNull JarFile jarFile) throws IOException {
+		var timeBegin = System.nanoTime();
+		int n = 0;
+		synchronized (allClassNameMap) {
+			for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
+				reloadClassName(cn);
+				n++;
+			}
+		}
+		logger.info("reloaded {} class names from jar '{}' ({} ms)",
+				n, jarFile, (System.nanoTime() - timeBegin) / 1_000_000);
+		return n;
+	}
+
 	@SuppressWarnings("deprecation")
 	private static boolean loadClass(String className) {
 		try {
 			long typeId;
 			Object oldObj;
-			var cls = Class.forName(className);
+			var cls = Class.forName(className, true, zeze.getHotManager());
 			if (Bean.class.isAssignableFrom(cls)) {
 				typeId = ((Bean)cls.newInstance()).typeId();
 				oldObj = allClassNameMap.put(typeId, cls);
@@ -145,6 +186,19 @@ public final class BeanFactory {
 		return true;
 	}
 
+	private static void reloadClassName(String className) {
+		long typeId;
+		LongHashMap<Object> classNameMap;
+		if (className.endsWith("$Data")) {
+			typeId = Bean.hash64(className.substring(0, className.length() - 5));
+			classNameMap = allDataClassNameMap;
+		} else {
+			typeId = Bean.hash64(className);
+			classNameMap = allClassNameMap;
+		}
+		classNameMap.put(typeId, className);
+	}
+
 	/**
 	 * 获取指定typeId的Bean类,如果之前未用loadClasses加载过,会自动加载所有类路径中的所有类(不初始化类)
 	 */
@@ -156,7 +210,7 @@ public final class BeanFactory {
 				return (Class<? extends Bean>)obj;
 			if (obj instanceof String) {
 				try {
-					var cls = Class.forName((String)obj);
+					var cls = Class.forName((String)obj, true, zeze.getHotManager());
 					if (Bean.class.isAssignableFrom(cls))
 						allClassNameMap.put(typeId, cls);
 					else {
@@ -185,7 +239,7 @@ public final class BeanFactory {
 				return (Class<? extends Data>)obj;
 			if (obj instanceof String) {
 				try {
-					var cls = Class.forName((String)obj);
+					var cls = Class.forName((String)obj, true, zeze.getHotManager());
 					if (Data.class.isAssignableFrom(cls))
 						allDataClassNameMap.put(typeId, cls);
 					else {
@@ -224,13 +278,13 @@ public final class BeanFactory {
 		}
 		if (s instanceof Bean) {
 			synchronized (writingBeanFactory) {
-				if (writingBeanFactory.putIfAbsent(s.typeId(), ctor) == null)
-					readingBeanFactory = null;
+				writingBeanFactory.put(s.typeId(), ctor);
+				readingBeanFactory = null;
 			}
 		} else if (s instanceof Data) {
 			synchronized (writingDataFactory) {
-				if (writingDataFactory.putIfAbsent(s.typeId(), ctor) == null)
-					readingDataFactory = null;
+				writingDataFactory.put(s.typeId(), ctor);
+				readingDataFactory = null;
 			}
 		} else
 			throw new IllegalArgumentException("not Bean or Data: " + s.getClass().getName());

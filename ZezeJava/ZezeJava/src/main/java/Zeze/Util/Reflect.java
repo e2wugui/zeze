@@ -154,13 +154,17 @@ public class Reflect {
 	}
 
 	public static @NotNull ArrayList<String> collectClassNamesFromJar(String jarFile) throws IOException {
-		var classNames = new ArrayList<String>();
 		try (var jf = new JarFile(jarFile)) {
-			for (var e = jf.entries(); e.hasMoreElements(); ) {
-				var fn = e.nextElement().getName();
-				if (fn.endsWith(".class") && !fn.startsWith("META-INF/") && !fn.endsWith("module-info.class"))
-					classNames.add(fn.substring(0, fn.length() - 6).replace('/', '.'));
-			}
+			return collectClassNamesFromJar(jf);
+		}
+	}
+
+	public static @NotNull ArrayList<String> collectClassNamesFromJar(JarFile jarFile) throws IOException {
+		var classNames = new ArrayList<String>();
+		for (var e = jarFile.entries(); e.hasMoreElements(); ) {
+			var fn = e.nextElement().getName();
+			if (fn.endsWith(".class") && !fn.startsWith("META-INF/") && !fn.endsWith("module-info.class"))
+				classNames.add(fn.substring(0, fn.length() - 6).replace('/', '.'));
 		}
 		return classNames;
 	}
