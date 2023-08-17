@@ -43,6 +43,13 @@ public class DepartmentTree<
 	}
 
 	@Override
+	public void processWithNewClasses(java.util.List<Class<?>> newClasses) {
+		for (var cls : newClasses) {
+			tryRecordHotModule(cls);
+		}
+	}
+
+	@Override
 	public boolean hasFreshStopModuleDynamicOnce() {
 		var tmp = freshStopModuleDynamic;
 		freshStopModuleDynamic = false;

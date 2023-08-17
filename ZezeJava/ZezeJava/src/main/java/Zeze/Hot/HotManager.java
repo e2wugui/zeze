@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -230,12 +231,16 @@ public class HotManager extends ClassLoader {
 			for (var hotUpgrade : freshHotUpgrades)
 				hotUpgrade.upgrade((bean) -> retreat(exists, result, bean));
 			app.getZeze().checkpointRun();
-			var beanFactories = new ArrayList<BeanFactory>();
+			var beanFactories = new HashMap<BeanFactory, List<Class<?>>>();
 			for (var hotBeanFactory : freshHotBeanFactories) {
 				hotBeanFactory.clearTableCache();
-				beanFactories.add(hotBeanFactory.beanFactory());
+				beanFactories.put(hotBeanFactory.beanFactory(), new ArrayList<>());
 			}
 			BeanFactory.resetHot(beanFactories, hotJarFiles);
+			for (var hotBeanFactory : freshHotBeanFactories) {
+				hotBeanFactory.processWithNewClasses(beanFactories.get(hotBeanFactory.beanFactory()));
+			}
+
 			// start ordered
 			for (var module : result)
 				module.start();

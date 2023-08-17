@@ -39,6 +39,13 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	}
 
 	@Override
+	public void processWithNewClasses(java.util.List<Class<?>> newClasses) {
+		for (var cls : newClasses) {
+			tryRecordHotModule(cls);
+		}
+	}
+
+	@Override
 	public void clearTableCache() {
 		module._tQueueNodes.__ClearTableCacheUnsafe__();
 	}

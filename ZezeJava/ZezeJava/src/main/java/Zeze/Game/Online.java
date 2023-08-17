@@ -118,6 +118,22 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		_tonline.__ClearTableCacheUnsafe__();
 	}
 
+	private void tryRecordHotModule(Class<?> customClass) {
+		var cl = customClass.getClassLoader();
+		if (HotManager.isHotModule(cl)) {
+			var hotModule = (HotModule)cl;
+			hotModule.stopEvents.add(this::onHotModuleStop);
+			hotModulesHaveDynamic.add(hotModule);
+		}
+	}
+
+	@Override
+	public void processWithNewClasses(java.util.List<Class<?>> newClasses) {
+		for (var cls : newClasses) {
+			tryRecordHotModule(cls);
+		}
+	}
+
 	@Override
 	public BeanFactory beanFactory() {
 		return beanFactory;
@@ -302,6 +318,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (null != hotManager) {
 			hotManager.addHotUpgrade(this);
 			hotManager.addHotBeanFactory(this);
+			beanFactory.registerWatch(this::tryRecordHotModule);
 		}
 	}
 
@@ -310,6 +327,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (null != hotManager) {
 			hotManager.removeHotUpgrade(this);
 			hotManager.removeHotBeanFactory(this);
+			beanFactory.unregisterWatch(this::tryRecordHotModule);
 		}
 
 		// default online 负责停止所有的online set。

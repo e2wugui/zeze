@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 import java.util.jar.JarFile;
 import Zeze.Application;
 import Zeze.Net.Binary;
@@ -12,6 +14,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.EmptyBean;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
@@ -30,6 +33,21 @@ public final class BeanFactory {
 	private volatile @Nullable LongHashMap<MethodHandle> readingBeanFactory;
 	private final LongHashMap<MethodHandle> writingDataFactory = new LongHashMap<>();
 	private volatile @Nullable LongHashMap<MethodHandle> readingDataFactory;
+	private final ConcurrentHashSet<Consumer<Class<?>>> globalToLocalWachers = new ConcurrentHashSet<>();
+
+	public void registerWatch(Consumer<Class<?>> consumer) {
+		globalToLocalWachers.add(consumer);
+	}
+
+	public void unregisterWatch(Consumer<Class<?>> consumer) {
+		globalToLocalWachers.remove(consumer);
+	}
+
+	private void notifyAllWatcher(Class<?> cls) {
+		for (var consumer : globalToLocalWachers) {
+			consumer.accept(cls);
+		}
+	}
 
 	public static void setApplication(@NotNull Application zeze) {
 		BeanFactory.zeze = zeze;
@@ -51,38 +69,37 @@ public final class BeanFactory {
 	 * @param beanFactories 相关的 BeanFactories
 	 * @param hotModules    相关的 HotModule's JarFile
 	 */
-	public static void resetHot(@NotNull List<BeanFactory> beanFactories, @NotNull List<JarFile> hotModules)
+	public static void resetHot(@NotNull Map<BeanFactory, List<Class<?>>> beanFactories, @NotNull List<JarFile> hotModules)
 			throws IOException {
 		for (JarFile jf : hotModules)
 			reloadClassesFromJar(jf);
 
 		var hotRedirect = zeze.getHotManager().getHotRedirect();
-		for (BeanFactory bf : beanFactories) {
+		for (var e : beanFactories.entrySet()) {
+			var bf = e.getKey();
 			synchronized (bf.writingBeanFactory) {
-				//var newWriting = new LongHashMap<MethodHandle>();
 				bf.writingBeanFactory.foreach((typeId, beanCtor) -> {
 					try {
 						var beanClass = ((Bean)beanCtor.invoke()).getClass();
 						var className = beanClass.getName();
-						//System.out.println(beanClass.getName() + " ======3===3========= " + beanClass.getClassLoader());
 						var beanNewClass = hotRedirect.loadClass(className);
-						//System.out.println(beanNewClass.getName() + " =====4======5======= " + beanNewClass.getClassLoader());
-						//newWriting.put(typeId, Reflect.getDefaultConstructor(beanNewClass));
+						e.getValue().add(beanNewClass);
 						bf.writingBeanFactory.put(typeId, Reflect.getDefaultConstructor(beanNewClass));
-					} catch (Throwable e) { // MethodHandle.invoke
-						Task.forceThrow(e);
+					} catch (Throwable ex) { // MethodHandle.invoke
+						Task.forceThrow(ex);
 					}
 				});
-				//bf.writingBeanFactory.putAll(newWriting);
 				bf.readingBeanFactory = null;
 			}
 			synchronized (bf.writingDataFactory) {
 				bf.writingDataFactory.foreach((typeId, dataCtor) -> {
 					try {
 						var className = ((Data)dataCtor.invoke()).getClass().getName();
-						bf.writingDataFactory.put(typeId, Reflect.getDefaultConstructor(hotRedirect.loadClass(className)));
-					} catch (Throwable e) { // MethodHandle.invoke
-						Task.forceThrow(e);
+						var beanNewClass = hotRedirect.loadClass(className);
+						e.getValue().add(beanNewClass);
+						bf.writingDataFactory.put(typeId, Reflect.getDefaultConstructor(beanNewClass));
+					} catch (Throwable ex) { // MethodHandle.invoke
+						Task.forceThrow(ex);
 					}
 				});
 				bf.readingDataFactory = null;
@@ -357,9 +374,7 @@ public final class BeanFactory {
 			}
 			var beanCtor = factory.get(typeId);
 			if (beanCtor != null) {
-				var bean = (Bean)beanCtor.invoke();
-				//System.out.println(bean.getClass().getName() + " ====1=====1====== " + bean.getClass().getClassLoader());
-				return bean;
+				return (Bean)beanCtor.invoke();
 			}
 			var cls = findClass(typeId);
 			if (cls == null) {
@@ -372,6 +387,7 @@ public final class BeanFactory {
 			var beanTypeId = bean.typeId();
 			if (beanTypeId != typeId)
 				throw new UnsupportedOperationException("unmatched bean typeId: " + beanTypeId + " != " + typeId);
+			notifyAllWatcher(cls);
 			register(beanTypeId, beanCtor);
 			//System.out.println(bean.getClass().getName() + " ========2==2===== " + bean.getClass().getClassLoader());
 			return bean;

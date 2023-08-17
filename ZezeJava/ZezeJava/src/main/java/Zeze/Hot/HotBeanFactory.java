@@ -15,4 +15,5 @@ public interface HotBeanFactory {
 	void clearTableCache();
 	BeanFactory beanFactory();
 	boolean hasFreshStopModuleDynamicOnce();
+	void processWithNewClasses(java.util.List<Class<?>> newClasses);
 }
