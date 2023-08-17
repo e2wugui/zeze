@@ -780,7 +780,7 @@ namespace Zeze.Services.ToLuaService2
                     Lua.LuaL_unref(luaState, Lua.LuaRegistryIndex, cacheRef);
                 }
                 else
-                    Lua.CreateTable(luaState, 0, 8);    
+                    Lua.CreateTable(luaState, 0, 8);
             }
 
             if (service is IFromLua2 fromLua) // 必须是，不报错了。
@@ -1251,6 +1251,7 @@ namespace Zeze.Services.ToLuaService2
                 meta.cacheRefPool = pool = new List<int>();
             else if (pool.Count >= 1000)
                 return false;
+            CleanLuaTable(luaState);
             Lua.PushValue(luaState, -1); // [protoTable, protoTable]
             pool.Add(Lua.LuaL_ref(luaState, Lua.LuaRegistryIndex)); // [protoTable]
             return true;
