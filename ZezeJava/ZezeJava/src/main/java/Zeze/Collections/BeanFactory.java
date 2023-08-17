@@ -33,20 +33,19 @@ public final class BeanFactory {
 	private volatile @Nullable LongHashMap<MethodHandle> readingBeanFactory;
 	private final LongHashMap<MethodHandle> writingDataFactory = new LongHashMap<>();
 	private volatile @Nullable LongHashMap<MethodHandle> readingDataFactory;
-	private final ConcurrentHashSet<Consumer<Class<?>>> globalToLocalWachers = new ConcurrentHashSet<>();
+	private final ConcurrentHashSet<Consumer<Class<?>>> globalToLocalWatchers = new ConcurrentHashSet<>();
 
 	public void registerWatch(Consumer<Class<?>> consumer) {
-		globalToLocalWachers.add(consumer);
+		globalToLocalWatchers.add(consumer);
 	}
 
 	public void unregisterWatch(Consumer<Class<?>> consumer) {
-		globalToLocalWachers.remove(consumer);
+		globalToLocalWatchers.remove(consumer);
 	}
 
 	private void notifyAllWatcher(Class<?> cls) {
-		for (var consumer : globalToLocalWachers) {
+		for (var consumer : globalToLocalWatchers)
 			consumer.accept(cls);
-		}
 	}
 
 	public static void setApplication(@NotNull Application zeze) {
@@ -69,37 +68,37 @@ public final class BeanFactory {
 	 * @param beanFactories 相关的 BeanFactories
 	 * @param hotModules    相关的 HotModule's JarFile
 	 */
-	public static void resetHot(@NotNull Map<BeanFactory, List<Class<?>>> beanFactories, @NotNull List<JarFile> hotModules)
-			throws IOException {
+	public static void resetHot(@NotNull Map<BeanFactory, List<Class<?>>> beanFactories,
+								@NotNull List<JarFile> hotModules) throws IOException {
 		for (JarFile jf : hotModules)
 			reloadClassesFromJar(jf);
 
 		var hotRedirect = zeze.getHotManager().getHotRedirect();
 		for (var e : beanFactories.entrySet()) {
 			var bf = e.getKey();
+			var classes = e.getValue();
 			synchronized (bf.writingBeanFactory) {
-				bf.writingBeanFactory.foreach((typeId, beanCtor) -> {
+				bf.writingBeanFactory.foreachUpdate((typeId, beanCtor) -> {
 					try {
-						var beanClass = ((Bean)beanCtor.invoke()).getClass();
-						var className = beanClass.getName();
-						var beanNewClass = hotRedirect.loadClass(className);
-						e.getValue().add(beanNewClass);
-						bf.writingBeanFactory.put(typeId, Reflect.getDefaultConstructor(beanNewClass));
+						var beanNewClass = hotRedirect.loadClass(((Bean)beanCtor.invoke()).getClass().getName());
+						classes.add(beanNewClass);
+						return Reflect.getDefaultConstructor(beanNewClass);
 					} catch (Throwable ex) { // MethodHandle.invoke
 						Task.forceThrow(ex);
+						throw new AssertionError(); // never run here
 					}
 				});
 				bf.readingBeanFactory = null;
 			}
 			synchronized (bf.writingDataFactory) {
-				bf.writingDataFactory.foreach((typeId, dataCtor) -> {
+				bf.writingDataFactory.foreachUpdate((typeId, dataCtor) -> {
 					try {
-						var className = ((Data)dataCtor.invoke()).getClass().getName();
-						var beanNewClass = hotRedirect.loadClass(className);
-						e.getValue().add(beanNewClass);
-						bf.writingDataFactory.put(typeId, Reflect.getDefaultConstructor(beanNewClass));
+						var beanNewClass = hotRedirect.loadClass(((Data)dataCtor.invoke()).getClass().getName());
+						classes.add(beanNewClass);
+						return Reflect.getDefaultConstructor(beanNewClass);
 					} catch (Throwable ex) { // MethodHandle.invoke
 						Task.forceThrow(ex);
+						throw new AssertionError(); // never run here
 					}
 				});
 				bf.readingDataFactory = null;
@@ -314,13 +313,13 @@ public final class BeanFactory {
 		}
 		if (s instanceof Bean) {
 			synchronized (writingBeanFactory) {
-				writingBeanFactory.put(s.typeId(), ctor);
-				readingBeanFactory = null;
+				if (writingBeanFactory.put(s.typeId(), ctor) != ctor)
+					readingBeanFactory = null;
 			}
 		} else if (s instanceof Data) {
 			synchronized (writingDataFactory) {
-				writingDataFactory.put(s.typeId(), ctor);
-				readingDataFactory = null;
+				if (writingDataFactory.put(s.typeId(), ctor) != ctor)
+					readingDataFactory = null;
 			}
 		} else
 			throw new IllegalArgumentException("not Bean or Data: " + s.getClass().getName());
@@ -331,13 +330,13 @@ public final class BeanFactory {
 		var ctor = Reflect.getDefaultConstructor(s.getClass());
 		if (s instanceof Bean) {
 			synchronized (writingBeanFactory) {
-				writingBeanFactory.put(s.typeId(), ctor);
-				readingBeanFactory = null;
+				if (writingBeanFactory.put(s.typeId(), ctor) != ctor)
+					readingBeanFactory = null;
 			}
 		} else if (s instanceof Data) {
 			synchronized (writingDataFactory) {
-				writingDataFactory.put(s.typeId(), ctor);
-				readingDataFactory = null;
+				if (writingDataFactory.put(s.typeId(), ctor) != ctor)
+					readingDataFactory = null;
 			}
 		} else
 			throw new IllegalArgumentException("not Bean or Data: " + s.getClass().getName());
@@ -346,14 +345,14 @@ public final class BeanFactory {
 
 	private void register(long typeId, @NotNull MethodHandle beanCtor) {
 		synchronized (writingBeanFactory) {
-			if (writingBeanFactory.putIfAbsent(typeId, beanCtor) == null)
+			if (writingBeanFactory.put(typeId, beanCtor) != beanCtor)
 				readingBeanFactory = null;
 		}
 	}
 
 	private void registerData(long typeId, @NotNull MethodHandle dataCtor) {
 		synchronized (writingDataFactory) {
-			if (writingDataFactory.putIfAbsent(typeId, dataCtor) == null)
+			if (writingDataFactory.put(typeId, dataCtor) != dataCtor)
 				readingDataFactory = null;
 		}
 	}
@@ -373,9 +372,8 @@ public final class BeanFactory {
 				}
 			}
 			var beanCtor = factory.get(typeId);
-			if (beanCtor != null) {
+			if (beanCtor != null)
 				return (Bean)beanCtor.invoke();
-			}
 			var cls = findClass(typeId);
 			if (cls == null) {
 				if (typeId != EmptyBean.TYPEID)
@@ -389,7 +387,6 @@ public final class BeanFactory {
 				throw new UnsupportedOperationException("unmatched bean typeId: " + beanTypeId + " != " + typeId);
 			notifyAllWatcher(cls);
 			register(beanTypeId, beanCtor);
-			//System.out.println(bean.getClass().getName() + " ========2==2===== " + bean.getClass().getClassLoader());
 			return bean;
 		} catch (Throwable e) { // MethodHandle.invoke
 			Task.forceThrow(e);
@@ -422,6 +419,7 @@ public final class BeanFactory {
 			var dataTypeId = data.typeId();
 			if (dataTypeId != typeId)
 				throw new UnsupportedOperationException("unmatched data typeId: " + dataTypeId + " != " + typeId);
+			notifyAllWatcher(cls);
 			registerData(dataTypeId, dataCtor);
 			return data;
 		} catch (Throwable e) { // MethodHandle.invoke
