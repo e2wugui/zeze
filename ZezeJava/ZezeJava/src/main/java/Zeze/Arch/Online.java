@@ -73,15 +73,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	private final EventDispatcher localRemoveEvents;
 
 	// 缓存拥有Local数据的HotModule，用来优化。
-	private final ConcurrentHashSet<HotModule> hotModuleThatHasLocal = new ConcurrentHashSet<>();
+	private final ConcurrentHashSet<HotModule> hotModulesHaveLocal = new ConcurrentHashSet<>();
 	private boolean freshStopModule = false;
 
 	private void onHotModuleStop(HotModule hot) {
-		freshStopModule |= hotModuleThatHasLocal.remove(hot) != null;
+		freshStopModule |= hotModulesHaveLocal.remove(hot) != null;
 	}
 
 	@Override
-	public boolean hasFreshStopModuleOnce() {
+	public boolean hasFreshStopModuleLocalOnce() {
 		var tmp = freshStopModule;
 		freshStopModule = false;
 		return tmp;
@@ -102,7 +102,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	@Override
-	public void upgrade(ArrayList<HotModule> removes, ArrayList<HotModule> currents, Function<Bean, Bean> retreatFunc) {
+	public void upgrade(Function<Bean, Bean> retreatFunc) {
 		// 如果需要，重建_tlocal内存表的用户设置的bean。
 		var retreats = new ArrayList<Retreat>();
 		_tlocal.walkMemory((account, locals) -> {
@@ -286,7 +286,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var hotModule = (HotModule)bean.getClass().getClassLoader();
 			Transaction.whileCommit(() -> {
 				hotModule.stopEvents.add(this::onHotModuleStop);
-				hotModuleThatHasLocal.add(hotModule);
+				hotModulesHaveLocal.add(hotModule);
 			});
 		}
 		login.getDatas().put(key, bAny);
@@ -328,7 +328,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var hotModule = (HotModule)defaultHint.getClass().getClassLoader();
 			Transaction.whileCommit(() -> {
 				hotModule.stopEvents.add(this::onHotModuleStop);
-				hotModuleThatHasLocal.add(hotModule);
+				hotModulesHaveLocal.add(hotModule);
 			});
 		}
 		return defaultHint;

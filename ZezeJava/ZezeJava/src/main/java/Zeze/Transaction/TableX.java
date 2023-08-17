@@ -1019,4 +1019,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (dbTable instanceof DatabaseMySql.TableMysqlRelational)
 			((DatabaseMySql.TableMysqlRelational)dbTable).tryAlter();
 	}
+
+	/**
+	 * 内部方法，必须在checkpoint之后并且没有正在执行的事务才是安全的。
+ 	 */
+	public void __ClearTableCacheUnsafe__() {
+		// 直接new一个更加干净。
+		cache = new TableCache<>(getZeze(), this);
+	}
 }

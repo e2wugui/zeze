@@ -1,13 +1,18 @@
 package Zeze.Collections;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.Queue.BQueueNode;
 import Zeze.Builtin.Collections.Queue.BQueueNodeKey;
 import Zeze.Builtin.Collections.Queue.BQueueNodeValue;
+import Zeze.Hot.HotBeanFactory;
+import Zeze.Hot.HotManager;
+import Zeze.Hot.HotModule;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
+import Zeze.Util.ConcurrentHashSet;
 
-public class Queue<V extends Bean> {
+public class Queue<V extends Bean> implements HotBeanFactory {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long getSpecialTypeIdFromBean(Bean bean) {
@@ -16,6 +21,39 @@ public class Queue<V extends Bean> {
 
 	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
+	}
+
+	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
+	private boolean freshStopModuleDynamic = false;
+
+	private void onHotModuleStop(HotModule hot) {
+		freshStopModuleDynamic |= hotModulesHaveDynamic.remove(hot) != null;
+	}
+
+	private void tryRecordHotModule(Class<?> customClass) {
+		var cl = customClass.getClassLoader();
+		if (HotManager.isHotModule(cl)) {
+			var hotModule = (HotModule)cl;
+			hotModule.stopEvents.add(this::onHotModuleStop);
+			hotModulesHaveDynamic.add(hotModule);
+		}
+	}
+
+	@Override
+	public void clearTableCache() {
+		module._tQueueNodes.__ClearTableCacheUnsafe__();
+	}
+
+	@Override
+	public BeanFactory beanFactory() {
+		return beanFactory;
+	}
+
+	@Override
+	public boolean hasFreshStopModuleDynamicOnce() {
+		var tmp = freshStopModuleDynamic;
+		freshStopModuleDynamic = false;
+		return tmp;
 	}
 
 	public static class Module extends AbstractQueue {

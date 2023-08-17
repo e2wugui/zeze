@@ -40,6 +40,10 @@ public class HotModule extends ClassLoader {
 		return jar.getName();
 	}
 
+	JarFile getJarFile() {
+		return jar;
+	}
+
 	Class<?> getModuleClass() {
 		return moduleClass;
 	}

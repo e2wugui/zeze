@@ -1,10 +1,15 @@
 package Zeze.Collections;
 
 import java.lang.invoke.MethodHandle;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.DepartmentTree.*;
+import Zeze.Hot.HotBeanFactory;
+import Zeze.Hot.HotManager;
+import Zeze.Hot.HotModule;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.OutLong;
 
 public class DepartmentTree<
@@ -12,7 +17,7 @@ public class DepartmentTree<
 		TMember extends Bean,
 		TDepartmentMember extends Bean,
 		TGroupData extends Bean,
-		TDepartmentData extends Bean> {
+		TDepartmentData extends Bean> implements HotBeanFactory {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long getSpecialTypeIdFromBean(Bean bean) {
@@ -23,20 +28,54 @@ public class DepartmentTree<
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
+	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
+	private boolean freshStopModuleDynamic = false;
+
+	private void onHotModuleStop(HotModule hot) {
+		freshStopModuleDynamic |= hotModulesHaveDynamic.remove(hot) != null;
+	}
+
+	private void tryRecordHotModule(Class<?> customClass) {
+		var cl = customClass.getClassLoader();
+		if (HotManager.isHotModule(cl)) {
+			var hotModule = (HotModule)cl;
+			hotModule.stopEvents.add(this::onHotModuleStop);
+			hotModulesHaveDynamic.add(hotModule);
+		}
+	}
+
+	@Override
+	public boolean hasFreshStopModuleDynamicOnce() {
+		var tmp = freshStopModuleDynamic;
+		freshStopModuleDynamic = false;
+		return tmp;
+	}
+
+	@Override
+	public void clearTableCache() {
+		module._tDepartment.__ClearTableCacheUnsafe__();
+		module._tDepartmentTree.__ClearTableCacheUnsafe__();
+	}
+
+	@Override
+	public BeanFactory beanFactory() {
+		return beanFactory;
+	}
+
 	public static class Module extends AbstractDepartmentTree {
-		private final ConcurrentHashMap<String, DepartmentTree<?, ?, ?, ?, ?>> Trees = new ConcurrentHashMap<>();
-		public final Zeze.Application Zeze;
-		public final LinkedMap.Module LinkedMaps;
+		private final ConcurrentHashMap<String, DepartmentTree<?, ?, ?, ?, ?>> trees = new ConcurrentHashMap<>();
+		public final Zeze.Application zeze;
+		public final LinkedMap.Module linkedMaps;
 
 		public Module(Zeze.Application zeze, LinkedMap.Module linkedMapModule) {
-			Zeze = zeze;
+			this.zeze = zeze;
 			RegisterZezeTables(zeze);
-			LinkedMaps = linkedMapModule;
+			linkedMaps = linkedMapModule;
 		}
 
 		@Override
 		public void UnRegister() {
-			UnRegisterZezeTables(Zeze);
+			UnRegisterZezeTables(zeze);
 		}
 
 		@SuppressWarnings("unchecked")
@@ -58,7 +97,7 @@ public class DepartmentTree<
 					TDepartmentMember,
 					TGroupData,
 					TDepartmentData>)
-					Trees.computeIfAbsent(name,
+					trees.computeIfAbsent(name,
 							k -> new DepartmentTree<>(this, k,
 									managerClass,
 									memberClass,
@@ -84,6 +123,17 @@ public class DepartmentTree<
 						   Class<TDepartmentMember> departmentMemberClass,
 						   Class<TGroupData> groupDataClass,
 						   Class<TDepartmentData> departmentDataClass) {
+
+		var hotManager = module.zeze.getHotManager();
+		if (null != hotManager) {
+			hotManager.addHotBeanFactory(this);
+			tryRecordHotModule(managerClass);
+			tryRecordHotModule(memberClass);
+			tryRecordHotModule(departmentMemberClass);
+			tryRecordHotModule(groupDataClass);
+			tryRecordHotModule(departmentDataClass);
+		}
+
 		this.module = module;
 		this.name = name;
 		this.managerConstructor = beanFactory.register(managerClass);
@@ -92,6 +142,7 @@ public class DepartmentTree<
 		//this.managerClass = managerClass;
 		this.memberClass = memberClass;
 		this.departmentMemberClass = departmentMemberClass;
+
 	}
 
 	public String getName() {
@@ -193,11 +244,11 @@ public class DepartmentTree<
 	public LinkedMap<TDepartmentMember> getDepartmentMembers(long departmentId) {
 		if (departmentId == 0)
 			throw new IllegalArgumentException("root can not access use this method.");
-		return module.LinkedMaps.open(departmentId + "@" + name, departmentMemberClass);
+		return module.linkedMaps.open(departmentId + "@" + name, departmentMemberClass);
 	}
 
 	public LinkedMap<TMember> getGroupMembers() {
-		return module.LinkedMaps.open("0@" + name, memberClass);
+		return module.linkedMaps.open("0@" + name, memberClass);
 	}
 
 	public BDepartmentRoot selectRoot() {

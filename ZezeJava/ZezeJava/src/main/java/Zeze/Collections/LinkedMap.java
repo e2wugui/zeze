@@ -1,6 +1,7 @@
 package Zeze.Collections;
 
 import java.lang.invoke.MethodHandle;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.LinkedMap.BClearJobState;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMap;
@@ -10,17 +11,21 @@ import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue;
 import Zeze.Component.DelayRemove;
+import Zeze.Hot.HotBeanFactory;
+import Zeze.Hot.HotManager;
+import Zeze.Hot.HotModule;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.ChangeListener;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.TableWalkHandle;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.OutLong;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class LinkedMap<V extends Bean> {
+public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	public static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long getSpecialTypeIdFromBean(@NotNull Bean bean) {
@@ -31,8 +36,41 @@ public class LinkedMap<V extends Bean> {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
+	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
+	private boolean freshStopModuleDynamic = false;
+
+	private void onHotModuleStop(HotModule hot) {
+		freshStopModuleDynamic |= hotModulesHaveDynamic.remove(hot) != null;
+	}
+
+	private void tryRecordHotModule(Class<?> customClass) {
+		var cl = customClass.getClassLoader();
+		if (HotManager.isHotModule(cl)) {
+			var hotModule = (HotModule)cl;
+			hotModule.stopEvents.add(this::onHotModuleStop);
+			hotModulesHaveDynamic.add(hotModule);
+		}
+	}
+
+	@Override
+	public boolean hasFreshStopModuleDynamicOnce() {
+		var tmp = freshStopModuleDynamic;
+		freshStopModuleDynamic = false;
+		return tmp;
+	}
+
+	@Override
+	public void clearTableCache() {
+		module._tLinkedMapNodes.__ClearTableCacheUnsafe__();
+	}
+
+	@Override
+	public BeanFactory beanFactory() {
+		return beanFactory;
+	}
+
 	public static class Module extends AbstractLinkedMap {
-		private final ConcurrentHashMap<String, LinkedMap<?>> LinkedMaps = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, LinkedMap<?>> linkedMaps = new ConcurrentHashMap<>();
 		public final @NotNull Zeze.Application zeze;
 		public static final String eClearJobHandleName = "Zeze.Collections.LinkedMap.Clear";
 
@@ -82,12 +120,12 @@ public class LinkedMap<V extends Bean> {
 
 		@SuppressWarnings("unchecked")
 		public <T extends Bean> @NotNull LinkedMap<T> open(@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
-			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, nodeSize));
+			return (LinkedMap<T>)linkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, nodeSize));
 		}
 
 		@SuppressWarnings("unchecked")
 		public <T extends Bean> @NotNull LinkedMap<T> open(@NotNull String name, @NotNull Class<T> valueClass) {
-			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, 100));
+			return (LinkedMap<T>)linkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, 100));
 		}
 
 		public final ConcurrentHashMap<String, ChangeListener> NodeListeners = new ConcurrentHashMap<>();
@@ -127,6 +165,12 @@ public class LinkedMap<V extends Bean> {
 	private final @NotNull MethodHandle valueConstructor;
 
 	private LinkedMap(@NotNull Module module, @NotNull String name, @NotNull Class<V> valueClass, int nodeSize) {
+		var hotManager = module.zeze.getHotManager();
+		if (null != hotManager) {
+			hotManager.addHotBeanFactory(this);
+			tryRecordHotModule(valueClass);
+		}
+
 		this.module = module;
 		this.name = name;
 		this.nodeSize = nodeSize;

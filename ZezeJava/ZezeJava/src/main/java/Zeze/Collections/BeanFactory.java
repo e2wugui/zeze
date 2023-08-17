@@ -3,6 +3,7 @@ package Zeze.Collections;
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -16,6 +17,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import java.util.List;
+import java.util.jar.JarFile;
 
 public final class BeanFactory {
 	private static final Logger logger = LogManager.getLogger(BeanFactory.class);
@@ -26,6 +29,23 @@ public final class BeanFactory {
 	private volatile @Nullable LongHashMap<MethodHandle> readingBeanFactory;
 	private final LongHashMap<MethodHandle> writingDataFactory = new LongHashMap<>();
 	private volatile @Nullable LongHashMap<MethodHandle> readingDataFactory;
+
+	private static Application zeze;
+
+	public static void setApplication(Application zeze) {
+		BeanFactory.zeze = zeze;
+	}
+
+	/**
+	 * Hot热更的时候调用这个函数更新Bean信息。
+	 * 【Bean 只会修改或增加，不会删除，内部实现时采取put方式即可。】
+	 *
+	 * @param beanFactories 相关的 BeanFactories
+	 * @param hotModules 相关的 HotModule's JarFile
+	 */
+	public static void resetHot(List<BeanFactory> beanFactories, List<JarFile> hotModules) {
+
+	}
 
 	/**
 	 * 手动加载所有类路径以classPrefix前缀的全类名

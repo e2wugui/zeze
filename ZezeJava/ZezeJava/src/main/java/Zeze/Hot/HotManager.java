@@ -17,6 +17,7 @@ import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
+import Zeze.Collections.BeanFactory;
 import Zeze.IModule;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
@@ -62,6 +63,15 @@ public class HotManager extends ClassLoader {
 	private final HotRedirect hotRedirect;
 
 	private final ConcurrentHashSet<HotUpgrade> hotUpgrades = new ConcurrentHashSet<>();
+	private final ConcurrentHashSet<HotBeanFactory> hotBeanFactories = new ConcurrentHashSet<>();
+
+	public void addHotBeanFactory(HotBeanFactory hotBeanFactory) {
+		hotBeanFactories.add(hotBeanFactory);
+	}
+
+	public void removeHotBeanFactory(HotBeanFactory hotBeanFactory) {
+		hotBeanFactories.remove(hotBeanFactory);
+	}
 
 	public void addHotUpgrade(HotUpgrade hotUpgrade) {
 		hotUpgrades.add(hotUpgrade);
@@ -137,7 +147,7 @@ public class HotManager extends ClassLoader {
 		var i = 0;
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
-		IModule[] iModules = null; //GenModule.instance.createRedirectModules(app, moduleClasses);
+		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses);
 		if (null == iModules) {
 			// 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.
@@ -192,8 +202,14 @@ public class HotManager extends ClassLoader {
 			}
 			var freshHotUpgrades = new ArrayList<HotUpgrade>();
 			for (var hotUpgrade : hotUpgrades) {
-				if (hotUpgrade.hasFreshStopModuleOnce()) {
+				if (hotUpgrade.hasFreshStopModuleLocalOnce()) {
 					freshHotUpgrades.add(hotUpgrade);
+				}
+			}
+			var freshHotBeanFactories = new ArrayList<HotBeanFactory>();
+			for (var hotBeanFactory : hotBeanFactories) {
+				if (hotBeanFactory.hasFreshStopModuleDynamicOnce()) {
+					freshHotBeanFactories.add(hotBeanFactory);
 				}
 			}
 			// install
@@ -201,16 +217,25 @@ public class HotManager extends ClassLoader {
 				result.add(_install(namespace));
 			// batch load redirect
 			var iModules = createModuleInstance(result);
+			var hotJarFiles = new ArrayList<JarFile>();
 			for (var ii = 0; ii < iModules.length; ++ii) {
 				var exist = exists.get(ii);
 				var module = result.get(ii);
+				hotJarFiles.add(module.getJarFile());
 				module.setService(iModules[ii]);
 				if (null != exist)
 					module.upgrade(exist);
 			}
 			// internal upgrade
 			for (var hotUpgrade : freshHotUpgrades)
-				hotUpgrade.upgrade(exists, result, (bean) -> retreat(exists, result, bean));
+				hotUpgrade.upgrade((bean) -> retreat(exists, result, bean));
+			app.getZeze().checkpointRun();
+			var beanFactories = new ArrayList<BeanFactory>();
+			for (var hotBeanFactory : freshHotBeanFactories) {
+				hotBeanFactory.clearTableCache();
+				beanFactories.add(hotBeanFactory.beanFactory());
+			}
+			BeanFactory.resetHot(beanFactories, hotJarFiles);
 			// start ordered
 			for (var module : result)
 				module.start();
@@ -287,6 +312,7 @@ public class HotManager extends ClassLoader {
 	public HotManager(AppBase app, String workingDir, String distributeDir) throws Exception {
 		//System.out.println(workingDir);
 		//System.out.println(distributeDir);
+		BeanFactory.setApplication(app.getZeze());
 
 		var distributePath = Path.of(distributeDir);
 		var interfacesPath = Path.of(workingDir, "interfaces");
