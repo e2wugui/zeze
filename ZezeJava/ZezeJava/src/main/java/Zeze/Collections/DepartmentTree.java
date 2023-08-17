@@ -1,7 +1,6 @@
 package Zeze.Collections;
 
 import java.lang.invoke.MethodHandle;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.DepartmentTree.*;
 import Zeze.Hot.HotBeanFactory;

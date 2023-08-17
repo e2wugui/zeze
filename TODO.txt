@@ -37,6 +37,12 @@ Hot zeze 功能【Zeze服务限制】（这部分需要写到zeze.docx里面）
 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot install new modiule need register sm,还需要module config  choice type
 Hot replace relationalTable获得
+
+------------------------------------------------------------------------------------------------------------------------------
+2023/8/25 v1.3.1 Hot; EventDispatcher; MemoryTable.SoftReference; 
+------------------------------------------------------------------------------------------------------------------------------
+Hot Redirect 返回结果参数是自定义结构时不能作为接口暴露，怎么处理比较好。
+	【暂定就不能暴露，自己定义可以暴露的接口，然后内部使用redirect】
 Hot Zeze服务保存的状态（一般是dynamic里面的bean）
 	2. Collections.LinkedMap
 	_tInnerTable.cache.clear();
@@ -44,12 +50,6 @@ Hot Zeze服务保存的状态（一般是dynamic里面的bean）
 	1. BeanFactory.resetHot(hotModuleJars_Current_JarFile_List); // bean只会增加或修改，不会删除。
 	2. HotRedirect.loadClass
 		class.forName(name) -> hotmanager.load(name).getConstrutor().newInstance();
-
-Hot Redirect 返回结果参数是自定义结构时不能作为接口暴露，怎么处理比较好。
-
-------------------------------------------------------------------------------------------------------------------------------
-2023/8/25 v1.3.1 Hot; EventDispatcher; MemoryTable.SoftReference; 
-------------------------------------------------------------------------------------------------------------------------------
 Hot Zeze服务保存的状态（一般是dynamic里面的bean）
 	1. Online.LocalData, Timer.CustomData
 	upgrade() { bb = current.encode(); Cl.Class.newInstance().deocde(bb); }
