@@ -1,7 +1,5 @@
 package Zeze.Collections;
 
-import java.lang.invoke.MethodHandle;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.LinkedMap.BClearJobState;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMap;
@@ -162,7 +160,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	private final @NotNull Module module;
 	private final @NotNull String name;
 	private final int nodeSize;
-	private final @NotNull MethodHandle valueConstructor;
+	private final long valueTypeId;
 
 	private LinkedMap(@NotNull Module module, @NotNull String name, @NotNull Class<V> valueClass, int nodeSize) {
 		var hotManager = module.zeze.getHotManager();
@@ -174,7 +172,9 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		this.module = module;
 		this.name = name;
 		this.nodeSize = nodeSize;
-		this.valueConstructor = beanFactory.register(valueClass);
+
+		beanFactory.register(valueClass);
+		this.valueTypeId = BeanFactory.typeId(valueClass);
 	}
 
 	public @NotNull String getName() {
@@ -251,11 +251,12 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	// map
+	@SuppressWarnings("unchecked")
 	public @NotNull V getOrAdd(@NotNull String id) {
 		var value = get(id);
 		if (null != value)
 			return value;
-		value = BeanFactory.invoke(valueConstructor);
+		value = (V)beanFactory.createBeanFromSpecialTypeId(valueTypeId);
 		put(id, value);
 		return value;
 	}

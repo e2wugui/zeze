@@ -35,6 +35,15 @@ public final class BeanFactory {
 		BeanFactory.zeze = zeze;
 	}
 
+	public static long typeId(Class<? extends Bean> beanClass) {
+		try {
+			return beanClass.getConstructor().newInstance().typeId();
+		} catch (Exception ex) {
+			Task.forceThrow(ex);
+			return 0; // never got here
+		}
+	}
+
 	/**
 	 * Hot热更的时候调用这个函数更新Bean信息。
 	 * 【Bean 只会修改或增加，不会删除，内部实现时采取put方式即可。】
@@ -50,21 +59,28 @@ public final class BeanFactory {
 		var hotRedirect = zeze.getHotManager().getHotRedirect();
 		for (BeanFactory bf : beanFactories) {
 			synchronized (bf.writingBeanFactory) {
+				//var newWriting = new LongHashMap<MethodHandle>();
 				bf.writingBeanFactory.foreach((typeId, beanCtor) -> {
 					try {
-						var className = ((Bean)beanCtor.invoke()).getClass().getName();
-						bf.register(typeId, Reflect.getDefaultConstructor(hotRedirect.loadClass(className)));
+						var beanClass = ((Bean)beanCtor.invoke()).getClass();
+						var className = beanClass.getName();
+						//System.out.println(beanClass.getName() + " ======3===3========= " + beanClass.getClassLoader());
+						var beanNewClass = hotRedirect.loadClass(className);
+						//System.out.println(beanNewClass.getName() + " =====4======5======= " + beanNewClass.getClassLoader());
+						//newWriting.put(typeId, Reflect.getDefaultConstructor(beanNewClass));
+						bf.writingBeanFactory.put(typeId, Reflect.getDefaultConstructor(beanNewClass));
 					} catch (Throwable e) { // MethodHandle.invoke
 						Task.forceThrow(e);
 					}
 				});
+				//bf.writingBeanFactory.putAll(newWriting);
 				bf.readingBeanFactory = null;
 			}
 			synchronized (bf.writingDataFactory) {
 				bf.writingDataFactory.foreach((typeId, dataCtor) -> {
 					try {
 						var className = ((Data)dataCtor.invoke()).getClass().getName();
-						bf.registerData(typeId, Reflect.getDefaultConstructor(hotRedirect.loadClass(className)));
+						bf.writingDataFactory.put(typeId, Reflect.getDefaultConstructor(hotRedirect.loadClass(className)));
 					} catch (Throwable e) { // MethodHandle.invoke
 						Task.forceThrow(e);
 					}
@@ -340,8 +356,11 @@ public final class BeanFactory {
 				}
 			}
 			var beanCtor = factory.get(typeId);
-			if (beanCtor != null)
-				return (Bean)beanCtor.invoke();
+			if (beanCtor != null) {
+				var bean = (Bean)beanCtor.invoke();
+				//System.out.println(bean.getClass().getName() + " ====1=====1====== " + bean.getClass().getClassLoader());
+				return bean;
+			}
 			var cls = findClass(typeId);
 			if (cls == null) {
 				if (typeId != EmptyBean.TYPEID)
@@ -354,6 +373,7 @@ public final class BeanFactory {
 			if (beanTypeId != typeId)
 				throw new UnsupportedOperationException("unmatched bean typeId: " + beanTypeId + " != " + typeId);
 			register(beanTypeId, beanCtor);
+			//System.out.println(bean.getClass().getName() + " ========2==2===== " + bean.getClass().getClassLoader());
 			return bean;
 		} catch (Throwable e) { // MethodHandle.invoke
 			Task.forceThrow(e);

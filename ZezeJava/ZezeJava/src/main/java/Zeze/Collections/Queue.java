@@ -1,6 +1,5 @@
 package Zeze.Collections;
 
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.Queue.BQueueNode;
 import Zeze.Builtin.Collections.Queue.BQueueNodeKey;
@@ -90,6 +89,12 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		this.name = name;
 		this.nodeSize = nodeSize;
 		beanFactory.register(valueClass);
+
+		var hotManager = module.zeze.getHotManager();
+		if (null != hotManager) {
+			hotManager.addHotBeanFactory(this);
+			tryRecordHotModule(valueClass);
+		}
 	}
 
 	public String getName() {

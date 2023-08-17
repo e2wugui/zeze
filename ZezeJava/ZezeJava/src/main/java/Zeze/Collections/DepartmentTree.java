@@ -1,6 +1,5 @@
 package Zeze.Collections;
 
-import java.lang.invoke.MethodHandle;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.DepartmentTree.*;
 import Zeze.Hot.HotBeanFactory;
@@ -109,12 +108,12 @@ public class DepartmentTree<
 
 	private final Module module;
 	private final String name;
-	private final MethodHandle managerConstructor;
-	private final MethodHandle groupDataConstructor;
-	private final MethodHandle departmentDataClassConstructor;
-	//private final Class<TManager> managerClass;
-	private final Class<TMember> memberClass;
-	private final Class<TDepartmentMember> departmentMemberClass;
+	private final long managerTypeId;
+	private final long groupDataTypeId;
+	private final long departmentDataTypeId;
+
+	private final long memberBeanTypeId;
+	private final long departmentMemberBeanTypeId;
 
 	private DepartmentTree(Module module, String name,
 						   Class<TManager> managerClass,
@@ -135,13 +134,18 @@ public class DepartmentTree<
 
 		this.module = module;
 		this.name = name;
-		this.managerConstructor = beanFactory.register(managerClass);
-		this.groupDataConstructor = beanFactory.register(groupDataClass);
-		this.departmentDataClassConstructor = beanFactory.register(departmentDataClass);
-		//this.managerClass = managerClass;
-		this.memberClass = memberClass;
-		this.departmentMemberClass = departmentMemberClass;
 
+		beanFactory.register(managerClass);
+		beanFactory.register(groupDataClass);
+		beanFactory.register(departmentDataClass);
+
+		this.managerTypeId = BeanFactory.typeId(managerClass);
+		this.groupDataTypeId = BeanFactory.typeId(groupDataClass);
+		this.departmentDataTypeId = BeanFactory.typeId(departmentDataClass);
+
+		//this.managerClass = managerClass;
+		this.memberBeanTypeId = BeanFactory.typeId(memberClass);
+		this.departmentMemberBeanTypeId = BeanFactory.typeId(departmentMemberClass);
 	}
 
 	public String getName() {
@@ -240,13 +244,21 @@ public class DepartmentTree<
 		return module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
 	}
 
+	@SuppressWarnings("unchecked")
 	public LinkedMap<TDepartmentMember> getDepartmentMembers(long departmentId) {
 		if (departmentId == 0)
 			throw new IllegalArgumentException("root can not access use this method.");
+		var departmentMemberClass = (Class<TDepartmentMember>)BeanFactory.findClass(departmentMemberBeanTypeId);
+		if (null == departmentMemberClass)
+			throw new IllegalArgumentException("departmentMemberClass not found");
 		return module.linkedMaps.open(departmentId + "@" + name, departmentMemberClass);
 	}
 
+	@SuppressWarnings("unchecked")
 	public LinkedMap<TMember> getGroupMembers() {
+		var memberClass = (Class<TMember>)BeanFactory.findClass(memberBeanTypeId);
+		if (null == memberClass)
+			throw new IllegalArgumentException("memberClass not found");
 		return module.linkedMaps.open("0@" + name, memberClass);
 	}
 
@@ -260,7 +272,7 @@ public class DepartmentTree<
 
 	public BDepartmentRoot create() {
 		var root = module._tDepartment.getOrAdd(name);
-		root.getData().setBean(BeanFactory.invoke(groupDataConstructor));
+		root.getData().setBean(beanFactory.createBeanFromSpecialTypeId(groupDataTypeId));
 		return root;
 	}
 
@@ -277,7 +289,7 @@ public class DepartmentTree<
 		var dRoot = module._tDepartment.getOrAdd(name);
 		return (TManager)dRoot.getManagers().computeIfAbsent(name, key -> {
 			var value = new DynamicBean(0, DepartmentTree::getSpecialTypeIdFromBean, DepartmentTree::createBeanFromSpecialTypeId);
-			value.setBean(BeanFactory.invoke(managerConstructor));
+			value.setBean(beanFactory.createBeanFromSpecialTypeId(managerTypeId));
 			return value;
 		}).getBean();
 	}
@@ -290,7 +302,7 @@ public class DepartmentTree<
 		var d = getDepartmentTreeNode(departmentId);
 		return (TManager)d.getManagers().computeIfAbsent(name, key -> {
 			var value = new DynamicBean(0, DepartmentTree::getSpecialTypeIdFromBean, DepartmentTree::createBeanFromSpecialTypeId);
-			value.setBean(BeanFactory.invoke(managerConstructor));
+			value.setBean(beanFactory.createBeanFromSpecialTypeId(managerTypeId));
 			return value;
 		}).getBean();
 	}
@@ -331,7 +343,7 @@ public class DepartmentTree<
 				return module.errorCode(Module.ErrorDepartmentDuplicate);
 		}
 		var child = new BDepartmentTreeNode();
-		child.getData().setBean(BeanFactory.invoke(departmentDataClassConstructor));
+		child.getData().setBean(beanFactory.createBeanFromSpecialTypeId(departmentDataTypeId));
 		child.setName(dName);
 		child.setParentDepartment(departmentParent);
 		module._tDepartmentTree.insert(new BDepartmentKey(name, dId), child);

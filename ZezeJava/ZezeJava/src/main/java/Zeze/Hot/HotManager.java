@@ -355,13 +355,13 @@ public class HotManager extends ClassLoader {
 		//  支持原子发布。
 		var ready = Path.of(distributeDir, "ready");
 		Task.getScheduledThreadPool().scheduleAtFixedRate(() -> {
-			if (Files.exists(ready)) {
-				try {
+			try {
+				if (Files.exists(ready)) {
 					installReadies();
 					Files.deleteIfExists(ready);
-				} catch (Exception ex) {
-					logger.error("", ex);
 				}
+			} catch (Throwable ex) {
+				logger.error("", ex);
 			}
 		}, 1000, 1000, TimeUnit.MILLISECONDS);
 
