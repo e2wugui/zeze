@@ -80,21 +80,31 @@ public class RedirectBase {
 		if (serviceInfo.getServiceIdentity().equals(String.valueOf(providerApp.zeze.getConfig().getServerId())))
 			return null;
 
+		AsyncSocket socket;
+		var service = providerApp.providerDirectService;
 		var ps = (ProviderModuleState)servers.localStates.get(serviceInfo.getServiceIdentity());
-		if (ps == null) {
-			throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
-					"choiceHash: not found localState for serviceIdentity=" + serviceInfo.getServiceIdentity());
+		if (ps != null && (socket = service.GetSocket(ps.sessionId)) != null && !socket.isClosed())
+			return socket;
+
+		if (dataConcurrentLevel <= 1) {
+			for (int i = 0, n = servers.localStates.size(); i < n; i++) {
+				var e = servers.getNextStateEntry();
+				if (e == null)
+					break;
+				socket = service.GetSocket(((ProviderModuleState)e.getValue()).sessionId);
+				if (socket != null && !socket.isClosed())
+					return socket;
+			}
 		}
 
-		var socket = providerApp.providerDirectService.GetSocket(ps.sessionId);
-		if (socket == null || socket.isClosed()) {
-			throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
-					"choiceHash: not found socket for serviceIdentity=" + serviceInfo.getServiceIdentity());
-		}
-		return socket;
+		throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
+				"choiceHash: not found socket for serviceName=" + serviceName + ", hash=" + hash
+						+ ", conc=" + dataConcurrentLevel + ", serverId=" + serviceInfo.getServiceIdentity()
+						+ ", count=" + servers.localStates.size());
 	}
 
-	private static void addMiss(@NotNull ModuleRedirectAllResult miss, int i, @SuppressWarnings("SameParameterValue") long rc) {
+	private static void addMiss(@NotNull ModuleRedirectAllResult miss, int i,
+								@SuppressWarnings("SameParameterValue") long rc) {
 		miss.Argument.getHashs().put(i, new BModuleRedirectAllHash.Data(rc, null));
 	}
 
@@ -119,19 +129,21 @@ public class RedirectBase {
 																				@NotNull ModuleRedirectAllRequest req,
 																				@NotNull RedirectAllContext<T> ctx) {
 		var future = ctx.getFuture();
-		if (req.Argument.getHashCodeConcurrentLevel() <= 0) {
-			providerApp.providerDirectService.tryRemoveManualContext(req.Argument.getSessionId());
+		var arg = req.Argument;
+		if (arg.getHashCodeConcurrentLevel() <= 0) {
+			providerApp.providerDirectService.tryRemoveManualContext(arg.getSessionId());
 			return future;
 		}
 
 		var transmits = new LongHashMap<ModuleRedirectAllRequest>(); // <sessionId, request>
 		var miss = new ModuleRedirectAllResult();
-		var serviceName = ProviderDistribute.makeServiceName(req.Argument.getServiceNamePrefix(), req.Argument.getModuleId());
+		var serviceName = ProviderDistribute.makeServiceName(arg.getServiceNamePrefix(), arg.getModuleId());
 		var consistent = providerApp.distribute.getConsistentHash(serviceName);
 		var providers = providerApp.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		var localServiceIdentity = String.valueOf(providerApp.zeze.getConfig().getServerId());
-		for (int i = 0; i < req.Argument.getHashCodeConcurrentLevel(); ++i) {
-			var target = providerApp.distribute.choiceDataIndex(providers, consistent, i, req.Argument.getHashCodeConcurrentLevel());
+		for (int i = 0; i < arg.getHashCodeConcurrentLevel(); ++i) {
+			var target = providerApp.distribute.choiceDataIndex(providers, consistent, i,
+					arg.getHashCodeConcurrentLevel());
 			if (target == null) {
 				addMiss(miss, i, Procedure.ProviderNotExist);
 				continue;
@@ -176,10 +188,10 @@ public class RedirectBase {
 
 		// 没有转发成功的provider的hash分组，马上报告结果。
 		if (!miss.Argument.getHashs().isEmpty()) {
-			miss.Argument.setModuleId(req.Argument.getModuleId());
-			miss.Argument.setMethodFullName(req.Argument.getMethodFullName());
-			miss.Argument.setSourceProvider(req.Argument.getSourceProvider()); // not used
-			miss.Argument.setSessionId(req.Argument.getSessionId());
+			miss.Argument.setModuleId(arg.getModuleId());
+			miss.Argument.setMethodFullName(arg.getMethodFullName());
+			miss.Argument.setSourceProvider(arg.getSourceProvider()); // not used
+			miss.Argument.setSessionId(arg.getSessionId());
 			miss.Argument.setServerId(0); // 在这里没法知道逻辑服务器id，错误报告就不提供这个了。
 			miss.setResultCode(ModuleRedirect.ResultCodeLinkdNoProvider);
 			try {
@@ -195,7 +207,8 @@ public class RedirectBase {
 		return future;
 	}
 
-	public <T> @NotNull RedirectFuture<T> runFuture(@Nullable TransactionLevel level, @NotNull Func0<RedirectFuture<T>> func) {
+	public <T> @NotNull RedirectFuture<T> runFuture(@Nullable TransactionLevel level,
+													@NotNull Func0<RedirectFuture<T>> func) {
 		Transaction t;
 		if (level == TransactionLevel.None || (t = Transaction.getCurrent()) != null && t.isRunning()) {
 			try {

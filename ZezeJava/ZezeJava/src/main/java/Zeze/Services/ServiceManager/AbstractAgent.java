@@ -1,6 +1,8 @@
 package Zeze.Services.ServiceManager;
 
 import java.io.Closeable;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Component.Threading;
@@ -126,6 +128,13 @@ public abstract class AbstractAgent implements Closeable {
 		public boolean committed = false;
 		// 服务准备好。
 		public final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
+		private Iterator<Map.Entry<String, Object>> localStatesIterator;
+
+		public synchronized Map.Entry<String, Object> getNextStateEntry() {
+			if (localStatesIterator == null || !localStatesIterator.hasNext())
+				localStatesIterator = localStates.entrySet().iterator();
+			return localStatesIterator.hasNext() ? localStatesIterator.next() : null;
+		}
 
 		@Override
 		public String toString() {
