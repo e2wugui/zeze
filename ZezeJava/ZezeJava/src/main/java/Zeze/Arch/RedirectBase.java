@@ -87,7 +87,7 @@ public class RedirectBase {
 		}
 
 		var socket = providerApp.providerDirectService.GetSocket(ps.sessionId);
-		if (socket == null) {
+		if (socket == null || socket.isClosed()) {
 			throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
 					"choiceHash: not found socket for serviceIdentity=" + serviceInfo.getServiceIdentity());
 		}
