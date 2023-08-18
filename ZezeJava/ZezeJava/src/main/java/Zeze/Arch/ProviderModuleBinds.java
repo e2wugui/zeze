@@ -3,6 +3,7 @@ package Zeze.Arch;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Map;
 import javax.xml.parsers.DocumentBuilderFactory;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.IModule;
@@ -183,7 +184,7 @@ public final class ProviderModuleBinds {
 	// 非动态模块都为静态模块, 其中声明ConfigType="Special"及providers不为空的只有指定providers会注册该模块
 	// 声明ConfigType="Default"且providers为空的所有providers都会注册
 	// 其它未在绑定配置定义的模块只要不在ProviderNoDefaultModule配置里的providers都会注册
-	public void buildStaticBinds(@NotNull HashMap<String, IModule> AllModules, int serverId,
+	public void buildStaticBinds(@NotNull Map<String, IModule> AllModules, int serverId,
 								 @NotNull IntHashMap<BModule.Data> out) {
 		var noDefaultModule = providerNoDefaultModule.contains(serverId);
 		for (var m : AllModules.values()) {
@@ -206,7 +207,7 @@ public final class ProviderModuleBinds {
 
 	// 动态模块必须在绑定配置里 声明ConfigType="Dynamic" 或 缺省的ConfigType并指定空的providers
 	// 动态模块的providers为空则表示所有providers都可以注册该模块, 否则只有指定的providers可以注册
-	public void buildDynamicBinds(@NotNull HashMap<String, IModule> AllModules, int serverId,
+	public void buildDynamicBinds(@NotNull Map<String, IModule> AllModules, int serverId,
 								  @NotNull IntHashMap<BModule.Data> out) {
 		for (var m : AllModules.values()) {
 			var cm = modules.get(m.getFullName());

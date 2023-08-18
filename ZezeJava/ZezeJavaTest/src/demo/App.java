@@ -126,7 +126,6 @@ public class App extends Zeze.AppBase {
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
     public Zeze.Application Zeze;
-    public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();
 
     public demo.TestServer TestServer;
 

@@ -95,7 +95,6 @@ namespace Zeze.Gen.java
         void AppGen(StreamWriter sw)
         {
             sw.WriteLine("    public Zeze.Application Zeze;");
-            sw.WriteLine("    public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();");
             sw.WriteLine();
 
             foreach (Service m in project.Services.Values)

@@ -5,9 +5,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Builtin.Provider.AnnounceProviderInfo;
+import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Subscribe;
+import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
@@ -159,6 +161,39 @@ public class ProviderService extends HandshakeClient {
 			providerDynamicSubscribeCompleted.setResult(true);
 			return 0;
 		});
+	}
+
+	// 热更新增模块。
+	public void addHotModule(IModule module, BModule.Data config) {
+		{
+			// 全局数据更新
+			providerApp.zeze.getHotManager().getApp().addModule(module);
+			providerApp.modules.put(module.getId(), config);
+		}
+		{
+			// 注册订阅服务。
+			var sm = providerApp.zeze.getServiceManager();
+			var identity = String.valueOf(providerApp.zeze.getConfig().getServerId());
+			sm.registerService(
+					providerApp.serverServiceNamePrefix + module.getId(), identity,
+					providerApp.directIp, providerApp.directPort);
+			sm.subscribeService(providerApp.serverServiceNamePrefix + module.getId(), config.getSubscribeType());
+		}
+
+		// 并通知所有links。
+		if (config.getConfigType() != BModule.Data.ConfigTypeDynamic) {
+			providerApp.staticBinds.put(module.getId(), config);
+			var bind = new Bind();
+			bind.Argument.getModules().put(module.getId(), config);
+			for (var link : links.values())
+				bind.Send(link.TryGetReadySocket());
+		} else {
+			providerApp.dynamicModules.put(module.getId(), config);
+			var sub = new Subscribe();
+			sub.Argument.getModules().put(module.getId(), config);
+			for (var link : links.values())
+				sub.Send(link.TryGetReadySocket());
+		}
 	}
 
 	@Override

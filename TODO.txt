@@ -36,8 +36,8 @@ dbh2 rocks 层调用不允许出错，有点过于相信底层了，怎么解决
 choiceHash 加入AppVersion。首先需要考虑需求。
 ----------------------------------------------------------------------------------------------------------
 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
-Hot install new modiule need register sm,还需要module config  choice type
 Hot Redirect 返回结果参数是自定义结构时不能作为接口暴露，怎么处理比较好。
+Hot install new modiule need register sm,还需要module config  choice type
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/25 v1.3.1 Hot; EventDispatcher; Memory-Table.SoftReference; 

@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
@@ -354,6 +353,10 @@ public class HotManager extends ClassLoader {
 		var module = new HotModule(this, namespace, moduleDstFile);
 		modules.put(module.getName(), module);
 		return module;
+	}
+
+	public AppBase getApp() {
+		return app;
 	}
 
 	public HotManager(AppBase app, String workingDir, String distributeDir) throws Exception {

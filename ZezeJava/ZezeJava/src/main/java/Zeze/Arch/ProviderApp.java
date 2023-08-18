@@ -1,6 +1,7 @@
 package Zeze.Arch;
 
 import java.util.HashMap;
+import java.util.Map;
 import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
@@ -96,20 +97,26 @@ public class ProviderApp {
 		this.providerDirect.RegisterProtocols(providerDirectService);
 	}
 
-	public void startLast(@NotNull ProviderModuleBinds binds, @NotNull HashMap<String, IModule> modules) {
+	public void startLast(@NotNull ProviderModuleBinds binds, @NotNull Map<String, IModule> modules) {
 		for (var builtin : builtinModules.values())
 			modules.put(builtin.getFullName(), builtin);
 		binds.buildStaticBinds(modules, zeze.getConfig().getServerId(), staticBinds);
 		binds.buildDynamicBinds(modules, zeze.getConfig().getServerId(), dynamicModules);
 		this.modules.putAll(staticBinds);
 		this.modules.putAll(dynamicModules);
+
+		// todo 难道上面的 buildStaticBinds & buildDynamicBinds 会没有处理全。导致这里需要补充一下？
+		var defaultModuleConfig = new BModule.Data(
+				BModule.ChoiceTypeDefault,
+				BModule.ConfigTypeDefault,
+				BSubscribeInfo.SubscribeTypeSimple);
 		for (var module : modules.values()) {
 			if (!this.modules.containsKey(module.getId())) { // 补充其它模块的信息
 				var m = binds.getModules().get(module.getFullName());
-				this.modules.put(module.getId(), m != null
+				this.modules.put(module.getId(),
+						m != null
 						? new BModule.Data(m.getChoiceType(), m.getConfigType(), m.getSubscribeType())
-						: new BModule.Data(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault,
-						BSubscribeInfo.SubscribeTypeReadyCommit));
+						: defaultModuleConfig);
 			}
 		}
 		providerImplement.registerModulesAndSubscribeLinkd();
