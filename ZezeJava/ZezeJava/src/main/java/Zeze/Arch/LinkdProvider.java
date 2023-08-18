@@ -148,7 +148,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var ps = (ProviderSession)providerSocket.getUserState();
 		if (ps.appVersion != maxAppVersion.get()) {
 			// 版本不匹配，继续尝试查找。
-			provider.value = 0; // clear first.
+			providerSocket = null; // clear first.
 
 			synchronized (providers) {
 				for (int i = 0, n = providers.localStates.size(); i < n; i++) {
@@ -157,8 +157,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 						return false;
 					var sessionId = ((ProviderModuleState)e.getValue()).sessionId;
 					providerSocket = linkdApp.linkdProviderService.GetSocket(sessionId);
-					if (providerSocket == null || providerSocket.isClosed())
+					if (providerSocket == null || providerSocket.isClosed()) {
+						providerSocket = null;
 						continue; // 这种查找在socket没有时继续尝试。
+					}
 
 					ps = (ProviderSession)providerSocket.getUserState();
 					if (ps.appVersion == maxAppVersion.get()) {
@@ -167,7 +169,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 					}
 				}
 			}
-			if (provider.value == 0)
+			if (providerSocket == null)
 				return false;
 		}
 

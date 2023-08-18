@@ -12,6 +12,7 @@ import Zeze.Util.Action2;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class AbstractAgent implements Closeable {
 	static final Logger logger = LogManager.getLogger(AbstractAgent.class);
@@ -128,9 +129,9 @@ public abstract class AbstractAgent implements Closeable {
 		public boolean committed = false;
 		// 服务准备好。
 		public final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
-		private Iterator<Map.Entry<String, Object>> localStatesIterator;
+		private @Nullable Iterator<Map.Entry<String, Object>> localStatesIterator;
 
-		public synchronized Map.Entry<String, Object> getNextStateEntry() {
+		public synchronized @Nullable Map.Entry<String, Object> getNextStateEntry() {
 			if (localStatesIterator == null || !localStatesIterator.hasNext())
 				localStatesIterator = localStates.entrySet().iterator();
 			return localStatesIterator.hasNext() ? localStatesIterator.next() : null;
