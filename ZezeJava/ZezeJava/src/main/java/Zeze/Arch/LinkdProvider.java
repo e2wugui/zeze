@@ -142,7 +142,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 		// 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
 		var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
-		if (providerSocket == null)
+		if (providerSocket == null || providerSocket.isClosed())
 			return false; // socket 没有还是直接拒绝客户端选择吧。
 
 		var ps = (ProviderSession)providerSocket.getUserState();
@@ -150,7 +150,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			// 版本不匹配，继续尝试查找。
 			provider.value = 0; // clear first.
 
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (providers) {
 				for (int i = 0, n = providers.localStates.size(); i < n; i++) {
 					var e = providers.getNextStateEntry();
@@ -158,7 +157,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 						return false;
 					var sessionId = ((ProviderModuleState)e.getValue()).sessionId;
 					providerSocket = linkdApp.linkdProviderService.GetSocket(sessionId);
-					if (providerSocket == null)
+					if (providerSocket == null || providerSocket.isClosed())
 						continue; // 这种查找在socket没有时继续尝试。
 
 					ps = (ProviderSession)providerSocket.getUserState();
