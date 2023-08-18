@@ -1,6 +1,7 @@
 package Zeze;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Util.ConcurrentHashSet;
 import org.jetbrains.annotations.NotNull;
@@ -17,7 +18,7 @@ public abstract class AppBase {
 	// 先改成 protected 看看。
 	protected final ConcurrentHashMap<String, Zeze.IModule> modules = new ConcurrentHashMap<>();
 
-	public ConcurrentHashMap<String, Zeze.IModule> getModules() {
+	public ConcurrentMap<String, IModule> getModules() {
 		return modules;
 	}
 
