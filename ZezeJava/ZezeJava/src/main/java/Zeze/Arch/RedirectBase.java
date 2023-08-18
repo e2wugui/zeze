@@ -87,13 +87,16 @@ public class RedirectBase {
 			return socket;
 
 		if (dataConcurrentLevel <= 1) {
-			for (int i = 0, n = servers.localStates.size(); i < n; i++) {
-				var e = servers.getNextStateEntry();
-				if (e == null)
-					break;
-				socket = service.GetSocket(((ProviderModuleState)e.getValue()).sessionId);
-				if (socket != null && !socket.isClosed())
-					return socket;
+			//noinspection SynchronizationOnLocalVariableOrMethodParameter
+			synchronized (servers) {
+				for (int i = 0, n = servers.localStates.size(); i < n; i++) {
+					var e = servers.getNextStateEntry();
+					if (e == null)
+						break;
+					socket = service.GetSocket(((ProviderModuleState)e.getValue()).sessionId);
+					if (socket != null && !socket.isClosed())
+						return socket;
+				}
 			}
 		}
 

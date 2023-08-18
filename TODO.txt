@@ -33,13 +33,6 @@ dbh2 raftagent会建立所有node的连接并保持，由于已有新链接建�
 	manager上有多个桶，每个桶都有独立连接，可以考虑用代理隧道复用连接使得一个manager只需要一个连接。
 	优先级不高，后期优化再考虑。
 dbh2 rocks 层调用不允许出错，有点过于相信底层了，怎么解决？出错了现在是abort，改成reset raft？
-linkd choiceHash 加入AppVersion。首先需要考虑需求。
-	if (appVersion ... cur)
-		for (inti i < consis.size())
-		consis.getStateEntry();
-		if (appversion ... cur)
-			return;
-
 ----------------------------------------------------------------------------------------------------------
 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot Redirect 返回结果参数是自定义结构时不能作为接口暴露，怎么处理比较好。
@@ -48,6 +41,7 @@ Hot install new modiule need register sm,还需要module config  choice type
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/25 v1.3.1 Hot; EventDispatcher; Memory-Table.SoftReference; 
 ------------------------------------------------------------------------------------------------------------------------------
+linkd choiceHash 加入AppVersion。【实际上修改choiceProviderAndBind，总流程里面加了补丁】
 Hot replace relationalTable
 	【每次更新，不管更新几个模块，都发布一个最新的 __hot_schemas__{SolutionName}.ja】
 	【Zeze.Application.schemas会给更新】
