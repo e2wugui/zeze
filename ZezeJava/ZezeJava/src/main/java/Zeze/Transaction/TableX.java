@@ -13,6 +13,7 @@ import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Util.KV;
 import Zeze.Util.Macro;
+import Zeze.Util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -190,7 +191,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (r.getState() == StateInvalid) {
 					var txn = Transaction.getCurrent();
 					if (txn == null || txn.isCompleted())
-						throw new IllegalStateException("Acquire Failed: " + tkey + ':' + r);
+						throw new GoBackZeze("Acquire Failed: " + tkey + ':' + r);
 					txn.throwRedoAndReleaseLock(tkey + ":" + r, null);
 				}
 				verifyGlobalRecordState(key, r.getState() == StateModify);
@@ -966,8 +967,21 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var lockey = getZeze().getLocks().get(tkey);
 		lockey.enterReadLock();
 		try {
-			var v = load(key).strongRef;
-			return v != null ? (V)v.copy() : null;
+			for (int tryCount = 0; ; tryCount++) {
+				try {
+					var v = load(key).strongRef;
+					return v != null ? (V)v.copy() : null;
+				} catch (GoBackZeze e) {
+					if (currentT != null && currentT.isRunning() || tryCount >= 256)
+						throw e;
+				}
+				try {
+					//noinspection BusyWait
+					Thread.sleep(Random.getInstance().nextInt(10) + 5);
+				} catch (InterruptedException e) {
+					logger.error("", e);
+				}
+			}
 		} finally {
 			lockey.exitReadLock();
 		}
@@ -984,7 +998,20 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			if (cr != null)
 				return (V)cr.newestValue();
 		}
-		return load(key).strongRef;
+		for (int tryCount = 0; ; tryCount++) {
+			try {
+				return load(key).strongRef;
+			} catch (GoBackZeze e) {
+				if (currentT != null && currentT.isRunning() || tryCount >= 256)
+					throw e;
+			}
+			try {
+				//noinspection BusyWait
+				Thread.sleep(Random.getInstance().nextInt(10) + 5);
+			} catch (InterruptedException e) {
+				logger.error("", e);
+			}
+		}
 	}
 
 	@Override
@@ -1022,7 +1049,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	/**
 	 * 内部方法，必须在checkpoint之后并且没有正在执行的事务才是安全的。
- 	 */
+	 */
 	public void __ClearTableCacheUnsafe__() {
 		//System.out.println(getName() + " __ClearTableCacheUnsafe__");
 		// 直接new一个更加干净。
