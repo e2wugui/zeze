@@ -169,6 +169,7 @@ public final class App extends Zeze.AppBase {
     public Game.Server Server;
     public Game.ServerDirect ServerDirect;
 
+    public Game.MyWorld.ModuleMyWorld Game_MyWorld;
 
     @Override
     public Zeze.Application getZeze() {
@@ -196,14 +197,21 @@ public final class App extends Zeze.AppBase {
         Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));
         Zeze.getHotManager().initialize(modules);
         var _modules_ = createRedirectModules(new Class[] {
+            Game.MyWorld.ModuleMyWorld.class,
         });
         if (_modules_ == null)
             return;
+
+        Game_MyWorld = (Game.MyWorld.ModuleMyWorld)_modules_[0];
+        Game_MyWorld.Initialize(this);
+        if (modules.put(Game_MyWorld.getFullName(), Game_MyWorld) != null)
+            throw new IllegalStateException("duplicate module name: Game_MyWorld");
 
         Zeze.setSchemas(new Game.Schemas());
     }
 
     public synchronized void destroyModules() throws Exception {
+        Game_MyWorld = null;
         if (null != Zeze.getHotManager()) {
             Zeze.getHotManager().destroyModules();
             Zeze.setHotManager(null);
@@ -221,6 +229,7 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void startModules() throws Exception {
+        Game_MyWorld.Start(this);
         if (null != Zeze.getHotManager()) {
             var definedOrder = new java.util.HashSet<String>();
             Zeze.getHotManager().startModulesExcept(definedOrder);
@@ -228,6 +237,8 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void stopModules() throws Exception {
+        if (Game_MyWorld != null)
+            Game_MyWorld.Stop(this);
         if (null != Zeze.getHotManager()) {
             var definedOrder = new java.util.HashSet<String>();
             Zeze.getHotManager().stopModulesExcept(definedOrder);
@@ -244,6 +255,21 @@ public final class App extends Zeze.AppBase {
             Server.stop();
         if (ServerDirect != null)
             ServerDirect.stop();
+    }
+
+    public static void distributeHot(String classesDir, boolean exportBean, String workingDir) throws Exception {
+        var hotModules = new java.util.HashSet<String>();
+        hotModules.add("Game.Login");
+        hotModules.add("Game.Item");
+        hotModules.add("Game.Fight");
+        hotModules.add("Game.Skill");
+        hotModules.add("Game.Buf");
+        hotModules.add("Game.Equip");
+        hotModules.add("Game.Map");
+        hotModules.add("Game.Rank");
+        hotModules.add("Game.Timer");
+        hotModules.add("Game.LongSet");
+        new Zeze.Hot.Distribute(classesDir, exportBean, workingDir, hotModules, "server").pack();
     }
     // ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }

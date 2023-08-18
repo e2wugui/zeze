@@ -148,7 +148,7 @@ public class HotManager extends ClassLoader {
 		var i = 0;
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
-		IModule[] iModules = null;//GenModule.instance.createRedirectModules(app, moduleClasses);
+		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses);
 		if (null == iModules) {
 			// 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.

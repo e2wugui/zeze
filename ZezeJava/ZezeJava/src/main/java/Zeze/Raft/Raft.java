@@ -371,6 +371,7 @@ public final class Raft {
 			logger.info("Raft {} LoadSnapshot time={}ms", getName(), (System.nanoTime() - t) / 1_000_000);
 		} else {
 			sm.reset();
+			logger.info("Raft {} reset state machine.", getName());
 		}
 
 		ShutdownHook.add(this, () -> {

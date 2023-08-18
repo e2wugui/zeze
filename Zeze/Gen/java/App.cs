@@ -286,97 +286,19 @@ namespace Zeze.Gen.java
                 sw.WriteLine("            " + m.Name + ".stop();");
             }
             sw.WriteLine("    }");
-        }
-
-        /* 确认没问题删除。
-        void AppGenHot(StreamWriter sw)
-        {
-            sw.WriteLine("    public Zeze.Application Zeze;");
-            sw.WriteLine("    public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();");
-            sw.WriteLine("    public Zeze.Hot.HotManager HotManager;");
-            sw.WriteLine();
-
-            foreach (Service m in project.Services.Values)
-                sw.WriteLine("    public " + m.FullName + " " + m.Name + ";");
-            if (project.Services.Count > 0)
+            if (project.Hot)
+            {
                 sw.WriteLine();
-
-            sw.WriteLine("    @Override");
-            sw.WriteLine("    public Zeze.Application getZeze() {");
-            sw.WriteLine("        return Zeze;");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public void createZeze() throws Exception {");
-            sw.WriteLine("        createZeze(null);");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void createZeze(Zeze.Config config) throws Exception {");
-            sw.WriteLine("        if (Zeze != null)");
-            sw.WriteLine("            throw new IllegalStateException(\"Zeze Has Created!\");");
-            sw.WriteLine();
-            sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Name}\", config);");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void createService() {");
-            foreach (Service m in project.Services.Values)
-                sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void createModules() throws Exception {");
-            sw.WriteLine("        Zeze.initialize(this);");
-            sw.WriteLine("        HotManager = new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir());");
-            sw.WriteLine("        HotManager.initialize(modules);");
-            sw.WriteLine("        Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void destroyModules() {");
-            sw.WriteLine("        if (null != HotManager) {");
-            sw.WriteLine("            HotManager.destroyModules();");
-            sw.WriteLine("            modules.clear();");
-            sw.WriteLine("        }");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void destroyServices() {");
-            foreach (Service m in project.Services.Values)
-                sw.WriteLine("        " + m.Name + " = null;");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void destroyZeze() {");
-            sw.WriteLine("        Zeze = null;");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void startModules() throws Exception {");
-            sw.WriteLine("        var definedOrder = new java.util.ArrayList<String>();");
-            foreach (var m in project.ModuleStartOrder)
-                sw.WriteLine($"        definedOrder.add(\"{m.Path()}\");");
-            sw.WriteLine("        HotManager.startModules(definedOrder);");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void stopModules() throws Exception {");
-            sw.WriteLine("        if (null != HotManager) {");
-            sw.WriteLine("            var definedOrderReverse = new java.util.ArrayList<String>();");
-            for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
-            {
-                var name = project.ModuleStartOrder[i].Path();
-                sw.WriteLine($"            definedOrderReverse.add(\"{name}\");");
+                sw.WriteLine("    public static void distributeHot(String classesDir, boolean exportBean, String workingDir) throws Exception {");
+                sw.WriteLine("        var hotModules = new java.util.HashSet<String>();");
+                foreach (Module m in project.AllOrderDefineModules)
+                {
+                    if (project.Hot && m.Hot)
+                        sw.WriteLine($"        hotModules.add(\"{m.Path()}\");");
+                }
+                sw.WriteLine($"        new Zeze.Hot.Distribute(classesDir, exportBean, workingDir, hotModules, \"{project.Name}\").pack();");
+                sw.WriteLine("    }");
             }
-            sw.WriteLine("            HotManager.stopModules(definedOrderReverse);");
-            sw.WriteLine("        }");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void startService() throws Exception {");
-            foreach (Service m in project.Services.Values)
-                sw.WriteLine("        " + m.Name + ".start();");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void stopService() throws Exception {");
-            foreach (Service m in project.Services.Values)
-            {
-                sw.WriteLine("        if (" + m.Name + " != null)");
-                sw.WriteLine("            " + m.Name + ".stop();");
-            }
-            sw.WriteLine("    }");
         }
-        */
     }
 }

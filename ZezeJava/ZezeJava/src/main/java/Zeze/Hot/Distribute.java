@@ -2,6 +2,7 @@ package Zeze.Hot;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -14,22 +15,65 @@ import java.util.zip.ZipEntry;
 import Zeze.Arch.Gen.GenModule;
 
 public class Distribute {
-	static String classes = "build/classes/java/main";
-	static String workingDir = "hot";
-	static boolean exportBean = true;
-	static Path home;
+	private final Path classesHome;
+	private final boolean exportBean;
+	private final String workingDir;
+	private final Set<String> hotModules;
+	private final String projectName;
+	public final HashMap<String, JarOutputStream> hotModuleJars = new HashMap<>();
+	public JarOutputStream projectJar; // 所有非热更代码都打包到这里。
+
+	// 兼容测试。
+	public Distribute(String classesDir, boolean exportBean, String workingDir) {
+		this(classesDir, exportBean, workingDir, null, "server");
+	}
 
 	@SuppressWarnings("ResultOfMethodCallIgnored")
+	public Distribute(String classesDir,
+					  boolean exportBean,
+					  String workingDir,
+					  Set<String> hotModules,
+					  String projectName) {
+
+		this.classesHome = Path.of(classesDir);
+		this.exportBean = exportBean;
+		this.workingDir = workingDir;
+		this.hotModules = hotModules;
+		this.projectName = projectName;
+
+		Path.of(workingDir, "interfaces").toFile().mkdirs();
+		Path.of(workingDir, "modules").toFile().mkdirs();
+	}
+
+	public void pack() throws Exception {
+		var packages = new ArrayList<Package>();
+		packages.add(new Package(classesHome.toFile()));
+		pack(classesHome, packages);
+		assert packages.size() == 1;
+		packages.get(0).pack();
+
+		if (null != projectJar) {
+			projectJar.close();
+			projectJar = null;
+		}
+
+		for (var e : hotModuleJars.entrySet()) {
+			//System.out.println(e.getKey() + " ---- close");
+			e.getValue().close();
+		}
+		hotModuleJars.clear();
+	}
+
 	public static void main(String [] args) throws Exception {
-		// 搜索classes目录，自动识别Module并打包。
-		// 每个Module打成两个包。一个interface，一个其他。
-		// Module除外的打成一个包，不热更。可能有例外需要处理。
-		// 【例外】Redirect_生成的类放在了全局空间，需要打入相应的模块：
+		var classesDir = "build/classes/java/main";
+		var exportBean = true;
+		var workingDir = "hot";
+		var app = "";
 
 		for (var i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-classes":
-				classes = args[++i];
+				classesDir = args[++i];
 				break;
 			case "-workingDir":
 				workingDir = args[++i];
@@ -37,22 +81,30 @@ public class Distribute {
 			case "-privateBean":
 				exportBean = false;
 				break;
+			case "-app":
+				app = args[++i];
+				break;
 			}
 		}
-		Path.of(workingDir, "interfaces").toFile().mkdirs();
-		Path.of(workingDir, "modules").toFile().mkdirs();
-
-		home = Path.of(classes);
-		var packages = new ArrayList<Package>();
-		packages.add(new Package(home.toFile()));
-		pack(home, packages);
-		assert packages.size() == 1;
-		packages.get(0).pack();
+		var appClass = Class.forName(app);
+		var method = appClass.getMethod("distributeHot", String.class, boolean.class, String.class);
+		method.invoke(null, classesDir, exportBean, workingDir);
 	}
 
-	public static final HashMap<String, JarOutputStream> moduleJars = new HashMap<>();
+	public boolean isHotModule(String moduleNamespace) {
+		return null == hotModules || hotModules.contains(moduleNamespace);
+	}
 
-	public static class Package {
+	public JarOutputStream getProjectJar() throws IOException {
+		if (null == projectJar) {
+			var manifest = new Manifest();
+			var serverJarFile = Path.of(workingDir, projectName + ".jar").toFile();
+			projectJar = new JarOutputStream(new FileOutputStream(serverJarFile), manifest);
+		}
+		return projectJar;
+	}
+
+	public class Package {
 		private final File dir;
 		private final Set<File> classes = new HashSet<>();
 
@@ -65,58 +117,56 @@ public class Distribute {
 		}
 
 		public void pack() throws Exception {
-			var module = home.relativize(dir.toPath()).toString()
+			var module = classesHome.relativize(dir.toPath()).toString()
 					.replace("\\", "/")
 					.replace("/", ".");
 
 			var interfaceManifest = new Manifest();
 			var moduleManifest = new Manifest();
-			if (module.isEmpty()) {
-				// todo server.jar，需要得到项目的名字。
-				var serverJarFile = Path.of(workingDir, "server.jar").toFile();
-				try (var serverJar = new JarOutputStream(new FileOutputStream(serverJarFile), interfaceManifest)) {
-					for (var file : classes) {
-						var classFile = home.relativize(file.toPath()).toString().replace("\\", "/");
-						if (classFile.indexOf('/') == -1 && classFile.startsWith(GenModule.REDIRECT_PREFIX)) {
-							// 是Redirect生成的子类。
-							// 解析名字；根据名字找到相应的module.jar；并打包进去。
-							var moduleClassName = classFile.substring("Redirect_".length(), classFile.length() - ".class".length())
-									.replace("_", ".");
-							var moduleNamespace = moduleClassName.substring(0, moduleClassName.lastIndexOf('.'));
-							var moduleJar = moduleJars.get(moduleNamespace);
+			if (module.isEmpty() || !isHotModule(module)) {
+				var serverJar = getProjectJar();
+				for (var file : classes) {
+					var classFile = classesHome.relativize(file.toPath())
+							.toString().replace("\\", "/");
+
+					// 检查是否 Redirect 生成的子类。
+					// 解析名字；根据名字以及类型决定是否打包进hotModule.jar。
+					if (classFile.indexOf('/') == -1 && classFile.startsWith(GenModule.REDIRECT_PREFIX)) {
+						var moduleClassName = classFile.substring(
+								"Redirect_".length(), classFile.length() - ".class".length())
+								.replace("_", ".");
+						var moduleNamespace = moduleClassName.substring(0, moduleClassName.lastIndexOf('.'));
+						if (isHotModule(moduleNamespace)) {
+							var moduleJar = hotModuleJars.get(moduleNamespace);
 							var entry = new ZipEntry(classFile);
 							entry.setTime(file.lastModified());
 							moduleJar.putNextEntry(entry);
 							moduleJar.write(Files.readAllBytes(file.toPath()));
-
 							continue;
 						}
-						var entry = new ZipEntry(classFile);
-						entry.setTime(file.lastModified());
-						serverJar.putNextEntry(entry);
-						serverJar.write(Files.readAllBytes(file.toPath()));
+						// else 加入projectJar
 					}
+					var entry = new ZipEntry(classFile);
+					entry.setTime(file.lastModified());
+					serverJar.putNextEntry(entry);
+					serverJar.write(Files.readAllBytes(file.toPath()));
 				}
 
-				for (var e : moduleJars.entrySet()) {
-					//System.out.println(e.getKey() + " ---- close");
-					e.getValue().close();
-				}
-				moduleJars.clear();
-				return; // done;
+				return; // projectJar done;
 			}
 
+			// 打包热更模块, HotModule
 			var interfaceJarFile = Path.of(workingDir, "interfaces", module + ".interface.jar").toFile();
 			var moduleJarFile = Path.of(workingDir, "modules", module + ".jar").toFile();
 			try (var interfaceJar = new JarOutputStream(new FileOutputStream(interfaceJarFile), interfaceManifest)) {
 				// moduleJar 后面还可能添加文件，这里不关闭。
 				var moduleJar = new JarOutputStream(new FileOutputStream(moduleJarFile), moduleManifest);
-				moduleJars.put(module, moduleJar);
+				hotModuleJars.put(module, moduleJar);
 				var beanNames = new HashSet<String>();
 				var logClasses = new ArrayList<PackEntry>();
 				var beanReadonlyMaybe = new ArrayList<PackEntry>();
 				for (var file : classes) {
-					var classFile = home.relativize(file.toPath()).toString().replace("\\", "/");
+					var classFile = classesHome.relativize(file.toPath()).toString().replace("\\", "/");
 					var className = classFile.replace("/", ".");
 					className = className.substring(0, className.indexOf(".class")); // remove ".class"
 					var entry = new ZipEntry(classFile);
@@ -202,7 +252,7 @@ public class Distribute {
 			this.file = file;
 		}
 	}
-	public static void pack(Path dir, ArrayList<Package> packages) throws Exception {
+	public void pack(Path dir, ArrayList<Package> packages) throws Exception {
 		var files = dir.toFile().listFiles();
 		if (null == files)
 			return;

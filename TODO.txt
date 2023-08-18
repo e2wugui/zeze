@@ -42,6 +42,15 @@ Hot replace relationalTable获得
 2023/8/25 v1.3.1 Hot; EventDispatcher; MemoryTable.SoftReference; 
 ------------------------------------------------------------------------------------------------------------------------------
 Hot Redirect 返回结果参数是自定义结构时不能作为接口暴露，怎么处理比较好。
+	Redirect的返回结果是自定义结构（Bean Or RedirectResult），把这个结构发布到interface.jar里面，【不支持热更】。
+	新版本的Redirect强制使用新的自定义结构，也就是完全新的自定义结构（有点点手动多版本的意思）。
+	问题：
+	1. 这算是一个临时解决方案。
+	2. 未来如果实现ibean热更，这个完全看作两个函数（两个自定义结构）的方式也是可以工作的。
+	3. ibean热更以后，参数里面的bean具有自动多版本兼容了。
+	4. 看起来未来不会造成兼容问题吧。
+HotBeanFactory
+Hot Redirect 返回结果参数是自定义结构时不能作为接口暴露，怎么处理比较好。
 	【暂定就不能暴露，自己定义可以暴露的接口，然后内部使用redirect】
 Hot Zeze服务保存的状态（一般是dynamic里面的bean）
 	2. Collections.LinkedMap
