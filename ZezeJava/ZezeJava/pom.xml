@@ -113,12 +113,12 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
-		<log4j-api.version>2.20.0</log4j-api.version>
-		<log4j-core.version>2.20.0</log4j-core.version>
+		<log4j.version>2.20.0</log4j.version>
 		<annotations.version>24.0.1</annotations.version>
 		<pcollectons.version>4.0.1</pcollectons.version>
 		<rocksdbjni.version>8.3.2</rocksdbjni.version>
 		<netty.version>4.1.95.Final</netty.version>
+		<slf4j.version>2.0.7</slf4j.version>
 		<tikv.version>3.3.5</tikv.version>
 		<druid.version>1.2.18</druid.version>
 		<mysql-connector-j.version>8.0.33</mysql-connector-j.version>
@@ -136,14 +136,14 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
-			<version>${log4j-api.version}</version>
+			<version>${log4j.version}</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<version>${log4j-core.version}</version>
+			<version>${log4j.version}</version>
 		</dependency>
 
 		<dependency>
@@ -178,6 +178,20 @@
 			<artifactId>netty-transport-native-epoll</artifactId>
 			<version>${netty.version}</version>
 			<classifier>linux-x86_64</classifier>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>${slf4j.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-slf4j2-impl</artifactId>
+			<version>${log4j.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
