@@ -27,6 +27,14 @@ namespace Zeze.Gen
         public int Id { get; private set; }
         public string Comment { get; private set; }
         public string RelationalMapping { get; private set; } = string.Empty;
+        public bool IsRelationalMapping => RelationalMapping switch
+        {
+            "project" => Project.MakingInstance.RelationalMapping,
+            "" => Project.MakingInstance.RelationalMapping,
+            "true" => true,
+            "false" => false,
+            _ => throw new System.Exception("RelationalMapping Options: true|false|project")
+        };
 
         public Table(ModuleSpace space, XmlElement self)
         {

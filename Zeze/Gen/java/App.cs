@@ -296,7 +296,7 @@ namespace Zeze.Gen.java
                     if (project.Hot && m.Hot)
                         sw.WriteLine($"        hotModules.add(\"{m.Path()}\");");
                 }
-                sw.WriteLine($"        new Zeze.Hot.Distribute(classesDir, exportBean, workingDir, hotModules, \"{project.Name}\").pack();");
+                sw.WriteLine($"        new Zeze.Hot.Distribute(classesDir, exportBean, workingDir, hotModules, \"{project.Name}\", \"{project.Solution.Name}\").pack();");
                 sw.WriteLine("    }");
             }
         }

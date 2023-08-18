@@ -17,14 +17,14 @@ public class TestRelationalTableDiff {
 		variable.id = id;
 		variable.type = new Schemas.Type();
 		variable.type.name = "int";
-		var col = new Schemas.Column(name, new int[] { id },null, null, variable, "");
+		var col = new Schemas.Column(name, new int[] { id }, variable, "");
 		columns.add(col);
 	}
 
 	private static Set<Integer> varialbleIds(ArrayList<Schemas.Column> columns) {
 		var result = new HashSet<Integer>();
 		for (var column : columns)
-			result.add(column.variable.id);
+			result.add(column.variableId);
 		return result;
 	}
 

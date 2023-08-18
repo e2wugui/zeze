@@ -57,15 +57,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine("        return true;");
                 sw.WriteLine("    }");
             }
-            var isRelationalMapping = table.RelationalMapping switch
-            {
-                "project" => Project.MakingInstance.RelationalMapping,
-                "" => Project.MakingInstance.RelationalMapping,
-                "true" => true,
-                "false" => false,
-                _ => throw new System.Exception("RelationalMapping Options: true|false|project")
-            };
-            if (isRelationalMapping) // 需要保证基类返回false
+            if (table.IsRelationalMapping) // 需要保证基类返回false
             {
                 sw.WriteLine();
                 sw.WriteLine("    @Override");

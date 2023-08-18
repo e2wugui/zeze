@@ -269,7 +269,7 @@ public final class App extends Zeze.AppBase {
         hotModules.add("Game.Rank");
         hotModules.add("Game.Timer");
         hotModules.add("Game.LongSet");
-        new Zeze.Hot.Distribute(classesDir, exportBean, workingDir, hotModules, "server").pack();
+        new Zeze.Hot.Distribute(classesDir, exportBean, workingDir, hotModules, "server", "Game").pack();
     }
     // ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }

@@ -1,8 +1,10 @@
 package Zeze.Hot;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 import Zeze.IModule;
@@ -14,7 +16,7 @@ import org.apache.logging.log4j.Logger;
 // 目录管理规则
 // 1. 目录是一个模块目录时，开启一个新的热更单位；
 // 2. 目录不是模块目录时，它就属于往上级目录方向的最近的热更模块。
-public class HotModule extends ClassLoader {
+public class HotModule extends ClassLoader implements Closeable {
 	private static final Logger logger = LogManager.getLogger(HotModule.class);
 	private JarFile jar; // 模块的class（interface除外）必须打包成一个jar，只支持一个。
 	private final Class<?> moduleClass;
@@ -34,6 +36,12 @@ public class HotModule extends ClassLoader {
 		// MyName 一般就叫模块名字。
 		var moduleClassName = namespace + ".Module" + last(namespace);
 		this.moduleClass = loadClass(moduleClassName);
+	}
+
+	// 用于装载 Schemas. 借用这个类实现单独的装载。
+	HotModule(File jarFile) throws Exception {
+		this.jar = new JarFile(jarFile);
+		this.moduleClass = null;
 	}
 
 	public String getJarFileName() {
@@ -126,6 +134,14 @@ public class HotModule extends ClassLoader {
 			return defineClass(className, bytes, 0, bytes.length);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public void close() throws IOException {
+		if (jar != null) {
+			jar.close();
+			jar = null;
 		}
 	}
 }

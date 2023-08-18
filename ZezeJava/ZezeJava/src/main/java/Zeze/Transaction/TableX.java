@@ -35,7 +35,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private boolean useRelationalMapping;
 
 	@Override
-	public void open(Table exist, Application app, Schemas.RelationalTable relational) {
+	public void open(Table exist, Application app) {
 		if (getId() != exist.getId())
 			throw new IllegalStateException("hot table's id changed.");
 
@@ -53,11 +53,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		setTableConf(exist.getTableConf()); // Old
 		cache = new TableCache<>(app, this); // New
-		relationalTable = relational; // New. maybe null; may not change.
+		relationalTable = getZeze().getSchemas().relationalTables.get(getName()); // maybe null
 		storage = isMemory() ? null : new Storage<>(this, database, getName()); // New
 		database.replaceStorage(exist.getStorage(), storage);
-		if (null != relational) // must after init storage.
-			tryAlter();
 
 		oldTable = exist.getOldTable(); // Old
 		// Old 但是需要清除
@@ -678,7 +676,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		setTableConf(app.getConfig().getTableConf(getName()));
 		cache = new TableCache<>(app, this);
-		// todo relationalTable for add table
 		relationalTable = getZeze().getSchemas().relationalTables.get(getName()); // maybe null
 		storage = isMemory() ? null : new Storage<>(this, database, getName());
 		oldTable = getTableConf().getDatabaseOldMode() == 1

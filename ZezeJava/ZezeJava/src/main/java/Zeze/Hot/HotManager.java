@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
@@ -20,6 +21,7 @@ import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Collections.BeanFactory;
 import Zeze.IModule;
+import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Util.ConcurrentHashSet;
@@ -148,7 +150,7 @@ public class HotManager extends ClassLoader {
 		var i = 0;
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
-		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses);
+		IModule[] iModules = null; // GenModule.instance.createRedirectModules(app, moduleClasses);
 		if (null == iModules) {
 			// 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.
@@ -185,9 +187,47 @@ public class HotManager extends ClassLoader {
 		return null;
 	}
 
+	/**
+	 * Schemas Jar 命名规则：__hot_schemas__{SolutionName}.jar
+	 * 这个函数找到jar并且解析出SolutionName，然后Class.forName("{SolutionName}.Schemas", ...)
+	 * 每次Class.forName都是用新的ClassLoader，这里借用HotModule来实现装载。
+	 */
+	public static final String SchemasPrefix = "__hot_schemas__";
+	public static final String SchemasSuffix = ".jar";
+
+	@SuppressWarnings("ResultOfMethodCallIgnored")
+	private Schemas loadSchemas() throws Exception {
+		File schemasJarFile = null;
+		String solutionName = null;
+
+		var listFiles = new File(distributeDir).listFiles();
+		if (null == listFiles)
+			throw new RuntimeException("no files.");
+
+		for (var file : listFiles) {
+			var fileName = file.getName();
+			if (file.isDirectory() || !fileName.startsWith(SchemasPrefix) || !fileName.endsWith(SchemasSuffix))
+				continue;
+			schemasJarFile = file;
+			solutionName = fileName.substring(SchemasPrefix.length(), fileName.length() - SchemasSuffix.length());
+			break;
+		}
+		if (null == schemasJarFile)
+			throw new RuntimeException("__hot_schemas__{SolutionName}.jar not found.");
+
+		try (var schemasCl = new HotModule(schemasJarFile)) {
+			var schemasClass = Class.forName(solutionName + ".Schemas", true, schemasCl);
+			return (Schemas)schemasClass.getConstructor().newInstance();
+		} finally {
+			schemasJarFile.delete();
+		}
+	}
+
 	private List<HotModule> install(List<String> namespaces) throws Exception {
 		logger.info("install {}", namespaces);
 		try (var ignored = enterWriteLock()) {
+			app.getZeze().__install_prepare__(loadSchemas());
+
 			var result = new ArrayList<HotModule>(namespaces.size());
 			var exists = new ArrayList<HotModule>(namespaces.size());
 
@@ -218,6 +258,8 @@ public class HotManager extends ClassLoader {
 				result.add(_install(namespace));
 			// batch load redirect
 			var iModules = createModuleInstance(result);
+			app.getZeze().__install_alter__();
+
 			var hotJarFiles = new ArrayList<JarFile>();
 			for (var ii = 0; ii < iModules.length; ++ii) {
 				var exist = exists.get(ii);
@@ -513,7 +555,7 @@ public class HotManager extends ClassLoader {
 			if (file.isDirectory())
 				continue; // 不支持子目录。
 
-			if (file.getName().endsWith(".jar"))
+			if (file.getName().endsWith(".jar") && !file.getName().startsWith(SchemasPrefix))
 				tryReady(foundJars, file.getName(), readies);
 		}
 	}

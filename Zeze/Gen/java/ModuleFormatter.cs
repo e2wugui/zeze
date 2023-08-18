@@ -465,7 +465,9 @@ namespace Zeze.Gen.java
                 foreach (Table table in module.Tables.Values)
                 {
                     if (project.GenTables.Contains(table.Gen) && false == table.IsRocks)
+                    {
                         sw.WriteLine($"        _{table.Name} = new {table.FullName}(suffix);");
+                    }
                 }
                 sw.WriteLine($"    }}");
             }

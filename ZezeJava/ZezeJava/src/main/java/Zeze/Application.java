@@ -2,6 +2,7 @@ package Zeze;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -255,20 +256,35 @@ public final class Application {
 		return db;
 	}
 
-	// todo 临时让编译通过，需要解决关系表参数。
-	public @NotNull Database replaceTable(@NotNull String dbName, @NotNull Table table) {
-		return replaceTable(dbName, table, null);
+	private final ArrayList<Table> replaceTableRecent = new ArrayList<>();
+
+	// Hot Install 内部使用。
+	public void __install_prepare__(Schemas schemas) throws Exception {
+		replaceTableRecent.clear();
+		this.schemasPrevious = null;
+		this.schemas = schemas;
+		schemasCompatible();
+	}
+
+	public void __install_alter__() {
+		for (var table : replaceTableRecent) {
+			if (!table.isRelationalMapping())
+				continue;
+			table.tryAlter();
+		}
+		replaceTableRecent.clear();
 	}
 
 	// 用于热更的时候替换Table.
 	// 热更不会调用addTable,removeTable。
-	public @NotNull Database replaceTable(@NotNull String dbName, @NotNull Table table, Schemas.RelationalTable relational) {
+	public @NotNull Database replaceTable(@NotNull String dbName, @NotNull Table table) {
+		replaceTableRecent.add(table);
 		TableKey.tables.put(table.getId(), table.getName()); // always put
 		var db = getDatabase(dbName);
 		var exist = tables.put(table.getId(), table);
 		if (null != exist) {
 			// 旧表存在，新表需要处理open，但这个open跟第一次启动不一样，有一些状态从旧表得到。
-			table.open(exist, this, relational);
+			table.open(exist, this);
 			// 旧表禁用。防止应用保留了旧表引用，还去使用导致错误。
 			exist.disable();
 		} else if (this.startState == 2) {

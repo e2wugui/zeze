@@ -125,7 +125,7 @@ public abstract class Table {
 
 	public abstract Schemas.RelationalTable getRelationalTable();
 
-	public abstract void open(Table exist, Application app, Schemas.RelationalTable relational);
+	public abstract void open(Table exist, Application app);
 
 	public abstract void disable();
 

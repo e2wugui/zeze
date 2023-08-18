@@ -15,31 +15,33 @@ import java.util.zip.ZipEntry;
 import Zeze.Arch.Gen.GenModule;
 
 public class Distribute {
+	private final String classesDir;
 	private final Path classesHome;
 	private final boolean exportBean;
 	private final String workingDir;
 	private final Set<String> hotModules;
 	private final String projectName;
-	public final HashMap<String, JarOutputStream> hotModuleJars = new HashMap<>();
-	public JarOutputStream projectJar; // 所有非热更代码都打包到这里。
+	private final String solutionName;
+
+	private final HashMap<String, JarOutputStream> hotModuleJars = new HashMap<>();
+	private JarOutputStream projectJar; // 所有非热更代码都打包到这里。
 
 	// 兼容测试。
-	public Distribute(String classesDir, boolean exportBean, String workingDir) {
-		this(classesDir, exportBean, workingDir, null, "server");
-	}
-
 	@SuppressWarnings("ResultOfMethodCallIgnored")
 	public Distribute(String classesDir,
 					  boolean exportBean,
 					  String workingDir,
 					  Set<String> hotModules,
-					  String projectName) {
+					  String projectName,
+					  String solutionName) {
 
+		this.classesDir = classesDir;
 		this.classesHome = Path.of(classesDir);
 		this.exportBean = exportBean;
 		this.workingDir = workingDir;
 		this.hotModules = hotModules;
 		this.projectName = projectName;
+		this.solutionName = solutionName;
 
 		Path.of(workingDir, "interfaces").toFile().mkdirs();
 		Path.of(workingDir, "modules").toFile().mkdirs();
@@ -62,6 +64,17 @@ public class Distribute {
 			e.getValue().close();
 		}
 		hotModuleJars.clear();
+
+		var schemasManifest = new Manifest();
+		var schemasJarFile = Path.of(workingDir, HotManager.SchemasPrefix + solutionName + HotManager.SchemasSuffix).toFile();
+		try (var schemasJar = new JarOutputStream(new FileOutputStream(schemasJarFile), schemasManifest)) {
+			var schemasFile = Path.of(classesDir, solutionName, "Schemas.class");
+			var entry = new ZipEntry(solutionName + "/Schemas.class");
+			entry.setTime(schemasFile.toFile().lastModified());
+			schemasJar.putNextEntry(entry);
+			var bytes = Files.readAllBytes(schemasFile);
+			schemasJar.write(bytes);
+		}
 	}
 
 	public static void main(String [] args) throws Exception {
