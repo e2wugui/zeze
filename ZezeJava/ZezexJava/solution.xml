@@ -167,6 +167,10 @@
 		<table name="tequip" key="long" value="BEquips"/>
 		<table name="tHotTest" key="long" value="BEquipExtra"/> 新版热更模块修改这个这张表的Value结构定义。
 		<table name="tHotRemove" key="long" value="BEquipExtra"/> 新版热更模块删除这张表（zeze内的表并不会关闭，后端数据库的表更不会删除）
+
+		<rpc name="SendHot" argument="BEquipExtra" handle="server"/>
+		<rpc name="SendHotRemove" argument="BEquipExtra" handle="server"/>
+		<rpc name="SendHotAdd" argument="BEquipExtra" handle="server"/>
 	</module>
 
 	<module name="Map" id="8">
@@ -371,6 +375,7 @@
 			<module ref="Zezex.Linkd"/>
 			<module ref="Game.Login"/>
 			<module ref="Game.Fight"/>
+			<module ref="Game.Equip"/>
 		</service>
 	</project>
 

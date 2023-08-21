@@ -22,6 +22,7 @@ public class App extends Zeze.AppBase {
         Zeze.start(); // 启动数据库
         startModules(); // 启动模块，装载配置什么的。
         startService(); // 启动网络
+        Connector.GetReadySocket();
     }
 
     public void Stop() throws Exception {
@@ -45,6 +46,7 @@ public class App extends Zeze.AppBase {
     public ClientZezex.Linkd.ModuleLinkd ClientZezex_Linkd;
     public ClientGame.Login.ModuleLogin ClientGame_Login;
     public ClientGame.Fight.ModuleFight ClientGame_Fight;
+    public ClientGame.Equip.ModuleEquip ClientGame_Equip;
 
     @Override
     public Zeze.Application getZeze() {
@@ -75,6 +77,7 @@ public class App extends Zeze.AppBase {
             ClientZezex.Linkd.ModuleLinkd.class,
             ClientGame.Login.ModuleLogin.class,
             ClientGame.Fight.ModuleFight.class,
+            ClientGame.Equip.ModuleEquip.class,
         });
         if (_modules_ == null)
             return;
@@ -109,10 +112,16 @@ public class App extends Zeze.AppBase {
         if (modules.put(ClientGame_Fight.getFullName(), ClientGame_Fight) != null)
             throw new IllegalStateException("duplicate module name: ClientGame_Fight");
 
+        ClientGame_Equip = (ClientGame.Equip.ModuleEquip)_modules_[6];
+        ClientGame_Equip.Initialize(this);
+        if (modules.put(ClientGame_Equip.getFullName(), ClientGame_Equip) != null)
+            throw new IllegalStateException("duplicate module name: ClientGame_Equip");
+
         Zeze.setSchemas(new ClientGame.Schemas());
     }
 
     public synchronized void destroyModules() throws Exception {
+        ClientGame_Equip = null;
         ClientGame_Fight = null;
         ClientGame_Login = null;
         ClientZezex_Linkd = null;
@@ -137,9 +146,12 @@ public class App extends Zeze.AppBase {
         ClientZezex_Linkd.Start(this);
         ClientGame_Login.Start(this);
         ClientGame_Fight.Start(this);
+        ClientGame_Equip.Start(this);
     }
 
     public synchronized void stopModules() throws Exception {
+        if (ClientGame_Equip != null)
+            ClientGame_Equip.Stop(this);
         if (ClientGame_Fight != null)
             ClientGame_Fight.Stop(this);
         if (ClientGame_Login != null)
