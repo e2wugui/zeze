@@ -9,6 +9,7 @@ import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
 import Zeze.Builtin.Provider.AnnounceProviderInfo;
 import Zeze.Builtin.Provider.BBind;
+import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Broadcast;
@@ -421,7 +422,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				protocol.Argument.getLinksid(),
 				BReportError.FromProvider,
 				protocol.Argument.getCode(),
-				protocol.Argument.getDesc());
+				protocol.Argument.getDesc(),
+				protocol.Argument.getControl() == BKick.eControlClose);
 		return Procedure.Success;
 	}
 

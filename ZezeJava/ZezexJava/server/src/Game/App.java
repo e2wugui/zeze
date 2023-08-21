@@ -7,7 +7,10 @@ import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
+import Zeze.Builtin.Provider.BKick;
+import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
+import Zeze.Collections.Queue;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Config;
@@ -35,6 +38,9 @@ public final class App extends Zeze.AppBase {
 	public ProviderApp ProviderApp;
 	public ProviderDirectWithTransmit ProviderDirect;
 	public LinkedMap.Module LinkedMapModule;
+	public Queue.Module QueueModule;
+	public DepartmentTree.Module DepartmentTreeModule;
+
 
 	public ProviderWithOnline getProvider() {
 		return Provider;
@@ -90,6 +96,8 @@ public final class App extends Zeze.AppBase {
 		createZeze(config);
 		createService();
 		Provider = new ProviderWithOnline();
+		Provider.setControlKick(BKick.eControlReportClient);
+
 		ProviderDirect = new ProviderDirectWithTransmit();
 		ProviderApp = new ProviderApp(Zeze, Provider, Server,
 				"Game.Server.Module#",
@@ -104,6 +112,8 @@ public final class App extends Zeze.AppBase {
 		}
 		taskModule = new TaskBase.Module(getZeze());
 		LinkedMapModule = new LinkedMap.Module(Zeze);
+		QueueModule = new Queue.Module(Zeze);
+		DepartmentTreeModule = new DepartmentTree.Module(Zeze, LinkedMapModule);
 
 		// start
 		Zeze.start(); // 启动数据库
@@ -150,9 +160,17 @@ public final class App extends Zeze.AppBase {
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null) {
 			Zeze.stop(); // 关闭数据库
+			if (DepartmentTreeModule != null) {
+				DepartmentTreeModule.UnRegisterZezeTables(Zeze);
+				DepartmentTreeModule = null;
+			}
 			if (LinkedMapModule != null) {
 				LinkedMapModule.UnRegisterZezeTables(Zeze);
 				LinkedMapModule = null;
+			}
+			if (QueueModule != null) {
+				QueueModule.UnRegisterZezeTables(Zeze);
+				QueueModule = null;
 			}
 		}
 		destroyModules();

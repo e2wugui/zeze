@@ -7,6 +7,9 @@ Hot 热更测试
 1. 表增加
 2. 表删除
 3. 表.Value结构修改
+13. LinkedMap
+14. Queue
+15. DepartmentTree
 
 4. 协议增加
 5. 协议删除，旧版客户端现在会发生Dispatch错误，会被踢掉？
@@ -21,6 +24,8 @@ Hot 热更测试
 
 11. Arch.Online.setLocalBean, 热更后读取访问。由于zezex目前用的Game.Online，没有这个测试环境，先列在这里。
 12. TimeAccount.scheduleOnlineHot, scheduleOnlineNamedHot, 同11点，由于zezex，没有这个测试环境，先列在这里。
+
+16. Game.Online.setUserData
 
 Hot热更在serverdev应用
 0. 跟客户端无关，但主管们也要看看。

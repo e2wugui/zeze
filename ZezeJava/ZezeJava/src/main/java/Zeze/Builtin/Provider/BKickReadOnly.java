@@ -10,4 +10,5 @@ public interface BKickReadOnly {
     long getLinksid();
     int getCode();
     String getDesc();
+    int getControl();
 }

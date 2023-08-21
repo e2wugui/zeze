@@ -230,6 +230,9 @@ public class HotManager extends ClassLoader {
 			var result = new ArrayList<HotModule>(namespaces.size());
 			var exists = new ArrayList<HotModule>(namespaces.size());
 
+			// 先保存现有的数据
+
+			app.getZeze().checkpointRun();
 			// remove
 			for (var namespace : namespaces) {
 				exists.add(modules.remove(namespace));
@@ -271,7 +274,6 @@ public class HotManager extends ClassLoader {
 			// internal upgrade
 			for (var hotUpgrade : freshHotUpgrades)
 				hotUpgrade.upgrade((bean) -> retreat(exists, result, bean));
-			app.getZeze().checkpointRun();
 			var beanFactories = new HashMap<BeanFactory, List<Class<?>>>();
 			for (var hotBeanFactory : freshHotBeanFactories) {
 				hotBeanFactory.clearTableCache();

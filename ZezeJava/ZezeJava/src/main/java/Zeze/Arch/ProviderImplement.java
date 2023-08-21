@@ -29,6 +29,11 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	private static final ThreadLocal<Dispatch> localDispatch = new ThreadLocal<>();
 
 	protected ProviderApp providerApp;
+	private volatile int controlKick = BKick.eControlClose;
+
+	public void setControlKick(int control) {
+		controlKick = control;
+	}
 
 	void addServer(Agent.SubscribeState ss, BServiceInfo pm) {
 		if (ss.getServiceName().equals(providerApp.linkdServiceName))
@@ -89,9 +94,13 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	}
 
 	public static void sendKick(AsyncSocket sender, long linkSid, int code, @NotNull String desc) {
+		sendKick(sender, linkSid, code, desc, BKick.eControlClose);
+	}
+
+	public static void sendKick(AsyncSocket sender, long linkSid, int code, @NotNull String desc, int control) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
 			logger.info("sendKick[{}]: linkSid={}, code={}, desc={}", sender.getSessionId(), linkSid, code, desc);
-		new Kick(new BKick.Data(linkSid, code, desc)).Send(sender);
+		new Kick(new BKick.Data(linkSid, code, desc, control)).Send(sender);
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
@@ -110,7 +119,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		try {
 			var factoryHandle = providerApp.providerService.findProtocolFactoryHandle(typeId);
 			if (factoryHandle == null) {
-				sendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol: " + typeId);
+				sendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol: " + typeId, controlKick);
 				return Procedure.LogicError;
 			}
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;

@@ -17,31 +17,70 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
 	}
 
+	private void accessWillRemoveTable() {
+		// 访问一下将被热更删除的表。
+		var rremove = _tHotRemove.getOrAdd(1L);
+		rremove.setAttack(123);
+	}
+
+	private static void accessWillRemoveVar(BEquipExtra record) {
+		record.setHotRemoveVar(record.getHotRemoveVar() + 1); // 访问将被删除的变量。
+	}
+
+	private void verifyCollections(int oldAccess) {
+		{
+			var linkedMap = App.LinkedMapModule.open("ZezexJava.HotTest.LinkedMap", BEquipExtra.class);
+			var version0 = linkedMap.getOrAdd(String.valueOf(0));
+			if (version0.getAttack() != oldAccess)
+				throw new RuntimeException("LinkedMap error");
+			version0.setAttack(oldAccess + 1);
+		}
+		{
+			var queue = App.QueueModule.open("ZezexJava.HotTest.Queue", BEquipExtra.class);
+			var old = queue.poll();
+			if (old != null && oldAccess != old.getAttack())
+				throw new RuntimeException("Queue error");
+			var cur = new BEquipExtra();
+			cur.setAttack(oldAccess + 1);
+			queue.add(cur);
+		}
+		{
+			var departmentTree = App.DepartmentTreeModule.open("ZezexJava.HotTest.DT",
+					BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class);
+			var root = departmentTree.getRoot();
+			var next = String.valueOf(oldAccess + 1);
+			if (null == root) {
+				departmentTree.create().setRoot(next);
+			} else {
+				if (!root.getRoot().equals(String.valueOf(oldAccess)))
+					throw new RuntimeException("Dt error");
+				root.setRoot(next);
+			}
+		}
+	}
+
 	@Override
-	public int hotHelloworld() {
-		var version = new OutInt(0);
-		//*
+	public int hotHelloWorld(int oldAccess) {
+		var version = new OutInt(oldAccess);
 		App.Zeze.newProcedure(() -> {
+			accessWillRemoveTable();
+
 			var record = _tHotTest.getOrAdd(1L);
 			record.setAttack(record.getAttack() + 1);
-			version.value = record.getAttack();
+			System.out.println("HotTest.Attack=" + record.getAttack());
+
+			accessWillRemoveVar(record);
+
 			// 由于没有真正登录的role，
 			// 这里roleId==1L需要修改Zeze.Game.Online.setLocalBean里面的
 			// _tlocal.get为_tlocal.getOrAdd才能测试。
 			// App.Provider.getOnline().setLocalBean(1L, "RetreatTestLocal", new BRetreatTestLocal());
 
-			var linkedMap = App.LinkedMapModule.open("ZezexJava.HotTest", BEquipExtra.class);
-			var version0 = linkedMap.getOrAdd(String.valueOf(0));
-			version0.setAttack(5555);
-			System.out.println(version0);
-			var versionN = linkedMap.getOrAdd(String.valueOf(version.value));
-			versionN.setAttack(version.value);
-			System.out.println(versionN.getClass().getName() + " attack =" + versionN.getAttack());
+			verifyCollections(oldAccess);
+
+			version.value = oldAccess + 1;
 			return 0;
 		}, "").call();
-
-		// */
-		System.out.println("hot hello world. " + version.value);
 		return version.value;
 	}
 

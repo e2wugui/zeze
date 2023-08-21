@@ -13,10 +13,14 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
     public static final int ErrorDuplicateLogin = 4;
     public static final int ErrorSeeDescription = 5;
     public static final int ErrorOnlineSetName = 6;
+    public static final int eControlClose = 0; // 通过ReportError报告给客户端，并关闭链接。
+    public static final int eControlReportClient = 1; // 通过ReportError报告给客户端，不关闭链接。
+    public static final int eControlReportLinkd = 2; // Linkd收到自行做些处理。
 
     private long _linksid;
     private int _code;
-    private String _desc; // // for debug
+    private String _desc; // for debug
+    private int _control;
 
     @Override
     public long getLinksid() {
@@ -80,18 +84,39 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         txn.putLog(new Log__desc(this, 3, value));
     }
 
+    @Override
+    public int getControl() {
+        if (!isManaged())
+            return _control;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _control;
+        var log = (Log__control)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _control;
+    }
+
+    public void setControl(int value) {
+        if (!isManaged()) {
+            _control = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__control(this, 4, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BKick() {
         _desc = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BKick(long _linksid_, int _code_, String _desc_) {
+    public BKick(long _linksid_, int _code_, String _desc_, int _control_) {
         _linksid = _linksid_;
         _code = _code_;
         if (_desc_ == null)
             _desc_ = "";
         _desc = _desc_;
+        _control = _control_;
     }
 
     @Override
@@ -99,6 +124,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         setLinksid(0);
         setCode(0);
         setDesc("");
+        setControl(0);
         _unknown_ = null;
     }
 
@@ -118,6 +144,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         setLinksid(other._linksid);
         setCode(other._code);
         setDesc(other._desc);
+        setControl(other._control);
         _unknown_ = null;
     }
 
@@ -125,6 +152,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         setLinksid(other.getLinksid());
         setCode(other.getCode());
         setDesc(other.getDesc());
+        setControl(other.getControl());
         _unknown_ = other._unknown_;
     }
 
@@ -171,6 +199,13 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         public void commit() { ((BKick)getBelong())._desc = value; }
     }
 
+    private static final class Log__control extends Zeze.Transaction.Logs.LogInt {
+        public Log__control(BKick bean, int varId, int value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BKick)getBelong())._control = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -184,7 +219,8 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("linksid=").append(getLinksid()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("code=").append(getCode()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("desc=").append(getDesc()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("desc=").append(getDesc()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("control=").append(getControl()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -238,6 +274,13 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
                 _o_.WriteString(_x_);
             }
         }
+        {
+            int _x_ = getControl();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -259,6 +302,10 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
             setDesc(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 4) {
+            setControl(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -268,6 +315,8 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         if (getLinksid() < 0)
             return true;
         if (getCode() < 0)
+            return true;
+        if (getControl() < 0)
             return true;
         return false;
     }
@@ -284,6 +333,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
                 case 1: _linksid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _code = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 3: _desc = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 4: _control = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }
@@ -296,6 +346,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         setDesc(rs.getString(_parents_name_ + "desc"));
         if (getDesc() == null)
             setDesc("");
+        setControl(rs.getInt(_parents_name_ + "control"));
     }
 
     @Override
@@ -304,6 +355,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         st.appendLong(_parents_name_ + "linksid", getLinksid());
         st.appendInt(_parents_name_ + "code", getCode());
         st.appendString(_parents_name_ + "desc", getDesc());
+        st.appendInt(_parents_name_ + "control", getControl());
     }
 
     @Override
@@ -312,6 +364,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "linksid", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "code", "int", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "desc", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "control", "int", "", ""));
         return vars;
     }
 
@@ -324,10 +377,14 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final int ErrorDuplicateLogin = 4;
     public static final int ErrorSeeDescription = 5;
     public static final int ErrorOnlineSetName = 6;
+    public static final int eControlClose = 0; // 通过ReportError报告给客户端，并关闭链接。
+    public static final int eControlReportClient = 1; // 通过ReportError报告给客户端，不关闭链接。
+    public static final int eControlReportLinkd = 2; // Linkd收到自行做些处理。
 
     private long _linksid;
     private int _code;
-    private String _desc; // // for debug
+    private String _desc; // for debug
+    private int _control;
 
     public long getLinksid() {
         return _linksid;
@@ -355,18 +412,27 @@ public static final class Data extends Zeze.Transaction.Data {
         _desc = value;
     }
 
+    public int getControl() {
+        return _control;
+    }
+
+    public void setControl(int value) {
+        _control = value;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _desc = "";
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _linksid_, int _code_, String _desc_) {
+    public Data(long _linksid_, int _code_, String _desc_, int _control_) {
         _linksid = _linksid_;
         _code = _code_;
         if (_desc_ == null)
             _desc_ = "";
         _desc = _desc_;
+        _control = _control_;
     }
 
     @Override
@@ -374,6 +440,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _linksid = 0;
         _code = 0;
         _desc = "";
+        _control = 0;
     }
 
     @Override
@@ -392,12 +459,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _linksid = other.getLinksid();
         _code = other.getCode();
         _desc = other.getDesc();
+        _control = other.getControl();
     }
 
     public void assign(BKick.Data other) {
         _linksid = other._linksid;
         _code = other._code;
         _desc = other._desc;
+        _control = other._control;
     }
 
     @Override
@@ -436,7 +505,8 @@ public static final class Data extends Zeze.Transaction.Data {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("linksid=").append(_linksid).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("code=").append(_code).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("desc=").append(_desc).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("desc=").append(_desc).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("control=").append(_control).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -477,6 +547,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteString(_x_);
             }
         }
+        {
+            int _x_ = _control;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -494,6 +571,10 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 3) {
             _desc = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _control = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

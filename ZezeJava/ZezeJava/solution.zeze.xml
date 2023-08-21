@@ -346,9 +346,14 @@
 				<enum name="ErrorSeeDescription"    value="5"/>
 				<enum name="ErrorOnlineSetName"     value="6"/>
 
-				<variable name="linksid" id="1" type="long"/>
-				<variable name="code"    id="2" type="int"/>
-				<variable name="desc"    id="3" type="string"/> // for debug
+				<enum name="eControlClose"              value="0"/> 通过ReportError报告给客户端，并关闭链接。
+				<enum name="eControlReportClient"   value="1"/> 通过ReportError报告给客户端，不关闭链接。
+				<enum name="eControlReportLinkd"    value="2"/> Linkd收到自行做些处理。
+
+				<variable name="linksid"  id="1" type="long"/>
+				<variable name="code"     id="2" type="int"/>
+				<variable name="desc"     id="3" type="string"/> for debug
+				<variable name="control" id="4" type="int"/>
 			</bean>
 
 			<protocol name="Kick" argument="BKick" handle="client"/>
