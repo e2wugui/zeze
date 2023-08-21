@@ -17,14 +17,14 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
 	}
 
-	private void accessWillAddTable() {
+	private void accessWillRemoveTable() {
 		// 访问一下将被热更删除的表。
-		var rremove = _tHotAdd.getOrAdd(1L);
+		var rremove = _tHotRemove.getOrAdd(1L);
 		rremove.setAttack(123);
 	}
 
-	private static void accessWillAddVar(BEquipExtra record) {
-		record.setHotAddVar(record.getHotAddVar() + 1); // 访问将被删除的变量。
+	private static void accessWillRemoveVar(BEquipExtra record) {
+		record.setHotRemoveVar(record.getHotRemoveVar() + 1); // 访问将被删除的变量。
 	}
 
 	private void verifyCollections(int oldAccess) {
@@ -36,7 +36,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			version0.setAttack(oldAccess + 1);
 		}
 		{
-			var queue = App.QueueModule.open("ZezexJava.HotTest.Queue", BEquipExtra.class);
+			var queue = App.Zeze.getQueueModule().open("ZezexJava.HotTest.Queue", BEquipExtra.class);
 			var old = queue.poll();
 			if (old != null && oldAccess != old.getAttack())
 				throw new RuntimeException("Queue error");
@@ -63,13 +63,13 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	public int hotHelloWorld(int oldAccess) {
 		var version = new OutInt(oldAccess);
 		App.Zeze.newProcedure(() -> {
-			accessWillAddTable();
+			accessWillRemoveTable();
 
 			var record = _tHotTest.getOrAdd(1L);
 			record.setAttack(record.getAttack() + 1);
 			System.out.println("HotTest.Attack=" + record.getAttack());
 
-			accessWillAddVar(record);
+			accessWillRemoveVar(record);
 
 			// 由于没有真正登录的role，
 			// 这里roleId==1L需要修改Zeze.Game.Online.setLocalBean里面的

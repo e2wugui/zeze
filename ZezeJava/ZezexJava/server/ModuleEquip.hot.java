@@ -36,7 +36,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			version0.setAttack(oldAccess + 1);
 		}
 		{
-			var queue = App.QueueModule.open("ZezexJava.HotTest.Queue", BEquipExtra.class);
+			var queue = App.Zeze.getQueueModule().open("ZezexJava.HotTest.Queue", BEquipExtra.class);
 			var old = queue.poll();
 			if (old != null && oldAccess != old.getAttack())
 				throw new RuntimeException("Queue error");
