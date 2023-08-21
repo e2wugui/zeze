@@ -367,16 +367,4 @@
 		</service>
 	</project>
 
-	<project name="client" gendir="." scriptdir="src" platform="java" SolutionName="Client" BuiltinNG="true">
-		<service name="ClientService" handle="client" base="Zeze.Services.HandshakeClient">
-			<module ref="Zeze.Builtin.Game.Online"/>
-			<module ref="Zeze.Builtin.Game.Bag"/>
-			<module ref="Zeze.Builtin.LinkdBase"/>
-			<module ref="Zezex.Linkd"/>
-			<module ref="Game.Login"/>
-			<module ref="Game.Fight"/>
-			<module ref="Game.Equip"/>
-		</service>
-	</project>
-
 </solution>
