@@ -17,6 +17,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     private long _ExpectedTime;
     private long _HappenTime;
     private int _MissfirePolicy;
+    private String _OneByOneKey;
 
     @Override
     public long getDelay() {
@@ -218,12 +219,35 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         txn.putLog(new Log__MissfirePolicy(this, 10, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BSimpleTimer() {
+    @Override
+    public String getOneByOneKey() {
+        if (!isManaged())
+            return _OneByOneKey;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _OneByOneKey;
+        var log = (Log__OneByOneKey)txn.getLog(objectId() + 11);
+        return log != null ? log.value : _OneByOneKey;
+    }
+
+    public void setOneByOneKey(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _OneByOneKey = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__OneByOneKey(this, 11, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BSimpleTimer(long _Delay_, long _Period_, long _RemainTimes_, long _HappenTimes_, long _StartTime_, long _EndTime_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_, int _MissfirePolicy_) {
+    public BSimpleTimer() {
+        _OneByOneKey = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BSimpleTimer(long _Delay_, long _Period_, long _RemainTimes_, long _HappenTimes_, long _StartTime_, long _EndTime_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_, int _MissfirePolicy_, String _OneByOneKey_) {
         _Delay = _Delay_;
         _Period = _Period_;
         _RemainTimes = _RemainTimes_;
@@ -234,6 +258,9 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         _ExpectedTime = _ExpectedTime_;
         _HappenTime = _HappenTime_;
         _MissfirePolicy = _MissfirePolicy_;
+        if (_OneByOneKey_ == null)
+            _OneByOneKey_ = "";
+        _OneByOneKey = _OneByOneKey_;
     }
 
     @Override
@@ -248,6 +275,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         setExpectedTime(0);
         setHappenTime(0);
         setMissfirePolicy(0);
+        setOneByOneKey("");
         _unknown_ = null;
     }
 
@@ -262,6 +290,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         setExpectedTime(other.getExpectedTime());
         setHappenTime(other.getHappenTime());
         setMissfirePolicy(other.getMissfirePolicy());
+        setOneByOneKey(other.getOneByOneKey());
         _unknown_ = other._unknown_;
     }
 
@@ -357,6 +386,13 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         public void commit() { ((BSimpleTimer)getBelong())._MissfirePolicy = value; }
     }
 
+    private static final class Log__OneByOneKey extends Zeze.Transaction.Logs.LogString {
+        public Log__OneByOneKey(BSimpleTimer bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BSimpleTimer)getBelong())._OneByOneKey = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -377,7 +413,8 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         sb.append(Zeze.Util.Str.indent(level)).append("NextExpectedTime=").append(getNextExpectedTime()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ExpectedTime=").append(getExpectedTime()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("HappenTime=").append(getHappenTime()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("MissfirePolicy=").append(getMissfirePolicy()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("MissfirePolicy=").append(getMissfirePolicy()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OneByOneKey=").append(getOneByOneKey()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -480,6 +517,13 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            String _x_ = getOneByOneKey();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 11, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -527,6 +571,10 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         }
         if (_i_ == 10) {
             setMissfirePolicy(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 11) {
+            setOneByOneKey(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -577,6 +625,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
                 case 8: _ExpectedTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 9: _HappenTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 10: _MissfirePolicy = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 11: _OneByOneKey = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -594,6 +643,9 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         setExpectedTime(rs.getLong(_parents_name_ + "ExpectedTime"));
         setHappenTime(rs.getLong(_parents_name_ + "HappenTime"));
         setMissfirePolicy(rs.getInt(_parents_name_ + "MissfirePolicy"));
+        setOneByOneKey(rs.getString(_parents_name_ + "OneByOneKey"));
+        if (getOneByOneKey() == null)
+            setOneByOneKey("");
     }
 
     @Override
@@ -609,6 +661,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         st.appendLong(_parents_name_ + "ExpectedTime", getExpectedTime());
         st.appendLong(_parents_name_ + "HappenTime", getHappenTime());
         st.appendInt(_parents_name_ + "MissfirePolicy", getMissfirePolicy());
+        st.appendString(_parents_name_ + "OneByOneKey", getOneByOneKey());
     }
 
     @Override
@@ -624,6 +677,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "ExpectedTime", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "HappenTime", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "MissfirePolicy", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(11, "OneByOneKey", "string", "", ""));
         return vars;
     }
 }

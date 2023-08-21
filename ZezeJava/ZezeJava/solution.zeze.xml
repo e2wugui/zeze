@@ -1059,6 +1059,7 @@
 				<variable id="8" name="ExpectedTime" type="long"/>
 				<variable id="9" name="HappenTime" type="long"/>
 				<variable id="10" name="MissfirePolicy" type="int"/>
+				<variable id="11" name="OneByOneKey" type="string"/>
 			</bean>
 
 			<bean name="BCronTimer">
@@ -1069,6 +1070,7 @@
 				<variable id="5" name="RemainTimes" type="long"/> -1 表示不限次数。
 				<variable id="6" name="EndTime" type="long"/> 结束时间 -1 表示永不结束
 				<variable id="7" name="MissfirePolicy" type="int"/>
+				<variable id="8" name="OneByOneKey" type="string"/>
 			</bean>
 
 			<bean name="BNode">

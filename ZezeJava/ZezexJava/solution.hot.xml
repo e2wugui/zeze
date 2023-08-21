@@ -158,15 +158,15 @@
 		<bean name="BEquipExtra">
 			<variable id="1" name="Attack" type="int"/>
 			<variable id="2" name="Defence" type="int"/>
-			<variable id="3" name="HotRemoveVar" type="int"/> 这个变量在新版热更模块会被删除。
+			<variable id="4" name="HotAddVar" type="int"/> 新版热更模块增加这个变量
 		</bean>
 
 		<bean name="BEquips">
 			<variable id="1" name="Items" type="map" key="int" value="BItem"/> key is equip position
 		</bean>
 		<table name="tequip" key="long" value="BEquips"/>
+		<table name="tHotAdd" key="long" value="BEquipExtra"/> 新版热更模块增加这张表
 		<table name="tHotTest" key="long" value="BEquipExtra"/> 新版热更模块修改这个这张表的Value结构定义。
-		<table name="tHotRemove" key="long" value="BEquipExtra"/> 新版热更模块删除这张表（zeze内的表并不会关闭，后端数据库的表更不会删除）
 	</module>
 
 	<module name="Map" id="8">

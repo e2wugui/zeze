@@ -17,4 +17,5 @@ public interface BSimpleTimerReadOnly {
     long getExpectedTime();
     long getHappenTime();
     int getMissfirePolicy();
+    String getOneByOneKey();
 }

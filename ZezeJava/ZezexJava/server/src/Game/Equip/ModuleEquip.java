@@ -36,7 +36,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			System.out.println(version0);
 			var versionN = linkedMap.getOrAdd(String.valueOf(version.value));
 			versionN.setAttack(version.value);
-			System.out.println(versionN);
+			System.out.println(versionN.getClass().getName() + " attack =" + versionN.getAttack());
 			return 0;
 		}, "").call();
 

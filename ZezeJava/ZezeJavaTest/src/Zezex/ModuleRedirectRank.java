@@ -64,8 +64,12 @@ public class ModuleRedirectRank extends TestCase {
 
 	public void testRedirect() throws Exception {
 		// RedirectToServer
+		/*
 		var context = app1.Zeze.getHotManager().getModuleContext("Game.Rank", IModuleRank.class);
 		var rank = context.getService();
+		/*/
+		var rank = app1.Game_Rank;
+		// */
 		rank.TestToServer(30, 111).then(result -> {
 			assertEquals(111, result.getOut());
 			assertEquals(30, result.getServerId());

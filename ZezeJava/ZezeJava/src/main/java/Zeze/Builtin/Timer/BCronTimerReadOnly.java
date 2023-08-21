@@ -14,4 +14,5 @@ public interface BCronTimerReadOnly {
     long getRemainTimes();
     long getEndTime();
     int getMissfirePolicy();
+    String getOneByOneKey();
 }
