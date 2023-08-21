@@ -206,8 +206,15 @@ public class Timer extends AbstractTimer {
 	 */
 	public @NotNull String schedule(long delay, long period, long times, long endTime, int missFirePolicy,
 									@NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData) {
+		return schedule(delay, period, times, endTime,
+				missFirePolicy, handle, customData, "");
+	}
+
+	public @NotNull String schedule(long delay, long period, long times, long endTime, int missFirePolicy,
+									@NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData,
+									String oneByOneKey) {
 		var simpleTimer = new BSimpleTimer();
-		initSimpleTimer(simpleTimer, delay, period, times, endTime);
+		initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
 		simpleTimer.setMissfirePolicy(missFirePolicy);
 		return schedule(simpleTimer, handle, customData);
 	}
@@ -275,7 +282,7 @@ public class Timer extends AbstractTimer {
 				scheduleSimple(index.getSerialId(), serverId, timerId,
 						simpleTimer.getExpectedTime() - System.currentTimeMillis(),
 						timer.getConcurrentFireSerialNo(),
-						false);
+						false, simpleTimer.getOneByOneKey());
 				return timerId;
 			}
 			nodeId = nodeIdAutoKey.nextId();
@@ -394,8 +401,15 @@ public class Timer extends AbstractTimer {
 	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime, int missFirePolicy,
 									@NotNull Class<? extends TimerHandle> handle,
 									@Nullable Bean customData) throws ParseException {
+		return schedule(cronExpression, times, endTime,
+				missFirePolicy, handle, customData, "");
+	}
+
+	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime, int missFirePolicy,
+									@NotNull Class<? extends TimerHandle> handle,
+									@Nullable Bean customData, String oneByOneKey) throws ParseException {
 		var cronTimer = new BCronTimer();
-		initCronTimer(cronTimer, cronExpression, times, endTime);
+		initCronTimer(cronTimer, cronExpression, times, endTime, oneByOneKey);
 		cronTimer.setMissfirePolicy(missFirePolicy);
 		return schedule(cronTimer, handle, customData);
 	}
@@ -462,7 +476,7 @@ public class Timer extends AbstractTimer {
 				scheduleCron(index.getSerialId(), serverId,
 						timerId, cronTimer,
 						timer.getConcurrentFireSerialNo(),
-						false);
+						false, cronTimer.getOneByOneKey());
 				return timerId;
 			}
 			nodeId = nodeIdAutoKey.nextId();
@@ -540,6 +554,13 @@ public class Timer extends AbstractTimer {
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times, long endTime,
 								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handle,
 								 @Nullable Bean customData) {
+		return scheduleNamed(timerId, delay, period, times, endTime,
+				missFirePolicy, handle, customData, "");
+	}
+
+	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times, long endTime,
+								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handle,
+								 @Nullable Bean customData, String oneByOneKey) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timer name. startsWith '@' is reserved.");
 
@@ -548,7 +569,7 @@ public class Timer extends AbstractTimer {
 			return false;
 
 		var simpleTimer = new BSimpleTimer();
-		initSimpleTimer(simpleTimer, delay, period, times, endTime);
+		initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
 		simpleTimer.setMissfirePolicy(missFirePolicy);
 		schedule(timerId, simpleTimer, handle, customData);
 		return true;
@@ -607,11 +628,18 @@ public class Timer extends AbstractTimer {
 	public boolean scheduleNamed(@NotNull String timerName, @NotNull String cron, long times, long endTime,
 								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handle,
 								 @Nullable Bean customData) throws ParseException {
+		return scheduleNamed(timerName, cron, times, endTime,
+				missFirePolicy, handle, customData, "");
+	}
+
+	public boolean scheduleNamed(@NotNull String timerName, @NotNull String cron, long times, long endTime,
+								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handle,
+								 @Nullable Bean customData, String oneByOneKey) throws ParseException {
 		var timerId = _tIndexs.get(timerName);
 		if (null != timerId)
 			return false;
 		var cronTimer = new BCronTimer();
-		initCronTimer(cronTimer, cron, times, endTime);
+		initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
 		cronTimer.setMissfirePolicy(missFirePolicy);
 		schedule(timerName, cronTimer, handle, customData);
 		return true;
@@ -747,18 +775,26 @@ public class Timer extends AbstractTimer {
 	private void scheduleSimple(long timerSerialId, int serverId,
 								@NotNull String timerId, long delay,
 								long concurrentSerialNo,
-								boolean putIfAbsent) {
+								boolean putIfAbsent,
+								String oneByOneKey) {
 		Transaction.whileCommit(
 				() -> {
 					if (!putIfAbsent || !timersFuture.containsKey(timerId)) {
-						timersFuture.put(timerId, Task.scheduleUnsafe(delay,
-								() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false)));
+						timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> {
+							if (null == oneByOneKey || oneByOneKey.isEmpty()) {
+								fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false);
+							} else {
+								zeze.getTaskOneByOneByKey().Execute(oneByOneKey,
+										() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false));
+							}
+						}));
 					}
 				});
 	}
 
 	public static void initSimpleTimer(@NotNull BSimpleTimer simpleTimer,
-									   long delay, long period, long times, long endTime) {
+									   long delay, long period, long times, long endTime,
+									   String oneByOneKey) {
 		if (delay < 0)
 			throw new IllegalArgumentException();
 		var now = System.currentTimeMillis();
@@ -771,6 +807,7 @@ public class Timer extends AbstractTimer {
 		simpleTimer.setExpectedTime(expectedTime);
 		simpleTimer.setNextExpectedTime(expectedTime);
 		simpleTimer.setStartTime(expectedTime);
+		simpleTimer.setOneByOneKey(oneByOneKey);
 	}
 
 	public static boolean nextSimpleTimer(@NotNull BSimpleTimer simpleTimer, boolean missFire) {
@@ -867,7 +904,9 @@ public class Timer extends AbstractTimer {
 
 			// continue period
 			long delay = simpleTimer.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleSimple(timerSerialId, serverId, timerId, delay, concurrentSerialNo + 1, false);
+			scheduleSimple(timerSerialId, serverId, timerId,
+					delay, concurrentSerialNo + 1, false,
+					simpleTimer.getOneByOneKey());
 
 			return 0L;
 		}, "Timer.fireSimple"))) {
@@ -882,10 +921,10 @@ public class Timer extends AbstractTimer {
 	private void scheduleCron(long timerSerialId, int serverId,
 							  @NotNull String timerName, @NotNull BCronTimer cron,
 							  long concurrentSerialNo,
-							  boolean putIfAbsent) {
+							  boolean putIfAbsent, String oneByOneKey) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext(timerSerialId, serverId, timerName, delay, concurrentSerialNo, putIfAbsent);
+			scheduleCronNext(timerSerialId, serverId, timerName, delay, concurrentSerialNo, putIfAbsent, oneByOneKey);
 		} catch (Exception ex) {
 			// 这个错误是在不好处理。先只记录日志吧。
 			logger.error("", ex);
@@ -895,12 +934,18 @@ public class Timer extends AbstractTimer {
 	private void scheduleCronNext(long timerSerialId, int serverId,
 								  @NotNull String timerName, long delay,
 								  long concurrentSerialNo,
-								  boolean putIfAbsent) {
+								  boolean putIfAbsent, String oneByOneKey) {
 		Transaction.whileCommit(
 				() -> {
 					if (!putIfAbsent || !timersFuture.containsKey(timerName)) {
-						timersFuture.put(timerName, Task.scheduleUnsafe(delay,
-								() -> fireCron(timerSerialId, serverId, timerName, concurrentSerialNo, false)));
+						timersFuture.put(timerName, Task.scheduleUnsafe(delay, () -> {
+							if (null == oneByOneKey || oneByOneKey.isEmpty()) {
+								fireCron(timerSerialId, serverId, timerName, concurrentSerialNo, false);
+							} else {
+								zeze.getTaskOneByOneByKey().Execute(oneByOneKey,
+										() -> fireCron(timerSerialId, serverId, timerName, concurrentSerialNo, false));
+							}
+						}));
 					}
 				});
 	}
@@ -910,13 +955,16 @@ public class Timer extends AbstractTimer {
 		return cronExpression.getNextValidTimeAfter(new Date(time)).getTime();
 	}
 
-	public static void initCronTimer(@NotNull BCronTimer cronTimer, @NotNull String cron, long times, long endTime)
+	public static void initCronTimer(@NotNull BCronTimer cronTimer,
+									 @NotNull String cron, long times, long endTime,
+									 String oneByOneKey)
 			throws ParseException {
 		cronTimer.setCronExpression(cron);
 		long expectedTime = cronNextTime(cron, System.currentTimeMillis());
 		cronTimer.setNextExpectedTime(expectedTime);
 		cronTimer.setRemainTimes(times);
 		cronTimer.setEndTime(endTime);
+		cronTimer.setOneByOneKey(oneByOneKey);
 	}
 
 	public static boolean nextCronTimer(@NotNull BCronTimer cronTimer, boolean missFire) throws ParseException {
@@ -1005,7 +1053,9 @@ public class Timer extends AbstractTimer {
 
 			// continue period
 			long delay = cronTimer.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext(timerSerialId, serverId, timerId, delay, concurrentSerialNo + 1, false);
+			scheduleCronNext(timerSerialId, serverId, timerId,
+					delay, concurrentSerialNo + 1,
+					false, cronTimer.getOneByOneKey());
 			return 0L; // procedure done
 		}, "Timer.fireCron"))) {
 			Task.call(zeze.newProcedure(() -> {
@@ -1142,7 +1192,7 @@ public class Timer extends AbstractTimer {
 						serverId, timer.getTimerName(),
 						simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
 						timer.getConcurrentFireSerialNo(),
-						true);
+						true, simpleTimer.getOneByOneKey());
 			} else {
 				var cronTimer = (BCronTimer)timer.getTimerObj().getBean();
 				if (cronTimer.getNextExpectedTime() < now) {
@@ -1168,7 +1218,7 @@ public class Timer extends AbstractTimer {
 						index.getSerialId(),
 						serverId, timer.getTimerName(), cronTimer,
 						timer.getConcurrentFireSerialNo(),
-						true);
+						true, cronTimer.getOneByOneKey());
 			}
 			if (serverId != zeze.getConfig().getServerId()) {
 				index.setServerId(serverId);
