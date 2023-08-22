@@ -46,7 +46,6 @@ Zeze.Collections.CsQueue(Cs=ConcurrentServer，TODO)
 	【全局遍历实现方案：保存现有的serverId列表，两层遍历】
 	【限定遍历行为应该是受控的。因为如果在全局遍历过程中批量修改，会导致跨serverId争抢，直接破坏了设计目标】
 其他Zeze.Collections.Cs版本
-Hot 不停热更，timerHot丢失了，是因为异常被取消了吗？
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/25 v1.3.1 Hot; EventDispatcher; Memory-Table.SoftReference; 

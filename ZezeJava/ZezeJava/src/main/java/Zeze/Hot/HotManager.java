@@ -234,7 +234,7 @@ public class HotManager extends ClassLoader {
 	}
 
 	private List<HotModule> install(List<String> namespaces) throws Exception {
-		logger.info("install {}", namespaces);
+		logger.info("________________ install ________________ {}", namespaces);
 		try (var ignored = enterWriteLock()) {
 			upgrading = true;
 			app.getZeze().__install_prepare__(loadSchemas());
