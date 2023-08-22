@@ -933,7 +933,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			scheduleSimple(timerSerialId, serverId, timerId,
 					delay, concurrentSerialNo + 1, false,
 					simpleTimer.getOneByOneKey());
-
 			return 0L;
 		}, "Timer.fireSimple"))) {
 			Task.call(zeze.newProcedure(() -> {
