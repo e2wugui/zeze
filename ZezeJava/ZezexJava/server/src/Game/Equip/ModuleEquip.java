@@ -1,6 +1,7 @@
 package Game.Equip;
 
 import Game.Fight.*;
+import Zeze.Application;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
@@ -14,6 +15,9 @@ import org.jetbrains.annotations.NotNull;
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
+/**
+ * todo 这是初始版本。
+ */
 
 public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	String timerHot;
@@ -26,6 +30,13 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		return roleId;
 	}
 
+	private boolean isHotUpgrade() {
+		var hotManager = App.Zeze.getHotManager();
+		if (null == hotManager)
+			return false;
+		return hotManager.isUpgrading();
+	}
+
 	public void Start(App app) {
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
 		app.Zeze.newProcedure(() -> {
@@ -35,10 +46,13 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 					rand.nextLong(3000) + 1000,
 					rand.nextLong(3000) + 1000,
 					HotTimer.class, null);
-			timerHot = timer.schedule(
-					rand.nextLong(3000) + 1000,
-					rand.nextLong(3000) + 1000,
-					HotTimer.class, null);
+
+			if (!isHotUpgrade()) {
+				timerHot = timer.schedule(
+						rand.nextLong(3000) + 1000,
+						rand.nextLong(3000) + 1000,
+						HotTimer.class, new BEquipExtra());
+			}
 			return 0;
 		}, "register timers").call();
 	}
@@ -47,17 +61,30 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		app.Zeze.newProcedure(() -> {
 			var timer = app.Zeze.getTimer();
 			timer.cancel(timerNamed);
-			timer.cancel(timerHot);
+			if (!isHotUpgrade()) {
+				timer.cancel(timerHot);
+			}
 			timer.getRoleTimer().cancel(timerOnline);
 			return 0;
 		}, "cancel timers").call();
+	}
+
+	@Override
+	public String getTimerHot() {
+		return timerHot;
 	}
 
 	public static class HotTimer implements TimerHandle {
 
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
-			System.out.println(context.timerId);
+			var attack = 0;
+			if (null != context.customData) {
+				var myCustom = (BEquipExtra)context.customData;
+				myCustom.setAttack(myCustom.getAttack() + 1);
+				attack = myCustom.getAttack();
+			}
+			System.out.println(context.timerId + " ---- HotTimer ---> " + attack);
 		}
 
 		@Override
@@ -182,6 +209,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	public void upgrade(HotService old) throws Exception {
 		var oldI = (IModuleEquip)old;
 		startOnlineTimer(oldI.getRoleId());
+		timerHot = oldI.getTimerHot(); // 继承过来。
 	}
 
 	private static class ItemsChangeListener implements ChangeListener {
@@ -356,7 +384,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		if (roleId == null || roleId != r.Argument.getRoleId() || timerOnline != null)
 			return Procedure.LogicError;
 		startOnlineTimer(r.Argument.getRoleId());
-		session.sendResponseDirect(r);
+		session.sendResponseWhileCommit(r);
         return 0;
     }
 

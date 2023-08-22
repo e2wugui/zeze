@@ -2,6 +2,7 @@ package Zeze.Component;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.AppBase;
@@ -22,11 +23,15 @@ import Zeze.Builtin.Timer.tAccountTimers;
 import Zeze.Builtin.Timer.tIndexs;
 import Zeze.Collections.BeanFactory;
 import Zeze.Game.Online;
+import Zeze.Hot.HotBeanFactory;
 import Zeze.Hot.HotHandle;
+import Zeze.Hot.HotManager;
+import Zeze.Hot.HotModule;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -37,7 +42,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 
-public class Timer extends AbstractTimer {
+public class Timer extends AbstractTimer implements HotBeanFactory {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long getSpecialTypeIdFromBean(@NotNull Bean bean) {
@@ -56,7 +61,7 @@ public class Timer extends AbstractTimer {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
-	public static final int CountPerNode = 200;
+	public static final int CountPerNode = 50;
 
 	static final Logger logger = LogManager.getLogger(Timer.class);
 	public final Application zeze;
@@ -92,6 +97,11 @@ public class Timer extends AbstractTimer {
 	 * 非事务环境调用。用于启动Timer服务。
 	 */
 	public void start() {
+		var hotManager = zeze.getHotManager();
+		if (null != hotManager) {
+			hotManager.addHotBeanFactory(this);
+			beanFactory.registerWatch(this::tryRecordHotModule);
+		}
 		Task.run(this::loadTimer, "Timer.loadTimer");
 	}
 
@@ -115,6 +125,12 @@ public class Timer extends AbstractTimer {
 	 * 停止Timer服务。
 	 */
 	public void stop() {
+		var hotManager = zeze.getHotManager();
+		if (null != hotManager) {
+			hotManager.removeHotBeanFactory(this);
+			beanFactory.unregisterWatch(this::tryRecordHotModule);
+		}
+
 		UnRegisterZezeTables(this.zeze);
 	}
 
@@ -277,6 +293,7 @@ public class Timer extends AbstractTimer {
 				if (customData != null) {
 					register(customData.getClass());
 					timer.getCustomData().setBean(customData);
+					tryRecordBeanHotModuleWhileCommit(customData);
 				}
 
 				scheduleSimple(index.getSerialId(), serverId, timerId,
@@ -471,6 +488,7 @@ public class Timer extends AbstractTimer {
 				if (customData != null) {
 					register(customData.getClass());
 					timer.getCustomData().setBean(customData);
+					tryRecordBeanHotModuleWhileCommit(customData);
 				}
 
 				scheduleCron(index.getSerialId(), serverId,
@@ -1225,5 +1243,56 @@ public class Timer extends AbstractTimer {
 			}
 		}
 		return 0L;
+	}
+
+	@Override
+	public void clearTableCache() {
+		_tNodes.__ClearTableCacheUnsafe__();
+	}
+
+	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
+	private boolean freshStopModuleDynamic = false;
+
+	private void onHotModuleStop(HotModule hot) {
+		freshStopModuleDynamic |= hotModulesHaveDynamic.remove(hot) != null;
+	}
+
+	private void tryRecordBeanHotModuleWhileCommit(Bean customData) {
+		var cl = customData.getClass().getClassLoader();
+		if (HotManager.isHotModule(cl)) {
+			var hotModule = (HotModule)cl;
+			Transaction.whileCommit(() -> {
+				hotModule.stopEvents.add(this::onHotModuleStop);
+				hotModulesHaveDynamic.add(hotModule);
+			});
+		}
+	}
+
+	private void tryRecordHotModule(Class<?> customClass) {
+		var cl = customClass.getClassLoader();
+		if (HotManager.isHotModule(cl)) {
+			var hotModule = (HotModule)cl;
+			hotModule.stopEvents.add(this::onHotModuleStop);
+			hotModulesHaveDynamic.add(hotModule);
+		}
+	}
+
+	@Override
+	public BeanFactory beanFactory() {
+		return beanFactory;
+	}
+
+	@Override
+	public boolean hasFreshStopModuleDynamicOnce() {
+		var tmp = freshStopModuleDynamic;
+		freshStopModuleDynamic = false;
+		return tmp;
+	}
+
+	@Override
+	public void processWithNewClasses(List<Class<?>> newClasses) {
+		for (var cls : newClasses) {
+			tryRecordHotModule(cls);
+		}
 	}
 }

@@ -77,7 +77,13 @@ public final class Application {
 	private Schemas schemas;
 	private Schemas schemasPrevious; // maybe null
 
-	private int startState; // 0:未start; 1:开始start但未完成; 2:完成了start
+	public enum StartState {
+		eStopped,
+		eStartingOrStopping,
+		eStarted,
+	}
+
+	private StartState startState = StartState.eStopped;
 	public RedirectBase redirect;
 	private final HotHandle<EventDispatcher.EventHandle> hotHandle = new HotHandle<>();
 
@@ -192,7 +198,7 @@ public final class Application {
 	}
 
 	public boolean isStart() {
-		return startState == 2;
+		return startState == StartState.eStarted;
 	}
 
 	public AbstractAgent getServiceManager() {
@@ -287,13 +293,17 @@ public final class Application {
 			table.open(exist, this);
 			// 旧表禁用。防止应用保留了旧表引用，还去使用导致错误。
 			exist.disable();
-		} else if (this.startState == 2) {
+		} else if (isStart()) {
 			// new table
 			table.open(this, db, null);
 		}
 		tableNameMap.put(table.getName(), table); // always put, 操作在tables阶段完成。
 		db.replaceTable(table);
 		return db;
+	}
+
+	public StartState getStartState() {
+		return startState;
 	}
 
 	public synchronized void openDynamicTable(@NotNull String dbName, @NotNull Table table) {
@@ -354,7 +364,7 @@ public final class Application {
 
 	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName,
 										   @Nullable TransactionLevel level, @Nullable Object userState) {
-		if (startState != 2)
+		if (!isStart())
 			throw new IllegalStateException("App Not Start");
 		return new Procedure(this, action, actionName, level, userState);
 	}
@@ -488,11 +498,11 @@ public final class Application {
 	}
 
 	public synchronized void start() throws Exception {
-		if (startState == 2)
+		if (startState == StartState.eStarted)
 			return;
-		if (startState == 1)
+		if (startState == StartState.eStartingOrStopping)
 			stop();
-		startState = 1;
+		startState = StartState.eStartingOrStopping;
 		ShutdownHook.add(this, () -> {
 			logger.info("zeze({}) ShutdownHook begin", this.projectName);
 			stop();
@@ -559,21 +569,21 @@ public final class Application {
 			// start last
 			if (null != achillesHeelDaemon)
 				achillesHeelDaemon.start();
-			startState = 2;
+			startState = StartState.eStarted;
 
 			delayRemove.start();
 			if (timer != null)
 				timer.loadCustomClassAnd();
 		} else
-			startState = 2;
+			startState = StartState.eStarted;
 		ProcedureStatistics.getInstance().start(conf.getProcedureStatisticsReportPerod());
 		TableStatistics.getInstance().start(conf.getTableStatisticsReportPeriod());
 	}
 
 	public synchronized void stop() throws Exception {
-		if (startState == 0)
+		if (startState == StartState.eStopped)
 			return;
-		startState = 1;
+		startState = StartState.eStartingOrStopping;
 		ShutdownHook.remove(this);
 		TableStatistics.getInstance().stop();
 		ProcedureStatistics.getInstance().stop();
@@ -640,7 +650,7 @@ public final class Application {
 			dbh2AgentManager.stop();
 			dbh2AgentManager = null;
 		}
-		startState = 0;
+		startState = StartState.eStopped;
 	}
 
 	public void checkpointRun() {

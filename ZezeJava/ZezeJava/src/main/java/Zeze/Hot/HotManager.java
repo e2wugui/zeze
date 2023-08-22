@@ -222,9 +222,17 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
+	// todo【警告】安装过程目前没有事务性，如果安装出现错误，可能导致某些模块出错。
+	private boolean upgrading = false;
+
+	public boolean isUpgrading() {
+		return upgrading;
+	}
+
 	private List<HotModule> install(List<String> namespaces) throws Exception {
 		logger.info("install {}", namespaces);
 		try (var ignored = enterWriteLock()) {
+			upgrading = true;
 			app.getZeze().__install_prepare__(loadSchemas());
 
 			var result = new ArrayList<HotModule>(namespaces.size());
@@ -296,6 +304,8 @@ public class HotManager extends ClassLoader {
 			for (var module : result)
 				module.start();
 			return result;
+		} finally {
+			upgrading = false;
 		}
 	}
 
@@ -313,7 +323,6 @@ public class HotManager extends ClassLoader {
 	}
 
 	/**
-	 * todo【警告】安装过程目前没有事务性，如果安装出现错误，可能导致某些模块出错。
 	 *
 	 * @param namespace module name
 	 * @return HotModule
