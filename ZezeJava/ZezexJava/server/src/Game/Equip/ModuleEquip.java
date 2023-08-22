@@ -66,14 +66,14 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		}
 	}
 
-	private void accessWillAddTable() {
+	private void accessWillRemoveTable() {
 		// 访问一下将被热更删除的表。
-		var rremove = _tHotAdd.getOrAdd(1L);
+		var rremove = _tHotRemove.getOrAdd(1L);
 		rremove.setAttack(123);
 	}
 
-	private static void accessWillAddVar(BEquipExtra record) {
-		record.setHotAddVar(record.getHotAddVar() + 1); // 访问将被删除的变量。
+	private static void accessWillRemoveVar(BEquipExtra record) {
+		record.setHotRemoveVar(record.getHotRemoveVar() + 1); // 访问将被删除的变量。
 	}
 
 	private void verifyCollections(int oldAccess) {
@@ -112,13 +112,13 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	public int hotHelloWorld(int oldAccess) {
 		var version = new OutInt(oldAccess);
 		App.Zeze.newProcedure(() -> {
-			accessWillAddTable();
+			accessWillRemoveTable();
 
 			var record = _tHotTest.getOrAdd(1L);
 			record.setAttack(record.getAttack() + 1);
 			System.out.println("HotTest.Attack=" + record.getAttack());
 
-			accessWillAddVar(record);
+			accessWillRemoveVar(record);
 
 			// 由于没有真正登录的role，
 			// 这里roleId==1L需要修改Zeze.Game.Online.setLocalBean里面的
@@ -304,11 +304,11 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
     protected long ProcessSendHotRequest(Game.Equip.SendHot r) {
 		var session = ProviderUserSession.get(r);
 		session.sendResponseDirect(r);
-		return 0;
+        return 0;
     }
 
     @Override
-    protected long ProcessSendHotAddRequest(Game.Equip.SendHotAdd r) {
+    protected long ProcessSendHotRemoveRequest(Game.Equip.SendHotRemove r) {
 		var session = ProviderUserSession.get(r);
 		session.sendResponseDirect(r);
 		return 0;
@@ -321,7 +321,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		if (roleId == null || roleId != r.Argument.getRoleId() || timerOnline != null)
 			return Procedure.LogicError;
 		startOnlineTimer(r.Argument.getRoleId());
-		session.sendResponseWhileCommit(r);
+		session.sendResponseDirect(r);
         return 0;
     }
 
