@@ -120,17 +120,52 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 			accessWillAddVar(record);
 
-			// 由于没有真正登录的role，
-			// 这里roleId==1L需要修改Zeze.Game.Online.setLocalBean里面的
-			// _tlocal.get为_tlocal.getOrAdd才能测试。
-			// App.Provider.getOnline().setLocalBean(1L, "RetreatTestLocal", new BRetreatTestLocal());
-
+			verifyOnlineLocal(oldAccess);
+			verifyOnlineUserData(oldAccess);
 			verifyCollections(oldAccess);
 
 			version.value = oldAccess + 1;
 			return 0;
 		}, "").call();
 		return version.value;
+	}
+
+	public void verifyOnlineUserData(int oldAccess) {
+		if (roleId == 0)
+			return; // 还没有登录报告成功，忽略验证。
+
+		var online = App.Provider.getOnline();
+		var bean = online.getUserData(roleId);
+		if (null == bean || bean.typeId() == EmptyBean.TYPEID) {
+			var data = new BRetreatTestLocal();
+			data.setVarInt1(oldAccess + 1);
+			online.setUserData(roleId, data);
+			return;
+		}
+		{
+			var data = (BRetreatTestLocal)bean;
+			if (oldAccess != data.getVarInt1())
+				throw new RuntimeException("verify online data fail.");
+			data.setVarInt1(oldAccess + 1);
+		}
+	}
+
+	public void verifyOnlineLocal(int oldAccess) {
+		if (roleId == 0)
+			return; // 还没有登录报告成功，忽略验证。
+
+		var key = "ZezexJava.HotTest.Online.Local";
+		var online = App.Provider.getOnline();
+		var local = (BRetreatTestLocal)online.getLocalBean(roleId, key);
+		if (null == local) {
+			local = new BRetreatTestLocal();
+			local.setVarInt1(oldAccess + 1);
+			online.setLocalBean(roleId, key, local);
+			return;
+		}
+		if (oldAccess != local.getVarInt1())
+			throw new RuntimeException("verify online local fail.");
+		local.setVarInt1(oldAccess + 1);
 	}
 
 	@Override
