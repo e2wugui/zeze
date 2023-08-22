@@ -38,9 +38,9 @@ public class ModuleEquip extends AbstractModule {
     Future<?> timerSendHotAdd;
 
     public void Start(ClientGame.App app) throws Exception {
-        timerSendHot = Task.scheduleUnsafe(Zeze.Util.Random.getInstance().nextLong(2000), 2000, this::testSendHot);
-        timerSendHotRemove = Task.scheduleUnsafe(Zeze.Util.Random.getInstance().nextLong(2000), 2000, this::testSendHotRemove);
-        timerSendHotAdd = Task.scheduleUnsafe(Zeze.Util.Random.getInstance().nextLong(2000), 2000, this::testSendHotAdd);
+        timerSendHot = Task.scheduleUnsafe(Zeze.Util.Random.getInstance().nextLong(5000), 5000, this::testSendHot);
+        timerSendHotRemove = Task.scheduleUnsafe(Zeze.Util.Random.getInstance().nextLong(5000), 5000, this::testSendHotRemove);
+        timerSendHotAdd = Task.scheduleUnsafe(Zeze.Util.Random.getInstance().nextLong(5000), 5000, this::testSendHotAdd);
     }
 
     public void Stop(ClientGame.App app) throws Exception {

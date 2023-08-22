@@ -253,6 +253,20 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		*/
 	}
 
+    @Override
+    protected long ProcessSendHotRequest(Game.Equip.SendHot r) {
+		var session = ProviderUserSession.get(r);
+		session.sendResponseDirect(r);
+        return 0;
+    }
+
+    @Override
+    protected long ProcessSendHotRemoveRequest(Game.Equip.SendHotRemove r) {
+		var session = ProviderUserSession.get(r);
+		session.sendResponseDirect(r);
+		return 0;
+    }
+
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
     public ModuleEquip(Game.App app) {
         super(app);

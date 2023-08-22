@@ -170,7 +170,6 @@
 
 		<rpc name="SendHot" argument="BEquipExtra" handle="server"/>
 		<rpc name="SendHotRemove" argument="BEquipExtra" handle="server"/>
-		<rpc name="SendHotAdd" argument="BEquipExtra" handle="server"/>
 	</module>
 
 	<module name="Map" id="8">

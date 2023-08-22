@@ -102,6 +102,7 @@ public class ProviderApp {
 			modules.put(builtin.getFullName(), builtin);
 		binds.buildStaticBinds(modules, zeze.getConfig().getServerId(), staticBinds);
 		binds.buildDynamicBinds(modules, zeze.getConfig().getServerId(), dynamicModules);
+
 		this.modules.putAll(staticBinds);
 		this.modules.putAll(dynamicModules);
 
