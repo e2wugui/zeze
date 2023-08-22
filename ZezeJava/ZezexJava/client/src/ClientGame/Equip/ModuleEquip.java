@@ -2,6 +2,7 @@ package ClientGame.Equip;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import Zeze.IModule;
 import Zeze.Util.Task;
 
 public class ModuleEquip extends AbstractModule {
@@ -37,10 +38,21 @@ public class ModuleEquip extends AbstractModule {
     Future<?> timerSendHotRemove;
     Future<?> timerSendHotAdd;
 
-    public void Start(ClientGame.App app) throws Exception {
+    public void startTimer() {
         timerSendHot = Task.scheduleUnsafe(Zeze.Util.Random.getInstance().nextLong(5000), 5000, this::testSendHot);
         timerSendHotRemove = Task.scheduleUnsafe(Zeze.Util.Random.getInstance().nextLong(5000), 5000, this::testSendHotRemove);
         timerSendHotAdd = Task.scheduleUnsafe(Zeze.Util.Random.getInstance().nextLong(5000), 5000, this::testSendHotAdd);
+    }
+
+    public void reportLogin(long roleId) {
+        var r = new ReportLogin();
+        r.Argument.setRoleId(roleId);
+        r.SendForWait(App.ClientService.GetSocket()).await();
+        if (r.getResultCode() != 0)
+            throw new RuntimeException("report login error=" + IModule.getErrorCode(r.getResultCode()));
+    }
+
+    public void Start(ClientGame.App app) throws Exception {
     }
 
     public void Stop(ClientGame.App app) throws Exception {

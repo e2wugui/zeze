@@ -2,15 +2,11 @@ Hot 热更测试
 
 7. TimerRole.scheduleOnlineHot, scheduleOnlineNamedHot, 相关方法调用
 8. Timer.schedule 方法测试。这个方法在热更非热更下都能工作，但需要验证。
-
-4. 协议增加
-5. 协议删除，旧版客户端现在会发生Dispatch错误，会被踢掉？
-6. 协议修改
+10. 有状态模块的热更测试，实现 HotService.upgrade 并验证热更正常。
 
 9. Game.Online.setLocalBean，热更后读取访问。
 16. Game.Online.setUserData
 
-10. 有状态模块的热更测试，实现 HotService.upgrade 并验证热更正常。
 
 11. Arch.Online.setLocalBean, 热更后读取访问。由于zezex目前用的Game.Online，没有这个测试环境，先列在这里。
 12. TimeAccount.scheduleOnlineHot, scheduleOnlineNamedHot, 同11点，由于zezex，没有这个测试环境，先列在这里。

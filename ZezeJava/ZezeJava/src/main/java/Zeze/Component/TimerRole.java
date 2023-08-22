@@ -396,7 +396,10 @@ public class TimerRole {
 		return timerId;
 	}
 
-	public boolean cancel(@NotNull String timerId) {
+	public boolean cancel(String timerId) {
+		if (null == timerId)
+			return true; // 取消不存在的timer，认为成功。
+
 		var timer = online.providerApp.zeze.getTimer();
 
 		// remove online timer

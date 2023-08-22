@@ -50,6 +50,7 @@ Zeze.Collections.CsQueue(Cs=ConcurrentServer，TODO)
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/25 v1.3.1 Hot; EventDispatcher; Memory-Table.SoftReference; 
 ------------------------------------------------------------------------------------------------------------------------------
+Hot Test;
 linkd choiceHash 加入AppVersion。【实际上修改choiceProviderAndBind，总流程里面加了补丁】
 Hot replace relationalTable
 	【每次更新，不管更新几个模块，都发布一个最新的 __hot_schemas__{SolutionName}.ja】
