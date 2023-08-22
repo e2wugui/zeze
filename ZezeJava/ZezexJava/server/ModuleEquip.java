@@ -2,19 +2,55 @@ package Game.Equip;
 
 import Game.Fight.*;
 import Zeze.Arch.ProviderUserSession;
+import Zeze.Component.TimerContext;
+import Zeze.Component.TimerHandle;
 import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
 import Zeze.Transaction.Collections.LogMap2;
 import Zeze.Util.OutInt;
+import org.jetbrains.annotations.NotNull;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 
 public final class ModuleEquip extends AbstractModule implements IModuleEquip {
+	String timerHot;
+	String timerNamed = "ZezexJava.ModuleEquip.HotTimer.Test";
+	String timerOnline;
+	long roleId;
+
+	@Override
+	public long getRoleId() {
+		return roleId;
+	}
+
 	public void Start(App app) {
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
+		var timer = app.Zeze.getTimer();
+		timer.scheduleNamed(timerNamed, 2000, 2000, HotTimer.class, null);
+		timerHot = timer.schedule(2000, 2000, HotTimer.class, null);
+	}
+
+	public void Stop(App app) {
+		var timer = app.Zeze.getTimer();
+		timer.cancel(timerNamed);
+		timer.cancel(timerHot);
+		timer.getRoleTimer().cancel(timerOnline);
+	}
+
+	public static class HotTimer implements TimerHandle {
+
+		@Override
+		public void onTimer(@NotNull TimerContext context) throws Exception {
+			System.out.print(context.timerName);
+		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
+		}
 	}
 
 	private void accessWillRemoveTable() {
@@ -84,9 +120,6 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		return version.value;
 	}
 
-	public void Stop(App app) {
-	}
-
 	@Override
 	public void start() throws Exception {
 		Start(App);
@@ -99,7 +132,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	public void upgrade(HotService old) throws Exception {
-
+		var oldI = (IModuleEquip)old;
+		startOnlineTimer(oldI.getRoleId());
 	}
 
 	private static class ItemsChangeListener implements ChangeListener {
@@ -266,6 +300,24 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		session.sendResponseDirect(r);
 		return 0;
     }
+
+    @Override
+    protected long ProcessReportLoginRequest(Game.Equip.ReportLogin r) {
+		var session = ProviderUserSession.get(r);
+		var roleId = session.getRoleId();
+		if (roleId == null || roleId != r.Argument.getRoleId() || timerOnline != null)
+			return Procedure.LogicError;
+		startOnlineTimer(r.Argument.getRoleId());
+        return 0;
+    }
+
+	private void startOnlineTimer(long roleId) {
+		this.roleId = roleId;
+		timerOnline = App.Zeze.getTimer().getRoleTimer().scheduleOnlineHot(
+				this.roleId, 2000, 2000,
+				-1, -1, HotTimer.class, null);
+		System.out.println("timerOnline=" + timerOnline);
+	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
     public ModuleEquip(Game.App app) {
