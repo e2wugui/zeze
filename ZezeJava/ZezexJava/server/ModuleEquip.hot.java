@@ -10,6 +10,8 @@ import Game.*;
 import Zeze.Transaction.Collections.LogMap2;
 import Zeze.Util.OutInt;
 import org.jetbrains.annotations.NotNull;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -19,6 +21,8 @@ import org.jetbrains.annotations.NotNull;
  */
 
 public final class ModuleEquip extends AbstractModule implements IModuleEquip {
+	private static final Logger logger = LogManager.getLogger(ModuleEquip.class);
+
 	String timerHot;
 	String timerNamed = "ZezexJava.ModuleEquip.HotTimer.Test";
 	String timerOnline;
@@ -83,7 +87,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 				myCustom.setAttack(myCustom.getAttack() + 1);
 				attack = myCustom.getAttack();
 			}
-			System.out.println(context.timerId + " ---- HotTimer ---> " + attack);
+			logger.info(context.timerId + " ---- HotTimer ---> " + attack);
 		}
 
 		@Override
@@ -142,7 +146,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 			var record = _tHotTest.getOrAdd(1L);
 			record.setAttack(record.getAttack() + 1);
-			System.out.println("HotTest.Attack=" + record.getAttack());
+			logger.info("HotTest.Attack=" + record.getAttack());
 
 			accessWillAddVar(record);
 
@@ -392,7 +396,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		timerOnline = App.Zeze.getTimer().getRoleTimer().scheduleOnlineHot(
 				this.roleId, 2000, 2000,
 				-1, -1, HotTimer.class, null);
-		System.out.println("timerOnline=" + timerOnline);
+		logger.info("timerOnline=" + timerOnline);
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE

@@ -10,12 +10,16 @@ import Zeze.Transaction.*;
 import Game.*;
 import Zeze.Transaction.Collections.LogMap2;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public class ModuleBuf extends AbstractModule implements IModuleBuf {
+	private static final Logger logger = LogManager.getLogger(ModuleBuf.class);
+
 	private Future<?> timerIdHot;
 
 	public static class HotTimer implements TimerHandle {
@@ -23,7 +27,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
-			System.out.println("HotTimer " + counter.incrementAndGet());
+			logger.info("HotTimer " + counter.incrementAndGet());
 		}
 
 		@Override
@@ -43,7 +47,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 					var module = app.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
 					var service = module.getService();
 					oldAccess = service.hotHelloWorld(oldAccess);
-					System.out.println("oldAccess=" + oldAccess);
+					logger.info("oldAccess=" + oldAccess);
 				});
 
 		Task.call(app.Zeze.newProcedure(() -> {

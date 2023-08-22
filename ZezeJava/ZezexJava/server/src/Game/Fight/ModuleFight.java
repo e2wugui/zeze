@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public final class ModuleFight extends AbstractModule implements IModuleFight {
-	private static final Logger logger = LogManager.getLogger(App.class);
+	private static final Logger logger = LogManager.getLogger(ModuleFight.class);
 	public TaskCompletionSource<Boolean> areYouFight = new TaskCompletionSource<>();
 
 
