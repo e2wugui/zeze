@@ -482,10 +482,10 @@ public class HttpExchange {
 	}
 
 	protected void checkTimeout() {
-		// 这里为了减小开销, 前半段IDLE_TIMEOUT期间只判断读超时
-		if (idleTime < server.readIdleTimeout)
+		// 这里为了减小开销, 先只判断读超时
+		if ((idleTime += server.checkIdleInterval) < server.readIdleTimeout)
 			return;
-		// 后半段IDLE_TIMEOUT期间每次再判断写buffer的状态是否有变化,有变化则重新idle计时
+		// 判断写超时前判断写buffer的状态是否有变化,有变化则重新idle计时
 		var outBuf = context.channel().unsafe().outboundBuffer();
 		if (outBuf != null) {
 			int hash = System.identityHashCode(outBuf.current()) ^ Long.hashCode(outBuf.currentProgress());
@@ -495,7 +495,7 @@ public class HttpExchange {
 				return;
 			}
 		}
-		// 到这里至少有IDLE_TIMEOUT的时间没有任何读写了,那就强制关闭吧
+		// 读写都超时了,那就主动关闭吧
 		if (idleTime >= server.writeIdleTimeout)
 			close(CLOSE_TIMEOUT, null);
 	}
