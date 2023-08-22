@@ -35,15 +35,21 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	int oldAccess = 0;
 	public final void Start(App app) {
 		_tbufs.getChangeListenerMap().addListener(new BufChangeListener("Game.Buf.Bufs"));
-		timerIdHot = Task.scheduleUnsafe(2000, 2000, () -> {
-			var module = app.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
-			var service = module.getService();
-			oldAccess = service.hotHelloWorld(oldAccess);
-			System.out.println("oldAccess=" + oldAccess);
-		});
+		var rand = Zeze.Util.Random.getInstance();
+		timerIdHot = Task.scheduleUnsafe(
+				rand.nextLong(3000) + 1000,
+				rand.nextLong(3000) + 1000,
+				() -> {
+					var module = app.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
+					var service = module.getService();
+					oldAccess = service.hotHelloWorld(oldAccess);
+					System.out.println("oldAccess=" + oldAccess);
+				});
 
 		Task.call(app.Zeze.newProcedure(() -> {
-			hotTimerId = app.Zeze.getTimer().schedule(2000, 2000, HotTimer.class, null);
+			hotTimerId = app.Zeze.getTimer().schedule(
+					rand.nextLong(3000) + 1000, rand.nextLong(3000) + 1000,
+					HotTimer.class, null);
 			return 0;
 		}, "hotTimer"));
 	}

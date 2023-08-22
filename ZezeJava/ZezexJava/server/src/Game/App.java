@@ -113,6 +113,8 @@ public final class App extends Zeze.AppBase {
 		LinkedMapModule = new LinkedMap.Module(Zeze);
 		DepartmentTreeModule = new DepartmentTree.Module(Zeze, LinkedMapModule);
 
+		Zeze.getTimer().initializeOnlineTimer(ProviderApp);
+
 		// start
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。

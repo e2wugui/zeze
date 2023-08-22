@@ -28,23 +28,36 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	public void Start(App app) {
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
-		var timer = app.Zeze.getTimer();
-		timer.scheduleNamed(timerNamed, 2000, 2000, HotTimer.class, null);
-		timerHot = timer.schedule(2000, 2000, HotTimer.class, null);
+		app.Zeze.newProcedure(() -> {
+			var timer = app.Zeze.getTimer();
+			var rand = Zeze.Util.Random.getInstance();
+			timer.scheduleNamed(timerNamed,
+					rand.nextLong(3000) + 1000,
+					rand.nextLong(3000) + 1000,
+					HotTimer.class, null);
+			timerHot = timer.schedule(
+					rand.nextLong(3000) + 1000,
+					rand.nextLong(3000) + 1000,
+					HotTimer.class, null);
+			return 0;
+		}, "register timers").call();
 	}
 
 	public void Stop(App app) {
-		var timer = app.Zeze.getTimer();
-		timer.cancel(timerNamed);
-		timer.cancel(timerHot);
-		timer.getRoleTimer().cancel(timerOnline);
+		app.Zeze.newProcedure(() -> {
+			var timer = app.Zeze.getTimer();
+			timer.cancel(timerNamed);
+			timer.cancel(timerHot);
+			timer.getRoleTimer().cancel(timerOnline);
+			return 0;
+		}, "cancel timers").call();
 	}
 
 	public static class HotTimer implements TimerHandle {
 
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
-			System.out.print(context.timerName);
+			System.out.println(context.timerId);
 		}
 
 		@Override
@@ -308,6 +321,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		if (roleId == null || roleId != r.Argument.getRoleId() || timerOnline != null)
 			return Procedure.LogicError;
 		startOnlineTimer(r.Argument.getRoleId());
+		session.sendResponseDirect(r);
         return 0;
     }
 

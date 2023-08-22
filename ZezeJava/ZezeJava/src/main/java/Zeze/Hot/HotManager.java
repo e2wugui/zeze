@@ -268,8 +268,16 @@ public class HotManager extends ClassLoader {
 				var module = result.get(ii);
 				hotJarFiles.add(module.getJarFile());
 				module.setService(iModules[ii]);
-				if (null != exist)
-					module.upgrade(exist);
+				if (null != exist) {
+					try {
+						app.getZeze().newProcedure(() -> {
+							module.upgrade(exist);
+							return 0;
+						}, "HotManager.upgrade").call();
+					} catch (Throwable anyError) {
+						logger.error("todo some rollback need.", anyError);
+					}
+				}
 			}
 			// internal upgrade
 			for (var hotUpgrade : freshHotUpgrades)
