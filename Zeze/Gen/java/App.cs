@@ -137,12 +137,12 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void createModules() throws Exception {");
+            if (project.Hot)
+                sw.WriteLine("        Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));");
             sw.WriteLine("        Zeze.initialize(this);");
             if (project.Hot)
-            {
-                sw.WriteLine("        Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));");
                 sw.WriteLine("        Zeze.getHotManager().initialize(modules);");
-            }
+
             if (project.AllOrderDefineModules.Count > 0)
             {
                 sw.WriteLine("        var _modules_ = createRedirectModules(new Class[] {");

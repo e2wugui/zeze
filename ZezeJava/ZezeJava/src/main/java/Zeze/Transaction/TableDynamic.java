@@ -8,6 +8,12 @@ import Zeze.Serialize.SQLStatement;
 import Zeze.Util.Factory;
 import Zeze.Serialize.ByteBuffer;
 
+/**
+ * 具体做法是正常定义母表，然后动态表使用相同的 K,V 创建。
+ *
+ * @param <K>
+ * @param <V>
+ */
 public class TableDynamic<K extends Comparable<K>, V extends Bean> extends TableX<K, V> {
 	private final Function<K, ByteBuffer> keyEncoder;
 	private final Function<ByteBuffer, K> keyDecoder;
@@ -17,7 +23,7 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	/**
 	 * 创建动态表。
 	 * 创建之后就能使用。
-	 * 动态表的 schemas 检查由母表完成。具体做法是正常定义母表，然后动态表使用相同的K,V创建。
+	 * 动态表的 schemas 检查由母表完成。
 	 *
 	 * @param zeze          zeze
 	 * @param tableName     table name

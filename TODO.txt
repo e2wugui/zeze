@@ -46,11 +46,15 @@ Zeze.Collections.CsQueue(Cs=ConcurrentServer，TODO)
 	【全局遍历实现方案：保存现有的serverId列表，两层遍历】
 	【限定遍历行为应该是受控的。因为如果在全局遍历过程中批量修改，会导致跨serverId争抢，直接破坏了设计目标】
 其他Zeze.Collections.Cs版本
-Hot Timer.CustomData
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/25 v1.3.1 Hot; EventDispatcher; Memory-Table.SoftReference; 
 ------------------------------------------------------------------------------------------------------------------------------
 Hot Test;
+	Hot TimerRole.Offline.CustomData 【属于Timer.Custom.Custom已由Timer处理】
+	Hot TimerAccount.Offline.CustomData 【属于Timer.Custom.Custom已由Timer处理】
+	Hot TimerAccount.CustomData 【保存在Online.Local中，已由Online处理】
+	Hot TimerRole.CustomData 【保存在Online.Local中，已由Online处理】
+	Hot Timer.CustomData
 	9. Game.Online.setLocalBean，热更后读取访问。
 	16. Game.Online.setUserData
 	7. TimerRole.scheduleOnlineHot, scheduleOnlineNamedHot, 相关方法调用

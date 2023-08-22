@@ -40,6 +40,7 @@ cd ..\..
 
 cd ZezeJava\ZezexJava
 echo -------- Gen ZezeJava\ZezexJava\solution.xml ...
+Gen.exe solution.client.xml
 Gen.exe solution.xml
 echo -------- Gen ZezeJava\ZezexJava\solution.linkd.xml ...
 Gen.exe solution.linkd.xml

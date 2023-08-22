@@ -96,6 +96,10 @@ public class HotManager extends ClassLoader {
 	}
 
 	public void initialize(Map<String, IModule> modulesOut) throws Exception {
+		GenModule.instance.getCompiler().useOptions("-cp", buildCp());
+		GenModule.instance.getCompiler().useParentClassLoader(getHotRedirect());
+		start();
+
 		for (var module : modules.values()) {
 			var iModule = (IModule)module.getService();
 			iModule.Initialize(app);

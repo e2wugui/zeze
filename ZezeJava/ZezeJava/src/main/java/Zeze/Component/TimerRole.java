@@ -459,6 +459,7 @@ public class TimerRole {
 		if (null != customData) {
 			Timer.register(customData.getClass());
 			custom.getCustomData().setBean(customData);
+			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit())

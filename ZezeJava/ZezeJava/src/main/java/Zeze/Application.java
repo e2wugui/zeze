@@ -111,15 +111,8 @@ public final class Application {
 			throw new RuntimeException("caller must not hot.");
 	}
 
-	public void setHotManager(HotManager value) throws Exception {
+	public void setHotManager(HotManager value) {
 		hotManager = value;
-
-		if (hotManager != null) {
-			// 设置进来的时候才修改环境。
-			GenModule.instance.getCompiler().useOptions("-cp", hotManager.buildCp());
-			GenModule.instance.getCompiler().useParentClassLoader(hotManager.getHotRedirect());
-			hotManager.start();
-		}
 	}
 
 	public HotManager getHotManager() {
@@ -572,8 +565,10 @@ public final class Application {
 			startState = StartState.eStarted;
 
 			delayRemove.start();
-			if (timer != null)
+			if (timer != null) {
 				timer.loadCustomClassAnd();
+				timer.start();
+			}
 		} else
 			startState = StartState.eStarted;
 		ProcedureStatistics.getInstance().start(conf.getProcedureStatisticsReportPerod());

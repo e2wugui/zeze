@@ -93,10 +93,15 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		timerSerialId = zeze.getAutoKey("Zeze.Component.Timer.SerialId");
 	}
 
+	private boolean started = false;
 	/**
 	 * 非事务环境调用。用于启动Timer服务。
 	 */
-	public void start() {
+	public synchronized void start() {
+		if (started)
+			return;
+
+		started = true;
 		var hotManager = zeze.getHotManager();
 		if (null != hotManager) {
 			hotManager.addHotBeanFactory(this);
@@ -124,7 +129,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	/**
 	 * 停止Timer服务。
 	 */
-	public void stop() {
+	public synchronized void stop() {
+		if (!started)
+			return;
+		started = false;
 		var hotManager = zeze.getHotManager();
 		if (null != hotManager) {
 			hotManager.removeHotBeanFactory(this);
@@ -1257,7 +1265,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		freshStopModuleDynamic |= hotModulesHaveDynamic.remove(hot) != null;
 	}
 
-	private void tryRecordBeanHotModuleWhileCommit(Bean customData) {
+	void tryRecordBeanHotModuleWhileCommit(Bean customData) {
 		var cl = customData.getClass().getClassLoader();
 		if (HotManager.isHotModule(cl)) {
 			var hotModule = (HotModule)cl;
