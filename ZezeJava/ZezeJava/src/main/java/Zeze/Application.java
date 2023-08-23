@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.RedirectBase;
 import Zeze.Component.AutoKey;
 import Zeze.Component.AutoKeyOld;
