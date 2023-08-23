@@ -27,6 +27,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	String timerNamed = "ZezexJava.ModuleEquip.HotTimer.Test";
 	String timerOnline;
 	long roleId;
+
 	int onlineTimerCount;
 	int namedTimerCount;
 	int hotTimerCount;
@@ -102,7 +103,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
-			var mc = Game.App.getInstance().Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
+			var mc = context.timer.zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
 			var equip = mc.getService();
 			var count = 1; // default is 1
 			var custom = (BEquipExtra)context.customData;
@@ -143,14 +144,14 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			var linkedMap = App.LinkedMapModule.open("ZezexJava.HotTest.LinkedMap", BEquipExtra.class);
 			var version0 = linkedMap.getOrAdd(String.valueOf(0));
 			if (version0.getAttack() != oldAccess)
-				throw new RuntimeException("LinkedMap error");
+				throw new RuntimeException("LinkedMap error oldAccess=" + version0.getAttack() + ":" + oldAccess);
 			version0.setAttack(oldAccess + 1);
 		}
 		{
 			var queue = App.Zeze.getQueueModule().open("ZezexJava.HotTest.Queue", BEquipExtra.class);
 			var old = queue.poll();
 			if (old != null && oldAccess != old.getAttack())
-				throw new RuntimeException("Queue error");
+				throw new RuntimeException("Queue error oldAccess=" + old.getAttack() + ":" + oldAccess);
 			var cur = new BEquipExtra();
 			cur.setAttack(oldAccess + 1);
 			queue.add(cur);
@@ -164,7 +165,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 				departmentTree.create().setRoot(next);
 			} else {
 				if (!root.getRoot().equals(String.valueOf(oldAccess)))
-					throw new RuntimeException("Dt error");
+					throw new RuntimeException("Dt error oldAcces=" + root.getRoot() + ":" + oldAccess);
 				root.setRoot(next);
 			}
 		}

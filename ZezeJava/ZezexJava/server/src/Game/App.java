@@ -3,7 +3,6 @@ package Game;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicInteger;
-import Game.Buf.BBuf;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
@@ -11,7 +10,6 @@ import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Builtin.Provider.BKick;
 import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
-import Zeze.Collections.Queue;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Config;
@@ -127,6 +125,7 @@ public final class App extends Zeze.AppBase {
 		// 服务准备好以后才注册和订阅。
 		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
 
+		counterColdTimer = new AtomicInteger();
 		Task.call(Zeze.newProcedure(() -> {
 			coldTimerId = Zeze.getTimer().schedule(2000, 2000, ColdTimer.class, new BKick());
 			return 0;
@@ -134,16 +133,16 @@ public final class App extends Zeze.AppBase {
 	}
 
 	String coldTimerId;
+	public AtomicInteger counterColdTimer;
 
 	public static class ColdTimer implements TimerHandle {
-		public static AtomicInteger counter = new AtomicInteger();
-
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
+			var counterColdTimer = ((Game.App)(context.timer.zeze.getAppBase())).counterColdTimer;
 			var buf = (BKick)context.customData;
-			if (buf.getCode() != counter.get())
-				throw new RuntimeException("");
-			var id = counter.incrementAndGet();
+			if (buf.getCode() != counterColdTimer.get())
+				throw new RuntimeException("verify cold timer error.");
+			var id = counterColdTimer.incrementAndGet();
 			buf.setCode(id);
 		}
 

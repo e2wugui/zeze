@@ -37,15 +37,6 @@ dbh2 rocks 层调用不允许出错，有点过于相信底层了，怎么解决
 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot install new modiule need register sm,还需要module config  choice type
 Hot Module 拥有内存表现在禁止了。允许的话需要像Online.Local一样做个retreat。这个操作框架可以帮忙完成，可能的实现代码和Online.Local的处理一样。
-Zeze.Collections.Queue(现有)
-	指定名字的队列，名字推荐跟账号角色相关，具有较大的并发性。
-	不建议用于全局队列，此时由于争抢，并发度不高。
-Zeze.Collections.CsQueue(Cs=ConcurrentServer，TODO)
-	指定名字的队列，并且每ServerId对应一个实际存储，在Server宕机一定时间没有恢复时，其他Server会接管它的数据。
-	用来实现更高并发度的全局队列。除了add,pop,另提供本ServerId下的队列遍历和全局遍历，
-	【全局遍历实现方案：保存现有的serverId列表，两层遍历】
-	【限定遍历行为应该是受控的。因为如果在全局遍历过程中批量修改，会导致跨serverId争抢，直接破坏了设计目标】
-其他Zeze.Collections.Cs版本
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/25 v1.3.1 Hot; EventDispatcher; Memory-Table.SoftReference; 

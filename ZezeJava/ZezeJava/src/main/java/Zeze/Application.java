@@ -172,7 +172,14 @@ public final class Application {
 		}
 	}
 
+	private AppBase appBase;
+
+	public AppBase getAppBase() {
+		return appBase;
+	}
+
 	public synchronized void initialize(@NotNull AppBase app) {
+		appBase = app;
 		if (timer == null && !isNoDatabase() && redirect != null)
 			timer = Timer.create(app);
 	}

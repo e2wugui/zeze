@@ -17,6 +17,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 import Zeze.AppBase;
+import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Collections.BeanFactory;
 import Zeze.IModule;
@@ -61,7 +62,7 @@ public class HotManager extends ClassLoader {
 	// module namespace -> HotModule
 	private final FewModifySortedMap<String, HotModule> modules = new FewModifySortedMap<>();
 	private final ReentrantReadWriteLock hotLock = new ReentrantReadWriteLock();
-	private final AppBase app;
+	private final Application zeze;
 	private final HotRedirect hotRedirect;
 
 	private final ConcurrentHashSet<HotUpgrade> hotUpgrades = new ConcurrentHashSet<>();
@@ -102,7 +103,7 @@ public class HotManager extends ClassLoader {
 
 		for (var module : modules.values()) {
 			var iModule = (IModule)module.getService();
-			iModule.Initialize(app);
+			iModule.Initialize(zeze.getAppBase());
 			modulesOut.put(module.getName(), iModule);
 		}
 	}
@@ -153,13 +154,14 @@ public class HotManager extends ClassLoader {
 		var i = 0;
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
-		IModule[] iModules = GenModule.instance.createRedirectModules(app, moduleClasses);
+		IModule[] iModules = GenModule.instance.createRedirectModules(zeze.getAppBase(), moduleClasses);
 		if (null == iModules) {
 			// 这种情况是不是内部处理掉比较好。
 			// redirect return null, try new without redirect.
 			iModules = new IModule[moduleClasses.length];
 			for (var ii = 0; ii < moduleClasses.length; ++ii) {
-				iModules[ii] = (IModule)moduleClasses[ii].getConstructor(app.getClass()).newInstance(app);
+				iModules[ii] = (IModule)moduleClasses[ii]
+						.getConstructor(zeze.getAppBase().getClass()).newInstance(zeze.getAppBase());
 			}
 		}
 		return iModules;
@@ -237,6 +239,7 @@ public class HotManager extends ClassLoader {
 		logger.info("________________ install ________________ {}", namespaces);
 		try (var ignored = enterWriteLock()) {
 			upgrading = true;
+			var app = zeze.getAppBase();
 			app.getZeze().__install_prepare__(loadSchemas());
 
 			var result = new ArrayList<HotModule>(namespaces.size());
@@ -378,8 +381,8 @@ public class HotManager extends ClassLoader {
 		return module;
 	}
 
-	public AppBase getApp() {
-		return app;
+	public Application getZeze() {
+		return zeze;
 	}
 
 	public HotManager(AppBase app, String workingDir, String distributeDir) throws Exception {
@@ -407,7 +410,7 @@ public class HotManager extends ClassLoader {
 
 		this.workingDir = workingDir;
 		this.distributeDir = distributeDir;
-		this.app = app;
+		this.zeze = app.getZeze();
 		this.hotRedirect = new HotRedirect(this);
 
 		this.loadExistInterfaces(interfacesPath.toFile());

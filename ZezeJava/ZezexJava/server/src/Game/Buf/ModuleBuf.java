@@ -21,16 +21,23 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	private static final Logger logger = LogManager.getLogger(ModuleBuf.class);
 
 	private Future<?> timerIdHot;
+	public AtomicInteger counterHotTimer;
+
+	@Override
+	public AtomicInteger getCounter() {
+		return counterHotTimer;
+	}
 
 	public static class HotTimer implements TimerHandle {
-		public static AtomicInteger counter = new AtomicInteger();
 
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
+			var mc = context.timer.zeze.getHotManager().getModuleContext("Game.Buf", IModuleBuf.class);
+			var ibuf = mc.getService();
 			var buf = (BBuf)context.customData;
-			if (buf.getId() != counter.get())
+			if (buf.getId() != ibuf.getCounter().get())
 				throw new RuntimeException("");
-			var id = counter.incrementAndGet();
+			var id = ibuf.getCounter().incrementAndGet();
 			buf.setId(id);
 		}
 
@@ -42,6 +49,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 
 	int oldAccess = 0;
 	public final void Start(App app) {
+		counterHotTimer = new AtomicInteger();
 		_tbufs.getChangeListenerMap().addListener(new BufChangeListener("Game.Buf.Bufs"));
 		var rand = Zeze.Util.Random.getInstance();
 		timerIdHot = Task.scheduleUnsafe(

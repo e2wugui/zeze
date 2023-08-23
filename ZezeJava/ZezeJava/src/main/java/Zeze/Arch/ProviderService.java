@@ -167,7 +167,7 @@ public class ProviderService extends HandshakeClient {
 	public void addHotModule(IModule module, BModule.Data config) {
 		{
 			// 全局数据更新
-			providerApp.zeze.getHotManager().getApp().addModule(module);
+			providerApp.zeze.getAppBase().addModule(module);
 			providerApp.modules.put(module.getId(), config);
 		}
 		{
