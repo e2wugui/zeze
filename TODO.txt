@@ -35,8 +35,8 @@ dbh2 raftagent会建立所有node的连接并保持，由于已有新链接建�
 dbh2 rocks 层调用不允许出错，有点过于相信底层了，怎么解决？出错了现在是abort，改成reset raft？
 ----------------------------------------------------------------------------------------------------------
 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
-Hot Redirect 返回结果参数是自定义结构时不能作为接口暴露，怎么处理比较好。
 Hot install new modiule need register sm,还需要module config  choice type
+Hot Module 拥有内存表现在禁止了。允许的话需要像Online.Local一样做个retreat。这个操作框架可以帮忙完成，可能的实现代码和Online.Local的处理一样。
 Zeze.Collections.Queue(现有)
 	指定名字的队列，名字推荐跟账号角色相关，具有较大的并发性。
 	不建议用于全局队列，此时由于争抢，并发度不高。
@@ -50,6 +50,7 @@ Zeze.Collections.CsQueue(Cs=ConcurrentServer，TODO)
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/25 v1.3.1 Hot; EventDispatcher; Memory-Table.SoftReference; 
 ------------------------------------------------------------------------------------------------------------------------------
+Hot Redirect 返回结果参数是自定义结构时不能作为接口暴露，怎么处理比较好。【有redirect的模块不支持热更】
 Hot Test;
 	Hot TimerRole.Offline.CustomData 【属于Timer.Custom.Custom已由Timer处理】
 	Hot TimerAccount.Offline.CustomData 【属于Timer.Custom.Custom已由Timer处理】
