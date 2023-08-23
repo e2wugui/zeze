@@ -119,7 +119,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 				break;
 			}
 			if (count != custom.getAttack() + 1)
-				throw new RuntimeException("HotTimer verify fail.");
+				throw new RuntimeException("HotTimer verify fail. type=" + custom.getDefence());
 			custom.setAttack(count);
 		}
 
