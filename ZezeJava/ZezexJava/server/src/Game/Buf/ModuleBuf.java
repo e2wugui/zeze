@@ -27,7 +27,11 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
-			logger.info("HotTimer " + counter.incrementAndGet());
+			var buf = (BBuf)context.customData;
+			if (buf.getId() != counter.get())
+				throw new RuntimeException("");
+			var id = counter.incrementAndGet();
+			buf.setId(id);
 		}
 
 		@Override
@@ -47,13 +51,12 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 					var module = app.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
 					var service = module.getService();
 					oldAccess = service.hotHelloWorld(oldAccess);
-					logger.info("oldAccess=" + oldAccess);
 				});
 
 		Task.call(app.Zeze.newProcedure(() -> {
 			hotTimerId = app.Zeze.getTimer().schedule(
 					rand.nextLong(3000) + 1000, rand.nextLong(3000) + 1000,
-					HotTimer.class, null);
+					HotTimer.class, new BBuf());
 			return 0;
 		}, "hotTimer"));
 	}

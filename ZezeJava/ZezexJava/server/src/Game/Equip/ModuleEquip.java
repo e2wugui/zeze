@@ -28,6 +28,28 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	String timerOnline;
 	long roleId;
 
+	int onlineTimerCount;
+	int namedTimerCount;
+	int hotTimerCount;
+	@Override
+	public int increateAndGetOnlineTimerCount() {
+		onlineTimerCount += 1;
+		return onlineTimerCount;
+	}
+
+	@Override
+	public int increateAndGetNamedTimerCount() {
+		namedTimerCount += 1;
+		return namedTimerCount;
+	}
+
+	@Override
+	public int increateAndGetHotTimerCount() {
+		hotTimerCount += 1;
+		return hotTimerCount;
+	}
+
+
 	@Override
 	public long getRoleId() {
 		return roleId;
@@ -48,13 +70,13 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			timer.scheduleNamed(timerNamed,
 					rand.nextLong(3000) + 1000,
 					rand.nextLong(3000) + 1000,
-					HotTimer.class, null);
+					HotTimer.class, new BEquipExtra(0, 2, 0));
 
 			if (!isHotUpgrade()) {
 				timerHot = timer.schedule(
 						rand.nextLong(3000) + 1000,
 						rand.nextLong(3000) + 1000,
-						HotTimer.class, new BEquipExtra());
+						HotTimer.class, new BEquipExtra(0, 1, 0));
 			}
 			return 0;
 		}, "register timers").call();
@@ -81,13 +103,24 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
-			var attack = 0;
-			if (null != context.customData) {
-				var myCustom = (BEquipExtra)context.customData;
-				myCustom.setAttack(myCustom.getAttack() + 1);
-				attack = myCustom.getAttack();
+			var mc = Game.App.getInstance().Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
+			var equip = mc.getService();
+			var count = 1; // default is 1
+			var custom = (BEquipExtra)context.customData;
+			switch (custom.getDefence()) {
+			case 1:
+				count = equip.increateAndGetHotTimerCount();
+				break;
+			case 2:
+				count = equip.increateAndGetNamedTimerCount();
+				break;
+			case 3:
+				count = equip.increateAndGetOnlineTimerCount();
+				break;
 			}
-			logger.info(context.timerId + " ---- HotTimer ---> " + attack);
+			if (count != custom.getAttack() + 1)
+				throw new RuntimeException("HotTimer verify fail.");
+			custom.setAttack(count);
 		}
 
 		@Override
@@ -146,7 +179,6 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 			var record = _tHotTest.getOrAdd(1L);
 			record.setAttack(record.getAttack() + 1);
-			logger.info("HotTest.Attack=" + record.getAttack());
 
 			accessWillRemoveVar(record);
 
@@ -213,6 +245,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		var oldI = (IModuleEquip)old;
 		startOnlineTimer(oldI.getRoleId());
 		timerHot = oldI.getTimerHot(); // 继承过来。
+		hotTimerCount = oldI.increateAndGetHotTimerCount() - 1; // 继承过来。
 	}
 
 	private static class ItemsChangeListener implements ChangeListener {
@@ -395,7 +428,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		this.roleId = roleId;
 		timerOnline = App.Zeze.getTimer().getRoleTimer().scheduleOnlineHot(
 				this.roleId, 2000, 2000,
-				-1, -1, HotTimer.class, null);
+				-1, -1, HotTimer.class, new BEquipExtra(0, 3, 0));
 		logger.info("timerOnline=" + timerOnline);
 	}
 

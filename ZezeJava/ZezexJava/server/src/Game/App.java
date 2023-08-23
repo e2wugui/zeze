@@ -3,6 +3,7 @@ package Game;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicInteger;
+import Game.Buf.BBuf;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
@@ -127,7 +128,7 @@ public final class App extends Zeze.AppBase {
 		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
 
 		Task.call(Zeze.newProcedure(() -> {
-			coldTimerId = Zeze.getTimer().schedule(2000, 2000, ColdTimer.class, null);
+			coldTimerId = Zeze.getTimer().schedule(2000, 2000, ColdTimer.class, new BKick());
 			return 0;
 		}, "coldTimer"));
 	}
@@ -139,7 +140,11 @@ public final class App extends Zeze.AppBase {
 
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
-			System.out.println("ColdTimer " + counter.incrementAndGet());
+			var buf = (BKick)context.customData;
+			if (buf.getCode() != counter.get())
+				throw new RuntimeException("");
+			var id = counter.incrementAndGet();
+			buf.setCode(id);
 		}
 
 		@Override
