@@ -1733,6 +1733,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
+		online.setServerId(providerApp.zeze.getConfig().getServerId());
+
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
 		session.sendResponseWhileCommit(rpc);
