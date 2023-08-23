@@ -174,9 +174,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	protected Online(@NotNull AppBase app) {
 		var zeze = app.getZeze();
 
-		loginEvents = new EventDispatcher(zeze,"Online.Login");
-		reloginEvents = new EventDispatcher(zeze,"Online.Relogin");
-		logoutEvents = new EventDispatcher(zeze,"Online.Logout");
+		loginEvents = new EventDispatcher(zeze, "Online.Login");
+		reloginEvents = new EventDispatcher(zeze, "Online.Relogin");
+		logoutEvents = new EventDispatcher(zeze, "Online.Logout");
 		localRemoveEvents = new EventDispatcher(zeze, "Online.Local.Remove");
 
 		providerApp = zeze.redirect.providerApp;
@@ -1465,7 +1465,14 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var loginVersion = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 
-		if (loginVersion.getLoginVersion() != loginVersion.getLogoutVersion()) {
+		var onlineAccount = online.getAccount();
+		var isBound = !onlineAccount.isEmpty();
+		if (!isBound)
+			online.setAccount(session.getAccount()); // 这里依赖loginTrigger做进一步的角色是否属于账号的验证,验证失败会回滚
+		else if (!onlineAccount.equals(session.getAccount()))
+			return Procedure.LogicError;
+
+		if (isBound && loginVersion.getLoginVersion() != loginVersion.getLogoutVersion()) {
 			// login exist
 			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
 

@@ -16,4 +16,5 @@ public interface BOnlineReadOnly {
     int getServerId();
     long getLogoutVersion();
     Zeze.Transaction.DynamicBeanReadOnly getUserDataReadOnly();
+    String getAccount();
 }

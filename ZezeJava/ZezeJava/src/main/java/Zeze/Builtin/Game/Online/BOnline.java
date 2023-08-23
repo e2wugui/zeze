@@ -29,6 +29,8 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         return Zeze.Game.Online.createBeanFromSpecialTypeId(typeId);
     }
 
+    private String _Account; // 所属账号,用于登录验证
+
     @Override
     public Zeze.Builtin.Game.Online.BLink getLink() {
         if (!isManaged())
@@ -169,16 +171,39 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         return _UserData;
     }
 
+    @Override
+    public String getAccount() {
+        if (!isManaged())
+            return _Account;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Account;
+        var log = (Log__Account)txn.getLog(objectId() + 11);
+        return log != null ? log.value : _Account;
+    }
+
+    public void setAccount(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Account = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Account(this, 11, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BOnline() {
         _Link = new Zeze.Builtin.Game.Online.BLink();
         _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);
         _ReliableNotifyMark.variableId(5);
         _UserData = newDynamicBean_UserData();
+        _Account = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BOnline(Zeze.Builtin.Game.Online.BLink _Link_, long _LoginVersion_, long _ReliableNotifyConfirmIndex_, long _ReliableNotifyIndex_, int _ServerId_, long _LogoutVersion_) {
+    public BOnline(Zeze.Builtin.Game.Online.BLink _Link_, long _LoginVersion_, long _ReliableNotifyConfirmIndex_, long _ReliableNotifyIndex_, int _ServerId_, long _LogoutVersion_, String _Account_) {
         if (_Link_ == null)
             _Link_ = new Zeze.Builtin.Game.Online.BLink();
         _Link = _Link_;
@@ -190,6 +215,9 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         _ServerId = _ServerId_;
         _LogoutVersion = _LogoutVersion_;
         _UserData = newDynamicBean_UserData();
+        if (_Account_ == null)
+            _Account_ = "";
+        _Account = _Account_;
     }
 
     @Override
@@ -202,6 +230,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         setServerId(0);
         setLogoutVersion(0);
         _UserData.reset();
+        setAccount("");
         _unknown_ = null;
     }
 
@@ -215,6 +244,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         setServerId(other.getServerId());
         setLogoutVersion(other.getLogoutVersion());
         _UserData.assign(other._UserData);
+        setAccount(other.getAccount());
         _unknown_ = other._unknown_;
     }
 
@@ -282,6 +312,13 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         public void commit() { ((BOnline)getBelong())._LogoutVersion = value; }
     }
 
+    private static final class Log__Account extends Zeze.Transaction.Logs.LogString {
+        public Log__Account(BOnline bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BOnline)getBelong())._Account = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -314,7 +351,8 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         sb.append(Zeze.Util.Str.indent(level)).append("LogoutVersion=").append(getLogoutVersion()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("UserData=").append(System.lineSeparator());
         _UserData.getBean().buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
+        sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Account=").append(getAccount()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -417,6 +455,13 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
                 _x_.encode(_o_);
             }
         }
+        {
+            String _x_ = getAccount();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 11, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -466,6 +511,10 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         }
         if (_i_ == 10) {
             _o_.ReadDynamic(_UserData, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 11) {
+            setAccount(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -518,6 +567,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
                 case 8: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 9: _LogoutVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 10: _UserData.followerApply(vlog); break;
+                case 11: _Account = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -535,6 +585,9 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         setServerId(rs.getInt(_parents_name_ + "ServerId"));
         setLogoutVersion(rs.getLong(_parents_name_ + "LogoutVersion"));
         Zeze.Serialize.Helper.decodeJsonDynamic(_UserData, rs.getString(_parents_name_ + "UserData"));
+        setAccount(rs.getString(_parents_name_ + "Account"));
+        if (getAccount() == null)
+            setAccount("");
     }
 
     @Override
@@ -550,6 +603,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         st.appendInt(_parents_name_ + "ServerId", getServerId());
         st.appendLong(_parents_name_ + "LogoutVersion", getLogoutVersion());
         st.appendString(_parents_name_ + "UserData", Zeze.Serialize.Helper.encodeJson(_UserData));
+        st.appendString(_parents_name_ + "Account", getAccount());
     }
 
     @Override
@@ -563,6 +617,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "ServerId", "int", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "LogoutVersion", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "UserData", "dynamic", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(11, "Account", "string", "", ""));
         return vars;
     }
 }

@@ -9,6 +9,7 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
 
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BOnline> _Logins; // key is ClientId
     private long _LastLoginVersion; // 用来生成 account 登录版本号。每次递增。
+    private String _Account; // 所属账号,用于登录验证
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BOnline> getLogins() {
         return _Logins;
@@ -39,23 +40,50 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
         txn.putLog(new Log__LastLoginVersion(this, 2, value));
     }
 
+    @Override
+    public String getAccount() {
+        if (!isManaged())
+            return _Account;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Account;
+        var log = (Log__Account)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Account;
+    }
+
+    public void setAccount(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Account = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Account(this, 3, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BOnlines() {
         _Logins = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Online.BOnline.class);
         _Logins.variableId(1);
+        _Account = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BOnlines(long _LastLoginVersion_) {
+    public BOnlines(long _LastLoginVersion_, String _Account_) {
         _Logins = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Online.BOnline.class);
         _Logins.variableId(1);
         _LastLoginVersion = _LastLoginVersion_;
+        if (_Account_ == null)
+            _Account_ = "";
+        _Account = _Account_;
     }
 
     @Override
     public void reset() {
         _Logins.clear();
         setLastLoginVersion(0);
+        setAccount("");
         _unknown_ = null;
     }
 
@@ -64,6 +92,7 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
         for (var e : other._Logins.entrySet())
             _Logins.put(e.getKey(), e.getValue().copy());
         setLastLoginVersion(other.getLastLoginVersion());
+        setAccount(other.getAccount());
         _unknown_ = other._unknown_;
     }
 
@@ -96,6 +125,13 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
         public void commit() { ((BOnlines)getBelong())._LastLoginVersion = value; }
     }
 
+    private static final class Log__Account extends Zeze.Transaction.Logs.LogString {
+        public Log__Account(BOnlines bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BOnlines)getBelong())._Account = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -121,7 +157,8 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
             sb.append(Zeze.Util.Str.indent(level));
         }
         sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LastLoginVersion=").append(getLastLoginVersion()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LastLoginVersion=").append(getLastLoginVersion()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Account=").append(getAccount()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -176,6 +213,13 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            String _x_ = getAccount();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -201,6 +245,10 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
         }
         if (_i_ == 2) {
             setLastLoginVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setAccount(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -239,6 +287,7 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
             switch (vlog.getVariableId()) {
                 case 1: _Logins.followerApply(vlog); break;
                 case 2: _LastLoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _Account = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -248,6 +297,9 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         Zeze.Serialize.Helper.decodeJsonMap(this, "Logins", _Logins, rs.getString(_parents_name_ + "Logins"));
         setLastLoginVersion(rs.getLong(_parents_name_ + "LastLoginVersion"));
+        setAccount(rs.getString(_parents_name_ + "Account"));
+        if (getAccount() == null)
+            setAccount("");
     }
 
     @Override
@@ -255,6 +307,7 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Logins", Zeze.Serialize.Helper.encodeJson(_Logins));
         st.appendLong(_parents_name_ + "LastLoginVersion", getLastLoginVersion());
+        st.appendString(_parents_name_ + "Account", getAccount());
     }
 
     @Override
@@ -262,6 +315,7 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Logins", "map", "string", "BOnline"));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "LastLoginVersion", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Account", "string", "", ""));
         return vars;
     }
 }

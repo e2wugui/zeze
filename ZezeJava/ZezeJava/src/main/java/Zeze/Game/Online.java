@@ -236,11 +236,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	protected Online(@NotNull AppBase app) {
 		super("");
 		var zeze = app.getZeze();
-		loginEvents = new EventDispatcher(zeze,"Online.Login");
-		reloginEvents = new EventDispatcher(zeze,"Online.Relogin");
-		logoutEvents = new EventDispatcher(zeze,"Online.Logout");
-		localRemoveEvents = new EventDispatcher(zeze,"Online.Local.Remove");
-		linkBrokenEvents = new EventDispatcher(zeze,"Online.LinkBroken");
+		loginEvents = new EventDispatcher(zeze, "Online.Login");
+		reloginEvents = new EventDispatcher(zeze, "Online.Relogin");
+		logoutEvents = new EventDispatcher(zeze, "Online.Logout");
+		localRemoveEvents = new EventDispatcher(zeze, "Online.Local.Remove");
+		linkBrokenEvents = new EventDispatcher(zeze, "Online.LinkBroken");
 
 		providerApp = zeze.redirect.providerApp;
 		defaultInstance = this;
@@ -256,11 +256,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private Online(@NotNull AppBase app, @NotNull String name) {
 		super(name);
 		var zeze = app.getZeze();
-		loginEvents = new EventDispatcher(zeze,"Online.Login");
-		reloginEvents = new EventDispatcher(zeze,"Online.Relogin");
-		logoutEvents = new EventDispatcher(zeze,"Online.Logout");
-		localRemoveEvents = new EventDispatcher(zeze,"Online.Local.Remove");
-		linkBrokenEvents = new EventDispatcher(zeze,"Online.LinkBroken");
+		loginEvents = new EventDispatcher(zeze, "Online.Login");
+		reloginEvents = new EventDispatcher(zeze, "Online.Relogin");
+		logoutEvents = new EventDispatcher(zeze, "Online.Logout");
+		localRemoveEvents = new EventDispatcher(zeze, "Online.Local.Remove");
+		linkBrokenEvents = new EventDispatcher(zeze, "Online.LinkBroken");
 
 		providerApp = app.getZeze().redirect.providerApp;
 		RegisterZezeTables(providerApp.zeze);
@@ -1612,8 +1612,15 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var link = online.getLink();
 
+		var onlineAccount = online.getAccount();
+		var isBound = !onlineAccount.isEmpty();
+		if (!isBound)
+			online.setAccount(session.getAccount()); // 这里依赖loginTrigger做进一步的角色是否属于账号的验证,验证失败会回滚
+		else if (!onlineAccount.equals(session.getAccount()))
+			return Procedure.LogicError;
+
 		// login exist
-		if (assignLogoutVersion(online)) {
+		if (isBound && assignLogoutVersion(online)) {
 			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
 				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 						BKick.ErrorDuplicateLogin, "duplicate role login");

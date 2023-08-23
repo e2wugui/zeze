@@ -649,6 +649,7 @@
 						<GetSpecialTypeIdFromBean value="Zeze.Game.Online::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::createBeanFromSpecialTypeId"/>
 					</variable>
+					<variable id="11" name="Account" type="string"/> 所属账号,用于登录验证
 				</bean>
 				<beankey name="BLink">
 					<variable id="1" name="LinkName" type="string"/>
@@ -1006,6 +1007,7 @@
 			<bean name="BOnlines">
 				<variable id="1" name="Logins" type="map" key="string" value="BOnline"/> key is ClientId
 				<variable id="2" name="LastLoginVersion" type="long"/> 用来生成 account 登录版本号。每次递增。
+				<variable id="3" name="Account" type="string"/> 所属账号,用于登录验证
 			</bean>
 
 			<table name="tonline"  key="string" value="BOnlines"/>

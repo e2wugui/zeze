@@ -9,4 +9,5 @@ public interface BOnlinesReadOnly {
 
     Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Online.BOnline, Zeze.Builtin.Online.BOnlineReadOnly> getLoginsReadOnly();
     long getLastLoginVersion();
+    String getAccount();
 }

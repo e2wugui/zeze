@@ -25,6 +25,7 @@ public final class tonline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline
     public static final int VAR_ServerId = 8;
     public static final int VAR_LogoutVersion = 9;
     public static final int VAR_UserData = 10;
+    public static final int VAR_Account = 11;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {
