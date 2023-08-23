@@ -364,7 +364,7 @@ public final class Application {
 	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName,
 										   @Nullable TransactionLevel level, @Nullable Object userState) {
 		if (!isStart())
-			throw new IllegalStateException("App Not Start");
+			throw new IllegalStateException("App Not Start: " + startState);
 		return new Procedure(this, action, actionName, level, userState);
 	}
 

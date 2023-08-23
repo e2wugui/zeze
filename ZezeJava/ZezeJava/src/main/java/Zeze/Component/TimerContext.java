@@ -1,7 +1,6 @@
 package Zeze.Component;
 
-import Zeze.Application;
-import Zeze.Builtin.Timer.*;
+import Zeze.Builtin.Timer.BTimer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 

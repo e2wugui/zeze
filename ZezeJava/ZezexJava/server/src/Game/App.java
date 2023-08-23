@@ -212,8 +212,8 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() throws Exception {
-        Zeze.initialize(this);
         Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));
+        Zeze.initialize(this);
         Zeze.getHotManager().initialize(modules);
         var _modules_ = createRedirectModules(new Class[] {
             Game.Map.ModuleMap.class,
