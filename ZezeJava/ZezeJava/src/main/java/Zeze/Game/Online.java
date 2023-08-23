@@ -1697,8 +1697,15 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var link = online.getLink();
 
+		var onlineAccount = online.getAccount();
+		var isBound = !onlineAccount.isEmpty();
+		if (!isBound)
+			online.setAccount(session.getAccount()); // 这里依赖reloginTrigger做进一步的角色是否属于账号的验证,验证失败会回滚
+		else if (!onlineAccount.equals(session.getAccount()))
+			return Procedure.LogicError;
+
 		// login exist
-		if (assignLogoutVersion(online)) {
+		if (isBound && assignLogoutVersion(online)) {
 			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
 				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 						BKick.ErrorDuplicateLogin, "duplicate role login");
