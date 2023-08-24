@@ -130,4 +130,6 @@ public abstract class Table {
 	public abstract void disable();
 
 	public abstract DatabaseRocksDb.Table getLocalRocksCacheTable();
+	public abstract long walkMemoryAny(TableWalkHandle<Object, Bean> handle);
+	public abstract void __direct_put_cache__(Object key, Bean value);
 }

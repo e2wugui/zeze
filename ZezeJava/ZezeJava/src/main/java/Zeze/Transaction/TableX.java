@@ -884,6 +884,16 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return storage.getDatabaseTable().walkDatabaseDesc(this, callback);
 	}
 
+	@Override
+	public long walkMemoryAny(TableWalkHandle<Object, Bean> handle) {
+		return walkMemory(handle::handle);
+	}
+
+	@Override
+	public void __direct_put_cache__(Object key, Bean value) {
+		cache.
+	}
+
 	/**
 	 * 事务外调用
 	 * 遍历缓存

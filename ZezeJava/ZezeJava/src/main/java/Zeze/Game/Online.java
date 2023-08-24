@@ -1768,11 +1768,28 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (session.getRoleId() == null)
 			return errorCode(ResultCodeNotLogin);
 
+		localLogout(session.getRoleId(), rpc.getSender(), session.getLinkSid());
+		session.sendResponseWhileCommit(rpc);
+		// 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
+		// App.Load.LogoutCount.IncrementAndGet();
+		return Procedure.Success;
+	}
+
+	public long localLogout(long roleId) throws Exception {
+		var online = _tonline.get(roleId);
+		if (online == null)
+			return Procedure.LogicError;
+		var linkSid = online.getLink().getLinkSid();
+		var link = providerApp.providerService.getLinks().get(online.getLink().getLinkName());
+		return localLogout(roleId, link.getSocket(), linkSid);
+	}
+
+	private long localLogout(long roleId, AsyncSocket link, long linkSid) throws Exception {
 		//var local = _tlocal.get(session.getRoleId());
-		var online = getLoginOnline(session.getRoleId());
+		var online = getLoginOnline(roleId);
 		if (online != null) {
 			if (assignLogoutVersion(online)) {
-				var ret = logoutTrigger(session.getRoleId(), LogoutReason.LOGOUT);
+				var ret = logoutTrigger(roleId, LogoutReason.LOGOUT);
 				if (0 != ret)
 					return ret;
 				// 到这里online被删除了。
@@ -1781,13 +1798,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// 先设置状态，再发送Logout结果。
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getLinkSid());
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
+			setUserState.Argument.setLinkSid(linkSid);
+			link.Send(setUserState); // 直接使用link连接。
 		});
-		session.sendResponseWhileCommit(rpc);
-		// 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
-		// App.Load.LogoutCount.IncrementAndGet();
-		return Procedure.Success;
+		return 0;
 	}
 
 	private int reliableNotifySync(long roleId, @NotNull ProviderUserSession session, long reliableNotifyConfirmCount) {

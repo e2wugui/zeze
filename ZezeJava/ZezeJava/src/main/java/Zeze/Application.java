@@ -16,6 +16,7 @@ import Zeze.Component.Timer;
 import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.Hot.HotHandle;
 import Zeze.Hot.HotManager;
+import Zeze.Hot.HotUpgradeMemoryTable;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Daemon;
 import Zeze.Services.GlobalCacheManagerWithRaftAgent;
@@ -262,9 +263,11 @@ public final class Application {
 	}
 
 	private final ArrayList<Table> replaceTableRecent = new ArrayList<>();
+	private final ArrayList<HotUpgradeMemoryTable> hotUpgradeMemoryTables = new ArrayList<>();
 
 	// Hot Install 内部使用。
 	public void __install_prepare__(Schemas schemas) throws Exception {
+		hotUpgradeMemoryTables.clear();
 		replaceTableRecent.clear();
 		this.schemasPrevious = null;
 		this.schemas = schemas;
@@ -280,6 +283,10 @@ public final class Application {
 		replaceTableRecent.clear();
 	}
 
+	public ArrayList<HotUpgradeMemoryTable> __get_upgrade_memory_table__() {
+		return hotUpgradeMemoryTables;
+	}
+
 	// 用于热更的时候替换Table.
 	// 热更不会调用addTable,removeTable。
 	public @NotNull Database replaceTable(@NotNull String dbName, @NotNull Table table) {
@@ -288,10 +295,18 @@ public final class Application {
 		var db = getDatabase(dbName);
 		var exist = tables.put(table.getId(), table);
 		if (null != exist) {
-			// 旧表存在，新表需要处理open，但这个open跟第一次启动不一样，有一些状态从旧表得到。
-			table.open(exist, this);
-			// 旧表禁用。防止应用保留了旧表引用，还去使用导致错误。
-			exist.disable();
+			if (exist.isMemory() && table.isMemory()) {
+				// 内存表特殊处理。
+				hotUpgradeMemoryTables.add(new HotUpgradeMemoryTable(exist, table));
+			} else {
+				// 1. exist.isMemory() || table.isMemory()
+				// 内存表配置发生改变，不会继承数据。【需要再次确认一下能不能重用这个处理流程，大概可以。】
+				// 2. !exist.isMemory() && !table.isMemory()
+				// 都是持久表，不需要继承数据。这个open跟第一次启动不一样，有一些状态从旧表得到。
+				table.open(exist, this);
+				// 旧表禁用。防止应用保留了旧表引用，还去使用导致错误。
+				exist.disable();
+			}
 		} else if (isStart()) {
 			// new table
 			table.open(this, db, null);
