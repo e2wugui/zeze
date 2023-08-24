@@ -8,6 +8,7 @@ import Zeze.Builtin.Provider.AnnounceProviderInfo;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Dispatch;
+import Zeze.Builtin.Provider.SetDisableChoice;
 import Zeze.Builtin.Provider.Subscribe;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
@@ -19,11 +20,13 @@ import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ProviderService extends HandshakeClient {
-	// private static final Logger logger = LogManager.getLogger(ProviderService.class);
+	private static final Logger logger = LogManager.getLogger(ProviderService.class);
 
 	protected ProviderApp providerApp;
 	private final ConcurrentHashMap<String, Connector> links = new ConcurrentHashMap<>();
@@ -115,6 +118,18 @@ public class ProviderService extends HandshakeClient {
 
 	public @NotNull ConcurrentHashMap<String, Connector> getLinks() {
 		return links;
+	}
+
+	public void setDisableChoiceFromLinks(boolean value) {
+		for (var link : links.values()) {
+			var r = new SetDisableChoice();
+			r.Argument.setDisableChoice(value);
+			r.Send(link.getSocket(), (p) -> {
+				if (r.isTimeout() || r.getResultCode() != 0)
+					logger.error("setDisableChoice fail. {}", link.getName());
+				return 0;
+			});
+		}
 	}
 
 	public @Nullable AsyncSocket randomLink() {

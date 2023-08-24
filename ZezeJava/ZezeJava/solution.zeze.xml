@@ -403,6 +403,11 @@
 				<variable name="Overload"         id="4" type="int"/> 过载保护类型。参见上面的枚举定义。
 			</bean>
 
+			<bean name="BSetDisableChoice">
+				<variable name="DisableChoice" id="1" type="bool"/>
+			</bean>
+			<rpc name="SetDisableChoice" argument="BSetDisableChoice" handle="client"/>
+
 			<!-- link to gs -->
 			<bean name="BDispatch">
 				<variable name="linkSid"       id="1" type="long"/>

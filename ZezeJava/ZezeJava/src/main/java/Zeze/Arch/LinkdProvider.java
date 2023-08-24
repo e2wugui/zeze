@@ -147,7 +147,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			return false; // socket 没有还是直接拒绝客户端选择吧。
 
 		var ps = (ProviderSession)providerSocket.getUserState();
-		if (ps.appVersion != maxAppVersion.get()) {
+		if (ps.appVersion != maxAppVersion.get() || ps.isDisableChoice()) {
 			// 版本不匹配，继续尝试查找。
 			providerSocket = null; // clear first.
 
@@ -164,7 +164,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 					}
 
 					ps = (ProviderSession)providerSocket.getUserState();
-					if (ps.appVersion == maxAppVersion.get()) {
+					if (ps.appVersion == maxAppVersion.get() && !ps.isDisableChoice()) {
 						provider.value = sessionId;
 						break;
 					}
@@ -460,5 +460,12 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		}
 
 		return Procedure.Success;
+	}
+
+	@Override
+	protected long ProcessSetDisableChoiceRequest(Zeze.Builtin.Provider.SetDisableChoice r) throws Exception {
+		var session = (LinkdProviderSession)r.getSender().getUserState();
+		session.setDisableChoice(r.Argument.isDisableChoice());
+		return 0;
 	}
 }

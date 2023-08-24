@@ -11,6 +11,7 @@ public class ProviderSession {
 	protected @NotNull String serverLoadIp = "";
 	protected int appVersion;
 	protected int serverLoadPort;
+	protected boolean disableChoice = false;
 
 	/**
 	 * 下面维护和本Session相关的订阅Ready状态。在Session关闭时需要取消Ready状态。
@@ -38,4 +39,13 @@ public class ProviderSession {
 	public @NotNull ConcurrentHashMap<String, ProviderModuleState> getOrAddServiceReadyState(@NotNull String serviceName) {
 		return ServiceReadyStates.computeIfAbsent(serviceName, __ -> new ConcurrentHashMap<>());
 	}
+
+	public boolean isDisableChoice() {
+		return disableChoice;
+	}
+
+	public void setDisableChoice(boolean value) {
+		disableChoice = value;
+	}
+
 }

@@ -52,6 +52,13 @@ public abstract class AbstractProviderImplement implements Zeze.IModule {
             service.AddFactoryHandle(47281226998238L, factoryHandle); // 11008, -2067963426
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.SetDisableChoice.class, Zeze.Builtin.Provider.SetDisableChoice.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Provider.SetDisableChoice::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSetDisableChoiceResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSetDisableChoiceResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47281262305779L, factoryHandle); // 11008, -2032655885
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.Subscribe.class, Zeze.Builtin.Provider.Subscribe.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.Subscribe::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessSubscribeResponse", Zeze.Transaction.TransactionLevel.Serializable);
@@ -73,6 +80,7 @@ public abstract class AbstractProviderImplement implements Zeze.IModule {
         service.getFactorys().remove(47280285301785L);
         service.getFactorys().remove(47281652939086L);
         service.getFactorys().remove(47281226998238L);
+        service.getFactorys().remove(47281262305779L);
         service.getFactorys().remove(47280110454586L);
         service.getFactorys().remove(47281107578964L);
     }

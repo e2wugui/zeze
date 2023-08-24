@@ -54,6 +54,14 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
             service.AddFactoryHandle(47281226998238L, factoryHandle); // 11008, -2067963426
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.SetDisableChoice.class, Zeze.Builtin.Provider.SetDisableChoice.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Provider.SetDisableChoice::new;
+            factoryHandle.Handle = this::ProcessSetDisableChoiceRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSetDisableChoiceRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSetDisableChoiceRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47281262305779L, factoryHandle); // 11008, -2032655885
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.SetUserState.class, Zeze.Builtin.Provider.SetUserState.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.SetUserState::new;
             factoryHandle.Handle = this::ProcessSetUserState;
@@ -85,6 +93,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
         service.getFactorys().remove(47282408036866L);
         service.getFactorys().remove(47283221887522L);
         service.getFactorys().remove(47281226998238L);
+        service.getFactorys().remove(47281262305779L);
         service.getFactorys().remove(47281569047175L);
         service.getFactorys().remove(47280110454586L);
         service.getFactorys().remove(47281107578964L);
@@ -104,6 +113,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
     protected abstract long ProcessBroadcast(Zeze.Builtin.Provider.Broadcast p) throws Exception;
     protected abstract long ProcessKick(Zeze.Builtin.Provider.Kick p) throws Exception;
     protected abstract long ProcessSendRequest(Zeze.Builtin.Provider.Send r) throws Exception;
+    protected abstract long ProcessSetDisableChoiceRequest(Zeze.Builtin.Provider.SetDisableChoice r) throws Exception;
     protected abstract long ProcessSetUserState(Zeze.Builtin.Provider.SetUserState p) throws Exception;
     protected abstract long ProcessSubscribeRequest(Zeze.Builtin.Provider.Subscribe r) throws Exception;
     protected abstract long ProcessUnBindRequest(Zeze.Builtin.Provider.UnBind r) throws Exception;

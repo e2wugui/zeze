@@ -40,7 +40,7 @@ Hot install new module need register sm,还需要module config  choice type.
 HotManager 错误处理。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/8/25 v1.3.1 Hot; EventDispatcher; Memory-Table.SoftReference; 
+2023/8/25 v1.3.1 Hot; EventDispatcher; Memory-Table.SoftReference; CsQueue; CHashMap; 
 ------------------------------------------------------------------------------------------------------------------------------
 Hot Module 拥有内存表现在禁止热更。允许的话需要像Online.Local一样做个retreat。这个操作框架可以帮忙完成，可能的实现代码和Online.Local的处理一样。
 CsQueue,CHashMap还是值得写一个。
