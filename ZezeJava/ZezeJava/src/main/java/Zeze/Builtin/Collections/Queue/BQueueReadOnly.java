@@ -16,4 +16,5 @@ public interface BQueueReadOnly {
     long getTailNodeId();
     long getCount();
     long getLastNodeId();
+    long getLoadSerialNo();
 }

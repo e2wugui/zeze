@@ -8,11 +8,13 @@ import Zeze.Util.Task;
 public class CHashMap<V extends Bean> {
 	private final LinkedMap<V>[] buckets;
 	private final long[] sizes;
+	private final String name;
 
 	@SuppressWarnings("unchecked")
 	CHashMap(LinkedMap.Module module, String name, Class<V> valueClass, int concurrencyLevel, int nodeSize) {
 		if (concurrencyLevel < 1)
 			throw new IllegalArgumentException("concurrencyLevel < 1");
+		this.name = name;
 		buckets = new LinkedMap[concurrencyLevel];
 		sizes = new long[concurrencyLevel];
 		for (var i = 0; i < buckets.length; ++i) {
@@ -20,6 +22,10 @@ public class CHashMap<V extends Bean> {
 			var ii = i;
 			Task.call(module.zeze.newProcedure(() -> initSize(ii, buckets[ii]), "initSize"));
 		}
+	}
+
+	public String getName() {
+		return name;
 	}
 
 	private long initSize(int index, LinkedMap<V> bucket) {

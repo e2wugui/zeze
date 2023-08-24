@@ -1,6 +1,7 @@
 package Zeze.Collections;
 
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Builtin.Collections.Queue.BQueue;
 import Zeze.Builtin.Collections.Queue.BQueueNode;
 import Zeze.Builtin.Collections.Queue.BQueueNodeKey;
 import Zeze.Builtin.Collections.Queue.BQueueNodeValue;
@@ -63,7 +64,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	}
 
 	public static class Module extends AbstractQueue {
-		private final ConcurrentHashMap<String, Queue<?>> queues = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, Object> queues = new ConcurrentHashMap<>();
 		public final Zeze.Application zeze;
 
 		public Module(Zeze.Application zeze) {
@@ -76,14 +77,30 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			UnRegisterZezeTables(zeze);
 		}
 
-		@SuppressWarnings("unchecked")
 		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass) {
-			return (Queue<T>)queues.computeIfAbsent(name, key -> new Queue<>(this, key, valueClass, 100));
+			return open(name, valueClass, 100);
+		}
+
+		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass, int nodeSize) {
+			if (name.contains("@"))
+				throw new IllegalArgumentException("name contains '@', that is reserved.");
+			return _open(name, valueClass, nodeSize);
 		}
 
 		@SuppressWarnings("unchecked")
-		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass, int nodeSize) {
+		<T extends Bean> Queue<T> _open(String name, Class<T> valueClass, int nodeSize) {
 			return (Queue<T>)queues.computeIfAbsent(name, key -> new Queue<>(this, key, valueClass, nodeSize));
+		}
+
+		@SuppressWarnings("unchecked")
+		public <T extends Bean> CsQueue<T> openCsQueue(String name, Class<T> valueClass, int nodeSize) {
+			if (name.contains("@"))
+				throw new IllegalArgumentException("name contains '@', that is reserved.");
+			return (CsQueue<T>)queues.computeIfAbsent(name, key -> new CsQueue<>(this, key, valueClass, nodeSize));
+		}
+
+		public <T extends Bean> CsQueue<T> openCsQueue(String name, Class<T> valueClass) {
+			return openCsQueue(name, valueClass, 100);
 		}
 	}
 
@@ -293,5 +310,9 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			nodeId = node.getNextNodeId();
 		}
 		return count;
+	}
+
+	BQueue getRoot() {
+		return module._tQueues.getOrAdd(name);
 	}
 }

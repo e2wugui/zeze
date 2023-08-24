@@ -21,6 +21,7 @@ public final class tQueues extends TableX<String, Zeze.Builtin.Collections.Queue
     public static final int VAR_TailNodeId = 2;
     public static final int VAR_Count = 3;
     public static final int VAR_LastNodeId = 4;
+    public static final int VAR_LoadSerialNo = 5;
 
     @Override
     public String decodeKey(ByteBuffer _os_) {

@@ -161,6 +161,7 @@
 					<variable id="2" name="TailNodeId" type="long" />
 					<variable id="3" name="Count" type="long" />
 					<variable id="4" name="LastNodeId" type="long" /> 最近分配过的NodeId, 用于下次分配
+					<variable id="5" name="LoadSerialNo" type="long" /> walk 开始的时候递增
 				</bean>
 				<table name="tQueues" key="string" value="BQueue" /> key: Queue的Name
 

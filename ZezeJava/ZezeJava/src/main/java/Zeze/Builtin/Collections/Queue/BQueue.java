@@ -16,6 +16,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
     private long _TailNodeId;
     private long _Count;
     private long _LastNodeId; // 最近分配过的NodeId, 用于下次分配
+    private long _LoadSerialNo; // walk 开始的时候递增
 
     @Override
     public long getHeadNodeId() {
@@ -97,16 +98,37 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         txn.putLog(new Log__LastNodeId(this, 4, value));
     }
 
+    @Override
+    public long getLoadSerialNo() {
+        if (!isManaged())
+            return _LoadSerialNo;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _LoadSerialNo;
+        var log = (Log__LoadSerialNo)txn.getLog(objectId() + 5);
+        return log != null ? log.value : _LoadSerialNo;
+    }
+
+    public void setLoadSerialNo(long value) {
+        if (!isManaged()) {
+            _LoadSerialNo = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__LoadSerialNo(this, 5, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BQueue() {
     }
 
     @SuppressWarnings("deprecation")
-    public BQueue(long _HeadNodeId_, long _TailNodeId_, long _Count_, long _LastNodeId_) {
+    public BQueue(long _HeadNodeId_, long _TailNodeId_, long _Count_, long _LastNodeId_, long _LoadSerialNo_) {
         _HeadNodeId = _HeadNodeId_;
         _TailNodeId = _TailNodeId_;
         _Count = _Count_;
         _LastNodeId = _LastNodeId_;
+        _LoadSerialNo = _LoadSerialNo_;
     }
 
     @Override
@@ -115,6 +137,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         setTailNodeId(0);
         setCount(0);
         setLastNodeId(0);
+        setLoadSerialNo(0);
         _unknown_ = null;
     }
 
@@ -123,6 +146,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         setTailNodeId(other.getTailNodeId());
         setCount(other.getCount());
         setLastNodeId(other.getLastNodeId());
+        setLoadSerialNo(other.getLoadSerialNo());
         _unknown_ = other._unknown_;
     }
 
@@ -176,6 +200,13 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         public void commit() { ((BQueue)getBelong())._LastNodeId = value; }
     }
 
+    private static final class Log__LoadSerialNo extends Zeze.Transaction.Logs.LogLong {
+        public Log__LoadSerialNo(BQueue bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BQueue)getBelong())._LoadSerialNo = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -190,7 +221,8 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         sb.append(Zeze.Util.Str.indent(level)).append("HeadNodeId=").append(getHeadNodeId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TailNodeId=").append(getTailNodeId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Count=").append(getCount()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LastNodeId=").append(getLastNodeId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LastNodeId=").append(getLastNodeId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LoadSerialNo=").append(getLoadSerialNo()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -251,6 +283,13 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            long _x_ = getLoadSerialNo();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -276,6 +315,10 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
             setLastNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 5) {
+            setLoadSerialNo(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -289,6 +332,8 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         if (getCount() < 0)
             return true;
         if (getLastNodeId() < 0)
+            return true;
+        if (getLoadSerialNo() < 0)
             return true;
         return false;
     }
@@ -306,6 +351,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
                 case 2: _TailNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 3: _Count = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 4: _LastNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 5: _LoadSerialNo = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }
@@ -317,6 +363,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         setTailNodeId(rs.getLong(_parents_name_ + "TailNodeId"));
         setCount(rs.getLong(_parents_name_ + "Count"));
         setLastNodeId(rs.getLong(_parents_name_ + "LastNodeId"));
+        setLoadSerialNo(rs.getLong(_parents_name_ + "LoadSerialNo"));
     }
 
     @Override
@@ -326,6 +373,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         st.appendLong(_parents_name_ + "TailNodeId", getTailNodeId());
         st.appendLong(_parents_name_ + "Count", getCount());
         st.appendLong(_parents_name_ + "LastNodeId", getLastNodeId());
+        st.appendLong(_parents_name_ + "LoadSerialNo", getLoadSerialNo());
     }
 
     @Override
@@ -335,6 +383,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TailNodeId", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Count", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LastNodeId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "LoadSerialNo", "long", "", ""));
         return vars;
     }
 }
