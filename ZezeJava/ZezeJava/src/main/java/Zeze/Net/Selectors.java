@@ -51,7 +51,7 @@ public class Selectors {
 	private final int bbPoolGlobalCapacity;
 	private final int selectTimeout;
 	private final int readBufferSize;
-	private final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池
+	private final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池,需要考虑并发访问
 	private final Lock bbGlobalPoolLock = new ReentrantLock(); // 全局池的锁
 	private volatile @NotNull Selector[] selectorList;
 	private final AtomicLong choiceCount = new AtomicLong();

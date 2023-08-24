@@ -834,16 +834,17 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		} catch (Exception e) {
 			logger.error("SocketChannel.close", e);
 		}
-		try {
-			service.OnSocketDisposed(this);
-		} catch (Exception e) {
-			logger.error("Service.OnSocketDisposed", e);
-		}
-		if (acceptorOrConnector instanceof Acceptor)
-			selector.wakeup(); // Acceptor的socket需要selector在select开始时执行,所以wakeup一下尽早触发下次select
-		if (outputBuffer != null)
-			selector.addTask(outputBuffer::close);
-		if (null != timeThrottle)
+		selector.addTask(() -> { // 进selector线程调用
+			if (outputBuffer != null)
+				outputBuffer.close();
+			try {
+				service.OnSocketDisposed(this);
+			} catch (Exception e) {
+				logger.error("Service.OnSocketDisposed", e);
+			}
+		});
+		selector.wakeup();
+		if (timeThrottle != null)
 			timeThrottle.close();
 	}
 
