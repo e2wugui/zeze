@@ -3,7 +3,7 @@ package Zeze.Net;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.GatheringByteChannel;
 import java.util.ArrayDeque;
 
 // 非线程安全,通常只能在selector线程调用
@@ -32,6 +32,7 @@ public final class OutputBuffer implements Codec, Closeable {
 			tail = null;
 			tailPos = 0;
 		}
+		size = 0;
 	}
 
 	public int getBufferCount() {
@@ -92,7 +93,7 @@ public final class OutputBuffer implements Codec, Closeable {
 		return tail;
 	}
 
-	public long writeTo(SocketChannel channel) throws IOException {
+	public long writeTo(GatheringByteChannel channel) throws IOException {
 		long r;
 		var head = this.head;
 		if (head == null && (head = buffers.pollFirst()) == null) { // head和队列都没有buffer了,只需要输出tail

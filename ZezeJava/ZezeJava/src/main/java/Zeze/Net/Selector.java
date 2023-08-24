@@ -27,7 +27,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	private final @NotNull java.nio.channels.Selector selector;
 	private final @NotNull ByteBuffer readBuffer; // 此线程共享的buffer,只能临时使用
 	private final AtomicInteger wakeupNotified = new AtomicInteger();
-	private final ArrayList<ByteBuffer> bbPool = new ArrayList<>();
+	private final ArrayList<ByteBuffer> bbPool = new ArrayList<>(); // 当前selector的本地池,不会并发
 	private final ConcurrentLinkedQueue<Runnable> taskQueue = new ConcurrentLinkedQueue<>();
 	private long selectCount;
 	private boolean firstAction;
@@ -68,11 +68,11 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		if (n <= 0) {
 			var bbPoolGlobalCapacity = selectors.getBbPoolGlobalCapacity();
 			if (bbPoolGlobalCapacity > 0) {
+				var bbGlobalPool = selectors.getBbGlobalPool();
+				int bbPoolMoveCount = selectors.getBbPoolMoveCount();
 				var bbGlobalPoolLock = selectors.getBbGlobalPoolLock();
 				bbGlobalPoolLock.lock();
 				try {
-					var bbGlobalPool = selectors.getBbGlobalPool();
-					int bbPoolMoveCount = selectors.getBbPoolMoveCount();
 					int gn = bbGlobalPool.size();
 					if (gn >= bbPoolMoveCount) {
 						var bbMoves = bbGlobalPool.subList(gn - bbPoolMoveCount, gn);
@@ -84,8 +84,10 @@ public class Selector extends Thread implements ByteBufferAllocator {
 				}
 				n = bbPool.size();
 			}
+			if (n <= 0)
+				return ByteBuffer.allocateDirect(selectors.getBbPoolBlockSize());
 		}
-		return n > 0 ? bbPool.remove(n - 1) : ByteBuffer.allocateDirect(selectors.getBbPoolBlockSize());
+		return bbPool.remove(n - 1);
 	}
 
 	@Override
@@ -95,22 +97,21 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		int n = bbPool.size();
 		if (n >= bbPoolLocalCapacity + bbPoolMoveCount) { // 可以释放一批
 			var bbPoolGlobalCapacity = selectors.getBbPoolGlobalCapacity();
-			if (bbPoolGlobalCapacity > 0) {
-				var bbGlobalPool = selectors.getBbGlobalPool();
-				var bbMoves = bbPool.subList(n - bbPoolMoveCount, n);
-				var bbGlobalPoolLock = selectors.getBbGlobalPoolLock();
-				bbGlobalPoolLock.lock();
-				try {
-					if (bbGlobalPool.size() < bbPoolGlobalCapacity) // 全局池也放不下就丢弃这次搬移的buffers
-						bbGlobalPool.addAll(bbMoves);
-				} finally {
-					bbGlobalPoolLock.unlock();
-					bbMoves.clear();
-				}
+			if (bbPoolGlobalCapacity <= 0) // 没有全局池就丢弃这个buffer
+				return;
+			var bbGlobalPool = selectors.getBbGlobalPool();
+			var bbMoves = bbPool.subList(n - bbPoolMoveCount, n);
+			var bbGlobalPoolLock = selectors.getBbGlobalPoolLock();
+			bbGlobalPoolLock.lock();
+			try {
+				if (bbGlobalPool.size() < bbPoolGlobalCapacity) // 全局池也放不下就丢弃这次搬移的buffers
+					bbGlobalPool.addAll(bbMoves);
+			} finally {
+				bbGlobalPoolLock.unlock();
+				bbMoves.clear();
 			}
 		}
-		bb.position(0);
-		bb.limit(bb.capacity());
+		bb.clear();
 		bbPool.add(bb);
 	}
 

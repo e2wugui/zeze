@@ -865,7 +865,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		} catch (Exception e) {
 			logger.error("SocketChannel.close", e);
 		}
-		selector.addTask(() -> {
+		selector.addTask(() -> { // 进selector线程调用
 			if (outputBuffer != null)
 				outputBuffer.close();
 			try {
