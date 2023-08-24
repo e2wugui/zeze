@@ -3,6 +3,7 @@ package Zeze.Collections;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.Task;
 
 public class CHashMap<V extends Bean> {
 	private final LinkedMap<V>[] buckets;
@@ -16,7 +17,14 @@ public class CHashMap<V extends Bean> {
 		sizes = new long[concurrencyLevel];
 		for (var i = 0; i < buckets.length; ++i) {
 			buckets[i] = module._open(name + "@" + i, valueClass, nodeSize);
+			var ii = i;
+			Task.call(module.zeze.newProcedure(() -> initSize(ii, buckets[ii]), "initSize"));
 		}
+	}
+
+	private long initSize(int index, LinkedMap<V> bucket) {
+		sizes[index] = bucket.size();
+		return 0;
 	}
 
 	public V get(String key) {
