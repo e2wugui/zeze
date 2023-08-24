@@ -130,19 +130,16 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			return (LinkedMap<T>)linkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, nodeSize));
 		}
 
-		@SuppressWarnings("unchecked")
 		public <T extends Bean> @NotNull LinkedMap<T> open(@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
 			if (name.contains("@"))
 				throw new IllegalArgumentException("name contains '@', that is reserved.");
 			return _open(name, valueClass, nodeSize);
 		}
 
-		@SuppressWarnings("unchecked")
 		public <T extends Bean> @NotNull LinkedMap<T> open(@NotNull String name, @NotNull Class<T> valueClass) {
 			return open(name, valueClass, 100);
 		}
 
-		@SuppressWarnings("unchecked")
 		public <T extends Bean> @NotNull CHashMap<T> openConcurrent(
 				@NotNull String name, @NotNull Class<T> valueClass, int concurrencyLevel) {
 			return openConcurrent(name, valueClass, concurrencyLevel, 100);
