@@ -608,7 +608,12 @@ public class HttpExchange {
 	}
 
 	public void sendFile(@NotNull String filePath) throws Exception {
-		var file = new File(server.fileHome, filePath);
+		var fileHome = server.fileHome;
+		if (fileHome == null) {
+			close(sendPlainText(HttpResponseStatus.FORBIDDEN, null));
+			return;
+		}
+		var file = new File(fileHome.isEmpty() ? "." : fileHome, filePath);
 		if (!file.isFile() || file.isHidden()) {
 			close(send404());
 			return;
