@@ -76,8 +76,6 @@ public class HttpExchange {
 	protected @Nullable HttpRequest request; // 收到完整HTTP header部分会赋值
 	protected @Nullable HttpHandler handler; // 收到完整HTTP header部分会查找对应handler并赋值
 	protected @NotNull ByteBuf content = Unpooled.EMPTY_BUFFER; // 当前收集的HTTP body部分, 只用于非流模式
-	protected int outBufHash; // 用于判断输出buffer是否有变化
-	protected short idleTime; // 当前统计的idle时间(秒)
 	protected boolean willCloseConnection; // true表示close时会关闭连接
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
 	protected @Nullable Object userState;
@@ -188,8 +186,6 @@ public class HttpExchange {
 	}
 
 	void channelRead(Object msg) throws Exception {
-		idleTime = 0;
-
 		if (msg instanceof HttpRequest) {
 			request = ReferenceCountUtil.retain((HttpRequest)msg);
 			var path = path();
@@ -481,25 +477,6 @@ public class HttpExchange {
 		}
 	}
 
-	protected void checkTimeout() {
-		// 这里为了减小开销, 先只判断读超时
-		if ((idleTime += server.checkIdleInterval) < server.readIdleTimeout)
-			return;
-		// 判断写超时前判断写buffer的状态是否有变化,有变化则重新idle计时
-		var outBuf = context.channel().unsafe().outboundBuffer();
-		if (outBuf != null) {
-			int hash = System.identityHashCode(outBuf.current()) ^ Long.hashCode(outBuf.currentProgress());
-			if (hash != outBufHash) {
-				outBufHash = hash;
-				idleTime = 0;
-				return;
-			}
-		}
-		// 读写都超时了,那就主动关闭吧
-		if (idleTime >= server.writeIdleTimeout)
-			close(CLOSE_TIMEOUT, null);
-	}
-
 	void channelReadClosed() {
 		willCloseConnection = true;
 	}
@@ -532,17 +509,19 @@ public class HttpExchange {
 	void close(int method, @Nullable ChannelFuture cf) {
 		if ((int)detachedHandle.getAndSet(this, 2) == 2)
 			return;
-		server.exchanges.remove(context.channel().id(), this); // 尝试删除,避免继续接收当前请求的消息
+		var ch = context.channel();
+		server.exchanges.remove(ch.id(), this); // 尝试删除,避免继续接收当前请求的消息
 		if (method != CLOSE_FINISH) {
 			willCloseConnection = true;
-			Netty.logger.info("close({}): {}", method, context.channel().remoteAddress());
+			if (method == CLOSE_ON_FLUSH)
+				Netty.logger.info("closeOnFlush: {}", ch.remoteAddress());
 		}
 		if (method <= CLOSE_ON_FLUSH) { // CLOSE_FINISH | CLOSE_ON_FLUSH
 			if (cf == null)
 				cf = context.writeAndFlush(Unpooled.EMPTY_BUFFER);
 			cf.addListener(__ -> closeInEventLoop());
 		} else {
-			var eventLoop = context.channel().eventLoop();
+			var eventLoop = ch.eventLoop();
 			if (eventLoop.inEventLoop()) {
 				context.flush();
 				closeInEventLoop();

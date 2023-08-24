@@ -218,7 +218,10 @@ public class TestNettyHttpServer {
 		// ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
 
 		// 运行，用浏览器访问 127.0.0.1/hello;127.0.0.1/exp;127.0.0.1/404
-		try (var netty = new Netty(); var http = new HttpServer()) {
+		try (var netty = new Netty(); var http = new HttpServer(null, "", 600)) {
+			http.setCheckIdleInterval(1);
+			http.setReadIdleTimeout(1);
+			http.setWriteIdleTimeout(2);
 			http.addHandler("/hello", // 显示一个文本结果。
 					8192, TransactionLevel.Serializable, DispatchMode.Direct,
 					(x) -> {
