@@ -145,6 +145,11 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			return openConcurrent(name, valueClass, 128, 100);
 		}
 
+		public <T extends Bean> @NotNull CHashMap<T> openConcurrent(
+				@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
+			return openConcurrent(name, valueClass, 128, nodeSize);
+		}
+
 		@SuppressWarnings("unchecked")
 		private <T extends Bean> @NotNull CHashMap<T> openConcurrent(
 				@NotNull String name, @NotNull Class<T> valueClass, int concurrencyLevel, int nodeSize) {
