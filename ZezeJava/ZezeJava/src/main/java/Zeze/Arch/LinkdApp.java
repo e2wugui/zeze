@@ -80,7 +80,8 @@ public class LinkdApp {
 
 		this.commandConsoleService = new CommandConsoleService("Zeze.Arch.CommandConsole", zeze.getConfig());
 
-		Task.scheduleUnsafe(PropertiesHelper.getInt("KeepAliveCheckPeriod", 5000), this::keepAliveCheckTimer);
+		var checkPeriod = PropertiesHelper.getInt("KeepAliveCheckPeriod", 5000);
+		Task.scheduleUnsafe(checkPeriod, checkPeriod, this::keepAliveCheckTimer);
 	}
 
 	private void keepAliveCheckTimer() throws Exception {
