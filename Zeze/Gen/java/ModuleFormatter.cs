@@ -328,8 +328,8 @@ namespace Zeze.Gen.java
                 {
                     if (project.Hot && module.Hot)
                     {
-                        if (table.IsMemory) // 暂时禁掉。这是模块状态的一部分了，需要 upgrade 支持。
-                            throw new Exception("hot module can not use memory table.");
+                        //if (table.IsMemory) // 暂时禁掉。这是模块状态的一部分了，需要 upgrade 支持。【已经允许了】
+                        //    throw new Exception("hot module can not use memory table.");
 
                         sw.WriteLine($"        {zezeVar}.replaceTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
                     }

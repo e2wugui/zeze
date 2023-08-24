@@ -702,9 +702,15 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	// Key 都是简单变量，系列化方法都不一样，需要生成。
 	public abstract @NotNull ByteBuffer encodeKey(@NotNull K key);
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public @NotNull ByteBuffer encodeKey(@NotNull Object key) {
 		return encodeKey((K)key);
+	}
+
+	@Override
+	public Object decodeKeyToObject(@NotNull ByteBuffer bb) {
+		return decodeKey(bb);
 	}
 
 	public abstract @NotNull K decodeKey(@NotNull ByteBuffer bb);
@@ -891,7 +897,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	public void __direct_put_cache__(Object key, Bean value) {
-		cache.
+		@SuppressWarnings("unchecked")
+		var kk = (K)key;
+		var r = cache.getOrAdd(kk, () -> new Record1<>(this, kk, null));
+		r.setSoftValue(value);
+		r.setTimestamp(Record.getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
+		r.setDirty(); // 这个目前仅由内存表使用，本来不需要调用这个。
 	}
 
 	/**

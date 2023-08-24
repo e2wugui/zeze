@@ -295,15 +295,19 @@ public final class Application {
 		var db = getDatabase(dbName);
 		var exist = tables.put(table.getId(), table);
 		if (null != exist) {
+			// 1. exist.isMemory() || table.isMemory()
+			// 内存表配置发生改变，不会继承数据。【需要再次确认一下能不能重用这个处理流程，大概可以。】
+			// 2. !exist.isMemory() && !table.isMemory()
+			// 都是持久表，不需要继承数据。这个open跟第一次启动不一样，有一些状态从旧表得到。
+			// 3. exist.isMemory() && table.isMemory()
+			// 也需要走这个初始化。【需要再次确认一下。】
+			table.open(exist, this);
+
 			if (exist.isMemory() && table.isMemory()) {
 				// 内存表特殊处理。
 				hotUpgradeMemoryTables.add(new HotUpgradeMemoryTable(exist, table));
+				// exist.disable() 在升级之后调用。
 			} else {
-				// 1. exist.isMemory() || table.isMemory()
-				// 内存表配置发生改变，不会继承数据。【需要再次确认一下能不能重用这个处理流程，大概可以。】
-				// 2. !exist.isMemory() && !table.isMemory()
-				// 都是持久表，不需要继承数据。这个open跟第一次启动不一样，有一些状态从旧表得到。
-				table.open(exist, this);
 				// 旧表禁用。防止应用保留了旧表引用，还去使用导致错误。
 				exist.disable();
 			}

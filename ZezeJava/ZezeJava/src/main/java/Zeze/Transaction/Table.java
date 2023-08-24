@@ -132,4 +132,8 @@ public abstract class Table {
 	public abstract DatabaseRocksDb.Table getLocalRocksCacheTable();
 	public abstract long walkMemoryAny(TableWalkHandle<Object, Bean> handle);
 	public abstract void __direct_put_cache__(Object key, Bean value);
+
+	public abstract @NotNull ByteBuffer encodeKey(@NotNull Object key);
+
+	public abstract @NotNull Object decodeKeyToObject(@NotNull ByteBuffer bb);
 }
