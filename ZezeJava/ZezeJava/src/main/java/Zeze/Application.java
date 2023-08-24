@@ -292,8 +292,8 @@ public final class Application {
 	public @NotNull Database replaceTable(@NotNull String dbName, @NotNull Table table) {
 		replaceTableRecent.add(table);
 		TableKey.tables.put(table.getId(), table.getName()); // always put
-		var db = getDatabase(dbName);
 		var exist = tables.put(table.getId(), table);
+		var db = getDatabase(dbName);
 		if (null != exist) {
 			// 1. exist.isMemory() || table.isMemory()
 			// 内存表配置发生改变，不会继承数据。【需要再次确认一下能不能重用这个处理流程，大概可以。】
@@ -313,7 +313,8 @@ public final class Application {
 			}
 		} else if (isStart()) {
 			// new table
-			table.open(this, db, null);
+			var storage = table.open(this, db, null);
+			db.__add_storage__(storage);
 		}
 		tableNameMap.put(table.getName(), table); // always put, 操作在tables阶段完成。
 		db.replaceTable(table);

@@ -49,11 +49,25 @@ public abstract class Database {
 		databaseUrl = conf.getDatabaseUrl();
 	}
 
+	public void __add_storage__(Storage<?, ?> storage) {
+		if (null != storage)
+			storages.add(storage);
+	}
+
 	void replaceStorage(Storage<?, ?> exist, Storage<?, ?> replace) {
-		for (var i = 0; i < storages.size(); ++i) {
-			if (storages.get(i) == exist) {
-				storages.set(i, replace);
-				break;
+		if (null == replace) {
+			for (var i = 0; i < storages.size(); ++i) {
+				if (storages.get(i) == exist) {
+					storages.remove(i);
+					break;
+				}
+			}
+		} else {
+			for (var i = 0; i < storages.size(); ++i) {
+				if (storages.get(i) == exist) {
+					storages.set(i, replace);
+					break;
+				}
 			}
 		}
 	}
