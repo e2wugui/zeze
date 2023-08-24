@@ -75,7 +75,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	public static class Module extends AbstractLinkedMap {
-		private final ConcurrentHashMap<String, LinkedMap<?>> linkedMaps = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, Object> linkedMaps = new ConcurrentHashMap<>();
 		public final @NotNull Zeze.Application zeze;
 		public static final String eClearJobHandleName = "Zeze.Collections.LinkedMap.Clear";
 
@@ -124,13 +124,42 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		}
 
 		@SuppressWarnings("unchecked")
-		public <T extends Bean> @NotNull LinkedMap<T> open(@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
+		<T extends Bean> @NotNull LinkedMap<T> _open(@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
+			if (nodeSize < 1)
+				throw new IllegalArgumentException("nodeSize < 1");
 			return (LinkedMap<T>)linkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, nodeSize));
 		}
 
 		@SuppressWarnings("unchecked")
+		public <T extends Bean> @NotNull LinkedMap<T> open(@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
+			if (name.contains("@"))
+				throw new IllegalArgumentException("name contains '@', that is reserved.");
+			return _open(name, valueClass, nodeSize);
+		}
+
+		@SuppressWarnings("unchecked")
 		public <T extends Bean> @NotNull LinkedMap<T> open(@NotNull String name, @NotNull Class<T> valueClass) {
-			return (LinkedMap<T>)linkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, 100));
+			return open(name, valueClass, 100);
+		}
+
+		@SuppressWarnings("unchecked")
+		public <T extends Bean> @NotNull CHashMap<T> openConcurrent(
+				@NotNull String name, @NotNull Class<T> valueClass, int concurrencyLevel) {
+			return openConcurrent(name, valueClass, concurrencyLevel, 100);
+		}
+
+		@SuppressWarnings("unchecked")
+		public <T extends Bean> @NotNull CHashMap<T> openConcurrent(
+				@NotNull String name, @NotNull Class<T> valueClass, int concurrencyLevel, int nodeSize) {
+			// todo concurrencyLevel 应该持久化？因为现在写法，本进程访问会忽略后续不一样的concurrencyLevel，
+			//  但是多进程，没有保护到，会出错。
+			//  但是如果concurrencyLevel持久化，要不要提供修改它的能力？
+			//  题外话，LinkedMap的nodeSize是可以随时改的，它只影响新的node的大小，node大小不一样是可以的。
+			if (name.contains("@"))
+				throw new IllegalArgumentException("name contains '@', that is reserved.");
+			// CHashMap和LinkedMap共享一个名字空间，并且CHashMap内部还会创建一批LinkedMap。
+			return (CHashMap<T>)linkedMaps.computeIfAbsent(name,
+					k -> new CHashMap<>(this, k, valueClass, concurrencyLevel, nodeSize));
 		}
 
 		public final ConcurrentHashMap<String, ChangeListener> NodeListeners = new ConcurrentHashMap<>();
