@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import Zeze.Util.Task;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
@@ -24,18 +25,20 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Netty implements Closeable {
-	static final Logger logger = LogManager.getLogger(Netty.class);
-	private static final ZoneId zoneId = ZoneId.of("GMT");
+	static final @NotNull Logger logger = LogManager.getLogger(Netty.class);
+	private static final @NotNull ZoneId zoneId = ZoneId.of("GMT");
 	private static long lastSecond;
 	private static String lastDateStr;
-	private static final Class<? extends ServerChannel> serverChannelClass =
+	private static final @NotNull Class<? extends ServerChannel> serverChannelClass =
 			Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class;
 
-	private final EventLoopGroup eventLoopGroup;
+	private final @NotNull EventLoopGroup eventLoopGroup;
 
-	public static String getDate() {
+	public static @NotNull String getDate() {
 		var timestamp = System.currentTimeMillis();
 		var second = timestamp / 1000;
 		if (second == lastSecond)
@@ -47,16 +50,16 @@ public class Netty implements Closeable {
 		return dateStr;
 	}
 
-	public static String getDate(long epochSecond) {
+	public static @NotNull String getDate(long epochSecond) {
 		return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
 				LocalDateTime.ofEpochSecond(epochSecond, 0, ZoneOffset.UTC), zoneId));
 	}
 
-	public static long parseDate(String dateStr) {
+	public static long parseDate(@NotNull String dateStr) {
 		return LocalDateTime.parse(dateStr, DateTimeFormatter.RFC_1123_DATE_TIME).toEpochSecond(ZoneOffset.UTC);
 	}
 
-	public static HttpHeaders setDate(HttpHeaders headers) {
+	public static @NotNull HttpHeaders setDate(@NotNull HttpHeaders headers) {
 		headers.set(HttpHeaderNames.DATE, getDate());
 		return headers;
 	}
@@ -76,28 +79,38 @@ public class Netty implements Closeable {
 				: new NioEventLoopGroup(nThreads, threadFactory);
 	}
 
-	public EventLoopGroup getEventLoopGroup() {
+	public @NotNull EventLoopGroup getEventLoopGroup() {
 		return eventLoopGroup;
 	}
 
+	public @NotNull ChannelFuture startServer(@NotNull ChannelHandler handler, int port) {
+		return startServer(handler, null, port);
+	}
+
 	// 各种选项可配置。ServerBootstrapConfig?
-	public ChannelFuture startServer(ChannelHandler handler, int port) {
+	public @NotNull ChannelFuture startServer(@NotNull ChannelHandler handler, @Nullable String host, int port) {
 		var b = new ServerBootstrap();
 		if (eventLoopGroup instanceof EpollEventLoopGroup)
 			b.option(EpollChannelOption.SO_REUSEPORT, true);
-		var future = b.group(eventLoopGroup)
+		var bs = b.group(eventLoopGroup)
 				.option(ChannelOption.SO_BACKLOG, 8192)
 				.option(ChannelOption.SO_REUSEADDR, true)
 				.childOption(ChannelOption.SO_REUSEADDR, true)
 				.childOption(ChannelOption.ALLOW_HALF_CLOSURE, true)
 				.channel(serverChannelClass)
-				.childHandler(handler)
-				.bind(port);
-		logger.info("startServer {} on port {}", handler.getClass().getName(), port);
+				.childHandler(handler);
+		ChannelFuture future;
+		if (host != null) {
+			future = bs.bind(host, port);
+			logger.info("startServer {} on {}:{}", handler.getClass().getName(), host, port);
+		} else {
+			future = bs.bind(port);
+			logger.info("startServer {} on any:{}", handler.getClass().getName(), port);
+		}
 		return future;
 	}
 
-	public Future<?> closeAsync() {
+	public @NotNull Future<?> closeAsync() {
 		return eventLoopGroup.shutdownGracefully();
 	}
 
@@ -106,7 +119,7 @@ public class Netty implements Closeable {
 		try {
 			closeAsync().sync();
 		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
 	}
 }

@@ -2,18 +2,21 @@ package Zeze.Netty;
 
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class HttpHandler {
 	public final int MaxContentLength; // HTTP body的长度限制, 只用于非流模式
-	public final TransactionLevel Level; // 事务级别
-	public final DispatchMode Mode; // 线程派发模式
-	public final HttpBeginStreamHandle BeginStreamHandle; // 上行流处理函数。
-	public final HttpStreamContentHandle StreamContentHandle;
-	public final HttpEndStreamHandle EndStreamHandle; // 也用于普通请求处理函数，不是流处理方式时，如果需要内部会自动把流合并到一个请求里面。
-	public final HttpWebSocketHandle WebSocketHandle;
+	public final @NotNull TransactionLevel Level; // 事务级别
+	public final @NotNull DispatchMode Mode; // 线程派发模式
+	public final @Nullable HttpBeginStreamHandle BeginStreamHandle; // 上行流处理函数。
+	public final @Nullable HttpStreamContentHandle StreamContentHandle;
+	public final @Nullable HttpEndStreamHandle EndStreamHandle; // 也用于普通请求处理函数，不是流处理方式时，如果需要内部会自动把流合并到一个请求里面。
+	public final @Nullable HttpWebSocketHandle WebSocketHandle;
 
-	public HttpHandler(int maxContentLength, TransactionLevel level, DispatchMode mode,
-					   HttpEndStreamHandle fullHandle) {
+	public HttpHandler(int maxContentLength, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
+					   @NotNull HttpEndStreamHandle fullHandle) {
+		//noinspection ConstantValue
 		if (fullHandle == null)
 			throw new IllegalArgumentException("fullHandle is null");
 		MaxContentLength = maxContentLength >= 0 ? maxContentLength : Integer.MAX_VALUE;
@@ -25,10 +28,13 @@ public class HttpHandler {
 		WebSocketHandle = null;
 	}
 
-	public HttpHandler(TransactionLevel level, DispatchMode mode, HttpBeginStreamHandle beginStream,
-					   HttpStreamContentHandle streamContent, HttpEndStreamHandle endStream) {
+	public HttpHandler(@Nullable TransactionLevel level, @Nullable DispatchMode mode,
+					   @NotNull HttpBeginStreamHandle beginStream, @Nullable HttpStreamContentHandle streamContent,
+					   @NotNull HttpEndStreamHandle endStream) {
+		//noinspection ConstantValue
 		if (beginStream == null)
 			throw new IllegalArgumentException("beginStream is null");
+		//noinspection ConstantValue
 		if (endStream == null)
 			throw new IllegalArgumentException("endStream is null");
 		MaxContentLength = Integer.MAX_VALUE;
@@ -40,7 +46,9 @@ public class HttpHandler {
 		WebSocketHandle = null;
 	}
 
-	public HttpHandler(TransactionLevel level, DispatchMode mode, HttpWebSocketHandle webSocketHandle) {
+	public HttpHandler(@Nullable TransactionLevel level, @Nullable DispatchMode mode,
+					   @NotNull HttpWebSocketHandle webSocketHandle) {
+		//noinspection ConstantValue
 		if (webSocketHandle == null)
 			throw new IllegalArgumentException("webSocketHandle is null");
 		MaxContentLength = Integer.MAX_VALUE;
