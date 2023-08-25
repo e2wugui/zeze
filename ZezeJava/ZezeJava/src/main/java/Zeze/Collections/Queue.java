@@ -150,7 +150,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 
 		root.setHeadNodeId(head.getNextNodeId());
 		root.setCount(root.getCount() - head.getValues().size());
-		module._tQueueNodes.delayRemove(nodeKey);
+		module._tQueueNodes.remove(nodeKey);
 		return head;
 	}
 
@@ -294,20 +294,25 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	@SuppressWarnings("unchecked")
 	public long walk(TableWalkHandle<Long, V> func) {
 		long count = 0L;
-		var root = module._tQueues.selectDirty(name);
-		if (null == root)
-			return count;
-		var nodeId = root.getHeadNodeId();
-		while (nodeId != 0) {
-			var node = module._tQueueNodes.selectDirty(new BQueueNodeKey(name, nodeId));
-			if (null == node)
+		while (true) {
+			var root = module._tQueues.selectDirty(name);
+			if (null == root)
 				return count;
-			for (var value : node.getValues()) {
-				++count;
-				if (!func.handle(nodeId, (V)value.getValue().getBean()))
-					return count;
+			var nodeId = root.getHeadNodeId();
+			while (nodeId != 0) {
+				var node = module._tQueueNodes.selectDirty(new BQueueNodeKey(name, nodeId));
+				if (null == node)
+					break; // concurrent node remove, restart walk.
+				for (var value : node.getValues()) {
+					++count;
+					if (!func.handle(nodeId, (V)value.getValue().getBean()))
+						return count;
+				}
+				nodeId = node.getNextNodeId();
 			}
-			nodeId = node.getNextNodeId();
+			if (nodeId == 0)
+				break; // tail
+			// concurrent node remove, restart walk.
 		}
 		return count;
 	}
