@@ -56,6 +56,7 @@ public final class DumpRocksDb {
 			System.err.println("         -compact1      compact level-0 files to level-1");
 			System.err.println("         -key=long      decode key as long");
 			System.err.println("              string    decode key as string");
+			System.err.println("              nstring   decode key as len-prefix string");
 			System.err.println("              bean      decode key as bean");
 			System.err.println("         -value=bean    decode value as bean");
 			System.err.println("                raftLog decode value as raft logs for global server");
@@ -192,6 +193,9 @@ public final class DumpRocksDb {
 		case "string":
 			keyDumper = DumpRocksDb::dumpString;
 			break;
+		case "nstring":
+			keyDumper = DumpRocksDb::dumpNString;
+			break;
 		case "bean":
 			keyDumper = DumpRocksDb::dumpBean;
 			break;
@@ -248,6 +252,12 @@ public final class DumpRocksDb {
 	private static void dumpString(OutputStream os, ByteBuffer bb) throws IOException {
 		os.write('"');
 		dumpString(os, bb.Bytes);
+		os.write('"');
+	}
+
+	private static void dumpNString(OutputStream os, ByteBuffer bb) throws IOException {
+		os.write('"');
+		dumpString(os, bb.ReadBytes());
 		os.write('"');
 	}
 
