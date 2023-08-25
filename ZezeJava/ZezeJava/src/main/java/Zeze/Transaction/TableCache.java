@@ -206,19 +206,23 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	// under lockey.writeLock and record.fairLock
-	private void remove(Map.Entry<K, Record1<K, V>> p) {
-		if (dataMap.remove(p.getKey(), p.getValue())) {
+	void remove(K k, Record1<K, V> r) {
+		if (dataMap.remove(k, r)) {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 			// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
 			// see GetOrAdd
-			p.getValue().setState(StateRemoved);
+			r.setState(StateRemoved);
 			// 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
-			var oldNode = p.getValue().getLruNode();
+			var oldNode = r.getLruNode();
 			if (oldNode != null)
-				oldNode.remove(p.getKey(), p.getValue());
-			table.rocksCacheRemove(p.getKey());
+				oldNode.remove(k, r);
+			table.rocksCacheRemove(k);
 		} else
-			p.getValue().setState(StateRemoved); // 也确保已删除状态
+			r.setState(StateRemoved); // 也确保已删除状态
+	}
+
+	private void remove(Map.Entry<K, Record1<K, V>> p) {
+		remove(p.getKey(), p.getValue());
 	}
 
 	private boolean tryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V>> p) {

@@ -191,74 +191,81 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (txn == null || txn.isCompleted())
 						throw new GoBackZeze("Acquire Failed: " + tkey + ':' + r);
 					txn.throwRedoAndReleaseLock(tkey + ":" + r, null);
+					// never run here
 				}
-				verifyGlobalRecordState(key, r.getState() == StateModify);
+				try {
+					verifyGlobalRecordState(key, r.getState() == StateModify);
 
-				r.setTimestamp(Record.getNextTimestamp());
-				r.setFreshAcquire();
-				var beforeTimestamp = r.getTimestamp();
+					r.setTimestamp(Record.getNextTimestamp());
+					r.setFreshAcquire();
+					var beforeTimestamp = r.getTimestamp();
 
-				var storage = this.storage;
-				if (storage != null) {
-					if (Macro.enableStatistics) {
-						TableStatistics.getInstance().getOrAdd(getId()).getStorageFindCount().increment();
-					}
-					strongRef = storage.getDatabaseTable().find(this, key);
-					if (strongRef != null) {
-						rocksCachePut(key, strongRef);
-					} else {
-						rocksCacheRemove(key);
-					}
-					r.setSoftValue(strongRef); // r.Value still maybe null
-					// 【注意】这个变量不管 OldTable 中是否存在的情况。
-					r.setExistInBackDatabase(strongRef != null);
+					var storage = this.storage;
+					if (storage != null) {
+						if (Macro.enableStatistics) {
+							TableStatistics.getInstance().getOrAdd(getId()).getStorageFindCount().increment();
+						}
+						strongRef = storage.getDatabaseTable().find(this, key);
+						if (strongRef != null) {
+							rocksCachePut(key, strongRef);
+						} else {
+							rocksCacheRemove(key);
+						}
+						r.setSoftValue(strongRef); // r.Value still maybe null
+						// 【注意】这个变量不管 OldTable 中是否存在的情况。
+						r.setExistInBackDatabase(strongRef != null);
 
-					// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
-					// see Record1.Flush
-					if (strongRef == null && null != oldTable) {
-						var old = oldTable.find(this, key);
-						if (old != null) {
-							strongRef = old;
-							r.setSoftValue(strongRef);
-							// 从旧表装载时，马上设为脏，使得可以写入新表。
-							// 否则直到被修改前，都不会被保存到当前数据库中。
-							r.setDirty();
-							// Immediately 需要特别在此单独处理。
-							if (getZeze().getConfig().getCheckpointMode() == CheckpointMode.Immediately) {
-								var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
-								//noinspection DataFlowIssue
-								var t = oldTable.getDatabase().beginTransaction();
-								try {
-									oldTable.replace(t, key, old);
-									localRocksCacheTable.replace(lct, key, old);
-									lct.commit();
-									t.commit();
-								} catch (Throwable ex) { // logger.error
-									logger.error("", ex);
-									// rollback.
-									lct.rollback();
-									t.rollback();
-								} finally {
+						// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
+						// see Record1.Flush
+						if (strongRef == null && null != oldTable) {
+							var old = oldTable.find(this, key);
+							if (old != null) {
+								strongRef = old;
+								r.setSoftValue(strongRef);
+								// 从旧表装载时，马上设为脏，使得可以写入新表。
+								// 否则直到被修改前，都不会被保存到当前数据库中。
+								r.setDirty();
+								// Immediately 需要特别在此单独处理。
+								if (getZeze().getConfig().getCheckpointMode() == CheckpointMode.Immediately) {
+									var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
+									//noinspection DataFlowIssue
+									var t = oldTable.getDatabase().beginTransaction();
 									try {
-										lct.close();
-									} catch (Exception e) {
-										logger.error("", e);
-									}
-									try {
-										t.close();
-									} catch (Exception e) {
-										logger.error("", e);
+										oldTable.replace(t, key, old);
+										localRocksCacheTable.replace(lct, key, old);
+										lct.commit();
+										t.commit();
+									} catch (Throwable ex) { // logger.error
+										logger.error("", ex);
+										// rollback.
+										lct.rollback();
+										t.rollback();
+									} finally {
+										try {
+											lct.close();
+										} catch (Exception e) {
+											logger.error("", e);
+										}
+										try {
+											t.close();
+										} catch (Exception e) {
+											logger.error("", e);
+										}
 									}
 								}
 							}
 						}
+						if (strongRef != null)
+							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 					}
-					if (strongRef != null)
-						strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
+					if (isTraceEnabled)
+						logger.trace("Load {}", r);
+					return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
+				} catch (Throwable e) { // rethrow
+					if (!r.getDirty())
+						cache.remove(key, r); // 异常情况就从缓存中移除非dirty的记录,避免下次访问得到不正常的记录
+					throw e;
 				}
-				if (isTraceEnabled)
-					logger.trace("Load {}", r);
-				return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
 			} finally {
 				r.exitFairLock();
 			}
