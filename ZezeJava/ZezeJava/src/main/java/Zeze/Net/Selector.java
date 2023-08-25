@@ -84,8 +84,15 @@ public class Selector extends Thread implements ByteBufferAllocator {
 				}
 				n = bbPool.size();
 			}
-			if (n <= 0)
-				return ByteBuffer.allocateDirect(selectors.getBbPoolBlockSize());
+			if (n <= 0) {
+				int blockSize = selectors.getBbPoolBlockSize();
+				try {
+					return ByteBuffer.allocateDirect(blockSize);
+				} catch (Throwable e) { // logger.warn
+					logger.warn("allocateDirect failed, retry without direct", e);
+					return ByteBuffer.allocate(blockSize);
+				}
+			}
 		}
 		return bbPool.remove(n - 1);
 	}
