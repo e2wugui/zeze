@@ -11,15 +11,16 @@ import Zeze.Serialize.ByteBuffer;
 				单向链表原来只发生在自己的Queue内，使用long NodeId指向下一个节点，查询节点时候总是使用自己的Queue.Name和NodeId构造BQueueNodeKey。
 				现在为了支持在Queue之间splice，需要使用BQueueNodeKey来指示下一个节点。
 				为了兼容旧数据，原来的long类型的变量不能删除，新版需要发现是旧版数据，然后读取并构造出新的BQueueNodeKey。
-				Root(BQueue)兼容旧数据规则：
+				1. Root(BQueue)兼容旧数据规则：
 				if (Root.HeadNodeKey.Name.isEmpty()) {
 					Root.HeadNodeKey = new BQueueNodeKey(ThisQueue.Name, Root.HeadNodeId);
 					Root.TailNodeKey = new BQueueNodeKey(ThisQueue.Name, Root.TailNodeId);
 				}
-				Node(BQueueNode) 兼容旧数据规则：
+				2. Node(BQueueNode) 兼容旧数据规则：
 				if (Node.NextNodeKey.Name.isEmpty()) {
 					Node.NextNodeKey = new BQueueNodeKey(ThisNode.NodeKey.Name, Node.NextNodeId);
 				}
+				3. Splice两个Queue时，指向另一个Queue的NodeKey需要先处理好，即已经是新版的结构。现在的代码刚好符合。
 */
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnly {

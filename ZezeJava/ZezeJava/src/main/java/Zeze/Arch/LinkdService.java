@@ -202,6 +202,7 @@ public class LinkdService extends HandshakeServer {
 		var linkSession = getAuthedSession(so);
 		if (linkSession == null)
 			return;
+		linkSession.keepAlive(this);
 		var dispatch = createDispatch(linkSession, so, moduleId, protocolId, data);
 		if (findSend(linkSession, moduleId, dispatch))
 			return;
