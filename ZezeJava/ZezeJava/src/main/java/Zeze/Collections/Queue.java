@@ -297,7 +297,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		while (true) {
 			var root = module._tQueues.selectDirty(name);
 			if (null == root)
-				return count;
+				return count; // error break
 			var nodeId = root.getHeadNodeId();
 			while (nodeId != 0) {
 				var node = module._tQueueNodes.selectDirty(new BQueueNodeKey(name, nodeId));
@@ -306,15 +306,14 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 				for (var value : node.getValues()) {
 					++count;
 					if (!func.handle(nodeId, (V)value.getValue().getBean()))
-						return count;
+						return count; // user break
 				}
 				nodeId = node.getNextNodeId();
 			}
 			if (nodeId == 0)
-				break; // tail
+				return count; // tail
 			// concurrent node remove, restart walk.
 		}
-		return count;
 	}
 
 	BQueue getRoot() {
