@@ -7,16 +7,31 @@ import Zeze.Serialize.ByteBuffer;
 				1. 单向链表。2. Value没有索引。3. 每个Value记录加入的时间。4. 只能从Head提取，从Tail添加。5. 用作Stack时也可以从Head添加。
 				链表结构: (NewStackNode -＞) Head -＞ ... -＞ Tail (-＞ NewQueueNode)。
 				第一个用户是Table.GC，延迟删除记录。
+				【兼容】
+				单向链表原来只发生在自己的Queue内，使用long NodeId指向下一个节点，查询节点时候总是使用自己的Queue.Name和NodeId构造BQueueNodeKey。
+				现在为了支持在Queue之间splice，需要使用BQueueNodeKey来指示下一个节点。
+				为了兼容旧数据，原来的long类型的变量不能删除，新版需要发现是旧版数据，然后读取并构造出新的BQueueNodeKey。
+				Root(BQueue)兼容旧数据规则：
+				if (Root.HeadNodeKey.Name.isEmpty()) {
+					Root.HeadNodeKey = new BQueueNodeKey(ThisQueue.Name, Root.HeadNodeId);
+					Root.TailNodeKey = new BQueueNodeKey(ThisQueue.Name, Root.TailNodeId);
+				}
+				Node(BQueueNode) 兼容旧数据规则：
+				if (Node.NextNodeKey.Name.isEmpty()) {
+					Node.NextNodeKey = new BQueueNodeKey(ThisNode.NodeKey.Name, Node.NextNodeId);
+				}
 */
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnly {
     public static final long TYPEID = -4684745065046332255L;
 
-    private long _HeadNodeId;
-    private long _TailNodeId;
+    private long _HeadNodeId; // 废弃，新的遍历寻找使用HeadNodeKey，【但是不能删，兼容需要读取】
+    private long _TailNodeId; // 废弃，新的遍历寻找使用TailNodeKey，【但是不能删，兼容需要读取】
     private long _Count;
     private long _LastNodeId; // 最近分配过的NodeId, 用于下次分配
     private long _LoadSerialNo; // walk 开始的时候递增
+    private Zeze.Builtin.Collections.Queue.BQueueNodeKey _HeadNodeKey;
+    private Zeze.Builtin.Collections.Queue.BQueueNodeKey _TailNodeKey;
 
     @Override
     public long getHeadNodeId() {
@@ -118,17 +133,69 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         txn.putLog(new Log__LoadSerialNo(this, 5, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BQueue() {
+    @Override
+    public Zeze.Builtin.Collections.Queue.BQueueNodeKey getHeadNodeKey() {
+        if (!isManaged())
+            return _HeadNodeKey;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _HeadNodeKey;
+        var log = (Log__HeadNodeKey)txn.getLog(objectId() + 6);
+        return log != null ? log.value : _HeadNodeKey;
+    }
+
+    public void setHeadNodeKey(Zeze.Builtin.Collections.Queue.BQueueNodeKey value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _HeadNodeKey = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__HeadNodeKey(this, 6, value));
+    }
+
+    @Override
+    public Zeze.Builtin.Collections.Queue.BQueueNodeKey getTailNodeKey() {
+        if (!isManaged())
+            return _TailNodeKey;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _TailNodeKey;
+        var log = (Log__TailNodeKey)txn.getLog(objectId() + 7);
+        return log != null ? log.value : _TailNodeKey;
+    }
+
+    public void setTailNodeKey(Zeze.Builtin.Collections.Queue.BQueueNodeKey value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _TailNodeKey = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__TailNodeKey(this, 7, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BQueue(long _HeadNodeId_, long _TailNodeId_, long _Count_, long _LastNodeId_, long _LoadSerialNo_) {
+    public BQueue() {
+        _HeadNodeKey = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
+        _TailNodeKey = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
+    }
+
+    @SuppressWarnings("deprecation")
+    public BQueue(long _HeadNodeId_, long _TailNodeId_, long _Count_, long _LastNodeId_, long _LoadSerialNo_, Zeze.Builtin.Collections.Queue.BQueueNodeKey _HeadNodeKey_, Zeze.Builtin.Collections.Queue.BQueueNodeKey _TailNodeKey_) {
         _HeadNodeId = _HeadNodeId_;
         _TailNodeId = _TailNodeId_;
         _Count = _Count_;
         _LastNodeId = _LastNodeId_;
         _LoadSerialNo = _LoadSerialNo_;
+        if (_HeadNodeKey_ == null)
+            _HeadNodeKey_ = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
+        _HeadNodeKey = _HeadNodeKey_;
+        if (_TailNodeKey_ == null)
+            _TailNodeKey_ = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
+        _TailNodeKey = _TailNodeKey_;
     }
 
     @Override
@@ -138,6 +205,8 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         setCount(0);
         setLastNodeId(0);
         setLoadSerialNo(0);
+        setHeadNodeKey(new Zeze.Builtin.Collections.Queue.BQueueNodeKey());
+        setTailNodeKey(new Zeze.Builtin.Collections.Queue.BQueueNodeKey());
         _unknown_ = null;
     }
 
@@ -147,6 +216,8 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         setCount(other.getCount());
         setLastNodeId(other.getLastNodeId());
         setLoadSerialNo(other.getLoadSerialNo());
+        setHeadNodeKey(other.getHeadNodeKey());
+        setTailNodeKey(other.getTailNodeKey());
         _unknown_ = other._unknown_;
     }
 
@@ -207,6 +278,20 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         public void commit() { ((BQueue)getBelong())._LoadSerialNo = value; }
     }
 
+    private static final class Log__HeadNodeKey extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey> {
+        public Log__HeadNodeKey(BQueue bean, int varId, Zeze.Builtin.Collections.Queue.BQueueNodeKey value) { super(Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, bean, varId, value); }
+
+        @Override
+        public void commit() { ((BQueue)getBelong())._HeadNodeKey = value; }
+    }
+
+    private static final class Log__TailNodeKey extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey> {
+        public Log__TailNodeKey(BQueue bean, int varId, Zeze.Builtin.Collections.Queue.BQueueNodeKey value) { super(Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, bean, varId, value); }
+
+        @Override
+        public void commit() { ((BQueue)getBelong())._TailNodeKey = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -222,7 +307,13 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         sb.append(Zeze.Util.Str.indent(level)).append("TailNodeId=").append(getTailNodeId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Count=").append(getCount()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("LastNodeId=").append(getLastNodeId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LoadSerialNo=").append(getLoadSerialNo()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LoadSerialNo=").append(getLoadSerialNo()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("HeadNodeKey=").append(System.lineSeparator());
+        getHeadNodeKey().buildString(sb, level + 4);
+        sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TailNodeKey=").append(System.lineSeparator());
+        getTailNodeKey().buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -290,6 +381,26 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 6, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            getHeadNodeKey().encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
+        }
+        {
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 7, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            getTailNodeKey().encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -319,6 +430,14 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
             setLoadSerialNo(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 6) {
+            _o_.ReadBean(getHeadNodeKey(), _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            _o_.ReadBean(getTailNodeKey(), _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -334,6 +453,10 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         if (getLastNodeId() < 0)
             return true;
         if (getLoadSerialNo() < 0)
+            return true;
+        if (getHeadNodeKey().negativeCheck())
+            return true;
+        if (getTailNodeKey().negativeCheck())
             return true;
         return false;
     }
@@ -352,6 +475,8 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
                 case 3: _Count = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 4: _LastNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 5: _LoadSerialNo = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 6: _HeadNodeKey = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey>)vlog).value; break;
+                case 7: _TailNodeKey = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey>)vlog).value; break;
             }
         }
     }
@@ -364,6 +489,12 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         setCount(rs.getLong(_parents_name_ + "Count"));
         setLastNodeId(rs.getLong(_parents_name_ + "LastNodeId"));
         setLoadSerialNo(rs.getLong(_parents_name_ + "LoadSerialNo"));
+        parents.add("HeadNodeKey");
+        getHeadNodeKey().decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
+        parents.add("TailNodeKey");
+        getTailNodeKey().decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
     }
 
     @Override
@@ -374,6 +505,12 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         st.appendLong(_parents_name_ + "Count", getCount());
         st.appendLong(_parents_name_ + "LastNodeId", getLastNodeId());
         st.appendLong(_parents_name_ + "LoadSerialNo", getLoadSerialNo());
+        parents.add("HeadNodeKey");
+        getHeadNodeKey().encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
+        parents.add("TailNodeKey");
+        getTailNodeKey().encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
     }
 
     @Override
@@ -384,6 +521,8 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Count", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LastNodeId", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "LoadSerialNo", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "HeadNodeKey", "BQueueNodeKey", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "TailNodeKey", "BQueueNodeKey", "", ""));
         return vars;
     }
 }

@@ -10,4 +10,5 @@ public interface BQueueNodeReadOnly {
 
     long getNextNodeId();
     Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Collections.Queue.BQueueNodeValue, Zeze.Builtin.Collections.Queue.BQueueNodeValueReadOnly> getValuesReadOnly();
+    Zeze.Builtin.Collections.Queue.BQueueNodeKey getNextNodeKey();
 }

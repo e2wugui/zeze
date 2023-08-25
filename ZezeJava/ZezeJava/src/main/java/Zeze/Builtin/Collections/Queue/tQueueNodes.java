@@ -18,6 +18,7 @@ public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQu
 
     public static final int VAR_NextNodeId = 1;
     public static final int VAR_Values = 2;
+    public static final int VAR_NextNodeKey = 3;
 
     @Override
     public Zeze.Builtin.Collections.Queue.BQueueNodeKey decodeKey(ByteBuffer _os_) {

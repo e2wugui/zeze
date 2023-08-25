@@ -96,6 +96,11 @@ public class DepartmentTree<
 			 Class<TDepartmentMember> departmentMemberClass,
 			 Class<TGroupData> groupDataClass,
 			 Class<TDepartmentData> departmentDataClass) {
+			if (name.isEmpty())
+				throw new IllegalArgumentException("name is empty.");
+			if (name.contains("@"))
+				throw new IllegalArgumentException("name contains '@', that is reserved.");
+
 			return (DepartmentTree<
 					TManager,
 					TMember,

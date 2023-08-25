@@ -89,14 +89,24 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 
 		@SuppressWarnings("unchecked")
 		<T extends Bean> Queue<T> _open(String name, Class<T> valueClass, int nodeSize) {
+			if (name.isEmpty())
+				throw new IllegalArgumentException("name is empty.");
+			if (nodeSize < 1)
+				throw new IllegalArgumentException("nodeSize < 1");
 			return (Queue<T>)queues.computeIfAbsent(name, key -> new Queue<>(this, key, valueClass, nodeSize));
 		}
 
+		// 可以指定serverId，用于测试，但应用确实需要访问指定serverId的CsQueue，也可使用，但要小心。
 		@SuppressWarnings("unchecked")
 		public <T extends Bean> CsQueue<T> openCsQueue(String name, Class<T> valueClass, int nodeSize) {
 			if (name.contains("@"))
 				throw new IllegalArgumentException("name contains '@', that is reserved.");
-			return (CsQueue<T>)queues.computeIfAbsent(name, key -> new CsQueue<>(this, key, valueClass, nodeSize));
+			if (name.isEmpty())
+				throw new IllegalArgumentException("name is empty.");
+			if (nodeSize < 1)
+				throw new IllegalArgumentException("nodeSize < 1");
+			return (CsQueue<T>)queues.computeIfAbsent(name,
+					key -> new CsQueue<>(this, key, zeze.getConfig().getServerId(), valueClass, nodeSize));
 		}
 
 		public <T extends Bean> CsQueue<T> openCsQueue(String name, Class<T> valueClass) {
@@ -125,9 +135,69 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		return name;
 	}
 
+	private BQueue compatible(BQueue root) {
+		return compatible(root, name);
+	}
+
+	static BQueue compatible(BQueue root, String name) {
+		if (null == root)
+			return null;
+
+		if (root.getHeadNodeKey().getName().isEmpty()) {
+			root.setHeadNodeKey(new BQueueNodeKey(name, root.getHeadNodeId()));
+			root.setTailNodeKey(new BQueueNodeKey(name, root.getTailNodeId()));
+		}
+		return root;
+	}
+
+	static BQueue compatibleDirty(BQueue root, String name) {
+		if (null == root)
+			return null;
+
+		if (root.getHeadNodeKey().getName().isEmpty()) {
+			root = root.copy();
+			root.setHeadNodeKey(new BQueueNodeKey(name, root.getHeadNodeId()));
+			root.setTailNodeKey(new BQueueNodeKey(name, root.getTailNodeId()));
+		}
+		return root;
+	}
+
+	static BQueueNode compatible(BQueueNodeKey key, BQueueNode node) {
+		if (node == null)
+			return null;
+
+		if (node.getNextNodeKey().getName().isEmpty()) {
+			node.setNextNodeKey(new BQueueNodeKey(key.getName(), node.getNextNodeId()));
+		}
+		return node;
+	}
+
+	static BQueueNode compatibleDirty(BQueueNodeKey key, BQueueNode node) {
+		if (node == null)
+			return null;
+
+		if (node.getNextNodeKey().getName().isEmpty()) {
+			node = node.copy(); // 只读又需要修改时，复制一份。
+			node.setNextNodeKey(new BQueueNodeKey(key.getName(), node.getNextNodeId()));
+		}
+		return node;
+	}
+
+	private BQueue getRoot() {
+		return compatible(module._tQueues.get(name));
+	}
+
+	BQueue getOrAddRoot() {
+		return compatible(module._tQueues.getOrAdd(name));
+	}
+
+	private BQueueNode getNode(BQueueNodeKey key) {
+		return compatible(key, module._tQueueNodes.get(key));
+	}
+
 	public boolean isEmpty() {
-		var root = module._tQueues.get(name);
-		return root == null || root.getHeadNodeId() == 0;
+		var root = getRoot();
+		return root == null || root.getHeadNodeKey().getNodeId() == 0;
 	}
 
 	/**
@@ -136,21 +206,21 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	 * @return 头节点，null if empty
 	 */
 	public BQueueNode pollNode() {
-		var root = module._tQueues.get(name);
+		var root = getRoot();
 		if (root == null)
 			return null;
 
-		long headNodeId = root.getHeadNodeId();
-		if (headNodeId == 0)
+		var headKey = root.getHeadNodeKey();
+		if (headKey.getNodeId() == 0)
 			return null;
-		var nodeKey = new BQueueNodeKey(name, headNodeId);
-		var head = module._tQueueNodes.get(nodeKey);
+
+		var head = getNode(headKey);
 		if (head == null)
 			return null;
 
-		root.setHeadNodeId(head.getNextNodeId());
+		root.setHeadNodeKey(head.getNextNodeKey());
 		root.setCount(root.getCount() - head.getValues().size());
-		module._tQueueNodes.remove(nodeKey);
+		module._tQueueNodes.remove(headKey);
 		return head;
 	}
 
@@ -164,14 +234,15 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	 * @return 头节点，null if empty
 	 */
 	public BQueueNode peekNode() {
-		var root = module._tQueues.get(name);
+		var root = getRoot();
 		if (root == null)
 			return null;
 
-		long headNodeId = root.getHeadNodeId();
-		if (headNodeId == 0)
+		var headKey = root.getHeadNodeKey();
+		if (headKey.getNodeId() == 0)
 			return null;
-		return module._tQueueNodes.get(new BQueueNodeKey(name, headNodeId));
+
+		return getNode(headKey);
 	}
 
 	/**
@@ -180,15 +251,15 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	 * @return 头节点的首个值，null if empty
 	 */
 	public V poll() {
-		var root = module._tQueues.get(name);
+		var root = getRoot();
 		if (root == null)
 			return null;
 
-		long headNodeId = root.getHeadNodeId();
-		if (headNodeId == 0)
+		var headKey = root.getHeadNodeKey();
+		if (headKey.getNodeId() == 0)
 			return null;
-		var nodeKey = new BQueueNodeKey(name, headNodeId);
-		var head = module._tQueueNodes.get(nodeKey);
+
+		var head = getNode(headKey);
 		if (head == null)
 			return null;
 
@@ -196,9 +267,10 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		var nodeValue = nodeValues.remove(0);
 		root.setCount(root.getCount() - 1);
 		if (nodeValues.isEmpty()) {
-			root.setHeadNodeId(head.getNextNodeId());
-			module._tQueueNodes.remove(nodeKey);
+			root.setHeadNodeKey(head.getNextNodeKey());
+			module._tQueueNodes.remove(headKey);
 		}
+
 		@SuppressWarnings("unchecked")
 		var value = (V)nodeValue.getValue().getBean();
 		return value;
@@ -208,14 +280,14 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	 * @return 头节点的首个值，null if empty
 	 */
 	public V peek() {
-		var root = module._tQueues.get(name);
+		var root = getRoot();
 		if (root == null)
 			return null;
 
-		long headNodeId = root.getHeadNodeId();
-		if (headNodeId == 0)
+		var headKey = root.getHeadNodeKey();
+		if (headKey.getNodeId() == 0)
 			return null;
-		var head = module._tQueueNodes.get(new BQueueNodeKey(name, headNodeId));
+		var head = getNode(headKey);
 		if (head == null)
 			return null;
 
@@ -225,26 +297,27 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	}
 
 	public long size() {
-		var root = module._tQueues.getOrAdd(name);
-		return root.getCount();
+		var root = getRoot();
+		return null == root ? 0L : root.getCount();
 	}
 
 	/**
 	 * 用作queue, 值追加到尾节点的最后, 满则追加一个尾节点。
 	 */
 	public void add(V value) {
-		var root = module._tQueues.getOrAdd(name);
-		var tailNodeId = root.getTailNodeId();
-		var tail = tailNodeId != 0 ? module._tQueueNodes.get(new BQueueNodeKey(name, tailNodeId)) : null;
+		var root = getOrAddRoot();
+		var tailNodeKey = root.getTailNodeKey();
+		var tail = tailNodeKey.getNodeId() != 0 ? getNode(tailNodeKey) : null; // 比起直接访问快一些。
 		if (tail == null || tail.getValues().size() >= nodeSize) {
 			var newNodeId = root.getLastNodeId() + 1;
 			root.setLastNodeId(newNodeId);
-			root.setTailNodeId(newNodeId);
-			if (root.getHeadNodeId() == 0)
-				root.setHeadNodeId(newNodeId);
+			var newNodeKey = new BQueueNodeKey(name, newNodeId);
+			root.setTailNodeKey(newNodeKey);
+			if (root.getHeadNodeKey().getNodeId() == 0)
+				root.setHeadNodeKey(newNodeKey);
 			if (tail != null)
-				tail.setNextNodeId(newNodeId);
-			module._tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), tail = new BQueueNode());
+				tail.setNextNodeKey(newNodeKey);
+			module._tQueueNodes.insert(newNodeKey, tail = new BQueueNode());
 			root.setCount(root.getCount() + 1);
 		}
 		var nodeValue = new BQueueNodeValue();
@@ -257,19 +330,20 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	 * 用作stack, 值追加到头节点的首位, 满则追加一个头节点
 	 */
 	public void push(V value) {
-		var root = module._tQueues.getOrAdd(name);
-		var headNodeId = root.getHeadNodeId();
-		var head = headNodeId != 0 ? module._tQueueNodes.get(new BQueueNodeKey(name, headNodeId)) : null;
+		var root = getOrAddRoot();
+		var headNodeKey = root.getHeadNodeKey();
+		var head = headNodeKey.getNodeId() != 0 ? getNode(headNodeKey) : null;
 		if (head == null || head.getValues().size() >= nodeSize) {
 			var newNodeId = root.getLastNodeId() + 1;
 			root.setLastNodeId(newNodeId);
-			root.setHeadNodeId(newNodeId);
-			if (root.getTailNodeId() == 0)
-				root.setTailNodeId(newNodeId);
-			module._tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), head = new BQueueNode());
+			var newNodeKey = new BQueueNodeKey(name, newNodeId);
+			root.setHeadNodeKey(newNodeKey);
+			if (root.getTailNodeKey().getNodeId() == 0)
+				root.setTailNodeKey(newNodeKey);
+			module._tQueueNodes.insert(newNodeKey, head = new BQueueNode());
 			root.setCount(root.getCount() + 1);
-			if (headNodeId != 0)
-				head.setNextNodeId(headNodeId);
+			if (headNodeKey.getNodeId() != 0)
+				head.setNextNodeKey(headNodeKey);
 		}
 		var nodeValue = new BQueueNodeValue();
 		nodeValue.setTimestamp(System.currentTimeMillis());
@@ -292,31 +366,27 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	 * func 第一个参数是当前Value所在的Node.Id。
 	 */
 	@SuppressWarnings("unchecked")
-	public long walk(TableWalkHandle<Long, V> func) {
+	public long walk(TableWalkHandle<BQueueNodeKey, V> func) {
 		long count = 0L;
 		while (true) {
-			var root = module._tQueues.selectDirty(name);
+			var root = compatibleDirty(module._tQueues.selectDirty(name), name);
 			if (null == root)
 				return count; // error break
-			var nodeId = root.getHeadNodeId();
-			while (nodeId != 0) {
-				var node = module._tQueueNodes.selectDirty(new BQueueNodeKey(name, nodeId));
+			var nodeKey = root.getHeadNodeKey();
+			while (nodeKey.getNodeId() != 0) {
+				var node = compatibleDirty(nodeKey, module._tQueueNodes.selectDirty(nodeKey));
 				if (null == node)
 					break; // concurrent node remove, restart walk.
 				for (var value : node.getValues()) {
 					++count;
-					if (!func.handle(nodeId, (V)value.getValue().getBean()))
+					if (!func.handle(nodeKey, (V)value.getValue().getBean()))
 						return count; // user break
 				}
-				nodeId = node.getNextNodeId();
+				nodeKey = node.getNextNodeKey();
 			}
-			if (nodeId == 0)
+			if (nodeKey.getNodeId() == 0)
 				return count; // tail
 			// concurrent node remove, restart walk.
 		}
-	}
-
-	BQueue getRoot() {
-		return module._tQueues.getOrAdd(name);
 	}
 }

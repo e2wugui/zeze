@@ -155,13 +155,28 @@
 				1. 单向链表。2. Value没有索引。3. 每个Value记录加入的时间。4. 只能从Head提取，从Tail添加。5. 用作Stack时也可以从Head添加。
 				链表结构: (NewStackNode -＞) Head -＞ ... -＞ Tail (-＞ NewQueueNode)。
 				第一个用户是Table.GC，延迟删除记录。
+				【兼容】
+				单向链表原来只发生在自己的Queue内，使用long NodeId指向下一个节点，查询节点时候总是使用自己的Queue.Name和NodeId构造BQueueNodeKey。
+				现在为了支持在Queue之间splice，需要使用BQueueNodeKey来指示下一个节点。
+				为了兼容旧数据，原来的long类型的变量不能删除，新版需要发现是旧版数据，然后读取并构造出新的BQueueNodeKey。
+				Root(BQueue)兼容旧数据规则：
+				if (Root.HeadNodeKey.Name.isEmpty()) {
+					Root.HeadNodeKey = new BQueueNodeKey(ThisQueue.Name, Root.HeadNodeId);
+					Root.TailNodeKey = new BQueueNodeKey(ThisQueue.Name, Root.TailNodeId);
+				}
+				Node(BQueueNode) 兼容旧数据规则：
+				if (Node.NextNodeKey.Name.isEmpty()) {
+					Node.NextNodeKey = new BQueueNodeKey(ThisNode.NodeKey.Name, Node.NextNodeId);
+				}
 				-->
 				<bean name="BQueue">
-					<variable id="1" name="HeadNodeId" type="long" />
-					<variable id="2" name="TailNodeId" type="long" />
+					<variable id="1" name="HeadNodeId" type="long" /> 废弃，新的遍历寻找使用HeadNodeKey，【但是不能删，兼容需要读取】
+					<variable id="2" name="TailNodeId" type="long" /> 废弃，新的遍历寻找使用TailNodeKey，【但是不能删，兼容需要读取】
 					<variable id="3" name="Count" type="long" />
 					<variable id="4" name="LastNodeId" type="long" /> 最近分配过的NodeId, 用于下次分配
 					<variable id="5" name="LoadSerialNo" type="long" /> walk 开始的时候递增
+					<variable id="6" name="HeadNodeKey" type="BQueueNodeKey" />
+					<variable id="7" name="TailNodeKey" type="BQueueNodeKey" />
 				</bean>
 				<table name="tQueues" key="string" value="BQueue" /> key: Queue的Name
 
@@ -177,8 +192,9 @@
 					<variable id="2" name="NodeId" type="long" />
 				</beankey>
 				<bean name="BQueueNode"> 一个节点可以存多个KeyValue对，
-					<variable id="1" name="NextNodeId" type="long" /> 后一个节点ID. 0表示已到达结尾。
+					<variable id="1" name="NextNodeId" type="long" /> 废弃，新的遍历寻找使用NextNodeKey，【但是不能删，兼容需要读取】
 					<variable id="2" name="Values" type="list" value="BQueueNodeValue" />
+					<variable id="3" name="NextNodeKey" type="BQueueNodeKey" /> NodeId为0表示已到达结尾。
 				</bean>
 				<table name="tQueueNodes" key="BQueueNodeKey" value="BQueueNode"/>
 			</module>

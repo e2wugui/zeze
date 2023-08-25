@@ -19,14 +19,17 @@ public class CsQueue<V extends Bean> {
 	private final String name;
 	private final Queue.Module module;
 
-	CsQueue(Queue.Module module, String name, Class<V> valueClass, int nodeSize) {
+	/**
+	 * 为了测试公开这个方法，应用应该去使用Queue.Module.open.
+	 */
+	public CsQueue(Queue.Module module, String name, int serverId, Class<V> valueClass, int nodeSize) {
 		this.module = module;
 		this.name = name;
-		this.queue = module._open(name + "@" + module.zeze.getConfig().getServerId(), valueClass, nodeSize);
+		this.queue = module._open(name + "@" + serverId, valueClass, nodeSize);
 
 		var out = new OutLong();
 		Task.call(module.zeze.newProcedure(() -> {
-			var root = queue.getRoot();
+			var root = queue.getOrAddRoot();
 			root.setLastNodeId(root.getLoadSerialNo() + 1);
 			out.value = root.getLoadSerialNo();
 			return 0;
@@ -39,15 +42,29 @@ public class CsQueue<V extends Bean> {
 				(notify) -> splice(notify.serverId, notify.notifySerialId));
 	}
 
-	private void splice(int serverId, long loadSerialNo) {
+	public long getLoadSerialNo() {
+		var out = new OutLong();
+		module.zeze.newProcedure(() -> {
+			out.value = queue.getOrAddRoot().getLoadSerialNo();
+			return 0;
+		}, "getLoadSerialNo@" + getName()).call();
+		return out.value;
+	}
+
+	/**
+	 * 为了测试了公开的，调用也是可以的，但要小心。
+	 * @param serverId serverId
+	 * @param loadSerialNo loadSerialNo
+	 */
+	public void splice(int serverId, long loadSerialNo) {
 		if (serverId == module.zeze.getConfig().getServerId())
 			return; // skip self
 
 		Task.call(module.zeze.newProcedure(() -> {
 			// 接管别的服务器的队列时。
 			var srcName = name + "@" + serverId;
-			var src = module._tQueues.get(srcName);
-			if (null == src || src.getHeadNodeId() == 0 || src.getTailNodeId() == 0)
+			var src = Queue.compatible(module._tQueues.get(srcName), srcName);
+			if (null == src || src.getHeadNodeKey().getNodeId() == 0 || src.getTailNodeKey().getNodeId() == 0)
 				return 0L; // nothing need to do.
 
 			if (src.getLoadSerialNo() != loadSerialNo)
@@ -55,9 +72,9 @@ public class CsQueue<V extends Bean> {
 
 			// prepare splice
 			var dstName = name + "@" + module.zeze.getConfig().getServerId();
-			var dstRoot = module._tQueues.getOrAdd(dstName);
-			var srcTailNodeKey = new BQueueNodeKey(srcName, src.getTailNodeId());
-			var srcTail = module._tQueueNodes.get(srcTailNodeKey);
+			var dstRoot = Queue.compatible(module._tQueues.getOrAdd(dstName), dstName);
+			var srcTailNodeKey = src.getTailNodeKey();
+			var srcTail = Queue.compatible(srcTailNodeKey, module._tQueueNodes.get(srcTailNodeKey));
 
 			if (null == srcTail)
 				throw new IllegalStateException("maybe operate before entry created.");
@@ -67,11 +84,12 @@ public class CsQueue<V extends Bean> {
 			//last.value = new BQueueNodeKey(dstName, dstRoot.getHeadNodeId());
 
 			// splice 单向链表，新接管的数据拼到开头。
-			srcTail.setNextNodeId(dstRoot.getHeadNodeId());
-			dstRoot.setHeadNodeId(src.getHeadNodeId());
+			srcTail.setNextNodeKey(dstRoot.getHeadNodeKey());
+			dstRoot.setHeadNodeKey(src.getHeadNodeKey());
 			// clear src
-			src.setHeadNodeId(0L);
-			src.setTailNodeId(0L);
+			var nullKey = new BQueueNodeKey();
+			src.setHeadNodeKey(nullKey);
+			src.setTailNodeKey(nullKey);
 			return 0L;
 		}, "CsQueue.splice"));
 	}
@@ -80,6 +98,9 @@ public class CsQueue<V extends Bean> {
 		return name;
 	}
 
+	public String getInnerName() {
+		return queue.getName();
+	}
 
 	public boolean isEmpty() {
 		return queue.isEmpty();
@@ -121,7 +142,7 @@ public class CsQueue<V extends Bean> {
 		return queue.pop();
 	}
 
-	public long walk(TableWalkHandle<Long, V> func) {
+	public long walk(TableWalkHandle<BQueueNodeKey, V> func) {
 		return queue.walk(func);
 	}
 }

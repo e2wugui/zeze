@@ -127,6 +127,9 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		<T extends Bean> @NotNull LinkedMap<T> _open(@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
 			if (nodeSize < 1)
 				throw new IllegalArgumentException("nodeSize < 1");
+			if (name.isEmpty())
+				throw new IllegalArgumentException("name is empty.");
+
 			return (LinkedMap<T>)linkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, nodeSize));
 		}
 
@@ -153,6 +156,11 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		@SuppressWarnings("unchecked")
 		private <T extends Bean> @NotNull CHashMap<T> openConcurrent(
 				@NotNull String name, @NotNull Class<T> valueClass, int concurrencyLevel, int nodeSize) {
+			if (name.isEmpty())
+				throw new IllegalArgumentException("name is empty.");
+			if (nodeSize < 1)
+				throw new IllegalArgumentException("nodeSize < 1");
+
 			// todo concurrencyLevel 应该持久化？因为现在写法，本进程访问会忽略后续不一样的concurrencyLevel，
 			//  但是多进程，没有保护到，会出错。
 			//  但是如果concurrencyLevel持久化，要不要提供修改它的能力？
