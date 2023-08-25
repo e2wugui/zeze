@@ -38,14 +38,15 @@ dbh2
 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot install new module need register sm,还需要module config  choice type.
 HotManager 错误处理。
+Rank 加强
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/8/25 v1.3.1 Hot; EventDispatcher; Memory-Table.SoftReference; CsQueue; CHashMap; 
 ------------------------------------------------------------------------------------------------------------------------------
 Zeze.Collections.Queue 不能使用DelayRemove，因为DelayRemove依赖了它。
 	因为Queue的删除只发生在Head，并且是单向链表，只会从Head往后Walk，
-	所以对于并发Walk，不会出现后面的node被删除找不到（_tQueueNodes.selectDirty返回null），
-	导致中断Walk，但是poll很快，删除node很快，超过Walk速度时，还是会出现_tQueueNodes.selectDirty返回null，
+	所以对于并发Walk，不会出现后面的node被删除找不到（_tQueueNodes.selectDirty返回null），导致中断Walk。
+	但是poll很快，删除node很快，超过Walk速度时，还是会出现_tQueueNodes.selectDirty返回null，
 	这会导致walk中断。采取的处理是，如果walk发现返回null，重新从头开始。哈哈哈。
 Hot Module 拥有内存表现在禁止热更。允许的话需要像Online.Local一样做个retreat。这个操作框架可以帮忙完成，可能的实现代码和Online.Local的处理一样。
 CsQueue,CHashMap还是值得写一个。
