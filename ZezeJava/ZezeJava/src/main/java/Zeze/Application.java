@@ -305,6 +305,7 @@ public final class Application {
 
 			if (exist.isMemory() && table.isMemory()) {
 				// 内存表特殊处理。
+				logger.info("UpgradeMemory " + table.getName());
 				hotUpgradeMemoryTables.add(new HotUpgradeMemoryTable(exist, table));
 				// exist.disable() 在升级之后调用。
 			} else {

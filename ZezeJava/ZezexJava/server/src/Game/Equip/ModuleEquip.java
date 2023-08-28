@@ -185,11 +185,30 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			verifyOnlineLocal(oldAccess);
 			verifyOnlineUserData(oldAccess);
 			verifyCollections(oldAccess);
+			verifyMemory(oldAccess);
 
 			version.value = oldAccess + 1;
 			return 0;
 		}, "").call();
 		return version.value;
+	}
+
+	private void verifyMemory(int oldAccess) {
+		var retreat = _tMemoryRetreat.getOrAdd(1L);
+		if (retreat.getAttack() != oldAccess)
+			throw new RuntimeException("memoryRetreat error oldAccess=" + retreat.getAttack() + ":" + oldAccess);
+		retreat.setAttack(oldAccess + 1);
+
+		// 下面两种情况不做严格测试了，有点麻烦，大概率没什么问题。
+		// 简单访问一下，意思意思。
+		// 1. 热更后切换为后端数据库存储，数据是以前写的时候存在的。
+		var memoryToNormal = _tMemoryToNormal.getOrAdd(1L);
+		if (0 != memoryToNormal.getAttack())
+			throw new RuntimeException("memoryToNormal error oldAccess=" + memoryToNormal.getAttack() + ":" + oldAccess);
+		// 2. 热更后切换为内存表，并且初始是空的。
+		var normalToMemory = _tNormalToMemory.getOrAdd(1L);
+		if (0 != normalToMemory.getAttack())
+			throw new RuntimeException("normalToMemory error oldAccess=" + normalToMemory.getAttack() + ":" + oldAccess);
 	}
 
 	public void verifyOnlineUserData(int oldAccess) {

@@ -175,6 +175,10 @@
 
 		<rpc name="SendHot" argument="BEquipExtra" handle="server"/>
 		<rpc name="SendHotAdd" argument="BEquipExtra" handle="server"/>
+		
+		<table name="tMemoryToNormal" key="long" value="BEquipExtra"/> 不会倒数据，清空，正常访问即可。
+		<table name="tNormalToMemory" key="long" value="BEquipExtra" memory="true"/> 不会倒数据，清空，正常访问即可。
+		<table name="tMemoryRetreat" key="long" value="BEquipExtra" memory="true"/> 会重建bean
 	</module>
 
 	<module name="Map" id="8">

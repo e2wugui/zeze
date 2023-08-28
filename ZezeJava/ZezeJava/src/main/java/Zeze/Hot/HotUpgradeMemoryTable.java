@@ -3,8 +3,11 @@ package Zeze.Hot;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Table;
 import Zeze.Util.OutObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class HotUpgradeMemoryTable {
+	private static final Logger logger = LogManager.getLogger(HotUpgradeMemoryTable.class);
 	private final Table old;
 	private final Table cur;
 
@@ -23,6 +26,7 @@ public class HotUpgradeMemoryTable {
 					try {
 						cur.encodeKey(k);
 					} catch (Exception ex) {
+						logger.error("", ex);
 						return false;
 					}
 				}
@@ -33,6 +37,7 @@ public class HotUpgradeMemoryTable {
 				v.encode(bbValue);
 				var newValue = cur.newValueBean();
 				newValue.decode(bbValue);
+				logger.info("retreat: " + newKey + " " + newValue);
 				cur.__direct_put_cache__(newKey, newValue);
 				return true;
 			});
