@@ -124,6 +124,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        createZeze(null);");
             sw.WriteLine("    }");
             sw.WriteLine();
+            sw.WriteLine("    @Override");
             sw.WriteLine("    public synchronized void createZeze(Zeze.Config config) throws Exception {");
             sw.WriteLine("        if (Zeze != null)");
             sw.WriteLine("            throw new IllegalStateException(\"Zeze Has Created!\");");
@@ -131,11 +132,13 @@ namespace Zeze.Gen.java
             sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Name}\", config);");
             sw.WriteLine("    }");
             sw.WriteLine();
+            sw.WriteLine("    @Override");
             sw.WriteLine("    public synchronized void createService() {");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
             sw.WriteLine("    }");
             sw.WriteLine();
+            sw.WriteLine("    @Override");
             sw.WriteLine("    public synchronized void createModules() throws Exception {");
             if (project.Hot)
                 sw.WriteLine("        Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));");
@@ -288,14 +291,14 @@ namespace Zeze.Gen.java
             if (project.Hot)
             {
                 sw.WriteLine();
-                sw.WriteLine("    public static void distributeHot(String classesDir, boolean exportBean, String workingDir) throws Exception {");
+                sw.WriteLine("    public static void distributeHot(Zeze.Hot.Distribute distribute) throws Exception {");
                 sw.WriteLine("        var hotModules = new java.util.HashSet<String>();");
                 foreach (Module m in project.AllOrderDefineModules)
                 {
                     if (project.Hot && m.Hot)
                         sw.WriteLine($"        hotModules.add(\"{m.Path()}\");");
                 }
-                sw.WriteLine($"        new Zeze.Hot.Distribute(classesDir, exportBean, workingDir, hotModules, \"{project.Name}\", \"{project.Solution.Name}\").pack();");
+                sw.WriteLine($"        distribute.pack(hotModules, \"{project.Name}\", \"{project.Solution.Name}\");");
                 sw.WriteLine("    }");
             }
         }

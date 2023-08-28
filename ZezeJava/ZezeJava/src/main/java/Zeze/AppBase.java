@@ -32,4 +32,16 @@ public abstract class AppBase {
 	public void removeModule(String moduleName) {
 		modules.remove(moduleName);
 	}
+
+	public void createZeze(Config config) throws Exception {
+		throw new UnsupportedOperationException();
+	}
+
+	public void createService() throws Exception {
+		throw new UnsupportedOperationException();
+	}
+
+	public void createModules() throws Exception {
+		throw new UnsupportedOperationException();
+	}
 }

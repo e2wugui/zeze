@@ -12,16 +12,22 @@ import java.util.Set;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
+import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
+import Zeze.Arch.ProviderApp;
+import Zeze.Arch.ProviderModuleBinds;
+import Zeze.Config;
+import Zeze.Util.IntHashMap;
 
 public class Distribute {
 	private final String classesDir;
 	private final Path classesHome;
 	private final boolean exportBean;
 	private final String workingDir;
-	private final Set<String> hotModules;
-	private final String projectName;
-	private final String solutionName;
+	private Set<String> hotModules;
+	private String projectName;
+	private final String providerModuleBinds;
+	private final String configXml;
 
 	private final HashMap<String, JarOutputStream> hotModuleJars = new HashMap<>();
 	private JarOutputStream projectJar; // 所有非热更代码都打包到这里。
@@ -31,23 +37,26 @@ public class Distribute {
 	public Distribute(String classesDir,
 					  boolean exportBean,
 					  String workingDir,
-					  Set<String> hotModules,
-					  String projectName,
-					  String solutionName) {
+					  String providerModuleBinds,
+					  String configXml) {
 
 		this.classesDir = classesDir;
 		this.classesHome = Path.of(classesDir);
 		this.exportBean = exportBean;
 		this.workingDir = workingDir;
-		this.hotModules = hotModules;
-		this.projectName = projectName;
-		this.solutionName = solutionName;
+		this.providerModuleBinds = providerModuleBinds;
+		this.configXml = configXml;
 
 		Path.of(workingDir, "interfaces").toFile().mkdirs();
 		Path.of(workingDir, "modules").toFile().mkdirs();
 	}
 
-	public void pack() throws Exception {
+	public void pack(Set<String> hotModules,
+					 String projectName,
+					 String solutionName) throws Exception {
+		this.hotModules = hotModules;
+		this.projectName = projectName;
+
 		var packages = new ArrayList<Package>();
 		packages.add(new Package(classesHome.toFile()));
 		pack(classesHome, packages);
@@ -75,6 +84,27 @@ public class Distribute {
 			var bytes = Files.readAllBytes(schemasFile);
 			schemasJar.write(bytes);
 		}
+
+		if (!providerModuleBinds.isEmpty() && !configXml.isEmpty()) {
+			var config = Config.load(configXml);
+			if (new File(config.getHotWorkingDir()).exists()) {
+				var appBase = (AppBase)Class.forName(solutionName + ".App").getConstructor().newInstance();
+				appBase.createZeze(config);
+				appBase.createService();
+				var providerApp = new ProviderApp(appBase.getZeze());
+				appBase.createModules();
+				providerApp.buildProviderModuleBinds(ProviderModuleBinds.load(providerModuleBinds), appBase.getModules());
+				// todo 打包配置到module.jar里面，前面的关闭需要移到后面。
+				providerApp.modules.foreach((key, value) -> {
+					System.out.println(key + " " + value);
+				});
+			}
+			else {
+				System.out.println("hotWorkingDir not exist, please prepare and re-run distribute.");
+			}
+		} else {
+			System.out.println("-providerModuleBinds or -config not present, skip module config.");
+		}
 	}
 
 	public static void main(String [] args) throws Exception {
@@ -82,6 +112,8 @@ public class Distribute {
 		var exportBean = true;
 		var workingDir = "hot";
 		var app = "";
+		var providerModuleBinds = "";
+		var configXml = "";
 
 		for (var i = 0; i < args.length; ++i) {
 			switch (args[i]) {
@@ -97,11 +129,22 @@ public class Distribute {
 			case "-app":
 				app = args[++i];
 				break;
+			case "-providerModuleBinds":
+				providerModuleBinds = args[++i];
+				break;
+			case "-config":
+				configXml = args[++i];
+				break;
 			}
 		}
+
+		var distribute = new Distribute(
+				classesDir, exportBean, workingDir,
+				providerModuleBinds, configXml);
+
 		var appClass = Class.forName(app);
-		var method = appClass.getMethod("distributeHot", String.class, boolean.class, String.class);
-		method.invoke(null, classesDir, exportBean, workingDir);
+		var method = appClass.getMethod("distributeHot", Distribute.class);
+		method.invoke(null, distribute);
 	}
 
 	public boolean isHotModule(String moduleNamespace) {

@@ -199,6 +199,7 @@ public final class App extends Zeze.AppBase {
         createZeze(null);
     }
 
+    @Override
     public synchronized void createZeze(Zeze.Config config) throws Exception {
         if (Zeze != null)
             throw new IllegalStateException("Zeze Has Created!");
@@ -206,11 +207,13 @@ public final class App extends Zeze.AppBase {
         Zeze = new Zeze.Application("server", config);
     }
 
+    @Override
     public synchronized void createService() {
         Server = new Game.Server(Zeze);
         ServerDirect = new Game.ServerDirect(Zeze);
     }
 
+    @Override
     public synchronized void createModules() throws Exception {
         Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));
         Zeze.initialize(this);
@@ -296,7 +299,7 @@ public final class App extends Zeze.AppBase {
             ServerDirect.stop();
     }
 
-    public static void distributeHot(String classesDir, boolean exportBean, String workingDir) throws Exception {
+    public static void distributeHot(Zeze.Hot.Distribute distribute) throws Exception {
         var hotModules = new java.util.HashSet<String>();
         hotModules.add("Game.Login");
         hotModules.add("Game.Item");
@@ -306,7 +309,7 @@ public final class App extends Zeze.AppBase {
         hotModules.add("Game.Equip");
         hotModules.add("Game.Timer");
         hotModules.add("Game.LongSet");
-        new Zeze.Hot.Distribute(classesDir, exportBean, workingDir, hotModules, "server", "Game").pack();
+        distribute.pack(hotModules, "server", "Game");
     }
     // ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }

@@ -5,10 +5,15 @@ pushd %~dp0
 rd /s /q server\hot 2>nul
 mkdir server\hot\distributes
 
-set classes=../ZezeJava/build/classes/java/main;server/build/classes/java/main
+rem 必须cd到启动目录执行，配置目录有依赖。
+cd server
+
+set classes=../../ZezeJava/build/classes/java/main;build/classes/java/main
 
 echo 打包...
-java -cp %classes%;../ZezeJava/lib/* Zeze.Hot.Distribute -privateBean -app Game.App -workingDir server/hot -classes  server/build/classes/java/main
+java -cp %classes%;../../ZezeJava/lib/* Zeze.Hot.Distribute -privateBean -app Game.App -workingDir hot -classes  build/classes/java/main -providerModuleBinds ../provider.module.binds.xml -config server.xml
 echo OK
+
+cd ..
 
 pause

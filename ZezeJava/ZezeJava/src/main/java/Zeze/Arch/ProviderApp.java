@@ -6,6 +6,7 @@ import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.IModule;
+import Zeze.Net.Service;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.IntHashMap;
 import org.jetbrains.annotations.NotNull;
@@ -97,9 +98,27 @@ public class ProviderApp {
 		this.providerDirect.RegisterProtocols(providerDirectService);
 	}
 
-	public void startLast(@NotNull ProviderModuleBinds binds, @NotNull Map<String, IModule> modules) {
+	/**
+	 * 这是为了发布打包的时候，用来构建模块配置，所有的变量都不需要使用。
+	 */
+	public ProviderApp(Application zeze) throws Exception {
+		this.zeze = zeze;
+		this.zeze.redirect = new RedirectBase(this);
+		this.providerImplement = null;
+		this.providerService = new ProviderService("fakeProviderService", this.zeze);
+		this.serverServiceNamePrefix = null;
+		this.providerDirect = null;
+		this.providerDirectService = null;
+		this.linkdServiceName = null;
+		this.directIp = null;
+		this.distribute = null;
+	}
+
+	public void buildProviderModuleBinds(@NotNull ProviderModuleBinds binds,
+										 @NotNull Map<String, IModule> modules) {
 		for (var builtin : builtinModules.values())
 			modules.put(builtin.getFullName(), builtin);
+
 		binds.buildStaticBinds(modules, zeze.getConfig().getServerId(), staticBinds);
 		binds.buildDynamicBinds(modules, zeze.getConfig().getServerId(), dynamicModules);
 
@@ -111,15 +130,19 @@ public class ProviderApp {
 				BModule.ChoiceTypeDefault,
 				BModule.ConfigTypeDefault,
 				BSubscribeInfo.SubscribeTypeSimple);
+
 		for (var module : modules.values()) {
 			if (!this.modules.containsKey(module.getId())) { // 补充其它模块的信息
 				var m = binds.getModules().get(module.getFullName());
-				this.modules.put(module.getId(),
-						m != null
+				this.modules.put(module.getId(), m != null
 						? new BModule.Data(m.getChoiceType(), m.getConfigType(), m.getSubscribeType())
 						: defaultModuleConfig);
 			}
 		}
+	}
+
+	public void startLast(@NotNull ProviderModuleBinds binds, @NotNull Map<String, IModule> modules) {
+		buildProviderModuleBinds(binds, modules);
 		providerImplement.registerModulesAndSubscribeLinkd();
 	}
 }

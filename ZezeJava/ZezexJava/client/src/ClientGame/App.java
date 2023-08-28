@@ -57,6 +57,7 @@ public class App extends Zeze.AppBase {
         createZeze(null);
     }
 
+    @Override
     public synchronized void createZeze(Zeze.Config config) throws Exception {
         if (Zeze != null)
             throw new IllegalStateException("Zeze Has Created!");
@@ -64,10 +65,12 @@ public class App extends Zeze.AppBase {
         Zeze = new Zeze.Application("client", config);
     }
 
+    @Override
     public synchronized void createService() {
         ClientService = new ClientGame.ClientService(Zeze);
     }
 
+    @Override
     public synchronized void createModules() throws Exception {
         Zeze.initialize(this);
         var _modules_ = createRedirectModules(new Class[] {
