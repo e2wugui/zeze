@@ -601,7 +601,7 @@ public class GlobalCacheManagerWithRaft
 
 				cs.setAcquireStatePending(StateInvalid);
 				if (ENABLE_PERF)
-					perf.onOthers("XXX 10 " + StateModify);
+					perf.onOthers("XXX 10 " + StateModify + ' ' + errorFreshAcquire.value);
 				// logger.error("XXX 10 {} {} {}", sender, acquireState, cs);
 				rpc.Result.setState(StateInvalid);
 				lockey.pulseAll();
