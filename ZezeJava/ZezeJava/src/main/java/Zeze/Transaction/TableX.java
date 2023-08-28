@@ -716,7 +716,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public Object decodeKeyToObject(@NotNull ByteBuffer bb) {
+	public Object decodeKeyObject(@NotNull ByteBuffer bb) {
 		return decodeKey(bb);
 	}
 
@@ -744,6 +744,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	public abstract @NotNull V newValue();
+
+	@Override
+	public Bean newValueBean() {
+		return newValue();
+	}
 
 	/**
 	 * 解码系列化的数据到对象。

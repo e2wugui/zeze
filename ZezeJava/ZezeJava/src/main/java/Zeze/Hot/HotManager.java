@@ -299,7 +299,7 @@ public class HotManager extends ClassLoader {
 				hotUpgrade.upgrade((bean) -> retreat(exists, result, bean));
 			// upgrade user memory table
 			for (var table : app.getZeze().__get_upgrade_memory_table__()) {
-				table.upgrade((bean) -> retreat(exists, result, bean));
+				table.upgrade();
 			}
 			app.getZeze().__get_upgrade_memory_table__().clear();
 			var beanFactories = new HashMap<BeanFactory, List<Class<?>>>();

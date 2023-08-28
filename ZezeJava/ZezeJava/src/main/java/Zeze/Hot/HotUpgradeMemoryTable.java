@@ -1,7 +1,6 @@
 package Zeze.Hot;
 
-import java.util.function.Function;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Table;
 import Zeze.Util.OutObject;
 
@@ -14,7 +13,7 @@ public class HotUpgradeMemoryTable {
 		this.cur = cur;
 	}
 
-	public void upgrade(Function<Bean, Bean> retreatFunc) {
+	public void upgrade() {
 		var first = new OutObject<>(true);
 		try {
 			old.walkMemoryAny((k, v) -> {
@@ -29,13 +28,12 @@ public class HotUpgradeMemoryTable {
 				}
 				// key value retreat
 				var bbKey = old.encodeKey(k);
-				var newKey = cur.decodeKeyToObject(bbKey);
-				var rBean = retreatFunc.apply(v);
-				if (rBean != null) {
-					cur.__direct_put_cache__(newKey, rBean);
-				} else {
-					cur.__direct_put_cache__(newKey, v); // retreat 失败，直接加入旧的值。
-				}
+				var newKey = cur.decodeKeyObject(bbKey);
+				var bbValue = ByteBuffer.Allocate();
+				v.encode(bbValue);
+				var newValue = cur.newValueBean();
+				newValue.decode(bbValue);
+				cur.__direct_put_cache__(newKey, newValue);
 				return true;
 			});
 		} finally {
