@@ -6,7 +6,6 @@ import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.IModule;
-import Zeze.Net.Service;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.IntHashMap;
 import org.jetbrains.annotations.NotNull;
@@ -102,6 +101,7 @@ public class ProviderApp {
 	/**
 	 * 这是为了发布打包的时候，用来构建模块配置，所有的变量都不需要使用。
 	 */
+	@SuppressWarnings("DataFlowIssue")
 	public ProviderApp(Application zeze) throws Exception {
 		this.zeze = zeze;
 		this.zeze.setProviderApp(this);

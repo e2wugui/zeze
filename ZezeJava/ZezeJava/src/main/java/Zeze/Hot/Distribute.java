@@ -92,9 +92,7 @@ public class Distribute {
 				appBase.createModules();
 				providerApp.buildProviderModuleBinds(ProviderModuleBinds.load(providerModuleBinds), appBase.getModules());
 				// 打包配置到module.jar里面，前面的关闭需要移到后面。
-				providerApp.modules.foreach((key, value) -> {
-					packModuleConfig(findModule(appBase, key), value);
-				});
+				providerApp.modules.foreach((key, value) -> packModuleConfig(findModule(appBase, key), value));
 			}
 			else {
 				System.out.println("hotWorkingDir not exist, please prepare and re-run distribute.");

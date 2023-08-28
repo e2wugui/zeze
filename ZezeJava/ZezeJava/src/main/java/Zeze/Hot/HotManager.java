@@ -19,7 +19,6 @@ import java.util.zip.ZipEntry;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
-import Zeze.Arch.ProviderService;
 import Zeze.Collections.BeanFactory;
 import Zeze.IModule;
 import Zeze.Schemas;

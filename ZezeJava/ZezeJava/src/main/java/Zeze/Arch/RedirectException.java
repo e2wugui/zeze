@@ -7,7 +7,7 @@ public class RedirectException extends RuntimeException {
 	public static final int LOCAL_EXECUTION = 3; // 本进程执行目标方法时抛出的异常,可通过getCause()获得原异常
 	public static final int REMOTE_EXECUTION = 4; // 远程进程执行目标方法时抛出的异常,暂时不支持
 
-	public static final RedirectException timeoutInstance = new RedirectException(SERVER_TIMEOUT);
+	public static final RedirectException timeoutInstance = new RedirectException(SERVER_TIMEOUT, "timeout");
 
 	private final int code;
 
@@ -15,8 +15,8 @@ public class RedirectException extends RuntimeException {
 		this.code = code;
 	}
 
-	public RedirectException(int code, String s) {
-		super(s);
+	public RedirectException(int code, String message) {
+		super(message);
 		this.code = code;
 	}
 
