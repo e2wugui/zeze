@@ -35,12 +35,12 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		controlKick = control;
 	}
 
-	void addServer(Agent.SubscribeState ss, BServiceInfo pm) {
+	void addServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
 		if (ss.getServiceName().equals(providerApp.linkdServiceName))
 			providerApp.providerService.apply(pm);
 	}
 
-	void applyOnChanged(Agent.SubscribeState subState) {
+	void applyOnChanged(@NotNull Agent.SubscribeState subState) {
 		if (subState.getServiceName().equals(providerApp.linkdServiceName)) {
 			// Linkd info
 			providerApp.providerService.apply(subState.getServiceInfos());
@@ -53,7 +53,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 	}
 
-	void applyOnPrepare(Agent.SubscribeState subState) {
+	void applyOnPrepare(@NotNull Agent.SubscribeState subState) {
 		var pending = subState.getServiceInfosPending();
 		if (pending != null && pending.getServiceName().startsWith(providerApp.serverServiceNamePrefix))
 			providerApp.providerDirectService.tryConnectAndSetReady(subState, pending);
@@ -93,18 +93,21 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		sm.subscribeService(providerApp.linkdServiceName, BSubscribeInfo.SubscribeTypeSimple);
 	}
 
-	public static void sendKick(AsyncSocket sender, long linkSid, int code, @NotNull String desc) {
+	public static void sendKick(@Nullable AsyncSocket sender, long linkSid, int code, @NotNull String desc) {
 		sendKick(sender, linkSid, code, desc, BKick.eControlClose);
 	}
 
-	public static void sendKick(AsyncSocket sender, long linkSid, int code, @NotNull String desc, int control) {
-		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
-			logger.info("sendKick[{}]: linkSid={}, code={}, desc={}", sender.getSessionId(), linkSid, code, desc);
+	public static void sendKick(@Nullable AsyncSocket sender, long linkSid, int code, @NotNull String desc,
+								int control) {
+		if (!AsyncSocket.ENABLE_PROTOCOL_LOG) {
+			logger.info("sendKick[{}]: linkSid={}, code={}, desc={}",
+					sender != null ? sender.getSessionId() : null, linkSid, code, desc);
+		}
 		new Kick(new BKick.Data(linkSid, code, desc, control)).Send(sender);
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public ProviderUserSession newSession(Dispatch p) {
+	public ProviderUserSession newSession(@NotNull Dispatch p) {
 		return new ProviderUserSession(p);
 	}
 
@@ -206,7 +209,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 	}
 
-	private long processRpcResponse(OutObject<Rpc<?, ?>> outRpcContext, Protocol<?> p3) throws Exception {
+	private long processRpcResponse(@NotNull OutObject<Rpc<?, ?>> outRpcContext, @NotNull Protocol<?> p3)
+			throws Exception {
 		var res = (Rpc<?, ?>)p3;
 		// 获取context并保存下来，redo的时候继续使用。
 		if (outRpcContext.value == null) {
