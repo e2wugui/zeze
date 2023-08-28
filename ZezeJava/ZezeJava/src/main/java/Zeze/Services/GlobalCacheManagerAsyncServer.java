@@ -847,7 +847,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					cs.acquireStatePending = StateInvalid;
 					cs.lock.notifyAllWait();
 					if (ENABLE_PERF)
-						perf.onOthers("XXX 10 " + StateModify);
+						perf.onOthers("XXX 10 " + StateModify + ' ' + errorFreshAcquire.value);
 					// logger.error("XXX 10 {} {} {}", sender, StateModify, cs);
 					rpc.Result.state = StateInvalid;
 					if (errorFreshAcquire.value)

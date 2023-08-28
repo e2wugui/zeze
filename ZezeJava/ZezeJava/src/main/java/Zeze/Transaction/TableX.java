@@ -378,7 +378,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		K key = decodeKey(bbKey);
 		var lockey = getZeze().getLocks().get(new TableKey(getId(), key));
+		var timeBegin = System.nanoTime();
 		lockey.enterWriteLock();
+		if (System.nanoTime() - timeBegin >= 3_000_000_000L) {
+			logger.warn("reduceInvalid wait lockey write lock too long! table={}, key={}, time={}ms",
+					getName(), key, (System.nanoTime() - timeBegin) / 1_000_000);
+		}
 		try {
 			var r = cache.get(key);
 			if (isTraceEnabled)
@@ -390,7 +395,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				rpc.SendResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
 				return 0;
 			}
+			timeBegin = System.nanoTime();
 			r.enterFairLock();
+			if (System.nanoTime() - timeBegin >= 3_000_000_000L) {
+				logger.warn("reduceInvalid wait record lock too long! table={}, key={}, time={}ms",
+						getName(), key, (System.nanoTime() - timeBegin) / 1_000_000);
+			}
 			try {
 				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
 					if (isTraceEnabled)
