@@ -9,15 +9,15 @@ import Zeze.Transaction.*;
 import Game.*;
 import Zeze.Transaction.Collections.LogMap2;
 import Zeze.Util.OutInt;
+import org.jetbrains.annotations.NotNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 /**
- * todo 这是初始版本。
+ * todo 这是Hot版本。
  */
 
 public final class ModuleEquip extends AbstractModule implements IModuleEquip {
@@ -129,14 +129,14 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		}
 	}
 
-	private void accessWillRemoveTable() {
+	private void accessWillAddTable() {
 		// 访问一下将被热更删除的表。
-		var rremove = _tHotRemove.getOrAdd(1L);
+		var rremove = _tHotAdd.getOrAdd(1L);
 		rremove.setAttack(123);
 	}
 
-	private static void accessWillRemoveVar(BEquipExtra record) {
-		record.setHotRemoveVar(record.getHotRemoveVar() + 1); // 访问将被删除的变量。
+	private static void accessWillAddVar(BEquipExtra record) {
+		record.setHotAddVar(record.getHotAddVar() + 1); // 访问将被删除的变量。
 	}
 
 	private void verifyCollections(int oldAccess) {
@@ -175,12 +175,12 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	public int hotHelloWorld(int oldAccess) {
 		var version = new OutInt(oldAccess);
 		App.Zeze.newProcedure(() -> {
-			accessWillRemoveTable();
+			accessWillAddTable();
 
 			var record = _tHotTest.getOrAdd(1L);
 			record.setAttack(record.getAttack() + 1);
 
-			accessWillRemoveVar(record);
+			accessWillAddVar(record);
 
 			verifyOnlineLocal(oldAccess);
 			verifyOnlineUserData(oldAccess);
@@ -422,11 +422,11 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
     protected long ProcessSendHotRequest(Game.Equip.SendHot r) {
 		var session = ProviderUserSession.get(r);
 		session.sendResponseDirect(r);
-        return 0;
+		return 0;
     }
 
     @Override
-    protected long ProcessSendHotRemoveRequest(Game.Equip.SendHotRemove r) {
+    protected long ProcessSendHotAddRequest(Game.Equip.SendHotAdd r) {
 		var session = ProviderUserSession.get(r);
 		session.sendResponseDirect(r);
 		return 0;

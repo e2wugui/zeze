@@ -36,7 +36,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 			var ibuf = mc.getService();
 			var buf = (BBuf)context.customData;
 			if (buf.getId() != ibuf.getCounter().get())
-				throw new RuntimeException("");
+				throw new RuntimeException("buf " + buf.getId() + ":" + ibuf.getCounter().get());
 			var id = ibuf.getCounter().incrementAndGet();
 			buf.setId(id);
 		}

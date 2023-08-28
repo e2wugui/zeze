@@ -37,7 +37,7 @@ public class HotUpgradeMemoryTable {
 				v.encode(bbValue);
 				var newValue = cur.newValueBean();
 				newValue.decode(bbValue);
-				logger.info("retreat: " + newKey + " " + newValue);
+				//logger.info("retreat: " + newKey + " " + newValue);
 				cur.__direct_put_cache__(newKey, newValue);
 				return true;
 			});
