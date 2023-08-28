@@ -19,6 +19,7 @@ import java.util.zip.ZipEntry;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
+import Zeze.Arch.ProviderService;
 import Zeze.Collections.BeanFactory;
 import Zeze.IModule;
 import Zeze.Schemas;
@@ -271,13 +272,15 @@ public class HotManager extends ClassLoader {
 				}
 			}
 			// install
-			for (var namespace : namespaces)
+			for (var namespace : namespaces) {
 				result.add(_install(namespace));
+			}
 			// batch load redirect
 			var iModules = createModuleInstance(result);
 			app.getZeze().__install_alter__();
 
 			var hotJarFiles = new ArrayList<JarFile>();
+			var newModules = new ArrayList<HotModule>();
 			for (var ii = 0; ii < iModules.length; ++ii) {
 				var exist = exists.get(ii);
 				var module = result.get(ii);
@@ -292,11 +295,14 @@ public class HotManager extends ClassLoader {
 					} catch (Throwable anyError) {
 						logger.error("todo some rollback need.", anyError);
 					}
+				} else {
+					newModules.add(module);
 				}
 			}
 			// internal upgrade
-			for (var hotUpgrade : freshHotUpgrades)
+			for (var hotUpgrade : freshHotUpgrades) {
 				hotUpgrade.upgrade((bean) -> retreat(exists, result, bean));
+			}
 			// upgrade user memory table
 			for (var table : app.getZeze().__get_upgrade_memory_table__()) {
 				table.upgrade();
@@ -313,8 +319,14 @@ public class HotManager extends ClassLoader {
 			}
 
 			// start ordered
-			for (var module : result)
+			for (var module : result) {
 				module.start();
+			}
+
+			for (var module : newModules) {
+				var moduleConfig = module.loadModuleConfig();
+				zeze.getProviderApp().providerService.addHotModule((IModule)module.getService(), moduleConfig);
+			}
 			return result;
 		} finally {
 			upgrading = false;

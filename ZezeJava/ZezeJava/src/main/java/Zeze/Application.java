@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Arch.ProviderApp;
 import Zeze.Arch.RedirectBase;
 import Zeze.Component.AutoKey;
 import Zeze.Component.AutoKeyOld;
@@ -174,9 +175,18 @@ public final class Application {
 	}
 
 	private AppBase appBase;
+	private ProviderApp providerApp; // maybe null
 
 	public AppBase getAppBase() {
 		return appBase;
+	}
+
+	public ProviderApp getProviderApp() {
+		return providerApp;
+	}
+
+	public void setProviderApp(ProviderApp providerApp) {
+		this.providerApp = providerApp;
 	}
 
 	public synchronized void initialize(@NotNull AppBase app) {

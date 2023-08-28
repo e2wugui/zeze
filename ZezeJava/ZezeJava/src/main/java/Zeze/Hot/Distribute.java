@@ -16,8 +16,11 @@ import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
+import Zeze.Builtin.Provider.BModule;
 import Zeze.Config;
-import Zeze.Util.IntHashMap;
+import Zeze.IModule;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.Task;
 
 public class Distribute {
 	private final String classesDir;
@@ -68,12 +71,6 @@ public class Distribute {
 			projectJar = null;
 		}
 
-		for (var e : hotModuleJars.entrySet()) {
-			//System.out.println(e.getKey() + " ---- close");
-			e.getValue().close();
-		}
-		hotModuleJars.clear();
-
 		var schemasManifest = new Manifest();
 		var schemasJarFile = Path.of(workingDir, HotManager.SchemasPrefix + solutionName + HotManager.SchemasSuffix).toFile();
 		try (var schemasJar = new JarOutputStream(new FileOutputStream(schemasJarFile), schemasManifest)) {
@@ -94,9 +91,9 @@ public class Distribute {
 				var providerApp = new ProviderApp(appBase.getZeze());
 				appBase.createModules();
 				providerApp.buildProviderModuleBinds(ProviderModuleBinds.load(providerModuleBinds), appBase.getModules());
-				// todo 打包配置到module.jar里面，前面的关闭需要移到后面。
+				// 打包配置到module.jar里面，前面的关闭需要移到后面。
 				providerApp.modules.foreach((key, value) -> {
-					System.out.println(key + " " + value);
+					packModuleConfig(findModule(appBase, key), value);
 				});
 			}
 			else {
@@ -105,6 +102,37 @@ public class Distribute {
 		} else {
 			System.out.println("-providerModuleBinds or -config not present, skip module config.");
 		}
+
+		for (var e : hotModuleJars.entrySet()) {
+			//System.out.println(e.getKey() + " ---- close");
+			e.getValue().close();
+		}
+		hotModuleJars.clear();
+	}
+
+	private void packModuleConfig(IModule module, BModule.Data config) {
+		try {
+			var moduleJar = hotModuleJars.get(module.getFullName());
+			if (null == moduleJar)
+				return;
+
+			var classFile = HotModule.eModuleConfigName;
+			var entry = new ZipEntry(classFile);
+			moduleJar.putNextEntry(entry);
+			var bbConfig = ByteBuffer.Allocate();
+			config.encode(bbConfig);
+			moduleJar.write(bbConfig.Bytes, bbConfig.ReadIndex, bbConfig.size());
+		} catch (Exception ex) {
+			Task.forceThrow(ex);
+		}
+	}
+
+	private static IModule findModule(AppBase appBase, int moduleId) {
+		for (var module : appBase.getModules().values()) {
+			if (module.getId() == moduleId)
+				return module;
+		}
+		return null;
 	}
 
 	public static void main(String [] args) throws Exception {

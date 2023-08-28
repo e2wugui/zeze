@@ -48,6 +48,7 @@ public class ProviderApp {
 					   @NotNull String linkdNameOnServiceManager,
 					   @NotNull LoadConfig loadConfig) {
 		this.zeze = zeze;
+		this.zeze.setProviderApp(this);
 		this.zeze.redirect = new RedirectBase(this);
 
 		this.providerImplement = server;
@@ -103,6 +104,7 @@ public class ProviderApp {
 	 */
 	public ProviderApp(Application zeze) throws Exception {
 		this.zeze = zeze;
+		this.zeze.setProviderApp(this);
 		this.zeze.redirect = new RedirectBase(this);
 		this.providerImplement = null;
 		this.providerService = new ProviderService("fakeProviderService", this.zeze);

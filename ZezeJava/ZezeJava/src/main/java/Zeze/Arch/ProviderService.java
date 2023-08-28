@@ -179,6 +179,8 @@ public class ProviderService extends HandshakeClient {
 	}
 
 	// 热更新增模块。
+	// 1. 热更才会调用；
+	// 2. 只有新增模块才会调用；
 	public void addHotModule(IModule module, BModule.Data config) {
 		{
 			// 全局数据更新

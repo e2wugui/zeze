@@ -6,7 +6,9 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
+import Zeze.Builtin.Provider.BModule;
 import Zeze.IModule;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action1;
 import Zeze.Util.ConcurrentHashSet;
 import org.apache.logging.log4j.LogManager;
@@ -133,6 +135,19 @@ public class HotModule extends ClassLoader implements Closeable {
 			return defineClass(className, bytes, 0, bytes.length);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	public final static String eModuleConfigName = "META-INF/module.config";
+
+	public BModule.Data loadModuleConfig() throws Exception {
+		var entry = jar.getEntry(eModuleConfigName);
+		try (var inputStream = jar.getInputStream(entry)) {
+			var bytes = inputStream.readAllBytes();
+			var bbConfig = ByteBuffer.Wrap(bytes);
+			var config = new BModule.Data();
+			config.decode(bbConfig);
+			return config;
 		}
 	}
 
