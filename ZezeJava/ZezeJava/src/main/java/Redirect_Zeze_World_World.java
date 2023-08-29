@@ -4,7 +4,7 @@ public class Redirect_Zeze_World_World extends Zeze.World.World {
 
     @Override
     public void redirectToServer(int serverId) {
-        var _t_ = _redirect_.choiceServer(this, serverId);
+        var _t_ = _redirect_.choiceServer(this, serverId, false);
         if (_t_ == null) { // local: loop-back
             _redirect_.runVoid(Zeze.Transaction.TransactionLevel.Serializable,
                 () -> super.redirectToServer(serverId));

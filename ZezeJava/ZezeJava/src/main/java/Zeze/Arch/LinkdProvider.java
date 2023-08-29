@@ -181,7 +181,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		if (providerModuleState.configType == BModule.ConfigTypeDefault) {
 			var staticBinds = ((LinkdProviderSession)providerSocket.getUserState()).getStaticBinds();
 			linkSession.bind(linkdApp.linkdProviderService, link, staticBinds.keySet(), providerSocket);
-			logger.info("static bind: account={}, moduleIds=[{}], provider={}, configType={}, choiceType={}",
+			logger.info("static bind: account={}, moduleIds.size={}, provider={}, configType={}, choiceType={}",
 					linkSession.account, staticBinds.size(), providerSocket.getRemoteAddress(),
 					providerModuleState.configType, providerModuleState.choiceType);
 		} else if (providerModuleState.configType == BModule.ConfigTypeSpecial) {

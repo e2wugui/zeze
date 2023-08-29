@@ -36,15 +36,23 @@ public class RedirectBase {
 	}
 
 	public @Nullable AsyncSocket choiceServer(@NotNull IModule module, int serverId) {
+		return choiceServer(module, serverId, false);
+	}
+
+	public @Nullable AsyncSocket choiceServer(@NotNull IModule module, int serverId, boolean orOtherServer) {
 		if (serverId == providerApp.zeze.getConfig().getServerId())
 			return null; // is Local
 		var ps = providerApp.providerDirectService.providerByServerId.get(serverId);
 		if (ps == null) {
+			if (orOtherServer)
+				return choiceHash(module, serverId, 1);
 			throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
 					"choiceServer: not found session for serverId=" + serverId);
 		}
 		var socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
-		if (socket == null) {
+		if (socket == null || socket.isClosed()) {
+			if (orOtherServer)
+				return choiceHash(module, serverId, 1);
 			throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
 					"choiceServer: not found socket for serverId=" + serverId);
 		}

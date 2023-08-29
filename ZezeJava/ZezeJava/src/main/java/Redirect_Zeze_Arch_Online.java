@@ -4,7 +4,7 @@ public class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
 
     @Override
     protected void redirectRemoveLocal(int serverId, String account) {
-        var _t_ = _redirect_.choiceServer(this, serverId);
+        var _t_ = _redirect_.choiceServer(this, serverId, false);
         if (_t_ == null) { // local: loop-back
             _redirect_.runVoid(Zeze.Transaction.TransactionLevel.None,
                 () -> super.redirectRemoveLocal(serverId, account));

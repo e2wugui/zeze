@@ -8,6 +8,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RedirectToServer {
+	boolean orOtherServer() default false;
+
 	int timeout() default 5000;
 
 	int version() default 0;

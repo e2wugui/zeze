@@ -387,12 +387,13 @@ public final class GenModule {
 
 	// 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。
 	private static void choiceTargetRunLoopback(StringBuilderCs sb, MethodOverride m, String returnName, String prefix) {
-		if (m.annotation instanceof RedirectHash)
+		if (m.annotation instanceof RedirectHash) {
 			sb.appendLine("{}var _t_ = _redirect_.choiceHash(this, {}, {});",
 					prefix, m.hashOrServerIdParameter.getName(), m.getConcurrentLevelSource());
-		else if (m.annotation instanceof RedirectToServer)
-			sb.appendLine("{}var _t_ = _redirect_.choiceServer(this, {});", prefix, m.hashOrServerIdParameter.getName());
-		else if (m.annotation instanceof RedirectAll)
+		} else if (m.annotation instanceof RedirectToServer) {
+			sb.appendLine("{}var _t_ = _redirect_.choiceServer(this, {}, {});",
+					prefix, m.hashOrServerIdParameter.getName(), ((RedirectToServer)m.annotation).orOtherServer());
+		} else if (m.annotation instanceof RedirectAll)
 			return; // RedirectAll 不在这里选择目标服务器。后面发送的时候直接查找所有可用服务器并进行广播。
 
 		sb.appendLine("{}if (_t_ == null) { // local: loop-back", prefix);
