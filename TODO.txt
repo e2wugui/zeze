@@ -44,8 +44,11 @@ HotManager 错误处理。
 Rank 加强。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/9/8 v1.3.2 Hot; 
+2023/9/8 v1.3.2 Hot; Online.Local;
 ------------------------------------------------------------------------------------------------------------------------------
+Online.setLocalBean,getOrAddLocalBean 限制只能在线时设置。
+TimerRole.cancel 需要检查数据状态决定操作，getOrAddLocalBean改成getLocalBean。
+Online.verifyLocal 增加功能，检测是否在linkd上存在session。Local.activeTime.
 Hot Memory 表格修改测试；Memory改成非，或反之测试。
 Hot install new module need register sm,还需要module config  choice type.
 
