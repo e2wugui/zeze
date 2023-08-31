@@ -427,13 +427,19 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return transmitActions;
 	}
 
-	public <T extends Bean> void setLocalBean(long roleId, @NotNull String key, @NotNull T bean) {
+	private BLocal getLoginLocal(long roleId) {
 		var bLocal = _tlocal.get(roleId);
-		if (null == bLocal)
-			throw new IllegalStateException("roleId not online. " + roleId);
+		if (null == bLocal || bLocal.getLoginVersion() != getOrAddOnline(roleId).getLoginVersion())
+			throw new IllegalStateException("roleId not online or invalid version. " + roleId);
+		return bLocal;
+	}
+
+	public <T extends Bean> void setLocalBean(long roleId, @NotNull String key, @NotNull T bean) {
+		var bLocal = getLoginLocal(roleId);
 		beanFactory.register(bean);
 		var bAny = new BAny();
 		bAny.getAny().setBean(bean);
+		bLocal.getDatas().put(key, bAny);
 		if (HotManager.isHotModule(bean.getClass().getClassLoader())) {
 			var hotModule = (HotModule)bean.getClass().getClassLoader();
 			Transaction.whileCommit(() -> {
@@ -441,7 +447,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				hotModulesHaveLocal.add(hotModule);
 			});
 		}
-		bLocal.getDatas().put(key, bAny);
 	}
 
 	public void removeLocalBean(long roleId, @NotNull String key) {
@@ -464,7 +469,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	@SuppressWarnings("unchecked")
 	public <T extends Bean> @NotNull T getOrAddLocalBean(long roleId, @NotNull String key, @NotNull T defaultHint) {
-		var bLocal = _tlocal.getOrAdd(roleId);
+		var bLocal = getLoginLocal(roleId);
 		var data = bLocal.getDatas().getOrAdd(key);
 		if (data.getAny().getBean().typeId() == defaultHint.typeId())
 			return (T)data.getAny().getBean();

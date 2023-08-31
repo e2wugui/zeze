@@ -270,18 +270,22 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return transmitActions;
 	}
 
-	public void setLocalBean(@NotNull String account, @NotNull String clientId, @NotNull String key, @NotNull Bean bean) {
+	private BLocal getLoginLocal(@NotNull String account, @NotNull String clientId) {
 		var bLocals = _tlocal.get(account);
 		if (bLocals == null)
-			throw new IllegalStateException("roleId not online. " + account);
-		var login = bLocals.getLogins().get(clientId);
-		if (login == null) {
-			login = new BLocal();
-			if (bLocals.getLogins().put(clientId, login) != null)
-				throw new IllegalStateException("duplicate clientId:" + clientId);
-		}
+			throw new IllegalStateException("account not online. " + account);
+		var bLoginLocal = bLocals.getLogins().get(clientId);
+		if (bLoginLocal == null || bLoginLocal.getLoginVersion()
+				!= getOrAddOnline(account).getLogins().getOrAdd(clientId).getLoginVersion())
+			throw new IllegalStateException("account.client not online. " + account + "." + clientId);
+		return bLoginLocal;
+	}
+
+	public void setLocalBean(@NotNull String account, @NotNull String clientId, @NotNull String key, @NotNull Bean bean) {
+		var login = getLoginLocal(account, clientId);
 		var bAny = new BAny();
 		bAny.getAny().setBean(bean);
+		login.getDatas().put(key, bAny);
 		if (HotManager.isHotModule(bean.getClass().getClassLoader())) {
 			var hotModule = (HotModule)bean.getClass().getClassLoader();
 			Transaction.whileCommit(() -> {
@@ -289,7 +293,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				hotModulesHaveLocal.add(hotModule);
 			});
 		}
-		login.getDatas().put(key, bAny);
 	}
 
 	public void removeLocalBean(@NotNull String account, @NotNull String clientId, @NotNull String key) {
@@ -318,8 +321,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	@SuppressWarnings("unchecked")
 	public <T extends Bean> T getOrAddLocalBean(@NotNull String account, @NotNull String clientId, String key, @NotNull T defaultHint) {
-		var bLocals = _tlocal.getOrAdd(account);
-		var login = bLocals.getLogins().getOrAdd(clientId);
+		var login = getLoginLocal(account, clientId);
 		var bAny = login.getDatas().getOrAdd(key);
 		if (bAny.getAny().getBean().typeId() == defaultHint.typeId())
 			return (T)bAny.getAny().getBean();
@@ -1462,7 +1464,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var online = getOrAddOnline(session.getAccount());
 		var local = _tlocal.getOrAdd(session.getAccount());
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
-		var loginVersion = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 
 		var onlineAccount = online.getAccount();
@@ -1472,9 +1473,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		else if (!onlineAccount.equals(session.getAccount()))
 			return Procedure.LogicError;
 
-		if (isBound && loginVersion.getLoginVersion() != loginVersion.getLogoutVersion()) {
+		if (isBound && loginOnline.getLoginVersion() != loginOnline.getLogoutVersion()) {
 			// login exist
-			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
+			loginOnline.setLogoutVersion(loginOnline.getLoginVersion());
 
 			var link = loginOnline.getLink();
 			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
@@ -1493,10 +1494,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		// 开始登录流程，先准备 link-state。
 		var loginVersionSerialId = online.getLastLoginVersion() + 1;
 		online.setLastLoginVersion(loginVersionSerialId);
-		loginVersion.setLoginVersion(loginVersionSerialId);
+		loginOnline.setLoginVersion(loginVersionSerialId);
 		loginLocal.setLoginVersion(loginVersionSerialId);
 
-		loginVersion.setLink(new BLink(session.getLinkName(), session.getLinkSid(), eLogined));
+		loginOnline.setLink(new BLink(session.getLinkName(), session.getLinkSid(), eLogined));
 
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
@@ -1506,13 +1507,13 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
-		loginVersion.setReliableNotifyConfirmIndex(0);
-		loginVersion.setReliableNotifyIndex(0);
-		loginVersion.getReliableNotifyMark().clear();
+		loginOnline.setReliableNotifyConfirmIndex(0);
+		loginOnline.setReliableNotifyIndex(0);
+		loginOnline.getReliableNotifyMark().clear();
 		openQueue(session.getAccount(), rpc.Argument.getClientId()).clear();
 
 		// var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
-		loginVersion.setServerId(providerApp.zeze.getConfig().getServerId());
+		loginOnline.setServerId(providerApp.zeze.getConfig().getServerId());
 
 		session.sendResponseWhileCommit(rpc);
 		return loginTrigger(session.getAccount(), rpc.Argument.getClientId());
@@ -1538,7 +1539,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var online = getOrAddOnline(session.getAccount());
 		var local = _tlocal.getOrAdd(session.getAccount());
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
-		var loginVersion = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 
 		var onlineAccount = online.getAccount();
@@ -1548,9 +1548,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		else if (!onlineAccount.equals(session.getAccount()))
 			return Procedure.LogicError;
 
-		if (isBound && loginVersion.getLoginVersion() != loginVersion.getLogoutVersion()) {
+		if (isBound && loginOnline.getLoginVersion() != loginOnline.getLogoutVersion()) {
 			// login exist
-			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
+			loginOnline.setLogoutVersion(loginOnline.getLoginVersion());
 			var link = loginOnline.getLink();
 			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
 				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
@@ -1568,10 +1568,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		// 开始登录流程，先准备 link-state。
 		var loginVersionSerialId = online.getLastLoginVersion() + 1;
 		online.setLastLoginVersion(loginVersionSerialId);
-		loginVersion.setLoginVersion(loginVersionSerialId);
+		loginOnline.setLoginVersion(loginVersionSerialId);
 		loginLocal.setLoginVersion(loginVersionSerialId);
 
-		loginVersion.setLink(new BLink(session.getLinkName(), session.getLinkSid(), eLogined));
+		loginOnline.setLink(new BLink(session.getLinkName(), session.getLinkSid(), eLogined));
 
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
@@ -1581,7 +1581,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
-		loginVersion.setServerId(providerApp.zeze.getConfig().getServerId());
+		loginOnline.setServerId(providerApp.zeze.getConfig().getServerId());
 
 		/////////////////////////////////////////////////////////////
 		// 先发结果，再发送同步数据（ReliableNotifySync）。

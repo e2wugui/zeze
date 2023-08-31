@@ -402,18 +402,23 @@ public class TimerRole {
 
 		var timer = online.providerApp.zeze.getTimer();
 
+		// always cancel future task，第一步就做这个。
+		timer.cancelFuture(timerId);
+
 		// remove online timer
-		var bTimer = online._tRoleTimers().get(timerId);
+		var bTimer = online._tRoleTimers().get(timerId); // table.remove现在不能返回旧值，只能这样写。
 		if (null == bTimer)
 			return false;
 
 		// remove online local
-		var onlineTimers = online.getOrAddLocalBean(bTimer.getRoleId(), eOnlineTimers, new BOnlineTimers());
-		onlineTimers.getTimerIds().remove(timerId);
+		var onlineTimers = (BOnlineTimers)online.getLocalBean(bTimer.getRoleId(), eOnlineTimers);
+		if (null != onlineTimers) {
+			onlineTimers.getTimerIds().remove(timerId);
+			if (onlineTimers.getTimerIds().isEmpty())
+				online.removeLocalBean(bTimer.getRoleId(), eOnlineTimers);
+		}
+		// always remove from table.
 		online._tRoleTimers().remove(timerId);
-
-		// cancel future task
-		timer.cancelFuture(timerId);
 		return true;
 	}
 

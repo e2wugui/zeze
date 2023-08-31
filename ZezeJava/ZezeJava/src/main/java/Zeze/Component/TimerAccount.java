@@ -284,19 +284,24 @@ public class TimerAccount {
 
 	public boolean cancel(String timerId) {
 		var timer = online.providerApp.zeze.getTimer();
+		// always cancel future task. 第一步就做这个。
+		timer.cancelFuture(timerId);
+
 		// remove online timer
 		var bTimer = timer.tAccountTimers().get(timerId);
 		if (null == bTimer)
 			return false;
 
 		// remove online local
-		var onlineTimers = online.getOrAddLocalBean(bTimer.getAccount(), bTimer.getClientId(),
-				eOnlineTimers, new BOnlineTimers());
-		onlineTimers.getTimerIds().remove(timerId);
+		var onlineTimers = (BOnlineTimers)online.getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
+		if (null != onlineTimers) {
+			onlineTimers.getTimerIds().remove(timerId);
+			if (onlineTimers.getTimerIds().isEmpty())
+				online.removeLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
+		}
+		// always remove.
 		timer.tAccountTimers().remove(timerId);
 
-		// cancel future task
-		timer.cancelFuture(timerId);
 		return true;
 	}
 
