@@ -674,13 +674,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	public long linkBroken(@NotNull String account, long roleId,
 						   @NotNull String linkName, long linkSid) throws Exception {
 		var online = getOrAddOnline(roleId);
-		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
-		var link = online.getLink();
-		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid) {
-			logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={} != linkName={}, linkSid={}",
-					multiInstanceName, account, roleId, linkName, linkSid, link.getLinkName(), link.getLinkSid());
-			return 0;
-		}
 
 		var local = _tlocal.get(roleId);
 		if (local == null) {
@@ -689,15 +682,26 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			return 0; // 不在本机登录。
 		}
 
-		online.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
+		// 本机数据已经过时，马上删除。
 		if (local.getLoginVersion() != online.getLoginVersion()) {
-			var ret = removeLocalAndTrigger(roleId); // 本机数据已经过时，马上删除。
+			var ret = removeLocalAndTrigger(roleId);
 			if (ret != 0) {
 				logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={}, removeLocalAndTrigger={}",
 						multiInstanceName, account, roleId, linkName, linkSid, ret);
 				return ret;
 			}
 		}
+
+		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
+		var link = online.getLink();
+		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid) {
+			logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={} != linkName={}, linkSid={}",
+					multiInstanceName, account, roleId, linkName, linkSid, link.getLinkName(), link.getLinkSid());
+			return 0;
+		}
+
+
+		online.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
 
 		var ret = linkBrokenTrigger(account, roleId);
 		// for shorter use
