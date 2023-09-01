@@ -11,19 +11,26 @@ public final class SnowflakeId {
 	private static final long SEQUENCE_MAX = (1L << SEQUENCE_BITS) - 1;
 	private static final long TIMESTAMP_MAX = (1L << (63 - SERVERID_BITS - SEQUENCE_BITS)) - 1;
 
-	private static long serverId;
-	private static long lastTimestamp;
-	private static long sequence;
+	private long serverId;
+	private long lastTimestamp;
+	private long sequence;
 
-	public static synchronized void setServerId(long serverId) {
-		if (serverId < 0 || serverId >= SERVERID_MAX)
-			throw new IllegalArgumentException("serverId(" + serverId + ") is out of range[0," + SERVERID_MAX + ']');
-		if (lastTimestamp != 0 && SnowflakeId.serverId != serverId)
-			throw new IllegalArgumentException("can not setServerId(" + serverId + ") after gen()");
-		SnowflakeId.serverId = serverId;
+	public SnowflakeId() {
 	}
 
-	public static synchronized long gen() {
+	public SnowflakeId(long serverId) {
+		setServerId(serverId);
+	}
+
+	public synchronized void setServerId(long serverId) {
+		if (serverId < 0 || serverId >= SERVERID_MAX)
+			throw new IllegalArgumentException("serverId(" + serverId + ") is out of range[0," + SERVERID_MAX + ']');
+		if (lastTimestamp != 0 && this.serverId != serverId)
+			throw new IllegalArgumentException("can not setServerId(" + serverId + ") after gen()");
+		this.serverId = serverId;
+	}
+
+	public synchronized long gen() {
 		long timestamp = System.currentTimeMillis() - TIMESTAMP_BASE;
 		if (timestamp <= lastTimestamp) {
 			timestamp = lastTimestamp;
@@ -38,8 +45,5 @@ public final class SnowflakeId {
 		if (timestamp > TIMESTAMP_MAX)
 			throw new IllegalStateException("timestamp overflow: " + timestamp);
 		return (timestamp << (SERVERID_BITS + SEQUENCE_BITS)) + (serverId << SEQUENCE_BITS) + sequence;
-	}
-
-	private SnowflakeId() {
 	}
 }
