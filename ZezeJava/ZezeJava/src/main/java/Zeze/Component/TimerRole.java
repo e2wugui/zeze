@@ -11,6 +11,7 @@ import Zeze.Builtin.Timer.BCronTimer;
 import Zeze.Builtin.Timer.BGameOnlineTimer;
 import Zeze.Builtin.Timer.BOnlineTimers;
 import Zeze.Builtin.Timer.BSimpleTimer;
+import Zeze.Hot.HotHandle;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
@@ -184,6 +185,7 @@ public class TimerRole {
 				p.setSimpleTimer(simpleTimer);
 				p.setHandleClass(name.getClass().getName());
 				p.setLoginVersion(loginOnline.getLoginVersion());
+				p.setHot(false);
 				if (null != customData) {
 					p.setCustomClass(customData.getClass().getName());
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
@@ -220,6 +222,7 @@ public class TimerRole {
 				p.setSimpleTimer(simpleTimer);
 				p.setHandleClass(name.getName());
 				p.setLoginVersion(loginOnline.getLoginVersion());
+				p.setHot(true);
 				if (null != customData) {
 					p.setCustomClass(customData.getClass().getName());
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
@@ -285,16 +288,21 @@ public class TimerRole {
 
 		var loginOnline = online.getLoginOnline(target);
 		if (null != loginOnline && p.getLoginVersion() == loginOnline.getLoginVersion()) {
-			var handleClass = Class.forName(p.getHandleClass());
-			var handle = handleClass.getDeclaredConstructor().newInstance();
 			Bean custom = null;
 			if (!p.getCustomClass().isEmpty()) {
 				var customClass = Class.forName(p.getCustomClass());
 				custom = (Bean)customClass.getDeclaredConstructor().newInstance();
 				custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
 			}
-
-			scheduleOnline(sender, p.getTimerId(), p.getCronTimer(), (TimerHandle)handle, custom);
+			if (p.isHot()) {
+				@SuppressWarnings("unchecked")
+				var handleClass = (Class<TimerHandle>)HotHandle.findClass(online.providerApp.zeze, p.getHandleClass());
+				scheduleOnlineHot(sender, p.getTimerId(), p.getCronTimer(), handleClass, custom);
+			} else {
+				var handleClass = Class.forName(p.getHandleClass());
+				var handle = handleClass.getDeclaredConstructor().newInstance();
+				scheduleOnline(sender, p.getTimerId(), p.getCronTimer(), (TimerHandle)handle, custom);
+			}
 		}
 		return 0;
 	}
@@ -308,16 +316,21 @@ public class TimerRole {
 
 		var loginOnline = online.getLoginOnline(target);
 		if (null != loginOnline && p.getLoginVersion() == loginOnline.getLoginVersion()) {
-			var handleClass = Class.forName(p.getHandleClass());
-			var handle = handleClass.getDeclaredConstructor().newInstance();
 			Bean custom = null;
 			if (!p.getCustomClass().isEmpty()) {
 				var customClass = Class.forName(p.getCustomClass());
 				custom = (Bean)customClass.getDeclaredConstructor().newInstance();
 				custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
 			}
-
-			scheduleOnline(sender, p.getTimerId(), p.getSimpleTimer(), (TimerHandle)handle, custom);
+			if (p.isHot()) {
+				@SuppressWarnings("unchecked")
+				var handleClass = (Class<TimerHandle>)HotHandle.findClass(online.providerApp.zeze, p.getHandleClass());
+				scheduleOnlineHot(sender, p.getTimerId(), p.getSimpleTimer(), handleClass, custom);
+			} else {
+				var handleClass = Class.forName(p.getHandleClass());
+				var handle = handleClass.getDeclaredConstructor().newInstance();
+				scheduleOnline(sender, p.getTimerId(), p.getSimpleTimer(), (TimerHandle)handle, custom);
+			}
 		}
 		return 0;
 	}
@@ -334,6 +347,7 @@ public class TimerRole {
 				p.setCronTimer(cronTimer);
 				p.setHandleClass(name.getClass().getName());
 				p.setLoginVersion(loginOnline.getLoginVersion());
+				p.setHot(false);
 				if (null != customData) {
 					p.setCustomClass(customData.getClass().getName());
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
@@ -371,6 +385,7 @@ public class TimerRole {
 				p.setCronTimer(cronTimer);
 				p.setHandleClass(name.getName());
 				p.setLoginVersion(loginOnline.getLoginVersion());
+				p.setHot(true);
 				if (null != customData) {
 					p.setCustomClass(customData.getClass().getName());
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));

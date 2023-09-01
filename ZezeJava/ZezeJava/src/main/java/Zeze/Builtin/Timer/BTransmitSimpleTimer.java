@@ -13,6 +13,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
     private String _CustomClass;
     private Zeze.Net.Binary _CustomBean;
     private long _LoginVersion;
+    private boolean _Hot;
 
     @Override
     public String getTimerId() {
@@ -135,6 +136,26 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         txn.putLog(new Log__LoginVersion(this, 6, value));
     }
 
+    @Override
+    public boolean isHot() {
+        if (!isManaged())
+            return _Hot;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Hot;
+        var log = (Log__Hot)txn.getLog(objectId() + 7);
+        return log != null ? log.value : _Hot;
+    }
+
+    public void setHot(boolean value) {
+        if (!isManaged()) {
+            _Hot = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Hot(this, 7, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BTransmitSimpleTimer() {
         _TimerId = "";
@@ -146,7 +167,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
     }
 
     @SuppressWarnings("deprecation")
-    public BTransmitSimpleTimer(String _TimerId_, String _HandleClass_, String _CustomClass_, Zeze.Net.Binary _CustomBean_, long _LoginVersion_) {
+    public BTransmitSimpleTimer(String _TimerId_, String _HandleClass_, String _CustomClass_, Zeze.Net.Binary _CustomBean_, long _LoginVersion_, boolean _Hot_) {
         if (_TimerId_ == null)
             _TimerId_ = "";
         _TimerId = _TimerId_;
@@ -162,6 +183,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
             _CustomBean_ = Zeze.Net.Binary.Empty;
         _CustomBean = _CustomBean_;
         _LoginVersion = _LoginVersion_;
+        _Hot = _Hot_;
     }
 
     @Override
@@ -172,6 +194,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         setCustomClass("");
         setCustomBean(Zeze.Net.Binary.Empty);
         setLoginVersion(0);
+        setHot(false);
         _unknown_ = null;
     }
 
@@ -182,6 +205,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         setCustomClass(other.getCustomClass());
         setCustomBean(other.getCustomBean());
         setLoginVersion(other.getLoginVersion());
+        setHot(other.isHot());
         _unknown_ = other._unknown_;
     }
 
@@ -242,6 +266,13 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         public void commit() { ((BTransmitSimpleTimer)getBelong())._LoginVersion = value; }
     }
 
+    private static final class Log__Hot extends Zeze.Transaction.Logs.LogBool {
+        public Log__Hot(BTransmitSimpleTimer bean, int varId, boolean value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BTransmitSimpleTimer)getBelong())._Hot = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -260,7 +291,8 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         sb.append(Zeze.Util.Str.indent(level)).append("HandleClass=").append(getHandleClass()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("CustomClass=").append(getCustomClass()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("CustomBean=").append(getCustomBean()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion=").append(getLoginVersion()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion=").append(getLoginVersion()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Hot=").append(isHot()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -338,6 +370,13 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            boolean _x_ = isHot();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -369,6 +408,10 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         }
         if (_i_ == 6) {
             setLoginVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            setHot(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -409,6 +452,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
                 case 4: _CustomClass = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 5: _CustomBean = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
                 case 6: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 7: _Hot = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
             }
         }
     }
@@ -432,6 +476,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         if (getCustomBean() == null)
             setCustomBean(Zeze.Net.Binary.Empty);
         setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
+        setHot(rs.getBoolean(_parents_name_ + "Hot"));
     }
 
     @Override
@@ -445,6 +490,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         st.appendString(_parents_name_ + "CustomClass", getCustomClass());
         st.appendBinary(_parents_name_ + "CustomBean", getCustomBean());
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
+        st.appendBoolean(_parents_name_ + "Hot", isHot());
     }
 
     @Override
@@ -456,6 +502,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "CustomClass", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "CustomBean", "binary", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "LoginVersion", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Hot", "bool", "", ""));
         return vars;
     }
 }

@@ -18,6 +18,13 @@ public class HotHandle<THandle> {
 		}
 	}
 
+	public static Class<?> findClass(Application zeze, String handleClassName) throws Exception {
+		return (null == zeze.getHotManager())
+				? Class.forName(handleClassName)
+				: zeze.getHotManager().getHotRedirect().loadClass(handleClassName);
+
+	}
+
 	@SuppressWarnings("unchecked")
 	public THandle findHandle(Application zeze, String handleClassName) throws Exception {
 		var handle = handleCache.get(handleClassName);
@@ -29,10 +36,7 @@ public class HotHandle<THandle> {
 			if (null != handle)
 				return handle;
 
-			Class<?> handleClass = (null == zeze.getHotManager())
-					? Class.forName(handleClassName)
-					: zeze.getHotManager().getHotRedirect().loadClass(handleClassName);
-
+			var handleClass = findClass(zeze, handleClassName);
 			var cl = handleClass.getClassLoader();
 			if (HotManager.isHotModule(cl)) {
 				var hotModule = (HotModule)cl;

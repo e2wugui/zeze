@@ -13,4 +13,5 @@ public interface BTransmitCronTimerReadOnly {
     String getCustomClass();
     Zeze.Net.Binary getCustomBean();
     long getLoginVersion();
+    boolean isHot();
 }

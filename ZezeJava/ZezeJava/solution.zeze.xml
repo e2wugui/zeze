@@ -1126,6 +1126,7 @@
 				<variable id="4" name="CustomClass" type="string"/>
 				<variable id="5" name="CustomBean" type="binary"/>
 				<variable id="6" name="LoginVersion" type="long"/>
+				<variable id="7" name="Hot" type="bool"/>
 			</bean>
 			<bean name="BTransmitSimpleTimer">
 				<variable id="1" name="TimerId" type="string"/>
@@ -1134,6 +1135,7 @@
 				<variable id="4" name="CustomClass" type="string"/>
 				<variable id="5" name="CustomBean" type="binary"/>
 				<variable id="6" name="LoginVersion" type="long"/>
+				<variable id="7" name="Hot" type="bool"/>
 			</bean>
 
 			<!-- Online Timer -->

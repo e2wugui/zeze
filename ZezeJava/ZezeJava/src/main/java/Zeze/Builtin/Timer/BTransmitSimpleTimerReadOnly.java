@@ -13,4 +13,5 @@ public interface BTransmitSimpleTimerReadOnly {
     String getCustomClass();
     Zeze.Net.Binary getCustomBean();
     long getLoginVersion();
+    boolean isHot();
 }
