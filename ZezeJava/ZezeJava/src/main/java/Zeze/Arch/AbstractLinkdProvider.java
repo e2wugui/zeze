@@ -38,6 +38,14 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
             service.AddFactoryHandle(47282408036866L, factoryHandle); // 11008, -886924798
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.CheckLinkSession.class, Zeze.Builtin.Provider.CheckLinkSession.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Provider.CheckLinkSession::new;
+            factoryHandle.Handle = this::ProcessCheckLinkSession;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCheckLinkSession", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCheckLinkSession", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47279498073324L, factoryHandle); // 11008, 498078956
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.Kick.class, Zeze.Builtin.Provider.Kick.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.Kick::new;
             factoryHandle.Handle = this::ProcessKick;
@@ -91,6 +99,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
         service.getFactorys().remove(47279202608226L);
         service.getFactorys().remove(47279114253990L);
         service.getFactorys().remove(47282408036866L);
+        service.getFactorys().remove(47279498073324L);
         service.getFactorys().remove(47283221887522L);
         service.getFactorys().remove(47281226998238L);
         service.getFactorys().remove(47281262305779L);
@@ -111,6 +120,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
     protected abstract long ProcessAnnounceProviderInfo(Zeze.Builtin.Provider.AnnounceProviderInfo p) throws Exception;
     protected abstract long ProcessBindRequest(Zeze.Builtin.Provider.Bind r) throws Exception;
     protected abstract long ProcessBroadcast(Zeze.Builtin.Provider.Broadcast p) throws Exception;
+    protected abstract long ProcessCheckLinkSession(Zeze.Builtin.Provider.CheckLinkSession p) throws Exception;
     protected abstract long ProcessKick(Zeze.Builtin.Provider.Kick p) throws Exception;
     protected abstract long ProcessSendRequest(Zeze.Builtin.Provider.Send r) throws Exception;
     protected abstract long ProcessSetDisableChoiceRequest(Zeze.Builtin.Provider.SetDisableChoice r) throws Exception;

@@ -52,7 +52,6 @@ import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongList;
 import Zeze.Util.OutObject;
-import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
@@ -170,6 +169,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	public static void register(@NotNull Class<? extends Bean> cls) {
 		beanFactory.register(cls);
 	}
+	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
+	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
 
 	protected Online(@NotNull AppBase app) {
 		var zeze = app.getZeze();
@@ -189,11 +190,27 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	public void start() {
 		load.start();
-		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal); // at 3:10 - 6:10
+		startLocalCheck();
 		providerApp.builtinModules.put(this.getFullName(), this);
 		var hotManager = providerApp.zeze.getHotManager();
 		if (null != hotManager)
 			hotManager.addHotUpgrade(this);
+	}
+
+	public synchronized void setLocalActiveTimeout(long timeout) {
+		localActiveTimeout = timeout;
+	}
+
+	public synchronized void setLocalCheckPeriod(long period) {
+		if (period <= 1)
+			throw new IllegalArgumentException();
+		localCheckPeriod = period;
+	}
+
+	private void startLocalCheck() {
+		if (verifyLocalTimer != null)
+			verifyLocalTimer.cancel(false);
+		verifyLocalTimer = Task.scheduleUnsafe(localCheckPeriod, this::verifyLocal);
 	}
 
 	public void stop() {
@@ -281,6 +298,20 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return bLoginLocal;
 	}
 
+	private final ConcurrentHashMap<String, Long> localActiveTimes = new ConcurrentHashMap<>();
+
+	private void putLocalActiveTime(String account) {
+		localActiveTimes.put(account, System.currentTimeMillis());
+	}
+
+	private void removeLocalActiveTime(String account) {
+		localActiveTimes.remove(account);
+	}
+
+	public void setLocalActiveTimeIfPresent(String account) {
+		localActiveTimes.computeIfPresent(account, (k, v) -> System.currentTimeMillis());
+	}
+
 	public void setLocalBean(@NotNull String account, @NotNull String clientId, @NotNull String key, @NotNull Bean bean) {
 		var login = getLoginLocal(account, clientId);
 		var bAny = new BAny();
@@ -341,9 +372,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (bLocals == null)
 			return 0;
 		var localData = bLocals.getLogins().remove(clientId);
-		if (bLocals.getLogins().isEmpty())
+		if (bLocals.getLogins().isEmpty()) {
 			_tlocal.remove(account); // remove first
-
+			Transaction.whileCommit(() -> removeLocalActiveTime(account));
+		}
 		if (localData != null) {
 			var arg = new LocalRemoveEventArgument(account, clientId, localData);
 
@@ -1395,22 +1427,46 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return broadcast(typeId, new Binary(p.encode()), time);
 	}
 
-	private void verifyLocal() {
-		var account = new OutObject<String>();
-		_tlocal.walkMemory((k, v) -> {
-			// 先得到roleId
-			account.value = k;
+	class VerifyBatch {
+		ArrayList<String> accounts = new ArrayList<>();
+
+		public boolean add(String account) {
+			var aTime = localActiveTimes.get(account);
+			if (null != aTime && System.currentTimeMillis() - aTime > localActiveTimeout)
+				accounts.add(account);
 			return true;
-		}, () -> {
-			// 锁外执行事务
-			try {
-				providerApp.zeze.newProcedure(() -> tryRemoveLocal(account.value), "Online.verifyLocal:" + account).call();
-			} catch (Exception e) {
-				logger.error("", e);
+		}
+
+		public void tryPerform() {
+			if (accounts.size() > 20) {
+				perform();
 			}
-		});
-		// 随机开始时间，避免验证操作过于集中。3:10 - 5:10
-		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal); // at 3:10 - 6:10
+		}
+
+		public void perform() {
+			if (!accounts.isEmpty()) {
+				try {
+					providerApp.zeze.newProcedure(() -> {
+						for (var account : accounts)
+							tryRemoveLocal(account);
+						return 0;
+					}, "Online.verifyLocal:" + accounts).call();
+					// todo CheckLinkSession
+					// sendDirect(accounts, CheckLinkSession.TypeId_, new Binary(new CheckLinkSession().encode()), true);
+				} catch (Exception e) {
+					logger.error("", e);
+				}
+				accounts.clear();
+			}
+		}
+	}
+
+	private void verifyLocal() {
+		var batch = new VerifyBatch();
+		// 锁外执行事务
+		_tlocal.walkMemory((k, v) -> batch.add(k), batch::tryPerform);
+		batch.perform();
+		startLocalCheck();
 	}
 
 	private long tryRemoveLocal(@NotNull String account) throws Exception {
@@ -1464,6 +1520,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var online = getOrAddOnline(session.getAccount());
 		var local = _tlocal.getOrAdd(session.getAccount());
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
+		Transaction.whileCommit(() -> putLocalActiveTime(session.getAccount()));
 		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 
 		var onlineAccount = online.getAccount();
@@ -1539,6 +1596,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var online = getOrAddOnline(session.getAccount());
 		var local = _tlocal.getOrAdd(session.getAccount());
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
+		Transaction.whileCommit(() -> putLocalActiveTime(session.getAccount()));
 		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 
 		var onlineAccount = online.getAccount();

@@ -13,6 +13,7 @@ import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Broadcast;
+import Zeze.Builtin.Provider.CheckLinkSession;
 import Zeze.Builtin.Provider.Kick;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
@@ -364,11 +365,14 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			var linkSid = linkSids.get(i);
 			var socket = linkdApp.linkdService.GetSocket(linkSid);
 			// ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
-			if (socket != null) {
-				if (!socket.Send(pdata))
-					socket.close();
-				if (enableDump)
-					tryDump(socket, pdata);
+			if (socket != null && !socket.isClosed()) {
+				// 探测协议不需要转发给客户端。
+				if (CheckLinkSession.TypeId_ != r.Argument.getProtocolType()) {
+					if (!socket.Send(pdata))
+						socket.close();
+					if (enableDump)
+						tryDump(socket, pdata);
+				}
 			} else
 				r.Result.getErrorLinkSids().add(linkSid);
 		}
@@ -414,6 +418,12 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			}
 		});
 		return Procedure.Success;
+	}
+
+	@Override
+	protected long ProcessCheckLinkSession(CheckLinkSession p) throws Exception {
+		// see ProcessSend，这里不需要处理。
+		return 0;
 	}
 
 	@Override

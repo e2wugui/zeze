@@ -31,6 +31,7 @@ import Zeze.Builtin.Game.Online.tRoleTimers;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.Broadcast;
+import Zeze.Builtin.Provider.CheckLinkSession;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
 import Zeze.Builtin.ProviderDirect.Transmit;
@@ -60,9 +61,7 @@ import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
-import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
-import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TransactionLevelAnnotation;
@@ -93,6 +92,24 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private boolean freshStopModuleLocal = false;
 	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
 	private boolean freshStopModuleDynamic = false;
+	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
+	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
+
+	public synchronized void setLocalActiveTimeout(long timeout) {
+		localActiveTimeout = timeout;
+	}
+
+	public synchronized void setLocalCheckPeriod(long period) {
+		if (period <= 1)
+			throw new IllegalArgumentException();
+		localCheckPeriod = period;
+	}
+
+	private void startLocalCheck() {
+		if (verifyLocalTimer != null)
+			verifyLocalTimer.cancel(false);
+		verifyLocalTimer = Task.scheduleUnsafe(localCheckPeriod, this::verifyLocal);
+	}
 
 	private void onHotModuleStop(HotModule hot) {
 		freshStopModuleLocal |= hotModulesHaveLocal.remove(hot) != null;
@@ -307,13 +324,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (defaultInstance == this) {
 			if (load != null)
 				load.start();
-			verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 			providerApp.builtinModules.put(this.getFullName(), this);
 			getProviderWithOnline().foreachOnline(online -> {
 				if (online != this)
 					online.start();
 			});
 		}
+		startLocalCheck();
 		var hotManager = providerApp.zeze.getHotManager();
 		if (null != hotManager) {
 			hotManager.addHotUpgrade(this);
@@ -338,10 +355,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			});
 			if (load != null)
 				load.stop();
-			if (verifyLocalTimer != null)
-				verifyLocalTimer.cancel(false);
 			defaultInstance = null;
 		}
+		if (verifyLocalTimer != null)
+			verifyLocalTimer.cancel(false);
 	}
 
 	@Override
@@ -434,6 +451,20 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return bLocal;
 	}
 
+	private final ConcurrentHashMap<Long, Long> localActiveTimes = new ConcurrentHashMap<>();
+
+	private void putLocalActiveTime(long roleId) {
+		localActiveTimes.put(roleId, System.currentTimeMillis());
+	}
+
+	private void removeLocalActiveTime(long roleId) {
+		localActiveTimes.remove(roleId);
+	}
+
+	public void setLocalActiveTimeIfPresent(long roleId) {
+		localActiveTimes.computeIfPresent(roleId, (k, v) -> System.currentTimeMillis());
+	}
+
 	public <T extends Bean> void setLocalBean(long roleId, @NotNull String key, @NotNull T bean) {
 		var bLocal = getLoginLocal(roleId);
 		beanFactory.register(bean);
@@ -492,6 +523,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// local 没有数据不触发事件？
 		if (null != arg.local) {
 			_tlocal.remove(roleId); // remove first
+			Transaction.whileCommit(() -> removeLocalActiveTime(roleId));
 
 			var ret = localRemoveEvents.triggerEmbed(this, arg);
 			if (0 != ret)
@@ -1125,6 +1157,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 		int sendCount = 0;
 		for (var group : groups.values()) {
+			group.roleIds.foreach(this::setLocalActiveTimeIfPresent);
 			if (group.send.Send(group.linkSocket, rpc -> {
 				var send = group.send;
 				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
@@ -1174,6 +1207,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(link.getLinkSid());
+		setLocalActiveTimeIfPresent(roleId);
 		return send.Send(linkSocket, rpc -> {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
@@ -1532,25 +1566,45 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return broadcast(typeId, new Binary(p.encode()), time);
 	}
 
-	private void verifyLocal() {
-		var roleId = new OutLong();
-		_tlocal.walkMemory((k, v) -> {
-			// 先得到roleId
-			roleId.value = k;
+	class VerifyBatch {
+		ArrayList<Long> roleIds = new ArrayList<>();
+
+		public boolean add(long roleId) {
+			var aTime = localActiveTimes.get(roleId);
+			if (null != aTime && System.currentTimeMillis() - aTime > localActiveTimeout)
+				roleIds.add(roleId);
 			return true;
-		}, () -> {
-			// 锁外执行事务
-			try {
-				providerApp.zeze.newProcedure(() -> {
-					tryRemoveLocal(roleId.value);
-					return 0L;
-				}, "Online.verifyLocal:" + roleId.value).call();
-			} catch (Exception e) {
-				logger.error("", e);
+		}
+
+		public void tryPerform() {
+			if (roleIds.size() > 20) {
+				perform();
 			}
-		});
-		// 随机开始时间，避免验证操作过于集中。3:10 - 5:10
-		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
+		}
+
+		public void perform() {
+			if (!roleIds.isEmpty()) {
+				try {
+					providerApp.zeze.newProcedure(() -> {
+						for (var roleId : roleIds)
+							tryRemoveLocal(roleId);
+						return 0L;
+					}, "Online.verifyLocal:" + roleIds).call();
+					sendDirect(roleIds, CheckLinkSession.TypeId_, new Binary(new CheckLinkSession().encode()), true);
+				} catch (Exception e) {
+					logger.error("", e);
+				}
+				roleIds.clear();
+			}
+		}
+	}
+
+	private void verifyLocal() {
+		var batch = new VerifyBatch();
+		// 锁外执行事务
+		_tlocal.walkMemory((k, v) -> batch.add(k), batch::tryPerform);
+		batch.perform();
+		startLocalCheck();
 	}
 
 	private long tryRemoveLocal(long roleId) throws Exception {
@@ -1619,6 +1673,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			dispatch.Argument.setOnlineSetName(multiInstanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
 		var online = getOrAddOnline(rpc.Argument.getRoleId());
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
+		Transaction.whileCommit(() -> putLocalActiveTime(System.currentTimeMillis()));
 		var link = online.getLink();
 
 		var onlineAccount = online.getAccount();
@@ -1704,6 +1759,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			dispatch.Argument.setOnlineSetName(multiInstanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
 		var online = getOrAddOnline(rpc.Argument.getRoleId());
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
+		Transaction.whileCommit(() -> putLocalActiveTime(System.currentTimeMillis()));
 		var link = online.getLink();
 
 		var onlineAccount = online.getAccount();
