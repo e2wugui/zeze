@@ -1566,19 +1566,15 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 
 	public @NotNull DynamicBean ReadDynamic(@NotNull DynamicBean dynBean, int tag) {
 		int type = tag & TAG_MASK;
-		if (type == DYNAMIC) {
+		if (type == DYNAMIC)
 			dynBean.decode(this);
-			return dynBean;
-		}
-		if (type == BEAN) {
+		else if (type == BEAN)
 			dynBean.newBean(0).decode(this);
-			return dynBean;
-		}
-		if (IGNORE_INCOMPATIBLE_FIELD) {
+		else if (IGNORE_INCOMPATIBLE_FIELD)
 			SkipUnknownField(tag);
-			return dynBean;
-		}
-		throw new IllegalStateException("can not ReadDynamic for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
+		else
+			throw new IllegalStateException("can not ReadDynamic for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
+		return dynBean;
 	}
 
 	public @NotNull DynamicData ReadDynamic(@NotNull DynamicData dynBean, int tag) {
@@ -1698,9 +1694,9 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			unknown.WriteByte(tag & TAG_MASK);
 			unknown.WriteUInt(size);
 			unknown.Append(Bytes, beginIdx, size);
-		} else
-			throw new UnsupportedOperationException("readUnknownField: unsupported for derived bean");
-		return unknown;
+			return unknown;
+		}
+		throw new UnsupportedOperationException("readUnknownField: unsupported for derived bean");
 	}
 
 	public @Nullable byte[] readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
