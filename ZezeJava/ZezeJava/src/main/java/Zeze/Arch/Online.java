@@ -27,6 +27,7 @@ import Zeze.Builtin.Online.SReliableNotify;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.Broadcast;
+import Zeze.Builtin.Provider.CheckLinkSession;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
 import Zeze.Builtin.ProviderDirect.TransmitAccount;
@@ -1128,7 +1129,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	// 可在事务外执行
-	public int sendAccountsDirect(@NotNull Set<String> accounts, long typeId, @NotNull Binary fullEncodedProtocol,
+	public int sendAccountsDirect(@NotNull Collection<String> accounts, long typeId, @NotNull Binary fullEncodedProtocol,
 								  boolean trySend) {
 		if (accounts.isEmpty())
 			return 0;
@@ -1451,8 +1452,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 							tryRemoveLocal(account);
 						return 0;
 					}, "Online.verifyLocal:" + accounts).call();
-					// todo CheckLinkSession
-					// sendDirect(accounts, CheckLinkSession.TypeId_, new Binary(new CheckLinkSession().encode()), true);
+					sendAccountsDirect(accounts, CheckLinkSession.TypeId_, new Binary(new CheckLinkSession().encode()), true);
 				} catch (Exception e) {
 					logger.error("", e);
 				}
