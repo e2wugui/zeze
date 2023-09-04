@@ -1152,19 +1152,7 @@ namespace Zeze.Services.ToLuaService2
             lock (this)
             {
                 (toLuaVariable, toLuaVariableUpdating) = (toLuaVariableUpdating, toLuaVariable); // swap
-                toLuaVariable.Clear();
-            }
-
-            // updating without lock.
-            foreach (var e in toLuaVariableUpdating.toLuaSocketClose)
-            {
-#if UNITY_2017_1_OR_NEWER
-                UnityEngine.Profiling.Profiler.BeginSample("CallSocketClose");
-#endif
-                CallSocketClose(luaState, e.Value, e.Key);
-#if UNITY_2017_1_OR_NEWER
-                UnityEngine.Profiling.Profiler.EndSample();
-#endif
+                toLuaVariable.Clear(); // 其实这里已经是清空的,只是为了防御异常情况
             }
 
             foreach (var e in toLuaVariableUpdating.toLuaHandshakeDone)
@@ -1217,10 +1205,22 @@ namespace Zeze.Services.ToLuaService2
                         toLuaVariable.toLuaBuffer.Add(e.Key, e.Value);
                 }
             }
-            toLuaVariableUpdating.Clear();
 #if UNITY_2017_1_OR_NEWER
             UnityEngine.Profiling.Profiler.EndSample();
 #endif
+
+            foreach (var e in toLuaVariableUpdating.toLuaSocketClose)
+            {
+#if UNITY_2017_1_OR_NEWER
+                UnityEngine.Profiling.Profiler.BeginSample("CallSocketClose");
+#endif
+                CallSocketClose(luaState, e.Value, e.Key);
+#if UNITY_2017_1_OR_NEWER
+                UnityEngine.Profiling.Profiler.EndSample();
+#endif
+            }
+
+            toLuaVariableUpdating.Clear();
         }
 
         public bool DecodeAndDispatch(Service service, long sessionId, long typeId, ByteBuffer os)
