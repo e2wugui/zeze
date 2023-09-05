@@ -1269,6 +1269,8 @@ namespace Zeze.Services.ToLuaService2
 
         void CleanLuaTable(IntPtr luaState, int depth = 0)
         {
+            Lua.PushNil(luaState); // [table, nil]
+            Lua.SetMetatable(luaState, -2); // [table]
             for (Lua.PushNil(luaState); Lua.Next(luaState, -2); Lua.Pop(luaState, 1)) // [table, key, value]
             {
                 if (Lua.IsTable(luaState, -1) && depth < 16) // 确保不递归太多层,避免无限递归导致栈溢出
