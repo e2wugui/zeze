@@ -292,7 +292,7 @@ public class HotManager extends ClassLoader {
 			} catch (Throwable ex) {
 				logger.error("stop modules {}", exists, ex);
 				recoverModules(exists, reverseIndex);
-				return result;
+				return result; // isEmpty
 			}
 			var freshHotUpgrades = new ArrayList<HotUpgrade>();
 			for (var hotUpgrade : hotUpgrades) {
@@ -355,7 +355,7 @@ public class HotManager extends ClassLoader {
 				hotBeanFactory.processWithNewClasses(beanFactories.get(hotBeanFactory.beanFactory()));
 			}
 
-			// start ordered
+			// start ordered todo 错误处理
 			for (var module : result) {
 				module.start();
 			}
@@ -395,7 +395,6 @@ public class HotManager extends ClassLoader {
 		if (!moduleSrc.exists() || !interfaceSrc.exists())
 			throw new RuntimeException("distributes not ready.");
 
-		// todo 生命期管理，确定服务是否可用，等等。
 		// 安装 interface
 		var interfaceDst = Path.of(workingDir, "interfaces", namespace + ".interface.jar").toFile().getCanonicalFile();
 		{
