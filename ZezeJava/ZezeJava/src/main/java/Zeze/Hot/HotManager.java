@@ -235,6 +235,29 @@ public class HotManager extends ClassLoader {
 		return upgrading;
 	}
 
+	private void recoverModules(ArrayList<HotModule> exists, int errorIndex) {
+		// 已经停止的，重新启动，并且加入modules。
+		for (var i = errorIndex - 1; i >= 0; --i) {
+			var exist = exists.get(i);
+			if (null == exist)
+				continue;
+			try {
+				exist.start();
+				modules.put(exist.getName(), exist);
+			} catch (Throwable ex) {
+				// 恢复过程中重新启动失败，简单忽略。
+				logger.error("recover {}", exist, ex);
+			}
+		}
+		// 还没有停止的，重新加入modules。
+		for (var i = errorIndex + 1; i < exists.size(); ++i) {
+			var exist = exists.get(i);
+			if (null == exist)
+				continue;
+			modules.put(exist.getName(), exist);
+		}
+	}
+
 	private List<HotModule> install(List<String> namespaces) throws Exception {
 		logger.info("________________ install ________________ {}", namespaces);
 		try (var ignored = enterWriteLock()) {
@@ -253,10 +276,17 @@ public class HotManager extends ClassLoader {
 				exists.add(modules.remove(namespace));
 			}
 			// reverse stop
-			for (var reverseI = exists.size() - 1; reverseI >= 0; --reverseI) {
-				var exist = exists.get(reverseI);
-				if (exist != null)
-					exist.stop();
+			var reverseI = exists.size() - 1;
+			try {
+				for (; reverseI >= 0; --reverseI) {
+					var exist = exists.get(reverseI);
+					if (exist != null)
+						exist.stop();
+				}
+			} catch (Throwable ex) {
+				logger.error("stop modules {}", exists, ex);
+				recoverModules(exists, reverseI);
+				return result;
 			}
 			var freshHotUpgrades = new ArrayList<HotUpgrade>();
 			for (var hotUpgrade : hotUpgrades) {

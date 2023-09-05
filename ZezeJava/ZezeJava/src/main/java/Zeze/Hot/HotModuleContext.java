@@ -13,8 +13,7 @@ public class HotModuleContext<T extends HotService> {
 		this.module = module;
 	}
 
-	void setModule(@NotNull HotModule module) {
-		System.out.println("setModule " + this.module.getClass().getClassLoader() + "->" + module.getClass().getClassLoader());
+	void setModule(HotModule module) {
 		this.module = module;
 	}
 

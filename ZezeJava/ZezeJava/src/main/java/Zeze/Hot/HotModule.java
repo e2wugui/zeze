@@ -80,12 +80,21 @@ public class HotModule extends ClassLoader implements Closeable {
 		if (!started) {
 			started = true;
 			service.start();
+			// 安装过程中可能需要重启，因为停止时清除了引用，这里需要重新设置。
+			for (var context : contexts.values()) {
+				context.setModule(this);
+			}
 		}
 	}
 
 	// stop 不能清除本地进程状态，后面需要用来升级。
 	public void stop() throws Exception {
 		if (started) {
+			// 停止不允许失败，首先去掉旧的引用。
+			for (var context : contexts.values()) {
+				context.setModule(null);
+			}
+			// 停止事件。
 			for (var stopEvent : stopEvents) {
 				try {
 					stopEvent.run(this);
@@ -95,7 +104,9 @@ public class HotModule extends ClassLoader implements Closeable {
 			}
 			stopEvents.clear();
 			started = false;
+			// app stop
 			service.stop();
+			// app Unregister
 			var iModule = (IModule)service;
 			iModule.UnRegister();
 		}
@@ -157,5 +168,10 @@ public class HotModule extends ClassLoader implements Closeable {
 			jar.close();
 			jar = null;
 		}
+	}
+
+	@Override
+	public String toString() {
+		return getName();
 	}
 }
