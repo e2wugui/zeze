@@ -276,23 +276,22 @@ public class HotManager extends ClassLoader {
 			var exists = new ArrayList<HotModule>(namespaces.size());
 
 			// 先保存现有的数据
-
 			app.getZeze().checkpointRun();
 			// remove
 			for (var namespace : namespaces) {
 				exists.add(modules.remove(namespace));
 			}
 			// reverse stop
-			var reverseI = exists.size() - 1;
+			var reverseIndex = exists.size() - 1;
 			try {
-				for (; reverseI >= 0; --reverseI) {
-					var exist = exists.get(reverseI);
+				for (; reverseIndex >= 0; --reverseIndex) {
+					var exist = exists.get(reverseIndex);
 					if (exist != null)
 						exist.stop();
 				}
 			} catch (Throwable ex) {
 				logger.error("stop modules {}", exists, ex);
-				recoverModules(exists, reverseI);
+				recoverModules(exists, reverseIndex);
 				return result;
 			}
 			var freshHotUpgrades = new ArrayList<HotUpgrade>();
@@ -307,7 +306,9 @@ public class HotManager extends ClassLoader {
 					freshHotBeanFactories.add(hotBeanFactory);
 				}
 			}
-			// install 这里都是内部代码，本来不容易出错，但是涉及文件操作，还是小心点。
+			// install
+			// todo 这里都是内部代码，本来不容易出错。但是涉及文件操作，有可能发生错误，而且非常难处理。
+			//  感觉上应该停止整个程序，重启比较可靠。
 			for (var namespace : namespaces) {
 				result.add(_install(namespace));
 			}
