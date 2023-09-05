@@ -37,6 +37,11 @@ public class ProviderApp {
 	public final IntHashMap<BModule.Data> dynamicModules = new IntHashMap<>();
 	public final IntHashMap<BModule.Data> modules = new IntHashMap<>();
 	public final HashMap<String, IModule> builtinModules = new HashMap<>();
+	private volatile boolean startLast = false;
+
+	public boolean isStartLast() {
+		return startLast;
+	}
 
 	public ProviderApp(@NotNull Application zeze,
 					   @NotNull ProviderImplement server,
@@ -143,8 +148,9 @@ public class ProviderApp {
 		}
 	}
 
-	public void startLast(@NotNull ProviderModuleBinds binds, @NotNull Map<String, IModule> modules) {
+	public synchronized void startLast(@NotNull ProviderModuleBinds binds, @NotNull Map<String, IModule> modules) {
 		buildProviderModuleBinds(binds, modules);
 		providerImplement.registerModulesAndSubscribeLinkd();
+		startLast = true;
 	}
 }
