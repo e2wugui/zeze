@@ -174,20 +174,23 @@ public class HotManager extends ClassLoader {
 			if (HotManager.isHotModule(cl)) {
 				var indexHot = removes.indexOf((HotModule)cl);
 				// removes 里面可能存在null。
-				// indexOf找得到，currents里面就肯定有。
-				if (indexHot >= 0) {
-					var curClass = currents.get(indexHot).loadClass(bean.getClass().getName());
-					var curBean = (Bean)curClass.getConstructor().newInstance();
-					var bb = ByteBuffer.Allocate();
-					bean.encode(bb);
-					curBean.decode(bb);
+				// indexOf找得到，currents里面就肯定有。但是安装可能部分失败。所以还是需要判断indexHot。
+				if (indexHot >= 0 && indexHot < currents.size()) {
+					var current = currents.get(indexHot);
+					if (null != current) {
+						var curClass = current.loadClass(bean.getClass().getName());
+						var curBean = (Bean)curClass.getConstructor().newInstance();
+						var bb = ByteBuffer.Allocate();
+						bean.encode(bb);
+						curBean.decode(bb);
 //					logger.info("<------ retreat ------> {} \r\n{} \r\n{}",
 //							bean.getClass().getName(), bean.variables(), curBean.variables());
-					return curBean;
+						return curBean;
+					}
 				}
 			}
 		} catch (Throwable ex) {
-			logger.error("", ex);
+			logger.error("retreat", ex);
 		}
 		return null;
 	}
@@ -235,9 +238,13 @@ public class HotManager extends ClassLoader {
 		return upgrading;
 	}
 
-	private void recoverModules(ArrayList<HotModule> exists, int errorIndex) {
+	private void recoverModules(ArrayList<HotModule> exists, int reverseErrorIndex) {
+		// 1. 停止是从exists后面反过来遍历的。
+		// 2. reverseErrorIndex 不恢复。
+		// 3. 重启过程错误的不恢复。
+
 		// 已经停止的，重新启动，并且加入modules。
-		for (var i = errorIndex - 1; i >= 0; --i) {
+		for (var i = reverseErrorIndex + 1; i < exists.size(); ++i) {
 			var exist = exists.get(i);
 			if (null == exist)
 				continue;
@@ -250,7 +257,7 @@ public class HotManager extends ClassLoader {
 			}
 		}
 		// 还没有停止的，重新加入modules。
-		for (var i = errorIndex + 1; i < exists.size(); ++i) {
+		for (var i = reverseErrorIndex - 1; i >= 0; --i) {
 			var exist = exists.get(i);
 			if (null == exist)
 				continue;
@@ -300,7 +307,7 @@ public class HotManager extends ClassLoader {
 					freshHotBeanFactories.add(hotBeanFactory);
 				}
 			}
-			// install
+			// install 这里都是内部代码，本来不容易出错，但是涉及文件操作，还是小心点。
 			for (var namespace : namespaces) {
 				result.add(_install(namespace));
 			}
