@@ -163,6 +163,7 @@ namespace Zeze.Services.ToLuaService2
         void CreateTable(IntPtr luaState, int elements, int records);
         void GetTable(IntPtr luaState, int index);
         void SetTable(IntPtr luaState, int index);
+        int GetMetatable(IntPtr luaState, int index);
         void SetMetatable(IntPtr luaState, int index);
         void GetField(IntPtr luaState, int index, string name);
         void RawGet(IntPtr luaState, int index);
@@ -220,6 +221,7 @@ namespace Zeze.Services.ToLuaService2
         {
             public int MetatableRef;
             public readonly SortedDictionary<int, VariableMeta> Variables = new SortedDictionary<int, VariableMeta>();
+            public List<int> cacheRefPool;
         }
 
         class ToLuaVariable
@@ -917,7 +919,19 @@ namespace Zeze.Services.ToLuaService2
                 throw new Exception("beanMeta type is not found");
 
             if (!hasTable)
-                Lua.CreateTable(luaState, 0, beanMeta.Variables.Count);
+            {
+                int n;
+                var pool = beanMeta.cacheRefPool;
+                if (pool != null && (n = pool.Count) > 0)
+                {
+                    int cacheRef = pool[--n];
+                    pool.RemoveAt(n);
+                    Lua.RawGetI(luaState, Lua.LuaRegistryIndex, cacheRef);
+                    Lua.LuaL_unref(luaState, Lua.LuaRegistryIndex, cacheRef);
+                }
+                else
+                    Lua.CreateTable(luaState, 0, beanMeta.Variables.Count);
+            }
             Lua.RawGetI(luaState, Lua.LuaRegistryIndex, tableRefId);
             Lua.RawGetI(luaState, -1, beanMeta.MetatableRef);
             Lua.SetMetatable(luaState, -3);
@@ -1267,57 +1281,48 @@ namespace Zeze.Services.ToLuaService2
             return false;
         }
 
-        void CleanLuaTable(IntPtr luaState, int depth = 0)
+        bool CleanLuaTable(IntPtr luaState, int depth = 0)
         {
-            Lua.PushNil(luaState); // [table, nil]
-            Lua.SetMetatable(luaState, -2); // [table]
+            var removeTable = false;
             for (Lua.PushNil(luaState); Lua.Next(luaState, -2); Lua.Pop(luaState, 1)) // [table, key, value]
             {
-                if (Lua.IsTable(luaState, -1) && depth < 16) // 确保不递归太多层,避免无限递归导致栈溢出
-                    CleanLuaTable(luaState, depth + 1);
-                else // 其它类型都置nil,通常不会真的删除table的node
+                if (!Lua.IsTable(luaState, -1) || depth > 16 || CleanLuaTable(luaState, depth + 1)) // 确保不递归太多层,避免无限递归导致栈溢出
                 {
                     Lua.PushValue(luaState, -2); // [table, key, value, key]
                     Lua.PushNil(luaState); // [table, key, value, key, nil]
-                    Lua.SetTable(luaState, -5); // [table, key, value]
+                    Lua.SetTable(luaState, -5); // [table, key, value] value置nil,通常不会真的删除table的node
                 }
-                /*
-                switch (Lua.GetType(luaState, -1))
-                {
-                    case LuaType.Boolean:
-                        Lua.PushValue(luaState, -2); // [table, key, value, key]
-                        Lua.PushBoolean(luaState, false); // [table, key, value, key, false]
-                        Lua.SetTable(luaState, -5); // [table, key, value]
-                        break;
-                    case LuaType.Number:
-                        Lua.PushValue(luaState, -2); // [table, key, value, key]
-                        Lua.PushNumber(luaState, 0); // [table, key, value, key, 0]
-                        Lua.SetTable(luaState, -5); // [table, key, value]
-                        break;
-                    case LuaType.String:
-                        Lua.PushValue(luaState, -2); // [table, key, value, key]
-                        Lua.PushString(luaState, ""); // [table, key, value, key, ""]
-                        Lua.SetTable(luaState, -5); // [table, key, value]
-                        break;
-                    case LuaType.Table:
-                        if (depth < 16) // 确保不递归太多层,避免无限递归导致栈溢出
-                            CleanLuaTable(luaState, depth + 1);
-                        break;
-                    case LuaType.LightUserData:
-                    case LuaType.Function:
-                    case LuaType.UserData:
-                    case LuaType.Thread:
-                        Lua.PushValue(luaState, -2); // [table, key, value, key]
-                        Lua.PushNil(luaState); // [table, key, value, key, nil]
-                        Lua.SetTable(luaState, -5); // [table, key, value]
-                        break;
-                    case LuaType.None:
-                    case LuaType.Nil:
-                    default:
-                        break;
-                }
-                */
             }
+            if (Lua.GetMetatable(luaState, -1) != 0) // [table, metatable] or [table]
+            {
+                Lua.PushNil(luaState); // [table, metatable, nil]
+                Lua.SetMetatable(luaState, -3); // [table, metatable]
+                Lua.PushString(luaState, "__type_id__"); // [table, metatable, "__type_id__"]
+                Lua.RawGet(luaState, -2); // [table, metatable, type_id]
+                if (Lua.GetType(luaState, -1) == LuaType.String)
+                {
+                    var typeId = Convert.ToInt64(Lua.ToString(luaState, -1));
+                    if (beanMetas.TryGetValue(typeId, out var meta))
+                    {
+                        var pool = meta.cacheRefPool;
+                        if (pool == null)
+                            meta.cacheRefPool = pool = new List<int>();
+                        if (pool.Count < 1000)
+                        {
+                            Lua.PushValue(luaState, -3); // [table, metatable, type_id, table]
+                            pool.Add(Lua.LuaL_ref(luaState, Lua.LuaRegistryIndex)); // [table, metatable, type_id]
+                            removeTable = true;
+                        }
+                    }
+                }
+                Lua.Pop(luaState, 2); // [table]
+            }
+            else
+            {
+                Lua.PushNil(luaState); // [table, nil]
+                Lua.SetMetatable(luaState, -2); // [table]
+            }
+            return removeTable;
         }
     }
 }
