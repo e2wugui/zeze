@@ -62,6 +62,11 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		return hotManager.isUpgrading();
 	}
 
+	@Override
+	public void StartLast() {
+
+	}
+
 	public void Start(App app) {
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
 		app.Zeze.newProcedure(() -> {
@@ -78,6 +83,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 						rand.nextLong(3000) + 1000,
 						HotTimer.class, new BEquipExtra(0, 1, 0));
 			}
+			resetCollections();
 			return 0;
 		}, "register timers").call();
 	}
@@ -137,6 +143,16 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	private static void accessWillAddVar(BEquipExtra record) {
 		record.setHotAddVar(record.getHotAddVar() + 1); // 访问将被删除的变量。
+	}
+
+	private void resetCollections() {
+		var linkedMap = App.LinkedMapModule.open("ZezexJava.HotTest.LinkedMap", BEquipExtra.class);
+		linkedMap.remove(String.valueOf(0));
+		var queue = App.Zeze.getQueueModule().open("ZezexJava.HotTest.Queue", BEquipExtra.class);
+		queue.clear();
+		var departmentTree = App.DepartmentTreeModule.open("ZezexJava.HotTest.DT",
+				BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class);
+		departmentTree.destroy();
 	}
 
 	private void verifyCollections(int oldAccess) {
@@ -252,6 +268,11 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	@Override
 	public void start() throws Exception {
 		Start(App);
+	}
+
+	@Override
+	public void startLast() throws Exception {
+		StartLast();
 	}
 
 	@Override

@@ -282,6 +282,10 @@ public class DepartmentTree<
 		return module._tDepartmentTree.selectDirty(new BDepartmentKey(name, departmentId));
 	}
 
+	public void destroy() {
+		module._tDepartment.remove(name);
+	}
+
 	public BDepartmentRoot create() {
 		var root = module._tDepartment.getOrAdd(name);
 		root.getData().setBean(beanFactory.createBeanFromSpecialTypeId(groupDataTypeId));
