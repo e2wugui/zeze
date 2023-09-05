@@ -157,6 +157,7 @@ namespace Zeze.Services.ToLuaService2
         long ToLong(IntPtr luaState, int index);
         double ToNumber(IntPtr luaState, int index);
         string ToString(IntPtr luaState, int index);
+        IntPtr ToLString(IntPtr luaState, int index, out IntPtr strLen);
         byte[] ToBuffer(IntPtr luaState, int index);
         T ToObject<T>(IntPtr luaState, int index);
 
@@ -732,7 +733,8 @@ namespace Zeze.Services.ToLuaService2
                     }
 
                     // 在lua就处理好了相应的类型转换，可以做到协议的生成里，不想把这么特殊的代码保持在c#中
-                    long dynamicBeanId = Convert.ToInt64(Lua.ToString(luaState, -1));
+                    // var dynamicBeanId = Convert.ToInt64(Lua.ToString(luaState, -1));
+                    var dynamicBeanId = LuaStringToInt64(luaState, -1);
                     Lua.Pop(luaState, 1);
                     bb.WriteLong(dynamicBeanId);
                     if (dynamicBeanId != 0) // 不是empty bean
@@ -897,7 +899,8 @@ namespace Zeze.Services.ToLuaService2
 
             var os = ByteBuffer.Allocate();
             Lua.GetField(luaState, -1, "__type_id__");
-            long typeId = Convert.ToInt64(Lua.ToString(luaState, -1));
+            // var typeId = Convert.ToInt64(Lua.ToString(luaState, -1));
+            var typeId = LuaStringToInt64(luaState, -1);
             Lua.Pop(luaState, 1);
             os.WriteLong8(typeId);
             EncodeBean(luaState, os, typeId);
@@ -1293,7 +1296,7 @@ namespace Zeze.Services.ToLuaService2
                     Lua.SetTable(luaState, -5); // [table, key, value] value置nil,通常不会真的删除table的node
                 }
             }
-            if (Lua.GetMetatable(luaState, -1) != 0) // [table, metatable] or [table]
+            if (depth != 0 && Lua.GetMetatable(luaState, -1) != 0) // [table, metatable] or [table]
             {
                 Lua.PushNil(luaState); // [table, metatable, nil]
                 Lua.SetMetatable(luaState, -3); // [table, metatable]
@@ -1301,7 +1304,8 @@ namespace Zeze.Services.ToLuaService2
                 Lua.RawGet(luaState, -2); // [table, metatable, type_id]
                 if (Lua.GetType(luaState, -1) == LuaType.String)
                 {
-                    var typeId = Convert.ToInt64(Lua.ToString(luaState, -1));
+                    // var typeId = Convert.ToInt64(Lua.ToString(luaState, -1));
+                    var typeId = LuaStringToInt64(luaState, -1);
                     if (beanMetas.TryGetValue(typeId, out var meta))
                     {
                         var pool = meta.cacheRefPool;
@@ -1323,6 +1327,33 @@ namespace Zeze.Services.ToLuaService2
                 Lua.SetMetatable(luaState, -2); // [table]
             }
             return removeTable;
+        }
+
+        long LuaStringToInt64(IntPtr luaState, int index)
+        {
+            var ptr = Lua.ToLString(luaState, index, out var len);
+            return ToInt64(ptr, len.ToInt32());
+        }
+
+        static unsafe long ToInt64(IntPtr ptr, int len)
+        {
+            long v = 0;
+            byte* p = (byte*)ptr.ToPointer();
+            if (p != null)
+            {
+                bool minus = false;
+                for (int i = 0; i < len; i++)
+                {
+                    byte b = p[i];
+                    if (b >= '0' && b <= '9')
+                        v = v * 10 + (b - '0');
+                    else if (v == 0 && b == '-')
+                        minus = true;
+                }
+                if (minus)
+                    v = -v;
+            }
+            return v;
         }
     }
 }
