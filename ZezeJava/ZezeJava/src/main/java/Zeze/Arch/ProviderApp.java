@@ -37,7 +37,7 @@ public class ProviderApp {
 	public final IntHashMap<BModule.Data> dynamicModules = new IntHashMap<>();
 	public final IntHashMap<BModule.Data> modules = new IntHashMap<>();
 	public final HashMap<String, IModule> builtinModules = new HashMap<>();
-	private volatile boolean startLast = false;
+	private boolean startLast;
 
 	public boolean isStartLast() {
 		return startLast;

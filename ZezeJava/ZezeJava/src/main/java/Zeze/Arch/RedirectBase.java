@@ -40,21 +40,42 @@ public class RedirectBase {
 	}
 
 	public @Nullable AsyncSocket choiceServer(@NotNull IModule module, int serverId, boolean orOtherServer) {
-		if (serverId == providerApp.zeze.getConfig().getServerId())
+		if (serverId == providerApp.zeze.getConfig().getServerId()) {
+			if (!providerApp.isStartLast()) {
+				logger.warn("", new IllegalStateException("choiceServer: not after startLast for module="
+						+ module.getFullName() + ", serverId=" + serverId));
+			}
 			return null; // is Local
+		}
 		var ps = providerApp.providerDirectService.providerByServerId.get(serverId);
 		if (ps == null) {
-			if (orOtherServer)
-				return choiceHash(module, serverId, 1);
-			throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
-					"choiceServer: not found session for serverId=" + serverId);
+			if (!providerApp.isStartLast()) {
+				throw new IllegalStateException("choiceServer: not after startLast for module="
+						+ module.getFullName() + ", serverId=" + serverId);
+			}
+			providerApp.providerDirectService.waitDirectServerReady(serverId, 120_000);
+			ps = providerApp.providerDirectService.providerByServerId.get(serverId);
+			if (ps == null) {
+				if (orOtherServer)
+					return choiceHash(module, serverId, 1);
+				throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
+						"choiceServer: not found session for serverId=" + serverId);
+			}
 		}
 		var socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
 		if (socket == null || socket.isClosed()) {
-			if (orOtherServer)
-				return choiceHash(module, serverId, 1);
-			throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
-					"choiceServer: not found socket for serverId=" + serverId);
+			if (!providerApp.isStartLast()) {
+				throw new IllegalStateException("choiceServer: not after startLast for module="
+						+ module.getFullName() + ", serverId=" + serverId);
+			}
+			providerApp.providerDirectService.waitDirectServerReady(serverId, 120_000);
+			socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
+			if (socket == null || socket.isClosed()) {
+				if (orOtherServer)
+					return choiceHash(module, serverId, 1);
+				throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
+						"choiceServer: not found socket for serverId=" + serverId);
+			}
 		}
 		return socket;
 		/*
