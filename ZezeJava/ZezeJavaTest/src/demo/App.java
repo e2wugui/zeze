@@ -223,6 +223,15 @@ public class App extends Zeze.AppBase {
         TaskTest_TaskExt.Start(this);
     }
 
+    @Override
+    public synchronized void startLastModules() throws Exception {
+        demo_Module1.StartLast();
+        demo_Module1_Module11.StartLast();
+        demo_M6.StartLast();
+        demo_M6_M7.StartLast();
+        TaskTest_TaskExt.StartLast();
+    }
+
     public synchronized void stopModules() throws Exception {
         if (TaskTest_TaskExt != null)
             TaskTest_TaskExt.Stop(this);

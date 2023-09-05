@@ -39,6 +39,10 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	public final void Start(App app) {
 	}
 
+	@Override
+	public void StartLast() {
+	}
+
 	public final void Stop(App app) {
 	}
 
@@ -96,6 +100,11 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	@Override
 	public void start() throws Exception {
 		Start(App);
+	}
+
+	@Override
+	public void startLast() throws Exception {
+		StartLast();
 	}
 
 	@Override

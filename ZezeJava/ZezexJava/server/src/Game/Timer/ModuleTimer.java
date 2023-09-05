@@ -2,6 +2,7 @@ package Game.Timer;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Game.App;
 import Game.LongSet.ModuleLongSet;
 import Game.LongSet.NameValue;
 import Zeze.Arch.RedirectToServer;
@@ -29,6 +30,10 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 		NodeIdGenerator = app.Zeze.getAutoKey("Game.Timer.NodeIdGenerator");
 		TimerIdGenerator = app.Zeze.getAutoKey("Game.Timer.TimerIdGenerator");
 		Task.run(this::LoadTimerLocal, "LoadTimerLocal", DispatchMode.Normal);
+	}
+
+	@Override
+	public void StartLast() {
 	}
 
 	public void Stop(Game.App app) throws Exception {
@@ -293,6 +298,11 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 	@Override
 	public void start() throws Exception {
 		Start(App);
+	}
+
+	@Override
+	public void startLast() throws Exception {
+		StartLast();
 	}
 
 	@Override

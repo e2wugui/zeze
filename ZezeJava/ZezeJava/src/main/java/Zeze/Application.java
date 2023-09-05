@@ -604,7 +604,6 @@ public final class Application {
 			delayRemove.start();
 			if (timer != null) {
 				timer.loadCustomClassAnd();
-				timer.start();
 			}
 		} else
 			startState = StartState.eStarted;

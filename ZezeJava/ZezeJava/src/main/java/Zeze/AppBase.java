@@ -44,4 +44,11 @@ public abstract class AppBase {
 	public void createModules() throws Exception {
 		throw new UnsupportedOperationException();
 	}
+
+	/**
+	 * 新增的接口。为了兼容，这里不抛出异常。
+	 * @throws Exception exception
+	 */
+	public void startLastModules() throws Exception {
+	}
 }

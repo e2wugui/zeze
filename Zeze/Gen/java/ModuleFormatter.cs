@@ -98,6 +98,10 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public void Stop(" + project.Solution.Name + ".App app) throws Exception {");
             sw.WriteLine("    }");
             sw.WriteLine();
+            sw.WriteLine("    @Override");
+            sw.WriteLine("    public void StartLast() throws Exception {");
+            sw.WriteLine("    }");
+            sw.WriteLine();
             if (GenEmptyProtocolHandles(sw))
                 sw.WriteLine();
             sw.WriteLine("    " + FileChunkGen.ChunkStartTag + " " + ChunkNameModuleGen + " @formatter:off");

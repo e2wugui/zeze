@@ -148,6 +148,11 @@ public final class App extends Zeze.AppBase {
         Zezex_Linkd.Start(this);
     }
 
+    @Override
+    public synchronized void startLastModules() throws Exception {
+        Zezex_Linkd.StartLast();
+    }
+
     public synchronized void stopModules() throws Exception {
         if (Zezex_Linkd != null)
             Zezex_Linkd.Stop(this);

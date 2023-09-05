@@ -4,6 +4,10 @@ public class ModuleM6 extends AbstractModule {
     public void Start(demo.App app) throws Exception {
     }
 
+    @Override
+    public void StartLast() {
+    }
+
     public void Stop(demo.App app) throws Exception {
     }
 

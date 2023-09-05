@@ -152,6 +152,17 @@ public class App extends Zeze.AppBase {
         ClientGame_Equip.Start(this);
     }
 
+    @Override
+    public synchronized void startLastModules() throws Exception {
+        Zeze_Builtin_Game_Online.StartLast();
+        Zeze_Builtin_Game_Bag.StartLast();
+        Zeze_Builtin_LinkdBase.StartLast();
+        ClientZezex_Linkd.StartLast();
+        ClientGame_Login.StartLast();
+        ClientGame_Fight.StartLast();
+        ClientGame_Equip.StartLast();
+    }
+
     public synchronized void stopModules() throws Exception {
         if (ClientGame_Equip != null)
             ClientGame_Equip.Stop(this);

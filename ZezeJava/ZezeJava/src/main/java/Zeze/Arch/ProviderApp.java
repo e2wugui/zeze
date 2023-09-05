@@ -148,9 +148,13 @@ public class ProviderApp {
 		}
 	}
 
-	public synchronized void startLast(@NotNull ProviderModuleBinds binds, @NotNull Map<String, IModule> modules) {
+	public void startLast(@NotNull ProviderModuleBinds binds, @NotNull Map<String, IModule> modules) throws Exception {
 		buildProviderModuleBinds(binds, modules);
 		providerImplement.registerModulesAndSubscribeLinkd();
-		startLast = true;
+		synchronized (this) {
+			startLast = true;
+		}
+		zeze.getTimer().start();
+		zeze.getAppBase().startLastModules();
 	}
 }

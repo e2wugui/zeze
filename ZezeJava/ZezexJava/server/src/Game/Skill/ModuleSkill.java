@@ -10,6 +10,10 @@ public final class ModuleSkill extends AbstractModule implements IModuleSkill {
 	public void Start(App app) {
 	}
 
+	@Override
+	public void StartLast() {
+	}
+
 	public void Stop(App app) {
 	}
 
@@ -20,6 +24,11 @@ public final class ModuleSkill extends AbstractModule implements IModuleSkill {
 	@Override
 	public void start() throws Exception {
 		Start(App);
+	}
+
+	@Override
+	public void startLast() throws Exception {
+		StartLast();
 	}
 
 	@Override

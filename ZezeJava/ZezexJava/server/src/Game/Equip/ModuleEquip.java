@@ -62,6 +62,11 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		return hotManager.isUpgrading();
 	}
 
+	@Override
+	public void StartLast() {
+
+	}
+
 	public void Start(App app) {
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
 		app.Zeze.newProcedure(() -> {
@@ -252,6 +257,11 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	@Override
 	public void start() throws Exception {
 		Start(App);
+	}
+
+	@Override
+	public void startLast() throws Exception {
+		StartLast();
 	}
 
 	@Override

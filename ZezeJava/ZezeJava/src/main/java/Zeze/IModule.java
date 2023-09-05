@@ -17,6 +17,9 @@ public interface IModule {
 		return false;
 	}
 
+	default void StartLast() throws Exception {
+	}
+
 	default void Initialize(AppBase app) throws Exception {
 	}
 

@@ -237,6 +237,38 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine("    }");
             sw.WriteLine();
+            sw.WriteLine("    @Override");
+            sw.WriteLine("    public synchronized void startLastModules() throws Exception {");
+            foreach (var m in project.ModuleStartOrder)
+            {
+                if (false == project.Hot || false == m.Hot)
+                {
+                    sw.WriteLine("        " + m.Path("_") + ".StartLast();");
+                }
+                else
+                {
+                    // hot module start
+                    sw.WriteLine($"        Zeze.getHotManager().startLastModule(\"{m.Path()}\");");
+                }
+            }
+            foreach (Module m in project.AllOrderDefineModules)
+            {
+                if (!project.ModuleStartOrder.Contains(m) && (false == project.Hot || false == m.Hot))
+                    sw.WriteLine("        " + m.Path("_") + ".StartLast();");
+            }
+            if (project.Hot)
+            {
+                sw.WriteLine("        if (null != Zeze.getHotManager()) {");
+                sw.WriteLine("            var definedOrder = new java.util.HashSet<String>();");
+                foreach (var m in project.ModuleStartOrder)
+                {
+                    sw.WriteLine($"            definedOrder.add(\"{m.Path()}\");");
+                }
+                sw.WriteLine("            Zeze.getHotManager().startLastModulesExcept(definedOrder);");
+                sw.WriteLine("        }");
+            }
+            sw.WriteLine("    }");
+            sw.WriteLine();
             sw.WriteLine("    public synchronized void stopModules() throws Exception {");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {

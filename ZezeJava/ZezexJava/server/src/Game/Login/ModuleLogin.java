@@ -13,6 +13,11 @@ public final class ModuleLogin extends AbstractModule implements IModuleLogin {
 		autoKey = app.Zeze.getAutoKey("roleId");
 	}
 
+	@Override
+	public void StartLast() {
+	}
+
+
 	public void Stop(App app) {
 	}
 
@@ -71,6 +76,11 @@ public final class ModuleLogin extends AbstractModule implements IModuleLogin {
 	@Override
 	public void start() throws Exception {
 		Start(App);
+	}
+
+	@Override
+	public void startLast() throws Exception {
+		StartLast();
 	}
 
 	@Override

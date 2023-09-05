@@ -2,6 +2,7 @@ package Game.LongSet;
 
 import java.util.Map;
 import java.util.function.Predicate;
+import Game.App;
 import Game.Timer.ModuleTimer;
 import Zeze.Component.AutoKey;
 import Zeze.Hot.HotService;
@@ -16,6 +17,10 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 
 	public void Start(Game.App app) throws Exception {
 		NodeIdGenerator = app.Zeze.getAutoKey("Game.LongSet.NodeIdGenerator");
+	}
+
+	@Override
+	public void StartLast() {
 	}
 
 	public void Stop(Game.App app) throws Exception {
@@ -152,6 +157,11 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 	@Override
 	public void start() throws Exception {
 		Start(App);
+	}
+
+	@Override
+	public void startLast() throws Exception {
+		StartLast();
 	}
 
 	@Override

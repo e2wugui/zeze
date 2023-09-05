@@ -87,6 +87,10 @@ public class HotModule extends ClassLoader implements Closeable {
 		}
 	}
 
+	public void startLast() throws Exception {
+		service.startLast();
+	}
+
 	// stop 不能清除本地进程状态，后面需要用来升级。
 	public void stop() throws Exception {
 		if (started) {

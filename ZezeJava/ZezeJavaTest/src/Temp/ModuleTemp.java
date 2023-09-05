@@ -33,6 +33,11 @@ public class ModuleTemp implements IModuleInterface, IModule {
 	}
 
 	@Override
+	public void startLast() throws Exception {
+		StartLast();
+	}
+
+	@Override
 	public void helloWorld() {
 		System.out.println("hello world.");
 	}

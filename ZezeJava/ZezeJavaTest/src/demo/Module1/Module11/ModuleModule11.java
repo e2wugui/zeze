@@ -4,6 +4,10 @@ public class ModuleModule11 extends AbstractModule {
 	public void Start(demo.App app) {
 	}
 
+	@Override
+	public void StartLast() {
+	}
+
 	public void Stop(demo.App app) {
 	}
 

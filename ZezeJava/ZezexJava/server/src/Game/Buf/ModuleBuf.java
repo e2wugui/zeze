@@ -47,6 +47,11 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 		}
 	}
 
+	@Override
+	public void StartLast() {
+
+	}
+
 	int oldAccess = 0;
 	public final void Start(App app) {
 		counterHotTimer = new AtomicInteger();
@@ -84,6 +89,11 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	@Override
 	public void start() throws Exception {
 		Start(App);
+	}
+
+	@Override
+	public void startLast() throws Exception {
+		StartLast();
 	}
 
 	@Override

@@ -274,6 +274,17 @@ public final class App extends Zeze.AppBase {
         }
     }
 
+    @Override
+    public synchronized void startLastModules() throws Exception {
+        Game_Map.StartLast();
+        Game_Rank.StartLast();
+        Game_MyWorld.StartLast();
+        if (null != Zeze.getHotManager()) {
+            var definedOrder = new java.util.HashSet<String>();
+            Zeze.getHotManager().startLastModulesExcept(definedOrder);
+        }
+    }
+
     public synchronized void stopModules() throws Exception {
         if (Game_MyWorld != null)
             Game_MyWorld.Stop(this);

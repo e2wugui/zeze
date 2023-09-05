@@ -511,6 +511,20 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
+	public void startLastModule(String moduleName) throws Exception {
+		var module = modules.get(moduleName);
+		if (null != module)
+			module.startLast();
+	}
+
+	public void startLastModulesExcept(Set<String> except) throws Exception {
+		for (var module : modules.values()) {
+			if (except.contains(module.getName()))
+				continue;
+			module.startLast();
+		}
+	}
+
 	public void stopModule(String moduleName) throws Exception {
 		var module = modules.get(moduleName);
 		if (null != module)
