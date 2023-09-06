@@ -168,10 +168,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 						provider.value = sessionId;
 						break;
 					}
-					providerSocket = null;
+					providerSocket = null; // BUG，否则如果刚好是最后一个，跳出循环后面的条件就成立了。
 				}
 			}
-			if (providerSocket == null)
+			if (providerSocket == null) // 这个条件，见上BUG。
 				return false;
 		}
 
