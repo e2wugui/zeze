@@ -748,7 +748,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	// 内部实现
 	protected void tryRedirectCancel(int serverId, @NotNull String timerId) {
 		// redirect 现在仅取消future，总是尝试，不检查其他参数。
-		if (zeze.getProviderApp().zeze.getConfig().getServerId() != serverId
+		if (zeze.getConfig().getServerId() != serverId
 				&& zeze.getProviderApp().providerDirectService.providerByServerId.containsKey(serverId)) {
 			redirectCancel(serverId, timerId);
 		}
