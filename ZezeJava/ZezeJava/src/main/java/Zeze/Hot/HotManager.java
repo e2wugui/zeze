@@ -539,6 +539,20 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
+	public void stopBeforeModule(String moduleName) throws Exception {
+		var module = modules.get(moduleName);
+		if (null != module)
+			module.stopBefore();
+	}
+
+	public void stopBeforeModulesExcept(Set<String> except) throws Exception {
+		for (var module : modules.values()) {
+			if (except.contains(module.getName()))
+				continue;
+			module.stopBefore();
+		}
+	}
+
 	private void loadExistModules(File dir) throws Exception {
 		var files = dir.listFiles();
 		if (null == files)

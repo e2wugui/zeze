@@ -67,6 +67,8 @@ public class TestGameTimer {
 			client.Stop();
 		Thread.sleep(100); // 防止client断开连接的时候，下面的provider关闭太快执行异常。这个异常实际上无所谓。
 		for (var server : servers)
+			server.stopBeforeModules();
+		for (var server : servers)
 			server.Stop();
 		for (var link : links)
 			link.Stop();

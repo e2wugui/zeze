@@ -180,6 +180,23 @@ public class App extends Zeze.AppBase {
             Zeze_Builtin_Game_Online.Stop(this);
     }
 
+    public synchronized void stopBeforeModules() throws Exception {
+        if (ClientGame_Equip != null)
+            ClientGame_Equip.StopBefore();
+        if (ClientGame_Fight != null)
+            ClientGame_Fight.StopBefore();
+        if (ClientGame_Login != null)
+            ClientGame_Login.StopBefore();
+        if (ClientZezex_Linkd != null)
+            ClientZezex_Linkd.StopBefore();
+        if (Zeze_Builtin_LinkdBase != null)
+            Zeze_Builtin_LinkdBase.StopBefore();
+        if (Zeze_Builtin_Game_Bag != null)
+            Zeze_Builtin_Game_Bag.StopBefore();
+        if (Zeze_Builtin_Game_Online != null)
+            Zeze_Builtin_Game_Online.StopBefore();
+    }
+
     public synchronized void startService() throws Exception {
         ClientService.start();
     }

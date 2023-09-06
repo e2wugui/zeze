@@ -55,6 +55,8 @@ public class TestRoleTimer {
 		for (var client : clients)
 			client.Stop();
 		for (var server : servers)
+			server.stopBeforeModules();
+		for (var server : servers)
 			server.Stop();
 		for (var link : links)
 			link.Stop();

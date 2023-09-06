@@ -120,6 +120,10 @@ public class HotModule extends ClassLoader implements Closeable {
 		}
 	}
 
+	public void stopBefore() throws Exception {
+		service.stopBefore();
+	}
+
 	// 先用这个类管理所有热更需求。
 	public void upgrade(HotModule old) throws Exception {
 		contexts.putAll(old.contexts);

@@ -4,6 +4,11 @@ public interface HotService {
 	void start() throws Exception;
 	default void startLast() throws Exception {
 	}
+
+	default void stopBefore() throws Exception {
+
+	}
+
 	/**
 	 * 如果服务是有状态的，新版需要从旧版状态恢复，那么stop的时候需要保留状态，后面upgrade时读取。
 	 * @throws Exception any

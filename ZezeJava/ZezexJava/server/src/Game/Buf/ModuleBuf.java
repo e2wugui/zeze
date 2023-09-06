@@ -49,11 +49,6 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 
 	@Override
 	public void StartLast() {
-
-	}
-
-	int oldAccess = 0;
-	public final void Start(App app) {
 		counterHotTimer = new AtomicInteger();
 		_tbufs.getChangeListenerMap().addListener(new BufChangeListener("Game.Buf.Bufs"));
 		var rand = Zeze.Util.Random.getInstance();
@@ -61,29 +56,38 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 				rand.nextLong(3000) + 1000,
 				rand.nextLong(3000) + 1000,
 				() -> {
-					var module = app.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
+					var module = App.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
 					var service = module.getService();
 					oldAccess = service.hotHelloWorld(oldAccess);
 				});
 
-		Task.call(app.Zeze.newProcedure(() -> {
-			hotTimerId = app.Zeze.getTimer().schedule(
+		Task.call(App.Zeze.newProcedure(() -> {
+			hotTimerId = App.Zeze.getTimer().schedule(
 					rand.nextLong(3000) + 1000, rand.nextLong(3000) + 1000,
 					HotTimer.class, new BBuf());
 			return 0;
 		}, "hotTimer"));
 	}
 
+	int oldAccess = 0;
+	public final void Start(App app) {
+	}
+
 	String hotTimerId;
 
-	public final void Stop(App app) {
-		Task.call(app.Zeze.newProcedure(() -> {
-			app.Zeze.getTimer().cancel(hotTimerId);
+	@Override
+	public void StopBefore() throws Exception {
+		if (null != timerIdHot) {
+			timerIdHot.cancel(true);
+			timerIdHot = null;
+		}
+		Task.call(App.Zeze.newProcedure(() -> {
+			App.Zeze.getTimer().cancel(hotTimerId);
 			return 0;
 		}, "hotTimer"));
+	}
 
-		if (null != timerIdHot)
-			timerIdHot.cancel(true);
+	public final void Stop(App app) {
 	}
 
 	@Override

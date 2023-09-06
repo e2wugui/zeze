@@ -141,7 +141,7 @@ public final class App extends Zeze.AppBase {
 			var counterColdTimer = ((Game.App)(context.timer.zeze.getAppBase())).counterColdTimer;
 			var buf = (BKick)context.customData;
 			if (buf.getCode() != counterColdTimer.get())
-				throw new RuntimeException("verify cold timer error.");
+				throw new RuntimeException("verify cold timer error." + buf.getCode() + " counter=" + counterColdTimer.get());
 			var id = counterColdTimer.incrementAndGet();
 			buf.setCode(id);
 		}
@@ -160,7 +160,6 @@ public final class App extends Zeze.AppBase {
 
 		if (Provider != null)
 			Provider.stop();
-		stopService(); // 关闭网络
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null) {
 			Zeze.stop(); // 关闭数据库
@@ -173,6 +172,7 @@ public final class App extends Zeze.AppBase {
 				LinkedMapModule = null;
 			}
 		}
+		stopService(); // 关闭网络
 		destroyModules();
 		destroyServices();
 		destroyZeze();
@@ -295,6 +295,19 @@ public final class App extends Zeze.AppBase {
         if (null != Zeze.getHotManager()) {
             var definedOrder = new java.util.HashSet<String>();
             Zeze.getHotManager().stopModulesExcept(definedOrder);
+        }
+    }
+
+    public synchronized void stopBeforeModules() throws Exception {
+        if (Game_MyWorld != null)
+            Game_MyWorld.StopBefore();
+        if (Game_Rank != null)
+            Game_Rank.StopBefore();
+        if (Game_Map != null)
+            Game_Map.StopBefore();
+        if (null != Zeze.getHotManager()) {
+            var definedOrder = new java.util.HashSet<String>();
+            Zeze.getHotManager().stopBeforeModulesExcept(definedOrder);
         }
     }
 

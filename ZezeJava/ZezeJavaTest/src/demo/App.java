@@ -245,6 +245,19 @@ public class App extends Zeze.AppBase {
             demo_Module1.Stop(this);
     }
 
+    public synchronized void stopBeforeModules() throws Exception {
+        if (TaskTest_TaskExt != null)
+            TaskTest_TaskExt.StopBefore();
+        if (demo_M6_M7 != null)
+            demo_M6_M7.StopBefore();
+        if (demo_M6 != null)
+            demo_M6.StopBefore();
+        if (demo_Module1_Module11 != null)
+            demo_Module1_Module11.StopBefore();
+        if (demo_Module1 != null)
+            demo_Module1.StopBefore();
+    }
+
     public synchronized void startService() throws Exception {
         TestServer.start();
     }

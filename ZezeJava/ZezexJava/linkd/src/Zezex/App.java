@@ -158,6 +158,11 @@ public final class App extends Zeze.AppBase {
             Zezex_Linkd.Stop(this);
     }
 
+    public synchronized void stopBeforeModules() throws Exception {
+        if (Zezex_Linkd != null)
+            Zezex_Linkd.StopBefore();
+    }
+
     public synchronized void startService() throws Exception {
         LinkdService.start();
         ProviderService.start();

@@ -308,6 +308,45 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine("    }");
             sw.WriteLine();
+            sw.WriteLine("    public synchronized void stopBeforeModules() throws Exception {");
+            for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
+            {
+                var m = project.AllOrderDefineModules[i];
+                if (!project.ModuleStartOrder.Contains(m) && (false == project.Hot || false == m.Hot))
+                {
+                    var name = m.Path("_");
+                    sw.WriteLine("        if (" + name + " != null)");
+                    sw.WriteLine("            " + name + ".StopBefore();");
+                }
+            }
+            if (project.Hot)
+            {
+                sw.WriteLine("        if (null != Zeze.getHotManager()) {");
+                sw.WriteLine("            var definedOrder = new java.util.HashSet<String>();");
+                foreach (var m in project.ModuleStartOrder)
+                {
+                    sw.WriteLine($"            definedOrder.add(\"{m.Path()}\");");
+                }
+                sw.WriteLine("            Zeze.getHotManager().stopBeforeModulesExcept(definedOrder);");
+                sw.WriteLine("        }");
+            }
+            for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
+            {
+                var m = project.ModuleStartOrder[i];
+                if (false == project.Hot || false == m.Hot)
+                {
+                    var name = m.Path("_");
+                    sw.WriteLine("        if (" + name + " != null)");
+                    sw.WriteLine("            " + name + ".StopBefore();");
+                }
+                else
+                {
+                    // hot module stop
+                    sw.WriteLine($"        Zeze.getHotManager().stopBeforeModule(\"{m.Path()}\");");
+                }
+            }
+            sw.WriteLine("    }");
+            sw.WriteLine();
             sw.WriteLine("    public synchronized void startService() throws Exception {");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + ".start();");

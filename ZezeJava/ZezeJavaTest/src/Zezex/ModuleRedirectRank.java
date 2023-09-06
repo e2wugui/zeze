@@ -54,8 +54,11 @@ public class ModuleRedirectRank extends TestCase {
 	protected void tearDown() {
 		System.out.println("Begin Stop");
 		try {
-			app1.Stop();
+			app2.stopBeforeModules();
+			app1.stopBeforeModules();
+
 			app2.Stop();
+			app1.Stop();
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

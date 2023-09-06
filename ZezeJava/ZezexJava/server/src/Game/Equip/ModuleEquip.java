@@ -64,13 +64,9 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	public void StartLast() {
-
-	}
-
-	public void Start(App app) {
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
-		app.Zeze.newProcedure(() -> {
-			var timer = app.Zeze.getTimer();
+		App.Zeze.newProcedure(() -> {
+			var timer = App.Zeze.getTimer();
 			var rand = Zeze.Util.Random.getInstance();
 			timer.scheduleNamed(timerNamed,
 					rand.nextLong(3000) + 1000,
@@ -88,9 +84,10 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		}, "register timers").call();
 	}
 
-	public void Stop(App app) {
-		app.Zeze.newProcedure(() -> {
-			var timer = app.Zeze.getTimer();
+	@Override
+	public void StopBefore() throws Exception {
+		App.Zeze.newProcedure(() -> {
+			var timer = App.Zeze.getTimer();
 			timer.cancel(timerNamed);
 			if (!isHotUpgrade()) {
 				timer.cancel(timerHot);
@@ -98,6 +95,12 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			timer.getRoleTimer().cancel(timerOnline);
 			return 0;
 		}, "cancel timers").call();
+	}
+
+	public void Start(App app) {
+	}
+
+	public void Stop(App app) {
 	}
 
 	@Override
@@ -159,6 +162,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		{
 			var linkedMap = App.LinkedMapModule.open("ZezexJava.HotTest.LinkedMap", BEquipExtra.class);
 			var version0 = linkedMap.getOrAdd(String.valueOf(0));
+			logger.info("verify oldAccess=" + version0.getAttack() + ":" + oldAccess);
 			if (version0.getAttack() != oldAccess)
 				throw new RuntimeException("LinkedMap error oldAccess=" + version0.getAttack() + ":" + oldAccess);
 			version0.setAttack(oldAccess + 1);
@@ -189,7 +193,6 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	public int hotHelloWorld(int oldAccess) {
-		var version = new OutInt(oldAccess);
 		App.Zeze.newProcedure(() -> {
 			accessWillRemoveTable();
 
@@ -203,10 +206,9 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			verifyCollections(oldAccess);
 			verifyMemory(oldAccess);
 
-			version.value = oldAccess + 1;
 			return 0;
 		}, "").call();
-		return version.value;
+		return oldAccess + 1;
 	}
 
 	private void verifyMemory(int oldAccess) {
