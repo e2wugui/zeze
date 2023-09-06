@@ -76,7 +76,13 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	String hotTimerId;
 
 	@Override
+	public void stopBefore() throws Exception {
+		StopBefore();
+	}
+
+	@Override
 	public void StopBefore() throws Exception {
+		logger.info("StopBefore " + this.getFullName());
 		if (null != timerIdHot) {
 			timerIdHot.cancel(true);
 			timerIdHot = null;

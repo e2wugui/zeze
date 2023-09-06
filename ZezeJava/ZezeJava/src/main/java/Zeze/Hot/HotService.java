@@ -2,6 +2,7 @@ package Zeze.Hot;
 
 public interface HotService {
 	void start() throws Exception;
+
 	default void startLast() throws Exception {
 	}
 

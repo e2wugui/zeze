@@ -8,7 +8,6 @@ import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
 import Zeze.Transaction.Collections.LogMap2;
-import Zeze.Util.OutInt;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -85,7 +84,13 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	}
 
 	@Override
+	public void stopBefore() throws Exception {
+		StopBefore();
+	}
+
+	@Override
 	public void StopBefore() throws Exception {
+		logger.info("StopBefore " + this.getFullName());
 		App.Zeze.newProcedure(() -> {
 			var timer = App.Zeze.getTimer();
 			timer.cancel(timerNamed);

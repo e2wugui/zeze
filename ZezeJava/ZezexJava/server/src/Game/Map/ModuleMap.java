@@ -42,11 +42,6 @@ public final class ModuleMap extends AbstractModule implements IModuleMap {
 	}
 
 	@Override
-	public void startLast() throws Exception {
-		StartLast();
-	}
-
-	@Override
 	public void stop() throws Exception {
 		Stop(App);
 	}
