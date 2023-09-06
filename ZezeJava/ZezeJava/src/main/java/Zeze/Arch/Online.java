@@ -1197,7 +1197,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			if (it.hasNext()) // 不确定accounts是否稳定,所以还是判断一下保险
 				return sendAccountDirect(it.next(), typeId, fullEncodedProtocol, false);
 		} else if (accountCount > 1) {
-			return sendAccountsDirect(accounts instanceof Set ? (Set<String>)accounts : new HashSet<>(accounts),
+			return sendAccountsDirect(accounts instanceof Set ? accounts : new HashSet<>(accounts),
 					typeId, fullEncodedProtocol, false);
 //			var p = providerApp.zeze.newProcedure(() -> {
 //				sendAccountsEmbed(accounts, typeId, fullEncodedProtocol, sender);
@@ -1429,7 +1429,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	class VerifyBatch {
-		ArrayList<String> accounts = new ArrayList<>();
+		final ArrayList<String> accounts = new ArrayList<>();
 
 		public boolean add(String account) {
 			var aTime = localActiveTimes.get(account);

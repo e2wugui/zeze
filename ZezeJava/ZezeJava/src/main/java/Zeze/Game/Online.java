@@ -1567,7 +1567,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	class VerifyBatch {
-		ArrayList<Long> roleIds = new ArrayList<>();
+		final ArrayList<Long> roleIds = new ArrayList<>();
 
 		public boolean add(long roleId) {
 			var aTime = localActiveTimes.get(roleId);
