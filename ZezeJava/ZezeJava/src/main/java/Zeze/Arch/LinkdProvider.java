@@ -144,11 +144,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 		// 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
 		var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
-		if (providerSocket == null || providerSocket.isClosed())
-			return false; // socket 没有还是直接拒绝客户端选择吧。
-
-		var ps = (ProviderSession)providerSocket.getUserState();
-		if (ps.appVersion != maxAppVersion.get() || ps.isDisableChoice()) {
+		ProviderSession ps;
+		if (providerSocket == null || providerSocket.isClosed()
+				|| (ps = (ProviderSession)providerSocket.getUserState()).appVersion != maxAppVersion.get()
+				|| ps.isDisableChoice()) {
 			// 版本不匹配，继续尝试查找。
 			providerSocket = null; // clear first.
 
@@ -169,6 +168,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 						provider.value = sessionId;
 						break;
 					}
+					providerSocket = null;
 				}
 			}
 			if (providerSocket == null)
