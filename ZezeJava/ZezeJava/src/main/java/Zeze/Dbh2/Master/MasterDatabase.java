@@ -99,6 +99,7 @@ public class MasterDatabase {
 			return table;
 		}
 
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			// 加锁后再次检查一次。
 			if (table.created) {

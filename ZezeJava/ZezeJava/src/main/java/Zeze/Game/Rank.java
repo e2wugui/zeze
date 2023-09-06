@@ -3,7 +3,9 @@ package Zeze.Game;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntUnaryOperator;
+import java.util.function.LongUnaryOperator;
 import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderDistribute;
@@ -16,12 +18,15 @@ import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BRankList;
 import Zeze.Builtin.Game.Rank.BRankValue;
 import Zeze.Net.Binary;
+import Zeze.Util.OutObject;
 
 public class Rank extends AbstractRank {
 	private final AppBase app;
 
 	public volatile IntUnaryOperator funcRankSize;
 	public volatile IntUnaryOperator funcConcurrentLevel;
+	public volatile LongUnaryOperator funcRankCacheTimeout;
+
 	@SuppressWarnings("CanBeFinal")
 	public volatile float computeFactor = 2.5f;
 
@@ -140,6 +145,13 @@ public class Rank extends AbstractRank {
 		return 128; // default
 	}
 
+	public final long getRankCacheTimeout(int rankType) {
+		var volatileTmp = funcRankCacheTimeout;
+		if (null != volatileTmp)
+			return volatileTmp.applyAsLong(rankType);
+		return 5 * 60 * 1000; // default
+	}
+
 	/**
 	 * 排行榜中间数据的数量。【有默认值】
 	 */
@@ -154,9 +166,13 @@ public class Rank extends AbstractRank {
 	 * 根据 value 设置到排行榜中
 	 */
 	@RedirectHash(ConcurrentLevelSource = "getConcurrentLevel(keyHint.getRankType())")
-	public RedirectFuture<Long> updateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Binary valueEx) {
+	public RedirectFuture<Long> removeRank(int hash, BConcurrentKey keyHint, long roleId) {
+		_removeRank(hash, keyHint, roleId, null);
+		return RedirectFuture.finish(0L);
+	}
+
+	private BRankList _removeRank(int hash, BConcurrentKey keyHint, long roleId, OutObject<BRankValue> outExist) {
 		int concurrentLevel = getConcurrentLevel(keyHint.getRankType());
-		int maxCount = getComputeCount(keyHint.getRankType());
 
 		var concurrentKey = new BConcurrentKey(keyHint.getRankType(),
 				hash % concurrentLevel,
@@ -173,7 +189,20 @@ public class Rank extends AbstractRank {
 				break;
 			}
 		}
-		// insert if in rank. 这里可以用 BinarySearch。
+		if (null != outExist)
+			outExist.value = exist;
+		return rank;
+	}
+
+	/**
+	 * 根据 value 设置到排行榜中
+	 */
+	@RedirectHash(ConcurrentLevelSource = "getConcurrentLevel(keyHint.getRankType())")
+	public RedirectFuture<Long> updateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Binary valueEx) {
+		var outExist = new OutObject<BRankValue>();
+		var rank = _removeRank(hash, keyHint, roleId, outExist);
+		int maxCount = getComputeCount(keyHint.getRankType());
+		// insert if in rank. 使用binarySearch会造成相同分数不稳定。
 		for (int i = 0; i < rank.getRankList().size(); ++i) {
 			if (rank.getRankList().get(i).getValue() < value) {
 				BRankValue tempVar = new BRankValue();
@@ -191,7 +220,7 @@ public class Rank extends AbstractRank {
 		// 因为此时可能存在未进榜但比它大的Value。
 		// B: 但是在进榜玩家比榜单数量少的时候，如果不进榜，队尾的玩家更新还在队尾就会消失。
 		if (rank.getRankList().size() < getRankSize(keyHint.getRankType())
-				|| (rank.getRankList().size() < maxCount && null == exist)) {
+				|| (rank.getRankList().size() < maxCount && null == outExist.value)) {
 			BRankValue tempVar2 = new BRankValue();
 			tempVar2.setRoleId(roleId);
 			tempVar2.setValue(value);
@@ -229,6 +258,80 @@ public class Rank extends AbstractRank {
 		return result;
 	}
 
+	public static class RankTotal {
+		private long BuildTime;
+		private BRankList TableValue;
+
+		public final long getBuildTime() {
+			return BuildTime;
+		}
+		public final void setBuildTime(long value) {
+			BuildTime = value;
+		}
+		public final BRankList getTableValue() {
+			return TableValue;
+		}
+		public final void setTableValue(BRankList value) {
+			TableValue = value;
+		}
+	}
+
+	private final ConcurrentHashMap<BConcurrentKey, RankTotal> rankCached = new ConcurrentHashMap<>();
+
+	public RankTotal getRankTotal(BConcurrentKey keyHint) throws Exception {
+		return getRankTotal(keyHint, getRankSize(keyHint.getRankType()));
+	}
+
+	public RankTotal getRankTotal(BConcurrentKey keyHint, int countNeed) throws Exception {
+		var rank = rankCached.computeIfAbsent(keyHint, __ -> new RankTotal());
+		synchronized (rank) {
+			long now = System.currentTimeMillis();
+			if (now - rank.getBuildTime() < getRankCacheTimeout(keyHint.getRankType())) {
+				return rank;
+			}
+			getRankAll(keyHint).onAllDone(ctx -> {
+				var it = ctx.getAllResults().iterator();
+				switch (ctx.getAllResults().size()) {
+				case 0:
+					rank.setTableValue(new BRankList());
+					break;
+
+				case 1:
+					it.moveToNext();
+					rank.setTableValue(it.value().rankList.copy());
+					break;
+
+				default:
+					// 合并过程中，结果是新的 BRankList，List中的 BRankValue 引用到表中。
+					// 最后 Copy 一次。
+					it.moveToNext();
+					BRankList current = it.value().rankList;
+					while (it.moveToNext()) {
+						current = merge(current, it.value().rankList);
+						if (current.getRankList().size() > countNeed) {
+							// 合并中间结果超过需要的数量可以先删除。
+							// 第一个current直接引用table.data，不能删除。
+							//noinspection ListRemoveInLoop
+							for (int ir = current.getRankList().size() - 1; ir >= countNeed; --ir)
+								current.getRankList().remove(ir);
+							//current.getRankList().RemoveRange(countNeed, current.getRankList().Count - countNeed);
+						}
+					}
+					rank.setTableValue(current.copy()); // current 可能还直接引用第一个，虽然逻辑上不大可能。先Copy。
+					break;
+				}
+				rank.setBuildTime(System.currentTimeMillis());
+				if (rank.getTableValue().getRankList().size() > countNeed) { // 再次删除多余的结果。
+					//noinspection ListRemoveInLoop
+					for (int ir = rank.getTableValue().getRankList().size() - 1; ir >= countNeed; --ir)
+						rank.getTableValue().getRankList().remove(ir);
+					//Rank.TableValue.getRankList().RemoveRange(countNeed, Rank.TableValue.RankList.Count - countNeed);
+				}
+			}).await();
+			return rank;
+		}
+	}
+
 	public static class RRankList extends RedirectResult {
 		public BRankList rankList = new BRankList(); // 目前要求输出结构的所有字段都不能为null,需要构造时创建
 	}
@@ -253,8 +356,37 @@ public class Rank extends AbstractRank {
 		return RedirectAllFuture.result(result);
 	}
 
+	public long getRankPosition(BConcurrentKey keyHint, long roleId) throws Exception {
+		var total = getRankTotal(keyHint);
+
+		// 判断是否在版内，并且得到排名位置。
+		var position = 0;
+		for (var r : total.getTableValue().getRankList()) {
+			position ++;
+			if (r.getRoleId() == roleId) {
+				return position;
+			}
+		}
+
+		// todo 推测计算可能的排名。需要当前分数，总可排数量。
+		return position;
+	}
+
+	public void deleteRank(BConcurrentKey keyHint) {
+		int concurrentLevel = getConcurrentLevel(keyHint.getRankType());
+		for (int i = 0; i < concurrentLevel; ++i) {
+			var concurrentKey = new BConcurrentKey(
+					keyHint.getRankType(),
+					i,
+					keyHint.getTimeType(),
+					keyHint.getYear(),
+					keyHint.getOffset());
+			_trank.remove(concurrentKey);
+		}
+	}
+
 	/**
-	 * 直接查询数据库并合并分组数据。
+	 * 直接查询数据库并合并分组数据。直接查询没有使用缓存。
 	 */
 	public BRankList getRankDirect(BConcurrentKey keyHint) {
 		return getRankDirect(keyHint, getRankSize(keyHint.getRankType()));

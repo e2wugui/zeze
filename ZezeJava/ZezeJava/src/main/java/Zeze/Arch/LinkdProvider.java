@@ -151,6 +151,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			// 版本不匹配，继续尝试查找。
 			providerSocket = null; // clear first.
 
+			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (providers) {
 				for (int i = 0, n = providers.localStates.size(); i < n; i++) {
 					var e = providers.getNextStateEntry();
