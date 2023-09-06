@@ -263,6 +263,8 @@ public class HotManager extends ClassLoader {
 				continue;
 			modules.put(exist.getName(), exist);
 		}
+		// 发生错误的禁止暴露服务。
+		exists.get(reverseErrorIndex).disable();
 	}
 
 	private List<HotModule> install(List<String> namespaces) throws Exception {

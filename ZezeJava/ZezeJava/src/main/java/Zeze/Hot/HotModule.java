@@ -91,13 +91,17 @@ public class HotModule extends ClassLoader implements Closeable {
 		service.startLast();
 	}
 
+	public void disable() {
+		for (var context : contexts.values()) {
+			context.setModule(null);
+		}
+	}
+
 	// stop 不能清除本地进程状态，后面需要用来升级。
 	public void stop() throws Exception {
 		if (started) {
 			// 停止不允许失败，首先去掉旧的引用。
-			for (var context : contexts.values()) {
-				context.setModule(null);
-			}
+			disable();
 			// 停止事件。
 			for (var stopEvent : stopEvents) {
 				try {

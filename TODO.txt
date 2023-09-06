@@ -42,17 +42,19 @@ dbh2
 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 HotManager 错误处理。
 1. stop 【已完成】 已经停止的重新start并恢复，还没有停止的恢复（加入modules.Map），当前错误模块不再启动。
-2. _install 非常难处理 XXX。
-3. upgrade 忽略出错的，继续upgrade其他模块；zeze内部需要的升级可能依赖出错的新Bean，继续升级；upgrade出错的不提供服务（从modules.Map里面移除）。
-4. start 忽略出错的，继续start其他模块；start出错的不提供服务（从modules.Map里面移除）。
-1.3.4. 存在的问题，模块不提供服务以后，状态丢失，更新的升级无法继承状态。
-1.3.4. 问题继续：所以热更模块最好是无状态的，就没有这个问题了。
-1.3.4 停止服务的模块，状态丢失，看来也是合理的。是吧。
-Rank 加强。
+2. _install，upgrade，start 等任何其他错误，恢复热更安装前的状态。
+var txn = new transaction(backup jar file);
+try {
+	do ... _install，upgrade，start  ...
+	txn.commit(); // delete backup
+} finally {
+	txn.rollbackIfNotCommit(); // restore backup jar file, restart stopped module, publish again 这里的部分逻辑同stop失败的处理差不多。
+}
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/9/8 v1.3.2 Hot; Online.Local; StartLast
+2023/9/8 v1.3.2 Hot; Online.Local; StartLast; Rank; 
 ------------------------------------------------------------------------------------------------------------------------------
+Rank 加强。
 1. test all redirect choiceServer 异常；
 2. test all timer相关测试hot验证异常；以及app not start异常；
 3. dbh2 redo咱么造成的以及超时异常。
