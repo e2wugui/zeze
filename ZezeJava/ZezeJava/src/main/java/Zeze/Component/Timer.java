@@ -701,7 +701,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			cancel(index.getServerId(), timerId, index, _tNodes.get(index.getNodeId()));
 			// cancel future
 			if (index.getServerId() != zeze.getConfig().getServerId())
-				Transaction.whileCommit(() -> redirectCancel(index.getServerId(), timerId));
+				Transaction.whileCommit(() -> tryRedirectCancel(index.getServerId(), timerId));
 		} else {
 			// 定时器数据已经不存在了，尝试移除future。
 			cancelFuture(timerId);
@@ -746,6 +746,14 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 	/////////////////////////////////////////////////////////////
 	// 内部实现
+	protected void tryRedirectCancel(int serverId, @NotNull String timerId) {
+		// redirect 现在仅取消future，总是尝试，不检查其他参数。
+		if (zeze.getProviderApp().zeze.getConfig().getServerId() != serverId
+				&& zeze.getProviderApp().providerDirectService.providerByServerId.containsKey(serverId)) {
+			redirectCancel(serverId, timerId);
+		}
+	}
+
 	@RedirectToServer
 	protected void redirectCancel(int serverId, @NotNull String timerId) {
 		// redirect 现在仅取消future，总是尝试，不检查其他参数。
