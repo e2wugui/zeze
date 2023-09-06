@@ -363,6 +363,7 @@
 				<enum name="ErrorDuplicateLogin"    value="4"/>
 				<enum name="ErrorSeeDescription"    value="5"/>
 				<enum name="ErrorOnlineSetName"     value="6"/>
+				<enum name="ErrorStopServer"        value="7"/>
 
 				<enum name="eControlClose"              value="0"/> 通过ReportError报告给客户端，并关闭链接。
 				<enum name="eControlReportClient"   value="1"/> 通过ReportError报告给客户端，不关闭链接。
