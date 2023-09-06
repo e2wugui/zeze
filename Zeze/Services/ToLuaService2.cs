@@ -390,7 +390,7 @@ namespace Zeze.Services.ToLuaService2
             FreeLuaMeta(luaState);
 
             if (!Lua.IsTable(luaState, -1))
-                throw new Exception("ZezeMeta not return a table");
+                throw new Exception("ZezeMeta not return a table: " + Lua.GetType(luaState, -1));
             Lua.CreateTable(luaState, 0, 0); // LuaL_ref 使用
             tableRefId = Lua.LuaL_ref(luaState, Lua.LuaRegistryIndex);
             Lua.RawGetI(luaState, Lua.LuaRegistryIndex, tableRefId); // [table, refTable]
@@ -515,7 +515,7 @@ namespace Zeze.Services.ToLuaService2
         public void SendProtocol(IntPtr luaState, AsyncSocket socket)
         {
             if (!Lua.IsTable(luaState, -1))
-                throw new Exception("SendProtocol param is not a table.");
+                throw new Exception("SendProtocol param is not a table: " + Lua.GetType(luaState, -1));
 
             Lua.GetField(luaState, -1, "moduleId");
             int moduleId = (int)Lua.ToInteger(luaState, -1);
@@ -606,7 +606,7 @@ namespace Zeze.Services.ToLuaService2
         void EncodeStruct(IntPtr luaState, ByteBuffer bb, BeanMeta beanMeta, int index = -1) // [table]
         {
             if (!Lua.IsTable(luaState, -1))
-                throw new Exception("EncodeStruct need a table");
+                throw new Exception("EncodeStruct need a table: " + Lua.GetType(luaState, -1));
             if (!Lua.CheckStack(luaState, 1))
                 throw new Exception("Lua stack overflow!");
 
@@ -624,7 +624,7 @@ namespace Zeze.Services.ToLuaService2
         void EncodeBean(IntPtr luaState, ByteBuffer bb, long beanTypeId, int index = -1)
         {
             if (!Lua.IsTable(luaState, -1))
-                throw new Exception("EncodeBean need a table");
+                throw new Exception("EncodeBean need a table: " + Lua.GetType(luaState, -1));
             if (!beanMetas.TryGetValue(beanTypeId, out var beanMeta))
                 throw new Exception("bean not found in meta for beanTypeId=" + beanTypeId);
             if (!Lua.CheckStack(luaState, 1))
@@ -652,7 +652,7 @@ namespace Zeze.Services.ToLuaService2
         int EncodeGetTableLength(IntPtr luaState) // [table]
         {
             if (!Lua.IsTable(luaState, -1))
-                throw new Exception("EncodeGetTableLength: not a table");
+                throw new Exception("EncodeGetTableLength: not a table: " + Lua.GetType(luaState, -1));
 
             int len = 0;
             for (Lua.PushNil(luaState); Lua.Next(luaState, -2); Lua.Pop(luaState, 1)) // [table, key, value]
@@ -662,115 +662,148 @@ namespace Zeze.Services.ToLuaService2
 
         void EncodeVariable(IntPtr luaState, ByteBuffer bb, VariableMeta v, int index = -1)
         {
-            switch (v.Type)
+            try
             {
-                case ByteBuffer.LUA_BOOL:
-                    bb.WriteBool(Lua.ToBoolean(luaState, index));
-                    break;
-                case ByteBuffer.INTEGER:
-                    bb.WriteLong(Lua.ToInteger(luaState, index));
-                    break;
-                case ByteBuffer.FLOAT:
-                    bb.WriteFloat((float)Lua.ToNumber(luaState, index));
-                    break;
-                case ByteBuffer.DOUBLE:
-                    bb.WriteDouble(Lua.ToNumber(luaState, index));
-                    break;
-                case ByteBuffer.BYTES:
-                    bb.WriteBytes(Lua.ToBuffer(luaState, index));
-                    break;
-                case ByteBuffer.LIST:
+                switch (v.Type)
                 {
-                    if (!Lua.IsTable(luaState, index))
-                        throw new Exception("list must be a table");
-                    if (v.Id <= 0)
-                        throw new Exception("list cannot define in collection");
-                    if (!Lua.CheckStack(luaState, 2))
-                        throw new Exception("Lua stack overflow!");
-                    int n = EncodeGetTableLength(luaState);
-                    bb.WriteListType(n, v.ValueType & ByteBuffer.TAG_MASK);
-                    var meta = new VariableMeta { Type = v.ValueType, TypeBeanTypeId = v.ValueBeanTypeId };
-                    for (Lua.PushNil(luaState); Lua.Next(luaState, index - 1); Lua.Pop(luaState, 1)) // [table, key, value]
+                    case ByteBuffer.LUA_BOOL:
+                        bb.WriteBool(Lua.ToBoolean(luaState, index));
+                        break;
+                    case ByteBuffer.INTEGER:
+                        bb.WriteLong(Lua.ToInteger(luaState, index));
+                        break;
+                    case ByteBuffer.FLOAT:
+                        bb.WriteFloat((float)Lua.ToNumber(luaState, index));
+                        break;
+                    case ByteBuffer.DOUBLE:
+                        bb.WriteDouble(Lua.ToNumber(luaState, index));
+                        break;
+                    case ByteBuffer.BYTES:
+                        bb.WriteBytes(Lua.ToBuffer(luaState, index));
+                        break;
+                    case ByteBuffer.LIST:
                     {
-                        // 这里应该进行修改还没想好该怎么改~~~，先保留
-                        EncodeVariable(luaState, bb, meta);
+                        if (!Lua.IsTable(luaState, index))
+                            throw new Exception("list must be a table: " + Lua.GetType(luaState, index));
+                        if (v.Id <= 0)
+                            throw new Exception("list cannot define in collection");
+                        if (!Lua.CheckStack(luaState, 2))
+                            throw new Exception("Lua stack overflow!");
+                        int n = EncodeGetTableLength(luaState);
+                        bb.WriteListType(n, v.ValueType & ByteBuffer.TAG_MASK);
+                        var meta = new VariableMeta { Type = v.ValueType, TypeBeanTypeId = v.ValueBeanTypeId };
+                        int topIdx = Lua.GetTop(luaState);
+                        for (Lua.PushNil(luaState); Lua.Next(luaState, index - 1); Lua.Pop(luaState, 1)) // [table, key, value]
+                        {
+                            // 这里应该进行修改还没想好该怎么改~~~，先保留
+                            try
+                            {
+                                EncodeVariable(luaState, bb, meta);
+                            }
+                            catch (Exception e)
+                            {
+                                throw new Exception($"encode list value failed: key={Lua.ToString(luaState, topIdx + 1)}", e);
+                            }
+                        }
+                        break;
                     }
-                    break;
-                }
-                case ByteBuffer.MAP:
-                {
-                    if (!Lua.IsTable(luaState, index))
-                        throw new Exception("map must be a table");
-                    if (v.Id <= 0)
-                        throw new Exception("map cannot define in collection");
-                    if (!Lua.CheckStack(luaState, 2))
-                        throw new Exception("Lua stack overflow!");
-                    int n = EncodeGetTableLength(luaState);
-                    bb.WriteMapType(n, v.KeyType & ByteBuffer.TAG_MASK, v.ValueType & ByteBuffer.TAG_MASK);
-                    var keyMeta = new VariableMeta { Type = v.KeyType, TypeBeanTypeId = v.KeyBeanTypeId };
-                    var valueMeta = new VariableMeta { Type = v.ValueType, TypeBeanTypeId = v.ValueBeanTypeId };
-                    for (Lua.PushNil(luaState); Lua.Next(luaState, index - 1); Lua.Pop(luaState, 1))
+                    case ByteBuffer.MAP:
                     {
-                        EncodeVariable(luaState, bb, keyMeta, -2);
-                        EncodeVariable(luaState, bb, valueMeta);
+                        if (!Lua.IsTable(luaState, index))
+                            throw new Exception("map must be a table: " + Lua.GetType(luaState, index));
+                        if (v.Id <= 0)
+                            throw new Exception("map cannot define in collection");
+                        if (!Lua.CheckStack(luaState, 2))
+                            throw new Exception("Lua stack overflow!");
+                        int n = EncodeGetTableLength(luaState);
+                        bb.WriteMapType(n, v.KeyType & ByteBuffer.TAG_MASK, v.ValueType & ByteBuffer.TAG_MASK);
+                        var keyMeta = new VariableMeta { Type = v.KeyType, TypeBeanTypeId = v.KeyBeanTypeId };
+                        var valueMeta = new VariableMeta { Type = v.ValueType, TypeBeanTypeId = v.ValueBeanTypeId };
+                        int topIdx = Lua.GetTop(luaState);
+                        for (Lua.PushNil(luaState); Lua.Next(luaState, index - 1); Lua.Pop(luaState, 1)) // [table, key, value]
+                        {
+                            EncodeVariable(luaState, bb, keyMeta, -2);
+                            try
+                            {
+                                EncodeVariable(luaState, bb, valueMeta);
+                            }
+                            catch (Exception e)
+                            {
+                                throw new Exception($"encode map value failed: key={Lua.ToString(luaState, topIdx + 1)}", e);
+                            }
+                        }
+                        break;
                     }
-                    break;
-                }
-                case ByteBuffer.BEAN:
-                {
-                    // if (v.ID > 0)
-                    // {
-                    //     os.BeginWriteSegment(out var state);
-                    //     EncodeBean(luaState,os, v.TypeBeanTypeId, index);
-                    //     os.EndWriteSegment(state);
-                    // }
-                    // else // in collection. direct encode
-                    EncodeBean(luaState, bb, v.TypeBeanTypeId);
-                    break;
-                }
-                case ByteBuffer.DYNAMIC:
-                {
-                    if (v.Id <= 0)
-                        throw new Exception("dynamic cannot define in collection");
-                    if (!Lua.CheckStack(luaState, 1))
-                        throw new Exception("Lua stack overflow!");
-                    Lua.GetField(luaState, index, "__type_id__");
-                    if (Lua.IsNil(luaState, -1))
+                    case ByteBuffer.BEAN:
                     {
-                        Lua.Pop(luaState, 1);
-                        Lua.GetField(luaState, index, "__type_name__");
-                        string id = Lua.ToString(luaState, -1);
-                        throw new Exception($"'__type_id__' not found. dynamic bean needed. {v.Name} {id}");
+                        // if (v.ID > 0)
+                        // {
+                        //     os.BeginWriteSegment(out var state);
+                        //     EncodeBean(luaState,os, v.TypeBeanTypeId, index);
+                        //     os.EndWriteSegment(state);
+                        // }
+                        // else // in collection. direct encode
+                        EncodeBean(luaState, bb, v.TypeBeanTypeId);
+                        break;
                     }
+                    case ByteBuffer.DYNAMIC:
+                    {
+                        if (v.Id <= 0)
+                            throw new Exception("dynamic cannot define in collection");
+                        if (!Lua.CheckStack(luaState, 1))
+                            throw new Exception("Lua stack overflow!");
+                        Lua.GetField(luaState, index, "__type_id__");
+                        if (Lua.IsNil(luaState, -1))
+                        {
+                            Lua.Pop(luaState, 1);
+                            Lua.GetField(luaState, index, "__type_name__");
+                            string id = Lua.ToString(luaState, -1);
+                            throw new Exception($"'__type_id__' not found. dynamic bean needed. {v.Name} {id}");
+                        }
 
-                    // 在lua就处理好了相应的类型转换，可以做到协议的生成里，不想把这么特殊的代码保持在c#中
-                    var dynamicBeanId = LuaStringToInt64(luaState, -1);
-                    Lua.Pop(luaState, 1);
-                    bb.WriteLong(dynamicBeanId);
-                    if (dynamicBeanId != 0) // 不是empty bean
-                    {
-                        // os.BeginWriteSegment(out var state);
-                        EncodeBean(luaState, bb, dynamicBeanId, index);
-                        // os.EndWriteSegment(state);
+                        // 在lua就处理好了相应的类型转换，可以做到协议的生成里，不想把这么特殊的代码保持在c#中
+                        var dynamicBeanId = LuaStringToInt64(luaState, -1);
+                        Lua.Pop(luaState, 1);
+                        bb.WriteLong(dynamicBeanId);
+                        if (dynamicBeanId != 0) // 不是empty bean
+                        {
+                            // os.BeginWriteSegment(out var state);
+                            try
+                            {
+                                EncodeBean(luaState, bb, dynamicBeanId, index);
+                            }
+                            catch (Exception e)
+                            {
+                                throw new Exception($"encode dynamic failed: typeId={dynamicBeanId}", e);
+                            }
+                            // os.EndWriteSegment(state);
+                        }
+                        else
+                            bb.WriteByte(0); // empty bean
+                        break;
                     }
-                    else
-                        bb.WriteByte(0); // empty bean
-                    break;
+                    case ByteBuffer.VECTOR2:
+                    case ByteBuffer.VECTOR2INT:
+                    case ByteBuffer.VECTOR3:
+                    case ByteBuffer.VECTOR3INT:
+                    case ByteBuffer.VECTOR4:
+                    {
+                        var meta = GetStructMeta(v.Type);
+                        if (meta == null)
+                            throw new Exception("undefined meta for vector type=" + v.Type);
+                        EncodeStruct(luaState, bb, meta, index);
+                        break;
+                    }
+                    default:
+                        throw new Exception("Unknown Tag Type: " + v.Type);
                 }
-                case ByteBuffer.VECTOR2:
-                case ByteBuffer.VECTOR2INT:
-                case ByteBuffer.VECTOR3:
-                case ByteBuffer.VECTOR3INT:
-                case ByteBuffer.VECTOR4:
-                {
-                    var meta = GetStructMeta(v.Type);
-                    if (meta == null)
-                        throw new Exception("undefined meta for vector type=" + v.Type);
-                    EncodeStruct(luaState, bb, meta, index);
-                    break;
-                }
-                default:
-                    throw new Exception("Unknown Tag Type: " + v.Type);
+            }
+            catch (Exception e)
+            {
+                if (v.Id == 0 && v.Name == null)
+                    throw;
+                else
+                    throw new Exception($"encode variable failed: name={v.Name} id={v.Id} type={v.Type},{v.TypeBeanTypeId}", e);
             }
         }
 
@@ -910,14 +943,21 @@ namespace Zeze.Services.ToLuaService2
         public ByteBuffer Encode(IntPtr luaState)
         {
             if (!Lua.IsTable(luaState, -1))
-                throw new Exception("Encode param is not a table.");
+                throw new Exception("Encode param is not a table: " + Lua.GetType(luaState, -1));
 
             var os = ByteBuffer.Allocate();
             Lua.GetField(luaState, -1, "__type_id__");
             var typeId = LuaStringToInt64(luaState, -1);
             Lua.Pop(luaState, 1);
             os.WriteLong8(typeId);
-            EncodeBean(luaState, os, typeId);
+            try
+            {
+                EncodeBean(luaState, os, typeId);
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"encode bean failed: typeId={typeId}", e);
+            }
             return os;
         }
 
