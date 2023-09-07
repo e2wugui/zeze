@@ -31,23 +31,34 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	int namedTimerCount;
 	int hotTimerCount;
 	@Override
-	public int increateAndGetOnlineTimerCount() {
-		onlineTimerCount += 1;
+	public int getOnlineTimerCount() {
 		return onlineTimerCount;
 	}
 
 	@Override
-	public int increateAndGetNamedTimerCount() {
-		namedTimerCount += 1;
+	public int getNamedTimerCount() {
 		return namedTimerCount;
 	}
 
 	@Override
-	public int increateAndGetHotTimerCount() {
-		hotTimerCount += 1;
+	public int getHotTimerCount() {
 		return hotTimerCount;
 	}
 
+	@Override
+	public void setOnlineTimerCount(int value) {
+		onlineTimerCount = value;
+	}
+
+	@Override
+	public void setNamedTimerCount(int value) {
+		namedTimerCount = value;
+	}
+
+	@Override
+	public void setHotTimerCount(int value) {
+		hotTimerCount = value;
+	}
 
 	@Override
 	public long getRoleId() {
@@ -123,18 +134,32 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			var custom = (BEquipExtra)context.customData;
 			switch (custom.getDefence()) {
 			case 1:
-				count = equip.increateAndGetHotTimerCount();
+				count = equip.getHotTimerCount();
 				break;
 			case 2:
-				count = equip.increateAndGetNamedTimerCount();
+				count = equip.getNamedTimerCount();
 				break;
 			case 3:
-				count = equip.increateAndGetOnlineTimerCount();
+				count = equip.getOnlineTimerCount();
 				break;
 			}
-			if (count != custom.getAttack() + 1)
+			if (count != custom.getAttack())
 				throw new RuntimeException("HotTimer verify fail. type=" + custom.getDefence());
-			custom.setAttack(count);
+			custom.setAttack(count + 1);
+			var finalCount = count;
+			Transaction.whileCommit(() -> {
+				switch (custom.getDefence()) {
+				case 1:
+					equip.setHotTimerCount(finalCount + 1);
+					break;
+				case 2:
+					equip.setNamedTimerCount(finalCount + 1);
+					break;
+				case 3:
+					equip.setOnlineTimerCount(finalCount + 1);
+					break;
+				}
+			});
 		}
 
 		@Override
@@ -302,9 +327,12 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	@Override
 	public void upgrade(HotService old) throws Exception {
 		var oldI = (IModuleEquip)old;
-		startOnlineTimer(oldI.getRoleId());
+		App.Zeze.newProcedure(() -> {
+			startOnlineTimer(oldI.getRoleId());
+			return 0;
+		}, "startOnlineTimer").call();
 		timerHot = oldI.getTimerHot(); // 继承过来。
-		hotTimerCount = oldI.increateAndGetHotTimerCount() - 1; // 继承过来。
+		hotTimerCount = oldI.getHotTimerCount(); // 继承过来。
 	}
 
 	private static class ItemsChangeListener implements ChangeListener {

@@ -17,6 +17,7 @@ import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderWithOnline;
 import Zeze.Game.TaskBase;
 import Zeze.Net.AsyncSocket;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Task;
@@ -125,7 +126,7 @@ public final class App extends Zeze.AppBase {
 		// 服务准备好以后才注册和订阅。
 		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
 
-		counterColdTimer = new AtomicInteger();
+		counterColdTimer = 0;
 		Task.call(Zeze.newProcedure(() -> {
 			coldTimerId = Zeze.getTimer().schedule(2000, 2000, ColdTimer.class, new BKick());
 			logger.info("XYZ Schedule={}", coldTimerId);
@@ -134,20 +135,19 @@ public final class App extends Zeze.AppBase {
 	}
 
 	String coldTimerId;
-	public AtomicInteger counterColdTimer;
+	public int counterColdTimer;
 
 	public static class ColdTimer implements TimerHandle {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var app = (Game.App)context.timer.zeze.getAppBase();
-			var counterColdTimer = app.counterColdTimer;
 			var buf = (BKick)context.customData;
 			logger.info("XYZ timer={} app={} buf={} counter={}",
-					context.timerId, app.Zeze.getConfig().getServerId(), buf.getCode(), counterColdTimer.get());
-			if (buf.getCode() != counterColdTimer.get())
-				throw new RuntimeException("XYZ verify cold timer error." + buf.getCode() + " counter=" + counterColdTimer.get());
-			var id = counterColdTimer.incrementAndGet();
-			buf.setCode(id);
+					context.timerId, app.Zeze.getConfig().getServerId(), buf.getCode(), app.counterColdTimer);
+			if (buf.getCode() != app.counterColdTimer)
+				throw new RuntimeException("XYZ verify cold timer error." + buf.getCode() + " counter=" + app.counterColdTimer);
+			buf.setCode(app.counterColdTimer + 1);
+			Transaction.whileCommit(() -> app.counterColdTimer += 1);
 		}
 
 		@Override

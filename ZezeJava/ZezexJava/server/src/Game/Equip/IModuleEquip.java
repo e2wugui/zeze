@@ -11,7 +11,11 @@ public interface IModuleEquip extends HotService {
 	long getRoleId();
 	String getTimerHot();
 	// 这些也是程序状态，用于验证timer，部分也是继承的。
-	int increateAndGetOnlineTimerCount();
-	int increateAndGetNamedTimerCount();
-	int increateAndGetHotTimerCount(); // 继承的
+	int getOnlineTimerCount();
+	int getNamedTimerCount();
+	int getHotTimerCount(); // 继承的
+
+	void setOnlineTimerCount(int value);
+	void setNamedTimerCount(int value);
+	void setHotTimerCount(int value); // 继承的
 }
