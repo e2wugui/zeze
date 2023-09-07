@@ -373,12 +373,7 @@ public class HotManager extends ClassLoader {
 					hotJarFiles.add(module.getJarFile());
 					module.setService(iModules[ii]);
 					if (null != exist) {
-						var rc = app.getZeze().newProcedure(() -> {
-							module.upgrade(exist);
-							return 0;
-						}, "HotManager.upgrade").call();
-						if (0 != rc)
-							throw new RuntimeException("upgrade " + module + " rc=" + rc);
+						module.upgrade(exist); // 事务外运行，对于继承升级应该都是事务外的。
 					} else {
 						newModules.add(module);
 					}

@@ -302,7 +302,10 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	@Override
 	public void upgrade(HotService old) throws Exception {
 		var oldI = (IModuleEquip)old;
-		startOnlineTimer(oldI.getRoleId());
+		App.Zeze.newProcedure(() -> {
+			startOnlineTimer(oldI.getRoleId());
+			return 0;
+		}, "startOnlineTimer").call();
 		timerHot = oldI.getTimerHot(); // 继承过来。
 		hotTimerCount = oldI.increateAndGetHotTimerCount() - 1; // 继承过来。
 	}
