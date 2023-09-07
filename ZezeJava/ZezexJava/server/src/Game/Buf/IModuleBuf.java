@@ -5,5 +5,6 @@ import Zeze.Hot.HotService;
 
 public interface IModuleBuf extends HotService {
 	IBufs getBufs(long roleId);
-	AtomicInteger getCounter();
+	int getCounter();
+	void setCounter(int value);
 }

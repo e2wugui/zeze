@@ -21,11 +21,16 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	private static final Logger logger = LogManager.getLogger(ModuleBuf.class);
 
 	private Future<?> timerIdHot;
-	public AtomicInteger counterHotTimer;
+	public int counterHotTimer;
 
 	@Override
-	public AtomicInteger getCounter() {
+	public int getCounter() {
 		return counterHotTimer;
+	}
+
+	@Override
+	public void setCounter(int value) {
+		counterHotTimer = value;
 	}
 
 	public static class HotTimer implements TimerHandle {
@@ -35,10 +40,11 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 			var mc = context.timer.zeze.getHotManager().getModuleContext("Game.Buf", IModuleBuf.class);
 			var ibuf = mc.getService();
 			var buf = (BBuf)context.customData;
-			if (buf.getId() != ibuf.getCounter().get())
-				throw new RuntimeException("buf " + buf.getId() + ":" + ibuf.getCounter().get());
-			var id = ibuf.getCounter().incrementAndGet();
-			buf.setId(id);
+			var count = ibuf.getCounter();
+			if (buf.getId() != count)
+				throw new RuntimeException("buf " + buf.getId() + ":" + count);
+			buf.setId(count + 1);
+			Transaction.whileCommit(() -> ibuf.setCounter(count + 1));
 		}
 
 		@Override
@@ -49,7 +55,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 
 	@Override
 	public void StartLast() {
-		counterHotTimer = new AtomicInteger();
+		counterHotTimer = 0;
 		_tbufs.getChangeListenerMap().addListener(new BufChangeListener("Game.Buf.Bufs"));
 		var rand = Zeze.Util.Random.getInstance();
 		timerIdHot = Task.scheduleUnsafe(
