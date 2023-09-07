@@ -42,8 +42,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		// database 继承，实际上热更新表也没法读到新的database配置。
 		var database = exist.getDatabase();
 
-		if (cache != null)
-			throw new IllegalStateException("table has opened: " + getName());
+		// replaceTable允许重复调用，热更回滚需要能在旧表上重新打开。see cache init below
+		//if (cache != null)
+		//	throw new IllegalStateException("table has opened: " + getName());
 
 		setZeze(app);
 		setDatabase(database);
@@ -52,7 +53,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			autoKey = app.getServiceManager().getAutoKey(getName());
 
 		setTableConf(exist.getTableConf()); // Old
-		cache = new TableCache<>(app, this); // New
+		if (!isMemory() || null == cache) // 如果时内存表，并且是已经存在的表的回滚，保持cache不变。
+			cache = new TableCache<>(app, this); // New
 		relationalTable = getZeze().getSchemas().relationalTables.get(getName()); // maybe null
 		storage = isMemory() ? null : new Storage<>(this, database, getName()); // New
 		database.replaceStorage(exist.getStorage(), storage);

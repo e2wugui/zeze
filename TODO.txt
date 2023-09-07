@@ -40,20 +40,26 @@ dbh2
 	3. 优先级不高，后期优化再考虑。
 ----------------------------------------------------------------------------------------------------------
 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
-HotManager 错误处理。
-1. stop 【已完成】 已经停止的重新start并恢复，还没有停止的恢复（加入modules.Map），当前错误模块不再启动。
-2. _install，upgrade，start 等任何其他错误，恢复热更安装前的状态。
-var txn = new transaction(backup jar file);
-try {
-	do ... _install，upgrade，start  ...
-	txn.commit(); // delete backup
-} finally {
-	txn.rollbackIfNotCommit(); // restore backup jar file, restart stopped module, publish again 这里的部分逻辑同stop失败的处理差不多。
-}
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/9/8 v1.3.2 Hot; Online.Local; StartLast; Rank; 
 ------------------------------------------------------------------------------------------------------------------------------
+HotManager 错误处理。
+两个不一样的目标：
+1，尽量完成热更，模块热更失败，禁用模块。缺点是一旦发生错误，部分模块变得不可用。如果模块是有状态的，状态丢失。
+2，发生错误，回滚恢复到热更前的状态，恢复程序执行。非常完美，但是任何错误都能完全恢复，难度很大。
+*，现在是上俩目标的混合模式。
+1. stop 【已完成】 已经停止的重新start并恢复，还没有停止的恢复（加入modules.Map），当前错误模块不再启动。
+2. _install，upgrade，start 等任何其他错误，恢复热更安装前的状态。
+var txn = new transaction(backup jar file);
+try {
+	do ... _install.
+	3. upgrade 或者 start 错误的模块直接停止服务。
+	txn.commit(); // delete backup
+} finally {
+	txn.rollbackIfNotCommit(); // restore backup jar file, restart stopped module, publish again 这里的部分逻辑同stop失败的处理差不多。
+}
+start，stop条件看zeze.doc；txn思路看todo.txt；install 流程介绍；未完成的rollback；halt与start；
 Rank 加强。
 1. test all redirect choiceServer 异常；
 2. test all timer相关测试hot验证异常；以及app not start异常；

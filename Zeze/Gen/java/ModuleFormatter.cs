@@ -492,6 +492,11 @@ namespace Zeze.Gen.java
 
             sw.WriteLine($"    public AbstractModule({project.Solution.Name}.App app) {{");
             sw.WriteLine("        App = app;");
+            sw.WriteLine("        Register();");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    @Override");
+            sw.WriteLine("    public void Register() {");
             sw.WriteLine("        // register protocol factory and handles");
             RegisterProtocols(sw);
             sw.WriteLine("        // register table");
@@ -503,8 +508,13 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public void UnRegister() {");
+            sw.WriteLine("        // unregister protocol factory and handles");
             UnRegisterProtocols(sw);
+            sw.WriteLine("        // unregister table");
             UnRegisterZezeTables(sw);
+            sw.WriteLine("        // unregister servlet");
+            writtenHeader = true;
+            UnRegisterHttpServlet(sw, ref writtenHeader);
             sw.WriteLine("    }");
         }
 
@@ -590,6 +600,37 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"    protected abstract void OnServletBeginStream{s.Name}(Zeze.Netty.HttpExchange x, long from, long to, long size) throws Exception;");
                 sw.WriteLine($"    protected abstract void OnServletStreamContent{s.Name}(Zeze.Netty.HttpExchange x, io.netty.handler.codec.http.HttpContent c) throws Exception;");
                 sw.WriteLine($"    protected abstract void OnServletEndStream{s.Name}(Zeze.Netty.HttpExchange x) throws Exception;");
+            }
+        }
+
+        public void UnRegisterHttpServlet(StreamWriter sw, ref bool writtenHeader)
+        {
+            Service serv = module.ReferenceService;
+            if (serv == null || (serv.HandleFlags & Program.HandleServletFlag) == 0)
+                return;
+
+            var httpVar = writtenHeader ? "App.HttpServer" : "httpServer";
+
+            if (module.Servlets.Count > 0 || module.ServletStreams.Count > 0)
+            {
+                if (!writtenHeader)
+                {
+                    writtenHeader = true;
+                    sw.WriteLine();
+                    sw.WriteLine("    public void UnRegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {");
+                }
+            }
+
+            foreach (var s in module.Servlets.Values)
+            {
+                var path = module.WebPathBase.Length > 0 ? module.WebPathBase + s.Name : "/" + module.Path("/", s.Name);
+                sw.WriteLine($"        {httpVar}.removeHandler(\"{path}\");");
+            }
+
+            foreach (var s in module.ServletStreams.Values)
+            {
+                var path = module.WebPathBase.Length > 0 ? module.WebPathBase + s.Name : "/" + module.Path("/", s.Name);
+                sw.WriteLine($"        {httpVar}.removeHandler(\"{path}\");");
             }
         }
 

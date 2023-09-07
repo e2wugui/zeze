@@ -180,6 +180,10 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 			throw new IllegalStateException("add handler: duplicate path=" + path);
 	}
 
+	public void removeHandler(@NotNull String path) {
+		handlers.remove(path);
+	}
+
 	// 允许扩展HttpExchange类
 	public @NotNull HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
 		return new HttpExchange(this, context);

@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 // 2. 目录不是模块目录时，它就属于往上级目录方向的最近的热更模块。
 public class HotModule extends ClassLoader implements Closeable {
 	private static final Logger logger = LogManager.getLogger(HotModule.class);
+	private final File jarFile;
 	private JarFile jar; // 模块的class（interface除外）必须打包成一个jar，只支持一个。
 	private final Class<?> moduleClass;
 	private HotService service;
@@ -31,8 +32,8 @@ public class HotModule extends ClassLoader implements Closeable {
 	// 为了支持批量装载redirect.class，构造只初始化moduleClass，service下一步处理。
 	public HotModule(HotManager parent, String namespace, File jarFile) throws Exception {
 		super(namespace, parent);
+		this.jarFile = jarFile;
 		this.jar = new JarFile(jarFile);
-
 		// App.ModuleClassName：MySolution.MyName.ModuleMyName，namespace=MySolution.MyName
 		// MyName 一般就叫模块名字。
 		var moduleClassName = namespace + ".Module" + last(namespace);
@@ -41,6 +42,7 @@ public class HotModule extends ClassLoader implements Closeable {
 
 	// 用于装载 Schemas. 借用这个类实现单独的装载。
 	HotModule(File jarFile) throws Exception {
+		this.jarFile = jarFile;
 		this.jar = new JarFile(jarFile);
 		this.moduleClass = null;
 	}
@@ -79,6 +81,12 @@ public class HotModule extends ClassLoader implements Closeable {
 	public void start() throws Exception {
 		if (!started) {
 			started = true;
+			if (null == this.jar)
+				this.jar = new JarFile(jarFile);
+			// 热更回滚涉及重新start，此时需要重新注册。但是这里没法精确控制流程，所以总是UnRegister,Register。
+			var iModule = (IModule)service;
+			iModule.UnRegister();
+			iModule.Register();
 			service.start();
 			// 安装过程中可能需要重启，因为停止时清除了引用，这里需要重新设置。
 			for (var context : contexts.values()) {

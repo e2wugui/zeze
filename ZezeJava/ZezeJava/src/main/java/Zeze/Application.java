@@ -276,12 +276,17 @@ public final class Application {
 	private final ArrayList<HotUpgradeMemoryTable> hotUpgradeMemoryTables = new ArrayList<>();
 
 	// Hot Install 内部使用。
-	public void __install_prepare__(Schemas schemas) throws Exception {
+	public void __install_prepare__() {
 		hotUpgradeMemoryTables.clear();
 		replaceTableRecent.clear();
+	}
+
+	public Schemas __upgrade_schemas__(Schemas schemas) throws Exception {
+		var current = this.schemas;
 		this.schemasPrevious = null;
 		this.schemas = schemas;
 		schemasCompatible();
+		return current;
 	}
 
 	public void __install_alter__() {
@@ -304,6 +309,8 @@ public final class Application {
 		TableKey.tables.put(table.getId(), table.getName()); // always put
 		var exist = tables.put(table.getId(), table);
 		var db = getDatabase(dbName);
+		if (exist == table)
+			return db; // 热更回滚导致反复重新注册，如果存在的表就是自己，不再执行后面的操作。
 		if (null != exist) {
 			// 1. exist.isMemory() || table.isMemory()
 			// 内存表配置发生改变，不会继承数据。【需要再次确认一下能不能重用这个处理流程，大概可以。】
