@@ -201,20 +201,20 @@ public class TimerRole {
 				return; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
 			throw new RuntimeException("not online " + roleId);
-		} else {
-			var timer = online.providerApp.zeze.getTimer();
-			var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, timer.timerSerialId.nextId());
-			online._tRoleTimers().put(timerId, onlineTimer);
-			onlineTimer.getTimerObj().setBean(simpleTimer);
-
-			var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
-			var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
-			if (null != customData) {
-				Timer.register(customData.getClass());
-				timerLocal.getCustomData().setBean(customData);
-			}
-			scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name);
 		}
+
+		var timer = online.providerApp.zeze.getTimer();
+		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, timer.timerSerialId.nextId());
+		online._tRoleTimers().put(timerId, onlineTimer);
+		onlineTimer.getTimerObj().setBean(simpleTimer);
+
+		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
+		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
+		if (null != customData) {
+			Timer.register(customData.getClass());
+			timerLocal.getCustomData().setBean(customData);
+		}
+		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name);
 	}
 
 	private void scheduleOnlineHot(long roleId, @NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
