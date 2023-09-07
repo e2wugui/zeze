@@ -128,6 +128,7 @@ public final class App extends Zeze.AppBase {
 		counterColdTimer = new AtomicInteger();
 		Task.call(Zeze.newProcedure(() -> {
 			coldTimerId = Zeze.getTimer().schedule(2000, 2000, ColdTimer.class, new BKick());
+			logger.info("XYZ Schedule={}", coldTimerId);
 			return 0;
 		}, "coldTimer"));
 	}
@@ -138,12 +139,19 @@ public final class App extends Zeze.AppBase {
 	public static class ColdTimer implements TimerHandle {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
-			var counterColdTimer = ((Game.App)(context.timer.zeze.getAppBase())).counterColdTimer;
-			var buf = (BKick)context.customData;
-			if (buf.getCode() != counterColdTimer.get())
-				throw new RuntimeException("verify cold timer error." + buf.getCode() + " counter=" + counterColdTimer.get());
-			var id = counterColdTimer.incrementAndGet();
-			buf.setCode(id);
+			var app = (Game.App)context.timer.zeze.getAppBase();
+			if (context.timerId.equals(app.coldTimerId)) {
+				var counterColdTimer = app.counterColdTimer;
+				var buf = (BKick)context.customData;
+				logger.info("XYZ timer={} app={} buf={} counter={}",
+						context.timerId, app.Zeze.getConfig().getServerId(), buf.getCode(), counterColdTimer.get());
+				if (buf.getCode() != counterColdTimer.get())
+					throw new RuntimeException("XYZ verify cold timer error." + buf.getCode() + " counter=" + counterColdTimer.get());
+				var id = counterColdTimer.incrementAndGet();
+				buf.setCode(id);
+			} else {
+				logger.info("XYZ XXX {}", context.timerId);
+			}
 		}
 
 		@Override
@@ -154,6 +162,7 @@ public final class App extends Zeze.AppBase {
 
 	public void Stop() throws Exception {
 		Task.call(Zeze.newProcedure(() -> {
+			logger.info("XYZ Stop cancel={}", coldTimerId);
 			Zeze.getTimer().cancel(coldTimerId);
 			return 0;
 		}, "cancelColdTimer"));

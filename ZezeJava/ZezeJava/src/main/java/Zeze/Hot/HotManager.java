@@ -249,6 +249,7 @@ public class HotManager extends ClassLoader {
 			if (null == exist)
 				continue;
 			try {
+				((IModule)exist.getService()).Register(); // 已经注销过，重启需要再次注册。
 				exist.start();
 				modules.put(exist.getName(), exist);
 			} catch (Throwable ex) {

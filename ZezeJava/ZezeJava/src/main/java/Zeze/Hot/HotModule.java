@@ -83,10 +83,6 @@ public class HotModule extends ClassLoader implements Closeable {
 			started = true;
 			if (null == this.jar)
 				this.jar = new JarFile(jarFile);
-			// 热更回滚涉及重新start，此时需要重新注册。但是这里没法精确控制流程，所以总是UnRegister,Register。
-			var iModule = (IModule)service;
-			iModule.UnRegister();
-			iModule.Register();
 			service.start();
 			// 安装过程中可能需要重启，因为停止时清除了引用，这里需要重新设置。
 			for (var context : contexts.values()) {
