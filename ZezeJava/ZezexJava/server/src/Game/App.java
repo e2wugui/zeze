@@ -140,18 +140,14 @@ public final class App extends Zeze.AppBase {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var app = (Game.App)context.timer.zeze.getAppBase();
-			if (context.timerId.equals(app.coldTimerId)) {
-				var counterColdTimer = app.counterColdTimer;
-				var buf = (BKick)context.customData;
-				logger.info("XYZ timer={} app={} buf={} counter={}",
-						context.timerId, app.Zeze.getConfig().getServerId(), buf.getCode(), counterColdTimer.get());
-				if (buf.getCode() != counterColdTimer.get())
-					throw new RuntimeException("XYZ verify cold timer error." + buf.getCode() + " counter=" + counterColdTimer.get());
-				var id = counterColdTimer.incrementAndGet();
-				buf.setCode(id);
-			} else {
-				logger.info("XYZ XXX {}", context.timerId);
-			}
+			var counterColdTimer = app.counterColdTimer;
+			var buf = (BKick)context.customData;
+			logger.info("XYZ timer={} app={} buf={} counter={}",
+					context.timerId, app.Zeze.getConfig().getServerId(), buf.getCode(), counterColdTimer.get());
+			if (buf.getCode() != counterColdTimer.get())
+				throw new RuntimeException("XYZ verify cold timer error." + buf.getCode() + " counter=" + counterColdTimer.get());
+			var id = counterColdTimer.incrementAndGet();
+			buf.setCode(id);
 		}
 
 		@Override

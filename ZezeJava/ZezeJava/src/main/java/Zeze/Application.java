@@ -627,16 +627,6 @@ public final class Application {
 		ProcedureStatistics.getInstance().stop();
 		logger.info("Stop ServerId={}", conf.getServerId());
 
-		if (delayRemove != null) {
-			delayRemove.stop();
-			delayRemove = null;
-		}
-
-		if (timer != null) {
-			timer.stop();
-			timer = null;
-		}
-
 		if (achillesHeelDaemon != null) {
 			achillesHeelDaemon.stopAndJoin();
 			achillesHeelDaemon = null;
@@ -654,6 +644,16 @@ public final class Application {
 		if (checkpoint != null) {
 			checkpoint.stopAndJoin();
 			checkpoint = null;
+		}
+
+		if (delayRemove != null) {
+			delayRemove.stop();
+			delayRemove = null;
+		}
+
+		if (timer != null) {
+			timer.stop();
+			timer = null;
 		}
 
 		if (LocalRocksCacheDb != null) {
