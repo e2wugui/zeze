@@ -182,7 +182,7 @@ public class TestRoleTimer {
 
 		try {
 			log("Role Online Timer 初始化测试环境");
-			prepareNewEnvironment(2, 2, 2, 2);
+			prepareNewEnvironment(2, 2, 1, 2);
 
 			var client0 = clients.get(0);
 			var client1 = clients.get(1);
