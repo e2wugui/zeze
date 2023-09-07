@@ -194,9 +194,13 @@ public class TimerRole {
 					p.setCustomClass(customData.getClass().getName());
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
 				}
-				online.transmitEmbed(roleId, eTransmitSimpleTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)), false);
+				online.transmitEmbed(roleId, eTransmitSimpleTimer, List.of(roleId),
+						new Binary(ByteBuffer.encode(p)), false);
+
+				logger.info("not online but transmit {}", roleId);
+				return; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
-			logger.info("not online {}", roleId);
+			throw new RuntimeException("not online " + roleId);
 		} else {
 			var timer = online.providerApp.zeze.getTimer();
 			var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, timer.timerSerialId.nextId());
@@ -370,9 +374,10 @@ public class TimerRole {
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
 				}
 				online.transmitEmbed(roleId, eTransmitCronTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)), false);
+				logger.info("not online but transmit {}", roleId);
+				return; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
-			logger.info("not online {}", roleId);
-			return;
+			throw new RuntimeException("not online " + roleId);
 		}
 
 		var timer = online.providerApp.zeze.getTimer();
