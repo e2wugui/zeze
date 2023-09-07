@@ -154,35 +154,47 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	}
 
 	private void resetCollections() {
-		var linkedMap = App.LinkedMapModule.open("ZezexJava.HotTest.LinkedMap", BEquipExtra.class);
+		var linkedMap = App.LinkedMapModule.open(getLinkedMapName(), BEquipExtra.class);
 		linkedMap.remove(String.valueOf(0));
-		var queue = App.Zeze.getQueueModule().open("ZezexJava.HotTest.Queue", BEquipExtra.class);
+		var queue = App.Zeze.getQueueModule().open(getQueueName(), BEquipExtra.class);
 		queue.clear();
-		var departmentTree = App.DepartmentTreeModule.open("ZezexJava.HotTest.DT",
+		var departmentTree = App.DepartmentTreeModule.open(getDtName(),
 				BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class);
 		departmentTree.destroy();
 	}
 
+	private String getLinkedMapName() {
+		return "ZezexJava.HotTest.LinkedMap." + App.Zeze.getConfig().getServerId();
+	}
+
+	private String getQueueName() {
+		return "ZezexJava.HotTest.Queue." + App.Zeze.getConfig().getServerId();
+	}
+
+	private String getDtName() {
+		return "ZezexJava.HotTest.DT." + App.Zeze.getConfig().getServerId();
+	}
+
 	private void verifyCollections(int oldAccess) {
 		{
-			var linkedMap = App.LinkedMapModule.open("ZezexJava.HotTest.LinkedMap", BEquipExtra.class);
+			var linkedMap = App.LinkedMapModule.open(getLinkedMapName(), BEquipExtra.class);
 			var version0 = linkedMap.getOrAdd(String.valueOf(0));
 			logger.info("verify oldAccess=" + version0.getAttack() + ":" + oldAccess);
 			if (version0.getAttack() != oldAccess)
-				throw new RuntimeException("LinkedMap error oldAccess=" + version0.getAttack() + ":" + oldAccess);
+				throw new RuntimeException(getLinkedMapName() + " error oldAccess=" + version0.getAttack() + ":" + oldAccess);
 			version0.setAttack(oldAccess + 1);
 		}
 		{
-			var queue = App.Zeze.getQueueModule().open("ZezexJava.HotTest.Queue", BEquipExtra.class);
+			var queue = App.Zeze.getQueueModule().open(getQueueName(), BEquipExtra.class);
 			var old = queue.poll();
 			if (old != null && oldAccess != old.getAttack())
-				throw new RuntimeException("Queue error oldAccess=" + old.getAttack() + ":" + oldAccess);
+				throw new RuntimeException(getQueueName() + " error oldAccess=" + old.getAttack() + ":" + oldAccess);
 			var cur = new BEquipExtra();
 			cur.setAttack(oldAccess + 1);
 			queue.add(cur);
 		}
 		{
-			var departmentTree = App.DepartmentTreeModule.open("ZezexJava.HotTest.DT",
+			var departmentTree = App.DepartmentTreeModule.open(getDtName(),
 					BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class);
 			var root = departmentTree.getRoot();
 			var next = String.valueOf(oldAccess + 1);
@@ -190,7 +202,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 				departmentTree.create().setRoot(next);
 			} else {
 				if (!root.getRoot().equals(String.valueOf(oldAccess)))
-					throw new RuntimeException("Dt error oldAcces=" + root.getRoot() + ":" + oldAccess);
+					throw new RuntimeException(getDtName() + " error oldAcces=" + root.getRoot() + ":" + oldAccess);
 				root.setRoot(next);
 			}
 		}
