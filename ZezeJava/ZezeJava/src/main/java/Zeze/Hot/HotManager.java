@@ -5,8 +5,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -577,8 +579,17 @@ public class HotManager extends ClassLoader {
 		var ready = Path.of(distributeDir, "ready");
 		Task.getScheduledThreadPool().scheduleAtFixedRate(() -> {
 			try {
-				if (Files.exists(ready) && null != installReadies()) {
-					Files.deleteIfExists(ready);
+				if (Files.exists(ready)) {
+					try {
+						readies = Files.readAllLines(ready);
+						if (null != installReadies())
+							Files.deleteIfExists(ready); // success
+						else
+							renameDistributes();
+					} catch (Throwable ex) {
+						logger.error("", ex);
+						renameDistributes();
+					}
 				}
 			} catch (Throwable ex) {
 				logger.error("", ex);
@@ -586,6 +597,28 @@ public class HotManager extends ClassLoader {
 		}, 1000, 1000, TimeUnit.MILLISECONDS);
 
 		Task.hotGuard = this::enterReadLock;
+	}
+
+	private volatile java.util.List<String> readies;
+
+	public java.util.List<String> getReadies() {
+		return readies;
+	}
+
+	public void renameDistributes() throws IOException {
+		var files = new File(distributeDir).listFiles();
+		var formatter = new SimpleDateFormat("yyyy-MM-dd_hh-mm-ss");
+		var backupDir = Path.of(distributeDir, "backup", formatter.format(new Date()));
+		Files.createDirectory(backupDir);
+		var backupDirFile = backupDir.toFile();
+		if (null != files) {
+			for (var file : files) {
+				if (file.isDirectory())
+					continue;
+				if (!file.renameTo(new File(backupDirFile, file.getName())))
+					logger.error("rename {} fail", file);
+			}
+		}
 	}
 
 	public void startModule(String moduleName) throws Exception {
