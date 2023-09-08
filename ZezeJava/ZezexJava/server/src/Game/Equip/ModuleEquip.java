@@ -72,8 +72,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		return hotManager.isUpgrading();
 	}
 
-	@Override
-	public void StartLast() {
+	public void Start(App app) {
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
 		App.Zeze.newProcedure(() -> {
 			var timer = App.Zeze.getTimer();
@@ -88,20 +87,14 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 						rand.nextLong(3000) + 1000,
 						rand.nextLong(3000) + 1000,
 						HotTimer.class, new BEquipExtra(0, 1, 0));
+				resetCollections();
 			}
-			resetCollections();
 			return 0;
 		}, "register timers").call();
 	}
 
-	@Override
-	public void stopBefore() throws Exception {
-		StopBefore();
-	}
-
-	@Override
-	public void StopBefore() throws Exception {
-		logger.info("StopBefore " + this.getFullName());
+	public void Stop(App app) {
+		logger.info("Stop " + this.getFullName());
 		App.Zeze.newProcedure(() -> {
 			var timer = App.Zeze.getTimer();
 			timer.cancel(timerNamed);
@@ -111,12 +104,6 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			timer.getRoleTimer().cancel(timerOnline);
 			return 0;
 		}, "cancel timers").call();
-	}
-
-	public void Start(App app) {
-	}
-
-	public void Stop(App app) {
 	}
 
 	@Override
@@ -312,11 +299,6 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	@Override
 	public void start() throws Exception {
 		Start(App);
-	}
-
-	@Override
-	public void startLast() throws Exception {
-		StartLast();
 	}
 
 	@Override

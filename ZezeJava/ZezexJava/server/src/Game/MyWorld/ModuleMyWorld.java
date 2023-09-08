@@ -22,10 +22,6 @@ public class ModuleMyWorld extends AbstractModule implements IModuleMyWorld {
         world.start();
     }
 
-    @Override
-    public void StartLast() {
-    }
-
     public void Stop(Game.App app) throws Exception {
         world.stop();
     }
@@ -33,11 +29,6 @@ public class ModuleMyWorld extends AbstractModule implements IModuleMyWorld {
     @Override
     public void start() throws Exception {
         Start(App);
-    }
-
-    @Override
-    public void startLast() throws Exception {
-        StartLast();
     }
 
     @Override

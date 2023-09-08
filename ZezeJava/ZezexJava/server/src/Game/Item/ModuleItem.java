@@ -10,21 +10,12 @@ public final class ModuleItem extends AbstractModule implements IModuleItem {
 	public void Start(App app) {
 	}
 
-	@Override
-	public void StartLast() {
-	}
-
 	public void Stop(App app) {
 	}
 
 	@Override
 	public void start() throws Exception {
 		Start(App);
-	}
-
-	@Override
-	public void startLast() throws Exception {
-		StartLast();
 	}
 
 	@Override

@@ -51,11 +51,6 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 		app.Provider.getOnline().getLoginEvents().addHot(EventDispatcher.Mode.RunEmbed, LoginEventHandle.class);
 	}
 
-	@Override
-	public void StartLast() {
-
-	}
-
 	public void Stop(App app) {
 	}
 
@@ -89,11 +84,6 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 	@Override
 	public void start() throws Exception {
 		Start(App);
-	}
-
-	@Override
-	public void startLast() throws Exception {
-		StartLast();
 	}
 
 	@Override

@@ -12,10 +12,6 @@ public final class ModuleMap extends AbstractModule implements IModuleMap {
 	public void Start(App app) {
 	}
 
-	@Override
-	public void StartLast() {
-	}
-
 	public void Stop(App app) {
 	}
 

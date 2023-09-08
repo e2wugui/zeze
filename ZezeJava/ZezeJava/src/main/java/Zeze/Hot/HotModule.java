@@ -104,6 +104,7 @@ public class HotModule extends ClassLoader implements Closeable {
 	// stop 不能清除本地进程状态，后面需要用来升级。
 	public void stop() throws Exception {
 		if (started) {
+			started = false;
 			// 停止不允许失败，首先去掉旧的引用。
 			disable();
 			// 停止事件。
@@ -115,7 +116,6 @@ public class HotModule extends ClassLoader implements Closeable {
 				}
 			}
 			stopEvents.clear();
-			started = false;
 			// app stop
 			service.stop();
 			// app Unregister

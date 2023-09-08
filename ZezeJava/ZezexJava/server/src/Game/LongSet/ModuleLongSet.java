@@ -19,10 +19,6 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 		NodeIdGenerator = app.Zeze.getAutoKey("Game.LongSet.NodeIdGenerator");
 	}
 
-	@Override
-	public void StartLast() {
-	}
-
 	public void Stop(Game.App app) throws Exception {
 	}
 
@@ -157,11 +153,6 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 	@Override
 	public void start() throws Exception {
 		Start(App);
-	}
-
-	@Override
-	public void startLast() throws Exception {
-		StartLast();
 	}
 
 	@Override

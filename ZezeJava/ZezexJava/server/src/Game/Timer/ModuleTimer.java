@@ -32,10 +32,6 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 		Task.run(this::LoadTimerLocal, "LoadTimerLocal", DispatchMode.Normal);
 	}
 
-	@Override
-	public void StartLast() {
-	}
-
 	public void Stop(Game.App app) throws Exception {
 	}
 
@@ -298,11 +294,6 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 	@Override
 	public void start() throws Exception {
 		Start(App);
-	}
-
-	@Override
-	public void startLast() throws Exception {
-		StartLast();
 	}
 
 	@Override

@@ -232,7 +232,7 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
-	private boolean upgrading = false;
+	private volatile boolean upgrading = false;
 
 	public boolean isUpgrading() {
 		return upgrading;
@@ -301,147 +301,149 @@ public class HotManager extends ClassLoader {
 
 	private ArrayList<HotModule> install(List<String> namespaces) throws Exception {
 		logger.info("________________ install ________________ {}", namespaces);
-		// 首先查询得到现有的模块，不存在也加入null。
-		var exists = new ArrayList<HotModule>(namespaces.size());
-		for (var namespace : namespaces)
-			exists.add(modules.get(namespace));
-		// 锁外执行stopBefore
-		for (var exist : exists)
-			exist.stopBefore();
-		var result = new ArrayList<HotModule>();
-		try (var ignored = enterWriteLock()) {
+		try {
 			upgrading = true;
-			var app = zeze.getAppBase();
-			// 先保存现有的数据
-			app.getZeze().checkpointRun();
-			// remove
-			for (var namespace : namespaces) {
-				modules.remove(namespace);
-			}
-			// reverse stop
-			var reverseIndex = exists.size() - 1;
-			try {
-				for (; reverseIndex >= 0; --reverseIndex) {
-					var exist = exists.get(reverseIndex);
-					if (exist != null)
-						exist.stop();
-				}
-			} catch (Throwable ex) {
-				logger.error("stop modules {}", exists, ex);
-				recoverModules(exists, reverseIndex); // 此时的恢复，schemas没有变化，不需要重新alter。
-				return null;
-			}
-
-			var txn = new HotTransaction("HotManager.install");
-			app.getZeze().__install_prepare__();
-			var old = app.getZeze().__upgrade_schemas__(loadSchemas());
-
-			var mainRollbackAction = new MainRollbackAction(zeze, exists, old);
-			txn.whileRollback(mainRollbackAction);
-
-			ArrayList<HotUpgrade> freshHotUpgrades;
-			ArrayList<HotBeanFactory> freshHotBeanFactories;
-			ArrayList<JarFile> hotJarFiles;
-			ArrayList<HotModule> newModules;
-			try {
-				freshHotUpgrades = new ArrayList<>();
-				for (var hotUpgrade : hotUpgrades) {
-					if (hotUpgrade.hasFreshStopModuleLocalOnce()) {
-						freshHotUpgrades.add(hotUpgrade);
-					}
-				}
-				freshHotBeanFactories = new ArrayList<>();
-				for (var hotBeanFactory : hotBeanFactories) {
-					if (hotBeanFactory.hasFreshStopModuleDynamicOnce()) {
-						freshHotBeanFactories.add(hotBeanFactory);
-					}
-				}
-				// install
+			// 首先查询得到现有的模块，不存在也加入null。
+			var exists = new ArrayList<HotModule>(namespaces.size());
+			for (var namespace : namespaces)
+				exists.add(modules.get(namespace));
+			// 锁外执行stopBefore
+			for (var exist : exists)
+				exist.stopBefore();
+			var result = new ArrayList<HotModule>();
+			try (var ignored = enterWriteLock()) {
+				var app = zeze.getAppBase();
+				// 先保存现有的数据
+				app.getZeze().checkpointRun();
+				// remove
 				for (var namespace : namespaces) {
-					result.add(_install(namespace, txn));
+					modules.remove(namespace);
 				}
-				// batch load redirect
-				var iModules = createModuleInstance(result);
-				app.getZeze().__install_alter__();
-				mainRollbackAction.setHasAlter();
+				// reverse stop
+				var reverseIndex = exists.size() - 1;
+				try {
+					for (; reverseIndex >= 0; --reverseIndex) {
+						var exist = exists.get(reverseIndex);
+						if (exist != null)
+							exist.stop();
+					}
+				} catch (Throwable ex) {
+					logger.error("stop modules {}", exists, ex);
+					recoverModules(exists, reverseIndex); // 此时的恢复，schemas没有变化，不需要重新alter。
+					return null;
+				}
 
-				hotJarFiles = new ArrayList<>();
-				newModules = new ArrayList<>();
-				for (var ii = 0; ii < iModules.length; ++ii) {
-					var exist = exists.get(ii);
-					var module = result.get(ii);
-					hotJarFiles.add(module.getJarFile());
-					module.setService(iModules[ii]);
-					if (null != exist) {
-						module.upgrade(exist); // 事务外运行，对于继承升级应该都是事务外的。
-					} else {
-						newModules.add(module);
+				var txn = new HotTransaction("HotManager.install");
+				app.getZeze().__install_prepare__();
+				var old = app.getZeze().__upgrade_schemas__(loadSchemas());
+
+				var mainRollbackAction = new MainRollbackAction(zeze, exists, old);
+				txn.whileRollback(mainRollbackAction);
+
+				ArrayList<HotUpgrade> freshHotUpgrades;
+				ArrayList<HotBeanFactory> freshHotBeanFactories;
+				ArrayList<JarFile> hotJarFiles;
+				ArrayList<HotModule> newModules;
+				try {
+					freshHotUpgrades = new ArrayList<>();
+					for (var hotUpgrade : hotUpgrades) {
+						if (hotUpgrade.hasFreshStopModuleLocalOnce()) {
+							freshHotUpgrades.add(hotUpgrade);
+						}
 					}
-				}
-				txn.commit();
-			} catch (Throwable ex) {
-				logger.error("", ex);
-				txn.rollback();
-				return null;
-			}
-			// 下面进入”不能“出错阶段：1. start 出错则相关模块停止服务；2. 其他错误，停止程序。
-			try {
-				// internal upgrade
-				for (var hotUpgrade : freshHotUpgrades) {
-					hotUpgrade.upgrade((bean) -> retreat(exists, result, bean));
-				}
-				// upgrade user memory table
-				for (var table : app.getZeze().__get_upgrade_memory_table__()) {
-					table.upgrade();
-				}
-				app.getZeze().__get_upgrade_memory_table__().clear();
-				var beanFactories = new HashMap<BeanFactory, List<Class<?>>>();
-				for (var hotBeanFactory : freshHotBeanFactories) {
-					hotBeanFactory.clearTableCache();
-					beanFactories.put(hotBeanFactory.beanFactory(), new ArrayList<>());
-				}
-				BeanFactory.resetHot(beanFactories, hotJarFiles);
-				for (var hotBeanFactory : freshHotBeanFactories) {
-					hotBeanFactory.processWithNewClasses(beanFactories.get(hotBeanFactory.beanFactory()));
-				}
-				// start ordered
-				var startErrors = new ArrayList<HotModule>();
-				for (var module : result) {
-					try {
-						module.start();
-					} catch (Exception ex) {
-						logger.error("", ex);
-						startErrors.add(module);
+					freshHotBeanFactories = new ArrayList<>();
+					for (var hotBeanFactory : hotBeanFactories) {
+						if (hotBeanFactory.hasFreshStopModuleDynamicOnce()) {
+							freshHotBeanFactories.add(hotBeanFactory);
+						}
 					}
+					// install
+					for (var namespace : namespaces) {
+						result.add(_install(namespace, txn));
+					}
+					// batch load redirect
+					var iModules = createModuleInstance(result);
+					app.getZeze().__install_alter__();
+					mainRollbackAction.setHasAlter();
+
+					hotJarFiles = new ArrayList<>();
+					newModules = new ArrayList<>();
+					for (var ii = 0; ii < iModules.length; ++ii) {
+						var exist = exists.get(ii);
+						var module = result.get(ii);
+						hotJarFiles.add(module.getJarFile());
+						module.setService(iModules[ii]);
+						if (null != exist) {
+							module.upgrade(exist); // 事务外运行，对于继承升级应该都是事务外的。
+						} else {
+							newModules.add(module);
+						}
+					}
+					txn.commit();
+				} catch (Throwable ex) {
+					logger.error("", ex);
+					txn.rollback();
+					return null;
 				}
-				// 再次停止启动失败的模块，并注销。
-				for (var startErrorIndex = startErrors.size() - 1; startErrorIndex >= 0; --startErrorIndex) {
-					var module = modules.remove(startErrors.get(startErrorIndex).getName());
-					module.stop();
-					module.disable();
+				// 下面进入”不能“出错阶段：1. start 出错则相关模块停止服务；2. 其他错误，停止程序。
+				try {
+					// internal upgrade
+					for (var hotUpgrade : freshHotUpgrades) {
+						hotUpgrade.upgrade((bean) -> retreat(exists, result, bean));
+					}
+					// upgrade user memory table
+					for (var table : app.getZeze().__get_upgrade_memory_table__()) {
+						table.upgrade();
+					}
+					app.getZeze().__get_upgrade_memory_table__().clear();
+					var beanFactories = new HashMap<BeanFactory, List<Class<?>>>();
+					for (var hotBeanFactory : freshHotBeanFactories) {
+						hotBeanFactory.clearTableCache();
+						beanFactories.put(hotBeanFactory.beanFactory(), new ArrayList<>());
+					}
+					BeanFactory.resetHot(beanFactories, hotJarFiles);
+					for (var hotBeanFactory : freshHotBeanFactories) {
+						hotBeanFactory.processWithNewClasses(beanFactories.get(hotBeanFactory.beanFactory()));
+					}
+					// start ordered
+					var startErrors = new ArrayList<HotModule>();
+					for (var module : result) {
+						try {
+							module.start();
+						} catch (Exception ex) {
+							logger.error("", ex);
+							startErrors.add(module);
+						}
+					}
+					// 再次停止启动失败的模块，并注销。
+					for (var startErrorIndex = startErrors.size() - 1; startErrorIndex >= 0; --startErrorIndex) {
+						var module = modules.remove(startErrors.get(startErrorIndex).getName());
+						module.stop();
+						//module.disable(); // stop() has call disable()
+					}
+					for (var module : newModules) {
+						if (startErrors.contains(module))
+							continue;
+						var moduleConfig = module.loadModuleConfig();
+						zeze.getProviderApp().providerService.addHotModule((IModule)module.getService(), moduleConfig);
+					}
+				} catch (Throwable ex) {
+					logger.error("too much changes. impossible to rollback.", ex);
+					LogManager.shutdown();
+					Runtime.getRuntime().halt(111222);
 				}
-				for (var module : newModules) {
-					if (startErrors.contains(module))
-						continue;
-					var moduleConfig = module.loadModuleConfig();
-					zeze.getProviderApp().providerService.addHotModule((IModule)module.getService(), moduleConfig);
-				}
-			} catch (Throwable ex) {
-				logger.error("too much changes. impossible to rollback.", ex);
-				LogManager.shutdown();
-				Runtime.getRuntime().halt(111222);
 			}
+			for (var module : result) {
+				try {
+					module.startLast();
+				} catch (Exception ex) {
+					logger.error("", ex);
+				}
+			}
+			return result;
 		} finally {
 			upgrading = false;
 		}
-		for (var module : result) {
-			try {
-				module.startLast();
-			} catch (Exception ex) {
-				logger.error("", ex);
-			}
-		}
-		return result;
 	}
 
 	private void putJar(File file) throws IOException {
@@ -477,32 +479,48 @@ public class HotManager extends ClassLoader {
 				oldI.close();
 		}
 		var interfaceDstBackup = Path.of(workingDir, "interfaces", namespace + ".interface.jar.backup").toFile();
-		if (interfaceDst.renameTo(interfaceDstBackup)) {
-			// 从备份恢复，并且重新加载旧文件。
-			txn.whileRollback(() -> {
-				if (interfaceDstBackup.renameTo(interfaceDst))
-					putJar(interfaceDst);
-			});
-			// 提交的时候删除备份
-			txn.whileCommit(() -> Files.deleteIfExists(interfaceDstBackup.toPath()));
-		}
+		if (!interfaceDst.renameTo(interfaceDstBackup))
+			throw new RuntimeException("backup interface.jar fail. " + interfaceDstBackup);
+		// 从备份恢复，并且重新加载旧文件。
+		txn.whileRollback(() -> {
+			if (interfaceDstBackup.renameTo(interfaceDst))
+				putJar(interfaceDst);
+			else
+				logger.error("restore interface backup fail {}", interfaceDstBackup);
+		});
+		// 提交的时候删除备份
+		txn.whileCommit(() -> Files.deleteIfExists(interfaceDstBackup.toPath()));
+
 		if (!interfaceSrc.renameTo(interfaceDst))
 			throw new RuntimeException("rename fail. " + interfaceSrc + "->" + interfaceDst);
 		putJar(interfaceDst);
+		txn.whileRollback(() -> {
+			if (!interfaceDst.renameTo(interfaceSrc))
+				logger.error("uninstall {} fail", interfaceSrc);
+		});
 
 		// 安装 module
 		var moduleDst = Path.of(workingDir, "modules", namespace + ".jar");
 		var moduleDstBackup = Path.of(workingDir, "modules", namespace + ".jar.backup").toFile();
-		if (moduleDst.toFile().renameTo(moduleDstBackup)) {
-			txn.whileRollback(() -> {
-				//noinspection ResultOfMethodCallIgnored
-				moduleDstBackup.renameTo(moduleDst.toFile());
-			});
-			txn.whileCommit(() -> Files.deleteIfExists(moduleDstBackup.toPath()));
-		}
+		if (!moduleDst.toFile().renameTo(moduleDstBackup))
+			throw new RuntimeException("backup module.jar fail. " + moduleDstBackup);
+
+		txn.whileRollback(() -> {
+			if (!moduleDstBackup.renameTo(moduleDst.toFile()))
+				logger.error("restore module backup fail {}", moduleDstBackup);
+			// module.jar 不用预先装载，在旧HotModule重启的时候会用本来的文件名重新打开。
+		});
+		txn.whileCommit(() -> Files.deleteIfExists(moduleDstBackup.toPath()));
+
 		var moduleDstFile = moduleDst.toFile();
 		if (!moduleSrc.renameTo(moduleDstFile))
 			throw new RuntimeException("rename fail. " + moduleSrc + "->" + moduleDst);
+
+		txn.whileRollback(() -> {
+			if (!moduleDstFile.renameTo(moduleSrc))
+				logger.error("uninstall {}} fail", moduleSrc);
+		});
+
 		var module = new HotModule(this, namespace, moduleDstFile);
 		modules.put(module.getName(), module);
 		return module;

@@ -10,9 +10,6 @@ public final class ModuleLinkd extends AbstractModule {
 	public void Start(@SuppressWarnings("unused") Zezex.App app) throws Exception {
 	}
 
-	public void StartLast(@SuppressWarnings("unused") Zezex.App app) throws Exception {
-	}
-
 	@SuppressWarnings("RedundantThrows")
 	public void Stop(@SuppressWarnings("unused") Zezex.App app) throws Exception {
 	}
