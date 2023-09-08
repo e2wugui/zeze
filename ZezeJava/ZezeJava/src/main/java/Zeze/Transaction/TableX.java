@@ -922,14 +922,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public void __direct_put_cache__(Object key, Bean value) {
+	public void __direct_put_cache__(Object key, Bean value, int state) {
 		@SuppressWarnings("unchecked")
 		var kk = (K)key;
+		var tKey = new TableKey(getId(), key);
 		var r = cache.getOrAdd(kk, () -> new Record1<>(this, kk, null));
+		value.initRootInfo(r.createRootInfoIfNeed(tKey), null);
+		r.setState(state);
 		r.setSoftValue(value);
 		r.setTimestamp(Record.getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
 		r.setDirty(); // 这个目前仅由内存表使用，本来不需要调用这个。
-		//logger.info("__direct_put_cache__" + key + ", " + value);
+		//logger.info("__direct_put_cache__ " + key + ", " + value);
 	}
 
 	/**

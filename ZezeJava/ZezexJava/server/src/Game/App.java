@@ -129,7 +129,7 @@ public final class App extends Zeze.AppBase {
 		counterColdTimer = 0;
 		Task.call(Zeze.newProcedure(() -> {
 			coldTimerId = Zeze.getTimer().schedule(2000, 2000, ColdTimer.class, new BKick());
-			logger.info("XYZ Schedule={}", coldTimerId);
+			//logger.info("XYZ Schedule={}", coldTimerId);
 			return 0;
 		}, "coldTimer"));
 	}
@@ -142,8 +142,8 @@ public final class App extends Zeze.AppBase {
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var app = (Game.App)context.timer.zeze.getAppBase();
 			var buf = (BKick)context.customData;
-			logger.info("XYZ timer={} app={} buf={} counter={}",
-					context.timerId, app.Zeze.getConfig().getServerId(), buf.getCode(), app.counterColdTimer);
+			//logger.info("XYZ timer={} app={} buf={} counter={}",
+			//		context.timerId, app.Zeze.getConfig().getServerId(), buf.getCode(), app.counterColdTimer);
 			if (buf.getCode() != app.counterColdTimer)
 				throw new RuntimeException("XYZ verify cold timer error." + buf.getCode() + " counter=" + app.counterColdTimer);
 			buf.setCode(app.counterColdTimer + 1);
@@ -158,7 +158,7 @@ public final class App extends Zeze.AppBase {
 
 	public void Stop() throws Exception {
 		Task.call(Zeze.newProcedure(() -> {
-			logger.info("XYZ Stop cancel={}", coldTimerId);
+			//logger.info("XYZ Stop cancel={}", coldTimerId);
 			Zeze.getTimer().cancel(coldTimerId);
 			return 0;
 		}, "cancelColdTimer"));
