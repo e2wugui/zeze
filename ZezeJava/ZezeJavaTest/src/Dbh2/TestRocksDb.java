@@ -9,9 +9,7 @@ import Zeze.Util.BitConverter;
 import Zeze.Util.RocksDatabase;
 import org.junit.Test;
 import org.rocksdb.OptimisticTransactionDB;
-import org.rocksdb.Options;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.WriteOptions;
 
 public class TestRocksDb {
 	// 测试RocksDb：key + commit_ts 方式编码，但是能快速定位到最后一个key的能力。
