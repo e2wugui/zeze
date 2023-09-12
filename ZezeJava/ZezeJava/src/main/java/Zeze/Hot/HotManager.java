@@ -369,6 +369,10 @@ public class HotManager extends ClassLoader {
 					}
 					// batch load redirect
 					var iModules = createModuleInstance(result);
+					txn.whileRollback(() -> {
+						for (var iModule : iModules)
+							iModule.UnRegister();
+					});
 					app.getZeze().__install_alter__();
 					mainRollbackAction.setHasAlter();
 
@@ -633,7 +637,7 @@ public class HotManager extends ClassLoader {
 	}
 
 	public void throwIfMatch(String step) {
-		if (!getReadyLines().isEmpty() && getReadyLines().get(0).startsWith(step))
+		if (null != getReadyLines() && !getReadyLines().isEmpty() && getReadyLines().get(0).startsWith(step))
 			throw new RuntimeException("throwExceptionIfMatch " + step);
 	}
 

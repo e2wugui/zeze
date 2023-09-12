@@ -10,6 +10,7 @@ public interface IModuleEquip extends HotService {
 	// 下面的是程序状态，用于upgrade升级测试。
 	long getRoleId();
 	String getTimerHot();
+	String getTimerNamed();
 	// 这些也是程序状态，用于验证timer，部分也是继承的。
 	int getOnlineTimerCount();
 	int getNamedTimerCount();

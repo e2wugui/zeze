@@ -73,16 +73,18 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	}
 
 	public void Start(App app) {
+		App.Zeze.getHotManager().throwIfMatch("start");
+
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
 		App.Zeze.newProcedure(() -> {
 			var timer = App.Zeze.getTimer();
-			var rand = Zeze.Util.Random.getInstance();
-			timer.scheduleNamed(timerNamed,
-					rand.nextLong(3000) + 1000,
-					rand.nextLong(3000) + 1000,
-					HotTimer.class, new BEquipExtra(0, 2, 0));
-
 			if (!isHotUpgrade()) {
+				var rand = Zeze.Util.Random.getInstance();
+				timer.scheduleNamed(timerNamed,
+						rand.nextLong(3000) + 1000,
+						rand.nextLong(3000) + 1000,
+						HotTimer.class, new BEquipExtra(0, 2, 0));
+
 				timerHot = timer.schedule(
 						rand.nextLong(3000) + 1000,
 						rand.nextLong(3000) + 1000,
@@ -99,8 +101,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		logger.info("Stop " + this.getFullName());
 		App.Zeze.newProcedure(() -> {
 			var timer = App.Zeze.getTimer();
-			timer.cancel(timerNamed);
 			if (!isHotUpgrade()) {
+				timer.cancel(timerNamed);
 				timer.cancel(timerHot);
 			}
 			timer.getRoleTimer().cancel(timerOnline);
@@ -111,6 +113,11 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	@Override
 	public String getTimerHot() {
 		return timerHot;
+	}
+
+	@Override
+	public String getTimerNamed() {
+		return timerNamed;
 	}
 
 	public static class HotTimer implements TimerHandle {
@@ -133,7 +140,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 				break;
 			}
 			if (count != custom.getAttack())
-				throw new RuntimeException("HotTimer verify fail. type=" + custom.getDefence());
+				throw new RuntimeException("HotTimer verify fail. type=" + custom.getDefence()
+								+ " count=" + count + ":" + custom.getAttack());
 			custom.setAttack(count + 1);
 			var finalCount = count;
 			Transaction.whileCommit(() -> {
@@ -310,12 +318,15 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	public void upgrade(HotService old) throws Exception {
+		App.Zeze.getHotManager().throwIfMatch("upgrade");
+
 		var oldI = (IModuleEquip)old;
 		App.Zeze.newProcedure(() -> {
 			startOnlineTimer(oldI.getRoleId());
 			return 0;
 		}, "startOnlineTimer").call();
 		timerHot = oldI.getTimerHot(); // 继承过来。
+		timerNamed = oldI.getTimerNamed(); // 继承过来。
 		hotTimerCount = oldI.getHotTimerCount(); // 继承过来。
 	}
 
