@@ -73,6 +73,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	}
 
 	public void Start(App app) {
+		App.Zeze.getHotManager().throwIfMatch("start");
+
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
 		App.Zeze.newProcedure(() -> {
 			var timer = App.Zeze.getTimer();
@@ -316,6 +318,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	public void upgrade(HotService old) throws Exception {
+		App.Zeze.getHotManager().throwIfMatch("upgrade");
+
 		var oldI = (IModuleEquip)old;
 		App.Zeze.newProcedure(() -> {
 			startOnlineTimer(oldI.getRoleId());
@@ -324,6 +328,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		timerHot = oldI.getTimerHot(); // 继承过来。
 		timerNamed = oldI.getTimerNamed(); // 继承过来。
 		hotTimerCount = oldI.getHotTimerCount(); // 继承过来。
+		namedTimerCount = oldI.getNamedTimerCount(); // 继承过来。
 	}
 
 	private static class ItemsChangeListener implements ChangeListener {

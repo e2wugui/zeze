@@ -643,7 +643,7 @@ public class HotManager extends ClassLoader {
 
 	public void renameDistributes() throws IOException {
 		var files = new File(distributeDir).listFiles();
-		var formatter = new SimpleDateFormat("yyyy-MM-dd_hh-mm-ss");
+		var formatter = new SimpleDateFormat("yyyy-MM-dd_hh-mm-ss-SSS");
 		var backupDir = Path.of(distributeDir, "backup", formatter.format(new Date()));
 		//noinspection ResultOfMethodCallIgnored
 		backupDir.toFile().mkdirs();
