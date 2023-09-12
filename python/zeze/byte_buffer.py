@@ -916,11 +916,11 @@ class ByteBuffer:
 
     @staticmethod
     def encode(ser):
-        pre_alloc_size = ser.fetch_pre_alloc_size()
+        pre_alloc_size = ser.get_pre_alloc_size()
         bb = ByteBuffer(min(pre_alloc_size, 0x10000))
         ser.encode(bb)
         if pre_alloc_size < bb.wi:
-            ser.modify_pre_alloc_size(bb.wi)
+            ser.set_pre_alloc_size(bb.wi)
         return bb
 
     def encode_collection(self, c):

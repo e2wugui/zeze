@@ -2,9 +2,12 @@ import errno
 import selectors
 import socket
 
+from zeze.byte_buffer import ByteBuffer
+
 
 class Socket:
     selector = selectors.DefaultSelector()
+    session_id_gen = 0
 
     def __init__(self, service, s=None):
         assert isinstance(service, Service)
@@ -16,6 +19,13 @@ class Socket:
         self.socket = s if s is not None else socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setblocking(False)
         self.connected = False
+        self.recv_buf = ByteBuffer()
+        self.send_buf = ByteBuffer()
+        Socket.session_id_gen += 1
+        self.session_id = Socket.session_id_gen
+
+    def __str__(self):
+        return f"[{self.session_id}] {self.local_addr}:{self.local_port}-{self.remote_addr}:{self.remote_port}"
 
     def listen(self, addr, port, backlog=100):
         self.local_addr = addr
@@ -41,8 +51,12 @@ class Socket:
             self.service.on_connect_failed(self)
 
     def send(self, data):
-        # TODO soc.socket.send(data)
-        pass
+        if isinstance(data, Protocol):
+            data = data.encode()
+        writing = self.send_buf.size() > 0
+        self.send_buf.append(data)
+        if not writing:
+            Socket.selector.register(self.socket, selectors.EVENT_WRITE, self)
 
     def close(self):
         Socket.selector.unregister(self.socket)
@@ -52,7 +66,10 @@ class Socket:
 
     def on_read(self):
         if self.connected:
-            self.service.on_received(self)
+            r = self.socket.recv(0x100000)
+            if len(r) > 0:
+                self.recv_buf.append(r)
+                self.service.on_received(self)
         elif self.remote_port == 0:
             s, addr_port = self.socket.accept()
             soc = Socket(self.service, s)
@@ -69,8 +86,17 @@ class Socket:
             self.service.on_connected(self)
 
     def on_write(self):
-        # TODO
-        pass
+        buf = self.send_buf
+        while True:
+            n = min(buf.size(), 0x100000)
+            if n <= 0:
+                break
+            r = self.socket.send(buf[buf.ri:buf.ri + n])
+            if r > 0:
+                buf.ri += r
+            if r < n:
+                break
+        buf.compact()
 
     @staticmethod
     def select(timeout):
@@ -83,6 +109,14 @@ class Socket:
 
 
 class Service:
+    HEADER_SIZE = 12
+
+    def __init__(self, name):
+        self.name = name
+        self.opt_max_protocol_size = 2 * 1024 * 1024
+        self.protocol_factory_handles = {}
+        self.rpc_contexts = {}
+
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def on_accepted(self, soc):
         return True
@@ -97,17 +131,256 @@ class Service:
         pass
 
     def on_received(self, soc):
-        # TODO: soc.socket.recv(1000)
+        self.decode(soc, soc.recv_buf)
+
+    def on_rpc_lost_context(self, rpc):
+        pass
+
+    @staticmethod
+    def make_type_id(module_id, protocol_id):
+        return (module_id << 32) + (protocol_id & 0xffff_ffff)
+
+    def decode(self, soc, bb):
+        while bb.size() >= Service.HEADER_SIZE:
+            buf = bb.buf
+            begin_ri = bb.ri
+            module_id = ByteBuffer.to_int(buf, begin_ri)
+            protocol_id = ByteBuffer.to_int(buf, begin_ri + 4)
+            size = ByteBuffer.to_int(buf, begin_ri + 8)
+            if Service.HEADER_SIZE + size > bb.size():
+                max_size = self.opt_max_protocol_size
+                if size > max_size:
+                    factory_handle = self.protocol_factory_handles.get(Service.make_type_id(module_id, protocol_id))
+                    pname = factory_handle.name if factory_handle is not None else "?"
+                    raise Exception(f"protocol '{pname}' in '{self.name}' module={module_id} protocol={protocol_id}"
+                                    f" size={size}>{max_size} too large!")
+                return
+            begin_ri += Service.HEADER_SIZE
+            bb.ri = begin_ri
+            end_ri = begin_ri + size
+            saved_wi = bb.wi
+            bb.wi = end_ri
+
+            if self.check_throttle(soc, module_id, protocol_id, size):
+                type_id = Service.make_type_id(module_id, protocol_id)
+                factory_handle = self.protocol_factory_handles.get(type_id)
+                if factory_handle is not None and factory_handle.factory is not None:
+                    self.dispatch_protocol(type_id, bb, factory_handle, soc)
+                else:
+                    self.dispatch_unknown_protocol(soc, module_id, protocol_id, bb)
+            bb.ri = end_ri
+            bb.wi = saved_wi
+        bb.compact()
+
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
+    def check_throttle(self, soc, module_id, protocol_id, size):
+        return True
+
+    # noinspection PyUnusedLocal
+    def dispatch_protocol(self, type_id, bb, factory_handle, soc):
+        p = factory_handle.factory()
+        p.decode(bb)
+        p.sender = soc
+        p.handle(self, factory_handle)
+
+    def dispatch_unknown_protocol(self, soc, module_id, protocol_id, bb):
+        raise Exception(f"unknown protocol({module_id}, {protocol_id}) size={bb.size()} for {soc}")
+
+
+class Serializable:
+    def encode(self, bb):
+        raise NotImplementedError("Serializable.encode")
+
+    def decode(self, bb):
+        raise NotImplementedError("Serializable.decode")
+
+    # noinspection PyMethodMayBeStatic
+    def type_id(self):
+        return 0
+
+    def get_pre_alloc_size(self):
+        return 16
+
+    def set_pre_alloc_size(self, size):
         pass
 
 
-class Protocol:
+class Bean(Serializable):
     def __init__(self):
-        # TODO
+        pass
+
+    def type_name(self):
+        raise NotImplementedError("Bean.type_name")
+
+    def assign(self):
+        raise NotImplementedError("Bean.assign")
+
+    def copy(self):
+        raise NotImplementedError("Bean.copy")
+
+    def reset(self):
         pass
 
 
-class Rpc:
+class Protocol(Serializable):
+    Protocol = 2
+    Request = 1
+    Response = 0
+    RaftRequest = 4
+    RaftResponse = 3
+    BitResultCode = 1 << 5
+    FamilyClassMask = BitResultCode - 1
+
     def __init__(self):
-        # TODO
+        self.arg = None  # Bean
+        self.result_code = 0
+        self.sender = None  # Socket
+        self.user_state = None  # any
+
+    def __str__(self):
+        return f"{self.__class__.__name__} result_code={self.result_code} arg={self.arg}"
+
+    def get_module_id(self):
+        raise NotImplementedError("Protocol.get_module_id")
+
+    def get_protocol_id(self):
+        raise NotImplementedError("Protocol.get_protocol_id")
+
+    def type_id(self):
+        return Service.make_type_id(self.get_module_id(), self.get_protocol_id())
+
+    def get_pre_alloc_size(self):
+        return 10 + self.arg.get_pre_alloc_size()
+
+    def set_pre_alloc_size(self, size):
+        self.arg.set_pre_alloc_size(size - 1)
+
+    def encode(self, bb=None):
+        if bb is None:
+            pre_alloc_size = self.get_pre_alloc_size()
+            bb = ByteBuffer(min(Service.HEADER_SIZE + pre_alloc_size, 0x10000))
+            bb.write_int4(self.get_module_id())
+            bb.write_int4(self.get_protocol_id())
+            save_size = bb.begin_write_with_size4()
+            self.encode(bb)
+            size = bb.size() - save_size - 4
+            if size > self.get_pre_alloc_size():
+                self.set_pre_alloc_size(size)
+            return
+
+        if self.result_code == 0:
+            bb.write_int(Protocol.Protocol)
+        else:
+            bb.write_int(Protocol.Protocol | Protocol.BitResultCode)
+            bb.write_long(self.result_code)
+        self.arg.encode(bb)
+
+    def decode(self, bb):
+        header = bb.read_int()
+        if (header & Protocol.FamilyClassMask) != Protocol.Protocol:
+            raise Exception(f"invalid header({header}) for decoding protocol {self.__class__.__name__}")
+        self.result_code = bb.read_long() if header & Protocol.BitResultCode else 0
+        self.arg.decode(bb)
+
+    def handle(self, service, factory_handle):
+        handle = factory_handle.handle
+        if handle is not None:
+            handle.handle_protocol(self)
+        else:
+            print(f"handle({service.name}): protocol handle not found: {self}")
+
+    def send(self, soc):
+        if soc is None:
+            return False
+        self.sender = soc
+        return soc.send(self)
+
+    def send_result(self, code=None):
         pass
+
+    def try_send_result(self, code=None):
+        pass
+
+
+class Rpc(Protocol):
+    def __init__(self):
+        super().__init__()
+        self.res = None  # Bean
+        self.session_id = 0
+        self.response_handle = None
+        self.timeout = 5000
+        self.is_timeout = False
+        self.is_request = True
+        self.send_result_done = False
+
+    def __str__(self):
+        return (f"{self.__class__.__name__} is_request={self.is_request} session_id={self.session_id}"
+                f" result_code={self.result_code} arg={self.arg} res={self.res}")
+
+    def encode(self, bb=None):
+        if bb is None:
+            super().encode(self)
+            return
+
+        header = Protocol.Request if self.is_request else Protocol.Response
+        if self.result_code == 0:
+            bb.write_int(header)
+        else:
+            bb.write_int(header | Protocol.BitResultCode)
+            bb.write_long(self.result_code)
+        bb.write_long(self.session_id)
+        if self.is_request:
+            self.arg.encode(bb)
+        else:
+            self.res.encode(bb)
+
+    def decode(self, bb):
+        header = bb.read_int()
+        family_class = header & Protocol.FamilyClassMask
+        if family_class is Protocol.Protocol:
+            raise Exception(f"invalid header({header}) for decoding rpc {self.__class__.__name__}")
+        self.is_request = family_class == Protocol.Request
+        self.result_code = bb.read_long() if header & Protocol.BitResultCode else 0
+        self.session_id = bb.read_long()
+        if self.is_request:
+            self.arg.decode(bb)
+        else:
+            self.res.decode(bb)
+
+    def handle(self, service, factory_handle):
+        if self.is_request:
+            super().handle(service, factory_handle)
+            return
+
+        if self.session_id not in service.rpc_contexts:
+            service.on_rpc_lost_context(self)
+            return
+
+        context = service.rpc_contexts.pop(self.session_id)
+        context.result_code = self.result_code
+        context.sender = self.sender
+        context.res = self.res
+        context.is_timeout = False
+        context.is_request = False
+
+        if context.response_handle is not None:
+            context.response_handle(context)
+
+    def send_result(self, code=None):
+        if self.send_result_done:
+            print(f"Rpc.send_result already done: {self.sender} {self}")
+            return False
+        self.send_result_done = True
+        self.is_request = False
+        if code is not None:
+            self.result_code = code
+        return super().send(self.sender)
+
+    def try_send_result(self, code=None):
+        if self.send_result_done:
+            return False
+        self.send_result_done = True
+        self.is_request = False
+        if code is not None:
+            self.result_code = code
+        return super().send(self.sender)
