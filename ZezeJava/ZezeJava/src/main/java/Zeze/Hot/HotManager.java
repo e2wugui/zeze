@@ -3,6 +3,7 @@ package Zeze.Hot;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
@@ -266,9 +267,23 @@ public class HotManager extends ClassLoader {
 				continue;
 			modules.put(exist.getName(), exist);
 		}
-		// 发生错误的禁止暴露服务。
-		if (reverseErrorIndex >= 0)
+		if (!getReadyLines().isEmpty() && getReadyLines().get(0).startsWith("stop")) {
+			// 停止服务时，即使当前停止错误的模块也恢复。【调试代码】
+			if (reverseErrorIndex >= 0) {
+				var exist = exists.get(reverseErrorIndex);
+				try {
+					((IModule)exist.getService()).Register(); // 已经注销过，重启需要再次注册。
+					exist.start();
+					modules.put(exist.getName(), exist);
+				} catch (Throwable ex) {
+					// 恢复过程中重新启动失败，简单忽略。
+					logger.error("recover {}", exist, ex);
+				}
+			}
+		} else if (reverseErrorIndex >= 0) {
+			// 发生错误的禁止暴露服务。
 			exists.get(reverseErrorIndex).disable();
+		}
 	}
 
 	public class MainRollbackAction implements Action0 {
@@ -298,6 +313,7 @@ public class HotManager extends ClassLoader {
 				zeze.__install_alter__();
 			// 内存表的回滚保持旧数据即可，在TableX.open(exist, app)里面处理。
 			zeze.__get_upgrade_memory_table__().clear();
+			logger.info("________________ install rollback ________________");
 		}
 	}
 
@@ -310,8 +326,10 @@ public class HotManager extends ClassLoader {
 			for (var namespace : namespaces)
 				exists.add(modules.get(namespace));
 			// 锁外执行stopBefore
-			for (var exist : exists)
-				exist.stopBefore();
+			for (var exist : exists) {
+				if (null != exist)
+					exist.stopBefore();
+			}
 			var result = new ArrayList<HotModule>();
 			try (var ignored = enterWriteLock()) {
 				var app = zeze.getAppBase();
@@ -342,23 +360,9 @@ public class HotManager extends ClassLoader {
 				var mainRollbackAction = new MainRollbackAction(zeze, exists, old);
 				txn.whileRollback(mainRollbackAction);
 
-				ArrayList<HotUpgrade> freshHotUpgrades;
-				ArrayList<HotBeanFactory> freshHotBeanFactories;
 				ArrayList<JarFile> hotJarFiles;
 				ArrayList<HotModule> newModules;
 				try {
-					freshHotUpgrades = new ArrayList<>();
-					for (var hotUpgrade : hotUpgrades) {
-						if (hotUpgrade.hasFreshStopModuleLocalOnce()) {
-							freshHotUpgrades.add(hotUpgrade);
-						}
-					}
-					freshHotBeanFactories = new ArrayList<>();
-					for (var hotBeanFactory : hotBeanFactories) {
-						if (hotBeanFactory.hasFreshStopModuleDynamicOnce()) {
-							freshHotBeanFactories.add(hotBeanFactory);
-						}
-					}
 					// install
 					for (var namespace : namespaces) {
 						result.add(_install(namespace, txn));
@@ -389,6 +393,24 @@ public class HotManager extends ClassLoader {
 				}
 				// 下面进入”不能“出错阶段：1. start 出错则相关模块停止服务；2. 其他错误，停止程序。
 				try {
+					// 内部停止，不可恢复
+					for (var exist : exists) {
+						if (null != exist)
+							exist.stopInternal();
+					}
+					// 获取优化后的内部关联接口
+					var freshHotUpgrades = new ArrayList<HotUpgrade>();
+					for (var hotUpgrade : hotUpgrades) {
+						if (hotUpgrade.hasFreshStopModuleLocalOnce()) {
+							freshHotUpgrades.add(hotUpgrade);
+						}
+					}
+					var freshHotBeanFactories = new ArrayList<HotBeanFactory>();
+					for (var hotBeanFactory : hotBeanFactories) {
+						if (hotBeanFactory.hasFreshStopModuleDynamicOnce()) {
+							freshHotBeanFactories.add(hotBeanFactory);
+						}
+					}
 					// internal upgrade
 					for (var hotUpgrade : freshHotUpgrades) {
 						hotUpgrade.upgrade((bean) -> retreat(exists, result, bean));
@@ -492,6 +514,7 @@ public class HotManager extends ClassLoader {
 		});
 		// 提交的时候删除备份
 		txn.whileCommit(() -> Files.deleteIfExists(interfaceDstBackup.toPath()));
+		throwIfMatch("install1");
 
 		if (!interfaceSrc.renameTo(interfaceDst))
 			throw new RuntimeException("rename fail. " + interfaceSrc + "->" + interfaceDst);
@@ -500,6 +523,7 @@ public class HotManager extends ClassLoader {
 			if (!interfaceDst.renameTo(interfaceSrc))
 				logger.error("uninstall {} fail", interfaceSrc);
 		});
+		throwIfMatch("install2");
 
 		// 安装 module
 		var moduleDst = Path.of(workingDir, "modules", namespace + ".jar");
@@ -513,6 +537,7 @@ public class HotManager extends ClassLoader {
 			// module.jar 不用预先装载，在旧HotModule重启的时候会用本来的文件名重新打开。
 		});
 		txn.whileCommit(() -> Files.deleteIfExists(moduleDstBackup.toPath()));
+		throwIfMatch("install3");
 
 		var moduleDstFile = moduleDst.toFile();
 		if (!moduleSrc.renameTo(moduleDstFile))
@@ -522,6 +547,7 @@ public class HotManager extends ClassLoader {
 			if (!moduleDstFile.renameTo(moduleSrc))
 				logger.error("uninstall {}} fail", moduleSrc);
 		});
+		throwIfMatch("install4");
 
 		var module = new HotModule(this, namespace, moduleDstFile);
 		modules.put(module.getName(), module);
@@ -581,7 +607,7 @@ public class HotManager extends ClassLoader {
 			try {
 				if (Files.exists(ready)) {
 					try {
-						readies = Files.readAllLines(ready);
+						readyLines = Files.readAllLines(ready);
 						if (null != installReadies())
 							Files.deleteIfExists(ready); // success
 						else
@@ -599,17 +625,24 @@ public class HotManager extends ClassLoader {
 		Task.hotGuard = this::enterReadLock;
 	}
 
-	private volatile java.util.List<String> readies;
+	private volatile java.util.List<String> readyLines;
 
-	public java.util.List<String> getReadies() {
-		return readies;
+	// 用来控制错误模拟，目前是调试用的。
+	public java.util.List<String> getReadyLines() {
+		return readyLines;
+	}
+
+	public void throwIfMatch(String step) {
+		if (!getReadyLines().isEmpty() && getReadyLines().get(0).startsWith(step))
+			throw new RuntimeException("throwExceptionIfMatch " + step);
 	}
 
 	public void renameDistributes() throws IOException {
 		var files = new File(distributeDir).listFiles();
 		var formatter = new SimpleDateFormat("yyyy-MM-dd_hh-mm-ss");
 		var backupDir = Path.of(distributeDir, "backup", formatter.format(new Date()));
-		Files.createDirectory(backupDir);
+		//noinspection ResultOfMethodCallIgnored
+		backupDir.toFile().mkdirs();
 		var backupDirFile = backupDir.toFile();
 		if (null != files) {
 			for (var file : files) {

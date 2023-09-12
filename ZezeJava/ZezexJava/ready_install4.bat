@@ -3,4 +3,4 @@
 setlocal
 pushd %~dp0
 
-call ready.bat install
+call ready.bat install4

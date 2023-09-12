@@ -26,7 +26,6 @@ public class HotModule extends ClassLoader implements Closeable {
 
 	// 每个版本的接口一个上下文。
 	private final ConcurrentHashMap<Class<?>, HotModuleContext<?>> contexts = new ConcurrentHashMap<>();
-	private boolean started = false;
 	public final ConcurrentHashSet<Action1<HotModule>> stopEvents = new ConcurrentHashSet<>();
 
 	// 为了支持批量装载redirect.class，构造只初始化moduleClass，service下一步处理。
@@ -79,15 +78,12 @@ public class HotModule extends ClassLoader implements Closeable {
 
 	// start 用来初始化，还没想好可能需要的初始化。
 	public void start() throws Exception {
-		if (!started) {
-			started = true;
-			if (null == this.jar)
-				this.jar = new JarFile(jarFile);
-			service.start();
-			// 安装过程中可能需要重启，因为停止时清除了引用，这里需要重新设置。
-			for (var context : contexts.values()) {
-				context.setModule(this);
-			}
+		if (null == this.jar)
+			this.jar = new JarFile(jarFile);
+		service.start();
+		// 安装过程中可能需要重启，因为停止时清除了引用，这里需要重新设置。
+		for (var context : contexts.values()) {
+			context.setModule(this);
 		}
 	}
 
@@ -95,33 +91,34 @@ public class HotModule extends ClassLoader implements Closeable {
 		service.startLast();
 	}
 
-	public void disable() {
+	void disable() {
+		// 停止不允许失败，首先去掉旧的引用。
 		for (var context : contexts.values()) {
 			context.setModule(null);
 		}
 	}
 
+	// 内部关联停止，不可恢复。
+	void stopInternal() {
+		disable();
+		// 停止事件。
+		for (var stopEvent : stopEvents) {
+			try {
+				stopEvent.run(this);
+			} catch (Exception ex) {
+				logger.error("", ex);
+			}
+		}
+		stopEvents.clear();
+	}
+
 	// stop 不能清除本地进程状态，后面需要用来升级。
 	public void stop() throws Exception {
-		if (started) {
-			started = false;
-			// 停止不允许失败，首先去掉旧的引用。
-			disable();
-			// 停止事件。
-			for (var stopEvent : stopEvents) {
-				try {
-					stopEvent.run(this);
-				} catch (Exception ex) {
-					logger.error("", ex);
-				}
-			}
-			stopEvents.clear();
-			// app stop
-			service.stop();
-			// app Unregister
-			var iModule = (IModule)service;
-			iModule.UnRegister();
-		}
+		// app Unregister
+		var iModule = (IModule)service;
+		iModule.UnRegister();
+		// app stop
+		service.stop();
 		if (jar != null) {
 			jar.close();
 			jar = null;

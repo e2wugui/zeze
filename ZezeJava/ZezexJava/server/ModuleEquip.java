@@ -94,6 +94,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	}
 
 	public void Stop(App app) {
+		App.Zeze.getHotManager().throwIfMatch("stop");
+
 		logger.info("Stop " + this.getFullName());
 		App.Zeze.newProcedure(() -> {
 			var timer = App.Zeze.getTimer();
