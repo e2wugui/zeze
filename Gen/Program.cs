@@ -31,16 +31,12 @@ namespace Gen
                     Zeze.Util.RedirectGenMain.Main(args);
                     break;
 
-                case "ExportZezex":
-                    Zeze.Util.Zezex.Main(args);
-                    break;
-
-                case "ExportConf":
-                    ExportConf(args);
-                    break;
+                //case "ExportConf":
+                //    ExportConf(args);
+                //    break;
             }
         }
-
+        /*
         private static void ExportConf(string[] args)
         {
             string zezeSrcDir = null;
@@ -95,5 +91,6 @@ namespace Gen
                     File.WriteAllText(dstFile, source, Encoding.UTF8);
                 });
         }
+        */
     }
 }
