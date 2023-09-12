@@ -12,5 +12,5 @@ copy server\hot\modules\Game.Equip.jar server\hotrun\distributes\
 copy server\hot\interfaces\Game.Equip.interface.jar server\hotrun\distributes\
 copy server\hot\__hot_schemas__Game.jar server\hotrun\distributes\
 
-echo "" > server\hotrun\distributes\ready
+echo %1 > server\hotrun\distributes\ready
 
