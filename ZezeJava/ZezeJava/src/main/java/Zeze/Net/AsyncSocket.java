@@ -52,8 +52,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	private final Type type;
-	private volatile long activeSendTime;
-	private volatile long activeRecvTime;
+	private long activeSendTime;
+	private long activeRecvTime;
 
 	public Type getType() {
 		return type;
@@ -764,6 +764,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			buffer.clear();
 			int bytesTransferred = sc.read(buffer); // 对方正常关闭或shutdownOutput会返回-1; 而连接被对方RESET会抛异常
 			if (bytesTransferred > 0) {
+				setActiveRecvTime();
 				recvSize += bytesTransferred;
 				readAgain = bytesTransferred == buffer.limit();
 				ByteBuffer codecBuf = inputBuffer.getBuffer(); // codec对buffer的引用一定是不可变的

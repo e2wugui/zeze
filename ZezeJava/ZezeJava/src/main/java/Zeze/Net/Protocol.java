@@ -347,7 +347,6 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 			int savedWriteIndex = bb.WriteIndex;
 			bb.WriteIndex = endReadIndex;
 
-			so.setActiveRecvTime(); // 被节流或者丢弃也算活跃。
 			if (service.checkThrottle(so, moduleId, protocolId, size)
 					&& !service.discard(so, moduleId, protocolId, size)) { // 默认超速是丢弃请求
 				var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
