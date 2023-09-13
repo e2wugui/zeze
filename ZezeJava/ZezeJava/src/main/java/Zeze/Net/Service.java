@@ -8,6 +8,7 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
@@ -258,6 +259,15 @@ public class Service {
 		// 【考虑一下】也许在服务停止时马上触发回调并且清除上下文比较好。
 		// 【注意】直接清除会导致同步等待的操作无法继续。异步只会没有回调，没问题。
 		// _RpcContexts.Clear();
+
+		if (null != timerClient) {
+			timerClient.cancel(true);
+			timerClient = null;
+		}
+		if (null != timerServer) {
+			timerServer.cancel(true);
+			timerServer = null;
+		}
 	}
 
 	public final @NotNull AsyncSocket newServerSocket(@Nullable String ipaddress, int port,
@@ -837,5 +847,78 @@ public class Service {
 	@SuppressWarnings("MethodMayBeStatic")
 	public void onRpcLostContext(Rpc<?, ?> rpc) {
 		logger.warn("rpc response: lost context, maybe timeout. {}", rpc);
+	}
+
+	private Future<?> timerClient;
+	private Future<?> timerServer;
+
+	public void startKeepAliveTimerClient() {
+		if (null == timerClient) {
+			var conf = getConfig().getHandshakeOptions();
+			if (conf.getKeepTimerClient() > 0) {
+				var rand = Zeze.Util.Random.getInstance();
+				timerClient = Task.scheduleUnsafe(
+						rand.nextLong(conf.getKeepTimerClient()) + 1,
+						conf.getKeepTimerClient(), this::keepAliveClient);
+			}
+		}
+	}
+
+	public void startKeepAliveTimerServer() {
+		if (null == timerServer) {
+			var conf = getConfig().getHandshakeOptions();
+			if (conf.getKeepTimerServer() > 0) {
+				var rand = Zeze.Util.Random.getInstance();
+				timerServer = Task.scheduleUnsafe(
+						rand.nextLong(conf.getKeepTimerServer()) + 1,
+						conf.getKeepTimerServer(), this::keepAliveServer);
+			}
+		}
+	}
+
+	private void keepAliveClient() throws Exception {
+		var conf = getConfig().getHandshakeOptions();
+		if (conf.getKeepPeriod() > 0) {
+			foreach((socket) -> {
+				if (socket.getType() == AsyncSocket.Type.eClient) {
+					var now = System.currentTimeMillis();
+					if (now - socket.getActiveSendTime() > conf.getKeepPeriod())
+						onSendKeepAlive(socket);
+				}
+			});
+		}
+	}
+
+	private void keepAliveServer() throws Exception {
+		var conf = getConfig().getHandshakeOptions();
+		if (conf.getKeepTimeout() > 0) {
+			foreach((socket) -> {
+				if (socket.getType() == AsyncSocket.Type.eServer) {
+					var now = System.currentTimeMillis();
+					if (now - socket.getActiveRecvTime() > conf.getKeepTimeout() && onKeepAliveTimeout(socket)) {
+						logger.warn("socket keep alive timeout {}", socket);
+						socket.close();
+					}
+				}
+			});
+		}
+	}
+
+	@SuppressWarnings("MethodMayBeStatic")
+	protected boolean onKeepAliveTimeout(AsyncSocket socket) throws Exception {
+		return true;
+	}
+
+	/**
+	 * 1. 如果你是handshake的service，重载这个方法，按注释发送CKeepAlive即可；
+	 * 2. 如果你是其他service子类，重载这个方法，按住是发送CKeepAlive，并且服务器端需要注册这条协议并写一个不需要处理代码的handler。
+	 *
+	 * @param socket 当前连接
+	 */
+	protected void onSendKeepAlive(AsyncSocket socket) {
+		/*
+		var k = new CKeepAlive();
+		k.Send(socket);
+		*/
 	}
 }

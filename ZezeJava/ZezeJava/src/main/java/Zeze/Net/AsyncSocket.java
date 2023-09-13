@@ -246,6 +246,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		this.service = service;
 		this.acceptorOrConnector = acceptor;
 		this.type = Type.eServerSocket;
+		service.startKeepAliveTimerServer();
 
 		ServerSocketChannel ssc = null;
 		try {
@@ -380,6 +381,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		this.acceptorOrConnector = connector;
 		this.userState = userState;
 		this.type = Type.eClient;
+		service.startKeepAliveTimerClient();
 
 		SocketChannel sc = null;
 		try {
