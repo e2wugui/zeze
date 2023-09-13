@@ -41,12 +41,12 @@ import Zeze.Net.Connector;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.Selectors;
-import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -98,9 +98,10 @@ public final class Token extends AbstractToken {
 		return new String(tokenBytes, StandardCharsets.ISO_8859_1);
 	}
 
-	public static class TokenClient extends Service {
+	public static class TokenClient extends HandshakeClient {
 		private Connector connector;
 		private final ConcurrentHashMap<String, Consumer<NotifyTopic>> notifyTopicHandlers = new ConcurrentHashMap<>();
+		private final ConcurrentHashSet<String> subTopics = new ConcurrentHashSet<>();
 
 		public TokenClient(@Nullable Config config) {
 			super("TokenClient", config);
@@ -118,6 +119,14 @@ public final class Token extends AbstractToken {
 					TransactionLevel.None, DispatchMode.Normal));
 			AddFactoryHandle(NotifyTopic.TypeId_, new Zeze.Net.Service.ProtocolFactoryHandle<>(NotifyTopic::new,
 					this::ProcessNotifyTopic, TransactionLevel.None, DispatchMode.Normal));
+
+			var opt = getConfig().getHandshakeOptions();
+			if (opt.getKeepCheckPeriod() == 0)
+				opt.setKeepCheckPeriod(5);
+			if (opt.getKeepRecvTimeout() == 0)
+				opt.setKeepRecvTimeout(60);
+			if (opt.getKeepSendTimeout() == 0)
+				opt.setKeepSendTimeout(30);
 		}
 
 		public boolean registerNotifyTopicHandler(@NotNull String topic, @Nullable Consumer<NotifyTopic> handler) {
@@ -165,6 +174,13 @@ public final class Token extends AbstractToken {
 			return connector.getSocket();
 		}
 
+		@Override
+		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+			super.OnHandshakeDone(so);
+			for (var topic : subTopics)
+				new SubTopic(new BTopic.Data(topic)).Send(connector.getSocket());
+		}
+
 		public @NotNull TaskCompletionSource<BNewTokenRes.Data> newToken(@Nullable Binary context, long ttl) {
 			return new NewToken(new BNewTokenArg.Data(context, ttl)).SendForWait(connector.getSocket());
 		}
@@ -184,20 +200,24 @@ public final class Token extends AbstractToken {
 		}
 
 		public @NotNull TaskCompletionSource<EmptyBean.Data> subTopic(@NotNull String topic) {
+			subTopics.add(topic);
 			return new SubTopic(new BTopic.Data(topic)).SendForWait(connector.getSocket());
 		}
 
 		public boolean subTopic(@NotNull String topic,
 								@NotNull ProtocolHandle<Rpc<BTopic.Data, EmptyBean.Data>> handler) {
+			subTopics.add(topic);
 			return new SubTopic(new BTopic.Data(topic)).Send(connector.getSocket(), handler);
 		}
 
 		public @NotNull TaskCompletionSource<EmptyBean.Data> unsubTopic(@NotNull String topic) {
+			subTopics.remove(topic);
 			return new UnsubTopic(new BTopic.Data(topic)).SendForWait(connector.getSocket());
 		}
 
 		public boolean unsubTopic(@NotNull String topic,
 								  @NotNull ProtocolHandle<Rpc<BTopic.Data, EmptyBean.Data>> handler) {
+			subTopics.remove(topic);
 			return new UnsubTopic(new BTopic.Data(topic)).Send(connector.getSocket(), handler);
 		}
 
@@ -220,7 +240,7 @@ public final class Token extends AbstractToken {
 		}
 	}
 
-	private static final class TokenServer extends Service {
+	private static final class TokenServer extends HandshakeServer {
 		private static final class Session {
 			final @NotNull AsyncSocket so;
 			final HashSet<String> subTopics = new HashSet<>(); // 该session已订阅的主题,只在Session所在的IO线程访问,不需要考虑并发
@@ -234,6 +254,14 @@ public final class Token extends AbstractToken {
 
 		TokenServer(Config config) {
 			super("TokenServer", config);
+
+			var opt = getConfig().getHandshakeOptions();
+			if (opt.getKeepCheckPeriod() == 0)
+				opt.setKeepCheckPeriod(5);
+			if (opt.getKeepRecvTimeout() == 0)
+				opt.setKeepRecvTimeout(60);
+			if (opt.getKeepSendTimeout() == 0)
+				opt.setKeepSendTimeout(30);
 		}
 
 		boolean subTopic(@NotNull Session session, @NotNull String topic) {
@@ -258,6 +286,12 @@ public final class Token extends AbstractToken {
 				if (sessions != null && sessions.remove(session) && sessions.isEmpty())
 					topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
 			}
+		}
+
+		@Override
+		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+			addSocket(so);
+			OnHandshakeDone(so);
 		}
 
 		@Override

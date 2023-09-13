@@ -68,9 +68,6 @@ public class HandshakeBase extends Service {
 		handshakeProtocols.add(CKeepAlive.TypeId_);
 		AddFactoryHandle(CKeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
 				CKeepAlive::new, HandshakeBase::processCKeepAlive, TransactionLevel.None, DispatchMode.Normal));
-		handshakeProtocols.add(SKeepAlive.TypeId_);
-		AddFactoryHandle(SKeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
-				SKeepAlive::new, HandshakeBase::processSKeepAlive, TransactionLevel.None, DispatchMode.Normal));
 	}
 
 	private static long processCKeepAlive(CKeepAlive p) throws Exception {
@@ -178,6 +175,9 @@ public class HandshakeBase extends Service {
 		handshakeProtocols.add(SHandshake0.TypeId_);
 		AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(
 				SHandshake0::new, this::processSHandshake0, TransactionLevel.None, DispatchMode.Normal));
+		handshakeProtocols.add(SKeepAlive.TypeId_);
+		AddFactoryHandle(SKeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
+				SKeepAlive::new, HandshakeBase::processSKeepAlive, TransactionLevel.None, DispatchMode.Normal));
 	}
 
 	private long processSHandshake0(SHandshake0 p) {
