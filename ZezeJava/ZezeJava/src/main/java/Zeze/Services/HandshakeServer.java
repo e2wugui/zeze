@@ -19,6 +19,12 @@ public class HandshakeServer extends HandshakeBase {
 	}
 
 	@Override
+	public void start() throws Exception {
+		super.start();
+		startTimerServer();
+	}
+
+	@Override
 	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
 		// 重载这个方法，推迟OnHandshakeDone调用
 		addSocket(so);

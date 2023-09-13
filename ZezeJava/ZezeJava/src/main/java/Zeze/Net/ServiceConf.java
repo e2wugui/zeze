@@ -263,6 +263,22 @@ public final class ServiceConf {
 		if (!attr.isBlank())
 			maxConnections = Integer.parseInt(attr);
 
+		attr = self.getAttribute("KeepPeriod");
+		if (!attr.isBlank())
+			getHandshakeOptions().setKeepPeriod(Long.parseLong(attr));
+
+		attr = self.getAttribute("KeepTimeout");
+		if (!attr.isBlank())
+			getHandshakeOptions().setKeepTimeout(Long.parseLong(attr));
+
+		attr = self.getAttribute("KeepTimerClient");
+		if (!attr.isBlank())
+			getHandshakeOptions().setKeepTimerClient(Long.parseLong(attr));
+
+		attr = self.getAttribute("KeepTimerServer");
+		if (!attr.isBlank())
+			getHandshakeOptions().setKeepTimerServer(Long.parseLong(attr));
+
 		{
 			String name = getName();
 			if (name.isBlank()) {

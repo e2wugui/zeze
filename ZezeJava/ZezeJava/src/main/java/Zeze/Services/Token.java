@@ -138,7 +138,7 @@ public final class Token extends AbstractToken {
 			super.start();
 		}
 
-		public synchronized @NotNull TokenClient start(@NotNull String host, int port) {
+		public synchronized @NotNull TokenClient start(@NotNull String host, int port) throws Exception {
 			if (connector != null)
 				stop();
 			connector = new Connector(host, port, true);
@@ -149,11 +149,12 @@ public final class Token extends AbstractToken {
 		}
 
 		@Override
-		public synchronized void stop() {
+		public synchronized void stop() throws Exception {
 			if (connector != null) {
 				connector.stop();
 				connector = null;
 			}
+			super.stop();
 		}
 
 		public void waitReady() {

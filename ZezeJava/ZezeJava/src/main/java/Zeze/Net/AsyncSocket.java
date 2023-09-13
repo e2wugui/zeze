@@ -45,6 +45,36 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private static final AtomicLong sessionIdGen = new AtomicLong(1);
 	private static @NotNull LongSupplier sessionIdGenFunc = sessionIdGen::getAndIncrement;
 
+	public enum Type {
+		eServer,
+		eClient,
+		eServerSocket,
+	}
+
+	private final Type type;
+	private volatile long activeSendTime;
+	private volatile long activeRecvTime;
+
+	public Type getType() {
+		return type;
+	}
+
+	public long getActiveSendTime() {
+		return activeSendTime;
+	}
+
+	public long getActiveRecvTime() {
+		return activeRecvTime;
+	}
+
+	public void setActiveSendTime() {
+		activeSendTime = System.currentTimeMillis();
+	}
+
+	public void setActiveRecvTime() {
+		activeRecvTime = System.currentTimeMillis();
+	}
+
 	static {
 		try {
 			var lookup = MethodHandles.lookup();
@@ -215,6 +245,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public AsyncSocket(@NotNull Service service, @Nullable InetSocketAddress localEP, @Nullable Acceptor acceptor) {
 		this.service = service;
 		this.acceptorOrConnector = acceptor;
+		this.type = Type.eServerSocket;
 
 		ServerSocketChannel ssc = null;
 		try {
@@ -300,6 +331,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			throws Exception {
 		this.service = service;
 		this.acceptorOrConnector = acceptor;
+		this.type = Type.eServer;
 
 		// 据说连接接受以后设置无效，应该从 ServerSocket 继承
 		sc.configureBlocking(false);
@@ -347,6 +379,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		this.service = service;
 		this.acceptorOrConnector = connector;
 		this.userState = userState;
+		this.type = Type.eClient;
 
 		SocketChannel sc = null;
 		try {
@@ -528,8 +561,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					outputBuffer.put(bytes, offset, length);
 				if (PerfCounter.ENABLE_PERF)
 					PerfCounter.instance.addSendInfo(bytes, offset, length);
-			}))
+			})) {
+				setActiveSendTime();
 				return true;
+			}
 		} catch (Exception ex) {
 			outputBufferSizeHandle.getAndAdd(this, (long)-length);
 			close(ex);
@@ -669,7 +704,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId()))
 			log("SEND", sessionId, p);
 
-		return submitAction(() -> { // 进selector线程调用
+		var result = submitAction(() -> { // 进selector线程调用
 			var bb = p.encodeShared();
 			var bytes = bb.Bytes;
 			var offset = bb.ReadIndex;
@@ -694,6 +729,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (PerfCounter.ENABLE_PERF)
 				PerfCounter.instance.addSendInfo(bytes, offset, length);
 		});
+		if (result)
+			setActiveSendTime();
+		return result;
 	}
 
 	public boolean Send(@NotNull Protocol<?> p) {

@@ -21,6 +21,12 @@ public class HandshakeOptions {
 	private final ArrayList<Integer> supportedCompress = new ArrayList<>(); // empty 表示支持所有内建的。
 	private final ArrayList<Integer> supportedEncrypt = new ArrayList<>(); // empty 表示支持所有内建的。
 
+	private long keepPeriod = 0; // default disable
+	private long keepTimeout = 0;
+
+	private long keepTimerClient = 0;
+	private long keepTimerServer = 0;
+
 	public HandshakeOptions() {
 		addDhGroup(1);
 		addDhGroup(2);
@@ -30,6 +36,38 @@ public class HandshakeOptions {
 		addSupportedCompress(Constant.eCompressTypeMppc);
 
 		addSupportedEncrypt(Constant.eEncryptTypeAes);
+	}
+
+	public long getKeepTimerClient() {
+		return keepTimerClient;
+	}
+
+	public void setKeepTimerClient(long value) {
+		keepTimerClient = value;
+	}
+
+	public long getKeepTimerServer() {
+		return keepTimerServer;
+	}
+
+	public void setKeepTimerServer(long value) {
+		keepTimerServer = value;
+	}
+
+	public long getKeepPeriod() {
+		return keepPeriod;
+	}
+
+	public long getKeepTimeout() {
+		return keepTimeout;
+	}
+
+	public void setKeepPeriod(long value) {
+		keepPeriod = value;
+	}
+
+	public void setKeepTimeout(long value) {
+		keepTimeout = value;
 	}
 
 	public final IntHashSet getDhGroups() {
