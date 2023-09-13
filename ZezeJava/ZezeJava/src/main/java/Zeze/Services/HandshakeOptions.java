@@ -21,11 +21,9 @@ public class HandshakeOptions {
 	private final ArrayList<Integer> supportedCompress = new ArrayList<>(); // empty 表示支持所有内建的。
 	private final ArrayList<Integer> supportedEncrypt = new ArrayList<>(); // empty 表示支持所有内建的。
 
-	private long keepPeriod = 0; // default disable
-	private long keepTimeout = 0;
-
-	private long keepTimerClient = 0;
-	private long keepTimerServer = 0;
+	private int keepCheckPeriod; // 检查所有socket是否有发送或接收超时的检查周期(秒). 0表示禁用
+	private int keepRecvTimeout; // 检查距上次接收的超时时间(秒). 0表示禁用
+	private int keepSendTimeout; // 检查距上次发送的超时时间(秒). 0表示禁用, 只有主动连接方会使用
 
 	public HandshakeOptions() {
 		addDhGroup(1);
@@ -38,36 +36,28 @@ public class HandshakeOptions {
 		addSupportedEncrypt(Constant.eEncryptTypeAes);
 	}
 
-	public long getKeepTimerClient() {
-		return keepTimerClient;
+	public int getKeepCheckPeriod() {
+		return keepCheckPeriod;
 	}
 
-	public void setKeepTimerClient(long value) {
-		keepTimerClient = value;
+	public void setKeepCheckPeriod(int value) {
+		keepCheckPeriod = value;
 	}
 
-	public long getKeepTimerServer() {
-		return keepTimerServer;
+	public int getKeepRecvTimeout() {
+		return keepRecvTimeout;
 	}
 
-	public void setKeepTimerServer(long value) {
-		keepTimerServer = value;
+	public void setKeepRecvTimeout(int value) {
+		keepRecvTimeout = value;
 	}
 
-	public long getKeepPeriod() {
-		return keepPeriod;
+	public int getKeepSendTimeout() {
+		return keepSendTimeout;
 	}
 
-	public long getKeepTimeout() {
-		return keepTimeout;
-	}
-
-	public void setKeepPeriod(long value) {
-		keepPeriod = value;
-	}
-
-	public void setKeepTimeout(long value) {
-		keepTimeout = value;
+	public void setKeepSendTimeout(int value) {
+		keepSendTimeout = value;
 	}
 
 	public final IntHashSet getDhGroups() {

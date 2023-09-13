@@ -45,36 +45,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private static final AtomicLong sessionIdGen = new AtomicLong(1);
 	private static @NotNull LongSupplier sessionIdGenFunc = sessionIdGen::getAndIncrement;
 
-	public enum Type {
-		eServer,
-		eClient,
-		eServerSocket,
-	}
-
-	private final Type type;
-	private long activeSendTime;
-	private long activeRecvTime;
-
-	public Type getType() {
-		return type;
-	}
-
-	public long getActiveSendTime() {
-		return activeSendTime;
-	}
-
-	public long getActiveRecvTime() {
-		return activeRecvTime;
-	}
-
-	public void setActiveSendTime() {
-		activeSendTime = System.currentTimeMillis();
-	}
-
-	public void setActiveRecvTime() {
-		activeRecvTime = System.currentTimeMillis();
-	}
-
 	static {
 		try {
 			var lookup = MethodHandles.lookup();
@@ -130,6 +100,40 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private long sendCount, sendSize; // 已处理发送的次数, 已向socket发送数据的统计总字节数
 	private long sendRawSize; // 准备发送数据的统计总字节数(只在SetOutputSecurityCodec后统计,压缩加密之前的大小)
 	private final TimeThrottle timeThrottle;
+
+	public enum Type {
+		eServer,
+		eClient,
+		eServerSocket,
+	}
+
+	private final Type type;
+	private int activeRecvTime; // 上次接收的时间戳(秒)
+	private int activeSendTime; // 上次发送的时间戳(秒)
+
+	public Type getType() {
+		return type;
+	}
+
+	public int getActiveRecvTime() {
+		return activeRecvTime;
+	}
+
+	public int getActiveSendTime() {
+		return activeSendTime;
+	}
+
+	public void setActiveRecvTime() {
+		activeRecvTime = (int)(System.nanoTime() / 1_000_000_000);
+	}
+
+	public void setActiveSendTime() {
+		activeSendTime = (int)(System.nanoTime() / 1_000_000_000);
+	}
+
+	public void resetActiveSendRecvTime() {
+		activeSendTime = activeRecvTime = (int)(System.nanoTime() / 1_000_000_000);
+	}
 
 	public TimeThrottle getTimeThrottle() {
 		return timeThrottle;
@@ -246,7 +250,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		this.service = service;
 		this.acceptorOrConnector = acceptor;
 		this.type = Type.eServerSocket;
-		service.startKeepAliveTimerServer();
+		service.tryStartKeepAliveCheckTimer();
 
 		ServerSocketChannel ssc = null;
 		try {
@@ -333,6 +337,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		this.service = service;
 		this.acceptorOrConnector = acceptor;
 		this.type = Type.eServer;
+		resetActiveSendRecvTime();
 
 		// 据说连接接受以后设置无效，应该从 ServerSocket 继承
 		sc.configureBlocking(false);
@@ -381,7 +386,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		this.acceptorOrConnector = connector;
 		this.userState = userState;
 		this.type = Type.eClient;
-		service.startKeepAliveTimerClient();
+		resetActiveSendRecvTime();
+		service.tryStartKeepAliveCheckTimer();
 
 		SocketChannel sc = null;
 		try {

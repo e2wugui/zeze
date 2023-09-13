@@ -17,6 +17,7 @@ import Zeze.Services.Handshake.Constant;
 import Zeze.Services.Handshake.Helper;
 import Zeze.Services.Handshake.SHandshake;
 import Zeze.Services.Handshake.SHandshake0;
+import Zeze.Services.Handshake.SKeepAlive;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
@@ -67,9 +68,17 @@ public class HandshakeBase extends Service {
 		handshakeProtocols.add(CKeepAlive.TypeId_);
 		AddFactoryHandle(CKeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
 				CKeepAlive::new, HandshakeBase::processCKeepAlive, TransactionLevel.None, DispatchMode.Normal));
+		handshakeProtocols.add(SKeepAlive.TypeId_);
+		AddFactoryHandle(SKeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
+				SKeepAlive::new, HandshakeBase::processSKeepAlive, TransactionLevel.None, DispatchMode.Normal));
 	}
 
 	private static long processCKeepAlive(CKeepAlive p) throws Exception {
+		SKeepAlive.instance.Send(p.getSender());
+		return 0L;
+	}
+
+	private static long processSKeepAlive(SKeepAlive p) throws Exception {
 		// 不需要实现代码，收发时已经更新了活跃时间。
 		return 0L;
 	}

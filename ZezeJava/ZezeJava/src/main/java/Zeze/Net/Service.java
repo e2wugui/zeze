@@ -75,6 +75,7 @@ public class Service {
 	private @Nullable Selectors selectors;
 	private @Nullable ScheduledFuture<?> statisticLogFuture;
 	private boolean noProcedure = false;
+	protected Future<?> keepCheckTimer;
 
 	public Service(@NotNull String name) {
 		this(name, (Config)null);
@@ -249,7 +250,7 @@ public class Service {
 		stop();
 	}
 
-	public void stop() throws Exception {
+	public synchronized void stop() throws Exception {
 		config.stop();
 
 		for (AsyncSocket as : socketMap)
@@ -260,13 +261,9 @@ public class Service {
 		// 【注意】直接清除会导致同步等待的操作无法继续。异步只会没有回调，没问题。
 		// _RpcContexts.Clear();
 
-		if (null != timerClient) {
-			timerClient.cancel(true);
-			timerClient = null;
-		}
-		if (null != timerServer) {
-			timerServer.cancel(true);
-			timerServer = null;
+		if (keepCheckTimer != null) {
+			keepCheckTimer.cancel(true);
+			keepCheckTimer = null;
 		}
 	}
 
@@ -849,76 +846,53 @@ public class Service {
 		logger.warn("rpc response: lost context, maybe timeout. {}", rpc);
 	}
 
-	private Future<?> timerClient;
-	private Future<?> timerServer;
-
-	public void startKeepAliveTimerClient() {
-		if (null == timerClient) {
-			var conf = getConfig().getHandshakeOptions();
-			if (conf.getKeepTimerClient() > 0) {
-				var rand = Zeze.Util.Random.getInstance();
-				timerClient = Task.scheduleUnsafe(
-						rand.nextLong(conf.getKeepTimerClient()) + 1,
-						conf.getKeepTimerClient(), this::keepAliveClient);
+	public synchronized void tryStartKeepAliveCheckTimer() {
+		if (keepCheckTimer == null) {
+			var period = getConfig().getHandshakeOptions().getKeepCheckPeriod() * 1000L;
+			if (period > 0) {
+				keepCheckTimer = Task.scheduleUnsafe(
+						Random.getInstance().nextLong(period) + 1, period, this::checkKeepAlive);
 			}
 		}
 	}
 
-	public void startKeepAliveTimerServer() {
-		if (null == timerServer) {
-			var conf = getConfig().getHandshakeOptions();
-			if (conf.getKeepTimerServer() > 0) {
-				var rand = Zeze.Util.Random.getInstance();
-				timerServer = Task.scheduleUnsafe(
-						rand.nextLong(conf.getKeepTimerServer()) + 1,
-						conf.getKeepTimerServer(), this::keepAliveServer);
+	private void checkKeepAlive() throws Exception {
+		var conf = getConfig().getHandshakeOptions();
+		var keepRecvTimeout = conf.getKeepRecvTimeout() > 0 ? conf.getKeepRecvTimeout() : Integer.MAX_VALUE;
+		var keepSendTimeout = conf.getKeepSendTimeout() > 0 ? conf.getKeepSendTimeout() : Integer.MAX_VALUE;
+		int now = (int)(System.nanoTime() / 1_000_000_000);
+		foreach(socket -> {
+			if (now - socket.getActiveRecvTime() > keepRecvTimeout) {
+				try {
+					onKeepAliveTimeout(socket);
+				} catch (Exception e) {
+					logger.error("onKeepAliveTimeout exception:", e);
+				}
 			}
-		}
-	}
-
-	private void keepAliveClient() throws Exception {
-		var conf = getConfig().getHandshakeOptions();
-		if (conf.getKeepPeriod() > 0) {
-			foreach((socket) -> {
-				if (socket.getType() == AsyncSocket.Type.eClient) {
-					var now = System.currentTimeMillis();
-					if (now - socket.getActiveSendTime() > conf.getKeepPeriod())
-						onSendKeepAlive(socket);
+			if (socket.getType() == AsyncSocket.Type.eClient && now - socket.getActiveSendTime() > keepSendTimeout) {
+				try {
+					onSendKeepAlive(socket);
+				} catch (Exception e) {
+					logger.error("onSendKeepAlive exception:", e);
 				}
-			});
-		}
-	}
-
-	private void keepAliveServer() throws Exception {
-		var conf = getConfig().getHandshakeOptions();
-		if (conf.getKeepTimeout() > 0) {
-			foreach((socket) -> {
-				if (socket.getType() == AsyncSocket.Type.eServer) {
-					var now = System.currentTimeMillis();
-					if (now - socket.getActiveRecvTime() > conf.getKeepTimeout() && onKeepAliveTimeout(socket)) {
-						logger.warn("socket keep alive timeout {}", socket);
-						socket.close();
-					}
-				}
-			});
-		}
+			}
+		});
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	protected boolean onKeepAliveTimeout(AsyncSocket socket) throws Exception {
-		return true;
+	protected void onKeepAliveTimeout(AsyncSocket socket) throws Exception {
+		logger.info("socket keep alive timeout: {}", socket);
+		socket.close();
 	}
 
 	/**
 	 * 1. 如果你是handshake的service，重载这个方法，按注释发送CKeepAlive即可；
 	 * 2. 如果你是其他service子类，重载这个方法，按住是发送CKeepAlive，并且服务器端需要注册这条协议并写一个不需要处理代码的handler。
+	 * 3. 如果不发送, 会导致KeepTimerClient时间后再次触发, 也可以调用socket.setActiveSendTime()避免频繁触发
 	 *
 	 * @param socket 当前连接
 	 */
 	protected void onSendKeepAlive(AsyncSocket socket) {
-		/*
-		var k = new CKeepAlive();
-		k.Send(socket);
-		*/
+		// CKeepAlive.instance.Send(socket);
 	}
 }
