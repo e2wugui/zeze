@@ -1027,7 +1027,7 @@ namespace Zeze.Services.ToLuaService2
                             // 这里本来想设置成int，再通过元表来访问，可是lua 5.1有一些问题，如果升级的话再改
                             // 主要是保持协议版本兼容性，否则升级协议还要进行特殊判断，记得把__next__重写
                             Lua.PushString(luaState, variableMeta.Name); // [table, name]
-                            DecodeVariable(luaState, bb, t, variableMeta); // [table, name, value]
+                            DecodeVariable(luaState, bb, t, variableMeta.Type, variableMeta); // [table, name, value]
                             Lua.SetTable(luaState, -3); // [table]
                             break;
                         }
@@ -1065,7 +1065,7 @@ namespace Zeze.Services.ToLuaService2
             foreach (var variablesValue in beanMeta.Variables.Values)
             {
                 Lua.PushString(luaState, variablesValue.Name); // [table, name]
-                DecodeVariable(luaState, bb, variablesValue.Type, variablesValue); // [table, name, value]
+                DecodeVariable(luaState, bb, variablesValue.Type, variablesValue.Type, variablesValue); // [table, name, value]
                 Lua.SetTable(luaState, -3); // [table]
             }
         }
@@ -1087,8 +1087,8 @@ namespace Zeze.Services.ToLuaService2
             return structMetas.TryGetValue(type, out var beanMeta) ? beanMeta : null;
         }
 
-        void DecodeVariable(IntPtr luaState, ByteBuffer bb, int tagType, VariableMeta varMeta, BeanMeta beanMeta = null,
-            bool isKV = false) // isKV ? [table] : [table, key]
+        void DecodeVariable(IntPtr luaState, ByteBuffer bb, int tagType, int defType, VariableMeta varMeta,
+            BeanMeta beanMeta = null, bool isKV = false) // isKV ? [table] : [table, key]
         {
             switch (tagType)
             {
@@ -1096,7 +1096,7 @@ namespace Zeze.Services.ToLuaService2
                     Lua.PushBoolean(luaState, bb.ReadBool());
                     break;
                 case ByteBuffer.INTEGER:
-                    if (varMeta.Type == ByteBuffer.LUA_BOOL)
+                    if (defType == ByteBuffer.LUA_BOOL)
                         Lua.PushBoolean(luaState, bb.ReadBool());
                     else
                         Lua.PushInteger(luaState, bb.ReadLong());
@@ -1123,7 +1123,7 @@ namespace Zeze.Services.ToLuaService2
                     for (int i = 1; i <= n; i++) // 从1开始？
                     {
                         Lua.PushInteger(luaState, i);
-                        DecodeVariable(luaState, bb, t, varMeta, valueBeanMeta, true);
+                        DecodeVariable(luaState, bb, t, varMeta.ValueType, varMeta, valueBeanMeta, true);
                         Lua.SetTable(luaState, -3);
                     }
                     break;
@@ -1142,8 +1142,8 @@ namespace Zeze.Services.ToLuaService2
                         Lua.CreateTable(luaState, 0, Math.Min(n, 1000));
                     for (; n > 0; n--)
                     {
-                        DecodeVariable(luaState, bb, s, varMeta, keyBeanMeta, true);
-                        DecodeVariable(luaState, bb, t, varMeta, valueBeanMeta, true);
+                        DecodeVariable(luaState, bb, s, varMeta.KeyType, varMeta, keyBeanMeta, true);
+                        DecodeVariable(luaState, bb, t, varMeta.ValueType, varMeta, valueBeanMeta, true);
                         Lua.SetTable(luaState, -3);
                     }
                     break;
