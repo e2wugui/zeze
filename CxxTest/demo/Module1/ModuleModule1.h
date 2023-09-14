@@ -12,6 +12,14 @@ public:
     void Start();
     void Stop();
 
+    static int64_t GetSpecialTypeIdFromBean(const Zeze::Bean* bean) {
+        throw std::exception("Unknown Bean! dynamic@demo::Module1::BValue:dynamic");
+    }
+
+    static Zeze::Bean* CreateBeanFromSpecialTypeId(int64_t typeId) {
+        return nullptr;
+    }
+
     virtual int64_t ProcessProtocol3(Zeze::Net::Protocol* _p) override;
 
     virtual int64_t ProcessProtocol4(Zeze::Net::Protocol* _p) override;

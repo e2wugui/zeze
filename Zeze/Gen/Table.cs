@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Xml;
 using Zeze.Transaction;
@@ -40,6 +41,8 @@ namespace Zeze.Gen
         {
             Space = space;
             Name = self.GetAttribute("name").Trim();
+            if (Name.Length == 0)
+                throw new Exception("Table Name Is Empty module=" + space.Name);
             Program.CheckReserveName(Name, space.Path());
             space.Add(this);
 
