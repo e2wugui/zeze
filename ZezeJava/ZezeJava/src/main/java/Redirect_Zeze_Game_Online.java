@@ -16,6 +16,7 @@ public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
         _a_.setModuleId(11013);
         _a_.setRedirectType(Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer);
         _a_.setHashCode(serverId);
+        _a_.setKey(Long.hashCode(_t_.getSessionId()));
         _a_.setMethodFullName("Zeze.Game.Online:redirectRemoveLocal");
         _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();

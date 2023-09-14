@@ -14,6 +14,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
     private Zeze.Net.Binary _Params;
     private String _ServiceNamePrefix;
     private int _Version; // 用于验证请求方和处理方的版本一致
+    private int _Key; // 用于处理请求和回复时作为TaskOneByOne的key
 
     @Override
     public int getModuleId() {
@@ -161,6 +162,26 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         txn.putLog(new Log__Version(this, 7, value));
     }
 
+    @Override
+    public int getKey() {
+        if (!isManaged())
+            return _Key;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Key;
+        var log = (Log__Key)txn.getLog(objectId() + 8);
+        return log != null ? log.value : _Key;
+    }
+
+    public void setKey(int value) {
+        if (!isManaged()) {
+            _Key = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Key(this, 8, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BModuleRedirectArgument() {
         _MethodFullName = "";
@@ -169,7 +190,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
     }
 
     @SuppressWarnings("deprecation")
-    public BModuleRedirectArgument(int _ModuleId_, int _HashCode_, int _RedirectType_, String _MethodFullName_, Zeze.Net.Binary _Params_, String _ServiceNamePrefix_, int _Version_) {
+    public BModuleRedirectArgument(int _ModuleId_, int _HashCode_, int _RedirectType_, String _MethodFullName_, Zeze.Net.Binary _Params_, String _ServiceNamePrefix_, int _Version_, int _Key_) {
         _ModuleId = _ModuleId_;
         _HashCode = _HashCode_;
         _RedirectType = _RedirectType_;
@@ -183,6 +204,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
             _ServiceNamePrefix_ = "";
         _ServiceNamePrefix = _ServiceNamePrefix_;
         _Version = _Version_;
+        _Key = _Key_;
     }
 
     @Override
@@ -194,6 +216,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         setParams(Zeze.Net.Binary.Empty);
         setServiceNamePrefix("");
         setVersion(0);
+        setKey(0);
         _unknown_ = null;
     }
 
@@ -217,6 +240,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         setParams(other._Params);
         setServiceNamePrefix(other._ServiceNamePrefix);
         setVersion(other._Version);
+        setKey(other._Key);
         _unknown_ = null;
     }
 
@@ -228,6 +252,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         setParams(other.getParams());
         setServiceNamePrefix(other.getServiceNamePrefix());
         setVersion(other.getVersion());
+        setKey(other.getKey());
         _unknown_ = other._unknown_;
     }
 
@@ -302,6 +327,13 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         public void commit() { ((BModuleRedirectArgument)getBelong())._Version = value; }
     }
 
+    private static final class Log__Key extends Zeze.Transaction.Logs.LogInt {
+        public Log__Key(BModuleRedirectArgument bean, int varId, int value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BModuleRedirectArgument)getBelong())._Key = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -319,7 +351,8 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         sb.append(Zeze.Util.Str.indent(level)).append("MethodFullName=").append(getMethodFullName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Params=").append(getParams()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ServiceNamePrefix=").append(getServiceNamePrefix()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Version=").append(getVersion()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Version=").append(getVersion()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(getKey()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -401,6 +434,13 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            int _x_ = getKey();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -438,6 +478,10 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
             setVersion(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 8) {
+            setKey(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -451,6 +495,8 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         if (getRedirectType() < 0)
             return true;
         if (getVersion() < 0)
+            return true;
+        if (getKey() < 0)
             return true;
         return false;
     }
@@ -471,6 +517,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
                 case 5: _Params = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
                 case 6: _ServiceNamePrefix = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 7: _Version = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 8: _Key = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }
@@ -491,6 +538,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         if (getServiceNamePrefix() == null)
             setServiceNamePrefix("");
         setVersion(rs.getInt(_parents_name_ + "Version"));
+        setKey(rs.getInt(_parents_name_ + "Key"));
     }
 
     @Override
@@ -503,6 +551,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         st.appendBinary(_parents_name_ + "Params", getParams());
         st.appendString(_parents_name_ + "ServiceNamePrefix", getServiceNamePrefix());
         st.appendInt(_parents_name_ + "Version", getVersion());
+        st.appendInt(_parents_name_ + "Key", getKey());
     }
 
     @Override
@@ -515,6 +564,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Params", "binary", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "ServiceNamePrefix", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Version", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "Key", "int", "", ""));
         return vars;
     }
 
@@ -528,6 +578,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private Zeze.Net.Binary _Params;
     private String _ServiceNamePrefix;
     private int _Version; // 用于验证请求方和处理方的版本一致
+    private int _Key; // 用于处理请求和回复时作为TaskOneByOne的key
 
     public int getModuleId() {
         return _ModuleId;
@@ -591,6 +642,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _Version = value;
     }
 
+    public int getKey() {
+        return _Key;
+    }
+
+    public void setKey(int value) {
+        _Key = value;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _MethodFullName = "";
@@ -599,7 +658,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _ModuleId_, int _HashCode_, int _RedirectType_, String _MethodFullName_, Zeze.Net.Binary _Params_, String _ServiceNamePrefix_, int _Version_) {
+    public Data(int _ModuleId_, int _HashCode_, int _RedirectType_, String _MethodFullName_, Zeze.Net.Binary _Params_, String _ServiceNamePrefix_, int _Version_, int _Key_) {
         _ModuleId = _ModuleId_;
         _HashCode = _HashCode_;
         _RedirectType = _RedirectType_;
@@ -613,6 +672,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _ServiceNamePrefix_ = "";
         _ServiceNamePrefix = _ServiceNamePrefix_;
         _Version = _Version_;
+        _Key = _Key_;
     }
 
     @Override
@@ -624,6 +684,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _Params = Zeze.Net.Binary.Empty;
         _ServiceNamePrefix = "";
         _Version = 0;
+        _Key = 0;
     }
 
     @Override
@@ -646,6 +707,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _Params = other.getParams();
         _ServiceNamePrefix = other.getServiceNamePrefix();
         _Version = other.getVersion();
+        _Key = other.getKey();
     }
 
     public void assign(BModuleRedirectArgument.Data other) {
@@ -656,6 +718,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _Params = other._Params;
         _ServiceNamePrefix = other._ServiceNamePrefix;
         _Version = other._Version;
+        _Key = other._Key;
     }
 
     @Override
@@ -698,7 +761,8 @@ public static final class Data extends Zeze.Transaction.Data {
         sb.append(Zeze.Util.Str.indent(level)).append("MethodFullName=").append(_MethodFullName).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Params=").append(_Params).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ServiceNamePrefix=").append(_ServiceNamePrefix).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Version=").append(_Version).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Version=").append(_Version).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_Key).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -767,6 +831,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            int _x_ = _Key;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -800,6 +871,10 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 7) {
             _Version = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 8) {
+            _Key = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

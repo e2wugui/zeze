@@ -283,7 +283,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		if (p.getTypeId() == ModuleRedirect.TypeId_) {
 			var r = (ModuleRedirect)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-			getZeze().getTaskOneByOneByKey().Execute(r.Argument.getHashCode(),
+			getZeze().getTaskOneByOneByKey().Execute(r.Argument.getKey(),
 					() -> Task.call(() -> p.handle(this, factoryHandle), p,
 							Protocol::trySendResultCode, r.Argument.getMethodFullName()),
 					factoryHandle.Mode);
@@ -308,7 +308,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		if (rpc.getTypeId() == ModuleRedirect.TypeId_) {
 			var redirect = (ModuleRedirect)rpc;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-			getZeze().getTaskOneByOneByKey().Execute(redirect.Argument.getHashCode(),
+			getZeze().getTaskOneByOneByKey().Execute(redirect.Argument.getKey(),
 					() -> Task.call(() -> responseHandle.handle(rpc), rpc), factoryHandle.Mode);
 			return;
 		}

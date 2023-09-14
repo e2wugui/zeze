@@ -40,6 +40,7 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             _a_.setModuleId(11015);
             _a_.setRedirectType(Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash);
             _a_.setHashCode(hash);
+            _a_.setKey(Long.hashCode(_t_.getSessionId()));
             _a_.setMethodFullName("Zeze.Game.Rank:removeRank");
             _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
             var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
@@ -78,6 +79,7 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             _a_.setModuleId(11015);
             _a_.setRedirectType(Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash);
             _a_.setHashCode(hash);
+            _a_.setKey(Long.hashCode(_t_.getSessionId()));
             _a_.setMethodFullName("Zeze.Game.Rank:updateRank");
             _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
             var _b_ = Zeze.Serialize.ByteBuffer.Allocate();

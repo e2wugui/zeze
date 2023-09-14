@@ -32,6 +32,7 @@ public class Reflect {
 	public static final @NotNull StackWalker stackWalker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
 	public static final @NotNull MethodHandle supplierMH;
 	private static final HashMap<Class<?>, String> stableNameMap = new HashMap<>(32);
+	private static final HashMap<Class<?>, Class<?>> boxClassMap = new HashMap<>(16);
 
 	static {
 		try {
@@ -65,6 +66,16 @@ public class Reflect {
 		stableNameMap.put(Quaternion.class, "quaternion");
 		stableNameMap.put(Vector2Int.class, "vector2int");
 		stableNameMap.put(Vector3Int.class, "vector3int");
+
+		boxClassMap.put(void.class, Void.class);
+		boxClassMap.put(boolean.class, Boolean.class);
+		boxClassMap.put(char.class, Character.class);
+		boxClassMap.put(byte.class, Byte.class);
+		boxClassMap.put(short.class, Short.class);
+		boxClassMap.put(int.class, Integer.class);
+		boxClassMap.put(long.class, Long.class);
+		boxClassMap.put(float.class, Float.class);
+		boxClassMap.put(double.class, Double.class);
 	}
 
 	private final HashMap<String, Method> methods = new HashMap<>();
@@ -195,5 +206,9 @@ public class Reflect {
 	public static @NotNull String @NotNull [] collectClassPaths(@NotNull ClassLoader classLoader) {
 		var isWin = System.getProperty("os.name").toLowerCase().startsWith("win");
 		return System.getProperty("java.class.path").split(isWin ? ";" : ":");
+	}
+
+	public static @Nullable Class<?> getBoxClass(@NotNull Class<?> primitiveClass) {
+		return boxClassMap.get(primitiveClass);
 	}
 }

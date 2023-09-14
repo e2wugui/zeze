@@ -2,7 +2,6 @@ package Game.Rank;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,6 +11,7 @@ import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
+import Zeze.Arch.RedirectKey;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Hot.HotService;
@@ -19,7 +19,6 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DispatchMode;
-import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
@@ -549,16 +548,16 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	}
 
 	@RedirectHash(timeout = 2000)
-	public RedirectFuture<GenericResult<BRankList>> TestHashGenericResult(int serverId, Long arg) {
+	public RedirectFuture<GenericResult<BRankList>> TestHashGenericResult(int serverId, @RedirectKey Long arg) {
 		return RedirectFuture.finish(new GenericResult<>());
 	}
 
 	@RedirectToServer
-	public void TestToServerNoResult(int serverId, List<Long> longList) {
+	public void TestToServerNoResult(int serverId, @RedirectKey List<Long> longList) {
 	}
 
 	@RedirectHash
-	public void TestHashNoResult(int hash, BRankList rankList) {
+	public void TestHashNoResult(@RedirectKey int hash, BRankList rankList) {
 	}
 
 	@RedirectAll(timeout = 3000)
@@ -585,7 +584,7 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	}
 
 	@RedirectToServer
-	public void TestInnerClass(int serverId, InnerBean inner) {
+	public void TestInnerClass(int serverId, InnerBean inner, @RedirectKey long key) {
 	}
 
 	@RedirectToServer

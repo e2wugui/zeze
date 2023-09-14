@@ -13,11 +13,13 @@ import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
+import Zeze.Arch.RedirectKey;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Net.Binary;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.Reflect;
 import Zeze.Util.TransactionLevelAnnotation;
 
 final class MethodOverride {
@@ -26,6 +28,7 @@ final class MethodOverride {
 	final TransactionLevel transactionLevel;
 	final Parameter[] allParameters;
 	final Parameter hashOrServerIdParameter;
+	final String keyHashCode;
 	final ArrayList<Parameter> inputParameters = new ArrayList<>();
 	final String resultTypeName;
 	final ArrayList<Field> resultFields = new ArrayList<>();
@@ -61,6 +64,38 @@ final class MethodOverride {
 			throw new IllegalStateException("ModuleRedirect: type of first parameter must be 'int': "
 					+ method.getDeclaringClass().getName() + "::" + method.getName());
 		}
+		String keyHashCode0 = null;
+		for (var param : allParameters) {
+			var keyAnn = param.getAnnotation(RedirectKey.class);
+			if (keyAnn != null) {
+				if (annotation instanceof RedirectAll) {
+					throw new IllegalStateException("ModuleRedirect: RedirectKey can not be used for RedirectAll: "
+							+ method.getDeclaringClass().getName() + "::" + method.getName());
+				}
+				if (keyHashCode0 == null) {
+					var paramType = param.getType();
+					if (paramType.isPrimitive()) {
+						if (paramType == int.class)
+							keyHashCode0 = param.getName();
+						else {
+							var boxType = Reflect.getBoxClass(paramType);
+							if (boxType == null) {
+								throw new IllegalStateException("ModuleRedirect: unknown primitive type: "
+										+ paramType.getName() + " in " + method.getDeclaringClass().getName()
+										+ "::" + method.getName());
+							}
+							keyHashCode0 = boxType.getSimpleName() + ".hashCode(" + param.getName() + ')';
+						}
+					} else
+						keyHashCode0 = param.getName() + ".hashCode()";
+				} else {
+					throw new IllegalStateException("ModuleRedirect: RedirectKey is used more than once: "
+							+ method.getDeclaringClass().getName() + "::" + method.getName());
+				}
+			}
+		}
+		keyHashCode = keyHashCode0 != null ? keyHashCode0 : "Long.hashCode(_t_.getSessionId())";
+
 		inputParameters.addAll(Arrays.asList(allParameters));
 		inputParameters.remove(0);
 

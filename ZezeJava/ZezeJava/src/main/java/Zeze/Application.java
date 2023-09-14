@@ -475,7 +475,7 @@ public final class Application {
 						schemasPrevious.compile();
 					} catch (Exception ex) {
 						schemasPrevious = null;
-						logger.error("Schemas Implement Changed? serverId={}", serverId, ex);
+						throw new IllegalStateException("Schemas Implement Changed? serverId=" + serverId, ex);
 					}
 					if (schemas.getAppPublishVersion() < schemasPrevious.getAppPublishVersion())
 						return; // 当前的发布版本小于先前时，不做任何操作，直接返回。
