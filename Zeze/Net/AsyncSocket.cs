@@ -57,10 +57,23 @@ namespace Zeze.Net
         private Codec outputCodecChain;
 
         public string RemoteAddress { get; private set; }
+        public AsyncSocketType Type { get; }
+        public long ActiveRecvTime { get; private set; } // 上次接收的时间戳(毫秒)
+        public long ActiveSendTime { get; private set; } // 上次发送的时间戳(毫秒)
 
         private static long NextSessionId()
         {
             return SessionIdGenFunc?.Invoke() ?? SessionIdGen.IncrementAndGet();
+        }
+
+        public void SetActiveRecvTime()
+        {
+            ActiveRecvTime = Time.NowUnixMillis;
+        }
+
+        public void SetActiveSendTime()
+        {
+            ActiveSendTime = Time.NowUnixMillis;
         }
 
         /// <summary>
@@ -70,6 +83,8 @@ namespace Zeze.Net
         {
             Service = service;
             Acceptor = acceptor;
+            Type = AsyncSocketType.eServerSocket;
+            service.TryStartKeepAliveCheckTimer();
 
             Socket = new Socket(SocketType.Stream, ProtocolType.Tcp)
             {
@@ -102,6 +117,7 @@ namespace Zeze.Net
         {
             Service = service;
             Acceptor = acceptor;
+            Type = AsyncSocketType.eServer;
 
             Socket = accepted;
             Socket.Blocking = false;
@@ -132,6 +148,8 @@ namespace Zeze.Net
         {
             Service = service;
             Connector = connector;
+            Type = AsyncSocketType.eClient;
+            service.TryStartKeepAliveCheckTimer();
 
             Socket = new Socket(SocketType.Stream, ProtocolType.Tcp)
             {
@@ -273,6 +291,7 @@ namespace Zeze.Net
                         if (!Socket.SendAsync(eventArgsSend))
                             ProcessSend(eventArgsSend);
                     }
+                    SetActiveSendTime();
                     return true;
                 }
             }
@@ -423,6 +442,7 @@ namespace Zeze.Net
         {
             if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
             {
+                SetActiveRecvTime();
                 if (inputCodecChain != null)
                 {
                     // 解密解压处理，处理结果直接加入 inputCodecBuffer。

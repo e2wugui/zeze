@@ -43,6 +43,10 @@ namespace Zeze.Services
         public readonly List<int> SupportedEncrypt = new List<int>();
         public readonly List<int> SupportedCompress = new List<int>();
 
+        public int KeepCheckPeriod { get; set; } = 0; // 检查所有socket是否有发送或接收超时的检查周期(秒). 0表示禁用
+        public int KeepRecvTimeout { get; set; } = 0; // 检查距上次接收的超时时间(秒). 0表示禁用
+        public int KeepSendTimeout { get; set; } = 0; // 检查距上次发送的超时时间(秒). 0表示禁用, 只有主动连接方会使用
+
         public HandshakeOptions()
         {
             AddDhGroup(1);
@@ -134,6 +138,16 @@ namespace Zeze.Services
                 {
                     Factory = () => new Handshake.CHandshakeDone(),
                     Handle = ProcessCHandshakeDone,
+                    TransactionLevel = Transaction.TransactionLevel.None
+                });
+            }
+            {
+                var tmp = new Handshake.CKeepAlive();
+                HandshakeProtocols.Add(tmp.TypeId);
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
+                {
+                    Factory = () => new Handshake.CKeepAlive(),
+                    Handle = ProcessCKeepAlive,
                     TransactionLevel = Transaction.TransactionLevel.None
                 });
             }
@@ -264,6 +278,27 @@ namespace Zeze.Services
                     TransactionLevel = Transaction.TransactionLevel.None
                 });
             }
+            {
+                var tmp = new Handshake.SKeepAlive();
+                HandshakeProtocols.Add(tmp.TypeId);
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
+                {
+                    Factory = () => new Handshake.SKeepAlive(),
+                    Handle = ProcessSKeepAlive,
+                    TransactionLevel = Transaction.TransactionLevel.None
+                });
+            }
+        }
+
+        private Task<long> ProcessCKeepAlive(Protocol p)
+        {
+            Handshake.SKeepAlive.Instance.Send(p.Sender);
+            return Task.FromResult<long>(0);
+        }
+
+        private Task<long> ProcessSKeepAlive(Protocol p)
+        {
+            return Task.FromResult<long>(0);
         }
 
         private Task<long> ProcessSHandshake0(Protocol _p)
@@ -659,6 +694,34 @@ namespace Zeze.Services.Handshake
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
+    }
+
+#if USE_CONFCS
+    public sealed class CKeepAlive : Protocol<ConfEmptyBean>
+#else
+    public sealed class CKeepAlive : Protocol<Transaction.EmptyBean>
+#endif
+    {
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(CKeepAlive).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+
+        public static CKeepAlive Instance = new CKeepAlive();
+    }
+
+#if USE_CONFCS
+    public sealed class SKeepAlive : Protocol<ConfEmptyBean>
+#else
+    public sealed class SKeepAlive : Protocol<Transaction.EmptyBean>
+#endif
+    {
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(SKeepAlive).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+
+        public static SKeepAlive Instance = new SKeepAlive();
     }
 
 #if USE_CONFCS

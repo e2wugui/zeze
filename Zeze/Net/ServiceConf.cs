@@ -199,6 +199,13 @@ namespace Zeze.Net
             attr = self.GetAttribute("EncryptType");
             if (attr.Length > 0) HandshakeOptions.EncryptType = int.Parse(attr);
 
+            attr = self.GetAttribute("KeepCheckPeriod");
+            if (attr.Length > 0) HandshakeOptions.KeepCheckPeriod = int.Parse(attr);
+            attr = self.GetAttribute("KeepSendTimeout");
+            if (attr.Length > 0) HandshakeOptions.KeepSendTimeout = int.Parse(attr);
+            attr = self.GetAttribute("KeepRecvTimeout");
+            if (attr.Length > 0) HandshakeOptions.KeepRecvTimeout = int.Parse(attr);
+
             if (string.IsNullOrEmpty(Name))
                 conf.DefaultServiceConf = this;
             else if (!conf.ServiceConfMap.TryAdd(Name, this))
