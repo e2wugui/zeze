@@ -273,7 +273,7 @@ namespace Zeze.Net
                     Zeze.TaskOneByOneByKey.Execute(key, Zeze.NewProcedure(
                             () => factoryHandle.Handle(p), p.GetType().FullName,
                             factoryHandle.TransactionLevel, p.Sender?.UserState),
-                            p, (p2, code) => p2.TrySendResultCode(code));
+                        p, (p2, code) => p2.TrySendResultCode(code));
                 }
                 else if (Zeze != null)
                     Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
@@ -608,7 +608,7 @@ namespace Zeze.Net
         private void CheckKeepAlive(SchedulerTask This)
         {
             var conf = Config.HandshakeOptions;
-            var keepRecvTimeout = conf.KeepRecvTimeout > 0 ? conf.KeepRecvTimeout * 1000L: long.MaxValue;
+            var keepRecvTimeout = conf.KeepRecvTimeout > 0 ? conf.KeepRecvTimeout * 1000L : long.MaxValue;
             var keepSendTimeout = conf.KeepSendTimeout > 0 ? conf.KeepSendTimeout * 1000L : long.MaxValue;
             var now = Time.NowUnixMillis; // 使用毫秒，System.nanoTime c# 不知道怎么对应，查了一下说 StopWatch？
             foreach (var socket in SocketMap.Values)
@@ -621,7 +621,7 @@ namespace Zeze.Net
                     }
                     catch (Exception e)
                     {
-                        logger.Error("onKeepAliveTimeout exception:", e);
+                        logger.Error(e, "onKeepAliveTimeout exception:");
                     }
                 }
                 if (socket.Type == AsyncSocketType.eClient && now - socket.ActiveSendTime > keepSendTimeout)
@@ -632,7 +632,7 @@ namespace Zeze.Net
                     }
                     catch (Exception e)
                     {
-                        logger.Error("onSendKeepAlive exception:", e);
+                        logger.Error(e, "onSendKeepAlive exception:");
                     }
                 }
             }

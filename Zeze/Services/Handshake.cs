@@ -1,13 +1,13 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Numerics;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Serialize;
-using System.Collections.Concurrent;
-using System.Threading.Tasks;
 using Zeze.Util;
 
 // 使用dh算法交换密匙把连接加密。
@@ -43,9 +43,9 @@ namespace Zeze.Services
         public readonly List<int> SupportedEncrypt = new List<int>();
         public readonly List<int> SupportedCompress = new List<int>();
 
-        public int KeepCheckPeriod { get; set; } = 0; // 检查所有socket是否有发送或接收超时的检查周期(秒). 0表示禁用
-        public int KeepRecvTimeout { get; set; } = 0; // 检查距上次接收的超时时间(秒). 0表示禁用
-        public int KeepSendTimeout { get; set; } = 0; // 检查距上次发送的超时时间(秒). 0表示禁用, 只有主动连接方会使用
+        public int KeepCheckPeriod { get; set; } // 检查所有socket是否有发送或接收超时的检查周期(秒). 0表示禁用
+        public int KeepRecvTimeout { get; set; } // 检查距上次接收的超时时间(秒). 0表示禁用
+        public int KeepSendTimeout { get; set; } // 检查距上次发送的超时时间(秒). 0表示禁用, 只有主动连接方会使用
 
         public HandshakeOptions()
         {
@@ -707,7 +707,7 @@ namespace Zeze.Services.Handshake
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
 
-        public static CKeepAlive Instance = new CKeepAlive();
+        public static readonly CKeepAlive Instance = new CKeepAlive();
     }
 
 #if USE_CONFCS
@@ -721,7 +721,7 @@ namespace Zeze.Services.Handshake
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
 
-        public static SKeepAlive Instance = new SKeepAlive();
+        public static readonly SKeepAlive Instance = new SKeepAlive();
     }
 
 #if USE_CONFCS

@@ -40,12 +40,12 @@ copy /y %Zeze%\Util\DispatchModeAttribute.cs   %confcs%\Util\
 copy /y %Zeze%\Util\FixedHash.cs               %confcs%\Util\
 copy /y %Zeze%\Util\Logger.cs                  %confcs%\Util\
 copy /y %Zeze%\Util\Mission.cs                 %confcs%\Util\
+copy /y %Zeze%\Util\Random.cs                  %confcs%\Util\
 copy /y %Zeze%\Util\Reflect.cs                 %confcs%\Util\
 copy /y %Zeze%\Util\ResultCode.cs              %confcs%\Util\
 copy /y %Zeze%\Util\Scheduler.cs               %confcs%\Util\
 copy /y %Zeze%\Util\Str.cs                     %confcs%\Util\
 copy /y %Zeze%\Util\Time.cs                    %confcs%\Util\
-copy /y %Zeze%\Util\Random.cs                    %confcs%\Util\
 rem copy /y %Zeze%\Util\UnityHelpers.cs        %confcs%\Util\
 
 pause
