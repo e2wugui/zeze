@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class EmptyBean extends Bean {
 	// 只用于协议/RPC的不可修改的共享单例,不能放入数据库中
@@ -60,6 +61,16 @@ public class EmptyBean extends Bean {
 		return 1;
 	}
 
+	@Override
+	public int hashCode() {
+		return 0;
+	}
+
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		return obj != null && getClass() == obj.getClass();
+	}
+
 	public static class Data extends Zeze.Transaction.Data {
 		public static final Data instance = new Data();
 
@@ -111,6 +122,16 @@ public class EmptyBean extends Bean {
 		@Override
 		public int preAllocSize() {
 			return 1;
+		}
+
+		@Override
+		public int hashCode() {
+			return 0;
+		}
+
+		@Override
+		public boolean equals(@Nullable Object obj) {
+			return obj != null && getClass() == obj.getClass();
 		}
 	}
 }
