@@ -587,7 +587,7 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	public void TestInnerClass(int serverId, InnerBean inner, @RedirectKey long key) {
 	}
 
-	@RedirectToServer
+	@RedirectToServer(oneByOne = false)
 	public void TestBeanList(int serverId, List<InnerBean> inner, List<Long> longList, Map<Long, InnerBean> map) {
 	}
 

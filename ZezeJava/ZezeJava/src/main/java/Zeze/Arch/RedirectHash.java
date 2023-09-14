@@ -8,6 +8,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RedirectHash {
+	boolean oneByOne() default true;
+
 	String ConcurrentLevelSource() default "";
 
 	int timeout() default 5000;

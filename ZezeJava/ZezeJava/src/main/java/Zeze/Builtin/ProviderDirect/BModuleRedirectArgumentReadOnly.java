@@ -15,4 +15,5 @@ public interface BModuleRedirectArgumentReadOnly {
     String getServiceNamePrefix();
     int getVersion();
     int getKey();
+    boolean isNoOneByOne();
 }

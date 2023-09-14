@@ -283,10 +283,15 @@ public class ProviderDirectService extends HandshakeBoth {
 		if (p.getTypeId() == ModuleRedirect.TypeId_) {
 			var r = (ModuleRedirect)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-			getZeze().getTaskOneByOneByKey().Execute(r.Argument.getKey(),
-					() -> Task.call(() -> p.handle(this, factoryHandle), p,
-							Protocol::trySendResultCode, r.Argument.getMethodFullName()),
-					factoryHandle.Mode);
+			if (r.Argument.isNoOneByOne()) {
+				Task.executeUnsafe(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode,
+						r.Argument.getMethodFullName(), factoryHandle.Mode);
+			} else {
+				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getKey(),
+						() -> Task.call(() -> p.handle(this, factoryHandle), p,
+								Protocol::trySendResultCode, r.Argument.getMethodFullName()),
+						factoryHandle.Mode);
+			}
 			return;
 		}
 		if (p.getTypeId() == ModuleRedirectAllResult.TypeId_) {
@@ -304,12 +309,15 @@ public class ProviderDirectService extends HandshakeBoth {
 	@Override
 	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
 															@NotNull ProtocolFactoryHandle<?> factoryHandle) {
-
 		if (rpc.getTypeId() == ModuleRedirect.TypeId_) {
-			var redirect = (ModuleRedirect)rpc;
+			var r = (ModuleRedirect)rpc;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-			getZeze().getTaskOneByOneByKey().Execute(redirect.Argument.getKey(),
-					() -> Task.call(() -> responseHandle.handle(rpc), rpc), factoryHandle.Mode);
+			if (r.Argument.isNoOneByOne())
+				Task.executeRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+			else {
+				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getKey(),
+						() -> Task.call(() -> responseHandle.handle(rpc), rpc), factoryHandle.Mode);
+			}
 			return;
 		}
 

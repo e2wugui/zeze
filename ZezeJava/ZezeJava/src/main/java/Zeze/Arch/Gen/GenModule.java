@@ -249,7 +249,10 @@ public final class GenModule {
 				sb.appendLine("{}_a_.setModuleId({});", prefix, moduleId);
 				sb.appendLine("{}_a_.setRedirectType({});", prefix, m.getRedirectType());
 				sb.appendLine("{}_a_.setHashCode({});", prefix, m.hashOrServerIdParameter.getName());
-				sb.appendLine("{}_a_.setKey({});", prefix, m.keyHashCode);
+				if (m.oneByone)
+					sb.appendLine("{}_a_.setKey({});", prefix, m.keyHashCode);
+				else
+					sb.appendLine("{}_a_.setNoOneByOne(true);", prefix);
 				sb.appendLine("{}_a_.setMethodFullName(\"{}:{}\");", prefix, moduleFullName, m.method.getName());
 				sb.appendLine("{}_a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);", prefix);
 				int version = m.annotation instanceof RedirectHash

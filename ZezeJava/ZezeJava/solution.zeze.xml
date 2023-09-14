@@ -487,6 +487,7 @@
 				<variable name="ServiceNamePrefix" id="6" type="string"/>
 				<variable name="Version"           id="7" type="int"/> 用于验证请求方和处理方的版本一致
 				<variable name="Key"               id="8" type="int"/> 用于处理请求和回复时作为TaskOneByOne的key
+				<variable name="NoOneByOne"        id="9" type="bool"/> 是否禁用TaskOneByOne处理请求和回复
 			</bean>
 
 			<bean name="BModuleRedirectResult">

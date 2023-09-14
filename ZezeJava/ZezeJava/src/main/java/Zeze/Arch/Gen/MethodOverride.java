@@ -34,6 +34,7 @@ final class MethodOverride {
 	final ArrayList<Field> resultFields = new ArrayList<>();
 	final Type resultType;
 	final Class<?> resultClass;
+	final boolean oneByone;
 	boolean returnTypeHasResultCode;
 
 	MethodOverride(Method method, Annotation annotation) {
@@ -64,6 +65,8 @@ final class MethodOverride {
 			throw new IllegalStateException("ModuleRedirect: type of first parameter must be 'int': "
 					+ method.getDeclaringClass().getName() + "::" + method.getName());
 		}
+		oneByone = annotation instanceof RedirectToServer ? ((RedirectToServer)annotation).oneByOne()
+				: (annotation instanceof RedirectHash && ((RedirectHash)annotation).oneByOne());
 		String keyHashCode0 = null;
 		for (var param : allParameters) {
 			var keyAnn = param.getAnnotation(RedirectKey.class);
