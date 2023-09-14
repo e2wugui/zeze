@@ -728,6 +728,8 @@ public class Schemas implements Serializable {
 		}
 
 		public Table(String n, String k, String v) {
+			if (n.isEmpty())
+				throw new IllegalArgumentException("table name is empty");
 			name = n;
 			keyName = k;
 			valueName = v;
