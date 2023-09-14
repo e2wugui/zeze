@@ -1,16 +1,14 @@
-
-using System;
 using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
+using Zeze.Util;
 
 namespace Zeze.Transaction.Collections
 {
-
 	public class LogList1<E> : LogList<E>
 	{
-        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogList1<E>));
-        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+        public new static readonly string StableName = Reflect.GetStableName(typeof(LogList1<E>));
+        public new static readonly int TypeId_ = FixedHash.Hash32(StableName);
 
         public override int TypeId => TypeId_;
 
@@ -38,18 +36,18 @@ namespace Zeze.Transaction.Collections
 			}
 		}
 
-		public List<OpLog> OpLogs { get; } = new List<OpLog>();
+		public readonly List<OpLog> OpLogs = new List<OpLog>();
 
 #if !USE_CONFCS
 		public override void Collect(Changes changes, Bean recent, Log vlog)
 		{
-			throw new NotImplementedException("Collect Not Implement.");
+			throw new System.NotImplementedException("Collect Not Implement.");
 		}
 
 		public void Add(E item)
 		{
 			if (item == null)
-				throw new ArgumentNullException("value is null");
+				throw new System.ArgumentNullException("value is null");
 			Value = Value.Add(item);
 			OpLogs.Add(new OpLog(OpLog.OP_ADD, Value.Count - 1, item));
 		}
@@ -144,7 +142,7 @@ namespace Zeze.Transaction.Collections
         {
 			var sb = new StringBuilder();
 			sb.Append("OpLogs:");
-			Zeze.Util.Str.BuildString(sb, OpLogs);
+			Str.BuildString(sb, OpLogs);
             return sb.ToString();
         }
 
@@ -172,9 +170,7 @@ namespace Zeze.Transaction.Collections
 				int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
 				E value = default;
 				if (op < OpLog.OP_REMOVE)
-				{
 					value = SerializeHelper<E>.Decode(bb);
-				}
 				OpLogs.Add(new OpLog(op, index, value));
 			}
 		}

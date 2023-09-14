@@ -39,6 +39,9 @@ xcopy /Y %zeze_src_dir%\Zeze\Util\Reflect.cs %project_dir%\Zeze\Util\
 xcopy /Y %zeze_src_dir%\Zeze\Util\Time.cs %project_dir%\Zeze\Util\
 xcopy /Y %zeze_src_dir%\Zeze\Util\Comparer.cs %project_dir%\Zeze\Util\
 xcopy /Y %zeze_src_dir%\Zeze\Util\DispatchModeAttribute.cs %project_dir%\Zeze\Util\
+xcopy /Y %zeze_src_dir%\Zeze\Util\Logger.cs %project_dir%\Zeze\Util\
+xcopy /Y %zeze_src_dir%\Zeze\Util\LoggerNLog.cs %project_dir%\Zeze\Util\
+xcopy /Y %zeze_src_dir%\Zeze\Util\Random.cs %project_dir%\Zeze\Util\
 
 md %project_dir%\Zeze\Services
 xcopy /Y %zeze_src_dir%\Zeze\Services\Handshake.cs %project_dir%\Zeze\Services\

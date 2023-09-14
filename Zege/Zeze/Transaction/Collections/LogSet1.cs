@@ -1,26 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+#if !USE_CONFCS
 using System.Linq;
+#endif
 using System.Text;
-using System.Threading.Tasks;
 using Zeze.Serialize;
+using Zeze.Util;
 
 namespace Zeze.Transaction.Collections
 {
-	public class LogSet1<V> : LogSet<V>
-	{
-        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogSet1<V>));
-        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+    public class LogSet1<V> : LogSet<V>
+    {
+        public new static readonly string StableName = Reflect.GetStableName(typeof(LogSet1<V>));
+        public new static readonly int TypeId_ = FixedHash.Hash32(StableName);
 
         public override int TypeId => TypeId_;
-        
-		public ISet<V> Added { get; } = new HashSet<V>();
-		public ISet<V> Removed { get; } = new HashSet<V>();
+
+        public readonly ISet<V> Added = new HashSet<V>();
+        public readonly ISet<V> Removed = new HashSet<V>();
 
 #if !USE_CONFCS
 		public override void Collect(Changes changes, Bean recent, Log vlog)
 		{
-			throw new Exception($"Collect Not Implement.");
+			throw new System.Exception($"Collect Not Implement.");
 		}
 
 		public bool Add(V item)
@@ -70,7 +71,7 @@ namespace Zeze.Transaction.Collections
 			{
 				foreach (var item in Value)
 				{
-					if (false == other.Contains(item))
+					if (!other.Contains(item))
 					{
 						Removed.Add(item);
 						Added.Remove(item);
@@ -110,7 +111,7 @@ namespace Zeze.Transaction.Collections
 			{
 				foreach (var item in other)
 				{
-					if (false == Value.Contains(item))
+					if (!Value.Contains(item))
                     {
 						Added.Add(item);
 						Removed.Remove(item);
@@ -160,50 +161,43 @@ namespace Zeze.Transaction.Collections
             dup.Value = Value;
             return dup;
         }
-
 #endif
-
         public override void Decode(ByteBuffer bb)
-		{
-			Added.Clear();
-			for (int i = bb.ReadUInt(); i > 0; --i)
-			{
-				var value = SerializeHelper<V>.Decode(bb);
-				Added.Add(value);
-			}
+        {
+            Added.Clear();
+            for (int i = bb.ReadUInt(); i > 0; --i)
+            {
+                var value = SerializeHelper<V>.Decode(bb);
+                Added.Add(value);
+            }
 
-			Removed.Clear();
-			for (int i = bb.ReadUInt(); i > 0; --i)
-			{
-				var key = SerializeHelper<V>.Decode(bb);
-				Removed.Add(key);
-			}
-		}
+            Removed.Clear();
+            for (int i = bb.ReadUInt(); i > 0; --i)
+            {
+                var key = SerializeHelper<V>.Decode(bb);
+                Removed.Add(key);
+            }
+        }
 
-		public override void Encode(ByteBuffer bb)
-		{
-			bb.WriteUInt(Added.Count);
-			foreach (var e in Added)
-			{
-				SerializeHelper<V>.Encode(bb, e);
-			}
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteUInt(Added.Count);
+            foreach (var e in Added)
+                SerializeHelper<V>.Encode(bb, e);
 
-			bb.WriteUInt(Removed.Count);
-			foreach (var e in Removed)
-			{
-				SerializeHelper<V>.Encode(bb, e);
-			}
-		}
+            bb.WriteUInt(Removed.Count);
+            foreach (var e in Removed)
+                SerializeHelper<V>.Encode(bb, e);
+        }
 
-		public override string ToString()
-		{
-			var sb = new StringBuilder();
-			sb.Append(" Added:");
-			ByteBuffer.BuildString(sb, Added);
-			sb.Append(" Removed:");
-			ByteBuffer.BuildString(sb, Removed);
-			return sb.ToString();
-		}
-
-	}
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.Append(" Added:");
+            ByteBuffer.BuildString(sb, Added);
+            sb.Append(" Removed:");
+            ByteBuffer.BuildString(sb, Removed);
+            return sb.ToString();
+        }
+    }
 }

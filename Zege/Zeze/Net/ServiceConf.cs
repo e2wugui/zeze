@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Xml;
 using System.Collections.Concurrent;
+using System.Net;
 using Zeze.Services;
 using System.Threading.Tasks;
 using Zeze.Util;
@@ -11,13 +12,14 @@ namespace Zeze.Net
     public sealed class ServiceConf
     {
         public Service Service { get; private set; }
-        public string Name { get; }
-        public SocketOptions SocketOptions { get; set; } = new SocketOptions();
-        public HandshakeOptions HandshakeOptions { get; set; } = new HandshakeOptions();
+        public readonly string Name;
+        public SocketOptions SocketOptions = new SocketOptions();
+        public HandshakeOptions HandshakeOptions = new HandshakeOptions();
 
-        private ConcurrentDictionary<string, Acceptor> Acceptors { get; }
+        private readonly ConcurrentDictionary<string, Acceptor> Acceptors
             = new ConcurrentDictionary<string, Acceptor>();
-        private ConcurrentDictionary<string, Connector> Connectors { get; }
+
+        private readonly ConcurrentDictionary<string, Connector> Connectors
             = new ConcurrentDictionary<string, Connector>();
 
         internal void SetService(Service service)
@@ -27,8 +29,8 @@ namespace Zeze.Net
                 if (Service != null)
                     throw new Exception($"ServiceConf of '{Name}' Service != null");
                 Service = service;
-                ForEachAcceptor((a) => a.SetService(service));
-                ForEachConnector((c) => c.SetService(service));
+                ForEachAcceptor(a => a.SetService(service));
+                ForEachConnector(c => c.SetService(service));
             }
         }
 
@@ -41,11 +43,7 @@ namespace Zeze.Net
 
         public Connector FindConnector(string name)
         {
-            if (Connectors.TryGetValue(name, out var exist))
-            {
-                return exist;
-            }
-            return null;
+            return Connectors.TryGetValue(name, out var exist) ? exist : null;
         }
 
         public Connector FindConnector(string host, int port)
@@ -63,18 +61,14 @@ namespace Zeze.Net
         /// <returns>true if addNew</returns>
         public bool TryGetOrAddConnector(string host, int port, bool autoReconnect, out Connector getOrAdd)
         {
-            var name = $"{host}:{port}";
-
             bool addNew = false;
-
-            getOrAdd = Connectors.GetOrAdd(name, (_) =>
+            getOrAdd = Connectors.GetOrAdd($"{host}:{port}", _ =>
             {
                 var add = new Connector(host, port, autoReconnect);
                 add.SetService(Service);
                 addNew = true;
                 return add;
             });
-
             return addNew;
         }
 
@@ -86,17 +80,13 @@ namespace Zeze.Net
         public void ForEachConnector(Action<Connector> action)
         {
             foreach (var c in Connectors.Values)
-            {
                 action(c);
-            }
         }
 
         public async Task ForEachConnectorAsync(Func<Connector, Task> action)
         {
             foreach (var c in Connectors.Values)
-            {
                 await action(c);
-            }
         }
 
         public int ConnectorCount()
@@ -108,7 +98,7 @@ namespace Zeze.Net
         {
             foreach (var c in Connectors.Values)
             {
-                if (false == func(c))
+                if (!func(c))
                     return false;
             }
             return true;
@@ -129,16 +119,14 @@ namespace Zeze.Net
         public void ForEachAcceptor(Action<Acceptor> action)
         {
             foreach (var a in Acceptors.Values)
-            {
                 action(a);
-            }
         }
 
         public bool ForEachAcceptor(Func<Acceptor, bool> func)
         {
             foreach (var a in Acceptors.Values)
             {
-                if (false == func(a))
+                if (!func(a))
                     return false;
             }
             return true;
@@ -158,10 +146,8 @@ namespace Zeze.Net
         {
             Name = self.GetAttribute("Name");
 
-            string attr;
-
             // SocketOptions
-            attr = self.GetAttribute("NoDelay");
+            var attr = self.GetAttribute("NoDelay");
             if (attr.Length > 0) SocketOptions.NoDelay = bool.Parse(attr);
             attr = self.GetAttribute("SendBuffer");
             if (attr.Length > 0) SocketOptions.SendBuffer = int.Parse(attr);
@@ -176,13 +162,14 @@ namespace Zeze.Net
             attr = self.GetAttribute("Backlog");
             if (attr.Length > 0) SocketOptions.Backlog = int.Parse(attr);
             attr = self.GetAttribute("SocketLogLevel");
-            if (attr.Length > 0) SocketOptions.SocketLogLevel = (Config.LogLevel)Enum.Parse(typeof(Config.LogLevel), attr);
+            if (attr.Length > 0)
+                SocketOptions.SocketLogLevel = (LogLevel)Enum.Parse(typeof(LogLevel), attr);
             attr = self.GetAttribute("TimeThrottleSeconds");
             if (attr.Length > 0) SocketOptions.TimeThrottleSeconds = int.Parse(attr);
             attr = self.GetAttribute("TimeThrottleLimit");
             if (attr.Length > 0) SocketOptions.TimeThrottleLimit = int.Parse(attr);
-            attr = self.GetAttribute("TimeThrottleBandwitdh");
-            if (attr.Length > 0) SocketOptions.TimeThrottleBandwitdh =  int.Parse(attr);
+            attr = self.GetAttribute("TimeThrottleBandwidth");
+            if (attr.Length > 0) SocketOptions.TimeThrottleBandwidth = int.Parse(attr);
             attr = self.GetAttribute("OverBandwidth");
             if (attr.Length > 0) SocketOptions.OverBandwidth = long.Parse(attr);
             attr = self.GetAttribute("OverBandwidthFusingRate");
@@ -197,14 +184,14 @@ namespace Zeze.Net
                 HandshakeOptions.DhGroups = new HashSet<int>();
                 foreach (string dg in attr.Split(','))
                 {
-                    string dgtmp = dg.Trim();
-                    if (dgtmp.Length == 0)
+                    string dgTmp = dg.Trim();
+                    if (dgTmp.Length == 0)
                         continue;
-                    HandshakeOptions.AddDhGroup(int.Parse(dgtmp));
+                    HandshakeOptions.AddDhGroup(int.Parse(dgTmp));
                 }
             }
             attr = self.GetAttribute("SecureIp");
-            if (attr.Length > 0) HandshakeOptions.SecureIp = System.Net.IPAddress.Parse(attr).GetAddressBytes();
+            if (attr.Length > 0) HandshakeOptions.SecureIp = IPAddress.Parse(attr).GetAddressBytes();
             attr = self.GetAttribute("CompressS2c");
             if (attr.Length > 0) HandshakeOptions.CompressS2c = int.Parse(attr);
             attr = self.GetAttribute("CompressC2s");
@@ -212,27 +199,33 @@ namespace Zeze.Net
             attr = self.GetAttribute("EncryptType");
             if (attr.Length > 0) HandshakeOptions.EncryptType = int.Parse(attr);
 
+            attr = self.GetAttribute("KeepCheckPeriod");
+            if (attr.Length > 0) HandshakeOptions.KeepCheckPeriod = int.Parse(attr);
+            attr = self.GetAttribute("KeepSendTimeout");
+            if (attr.Length > 0) HandshakeOptions.KeepSendTimeout = int.Parse(attr);
+            attr = self.GetAttribute("KeepRecvTimeout");
+            if (attr.Length > 0) HandshakeOptions.KeepRecvTimeout = int.Parse(attr);
+
             if (string.IsNullOrEmpty(Name))
-            {
                 conf.DefaultServiceConf = this;
-            }
             else if (!conf.ServiceConfMap.TryAdd(Name, this))
-            {
                 throw new Exception($"Duplicate ServiceConf '{Name}'");
-            }
 
             // connection creator options
-            XmlNodeList childNodes = self.ChildNodes;
-            foreach (XmlNode node in childNodes)
+            foreach (XmlNode node in self.ChildNodes)
             {
-                if (XmlNodeType.Element != node.NodeType)
+                if (node.NodeType != XmlNodeType.Element)
                     continue;
 
-                XmlElement e = (XmlElement)node;
+                var e = (XmlElement)node;
                 switch (e.Name)
                 {
-                    case "Acceptor": AddAcceptor(new Acceptor(e)); break;
-                    case "Connector": AddConnector(Connector.Create(e)); break;
+                    case "Acceptor":
+                        AddAcceptor(new Acceptor(e));
+                        break;
+                    case "Connector":
+                        AddConnector(Connector.Create(e));
+                        break;
                     default: throw new Exception("unknown node name: " + e.Name);
                 }
             }
@@ -240,19 +233,19 @@ namespace Zeze.Net
 
         public void Start()
         {
-            ForEachAcceptor((a) => a.Start());
-            ForEachConnector((c) => c.Start());
+            ForEachAcceptor(a => a.Start());
+            ForEachConnector(c => c.Start());
         }
 
         public void Stop()
         {
-            ForEachAcceptor((a) => a.Stop());
-            ForEachConnector((c) => c.Stop());
+            ForEachAcceptor(a => a.Stop());
+            ForEachConnector(c => c.Stop());
         }
 
         public void StopListen()
         {
-            ForEachAcceptor((a) => a.Stop());
+            ForEachAcceptor(a => a.Stop());
         }
     }
 }

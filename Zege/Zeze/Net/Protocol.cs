@@ -1,5 +1,9 @@
 ﻿using System;
 using Zeze.Serialize;
+using Zeze.Util;
+#if !USE_CONFCS
+using Zeze.Transaction;
+#endif
 
 namespace Zeze.Net
 {
@@ -9,14 +13,11 @@ namespace Zeze.Net
 
         public interface IDecodeAndDispatch
         {
-            bool DecodeAndDispatch(Service service, long sessionId, long typeId, ByteBuffer _os_);
+            // ReSharper disable once UnusedParameter.Global
+            bool DecodeAndDispatch(Service service, long sessionId, long typeId, ByteBuffer os);
         }
 
-#if HAS_NLOG
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-#elif HAS_MYLOG
-        private static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(Protocol));
-#endif
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Protocol));
 
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }
@@ -25,13 +26,13 @@ namespace Zeze.Net
         public virtual int FamilyClass => Zeze.Net.FamilyClass.Protocol;
 
 #if USE_CONFCS
-        public virtual Zeze.Util.ConfBean ResultBean { get; }
-        public virtual Zeze.Util.ConfBean ArgumentBean { get; }
+        public virtual ConfBean ResultBean => null;
+        public abstract ConfBean ArgumentBean { get; }
 #else
-        public virtual Zeze.Transaction.Bean ResultBean { get; }
-        public virtual Zeze.Transaction.Bean ArgumentBean { get; }
+        public virtual Bean ResultBean => null;
+        public abstract Bean ArgumentBean { get; }
 #endif
-        public bool Recyle { get; set; } = true;
+        public bool Recycle { get; set; } = true;
 
         public static int GetModuleId(long typeId)
         {
@@ -63,8 +64,7 @@ namespace Zeze.Net
 
         public abstract void Encode(ByteBuffer bb);
 
-        public static T Decode<T>(ByteBuffer bb, T p)
-            where T : Protocol
+        public static T Decode<T>(ByteBuffer bb, T p) where T : Protocol
         {
             var mid = bb.ReadInt4();
             var pid = bb.ReadInt4();
@@ -72,42 +72,38 @@ namespace Zeze.Net
                 throw new Exception($"mid:pid={mid}:{pid} mismatch {p.ModuleId}:{p.ProtocolId}");
             var size = bb.ReadInt4();
             if (size > bb.Size)
-                throw new Exception($"protocol data not enough.");
+                throw new Exception("protocol data not enough.");
             p.Decode(bb);
             return p;
         }
 
         public ByteBuffer Encode()
         {
-            ByteBuffer bb = ByteBuffer.Allocate(1024);
+            var bb = ByteBuffer.Allocate(1024);
 
             bb.WriteInt4(ModuleId);
             bb.WriteInt4(ProtocolId);
 
             bb.BeginWriteWithSize4(out var state);
-            this.Encode(bb);
+            Encode(bb);
             bb.EndWriteWithSize4(state);
             return bb;
         }
 
         public virtual bool Send(AsyncSocket so)
         {
-            if (null == so)
+            if (so == null)
                 return false;
             Sender = so;
             Service = Sender.Service;
-#if HAS_NLOG || HAS_MYLOG
             logger.Debug($"Send {this}");
-#endif
             return so.Send(Encode());
         }
 
         public virtual bool Send(Service service)
         {
             AsyncSocket so = service.GetSocket();
-            if (null != so)
-                return Send(so);
-            return false;
+            return so != null && Send(so);
         }
 
         // 用于Rpc自动发送结果。
@@ -151,7 +147,7 @@ namespace Zeze.Net
 
             Protocol p = null;
             var factoryHandle = service.FindProtocolFactoryHandle(MakeTypeId(moduleId, protocolId));
-            if (factoryHandle != null && factoryHandle.Factory != null)
+            if (factoryHandle?.Factory != null)
             {
                 p = factoryHandle.Factory();
                 p.Decode(singleEncodedProtocol);
@@ -219,7 +215,8 @@ namespace Zeze.Net
                         p.Sender = so;
                         p.Dispatch(service, factoryHandle);
                     }
-                    else if (toLua != null && toLua.DecodeAndDispatch(service, so.SessionId, typeId, bb)) // 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
+                    // 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
+                    else if (toLua != null && toLua.DecodeAndDispatch(service, so.SessionId, typeId, bb))
                     {
                         // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
                         // if (bb.ReadIndex != bb.WriteIndex)
@@ -244,31 +241,15 @@ namespace Zeze.Net
         public TArgument Argument { get; set; } = new TArgument();
 
 #if USE_CONFCS
-        public override Util.ConfBean ArgumentBean
-        {
-            get
-            {
-                if (Argument is Util.ConfBean b)
-                    return b;
-                return null;
-            }
-        }
+        public override ConfBean ArgumentBean => Argument as ConfBean;
 #else
-        public override Zeze.Transaction.Bean ArgumentBean
-        {
-            get
-            {
-                if (Argument is Transaction.Bean b)
-                    return b;
-                return null;
-            }
-        }
+        public override Bean ArgumentBean => Argument as Bean;
 #endif
         public override void Decode(ByteBuffer bb)
         {
             var compress = bb.ReadInt();
-            //FamilyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
-            ResultCode = ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0;
+            // FamilyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
+            ResultCode = (compress & Zeze.Net.FamilyClass.BitResultCode) != 0 ? bb.ReadLong() : 0;
             Argument.Decode(bb);
         }
 

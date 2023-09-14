@@ -1,27 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
+using Zeze.Util;
 
 namespace Zeze.Transaction.Collections
 {
-	public class LogMap2<K, V> : LogMap1<K, V>
+    public class LogMap2<K, V> : LogMap1<K, V>
 #if USE_CONFCS
-		where V : Util.ConfBean, new()
+        where V : ConfBean, new()
 #else
         where V : Bean, new()
 #endif
-	{
-        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogMap2<K, V>));
-        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+    {
+        public new static readonly string StableName = Reflect.GetStableName(typeof(LogMap2<K, V>));
+        public new static readonly int TypeId_ = FixedHash.Hash32(StableName);
 
         public override int TypeId => TypeId_;
-        
-        // changed V logs. using in collect.
-        public ISet<LogBean> Changed { get; } = new HashSet<LogBean>();
 
-		// changed with key. using in encode/decode FollowerApply
-		public Dictionary<K, LogBean> ChangedWithKey { get; } = new Dictionary<K, LogBean>();
+        // changed V logs. using in collect.
+        // ReSharper disable once CollectionNeverUpdated.Global
+        public readonly ISet<LogBean> Changed = new HashSet<LogBean>();
+
+        // changed with key. using in encode/decode FollowerApply
+        // ReSharper disable once CollectionNeverQueried.Global
+        public readonly Dictionary<K, LogBean> ChangedWithKey = new Dictionary<K, LogBean>();
 
 #if !USE_CONFCS
 		internal override Log BeginSavepoint()
@@ -37,16 +39,14 @@ namespace Zeze.Transaction.Collections
         public override void Collect(Changes changes, Bean recent, Log vlog)
         {
             if (Changed.Add((LogBean)vlog))
-            {
                 changes.Collect(recent, this);
-            }
         }
 
         private bool Built = false;
 
         public bool BuildChangedWithKey()
         {
-            if (false == Built && null != Value)
+            if (!Built && Value != null)
             {
                 Built = true;
                 foreach (var c in Changed)
@@ -54,7 +54,7 @@ namespace Zeze.Transaction.Collections
                     if (CollMap2<K, V>.PropertyMapKey != null)
                     {
                         var pkey = (K)CollMap2<K, V>.PropertyMapKey.GetValue(c.This);
-                        if (false == Replaced.ContainsKey(pkey) && false == Removed.Contains(pkey))
+                        if (!Replaced.ContainsKey(pkey) && !Removed.Contains(pkey))
                             ChangedWithKey.Add(pkey, c);
                         continue;
                     }
@@ -63,7 +63,7 @@ namespace Zeze.Transaction.Collections
                     {
                         if (c.Belong == e.Value)
                         {
-                            if (false == Replaced.ContainsKey(e.Key) && false == Removed.Contains(e.Key))
+                            if (!Replaced.ContainsKey(e.Key) && !Removed.Contains(e.Key))
                                 ChangedWithKey.Add(e.Key, c);
                             break;
                         }
@@ -79,31 +79,29 @@ namespace Zeze.Transaction.Collections
             if (BuildChangedWithKey())
             {
                 foreach (var e in ChangedWithKey)
-                {
                     Replaced.TryAdd(e.Key, (V)e.Value.This);
-                }
             }
         }
 
 #endif
         public override void Decode(ByteBuffer bb)
         {
-			ChangedWithKey.Clear();
-			for (int i = bb.ReadUInt(); i > 0; --i)
-			{
-				var key = SerializeHelper<K>.Decode(bb);
-				var value = SerializeHelper<LogBean>.Decode(bb);
-				ChangedWithKey.Add(key, value);
-			}
+            ChangedWithKey.Clear();
+            for (int i = bb.ReadUInt(); i > 0; --i)
+            {
+                var key = SerializeHelper<K>.Decode(bb);
+                var value = SerializeHelper<LogBean>.Decode(bb);
+                ChangedWithKey.Add(key, value);
+            }
             base.Decode(bb);
         }
 
-		public override void Encode(ByteBuffer bb)
+        public override void Encode(ByteBuffer bb)
         {
             // 客户端本质上不需要Encode，而且BuildChangedWithKey是服务器专用的，
             // 这个宏使得代码可以在客户端编译通过，并且抛个异常避免万一使用了Encode，导致不正确的实现。
 #if USE_CONFCS
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
 #else
             BuildChangedWithKey();
             bb.WriteUInt(ChangedWithKey.Count);
@@ -117,15 +115,15 @@ namespace Zeze.Transaction.Collections
         }
 
         public override string ToString()
-		{
-			var sb = new StringBuilder();
-			sb.Append(" Putted:");
-			ByteBuffer.BuildString(sb, Replaced);
-			sb.Append(" Removed:");
-			ByteBuffer.BuildString(sb, Removed);
-			sb.Append(" Changed:");
-			ByteBuffer.BuildString(sb, Changed);
-			return sb.ToString();
-		}
-	}
+        {
+            var sb = new StringBuilder();
+            sb.Append(" Putted:");
+            ByteBuffer.BuildString(sb, Replaced);
+            sb.Append(" Removed:");
+            ByteBuffer.BuildString(sb, Removed);
+            sb.Append(" Changed:");
+            ByteBuffer.BuildString(sb, Changed);
+            return sb.ToString();
+        }
+    }
 }

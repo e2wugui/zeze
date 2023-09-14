@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,19 +10,11 @@ namespace Zeze.Util
     /// </summary>
     public sealed class Scheduler
     {
-#if HAS_NLOG
-        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-#elif HAS_MYLOG
-        internal static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(Scheduler));
-#endif
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Scheduler));
+        internal static readonly Scheduler Instance = new Scheduler();
 
-        internal static Scheduler Instance { get; } = new Scheduler();
-
-        private ConcurrentDictionary<SchedulerTask, SchedulerTask> Timers { get; } = new ConcurrentDictionary<SchedulerTask, SchedulerTask>();
-
-        public Scheduler()
-        {
-        }
+        private readonly ConcurrentDictionary<SchedulerTask, SchedulerTask> Timers =
+            new ConcurrentDictionary<SchedulerTask, SchedulerTask>();
 
         /// <summary>
         /// 调度一个执行 action。
@@ -38,7 +29,7 @@ namespace Zeze.Util
                 throw new ArgumentException("initialDelay < 0");
 
             var task = new SchedulerTaskAction(action);
-            if (false == Instance.Timers.TryAdd(task, task))
+            if (!Instance.Timers.TryAdd(task, task))
                 throw new Exception("Impossible!");
             // 首先启动用一分钟创建Timer，然后Change成真正的参数，确保task.Timer在Timer触发的时候已被初始化。
             task.Timer = new Timer(task.Run, period, 60 * 1000, Timeout.Infinite);
@@ -62,7 +53,7 @@ namespace Zeze.Util
                 throw new ArgumentException("initialDelay < 0");
 
             var task = new SchedulerTaskAsyncAction(action);
-            if (false == Instance.Timers.TryAdd(task, task))
+            if (!Instance.Timers.TryAdd(task, task))
                 throw new Exception("Impossible!");
             // 首先启动用一分钟创建Timer，然后Change成真正的参数，确保task.Timer在Timer触发的时候已被初始化。
             task.Timer = new Timer(task.Run, period, 60 * 1000, Timeout.Infinite);
@@ -78,7 +69,7 @@ namespace Zeze.Util
 
         public class SchedulerTaskAction : SchedulerTask
         {
-            public Action<SchedulerTask> Action { get; }
+            public readonly Action<SchedulerTask> Action;
 
             internal SchedulerTaskAction(Action<SchedulerTask> action)
             {
@@ -93,16 +84,14 @@ namespace Zeze.Util
                 }
                 catch (Exception ex)
                 {
-#if HAS_NLOG || HAS_MYLOG
-                    Scheduler.logger.Error(ex);
-#endif
+                    logger.Error(ex);
                 }
             }
         }
 
         public class SchedulerTaskAsyncAction : SchedulerTask
         {
-            public Func<SchedulerTask, Task> AsyncFunc { get; }
+            public readonly Func<SchedulerTask, Task> AsyncFunc;
 
             internal SchedulerTaskAsyncAction(Func<SchedulerTask, Task> asyncFunc)
             {
@@ -111,7 +100,11 @@ namespace Zeze.Util
 
             public override async void Process()
             {
-                await Mission.CallAsync(async () => { await AsyncFunc(this); return 0; }, "SchedulerTaskAsyncAction");
+                await Mission.CallAsync(async () =>
+                {
+                    await AsyncFunc(this);
+                    return 0;
+                }, "SchedulerTaskAsyncAction");
             }
         }
     }
@@ -126,7 +119,7 @@ namespace Zeze.Util
         }
 
         public void Run(object param)
-        { 
+        {
             try
             {
                 Process();

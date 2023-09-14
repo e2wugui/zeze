@@ -17,7 +17,7 @@ namespace Zeze.Util
         }
 
         public long DecrementAndGet()
-        { 
+        {
             return Interlocked.Decrement(ref _value);
         }
 

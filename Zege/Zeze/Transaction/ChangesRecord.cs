@@ -19,9 +19,9 @@ namespace Zeze.Transaction
 
         public int State { get; set; }
 #if USE_CONFCS
-        public Zeze.Util.ConfBean Value { get; set; }
+        public Util.ConfBean Value { get; set; }
 #else
-        public Zeze.Transaction.Bean Value { get; set; }
+        public Bean Value { get; set; }
 #endif
         public ISet<LogBean> LogBean { get; } = new HashSet<LogBean>();
 
@@ -54,11 +54,13 @@ namespace Zeze.Transaction
 
                 case Edit:
                     bb.Decode(LogBean);
-                    var it = LogBean.GetEnumerator();
-                    if (it.MoveNext())
+                    using (var it = LogBean.GetEnumerator())
                     {
-                        var existBean = table.Get(key);
-                        existBean?.FollowerApply(it.Current);
+                        if (it.MoveNext())
+                        {
+                            var existBean = table.Get(key);
+                            existBean?.FollowerApply(it.Current);
+                        }
                     }
                     break;
             }
@@ -67,16 +69,16 @@ namespace Zeze.Transaction
 
     public interface ChangesTable
     {
-        public object DecodeKey(ByteBuffer bb);
+        object DecodeKey(ByteBuffer bb);
 #if USE_CONFCS
-    public Zeze.Util.ConfBean NewValueBean();
-    public Zeze.Util.ConfBean Get(object key);
-    public void Put(object key, Zeze.Util.ConfBean value);
+        Util.ConfBean NewValueBean();
+        Util.ConfBean Get(object key);
+        void Put(object key, Util.ConfBean value);
 #else
-        public Zeze.Transaction.Bean NewValueBean();
-        public Zeze.Transaction.Bean Get(object key);
-        public void Put(object key, Zeze.Transaction.Bean value);
+        Bean NewValueBean();
+        Bean Get(object key);
+        void Put(object key, Bean value);
 #endif
-        public void Remove(object key);
+        void Remove(object key);
     }
 }

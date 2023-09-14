@@ -214,7 +214,7 @@ namespace Zege.Friend
             r.Argument.Members.UnionWith(selected);
 
             var randomData = new byte[16];
-            Random.Shared.NextBytes(randomData);
+            System.Random.Shared.NextBytes(randomData);
             r.Argument.RandomData = new Binary(randomData);
 
             var rsa = Cert.GenerateRsa();

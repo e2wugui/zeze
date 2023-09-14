@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using Zeze.Serialize;
+﻿using Zeze.Serialize;
+using Zeze.Util;
 
 namespace Zeze.Transaction.Collections
 {
@@ -12,11 +7,11 @@ namespace Zeze.Transaction.Collections
 #if !USE_CONFCS
         where V : Bean, new()
 #else
-        where V : Util.ConfBean, new()
+        where V : ConfBean, new()
 #endif
     {
-        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogOne<V>));
-        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+        public new static readonly string StableName = Reflect.GetStableName(typeof(LogOne<V>));
+        public new static readonly int TypeId_ = FixedHash.Hash32(StableName);
 
         public override int TypeId => TypeId_;
 
@@ -66,7 +61,7 @@ namespace Zeze.Transaction.Collections
 
         public override void Encode(ByteBuffer bb)
         {
-            if (null != Value)
+            if (Value != null)
             {
                 bb.WriteBool(true);
                 Value.Encode(bb);
@@ -74,15 +69,13 @@ namespace Zeze.Transaction.Collections
             else
             {
                 bb.WriteBool(false); // Value Tag
-                if (null != LogBean)
+                if (LogBean != null)
                 {
                     bb.WriteBool(true);
                     LogBean.Encode(bb);
                 }
                 else
-                {
                     bb.WriteBool(false);
-                }
             }
         }
 

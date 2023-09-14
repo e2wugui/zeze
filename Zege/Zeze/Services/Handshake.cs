@@ -8,6 +8,7 @@ using Zeze.Net;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using Zeze.Util;
 
 // 使用dh算法交换密匙把连接加密。
 // 如果dh交换失败，现在依赖加密压缩实现以及后面的协议解析的错误检查来发现。
@@ -30,16 +31,21 @@ namespace Zeze.Services
     public class HandshakeOptions
     {
         // for HandshakeServer
-        public HashSet<int> DhGroups { get; set; } = new HashSet<int>();
-        public byte[] SecureIp { get; set; } = null;
-        public int CompressS2c { get; set; } = Constant.eCompressTypeDisable;
-        public int CompressC2s { get; set; } = Constant.eCompressTypeDisable;
+        // ReSharper disable once CollectionNeverQueried.Global
+        public HashSet<int> DhGroups = new HashSet<int>();
+        public byte[] SecureIp;
+        public int CompressS2c = Constant.eCompressTypeDisable;
+        public int CompressC2s = Constant.eCompressTypeDisable;
 
         // for HandshakeClient
-        public int EncryptType { get; set; } = Constant.eEncryptTypeDisable;
+        public int EncryptType = Constant.eEncryptTypeDisable;
 
-        public List<int> SupportedEncrypt { get; } = new List<int>();
-        public List<int> SupportedCompress { get; } = new List<int>();
+        public readonly List<int> SupportedEncrypt = new List<int>();
+        public readonly List<int> SupportedCompress = new List<int>();
+
+        public int KeepCheckPeriod { get; set; } = 0; // 检查所有socket是否有发送或接收超时的检查周期(秒). 0表示禁用
+        public int KeepRecvTimeout { get; set; } = 0; // 检查距上次接收的超时时间(秒). 0表示禁用
+        public int KeepSendTimeout { get; set; } = 0; // 检查距上次发送的超时时间(秒). 0表示禁用, 只有主动连接方会使用
 
         public HandshakeOptions()
         {
@@ -82,29 +88,26 @@ namespace Zeze.Services
 
     public class HandshakeBase : Service
     {
-#if HAS_NLOG
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-#elif HAS_MYLOG
-        private static readonly Zeze.MyLog logger = global::Zeze.MyLog.GetLogger(typeof(HandshakeBase));
-#endif
+        private new static readonly ILogger logger = LogManager.GetLogger(typeof(HandshakeBase));
 
         private readonly HashSet<long> HandshakeProtocols = new HashSet<long>();
 
         class Context
         {
-            public BigInteger DhRandom { get; set; }
-            public Util.SchedulerTask TimeoutTask { get; set; }
+            public readonly BigInteger DhRandom;
+            public SchedulerTask TimeoutTask;
 
             public Context(BigInteger rand)
             {
                 DhRandom = rand;
             }
         }
+
         // For Client Only
         private readonly ConcurrentDictionary<long, Context> DHContext = new ConcurrentDictionary<long, Context>();
 
         public HandshakeBase(string name, Config config) : base(name, config)
-        { 
+        {
         }
 
         public HandshakeBase(string name, Application app) : base(name, app)
@@ -121,21 +124,31 @@ namespace Zeze.Services
             {
                 var tmp = new Handshake.CHandshake();
                 HandshakeProtocols.Add(tmp.TypeId);
-                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle()
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
                 {
                     Factory = () => new Handshake.CHandshake(),
                     Handle = ProcessCHandshake,
-                    TransactionLevel = Transaction.TransactionLevel.None,
+                    TransactionLevel = Transaction.TransactionLevel.None
                 });
             }
             {
                 var tmp = new Handshake.CHandshakeDone();
                 HandshakeProtocols.Add(tmp.TypeId);
-                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle()
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
                 {
                     Factory = () => new Handshake.CHandshakeDone(),
                     Handle = ProcessCHandshakeDone,
-                    TransactionLevel = Transaction.TransactionLevel.None,
+                    TransactionLevel = Transaction.TransactionLevel.None
+                });
+            }
+            {
+                var tmp = new Handshake.CKeepAlive();
+                HandshakeProtocols.Add(tmp.TypeId);
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
+                {
+                    Factory = () => new Handshake.CKeepAlive(),
+                    Handle = ProcessCKeepAlive,
+                    TransactionLevel = Transaction.TransactionLevel.None
                 });
             }
         }
@@ -186,14 +199,14 @@ namespace Zeze.Services
                 byte[] inputKey = null;
                 byte[] outputKey = null;
                 byte[] response = Array.Empty<byte>();
-                int group = 1;
+                const int group = 1;
 
-                Handshake.CHandshake p = (Handshake.CHandshake)_p;
+                var p = (Handshake.CHandshake)_p;
                 if (p.Argument.EncryptType == Constant.eEncryptTypeAes)
                 {
                     // 当group采用客户端参数时需要检查参数正确性，现在统一采用了1，不需要检查了。
                     /*
-                    if (false == Config.HandshakeOptions.DhGroups.Contains(group))
+                    if (!Config.HandshakeOptions.DhGroups.Contains(group))
                     {
                         p.Sender.Close(new Exception("dhGroup Not Supported"));
                         return Task.FromResult(0L);
@@ -205,12 +218,11 @@ namespace Zeze.Services
                     byte[] material = Handshake.Helper.ComputeDHKey(group, data, rand).ToByteArray();
                     Array.Reverse(material);
                     IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
-                    //logger.Debug(ipaddress);
-                    if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
+                    // logger.Debug(ipaddress);
+                    if (ipaddress.IsIPv4MappedToIPv6)
+                        ipaddress = ipaddress.MapToIPv4();
                     byte[] key = Config.HandshakeOptions.SecureIp ?? ipaddress.GetAddressBytes();
-#if HAS_NLOG || HAS_MYLOG
-                    logger.Debug("{0} localip={1}", p.Sender.SessionId, BitConverter.ToString(key));
-#endif
+                    logger.Debug("{0} localIp={1}", p.Sender.SessionId, BitConverter.ToString(key));
                     int half = material.Length / 2;
                     inputKey = Digest.HmacMd5(key, material, 0, half);
                     response = Handshake.Helper.GenerateDHResponse(group, rand).ToByteArray();
@@ -249,23 +261,44 @@ namespace Zeze.Services
             {
                 var tmp = new Handshake.SHandshake();
                 HandshakeProtocols.Add(tmp.TypeId);
-                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle()
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
                 {
                     Factory = () => new Handshake.SHandshake(),
                     Handle = ProcessSHandshake,
-                    TransactionLevel = Transaction.TransactionLevel.None,
+                    TransactionLevel = Transaction.TransactionLevel.None
                 });
             }
             {
                 var tmp = new Handshake.SHandshake0();
                 HandshakeProtocols.Add(tmp.TypeId);
-                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle()
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
                 {
                     Factory = () => new Handshake.SHandshake0(),
                     Handle = ProcessSHandshake0,
-                    TransactionLevel = Transaction.TransactionLevel.None,
+                    TransactionLevel = Transaction.TransactionLevel.None
                 });
             }
+            {
+                var tmp = new Handshake.SKeepAlive();
+                HandshakeProtocols.Add(tmp.TypeId);
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
+                {
+                    Factory = () => new Handshake.SKeepAlive(),
+                    Handle = ProcessSKeepAlive,
+                    TransactionLevel = Transaction.TransactionLevel.None
+                });
+            }
+        }
+
+        private Task<long> ProcessCKeepAlive(Protocol p)
+        {
+            Handshake.SKeepAlive.Instance.Send(p.Sender);
+            return Task.FromResult<long>(0);
+        }
+
+        private Task<long> ProcessSKeepAlive(Protocol p)
+        {
+            return Task.FromResult<long>(0);
         }
 
         private Task<long> ProcessSHandshake0(Protocol _p)
@@ -312,9 +345,7 @@ namespace Zeze.Services
                             IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
                             if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
                             byte[] key = ipaddress.GetAddressBytes();
-#if HAS_NLOG || HAS_MYLOG
-                            logger.Debug("{0} remoteip={1}", p.Sender.SessionId, BitConverter.ToString(key));
-#endif
+                            logger.Debug("{0} remoteIp={1}", p.Sender.SessionId, BitConverter.ToString(key));
                             int half = material.Length / 2;
                             outputKey = Digest.HmacMd5(key, material, 0, half);
                             inputKey = Digest.HmacMd5(key, material, half, material.Length - half);
@@ -354,7 +385,6 @@ namespace Zeze.Services
             return Constant.eCompressTypeMppc; // 使用最老的压缩。
         }
 
-
         protected void StartHandshake(Handshake.SHandshake0Argument arg, AsyncSocket so)
         {
             try
@@ -375,12 +405,10 @@ namespace Zeze.Services
                 cHandshake.Argument.CompressS2c = ClientCompress(arg.CompressS2c);
                 cHandshake.Argument.CompressC2s = ClientCompress(arg.CompressC2s);
                 cHandshake.Send(so);
-                ctx.TimeoutTask = Util.Scheduler.Schedule((thisTask) =>
+                ctx.TimeoutTask = Scheduler.Schedule(thisTask =>
                 {
-                    if (DHContext.TryRemove(so.SessionId, out var _))
-                    {
+                    if (DHContext.TryRemove(so.SessionId, out _))
                         so.Close(new Exception("Handshake Timeout"));
-                    }
                 }, 5000);
             }
             catch (Exception ex)
@@ -485,65 +513,74 @@ namespace Zeze.Services.Handshake
     public static class Helper
     {
         private static readonly BigInteger dh_g = new BigInteger(2);
-        private static readonly BigInteger[] dh_group = new BigInteger[] {
+
+        private static readonly BigInteger[] dh_group =
+        {
             BigInteger.Zero,
+            // ReSharper disable StringLiteralTypo
             BigInteger.Parse(
-                    "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A63A3620FFFFFFFFFFFFFFFF",
-                    NumberStyles.AllowHexSpecifier),// dh_group1, rfc2049 768
-			BigInteger.Parse(
-                    "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE65381FFFFFFFFFFFFFFFF",
-                    NumberStyles.AllowHexSpecifier),// dh_group2, rfc2049 1024
-			BigInteger.Zero,
-            BigInteger.Zero,
+                "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A63A3620FFFFFFFFFFFFFFFF",
+                NumberStyles.AllowHexSpecifier), // dh_group1, rfc2049 768
             BigInteger.Parse(
-                    "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA237327FFFFFFFFFFFFFFFF",
-                    NumberStyles.AllowHexSpecifier),// dh_group5 rfc3526 1536
-			BigInteger.Zero,
-            BigInteger.Zero,
-            BigInteger.Zero,
-            BigInteger.Zero,
-            BigInteger.Zero,
-            BigInteger.Zero,
+                "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE65381FFFFFFFFFFFFFFFF",
+                NumberStyles.AllowHexSpecifier), // dh_group2, rfc2049 1024
             BigInteger.Zero,
             BigInteger.Zero,
             BigInteger.Parse(
-                    "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF",
-                    NumberStyles.AllowHexSpecifier),// dh_group14, rfc3526 2048
-			BigInteger.Parse(
-                    "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6BF12FFA06D98A0864D87602733EC86A64521F2B18177B200CBBE117577A615D6C770988C0BAD946E208E24FA074E5AB3143DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF",
-                    NumberStyles.AllowHexSpecifier),// dh_group15,rfc3526 3072
-			BigInteger.Parse(
-                    "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6BF12FFA06D98A0864D87602733EC86A64521F2B18177B200CBBE117577A615D6C770988C0BAD946E208E24FA074E5AB3143DB5BFCE0FD108E4B82D120A92108011A723C12A787E6D788719A10BDBA5B2699C327186AF4E23C1A946834B6150BDA2583E9CA2AD44CE8DBBBC2DB04DE8EF92E8EFC141FBECAA6287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA993B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199FFFFFFFFFFFFFFFF",
-                    NumberStyles.AllowHexSpecifier),// dh_group16,rfc3526 4096
-			BigInteger.Parse(
-                    "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6BF12FFA06D98A0864D87602733EC86A64521F2B18177B200CBBE117577A615D6C770988C0BAD946E208E24FA074E5AB3143DB5BFCE0FD108E4B82D120A92108011A723C12A787E6D788719A10BDBA5B2699C327186AF4E23C1A946834B6150BDA2583E9CA2AD44CE8DBBBC2DB04DE8EF92E8EFC141FBECAA6287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA993B4EA988D8FDDC186FFB7DC90A6C08F4DF435C93402849236C3FAB4D27C7026C1D4DCB2602646DEC9751E763DBA37BDF8FF9406AD9E530EE5DB382F413001AEB06A53ED9027D831179727B0865A8918DA3EDBEBCF9B14ED44CE6CBACED4BB1BDB7F1447E6CC254B332051512BD7AF426FB8F401378CD2BF5983CA01C64B92ECF032EA15D1721D03F482D7CE6E74FEF6D55E702F46980C82B5A84031900B1C9E59E7C97FBEC7E8F323A97A7E36CC88BE0F1D45B7FF585AC54BD407B22B4154AACC8F6D7EBF48E1D814CC5ED20F8037E0A79715EEF29BE32806A1D58BB7C5DA76F550AA3D8A1FBFF0EB19CCB1A313D55CDA56C9EC2EF29632387FE8D76E3C0468043E8F663F4860EE12BF2D5B0B7474D6E694F91E6DCC4024FFFFFFFFFFFFFFFF",
-                    NumberStyles.AllowHexSpecifier),// dh_group17,rfc3526 6144
-			BigInteger.Parse(
-                    "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6BF12FFA06D98A0864D87602733EC86A64521F2B18177B200CBBE117577A615D6C770988C0BAD946E208E24FA074E5AB3143DB5BFCE0FD108E4B82D120A92108011A723C12A787E6D788719A10BDBA5B2699C327186AF4E23C1A946834B6150BDA2583E9CA2AD44CE8DBBBC2DB04DE8EF92E8EFC141FBECAA6287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA993B4EA988D8FDDC186FFB7DC90A6C08F4DF435C93402849236C3FAB4D27C7026C1D4DCB2602646DEC9751E763DBA37BDF8FF9406AD9E530EE5DB382F413001AEB06A53ED9027D831179727B0865A8918DA3EDBEBCF9B14ED44CE6CBACED4BB1BDB7F1447E6CC254B332051512BD7AF426FB8F401378CD2BF5983CA01C64B92ECF032EA15D1721D03F482D7CE6E74FEF6D55E702F46980C82B5A84031900B1C9E59E7C97FBEC7E8F323A97A7E36CC88BE0F1D45B7FF585AC54BD407B22B4154AACC8F6D7EBF48E1D814CC5ED20F8037E0A79715EEF29BE32806A1D58BB7C5DA76F550AA3D8A1FBFF0EB19CCB1A313D55CDA56C9EC2EF29632387FE8D76E3C0468043E8F663F4860EE12BF2D5B0B7474D6E694F91E6DBE115974A3926F12FEE5E438777CB6A932DF8CD8BEC4D073B931BA3BC832B68D9DD300741FA7BF8AFC47ED2576F6936BA424663AAB639C5AE4F5683423B4742BF1C978238F16CBE39D652DE3FDB8BEFC848AD922222E04A4037C0713EB57A81A23F0C73473FC646CEA306B4BCBC8862F8385DDFA9D4B7FA2C087E879683303ED5BDD3A062B3CF5B3A278A66D2A13F83F44F82DDF310EE074AB6A364597E899A0255DC164F31CC50846851DF9AB48195DED7EA1B1D510BD7EE74D73FAF36BC31ECFA268359046F4EB879F924009438B481C6CD7889A002ED5EE382BC9190DA6FC026E479558E4475677E9AA9E3050E2765694DFC81F56E880B96E7160C980DD98EDD3DFFFFFFFFFFFFFFFFF",
-                    NumberStyles.AllowHexSpecifier) // dh_group18,rfc3526 8192
+                "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA237327FFFFFFFFFFFFFFFF",
+                NumberStyles.AllowHexSpecifier), // dh_group5 rfc3526 1536
+            BigInteger.Zero,
+            BigInteger.Zero,
+            BigInteger.Zero,
+            BigInteger.Zero,
+            BigInteger.Zero,
+            BigInteger.Zero,
+            BigInteger.Zero,
+            BigInteger.Zero,
+            BigInteger.Parse(
+                "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF",
+                NumberStyles.AllowHexSpecifier), // dh_group14, rfc3526 2048
+            BigInteger.Parse(
+                "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6BF12FFA06D98A0864D87602733EC86A64521F2B18177B200CBBE117577A615D6C770988C0BAD946E208E24FA074E5AB3143DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF",
+                NumberStyles.AllowHexSpecifier), // dh_group15,rfc3526 3072
+            BigInteger.Parse(
+                "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6BF12FFA06D98A0864D87602733EC86A64521F2B18177B200CBBE117577A615D6C770988C0BAD946E208E24FA074E5AB3143DB5BFCE0FD108E4B82D120A92108011A723C12A787E6D788719A10BDBA5B2699C327186AF4E23C1A946834B6150BDA2583E9CA2AD44CE8DBBBC2DB04DE8EF92E8EFC141FBECAA6287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA993B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199FFFFFFFFFFFFFFFF",
+                NumberStyles.AllowHexSpecifier), // dh_group16,rfc3526 4096
+            BigInteger.Parse(
+                "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6BF12FFA06D98A0864D87602733EC86A64521F2B18177B200CBBE117577A615D6C770988C0BAD946E208E24FA074E5AB3143DB5BFCE0FD108E4B82D120A92108011A723C12A787E6D788719A10BDBA5B2699C327186AF4E23C1A946834B6150BDA2583E9CA2AD44CE8DBBBC2DB04DE8EF92E8EFC141FBECAA6287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA993B4EA988D8FDDC186FFB7DC90A6C08F4DF435C93402849236C3FAB4D27C7026C1D4DCB2602646DEC9751E763DBA37BDF8FF9406AD9E530EE5DB382F413001AEB06A53ED9027D831179727B0865A8918DA3EDBEBCF9B14ED44CE6CBACED4BB1BDB7F1447E6CC254B332051512BD7AF426FB8F401378CD2BF5983CA01C64B92ECF032EA15D1721D03F482D7CE6E74FEF6D55E702F46980C82B5A84031900B1C9E59E7C97FBEC7E8F323A97A7E36CC88BE0F1D45B7FF585AC54BD407B22B4154AACC8F6D7EBF48E1D814CC5ED20F8037E0A79715EEF29BE32806A1D58BB7C5DA76F550AA3D8A1FBFF0EB19CCB1A313D55CDA56C9EC2EF29632387FE8D76E3C0468043E8F663F4860EE12BF2D5B0B7474D6E694F91E6DCC4024FFFFFFFFFFFFFFFF",
+                NumberStyles.AllowHexSpecifier), // dh_group17,rfc3526 6144
+            BigInteger.Parse(
+                "0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6BF12FFA06D98A0864D87602733EC86A64521F2B18177B200CBBE117577A615D6C770988C0BAD946E208E24FA074E5AB3143DB5BFCE0FD108E4B82D120A92108011A723C12A787E6D788719A10BDBA5B2699C327186AF4E23C1A946834B6150BDA2583E9CA2AD44CE8DBBBC2DB04DE8EF92E8EFC141FBECAA6287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA993B4EA988D8FDDC186FFB7DC90A6C08F4DF435C93402849236C3FAB4D27C7026C1D4DCB2602646DEC9751E763DBA37BDF8FF9406AD9E530EE5DB382F413001AEB06A53ED9027D831179727B0865A8918DA3EDBEBCF9B14ED44CE6CBACED4BB1BDB7F1447E6CC254B332051512BD7AF426FB8F401378CD2BF5983CA01C64B92ECF032EA15D1721D03F482D7CE6E74FEF6D55E702F46980C82B5A84031900B1C9E59E7C97FBEC7E8F323A97A7E36CC88BE0F1D45B7FF585AC54BD407B22B4154AACC8F6D7EBF48E1D814CC5ED20F8037E0A79715EEF29BE32806A1D58BB7C5DA76F550AA3D8A1FBFF0EB19CCB1A313D55CDA56C9EC2EF29632387FE8D76E3C0468043E8F663F4860EE12BF2D5B0B7474D6E694F91E6DBE115974A3926F12FEE5E438777CB6A932DF8CD8BEC4D073B931BA3BC832B68D9DD300741FA7BF8AFC47ED2576F6936BA424663AAB639C5AE4F5683423B4742BF1C978238F16CBE39D652DE3FDB8BEFC848AD922222E04A4037C0713EB57A81A23F0C73473FC646CEA306B4BCBC8862F8385DDFA9D4B7FA2C087E879683303ED5BDD3A062B3CF5B3A278A66D2A13F83F44F82DDF310EE074AB6A364597E899A0255DC164F31CC50846851DF9AB48195DED7EA1B1D510BD7EE74D73FAF36BC31ECFA268359046F4EB879F924009438B481C6CD7889A002ED5EE382BC9190DA6FC026E479558E4475677E9AA9E3050E2765694DFC81F56E880B96E7160C980DD98EDD3DFFFFFFFFFFFFFFFFF",
+                NumberStyles.AllowHexSpecifier) // dh_group18,rfc3526 8192
+            // ReSharper restore StringLiteralTypo
         };
 
         public static readonly RandomNumberGenerator RandomNumberGenerator = RandomNumberGenerator.Create();
+
         public static byte[] MakeRandValues(int bytes)
         {
             byte[] v = new byte[bytes];
             RandomNumberGenerator.GetNonZeroBytes(v);
             return v;
         }
+
         public static bool IsDHGroupSupported(int group)
         {
             return group >= 0 && group < dh_group.Length && !dh_group[group].Equals(BigInteger.Zero);
         }
+
         public static BigInteger MakeDHRandom()
         {
             byte[] r = MakeRandValues(17);
             r[16] = 0;
             return new BigInteger(r);
         }
+
         public static BigInteger GenerateDHResponse(int group, BigInteger rand)
         {
             return BigInteger.ModPow(dh_g, rand, dh_group[group]);
         }
+
         public static BigInteger ComputeDHKey(int group, BigInteger response, BigInteger rand)
         {
             return BigInteger.ModPow(response, rand, dh_group[group]);
@@ -551,9 +588,9 @@ namespace Zeze.Services.Handshake
     }
 
 #if USE_CONFCS
-    public sealed class CHandshakeArgument : Util.ConfBean
+    public sealed class CHandshakeArgument : ConfBean
     {
-        public override long TypeId => Util.FixedHash.Hash64(typeof(CHandshakeArgument).FullName);
+        public override long TypeId => FixedHash.Hash64(typeof(CHandshakeArgument).FullName);
 #else
     public sealed class CHandshakeArgument : Transaction.Bean
     {
@@ -594,9 +631,9 @@ namespace Zeze.Services.Handshake
     }
 
 #if USE_CONFCS
-    public sealed class SHandshakeArgument : Util.ConfBean
+    public sealed class SHandshakeArgument : ConfBean
     {
-        public override long TypeId => Util.FixedHash.Hash64(typeof(SHandshakeArgument).FullName);
+        public override long TypeId => FixedHash.Hash64(typeof(SHandshakeArgument).FullName);
 #else
     public sealed class SHandshakeArgument : Transaction.Bean
     {
@@ -633,7 +670,7 @@ namespace Zeze.Services.Handshake
 
     public sealed class CHandshake : Protocol<CHandshakeArgument>
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(CHandshake).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(CHandshake).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -641,38 +678,65 @@ namespace Zeze.Services.Handshake
 
     public sealed class SHandshake : Protocol<SHandshakeArgument>
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(SHandshake).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(SHandshake).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
     }
 
 #if USE_CONFCS
-    public sealed class CHandshakeDone : Protocol<Util.ConfEmptyBean>
+    public sealed class CHandshakeDone : Protocol<ConfEmptyBean>
 #else
     public sealed class CHandshakeDone : Protocol<Transaction.EmptyBean>
 #endif
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(CHandshakeDone).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(CHandshakeDone).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
     }
 
 #if USE_CONFCS
-    public sealed class SHandshake0Argument : Util.ConfBean
+    public sealed class CKeepAlive : Protocol<ConfEmptyBean>
+#else
+    public sealed class CKeepAlive : Protocol<Transaction.EmptyBean>
+#endif
     {
-        public override long TypeId => Util.FixedHash.Hash64(typeof(SHandshake0Argument).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(CKeepAlive).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+
+        public static CKeepAlive Instance = new CKeepAlive();
+    }
+
+#if USE_CONFCS
+    public sealed class SKeepAlive : Protocol<ConfEmptyBean>
+#else
+    public sealed class SKeepAlive : Protocol<Transaction.EmptyBean>
+#endif
+    {
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(SKeepAlive).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+
+        public static SKeepAlive Instance = new SKeepAlive();
+    }
+
+#if USE_CONFCS
+    public sealed class SHandshake0Argument : ConfBean
+    {
+        public override long TypeId => FixedHash.Hash64(typeof(SHandshake0Argument).FullName);
 #else
     public sealed class SHandshake0Argument : Transaction.Bean
     {
 #endif
-        public int EncryptType { get; set; }
-        public List<int> SupportedEncryptList { get; set; } = new List<int>();
-        public int CompressS2c { get; set; }
-        public int CompressC2s { get; set; }
-        public List<int> SupportedCompressList { get; set; } = new List<int>();
-
+        public int EncryptType;
+        public List<int> SupportedEncryptList = new List<int>();
+        public int CompressS2c;
+        public int CompressC2s;
+        public List<int> SupportedCompressList = new List<int>();
 
         public override void ClearParameters()
         {
@@ -687,15 +751,11 @@ namespace Zeze.Services.Handshake
         {
             EncryptType = bb.ReadInt();
             for (int count = bb.ReadInt(); count > 0; count--)
-            {
                 SupportedEncryptList.Add(bb.ReadInt());
-            }
             CompressS2c = bb.ReadInt();
             CompressC2s = bb.ReadInt();
             for (int count = bb.ReadInt(); count > 0; count--)
-            {
                 SupportedCompressList.Add(bb.ReadInt());
-            }
         }
 
         public override void Encode(ByteBuffer bb)
@@ -714,7 +774,7 @@ namespace Zeze.Services.Handshake
 
     public sealed class SHandshake0 : Protocol<SHandshake0Argument>
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(SHandshake0).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(SHandshake0).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;

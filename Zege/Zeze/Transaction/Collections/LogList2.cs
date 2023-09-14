@@ -1,34 +1,33 @@
 using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
-using System;
+using Zeze.Util;
 
 namespace Zeze.Transaction.Collections
 {
-
-
-	public class LogList2<E> : LogList1<E>
+    public class LogList2<E> : LogList1<E>
 #if USE_CONFCS
-			where E : Util.ConfBean, new()
+        where E : ConfBean, new()
 #else
-            where E : Bean, new()
+		where E : Bean, new()
 #endif
-	{
-        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogList2<E>));
-        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+    {
+        public new static readonly string StableName = Reflect.GetStableName(typeof(LogList2<E>));
+        public new static readonly int TypeId_ = FixedHash.Hash32(StableName);
 
         public override int TypeId => TypeId_;
 
         public class OutInt
-		{
-			public int Value { get; set; }
+        {
+            public int Value;
+
             public override string ToString()
             {
                 return Value.ToString();
             }
         }
 
-		public Dictionary<LogBean, OutInt> Changed { get; } = new Dictionary<LogBean, OutInt>(); // changed V logs. using in collect.
+        public readonly Dictionary<LogBean, OutInt> Changed = new Dictionary<LogBean, OutInt>(); // changed V logs. using in collect.
 
 #if !USE_CONFCS
 		internal override Log BeginSavepoint()
@@ -50,13 +49,13 @@ namespace Zeze.Transaction.Collections
 #endif
 
         public override void Encode(ByteBuffer bb)
-		{
+        {
 #if USE_CONFCS
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
 #else
-            if (null != Value)
+            if (Value != null)
             {
-				// followerΩ” ’µΩlog ±£¨ValueŒ™ø’£¨¥À ±≤ª◊ˆChangedπ˝¬À°£
+				// followerÊé•Êî∂Âà∞logÊó∂ÔºåValue‰∏∫Á©∫ÔºåÊ≠§Êó∂‰∏çÂÅöChangedËøáÊª§„ÄÇ
 				var miss = new List<LogBean>();
 				foreach (var e in Changed)
 				{
@@ -68,9 +67,7 @@ namespace Zeze.Transaction.Collections
 						e.Value.Value = idxExist;
 				}
 				foreach (var logbean in miss)
-				{
 					Changed.Remove(logbean);
-				}
 			}
 
 			bb.WriteUInt(Changed.Count);
@@ -79,33 +76,33 @@ namespace Zeze.Transaction.Collections
 				e.Key.Encode(bb);
 				bb.WriteUInt(e.Value.Value);
 			}
-			// encode oplogs
+			// encode opLogs
 			base.Encode(bb);
 #endif
-		}
+        }
 
-		public override void Decode(ByteBuffer bb)
-		{
-			Changed.Clear();
-			for (int i = bb.ReadUInt(); i > 0; i--)
-			{
-				var value = new LogBean();
-				value.Decode(bb);
-				var index = bb.ReadUInt();
-				Changed[value] = new OutInt() { Value = index };
-			}
-			// deocde oplogs
-			base.Decode(bb);
-		}
+        public override void Decode(ByteBuffer bb)
+        {
+            Changed.Clear();
+            for (int i = bb.ReadUInt(); i > 0; i--)
+            {
+                var value = new LogBean();
+                value.Decode(bb);
+                var index = bb.ReadUInt();
+                Changed[value] = new OutInt { Value = index };
+            }
+            // decode opLogs
+            base.Decode(bb);
+        }
 
-		public override string ToString()
-		{
-			var sb = new StringBuilder();
-			sb.Append("OpLogs:");
-			ByteBuffer.BuildString(sb, OpLogs);
-			sb.Append(" Changed:");
-			ByteBuffer.BuildString(sb, Changed);
-			return sb.ToString();
-		}
-	}
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.Append("OpLogs:");
+            ByteBuffer.BuildString(sb, OpLogs);
+            sb.Append(" Changed:");
+            ByteBuffer.BuildString(sb, Changed);
+            return sb.ToString();
+        }
+    }
 }

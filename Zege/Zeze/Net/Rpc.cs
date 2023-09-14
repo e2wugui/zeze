@@ -7,12 +7,6 @@ namespace Zeze.Net
 {
     public interface Rpc : Serializable
     {
-#if HAS_NLOG
-        protected static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-#elif HAS_MYLOG
-        protected static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(Rpc<TArgument, TResult>));
-#endif
-
 #if USE_CONFCS
         ConfBean ResultBean { get; }
 #else
@@ -28,6 +22,7 @@ namespace Zeze.Net
 
         bool Send(AsyncSocket so);
         bool Send(AsyncSocket so, Func<Protocol, Task<long>> responseHandle, int millisecondsTimeout = 5000);
+
         void SendReturnVoid(Service service, AsyncSocket so, Func<Protocol, Task<long>> responseHandle,
             int millisecondsTimeout = 5000);
 
@@ -43,28 +38,14 @@ namespace Zeze.Net
         where TArgument : Serializable, new()
         where TResult : Serializable, new()
     {
+        private static readonly ILogger logger = LogManager.GetLogger(typeof(Rpc));
+
         public TResult Result { get; set; } = new TResult();
 
 #if USE_CONFCS
-        public override Util.ConfBean ResultBean
-        {
-            get
-            {
-                if (Result is Util.ConfBean b)
-                    return b;
-                return null;
-            }
-        }
+        public override ConfBean ResultBean => Result as ConfBean;
 #else
-        public override Transaction.Bean ResultBean
-        {
-            get
-            {
-                if (Result is Transaction.Bean b)
-                    return b;
-                return null;
-            }
-        }
+        public override Transaction.Bean ResultBean => Result as Transaction.Bean;
 #endif
         public Binary ResultEncoded { get; set; } // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
         public override int FamilyClass => IsRequest ? Zeze.Net.FamilyClass.Request : Zeze.Net.FamilyClass.Response;
@@ -75,11 +56,6 @@ namespace Zeze.Net
         public int Timeout { get; set; } = 5000;
 
         public TaskCompletionSource<TResult> Future { get; internal set; }
-
-        protected Rpc()
-        {
-            IsTimeout = false;
-        }
 
         /// <summary>
         /// 使用当前 rpc 中设置的参数发送。
@@ -98,29 +74,27 @@ namespace Zeze.Net
         private static SchedulerTask Schedule(Service service, long sessionId, int millisecondsTimeout)
         {
             return Scheduler.Schedule(_ =>
-            {
-                Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sessionId);
-                if (null == context) // 一般来说，此时结果已经返回。
-                    return;
-
-                context.IsTimeout = true;
-                context.ResultCode = Zeze.Util.ResultCode.Timeout;
-
-                if (null != context.Future)
                 {
-                    context.Future.TrySetException(new RpcTimeoutException());
-                }
-                else if (context.ResponseHandle != null)
-                {
-                    // 本来Schedule已经在Task中执行了，这里又派发一次。
-                    // 主要是为了让应用能拦截修改Response的处理方式。
-                    // Timeout 应该是少的，先这样了。
-                    var factoryHandle = service.FindProtocolFactoryHandle(context.TypeId);
-                    if (null != factoryHandle)
-                        service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
-                }
-            },
-            millisecondsTimeout);
+                    var context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sessionId);
+                    if (context == null) // 一般来说，此时结果已经返回。
+                        return;
+
+                    context.IsTimeout = true;
+                    context.ResultCode = Zeze.Util.ResultCode.Timeout;
+
+                    if (context.Future != null)
+                        context.Future.TrySetException(new RpcTimeoutException());
+                    else if (context.ResponseHandle != null)
+                    {
+                        // 本来Schedule已经在Task中执行了，这里又派发一次。
+                        // 主要是为了让应用能拦截修改Response的处理方式。
+                        // Timeout 应该是少的，先这样了。
+                        var factoryHandle = service.FindProtocolFactoryHandle(context.TypeId);
+                        if (factoryHandle != null)
+                            service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
+                    }
+                },
+                millisecondsTimeout);
         }
 
         /// <summary>
@@ -132,11 +106,9 @@ namespace Zeze.Net
         /// <param name="responseHandle"></param>
         /// <param name="millisecondsTimeout"></param>
         /// <returns></returns>
-        public bool Send(AsyncSocket so,
-            Func<Protocol, Task<long>> responseHandle,
-            int millisecondsTimeout = 5000)
+        public bool Send(AsyncSocket so, Func<Protocol, Task<long>> responseHandle, int millisecondsTimeout = 5000)
         {
-            if (so == null || so.Service == null)
+            if (so?.Service == null)
                 return false;
 
             IsRequest = true;
@@ -158,7 +130,7 @@ namespace Zeze.Net
             timeoutTask?.Cancel();
             var ctx = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(SessionId);
             // 恢复最初的语义吧：如果ctx已经被并发的Remove，也就是被处理了，这里返回true。
-            return null == ctx;
+            return ctx == null;
         }
 
         /// <summary>
@@ -169,11 +141,10 @@ namespace Zeze.Net
         /// <param name="so"></param>
         /// <param name="responseHandle"></param>
         /// <param name="millisecondsTimeout"></param>
-        public void SendReturnVoid(Service service, AsyncSocket so,
-            Func<Protocol, Task<long>> responseHandle,
+        public void SendReturnVoid(Service service, AsyncSocket so, Func<Protocol, Task<long>> responseHandle,
             int millisecondsTimeout = 5000)
         {
-            if (null != so && so.Service != service)
+            if (so != null && so.Service != service)
                 throw new Exception("so.Service != service");
 
             IsRequest = true;
@@ -191,10 +162,8 @@ namespace Zeze.Net
         public async Task SendAsync(AsyncSocket so, int millisecondsTimeout = 5000)
         {
             Future = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-            if (false == Send(so, null, millisecondsTimeout))
-            {
+            if (!Send(so, null, millisecondsTimeout))
                 Future.SetException(new Exception("Send Failed."));
-            }
             await Future.Task;
         }
 
@@ -211,24 +180,16 @@ namespace Zeze.Net
         {
             if (SendResultDone)
             {
-#if HAS_NLOG
-                Rpc.logger.Log(NLog.LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
-#elif HAS_MYLOG
-                Rpc.logger.Log(Config.LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
-#endif
+                logger.Error($"Rpc.SendResult Already Done {Sender.Socket} {this}");
                 return;
             }
             SendResultDone = true;
 
             ResultEncoded = result;
             IsRequest = false;
-            if (false == base.Send(Sender))
+            if (!base.Send(Sender))
             {
-#if HAS_NLOG
-                Rpc.logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), $"Rpc.SendResult Failed {Sender.Socket} {this}");
-#elif HAS_MYLOG
-                Rpc.logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Failed {Sender.Socket} {this}");
-#endif
+                logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Failed {Sender.Socket} {this}");
             }
         }
 
@@ -250,14 +211,10 @@ namespace Zeze.Net
             }
 
             // response, 从上下文中查找原来发送的rpc对象，并派发该对象。
-            Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(SessionId);
-            if (null == context)
+            var context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(SessionId);
+            if (context == null)
             {
-#if HAS_NLOG
-                Rpc.logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), "rpc response: lost context, maybe timeout. {0}", this);
-#elif HAS_MYLOG
-                Rpc.logger.Log(Service.SocketOptions.SocketLogLevel, "rpc response: lost context, maybe timeout. {0}", this);
-#endif
+                logger.Log(Service.SocketOptions.SocketLogLevel, "rpc response: lost context, maybe timeout. {0}", this);
                 return;
             }
 
@@ -272,10 +229,8 @@ namespace Zeze.Net
                 return; // SendForWait，设置结果唤醒等待者。
             }
             context.IsTimeout = false; // not need
-            if (null != context.ResponseHandle)
-            {
+            if (context.ResponseHandle != null)
                 service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
-            }
         }
 
         public override void Decode(ByteBuffer bb)
@@ -302,22 +257,18 @@ namespace Zeze.Net
             bb.WriteLong(SessionId);
 
             if (IsRequest)
-            {
                 Argument.Encode(bb);
-            }
             else if (ResultEncoded != null)
-            {
                 bb.Append(ResultEncoded.Bytes, ResultEncoded.Offset, ResultEncoded.Count);
-            }
             else
-            {
                 Result.Encode(bb);
-            }
         }
 
         public override string ToString()
         {
-            return $"{GetType().FullName} SessionId={SessionId} ResultCode={ResultCode}{Environment.NewLine}  Argument={Argument}{Environment.NewLine}  Result={Result}";
+            return $"{GetType().FullName} SessionId={SessionId} ResultCode={ResultCode}{Environment.NewLine}" +
+                   $"  Argument={Argument}{Environment.NewLine}" +
+                   $"  Result={Result}";
         }
 
         public override void ClearParameters(ProtocolPool.ReuseLevel level)

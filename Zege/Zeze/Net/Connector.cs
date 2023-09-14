@@ -16,22 +16,18 @@ namespace Zeze.Net
     {
         public Service Service { get; private set; }
 
-        public string HostNameOrAddress { get; }
-        public int Port { get; } = 0;
+        public readonly string HostNameOrAddress;
+        public readonly int Port;
         private volatile bool autoReconnect = true;
+
         public bool AutoReconnect
         {
-            get
-            {
-                return autoReconnect;
-            }
+            get => autoReconnect;
             set
             {
                 autoReconnect = value;
                 if (autoReconnect)
-                {
                     TryReconnect();
-                }
                 else
                 {
                     lock (this)
@@ -45,24 +41,26 @@ namespace Zeze.Net
                 }
             }
         }
-        public bool IsConnected { get; private set; } = false;
- #if NET
+
+        public bool IsConnected { get; private set; }
+#if NET
         public bool IsHandshakeDone => TryGetReadySocket() != null;
 #endif
-        private volatile TaskCompletionSource<AsyncSocket> FutureSocket = new TaskCompletionSource<AsyncSocket>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private volatile TaskCompletionSource<AsyncSocket> FutureSocket
+            = new TaskCompletionSource<AsyncSocket>(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public string Name => $"{HostNameOrAddress}:{Port}";
 
         public AsyncSocket Socket { get; private set; }
+
+        // ReSharper disable once UnassignedField.Global
         public object UserState;
 
         private int _MaxReconnectDelay = 8000;
+
         public int MaxReconnectDelay
         {
-            get
-            {
-                return _MaxReconnectDelay;
-            }
-
+            get => _MaxReconnectDelay;
             set
             {
                 _MaxReconnectDelay = value;
@@ -70,6 +68,7 @@ namespace Zeze.Net
                     _MaxReconnectDelay = 1000;
             }
         }
+
         private int ReConnectDelay;
         public Util.SchedulerTask ReconnectTask { get; private set; }
         public int ReadyTimeout { get; set; } = 5000;
@@ -84,9 +83,10 @@ namespace Zeze.Net
         public static Connector Create(XmlElement e)
         {
             var className = e.GetAttribute("Class");
+            // ReSharper disable once AssignNullToNotNullAttribute
             return string.IsNullOrEmpty(className)
-                    ? new Connector(e)
-                    : (Connector)Activator.CreateInstance(Type.GetType(className), e);
+                ? new Connector(e)
+                : (Connector)Activator.CreateInstance(Type.GetType(className), e);
         }
 
         public Connector(XmlElement self)
@@ -119,6 +119,12 @@ namespace Zeze.Net
             if (volatileTmp.Task.Wait(ReadyTimeout))
                 return volatileTmp.Task.Result;
             throw new Exception("GetReadySocket Timeout.");
+        }
+
+        public AsyncSocket TryGetReadySocket(int timeout)
+        {
+            var volatileTmp = FutureSocket;
+            return volatileTmp.Task.Wait(timeout) ? volatileTmp.Task.Result : null;
         }
 
 #if NET
@@ -180,24 +186,18 @@ namespace Zeze.Net
         {
             lock (this)
             {
-                if (false == AutoReconnect
-                    || null != Socket
-                    || null != ReconnectTask)
-                {
+                if (!AutoReconnect || Socket != null || ReconnectTask != null)
                     return;
-                }
 
                 if (ReConnectDelay <= 0)
-                {
                     ReConnectDelay = 1000;
-                }
                 else
                 {
                     ReConnectDelay *= 2;
                     if (ReConnectDelay > MaxReconnectDelay)
                         ReConnectDelay = MaxReconnectDelay;
                 }
-                ReconnectTask = Util.Scheduler.Schedule((ThisTask) => Start(), ReConnectDelay); ;
+                ReconnectTask = Util.Scheduler.Schedule(ThisTask => Start(), ReConnectDelay);
             }
         }
 
@@ -208,26 +208,26 @@ namespace Zeze.Net
                 ReconnectTask?.Cancel();
                 ReconnectTask = null;
 
-                if (null != Socket)
-                    return;
-                Socket = Service.NewClientSocket(HostNameOrAddress, Port, UserState, this);
+                if (Socket == null)
+                    Socket = Service.NewClientSocket(HostNameOrAddress, Port, UserState, this);
             }
         }
 
         public virtual void Stop(Exception e = null)
         {
-            AsyncSocket tmp = null;
+            AsyncSocket tmp;
             lock (this)
             {
                 ReconnectTask?.Cancel();
                 ReconnectTask = null;
 
-                if (null == Socket)
+                if (Socket == null)
                     return; // not start or has stopped.
 
                 IsConnected = false;
                 FutureSocket.TrySetException(e ?? new Exception("Connector Stopped: " + Name));
-                FutureSocket = new TaskCompletionSource<AsyncSocket>(TaskCreationOptions.RunContinuationsAsynchronously);
+                FutureSocket =
+                    new TaskCompletionSource<AsyncSocket>(TaskCreationOptions.RunContinuationsAsynchronously);
                 tmp = Socket;
                 Socket = null; // 阻止递归。
             }
