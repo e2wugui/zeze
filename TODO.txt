@@ -43,15 +43,9 @@ reset改成一个建议？让管理员决定操作，会不会让他们烦？
 Hot alter 测试，需要mysql。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/9/22 v1.3.3 Hot; Handshake KeepAlive; 
+2023/9/22 v1.3.3 Hot; Handshake KeepAlive（java c# c++）; 
 ------------------------------------------------------------------------------------------------------------------------------
 KeepAlive 加入Handshake层，由Service负责踢掉超时的。可能Service需要增加回调。
-1. 定义AsyncSocket.activeRecvTime activeSendTime，更新recv send time 当收发协议时 
-2. Handshake增加rpc KeepAlive 
-3. client hand service 每nshort秒扫描一次，if （now - activeSendTime 大于 keepPeriod）发送keepalive 
-4. server hand service 每n分钟扫描一次，if （now - activeRecvTime 大于keepTimeout）回调并根据结果kick。
-5. keepTimeout 必须大于 keepPeriod + nshort + max_ping；
-6. 收发更新的收发实现到哪个层次；
 HotManager 错误处理测试 
 1. stop 异常；2. _install 异常; 3. upgrade 异常; 4. start 异常;
 * 1-3需要能恢复旧版如常工作，* 4将模块禁用，需要禁
