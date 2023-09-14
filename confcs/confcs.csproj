@@ -64,6 +64,7 @@
     <Compile Include="Zeze\IModule.cs" />
     <Compile Include="Zeze\Net\Acceptor.cs" />
     <Compile Include="Zeze\Net\AsyncSocket.cs" />
+    <Compile Include="Zeze\Net\AsyncSocketType.cs" />
     <Compile Include="Zeze\Net\Binary.cs" />
     <Compile Include="Zeze\Net\Codec.cs" />
     <Compile Include="Zeze\Net\Connector.cs" />
@@ -104,6 +105,7 @@
     <Compile Include="Zeze\Util\FixedHash.cs" />
     <Compile Include="Zeze\Util\Logger.cs" />
     <Compile Include="Zeze\Util\Mission.cs" />
+    <Compile Include="Zeze\Util\Random.cs" />
     <Compile Include="Zeze\Util\Reflect.cs" />
     <Compile Include="Zeze\Util\ResultCode.cs" />
     <Compile Include="Zeze\Util\Scheduler.cs" />

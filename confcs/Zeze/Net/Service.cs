@@ -279,7 +279,7 @@ namespace Zeze.Net
                     Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
                 else
 #endif
-                _ = Mission.CallAsync(factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
+                    _ = Mission.CallAsync(factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
             }
             else
             {
@@ -587,5 +587,70 @@ namespace Zeze.Net
             return false;
         }
         // ReSharper restore UnusedParameter.Global
+
+        private SchedulerTask keepCheckTimer;
+
+        public void TryStartKeepAliveCheckTimer()
+        {
+            lock (this)
+            {
+                if (keepCheckTimer == null)
+                {
+                    var period = Config.HandshakeOptions.KeepCheckPeriod * 1000L;
+                    if (period > 0)
+                    {
+                        keepCheckTimer = Scheduler.Schedule(CheckKeepAlive, Util.Random.Instance.Next((int)period) + 1, period);
+                    }
+                }
+            }
+        }
+
+        private void CheckKeepAlive(SchedulerTask This)
+        {
+            var conf = Config.HandshakeOptions;
+            var keepRecvTimeout = conf.KeepRecvTimeout > 0 ? conf.KeepRecvTimeout * 1000L: long.MaxValue;
+            var keepSendTimeout = conf.KeepSendTimeout > 0 ? conf.KeepSendTimeout * 1000L : long.MaxValue;
+            var now = Time.NowUnixMillis; // 使用毫秒，System.nanoTime c# 不知道怎么对应，查了一下说 StopWatch？
+            foreach (var socket in SocketMap.Values)
+            {
+                if (now - socket.ActiveRecvTime > keepRecvTimeout)
+                {
+                    try
+                    {
+                        OnKeepAliveTimeout(socket);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error("onKeepAliveTimeout exception:", e);
+                    }
+                }
+                if (socket.Type == AsyncSocketType.eClient && now - socket.ActiveSendTime > keepSendTimeout)
+                {
+                    try
+                    {
+                        OnSendKeepAlive(socket);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error("onSendKeepAlive exception:", e);
+                    }
+                }
+            }
+        }
+
+        protected void OnKeepAliveTimeout(AsyncSocket socket)
+        {
+            logger.Info("socket keep alive timeout: {}", socket);
+            socket.Close(null);
+        }
+
+        ///
+        /// 1. 如果你是handshake的service，重载这个方法，按注释发送CKeepAlive即可；
+        /// 2. 如果你是其他service子类，重载这个方法，按住是发送CKeepAlive，并且服务器端需要注册这条协议并写一个不需要处理代码的handler。
+        /// 3. 如果不发送, 会导致KeepTimerClient时间后再次触发, 也可以调用socket.setActiveSendTime()避免频繁触发
+        protected void OnSendKeepAlive(AsyncSocket socket)
+        {
+            // CKeepAlive.Instance.Send(socket);
+        }
     }
 }

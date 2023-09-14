@@ -45,6 +45,7 @@ copy /y %Zeze%\Util\ResultCode.cs              %confcs%\Util\
 copy /y %Zeze%\Util\Scheduler.cs               %confcs%\Util\
 copy /y %Zeze%\Util\Str.cs                     %confcs%\Util\
 copy /y %Zeze%\Util\Time.cs                    %confcs%\Util\
+copy /y %Zeze%\Util\Random.cs                    %confcs%\Util\
 rem copy /y %Zeze%\Util\UnityHelpers.cs        %confcs%\Util\
 
 pause

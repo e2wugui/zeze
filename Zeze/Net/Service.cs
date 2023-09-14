@@ -599,7 +599,7 @@ namespace Zeze.Net
                     var period = Config.HandshakeOptions.KeepCheckPeriod * 1000L;
                     if (period > 0)
                     {
-                        keepCheckTimer = Scheduler.Schedule(CheckKeepAlive, Util.Random.Instance.NextInt64(period) + 1, period);
+                        keepCheckTimer = Scheduler.Schedule(CheckKeepAlive, Util.Random.Instance.Next((int)period) + 1, period);
                     }
                 }
             }
