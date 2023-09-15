@@ -124,6 +124,20 @@ namespace Net
 		virtual int ProtocolId() const override { return 1896283174; }
 	};
 
+	class CKeepAlive : public ProtocolWithArgument<EmptyBean>
+	{
+	public:
+		virtual int ModuleId() const override { return 0; }
+		virtual int ProtocolId() const override { return -1636259715; }
+	};
+
+	class SKeepAlive : public ProtocolWithArgument<EmptyBean>
+	{
+	public:
+		virtual int ModuleId() const override { return 0; }
+		virtual int ProtocolId() const override { return 77153202; }
+	};
+
 	class SHandshake : public ProtocolWithArgument<SHandshakeArgument>
 	{
 	public:
@@ -150,8 +164,13 @@ namespace Net
 		SHandshake0 sHandshake0;
 		AddProtocolFactory(sHandshake0.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
 			[]() { return new SHandshake0(); }, std::bind(&Service::ProcessSHandshake0, this, std::placeholders::_1)));
+		SKeepAlive sKeepAlive;
+		AddProtocolFactory(sKeepAlive.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
+			[]() { return new SKeepAlive(); }, std::bind(&Service::ProcessSKeepAlive, this, std::placeholders::_1)));
+
 		handshakeProtocols.insert(sHandshake.TypeId());
 		handshakeProtocols.insert(sHandshake0.TypeId());
+		handshakeProtocols.insert(sKeepAlive.TypeId());
 	}
 
 	/*
@@ -185,6 +204,12 @@ namespace Net
 		hand.Argument->compressS2c = ClientCompress(compressS2c);
 		hand.Argument->compressC2s = ClientCompress(compressC2s);
 		hand.Send(sender.get());
+	}
+
+	int Service::ProcessSKeepAlive(Protocol* _p)
+	{
+		// 不需要实现代码，OnRecv 已经处理了读取事件，更新了活跃时间。
+		return 0;
 	}
 
 	int Service::ProcessSHandshake0(Protocol* _p)
@@ -1000,7 +1025,7 @@ namespace Net
 		{
 			try
 			{
-				onKeepAliveTimeout(socket);
+				OnKeepAliveTimeout(socket);
 			}
 			catch (std::exception& e)
 			{
@@ -1012,7 +1037,7 @@ namespace Net
 		{
 			try
 			{
-				onSendKeepAlive(socket);
+				OnSendKeepAlive(socket);
 			}
 			catch (std::exception& e)
 			{
@@ -1022,15 +1047,15 @@ namespace Net
 		TryStartKeepAliveCheckTimer();
 	}
 
-	void Service::onKeepAliveTimeout(const std::shared_ptr<Socket>& socket)
+	void Service::OnKeepAliveTimeout(const std::shared_ptr<Socket>& socket)
 	{
 		std::cout << "socket keep alive timeout " << socket->LastAddress << std::endl;
 		socket->Close(NULL);
 	}
 
-	void Service::onSendKeepAlive(const std::shared_ptr<Socket> & socket)
+	void Service::OnSendKeepAlive(const std::shared_ptr<Socket> & socket)
 	{
-		// CKeepAlive.instance.Send(socket);
+		// CKeepAlive().Send(socket.get());
 	}
 } // namespace Net
 } // namespace Zeze
