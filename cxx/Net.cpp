@@ -970,9 +970,11 @@ namespace Net
 		return true;
 	}
 
-	void Service::SetKeepCheckPeriod(int value)
+	void Service::SetKeepConfig(int period, int sendTimeout, int recvTimeout)
 	{
-		keepCheckPeriod = value;
+		keepCheckPeriod = period;
+		keepSendTimeout = sendTimeout;
+		keepRecvTimeout = recvTimeout;
 		TryStartKeepAliveCheckTimer();
 	}
 

@@ -127,15 +127,9 @@ namespace Net
 			return keepRecvTimeout;
 		}
 
-		void SetKeepCheckPeriod(int value);
-		void SetKeepSendTimeout(int value)
-		{
-			keepSendTimeout = value;
-		}
-		void SetKeepRecvTimeout(int value)
-		{
-			keepRecvTimeout = value;
-		}
+		// seconds
+		void SetKeepConfig(int period, int sendTimeout, int recvTimeout);
+
 		///////////////////////////////////
 		// for ToLua interface
 		virtual void Update()
