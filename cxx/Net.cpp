@@ -430,6 +430,7 @@ namespace Net
 
 		OutputBuffer.reset(new BufferedCodec());
 		InputBuffer.reset(new BufferedCodec());
+		service->TryStartKeepAliveCheckTimer();
 	}
 
 	/// <summary>
@@ -725,6 +726,7 @@ namespace Net
 	void Socket::OnRecv()
 	{
 		std::lock_guard<std::recursive_mutex> g(mutex);
+		activeRecvTime = time(0);
 
 		Buffer recvbuf;
 		int rc = ::recv(socket, recvbuf.data, recvbuf.capacity, 0);
@@ -794,6 +796,7 @@ namespace Net
 	void Socket::Send(const char* data, int offset, int length)
 	{
 		std::lock_guard<std::recursive_mutex> g(mutex);
+		activeSendTime = time(0);
 
 		bool noPendingSend = OutputBuffer->buffer.empty();
 		bool hasCodec = false;
@@ -967,5 +970,65 @@ namespace Net
 		return true;
 	}
 
+	void Service::SetKeepCheckPeriod(int value)
+	{
+		keepCheckPeriod = value;
+		TryStartKeepAliveCheckTimer();
+	}
+
+	void Service::TryStartKeepAliveCheckTimer()
+	{
+		auto period = GetKeepCheckPeriod();
+		if (period > 0)
+			SetTimeout(std::bind(&Service::CheckKeepAlive, this), period);
+	}
+
+	void Service::CheckKeepAlive()
+	{
+		auto keepRecvTimeout = GetKeepRecvTimeout();
+		if (keepRecvTimeout <= 0)
+			keepRecvTimeout = 0x7fffffff;
+		auto keepSendTimeout = GetKeepSendTimeout();
+		if (keepSendTimeout <= 0)
+			keepSendTimeout = 0x7fffffff;
+		int64_t now = time(0);
+
+		// c++ Service 只维护一个连接。
+		if (now - socket->GetActiveRecvTime() > keepRecvTimeout)
+		{
+			try
+			{
+				onKeepAliveTimeout(socket);
+			}
+			catch (std::exception& e)
+			{
+				std::cout << "onKeepAliveTimeout exception:" << e.what() << std::endl;
+			}
+		}
+		// c++ Socket MUST BE client
+		if (now - socket->GetActiveSendTime() > keepSendTimeout)
+		{
+			try
+			{
+				onSendKeepAlive(socket);
+			}
+			catch (std::exception& e)
+			{
+				std::cout << "onSendKeepAlive exception:" << e.what() << std::endl;
+			}
+		}
+		TryStartKeepAliveCheckTimer();
+	}
+
+	void Service::onKeepAliveTimeout(const std::shared_ptr<Socket>& socket)
+	{
+		std::cout << "socket keep alive timeout " << socket->LastAddress << std::endl;
+		socket->Close(NULL);
+	}
+
+	void Service::onSendKeepAlive(const std::shared_ptr<Socket> & socket)
+	{
+		// CKeepAlive.instance.Send(socket);
+	}
 } // namespace Net
 } // namespace Zeze
