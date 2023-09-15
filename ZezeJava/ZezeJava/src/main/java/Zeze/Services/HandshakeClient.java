@@ -30,7 +30,7 @@ public class HandshakeClient extends HandshakeBase {
 	}
 
 	@Override
-	public void OnSocketConnected(@NotNull AsyncSocket so) {
+	public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
 		// 重载这个方法，推迟OnHandshakeDone调用
 		addSocket(so);
 	}

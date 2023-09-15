@@ -175,6 +175,12 @@ public final class Token extends AbstractToken {
 		}
 
 		@Override
+		public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
+			addSocket(so);
+			OnHandshakeDone(so);
+		}
+
+		@Override
 		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
 			for (var topic : subTopics)
