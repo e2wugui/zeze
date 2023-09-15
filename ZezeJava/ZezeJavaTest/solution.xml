@@ -130,6 +130,7 @@
 		<protocol name="ProtocolUseData" argument="BValue" UseData="true" handle="server"/>
 
 		<table name="tAutoKeyRandom" key="binary" value="demo.Bean1" autokey="random"/>
+		<table name="tMemorySize" key="long" value="demo.Bean1" memory="true"/>
 	</module>
 
 	<!-- module的注释 -->

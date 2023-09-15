@@ -30,6 +30,10 @@ public class ModuleModule1 extends AbstractModule {
 	public void Stop(demo.App app) {
 	}
 
+	public tMemorySize tMemorySize() {
+		return _tMemorySize;
+	}
+
 	@Override
 	protected long ProcessProtocol3(Protocol3 p) throws Exception {
 		p.Send(p.getSender());

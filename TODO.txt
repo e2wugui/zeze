@@ -41,7 +41,11 @@ reset改成一个建议？让管理员决定操作，会不会让他们烦？
 ----------------------------------------------------------------------------------------------------------
 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot alter 测试，需要mysql。
-Local Detect Test
+Online.Local Detect Test
+Linkd - Client KeepAlive 删除；以后开关纯走配置；
+Linkd - Provider KeepAlive；开关走配置，原来没有KeepAlive，应该不需要改动；
+ServiceManager KeepAlive 确认？保留现有的或者改造成新的。
+GlobalManager KeepAlive 确认？保留现有的或者改造成新的。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/9/22 v1.3.3 Hot; Handshake KeepAlive（java c# c++）; 

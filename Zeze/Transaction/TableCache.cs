@@ -242,7 +242,7 @@ namespace Zeze.Transaction
         }
 
         // under lockey.writelock
-        private bool Remove(KeyValuePair<K, Record<K, V>> p)
+        internal bool Remove(KeyValuePair<K, Record<K, V>> p)
         {
             if (DataMap.TryRemove(p))
             {
@@ -253,6 +253,10 @@ namespace Zeze.Transaction
                 // 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
                 p.Value.LruNode?.TryRemove(p);
                 return true;
+            }
+            else
+            {
+                p.Value.State = GlobalCacheManagerServer.StateRemoved; // always setup
             }
             return false;
         }
