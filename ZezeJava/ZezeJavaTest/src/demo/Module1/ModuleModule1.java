@@ -8,6 +8,14 @@ import org.jetbrains.annotations.NotNull;
 public class ModuleModule1 extends AbstractModule {
 	public static final BeanFactory beanFactory = new BeanFactory();
 
+	public static long getSpecialTypeIdFromBean(Bean bean) {
+		return bean.typeId();
+	}
+
+	public static long getSpecialTypeIdFromBean(Data data) {
+		return data.typeId();
+	}
+
 	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
