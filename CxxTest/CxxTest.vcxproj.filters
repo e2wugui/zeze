@@ -105,19 +105,58 @@
     <ClCompile Include="..\CxxTest\demo\Module1\ModuleModule1.cpp">
       <Filter>CxxTest\demo\Module1</Filter>
     </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\Bean1.cpp">
+      <Filter>CxxTest\Gen\demo</Filter>
+    </ClCompile>
     <ClCompile Include="..\CxxTest\Gen\demo\M6\AbstractModule.cpp">
+      <Filter>CxxTest\Gen\demo\M6</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\M6\B67.cpp">
       <Filter>CxxTest\Gen\demo\M6</Filter>
     </ClCompile>
     <ClCompile Include="..\CxxTest\Gen\demo\M6\M7\AbstractModule.cpp">
       <Filter>CxxTest\Gen\demo\M6\M7</Filter>
     </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\M6\M7\B67.cpp">
+      <Filter>CxxTest\Gen\demo\M6\M7</Filter>
+    </ClCompile>
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\AbstractModule.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BAutoValue.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BFood.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BItem.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BRemoved2.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BSimple.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BValue.cpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClCompile>
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\Module11\AbstractModule.cpp">
       <Filter>CxxTest\Gen\demo\Module1\Module11</Filter>
     </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\Module2\BValue.cpp">
+      <Filter>CxxTest\Gen\demo\Module2</Filter>
+    </ClCompile>
     <ClCompile Include="..\CxxTest\Gen\TaskTest\TaskExt\AbstractModule.cpp">
+      <Filter>CxxTest\Gen\TaskTest\TaskExt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\TaskTest\TaskExt\BMyTask01.cpp">
+      <Filter>CxxTest\Gen\TaskTest\TaskExt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\TaskTest\TaskExt\BTConditionExploreWorld.cpp">
+      <Filter>CxxTest\Gen\TaskTest\TaskExt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\TaskTest\TaskExt\BTConditionExploreWorldEvent.cpp">
       <Filter>CxxTest\Gen\TaskTest\TaskExt</Filter>
     </ClCompile>
     <ClCompile Include="..\CxxTest\main.cpp">
@@ -126,7 +165,7 @@
     <ClCompile Include="..\CxxTest\TaskTest\TaskExt\ModuleTaskExt.cpp">
       <Filter>CxxTest\TaskTest\TaskExt</Filter>
     </ClCompile>
-    <ClCompile Include="TestByteBuffer.cpp">
+    <ClCompile Include="..\CxxTest\TestByteBuffer.cpp">
       <Filter>CxxTest</Filter>
     </ClCompile>
   </ItemGroup>
@@ -294,9 +333,6 @@
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClInclude>
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\Rpc2.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\VectorKey.hpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClInclude>
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\Module11\AbstractModule.hpp">

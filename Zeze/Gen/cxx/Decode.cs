@@ -16,9 +16,14 @@ namespace Zeze.Gen.cxx
 
         string NameUpper1OrTmp => var != null ? var.NameUpper1 : tmpvarname;
 
-        public static void Make(Bean bean, StreamWriter sw, string prefix)
+        public static void MakeHpp(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "virtual void Decode(Zeze::ByteBuffer& _o_) override {");
+            sw.WriteLine(prefix + "void Decode(Zeze::ByteBuffer& _o_) override;");
+        }
+
+        public static void MakeCpp(Bean bean, StreamWriter sw, string prefix)
+        {
+            sw.WriteLine(prefix + $"void {bean.Name}::Decode(Zeze::ByteBuffer& _o_) {{");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
             if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");

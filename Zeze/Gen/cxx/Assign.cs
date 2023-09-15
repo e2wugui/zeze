@@ -10,20 +10,27 @@ namespace Zeze.Gen.cxx
         readonly string prefix;
         readonly bool transBean;
 
-        public static void Make(Bean bean, StreamWriter sw, string prefix)
+        public static void MakeHpp(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "virtual void Assign(const Zeze::Bean& other) override {");
+            sw.WriteLine(prefix + "virtual void Assign(const Zeze::Bean& other) override;");
+            sw.WriteLine(prefix + "void Assign(const " + bean.Name + "& other);");
+            sw.WriteLine(prefix + $"{bean.Name}& operator=(const {bean.Name}& other);");
+        }
+
+        public static void MakeCpp(Bean bean, StreamWriter sw, string prefix)
+        {
+            sw.WriteLine(prefix + $"void {bean.Name}::Assign(const Zeze::Bean& other) {{");
             sw.WriteLine(prefix + $"    Assign(dynamic_cast<const {bean.Name}&>(other));");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
 
-            sw.WriteLine(prefix + "void Assign(const " + bean.Name + "& other) {");
+            sw.WriteLine(prefix + $"void {bean.Name}::Assign(const {bean.Name}& other) {{");
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    ", true));
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
 
-            sw.WriteLine(prefix + $"{bean.Name}& operator=(const {bean.Name}& other) {{");
+            sw.WriteLine(prefix + $"{bean.Name}& {bean.Name}::operator=(const {bean.Name}& other) {{");
             sw.WriteLine(prefix + "    Assign(other);");
             sw.WriteLine(prefix + "    return *this;");
             sw.WriteLine(prefix + "}");
@@ -40,6 +47,7 @@ namespace Zeze.Gen.cxx
 
             sw.WriteLine(prefix + $"{bean.Name}& operator=(const {bean.Name}& other) {{");
             sw.WriteLine(prefix + "    Assign(other);");
+            sw.WriteLine(prefix + "    return *this;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

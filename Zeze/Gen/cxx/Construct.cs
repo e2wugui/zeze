@@ -10,9 +10,38 @@ namespace Zeze.Gen.cxx
 		readonly string prefix;
         readonly string beanName;
 
-		public static void Make(Bean bean, StreamWriter sw, string prefix)
+        public static void MakeHpp(Bean bean, StreamWriter sw, string prefix)
+        {
+            sw.WriteLine(prefix + $"{bean.Name}();");
+            var hasImmutable = false;
+            foreach (var var in bean.Variables)
+            {
+                if (var.VariableType.IsImmutable && false == bean.Version.Equals(var.Name))
+                    hasImmutable = true;
+            }
+            if (hasImmutable)
+            {
+                sw.Write(prefix + $"{bean.Name}(");
+                var first = true;
+                foreach (var var in bean.Variables)
+                {
+                    if (var.VariableType.IsImmutable && false == bean.Version.Equals(var.Name))
+                    {
+                        if (first)
+                            first = false;
+                        else
+                            sw.Write(", ");
+                        sw.Write($"{ParamName.GetName(var.VariableType)} {var.NameUpper1}_");
+                    }
+                }
+
+                sw.WriteLine(");");
+            }
+        }
+
+        public static void MakeCpp(Bean bean, StreamWriter sw, string prefix)
 		{
-			sw.WriteLine(prefix + $"{bean.Name}()");
+			sw.WriteLine(prefix + $"{bean.Name}::{bean.Name}()");
             var dot = ": ";
             foreach (var v in bean.Variables)
             {
@@ -34,7 +63,7 @@ namespace Zeze.Gen.cxx
 			sw.WriteLine();
             if (hasImmutable)
             {
-                sw.Write(prefix + $"{bean.Name}(");
+                sw.Write(prefix + $"{bean.Name}::{bean.Name}(");
                 var first = true;
                 foreach (var var in bean.Variables)
                 {

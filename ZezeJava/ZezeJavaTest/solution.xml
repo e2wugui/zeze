@@ -82,7 +82,7 @@
 			<variable id="21" name="vector4" type="vector4" />
 			<variable id="22" name="quaternion" type="quaternion" />
 			<variable id="23" name="dynamic23" type="dynamic">
-				<GetSpecialTypeIdFromBean value="Zeze.Collections.BeanFactory::getSpecialTypeIdFromBean"/>
+				<GetSpecialTypeIdFromBean value="demo.Module1.ModuleModule1::getSpecialTypeIdFromBean"/>
 				<CreateBeanFromSpecialTypeId value="demo.Module1.ModuleModule1::createBeanFromSpecialTypeId"/>
 				<CreateDataFromSpecialTypeId value="demo.Module1.ModuleModule1::createDataFromSpecialTypeId"/>
 			</variable>
