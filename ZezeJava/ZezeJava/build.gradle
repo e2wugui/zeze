@@ -9,9 +9,9 @@ dependencies {
     implementation 'org.rocksdb:rocksdbjni:8.5.3'
 
     // for netty
-    implementation 'io.netty:netty-codec-http:4.1.95.Final'
+    implementation 'io.netty:netty-codec-http:4.1.97.Final'
     implementation 'io.netty:netty-transport-native-epoll:4.1.95.Final:linux-x86_64'
-    implementation 'org.slf4j:slf4j-api:2.0.7'
+    implementation 'org.slf4j:slf4j-api:2.0.9'
     implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.20.0'
 
     // optional dependencies
@@ -21,7 +21,7 @@ dependencies {
     // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.20.0'
 
     // for jdbc(mysql,sqlserver,tidb)
-    compileOnly 'com.alibaba:druid:1.2.18'
+    compileOnly 'com.alibaba:druid:1.2.19'
     compileOnly 'com.mysql:mysql-connector-j:8.0.33'
 
     // dynamodb
