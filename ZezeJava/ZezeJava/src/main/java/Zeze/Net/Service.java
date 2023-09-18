@@ -21,6 +21,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
 import Zeze.Util.Factory;
+import Zeze.Util.GlobalTimer;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashMap;
@@ -861,7 +862,7 @@ public class Service {
 		var conf = getConfig().getHandshakeOptions();
 		var keepRecvTimeout = conf.getKeepRecvTimeout() > 0 ? conf.getKeepRecvTimeout() : Integer.MAX_VALUE;
 		var keepSendTimeout = conf.getKeepSendTimeout() > 0 ? conf.getKeepSendTimeout() : Integer.MAX_VALUE;
-		int now = (int)AsyncSocket.getCurSecTs();
+		int now = (int)GlobalTimer.getCurrentSeconds();
 		foreach(socket -> {
 			if (now - socket.getActiveRecvTime() > keepRecvTimeout) {
 				try {
