@@ -12,12 +12,11 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Handshake.BSHandshake0Argument;
 import Zeze.Services.Handshake.CHandshake;
 import Zeze.Services.Handshake.CHandshakeDone;
-import Zeze.Services.Handshake.CKeepAlive;
+import Zeze.Services.Handshake.KeepAlive;
 import Zeze.Services.Handshake.Constant;
 import Zeze.Services.Handshake.Helper;
 import Zeze.Services.Handshake.SHandshake;
 import Zeze.Services.Handshake.SHandshake0;
-import Zeze.Services.Handshake.SKeepAlive;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
@@ -65,18 +64,14 @@ public class HandshakeBase extends Service {
 		handshakeProtocols.add(CHandshakeDone.TypeId_);
 		AddFactoryHandle(CHandshakeDone.TypeId_, new Service.ProtocolFactoryHandle<>(
 				CHandshakeDone::new, this::processCHandshakeDone, TransactionLevel.None, DispatchMode.Normal));
-		handshakeProtocols.add(CKeepAlive.TypeId_);
-		AddFactoryHandle(CKeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
-				CKeepAlive::new, HandshakeBase::processCKeepAlive, TransactionLevel.None, DispatchMode.Normal));
+		handshakeProtocols.add(KeepAlive.TypeId_);
+		if (!getFactorys().containsKey(KeepAlive.TypeId_))
+			AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
+				KeepAlive::new, HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Normal));
 	}
 
-	private static long processCKeepAlive(CKeepAlive p) throws Exception {
-		SKeepAlive.instance.Send(p.getSender());
-		return 0L;
-	}
-
-	private static long processSKeepAlive(SKeepAlive p) throws Exception {
-		// 不需要实现代码，收发时已经更新了活跃时间。
+	private static long processKeepAliveRequest(KeepAlive r) throws Exception {
+		r.SendResult();
 		return 0L;
 	}
 
@@ -175,9 +170,10 @@ public class HandshakeBase extends Service {
 		handshakeProtocols.add(SHandshake0.TypeId_);
 		AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(
 				SHandshake0::new, this::processSHandshake0, TransactionLevel.None, DispatchMode.Normal));
-		handshakeProtocols.add(SKeepAlive.TypeId_);
-		AddFactoryHandle(SKeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
-				SKeepAlive::new, HandshakeBase::processSKeepAlive, TransactionLevel.None, DispatchMode.Normal));
+		handshakeProtocols.add(KeepAlive.TypeId_);
+		if (!getFactorys().containsKey(KeepAlive.TypeId_))
+			AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
+				KeepAlive::new, HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Normal));
 	}
 
 	private long processSHandshake0(SHandshake0 p) {

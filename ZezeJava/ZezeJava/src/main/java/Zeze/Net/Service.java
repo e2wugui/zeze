@@ -886,13 +886,13 @@ public class Service {
 	}
 
 	/**
-	 * 1. 如果你是handshake的service，重载这个方法，按注释发送CKeepAlive即可；
-	 * 2. 如果你是其他service子类，重载这个方法，按住是发送CKeepAlive，并且服务器端需要注册这条协议并写一个不需要处理代码的handler。
+	 * 1. 如果你是handshake的service，重载这个方法，按注释发送KeepAlive即可；
+	 * 2. 如果你是其他service子类，重载这个方法，按住是发送KeepAlive，并且服务器端需要注册这条协议并写一个不需要处理代码的handler。
 	 * 3. 如果不发送, 会导致KeepTimerClient时间后再次触发, 也可以调用socket.setActiveSendTime()避免频繁触发
 	 *
 	 * @param socket 当前连接
 	 */
 	protected void onSendKeepAlive(AsyncSocket socket) {
-		// CKeepAlive.instance.Send(socket);
+		// KeepAlive.instance.Send(socket);
 	}
 }

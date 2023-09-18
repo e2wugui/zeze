@@ -14,7 +14,7 @@ import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
-import Zeze.Services.Handshake.CKeepAlive;
+import Zeze.Services.Handshake.KeepAlive;
 import Zeze.Services.HandshakeClient;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
@@ -243,6 +243,6 @@ public class ProviderService extends HandshakeClient {
 
 	@Override
 	public void onSendKeepAlive(AsyncSocket socket) {
-		CKeepAlive.instance.Send(socket);
+		KeepAlive.instance.Send(socket); // skip result
 	}
 }
