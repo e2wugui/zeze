@@ -191,8 +191,8 @@ public class Schemas implements Serializable {
 		public String name;
 		public String keyName = "";
 		public String valueName = "";
-		public Type key;
-		public Type value;
+		public transient Type key;
+		public transient Type value;
 
 		private static final Map<String, Integer> compatibleTable = new HashMap<>();
 
@@ -409,7 +409,7 @@ public class Schemas implements Serializable {
 		public String typeName;
 		public String keyName = "";
 		public String valueName = "";
-		public Type type;
+		public transient Type type;
 		public boolean deleted;
 
 		@Override
@@ -471,7 +471,7 @@ public class Schemas implements Serializable {
 
 		private final TreeMap<Integer, Variable> variables = new TreeMap<>();
 		private boolean isBeanKey;
-		private int keyRefCount;
+		private transient int keyRefCount;
 		// 这个变量当前是不需要的，作为额外的属性记录下来，以后可能要用。
 		private boolean deleted;
 		// 这里记录在当前版本Schemas中Bean的实际名字，只有生成的bean包含这个。
@@ -721,8 +721,8 @@ public class Schemas implements Serializable {
 		public String name; // FullName, sample: demo_Module1_Table1
 		public String keyName;
 		public String valueName;
-		public Type keyType;
-		public Type valueType;
+		public transient Type keyType;
+		public transient Type valueType;
 
 		public Table() {
 		}
@@ -820,9 +820,9 @@ public class Schemas implements Serializable {
 
 	public final TreeMap<String, Table> tables = new TreeMap<>();
 	public final TreeMap<String, Bean> beans = new TreeMap<>();
-	private final TreeMap<String, Type> basicTypes = new TreeMap<>();
+	private transient final TreeMap<String, Type> basicTypes = new TreeMap<>();
 
-	private int appPublishVersion = 0;
+	private int appPublishVersion;
 
 	public int getAppPublishVersion() {
 		return appPublishVersion;
@@ -930,7 +930,7 @@ public class Schemas implements Serializable {
 			throw new IllegalStateException("AddTable duplicate=" + table.name);
 	}
 
-	public final HashMap<String, RelationalTable> relationalTables = new HashMap<>();
+	public transient final HashMap<String, RelationalTable> relationalTables = new HashMap<>();
 
 	public static class Column {
 		public final String name;
