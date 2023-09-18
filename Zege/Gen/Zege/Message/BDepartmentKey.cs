@@ -3,9 +3,13 @@ using System;
 using Zeze.Serialize;
 
 // 群（部门）消息历史
+// ReSharper disable ArrangeThisQualifier JoinDeclarationAndInitializer NonReadonlyMemberInGetHashCode
+// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment RedundantNameQualifier
+// ReSharper disable StringCompareToIsCultureSpecific UselessBinaryOperation
+// ReSharper disable once CheckNamespace
 namespace Zege.Message
 {
-    public sealed class BDepartmentKey : Serializable, System.IComparable
+    public sealed class BDepartmentKey : Serializable, IComparable
     {
         string _Group;
         long _DepartmentId;

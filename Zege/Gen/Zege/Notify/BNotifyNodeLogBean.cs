@@ -3,6 +3,8 @@ using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
 // LogBean.FollowerApply
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zege.Notify
 {
     [System.Serializable]

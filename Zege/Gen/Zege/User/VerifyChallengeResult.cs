@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zege.User
 {
     public sealed class VerifyChallengeResult : Zeze.Net.Rpc<Zege.User.BVerifyChallengeResultArgument, Zeze.Util.ConfEmptyBean>

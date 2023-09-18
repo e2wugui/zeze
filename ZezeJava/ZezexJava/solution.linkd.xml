@@ -12,12 +12,6 @@
 			<enum name="Success" value="0"/>
 			<enum name="Error"   value="1"/>
 		</rpc>
-
-		<bean name="BKeepAlive">
-			<variable id="1" name="timestamp" type="long"/> 客户端发上来，服务器原样放回。
-		</bean>
-
-		<protocol name="KeepAlive" argument="BKeepAlive" handle="server,client"/>
 	</module>
 
 	<project name="linkd" gendir="." scriptdir="src" platform="java">

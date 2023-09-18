@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zege.Friend
 {
     public sealed class FriendNodeLogBeanNotify : Zeze.Net.Protocol<Zege.Friend.BFriendNodeLogBean>
@@ -10,9 +12,5 @@ namespace Zege.Friend
 
         public override int ModuleId => ModuleId_;
         public override int ProtocolId => ProtocolId_;
-
-        public FriendNodeLogBeanNotify()
-        {
-        }
     }
 }

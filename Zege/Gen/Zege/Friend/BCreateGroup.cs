@@ -3,6 +3,8 @@ using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
 // 协议：群及部门管理
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zege.Friend
 {
     [System.Serializable]

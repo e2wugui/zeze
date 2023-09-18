@@ -11,19 +11,19 @@ namespace Zege
 
         public Dictionary<string, Zeze.IModule> Modules { get; } = new Dictionary<string, Zeze.IModule>();
 
-        public Zeze.Builtin.Online.ModuleOnline Zeze_Builtin_Online { get; set; }
+        public global::Zeze.Builtin.Online.ModuleOnline Zeze_Builtin_Online { get; set; }
 
-        public Zeze.Builtin.LinkdBase.ModuleLinkdBase Zeze_Builtin_LinkdBase { get; set; }
+        public global::Zeze.Builtin.LinkdBase.ModuleLinkdBase Zeze_Builtin_LinkdBase { get; set; }
 
-        public Zege.Linkd.ModuleLinkd Zege_Linkd { get; set; }
+        public global::Zege.Linkd.ModuleLinkd Zege_Linkd { get; set; }
 
-        public Zege.Friend.ModuleFriend Zege_Friend { get; set; }
+        public global::Zege.Friend.ModuleFriend Zege_Friend { get; set; }
 
-        public Zege.Message.ModuleMessage Zege_Message { get; set; }
+        public global::Zege.Message.ModuleMessage Zege_Message { get; set; }
 
-        public Zege.User.ModuleUser Zege_User { get; set; }
+        public global::Zege.User.ModuleUser Zege_User { get; set; }
 
-        public Zege.Notify.ModuleNotify Zege_Notify { get; set; }
+        public global::Zege.Notify.ModuleNotify Zege_Notify { get; set; }
 
         public Zege.ClientService ClientService { get; set; }
 
@@ -50,31 +50,31 @@ namespace Zege
         {
             lock(this)
             {
-                Zeze_Builtin_Online = ReplaceModuleInstance(new Zeze.Builtin.Online.ModuleOnline(this));
+                Zeze_Builtin_Online = ReplaceModuleInstance(new global::Zeze.Builtin.Online.ModuleOnline(this));
                 Zeze_Builtin_Online.Initialize();
                 Zeze_Builtin_Online.Register();
                 Modules.Add(Zeze_Builtin_Online.FullName, Zeze_Builtin_Online);
-                Zeze_Builtin_LinkdBase = ReplaceModuleInstance(new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this));
+                Zeze_Builtin_LinkdBase = ReplaceModuleInstance(new global::Zeze.Builtin.LinkdBase.ModuleLinkdBase(this));
                 Zeze_Builtin_LinkdBase.Initialize();
                 Zeze_Builtin_LinkdBase.Register();
                 Modules.Add(Zeze_Builtin_LinkdBase.FullName, Zeze_Builtin_LinkdBase);
-                Zege_Linkd = ReplaceModuleInstance(new Zege.Linkd.ModuleLinkd(this));
+                Zege_Linkd = ReplaceModuleInstance(new global::Zege.Linkd.ModuleLinkd(this));
                 Zege_Linkd.Initialize();
                 Zege_Linkd.Register();
                 Modules.Add(Zege_Linkd.FullName, Zege_Linkd);
-                Zege_Friend = ReplaceModuleInstance(new Zege.Friend.ModuleFriend(this));
+                Zege_Friend = ReplaceModuleInstance(new global::Zege.Friend.ModuleFriend(this));
                 Zege_Friend.Initialize();
                 Zege_Friend.Register();
                 Modules.Add(Zege_Friend.FullName, Zege_Friend);
-                Zege_Message = ReplaceModuleInstance(new Zege.Message.ModuleMessage(this));
+                Zege_Message = ReplaceModuleInstance(new global::Zege.Message.ModuleMessage(this));
                 Zege_Message.Initialize();
                 Zege_Message.Register();
                 Modules.Add(Zege_Message.FullName, Zege_Message);
-                Zege_User = ReplaceModuleInstance(new Zege.User.ModuleUser(this));
+                Zege_User = ReplaceModuleInstance(new global::Zege.User.ModuleUser(this));
                 Zege_User.Initialize();
                 Zege_User.Register();
                 Modules.Add(Zege_User.FullName, Zege_User);
-                Zege_Notify = ReplaceModuleInstance(new Zege.Notify.ModuleNotify(this));
+                Zege_Notify = ReplaceModuleInstance(new global::Zege.Notify.ModuleNotify(this));
                 Zege_Notify.Initialize();
                 Zege_Notify.Register();
                 Modules.Add(Zege_Notify.FullName, Zege_Notify);

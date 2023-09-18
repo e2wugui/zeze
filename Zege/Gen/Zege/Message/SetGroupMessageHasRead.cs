@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zege.Message
 {
     public sealed class SetGroupMessageHasRead : Zeze.Net.Rpc<Zege.Message.BSetGroupMessageHasRead, Zeze.Util.ConfEmptyBean>

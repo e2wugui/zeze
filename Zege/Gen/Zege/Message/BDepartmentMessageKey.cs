@@ -2,9 +2,13 @@
 using System;
 using Zeze.Serialize;
 
+// ReSharper disable ArrangeThisQualifier JoinDeclarationAndInitializer NonReadonlyMemberInGetHashCode
+// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment RedundantNameQualifier
+// ReSharper disable StringCompareToIsCultureSpecific UselessBinaryOperation
+// ReSharper disable once CheckNamespace
 namespace Zege.Message
 {
-    public sealed class BDepartmentMessageKey : Serializable, System.IComparable
+    public sealed class BDepartmentMessageKey : Serializable, IComparable
     {
         Zege.Message.BDepartmentKey _GroupDepartment; // 重用结构，节约内存
         long _MessageId;

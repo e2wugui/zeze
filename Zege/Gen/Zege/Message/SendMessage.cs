@@ -1,6 +1,8 @@
 // auto-generated
 
 // 发送消息。即时消息通知（电脑版？）
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zege.Message
 {
     public sealed class SendMessage : Zeze.Net.Rpc<Zege.Message.BSendMessage, Zege.Message.BSendMessageResult>

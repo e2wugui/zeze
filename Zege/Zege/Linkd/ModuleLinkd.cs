@@ -14,13 +14,6 @@ namespace Zege.Linkd
         {
         }
 
-        protected override Task<long> ProcessKeepAlive(Zeze.Net.Protocol _p)
-        {
-            var p = _p as KeepAlive;
-            p.SendResult();
-            return Task.FromResult(ResultCode.Success);
-        }
-
         protected override Task<long> ProcessChallengeResultRequest(Zeze.Net.Protocol _p)
         {
             var p = _p as ChallengeResult;

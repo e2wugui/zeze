@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zege.Linkd
 {
     public sealed class ChallengeMe : Zeze.Net.Rpc<Zege.User.BAccount, Zeze.Util.ConfEmptyBean>

@@ -3,19 +3,23 @@ using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
 // linkd to client
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.LinkdBase
 {
     [System.Serializable]
     public sealed class BReportError : Zeze.Util.ConfBean
     {
-        public const int FromLink = 0;
-        public const int FromProvider = 1;
+        public const int FromLink = 0; // code字段见下面Code开头的枚举
+        public const int FromProvider = 1; // code字段见BKick里定义的Error开头的枚举
+        public const int FromDynamicModule = 2; // code字段是moduleId
         public const int CodeMuteKick = 0; // 只断客户端连接，不发送消息给客户端，用于重连时确保旧的连接快速断开
         public const int CodeNotAuthed = 1;
         public const int CodeNoProvider = 2;
         public const int CodeProviderBusy = 3;
+        public const int CodeProviderBroken = 4; // link跟provider断开,跟此provider静态绑定的客户端需要收到此协议执行重新登录流程
 
-        public int From;
+        public int From; // FromLink, FromProvider, or FromDynamicModule
         public int Code;
         public string Desc;
 

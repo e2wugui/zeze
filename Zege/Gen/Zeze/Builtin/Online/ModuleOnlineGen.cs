@@ -17,7 +17,7 @@ namespace Zeze.Builtin.Online
         public override void Register()
         {
             // register protocol factory and handles
-            var _reflect = new Zeze.Util.Reflect(this.GetType());
+            var _reflect = new Zeze.Util.Reflect(GetType());
             App.ClientService.AddFactoryHandle(47676933001134, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.Online.Login(),

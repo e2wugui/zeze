@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zege.Notify
 {
     public sealed class NotifyNodeLogBeanNotify : Zeze.Net.Protocol<Zege.Notify.BNotifyNodeLogBean>
@@ -10,9 +12,5 @@ namespace Zege.Notify
 
         public override int ModuleId => ModuleId_;
         public override int ProtocolId => ProtocolId_;
-
-        public NotifyNodeLogBeanNotify()
-        {
-        }
     }
 }

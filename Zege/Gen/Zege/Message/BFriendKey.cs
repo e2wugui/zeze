@@ -2,9 +2,13 @@
 using System;
 using Zeze.Serialize;
 
+// ReSharper disable ArrangeThisQualifier JoinDeclarationAndInitializer NonReadonlyMemberInGetHashCode
+// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment RedundantNameQualifier
+// ReSharper disable StringCompareToIsCultureSpecific UselessBinaryOperation
+// ReSharper disable once CheckNamespace
 namespace Zege.Message
 {
-    public sealed class BFriendKey : Serializable, System.IComparable
+    public sealed class BFriendKey : Serializable, IComparable
     {
         string _Owner;
         string _Friend;

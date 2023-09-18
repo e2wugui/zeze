@@ -17,7 +17,7 @@ namespace Zege.User
         public override void Register()
         {
             // register protocol factory and handles
-            var _reflect = new Zeze.Util.Reflect(this.GetType());
+            var _reflect = new Zeze.Util.Reflect(GetType());
             App.ClientService.AddFactoryHandle(6049344077, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zege.User.Create(),

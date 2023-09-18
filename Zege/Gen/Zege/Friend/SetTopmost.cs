@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zege.Friend
 {
     public sealed class SetTopmost : Zeze.Net.Rpc<Zege.Friend.BSetTopmost, Zeze.Util.ConfEmptyBean>

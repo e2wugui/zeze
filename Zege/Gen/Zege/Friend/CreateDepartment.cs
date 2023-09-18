@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zege.Friend
 {
     public sealed class CreateDepartment : Zeze.Net.Rpc<Zege.Friend.BCreateDepartment, Zege.Friend.BDepartmentId>

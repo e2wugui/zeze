@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.LinkdBase
 {
     public sealed class ReportError : Zeze.Net.Protocol<Zeze.Builtin.LinkdBase.BReportError>
@@ -10,9 +12,5 @@ namespace Zeze.Builtin.LinkdBase
 
         public override int ModuleId => ModuleId_;
         public override int ProtocolId => ProtocolId_;
-
-        public ReportError()
-        {
-        }
     }
 }

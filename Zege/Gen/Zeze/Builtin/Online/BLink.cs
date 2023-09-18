@@ -3,9 +3,13 @@ using System;
 using Zeze.Serialize;
 
 // tables
+// ReSharper disable ArrangeThisQualifier JoinDeclarationAndInitializer NonReadonlyMemberInGetHashCode
+// ReSharper disable PossibleUnintendedReferenceComparison RedundantAssignment RedundantNameQualifier
+// ReSharper disable StringCompareToIsCultureSpecific UselessBinaryOperation
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Online
 {
-    public sealed class BLink : Serializable, System.IComparable
+    public sealed class BLink : Serializable, IComparable
     {
         string _LinkName;
         long _LinkSid;

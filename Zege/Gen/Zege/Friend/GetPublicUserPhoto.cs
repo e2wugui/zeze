@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zege.Friend
 {
     public sealed class GetPublicUserPhoto : Zeze.Net.Rpc<Zege.User.BAccount, Zege.Friend.BPublicUserPhoto>

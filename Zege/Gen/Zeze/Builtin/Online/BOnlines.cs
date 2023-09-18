@@ -2,6 +2,8 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// ReSharper disable ConvertConstructorToMemberInitializers EmptyConstructor PossibleNullReferenceException RedundantAssignment RedundantNameQualifier
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Online
 {
     [System.Serializable]
@@ -9,10 +11,12 @@ namespace Zeze.Builtin.Online
     {
         public System.Collections.Generic.Dictionary<string, Zeze.Builtin.Online.BOnline> Logins; // key is ClientId
         public long LastLoginVersion; // 用来生成 account 登录版本号。每次递增。
+        public string Account; // 所属账号,用于登录验证
 
         public BOnlines()
         {
             Logins = new System.Collections.Generic.Dictionary<string, Zeze.Builtin.Online.BOnline>();
+            Account = "";
         }
 
         public const long TYPEID = -725348871039859823;
@@ -45,7 +49,8 @@ namespace Zeze.Builtin.Online
             }
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("LastLoginVersion").Append('=').Append(LastLoginVersion).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("LastLoginVersion").Append('=').Append(LastLoginVersion).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Account").Append('=').Append(Account).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -78,6 +83,14 @@ namespace Zeze.Builtin.Online
                     _o_.WriteLong(_x_);
                 }
             }
+            {
+                string _x_ = Account;
+                if (_x_.Length != 0)
+                {
+                    _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                    _o_.WriteString(_x_);
+                }
+            }
             _o_.WriteByte(0);
         }
 
@@ -108,6 +121,11 @@ namespace Zeze.Builtin.Online
                 LastLoginVersion = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
+            if (_i_ == 3)
+            {
+                Account = _o_.ReadString(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -125,6 +143,7 @@ namespace Zeze.Builtin.Online
                 {
                     case 1: Zeze.Transaction.Collections.CollApply.ApplyMap2(Logins, vlog); break;
                     case 2: LastLoginVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 3: Account = ((Zeze.Transaction.Log<string>)vlog).Value; break;
                 }
             }
         }
@@ -133,6 +152,7 @@ namespace Zeze.Builtin.Online
         {
             Logins.Clear();
             LastLoginVersion = 0;
+            Account = "";
         }
     }
 }

@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zege.User
 {
     public sealed class CreateWithCert : Zeze.Net.Rpc<Zege.User.BCreateWithCertArgument, Zeze.Util.ConfEmptyBean>

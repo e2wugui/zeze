@@ -1,6 +1,8 @@
 // auto-generated
 
 // 登出
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Online
 {
     public sealed class Logout : Zeze.Net.Rpc<Zeze.Util.ConfEmptyBean, Zeze.Util.ConfEmptyBean>

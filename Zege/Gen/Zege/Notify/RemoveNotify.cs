@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zege.Notify
 {
     public sealed class RemoveNotify : Zeze.Net.Rpc<Zege.Notify.BRemoveNotify, Zeze.Util.ConfEmptyBean>

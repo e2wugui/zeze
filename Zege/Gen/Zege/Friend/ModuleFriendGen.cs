@@ -17,7 +17,7 @@ namespace Zege.Friend
         public override void Register()
         {
             // register protocol factory and handles
-            var _reflect = new Zeze.Util.Reflect(this.GetType());
+            var _reflect = new Zeze.Util.Reflect(GetType());
             App.ClientService.AddFactoryHandle(11819964782, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zege.Friend.AcceptFriend(),

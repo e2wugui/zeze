@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Online
 {
     public sealed class ReliableNotifyConfirm : Zeze.Net.Rpc<Zeze.Builtin.Online.BReliableNotifyConfirm, Zeze.Util.ConfEmptyBean>

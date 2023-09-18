@@ -1,6 +1,8 @@
 // auto-generated
 
 // 网络断开重新登录（数据无法同步时会失败，此时客户端应该重新走完整的登录流程-装载数据。）
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zeze.Builtin.Online
 {
     public sealed class ReLogin : Zeze.Net.Rpc<Zeze.Builtin.Online.BReLogin, Zeze.Util.ConfEmptyBean>

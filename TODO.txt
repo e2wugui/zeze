@@ -41,17 +41,24 @@ reset改成一个建议？让管理员决定操作，会不会让他们烦？
 ----------------------------------------------------------------------------------------------------------
 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot alter 测试，需要mysql。
-Online.Local Detect Test
-Linkd - Client KeepAlive 删除；以后开关纯走配置；
-Linkd - Provider KeepAlive；开关走配置，原来没有KeepAlive，应该不需要改动；
-ServiceManager KeepAlive 确认？保留现有的或者改造成新的。
-GlobalManager KeepAlive 确认？保留现有的或者改造成新的。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/9/22 v1.3.3 Hot; Handshake KeepAlive（java c# c++）; 
+2023/9/22 v1.3.3 Hot; Service KeepAlive（java c# c++）; Memory Table Remove; 
 ------------------------------------------------------------------------------------------------------------------------------
+Linkd - Client KeepAlive 删除；以后开关纯走配置；
+	1. KeepAlive开启需要客户端实现onSendKeepAlive，然后走配置即可。
+	2. 原来Linkd的KeepAlive是用户代码，需要应用自己删除。
+	3. Zezex Zege 等地方删除KeepAlive?
+	4. serverdev 删除KeepAlive？
+Linkd - Provider KeepAlive；开关走配置，原来没有KeepAlive，应该不需要改动；
+	【onSendKeepAlive 已实现，以后配置启用】
+GlobalManager KeepAlive 确认？保留现有的或者改造成新的。
+	【GlobalKeep也绑定了逻辑，并且独立配置的（去使用底层会使得配置混乱），不修改了】
+ServiceManager KeepAlive 确认？保留现有的或者改造成新的。
+	【SMKeep是服务器发送给客户端，绑定了不少逻辑，不修改了】
+Online.Local Detect Test【内存表没有马上删除导致size不正确】【修改为commit时马上删除】
 cxx KeepAlive NOT TEST.
-KeepAlive 加入Handshake层，由Service负责踢掉超时的。可能Service需要增加回调。
+KeepAlive 加入Service层，由Service负责踢掉超时的。Service需要增加回调。
 HotManager 错误处理测试 
 1. stop 异常；2. _install 异常; 3. upgrade 异常; 4. start 异常;
 * 1-3需要能恢复旧版如常工作，* 4将模块禁用，需要禁

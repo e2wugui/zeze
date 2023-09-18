@@ -9,6 +9,8 @@
 	b) 用途
 	   1. 好友添加待定请求。
 */
+// ReSharper disable RedundantNameQualifier UnusedParameter.Global UnusedVariable
+// ReSharper disable once CheckNamespace
 namespace Zege.Notify
 {
     public abstract class AbstractModule : Zeze.IModule

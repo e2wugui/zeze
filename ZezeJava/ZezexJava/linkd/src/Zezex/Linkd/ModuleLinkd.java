@@ -35,19 +35,6 @@ public final class ModuleLinkd extends AbstractModule {
 		return Zeze.Transaction.Procedure.Success;
 	}
 
-	@Override
-	protected long ProcessKeepAlive(KeepAlive protocol) {
-		var linkSession = (LinkdUserSession)protocol.getSender().getUserState();
-		if (null == linkSession) {
-			// handshake 完成之前不可能回收得到 keepalive，先这样处理吧。
-			protocol.getSender().close();
-			return Zeze.Transaction.Procedure.LogicError;
-		}
-		linkSession.keepAlive(App.LinkdService);
-		protocol.getSender().Send(protocol); // send back;
-		return Zeze.Transaction.Procedure.Success;
-	}
-
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleLinkd(Zezex.App app) {
         super(app);

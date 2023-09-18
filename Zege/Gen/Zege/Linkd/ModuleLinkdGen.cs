@@ -17,7 +17,7 @@ namespace Zege.Linkd
         public override void Register()
         {
             // register protocol factory and handles
-            var _reflect = new Zeze.Util.Reflect(this.GetType());
+            var _reflect = new Zeze.Util.Reflect(GetType());
             App.ClientService.AddFactoryHandle(42949786375344, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zege.Linkd.Challenge(),
@@ -38,13 +38,6 @@ namespace Zege.Linkd
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessChallengeResultRequest", Zeze.Transaction.TransactionLevel.Serializable),
                 Mode = _reflect.GetDispatchMode("ProcessChallengeResultRequest", Zeze.Transaction.DispatchMode.Normal),
             });
-            App.ClientService.AddFactoryHandle(42951177443214, new Zeze.Net.Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new Zege.Linkd.KeepAlive(),
-                Handle = ProcessKeepAlive,
-                TransactionLevel = _reflect.GetTransactionLevel("ProcessKeepAlivep", Zeze.Transaction.TransactionLevel.Serializable),
-                Mode = _reflect.GetDispatchMode("ProcessKeepAlive", Zeze.Transaction.DispatchMode.Normal),
-            });
             // register table
         }
 
@@ -53,7 +46,6 @@ namespace Zege.Linkd
             App.ClientService.Factorys.TryRemove(42949786375344, out var _);
             App.ClientService.Factorys.TryRemove(42949746867130, out var _);
             App.ClientService.Factorys.TryRemove(42952977189268, out var _);
-            App.ClientService.Factorys.TryRemove(42951177443214, out var _);
         }
     }
 }

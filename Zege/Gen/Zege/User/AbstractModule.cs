@@ -1,5 +1,7 @@
 // auto-generated
 
+// ReSharper disable RedundantNameQualifier UnusedParameter.Global UnusedVariable
+// ReSharper disable once CheckNamespace
 namespace Zege.User
 {
     public abstract class AbstractModule : Zeze.IModule

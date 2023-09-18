@@ -1,6 +1,8 @@
 // auto-generated
 
 // argument.DepartmentId 不需要设置，必须为0
+// ReSharper disable RedundantCast RedundantNameQualifier RedundantOverflowCheckingContext
+// ReSharper disable once CheckNamespace
 namespace Zege.Friend
 {
     public sealed class GetGroupMemberNode : Zeze.Net.Rpc<Zege.Friend.BDepartmentNodeId, Zege.Friend.BGetGroupMemberNode>
