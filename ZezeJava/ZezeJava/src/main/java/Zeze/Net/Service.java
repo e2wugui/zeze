@@ -861,7 +861,7 @@ public class Service {
 		var conf = getConfig().getHandshakeOptions();
 		var keepRecvTimeout = conf.getKeepRecvTimeout() > 0 ? conf.getKeepRecvTimeout() : Integer.MAX_VALUE;
 		var keepSendTimeout = conf.getKeepSendTimeout() > 0 ? conf.getKeepSendTimeout() : Integer.MAX_VALUE;
-		int now = (int)(System.nanoTime() / 1_000_000_000);
+		int now = (int)AsyncSocket.getCurSecTs();
 		foreach(socket -> {
 			if (now - socket.getActiveRecvTime() > keepRecvTimeout) {
 				try {
@@ -893,6 +893,7 @@ public class Service {
 	 *
 	 * @param socket 当前连接
 	 */
+	@SuppressWarnings("MethodMayBeStatic")
 	protected void onSendKeepAlive(AsyncSocket socket) {
 		KeepAlive.instance.Send(socket); // skip result
 	}

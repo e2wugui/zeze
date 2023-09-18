@@ -44,6 +44,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
 	private static final AtomicLong sessionIdGen = new AtomicLong(1);
 	private static @NotNull LongSupplier sessionIdGenFunc = sessionIdGen::getAndIncrement;
+	private static long curSecTs = System.nanoTime() / 1_000_000_000; // 当前的秒级时间戳,由定时器更新,为了性能不用volatile,多数CPU都能让所有线程及时看到最新值
 
 	static {
 		try {
@@ -64,6 +65,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 
 		ShutdownHook.init();
+
+		Task.scheduleUnsafe(1000, 1000, () -> curSecTs = System.nanoTime() / 1_000_000_000);
+	}
+
+	public static long getCurSecTs() {
+		return curSecTs;
 	}
 
 	public static boolean canLogProtocol(long protocolTypeId) {
@@ -124,15 +131,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public void setActiveRecvTime() {
-		activeRecvTime = (int)(System.nanoTime() / 1_000_000_000);
+		activeRecvTime = (int)curSecTs;
 	}
 
 	public void setActiveSendTime() {
-		activeSendTime = (int)(System.nanoTime() / 1_000_000_000);
+		activeSendTime = (int)curSecTs;
 	}
 
 	public void resetActiveSendRecvTime() {
-		activeSendTime = activeRecvTime = (int)(System.nanoTime() / 1_000_000_000);
+		activeSendTime = activeRecvTime = (int)curSecTs;
 	}
 
 	public TimeThrottle getTimeThrottle() {

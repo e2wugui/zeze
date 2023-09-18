@@ -648,7 +648,6 @@ namespace Zeze.Net
         /// 1. 如果你是handshake的service，重载这个方法，按注释发送CKeepAlive即可【默认已实现，不需要操作了】；
         /// 2. 如果你是其他service子类，重载这个方法，按注释发送CKeepAlive，并且服务器端需要注册这条协议并写一个不需要处理代码的handler；
         /// 3. 如果不发送, 会导致KeepTimerClient时间后再次触发, 也可以调用socket.setActiveSendTime()避免频繁触发。
-        // ReSharper disable once UnusedParameter.Global
         protected virtual void OnSendKeepAlive(AsyncSocket socket)
         {
             Services.Handshake.KeepAlive.Instance.Send(socket); // skip result.
