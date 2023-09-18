@@ -13,7 +13,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -43,7 +42,7 @@ import org.rocksdb.RocksDBException;
  */
 public final class Raft {
 	private static final Logger logger = LogManager.getLogger(Raft.class);
-	private static final AtomicLong threadPoolCounter = new AtomicLong();
+	// private static final AtomicLong threadPoolCounter = new AtomicLong();
 
 	private String leaderId;
 	private final RaftConfig raftConfig;
@@ -187,7 +186,7 @@ public final class Raft {
 		return stateMachine;
 	}
 
-		public void addAtFatalKill(Action0 action) {
+	public void addAtFatalKill(Action0 action) {
 		atFatalKillsLock.lock(); // atFatalKill 不中断
 		try {
 			atFatalKills.add(action);

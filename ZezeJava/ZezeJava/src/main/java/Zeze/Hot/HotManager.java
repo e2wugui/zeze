@@ -3,7 +3,6 @@ package Zeze.Hot;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
@@ -488,7 +487,6 @@ public class HotManager extends ClassLoader {
 	}
 
 	/**
-	 *
 	 * @param namespace module name
 	 * @return HotModule
 	 * @throws Exception error
@@ -582,7 +580,7 @@ public class HotManager extends ClassLoader {
 		if (!Files.isDirectory(distributePath) && GenModule.instance.genFileSrcRoot == null) {
 			throw new FileNotFoundException(
 					"distributePath = " + distributePath
-					+ ", curPath = " + new File("."));
+							+ ", curPath = " + new File("."));
 		}
 
 		this.workingDir = workingDir;

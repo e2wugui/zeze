@@ -298,13 +298,7 @@ namespace Zeze.Services
 
         private Task<long> ProcessKeepAliveRequest(Protocol p)
         {
-            var r = (Handshake.KeepAlive)p;
-            r.SendResult();
-            return Task.FromResult<long>(0);
-        }
-
-        private Task<long> ProcessSKeepAlive(Protocol p)
-        {
+            ((Rpc)p).SendResult();
             return Task.FromResult<long>(0);
         }
 

@@ -65,9 +65,10 @@ public class HandshakeBase extends Service {
 		AddFactoryHandle(CHandshakeDone.TypeId_, new Service.ProtocolFactoryHandle<>(
 				CHandshakeDone::new, this::processCHandshakeDone, TransactionLevel.None, DispatchMode.Normal));
 		handshakeProtocols.add(KeepAlive.TypeId_);
-		if (!getFactorys().containsKey(KeepAlive.TypeId_))
-			AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
-				KeepAlive::new, HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Normal));
+		if (!getFactorys().containsKey(KeepAlive.TypeId_)) {
+			AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(KeepAlive::new,
+					HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Normal));
+		}
 	}
 
 	private static long processKeepAliveRequest(KeepAlive r) throws Exception {
@@ -171,9 +172,10 @@ public class HandshakeBase extends Service {
 		AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(
 				SHandshake0::new, this::processSHandshake0, TransactionLevel.None, DispatchMode.Normal));
 		handshakeProtocols.add(KeepAlive.TypeId_);
-		if (!getFactorys().containsKey(KeepAlive.TypeId_))
-			AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
-				KeepAlive::new, HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Normal));
+		if (!getFactorys().containsKey(KeepAlive.TypeId_)) {
+			AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(KeepAlive::new,
+					HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Normal));
+		}
 	}
 
 	private long processSHandshake0(SHandshake0 p) {
