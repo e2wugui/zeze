@@ -2,13 +2,16 @@ package UnitTest.Zeze.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
+import Zeze.Config;
 import Zeze.Net.Binary;
+import Zeze.Net.ServiceConf;
 import Zeze.Services.Token;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestToken {
@@ -64,6 +67,36 @@ public class TestToken {
 				tokenClient.pubTopic("testTopic", new Binary("abc"), false);
 				tokenClient.unsubTopic("testTopic").get();
 				Assert.assertTrue(f.get(5, TimeUnit.SECONDS));
+			} finally {
+				tokenClient.stop();
+			}
+		} finally {
+			tokenServer.stop();
+		}
+	}
+
+	@Ignore
+	@Test
+	public void testKeepAlive() throws Exception {
+		Task.tryInitThreadPool(null, null, null);
+		var conf = new Config();
+		var sconf = new ServiceConf();
+		sconf.getHandshakeOptions().setKeepCheckPeriod(1);
+		sconf.getHandshakeOptions().setKeepRecvTimeout(5);
+		sconf.getHandshakeOptions().setKeepSendTimeout(2);
+		conf.getServiceConfMap().put("TokenServer", sconf);
+		sconf = new ServiceConf();
+		sconf.getHandshakeOptions().setKeepCheckPeriod(1);
+		sconf.getHandshakeOptions().setKeepRecvTimeout(5);
+		sconf.getHandshakeOptions().setKeepSendTimeout(2);
+		conf.getServiceConfMap().put("TokenClient", sconf);
+
+		var tokenServer = new Token().start(conf, null, 5003);
+		try {
+			var tokenClient = new Token.TokenClient(conf).start("127.0.0.1", 5003);
+			try {
+				Thread.sleep(10_000);
+				logger.info("sleep over");
 			} finally {
 				tokenClient.stop();
 			}

@@ -42,6 +42,7 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.Selectors;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.Handshake.KeepAlive;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
@@ -185,6 +186,11 @@ public final class Token extends AbstractToken {
 			super.OnHandshakeDone(so);
 			for (var topic : subTopics)
 				new SubTopic(new BTopic.Data(topic)).Send(connector.getSocket());
+		}
+
+		@Override
+		public void onSendKeepAlive(AsyncSocket socket) {
+			KeepAlive.instance.Send(socket); // skip result
 		}
 
 		public @NotNull TaskCompletionSource<BNewTokenRes.Data> newToken(@Nullable Binary context, long ttl) {
