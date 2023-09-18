@@ -243,7 +243,7 @@ namespace Net
 		char dhGroup = 1;
 		int ProcessSHandshake(Protocol* p);
 		int ProcessSHandshake0(Protocol* p);
-		int ProcessSKeepAlive(Protocol* _p);
+		int ProcessKeepAliveRequest(Protocol* _p);
 	public:
 		void StartHandshake(int encryptType, int compressS2c, int compressC2s, const std::shared_ptr<Socket>& sender);
 
