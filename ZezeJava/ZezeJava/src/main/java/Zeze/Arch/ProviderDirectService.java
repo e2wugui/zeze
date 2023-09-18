@@ -13,6 +13,7 @@ import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.Handshake.KeepAlive;
 import Zeze.Services.HandshakeBoth;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
@@ -329,5 +330,10 @@ public class ProviderDirectService extends HandshakeBoth {
 	@Override
 	public void onServerSocketBind(@NotNull ServerSocket ss) {
 		providerApp.directPort = ss.getLocalPort();
+	}
+
+	@Override
+	protected void onSendKeepAlive(AsyncSocket socket) {
+		KeepAlive.instance.Send(socket); // skip result
 	}
 }
