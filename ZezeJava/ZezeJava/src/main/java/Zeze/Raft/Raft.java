@@ -187,7 +187,7 @@ public final class Raft {
 		return stateMachine;
 	}
 
-	public void addAtFatalKill(Action0 action) {
+		public void addAtFatalKill(Action0 action) {
 		atFatalKillsLock.lock(); // atFatalKill 不中断
 		try {
 			atFatalKills.add(action);
