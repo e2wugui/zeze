@@ -142,14 +142,17 @@ namespace Zeze.Services
                 });
             }
             {
-                var tmp = new Handshake.CKeepAlive();
+                var tmp = new Handshake.KeepAlive();
                 HandshakeProtocols.Add(tmp.TypeId);
-                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
+                if (false == Factorys.ContainsKey(tmp.TypeId))
                 {
-                    Factory = () => new Handshake.CKeepAlive(),
-                    Handle = ProcessCKeepAlive,
-                    TransactionLevel = Transaction.TransactionLevel.None
-                });
+                    AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
+                    {
+                        Factory = () => new Handshake.KeepAlive(),
+                        Handle = ProcessKeepAliveRequest,
+                        TransactionLevel = Transaction.TransactionLevel.None
+                    });
+                }
             }
         }
 
@@ -279,20 +282,24 @@ namespace Zeze.Services
                 });
             }
             {
-                var tmp = new Handshake.SKeepAlive();
+                var tmp = new Handshake.KeepAlive();
                 HandshakeProtocols.Add(tmp.TypeId);
-                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
+                if (false == Factorys.ContainsKey(tmp.TypeId))
                 {
-                    Factory = () => new Handshake.SKeepAlive(),
-                    Handle = ProcessSKeepAlive,
-                    TransactionLevel = Transaction.TransactionLevel.None
-                });
+                    AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle
+                    {
+                        Factory = () => new Handshake.KeepAlive(),
+                        Handle = ProcessKeepAliveRequest,
+                        TransactionLevel = Transaction.TransactionLevel.None
+                    });
+                }
             }
         }
 
-        private Task<long> ProcessCKeepAlive(Protocol p)
+        private Task<long> ProcessKeepAliveRequest(Protocol p)
         {
-            Handshake.SKeepAlive.Instance.Send(p.Sender);
+            var r = (Handshake.KeepAlive)p;
+            r.SendResult();
             return Task.FromResult<long>(0);
         }
 
@@ -697,31 +704,17 @@ namespace Zeze.Services.Handshake
     }
 
 #if USE_CONFCS
-    public sealed class CKeepAlive : Protocol<ConfEmptyBean>
+    public sealed class KeepAlive : Rpc<ConfEmptyBean, ConfEmptyBean>
 #else
-    public sealed class CKeepAlive : Protocol<Transaction.EmptyBean>
+    public sealed class KeepAlive : Rpc<Transaction.EmptyBean, Transaction.EmptyBean>
 #endif
     {
-        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(CKeepAlive).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(KeepAlive).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
 
-        public static readonly CKeepAlive Instance = new CKeepAlive();
-    }
-
-#if USE_CONFCS
-    public sealed class SKeepAlive : Protocol<ConfEmptyBean>
-#else
-    public sealed class SKeepAlive : Protocol<Transaction.EmptyBean>
-#endif
-    {
-        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(SKeepAlive).FullName);
-
-        public override int ModuleId => 0;
-        public override int ProtocolId => ProtocolId_;
-
-        public static readonly SKeepAlive Instance = new SKeepAlive();
+        public static readonly KeepAlive Instance = new KeepAlive();
     }
 
 #if USE_CONFCS

@@ -57,5 +57,10 @@ namespace Zege
             // 仅仅记录一个日志。
             logger.Warn($"DispatchUnknownProtocol Module={moduleId} Protocol={protocolId} Size={data.Size}");
         }
+
+        protected override void OnSendKeepAlive(AsyncSocket socket)
+        {
+            global::Zeze.Services.Handshake.KeepAlive.Instance.Send(socket); // skip result.
+        }
     }
 }
