@@ -179,16 +179,14 @@ namespace Zeze.Transaction
             if (null != accessed.CommittedPutLog)
             {
                 Value = accessed.CommittedPutLog.Value;
+                if (TTable.IsMemory && null == Value)
+                {
+                    TTable.Cache.Remove(KeyValuePair.Create(Key, this));
+                    return; // 内存表已经删除，done
+                }
             }
-            if (TTable.IsMemory && null == Value)
-            {
-                TTable.Cache.Remove(KeyValuePair.Create(Key, this));
-            }
-            else
-            {
-                Timestamp = NextTimestamp; // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
-                SetDirty();
-            }
+            Timestamp = NextTimestamp; // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
+            SetDirty();
         }
 
         internal override void SetDirty()
