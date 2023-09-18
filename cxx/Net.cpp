@@ -1051,9 +1051,14 @@ namespace Net
 		socket->Close(NULL);
 	}
 
+	int NullRpcResponseHandle(Protocol* p)
+	{
+		return 0;
+	}
+
 	void Service::OnSendKeepAlive(const std::shared_ptr<Socket> & socket)
 	{
-		// CKeepAlive().Send(socket.get());
+		KeepAlive().SendAsync(socket.get(), NullRpcResponseHandle, 5000);
 	}
 } // namespace Net
 } // namespace Zeze
