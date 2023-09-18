@@ -331,9 +331,4 @@ public class ProviderDirectService extends HandshakeBoth {
 	public void onServerSocketBind(@NotNull ServerSocket ss) {
 		providerApp.directPort = ss.getLocalPort();
 	}
-
-	@Override
-	protected void onSendKeepAlive(AsyncSocket socket) {
-		KeepAlive.instance.Send(socket); // skip result
-	}
 }

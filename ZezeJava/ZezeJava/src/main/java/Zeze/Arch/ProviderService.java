@@ -240,9 +240,4 @@ public class ProviderService extends HandshakeClient {
 		}
 	}
 	*/
-
-	@Override
-	public void onSendKeepAlive(AsyncSocket socket) {
-		KeepAlive.instance.Send(socket); // skip result
-	}
 }
