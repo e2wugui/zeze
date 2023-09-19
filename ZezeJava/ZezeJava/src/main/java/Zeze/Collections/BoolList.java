@@ -66,7 +66,7 @@ public class BoolList {
 
 	private boolean get(BValue value, int index) {
 		var i = index % 512;
-		var varId = i / 8;
+		var varId = i / 64;
 		var varIndex = i % 64;
 		switch (varId) {
 		case 0:
@@ -91,7 +91,7 @@ public class BoolList {
 
 	private void set(BValue value, int index) {
 		var i = index % 512;
-		var varId = i / 8;
+		var varId = i / 64;
 		var varIndex = i % 64;
 		switch (varId) {
 		case 0:
