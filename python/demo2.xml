@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="demo" ModuleIdAllowRanges="6-7">
+	<module name="M6" id="6">
+		<bean name="B67">
+			<variable id="1" name="Name" type="string"/>
+		</bean>
+		<module name="M7" id="7">
+			<bean name="B67">
+				<variable id="1" name="Name" type="string"/>
+			</bean>
+		</module>
+	</module>
+</solution>

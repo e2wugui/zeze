@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Xml;
-using Zeze.Gen.cs;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen
@@ -383,6 +381,9 @@ namespace Zeze.Gen
                     // 选择需要生成的内容以及重新定义生成目录。
 
                     new cs.Maker(this).MakeConfCsNet(dependsFollowerApplyTables);
+                    break;
+                case "python":
+                    new python.Maker(this).Make();
                     break;
                 default:
                     throw new Exception("Project: unsupport platform: " + Platform);

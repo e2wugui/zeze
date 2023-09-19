@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="demo" ModuleIdAllowRanges="1-3,5">
+	<import file="demo2.xml"/>
+
+	<bean name="Bean1"> bean的注释
+		<enum name="Enum1" value="4"/> enum的注释
+		<variable id="1" name="V1" type="int" default="1"/> bean1comm
+		bean1line2
+		<variable id="2" name="V2" type="map" key="int" value="int"/> bean1v2
+		bean1v2line2
+	</bean>
+
+	<module name="Module1" id="1"> module的注释
+		<beankey name="AutoKey"> beankey的注释
+			<variable id="1" name="Name" type="string"/> 一般就是表名。
+			<variable id="2" name="LocalId" type="long"/>
+		</beankey>
+
+		<bean name="BAutoValue" comment="bean的注释">
+			<variable id="1" name="Current" type="long"/>
+			<variable id="2" name="Name" type="string"/>
+			<variable id="3" name="LocalId" type="long"/>
+		</bean>
+
+		<table name="tAutokey" key="AutoKey" value="BAutoValue"/> table的注释
+
+		<!--
+		bean的
+		多行注释
+		-->
+		<bean name="BRemoved2">
+			<variable id="1" name="int_1" type="int"/> com aa
+		</bean>
+		<bean name="BSimple">
+			<variable id="1" name="int_1" type="int"/> com aa
+			<variable id="2" name="long2" type="long"/> com aa
+			<variable id="3" name="string3" type="string"/> com aa
+			<variable id="4" name="removed" type="BRemoved2"/> com aa
+		</bean>
+		<bean name="BItem" MappingClass="true">
+			<variable id="14" name="Subclass" type="dynamic">
+				<value bean="demo.Bean1:1" />
+				<value bean="BSimple:2" />
+				<value bean="BFood:3"/>
+			</variable>
+		</bean>
+		<bean name="BFood">
+			<variable id="14" name="Subclass" type="dynamic">
+				<value bean="demo.Bean1:1" />
+				<value bean="BSimple:2" />
+			</variable>
+		</bean>
+		<bean name="BValue" version="version" equals="true">
+			<enum name="Enum1" value="4" comment="enum的注释"/>
+
+			<variable id="1" name="int_1" type="int" AllowNegative="true"/> com aa
+			<variable id="2" name="long2" type="long"/> com aa
+			<variable id="3" name="string3" type="string"/> com aa
+			<variable id="4" name="bool4" type="bool"/> com aa
+			<variable id="5" name="short5" type="short"/> com aa
+			<variable id="6" name="float6" type="float"/> com aa
+			<variable id="7" name="double7" type="double"/> com aa
+			<variable id="8" name="bytes8" type="binary"/> com aa
+			<variable id="9" name="list9" type="list" value="demo.Bean1"/> com aa
+			<variable id="10" name="set10" type="set" value="int"/> com aa
+			<variable id="11" name="map11" type="map" key="long" value="demo.Module2.BValue"/> com aa
+			<variable id="12" name="bean12" type="BSimple"/> simple
+			<variable id="13" name="byte13" type="byte"/> com aa
+			<variable id="14" name="dynamic14" type="dynamic">
+				<value bean="demo.Bean1:1"/>
+				<value bean="BSimple:2"/>
+			</variable>
+			<variable id="15" name="map15" type="map" key="long" value="long"/> com aa
+			<variable id="16" name="map16" type="map" key="Key" value="BSimple"/> com aa
+
+			<variable id="17" name="vector2" type="vector2" />
+			<variable id="18" name="vector2Int" type="vector2int" />
+			<variable id="19" name="vector3" type="vector3" />
+			<variable id="20" name="vector3Int" type="vector3int" />
+			<variable id="21" name="vector4" type="vector4" />
+			<variable id="22" name="quaternion" type="quaternion" />
+			<variable id="23" name="dynamic23" type="dynamic">
+				<GetSpecialTypeIdFromBean value="demo.Module1.ModuleModule1::getSpecialTypeIdFromBean"/>
+				<CreateBeanFromSpecialTypeId value="demo.Module1.ModuleModule1::createBeanFromSpecialTypeId"/>
+				<CreateDataFromSpecialTypeId value="demo.Module1.ModuleModule1::createDataFromSpecialTypeId"/>
+			</variable>
+
+			<variable id="24" name="listVector2Int" type="list" value="vector2int"/>
+			<variable id="25" name="map25" type="map[Key,BSimple]"/>
+			<variable id="26" name="map26" type="map[Key,dynamic:BSimple]"/>
+			<variable id="27" name="dynamic27" type="dynamic:BSimple"/>
+			<variable id="28" name="key28" type="Key"/>
+			<variable id="29" name="array29" type="array[float]"/>
+
+			<variable id="30" name="version" type="long"/>
+
+			<variable id="33" name="LongList" type="list[long]"/>
+		</bean>
+		<beankey name="Key" comment="beankey的注释">
+			<enum name="Enum1" value="4" description="enum的注释"/>
+			<variable id="1" default="1" name="s" type="short"/> com 2
+			<variable id="2" name="str" type="string"/> com 2
+			com 2
+		</beankey>
+		<beankey name="EmptyKey"/> beankey的注释
+
+		<protocol name="Protocol4" argument="BValue" handle="server,clientscript"/> protocol的注释
+		<protocol name="Protocol3" argument="demo.Module2.BValue" handle="server,clientscript" comment="protocol的注释"/>
+		<!-- rpc的注释 -->
+		<rpc name="Rpc1" argument="BValue" result="BValue" handle="server" comment=""/>
+		<rpc name="Rpc2" argument="BValue" result="BValue" handle="clientscript"/> rpc的注释
+
+		<!-- table的注释 -->
+		<table name="Table1" key="long" value="BValue" RelationalMapping="true" memory="false" autokey="true"/>
+		<table name="Table2" key="Key" value="BValue" RelationalMapping="true" memory="false" comment="table的注释"/>
+		<table name="Table3" key="long" value="BValue" memory="false"/>
+		<table name="TableImportant" key="long" value="BValue"/>
+
+		<table name="Table4" key="long" value="BValue" memory="true" gen="client" autokey="true"/>
+		<table name="Table5" key="long" value="demo.Module2.BValue" memory="false"/>
+		<!-- protocol的注释 -->
+		<protocol name="ProtocolNoProcedure" NoProcedure="true" handle="server"/>
+		<table name="tflush" key="long" value="BValue" memory="false"/>
+		<module name="Module11" id="3" comment=""/> module的注释
+
+		<table name="tWalkPage" key="int" RelationalMapping="true" value="demo.Bean1" memory="false"/>
+
+		<protocol name="ProtocolUseData" argument="BValue" UseData="true" handle="server"/>
+
+		<table name="tAutoKeyRandom" key="binary" value="demo.Bean1" autokey="random"/>
+		<table name="tMemorySize" key="long" value="demo.Bean1" memory="true"/>
+	</module>
+
+	<!-- module的注释 -->
+	<module name="Module2" id="2">
+		<bean name="BValue">
+			<variable id="1" default="1" name="s" type="int"/> com aa
+		</bean>
+	</module>
+
+	<project name="test" gendir="." scriptdir="src" platform="python">
+		<!--
+		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
+		<module ref="Module2"/>
+		-->
+		<!-- service 生成到 solution 名字空间下 -->
+		<service name="TestServer" handle="server" base="Zeze.Services.HandshakeServer">
+			<module ref="Module1"/>
+			<module ref="M6"/>
+			<module ref="demo.M6.M7"/>
+		</service>
+	</project>
+</solution>

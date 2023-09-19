@@ -3,7 +3,8 @@ import selectors
 import socket
 import time
 
-from zeze.byte_buffer import ByteBuffer
+from zeze.bean import Serializable
+from zeze.buffer import ByteBuffer
 
 
 class Socket:
@@ -194,46 +195,6 @@ class Service:
 
     def dispatch_unknown_protocol(self, soc, module_id, protocol_id, bb):
         raise Exception(f"unknown protocol({module_id}, {protocol_id}) size={bb.size()} for {soc}")
-
-
-class Serializable:
-    def encode(self, bb):
-        raise NotImplementedError("Serializable.encode")
-
-    def decode(self, bb):
-        raise NotImplementedError("Serializable.decode")
-
-    # noinspection PyMethodMayBeStatic
-    def type_id(self):
-        return 0
-
-    def get_pre_alloc_size(self):
-        return 16
-
-    def set_pre_alloc_size(self, size):
-        pass
-
-
-class BeanKey(Serializable):
-    def __hash__(self):
-        raise NotImplementedError("BeanKey.__hash__")
-
-    def __eq__(self, other):
-        raise NotImplementedError("BeanKey.__eq__")
-
-
-class Bean(Serializable):
-    def type_name(self):
-        raise NotImplementedError("Bean.type_name")
-
-    def assign(self):
-        raise NotImplementedError("Bean.assign")
-
-    def copy(self):
-        raise NotImplementedError("Bean.copy")
-
-    def reset(self):
-        pass
 
 
 class Protocol(Serializable):

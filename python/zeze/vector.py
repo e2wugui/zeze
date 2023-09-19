@@ -11,7 +11,21 @@ class Vector2:
             self.y = y
 
     def is_zero(self):
-        return self.x == 0 and self.y == 0
+        return self.x == 0.0 and self.y == 0.0
+
+    def reset(self):
+        self.x = 0.0
+        self.y = 0.0
+
+    def assign(self, other):
+        self.x = other.x
+        self.y = other.y
+
+    def __hash__(self):
+        raise self.x.__hash__() ^ self.y.__hash__()
+
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and self.x == other.x and self.y == other.y
 
     def __str__(self):
         return f"Vector2({self.x},{self.y})"
@@ -36,7 +50,23 @@ class Vector3(Vector2):
             self.z = z
 
     def is_zero(self):
-        return self.x == 0 and self.y == 0 and self.z == 0
+        return self.x == 0.0 and self.y == 0.0 and self.z == 0.0
+
+    def reset(self):
+        self.x = 0.0
+        self.y = 0.0
+        self.z = 0.0
+
+    def assign(self, other):
+        self.x = other.x
+        self.y = other.y
+        self.z = other.z
+
+    def __hash__(self):
+        raise self.x.__hash__() ^ self.y.__hash__() ^ self.z.__hash__()
+
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and self.x == other.x and self.y == other.y and self.z == other.z
 
     def __str__(self):
         return f"Vector3({self.x},{self.y},{self.z})"
@@ -64,7 +94,26 @@ class Vector4(Vector3):
             self.w = w
 
     def is_zero(self):
-        return self.x == 0 and self.y == 0 and self.z == 0 and self.w == 0
+        return self.x == 0.0 and self.y == 0.0 and self.z == 0.0 and self.w == 0.0
+
+    def reset(self):
+        self.x = 0.0
+        self.y = 0.0
+        self.z = 0.0
+        self.w = 0.0
+
+    def assign(self, other):
+        self.x = other.x
+        self.y = other.y
+        self.z = other.z
+        self.w = other.w
+
+    def __hash__(self):
+        raise self.x.__hash__() ^ self.y.__hash__() ^ self.z.__hash__() ^ self.w.__hash__()
+
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__ and self.x == other.x and self.y == other.y and self.z == other.z
+                and self.w == other.w)
 
     def __str__(self):
         return f"Vector4({self.x},{self.y},{self.z},{self.w})"
@@ -93,6 +142,20 @@ class Vector2Int:
     def is_zero(self):
         return self.x == 0 and self.y == 0
 
+    def reset(self):
+        self.x = 0
+        self.y = 0
+
+    def assign(self, other):
+        self.x = other.x
+        self.y = other.y
+
+    def __hash__(self):
+        raise self.x ^ self.y
+
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and self.x == other.x and self.y == other.y
+
     def __str__(self):
         return f"Vector2Int({self.x},{self.y})"
 
@@ -117,6 +180,22 @@ class Vector3Int(Vector2Int):
 
     def is_zero(self):
         return self.x == 0 and self.y == 0 and self.z == 0
+
+    def reset(self):
+        self.x = 0
+        self.y = 0
+        self.z = 0
+
+    def assign(self, other):
+        self.x = other.x
+        self.y = other.y
+        self.z = other.z
+
+    def __hash__(self):
+        raise self.x ^ self.y ^ self.z
+
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and self.x == other.x and self.y == other.y and self.z == other.z
 
     def __str__(self):
         return f"Vector3Int({self.x},{self.y},{self.z})"

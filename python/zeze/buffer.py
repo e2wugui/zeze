@@ -1,10 +1,12 @@
 import struct
 
+from zeze.bean import EmptyBean
 from zeze.vector import *
 
 
 class ByteBuffer:
     empty = bytearray(0)
+    empty_bytes = bytes()
 
     def __init__(self, buffer=bytearray(16), read_index=0, write_index=0):
         if not isinstance(buffer, bytearray):
@@ -1218,17 +1220,20 @@ class ByteBuffer:
             raise Exception(f"can not read_bean_tag({type(bean)}) for type={t} at {self.ri}/{self.wi}")
         return bean
 
-    def read_dynamic_tag(self, dyn_bean, tag):
+    def read_dynamic_tag(self, id2bean, tag):
         t = tag & ByteBuffer.TAG_MASK
         if t == ByteBuffer.DYNAMIC:
-            dyn_bean.decode(self)
+            bean = id2bean(self.read_long())
+            bean.decode(self)
         elif t == ByteBuffer.BEAN:
-            dyn_bean.new_bean(0).decode(self)
+            bean = id2bean(0)
+            bean.decode(self)
         elif ByteBuffer.IGNORE_INCOMPATIBLE_FIELD:
             self.skip_unknown_field(tag)
+            bean = EmptyBean()
         else:
             raise Exception(f"can not read_dynamic_tag for type={t} at {self.ri}/{self.wi}")
-        return dyn_bean
+        return bean
 
     def skip_unknown_field_or_raise(self, tag, cur_type):
         if ByteBuffer.IGNORE_INCOMPATIBLE_FIELD:
