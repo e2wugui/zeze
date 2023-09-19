@@ -6,6 +6,7 @@ import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderDirectService;
 import Zeze.Arch.ProviderService;
+import Zeze.Collections.BoolList;
 import Zeze.Collections.LinkedMap;
 import Zeze.Config;
 import Zeze.Game.Bag;
@@ -43,6 +44,7 @@ public class App extends Zeze.AppBase {
 		return Instance;
 	}
 
+	public BoolList.Module BoolListModule;
 	public LinkedMap.Module LinkedMapModule;
 	public Bag.Module BagModule;
 	public Producer RocketMQProducer;
@@ -85,6 +87,7 @@ public class App extends Zeze.AppBase {
 		world.Initialize(this);
 		world.initializeDefaultMmo();
 		LinkedMapModule = new LinkedMap.Module(Zeze);
+		BoolListModule = new BoolList.Module(Zeze);
 		BagModule = new Bag.Module(providerApp, null);
 		RocketMQProducer = new Producer(Zeze);
 		Zeze.start(); // 启动数据库
@@ -105,6 +108,10 @@ public class App extends Zeze.AppBase {
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null) {
 			Zeze.stop(); // 关闭数据库
+			if (null != BoolListModule) {
+				BoolListModule.UnRegister();
+				BoolListModule = null;
+			}
 			if (LinkedMapModule != null) {
 				LinkedMapModule.UnRegisterZezeTables(Zeze);
 				LinkedMapModule = null;

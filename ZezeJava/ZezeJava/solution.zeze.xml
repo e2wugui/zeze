@@ -282,6 +282,24 @@
 
 				<table name="tDepartmentTree" key="BDepartmentKey" value="BDepartmentTreeNode" />
 			</module>
+
+			<module name="BoolList" id="11034">
+				<beankey name="BKey">
+					<variable id="1" name="Name" type="string" />
+					<variable id="2" name="Index" type="int" />
+				</beankey>
+				<bean name="BValue">
+					<variable id="1" name="Item0" type="long" />
+					<variable id="2" name="Item1" type="long" />
+					<variable id="3" name="Item2" type="long" />
+					<variable id="4" name="Item3" type="long" />
+					<variable id="5" name="Item4" type="long" />
+					<variable id="6" name="Item5" type="long" />
+					<variable id="7" name="Item6" type="long" />
+					<variable id="8" name="Item7" type="long" />
+				</bean>
+				<table name="tBoolList" key="BKey" value="BValue" />
+			</module>
 		</module>
 
 		<!--
@@ -1796,8 +1814,9 @@
 			</bean>
 			<rpc name="GetLastVersionBeanInfo" argument="BeanName" result="BLastVersionBeanInfo" handle="server"/>
 		</module>
+
 		<!--
-		可用id范围 [11034, 11100) [11102, 11999]
+		可用id范围 [11035, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
@@ -1979,6 +1998,12 @@
 	<component name="DelayRemove" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.DelayRemove"/>
+		</service>
+	</component>
+
+	<component name="BoolList" gendir="src/main/java" genrelativedir="Zeze/Collections" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Collections.BoolList"/>
 		</service>
 	</component>
 
