@@ -28,6 +28,13 @@ public class BoolList {
 		}
 	}
 
+	private static final int RECORD_BOOLS_SHIFT = 9;
+	private static final int RECORD_BOOLS_COUNT = 1 << 9; // 512
+	private static final int RECORD_BOOLS_MASK = RECORD_BOOLS_COUNT - 1;
+	private static final int LONG_BITS_SHIFT = 6;
+	private static final int LONG_BITS_COUNT = 1 << LONG_BITS_SHIFT; // 64
+	private static final int LONG_BITS_MASK = LONG_BITS_COUNT - 1;
+
 	private final Module module;
 	private final String name;
 
@@ -48,75 +55,71 @@ public class BoolList {
 		if (index < 0)
 			throw new IllegalArgumentException("index < 0");
 
-		var key = new BKey(name, index / 512);
+		var key = new BKey(name, index >>> RECORD_BOOLS_SHIFT); // /RECORD_BOOLS_COUNT
 		var value = module._tBoolList.get(key);
-		if (null == value)
-			return false;
-		return get(value, index);
+		return value != null && get(value, index);
 	}
 
 	public void set(int index) {
 		if (index < 0)
 			throw new IllegalArgumentException("index < 0");
 
-		var key = new BKey(name, index / 512);
+		var key = new BKey(name, index >>> RECORD_BOOLS_SHIFT); // /RECORD_BOOLS_COUNT
 		var value = module._tBoolList.getOrAdd(key);
 		set(value, index);
 	}
 
-	private boolean get(BValue value, int index) {
-		var i = index % 512;
-		var varId = i / 64;
-		var varIndex = i % 64;
-		switch (varId) {
+	private static boolean get(BValue value, int index) {
+		var i = index & RECORD_BOOLS_MASK; // %RECORD_BOOLS_COUNT
+		var varBit = 1L << (i & LONG_BITS_MASK);
+		switch (i >>> LONG_BITS_SHIFT) { // /LONG_BITS_COUNT
 		case 0:
-			return (value.getItem0() & (1L << varIndex)) != 0;
+			return (value.getItem0() & varBit) != 0;
 		case 1:
-			return (value.getItem1() & (1L << varIndex)) != 0;
+			return (value.getItem1() & varBit) != 0;
 		case 2:
-			return (value.getItem2() & (1L << varIndex)) != 0;
+			return (value.getItem2() & varBit) != 0;
 		case 3:
-			return (value.getItem3() & (1L << varIndex)) != 0;
+			return (value.getItem3() & varBit) != 0;
 		case 4:
-			return (value.getItem4() & (1L << varIndex)) != 0;
+			return (value.getItem4() & varBit) != 0;
 		case 5:
-			return (value.getItem5() & (1L << varIndex)) != 0;
+			return (value.getItem5() & varBit) != 0;
 		case 6:
-			return (value.getItem6() & (1L << varIndex)) != 0;
+			return (value.getItem6() & varBit) != 0;
 		case 7:
-			return (value.getItem7() & (1L << varIndex)) != 0;
+			return (value.getItem7() & varBit) != 0;
 		}
 		return false;
 	}
 
-	private void set(BValue value, int index) {
-		var i = index % 512;
-		var varId = i / 64;
-		var varIndex = i % 64;
-		switch (varId) {
+	private static void set(BValue value, int index) {
+		var i = index & RECORD_BOOLS_MASK; // %RECORD_BOOLS_COUNT
+		var varBit = 1L << (i & LONG_BITS_MASK);
+		switch (i >>> LONG_BITS_SHIFT) { // /LONG_BITS_COUNT
 		case 0:
-			value.setItem0(value.getItem0() | (1L << varIndex));
+			value.setItem0(value.getItem0() | varBit);
 			break;
 		case 1:
-			value.setItem1(value.getItem1() | (1L << varIndex));
+			value.setItem1(value.getItem1() | varBit);
 			break;
 		case 2:
-			value.setItem2(value.getItem2() | (1L << varIndex));
+			value.setItem2(value.getItem2() | varBit);
 			break;
 		case 3:
-			value.setItem3(value.getItem3() | (1L << varIndex));
+			value.setItem3(value.getItem3() | varBit);
 			break;
 		case 4:
-			value.setItem4(value.getItem4() | (1L << varIndex));
+			value.setItem4(value.getItem4() | varBit);
 			break;
 		case 5:
-			value.setItem5(value.getItem5() | (1L << varIndex));
+			value.setItem5(value.getItem5() | varBit);
 			break;
 		case 6:
-			value.setItem6(value.getItem6() | (1L << varIndex));
+			value.setItem6(value.getItem6() | varBit);
 			break;
 		case 7:
-			value.setItem7(value.getItem7() | (1L << varIndex));
+			value.setItem7(value.getItem7() | varBit);
 			break;
 		}
 	}
