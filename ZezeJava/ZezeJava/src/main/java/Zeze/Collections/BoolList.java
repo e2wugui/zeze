@@ -69,6 +69,15 @@ public class BoolList {
 		set(value, index);
 	}
 
+	public void clear(int index) {
+		if (index < 0)
+			throw new IllegalArgumentException("index < 0");
+
+		var key = new BKey(name, index >>> RECORD_BOOLS_SHIFT); // /RECORD_BOOLS_COUNT
+		var value = module._tBoolList.getOrAdd(key);
+		clear(value, index);
+	}
+
 	private static boolean get(BValue value, int index) {
 		var i = index & RECORD_BOOLS_MASK; // %RECORD_BOOLS_COUNT
 		var varBit = 1L << (i & LONG_BITS_MASK);
@@ -120,6 +129,37 @@ public class BoolList {
 			break;
 		case 7:
 			value.setItem7(value.getItem7() | varBit);
+			break;
+		}
+	}
+
+	private static void clear(BValue value, int index) {
+		var i = index & RECORD_BOOLS_MASK; // %RECORD_BOOLS_COUNT
+		var varMask = ~(1L << (i & LONG_BITS_MASK));
+		switch (i >>> LONG_BITS_SHIFT) { // /LONG_BITS_COUNT
+		case 0:
+			value.setItem0(value.getItem0() & varMask);
+			break;
+		case 1:
+			value.setItem1(value.getItem1() & varMask);
+			break;
+		case 2:
+			value.setItem2(value.getItem2() & varMask);
+			break;
+		case 3:
+			value.setItem3(value.getItem3() & varMask);
+			break;
+		case 4:
+			value.setItem4(value.getItem4() & varMask);
+			break;
+		case 5:
+			value.setItem5(value.getItem5() & varMask);
+			break;
+		case 6:
+			value.setItem6(value.getItem6() & varMask);
+			break;
+		case 7:
+			value.setItem7(value.getItem7() & varMask);
 			break;
 		}
 	}
