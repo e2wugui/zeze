@@ -16,6 +16,8 @@ namespace Zeze.Gen.python
         {
             if (s.StartsWith("//"))
                 return (prefixSpace ? " #" : "#") + s[2..];
+            if (s.StartsWith(" //"))
+                return (prefixSpace ? "  #" : " #") + s[3..];
             if (s.StartsWith("/*") && s.EndsWith("*/"))
                 return (prefixSpace ? " \"\"\"" : "\"\"\"") + s.Substring(2, s.Length - 4) + "\"\"\"";
             return s;

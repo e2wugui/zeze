@@ -22,7 +22,9 @@ namespace Zeze.Gen.python
                 return;
 
             sw.WriteLine("# auto-generated @formatter:off");
-            sw.WriteLine("from zeze.buffer import ByteBuffer\n");
+            sw.WriteLine("from zeze.bean import *");
+            sw.WriteLine("from zeze.buffer import ByteBuffer");
+            sw.WriteLine("from zeze.util import *");
             sw.WriteLine();
             if (bean.Comment.Length > 0)
                 sw.WriteLine(Maker.toPythonComment(bean.Comment));
@@ -81,12 +83,11 @@ namespace Zeze.Gen.python
             if (bean.CustomTypeId)
                 throw new Exception("custom TypeId is NOT allowed for python: " + bean.Name);
             sw.WriteLine("    TYPEID = " + bean.TypeId);
-            sw.WriteLine();
             // declare enums
-            foreach (Enum e in bean.Enums)
-                sw.WriteLine($"    {TypeName.GetName(Type.Compile(e.Type))} " + e.Name + " = " + e.Value + Maker.toPythonComment(e.Comment, true));
             if (bean.Enums.Count > 0)
                 sw.WriteLine();
+            foreach (var e in bean.Enums)
+                sw.WriteLine($"    {e.Name} = {e.Value}{Maker.toPythonComment(e.Comment, true)}");
 
             // declare variables
             bool addBlankLine = false;

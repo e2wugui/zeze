@@ -19,15 +19,16 @@ namespace Zeze.Gen.python
                 return;
 
             sw.WriteLine("# auto-generated @formatter:off");
-            sw.WriteLine("from zeze.buffer import ByteBuffer\n");
+            sw.WriteLine("from zeze.buffer import ByteBuffer");
+            sw.WriteLine("from zeze.util import *");
             sw.WriteLine();
             if (beanKey.Comment.Length > 0)
                 sw.WriteLine(Maker.toPythonComment(beanKey.Comment));
             sw.WriteLine($"class {beanKey.Name}(BeanKey):");
 
             // declare enums
-            foreach (Enum e in beanKey.Enums)
-                sw.WriteLine($"    {TypeName.GetName(Type.Compile(e.Type))} " + e.Name + " = " + e.Value + Maker.toPythonComment(e.Comment, true));
+            foreach (var e in beanKey.Enums)
+                sw.WriteLine($"    {e.Name} = {e.Value}{Maker.toPythonComment(e.Comment, true)}");
             if (beanKey.Enums.Count > 0)
                 sw.WriteLine();
 

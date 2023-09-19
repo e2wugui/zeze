@@ -16,7 +16,7 @@ namespace Zeze.Gen.python
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine($"{prefix}{bean.Name}._PRE_ALLOC_SIZE_ = 16");
+            sw.WriteLine($"{prefix}_PRE_ALLOC_SIZE_ = 16");
             sw.WriteLine();
             sw.WriteLine($"{prefix}def get_pre_alloc_size(self):");
             sw.WriteLine($"{prefix}    return {bean.Name}._PRE_ALLOC_SIZE_");
@@ -40,7 +40,7 @@ namespace Zeze.Gen.python
                         throw new Exception("unordered var.id");
                     lastId = v.Id;
                 }
-                v.VariableType.Accept(new Encode(v, v.Id, "_o_", sw, prefix + "        ", bean.Name));
+                v.VariableType.Accept(new Encode(v, v.Id, "_o_", sw, prefix + "    ", bean.Name));
             }
 
             sw.WriteLine(prefix + "    _o_.write_byte(0)");
@@ -49,7 +49,7 @@ namespace Zeze.Gen.python
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine($"{prefix}{bean.Name}._PRE_ALLOC_SIZE_ = 16");
+            sw.WriteLine($"{prefix}_PRE_ALLOC_SIZE_ = 16");
             sw.WriteLine();
             sw.WriteLine($"{prefix}def get_pre_alloc_size(self):");
             sw.WriteLine($"{prefix}    return {bean.Name}._PRE_ALLOC_SIZE_");
@@ -73,7 +73,7 @@ namespace Zeze.Gen.python
                         throw new Exception("unordered var.id");
                     lastId = v.Id;
                 }
-                v.VariableType.Accept(new Encode(v, v.Id, "_o_", sw, prefix + "        ", bean.Name));
+                v.VariableType.Accept(new Encode(v, v.Id, "_o_", sw, prefix + "    ", bean.Name));
             }
 
             sw.WriteLine($"{prefix}    _o_.write_byte(0)");
@@ -211,25 +211,25 @@ namespace Zeze.Gen.python
             switch (type)
             {
                 case TypeBool:
-                    sw.WriteLine($"{prefix}{bufName}.WriteBool(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_bool(" + varName + ")");
                     break;
                 case TypeByte:
                 case TypeShort:
                 case TypeInt:
                 case TypeLong:
-                    sw.WriteLine($"{prefix}{bufName}.WriteLong(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_long(" + varName + ")");
                     break;
                 case TypeFloat:
-                    sw.WriteLine($"{prefix}{bufName}.WriteFloat(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_float(" + varName + ")");
                     break;
                 case TypeDouble:
-                    sw.WriteLine($"{prefix}{bufName}.WriteDouble(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_double(" + varName + ")");
                     break;
                 case TypeBinary:
-                    sw.WriteLine($"{prefix}{bufName}.WriteBinary(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_bytes(" + varName + ")");
                     break;
                 case TypeString:
-                    sw.WriteLine($"{prefix}{bufName}.WriteString(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_string(" + varName + ")");
                     break;
                 case Bean:
                 case BeanKey:
@@ -237,22 +237,22 @@ namespace Zeze.Gen.python
                     sw.WriteLine($"{prefix}{varName}.encode({bufName})");
                     break;
                 case TypeVector2:
-                    sw.WriteLine($"{prefix}{bufName}.WriteVector2(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_vector2(" + varName + ")");
                     break;
                 case TypeVector2Int:
-                    sw.WriteLine($"{prefix}{bufName}.WriteVector2Int(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_vector2int(" + varName + ")");
                     break;
                 case TypeVector3:
-                    sw.WriteLine($"{prefix}{bufName}.WriteVector3(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_vector3(" + varName + ")");
                     break;
                 case TypeVector3Int:
-                    sw.WriteLine($"{prefix}{bufName}.WriteVector3Int(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_vector3int(" + varName + ")");
                     break;
                 case TypeVector4:
-                    sw.WriteLine($"{prefix}{bufName}.WriteVector4(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_vector4(" + varName + ")");
                     break;
                 case TypeQuaternion:
-                    sw.WriteLine($"{prefix}{bufName}.WriteQuaternion(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_quaternion(" + varName + ")");
                     break;
                 default:
                     throw new Exception("invalid collection element type: " + type);

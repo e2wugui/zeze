@@ -31,7 +31,7 @@ namespace Zeze.Gen.python
             }
             sw.WriteLine($"{prefix}    level -= {INDENT_SIZE}");
             sw.WriteLine($"{prefix}    sb.append(indent(level)).append('}}')");
-            sw.WriteLine();
+            // sw.WriteLine();
         }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
@@ -52,7 +52,7 @@ namespace Zeze.Gen.python
             }
             sw.WriteLine($"{prefix}    level -= {INDENT_SIZE}");
             sw.WriteLine($"{prefix}    sb.append(indent(level)).append('}}')");
-            sw.WriteLine();
+            // sw.WriteLine();
         }
 
         public Tostring(StreamWriter sw, string varName, string getter, string prefix, char sep)
@@ -164,7 +164,7 @@ namespace Zeze.Gen.python
             sw.WriteLine($"{prefix}sb.append(indent(level)).append(\"{varName}={{\")");
             sw.WriteLine($"{prefix}if len({getter}) > 0:");
             sw.WriteLine($"{prefix}    sb.append('\\n')");
-            sw.WriteLine($"{prefix}    level += " + INDENT_SIZE + ';');
+            sw.WriteLine($"{prefix}    level += {INDENT_SIZE}");
             sw.WriteLine($"{prefix}    for _k_, _v_ in {getter}:");
             // sw.WriteLine(prefix + "        sb.append(indent(level)).append('(').append('\\n')");
             type.KeyType.Accept(new Tostring(sw, "Key", "_k_", prefix + "        ", ','));

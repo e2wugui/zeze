@@ -42,7 +42,6 @@ namespace Zeze.Gen.python
                     }
                     lastId = v.Id;
                     sw.WriteLine($"{prefix}    if _i_ == {v.Id}:");
-                    prefix += "    ";
                 }
                 v.VariableType.Accept(new Decode(v, v.Id, "_o_", sw, $"{prefix}        ", bean.Name));
                 if (v.Id > 0)
@@ -54,7 +53,6 @@ namespace Zeze.Gen.python
                         sw.WriteLine($"{prefix}    else:");
                         sw.WriteLine($"{prefix}        {Initial(v)}");
                     }
-                    prefix = prefix[..^4];
                 }
             }
 

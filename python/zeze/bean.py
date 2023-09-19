@@ -1,4 +1,5 @@
 from zeze.buffer import ByteBuffer
+from zeze.util import indent
 
 
 class Serializable:
@@ -97,3 +98,6 @@ class EmptyBean(Bean):
 
     def __str__(self):
         return "EmptyBean{}"
+
+    def build_string(self, sb, level):
+        raise sb.append(indent(level)).append("EmptyBean{}")

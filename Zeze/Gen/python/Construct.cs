@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Text;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.python
@@ -8,29 +9,45 @@ namespace Zeze.Gen.python
         readonly StreamWriter sw;
         readonly Variable variable;
 
+        private static string GetTypeDesc(Variable var)
+        {
+            var sb = new StringBuilder(var.Type);
+            if (!string.IsNullOrEmpty(var.Value))
+            {
+                sb.Append('<');
+                if (!string.IsNullOrEmpty(var.Key))
+                    sb.Append(var.Key).Append(',');
+                sb.Append(var.Value).Append('>');
+            }
+            return sb.ToString();
+        }
+
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.Write(prefix + "def __init__(self");
             foreach (var var in bean.Variables)
-                sw.Write($", {var.Name} = None");
+                sw.Write($", {var.Name}=None");
             sw.WriteLine("):");
             foreach (var var in bean.Variables)
             {
                 sw.Write($"{prefix}    self.{var.Name} = ");
                 var.VariableType.Accept(new Construct(sw, var));
-                sw.WriteLine($" if {var.Name} is None else {var.Name}");
+                sw.WriteLine($" if {var.Name} is None else {var.Name}  # {var.Id}:{GetTypeDesc(var)}");
             }
             sw.WriteLine();
         }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "# for decode only");
-            sw.WriteLine(prefix + "def __init__(self):");
+            sw.Write(prefix + "def __init__(self");
+            foreach (var var in bean.Variables)
+                sw.Write($", {var.Name}=None");
+            sw.WriteLine("):");
             foreach (var var in bean.Variables)
             {
                 sw.Write($"{prefix}    self.{var.Name} = ");
                 var.VariableType.Accept(new Construct(sw, var));
+                sw.WriteLine($" if {var.Name} is None else {var.Name}  # {var.Id}:{GetTypeDesc(var)}");
             }
             sw.WriteLine();
         }

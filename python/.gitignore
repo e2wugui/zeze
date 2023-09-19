@@ -1,4 +1,5 @@
 __pycache__/
 
+/gen
 /venv
 /zeze/__init__.py
