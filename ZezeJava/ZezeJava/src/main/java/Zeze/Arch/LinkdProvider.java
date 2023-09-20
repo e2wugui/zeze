@@ -461,6 +461,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		session.serverLoadIp = protocol.Argument.getProviderDirectIp();
 		session.serverLoadPort = protocol.Argument.getProviderDirectPort();
 		session.appVersion = protocol.Argument.getAppVersion();
+		session.disableChoice = protocol.Argument.isDisableChoice();
 		linkdApp.linkdProviderService.providerSessions.put(session.getServerLoadName(), session);
 
 		while (true) {
