@@ -24,6 +24,11 @@ public class LinkdUserSession {
 	protected long lastReportUnbindDynamicModuleTime;
 	protected volatile boolean authed;
 
+	@Override
+	public String toString() {
+		return account + ":" + userState.getContext() + "@" + userState.getOnlineSetName();
+	}
+
 	public LinkdUserSession(long sessionId) {
 		this.sessionId = sessionId;
 	}
