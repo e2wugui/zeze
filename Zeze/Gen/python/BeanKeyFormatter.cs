@@ -14,7 +14,7 @@ namespace Zeze.Gen.python
 
         public void Make(string baseDir, Project project)
         {
-            using StreamWriter sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".py");
+            using var sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".py");
             if (sw == null)
                 return;
 
@@ -38,7 +38,11 @@ namespace Zeze.Gen.python
             if (beanKey.Enums.Count > 0)
                 sw.WriteLine();
             foreach (var e in beanKey.Enums)
-                sw.WriteLine($"    {e.Name} = {e.Value}  {Maker.toPythonComment(e.Comment)}");
+            {
+                sw.WriteLine(string.IsNullOrEmpty(e.Comment)
+                    ? $"    {e.Name} = {e.Value}  {Maker.toPythonComment(e.Comment)}"
+                    : $"    {e.Name} = {e.Value}");
+            }
 
             Construct.Make(beanKey, sw, "    ");
             Encode.Make(beanKey, sw, "    ");

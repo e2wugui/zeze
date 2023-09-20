@@ -156,7 +156,11 @@ namespace Zeze.Gen.python
             if (bean.Enums.Count > 0)
                 sw.WriteLine();
             foreach (var e in bean.Enums)
-                sw.WriteLine($"    {e.Name} = {e.Value}  {Maker.toPythonComment(e.Comment)}");
+            {
+                sw.WriteLine(string.IsNullOrEmpty(e.Comment)
+                    ? $"    {e.Name} = {e.Value}  {Maker.toPythonComment(e.Comment)}"
+                    : $"    {e.Name} = {e.Value}");
+            }
 
             // declare variables
             foreach (Variable v in bean.Variables)

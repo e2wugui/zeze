@@ -1,17 +1,13 @@
-﻿using System.IO;
-
-namespace Zeze.Gen.python
+﻿namespace Zeze.Gen.python
 {
     public class ServiceFormatter
     {
         readonly Service service;
-        readonly string genDir;
         readonly string srcDir;
 
-        public ServiceFormatter(Service service, string genDir, string srcDir)
+        public ServiceFormatter(Service service, string srcDir)
         {
             this.service = service;
-            this.genDir = genDir;
             this.srcDir = srcDir;
         }
 
@@ -22,23 +18,22 @@ namespace Zeze.Gen.python
 
         public string BaseClass()
         {
-            return service.Base.Length > 0 ? service.Base : "Zeze.Net.Service";
+            return service.Base.Length > 0 ? service.Base : "Service";
         }
 
         public void MakePartialInSrc()
         {
-            using StreamWriter sw = service.Project.Solution.OpenWriter(srcDir, service.Name + ".py", false);
+            using var sw = service.Project.Solution.OpenWriter(srcDir, service.Name + ".py", false);
             if (sw == null)
                 return;
 
-            sw.WriteLine("package " + service.Project.Solution.Path() + ";");
+            sw.WriteLine("# noinspection PyUnresolvedReferences");
+            sw.WriteLine("from zeze.net import *");
             sw.WriteLine();
-            sw.WriteLine($"public class {service.Name} extends {BaseClass()} {{");
-            sw.WriteLine("    public " + service.Name + "(Zeze.Application zeze) {");
-            sw.WriteLine("        super(zeze);");
-            sw.WriteLine("    }");
-            sw.WriteLine("    // 重载需要的方法。");
-            sw.WriteLine("}");
+            sw.WriteLine();
+            sw.WriteLine($"class {service.Name}({BaseClass()}):");
+            sw.WriteLine($"    def __init__(self, zeze):");
+            sw.WriteLine($"        super().__init__(zeze)");
         }
     }
 }

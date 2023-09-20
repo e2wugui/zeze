@@ -1,5 +1,4 @@
-﻿
-namespace Zeze.Gen.python
+﻿namespace Zeze.Gen.python
 {
     public class RpcFormatter
     {
@@ -10,76 +9,50 @@ namespace Zeze.Gen.python
             this.rpc = rpc;
         }
 
-        public void Make(string baseDir)
+        public void Make(string baseDir, Project project)
         {
             using var sw = rpc.Space.OpenWriter(baseDir, rpc.Name + ".py");
             if (sw == null)
                 return;
 
-            sw.WriteLine("// auto-generated @formatter:off");
-            sw.WriteLine("package " + rpc.Space.Path() + ";");
+            sw.WriteLine("# auto-generated @formatter:off");
+            sw.WriteLine("# noinspection PyUnresolvedReferences");
+            sw.WriteLine("from zeze.bean import *");
+            sw.WriteLine("from zeze.net import *");
+            sw.WriteLine("# noinspection PyUnresolvedReferences");
+            sw.WriteLine($"import gen.{project.Solution.Name} as {project.Solution.Name}");
             sw.WriteLine();
+            sw.WriteLine();
+            sw.WriteLine($"class {rpc.Name}(Rpc):");
             if (rpc.Comment.Length > 0)
-                sw.WriteLine(rpc.Comment);
-            string argument = rpc.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ArgumentType);
-            string result = rpc.ResultType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ResultType);
-            string baseclass = string.IsNullOrEmpty(rpc.Base) ? "Zeze.Net.Rpc" : rpc.Base;
-            if (rpc.UseData)
+                sw.WriteLine(Maker.toPythonComment(rpc.Comment, "    "));
+            sw.WriteLine($"    ModuleId = {rpc.Space.Id}");
+            sw.WriteLine($"    ProtocolId = {rpc.Id}" + (rpc.Id < 0 ? "  # " + (uint)rpc.Id : ""));
+            sw.WriteLine($"    TypeId = Service.make_type_id(ModuleId, ProtocolId)  # {Net.Protocol.MakeTypeId(rpc.Space.Id, rpc.Id)}");
+            sw.WriteLine();
+            sw.WriteLine($"    def get_module_id(self):");
+            sw.WriteLine($"        return {rpc.Name}.ModuleId");
+            sw.WriteLine();
+            sw.WriteLine($"    def get_protocol_id(self):");
+            sw.WriteLine($"        return {rpc.Name}.ProtocolId");
+            sw.WriteLine();
+            sw.WriteLine($"    def type_id(self):");
+            sw.WriteLine($"        return {rpc.Name}.TypeId");
+            sw.WriteLine();
+            foreach (var e in rpc.Enums)
             {
-                if (null == rpc.ArgumentType || false == rpc.ArgumentType.IsKeyable)
-                    argument += ".Data";
-                if (null == rpc.ResultType || false == rpc.ResultType.IsKeyable)
-                    result += ".Data";
+                sw.WriteLine(string.IsNullOrEmpty(e.Comment)
+                    ? $"    {e.Name} = {e.Value}  {Maker.toPythonComment(e.Comment)}"
+                    : $"    {e.Name} = {e.Value}");
             }
-
-            sw.WriteLine($"public class {rpc.Name} extends {baseclass}<{argument}, {result}> {{");
-            sw.WriteLine("    public static final int ModuleId_ = " + rpc.Space.Id + ";");
-            sw.WriteLine("    public static final int ProtocolId_ = " + rpc.Id + ";" + (rpc.Id < 0 ? " // " + (uint)rpc.Id : ""));
-            sw.WriteLine("    public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // " + Net.Protocol.MakeTypeId(rpc.Space.Id, rpc.Id));
-            sw.WriteLine("    static { register(TypeId_, " + rpc.Name + ".class); }");
-            sw.WriteLine();
-            sw.WriteLine("    @Override");
-            sw.WriteLine("    public int getModuleId() {");
-            sw.WriteLine("        return ModuleId_;");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    @Override");
-            sw.WriteLine("    public int getProtocolId() {");
-            sw.WriteLine("        return ProtocolId_;");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    @Override");
-            sw.WriteLine("    public long getTypeId() {");
-            sw.WriteLine("        return TypeId_;");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            // declare enums
-            foreach (Types.Enum e in rpc.Enums)
-                sw.WriteLine($"    public static final {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             if (rpc.Enums.Count > 0)
                 sw.WriteLine();
-            sw.WriteLine($"    public {rpc.Name}() {{");
-            if (rpc.ArgumentType != null)
-                sw.WriteLine($"        Argument = new {argument}();");
-            else
-                sw.WriteLine($"        Argument = {argument}.instance;");
-            if (rpc.ResultType != null)
-                sw.WriteLine($"        Result = new {result}();");
-            else
-                sw.WriteLine($"        Result = {result}.instance;");
-            sw.WriteLine("    }");
-            if (rpc.ArgumentType != null)
-            {
-                sw.WriteLine();
-                sw.WriteLine($"    public {rpc.Name}({argument} arg) {{");
-                sw.WriteLine($"        Argument = arg;");
-                if (rpc.ResultType != null)
-                    sw.WriteLine($"        Result = new {result}();");
-                else
-                    sw.WriteLine($"        Result = {result}.instance;");
-                sw.WriteLine("    }");
-            }
-            sw.WriteLine("}");
+            string argument = rpc.ArgumentType == null ? "EmptyBean" : TypeName.GetName(rpc.ArgumentType);
+            string result = rpc.ResultType == null ? "EmptyBean" : TypeName.GetName(rpc.ResultType);
+            sw.WriteLine($"    def __init__(self, arg=None):");
+            sw.WriteLine($"        super().__init__()");
+            sw.WriteLine($"        self.arg = {argument}() if arg is None else arg");
+            sw.WriteLine($"        self.arg = {result}()");
         }
     }
 }

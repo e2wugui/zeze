@@ -143,8 +143,11 @@ class Service:
     def on_rpc_lost_context(self, rpc):
         pass
 
-    def add_protocol_handle(self, type_id, name, t, handle):
+    def add_protocol_handle(self, type_id, name, t, handle=None):
         self.protocol_handles[type_id] = ProtocolHandle(name, t, handle)
+
+    def remove_protocol_handle(self, type_id):
+        del self.protocol_handles[type_id]
 
     @staticmethod
     def make_type_id(module_id, protocol_id):

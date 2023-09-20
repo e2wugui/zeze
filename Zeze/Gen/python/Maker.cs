@@ -43,9 +43,9 @@ namespace Zeze.Gen.python
             foreach (Protocol protocol in Project.AllProtocols.Values)
             {
                 if (protocol is Rpc rpc)
-                    new RpcFormatter(rpc).Make(genCommonDir);
+                    new RpcFormatter(rpc).Make(genCommonDir, Project);
                 else
-                    new ProtocolFormatter(protocol).Make(genCommonDir);
+                    new ProtocolFormatter(protocol).Make(genCommonDir, Project);
             }
             GenInit(genCommonDir);
 
@@ -53,9 +53,8 @@ namespace Zeze.Gen.python
             foreach (Module module in Project.AllOrderDefineModules)
                 new ModuleFormatter(Project, module, genDir, srcDir).Make();
             foreach (Service service in Project.Services.Values)
-                new ServiceFormatter(service, genDir, srcDir).Make();
-
-            new App(Project, genDir, srcDir).Make();
+                new ServiceFormatter(service, srcDir).Make();
+            new App(Project, srcDir).Make();
         }
 
         public void GenInit(string baseDir)
@@ -75,6 +74,16 @@ namespace Zeze.Gen.python
                     if (s == "__init__")
                         continue;
                     sw.WriteLine($"from .{s} import {s}");
+                }
+                foreach (var path in Directory.GetDirectories(baseDir))
+                {
+                    var s = path.Replace('\\', '/');
+                    var p = s.LastIndexOf('/');
+                    if (p >= 0)
+                        s = s[(p + 1)..];
+                    if (s == "__pycache__")
+                        continue;
+                    sw.WriteLine($"import {s}");
                 }
             }
             foreach (var path in Directory.GetDirectories(baseDir))
