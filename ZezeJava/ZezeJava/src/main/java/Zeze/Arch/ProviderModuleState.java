@@ -15,7 +15,6 @@ public class ProviderModuleState {
 
 	@Override
 	public String toString() {
-		return "ProviderModuleState{" + "sessionId=" + sessionId + ", moduleId=" + moduleId +
-				", choiceType=" + choiceType + ", configType=" + configType + '}';
+		return "(" + sessionId + "," + moduleId + "," + choiceType + "," + configType + ")";
 	}
 }

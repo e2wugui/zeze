@@ -25,7 +25,7 @@ public class ProviderSession {
 
 	@Override
 	public @NotNull String toString() {
-		return serverLoadIp + ":" + serverLoadPort + "@" + sessionId;
+		return "(" + serverLoadIp + "," + serverLoadPort + "," + sessionId + ")";
 	}
 
 	public long getSessionId() {
