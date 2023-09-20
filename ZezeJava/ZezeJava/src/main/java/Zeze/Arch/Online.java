@@ -39,6 +39,7 @@ import Zeze.Hot.HotModule;
 import Zeze.Hot.HotUpgrade;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
@@ -762,14 +763,47 @@ public class Online extends AbstractOnline implements HotUpgrade {
 //	}
 
 	public static final class LinkRoles {
-		final @NotNull AsyncSocket linkSocket;
+		final @NotNull String linkName;
+		final AsyncSocket linkSocket;
 		final @NotNull Send send;
 		final ArrayList<LoginKey> accounts = new ArrayList<>();
 
-		public LinkRoles(@NotNull AsyncSocket linkSocket, long typeId, @NotNull Binary fullEncodedProtocol) {
+		public LinkRoles(@NotNull String linkName, AsyncSocket linkSocket,
+						 long typeId, @NotNull Binary fullEncodedProtocol) {
+			this.linkName = linkName;
 			this.linkSocket = linkSocket;
 			send = new Send(new BSend(typeId, fullEncodedProtocol));
 		}
+	}
+
+	private static AsyncSocket getLinkSocket(ConcurrentHashMap<String, Connector> links, String linkName,
+											 String account, String clientId) {
+		var connector = links.get(linkName);
+		if (connector == null) {
+			logger.warn("sendDirect: not found connector for linkName={} clientId={} account={}",
+					linkName, account, clientId);
+			return null;
+		}
+		if (!connector.isHandshakeDone()) {
+			logger.warn("sendDirect: not isHandshakeDone for linkName={} clientId={} account={}",
+					linkName, account, clientId);
+			return null;
+		}
+		var linkSocket = connector.getSocket();
+		if (linkSocket == null) {
+			logger.warn("sendDirect: closed connector for linkName={} clientId={} account={}",
+					linkName, account, clientId);
+			return null;
+		}
+		return linkSocket;
+	}
+
+	private void processErrorSids(LongList errorSids, LinkRoles group) {
+		errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
+			int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
+			var loginKey = group.accounts.get(idx);
+			return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId, group.linkName, linkSid) : 0;
+		}, "Online.triggerLinkBroken2").call());
 	}
 
 	// 可在事务外执行
@@ -805,39 +839,23 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
 			var group = groups.get(linkName);
 			if (group == null) {
-				var connector = links.get(linkName);
-				if (connector == null) {
-					logger.warn("sendDirect: not found connector for linkName={} clientId={} account={}",
-							linkName, account, clientId);
-					continue;
-				}
-				if (!connector.isHandshakeDone()) {
-					logger.warn("sendDirect: not isHandshakeDone for linkName={} clientId={} account={}",
-							linkName, account, clientId);
-					continue;
-				}
-				var linkSocket = connector.getSocket();
-				if (linkSocket == null) {
-					logger.warn("sendDirect: closed connector for linkName={} clientId={} account={}",
-							linkName, account, clientId);
-					continue;
-				}
-				groups.put(linkName, group = new LinkRoles(linkSocket, typeId, fullEncodedProtocol));
+				var linkSocket = getLinkSocket(links, linkName, account, clientId); // maybe null
+				groups.put(linkName, group = new LinkRoles(linkName, linkSocket, typeId, fullEncodedProtocol));
 			}
 			group.send.Argument.getLinkSids().add(link.getLinkSid());
 			group.accounts.add(loginKey);
 		}
 		int sendCount = 0;
 		for (var group : groups.values()) {
+			if (null == group.linkSocket) {
+				processErrorSids(group.send.Argument.getLinkSids(), group);
+				continue; // link miss process done
+			}
+
 			if (group.send.Send(group.linkSocket, rpc -> {
 				var send = group.send;
 				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
-				errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
-					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
-					var loginKey = group.accounts.get(idx);
-					return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId,
-							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
-				}, "Online.triggerLinkBroken2").call());
+				processErrorSids(errorSids, group);
 				return Procedure.Success;
 			}))
 				sendCount++;
@@ -873,11 +891,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (connector == null) {
 			logger.warn("sendDirect: not found connector for linkName={} account={} clientId={}",
 					linkName, account, clientId);
+			providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken1").call();
 			return false;
 		}
 		if (!connector.isHandshakeDone()) {
 			logger.warn("sendDirect: not isHandshakeDone for linkName={} account={} clientId={}",
 					linkName, account, clientId);
+			providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken1").call();
 			return false;
 		}
 		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
@@ -885,6 +907,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (linkSocket == null) {
 			logger.warn("sendDirect: closed connector for linkName={} account={} clientId={}",
 					linkName, account, clientId);
+			providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken1").call();
 			return false;
 		}
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
@@ -1096,31 +1120,25 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			if (link.getState() != eLogined)
 				continue;
 			var linkName = link.getLinkName();
-			var connector = links.get(linkName);
-			if (connector == null || !connector.isHandshakeDone())
-				continue;
 			// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
 			var group = groups.get(linkName);
 			if (group == null) {
-				var linkSocket = connector.getSocket();
-				if (linkSocket == null)
-					continue;
-				groups.put(linkName, group = new LinkRoles(linkSocket, typeId, fullEncodedProtocol));
+				var linkSocket = getLinkSocket(links, linkName, account, e.getKey()); // maybe null
+				groups.put(linkName, group = new LinkRoles(linkName, linkSocket, typeId, fullEncodedProtocol));
 			}
 			group.send.Argument.getLinkSids().add(link.getLinkSid());
 			group.accounts.add(new LoginKey(account, e.getKey()));
 		}
 		int sendCount = 0;
 		for (var group : groups.values()) {
+			if (null == group.linkSocket) {
+				processErrorSids(group.send.Argument.getLinkSids(), group);
+				continue; // link miss process done.
+			}
 			if (group.send.Send(group.linkSocket, rpc -> {
 				var send = group.send;
 				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
-				errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
-					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
-					var loginKey = group.accounts.get(idx);
-					return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId,
-							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
-				}, "Online.triggerLinkBroken3").call());
+				processErrorSids(errorSids, group);
 				return Procedure.Success;
 			}))
 				sendCount++;
@@ -1149,16 +1167,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				if (link.getState() != eLogined)
 					continue;
 				var linkName = link.getLinkName();
-				var connector = links.get(linkName);
-				if (connector == null || !connector.isHandshakeDone())
-					continue;
 				// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
 				var group = groups.get(linkName);
 				if (group == null) {
-					var linkSocket = connector.getSocket();
-					if (linkSocket == null)
-						continue;
-					groups.put(linkName, group = new LinkRoles(linkSocket, typeId, fullEncodedProtocol));
+					var linkSocket = getLinkSocket(links, linkName, account, e.getKey()); // maybe null
+					groups.put(linkName, group = new LinkRoles(linkName, linkSocket, typeId, fullEncodedProtocol));
 				}
 				group.send.Argument.getLinkSids().add(link.getLinkSid());
 				group.accounts.add(new LoginKey(account, e.getKey()));
@@ -1166,15 +1179,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 		int sendCount = 0;
 		for (var group : groups.values()) {
+			if (null == group.linkSocket) {
+				processErrorSids(group.send.Argument.getLinkSids(), group);
+				continue; // link miss process done.
+			}
+
 			if (group.send.Send(group.linkSocket, rpc -> {
 				var send = group.send;
 				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
-				errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
-					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
-					var loginKey = group.accounts.get(idx);
-					return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId,
-							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
-				}, "Online.triggerLinkBroken4").call());
+				processErrorSids(errorSids, group);
 				return Procedure.Success;
 			}))
 				sendCount++;
