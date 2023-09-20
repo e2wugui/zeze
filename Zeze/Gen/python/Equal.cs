@@ -15,36 +15,13 @@ namespace Zeze.Gen.python
         /// </summary>
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine($"{prefix}def __eq__(self, _o_):");
-            if (bean.Variables.Count > 0)
-            {
-                sw.WriteLine($"{prefix}    if (_o_ is self)");
-                sw.WriteLine($"{prefix}        return True");
-                sw.WriteLine($"{prefix}    if (_o_.__class__ != self.__class__)");
-                sw.WriteLine($"{prefix}        return False");
-                foreach (var var in bean.Variables)
-                {
-                    var v = new Equal(var, "_b_", false);
-                    var.VariableType.Accept(v);
-                    sw.WriteLine($"{prefix}    if {v.text}:");
-                    sw.WriteLine($"{prefix}        return False");
-                }
-
-                sw.WriteLine($"{prefix}    return True");
-            }
-            else
-                sw.WriteLine($"{prefix}    return _o_.__class__ == self.__class__");
             sw.WriteLine();
-        }
-
-        public static void Make(Bean bean, StreamWriter sw, string prefix)
-        {
             sw.WriteLine($"{prefix}def __eq__(self, _o_):");
             if (bean.Variables.Count > 0)
             {
-                sw.WriteLine($"{prefix}    if (_o_ is self)");
+                sw.WriteLine($"{prefix}    if _o_ is self:");
                 sw.WriteLine($"{prefix}        return True");
-                sw.WriteLine($"{prefix}    if (_o_.__class__ != self.__class__)");
+                sw.WriteLine($"{prefix}    if _o_.__class__ != self.__class__:");
                 sw.WriteLine($"{prefix}        return False");
                 foreach (var var in bean.Variables)
                 {
@@ -58,7 +35,30 @@ namespace Zeze.Gen.python
             }
             else
                 sw.WriteLine($"{prefix}    return _o_.__class__ == self.__class__");
+        }
+
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
+        {
             sw.WriteLine();
+            sw.WriteLine($"{prefix}def __eq__(self, _o_):");
+            if (bean.Variables.Count > 0)
+            {
+                sw.WriteLine($"{prefix}    if _o_ is self:");
+                sw.WriteLine($"{prefix}        return True");
+                sw.WriteLine($"{prefix}    if _o_.__class__ != self.__class__:");
+                sw.WriteLine($"{prefix}        return False");
+                foreach (var var in bean.Variables)
+                {
+                    var v = new Equal(var, "_o_", false);
+                    var.VariableType.Accept(v);
+                    sw.WriteLine($"{prefix}    if {v.text}:");
+                    sw.WriteLine($"{prefix}        return False");
+                }
+
+                sw.WriteLine($"{prefix}    return True");
+            }
+            else
+                sw.WriteLine($"{prefix}    return _o_.__class__ == self.__class__");
         }
 
         public Equal(Variable var, string another, bool isEquals)

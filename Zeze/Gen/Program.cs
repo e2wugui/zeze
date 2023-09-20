@@ -497,7 +497,7 @@ namespace Zeze.Gen
             }
             foreach (var file in Directory.GetFiles(dir))
             {
-                if (OutputsAll.Contains(file) || file.EndsWith(".meta")) // Unity会自动生成.meta文件
+                if (OutputsAll.Contains(file) || file.EndsWith(".meta") || file.EndsWith(".pyc")) // Unity会自动生成.meta文件
                     continue;
                 File.Delete(file);
                 Print($"     Delete File: {file}", ConsoleColor.Red);

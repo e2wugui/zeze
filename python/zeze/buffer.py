@@ -1,6 +1,5 @@
 import struct
 
-from zeze.bean import EmptyBean
 from zeze.vector import *
 
 
@@ -1230,6 +1229,7 @@ class ByteBuffer:
             bean.decode(self)
         elif ByteBuffer.IGNORE_INCOMPATIBLE_FIELD:
             self.skip_unknown_field(tag)
+            from zeze.bean import EmptyBean
             bean = EmptyBean()
         else:
             raise Exception(f"can not read_dynamic_tag for type={t} at {self.ri}/{self.wi}")

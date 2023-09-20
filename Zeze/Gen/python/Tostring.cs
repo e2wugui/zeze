@@ -15,13 +15,17 @@ namespace Zeze.Gen.python
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine($"{prefix}def __str__():");
+            sw.WriteLine();
+            sw.WriteLine($"{prefix}def __str__(self):");
             sw.WriteLine($"{prefix}    sb = []");
             sw.WriteLine($"{prefix}    self.build_string(sb, 0)");
-            sw.WriteLine($"{prefix}    return \"\".join(sb.append('\\n'))");
+            sw.WriteLine($"{prefix}    sb.append('\\n')");
+            sw.WriteLine($"{prefix}    return \"\".join(sb)");
             sw.WriteLine();
             sw.WriteLine($"{prefix}def build_string(self, sb, level):");
-            sw.WriteLine($"{prefix}    sb.append(indent(level)).append(\"{bean.FullName}: {{\").append('\\n')");
+            sw.WriteLine($"{prefix}    sb.append(indent(level))");
+            sw.WriteLine($"{prefix}    sb.append(\"{bean.FullName}: {{\")");
+            sw.WriteLine($"{prefix}    sb.append('\\n')");
             sw.WriteLine($"{prefix}    level += {INDENT_SIZE}");
             for (int i = 0; i < bean.Variables.Count; ++i)
             {
@@ -30,19 +34,23 @@ namespace Zeze.Gen.python
                 var.VariableType.Accept(new Tostring(sw, var.Name, $"self.{var.Name}", prefix + "    ", sep));
             }
             sw.WriteLine($"{prefix}    level -= {INDENT_SIZE}");
-            sw.WriteLine($"{prefix}    sb.append(indent(level)).append('}}')");
-            // sw.WriteLine();
+            sw.WriteLine($"{prefix}    sb.append(indent(level))");
+            sw.WriteLine($"{prefix}    sb.append('}}')");
         }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine($"{prefix}def __str__():");
+            sw.WriteLine();
+            sw.WriteLine($"{prefix}def __str__(self):");
             sw.WriteLine($"{prefix}    sb = []");
             sw.WriteLine($"{prefix}    self.build_string(sb, 0)");
-            sw.WriteLine($"{prefix}    return \"\".join(sb.append('\\n'))");
+            sw.WriteLine($"{prefix}    sb.append('\\n')");
+            sw.WriteLine($"{prefix}    return \"\".join(sb)");
             sw.WriteLine();
             sw.WriteLine($"{prefix}def build_string(self, sb, level):");
-            sw.WriteLine($"{prefix}    sb.append(indent(level)).append(\"{bean.FullName}: {{\").append('\\n')");
+            sw.WriteLine($"{prefix}    sb.append(indent(level))");
+            sw.WriteLine($"{prefix}    sb.append(\"{bean.FullName}: {{\")");
+            sw.WriteLine($"{prefix}    sb.append('\\n')");
             sw.WriteLine($"{prefix}    level += {INDENT_SIZE}");
             for (int i = 0; i < bean.Variables.Count; ++i)
             {
@@ -51,8 +59,8 @@ namespace Zeze.Gen.python
                 var.VariableType.Accept(new Tostring(sw, var.Name, $"self.{var.Name}", prefix + "    ", sep));
             }
             sw.WriteLine($"{prefix}    level -= {INDENT_SIZE}");
-            sw.WriteLine($"{prefix}    sb.append(indent(level)).append('}}')");
-            // sw.WriteLine();
+            sw.WriteLine($"{prefix}    sb.append(indent(level))");
+            sw.WriteLine($"{prefix}    sb.append('}}')");
         }
 
         public Tostring(StreamWriter sw, string varName, string getter, string prefix, char sep)
@@ -66,24 +74,26 @@ namespace Zeze.Gen.python
 
         public void Visit(Bean type)
         {
-            sw.WriteLine($"{prefix}sb.append(indent(level)).append(\"{varName}=\\n\")");
+            sw.WriteLine($"{prefix}sb.append(indent(level))");
+            sw.WriteLine($"{prefix}sb.append(\"{varName}=\\n\")");
             sw.WriteLine($"{prefix}{getter}.build_string(sb, level + {INDENT_SIZE})");
-            sw.Write(prefix + "sb");
-            sw.WriteLine(sep != 0 ? $".append(\"{sep}\\n\")" : ".append('\\n')");
+            sw.WriteLine(sep != 0 ? $"{prefix}sb.append(\"{sep}\\n\")" : $"{prefix}sb.append('\\n')");
         }
 
         public void Visit(BeanKey type)
         {
-            sw.WriteLine($"{prefix}sb.append(indent(level)).append(\"{varName}=\\n\")");
+            sw.WriteLine($"{prefix}sb.append(indent(level))");
+            sw.WriteLine($"{prefix}sb.append(\"{varName}=\\n\")");
             sw.WriteLine($"{prefix}{getter}.buildString(sb, level + {INDENT_SIZE})");
-            sw.Write(prefix + "sb");
-            sw.WriteLine(sep != 0 ? $".append(\"{sep}\\n\")" : ".append('\\n')");
+            sw.WriteLine(sep != 0 ? $"{prefix}sb.append(\"{sep}\\n\")" : $"{prefix}sb.append('\\n')");
         }
 
         void formatSimple()
         {
-            sw.Write($"{prefix}sb.append(indent(level)).append(\"{varName}=\").append({getter})");
-            sw.WriteLine(sep != 0 ? $".append(\"{sep}\\n\")" : ".append('\\n')");
+            sw.WriteLine($"{prefix}sb.append(indent(level))");
+            sw.WriteLine($"{prefix}sb.append(\"{varName}=\")");
+            sw.WriteLine($"{prefix}sb.append(str({getter}))");
+            sw.WriteLine(sep != 0 ? $"{prefix}sb.append(\"{sep}\\n\")" : $"{prefix}sb.append('\\n')");
         }
 
         public void Visit(TypeBool type)
@@ -133,7 +143,8 @@ namespace Zeze.Gen.python
 
         public void Visit(TypeList type)
         {
-            sw.WriteLine($"{prefix}sb.append(indent(level)).append(\"{varName}=[\")");
+            sw.WriteLine($"{prefix}sb.append(indent(level))");
+            sw.WriteLine($"{prefix}sb.append(\"{varName}=[\")");
             sw.WriteLine($"{prefix}if len({getter}) > 0:");
             sw.WriteLine($"{prefix}    sb.append('\\n')");
             sw.WriteLine($"{prefix}    level += {INDENT_SIZE}");
@@ -141,13 +152,14 @@ namespace Zeze.Gen.python
             type.ValueType.Accept(new Tostring(sw, "Item", "_v_", prefix + "        ", ','));
             sw.WriteLine($"{prefix}    level -= {INDENT_SIZE}");
             sw.WriteLine($"{prefix}    sb.append(indent(level))");
-            sw.Write(prefix + "sb.append(']')");
-            sw.WriteLine(sep != 0 ? $".append(\"{sep}\\n\")" : ".append('\\n')");
+            sw.WriteLine($"{prefix}sb.append(']')");
+            sw.WriteLine(sep != 0 ? $"{prefix}sb.append(\"{sep}\\n\")" : $"{prefix}sb.append('\\n')");
         }
 
         public void Visit(TypeSet type)
         {
-            sw.WriteLine($"{prefix}sb.append(indent(level)).append(\"{varName}={{\")");
+            sw.WriteLine($"{prefix}sb.append(indent(level))");
+            sw.WriteLine($"{prefix}sb.append(\"{varName}={{\")");
             sw.WriteLine($"{prefix}if len({getter}) > 0:");
             sw.WriteLine($"{prefix}    sb.append('\\n')");
             sw.WriteLine($"{prefix}    level += {INDENT_SIZE}");
@@ -155,13 +167,14 @@ namespace Zeze.Gen.python
             type.ValueType.Accept(new Tostring(sw, "Item", "_v_", prefix + "        ", ','));
             sw.WriteLine($"{prefix}    level -= {INDENT_SIZE}");
             sw.WriteLine($"{prefix}    sb.append(indent(level))");
-            sw.Write($"{prefix}sb.append('}}')");
-            sw.WriteLine(sep != 0 ? $".append(\"{sep}\\n\")" : ".append('\\n')");
+            sw.WriteLine($"{prefix}sb.append('}}')");
+            sw.WriteLine(sep != 0 ? $"{prefix}sb.append(\"{sep}\\n\")" : $"{prefix}sb.append('\\n')");
         }
 
         public void Visit(TypeMap type)
         {
-            sw.WriteLine($"{prefix}sb.append(indent(level)).append(\"{varName}={{\")");
+            sw.WriteLine($"{prefix}sb.append(indent(level))");
+            sw.WriteLine($"{prefix}sb.append(\"{varName}={{\")");
             sw.WriteLine($"{prefix}if len({getter}) > 0:");
             sw.WriteLine($"{prefix}    sb.append('\\n')");
             sw.WriteLine($"{prefix}    level += {INDENT_SIZE}");
@@ -172,13 +185,15 @@ namespace Zeze.Gen.python
             // sw.WriteLine(prefix + "        sb.append(indent(level)).append(')').append('\\n')");
             sw.WriteLine($"{prefix}    level -= {INDENT_SIZE}");
             sw.WriteLine($"{prefix}    sb.append(indent(level))");
-            sw.Write($"{prefix}sb.append('}}')");
-            sw.WriteLine(sep != 0 ? $".append(\"{sep}\\n\")" : ".append('\\n')");
+            sw.WriteLine($"{prefix}sb.append('}}')");
+            sw.WriteLine(sep != 0 ? $"{prefix}sb.append(\"{sep}\\n\")" : $"{prefix}sb.append('\\n')");
         }
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine($"{prefix}sb.append(indent(level)).append(\"{varName}=\").append('\\n')");
+            sw.WriteLine($"{prefix}sb.append(indent(level))");
+            sw.WriteLine($"{prefix}sb.append(\"{varName}=\")");
+            sw.WriteLine($"{prefix}sb.append('\\n')");
             sw.WriteLine($"{prefix}{getter}.buildString(sb, level + {INDENT_SIZE})");
             sw.WriteLine(sep != 0 ? $"{prefix}sb.append(\"{sep}\\n\")" : $"{prefix}sb.append('\\n')");
         }

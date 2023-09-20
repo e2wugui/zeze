@@ -17,6 +17,7 @@ namespace Zeze.Gen.python
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
+            sw.WriteLine();
             sw.WriteLine($"{prefix}def decode(self, _o_):");
             sw.WriteLine($"{prefix}    _t_ = _o_.read_byte()");
             sw.WriteLine(bean.VariablesIdOrder.Count > 0
@@ -35,7 +36,7 @@ namespace Zeze.Gen.python
                         throw new Exception("unordered var.id");
                     if (v.Id - lastId > 1)
                     {
-                        sw.WriteLine($"{prefix}    while (_t_ & 0xff) > 1 && _i_ < " + v.Id + ":");
+                        sw.WriteLine($"{prefix}    while (_t_ & 0xff) > 1 and _i_ < " + v.Id + ":");
                         sw.WriteLine($"{prefix}        _o_.skip_unknown_field(_t_)");
                         sw.WriteLine($"{prefix}        _t_ = _o_.read_byte()");
                         sw.WriteLine($"{prefix}        _i_ += _o_.read_tag_size(_t_)");
@@ -68,11 +69,11 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}        _t_ = _o_.read_byte()");
                 sw.WriteLine($"{prefix}        _o_.read_tag_size(_t_)");
             }
-            sw.WriteLine();
         }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
+            sw.WriteLine();
             sw.WriteLine($"{prefix}def decode(self, _o_):");
             sw.WriteLine($"{prefix}    _t_ = _o_.read_byte()");
             sw.WriteLine(bean.VariablesIdOrder.Count > 0
@@ -91,14 +92,13 @@ namespace Zeze.Gen.python
                         throw new Exception("unordered var.id");
                     if (v.Id - lastId > 1)
                     {
-                        sw.WriteLine($"{prefix}    while (_t_ & 0xff) > 1 && _i_ < " + v.Id + ":");
+                        sw.WriteLine($"{prefix}    while (_t_ & 0xff) > 1 and _i_ < " + v.Id + ":");
                         sw.WriteLine($"{prefix}        _o_.skip_unknown_field(_t_)");
                         sw.WriteLine($"{prefix}        _t_ = _o_.read_byte()");
                         sw.WriteLine($"{prefix}        _i_ += _o_.read_tag_size(_t_)");
                     }
                     lastId = v.Id;
                     sw.WriteLine($"{prefix}    if _i_ == {v.Id}:");
-                    prefix += "    ";
                 }
                 v.VariableType.Accept(new Decode(v, v.Id, "_o_", sw, $"{prefix}        ", bean.Name));
                 if (v.Id > 0)
@@ -110,12 +110,10 @@ namespace Zeze.Gen.python
                         sw.WriteLine($"{prefix}    else:");
                         sw.WriteLine($"{prefix}        {Initial(v)}");
                     }
-                    prefix = prefix[..^4];
                 }
             }
 
             sw.WriteLine($"{prefix}    _o_.skip_all_unknown_fields(_t_)");
-            sw.WriteLine();
         }
 
         static string Initial(Variable var)
@@ -124,16 +122,16 @@ namespace Zeze.Gen.python
             switch (type)
             {
                 case TypeBool:
-                    return $"{var.Name} = False";
+                    return $"self.{var.Name} = False";
                 case TypeByte:
                 case TypeShort:
                 case TypeInt:
                 case TypeLong:
                 case TypeFloat:
                 case TypeDouble:
-                    return $"{var.Name} = 0";
+                    return $"self.{var.Name} = 0";
                 case TypeString:
-                    return $"{var.Name} = \"\"";
+                    return $"self.{var.Name} = \"\"";
                 case Bean:
                 case BeanKey:
                 case TypeVector2:
@@ -142,7 +140,7 @@ namespace Zeze.Gen.python
                 case TypeVector3Int:
                 case TypeVector4:
                 case TypeQuaternion:
-                    return $"{var.Name}.reset()";
+                    return $"self.{var.Name}.reset()";
                 default:
                     throw new Exception("unsupported initial type: " + var.VariableType);
             }
@@ -174,72 +172,70 @@ namespace Zeze.Gen.python
 
         string AssignText(string value)
         {
-            if (var != null)
-                return var.Bean.IsNormalBean ? var.Setter(value) : $"{var.Name} = {value}";
-            return $"{tmpVarName} = {value}";
+            return var != null ? $"self.{var.Name} = {value}" : $"{tmpVarName} = {value}";
         }
 
         public void Visit(TypeBool type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{var.Name} = {bufName}.read_bool_tag(_t_)"
-                : $"{prefix}{var.Name} = {bufName}.read_bool()");
+                ? $"{prefix}self.{var.Name} = {bufName}.read_bool_tag(_t_)"
+                : $"{prefix}self.{var.Name} = {bufName}.read_bool()");
         }
 
         public void Visit(TypeByte type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{var.Name} = {bufName}.read_long_tag(_t_)"
-                : $"{prefix}{var.Name} = {bufName}.read_long()");
+                ? $"{prefix}self.{var.Name} = {bufName}.read_long_tag(_t_)"
+                : $"{prefix}self.{var.Name} = {bufName}.read_long()");
         }
 
         public void Visit(TypeShort type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{var.Name} = {bufName}.read_long_tag(_t_)"
-                : $"{prefix}{var.Name} = {bufName}.read_long()");
+                ? $"{prefix}self.{var.Name} = {bufName}.read_long_tag(_t_)"
+                : $"{prefix}self.{var.Name} = {bufName}.read_long()");
         }
 
         public void Visit(TypeInt type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{var.Name} = {bufName}.read_long_tag(_t_)"
-                : $"{prefix}{var.Name} = {bufName}.read_long()");
+                ? $"{prefix}self.{var.Name} = {bufName}.read_long_tag(_t_)"
+                : $"{prefix}self.{var.Name} = {bufName}.read_long()");
         }
 
         public void Visit(TypeLong type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{var.Name} = {bufName}.read_long_tag(_t_)"
-                : $"{prefix}{var.Name} = {bufName}.read_long()");
+                ? $"{prefix}self.{var.Name} = {bufName}.read_long_tag(_t_)"
+                : $"{prefix}self.{var.Name} = {bufName}.read_long()");
         }
 
         public void Visit(TypeFloat type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{var.Name} = {bufName}.read_float_tag(_t_)"
-                : $"{prefix}{var.Name} = {bufName}.read_float()");
+                ? $"{prefix}self.{var.Name} = {bufName}.read_float_tag(_t_)"
+                : $"{prefix}self.{var.Name} = {bufName}.read_float()");
         }
 
         public void Visit(TypeDouble type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{var.Name} = {bufName}.read_double_tag(_t_)"
-                : $"{prefix}{var.Name} = {bufName}.read_double()");
+                ? $"{prefix}self.{var.Name} = {bufName}.read_double_tag(_t_)"
+                : $"{prefix}self.{var.Name} = {bufName}.read_double()");
         }
 
         public void Visit(TypeBinary type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{var.Name} = {bufName}.read_binary_tag(_t_)"
-                : $"{prefix}{var.Name} = {bufName}.read_bytes()");
+                ? $"{prefix}self.{var.Name} = {bufName}.read_binary_tag(_t_)"
+                : $"{prefix}self.{var.Name} = {bufName}.read_bytes()");
         }
 
         public void Visit(TypeString type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{var.Name} = {bufName}.read_string_tag(_t_)"
-                : $"{prefix}{var.Name} = {bufName}.read_string()");
+                ? $"{prefix}self.{var.Name} = {bufName}.read_string_tag(_t_)"
+                : $"{prefix}self.{var.Name} = {bufName}.read_string()");
         }
 
         string DecodeElement(Types.Type type, string typeVar, string varName)
@@ -266,7 +262,7 @@ namespace Zeze.Gen.python
                     return $"{bufName}.read_string_tag({typeVar})";
                 case Bean:
                 case BeanKey:
-                    return $"{bufName}.read_bean_tag(" + TypeName.GetName(type) + "(), {typeVar})";
+                    return $"{bufName}.read_bean_tag({TypeName.GetName(type)}(), {typeVar})";
                 case TypeDynamic:
                     return $"{bufName}.read_dynamic_tag({beanName}.dynamic_id2bean_{varName}, {typeVar})";
                 case TypeVector2:
@@ -290,7 +286,7 @@ namespace Zeze.Gen.python
         {
             if (id <= 0)
                 throw new Exception("invalid variable.id");
-            Types.Type vt = type.ValueType;
+            var vt = type.ValueType;
             sw.WriteLine($"{prefix}_x_ = self.{var.Name}");
             sw.WriteLine($"{prefix}_x_.clear()");
             sw.WriteLine($"{prefix}if (_t_ & ByteBuffer.TAG_MASK) == {TypeTagName.GetName(type)}:");
@@ -322,7 +318,8 @@ namespace Zeze.Gen.python
             sw.WriteLine($"{prefix}_x_ = self.{var.Name}");
             sw.WriteLine($"{prefix}_x_.clear()");
             sw.WriteLine($"{prefix}if (_t_ & ByteBuffer.TAG_MASK) == {TypeTagName.GetName(type)}:");
-            sw.WriteLine($"{prefix}    _s_ = (_t_ = " + bufName + ".ReadByte()) >> ByteBuffer.TAG_SHIFT");
+            sw.WriteLine($"{prefix}    _t_ = " + bufName + ".ReadByte()");
+            sw.WriteLine($"{prefix}    _s_ = _t_ >> ByteBuffer.TAG_SHIFT");
             sw.WriteLine($"{prefix}    _n_ = {bufName}.read_uint()");
             sw.WriteLine($"{prefix}    while _n_ > 0:");
             sw.WriteLine($"{prefix}        _k_ = " + DecodeElement(kt, "_s_", var.Name));
@@ -336,14 +333,14 @@ namespace Zeze.Gen.python
         public void Visit(Bean type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{bufName}.read_bean(self.{var.Name}), _t_)"
+                ? $"{prefix}{bufName}.read_bean(self.{var.Name}, _t_)"
                 : $"{prefix}self.{var.Name}.decode({bufName})");
         }
 
         public void Visit(BeanKey type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{bufName}.read_bean(self.{var.Name}), _t_)"
+                ? $"{prefix}{bufName}.read_bean(self.{var.Name}, _t_)"
                 : $"{prefix}self.{var.Name}.decode({bufName})");
         }
 

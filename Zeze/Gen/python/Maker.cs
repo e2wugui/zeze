@@ -12,15 +12,15 @@ namespace Zeze.Gen.python
             Project = project;
         }
 
-        public static string toPythonComment(string s, bool prefixSpace = false)
+        public static string toPythonComment(string s, string prefix = "")
         {
+            s = s.Trim();
             if (s.StartsWith("//"))
-                return (prefixSpace ? " #" : "#") + s[2..];
-            if (s.StartsWith(" //"))
-                return (prefixSpace ? "  #" : " #") + s[3..];
+                s = "#" + s[2..];
             if (s.StartsWith("/*") && s.EndsWith("*/"))
-                return (prefixSpace ? " \"\"\"" : "\"\"\"") + s.Substring(2, s.Length - 4) + "\"\"\"";
-            return s;
+                s = "\"\"\"" + s.Substring(2, s.Length - 4) + "\"\"\"";
+            s = s.Replace("\r", "").Replace("\t", "    ");
+            return string.IsNullOrEmpty(prefix) ? s : prefix + s.Replace("\n", "\n" + prefix);
         }
 
         public void Make()
@@ -37,9 +37,9 @@ namespace Zeze.Gen.python
 
             // gen common
             foreach (Bean bean in Project.AllBeans.Values)
-                new BeanFormatter(bean).Make(genCommonDir);
+                new BeanFormatter(bean).Make(genCommonDir, Project);
             foreach (BeanKey beanKey in Project.AllBeanKeys.Values)
-                new BeanKeyFormatter(beanKey).Make(genCommonDir);
+                new BeanKeyFormatter(beanKey).Make(genCommonDir, Project);
             foreach (Protocol protocol in Project.AllProtocols.Values)
             {
                 if (protocol is Rpc rpc)
@@ -47,6 +47,7 @@ namespace Zeze.Gen.python
                 else
                     new ProtocolFormatter(protocol).Make(genCommonDir);
             }
+            GenInit(genCommonDir);
 
             // gen project
             foreach (Module module in Project.AllOrderDefineModules)
@@ -55,6 +56,29 @@ namespace Zeze.Gen.python
                 new ServiceFormatter(service, genDir, srcDir).Make();
 
             new App(Project, genDir, srcDir).Make();
+        }
+
+        public void GenInit(string baseDir)
+        {
+            {
+                using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(baseDir, "__init__.py"));
+                if (sw == null)
+                    return;
+                foreach (var file in Directory.GetFiles(baseDir))
+                {
+                    if (!file.EndsWith(".py"))
+                        continue;
+                    var s = file[..^3].Replace('\\', '/');
+                    var p = s.LastIndexOf('/');
+                    if (p >= 0)
+                        s = s[(p + 1)..];
+                    if (s == "__init__")
+                        continue;
+                    sw.WriteLine($"from .{s} import {s}");
+                }
+            }
+            foreach (var path in Directory.GetDirectories(baseDir))
+                GenInit(path);
         }
     }
 }

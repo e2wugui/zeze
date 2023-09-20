@@ -11,10 +11,12 @@ namespace Zeze.Gen.python
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "def assign(self, other):");
+            sw.WriteLine();
+            sw.WriteLine($"{prefix}def assign(self, other):");
             foreach (var var in bean.Variables)
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    "));
-            sw.WriteLine();
+            if (bean.Variables.Count <= 0)
+                sw.WriteLine($"{prefix}    pass");
         }
 
         public Assign(Variable var, StreamWriter sw, string prefix)
@@ -72,21 +74,21 @@ namespace Zeze.Gen.python
         public void Visit(TypeList type)
         {
             sw.WriteLine(type.ValueType.IsNormalBean
-                ? $"{prefix}assign_list_copy(self.{var.Name}, other.{var.Name})"
+                ? $"{prefix}assign_copy_list(self.{var.Name}, other.{var.Name})"
                 : $"{prefix}assign_list(self.{var.Name}, other.{var.Name})");
         }
 
         public void Visit(TypeSet type)
         {
             sw.WriteLine(type.ValueType.IsNormalBean
-                ? $"{prefix}assign_set_copy(self.{var.Name}, other.{var.Name})"
+                ? $"{prefix}assign_copy_set(self.{var.Name}, other.{var.Name})"
                 : $"{prefix}assign_set(self.{var.Name}, other.{var.Name})");
         }
 
         public void Visit(TypeMap type)
         {
             sw.WriteLine(type.ValueType.IsNormalBean
-                ? $"{prefix}assign_dict_copy(self.{var.Name}, other.{var.Name})"
+                ? $"{prefix}assign_copy_dict(self.{var.Name}, other.{var.Name})"
                 : $"{prefix}assign_dict(self.{var.Name}, other.{var.Name})");
         }
 

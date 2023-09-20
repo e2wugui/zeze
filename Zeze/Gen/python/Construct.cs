@@ -24,6 +24,7 @@ namespace Zeze.Gen.python
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
+            sw.WriteLine();
             sw.Write(prefix + "def __init__(self");
             foreach (var var in bean.Variables)
                 sw.Write($", {var.Name}=None");
@@ -34,11 +35,13 @@ namespace Zeze.Gen.python
                 var.VariableType.Accept(new Construct(sw, var));
                 sw.WriteLine($" if {var.Name} is None else {var.Name}  # {var.Id}:{GetTypeDesc(var)}");
             }
-            sw.WriteLine();
+            if (bean.Variables.Count <= 0)
+                sw.WriteLine($"{prefix}    pass");
         }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
+            sw.WriteLine();
             sw.Write(prefix + "def __init__(self");
             foreach (var var in bean.Variables)
                 sw.Write($", {var.Name}=None");
@@ -49,7 +52,8 @@ namespace Zeze.Gen.python
                 var.VariableType.Accept(new Construct(sw, var));
                 sw.WriteLine($" if {var.Name} is None else {var.Name}  # {var.Id}:{GetTypeDesc(var)}");
             }
-            sw.WriteLine();
+            if (bean.Variables.Count <= 0)
+                sw.WriteLine($"{prefix}    pass");
         }
 
         public Construct(StreamWriter sw, Variable variable)
@@ -95,7 +99,7 @@ namespace Zeze.Gen.python
 
         public void Visit(TypeBinary type)
         {
-            sw.Write("Buffer.empty_bytes");
+            sw.Write("ByteBuffer.empty_bytes");
         }
 
         public void Visit(TypeString type)

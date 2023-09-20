@@ -76,7 +76,7 @@ def hash_dict(a):
 INDENT_MAX = 64
 INDENTS = []
 for i in range(0, INDENT_MAX):
-    INDENTS[i] = " " * i
+    INDENTS.append(" " * i)
 
 
 def indent(n):

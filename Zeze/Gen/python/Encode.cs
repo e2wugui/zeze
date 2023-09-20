@@ -16,6 +16,7 @@ namespace Zeze.Gen.python
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
+            sw.WriteLine();
             sw.WriteLine($"{prefix}_PRE_ALLOC_SIZE_ = 16");
             sw.WriteLine();
             sw.WriteLine($"{prefix}def get_pre_alloc_size(self):");
@@ -44,11 +45,11 @@ namespace Zeze.Gen.python
             }
 
             sw.WriteLine(prefix + "    _o_.write_byte(0)");
-            sw.WriteLine();
         }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
+            sw.WriteLine();
             sw.WriteLine($"{prefix}_PRE_ALLOC_SIZE_ = 16");
             sw.WriteLine();
             sw.WriteLine($"{prefix}def get_pre_alloc_size(self):");
@@ -77,7 +78,6 @@ namespace Zeze.Gen.python
             }
 
             sw.WriteLine($"{prefix}    _o_.write_byte(0)");
-            sw.WriteLine();
         }
 
         public Encode(Variable var, int id, string bufName, StreamWriter sw, string prefix, string beanName)
@@ -99,7 +99,7 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}    {bufName}.write_byte(1)");
             }
             else
-                sw.WriteLine($"{prefix}{bufName}.write_bool({var.Name})");
+                sw.WriteLine($"{prefix}{bufName}.write_bool(self.{var.Name})");
         }
 
         public void Visit(TypeByte type)
@@ -112,7 +112,7 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}    {bufName}.write_long(_x_)");
             }
             else
-                sw.WriteLine($"{prefix}{bufName}.write_long({var.Name})");
+                sw.WriteLine($"{prefix}{bufName}.write_long(self.{var.Name})");
         }
 
         public void Visit(TypeShort type)
@@ -125,7 +125,7 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}    {bufName}.write_long(_x_)");
             }
             else
-                sw.WriteLine($"{prefix}{bufName}.write_long({var.Name})");
+                sw.WriteLine($"{prefix}{bufName}.write_long(self.{var.Name})");
         }
 
         public void Visit(TypeInt type)
@@ -138,7 +138,7 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}    {bufName}.write_long(_x_)");
             }
             else
-                sw.WriteLine($"{prefix}{bufName}.write_long({var.Name})");
+                sw.WriteLine($"{prefix}{bufName}.write_long(self.{var.Name})");
         }
 
         public void Visit(TypeLong type)
@@ -151,7 +151,7 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}    {bufName}.write_long(_x_)");
             }
             else
-                sw.WriteLine($"{prefix}{bufName}.write_long({var.Name})");
+                sw.WriteLine($"{prefix}{bufName}.write_long(self.{var.Name})");
         }
 
         public void Visit(TypeFloat type)
@@ -164,7 +164,7 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}    {bufName}.write_float(_x_)");
             }
             else
-                sw.WriteLine($"{prefix}{bufName}.write_float({var.Name})");
+                sw.WriteLine($"{prefix}{bufName}.write_float(self.{var.Name})");
         }
 
         public void Visit(TypeDouble type)
@@ -177,7 +177,7 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}    {bufName}.write_double(_x_)");
             }
             else
-                sw.WriteLine($"{prefix}{bufName}.write_double({var.Name})");
+                sw.WriteLine($"{prefix}{bufName}.write_double(self.{var.Name})");
         }
 
         public void Visit(TypeBinary type)
@@ -190,7 +190,7 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}    {bufName}.write_bytes(_x_)");
             }
             else
-                sw.WriteLine($"{prefix}{bufName}.write_bytes({var.Name})");
+                sw.WriteLine($"{prefix}{bufName}.write_bytes(self.{var.Name})");
         }
 
         public void Visit(TypeString type)
@@ -203,7 +203,7 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}    {bufName}.write_string(_x_)");
             }
             else
-                sw.WriteLine($"{prefix}{bufName}.write_string({var.Name})");
+                sw.WriteLine($"{prefix}{bufName}.write_string(self.{var.Name})");
         }
 
         void EncodeElement(Type type, string prefix, string varName)
@@ -346,7 +346,7 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}_x_ = self.{var.Name}");
                 sw.WriteLine($"{prefix}if _x_.__class__ != EmptyBean.__class__:");
                 sw.WriteLine($"{prefix}    _i_ = {bufName}.write_tag(_i_, {id}, {TypeTagName.GetName(type)})");
-                sw.WriteLine($"{prefix}    _x_.write_long({beanName}.dynamic_bean2id_{var.Name}(self.{var.Name})");
+                sw.WriteLine($"{prefix}    _x_.write_long({beanName}.dynamic_bean2id_{var.Name}(self.{var.Name}))");
                 sw.WriteLine($"{prefix}    _x_.encode({bufName})");
             }
             else
@@ -360,7 +360,7 @@ namespace Zeze.Gen.python
             if (id > 0)
             {
                 sw.WriteLine($"{prefix}_x_ = self.{var.Name}");
-                sw.WriteLine($"{prefix}if !_x_.is_zero():");
+                sw.WriteLine($"{prefix}if not _x_.is_zero():");
                 sw.WriteLine($"{prefix}    _i_ = {bufName}.write_tag(_i_, {id}, {TypeTagName.GetName(type)})");
                 sw.WriteLine($"{prefix}    {bufName}.write_{typeName}(_x_)");
             }
