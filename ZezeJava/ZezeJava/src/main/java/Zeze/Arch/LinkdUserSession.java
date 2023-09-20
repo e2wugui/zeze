@@ -26,7 +26,7 @@ public class LinkdUserSession {
 
 	@Override
 	public String toString() {
-		return account + ":" + userState.getContext() + "@" + userState.getOnlineSetName();
+		return account + " " + userState.getContext() + " " + userState.getOnlineSetName();
 	}
 
 	public LinkdUserSession(long sessionId) {
