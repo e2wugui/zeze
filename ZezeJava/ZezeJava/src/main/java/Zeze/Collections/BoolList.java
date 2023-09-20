@@ -1,8 +1,10 @@
 package Zeze.Collections;
 
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.BoolList.BKey;
 import Zeze.Builtin.Collections.BoolList.BValue;
+import Zeze.Util.OutObject;
 
 public class BoolList {
 	public static class Module extends AbstractBoolList {
@@ -161,6 +163,41 @@ public class BoolList {
 		case 7:
 			value.setItem7(value.getItem7() & varMask);
 			break;
+		}
+	}
+
+	/**
+	 * clearAll，使用Walk并且删除所有记录的方式清除所有Bool。
+	 * 事务外调用.
+	 */
+	public void clearAll() {
+		var batch = new RemoveBatch();
+		module._tBoolList.walk((key, value) -> batch.add(key), batch::tryPerform);
+		batch.perform();
+	}
+
+	class RemoveBatch {
+		ArrayList<BKey> keys = new ArrayList<>();
+		public boolean add(BKey key) {
+			keys.add(key);
+			return true;
+		}
+
+		public void tryPerform() {
+			if (keys.size() > 20) {
+				perform();
+			}
+		}
+		public void perform() {
+			if (keys.isEmpty())
+				return;
+
+			module.zeze.newProcedure(() -> {
+				for (var key : keys)
+					module._tBoolList.remove(key);
+				return 0;
+			}, "remove some").call();
+			keys.clear();
 		}
 	}
 }

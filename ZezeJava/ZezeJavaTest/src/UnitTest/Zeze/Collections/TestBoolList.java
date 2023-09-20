@@ -28,6 +28,15 @@ public class TestBoolList {
 		for (int i = 0; i < 1024; ++i) {
 			Assert.assertTrue(get(bl, i));
 		}
+		App.Instance.Zeze.newProcedure(() -> {
+			for (int i = 0; i < 1024; ++i) {
+				bl.clear(i);
+			}
+			return 0;
+		}, "set all").call();
+		for (int i = 0; i < 1024; ++i) {
+			Assert.assertFalse(get(bl, i));
+		}
 	}
 
 	private static boolean get(BoolList bl, int index) {
