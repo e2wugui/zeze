@@ -51,5 +51,10 @@ echo -------- Gen zeze\Components\WorldDemo\world.xml ...
 Gen.exe world.xml
 cd ..\..
 
+cd python
+echo -------- Gen python\solution.xml ...
+Gen.exe solution.xml
+cd ..
+
 echo -------- Gen done!
 pause

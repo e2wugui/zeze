@@ -22,10 +22,37 @@ namespace Zeze.Gen.python
             moduleName = Program.Upper1(module.Name);
         }
 
-        FileChunkGen FileChunkGen;
-
-        public void GenEmptyProtocolHandles(StreamWriter sw)
+        public void Make()
         {
+            MakeInterface();
+            string fullDir = module.GetFullPath(srcDir);
+            string fullFileName = Path.GetFullPath(Path.Combine(fullDir, $"Module{moduleName}.py"));
+            if (TryAddNewProcess(fullFileName))
+                return;
+            FileSystem.CreateDirectory(fullDir);
+            using var sw = Program.OpenStreamWriter(fullFileName);
+            if (sw == null)
+                return;
+
+            sw.WriteLine("# noinspection PyUnresolvedReferences");
+            sw.WriteLine($"import gen.{project.Solution.Name} as {project.Solution.Name}");
+            sw.WriteLine();
+            sw.WriteLine();
+            sw.WriteLine($"class Module{moduleName}({module.Path(".", "AbstractModule")}):");
+            sw.WriteLine("    def __init__(self, app):");
+            sw.WriteLine("        super().__init__(app)");
+            sw.WriteLine();
+            sw.WriteLine("    def init(self):");
+            sw.WriteLine("        pass");
+            sw.WriteLine();
+            sw.WriteLine("    def start(self):");
+            sw.WriteLine("        pass");
+            sw.WriteLine();
+            sw.WriteLine("    def stop(self):");
+            sw.WriteLine("        pass");
+            sw.WriteLine();
+            sw.WriteLine("    def start_last(self):");
+            sw.WriteLine("        pass");
             if (module.ReferenceService != null)
             {
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
@@ -53,56 +80,11 @@ namespace Zeze.Gen.python
             }
         }
 
-        public void Make()
+        bool TryAddNewProcess(string fullFileName)
         {
-            MakeInterface();
-            FileChunkGen = new FileChunkGen();
-            string fullDir = module.GetFullPath(srcDir);
-            string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.py");
-            if (FileChunkGen.LoadFile(fullFileName))
-            {
-                //TODO
-                // FileChunkGen.SaveFile(fullFileName, GenChunkByName, GenBeforeChunkByName);
-                return;
-            }
-            FileSystem.CreateDirectory(fullDir);
-            using var sw = Program.OpenStreamWriter(fullFileName);
-            if (sw == null)
-                return;
+            if (!File.Exists(fullFileName))
+                return false;
 
-            sw.WriteLine("# noinspection PyUnresolvedReferences");
-            sw.WriteLine($"import gen.{project.Solution.Name} as {project.Solution.Name}");
-            sw.WriteLine();
-            sw.WriteLine();
-            sw.WriteLine($"class Module{moduleName}({module.Path(".", "AbstractModule")}):");
-            ConstructorGen(sw);
-            sw.WriteLine();
-            sw.WriteLine("    def init(self):");
-            sw.WriteLine("        pass");
-            sw.WriteLine();
-            sw.WriteLine("    def start(self):");
-            sw.WriteLine("        pass");
-            sw.WriteLine();
-            sw.WriteLine("    def stop(self):");
-            sw.WriteLine("        pass");
-            sw.WriteLine();
-            sw.WriteLine("    def start_last(self):");
-            sw.WriteLine("        pass");
-            GenEmptyProtocolHandles(sw);
-        }
-
-        const string ChunkNameModuleGen = "GEN MODULE";
-        const string ChunkNameImport = "IMPORT GEN";
-
-        string GetHandleName(Protocol p)
-        {
-            if (p is Rpc rpc)
-                return $"process_{rpc.Name}_request";
-            return $"process_{p.Name}";
-        }
-
-        void NewProtocolHandle(StreamWriter sw)
-        {
             var handles = GetProcessProtocols();
             var protoMap = new Dictionary<string, Protocol>();
             foreach (var p in handles)
@@ -112,89 +94,43 @@ namespace Zeze.Gen.python
                 else
                     protoMap[p.Name] = p;
             }
-            // 找出现有的可能是协议实现的函数
-            var exist = new HashSet<Protocol>();
-            foreach (var chunk in FileChunkGen.Chunks)
+
+            using (var sr = new StreamReader(fullFileName))
             {
-                if (chunk.State == FileChunkGen.State.Normal)
+                for (string line; (line = sr.ReadLine()) != null;)
                 {
-                    foreach (var line in chunk.Lines)
+                    int p = line.IndexOf("def process_", StringComparison.Ordinal);
+                    if (p >= 0)
                     {
-                        int p = line.IndexOf("def process_", StringComparison.Ordinal);
-                        if (p >= 0)
-                        {
-                            int q = line.IndexOf('(', p + 12);
-                            if (q >= 0)
-                            {
-                                if (protoMap.TryGetValue(line.Substring(p + 12, q - p - 12).Trim(), out var h))
-                                    exist.Add(h);
-                            }
-                        }
+                        int q = line.IndexOf('(', p += 12);
+                        if (q >= 0)
+                            protoMap.Remove(line.Substring(p, q - p).Trim());
                     }
                 }
             }
 
-            // New Protocol
-            foreach (var h in handles)
+            if (protoMap.Count > 0)
             {
-                if (exist.Contains(h))
-                    continue;
-
-                var hName = GetHandleName(h);
-                if (h is Rpc rpc)
+                using var sw = new StreamWriter(fullFileName, true);
+                // New Protocol
+                foreach (var p in protoMap.Values)
                 {
-                    string fullName = rpc.Space.Path(".", rpc.Name);
-                    sw.WriteLine("    @Override");
-                    sw.WriteLine($"    protected long {hName}({fullName} r) {{");
-                    sw.WriteLine($"        return Zeze.Transaction.Procedure.NotImplement;");
-                    sw.WriteLine("    }");
-                    sw.WriteLine("");
+                    if (p is Rpc rpc)
+                    {
+                        sw.WriteLine();
+                        sw.WriteLine($"    def process_{rpc.Name}_request(self, r):");
+                        sw.WriteLine($"        raise Exception(\"not implement for process_{rpc.Name}_request\")");
+                    }
+                    else
+                    {
+                        sw.WriteLine();
+                        sw.WriteLine($"    def process_{p.Name}(self, r):");
+                        sw.WriteLine($"        raise Exception(\"not implement for process_{p.Name}\")");
+                    }
                 }
-                else
-                {
-                    string fullName = h.Space.Path(".", h.Name);
-                    sw.WriteLine("    @Override");
-                    sw.WriteLine($"    protected long {hName}({fullName} p) {{");
-                    sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
-                    sw.WriteLine("    }");
-                    sw.WriteLine("");
-                }
+                Program.Print($"  Overwrite File: {fullFileName}", ConsoleColor.DarkYellow);
             }
-        }
-
-        void GenChunkByName(StreamWriter writer, FileChunkGen.Chunk chunk)
-        {
-            switch (chunk.Name)
-            {
-                case ChunkNameModuleGen:
-                    ConstructorGen(writer);
-                    break;
-                case ChunkNameImport:
-                    ImportGen(writer);
-                    break;
-                default:
-                    throw new Exception("unknown Chunk.Name=" + chunk.Name);
-            }
-        }
-
-        void GenBeforeChunkByName(StreamWriter writer, FileChunkGen.Chunk chunk)
-        {
-            switch (chunk.Name)
-            {
-                case ChunkNameModuleGen:
-                    NewProtocolHandle(writer);
-                    break;
-            }
-        }
-
-        void ImportGen(StreamWriter sw)
-        {
-        }
-
-        void ConstructorGen(StreamWriter sw)
-        {
-            sw.WriteLine("    def __init__(self, app):");
-            sw.WriteLine("        super().__init__(app)");
+            return true;
         }
 
         public void RegisterProtocols(StreamWriter sw)
