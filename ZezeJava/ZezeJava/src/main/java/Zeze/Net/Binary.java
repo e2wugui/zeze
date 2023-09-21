@@ -28,6 +28,7 @@ public final class Binary implements Comparable<Binary> {
 	 * 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
 	 */
 	public Binary(byte @NotNull [] bytes, int offset, int count) {
+		ByteBuffer.VerifyArrayIndex(bytes, offset, count);
 		this.bytes = bytes;
 		this.offset = offset;
 		this.count = count;

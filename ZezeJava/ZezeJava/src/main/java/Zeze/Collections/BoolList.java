@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.BoolList.BKey;
 import Zeze.Builtin.Collections.BoolList.BValue;
-import Zeze.Util.OutObject;
 
 public class BoolList {
 	public static class Module extends AbstractBoolList {
@@ -172,22 +171,23 @@ public class BoolList {
 	 */
 	public void clearAll() {
 		var batch = new RemoveBatch();
-		module._tBoolList.walk((key, value) -> batch.add(key), batch::tryPerform);
+		module._tBoolList.walk((key, __) -> batch.add(key), batch::tryPerform);
 		batch.perform();
 	}
 
 	class RemoveBatch {
-		ArrayList<BKey> keys = new ArrayList<>();
+		private final ArrayList<BKey> keys = new ArrayList<>();
+
 		public boolean add(BKey key) {
 			keys.add(key);
 			return true;
 		}
 
 		public void tryPerform() {
-			if (keys.size() > 20) {
+			if (keys.size() > 20)
 				perform();
-			}
 		}
+
 		public void perform() {
 			if (keys.isEmpty())
 				return;
