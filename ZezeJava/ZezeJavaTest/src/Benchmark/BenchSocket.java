@@ -477,7 +477,7 @@ public class BenchSocket {
 			for (int j = 0, n = rand.nextInt(1, 100); j < n; j++)
 				p.Argument.getLinkSids().add((long)rand.nextInt());
 			p.Argument.setProtocolType(rand.nextLong());
-			p.Argument.setProtocolWholeData(new Binary(pdata, 0, rand.nextInt(100)));
+			p.Argument.setProtocolWholeData(new Binary(pdata, rand.nextInt(100)));
 			var bb = ByteBuffer.Allocate(1000);
 			p.encode(bb);
 			result.add(bb);
@@ -510,7 +510,7 @@ public class BenchSocket {
 			for (int j = 0, n = rand.nextInt(1, 100); j < n; j++)
 				p.Argument.getLinkSids().add(rand.nextInt());
 			p.Argument.setProtocolType(rand.nextLong());
-			p.Argument.setProtocolWholeData(new Binary(pdata, 0, rand.nextInt(100)));
+			p.Argument.setProtocolWholeData(new Binary(pdata, rand.nextInt(100)));
 			var bb = ByteBuffer.Allocate(1000);
 			p.encode(bb);
 			result.add(bb);

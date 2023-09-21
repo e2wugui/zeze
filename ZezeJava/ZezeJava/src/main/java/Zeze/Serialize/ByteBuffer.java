@@ -59,6 +59,11 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return new ByteBuffer(bytes, 0, bytes.length);
 	}
 
+	public static @NotNull ByteBuffer Wrap(byte @NotNull [] bytes, int length) {
+		VerifyArrayIndex(bytes, length);
+		return new ByteBuffer(bytes, 0, length);
+	}
+
 	public static @NotNull ByteBuffer Wrap(byte @NotNull [] bytes, int offset, int length) {
 		VerifyArrayIndex(bytes, offset, length);
 		return new ByteBuffer(bytes, offset, offset + length);
@@ -101,6 +106,13 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		Bytes = bytes;
 		ReadIndex = 0;
 		WriteIndex = bytes.length;
+	}
+
+	public void wraps(byte @NotNull [] bytes, int length) {
+		VerifyArrayIndex(bytes, length);
+		Bytes = bytes;
+		ReadIndex = 0;
+		WriteIndex = length;
 	}
 
 	public void wraps(byte @NotNull [] bytes, int offset, int length) {
@@ -1153,12 +1165,16 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	public static final int TAG_MASK = (1 << TAG_SHIFT) - 1;
 	public static final int ID_MASK = 0xff - TAG_MASK;
 
-	public static void VerifyArrayIndex(byte @NotNull [] bytes, int offset, int length) {
+	public static void VerifyArrayIndex(byte @NotNull [] bytes, int length) {
 		int bytesLen = bytes.length;
-		long offsetL = offset & 0xffff_ffffL;
-		long endIndexL = (offset + length) & 0xffff_ffffL;
-		if (endIndexL > bytesLen || offsetL > endIndexL)
-			throw new IllegalArgumentException(bytesLen + "," + offset + ',' + length);
+		if ((length | (bytesLen - length)) < 0)
+			throw new IllegalArgumentException(length + " > " + bytesLen);
+	}
+
+	public static void VerifyArrayIndex(byte @NotNull [] bytes, int offset, int length) {
+		int bytesLen = bytes.length, end;
+		if ((offset | length | (end = offset + length) | (bytesLen - end)) < 0)
+			throw new IllegalArgumentException(offset + " + " + length + " > " + bytesLen);
 	}
 
 	public static @NotNull ByteBuffer encode(@NotNull Serializable sa) {

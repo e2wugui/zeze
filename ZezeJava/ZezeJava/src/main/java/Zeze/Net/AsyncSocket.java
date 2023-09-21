@@ -789,7 +789,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					codecBuf.Append(buffer.array(), 0, bytesTransferred);
 					readAgain &= service.OnSocketProcessInputBuffer(this, codecBuf);
 				} else {
-					ByteBuffer avoidCopy = ByteBuffer.Wrap(buffer.array(), 0, bytesTransferred);
+					ByteBuffer avoidCopy = ByteBuffer.Wrap(buffer.array(), bytesTransferred);
 					readAgain &= service.OnSocketProcessInputBuffer(this, avoidCopy);
 					if (!avoidCopy.isEmpty()) // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。
 						codecBuf.Append(avoidCopy.Bytes, avoidCopy.ReadIndex, avoidCopy.size());

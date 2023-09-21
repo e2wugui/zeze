@@ -188,7 +188,7 @@ public class Daemon {
 		var buf = new byte[1024];
 		var p = new DatagramPacket(buf, buf.length);
 		socket.receive(p);
-		var bb = ByteBuffer.Wrap(buf, 0, p.getLength());
+		var bb = ByteBuffer.Wrap(buf, p.getLength());
 		var c = bb.ReadInt();
 		Command cmd;
 		//noinspection EnhancedSwitchMigration

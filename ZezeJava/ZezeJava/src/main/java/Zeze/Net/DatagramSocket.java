@@ -109,7 +109,7 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 			buffer.clear();
 			var source = datagramChannel.receive(buffer);
 			if (source != null) {
-				var bb = ByteBuffer.Wrap(buffer.array(), 0, buffer.position());
+				var bb = ByteBuffer.Wrap(buffer.array(), buffer.position());
 				var ssid = ByteBuffer.ToLong(bb.Bytes, 0);
 				var ss = sessions.get(ssid);
 				if (null != ss)

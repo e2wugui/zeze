@@ -691,7 +691,7 @@ public class Test {
 			try (var file = new FileInputStream(path)) {
 				var bytes = new byte[1024];
 				int rc = file.read(bytes);
-				count = ByteBuffer.Wrap(bytes, 0, rc).ReadLong();
+				count = ByteBuffer.Wrap(bytes, rc).ReadLong();
 			}
 		}
 

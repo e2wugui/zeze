@@ -55,7 +55,7 @@ class InstallSnapshotState {
 			var buffer = new byte[32 * 1024];
 			int rc = file.read(buffer);
 			pending.Argument.setOffset(offset);
-			pending.Argument.setData(new Binary(buffer, 0, rc));
+			pending.Argument.setData(new Binary(buffer, rc));
 			pending.Argument.setDone(rc < buffer.length);
 			offset += rc;
 			if (pending.Argument.getDone())
