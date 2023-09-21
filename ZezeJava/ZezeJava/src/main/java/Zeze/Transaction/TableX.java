@@ -859,10 +859,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return cache.walkKey(callback);
 	}
 
-	public final long WalkDatabaseKey(@NotNull TableWalkKey<K> callback) {
-		return walkDatabaseKey(callback);
-	}
-
 	public final long walkDatabaseKey(@NotNull TableWalkKey<K> callback) {
 		var storage = this.storage;
 		if (storage == null)

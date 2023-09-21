@@ -166,38 +166,31 @@ public class BoolList {
 	}
 
 	/**
-	 * clearAll，使用Walk并且删除所有记录的方式清除所有Bool。
+	 * clearAll，使用walkDatabaseKey并且删除所有记录的方式清除当前name的所有Bools。
 	 * 事务外调用.
 	 */
 	public void clearAll() {
-		var batch = new RemoveBatch();
-		module._tBoolList.walk((key, __) -> batch.add(key), batch::tryPerform);
-		batch.perform();
-	}
+		var table = module._tBoolList;
+		var curKey = new BKey(name, 0);
+		var curKeyFinal = curKey;
+		module.zeze.newProcedure(() -> {
+			table.remove(curKeyFinal);
+			return 0;
+		}, "remove first").call();
 
-	class RemoveBatch {
-		private final ArrayList<BKey> keys = new ArrayList<>();
-
-		public boolean add(BKey key) {
-			keys.add(key);
-			return true;
+		final int BATCH_COUNT = 20;
+		var batch = new ArrayList<BKey>(BATCH_COUNT);
+		do {
+			curKey = table.walkKey(curKey, BATCH_COUNT, key -> name.equals(key.getName()) && batch.add(key));
+			if (!batch.isEmpty()) {
+				module.zeze.newProcedure(() -> {
+					for (var key : batch)
+						table.remove(key);
+					return 0;
+				}, "remove some").call();
+				batch.clear();
+			}
 		}
-
-		public void tryPerform() {
-			if (keys.size() > 20)
-				perform();
-		}
-
-		public void perform() {
-			if (keys.isEmpty())
-				return;
-
-			module.zeze.newProcedure(() -> {
-				for (var key : keys)
-					module._tBoolList.remove(key);
-				return 0;
-			}, "remove some").call();
-			keys.clear();
-		}
+		while (curKey != null && name.equals(curKey.getName()));
 	}
 }
