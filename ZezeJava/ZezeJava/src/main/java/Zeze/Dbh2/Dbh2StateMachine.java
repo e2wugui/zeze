@@ -187,7 +187,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			if (now - t.getCreateTime() < dbh2.getDbh2Config().getBucketMaxTime())
 				continue;
 			var tid = e.getKey();
-			var state = commitAgent.query(t.getQueryIp(), t.getQueryPort(), tid);
+			var state = commitAgent.query(t.getQueryIp(), t.getQueryPort(), tid, dbh2.getDbh2Config().getRpcTimeout());
 			if (Commit.eCommitNotExist == state.getState()
 					|| Commit.ePreparing == state.getState()) {
 				logger.warn("timeout undo tid=" + tid + " state=" + state);

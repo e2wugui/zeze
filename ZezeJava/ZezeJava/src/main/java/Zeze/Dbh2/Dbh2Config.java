@@ -13,6 +13,15 @@ public class Dbh2Config implements Config.ICustomize {
 	private int raftClusterCount = 3;
 	private boolean serialize = true;
 	private int splitCleanCount = 200;
+	private int rpcTimeout = 20_000;
+
+	public int getRpcTimeout() {
+		return rpcTimeout;
+	}
+
+	public void setRpcTimeout(int value) {
+		rpcTimeout = value;
+	}
 
 	public boolean isSerialize() {
 		return serialize;
@@ -103,5 +112,9 @@ public class Dbh2Config implements Config.ICustomize {
 		attr = self.getAttribute("SplitCleanCount");
 		if (!attr.isBlank())
 			splitCleanCount = Integer.parseInt(attr);
+
+		attr = self.getAttribute("RpcTimeout");
+		if (!attr.isBlank())
+			rpcTimeout = Integer.parseInt(attr);
 	}
 }

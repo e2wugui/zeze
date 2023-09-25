@@ -14,6 +14,7 @@ import Zeze.Util.OutObject;
 
 public class CommitAgent extends AbstractCommitAgent {
 	public static final String eServiceName = "Zeze.Dbh2.CommitAgent";
+
 	private final ConcurrentHashMap<String, Connector> agents = new ConcurrentHashMap<>();
 
 	public static class Service extends Zeze.Net.Service {
@@ -54,19 +55,19 @@ public class CommitAgent extends AbstractCommitAgent {
 		service.stop();
 	}
 
-	public BTransactionState.Data query(String host, int port, Binary tid) {
+	public BTransactionState.Data query(String host, int port, Binary tid, int rpcTimeout) {
 		var r = new Query();
 		r.Argument.setTid(tid);
-		r.SendForWait(connect(host, port)).await();
+		r.SendForWait(connect(host, port), rpcTimeout).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("query state error=" + IModule.getErrorCode(r.getResultCode()));
 		return r.Result;
 	}
 
-	public void commit(String host, int port, BPrepareBatches.Data batches) {
+	public void commit(String host, int port, BPrepareBatches.Data batches, int rpcTimeout) {
 		var r = new Commit();
 		r.Argument = batches;
-		r.SendForWait(connect(host, port)).await();
+		r.SendForWait(connect(host, port), rpcTimeout).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("commit error=" + IModule.getErrorCode(r.getResultCode()));
 	}

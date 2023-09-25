@@ -48,7 +48,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	public void setBucketMeta(BBucketMeta.Data meta) {
 		var r = new SetBucketMeta();
 		r.Argument = meta;
-		r.setTimeout(30_000);
+		r.setTimeout(config.getRpcTimeout());
 		raftClient.sendForWait(r).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("fail! code=" + r.getResultCode());
@@ -65,7 +65,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		r.Argument.setDatabase(databaseName);
 		r.Argument.setTable(tableName);
 		r.Argument.setKey(key);
-		r.setTimeout(10_000);
+		r.setTimeout(config.getRpcTimeout());
 		raftClient.sendForWait(r).await();
 
 		if (r.getResultCode() == errorCode(eBucketMissmatch))
@@ -81,18 +81,21 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	public TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>> prepareBatch(BPrepareBatch.Data batch) {
 		var r = new PrepareBatch();
 		r.Argument = batch;
+		r.setTimeout(config.getRpcTimeout());
 		return raftClient.sendForWait(r);
 	}
 
 	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> commitBatch(Binary tid) {
 		var r = new CommitBatch();
 		r.Argument.setTid(tid);
+		r.setTimeout(config.getRpcTimeout());
 		return raftClient.sendForWait(r);
 	}
 
 	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> undoBatch(Binary tid) {
 		var r = new UndoBatch();
 		r.Argument.setTid(tid);
+		r.setTimeout(config.getRpcTimeout());
 		return raftClient.sendForWait(r);
 	}
 
@@ -153,6 +156,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		r.Argument.setExclusiveStartKey(exclusiveStartKey);
 		r.Argument.setProposeLimit(proposeLimit);
 		r.Argument.setDesc(desc);
+		r.setTimeout(config.getRpcTimeout());
 		raftClient.sendForWait(r).await();
 		// 错误在外面处理。
 		return r;
@@ -163,6 +167,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		r.Argument.setExclusiveStartKey(exclusiveStartKey);
 		r.Argument.setProposeLimit(proposeLimit);
 		r.Argument.setDesc(desc);
+		r.setTimeout(config.getRpcTimeout());
 		raftClient.sendForWait(r).await();
 		// 错误在外面处理。
 		return r;

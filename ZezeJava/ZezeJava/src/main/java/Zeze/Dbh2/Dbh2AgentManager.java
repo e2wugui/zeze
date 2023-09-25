@@ -126,7 +126,7 @@ public class Dbh2AgentManager {
 			return; // done;
 		}
 		var query = choiceCommitServer();
-		commitAgent.commit(query.getKey(), query.getValue(), batches);
+		commitAgent.commit(query.getKey(), query.getValue(), batches, dbh2Config.getRpcTimeout());
 	}
 
 	// Dbh2Agent 嵌入服务器需要初始化；
