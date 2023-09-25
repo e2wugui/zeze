@@ -13,8 +13,7 @@ public class Log4jFile {
 		return file;
 	}
 
-	public boolean seek(long time) {
-		return true;
+	public void seek(long time) {
 	}
 
 	public boolean hasNext() {
@@ -23,5 +22,9 @@ public class Log4jFile {
 
 	public Log4jLog next() {
 		return new Log4jLog(0, "");
+	}
+
+	public void close() {
+
 	}
 }
