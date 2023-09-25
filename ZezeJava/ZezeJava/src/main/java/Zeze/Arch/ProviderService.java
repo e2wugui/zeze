@@ -122,7 +122,7 @@ public class ProviderService extends HandshakeClient {
 
 	private volatile boolean disableChoice = false;
 
-	public synchronized void initDisableChoice(boolean value) {
+	public synchronized void initDisableChoiceFromLinks(boolean value) {
 		disableChoice = value;
 	}
 
