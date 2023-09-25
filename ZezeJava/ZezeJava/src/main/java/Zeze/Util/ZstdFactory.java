@@ -236,7 +236,7 @@ public final class ZstdFactory {
 					r = Math.max(r, 16);
 					if (dstEnd - dstPos < r) {
 						dst.WriteIndex = dstPos;
-						dst.EnsureWrite(srcEnd - srcPos);
+						dst.ensureWriteNoCompact(srcEnd - srcPos);
 						dstBytes = dst.Bytes;
 						dstEnd = dstBytes.length;
 					}

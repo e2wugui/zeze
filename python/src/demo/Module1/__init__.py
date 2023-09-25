@@ -1,2 +1,2 @@
 from .ModuleModule1 import ModuleModule1
-import Module11
+import src.demo.Module1.Module11

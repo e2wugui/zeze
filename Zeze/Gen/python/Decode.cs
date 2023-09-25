@@ -318,7 +318,7 @@ namespace Zeze.Gen.python
             sw.WriteLine($"{prefix}_x_ = self.{var.Name}");
             sw.WriteLine($"{prefix}_x_.clear()");
             sw.WriteLine($"{prefix}if (_t_ & ByteBuffer.TAG_MASK) == {TypeTagName.GetName(type)}:");
-            sw.WriteLine($"{prefix}    _t_ = " + bufName + ".ReadByte()");
+            sw.WriteLine($"{prefix}    _t_ = " + bufName + ".read_byte()");
             sw.WriteLine($"{prefix}    _s_ = _t_ >> ByteBuffer.TAG_SHIFT");
             sw.WriteLine($"{prefix}    _n_ = {bufName}.read_uint()");
             sw.WriteLine($"{prefix}    while _n_ > 0:");
@@ -333,14 +333,14 @@ namespace Zeze.Gen.python
         public void Visit(Bean type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{bufName}.read_bean(self.{var.Name}, _t_)"
+                ? $"{prefix}{bufName}.read_bean_tag(self.{var.Name}, _t_)"
                 : $"{prefix}self.{var.Name}.decode({bufName})");
         }
 
         public void Visit(BeanKey type)
         {
             sw.WriteLine(id > 0
-                ? $"{prefix}{bufName}.read_bean(self.{var.Name}, _t_)"
+                ? $"{prefix}{bufName}.read_bean_tag(self.{var.Name}, _t_)"
                 : $"{prefix}self.{var.Name}.decode({bufName})");
         }
 

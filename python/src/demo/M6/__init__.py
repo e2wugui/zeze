@@ -1,2 +1,2 @@
 from .ModuleM6 import ModuleM6
-import M7
+import src.demo.M6.M7

@@ -1,6 +1,7 @@
 import struct
 
 from zeze.vector import *
+from zeze.util import *
 
 
 class ByteBuffer:
@@ -105,35 +106,53 @@ class ByteBuffer:
 
     @staticmethod
     def to_int(buffer, offset):
-        return struct.unpack_from("<i", buffer, offset)
+        return struct.unpack_from("<i", buffer, offset)[0]
 
     @staticmethod
     def to_int_be(buffer, offset):
-        return struct.unpack_from(">i", buffer, offset)
+        return struct.unpack_from(">i", buffer, offset)[0]
 
     @staticmethod
     def to_long(buffer, offset):
-        return struct.unpack_from("<q", buffer, offset)
+        return struct.unpack_from("<q", buffer, offset)[0]
 
     @staticmethod
     def to_long_be(buffer, offset):
-        return struct.unpack_from(">q", buffer, offset)
+        return struct.unpack_from(">q", buffer, offset)[0]
 
     @staticmethod
     def to_float(buffer, offset):
-        return struct.unpack_from("<f", buffer, offset)
+        return struct.unpack_from("<f", buffer, offset)[0]
 
     @staticmethod
     def to_float_be(buffer, offset):
-        return struct.unpack_from(">f", buffer, offset)
+        return struct.unpack_from(">f", buffer, offset)[0]
 
     @staticmethod
     def to_double(buffer, offset):
-        return struct.unpack_from("<d", buffer, offset)
+        return struct.unpack_from("<d", buffer, offset)[0]
 
     @staticmethod
     def to_double_be(buffer, offset):
-        return struct.unpack_from(">d", buffer, offset)
+        return struct.unpack_from(">d", buffer, offset)[0]
+
+    @staticmethod
+    def to_long_n(buffer, offset, length):
+        v = 0
+        if length >= 8:
+            return struct.unpack_from("<q", buffer, offset)[0]
+        for i in range(0, length):
+            v += buffer[offset + i] << (i * 8)
+        return v
+
+    @staticmethod
+    def to_long_be_n(buffer, offset, length):
+        v = 0
+        if length >= 8:
+            return struct.unpack_from(">q", buffer, offset)[0]
+        for i in range(0, length):
+            v = (v << 8) + buffer[offset + i]
+        return v
 
     def compact(self):
         """
@@ -203,7 +222,9 @@ class ByteBuffer:
 
     def read_bool(self):
         self.ensure_read(1)
-        b = self.buf[self.ri]
+        ri = self.ri
+        self.ri = ri + 1
+        b = self.buf[ri]
         if b == 1:  # fast-path
             return True
         if b == 0:  # fast-path
@@ -233,7 +254,7 @@ class ByteBuffer:
         ri = self.ri
         self.ri = ri + 4
         # noinspection PyTypeChecker
-        return struct.unpack_from("<i", self.buf, ri)
+        return struct.unpack_from("<i", self.buf, ri)[0]
 
     def write_long8(self, v):
         self.ensure_write(8)
@@ -246,7 +267,7 @@ class ByteBuffer:
         ri = self.ri
         self.ri = ri + 8
         # noinspection PyTypeChecker
-        return struct.unpack_from("<q", self.buf, ri)
+        return struct.unpack_from("<q", self.buf, ri)[0]
 
     @staticmethod
     def write_uint_size(v):
@@ -262,20 +283,22 @@ class ByteBuffer:
 
     def write_uint(self, v):
         # v看成无符号数时,与write_ulong的结果一致,即相当于write_ulong(v & 0xffff_ffff)
-        wi = self.wi
         v &= 0xffff_ffff
         if v < 0x80:  # 0xxx xxxx
             self.ensure_write(1)
+            wi = self.wi
             self.wi = wi + 1
             self.buf[wi] = v
         elif v < 0x4000:  # 10xx xxxx +1B
             self.ensure_write(2)
+            wi = self.wi
             self.wi = wi + 2
             buf = self.buf
             buf[wi] = (v >> 8) + 0x80
             buf[wi + 1] = v & 0xff
         elif v < 0x20_0000:  # 110x xxxx +2B
             self.ensure_write(3)
+            wi = self.wi
             self.wi = wi + 3
             buf = self.buf
             buf[wi] = (v >> 16) + 0xc0
@@ -283,18 +306,29 @@ class ByteBuffer:
             buf[wi + 2] = v & 0xff
         elif v < 0x1000_0000:  # 1110 xxxx +3B
             self.ensure_write(4)
+            wi = self.wi
             self.wi = wi + 4
             struct.pack_into(">I", self.buf, wi, v + 0xe000_0000)
         else:  # 1111 0000 +4B
             self.ensure_write(5)
+            wi = self.wi
             self.wi = wi + 5
             buf = self.buf
             buf[wi] = 0xf0
-            struct.pack_into(">I", self.buf, wi + 1, v & 0xffff_ffff)
+            struct.pack_into(">I", self.buf, wi + 1, v)
+
+    @staticmethod
+    def truncate_int(x):
+        x &= 0xffff_ffff
+        return x if x <= 0x7fff_ffff else x - 0x1_0000_0000
+
+    @staticmethod
+    def truncate_long(x):
+        x &= 0xffff_ffff_ffff_ffff
+        return x if x <= 0x7fff_ffff_ffff_ffff else x - 0x1_0000_0000_0000_0000
 
     def read_uint(self):
-        v = self.read_ulong() & 0xffff_ffff
-        return v if v < 0x8000_0000 else v - 0x1_0000_0000
+        return ByteBuffer.truncate_int(self.read_ulong())
 
     def skip_uint(self):
         self.ensure_read(1)
@@ -327,32 +361,35 @@ class ByteBuffer:
             if v <     0x200_0000_0000: return 6
             if v <  0x1_0000_0000_0000: return 7
             if v < 0x80_0000_0000_0000: return 8
-        if v >= -               0x40: return 1
-        if v >= -             0x2000: return 2
-        if v >= -          0x10_0000: return 3
-        if v >= -         0x800_0000: return 4
-        if v >= -      0x4_0000_0000: return 5
-        if v >= -    0x200_0000_0000: return 6
-        if v >= - 0x1_0000_0000_0000: return 7
-        if v >= -0x80_0000_0000_0000: return 8
+        else:
+            if v >= -               0x40: return 1
+            if v >= -             0x2000: return 2
+            if v >= -          0x10_0000: return 3
+            if v >= -         0x800_0000: return 4
+            if v >= -      0x4_0000_0000: return 5
+            if v >= -    0x200_0000_0000: return 6
+            if v >= - 0x1_0000_0000_0000: return 7
+            if v >= -0x80_0000_0000_0000: return 8
         return 9
         # @formatter:on
 
     def write_long(self, v):
-        wi = self.wi
         if v >= 0:
             if v < 0x40:  # 00xx xxxx
                 self.ensure_write(1)
+                wi = self.wi
                 self.wi = wi + 1
-                self.buf[self.wi] = v
+                self.buf[wi] = v
             elif v < 0x2000:  # 010x xxxx +1B
                 self.ensure_write(2)
+                wi = self.wi
                 self.wi = wi + 2
                 buf = self.buf
                 buf[wi] = (v >> 8) + 0x40
                 buf[wi + 1] = v & 0xff
             elif v < 0x10_0000:  # 0110 xxxx +2B
                 self.ensure_write(3)
+                wi = self.wi
                 self.wi = wi + 3
                 buf = self.buf
                 buf[wi] = (v >> 16) + 0x60
@@ -360,16 +397,19 @@ class ByteBuffer:
                 buf[wi + 2] = v & 0xff
             elif v < 0x800_0000:  # 0111 0xxx +3B
                 self.ensure_write(4)
+                wi = self.wi
                 self.wi = wi + 4
                 struct.pack_into(">i", self.buf, wi, v + 0x7000_0000)
             elif v < 0x4_0000_0000:  # 0111 10xx +4B
                 self.ensure_write(5)
+                wi = self.wi
                 self.wi = wi + 5
                 buf = self.buf
                 buf[wi] = (v >> 32) + 0x78
                 struct.pack_into(">I", buf, wi + 1, v & 0xffff_ffff)
             elif v < 0x200_0000_0000:  # 0111 110x +5B
                 self.ensure_write(6)
+                wi = self.wi
                 self.wi = wi + 6
                 buf = self.buf
                 buf[wi] = (v >> 40) + 0x7c
@@ -377,6 +417,7 @@ class ByteBuffer:
                 struct.pack_into(">I", buf, wi + 2, v & 0xffff_ffff)
             elif v < 0x1_0000_0000_0000:  # 0111 1110 +6B
                 self.ensure_write(7)
+                wi = self.wi
                 self.wi = wi + 7
                 buf = self.buf
                 buf[wi] = 0x7e
@@ -385,10 +426,12 @@ class ByteBuffer:
                 struct.pack_into(">I", buf, wi + 3, v & 0xffff_ffff)
             elif v < 0x80_0000_0000_0000:  # 0111 1111 0 +7B
                 self.ensure_write(8)
+                wi = self.wi
                 self.wi = wi + 8
                 struct.pack_into(">Q", self.buf, wi, v + 0x7f00_0000_0000_0000)
             else:  # 0111 1111 1 +8B
                 self.ensure_write(9)
+                wi = self.wi
                 self.wi = wi + 9
                 buf = self.buf
                 buf[wi] = 0x7f
@@ -396,16 +439,19 @@ class ByteBuffer:
         else:
             if v >= -0x40:  # 11xx xxxx
                 self.ensure_write(1)
+                wi = self.wi
                 self.wi = wi + 1
-                self.buf[self.wi] = v & 0xff
+                self.buf[wi] = v & 0xff
             elif v >= -0x2000:  # 101x xxxx +1B
                 self.ensure_write(2)
+                wi = self.wi
                 self.wi = wi + 2
                 buf = self.buf
                 buf[wi] = ((v >> 8) - 0x40) & 0xff
                 buf[wi + 1] = v & 0xff
             elif v >= -0x10_0000:  # 1001 xxxx +2B
                 self.ensure_write(3)
+                wi = self.wi
                 self.wi = wi + 3
                 buf = self.buf
                 buf[wi] = ((v >> 16) - 0x60) & 0xff
@@ -413,16 +459,19 @@ class ByteBuffer:
                 buf[wi + 2] = v & 0xff
             elif v >= -0x800_0000:  # 1000 1xxx +3B
                 self.ensure_write(4)
+                wi = self.wi
                 self.wi = wi + 4
                 struct.pack_into(">i", self.buf, wi, v - 0x7000_0000)
             elif v >= -0x4_0000_0000:  # 1000 01xx +4B
                 self.ensure_write(5)
+                wi = self.wi
                 self.wi = wi + 5
                 buf = self.buf
                 buf[wi] = ((v >> 32) - 0x78) & 0xff
                 struct.pack_into(">I", buf, wi + 1, v & 0xffff_ffff)
             elif v >= -0x200_0000_0000:  # 1000 001x +5B
                 self.ensure_write(6)
+                wi = self.wi
                 self.wi = wi + 6
                 buf = self.buf
                 buf[wi] = ((v >> 40) - 0x7c) & 0xff
@@ -430,6 +479,7 @@ class ByteBuffer:
                 struct.pack_into(">I", buf, wi + 2, v & 0xffff_ffff)
             elif v >= -0x1_0000_0000_0000:  # 1000 0001 +6B
                 self.ensure_write(7)
+                wi = self.wi
                 self.wi = wi + 7
                 buf = self.buf
                 buf[wi] = 0x81
@@ -438,10 +488,12 @@ class ByteBuffer:
                 struct.pack_into(">I", buf, wi + 3, v & 0xffff_ffff)
             elif v >= -0x80_0000_0000_0000:  # 1000 0000 1 +7B
                 self.ensure_write(8)
+                wi = self.wi
                 self.wi = wi + 8
                 struct.pack_into(">q", self.buf, wi, v - 0x7f00_0000_0000_0000)
             else:  # 1000 0000 0 +8B
                 self.ensure_write(9)
+                wi = self.wi
                 self.wi = wi + 9
                 buf = self.buf
                 buf[wi] = 0x80
@@ -462,16 +514,17 @@ class ByteBuffer:
         # @formatter:on
 
     def write_ulong(self, v):
-        wi = self.wi
         if v < 0x80:
             if v >= 0:  # 0xxx xxxx
                 self.ensure_write(1)
+                wi = self.wi
                 self.wi = wi + 1
                 self.buf[wi] = v
                 return
         else:
             if v < 0x4000:  # 10xx xxxx +1B
                 self.ensure_write(2)
+                wi = self.wi
                 self.wi = wi + 2
                 buf = self.buf
                 buf[wi] = ((v >> 8) + 0x80)
@@ -479,6 +532,7 @@ class ByteBuffer:
                 return
             if v < 0x20_0000:  # 110x xxxx +2B
                 self.ensure_write(3)
+                wi = self.wi
                 self.wi = wi + 3
                 buf = self.buf
                 buf[wi] = (v >> 16) + 0xc0
@@ -487,11 +541,13 @@ class ByteBuffer:
                 return
             if v < 0x1000_0000:  # 1110 xxxx +3B
                 self.ensure_write(4)
+                wi = self.wi
                 self.wi = wi + 4
                 struct.pack_into(">I", self.buf, wi, v + 0xe000_0000)
                 return
             if v < 0x8_0000_0000:  # 1111 0xxx +4B
                 self.ensure_write(5)
+                wi = self.wi
                 self.wi = wi + 5
                 buf = self.buf
                 buf[wi] = (v >> 32) + 0xf0
@@ -499,6 +555,7 @@ class ByteBuffer:
                 return
             if v < 0x400_0000_0000:  # 1111 10xx +5B
                 self.ensure_write(6)
+                wi = self.wi
                 self.wi = wi + 6
                 buf = self.buf
                 buf[wi] = (v >> 40) + 0xf8
@@ -507,6 +564,7 @@ class ByteBuffer:
                 return
             if v < 0x2_0000_0000_0000:  # 1111 110x +6B
                 self.ensure_write(7)
+                wi = self.wi
                 self.wi = wi + 7
                 buf = self.buf
                 buf[wi] = (v >> 48) + 0xfc
@@ -516,10 +574,12 @@ class ByteBuffer:
                 return
             if v < 0x100_0000_0000_0000:  # 1111 1110 +7B
                 self.ensure_write(8)
+                wi = self.wi
                 self.wi = wi + 8
                 struct.pack_into(">Q", self.buf, wi, v + 0xfe00_0000_0000_0000)
                 return
         self.ensure_write(9)  # 1111 1111 +8B
+        wi = self.wi
         self.wi = wi + 9
         buf = self.buf
         buf[wi] = 0xff
@@ -615,7 +675,7 @@ class ByteBuffer:
         ri = self.ri
         self.ri = ri + 4
         # noinspection PyTypeChecker
-        return struct.unpack_from(">I", self.buf, ri)
+        return struct.unpack_from(">I", self.buf, ri)[0]
 
     def read_long5_be(self):
         self.ensure_read(5)
@@ -624,7 +684,7 @@ class ByteBuffer:
         self.ri = ri + 5
         # noinspection PyTypeChecker
         return ((buf[ri] << 32) +
-                struct.unpack_from(">I", buf, ri + 1))
+                struct.unpack_from(">I", buf, ri + 1)[0])
 
     def read_long6_be(self):
         self.ensure_read(6)
@@ -634,7 +694,7 @@ class ByteBuffer:
         # noinspection PyTypeChecker
         return ((buf[ri] << 40) +
                 (buf[ri + 1] << 32) +
-                struct.unpack_from(">I", buf, ri + 2))
+                struct.unpack_from(">I", buf, ri + 2)[0])
 
     def read_long7_be(self):
         self.ensure_read(7)
@@ -645,7 +705,7 @@ class ByteBuffer:
         return ((buf[ri] << 48) +
                 (buf[ri + 1] << 40) +
                 (buf[ri + 2] << 32) +
-                struct.unpack_from(">I", buf, ri + 3))
+                struct.unpack_from(">I", buf, ri + 3)[0])
 
     def read_long8_be(self) -> int:
         self.ensure_read(8)
@@ -653,7 +713,7 @@ class ByteBuffer:
         ri = self.ri
         self.ri = ri + 8
         # noinspection PyTypeChecker
-        return struct.unpack_from(">q", buf, ri)
+        return struct.unpack_from(">q", buf, ri)[0]
 
     def read_long(self):
         self.ensure_read(1)
@@ -705,7 +765,7 @@ class ByteBuffer:
             if h == 6: self.skip(6); return
             self.ensure_read(1)
             self.ri = ri + 2
-            self.skip(6 + (self.buf[ri + 1] < 0))
+            self.skip(6 + (self.buf[ri + 1] > 0x7f))
             return
         else:
             b -= 0x100
@@ -719,14 +779,14 @@ class ByteBuffer:
             if h == 1: self.skip(6); return
             self.ensure_read(1)
             self.ri = ri + 2
-            self.skip(7 - (self.buf[ri + 1] < 0))
+            self.skip(7 - (self.buf[ri + 1] > 0x7f))
         # @formatter:on
 
     def write_int(self, v):
         self.write_long(v)
 
     def read_int(self):
-        return self.read_long() & 0xffff_ffff
+        return ByteBuffer.truncate_int(self.read_long())
 
     def write_float(self, v):
         self.ensure_write(4)
@@ -738,7 +798,7 @@ class ByteBuffer:
         self.ensure_read(4)
         ri = self.ri
         self.ri = ri + 4
-        return struct.unpack_from("<f", self.buf, ri)
+        return struct.unpack_from("<f", self.buf, ri)[0]
 
     def write_double(self, v):
         self.ensure_write(8)
@@ -750,7 +810,7 @@ class ByteBuffer:
         self.ensure_read(8)
         ri = self.ri
         self.ri = ri + 8
-        return struct.unpack_from("<d", self.buf, ri)
+        return struct.unpack_from("<d", self.buf, ri)[0]
 
     @staticmethod
     def utf8_size(s):
@@ -786,22 +846,22 @@ class ByteBuffer:
             for c in s:
                 v = ord(c)
                 if v < 0x80:
-                    buf[wi] = ord(c)
+                    buf[wi] = v
                     wi += 1
                 elif v < 0x800:
-                    buf[wi] = 0xc0 + (c >> 6)
-                    buf[wi + 1] = 0x80 + (c & 0x3f)
+                    buf[wi] = 0xc0 + (v >> 6)
+                    buf[wi + 1] = 0x80 + (v & 0x3f)
                     wi += 2
                 elif v < 0x10000:
-                    buf[wi] = 0xe0 + (c >> 12)
-                    buf[wi + 1] = 0x80 + ((c >> 6) & 0x3f)
-                    buf[wi + 2] = 0x80 + (c & 0x3f)
+                    buf[wi] = 0xe0 + (v >> 12)
+                    buf[wi + 1] = 0x80 + ((v >> 6) & 0x3f)
+                    buf[wi + 2] = 0x80 + (v & 0x3f)
                     wi += 3
                 else:
-                    buf[wi] = 0xf0 + (c >> 18)
-                    buf[wi + 1] = 0x80 + ((c >> 12) & 0x3f)
-                    buf[wi + 2] = 0x80 + ((c >> 6) & 0x3f)
-                    buf[wi + 3] = 0x80 + (c & 0x3f)
+                    buf[wi] = 0xf0 + (v >> 18)
+                    buf[wi + 1] = 0x80 + ((v >> 12) & 0x3f)
+                    buf[wi + 2] = 0x80 + ((v >> 6) & 0x3f)
+                    buf[wi + 3] = 0x80 + (v & 0x3f)
                     wi += 4
         self.wi = wi
 
@@ -868,7 +928,7 @@ class ByteBuffer:
         self.write_bytes(bb.buf, bb.ri, bb.size())
 
     def __str__(self, *args, **kwargs):
-        pass  # TODO
+        return to_string_with_limit2(16, 4, self.buf, self.ri, self.size())
 
     def __eq__(self, other):
         if isinstance(other, ByteBuffer):

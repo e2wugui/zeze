@@ -1,3 +1,3 @@
 from .TestServer import TestServer
-import Module1
-import M6
+import src.demo.Module1
+import src.demo.M6

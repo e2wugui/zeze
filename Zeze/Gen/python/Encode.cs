@@ -297,7 +297,7 @@ namespace Zeze.Gen.python
             sw.WriteLine($"{prefix}if _n_ != 0:");
             sw.WriteLine($"{prefix}    _i_ = {bufName}.write_tag(_i_, {id}, {TypeTagName.GetName(type)})");
             sw.WriteLine($"{prefix}    {bufName}.write_map_type(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ")");
-            sw.WriteLine($"{prefix}    for _k_, _v_ in _x_:");
+            sw.WriteLine($"{prefix}    for _k_, _v_ in _x_.items():");
             EncodeElement(kt, prefix + "        ", "_k_");
             EncodeElement(vt, prefix + "        ", "_v_");
             sw.WriteLine($"{prefix}        _n_ -= 1");
@@ -346,7 +346,7 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}_x_ = self.{var.Name}");
                 sw.WriteLine($"{prefix}if _x_.__class__ != EmptyBean.__class__:");
                 sw.WriteLine($"{prefix}    _i_ = {bufName}.write_tag(_i_, {id}, {TypeTagName.GetName(type)})");
-                sw.WriteLine($"{prefix}    _x_.write_long({beanName}.dynamic_bean2id_{var.Name}(self.{var.Name}))");
+                sw.WriteLine($"{prefix}    {bufName}.write_long({beanName}.dynamic_bean2id_{var.Name}(self.{var.Name}))");
                 sw.WriteLine($"{prefix}    _x_.encode({bufName})");
             }
             else

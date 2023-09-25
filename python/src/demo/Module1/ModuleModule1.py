@@ -1,5 +1,6 @@
 # noinspection PyUnresolvedReferences
 import gen.demo as demo
+from zeze.bean import EmptyBean
 
 
 class ModuleModule1(demo.Module1.AbstractModule):
@@ -17,6 +18,18 @@ class ModuleModule1(demo.Module1.AbstractModule):
 
     def start_last(self):
         pass
+
+    # noinspection PyPep8Naming
+    @staticmethod
+    def getSpecialTypeIdFromBean(bean):
+        return bean.type_id()
+
+    # noinspection PyPep8Naming
+    @staticmethod
+    def createBeanFromSpecialTypeId(id):
+        if id == 0:
+            return EmptyBean()
+        raise Exception("unknown type_id = " + id)
 
     def process_Protocol3(self, r):
         raise Exception("not implement for process_Protocol3")

@@ -57,7 +57,7 @@ namespace Zeze.Gen.python
             new App(Project, srcDir).Make();
         }
 
-        public void GenInit(string baseDir)
+        public void GenInit(string baseDir, int level = 2)
         {
             {
                 using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(baseDir, "__init__.py"));
@@ -78,16 +78,18 @@ namespace Zeze.Gen.python
                 foreach (var path in Directory.GetDirectories(baseDir))
                 {
                     var s = path.Replace('\\', '/');
-                    var p = s.LastIndexOf('/');
+                    int p = s.Length;
+                    for (int i = 0; i < level; i++)
+                        p = s.LastIndexOf('/', p - 1);
                     if (p >= 0)
                         s = s[(p + 1)..];
-                    if (s == "__pycache__")
+                    if (s.EndsWith("/__pycache__"))
                         continue;
-                    sw.WriteLine($"import {s}");
+                    sw.WriteLine($"import {s.Replace('/', '.')}");
                 }
             }
             foreach (var path in Directory.GetDirectories(baseDir))
-                GenInit(path);
+                GenInit(path, level + 1);
         }
     }
 }

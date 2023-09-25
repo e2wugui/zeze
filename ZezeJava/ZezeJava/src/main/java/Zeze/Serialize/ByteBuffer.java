@@ -289,6 +289,18 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			growCapacity(newSize);
 	}
 
+	private void growCapacityNoCompact(int newSize) {
+		byte[] newBytes = new byte[toPower2(newSize)];
+		System.arraycopy(Bytes, 0, newBytes, 0, WriteIndex);
+		Bytes = newBytes;
+	}
+
+	public void ensureWriteNoCompact(int size) {
+		int newSize = WriteIndex + size;
+		if (newSize > Bytes.length)
+			growCapacityNoCompact(newSize);
+	}
+
 	private void throwEnsureReadException(int size) {
 		throw new IllegalStateException("ensureRead " + ReadIndex + '+' + size + " > " + WriteIndex);
 	}
@@ -1876,15 +1888,16 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 
 	/** 从输入流中读取未知长度的数据,一直取到无法获取为止 */
 	public @NotNull ByteBuffer readStream(@NotNull InputStream is) throws IOException {
-		for (int wi = WriteIndex; ; ) {
+		for (; ; ) {
 			EnsureWrite(8192);
 			byte[] buf = Bytes;
+			int wi = WriteIndex;
 			int n = is.read(buf, wi, buf.length - wi);
 			if (n <= 0) {
 				WriteIndex = wi;
 				break;
 			}
-			wi += n;
+			WriteIndex = wi + n;
 		}
 		return this;
 	}
