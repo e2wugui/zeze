@@ -27,7 +27,7 @@ public class Log4jFiles {
 		var rotates = new File(logRotateDir).listFiles();
 		if (null != rotates) {
 			Arrays.sort(rotates); // todo 确认文件名是按时间顺序的。
-			files.addAll(Arrays.asList(rotates));
+			files.addAll(Arrays.asList(rotates)); // 这是idea推荐写法，asList需要new一个ArrayList对象，直接for ... add不需要。
 		}
 	}
 
