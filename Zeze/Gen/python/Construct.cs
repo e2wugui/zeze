@@ -62,39 +62,45 @@ namespace Zeze.Gen.python
             this.variable = variable;
         }
 
+        void Initial(string def)
+        {
+            string value = variable.Initial;
+            sw.Write(value.Length > 0 ? value : def);
+        }
+
         public void Visit(TypeBool type)
         {
-            sw.Write("False");
+            sw.Write(variable.Initial.ToLower().Equals("true") ? "True" : "False");
         }
 
         public void Visit(TypeByte type)
         {
-            sw.Write("0");
+            Initial("0");
         }
 
         public void Visit(TypeShort type)
         {
-            sw.Write("0");
+            Initial("0");
         }
 
         public void Visit(TypeInt type)
         {
-            sw.Write("0");
+            Initial("0");
         }
 
         public void Visit(TypeLong type)
         {
-            sw.Write("0");
+            Initial("0");
         }
 
         public void Visit(TypeFloat type)
         {
-            sw.Write("0.0");
+            Initial("0.0");
         }
 
         public void Visit(TypeDouble type)
         {
-            sw.Write("0.0");
+            Initial("0.0");
         }
 
         public void Visit(TypeBinary type)
@@ -104,7 +110,7 @@ namespace Zeze.Gen.python
 
         public void Visit(TypeString type)
         {
-            sw.Write("\"\"");
+            sw.Write($"\"{variable.Initial}\"");
         }
 
         public void Visit(TypeList type)

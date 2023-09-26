@@ -211,48 +211,51 @@ namespace Zeze.Gen.python
             switch (type)
             {
                 case TypeBool:
-                    sw.WriteLine($"{prefix}{bufName}.write_bool(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_bool({varName})");
                     break;
                 case TypeByte:
                 case TypeShort:
                 case TypeInt:
                 case TypeLong:
-                    sw.WriteLine($"{prefix}{bufName}.write_long(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_long({varName})");
                     break;
                 case TypeFloat:
-                    sw.WriteLine($"{prefix}{bufName}.write_float(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_float({varName})");
                     break;
                 case TypeDouble:
-                    sw.WriteLine($"{prefix}{bufName}.write_double(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_double({varName})");
                     break;
                 case TypeBinary:
-                    sw.WriteLine($"{prefix}{bufName}.write_bytes(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_bytes({varName})");
                     break;
                 case TypeString:
-                    sw.WriteLine($"{prefix}{bufName}.write_string(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_string({varName})");
                     break;
                 case Bean:
                 case BeanKey:
+                    sw.WriteLine($"{prefix}{varName}.encode({bufName})");
+                    break;
                 case TypeDynamic:
+                    sw.WriteLine($"{prefix}{bufName}.write_long({beanName}.dynamic_bean2id_{var.Name}({varName}))");
                     sw.WriteLine($"{prefix}{varName}.encode({bufName})");
                     break;
                 case TypeVector2:
-                    sw.WriteLine($"{prefix}{bufName}.write_vector2(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_vector2({varName})");
                     break;
                 case TypeVector2Int:
-                    sw.WriteLine($"{prefix}{bufName}.write_vector2int(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_vector2int({varName})");
                     break;
                 case TypeVector3:
-                    sw.WriteLine($"{prefix}{bufName}.write_vector3(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_vector3({varName})");
                     break;
                 case TypeVector3Int:
-                    sw.WriteLine($"{prefix}{bufName}.write_vector3int(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_vector3int({varName})");
                     break;
                 case TypeVector4:
-                    sw.WriteLine($"{prefix}{bufName}.write_vector4(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_vector4({varName})");
                     break;
                 case TypeQuaternion:
-                    sw.WriteLine($"{prefix}{bufName}.write_quaternion(" + varName + ")");
+                    sw.WriteLine($"{prefix}{bufName}.write_quaternion({varName})");
                     break;
                 default:
                     throw new Exception("invalid collection element type: " + type);
@@ -344,7 +347,7 @@ namespace Zeze.Gen.python
             if (id > 0)
             {
                 sw.WriteLine($"{prefix}_x_ = self.{var.Name}");
-                sw.WriteLine($"{prefix}if _x_.__class__ != EmptyBean.__class__:");
+                sw.WriteLine($"{prefix}if _x_.__class__ != EmptyBean:");
                 sw.WriteLine($"{prefix}    _i_ = {bufName}.write_tag(_i_, {id}, {TypeTagName.GetName(type)})");
                 sw.WriteLine($"{prefix}    {bufName}.write_long({beanName}.dynamic_bean2id_{var.Name}(self.{var.Name}))");
                 sw.WriteLine($"{prefix}    _x_.encode({bufName})");

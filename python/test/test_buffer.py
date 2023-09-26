@@ -397,11 +397,31 @@ class TestByteBuffer(unittest.TestCase):
         bb2 = ByteBuffer()
         v2.encode(bb2)
 
-        # print(v);
-        # print(v2);
+        # print(v)
+        # print(v2)
 
         self.assertEqual(bb.size(), bb2.size())
         self.assertEqual(bb, bb2)
+
+    def test_dynamic_map(self):
+        b = BValue()
+        m = b.map26
+        s = BSimple()
+        s.int_1 = 123
+        m[Key(1, "")] = s
+
+        bb = ByteBuffer()
+        b.encode(bb)
+
+        # print(to_string(bb.buf, bb.ri, bb.size()))
+
+        b = BValue()
+        b.decode(bb)
+        m = b.map26
+        v = m[Key(1, "")]
+        self.assertIsNotNone(v)
+        self.assertEqual(BSimple, v.__class__)
+        self.assertEqual(123, v.int_1)
 
 
 if __name__ == '__main__':

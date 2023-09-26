@@ -19,6 +19,8 @@ public class TestDynamic extends TestCase {
 		var bb = ByteBuffer.Allocate();
 		b.encode(bb);
 
+		// System.out.println(BitConverter.toString(bb.Bytes,bb.ReadIndex,bb.size()));
+
 		b = new BValue();
 		b.decode(bb);
 		m = b.getMap26();
