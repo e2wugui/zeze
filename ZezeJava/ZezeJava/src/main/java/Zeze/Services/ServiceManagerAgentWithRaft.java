@@ -19,6 +19,7 @@ import Zeze.Builtin.ServiceManagerWithRaft.UnRegister;
 import Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe;
 import Zeze.Builtin.ServiceManagerWithRaft.Update;
 import Zeze.Component.Threading;
+import Zeze.Config;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
 import Zeze.Services.ServiceManager.AutoKey;
@@ -43,12 +44,11 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		throw new UnsupportedOperationException();
 	}
 
-	public ServiceManagerAgentWithRaft(Application zeze) throws Exception {
-		super.zeze = zeze;
+	public ServiceManagerAgentWithRaft(Config config) throws Exception {
+		super.config = config;
 
-		var config = zeze.getConfig();
 		var raftConf = RaftConfig.load(config.getServiceManagerConf().getRaftXml());
-		raftClient = new Agent("servicemanager.raft", zeze, raftConf);
+		raftClient = new Agent("servicemanager.raft", config, raftConf);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		raftClient.dispatchProtocolToInternalThreadPool = true;
 		RegisterProtocols(raftClient.getClient());
@@ -212,7 +212,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			}
 			throw new IllegalStateException("login fail.");
 		}
-		if (!volatileTmp.await(super.zeze.getConfig().getServiceManagerConf().getLoginTimeout()))
+		if (!volatileTmp.await(super.config.getServiceManagerConf().getLoginTimeout()))
 			throw new IllegalStateException("login timeout.");
 		// 再次查看结果。
 		try {

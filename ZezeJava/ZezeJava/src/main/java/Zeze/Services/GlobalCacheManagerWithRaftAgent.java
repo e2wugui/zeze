@@ -269,7 +269,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			super(zeze);
 			globalCacheManagerWithRaftAgent = global;
 			super.globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-			raftClient = new Agent("global.raft", zeze, raftConf);
+			raftClient = new Agent("global.raft", zeze, raftConf, Agent.NetClient::new);
 			raftClient.setOnSetLeader(this::raftOnSetLeader);
 			raftClient.dispatchProtocolToInternalThreadPool = true;
 			getGlobalCacheManagerWithRaftAgent().RegisterProtocols(raftClient.getClient());

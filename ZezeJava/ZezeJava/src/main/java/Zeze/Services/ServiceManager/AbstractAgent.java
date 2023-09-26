@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Component.Threading;
+import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Util.Action1;
 import Zeze.Util.Action2;
@@ -21,7 +22,7 @@ public abstract class AbstractAgent implements Closeable {
 	// ServiceName ->
 	protected final ConcurrentHashMap<String, Agent.SubscribeState> subscribeStates = new ConcurrentHashMap<>();
 
-	protected Application zeze;
+	protected Config config;
 
 	/**
 	 * 订阅服务状态发生变化时回调。 如果需要处理这个事件，请在订阅前设置回调。
@@ -47,8 +48,8 @@ public abstract class AbstractAgent implements Closeable {
 		return subscribeStates;
 	}
 
-	public Application getZeze() {
-		return zeze;
+	public Config getConfig() {
+		return config;
 	}
 
 	public Action1<Agent.SubscribeState> getOnChanged() {

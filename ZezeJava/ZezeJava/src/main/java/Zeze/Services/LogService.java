@@ -7,30 +7,79 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.LogService.BLog;
 import Zeze.Builtin.LogService.BRegex;
-import Zeze.Builtin.LogService.BSession;
 import Zeze.Builtin.LogService.BWords;
 import Zeze.Builtin.LogService.Browse;
 import Zeze.Builtin.LogService.CloseSession;
 import Zeze.Builtin.LogService.NewSessionRegex;
 import Zeze.Builtin.LogService.NewSessionWords;
 import Zeze.Builtin.LogService.Search;
+import Zeze.Config;
+import Zeze.Net.AsyncSocket;
+import Zeze.Net.Service;
 import Zeze.Services.Log4jQuery.Log4jLog;
 import Zeze.Services.Log4jQuery.Log4jSession;
 import Zeze.Transaction.Procedure;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.w3c.dom.Element;
 
 public class LogService extends AbstractLogService {
     private final AtomicLong sidSeed = new AtomicLong();
+    private final int serverId;
+    private final LogServiceConf conf;
+    private final Server server;
 
-    public LogService() {
+    public LogService(Config config) throws Exception {
+        this.serverId = config.getServerId();
+        this.conf = new LogServiceConf();
+        config.parseCustomize(this.conf);
 
+        this.server = new Server(config);
+        this.server.start();
     }
 
-    public String getLogActive() {
-        return "log/zeze.log";
+    public void stop() throws Exception {
+        this.server.stop();
     }
 
-    public String getLogRotateDir() {
-        return null;
+    public static class LogServiceConf implements Config.ICustomize {
+        public String logActive;
+        public String logRotateDir;
+        public String logTimeFormat;
+
+        @Override
+        public @NotNull String getName() {
+            return "LogServiceConf";
+        }
+
+        @Override
+        public void parse(@NotNull Element self) {
+            logActive = self.getAttribute("LogActive");
+            logRotateDir = self.getAttribute("LogRotateDir");
+            logTimeFormat = self.getAttribute("LogTimeFormat");
+            if (!logTimeFormat.isBlank())
+                Log4jLog.LogTimeFormat = logTimeFormat;
+        }
+    }
+
+    public class Server extends Service {
+        public Server(Config config) {
+            super("LogServiceServer", config);
+        }
+
+        @Override
+        public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+            so.setUserState(new AgentUserState());
+            super.OnHandshakeDone(so);
+        }
+
+        @Override
+        public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+            var agent = (AgentUserState)so.getUserState();
+            if (null != agent)
+                agent.close();
+            super.OnSocketClose(so, e);
+        }
     }
 
     public class AgentUserState {
@@ -41,7 +90,7 @@ public class LogService extends AbstractLogService {
         }
 
         public void newLogSessionWords(long sid, BWords.Data words) throws IOException {
-            var logSession = new Log4jSession(getLogActive(), getLogRotateDir(),
+            var logSession = new Log4jSession(conf.logActive, conf.logRotateDir,
                     words.getBeginTime(), words.getEndTime(),
                     words.getWords(), words.isContainsAll());
 
@@ -53,7 +102,7 @@ public class LogService extends AbstractLogService {
         }
 
         public void newLogSessionRegex(long sid, BRegex.Data regex) throws IOException {
-            var logSession = new Log4jSession(getLogActive(), getLogRotateDir(),
+            var logSession = new Log4jSession(conf.logActive, conf.logRotateDir,
                     regex.getBeginTime(), regex.getEndTime(),
                     regex.getPattern());
 

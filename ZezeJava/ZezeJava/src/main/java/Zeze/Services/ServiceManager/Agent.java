@@ -2,8 +2,8 @@ package Zeze.Services.ServiceManager;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Application;
 import Zeze.Component.Threading;
+import Zeze.Config;
 import Zeze.Net.Connector;
 import Zeze.Net.Service.ProtocolFactoryHandle;
 import Zeze.Transaction.DispatchMode;
@@ -287,14 +287,12 @@ public final class Agent extends AbstractAgent {
 		return 0;
 	}
 
-	public Agent(Application zeze) {
-		this(zeze, null);
+	public Agent(Config config) {
+		this(config, null);
 	}
 
-	public Agent(Application zeze, String netServiceName) {
-		super.zeze = zeze;
-
-		var config = zeze.getConfig();
+	public Agent(Config config, String netServiceName) {
+		super.config = config;
 
 		client = (null == netServiceName || netServiceName.isEmpty())
 				? new AgentClient(this, config)
@@ -330,7 +328,7 @@ public final class Agent extends AbstractAgent {
 		client.AddFactoryHandle(NormalClose.TypeId_, new ProtocolFactoryHandle<>(
 				NormalClose::new, null, TransactionLevel.None, DispatchMode.Critical));
 
-		threading = new Threading(client, zeze.getConfig().getServerId());
+		threading = new Threading(client, config.getServerId());
 		threading.RegisterProtocols(client);
 	}
 

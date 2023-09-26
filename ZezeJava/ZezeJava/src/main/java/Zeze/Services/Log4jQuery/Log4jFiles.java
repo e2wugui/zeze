@@ -27,7 +27,7 @@ public class Log4jFiles {
 	}
 
 	private void loadRotateDir(@Nullable String logRotateDir) {
-		if (null == logRotateDir)
+		if (null == logRotateDir || logRotateDir.isBlank())
 			return;
 
 		var rotates = new File(logRotateDir).listFiles();

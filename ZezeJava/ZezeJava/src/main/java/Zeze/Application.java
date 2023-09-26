@@ -153,7 +153,7 @@ public final class Application {
 			if (conf.getServiceManagerConf().getSessionName().isEmpty()) {
 				conf.getServiceManagerConf().setSessionName(projectName + "#" + conf.getServerId());
 			}
-			serviceManager = new ServiceManagerAgentWithRaft(this);
+			serviceManager = new ServiceManagerAgentWithRaft(this.conf);
 			break;
 
 		case "disable":
@@ -161,7 +161,7 @@ public final class Application {
 			break;
 
 		default:
-			serviceManager = new Agent(this);
+			serviceManager = new Agent(this.conf);
 			break;
 		}
 
