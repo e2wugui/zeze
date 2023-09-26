@@ -48,7 +48,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		super.config = config;
 
 		var raftConf = RaftConfig.load(config.getServiceManagerConf().getRaftXml());
-		raftClient = new Agent("servicemanager.raft", config, raftConf);
+		raftClient = new Agent("servicemanager.raft", raftConf, config);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		raftClient.dispatchProtocolToInternalThreadPool = true;
 		RegisterProtocols(raftClient.getClient());

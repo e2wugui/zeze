@@ -252,13 +252,13 @@ public final class Agent {
 		}
 	}
 
-	public Agent(String name, Config config) throws Exception {
-		this(name, config, null);
+	public Agent(String name, Application zeze) throws Exception {
+		this(name, zeze, null);
 	}
 
-	public Agent(String name, Config config, RaftConfig raftConf) throws Exception {
-		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + '.' + config.getServerId());
-		init(new NetClient(this, name, config), raftConf);
+	public Agent(String name, Application zeze, RaftConfig raftConf) throws Exception {
+		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + '.' + zeze.getConfig().getServerId());
+		init(new NetClient(this, name, zeze), raftConf);
 	}
 
 	public Agent(String name, Application zeze, RaftConfig raftConf,
