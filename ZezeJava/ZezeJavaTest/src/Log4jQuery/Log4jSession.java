@@ -1,7 +1,7 @@
 package Log4jQuery;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.util.List;
 import java.util.Deque;
 import java.util.regex.Pattern;
 import org.jetbrains.annotations.NotNull;
@@ -11,7 +11,7 @@ public class Log4jSession {
 	private final Log4jFiles files;
 	private final long beginTime;
 	private final long endTime;
-	private final Collection<String> contains;
+	private final List<String> contains;
 	private final String pattern;
 	private final Pattern regex;
 
@@ -44,7 +44,7 @@ public class Log4jSession {
 
 	public Log4jSession(@NotNull String logActive, @Nullable String logRotateDir,
 						long beginTime, long endTime,
-						Collection<String> contains) throws IOException {
+						List<String> contains) throws IOException {
 		this.beginTime = beginTime;
 		this.endTime = endTime;
 		this.pattern = null;
