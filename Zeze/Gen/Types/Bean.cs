@@ -324,6 +324,22 @@ namespace Zeze.Gen.Types
 							comment = Trim(c.InnerText);
 							break;
 						}
+						if (c.NodeType == XmlNodeType.Text)
+						{
+							comment = c.InnerText;
+							var p = comment.LastIndexOf('\n');
+							if (p > 0)
+							{
+								var q = comment.LastIndexOf('\n', p - 1);
+								if (q >= 0)
+								{
+									comment = comment.Substring(q + 1, p - q - 1).Trim();
+									if (comment.Length > 0)
+										break;
+								}
+							}
+							comment = "";
+						}
 					}
 				}
 			}

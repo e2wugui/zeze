@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using Zeze.Gen.Types;
-using static Zeze.Gen.java.HotDistribute;
 using Enum = Zeze.Gen.Types.Enum;
 using Type = Zeze.Gen.Types.Type;
 
