@@ -1,6 +1,9 @@
 package Log4jQuery;
 
+import java.io.IOException;
 import java.util.regex.Pattern;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Log4jSession {
 	private final Log4jFiles files;
@@ -30,7 +33,9 @@ public class Log4jSession {
 	 * @param beginTime beginTime -1 means begin of log.
 	 * @param endTime endTime -1 means end of log.
 	 */
-	public Log4jSession(String logActive, String logRotateDir, long beginTime, long endTime, String pattern, boolean isRegex) {
+	public Log4jSession(@NotNull String logActive, @Nullable String logRotateDir,
+						long beginTime, long endTime,
+						String pattern, boolean isRegex) throws IOException {
 		this.beginTime = beginTime;
 		this.endTime = endTime;
 		this.pattern = pattern;
@@ -41,7 +46,8 @@ public class Log4jSession {
 			this.files.seek(beginTime);
 	}
 
-	public boolean search(java.util.List<Log4jLog> result, int limit) {
+	public boolean search(java.util.List<Log4jLog> result, int limit) throws IOException {
+		result.clear();
 		if (null == regex)
 			return searchContains(result, limit);
 		return searchRegex(result, limit);
@@ -51,7 +57,7 @@ public class Log4jSession {
 	 * 按 string.find 方式搜索日志，结果通过 result 获取；
 	 * @return true 表示还有数据没有搜索完，false 表示结束。
 	 */
-	private boolean searchContains(java.util.List<Log4jLog> result, int limit) {
+	private boolean searchContains(java.util.List<Log4jLog> result, int limit) throws IOException {
 		if (limit <= 0)
 			return false; // end search
 
@@ -74,7 +80,7 @@ public class Log4jSession {
 	 * 按 Regex.match 方式搜索日志，结果通过 result 获取；
 	 * @return true 表示还有数据没有搜索完，false 表示结束。
 	 */
-	private boolean searchRegex(java.util.List<Log4jLog> result, int limit) {
+	private boolean searchRegex(java.util.List<Log4jLog> result, int limit) throws IOException {
 		if (limit <= 0)
 			return false; // end search
 
@@ -95,7 +101,7 @@ public class Log4jSession {
 		return files.hasNext(); // remain maybe
 	}
 
-	public void close() {
+	public void close() throws IOException {
 		files.close();
 	}
 }
