@@ -1816,13 +1816,51 @@
 			<rpc name="GetLastVersionBeanInfo" argument="BeanName" result="BLastVersionBeanInfo" handle="server"/>
 		</module>
 
+		<module name="LogService" id="11035" UseData="true"  DefaultTransactionLevel="None">
+			<bean name="BSearchWords">
+				<variable id="1" name="BeginTime" type="long"/>
+				<variable id="2" name="EndTime" type="long"/>
+				<variable id="3" name="Words" type="list[string]"/>
+				<variable id="4" name="ContainsAll" type="bool"/>
+			</bean>
+			<bean name="BSearchRegex">
+				<variable id="1" name="BeginTime" type="long"/>
+				<variable id="2" name="EndTime" type="long"/>
+				<variable id="3" name="Pattern" type="string"/>
+			</bean>
+
+			<bean name="BLog">
+				<variable id="1" name="Time" type="long"/>
+				<variable id="2" name="Log" type="string"/>
+			</bean>
+			<bean name="BResult">
+				<variable id="1" name="Logs" type="list[BLog]"/>
+			</bean>
+
+			<rpc name="SearchWords" argument="BSearchWords" result="BResult" handle="server"/>
+			<rpc name="SearchRegex" argument="BSearchRegex" result="BResult" handle="server"/>
+			<rpc name="BrowseWords" argument="BSearchWords" result="BResult" handle="server"/>
+			<rpc name="BrowseRegex" argument="BSearchRegex" result="BResult" handle="server"/>
+		</module>
 		<!--
-		可用id范围 [11035, 11100) [11102, 11999]
+		可用id范围 [11036, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="LogService" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.LogService"/>
+		</service>
+	</component>
+
+	<component name="LogAgent" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.LogService"/>
+		</service>
+	</component>
+
 	<component name="HotDistribute" gendir="src/main/java" genrelativedir="Zeze/Hot" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.HotDistribute"/>
