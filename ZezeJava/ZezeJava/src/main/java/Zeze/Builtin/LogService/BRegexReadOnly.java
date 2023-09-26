@@ -1,14 +1,13 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.LogService;
 
-public interface BSearchWordsReadOnly {
+public interface BRegexReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BSearchWords copy();
+    BRegex copy();
 
     long getBeginTime();
     long getEndTime();
-    Zeze.Transaction.Collections.PList1ReadOnly<String> getWordsReadOnly();
-    boolean isContainsAll();
+    String getPattern();
 }

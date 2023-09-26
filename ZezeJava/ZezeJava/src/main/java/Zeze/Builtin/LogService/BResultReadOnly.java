@@ -8,4 +8,5 @@ public interface BResultReadOnly {
     BResult copy();
 
     Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.LogService.BLog, Zeze.Builtin.LogService.BLogReadOnly> getLogsReadOnly();
+    boolean isRemain();
 }

@@ -4,13 +4,12 @@ package Zeze.Builtin.LogService;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
-public final class BSearchWords extends Zeze.Transaction.Bean implements BSearchWordsReadOnly {
-    public static final long TYPEID = 8836783752358239134L;
+public final class BRegex extends Zeze.Transaction.Bean implements BRegexReadOnly {
+    public static final long TYPEID = -4257498020868767336L;
 
     private long _BeginTime;
     private long _EndTime;
-    private final Zeze.Transaction.Collections.PList1<String> _Words;
-    private boolean _ContainsAll;
+    private String _Pattern;
 
     @Override
     public long getBeginTime() {
@@ -52,102 +51,89 @@ public final class BSearchWords extends Zeze.Transaction.Bean implements BSearch
         txn.putLog(new Log__EndTime(this, 2, value));
     }
 
-    public Zeze.Transaction.Collections.PList1<String> getWords() {
-        return _Words;
-    }
-
     @Override
-    public Zeze.Transaction.Collections.PList1ReadOnly<String> getWordsReadOnly() {
-        return new Zeze.Transaction.Collections.PList1ReadOnly<>(_Words);
-    }
-
-    @Override
-    public boolean isContainsAll() {
+    public String getPattern() {
         if (!isManaged())
-            return _ContainsAll;
+            return _Pattern;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _ContainsAll;
-        var log = (Log__ContainsAll)txn.getLog(objectId() + 4);
-        return log != null ? log.value : _ContainsAll;
+            return _Pattern;
+        var log = (Log__Pattern)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Pattern;
     }
 
-    public void setContainsAll(boolean value) {
+    public void setPattern(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ContainsAll = value;
+            _Pattern = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ContainsAll(this, 4, value));
+        txn.putLog(new Log__Pattern(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BSearchWords() {
-        _Words = new Zeze.Transaction.Collections.PList1<>(String.class);
-        _Words.variableId(3);
+    public BRegex() {
+        _Pattern = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BSearchWords(long _BeginTime_, long _EndTime_, boolean _ContainsAll_) {
+    public BRegex(long _BeginTime_, long _EndTime_, String _Pattern_) {
         _BeginTime = _BeginTime_;
         _EndTime = _EndTime_;
-        _Words = new Zeze.Transaction.Collections.PList1<>(String.class);
-        _Words.variableId(3);
-        _ContainsAll = _ContainsAll_;
+        if (_Pattern_ == null)
+            _Pattern_ = "";
+        _Pattern = _Pattern_;
     }
 
     @Override
     public void reset() {
         setBeginTime(0);
         setEndTime(0);
-        _Words.clear();
-        setContainsAll(false);
+        setPattern("");
         _unknown_ = null;
     }
 
     @Override
-    public Zeze.Builtin.LogService.BSearchWords.Data toData() {
-        var data = new Zeze.Builtin.LogService.BSearchWords.Data();
+    public Zeze.Builtin.LogService.BRegex.Data toData() {
+        var data = new Zeze.Builtin.LogService.BRegex.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.LogService.BSearchWords.Data)other);
+        assign((Zeze.Builtin.LogService.BRegex.Data)other);
     }
 
-    public void assign(BSearchWords.Data other) {
+    public void assign(BRegex.Data other) {
         setBeginTime(other._BeginTime);
         setEndTime(other._EndTime);
-        _Words.clear();
-        _Words.addAll(other._Words);
-        setContainsAll(other._ContainsAll);
+        setPattern(other._Pattern);
         _unknown_ = null;
     }
 
-    public void assign(BSearchWords other) {
+    public void assign(BRegex other) {
         setBeginTime(other.getBeginTime());
         setEndTime(other.getEndTime());
-        _Words.clear();
-        _Words.addAll(other._Words);
-        setContainsAll(other.isContainsAll());
+        setPattern(other.getPattern());
         _unknown_ = other._unknown_;
     }
 
-    public BSearchWords copyIfManaged() {
+    public BRegex copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BSearchWords copy() {
-        var copy = new BSearchWords();
+    public BRegex copy() {
+        var copy = new BRegex();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BSearchWords a, BSearchWords b) {
-        BSearchWords save = a.copy();
+    public static void swap(BRegex a, BRegex b) {
+        BRegex save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -158,24 +144,24 @@ public final class BSearchWords extends Zeze.Transaction.Bean implements BSearch
     }
 
     private static final class Log__BeginTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__BeginTime(BSearchWords bean, int varId, long value) { super(bean, varId, value); }
+        public Log__BeginTime(BRegex bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSearchWords)getBelong())._BeginTime = value; }
+        public void commit() { ((BRegex)getBelong())._BeginTime = value; }
     }
 
     private static final class Log__EndTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__EndTime(BSearchWords bean, int varId, long value) { super(bean, varId, value); }
+        public Log__EndTime(BRegex bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSearchWords)getBelong())._EndTime = value; }
+        public void commit() { ((BRegex)getBelong())._EndTime = value; }
     }
 
-    private static final class Log__ContainsAll extends Zeze.Transaction.Logs.LogBool {
-        public Log__ContainsAll(BSearchWords bean, int varId, boolean value) { super(bean, varId, value); }
+    private static final class Log__Pattern extends Zeze.Transaction.Logs.LogString {
+        public Log__Pattern(BRegex bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSearchWords)getBelong())._ContainsAll = value; }
+        public void commit() { ((BRegex)getBelong())._Pattern = value; }
     }
 
     @Override
@@ -187,22 +173,11 @@ public final class BSearchWords extends Zeze.Transaction.Bean implements BSearch
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LogService.BSearchWords: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LogService.BRegex: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("BeginTime=").append(getBeginTime()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("EndTime=").append(getEndTime()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Words=[");
-        if (!_Words.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Words) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
-            }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
-        }
-        sb.append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ContainsAll=").append(isContainsAll()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Pattern=").append(getPattern()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -250,24 +225,10 @@ public final class BSearchWords extends Zeze.Transaction.Bean implements BSearch
             }
         }
         {
-            var _x_ = _Words;
-            int _n_ = _x_.size();
-            if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BYTES);
-                for (var _v_ : _x_) {
-                    _o_.WriteString(_v_);
-                    _n_--;
-                }
-                if (_n_ != 0)
-                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
-            }
-        }
-        {
-            boolean _x_ = isContainsAll();
-            if (_x_) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
-                _o_.WriteByte(1);
+            String _x_ = getPattern();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
             }
         }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
@@ -288,31 +249,11 @@ public final class BSearchWords extends Zeze.Transaction.Bean implements BSearch
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            var _x_ = _Words;
-            _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
-                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadString(_t_));
-            } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 4) {
-            setContainsAll(_o_.ReadBool(_t_));
+            setPattern(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
-    }
-
-    @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Words.initRootInfo(root, this);
-    }
-
-    @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Words.initRootInfoWithRedo(root, this);
     }
 
     @Override
@@ -335,8 +276,7 @@ public final class BSearchWords extends Zeze.Transaction.Bean implements BSearch
             switch (vlog.getVariableId()) {
                 case 1: _BeginTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _EndTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _Words.followerApply(vlog); break;
-                case 4: _ContainsAll = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 3: _Pattern = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -346,8 +286,9 @@ public final class BSearchWords extends Zeze.Transaction.Bean implements BSearch
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setBeginTime(rs.getLong(_parents_name_ + "BeginTime"));
         setEndTime(rs.getLong(_parents_name_ + "EndTime"));
-        Zeze.Serialize.Helper.decodeJsonList(_Words, String.class, rs.getString(_parents_name_ + "Words"));
-        setContainsAll(rs.getBoolean(_parents_name_ + "ContainsAll"));
+        setPattern(rs.getString(_parents_name_ + "Pattern"));
+        if (getPattern() == null)
+            setPattern("");
     }
 
     @Override
@@ -355,8 +296,7 @@ public final class BSearchWords extends Zeze.Transaction.Bean implements BSearch
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "BeginTime", getBeginTime());
         st.appendLong(_parents_name_ + "EndTime", getEndTime());
-        st.appendString(_parents_name_ + "Words", Zeze.Serialize.Helper.encodeJson(_Words));
-        st.appendBoolean(_parents_name_ + "ContainsAll", isContainsAll());
+        st.appendString(_parents_name_ + "Pattern", getPattern());
     }
 
     @Override
@@ -364,18 +304,16 @@ public final class BSearchWords extends Zeze.Transaction.Bean implements BSearch
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "BeginTime", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "EndTime", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Words", "list", "", "string"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "ContainsAll", "bool", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Pattern", "string", "", ""));
         return vars;
     }
 
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = 8836783752358239134L;
+    public static final long TYPEID = -4257498020868767336L;
 
     private long _BeginTime;
     private long _EndTime;
-    private java.util.ArrayList<String> _Words;
-    private boolean _ContainsAll;
+    private String _Pattern;
 
     public long getBeginTime() {
         return _BeginTime;
@@ -393,83 +331,69 @@ public static final class Data extends Zeze.Transaction.Data {
         _EndTime = value;
     }
 
-    public java.util.ArrayList<String> getWords() {
-        return _Words;
+    public String getPattern() {
+        return _Pattern;
     }
 
-    public void setWords(java.util.ArrayList<String> value) {
+    public void setPattern(String value) {
         if (value == null)
             throw new IllegalArgumentException();
-        _Words = value;
-    }
-
-    public boolean isContainsAll() {
-        return _ContainsAll;
-    }
-
-    public void setContainsAll(boolean value) {
-        _ContainsAll = value;
+        _Pattern = value;
     }
 
     @SuppressWarnings("deprecation")
     public Data() {
-        _Words = new java.util.ArrayList<>();
+        _Pattern = "";
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _BeginTime_, long _EndTime_, java.util.ArrayList<String> _Words_, boolean _ContainsAll_) {
+    public Data(long _BeginTime_, long _EndTime_, String _Pattern_) {
         _BeginTime = _BeginTime_;
         _EndTime = _EndTime_;
-        if (_Words_ == null)
-            _Words_ = new java.util.ArrayList<>();
-        _Words = _Words_;
-        _ContainsAll = _ContainsAll_;
+        if (_Pattern_ == null)
+            _Pattern_ = "";
+        _Pattern = _Pattern_;
     }
 
     @Override
     public void reset() {
         _BeginTime = 0;
         _EndTime = 0;
-        _Words.clear();
-        _ContainsAll = false;
+        _Pattern = "";
     }
 
     @Override
-    public Zeze.Builtin.LogService.BSearchWords toBean() {
-        var bean = new Zeze.Builtin.LogService.BSearchWords();
+    public Zeze.Builtin.LogService.BRegex toBean() {
+        var bean = new Zeze.Builtin.LogService.BRegex();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BSearchWords)other);
+        assign((BRegex)other);
     }
 
-    public void assign(BSearchWords other) {
+    public void assign(BRegex other) {
         _BeginTime = other.getBeginTime();
         _EndTime = other.getEndTime();
-        _Words.clear();
-        _Words.addAll(other._Words);
-        _ContainsAll = other.isContainsAll();
+        _Pattern = other.getPattern();
     }
 
-    public void assign(BSearchWords.Data other) {
+    public void assign(BRegex.Data other) {
         _BeginTime = other._BeginTime;
         _EndTime = other._EndTime;
-        _Words.clear();
-        _Words.addAll(other._Words);
-        _ContainsAll = other._ContainsAll;
+        _Pattern = other._Pattern;
     }
 
     @Override
-    public BSearchWords.Data copy() {
-        var copy = new BSearchWords.Data();
+    public BRegex.Data copy() {
+        var copy = new BRegex.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BSearchWords.Data a, BSearchWords.Data b) {
+    public static void swap(BRegex.Data a, BRegex.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -481,8 +405,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BSearchWords.Data clone() {
-        return (BSearchWords.Data)super.clone();
+    public BRegex.Data clone() {
+        return (BRegex.Data)super.clone();
     }
 
     @Override
@@ -494,22 +418,11 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LogService.BSearchWords: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LogService.BRegex: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("BeginTime=").append(_BeginTime).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("EndTime=").append(_EndTime).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Words=[");
-        if (!_Words.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Words) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
-            }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
-        }
-        sb.append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ContainsAll=").append(_ContainsAll).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Pattern=").append(_Pattern).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -544,24 +457,10 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
-            var _x_ = _Words;
-            int _n_ = _x_.size();
-            if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BYTES);
-                for (var _v_ : _x_) {
-                    _o_.WriteString(_v_);
-                    _n_--;
-                }
-                if (_n_ != 0)
-                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
-            }
-        }
-        {
-            boolean _x_ = _ContainsAll;
-            if (_x_) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
-                _o_.WriteByte(1);
+            String _x_ = _Pattern;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -580,17 +479,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            var _x_ = _Words;
-            _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
-                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadString(_t_));
-            } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 4) {
-            _ContainsAll = _o_.ReadBool(_t_);
+            _Pattern = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

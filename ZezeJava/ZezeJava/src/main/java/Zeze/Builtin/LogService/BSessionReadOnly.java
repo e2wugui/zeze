@@ -1,13 +1,11 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.LogService;
 
-public interface BSearchRegexReadOnly {
+public interface BSessionReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BSearchRegex copy();
+    BSession copy();
 
-    long getBeginTime();
-    long getEndTime();
-    String getPattern();
+    long getId();
 }

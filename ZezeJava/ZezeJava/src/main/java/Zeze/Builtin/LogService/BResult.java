@@ -8,6 +8,7 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     public static final long TYPEID = 5146109133177652644L;
 
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.LogService.BLog> _Logs;
+    private boolean _Remain;
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.LogService.BLog> getLogs() {
         return _Logs;
@@ -18,15 +19,43 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
         return new Zeze.Transaction.Collections.PList2ReadOnly<>(_Logs);
     }
 
+    @Override
+    public boolean isRemain() {
+        if (!isManaged())
+            return _Remain;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Remain;
+        var log = (Log__Remain)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _Remain;
+    }
+
+    public void setRemain(boolean value) {
+        if (!isManaged()) {
+            _Remain = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Remain(this, 2, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BResult() {
         _Logs = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.LogService.BLog.class);
         _Logs.variableId(1);
     }
 
+    @SuppressWarnings("deprecation")
+    public BResult(boolean _Remain_) {
+        _Logs = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.LogService.BLog.class);
+        _Logs.variableId(1);
+        _Remain = _Remain_;
+    }
+
     @Override
     public void reset() {
         _Logs.clear();
+        setRemain(false);
         _unknown_ = null;
     }
 
@@ -49,6 +78,7 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
             data.assign(e);
             _Logs.add(data);
         }
+        setRemain(other._Remain);
         _unknown_ = null;
     }
 
@@ -56,6 +86,7 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
         _Logs.clear();
         for (var e : other._Logs)
             _Logs.add(e.copy());
+        setRemain(other.isRemain());
         _unknown_ = other._unknown_;
     }
 
@@ -81,6 +112,13 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
         return TYPEID;
     }
 
+    private static final class Log__Remain extends Zeze.Transaction.Logs.LogBool {
+        public Log__Remain(BResult bean, int varId, boolean value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BResult)getBelong())._Remain = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -104,7 +142,8 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append(']').append(System.lineSeparator());
+        sb.append(']').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Remain=").append(isRemain()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -151,6 +190,13 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        {
+            boolean _x_ = isRemain();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -168,6 +214,10 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
                     _x_.add(_o_.ReadBean(new Zeze.Builtin.LogService.BLog(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            setRemain(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -203,6 +253,7 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Logs.followerApply(vlog); break;
+                case 2: _Remain = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
             }
         }
     }
@@ -211,18 +262,21 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         Zeze.Serialize.Helper.decodeJsonList(_Logs, Zeze.Builtin.LogService.BLog.class, rs.getString(_parents_name_ + "Logs"));
+        setRemain(rs.getBoolean(_parents_name_ + "Remain"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Logs", Zeze.Serialize.Helper.encodeJson(_Logs));
+        st.appendBoolean(_parents_name_ + "Remain", isRemain());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Logs", "list", "", "BLog"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Remain", "bool", "", ""));
         return vars;
     }
 
@@ -230,6 +284,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5146109133177652644L;
 
     private java.util.ArrayList<Zeze.Builtin.LogService.BLog.Data> _Logs;
+    private boolean _Remain;
 
     public java.util.ArrayList<Zeze.Builtin.LogService.BLog.Data> getLogs() {
         return _Logs;
@@ -241,21 +296,31 @@ public static final class Data extends Zeze.Transaction.Data {
         _Logs = value;
     }
 
+    public boolean isRemain() {
+        return _Remain;
+    }
+
+    public void setRemain(boolean value) {
+        _Remain = value;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _Logs = new java.util.ArrayList<>();
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.ArrayList<Zeze.Builtin.LogService.BLog.Data> _Logs_) {
+    public Data(java.util.ArrayList<Zeze.Builtin.LogService.BLog.Data> _Logs_, boolean _Remain_) {
         if (_Logs_ == null)
             _Logs_ = new java.util.ArrayList<>();
         _Logs = _Logs_;
+        _Remain = _Remain_;
     }
 
     @Override
     public void reset() {
         _Logs.clear();
+        _Remain = false;
     }
 
     @Override
@@ -277,12 +342,14 @@ public static final class Data extends Zeze.Transaction.Data {
             data.assign(e);
             _Logs.add(data);
         }
+        _Remain = other.isRemain();
     }
 
     public void assign(BResult.Data other) {
         _Logs.clear();
         for (var e : other._Logs)
             _Logs.add(e.copy());
+        _Remain = other._Remain;
     }
 
     @Override
@@ -331,7 +398,8 @@ public static final class Data extends Zeze.Transaction.Data {
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append(']').append(System.lineSeparator());
+        sb.append(']').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Remain=").append(_Remain).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -365,6 +433,13 @@ public static final class Data extends Zeze.Transaction.Data {
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        {
+            boolean _x_ = _Remain;
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -380,6 +455,10 @@ public static final class Data extends Zeze.Transaction.Data {
                     _x_.add(_o_.ReadBean(new Zeze.Builtin.LogService.BLog.Data(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _Remain = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
