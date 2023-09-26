@@ -1,23 +1,34 @@
 package Zeze.Services;
 
+import Zeze.Builtin.LogService.Browse;
+import Zeze.Builtin.LogService.CloseSession;
+import Zeze.Builtin.LogService.NewSessionRegex;
+import Zeze.Builtin.LogService.NewSessionWords;
+import Zeze.Builtin.LogService.Search;
+
 public class LogService extends AbstractLogService {
     @Override
-    protected long ProcessBrowseRegexRequest(Zeze.Builtin.LogService.BrowseRegex r) {
-        return Zeze.Transaction.Procedure.NotImplement;
+    protected long ProcessCloseSessionRequest(CloseSession r) throws Exception {
+        return 0;
     }
 
     @Override
-    protected long ProcessBrowseWordsRequest(Zeze.Builtin.LogService.BrowseWords r) {
-        return Zeze.Transaction.Procedure.NotImplement;
+    protected long ProcessNewSessionRegexRequest(NewSessionRegex r) throws Exception {
+        return 0;
     }
 
     @Override
-    protected long ProcessSearchRegexRequest(Zeze.Builtin.LogService.SearchRegex r) {
-        return Zeze.Transaction.Procedure.NotImplement;
+    protected long ProcessNewSessionWordsRequest(NewSessionWords r) throws Exception {
+        return 0;
     }
 
     @Override
-    protected long ProcessSearchWordsRequest(Zeze.Builtin.LogService.SearchWords r) {
-        return Zeze.Transaction.Procedure.NotImplement;
+    protected long ProcessBrowseRequest(Browse r) throws Exception {
+        return 0;
+    }
+
+    @Override
+    protected long ProcessSearchRequest(Search r) throws Exception {
+        return 0;
     }
 }
