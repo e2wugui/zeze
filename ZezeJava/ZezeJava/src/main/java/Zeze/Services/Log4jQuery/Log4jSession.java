@@ -1,4 +1,4 @@
-package Log4jQuery;
+package Zeze.Services.Log4jQuery;
 
 import java.io.IOException;
 import java.util.List;
@@ -63,7 +63,7 @@ public class Log4jSession {
 			this.files.seek(beginTime);
 	}
 
-	public boolean search(java.util.List<Log4jLog> result, int limit) throws IOException {
+	public boolean search(List<Log4jLog> result, int limit) throws IOException {
 		result.clear();
 		if (null == regex)
 			return searchContains(result, limit);
@@ -80,7 +80,7 @@ public class Log4jSession {
 	 * 按 string.find 方式搜索日志，结果通过 result 获取；
 	 * @return true 表示还有数据没有搜索完，false 表示结束。
 	 */
-	private boolean searchContains(java.util.List<Log4jLog> result, int limit) throws IOException {
+	private boolean searchContains(List<Log4jLog> result, int limit) throws IOException {
 		if (limit <= 0)
 			return false; // end search
 
@@ -103,7 +103,7 @@ public class Log4jSession {
 	 * 按 Regex.match 方式搜索日志，结果通过 result 获取；
 	 * @return true 表示还有数据没有搜索完，false 表示结束。
 	 */
-	private boolean searchRegex(java.util.List<Log4jLog> result, int limit) throws IOException {
+	private boolean searchRegex(List<Log4jLog> result, int limit) throws IOException {
 		if (limit <= 0)
 			return false; // end search
 

@@ -1,4 +1,4 @@
-package Log4jQuery;
+package Zeze.Services.Log4jQuery;
 
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;

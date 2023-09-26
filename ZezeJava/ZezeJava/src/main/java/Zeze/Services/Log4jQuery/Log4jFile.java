@@ -1,4 +1,4 @@
-package Log4jQuery;
+package Zeze.Services.Log4jQuery;
 
 import java.io.BufferedReader;
 import java.io.File;

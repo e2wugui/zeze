@@ -3,8 +3,8 @@ package TestLog4jQuery;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
-import Log4jQuery.Log4jLog;
-import Log4jQuery.Log4jSession;
+import Zeze.Services.Log4jQuery.Log4jLog;
+import Zeze.Services.Log4jQuery.Log4jSession;
 import org.junit.Test;
 
 public class TestLog4jQuery {
