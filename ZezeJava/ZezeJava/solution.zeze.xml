@@ -1842,11 +1842,22 @@
 				<variable id="1" name="Id" type="long"/>
 			</bean>
 
+			<bean name="BBrowse">
+				<variable id="1" name="Id" type="long"/>
+				<variable id="2" name="Limit" type="int"/>
+				<variable id="3" name="OffsetFactor" type="float"/>
+			</bean>
+
+			<bean name="BSearch">
+				<variable id="1" name="Id" type="long"/>
+				<variable id="2" name="Limit" type="int"/>
+			</bean>
+
 			<rpc name="NewSessionWords" argument="BWords" result="BSession" handle="server"/>
 			<rpc name="NewSessionRegex" argument="BRegex" result="BSession" handle="server"/>
 			<rpc name="CloseSession" argument="BSession" handle="server"/>
-			<rpc name="Browse" argument="BSession" result="BResult" handle="server"/>
-			<rpc name="Search" argument="BSession" result="BResult" handle="server"/>
+			<rpc name="Browse" argument="BBrowse" result="BResult" handle="server"/>
+			<rpc name="Search" argument="BSearch" result="BResult" handle="server"/>
 		</module>
 		<!--
 		可用id范围 [11036, 11100) [11102, 11999]

@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.LogService;
 
-public class Browse extends Zeze.Net.Rpc<Zeze.Builtin.LogService.BSession.Data, Zeze.Builtin.LogService.BResult.Data> {
+public class Browse extends Zeze.Net.Rpc<Zeze.Builtin.LogService.BBrowse.Data, Zeze.Builtin.LogService.BResult.Data> {
     public static final int ModuleId_ = 11035;
     public static final int ProtocolId_ = -1565958308; // 2729008988
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47397693120348
@@ -23,11 +23,11 @@ public class Browse extends Zeze.Net.Rpc<Zeze.Builtin.LogService.BSession.Data, 
     }
 
     public Browse() {
-        Argument = new Zeze.Builtin.LogService.BSession.Data();
+        Argument = new Zeze.Builtin.LogService.BBrowse.Data();
         Result = new Zeze.Builtin.LogService.BResult.Data();
     }
 
-    public Browse(Zeze.Builtin.LogService.BSession.Data arg) {
+    public Browse(Zeze.Builtin.LogService.BBrowse.Data arg) {
         Argument = arg;
         Result = new Zeze.Builtin.LogService.BResult.Data();
     }
