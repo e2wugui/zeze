@@ -18,6 +18,8 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Services.Log4jQuery.Log4jLog;
 import Zeze.Services.Log4jQuery.Log4jSession;
+import Zeze.Services.ServiceManager.AbstractAgent;
+import Zeze.Services.ServiceManager.Agent;
 import Zeze.Transaction.Procedure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -25,21 +27,54 @@ import org.w3c.dom.Element;
 
 public class LogService extends AbstractLogService {
     private final AtomicLong sidSeed = new AtomicLong();
-    private final int serverId;
-    private final LogServiceConf conf;
+    private final Config conf;
+    private final LogServiceConf logConf;
     private final Server server;
+    private final AbstractAgent serviceManager;
 
     public LogService(Config config) throws Exception {
-        this.serverId = config.getServerId();
-        this.conf = new LogServiceConf();
-        config.parseCustomize(this.conf);
+        this.conf = config;
+        this.logConf = new LogServiceConf();
+        config.parseCustomize(this.logConf);
 
         this.server = new Server(config);
-        this.server.start();
+
+        switch (conf.getServiceManager()) {
+        case "raft":
+            if (conf.getServiceManagerConf().getSessionName().isEmpty()) {
+                conf.getServiceManagerConf().setSessionName("LogServiceServer#" + conf.getServerId());
+            }
+            serviceManager = new ServiceManagerAgentWithRaft(this.conf);
+            break;
+
+        case "disable":
+            serviceManager = null;
+            break;
+
+        default:
+            serviceManager = new Agent(this.conf);
+            break;
+        }
+    }
+
+    public void start() throws Exception {
+        var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
+        if (serviceManagerConf != null && serviceManager != null) {
+            serviceManager.start();
+            try {
+                serviceManager.waitReady();
+            } catch (Exception ignored) {
+                // raft 版第一次等待由于选择leader原因肯定会失败一次。
+                serviceManager.waitReady();
+            }
+        }
+        server.start();
     }
 
     public void stop() throws Exception {
         this.server.stop();
+        if (serviceManager != null)
+            serviceManager.close();
     }
 
     public static class LogServiceConf implements Config.ICustomize {
@@ -90,7 +125,7 @@ public class LogService extends AbstractLogService {
         }
 
         public void newLogSessionWords(long sid, BWords.Data words) throws IOException {
-            var logSession = new Log4jSession(conf.logActive, conf.logRotateDir,
+            var logSession = new Log4jSession(logConf.logActive, logConf.logRotateDir,
                     words.getBeginTime(), words.getEndTime(),
                     words.getWords(), words.isContainsAll());
 
@@ -102,7 +137,7 @@ public class LogService extends AbstractLogService {
         }
 
         public void newLogSessionRegex(long sid, BRegex.Data regex) throws IOException {
-            var logSession = new Log4jSession(conf.logActive, conf.logRotateDir,
+            var logSession = new Log4jSession(logConf.logActive, logConf.logRotateDir,
                     regex.getBeginTime(), regex.getEndTime(),
                     regex.getPattern());
 
