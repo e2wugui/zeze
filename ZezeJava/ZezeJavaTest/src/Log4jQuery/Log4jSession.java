@@ -11,7 +11,12 @@ public class Log4jSession {
 	private final Log4jFiles files;
 	private final long beginTime;
 	private final long endTime;
-	private final List<String> contains;
+
+	// 关键字匹配
+	private final List<String> words;
+	private final boolean containsAll;
+
+	// 正则表达式匹配
 	private final String pattern;
 	private final Pattern regex;
 
@@ -35,7 +40,8 @@ public class Log4jSession {
 		this.endTime = endTime;
 		this.pattern = pattern;
 		this.regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
-		this.contains = null;
+		this.words = null;
+		this.containsAll = false;
 
 		this.files = new Log4jFiles(logActive, logRotateDir);
 		if (beginTime != -1)
@@ -44,12 +50,13 @@ public class Log4jSession {
 
 	public Log4jSession(@NotNull String logActive, @Nullable String logRotateDir,
 						long beginTime, long endTime,
-						List<String> contains) throws IOException {
+						List<String> words, boolean containsAll) throws IOException {
 		this.beginTime = beginTime;
 		this.endTime = endTime;
 		this.pattern = null;
 		this.regex = null;
-		this.contains = contains;
+		this.words = words;
+		this.containsAll = containsAll;
 
 		this.files = new Log4jFiles(logActive, logRotateDir);
 		if (beginTime != -1)
@@ -61,6 +68,12 @@ public class Log4jSession {
 		if (null == regex)
 			return searchContains(result, limit);
 		return searchRegex(result, limit);
+	}
+
+	private boolean containsCheck(Log4jLog log) {
+		if (containsAll)
+			return log.containsAll(words);
+		return log.containsNone(words);
 	}
 
 	/**
@@ -76,7 +89,7 @@ public class Log4jSession {
 			if (endTime != -1 && log.getTime() > endTime)
 				return false; // end search
 
-			if (log.containsAll(contains)) {
+			if (containsCheck(log)) {
 				result.add(log);
 				if (--limit <= 0)
 					break; // maybe remain
@@ -141,7 +154,7 @@ public class Log4jSession {
 				if (limit <= 0)
 					break;
 			} else {
-				if (log.containsAll(contains)) {
+				if (containsCheck(log)) {
 					locate = true;
 					limit -= result.size();
 					if (limit <= 0)

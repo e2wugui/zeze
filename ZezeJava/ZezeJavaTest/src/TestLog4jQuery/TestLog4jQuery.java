@@ -14,7 +14,7 @@ public class TestLog4jQuery {
 		var endTime = Log4jLog.parseTime("23-08-25 09:19:00.816");
 		var logActive = "log/zeze.log";
 		var pattern = "23-08-25 09:19:00.813";
-		var session = new Log4jSession(logActive, null, beginTime, endTime, java.util.List.of(pattern));
+		var session = new Log4jSession(logActive, null, beginTime, endTime, java.util.List.of(pattern), true);
 		var result = new ArrayList<Log4jLog>();
 		while (session.search(result, 1)) {
 			System.out.println("------------------------");
@@ -34,7 +34,7 @@ public class TestLog4jQuery {
 		var endTime = Log4jLog.parseTime("23-08-25 09:19:01.239");
 		var logActive = "log/zeze.log";
 		var pattern = "ZezeTaskPool-101";
-		var session = new Log4jSession(logActive, null, beginTime, endTime, java.util.List.of(pattern));
+		var session = new Log4jSession(logActive, null, beginTime, endTime, java.util.List.of(pattern), true);
 		var result = new LinkedList<Log4jLog>();
 		while (session.browse(result, 3, 0.4f)) {
 			System.out.println("++++++++++++++++++++++");
