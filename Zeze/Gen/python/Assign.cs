@@ -99,7 +99,7 @@ namespace Zeze.Gen.python
 
         public void Visit(BeanKey type)
         {
-            sw.WriteLine($"{prefix}self.{var.Name}.assign(other.{var.Name})");
+            sw.WriteLine($"{prefix}self.{var.Name} = other.{var.Name}");
         }
 
         public void Visit(TypeDynamic type)

@@ -18,7 +18,7 @@ class Socket:
         self.local_port = 0
         self.remote_addr = ""
         self.remote_port = 0
-        self.socket = s if s is not None else socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket = s if s is not None else socket.socket()
         self.socket.setblocking(False)
         self.connected = False
         self.recv_buf = ByteBuffer()
@@ -30,6 +30,7 @@ class Socket:
         return f"[{self.session_id}] {self.local_addr}:{self.local_port}-{self.remote_addr}:{self.remote_port}"
 
     def listen(self, addr, port, backlog=100):
+        # addr = socket.gethostbyname(addr)
         self.local_addr = addr
         self.local_port = port
         self.socket.bind((addr, port))
@@ -38,27 +39,30 @@ class Socket:
 
     def connect(self, addr, port, local_addr="", local_port=0):
         assert port > 0
+        # addr = socket.gethostbyname(addr)
         self.local_addr = local_addr
         self.local_port = local_port
         self.remote_addr = addr
         self.remote_port = port
         if local_addr != "" or local_port != 0:
             self.socket.bind((local_addr, local_port))
+        Socket.selector.register(self.socket, selectors.EVENT_READ | selectors.EVENT_WRITE, self)
         r = self.socket.connect_ex((addr, port))
         if r == 0:
             self.service.on_connected(self)
-        elif r == errno.EWOULDBLOCK or r == errno.EINPROGRESS:
-            Socket.selector.register(self.socket, selectors.EVENT_READ, self)
-        else:
+        elif r != errno.EWOULDBLOCK and r != errno.EINPROGRESS:
             self.service.on_connect_failed(self)
 
     def send(self, data):
+        if not self.connected:
+            return False
         if isinstance(data, Protocol):
             data = data.encode()
         writing = self.send_buf.size() > 0
         self.send_buf.append(data)
         if not writing:
-            Socket.selector.register(self.socket, selectors.EVENT_WRITE, self)
+            Socket.selector.modify(self.socket, selectors.EVENT_READ | selectors.EVENT_WRITE, self)
+        return True
 
     def close(self):
         Socket.selector.unregister(self.socket)
@@ -67,38 +71,45 @@ class Socket:
         self.service.on_closed(self)
 
     def on_read(self):
-        if self.connected:
-            r = self.socket.recv(0x100000)
-            if len(r) > 0:
-                self.recv_buf.append(r)
-                self.service.on_received(self)
-        elif self.remote_port == 0:
-            s, addr_port = self.socket.accept()
-            soc = Socket(self.service, s)
-            soc.local_addr = self.local_addr
-            soc.local_port = self.local_port
-            soc.remote_addr = addr_port[1]
-            soc.remote_port = addr_port[2]
-            if self.service.on_accepted(soc):
-                soc.connected = True
-                Socket.selector.register(s, selectors.EVENT_READ, self)
-            else:
-                soc.socket.close()
-        else:
+        if not self.connected:
+            if self.remote_port == 0:
+                s, addr_port = self.socket.accept()
+                soc = Socket(self.service, s)
+                soc.local_addr = self.local_addr
+                soc.local_port = self.local_port
+                soc.remote_addr = addr_port[0]
+                soc.remote_port = addr_port[1]
+                if self.service.on_accepted(soc):
+                    soc.connected = True
+                    Socket.selector.register(s, selectors.EVENT_READ, soc)
+                else:
+                    soc.socket.close()
+                return
+            self.connected = True
             self.service.on_connected(self)
+        r = self.socket.recv(0x100000)
+        if len(r) > 0:
+            self.recv_buf.append(r)
+            self.service.on_received(self)
 
     def on_write(self):
+        if not self.connected:
+            self.connected = True
+            self.service.on_connected(self)
         buf = self.send_buf
         while True:
             n = min(buf.size(), 0x100000)
             if n <= 0:
                 break
-            r = self.socket.send(buf[buf.ri:buf.ri + n])
+            r = self.socket.send(buf.buf[buf.ri:buf.ri + n])
             if r > 0:
                 buf.ri += r
             if r < n:
                 break
-        buf.compact()
+        if buf.size() > 0:
+            buf.compact()
+        else:
+            Socket.selector.modify(self.socket, selectors.EVENT_READ, self)
 
     @staticmethod
     def select(timeout):
@@ -177,7 +188,7 @@ class Service:
             if self.check_throttle(soc, module_id, protocol_id, size):
                 type_id = Service.make_type_id(module_id, protocol_id)
                 protocol_handle = self.protocol_handles.get(type_id)
-                if protocol_handle is not None and protocol_handle.handle is not None:
+                if protocol_handle is not None:
                     self.dispatch_protocol(type_id, bb, protocol_handle, soc)
                 else:
                     self.dispatch_unknown_protocol(soc, module_id, protocol_id, bb)
@@ -241,17 +252,18 @@ class Protocol(Serializable):
             bb.write_int4(self.get_protocol_id())
             save_size = bb.begin_write_with_size4()
             self.encode(bb)
+            bb.end_write_with_size4(save_size)
             size = bb.size() - save_size - 4
             if size > self.get_pre_alloc_size():
                 self.set_pre_alloc_size(size)
-            return
-
-        if self.result_code == 0:
-            bb.write_int(Protocol.Protocol)
         else:
-            bb.write_int(Protocol.Protocol | Protocol.BitResultCode)
-            bb.write_long(self.result_code)
-        self.arg.encode(bb)
+            if self.result_code == 0:
+                bb.write_int(Protocol.Protocol)
+            else:
+                bb.write_int(Protocol.Protocol | Protocol.BitResultCode)
+                bb.write_long(self.result_code)
+            self.arg.encode(bb)
+        return bb
 
     def decode(self, bb):
         header = bb.read_int()
@@ -305,7 +317,7 @@ class Rpc(Protocol):
         if cur_time < Rpc.next_check_time:
             return
         Rpc.next_check_time = cur_time + 1
-        for sid, rpc in Rpc.contexts:
+        for sid, rpc in Rpc.contexts.items():
             if rpc.timeout <= cur_time:
                 del Rpc.contexts[sid]
                 rpc.is_timeout = True
@@ -317,9 +329,7 @@ class Rpc(Protocol):
 
     def encode(self, bb=None):
         if bb is None:
-            super().encode(self)
-            return
-
+            return super().encode(bb)
         header = Protocol.Request if self.is_request else Protocol.Response
         if self.result_code == 0:
             bb.write_int(header)
@@ -331,6 +341,7 @@ class Rpc(Protocol):
             self.arg.encode(bb)
         else:
             self.res.encode(bb)
+        return bb
 
     def decode(self, bb):
         header = bb.read_int()
@@ -349,18 +360,15 @@ class Rpc(Protocol):
         if self.is_request:
             super().handle(service, protocol_handle)
             return
-
         if self.session_id not in Rpc.contexts:
             service.on_rpc_lost_context(self)
             return
-
         context = Rpc.contexts.pop(self.session_id)
         context.result_code = self.result_code
         context.sender = self.sender
         context.res = self.res
         context.is_timeout = False
         context.is_request = False
-
         if context.response_handle is not None:
             context.response_handle(context)
 
@@ -381,7 +389,6 @@ class Rpc(Protocol):
         self.is_timeout = False
         self.is_request = True
         Rpc.contexts[sid] = self
-
         if super().send(soc):
             return True
         del Rpc.contexts[sid]

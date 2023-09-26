@@ -7,6 +7,10 @@ import Zeze.Util.*;
 import junit.framework.TestCase;
 
 public class TestAsyncSocket extends TestCase {
+	static {
+		Task.tryInitThreadPool(null, null, null);
+	}
+
 	public void testMain() {
 		var typeId = new Zeze.Services.ServiceManager.SubscribeFirstCommit().getTypeId();
 		System.out.println(typeId);

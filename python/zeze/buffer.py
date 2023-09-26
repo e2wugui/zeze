@@ -1,7 +1,7 @@
 import struct
 
+from zeze.util import to_string_with_limit2
 from zeze.vector import *
-from zeze.util import *
 
 
 class ByteBuffer:
@@ -79,7 +79,12 @@ class ByteBuffer:
 
     def append(self, buffer, offset=0, length=-1):
         if length < 0:
-            length = len(buffer)
+            if isinstance(buffer, ByteBuffer):
+                offset = buffer.ri
+                length = buffer.size()
+                buffer = buffer.buf
+            else:
+                length = len(buffer)
         self.ensure_write(length)
         wi = self.wi
         self.wi = wi + length
@@ -171,12 +176,11 @@ class ByteBuffer:
             self.reset()
 
     def copy(self):
-        size = self.size()
-        if size == 0:
+        ri = self.ri
+        wi = self.wi
+        if ri >= wi:
             return ByteBuffer.empty
-        copy = bytearray(size)
-        copy[0: size] = self.buf[self.ri: self.ri + size]
-        return copy
+        return self.buf[ri:wi]
 
     def copy_if(self):
         return self.buf if self.wi == len(self.buf) and self.ri == 0 else self.copy()
@@ -874,7 +878,7 @@ class ByteBuffer:
         self.ensure_read(n)
         ri = self.ri
         self.ri = ri + n
-        return self.buf[ri:ri + n].decode('utf-8')
+        return self.buf[ri:ri + n].decode("utf-8")
 
     def write_bytes(self, b, offset=0, length=-1):
         if length < 0:

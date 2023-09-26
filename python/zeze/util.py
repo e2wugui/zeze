@@ -106,7 +106,7 @@ def to_string(buf, offset=0, length=-1):
         s[j] = num_to_hex((b >> 4) & 0xf)
         s[j + 1] = num_to_hex(b & 0xf)
         j += 2
-    return str(s, 'latin_1')
+    return str(s, "latin_1")
 
 
 def to_string_with_limit(limit, buf, offset=0, length=-1):
@@ -128,12 +128,12 @@ def to_string_with_limit(limit, buf, offset=0, length=-1):
         j += 2
     s[j:j + 5] = b"...[+"
     j += 5
-    t = str(length - limit).encode('latin_1')
+    t = str(length - limit).encode("latin_1")
     n = len(t)
     s[j:j + n] = t
     j += n
     s[j] = 0x5d  # ']'
-    return str(s[0:j + 1], 'latin_1')
+    return str(s[0:j + 1], "latin_1")
 
 
 def to_string_with_limit2(limit1, limit2, buf, offset=0, length=-1):
@@ -160,7 +160,7 @@ def to_string_with_limit2(limit1, limit2, buf, offset=0, length=-1):
     s[j] = 0x5b  # '['
     s[j + 1] = 0x2b  # '+'
     j += 2
-    t = str(length - limit).encode('latin_1')
+    t = str(length - limit).encode("latin_1")
     n = len(t)
     s[j:j + n] = t
     j += n
@@ -178,7 +178,7 @@ def to_string_with_limit2(limit1, limit2, buf, offset=0, length=-1):
         s[j] = num_to_hex((b >> 4) & 0xf)
         s[j + 1] = num_to_hex(b & 0xf)
         j += 2
-    return str(s[0:j], 'latin_1')
+    return str(s[0:j], "latin_1")
 
 
 def to_buf(hex_str, buf, offset):
