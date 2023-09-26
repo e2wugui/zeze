@@ -2,6 +2,7 @@ package Log4jQuery;
 
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 
 public class Log4jLog {
 	private final long time;
@@ -30,6 +31,15 @@ public class Log4jLog {
 			log = lines.toString();
 			return log;
 		}
+	}
+
+	public boolean containsAll(Collection<String> words) {
+		var log = getLog();
+		for (var word : words) {
+			if (!log.contains(word))
+				return false;
+		}
+		return true;
 	}
 
 	@Override
