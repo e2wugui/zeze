@@ -8,14 +8,15 @@ import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class TestBloomFilter implements BloomFilter.BitMap {
+public class TestBloomFilter implements BloomFilter.BitArray {
 	private static final Logger logger = LogManager.getLogger(TestBloomFilter.class);
 	private static final int BYTE_COUNT = 65536;
+	private static final int KEY_COUNT = 65536;
 
-	private final ByteBuffer bb = ByteBuffer.allocateDirect(BYTE_COUNT);
+	private final ByteBuffer bb = ByteBuffer.allocateDirect(BloomFilter.toPowerOfTwo(BYTE_COUNT));
 
 	@Override
-	public long getBitCount() {
+	public long getCapacity() {
 		return bb.limit() * 8L;
 	}
 
@@ -32,16 +33,17 @@ public class TestBloomFilter implements BloomFilter.BitMap {
 
 	@Test
 	public void testSimple() {
-		var bf = new BloomFilter(this, 8);
-		for (int i = 0; i < BYTE_COUNT; i++)
+		var bf = new BloomFilter(this, KEY_COUNT);
+		logger.info("TestBloomFilter.bitsPerKey = {}", bf.getBitsPerKey());
+		for (int i = 0; i < KEY_COUNT; i++)
 			bf.addKey(i);
-		for (int i = 0; i < BYTE_COUNT; i++)
+		for (int i = 0; i < KEY_COUNT; i++)
 			Assert.assertTrue(bf.testKey(i));
 
 		long err = 0;
 		var r = ThreadLocalRandom.current();
-		for (int i = 0; i < BYTE_COUNT; i++)
-			err += bf.testKey(r.nextLong(BYTE_COUNT, Long.MAX_VALUE)) ? 1 : 0;
-		logger.info("TestBloomFilter.err = {}/{}", err, BYTE_COUNT);
+		for (int i = 0; i < KEY_COUNT; i++)
+			err += bf.testKey(r.nextLong(KEY_COUNT, Long.MAX_VALUE)) ? 1 : 0;
+		logger.info("TestBloomFilter.err = {}/{}", err, KEY_COUNT);
 	}
 }
