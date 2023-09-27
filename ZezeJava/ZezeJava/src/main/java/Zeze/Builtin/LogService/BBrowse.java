@@ -10,6 +10,8 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
     private long _Id;
     private int _Limit;
     private float _OffsetFactor;
+    private boolean _Reset;
+    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.LogService.BCondition> _Condition;
 
     @Override
     public long getId() {
@@ -71,15 +73,53 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         txn.putLog(new Log__OffsetFactor(this, 3, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BBrowse() {
+    @Override
+    public boolean isReset() {
+        if (!isManaged())
+            return _Reset;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Reset;
+        var log = (Log__Reset)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _Reset;
+    }
+
+    public void setReset(boolean value) {
+        if (!isManaged()) {
+            _Reset = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Reset(this, 4, value));
+    }
+
+    public Zeze.Builtin.LogService.BCondition getCondition() {
+        return _Condition.getValue();
+    }
+
+    public void setCondition(Zeze.Builtin.LogService.BCondition value) {
+        _Condition.setValue(value);
+    }
+
+    @Override
+    public Zeze.Builtin.LogService.BConditionReadOnly getConditionReadOnly() {
+        return _Condition.getValue();
     }
 
     @SuppressWarnings("deprecation")
-    public BBrowse(long _Id_, int _Limit_, float _OffsetFactor_) {
+    public BBrowse() {
+        _Condition = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.LogService.BCondition(), Zeze.Builtin.LogService.BCondition.class);
+        _Condition.variableId(5);
+    }
+
+    @SuppressWarnings("deprecation")
+    public BBrowse(long _Id_, int _Limit_, float _OffsetFactor_, boolean _Reset_) {
         _Id = _Id_;
         _Limit = _Limit_;
         _OffsetFactor = _OffsetFactor_;
+        _Reset = _Reset_;
+        _Condition = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.LogService.BCondition(), Zeze.Builtin.LogService.BCondition.class);
+        _Condition.variableId(5);
     }
 
     @Override
@@ -87,6 +127,8 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         setId(0);
         setLimit(0);
         setOffsetFactor(0);
+        setReset(false);
+        _Condition.reset();
         _unknown_ = null;
     }
 
@@ -106,6 +148,10 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         setId(other._Id);
         setLimit(other._Limit);
         setOffsetFactor(other._OffsetFactor);
+        setReset(other._Reset);
+        Zeze.Builtin.LogService.BCondition data_Condition = new Zeze.Builtin.LogService.BCondition();
+        data_Condition.assign(other._Condition);
+        _Condition.setValue(data_Condition);
         _unknown_ = null;
     }
 
@@ -113,6 +159,8 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         setId(other.getId());
         setLimit(other.getLimit());
         setOffsetFactor(other.getOffsetFactor());
+        setReset(other.isReset());
+        _Condition.assign(other._Condition);
         _unknown_ = other._unknown_;
     }
 
@@ -159,6 +207,13 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         public void commit() { ((BBrowse)getBelong())._OffsetFactor = value; }
     }
 
+    private static final class Log__Reset extends Zeze.Transaction.Logs.LogBool {
+        public Log__Reset(BBrowse bean, int varId, boolean value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BBrowse)getBelong())._Reset = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -172,7 +227,11 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Limit=").append(getLimit()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("OffsetFactor=").append(getOffsetFactor()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OffsetFactor=").append(getOffsetFactor()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Reset=").append(isReset()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Condition=").append(System.lineSeparator());
+        _Condition.buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -226,6 +285,23 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
                 _o_.WriteFloat(_x_);
             }
         }
+        {
+            boolean _x_ = isReset();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
+        {
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 5, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            _Condition.encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -247,8 +323,26 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
             setOffsetFactor(_o_.ReadFloat(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 4) {
+            setReset(_o_.ReadBool(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            _o_.ReadBean(_Condition, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
+    }
+
+    @Override
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Condition.initRootInfo(root, this);
+    }
+
+    @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Condition.initRootInfoWithRedo(root, this);
     }
 
     @Override
@@ -256,6 +350,8 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         if (getId() < 0)
             return true;
         if (getLimit() < 0)
+            return true;
+        if (_Condition.negativeCheck())
             return true;
         return false;
     }
@@ -272,6 +368,8 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
                 case 1: _Id = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _Limit = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 3: _OffsetFactor = ((Zeze.Transaction.Logs.LogFloat)vlog).value; break;
+                case 4: _Reset = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 5: _Condition.followerApply(vlog); break;
             }
         }
     }
@@ -282,6 +380,10 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         setId(rs.getLong(_parents_name_ + "Id"));
         setLimit(rs.getInt(_parents_name_ + "Limit"));
         setOffsetFactor(rs.getFloat(_parents_name_ + "OffsetFactor"));
+        setReset(rs.getBoolean(_parents_name_ + "Reset"));
+        parents.add("Condition");
+        _Condition.decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
     }
 
     @Override
@@ -290,6 +392,10 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         st.appendLong(_parents_name_ + "Id", getId());
         st.appendInt(_parents_name_ + "Limit", getLimit());
         st.appendFloat(_parents_name_ + "OffsetFactor", getOffsetFactor());
+        st.appendBoolean(_parents_name_ + "Reset", isReset());
+        parents.add("Condition");
+        _Condition.encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
     }
 
     @Override
@@ -298,6 +404,8 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Id", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Limit", "int", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "OffsetFactor", "float", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Reset", "bool", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Condition", "BCondition", "", ""));
         return vars;
     }
 
@@ -307,6 +415,8 @@ public static final class Data extends Zeze.Transaction.Data {
     private long _Id;
     private int _Limit;
     private float _OffsetFactor;
+    private boolean _Reset;
+    private Zeze.Builtin.LogService.BCondition.Data _Condition;
 
     public long getId() {
         return _Id;
@@ -332,15 +442,38 @@ public static final class Data extends Zeze.Transaction.Data {
         _OffsetFactor = value;
     }
 
-    @SuppressWarnings("deprecation")
-    public Data() {
+    public boolean isReset() {
+        return _Reset;
+    }
+
+    public void setReset(boolean value) {
+        _Reset = value;
+    }
+
+    public Zeze.Builtin.LogService.BCondition.Data getCondition() {
+        return _Condition;
+    }
+
+    public void setCondition(Zeze.Builtin.LogService.BCondition.Data value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Condition = value;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _Id_, int _Limit_, float _OffsetFactor_) {
+    public Data() {
+        _Condition = new Zeze.Builtin.LogService.BCondition.Data();
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(long _Id_, int _Limit_, float _OffsetFactor_, boolean _Reset_, Zeze.Builtin.LogService.BCondition.Data _Condition_) {
         _Id = _Id_;
         _Limit = _Limit_;
         _OffsetFactor = _OffsetFactor_;
+        _Reset = _Reset_;
+        if (_Condition_ == null)
+            _Condition_ = new Zeze.Builtin.LogService.BCondition.Data();
+        _Condition = _Condition_;
     }
 
     @Override
@@ -348,6 +481,8 @@ public static final class Data extends Zeze.Transaction.Data {
         _Id = 0;
         _Limit = 0;
         _OffsetFactor = 0;
+        _Reset = false;
+        _Condition.reset();
     }
 
     @Override
@@ -366,12 +501,16 @@ public static final class Data extends Zeze.Transaction.Data {
         _Id = other.getId();
         _Limit = other.getLimit();
         _OffsetFactor = other.getOffsetFactor();
+        _Reset = other.isReset();
+        _Condition.assign(other._Condition.getValue());
     }
 
     public void assign(BBrowse.Data other) {
         _Id = other._Id;
         _Limit = other._Limit;
         _OffsetFactor = other._OffsetFactor;
+        _Reset = other._Reset;
+        _Condition.assign(other._Condition);
     }
 
     @Override
@@ -410,7 +549,11 @@ public static final class Data extends Zeze.Transaction.Data {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(_Id).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Limit=").append(_Limit).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("OffsetFactor=").append(_OffsetFactor).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OffsetFactor=").append(_OffsetFactor).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Reset=").append(_Reset).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Condition=").append(System.lineSeparator());
+        _Condition.buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -451,6 +594,23 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteFloat(_x_);
             }
         }
+        {
+            boolean _x_ = _Reset;
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
+        {
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 5, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            _Condition.encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
+        }
         _o_.WriteByte(0);
     }
 
@@ -468,6 +628,14 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 3) {
             _OffsetFactor = _o_.ReadFloat(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _Reset = _o_.ReadBool(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            _o_.ReadBean(_Condition, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

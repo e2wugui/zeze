@@ -6,12 +6,9 @@ import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.LogService.BLog;
-import Zeze.Builtin.LogService.BRegex;
-import Zeze.Builtin.LogService.BWords;
 import Zeze.Builtin.LogService.Browse;
 import Zeze.Builtin.LogService.CloseSession;
-import Zeze.Builtin.LogService.NewSessionRegex;
-import Zeze.Builtin.LogService.NewSessionWords;
+import Zeze.Builtin.LogService.NewSession;
 import Zeze.Builtin.LogService.Search;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
@@ -124,23 +121,8 @@ public class LogService extends AbstractLogService {
             return logSessions.get(sid);
         }
 
-        public void newLogSessionWords(long sid, BWords.Data words) throws IOException {
-            var logSession = new Log4jSession(logConf.logActive, logConf.logRotateDir,
-                    words.getBeginTime(), words.getEndTime(),
-                    words.getWords(), words.isContainsAll());
-
-            var exist = logSessions.putIfAbsent(sid, logSession);
-            if (null != exist) {
-                logSession.close();
-                throw new IllegalArgumentException("duplicate sid=" + sid);
-            }
-        }
-
-        public void newLogSessionRegex(long sid, BRegex.Data regex) throws IOException {
-            var logSession = new Log4jSession(logConf.logActive, logConf.logRotateDir,
-                    regex.getBeginTime(), regex.getEndTime(),
-                    regex.getPattern());
-
+        public void newLogSession(long sid) throws IOException {
+            var logSession = new Log4jSession(logConf.logActive, logConf.logRotateDir);
             var exist = logSessions.putIfAbsent(sid, logSession);
             if (null != exist) {
                 logSession.close();
@@ -169,19 +151,10 @@ public class LogService extends AbstractLogService {
     }
 
     @Override
-    protected long ProcessNewSessionRegexRequest(NewSessionRegex r) throws Exception {
+    protected long ProcessNewSessionRequest(NewSession r) throws Exception {
         var agent = (AgentUserState)r.getSender().getUserState();
         r.Result.setId(sidSeed.incrementAndGet());
-        agent.newLogSessionRegex(r.Result.getId(), r.Argument);
-        r.SendResult();
-        return 0;
-    }
-
-    @Override
-    protected long ProcessNewSessionWordsRequest(NewSessionWords r) throws Exception {
-        var agent = (AgentUserState)r.getSender().getUserState();
-        r.Result.setId(sidSeed.incrementAndGet());
-        agent.newLogSessionWords(r.Result.getId(), r.Argument);
+        agent.newLogSession(r.Result.getId());
         r.SendResult();
         return 0;
     }
@@ -193,10 +166,28 @@ public class LogService extends AbstractLogService {
         if (null == logSession)
             return Procedure.LogicError;
         var result = new LinkedList<Log4jLog>();
-        var remain = logSession.browse(result, r.Argument.getLimit(), r.Argument.getOffsetFactor());
+
+        boolean remain;
+        if (!r.Argument.getCondition().getWords().isEmpty()) {
+            if (r.Argument.isReset())
+                logSession.reset();
+            remain = logSession.browseContains(result,
+                    r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
+                    r.Argument.getCondition().getWords(), r.Argument.getCondition().isContainsAll(),
+                    r.Argument.getLimit(), r.Argument.getOffsetFactor());
+        } else if (!r.Argument.getCondition().getPattern().isEmpty()) {
+            if (r.Argument.isReset())
+                logSession.reset();
+            remain = logSession.browseRegex(result,
+                    r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
+                    r.Argument.getCondition().getPattern(),
+                    r.Argument.getLimit(), r.Argument.getOffsetFactor());
+        } else
+            throw new IllegalArgumentException("no condition.");
+
+        r.Result.setRemain(remain);
         for (var log : result)
             r.Result.getLogs().add(new BLog.Data(log.getTime(), log.getLog()));
-        r.Result.setRemain(remain);
         r.SendResult();
         return 0;
     }
@@ -208,10 +199,27 @@ public class LogService extends AbstractLogService {
         if (null == logSession)
             return Procedure.LogicError;
         var result = new ArrayList<Log4jLog>();
-        var remain = logSession.search(result, r.Argument.getLimit());
+        boolean remain;
+        if (!r.Argument.getCondition().getWords().isEmpty()) {
+            if (r.Argument.isReset())
+                logSession.reset();
+            remain = logSession.searchContains(result,
+                    r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
+                    r.Argument.getCondition().getWords(), r.Argument.getCondition().isContainsAll(),
+                    r.Argument.getLimit());
+        } else if (!r.Argument.getCondition().getPattern().isEmpty()) {
+            if (r.Argument.isReset())
+                logSession.reset();
+            remain = logSession.searchRegex(result,
+                    r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
+                    r.Argument.getCondition().getPattern(),
+                    r.Argument.getLimit());
+        } else
+            throw new IllegalArgumentException("no condition.");
+
+        r.Result.setRemain(remain);
         for (var log : result)
             r.Result.getLogs().add(new BLog.Data(log.getTime(), log.getLog()));
-        r.Result.setRemain(remain);
         r.SendResult();
         return 0;
     }

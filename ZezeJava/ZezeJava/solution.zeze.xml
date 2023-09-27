@@ -1817,16 +1817,12 @@
 		</module>
 
 		<module name="LogService" id="11035" UseData="true"  DefaultTransactionLevel="None">
-			<bean name="BWords">
+			<bean name="BCondition">
 				<variable id="1" name="BeginTime" type="long"/>
 				<variable id="2" name="EndTime" type="long"/>
 				<variable id="3" name="Words" type="list[string]"/>
 				<variable id="4" name="ContainsAll" type="bool"/>
-			</bean>
-			<bean name="BRegex">
-				<variable id="1" name="BeginTime" type="long"/>
-				<variable id="2" name="EndTime" type="long"/>
-				<variable id="3" name="Pattern" type="string"/>
+				<variable id="5" name="Pattern" type="string"/>
 			</bean>
 
 			<bean name="BLog">
@@ -1846,15 +1842,18 @@
 				<variable id="1" name="Id" type="long"/>
 				<variable id="2" name="Limit" type="int"/>
 				<variable id="3" name="OffsetFactor" type="float"/>
+				<variable id="4" name="Reset" type="bool"/>
+				<variable id="5" name="Condition" type="BCondition"/>
 			</bean>
 
 			<bean name="BSearch">
 				<variable id="1" name="Id" type="long"/>
 				<variable id="2" name="Limit" type="int"/>
+				<variable id="3" name="Reset" type="bool"/>
+				<variable id="4" name="Condition" type="BCondition"/>
 			</bean>
 
-			<rpc name="NewSessionWords" argument="BWords" result="BSession" handle="server"/>
-			<rpc name="NewSessionRegex" argument="BRegex" result="BSession" handle="server"/>
+			<rpc name="NewSession"  result="BSession" handle="server"/>
 			<rpc name="CloseSession" argument="BSession" handle="server"/>
 			<rpc name="Browse" argument="BBrowse" result="BResult" handle="server"/>
 			<rpc name="Search" argument="BSearch" result="BResult" handle="server"/>

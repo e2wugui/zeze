@@ -9,78 +9,40 @@ import org.jetbrains.annotations.Nullable;
 
 public class Log4jSession {
 	private final Log4jFiles files;
-	private final long beginTime;
-	private final long endTime;
-
-	// 关键字匹配
-	private final List<String> words;
-	private final boolean containsAll;
-
-	// 正则表达式匹配
-	private final String pattern;
-	private final Pattern regex;
-
-	public long getBeginTime() {
-		return beginTime;
-	}
-
-	public long getEndTime() {
-		return endTime;
-	}
+	private long beginTime; // 用来检测发现开始时间发生变化，此时需要重置并且seek。
 
 	/**
 	 * 构造一个搜索会话。
-	 * @param beginTime beginTime -1 means begin of log.
-	 * @param endTime endTime -1 means end of log.
 	 */
-	public Log4jSession(@NotNull String logActive, @Nullable String logRotateDir,
-						long beginTime, long endTime,
-						String pattern) throws IOException {
-		this.beginTime = beginTime;
-		this.endTime = endTime;
-		this.pattern = pattern;
-		this.regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
-		this.words = null;
-		this.containsAll = false;
-
+	public Log4jSession(@NotNull String logActive, @Nullable String logRotateDir) throws IOException {
 		this.files = new Log4jFiles(logActive, logRotateDir);
+	}
+
+	public void reset() throws IOException {
+		this.files.reset();
+	}
+
+	private void trySetBeginTime(long beginTime) throws IOException {
+		if (this.beginTime == beginTime)
+			return;
+
+		this.beginTime = beginTime;
+		this.files.reset();
 		if (beginTime != -1)
 			this.files.seek(beginTime);
-	}
-
-	public Log4jSession(@NotNull String logActive, @Nullable String logRotateDir,
-						long beginTime, long endTime,
-						List<String> words, boolean containsAll) throws IOException {
-		this.beginTime = beginTime;
-		this.endTime = endTime;
-		this.pattern = null;
-		this.regex = null;
-		this.words = words;
-		this.containsAll = containsAll;
-
-		this.files = new Log4jFiles(logActive, logRotateDir);
-		if (beginTime != -1)
-			this.files.seek(beginTime);
-	}
-
-	public boolean search(List<Log4jLog> result, int limit) throws IOException {
-		result.clear();
-		if (null == regex)
-			return searchContains(result, limit);
-		return searchRegex(result, limit);
-	}
-
-	private boolean containsCheck(Log4jLog log) {
-		if (containsAll)
-			return log.containsAll(words);
-		return log.containsNone(words);
 	}
 
 	/**
 	 * 按 string.find 方式搜索日志，结果通过 result 获取；
 	 * @return true 表示还有数据没有搜索完，false 表示结束。
 	 */
-	private boolean searchContains(List<Log4jLog> result, int limit) throws IOException {
+	public boolean searchContains(List<Log4jLog> result,
+						  long beginTime, long endTime,
+						  List<String> words, boolean containsAll,
+						  int limit) throws IOException {
+		result.clear();
+		trySetBeginTime(beginTime);
+
 		if (limit <= 0)
 			return false; // end search
 
@@ -89,7 +51,7 @@ public class Log4jSession {
 			if (endTime != -1 && log.getTime() > endTime)
 				return false; // end search
 
-			if (containsCheck(log)) {
+			if (containsCheck(log, words, containsAll)) {
 				result.add(log);
 				if (--limit <= 0)
 					break; // maybe remain
@@ -99,11 +61,23 @@ public class Log4jSession {
 		return files.hasNext(); // remain maybe
 	}
 
+	private static boolean containsCheck(Log4jLog log, List<String> words, boolean containsAll) {
+		if (containsAll)
+			return log.containsAll(words);
+		return log.containsNone(words);
+	}
+
 	/**
 	 * 按 Regex.match 方式搜索日志，结果通过 result 获取；
 	 * @return true 表示还有数据没有搜索完，false 表示结束。
 	 */
-	private boolean searchRegex(List<Log4jLog> result, int limit) throws IOException {
+	public boolean searchRegex(List<Log4jLog> result,
+							   long beginTime, long endTime,
+							   String pattern,
+							   int limit) throws IOException {
+		result.clear();
+		trySetBeginTime(beginTime);
+
 		if (limit <= 0)
 			return false; // end search
 
@@ -112,6 +86,7 @@ public class Log4jSession {
 			if (endTime != -1 && log.getTime() > endTime)
 				return false; // end search
 
+			var regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
 			var matcher = regex.matcher(log.getLog());
 			if (matcher.find()) {
 				result.add(log);
@@ -127,14 +102,13 @@ public class Log4jSession {
 		files.close();
 	}
 
-	public boolean browse(Deque<Log4jLog> result, int limit, float offsetFactor) throws IOException {
+	public boolean browseContains(Deque<Log4jLog> result,
+						  long beginTime, long endTime,
+						  List<String> words, boolean containsAll,
+						  int limit, float offsetFactor) throws IOException {
 		result.clear();
-		if (null == regex)
-			return browseContains(result, limit, offsetFactor);
-		return browseRegex(result, limit, offsetFactor);
-	}
+		trySetBeginTime(beginTime);
 
-	private boolean browseContains(Deque<Log4jLog> result, int limit, float offsetFactor) throws IOException {
 		if (limit <= 0)
 			return false; // end search
 
@@ -154,7 +128,7 @@ public class Log4jSession {
 				if (limit <= 0)
 					break;
 			} else {
-				if (containsCheck(log)) {
+				if (containsCheck(log, words, containsAll)) {
 					locate = true;
 					limit -= result.size();
 					if (limit <= 0)
@@ -167,7 +141,13 @@ public class Log4jSession {
 		return files.hasNext(); // remain maybe
 	}
 
-	private boolean browseRegex(Deque<Log4jLog> result, int limit, float offsetFactor) throws IOException {
+	public boolean browseRegex(Deque<Log4jLog> result,
+							   long beginTime, long endTime,
+							   String pattern,
+							   int limit, float offsetFactor) throws IOException {
+		result.clear();
+		trySetBeginTime(beginTime);
+
 		if (limit <= 0)
 			return false; // end search
 
@@ -187,6 +167,7 @@ public class Log4jSession {
 				if (limit <= 0)
 					break;
 			} else {
+				var regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
 				var matcher = regex.matcher(log.getLog());
 				if (matcher.find()) {
 					locate = true;

@@ -9,4 +9,6 @@ public interface BSearchReadOnly {
 
     long getId();
     int getLimit();
+    boolean isReset();
+    Zeze.Builtin.LogService.BConditionReadOnly getConditionReadOnly();
 }

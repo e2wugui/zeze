@@ -10,4 +10,6 @@ public interface BBrowseReadOnly {
     long getId();
     int getLimit();
     float getOffsetFactor();
+    boolean isReset();
+    Zeze.Builtin.LogService.BConditionReadOnly getConditionReadOnly();
 }

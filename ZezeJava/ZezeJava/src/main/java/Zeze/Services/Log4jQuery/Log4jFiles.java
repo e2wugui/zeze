@@ -20,7 +20,9 @@ public class Log4jFiles {
 		if (active.exists())
 			files.add(active);
 		loadRotateDir(logRotateDir);
+	}
 
+	public void reset() throws IOException {
 		currentIndex = 0;
 		if (!files.isEmpty())
 			nextCurrent();
