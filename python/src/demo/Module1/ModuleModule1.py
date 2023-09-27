@@ -35,16 +35,16 @@ class ModuleModule1(demo.Module1.AbstractModule):
         raise Exception("unknown type_id = " + id)
 
     def process_Protocol3(self, r):
-        raise Exception("not implement for process_Protocol3")
+        raise NotImplementedError("process_Protocol3")
 
     def process_Protocol4(self, r):
-        raise Exception("not implement for process_Protocol4")
+        raise NotImplementedError("process_Protocol4")
 
     def process_ProtocolNoProcedure(self, r):
-        raise Exception("not implement for process_ProtocolNoProcedure")
+        raise NotImplementedError("process_ProtocolNoProcedure")
 
     def process_ProtocolUseData(self, r):
-        raise Exception("not implement for process_ProtocolUseData")
+        raise NotImplementedError("process_ProtocolUseData")
 
     def process_Rpc1_request(self, r):
-        raise Exception("not implement for process_Rpc1_request")
+        raise NotImplementedError("process_Rpc1_request")

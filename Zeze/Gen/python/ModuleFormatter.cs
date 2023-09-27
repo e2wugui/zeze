@@ -67,7 +67,7 @@ namespace Zeze.Gen.python
                         {
                             sw.WriteLine();
                             sw.WriteLine($"    def process_{rpc.Name}_request(self, r):");
-                            sw.WriteLine($"        raise Exception(\"not implement for process_{rpc.Name}_request\")");
+                            sw.WriteLine($"        raise NotImplementedError(\"process_{rpc.Name}_request\")");
                         }
                     }
                     else
@@ -76,7 +76,7 @@ namespace Zeze.Gen.python
                         {
                             sw.WriteLine();
                             sw.WriteLine($"    def process_{p.Name}(self, r):");
-                            sw.WriteLine($"        raise Exception(\"not implement for process_{p.Name}\")");
+                            sw.WriteLine($"        raise NotImplementedError(\"process_{p.Name}\")");
                         }
                     }
                 }
@@ -122,13 +122,13 @@ namespace Zeze.Gen.python
                     {
                         sw.WriteLine();
                         sw.WriteLine($"    def process_{rpc.Name}_request(self, r):");
-                        sw.WriteLine($"        raise Exception(\"not implement for process_{rpc.Name}_request\")");
+                        sw.WriteLine($"        raise NotImplementedError(\"process_{rpc.Name}_request\")");
                     }
                     else
                     {
                         sw.WriteLine();
                         sw.WriteLine($"    def process_{p.Name}(self, r):");
-                        sw.WriteLine($"        raise Exception(\"not implement for process_{p.Name}\")");
+                        sw.WriteLine($"        raise NotImplementedError(\"process_{p.Name}\")");
                     }
                 }
                 Program.Print($"  Overwrite File: {fullFileName}", ConsoleColor.DarkYellow);
