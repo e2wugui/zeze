@@ -58,7 +58,7 @@ namespace Zeze.Gen.python
                 new ServiceFormatter(service, srcDir).Make();
         }
 
-        public void GenInit(string baseDir, int level = 2)
+        public void GenInit(string baseDir)
         {
             {
                 using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(baseDir, "__init__.py"));
@@ -88,7 +88,7 @@ namespace Zeze.Gen.python
                 }
             }
             foreach (var path in Directory.GetDirectories(baseDir))
-                GenInit(path, level + 1);
+                GenInit(path);
         }
     }
 }

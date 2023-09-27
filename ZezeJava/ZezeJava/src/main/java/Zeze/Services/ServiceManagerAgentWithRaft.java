@@ -1,7 +1,6 @@
 package Zeze.Services;
 
 import java.util.concurrent.ExecutionException;
-import Zeze.Application;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.CommitServiceList;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;

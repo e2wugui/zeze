@@ -4,7 +4,6 @@ import java.io.Closeable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Application;
 import Zeze.Component.Threading;
 import Zeze.Config;
 import Zeze.Net.Binary;
