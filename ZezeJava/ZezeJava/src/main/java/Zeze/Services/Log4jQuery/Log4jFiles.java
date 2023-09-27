@@ -25,7 +25,7 @@ public class Log4jFiles {
 	public void reset() throws IOException {
 		currentIndex = 0;
 		if (!files.isEmpty())
-			nextCurrent();
+			nextCurrent(); // todo 这里导致重新打开文件，优化成current.reset()。
 	}
 
 	private void loadRotateDir(@Nullable String logRotateDir) {

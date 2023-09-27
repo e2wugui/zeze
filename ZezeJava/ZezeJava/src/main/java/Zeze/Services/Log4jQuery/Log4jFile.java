@@ -24,6 +24,12 @@ public class Log4jFile {
 		return file;
 	}
 
+	public void reset() throws IOException {
+		randomAccessFile.seek(0);
+		this.bufferedReader = new BufferedReader(new FileReader(randomAccessFile.getFD()));
+		this.nextLog = tryNext();
+	}
+
 	/**
 	 * 定位到 log.time >= time 的日志的位置。
 	 * 这里只查找一个文件。
