@@ -1,6 +1,6 @@
 import unittest
 
-from gen.demo.Module1 import BValue
+from gen.demo.Module1 import BValue, Protocol4
 from zeze.net import Service, Socket, Rpc
 
 
@@ -48,9 +48,13 @@ class Client(Service):
 
 
 class TestNet(unittest.TestCase):
+    instance = None
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.connected = False
+        self.handled = False
+        TestNet.instance = self
 
     def test_connect(self):
         client = ServiceClient().start_client("www.163.com", 80)
@@ -59,26 +63,33 @@ class TestNet(unittest.TestCase):
 
     def test_rpc_simple(self):
         server = Service("TestRpc.Server")
-        first = FirstRpc()
-        # print(first.type_id())
-        server.add_protocol_handle(first.type_id(), "FirstRpc", FirstRpc, TestNet.process_FirstRpc_request)
+        rpc = FirstRpc()
+        server.add_protocol_handle(Protocol4.TypeId, "Protocol4", Protocol4, self.process_Protocol4)
+        server.add_protocol_handle(rpc.type_id(), "FirstRpc", FirstRpc, TestNet.process_FirstRpc_request)
 
         server.start_server("127.0.0.1", 5000)
         client = Client(self)
-        client.add_protocol_handle(first.type_id(), "FirstRpc", FirstRpc)
+        client.add_protocol_handle(rpc.type_id(), "FirstRpc", FirstRpc)
 
         client.start_client("127.0.0.1", 5000).wait_for_connected()
 
-        first = FirstRpc()
-        first.arg.int_1 = 1234
-        # print("SendFirstRpcRequest")
+        Protocol4(BValue(1234)).send(client.get_socket())
+        while not self.handled:
+            Socket.select(1)
 
-        first.send_for_wait(client.get_socket())
-        # print("FirstRpc Wait End")
-        self.assertEqual(first.arg.int_1, first.res.int_1)
+        rpc = FirstRpc()
+        rpc.arg.int_1 = 4321
+        rpc.send_for_wait(client.get_socket())
+        self.assertEqual(rpc.arg.int_1, rpc.res.int_1)
+
+    def process_Protocol4(self, p):
+        print("process_Protocol4 arg.Int1 = " + str(p.arg.int_1))
+        self.assertEqual(1234, p.arg.int_1)
+        self.handled = True
 
     @staticmethod
     def process_FirstRpc_request(rpc):
         rpc.res.assign(rpc.arg)
+        print("process_FirstRpc_request res.Int1 = " + str(rpc.res.int_1))
+        TestNet.instance.assertEqual(4321, rpc.res.int_1)
         rpc.send_result()
-        print("ProcessFirstRpcRequest result.Int1 = " + str(rpc.res.int_1))

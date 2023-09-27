@@ -2,5 +2,5 @@ __pycache__/
 
 /gen
 /out
+/test/test.py
 /venv
-/zeze/__init__.py
