@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class Log4jSession {
 	private final Log4jFiles files;
-	private long beginTime; // 用来检测发现开始时间发生变化，此时需要重置并且seek。
+	private long beginTime = -2; // 用来检测发现开始时间发生变化，此时需要重置并且seek。
 
 	/**
 	 * 构造一个搜索会话。
@@ -23,6 +23,9 @@ public class Log4jSession {
 	}
 
 	private void trySetBeginTime(long beginTime) throws IOException {
+		if (beginTime == -2)
+			throw new IllegalArgumentException("invalid beginTime -2");
+
 		if (this.beginTime == beginTime)
 			return;
 

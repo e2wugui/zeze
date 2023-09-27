@@ -12,20 +12,24 @@ import org.jetbrains.annotations.Nullable;
  */
 public class Log4jFiles {
 	private final ArrayList<File> files = new ArrayList<>();
-	private int currentIndex;
+	private int currentIndex = -1;
 	private Log4jFile current;
 
 	public Log4jFiles(@NotNull String logActive, @Nullable String logRotateDir) throws IOException {
+		loadRotateDir(logRotateDir);
 		var active = new File(logActive);
 		if (active.exists())
 			files.add(active);
-		loadRotateDir(logRotateDir);
 	}
 
 	public void reset() throws IOException {
-		currentIndex = 0;
-		if (!files.isEmpty())
-			nextCurrent(); // todo 这里导致重新打开文件，优化成current.reset()。
+		if (currentIndex == 0)
+			current.reset();
+		else {
+			currentIndex = 0;
+			if (!files.isEmpty())
+				nextCurrent();
+		}
 	}
 
 	private void loadRotateDir(@Nullable String logRotateDir) {

@@ -16,10 +16,15 @@ public class TestLog4jQuery {
 		var pattern = "23-08-25 09:19:00.813";
 		var session = new Log4jSession(logActive, null);
 		var result = new ArrayList<Log4jLog>();
+		var reset = false;
 		while (session.searchContains(result, beginTime, endTime, java.util.List.of(pattern), true, 1)) {
 			System.out.println("------------------------");
 			for (var log : result)
 				System.out.println(log);
+			if (!reset) {
+				session.reset();
+				reset = true;
+			}
 		}
 		if (!result.isEmpty()) {
 			System.out.println("------------------------");
