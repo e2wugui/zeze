@@ -25,6 +25,7 @@ class Socket:
         self.send_buf = ByteBuffer()
         Socket.session_id_gen += 1
         self.session_id = Socket.session_id_gen
+        service.on_add_socket(self)
 
     def __str__(self):
         return f"[{self.session_id}] {self.local_addr}:{self.local_port}-{self.remote_addr}:{self.remote_port}"
@@ -130,10 +131,14 @@ class ProtocolHandle:
 
 
 class Service:
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, name=None):
+        self.name = name if name is not None else self.__class__.__name__
         self.opt_max_protocol_size = 2 * 1024 * 1024
+        self.socs = {}  # soc.session_id => soc
         self.protocol_handles = {}  # type_id => ProtocolHandle
+
+    def on_add_socket(self, soc):
+        self.socs[soc.session_id] = soc
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def on_accepted(self, soc):
@@ -146,7 +151,7 @@ class Service:
         pass
 
     def on_closed(self, soc):
-        pass
+        del self.socs[soc.session_id]
 
     def on_received(self, soc):
         self.decode(soc, soc.recv_buf)
@@ -163,6 +168,30 @@ class Service:
     @staticmethod
     def make_type_id(module_id, protocol_id):
         return (module_id << 32) + (protocol_id & 0xffff_ffff)
+
+    def start_server(self, addr, port):
+        Socket(self).listen(addr, port)
+        return self
+
+    def start_client(self, addr, port):
+        Socket(self).connect(addr, port)
+        return self
+
+    def wait_for_connected(self):
+        while True:
+            connected = True
+            for soc in self.socs.values():
+                if not soc.connected:
+                    connected = False
+                    break
+            if connected:
+                break
+            Socket.select(1)
+
+    def get_socket(self):
+        for soc in self.socs.values():
+            return soc
+        return None
 
     def decode(self, soc, bb):
         while bb.size() >= Protocol.HEADER_SIZE:
@@ -326,6 +355,12 @@ class Rpc(Protocol):
                 handle = rpc.response_handle
                 if handle is not None:
                     handle(rpc)
+
+    def send_for_wait(self, soc):
+        self.send(soc)
+        while self.is_request:
+            Socket.select(1)
+        return self
 
     def encode(self, bb=None):
         if bb is None:

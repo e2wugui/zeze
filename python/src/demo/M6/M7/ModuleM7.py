@@ -12,8 +12,11 @@ class ModuleM7(demo.M6.M7.AbstractModule):
     def start(self):
         pass
 
-    def stop(self):
+    def start_last(self):
         pass
 
-    def start_last(self):
+    def stop_before(self):
+        pass
+
+    def stop(self):
         pass

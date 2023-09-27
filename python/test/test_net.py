@@ -53,33 +53,27 @@ class TestNet(unittest.TestCase):
         self.connected = False
 
     def test_connect(self):
-        client = ServiceClient()
-        Socket(client).connect("www.163.com", 80)
+        client = ServiceClient().start_client("www.163.com", 80)
         while not client.future:
             Socket.select(1)
 
-    def testRpcSimple(self):
+    def test_rpc_simple(self):
         server = Service("TestRpc.Server")
         first = FirstRpc()
         # print(first.type_id())
         server.add_protocol_handle(first.type_id(), "FirstRpc", FirstRpc, TestNet.process_FirstRpc_request)
 
-        Socket(server).listen("127.0.0.1", 5000)
+        server.start_server("127.0.0.1", 5000)
         client = Client(self)
         client.add_protocol_handle(first.type_id(), "FirstRpc", FirstRpc)
 
-        client_socket = Socket(client)
-        client_socket.connect("127.0.0.1", 5000)
-        while not self.connected:
-            Socket.select(1)
+        client.start_client("127.0.0.1", 5000).wait_for_connected()
 
         first = FirstRpc()
         first.arg.int_1 = 1234
         # print("SendFirstRpcRequest")
 
-        first.send(client_socket)
-        while first.is_request:
-            Socket.select(1)
+        first.send_for_wait(client.get_socket())
         # print("FirstRpc Wait End")
         self.assertEqual(first.arg.int_1, first.res.int_1)
 

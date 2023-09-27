@@ -73,18 +73,18 @@ def hash_dict(a):
     return h
 
 
-INDENT_MAX = 64
-INDENTS = []
-for indent in range(0, INDENT_MAX):
-    INDENTS.append(" " * indent)
+_INDENT_MAX = 64
+_INDENTS = []
+for indent in range(0, _INDENT_MAX):
+    _INDENTS.append(" " * indent)
 
 
 def indent(n):
     if n <= 0:
         return ""
-    if n >= INDENT_MAX:
-        n = INDENT_MAX - 1
-    return INDENTS[n]
+    if n >= _INDENT_MAX:
+        n = _INDENT_MAX - 1
+    return _INDENTS[n]
 
 
 def num_to_hex(n):

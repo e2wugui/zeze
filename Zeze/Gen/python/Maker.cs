@@ -47,6 +47,8 @@ namespace Zeze.Gen.python
                 else
                     new ProtocolFormatter(protocol).Make(genCommonDir, Project);
             }
+            new App(Project, genCommonDir).Make();
+            Program.FlushOutputs();
             GenInit(genCommonDir);
 
             // gen project
@@ -54,7 +56,6 @@ namespace Zeze.Gen.python
                 new ModuleFormatter(Project, module, genDir, srcDir).Make();
             foreach (Service service in Project.Services.Values)
                 new ServiceFormatter(service, srcDir).Make();
-            new App(Project, srcDir).Make();
         }
 
         public void GenInit(string baseDir, int level = 2)
@@ -63,6 +64,16 @@ namespace Zeze.Gen.python
                 using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(baseDir, "__init__.py"));
                 if (sw == null)
                     return;
+                foreach (var path in Directory.GetDirectories(baseDir))
+                {
+                    var s = path.Replace('\\', '/');
+                    var p = s.LastIndexOf('/');
+                    if (p >= 0)
+                        s = s[(p + 1)..];
+                    if (s.StartsWith("_"))
+                        continue;
+                    sw.WriteLine($"from . import {s.Replace('/', '.')}");
+                }
                 foreach (var file in Directory.GetFiles(baseDir))
                 {
                     if (!file.EndsWith(".py"))
@@ -71,21 +82,9 @@ namespace Zeze.Gen.python
                     var p = s.LastIndexOf('/');
                     if (p >= 0)
                         s = s[(p + 1)..];
-                    if (s == "__init__")
+                    if (s.StartsWith("_"))
                         continue;
                     sw.WriteLine($"from .{s} import {s}");
-                }
-                foreach (var path in Directory.GetDirectories(baseDir))
-                {
-                    var s = path.Replace('\\', '/');
-                    int p = s.Length;
-                    for (int i = 0; i < level; i++)
-                        p = s.LastIndexOf('/', p - 1);
-                    if (p >= 0)
-                        s = s[(p + 1)..];
-                    if (s.EndsWith("/__pycache__"))
-                        continue;
-                    sw.WriteLine($"import {s.Replace('/', '.')}");
                 }
             }
             foreach (var path in Directory.GetDirectories(baseDir))

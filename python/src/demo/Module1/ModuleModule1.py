@@ -13,10 +13,13 @@ class ModuleModule1(demo.Module1.AbstractModule):
     def start(self):
         pass
 
-    def stop(self):
+    def start_last(self):
         pass
 
-    def start_last(self):
+    def stop_before(self):
+        pass
+
+    def stop(self):
         pass
 
     # noinspection PyPep8Naming

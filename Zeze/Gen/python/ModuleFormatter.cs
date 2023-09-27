@@ -48,10 +48,13 @@ namespace Zeze.Gen.python
             sw.WriteLine("    def start(self):");
             sw.WriteLine("        pass");
             sw.WriteLine();
-            sw.WriteLine("    def stop(self):");
+            sw.WriteLine("    def start_last(self):");
             sw.WriteLine("        pass");
             sw.WriteLine();
-            sw.WriteLine("    def start_last(self):");
+            sw.WriteLine("    def stop_before(self):");
+            sw.WriteLine("        pass");
+            sw.WriteLine();
+            sw.WriteLine("    def stop(self):");
             sw.WriteLine("        pass");
             if (module.ReferenceService != null)
             {

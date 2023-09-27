@@ -32,8 +32,15 @@
             sw.WriteLine();
             sw.WriteLine();
             sw.WriteLine($"class {service.Name}({BaseClass()}):");
-            sw.WriteLine($"    def __init__(self, zeze):");
-            sw.WriteLine($"        super().__init__(zeze)");
+            sw.WriteLine("    def __init__(self, app):");
+            sw.WriteLine("        super().__init__()");
+            sw.WriteLine("        self.app = app");
+            sw.WriteLine();
+            sw.WriteLine("    def start(self):");
+            sw.WriteLine("        pass  # TODO");
+            sw.WriteLine();
+            sw.WriteLine("    def stop(self):");
+            sw.WriteLine("        pass  # TODO");
         }
     }
 }
