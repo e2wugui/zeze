@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Formatter;
 import java.util.Map;
 import Zeze.Net.Binary;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
@@ -179,7 +180,8 @@ public final class Str {
 		}
 		var newFormat = formatSb.toString();
 		//System.out.println(newFormat);
-		return newFormat.formatted(paramsList.toArray());
+		//return newFormat.formatted(paramsList.toArray());
+		return new Formatter().format(newFormat, paramsList.toArray()).toString();
 	}
 
 	private static String parseVar(StringBuilder sb, String str, OutInt fromIndex) {
