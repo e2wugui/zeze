@@ -30,7 +30,7 @@ public class SessionAll implements AutoCloseable {
 		// 异步发送所有请求。
 		var futures = new ArrayList<TaskCompletionSource<BResult.Data>>();
 		for (var session : alls.values())
-			futures.add(op.call(session));
+			futures.add(op.call(session)); // todo 连续请求时，搜索完成的Session最好跳过。
 
 		// 等待结果并排序。
 		var rs = new ArrayList<BResult.Data>(futures.size());
@@ -44,7 +44,7 @@ public class SessionAll implements AutoCloseable {
 			var r = future.get();
 			// 返回的结果基本有序，只是偶尔log4j会有一点点乱序，这里该用什么sort更快？
 			r.getLogs().sort(comparator);
-			rs.add(r);
+			rs.add(r); // todo 这里加入getLogs，便于后面的merge算法通用化。
 		}
 		if (rs.isEmpty())
 			return new BResult.Data();
