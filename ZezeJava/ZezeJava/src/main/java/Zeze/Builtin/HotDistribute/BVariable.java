@@ -423,6 +423,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7877437207710416076L;
 

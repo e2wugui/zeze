@@ -319,6 +319,7 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     }
 
 // linkd to client
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -947669033141460287L;
 

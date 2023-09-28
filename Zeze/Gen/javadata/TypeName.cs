@@ -1,4 +1,6 @@
-﻿using Zeze.Gen.Types;
+﻿using System;
+using Zeze.Gen.Types;
+using Type = Zeze.Gen.Types.Type;
 
 namespace Zeze.Gen.javadata
 {
@@ -71,29 +73,86 @@ namespace Zeze.Gen.javadata
         public virtual void Visit(TypeList type)
         {
             string valueName = BoxingName.GetBoxingName(type.ValueType);
-            nameRaw = "java.util.ArrayList";
-            nameOmitted = nameRaw;
-            name = nameRaw + '<' + valueName + '>';
-            nameCollectionImplement = "java.util.ArrayList<" + valueName + '>';
+            if (!string.IsNullOrEmpty(type.Variable.JavaType))
+            {
+                if (valueName == "Integer" && type.Variable.JavaType == "IntList")
+                    nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.IntList";
+                else if (valueName == "Long" && type.Variable.JavaType == "LongList")
+                    nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.LongList";
+                else if (valueName == "Float" && type.Variable.JavaType == "FloatList")
+                    nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.FloatList";
+                else if (valueName == "Zeze.Serialize.Vector3" && type.Variable.JavaType == "Vector3List")
+                    nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.Vector3List";
+                else if (valueName == "Zeze.Serialize.Vector3Int" && type.Variable.JavaType == "Vector3IntList")
+                    nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.Vector3IntList";
+                else
+                {
+                    throw new NotImplementedException($"invalid javaType: {type.Variable.JavaType}" +
+                                                      $" for var: {type.Variable.Name}");
+                }
+            }
+            else
+            {
+                nameRaw = "java.util.ArrayList";
+                nameOmitted = nameRaw;
+                name = nameRaw + '<' + valueName + '>';
+                nameCollectionImplement = name;
+            }
         }
 
         public virtual void Visit(TypeSet type)
         {
             string valueName = BoxingName.GetBoxingName(type.ValueType);
-            nameRaw = "java.util.HashSet";
-            nameOmitted = nameRaw;
-            name = nameRaw + '<' + valueName + '>';
-            nameCollectionImplement = "java.util.HashSet<" + valueName + '>';
+            if (!string.IsNullOrEmpty(type.Variable.JavaType))
+            {
+                if (valueName == "Integer" && type.Variable.JavaType == "IntHashSet")
+                    nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.IntHashSet";
+                else if (valueName == "Long" && type.Variable.JavaType == "LongHashSet")
+                    nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.LongHashSet";
+                else
+                {
+                    throw new NotImplementedException($"invalid javaType: {type.Variable.JavaType}" +
+                                                      $" for var: {type.Variable.Name}, {type.Variable.Type}");
+                }
+            }
+            else
+            {
+                nameRaw = "java.util.HashSet";
+                nameOmitted = nameRaw;
+                name = nameRaw + '<' + valueName + '>';
+                nameCollectionImplement = name;
+            }
         }
 
         public virtual void Visit(TypeMap type)
         {
             string key = BoxingName.GetBoxingName(type.KeyType);
             string value = BoxingName.GetBoxingName(type.ValueType);
-            nameRaw = "java.util.HashMap";
-            nameOmitted = nameRaw;
-            name = nameRaw + '<' + key + ", " + value + '>';
-            nameCollectionImplement = "java.util.HashMap<" + key + ", " + value + '>';
+            if (!string.IsNullOrEmpty(type.Variable.JavaType))
+            {
+                if (key == "Integer" && type.Variable.JavaType == "IntHashMap")
+                {
+                    nameRaw = nameOmitted = "Zeze.Util.IntHashMap";
+                    name = nameCollectionImplement = nameRaw + '<' + value + '>';
+                }
+                else if (key == "Long" && type.Variable.JavaType == "LongHashMap")
+                {
+                    nameRaw = nameOmitted = "Zeze.Util.LongHashMap";
+                    name = nameCollectionImplement = nameRaw + '<' + value + '>';
+                }
+                else
+                {
+                    throw new NotImplementedException($"invalid javaType: {type.Variable.JavaType}" +
+                                                      $" for var: {type.Variable.Name}, {type.Variable.Type}");
+                }
+            }
+            else
+            {
+                nameRaw = "java.util.HashMap";
+                nameOmitted = nameRaw;
+                name = nameRaw + '<' + key + ", " + value + '>';
+                nameCollectionImplement = name;
+            }
         }
 
         public virtual void Visit(Bean type)

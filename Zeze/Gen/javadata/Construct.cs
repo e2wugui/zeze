@@ -132,12 +132,18 @@ namespace Zeze.Gen.javadata
 
         public void Visit(TypeList type)
         {
-            sw.WriteLine(prefix + varName + $" = new {TypeName.GetNameOmitted(type)}<>();");
+            if (string.IsNullOrEmpty(type.Variable.JavaType))
+                sw.WriteLine(prefix + varName + $" = new {TypeName.GetNameOmitted(type)}<>();");
+            else
+                sw.WriteLine(prefix + varName + $" = new {TypeName.GetNameOmitted(type)}();");
         }
 
         public void Visit(TypeSet type)
         {
-            sw.WriteLine(prefix + varName + $" = new {TypeName.GetNameOmitted(type)}<>();");
+            if (string.IsNullOrEmpty(type.Variable.JavaType))
+                sw.WriteLine(prefix + varName + $" = new {TypeName.GetNameOmitted(type)}<>();");
+            else
+                sw.WriteLine(prefix + varName + $" = new {TypeName.GetNameOmitted(type)}();");
         }
 
         public void Visit(TypeMap type)

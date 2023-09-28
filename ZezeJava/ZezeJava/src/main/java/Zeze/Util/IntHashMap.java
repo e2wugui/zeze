@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
@@ -198,6 +199,15 @@ public class IntHashMap<V> implements Cloneable {
 			if (k != 0)
 				put(k, mapVt[i]);
 		}
+	}
+
+	public void putAll(@NotNull Map<Integer, ? extends V> map) {
+		for (Map.Entry<Integer, ? extends V> e : map.entrySet())
+			put(e.getKey(), e.getValue());
+	}
+
+	public void putAllTo(@NotNull Map<Integer, ? super V> map) {
+		foreach(map::put);
 	}
 
 	public @Nullable V putIfAbsent(int key, @Nullable V value) {

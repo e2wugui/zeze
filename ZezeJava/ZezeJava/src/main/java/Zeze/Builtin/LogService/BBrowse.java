@@ -409,6 +409,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -5609078144289042953L;
 

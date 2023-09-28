@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
@@ -198,6 +199,15 @@ public class LongHashMap<V> implements Cloneable {
 			if (k != 0)
 				put(k, mapVt[i]);
 		}
+	}
+
+	public void putAll(@NotNull Map<Long, ? extends V> map) {
+		for (Map.Entry<Long, ? extends V> e : map.entrySet())
+			put(e.getKey(), e.getValue());
+	}
+
+	public void putAllTo(@NotNull Map<Long, ? super V> map) {
+		foreach(map::put);
 	}
 
 	public @Nullable V putIfAbsent(long key, @Nullable V value) {

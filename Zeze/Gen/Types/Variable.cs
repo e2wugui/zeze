@@ -28,6 +28,7 @@ namespace Zeze.Gen.Types
 		public bool AllowNegative { get; private set; } = false;
 		public bool Transient { get; private set; } = false;
 		public string FixSize { get; private set; }
+		public string JavaType { get; private set; }
 
 		public DynamicParams DynamicParams { get; } = new();
 
@@ -141,6 +142,7 @@ namespace Zeze.Gen.Types
 				AllowNegative = bool.Parse(attr);
 			Transient = self.GetAttribute("transient").Equals("true");
 			FixSize = self.GetAttribute("FixSize");
+			JavaType = self.GetAttribute("javaType");
 
 			Comment = self.GetAttribute("comment");
 			if (Comment.Length == 0)

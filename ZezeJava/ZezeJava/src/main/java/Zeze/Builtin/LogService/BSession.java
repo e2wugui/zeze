@@ -203,6 +203,7 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -1305373795232271927L;
 

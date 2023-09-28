@@ -7,9 +7,9 @@ namespace Zeze.Gen.java
     {
         public const int INDENT_SIZE = 4;
 
-		readonly StreamWriter sw;
-		readonly Variable var;
-		readonly string varname;
+        readonly StreamWriter sw;
+        readonly Variable var;
+        readonly string varname;
         readonly string getter;
         readonly string prefix;
         readonly char sep;
@@ -19,7 +19,7 @@ namespace Zeze.Gen.java
         string NamePrivate => var != null ? var.NamePrivate : getter;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix, bool isData)
-		{
+        {
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public String toString() {");
             sw.WriteLine(prefix + "    var sb = new StringBuilder();");
@@ -40,8 +40,8 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    level -= " + INDENT_SIZE + ';');
             sw.WriteLine(prefix + "    sb.append(Zeze.Util.Str.indent(level)).append('}');");
             sw.WriteLine(prefix + "}");
-			sw.WriteLine();
-		}
+            sw.WriteLine();
+        }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
@@ -158,7 +158,13 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + $"if (!{NamePrivate}.isEmpty()) {{");
             sw.WriteLine(prefix + "    sb.append(System.lineSeparator());");
             sw.WriteLine(prefix + "    level += " + INDENT_SIZE + ';');
-            sw.WriteLine(prefix + $"    for (var _item_ : {NamePrivate}) {{");
+            if (!isData || string.IsNullOrEmpty(type.Variable.JavaType))
+                sw.WriteLine(prefix + $"    for (var _item_ : {NamePrivate}) {{");
+            else
+            {
+                sw.WriteLine(prefix + $"    for (int _i_ = 0, _n_ = {NamePrivate}.size(); _i_ < _n_; _i_++) {{");
+                sw.WriteLine(prefix + $"        var _item_ = {NamePrivate}.get(_i_);");
+            }
             type.ValueType.Accept(new Tostring(sw, null, "Item", "_item_", prefix + "        ", ',', isData));
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    level -= " + INDENT_SIZE + ';');
@@ -176,7 +182,13 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + $"if (!{NamePrivate}.isEmpty()) {{");
             sw.WriteLine(prefix + "    sb.append(System.lineSeparator());");
             sw.WriteLine(prefix + "    level += " + INDENT_SIZE + ';');
-            sw.WriteLine(prefix + $"    for (var _item_ : {NamePrivate}) {{");
+            if (!isData || string.IsNullOrEmpty(type.Variable.JavaType))
+                sw.WriteLine(prefix + $"    for (var _item_ : {NamePrivate}) {{");
+            else
+            {
+                sw.WriteLine(prefix + $"    for (var _it_ = {NamePrivate}.iterator(); _it_.moveToNext(); ) {{");
+                sw.WriteLine(prefix + "        var _item_ = _it_.value();");
+            }
             type.ValueType.Accept(new Tostring(sw, null, "Item", "_item_", prefix + "        ", ',', isData));
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    level -= " + INDENT_SIZE + ';');
@@ -194,11 +206,22 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + $"if (!{NamePrivate}.isEmpty()) {{");
             sw.WriteLine(prefix + "    sb.append(System.lineSeparator());");
             sw.WriteLine(prefix + "    level += " + INDENT_SIZE + ';');
-            sw.WriteLine(prefix + $"    for (var _kv_ : {NamePrivate}.entrySet()) {{");
-            // sw.WriteLine(prefix + "        sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());");
-            type.KeyType.Accept(new Tostring(sw, null, "Key", "_kv_.getKey()", prefix + "        ", ',', isData));
-            type.ValueType.Accept(new Tostring(sw, null, "Value", "_kv_.getValue()", prefix + "        ", ',', isData));
-            // sw.WriteLine(prefix + "        sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());");
+            if (!isData || string.IsNullOrEmpty(type.Variable.JavaType))
+            {
+                sw.WriteLine(prefix + $"    for (var _kv_ : {NamePrivate}.entrySet()) {{");
+                // sw.WriteLine(prefix + "        sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());");
+                type.KeyType.Accept(new Tostring(sw, null, "Key", "_kv_.getKey()", prefix + "        ", ',', isData));
+                type.ValueType.Accept(new Tostring(sw, null, "Value", "_kv_.getValue()", prefix + "        ", ',', isData));
+                // sw.WriteLine(prefix + "        sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());");
+            }
+            else
+            {
+                sw.WriteLine(prefix + $"    for (var _it_ = {NamePrivate}.iterator(); _it_.moveToNext(); ) {{");
+                // sw.WriteLine(prefix + "        sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());");
+                type.KeyType.Accept(new Tostring(sw, null, "Key", "_it_.key()", prefix + "        ", ',', isData));
+                type.ValueType.Accept(new Tostring(sw, null, "Value", "_it_.value()", prefix + "        ", ',', isData));
+                // sw.WriteLine(prefix + "        sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());");
+            }
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    level -= " + INDENT_SIZE + ';');
             sw.WriteLine(prefix + "    sb.append(Zeze.Util.Str.indent(level));");

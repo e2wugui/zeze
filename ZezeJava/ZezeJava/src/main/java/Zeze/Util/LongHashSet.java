@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.function.LongConsumer;
 import org.jetbrains.annotations.NotNull;
 
@@ -112,6 +113,15 @@ public class LongHashSet implements Cloneable {
 		for (long k : set.keyTable)
 			if (k != 0)
 				add(k);
+	}
+
+	public void addAll(@NotNull Collection<Long> set) {
+		for (long v : set)
+			add(v);
+	}
+
+	public void addAllTo(@NotNull Collection<Long> set) {
+		foreach(set::add);
 	}
 
 	public boolean remove(long key) {

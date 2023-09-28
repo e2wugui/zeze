@@ -47,7 +47,7 @@ public class BSend extends Zeze.Transaction.Bean {
 
 	public void assign(@NotNull BSend other) {
 		_linkSids.clear();
-		_linkSids.add(other._linkSids);
+		_linkSids.addAll(other._linkSids);
 		setProtocolType(other.getProtocolType());
 		setProtocolWholeData(other.getProtocolWholeData());
 	}

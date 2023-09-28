@@ -113,6 +113,8 @@ namespace Zeze.Gen.javadata
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".add(e.copy());");
                 }
             }
+            else if (transBean && type.ValueType.Name.StartsWith("vector") && !string.IsNullOrEmpty(type.Variable.JavaType))
+                sw.WriteLine(prefix + var.NamePrivate + ".addAllVector(other." + var.NamePrivate + ");");
             else
                 sw.WriteLine(prefix + var.NamePrivate + ".addAll(other." + var.NamePrivate + ");");
         }
@@ -153,10 +155,15 @@ namespace Zeze.Gen.javadata
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), data);");
                     sw.WriteLine(prefix + "}");
                 }
-                else
+                else if (string.IsNullOrEmpty(type.Variable.JavaType))
                 {
                     sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ".entrySet())");
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), e.getValue().copy());");
+                }
+                else
+                {
+                    sw.WriteLine(prefix + "other." + var.NamePrivate + ".foreach((k, v) -> "
+                                 + var.NamePrivate + ".put(k, v.copy()));");
                 }
             }
             else

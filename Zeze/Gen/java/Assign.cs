@@ -8,7 +8,7 @@ namespace Zeze.Gen.java
         readonly StreamWriter sw;
         readonly Variable var;
         readonly string prefix;
-        readonly bool isdata;
+        readonly bool isData;
         readonly string transGetter;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix, Project project, bool withUnknown)
@@ -44,13 +44,13 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
-        public Assign(Variable var, StreamWriter sw, string prefix, bool isdata)
+        public Assign(Variable var, StreamWriter sw, string prefix, bool isData)
         {
             this.var = var;
             this.sw = sw;
             this.prefix = prefix;
-            this.isdata = isdata;
-            transGetter = isdata ? var.NamePrivate : var.Getter;
+            this.isData = isData;
+            transGetter = isData ? var.NamePrivate : var.Getter;
         }
 
         public void Visit(TypeBool type)
@@ -103,7 +103,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + var.NamePrivate + ".clear();");
             if (type.ValueType.IsNormalBean)
             {
-                if (isdata)
+                if (isData)
                 {
                     sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ") {");
                     type.ValueType.Accept(new Define("data", sw, prefix + "    "));
@@ -117,8 +117,15 @@ namespace Zeze.Gen.java
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".add(e.copy());");
                 }
             }
+            else if (isData && !string.IsNullOrEmpty(type.Variable.JavaType))
+            {
+                if (type.ValueType.Name.StartsWith("vector"))
+                    sw.WriteLine($"{prefix}other.{var.NamePrivate}.addAllToVector({var.NamePrivate});");
+                else
+                    sw.WriteLine($"{prefix}other.{var.NamePrivate}.addAllTo({var.NamePrivate});");
+            }
             else
-                sw.WriteLine(prefix + var.NamePrivate + ".addAll(other." + var.NamePrivate + ");");
+                sw.WriteLine($"{prefix}{var.NamePrivate}.addAll(other.{var.NamePrivate});");
         }
 
         public void Visit(TypeSet type)
@@ -126,7 +133,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + var.NamePrivate + ".clear();");
             if (type.ValueType.IsNormalBean)
             {
-                if (isdata)
+                if (isData)
                 {
                     sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ") {");
                     type.ValueType.Accept(new Define("data", sw, prefix + "    "));
@@ -140,8 +147,10 @@ namespace Zeze.Gen.java
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".add(e.copy());"); // set 里面现在不让放 bean，先这样写吧。
                 }
             }
+            else if (isData && !string.IsNullOrEmpty(type.Variable.JavaType))
+                sw.WriteLine($"{prefix}other.{var.NamePrivate}.addAllTo({var.NamePrivate});");
             else
-                sw.WriteLine(prefix + var.NamePrivate + ".addAll(other." + var.NamePrivate + ");");
+                sw.WriteLine($"{prefix}{var.NamePrivate}.addAll(other.{var.NamePrivate});");
         }
 
         public void Visit(TypeMap type)
@@ -149,13 +158,24 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + var.NamePrivate + ".clear();");
             if (type.ValueType.IsNormalBean)
             {
-                if (isdata)
+                if (isData)
                 {
-                    sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ".entrySet()) {");
-                    type.ValueType.Accept(new Define("data", sw, prefix + "    "));
-                    sw.WriteLine(prefix + "    data.assign(e.getValue());");
-                    sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), data);");
-                    sw.WriteLine(prefix + "}");
+                    if (string.IsNullOrEmpty(type.Variable.JavaType))
+                    {
+                        sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ".entrySet()) {");
+                        type.ValueType.Accept(new Define("data", sw, prefix + "    "));
+                        sw.WriteLine(prefix + "    data.assign(e.getValue());");
+                        sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), data);");
+                        sw.WriteLine(prefix + "}");
+                    }
+                    else
+                    {
+                        sw.WriteLine(prefix + "other." + var.NamePrivate + ".foreach((k, v) -> {");
+                        type.ValueType.Accept(new Define("data", sw, prefix + "    "));
+                        sw.WriteLine(prefix + "    data.assign(v);");
+                        sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(k, data);");
+                        sw.WriteLine(prefix + "});");
+                    }
                 }
                 else
                 {
@@ -163,18 +183,20 @@ namespace Zeze.Gen.java
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), e.getValue().copy());");
                 }
             }
+            else if (isData && !string.IsNullOrEmpty(type.Variable.JavaType))
+                sw.WriteLine($"{prefix}other.{var.NamePrivate}.putAllTo({var.NamePrivate});");
             else
-                sw.WriteLine(prefix + var.NamePrivate + ".putAll(other." + var.NamePrivate + ");");
+                sw.WriteLine($"{prefix}{var.NamePrivate}.putAll(other.{var.NamePrivate});");
         }
 
         public void Visit(Bean type)
         {
-            if (isdata)
+            if (isData)
             {
-                var tmpvarname = "data" + var.NamePrivate;
-                type.Accept(new Define(tmpvarname, sw, prefix));
-                sw.WriteLine(prefix + tmpvarname + ".assign(other." + var.NamePrivate + ");");
-                sw.WriteLine(prefix + var.NamePrivate + ".setValue(" + tmpvarname + ");");
+                var tmpVarName = "data" + var.NamePrivate;
+                type.Accept(new Define(tmpVarName, sw, prefix));
+                sw.WriteLine(prefix + tmpVarName + ".assign(other." + var.NamePrivate + ");");
+                sw.WriteLine(prefix + var.NamePrivate + ".setValue(" + tmpVarName + ");");
             }
             else
             {

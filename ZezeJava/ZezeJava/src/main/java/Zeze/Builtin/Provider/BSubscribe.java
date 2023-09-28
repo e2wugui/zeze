@@ -232,6 +232,7 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 1112180088628051173L;
 

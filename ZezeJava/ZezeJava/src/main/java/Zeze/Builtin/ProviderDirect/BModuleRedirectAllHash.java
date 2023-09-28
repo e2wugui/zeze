@@ -270,6 +270,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5611412794338295457L;
 

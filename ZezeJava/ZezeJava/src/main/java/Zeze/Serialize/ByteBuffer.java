@@ -343,8 +343,17 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	public void WriteInt4(int v) {
 		EnsureWrite(4);
 		int writeIndex = WriteIndex;
-		intLeHandler.set(Bytes, writeIndex, v);
 		WriteIndex = writeIndex + 4;
+		intLeHandler.set(Bytes, writeIndex, v);
+	}
+
+	public void WriteInt4s(int @NotNull [] buf, int offset, int length) {
+		int n = length * 4;
+		EnsureWrite(n);
+		int writeIndex = WriteIndex;
+		WriteIndex = writeIndex + n;
+		for (int i = 0; i < length; i++, writeIndex += 4)
+			intLeHandler.set(Bytes, writeIndex, buf[offset + i]);
 	}
 
 	public int ReadInt4() {
@@ -354,11 +363,29 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return v;
 	}
 
+	public void ReadInt4s(int @NotNull [] buf, int offset, int length) {
+		int n = length * 4;
+		ensureRead(n);
+		int readIndex = ReadIndex;
+		ReadIndex = readIndex + n;
+		for (int i = 0; i < length; i++, readIndex += 4)
+			buf[offset + i] = ToInt(Bytes, readIndex);
+	}
+
 	public void WriteLong8(long v) {
 		EnsureWrite(8);
 		int writeIndex = WriteIndex;
-		longLeHandler.set(Bytes, writeIndex, v);
 		WriteIndex = writeIndex + 8;
+		longLeHandler.set(Bytes, writeIndex, v);
+	}
+
+	public void WriteLong8s(long @NotNull [] buf, int offset, int length) {
+		int n = length * 8;
+		EnsureWrite(n);
+		int writeIndex = WriteIndex;
+		WriteIndex = writeIndex + n;
+		for (int i = 0; i < length; i++, writeIndex += 8)
+			longLeHandler.set(Bytes, writeIndex, buf[offset + i]);
 	}
 
 	public long ReadLong8() {
@@ -366,6 +393,15 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		long v = ToLong(Bytes, ReadIndex);
 		ReadIndex += 8;
 		return v;
+	}
+
+	public void ReadLong8s(long @NotNull [] buf, int offset, int length) {
+		int n = length * 8;
+		ensureRead(n);
+		int readIndex = ReadIndex;
+		ReadIndex = readIndex + n;
+		for (int i = 0; i < length; i++, readIndex += 8)
+			buf[offset + i] = ToLong(Bytes, readIndex);
 	}
 
 	// v看成无符号数时,与WriteULongSize的结果一致,即相当于WriteULongSize(v & 0xffff_ffffL);
@@ -917,6 +953,15 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteInt4(Float.floatToRawIntBits(v));
 	}
 
+	public void WriteFloats(float @NotNull [] buf, int offset, int length) {
+		int n = length * 4;
+		EnsureWrite(n);
+		int writeIndex = WriteIndex;
+		WriteIndex = writeIndex + n;
+		for (int i = 0; i < length; i++, writeIndex += 4)
+			intLeHandler.set(Bytes, writeIndex, Float.floatToRawIntBits(buf[offset + i]));
+	}
+
 	public float ReadFloat() {
 		ensureRead(4);
 		float v = ToFloat(Bytes, ReadIndex);
@@ -924,8 +969,26 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return v;
 	}
 
+	public void ReadFloats(float @NotNull [] buf, int offset, int length) {
+		int n = length * 4;
+		ensureRead(n);
+		int readIndex = ReadIndex;
+		ReadIndex = readIndex + n;
+		for (int i = 0; i < length; i++, readIndex += 4)
+			buf[offset + i] = ToFloat(Bytes, readIndex);
+	}
+
 	public void WriteDouble(double v) {
 		WriteLong8(Double.doubleToRawLongBits(v));
+	}
+
+	public void WriteDoubles(double @NotNull [] buf, int offset, int length) {
+		int n = length * 8;
+		EnsureWrite(n);
+		int writeIndex = WriteIndex;
+		WriteIndex = writeIndex + n;
+		for (int i = 0; i < length; i++, writeIndex += 8)
+			longLeHandler.set(Bytes, writeIndex, Double.doubleToRawLongBits(buf[offset + i]));
 	}
 
 	public double ReadDouble() {
@@ -933,6 +996,15 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		double v = ToDouble(Bytes, ReadIndex);
 		ReadIndex += 8;
 		return v;
+	}
+
+	public void ReadDoubles(double @NotNull [] buf, int offset, int length) {
+		int n = length * 8;
+		ensureRead(n);
+		int readIndex = ReadIndex;
+		ReadIndex = readIndex + n;
+		for (int i = 0; i < length; i++, readIndex += 8)
+			buf[offset + i] = ToDouble(Bytes, readIndex);
 	}
 
 	public static int utf8Size(@Nullable String str) {
@@ -1743,9 +1815,9 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		int i = (int)idx;
 		WriteTag(lastIdx, i, unknown.ReadByte());
 		int size = unknown.ReadUInt();
-		int ri = unknown.ReadIndex;
-		Append(unknown.Bytes, ri, size);
-		unknown.ReadIndex = ri + size;
+		int readIndex = unknown.ReadIndex;
+		Append(unknown.Bytes, readIndex, size);
+		unknown.ReadIndex = readIndex + size;
 		return i;
 	}
 

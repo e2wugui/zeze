@@ -18,6 +18,7 @@ namespace Zeze.Gen.javadata
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
             var final = bean.Extendable ? "" : "final ";
+            sw.WriteLine("@SuppressWarnings(\"ForLoopReplaceableByForEach\")");
             sw.WriteLine($"public static {final}class Data extends Zeze.Transaction.Data {{");
             WriteDefine(sw);
             sw.WriteLine("}");
@@ -45,7 +46,7 @@ namespace Zeze.Gen.javadata
             sw.WriteLine();
             sw.WriteLine($"{prefix}@Override");
             sw.WriteLine($"{prefix}public long toTypeId(Zeze.Transaction.Data data) {{");
-            if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean)) 
+            if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean))
             {
                 // 根据配置的实际类型生成switch。
                 sw.WriteLine($"{prefix}    var _typeId_ = data.typeId();");

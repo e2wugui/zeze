@@ -93,10 +93,15 @@
 			<variable id="27" name="dynamic27" type="dynamic:BSimple"/>
 			<variable id="28" name="key28" type="Key"/>
 			<variable id="29" name="array29" type="array[float]"/>
+			<variable id="30" name="array30" type="array[float]" javaType="FloatList"/>
+			<variable id="31" name="list31" type="list[vector3]" javaType="Vector3List"/>
+			<variable id="32" name="set32" type="set[long]" javaType="LongHashSet"/>
+			<variable id="33" name="map33" type="map[int,int]" javaType="IntHashMap"/>
+			<variable id="34" name="map34" type="map[long,BSimple]" javaType="LongHashMap"/>
 
-			<variable id="30" name="version" type="long"/>
+			<variable id="39" name="version" type="long"/>
 
-			<variable id="33" name="LongList" type="list[long]"/>
+			<variable id="40" name="LongList" type="list[long]"/>
 		</bean>
 		<beankey name="Key" comment="beankey的注释">
 			<enum name="Enum1" value="4" description="enum的注释"/>

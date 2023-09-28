@@ -368,6 +368,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 1424702393060691138L;
 

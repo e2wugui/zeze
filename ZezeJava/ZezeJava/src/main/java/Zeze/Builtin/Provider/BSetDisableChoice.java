@@ -196,6 +196,7 @@ public final class BSetDisableChoice extends Zeze.Transaction.Bean implements BS
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -1885417062233949302L;
 

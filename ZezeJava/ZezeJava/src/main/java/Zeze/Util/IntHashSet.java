@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.function.IntConsumer;
 import org.jetbrains.annotations.NotNull;
 
@@ -110,6 +111,15 @@ public class IntHashSet implements Cloneable {
 		for (int k : set.keyTable)
 			if (k != 0)
 				add(k);
+	}
+
+	public void addAll(@NotNull Collection<Integer> set) {
+		for (int v : set)
+			add(v);
+	}
+
+	public void addAllTo(@NotNull Collection<Integer> set) {
+		foreach(set::add);
 	}
 
 	public boolean remove(int key) {
