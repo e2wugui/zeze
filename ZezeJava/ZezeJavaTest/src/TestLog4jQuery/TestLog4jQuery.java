@@ -24,6 +24,7 @@ public class TestLog4jQuery {
 			if (!reset) {
 				session.reset();
 				reset = true;
+				System.out.println("-------------reset-----------");
 			}
 		}
 		if (!result.isEmpty()) {

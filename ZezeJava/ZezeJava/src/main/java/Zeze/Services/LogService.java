@@ -1,9 +1,7 @@
 package Zeze.Services;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.LogService.BLog;
 import Zeze.Builtin.LogService.Browse;
@@ -11,30 +9,28 @@ import Zeze.Builtin.LogService.CloseSession;
 import Zeze.Builtin.LogService.NewSession;
 import Zeze.Builtin.LogService.Search;
 import Zeze.Config;
-import Zeze.Net.AsyncSocket;
-import Zeze.Net.Service;
 import Zeze.Services.Log4jQuery.Log4jLog;
-import Zeze.Services.Log4jQuery.Log4jSession;
+import Zeze.Services.Log4jQuery.LogServiceConf;
+import Zeze.Services.Log4jQuery.Server;
+import Zeze.Services.Log4jQuery.ServerUserState;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Transaction.Procedure;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.w3c.dom.Element;
 
 public class LogService extends AbstractLogService {
     private final AtomicLong sidSeed = new AtomicLong();
     private final Config conf;
-    private final LogServiceConf logConf;
     private final Server server;
     private final AbstractAgent serviceManager;
 
     public LogService(Config config) throws Exception {
         this.conf = config;
-        this.logConf = new LogServiceConf();
-        config.parseCustomize(this.logConf);
+        LogServiceConf logConf = new LogServiceConf();
+        config.parseCustomize(logConf);
 
-        this.server = new Server(config);
+        this.server = new Server(logConf, config);
+        var kv = server.getOnePassiveAddress();
+        logConf.formatServiceIdentity(conf.getServerId(), kv.getKey(), kv.getValue());
 
         switch (conf.getServiceManager()) {
         case "raft":
@@ -74,77 +70,9 @@ public class LogService extends AbstractLogService {
             serviceManager.close();
     }
 
-    public static class LogServiceConf implements Config.ICustomize {
-        public String logActive;
-        public String logRotateDir;
-        public String logTimeFormat;
-
-        @Override
-        public @NotNull String getName() {
-            return "LogServiceConf";
-        }
-
-        @Override
-        public void parse(@NotNull Element self) {
-            logActive = self.getAttribute("LogActive");
-            logRotateDir = self.getAttribute("LogRotateDir");
-            logTimeFormat = self.getAttribute("LogTimeFormat");
-            if (!logTimeFormat.isBlank())
-                Log4jLog.LogTimeFormat = logTimeFormat;
-        }
-    }
-
-    public class Server extends Service {
-        public Server(Config config) {
-            super("LogServiceServer", config);
-        }
-
-        @Override
-        public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
-            so.setUserState(new AgentUserState());
-            super.OnHandshakeDone(so);
-        }
-
-        @Override
-        public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
-            var agent = (AgentUserState)so.getUserState();
-            if (null != agent)
-                agent.close();
-            super.OnSocketClose(so, e);
-        }
-    }
-
-    public class AgentUserState {
-        private final ConcurrentHashMap<Long, Log4jSession> logSessions = new ConcurrentHashMap<>();
-
-        public Log4jSession getLogSession(long sid) {
-            return logSessions.get(sid);
-        }
-
-        public void newLogSession(long sid) throws IOException {
-            var logSession = new Log4jSession(logConf.logActive, logConf.logRotateDir);
-            var exist = logSessions.putIfAbsent(sid, logSession);
-            if (null != exist) {
-                logSession.close();
-                throw new IllegalArgumentException("duplicate sid=" + sid);
-            }
-        }
-
-        public void closeLogSession(long sid) throws IOException {
-            var logSession = logSessions.remove(sid);
-            if (null != logSession)
-                logSession.close();
-        }
-
-        public void close() throws IOException {
-            for (var logSession : logSessions.values())
-                logSession.close();
-        }
-    }
-
     @Override
     protected long ProcessCloseSessionRequest(CloseSession r) throws Exception {
-        var agent = (AgentUserState)r.getSender().getUserState();
+        var agent = (ServerUserState)r.getSender().getUserState();
         agent.closeLogSession(r.Argument.getId());
         r.SendResult();
         return 0;
@@ -152,7 +80,7 @@ public class LogService extends AbstractLogService {
 
     @Override
     protected long ProcessNewSessionRequest(NewSession r) throws Exception {
-        var agent = (AgentUserState)r.getSender().getUserState();
+        var agent = (ServerUserState)r.getSender().getUserState();
         r.Result.setId(sidSeed.incrementAndGet());
         agent.newLogSession(r.Result.getId());
         r.SendResult();
@@ -161,7 +89,7 @@ public class LogService extends AbstractLogService {
 
     @Override
     protected long ProcessBrowseRequest(Browse r) throws Exception {
-        var agent = (AgentUserState)r.getSender().getUserState();
+        var agent = (ServerUserState)r.getSender().getUserState();
         var logSession = agent.getLogSession(r.Argument.getId());
         if (null == logSession)
             return Procedure.LogicError;
@@ -194,7 +122,7 @@ public class LogService extends AbstractLogService {
 
     @Override
     protected long ProcessSearchRequest(Search r) throws Exception {
-        var agent = (AgentUserState)r.getSender().getUserState();
+        var agent = (ServerUserState)r.getSender().getUserState();
         var logSession = agent.getLogSession(r.Argument.getId());
         if (null == logSession)
             return Procedure.LogicError;

@@ -4,6 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Map;
 import Zeze.Net.Binary;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
 import org.jetbrains.annotations.NotNull;
@@ -154,5 +156,45 @@ public final class Str {
 		if (v < 0 || v > Long.MAX_VALUE)
 			throw new IllegalStateException("long overflow for '" + s + "'");
 		return (long)v;
+	}
+
+	public static String format(String str, Map<String, Object> params) {
+		var formatSb = new StringBuilder();
+		var paramsList = new ArrayList<>();
+		String varName;
+		var fromIndex = new OutInt(0);
+		while ((varName = parseVar(formatSb, str, fromIndex)) != null) {
+			var p = params.get(varName);
+			if (p == null)
+				throw new IllegalArgumentException("var name not found. " + varName);
+
+			// todo 支持格式化更多类型
+			if (p instanceof Integer) {
+				formatSb.append("%d");
+				paramsList.add(p);
+			} else if (p instanceof String) {
+				formatSb.append("%s");
+				paramsList.add(p);
+			}
+		}
+		var newFormat = formatSb.toString();
+		//System.out.println(newFormat);
+		return newFormat.formatted(paramsList.toArray());
+	}
+
+	private static String parseVar(StringBuilder sb, String str, OutInt fromIndex) {
+		var quoteLeft = str.indexOf('{', fromIndex.value);
+		if (quoteLeft < 0) {
+			sb.append(str, fromIndex.value, str.length());
+			return null;
+		}
+		var quoteRight = str.indexOf('}', quoteLeft + 1);
+		if (quoteRight < 0) {
+			sb.append(str, fromIndex.value, str.length());
+			return null;
+		}
+		sb.append(str, fromIndex.value, quoteLeft);
+		fromIndex.value = quoteRight + 1;
+		return str.substring(quoteLeft + 1, quoteRight);
 	}
 }
