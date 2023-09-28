@@ -134,6 +134,22 @@ public final class Application {
 		this(solutionName, null);
 	}
 
+	public static AbstractAgent createServiceManager(Config conf, String raftSessionNamePrefix) throws Exception {
+		switch (conf.getServiceManager()) {
+		case "raft":
+			if (conf.getServiceManagerConf().getSessionName().isEmpty()) {
+				conf.getServiceManagerConf().setSessionName(raftSessionNamePrefix + "#" + conf.getServerId());
+			}
+			return new ServiceManagerAgentWithRaft(conf);
+
+		case "disable":
+			return null;
+
+		default:
+			return new Agent(conf);
+		}
+	}
+
 	@SuppressWarnings("deprecation")
 	public Application(@NotNull String projectName, @Nullable Config config) throws Exception {
 
@@ -147,23 +163,7 @@ public final class Application {
 
 		conf.createDatabase(this, databases);
 		PerfCounter.instance.tryStartScheduledLog();
-
-		switch (conf.getServiceManager()) {
-		case "raft":
-			if (conf.getServiceManagerConf().getSessionName().isEmpty()) {
-				conf.getServiceManagerConf().setSessionName(projectName + "#" + conf.getServerId());
-			}
-			serviceManager = new ServiceManagerAgentWithRaft(this.conf);
-			break;
-
-		case "disable":
-			serviceManager = null;
-			break;
-
-		default:
-			serviceManager = new Agent(this.conf);
-			break;
-		}
+		serviceManager = createServiceManager(conf, projectName);
 
 		if (!isNoDatabase()) {
 			// 自动初始化的组件。

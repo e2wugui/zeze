@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Application;
 import Zeze.Builtin.LogService.BLog;
 import Zeze.Builtin.LogService.Browse;
 import Zeze.Builtin.LogService.CloseSession;
@@ -20,34 +21,19 @@ import Zeze.Transaction.Procedure;
 public class LogService extends AbstractLogService {
     private final AtomicLong sidSeed = new AtomicLong();
     private final Config conf;
-    private final Server server;
+    private final LogServiceConf logConf;
     private final AbstractAgent serviceManager;
+    private final Server server;
 
     public LogService(Config config) throws Exception {
         this.conf = config;
-        LogServiceConf logConf = new LogServiceConf();
+        logConf = new LogServiceConf();
         config.parseCustomize(logConf);
 
         this.server = new Server(logConf, config);
         var kv = server.getOnePassiveAddress();
         logConf.formatServiceIdentity(conf.getServerId(), kv.getKey(), kv.getValue());
-
-        switch (conf.getServiceManager()) {
-        case "raft":
-            if (conf.getServiceManagerConf().getSessionName().isEmpty()) {
-                conf.getServiceManagerConf().setSessionName("LogServiceServer#" + conf.getServerId());
-            }
-            serviceManager = new ServiceManagerAgentWithRaft(this.conf);
-            break;
-
-        case "disable":
-            serviceManager = null;
-            break;
-
-        default:
-            serviceManager = new Agent(this.conf);
-            break;
-        }
+        serviceManager = Application.createServiceManager(conf, "LogServiceServer");
     }
 
     public void start() throws Exception {
@@ -60,6 +46,7 @@ public class LogService extends AbstractLogService {
                 // raft 版第一次等待由于选择leader原因肯定会失败一次。
                 serviceManager.waitReady();
             }
+            serviceManager.registerService("Zeze.LogService", logConf.serviceIdentity);
         }
         server.start();
     }
