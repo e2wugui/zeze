@@ -4,12 +4,9 @@ import java.util.ArrayList;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import Zeze.Builtin.LogService.BBrowse;
 import Zeze.Builtin.LogService.BCondition;
 import Zeze.Builtin.LogService.BLog;
 import Zeze.Builtin.LogService.BResult;
-import Zeze.Builtin.LogService.BSearch;
 import Zeze.Services.LogAgent;
 import Zeze.Util.Func1;
 import Zeze.Util.TaskCompletionSource;
@@ -22,6 +19,10 @@ public class SessionAll implements AutoCloseable {
 		this.agent = agent;
 		for (var serverName : agent.getLogServers())
 			alls.put(serverName, agent.newSession(serverName));
+	}
+
+	public LogAgent getAgent() {
+		return agent;
 	}
 
 	public SortedMap<Long, BLog.Data> operate(Func1<Session, TaskCompletionSource<BResult.Data>> op)

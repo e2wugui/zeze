@@ -16,6 +16,10 @@ public class Session implements AutoCloseable {
 	private final LogAgent agent;
 	private final long sessionId;
 
+	public LogAgent getAgent() {
+		return agent;
+	}
+
 	public Session(LogAgent agent, String serverName) {
 		this.agent = agent;
 		this.serverName = serverName;
