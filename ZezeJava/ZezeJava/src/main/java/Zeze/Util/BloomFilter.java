@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class BloomFilter {
 	public interface BitArray {
-		long getCapacity(); // maxIndex+1
+		long getCapacity(); // maxIndex+1 如果是2的N次幂,性能会好很多
 
 		void setBit(long index); // index:[0,capacity)
 
@@ -28,6 +28,9 @@ public class BloomFilter {
 		return (v & (v - 1)) == 0; // 0,1,2,4,8,16,...,0x8000_0000_0000_0000L => true
 	}
 
+	/**
+	 * @param maxKeyCount 预计最多记录的key数量,决定了每个key分配几个bit. 跟bitArray.getCapacity()一起影响testKey的出错概率
+	 */
 	public BloomFilter(@NotNull BloomFilter.BitArray bitArray, int maxKeyCount) {
 		this.bitArray = bitArray;
 		capacity = bitArray.getCapacity();
@@ -39,6 +42,20 @@ public class BloomFilter {
 		return bitsPerKey;
 	}
 
+	public long getTotalBits() {
+		long n = 0;
+		for (int i = 0; i < capacity; i++)
+			if (bitArray.getBit(i))
+				n++;
+		return n;
+	}
+
+	/**
+	 * 当前实现参考自LevelDB,如果能提供更多hash值效果会更好一点.
+	 * addKey的算法要跟testKey保持一致.
+	 *
+	 * @param keyHash 传入的hash值越均匀越好
+	 */
 	public void addKey(long keyHash) {
 		long delta = Long.rotateRight(keyHash, 17);
 		if (mask != 0) { // fast-path

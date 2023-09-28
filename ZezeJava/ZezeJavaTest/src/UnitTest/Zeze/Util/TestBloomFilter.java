@@ -1,8 +1,9 @@
 package UnitTest.Zeze.Util;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Util.BloomFilter;
+import Zeze.Util.LongHashSet;
+import Zeze.Util.StableRandom;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
@@ -10,8 +11,8 @@ import org.junit.Test;
 
 public class TestBloomFilter implements BloomFilter.BitArray {
 	private static final Logger logger = LogManager.getLogger(TestBloomFilter.class);
-	private static final int BYTE_COUNT = 65536;
-	private static final int KEY_COUNT = 65536;
+	private static final int BYTE_COUNT = 0x10_0000;
+	private static final int KEY_COUNT = 0x10_0000;
 
 	private final ByteBuffer bb = ByteBuffer.allocateDirect(BloomFilter.toPowerOfTwo(BYTE_COUNT));
 
@@ -35,15 +36,32 @@ public class TestBloomFilter implements BloomFilter.BitArray {
 	public void testSimple() {
 		var bf = new BloomFilter(this, KEY_COUNT);
 		logger.info("TestBloomFilter.bitsPerKey = {}", bf.getBitsPerKey());
-		for (int i = 0; i < KEY_COUNT; i++)
-			bf.addKey(i);
-		for (int i = 0; i < KEY_COUNT; i++)
-			Assert.assertTrue(bf.testKey(i));
+		var sr = new StableRandom(1);
+		var keys = new LongHashSet();
+		for (int i = 0; i < KEY_COUNT; i++) {
+			var v = sr.next64();
+			keys.add(v);
+			bf.addKey(v);
+		}
+		sr.setSeed(1);
+		for (int i = 0; i < KEY_COUNT; i++) {
+			var v = sr.next64();
+			Assert.assertTrue(keys.contains(v));
+			Assert.assertTrue(bf.testKey(v));
+		}
 
+		sr.setSeed(System.currentTimeMillis());
 		long err = 0;
-		var r = ThreadLocalRandom.current();
-		for (int i = 0; i < KEY_COUNT; i++)
-			err += bf.testKey(r.nextLong(KEY_COUNT, Long.MAX_VALUE)) ? 1 : 0;
-		logger.info("TestBloomFilter.err = {}/{}", err, KEY_COUNT);
+		for (int i = 0; i < KEY_COUNT; i++) {
+			var v = sr.next64();
+			while (keys.contains(v))
+				v = sr.next64();
+			err += bf.testKey(v) ? 1 : 0;
+		}
+		logger.info("TestBloomFilter.err = {}/{} {}%", err, KEY_COUNT, err * 100f / KEY_COUNT);
+		logger.info("TestBloomFilter.totalBits = {}/{} {}% => {}%",
+				bf.getTotalBits(), BYTE_COUNT * 8,
+				bf.getTotalBits() * 100 / (BYTE_COUNT * 8),
+				bf.getTotalBits() * 100 * Math.scalb(1, -bf.getBitsPerKey()) / (BYTE_COUNT * 8));
 	}
 }
