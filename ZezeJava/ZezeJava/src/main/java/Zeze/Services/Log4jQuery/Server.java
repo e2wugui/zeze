@@ -10,7 +10,7 @@ public class Server extends Service {
 	private final LogServiceConf conf;
 
 	public Server(LogServiceConf conf, Config config) {
-		super("LogServiceServer", config);
+		super("Zeze.LogService.Server", config);
 		this.conf = conf;
 	}
 

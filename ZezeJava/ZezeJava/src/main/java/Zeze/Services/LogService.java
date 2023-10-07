@@ -24,6 +24,26 @@ public class LogService extends AbstractLogService {
     private final LogServiceConf logConf;
     private final AbstractAgent serviceManager;
     private final Server server;
+    private final String passiveIp;
+    private final int passivePort;
+
+    public static void main(String [] args) throws Exception {
+        var configXml = "zeze.xml";
+        for (var i = 0; i < args.length; ++i) {
+            if (args[i].equals("-conf"))
+                configXml = args[++i];
+        }
+        var config = Config.load(configXml);
+        var logService = new LogService(config);
+        logService.start();
+        try {
+            synchronized (Thread.currentThread()) {
+                Thread.currentThread().wait();
+            }
+        } finally {
+            logService.stop();
+        }
+    }
 
     public LogService(Config config) throws Exception {
         this.conf = config;
@@ -32,11 +52,15 @@ public class LogService extends AbstractLogService {
 
         this.server = new Server(logConf, config);
         var kv = server.getOnePassiveAddress();
-        logConf.formatServiceIdentity(conf.getServerId(), kv.getKey(), kv.getValue());
+        passiveIp = kv.getKey();
+        passivePort = kv.getValue();
+        logConf.formatServiceIdentity(conf.getServerId(), passiveIp, passivePort);
         serviceManager = Application.createServiceManager(conf, "LogServiceServer");
+        RegisterProtocols(server);
     }
 
     public void start() throws Exception {
+        server.start();
         var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
         if (serviceManagerConf != null && serviceManager != null) {
             serviceManager.start();
@@ -46,9 +70,8 @@ public class LogService extends AbstractLogService {
                 // raft 版第一次等待由于选择leader原因肯定会失败一次。
                 serviceManager.waitReady();
             }
-            serviceManager.registerService("Zeze.LogService", logConf.serviceIdentity);
+            serviceManager.registerService("Zeze.LogService", logConf.serviceIdentity, passiveIp, passivePort);
         }
-        server.start();
     }
 
     public void stop() throws Exception {

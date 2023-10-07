@@ -13,7 +13,7 @@ public class Client extends Service {
 	private final ConcurrentHashMap<String, Connector> logServers = new ConcurrentHashMap<>();
 
 	public Client(LogServiceConf logConf, Config config) {
-		super("LogServiceClient", config);
+		super("Zeze.LogService.Client", config);
 		this.logConf = logConf;
 	}
 

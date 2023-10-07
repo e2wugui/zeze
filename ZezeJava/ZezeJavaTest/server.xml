@@ -35,4 +35,10 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 	<ServiceConf Name="Zeze.Dbh2.Commit">
 		<Acceptor Ip="127.0.0.1" Port="7789"/>
 	</ServiceConf>
+
+	<CustomizeConf Name="LogServiceConf" LogActive="log/zeze.log"/>
+
+	<ServiceConf Name="Zeze.LogService.Server">
+		<Acceptor Ip="127.0.0.1" Port="7790"/>
+	</ServiceConf>
 </zeze>

@@ -2,10 +2,8 @@ package Zeze.Services;
 
 import java.util.Set;
 import Zeze.Application;
-import Zeze.Builtin.LogService.NewSession;
 import Zeze.Config;
 import Zeze.Net.Connector;
-import Zeze.Raft.RocksRaft.Collection;
 import Zeze.Services.Log4jQuery.Client;
 import Zeze.Services.Log4jQuery.LogServiceConf;
 import Zeze.Services.Log4jQuery.Session;
@@ -26,16 +24,19 @@ public class LogAgent extends AbstractLogAgent {
 		config.parseCustomize(logConf);
 		serviceManager = Application.createServiceManager(conf, "LogServiceServer");
 		client = new Client(logConf, conf);
-
-		if (null != serviceManager) {
-			serviceManager.setOnUpdate(client::onSmUpdated);
-			serviceManager.setOnRemoved(client::onSmRemoved);
-		}
+		RegisterProtocols(client);
 	}
 
 	public void start() throws Exception {
+		client.start();
 		var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
 		if (serviceManagerConf != null && serviceManager != null) {
+			serviceManager.setOnChanged((ss) -> {
+				for (var si : ss.getServiceInfos().getServiceInfoListSortedByIdentity())
+					client.onSmUpdated(ss, si);
+			});
+			serviceManager.setOnUpdate(client::onSmUpdated);
+			serviceManager.setOnRemoved(client::onSmRemoved);
 			serviceManager.start();
 			try {
 				serviceManager.waitReady();
@@ -45,7 +46,6 @@ public class LogAgent extends AbstractLogAgent {
 			}
 			serviceManager.subscribeService("Zeze.LogService", BSubscribeInfo.SubscribeTypeSimple);
 		}
-		client.start();
 	}
 
 	public void stop() throws Exception {

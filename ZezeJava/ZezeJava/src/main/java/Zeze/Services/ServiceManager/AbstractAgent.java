@@ -351,7 +351,7 @@ public abstract class AbstractAgent implements Closeable {
 	public abstract BServiceInfo updateService(BServiceInfo info);
 
 	protected static void verify(String identity) {
-		if (!identity.startsWith("@")) {
+		if (!identity.startsWith("@") && !identity.startsWith("#")) {
 			//noinspection ResultOfMethodCallIgnored
 			Integer.parseInt(identity);
 		}

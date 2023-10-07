@@ -10,7 +10,7 @@ public class LogServiceConf implements Config.ICustomize {
 	public String logActive;
 	public String logRotateDir;
 	public String logTimeFormat;
-	public String serviceIdentity = "LogService_{serviceId}_{host}_{port}";
+	public String serviceIdentity = "#LogService_{serverId}_{host}_{port}";
 
 	@Override
 	public @NotNull String getName() {
