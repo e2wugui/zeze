@@ -267,7 +267,6 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7224301299276482451L;
 

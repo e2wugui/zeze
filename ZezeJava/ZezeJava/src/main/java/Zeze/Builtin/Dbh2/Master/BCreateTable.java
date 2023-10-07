@@ -258,7 +258,6 @@ public final class BCreateTable extends Zeze.Transaction.Bean implements BCreate
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4850419110709483952L;
 

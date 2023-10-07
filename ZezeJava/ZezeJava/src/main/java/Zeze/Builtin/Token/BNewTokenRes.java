@@ -203,7 +203,6 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4376622442286005260L;
 

@@ -280,7 +280,6 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5146109133177652644L;
 
@@ -426,8 +425,7 @@ public static final class Data extends Zeze.Transaction.Data {
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.BEAN);
-                for (int _j_ = 0, _c_ = _x_.size(); _j_ < _c_; _j_++) {
-                    var _v_ = _x_.get(_j_);
+                for (var _v_ : _x_) {
                     _v_.encode(_o_);
                     _n_--;
                 }

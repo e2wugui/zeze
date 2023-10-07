@@ -203,7 +203,6 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -8399522464290840620L;
 

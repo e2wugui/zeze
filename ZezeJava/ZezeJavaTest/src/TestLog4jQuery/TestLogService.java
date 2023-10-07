@@ -28,7 +28,7 @@ public class TestLogService {
 			var cond = new BCondition.Data();
 			cond.setBeginTime(-1);
 			cond.setEndTime(-1);
-			cond.setContainsAll(true);
+			cond.setContainsType(BCondition.ContainsAll);
 			var words = new ArrayList<String>();
 			words.add("23-08-25 09:19:00.813");
 			cond.setWords(words);

@@ -7,10 +7,14 @@ import Zeze.Serialize.ByteBuffer;
 public final class BCondition extends Zeze.Transaction.Bean implements BConditionReadOnly {
     public static final long TYPEID = -4711929821698256188L;
 
+    public static final int ContainsAll = 0;
+    public static final int ContainsAny = 1;
+    public static final int ContainsNone = 2;
+
     private long _BeginTime;
     private long _EndTime;
     private final Zeze.Transaction.Collections.PList1<String> _Words;
-    private boolean _ContainsAll;
+    private int _ContainsType;
     private String _Pattern;
 
     @Override
@@ -63,23 +67,23 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     }
 
     @Override
-    public boolean isContainsAll() {
+    public int getContainsType() {
         if (!isManaged())
-            return _ContainsAll;
+            return _ContainsType;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _ContainsAll;
-        var log = (Log__ContainsAll)txn.getLog(objectId() + 4);
-        return log != null ? log.value : _ContainsAll;
+            return _ContainsType;
+        var log = (Log__ContainsType)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _ContainsType;
     }
 
-    public void setContainsAll(boolean value) {
+    public void setContainsType(int value) {
         if (!isManaged()) {
-            _ContainsAll = value;
+            _ContainsType = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ContainsAll(this, 4, value));
+        txn.putLog(new Log__ContainsType(this, 4, value));
     }
 
     @Override
@@ -112,12 +116,12 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     }
 
     @SuppressWarnings("deprecation")
-    public BCondition(long _BeginTime_, long _EndTime_, boolean _ContainsAll_, String _Pattern_) {
+    public BCondition(long _BeginTime_, long _EndTime_, int _ContainsType_, String _Pattern_) {
         _BeginTime = _BeginTime_;
         _EndTime = _EndTime_;
         _Words = new Zeze.Transaction.Collections.PList1<>(String.class);
         _Words.variableId(3);
-        _ContainsAll = _ContainsAll_;
+        _ContainsType = _ContainsType_;
         if (_Pattern_ == null)
             _Pattern_ = "";
         _Pattern = _Pattern_;
@@ -128,7 +132,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         setBeginTime(0);
         setEndTime(0);
         _Words.clear();
-        setContainsAll(false);
+        setContainsType(0);
         setPattern("");
         _unknown_ = null;
     }
@@ -150,7 +154,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         setEndTime(other._EndTime);
         _Words.clear();
         _Words.addAll(other._Words);
-        setContainsAll(other._ContainsAll);
+        setContainsType(other._ContainsType);
         setPattern(other._Pattern);
         _unknown_ = null;
     }
@@ -160,7 +164,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         setEndTime(other.getEndTime());
         _Words.clear();
         _Words.addAll(other._Words);
-        setContainsAll(other.isContainsAll());
+        setContainsType(other.getContainsType());
         setPattern(other.getPattern());
         _unknown_ = other._unknown_;
     }
@@ -201,11 +205,11 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         public void commit() { ((BCondition)getBelong())._EndTime = value; }
     }
 
-    private static final class Log__ContainsAll extends Zeze.Transaction.Logs.LogBool {
-        public Log__ContainsAll(BCondition bean, int varId, boolean value) { super(bean, varId, value); }
+    private static final class Log__ContainsType extends Zeze.Transaction.Logs.LogInt {
+        public Log__ContainsType(BCondition bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BCondition)getBelong())._ContainsAll = value; }
+        public void commit() { ((BCondition)getBelong())._ContainsType = value; }
     }
 
     private static final class Log__Pattern extends Zeze.Transaction.Logs.LogString {
@@ -239,7 +243,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
             sb.append(Zeze.Util.Str.indent(level));
         }
         sb.append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ContainsAll=").append(isContainsAll()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ContainsType=").append(getContainsType()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Pattern=").append(getPattern()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -302,10 +306,10 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
             }
         }
         {
-            boolean _x_ = isContainsAll();
-            if (_x_) {
+            int _x_ = getContainsType();
+            if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
-                _o_.WriteByte(1);
+                _o_.WriteInt(_x_);
             }
         }
         {
@@ -343,7 +347,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
-            setContainsAll(_o_.ReadBool(_t_));
+            setContainsType(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 5) {
@@ -370,6 +374,8 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
             return true;
         if (getEndTime() < 0)
             return true;
+        if (getContainsType() < 0)
+            return true;
         return false;
     }
 
@@ -385,7 +391,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
                 case 1: _BeginTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _EndTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 3: _Words.followerApply(vlog); break;
-                case 4: _ContainsAll = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 4: _ContainsType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 5: _Pattern = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
@@ -397,7 +403,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         setBeginTime(rs.getLong(_parents_name_ + "BeginTime"));
         setEndTime(rs.getLong(_parents_name_ + "EndTime"));
         Zeze.Serialize.Helper.decodeJsonList(_Words, String.class, rs.getString(_parents_name_ + "Words"));
-        setContainsAll(rs.getBoolean(_parents_name_ + "ContainsAll"));
+        setContainsType(rs.getInt(_parents_name_ + "ContainsType"));
         setPattern(rs.getString(_parents_name_ + "Pattern"));
         if (getPattern() == null)
             setPattern("");
@@ -409,7 +415,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         st.appendLong(_parents_name_ + "BeginTime", getBeginTime());
         st.appendLong(_parents_name_ + "EndTime", getEndTime());
         st.appendString(_parents_name_ + "Words", Zeze.Serialize.Helper.encodeJson(_Words));
-        st.appendBoolean(_parents_name_ + "ContainsAll", isContainsAll());
+        st.appendInt(_parents_name_ + "ContainsType", getContainsType());
         st.appendString(_parents_name_ + "Pattern", getPattern());
     }
 
@@ -419,19 +425,22 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "BeginTime", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "EndTime", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Words", "list", "", "string"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "ContainsAll", "bool", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "ContainsType", "int", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Pattern", "string", "", ""));
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -4711929821698256188L;
+
+    public static final int ContainsAll = 0;
+    public static final int ContainsAny = 1;
+    public static final int ContainsNone = 2;
 
     private long _BeginTime;
     private long _EndTime;
     private java.util.ArrayList<String> _Words;
-    private boolean _ContainsAll;
+    private int _ContainsType;
     private String _Pattern;
 
     public long getBeginTime() {
@@ -460,12 +469,12 @@ public static final class Data extends Zeze.Transaction.Data {
         _Words = value;
     }
 
-    public boolean isContainsAll() {
-        return _ContainsAll;
+    public int getContainsType() {
+        return _ContainsType;
     }
 
-    public void setContainsAll(boolean value) {
-        _ContainsAll = value;
+    public void setContainsType(int value) {
+        _ContainsType = value;
     }
 
     public String getPattern() {
@@ -485,13 +494,13 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _BeginTime_, long _EndTime_, java.util.ArrayList<String> _Words_, boolean _ContainsAll_, String _Pattern_) {
+    public Data(long _BeginTime_, long _EndTime_, java.util.ArrayList<String> _Words_, int _ContainsType_, String _Pattern_) {
         _BeginTime = _BeginTime_;
         _EndTime = _EndTime_;
         if (_Words_ == null)
             _Words_ = new java.util.ArrayList<>();
         _Words = _Words_;
-        _ContainsAll = _ContainsAll_;
+        _ContainsType = _ContainsType_;
         if (_Pattern_ == null)
             _Pattern_ = "";
         _Pattern = _Pattern_;
@@ -502,7 +511,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _BeginTime = 0;
         _EndTime = 0;
         _Words.clear();
-        _ContainsAll = false;
+        _ContainsType = 0;
         _Pattern = "";
     }
 
@@ -523,7 +532,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _EndTime = other.getEndTime();
         _Words.clear();
         _Words.addAll(other._Words);
-        _ContainsAll = other.isContainsAll();
+        _ContainsType = other.getContainsType();
         _Pattern = other.getPattern();
     }
 
@@ -532,7 +541,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _EndTime = other._EndTime;
         _Words.clear();
         _Words.addAll(other._Words);
-        _ContainsAll = other._ContainsAll;
+        _ContainsType = other._ContainsType;
         _Pattern = other._Pattern;
     }
 
@@ -583,7 +592,7 @@ public static final class Data extends Zeze.Transaction.Data {
             sb.append(Zeze.Util.Str.indent(level));
         }
         sb.append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ContainsAll=").append(_ContainsAll).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ContainsType=").append(_ContainsType).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Pattern=").append(_Pattern).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -624,8 +633,7 @@ public static final class Data extends Zeze.Transaction.Data {
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.BYTES);
-                for (int _j_ = 0, _c_ = _x_.size(); _j_ < _c_; _j_++) {
-                    var _v_ = _x_.get(_j_);
+                for (var _v_ : _x_) {
                     _o_.WriteString(_v_);
                     _n_--;
                 }
@@ -634,10 +642,10 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
-            boolean _x_ = _ContainsAll;
-            if (_x_) {
+            int _x_ = _ContainsType;
+            if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
-                _o_.WriteByte(1);
+                _o_.WriteInt(_x_);
             }
         }
         {
@@ -673,7 +681,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
-            _ContainsAll = _o_.ReadBool(_t_);
+            _ContainsType = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 5) {

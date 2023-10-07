@@ -258,7 +258,6 @@ public final class BLog extends Zeze.Transaction.Bean implements BLogReadOnly {
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 3900400357954919579L;
 

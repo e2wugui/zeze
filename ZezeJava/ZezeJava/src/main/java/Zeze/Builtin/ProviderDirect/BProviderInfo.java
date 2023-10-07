@@ -308,7 +308,6 @@ public final class BProviderInfo extends Zeze.Transaction.Bean implements BProvi
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 858135112612157161L;
 

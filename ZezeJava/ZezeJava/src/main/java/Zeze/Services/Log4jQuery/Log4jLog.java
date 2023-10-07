@@ -42,6 +42,15 @@ public class Log4jLog {
 		return true;
 	}
 
+	public boolean containsAny(List<String> words) {
+		var log = getLog();
+		for (var word : words) {
+			if (log.contains(word))
+				return true;
+		}
+		return false;
+	}
+
 	public boolean containsNone(List<String> words) {
 		var log = getLog();
 		for (var word : words) {

@@ -369,7 +369,6 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -6855697390328479333L;
 

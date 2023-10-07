@@ -246,7 +246,6 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7116513531049088703L;
 

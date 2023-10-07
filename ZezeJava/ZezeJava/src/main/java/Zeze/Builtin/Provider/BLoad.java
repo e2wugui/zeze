@@ -357,7 +357,6 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8972064501607813483L;
 

@@ -258,7 +258,6 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3200018963971290421L;
 

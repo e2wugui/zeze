@@ -3,6 +3,7 @@ package TestLog4jQuery;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import Zeze.Builtin.LogService.BCondition;
 import Zeze.Services.Log4jQuery.Log4jLog;
 import Zeze.Services.Log4jQuery.Log4jSession;
 import org.junit.Test;
@@ -17,7 +18,7 @@ public class TestLog4jQuery {
 		var session = new Log4jSession(logActive, null);
 		var result = new ArrayList<Log4jLog>();
 		var reset = false;
-		while (session.searchContains(result, beginTime, endTime, java.util.List.of(pattern), true, 1)) {
+		while (session.searchContains(result, beginTime, endTime, java.util.List.of(pattern), BCondition.ContainsAll, 1)) {
 			System.out.println("------------------------");
 			for (var log : result)
 				System.out.println(log);
@@ -43,7 +44,7 @@ public class TestLog4jQuery {
 		var session = new Log4jSession(logActive, null);
 		var result = new LinkedList<Log4jLog>();
 		while (session.browseContains(result, beginTime, endTime,
-				java.util.List.of(pattern), true, 3, 0.4f)) {
+				java.util.List.of(pattern), BCondition.ContainsAll, 3, 0.4f)) {
 			System.out.println("++++++++++++++++++++++");
 			for (var log : result)
 				System.out.println(log);

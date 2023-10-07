@@ -10,6 +10,6 @@ public interface BConditionReadOnly {
     long getBeginTime();
     long getEndTime();
     Zeze.Transaction.Collections.PList1ReadOnly<String> getWordsReadOnly();
-    boolean isContainsAll();
+    int getContainsType();
     String getPattern();
 }

@@ -308,7 +308,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -6926497733546172658L;
 

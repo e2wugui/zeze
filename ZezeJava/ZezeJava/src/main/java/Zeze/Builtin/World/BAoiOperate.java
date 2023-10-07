@@ -357,7 +357,6 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
     }
 
 // 一个具体的操作。
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7467019147847621003L;
 

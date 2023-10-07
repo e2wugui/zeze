@@ -258,7 +258,6 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 3072398246496713168L;
 

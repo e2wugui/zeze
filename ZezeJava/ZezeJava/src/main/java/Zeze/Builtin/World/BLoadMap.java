@@ -340,7 +340,6 @@ public final class BLoadMap extends Zeze.Transaction.Bean implements BLoadMapRea
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4047532170397087334L;
 

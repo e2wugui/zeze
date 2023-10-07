@@ -423,7 +423,6 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8589859502117192635L;
 

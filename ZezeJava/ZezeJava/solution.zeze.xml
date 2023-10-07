@@ -1818,10 +1818,14 @@
 
 		<module name="LogService" id="11035" UseData="true"  DefaultTransactionLevel="None">
 			<bean name="BCondition">
+				<enum name="ContainsAll" value="0"/>
+				<enum name="ContainsAny" value="1"/>
+				<enum name="ContainsNone" value="2"/>
+				
 				<variable id="1" name="BeginTime" type="long"/>
 				<variable id="2" name="EndTime" type="long"/>
 				<variable id="3" name="Words" type="list[string]"/>
-				<variable id="4" name="ContainsAll" type="bool"/>
+				<variable id="4" name="ContainsType" type="int"/>
 				<variable id="5" name="Pattern" type="string"/>
 			</bean>
 

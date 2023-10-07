@@ -251,7 +251,6 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3248537090181056461L;
 

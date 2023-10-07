@@ -436,7 +436,6 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
 // MoveMmo
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5823156345754273331L;
 

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Deque;
 import java.util.regex.Pattern;
+import Zeze.Builtin.LogService.BCondition;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,7 +42,7 @@ public class Log4jSession {
 	 */
 	public boolean searchContains(List<Log4jLog> result,
 						  long beginTime, long endTime,
-						  List<String> words, boolean containsAll,
+						  List<String> words, int containsType,
 						  int limit) throws IOException {
 		result.clear();
 		trySetBeginTime(beginTime);
@@ -54,7 +55,7 @@ public class Log4jSession {
 			if (endTime != -1 && log.getTime() > endTime)
 				return false; // end search
 
-			if (containsCheck(log, words, containsAll)) {
+			if (containsCheck(log, words, containsType)) {
 				result.add(log);
 				if (--limit <= 0)
 					break; // maybe remain
@@ -64,10 +65,17 @@ public class Log4jSession {
 		return files.hasNext(); // remain maybe
 	}
 
-	private static boolean containsCheck(Log4jLog log, List<String> words, boolean containsAll) {
-		if (containsAll)
+	private static boolean containsCheck(Log4jLog log, List<String> words, int containsType) {
+		switch (containsType) {
+		case BCondition.ContainsAll:
 			return log.containsAll(words);
-		return log.containsNone(words);
+		case BCondition.ContainsAny:
+			return log.containsAny(words);
+		case BCondition.ContainsNone:
+			return log.containsNone(words);
+		default:
+			throw new RuntimeException("unknown contains type=" + containsType);
+		}
 	}
 
 	/**
@@ -107,7 +115,7 @@ public class Log4jSession {
 
 	public boolean browseContains(Deque<Log4jLog> result,
 						  long beginTime, long endTime,
-						  List<String> words, boolean containsAll,
+						  List<String> words, int containsType,
 						  int limit, float offsetFactor) throws IOException {
 		result.clear();
 		trySetBeginTime(beginTime);
@@ -131,7 +139,7 @@ public class Log4jSession {
 				if (limit <= 0)
 					break;
 			} else {
-				if (containsCheck(log, words, containsAll)) {
+				if (containsCheck(log, words, containsType)) {
 					locate = true;
 					limit -= result.size();
 					if (limit <= 0)

@@ -297,7 +297,6 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 318036402741860020L;
 

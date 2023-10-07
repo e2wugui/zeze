@@ -111,7 +111,7 @@ public class LogService extends AbstractLogService {
                 logSession.reset();
             remain = logSession.browseContains(result,
                     r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
-                    r.Argument.getCondition().getWords(), r.Argument.getCondition().isContainsAll(),
+                    r.Argument.getCondition().getWords(), r.Argument.getCondition().getContainsType(),
                     r.Argument.getLimit(), r.Argument.getOffsetFactor());
         } else if (!r.Argument.getCondition().getPattern().isEmpty()) {
             if (r.Argument.isReset())
@@ -143,7 +143,7 @@ public class LogService extends AbstractLogService {
                 logSession.reset();
             remain = logSession.searchContains(result,
                     r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
-                    r.Argument.getCondition().getWords(), r.Argument.getCondition().isContainsAll(),
+                    r.Argument.getCondition().getWords(), r.Argument.getCondition().getContainsType(),
                     r.Argument.getLimit());
         } else if (!r.Argument.getCondition().getPattern().isEmpty()) {
             if (r.Argument.isReset())

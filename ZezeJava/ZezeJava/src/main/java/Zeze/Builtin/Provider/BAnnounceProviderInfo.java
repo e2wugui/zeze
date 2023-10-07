@@ -468,7 +468,6 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     }
 
 // gs to link
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4964769950995033065L;
 

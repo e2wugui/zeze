@@ -417,7 +417,6 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     }
 
 // 地图实例（线）的负载
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3855690854900982322L;
 

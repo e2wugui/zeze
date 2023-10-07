@@ -306,7 +306,6 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 2689376469133093665L;
 

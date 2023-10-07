@@ -361,7 +361,6 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
         return vars;
     }
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7436194280707275049L;
 
