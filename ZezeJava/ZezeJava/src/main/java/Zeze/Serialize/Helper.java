@@ -108,25 +108,6 @@ public class Helper {
 	private static final Json json = Json.instance.clone();
 	private static final Json.ClassMeta<DynamicBean> dynamicBeanMeta = json.getClassMeta(DynamicBean.class);
 
-	static {
-		json.getClassMeta(ByteBuffer.class).setWriter((writer, classMeta, obj) -> {
-			if (obj == null)
-				writer.write(json, null);
-			else {
-				writer.ensure(obj.size() * 6 + 2);
-				writer.write(obj.Bytes, obj.ReadIndex, obj.size(), false);
-			}
-		});
-		json.getClassMeta(Binary.class).setWriter((writer, classMeta, obj) -> {
-			if (obj == null)
-				writer.write(json, null);
-			else {
-				writer.ensure(obj.size() * 6 + 2);
-				writer.write(obj.bytesUnsafe(), obj.getOffset(), obj.size(), false);
-			}
-		});
-	}
-
 	public static void decodeJsonDynamic(DynamicBean bean, String jsonStr) {
 		if (jsonStr == null)
 			bean.reset();

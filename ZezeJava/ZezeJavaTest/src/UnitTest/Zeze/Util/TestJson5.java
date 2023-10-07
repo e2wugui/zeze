@@ -5,7 +5,6 @@ import java.util.Map;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
 import junit.framework.TestCase;
-import org.junit.Assert;
 
 public final class TestJson5 extends TestCase {
 	private int checkCount;
@@ -13,7 +12,7 @@ public final class TestJson5 extends TestCase {
 	private void checkObj(String json5, String resJson) throws ReflectiveOperationException {
 		final Map<String, Object> map = JsonReader.local().buf(json5).parseMap(new LinkedHashMap<>());
 		final String res = JsonWriter.local().clear().setFlags(0x10_0000).setNoQuoteKey(true).write(map).toString();
-		Assert.assertEquals(resJson, res);
+		assertEquals(resJson, res);
 		checkCount++;
 	}
 

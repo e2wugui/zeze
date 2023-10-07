@@ -129,6 +129,21 @@ public class LongHashMap<V> implements Cloneable {
 		return false;
 	}
 
+	public boolean contains(long key, @Nullable V value) {
+		if (key == 0)
+			return hasZeroValue && Objects.equals(zeroValue, value);
+		final long[] kt = keyTable;
+		final V[] vt = valueTable;
+		final int m = mask;
+		for (int i = hash(key); ; i = (i + 1) & m) {
+			final long k = kt[i];
+			if (k == key)
+				return Objects.equals(vt[i], value);
+			if (k == 0)
+				return false;
+		}
+	}
+
 	public @Nullable V get(long key) {
 		if (key == 0)
 			return hasZeroValue ? zeroValue : null;
@@ -635,6 +650,39 @@ public class LongHashMap<V> implements Cloneable {
 		map.keyTable = keyTable.clone();
 		map.valueTable = valueTable.clone();
 		return map;
+	}
+
+	@Override
+	public int hashCode() {
+		int h = 0;
+		final long[] kt = keyTable;
+		final V[] vt = valueTable;
+		for (int i = 0, n = kt.length; i < n; i++) {
+			final long k = kt[i];
+			if (k != 0)
+				h += Long.hashCode(k) ^ Objects.hashCode(vt[i]);
+		}
+		return hasZeroValue ? h + Objects.hashCode(zeroValue) : h;
+	}
+
+	@Override
+	public boolean equals(@Nullable Object o) {
+		if (o == this)
+			return true;
+		if (!(o instanceof LongHashMap))
+			return false;
+		@SuppressWarnings("unchecked")
+		LongHashMap<V> im = (LongHashMap<V>)o;
+		if (size != im.size || hasZeroValue != im.hasZeroValue)
+			return false;
+		final long[] kt = keyTable;
+		final V[] vt = valueTable;
+		for (int i = 0, n = kt.length; i < n; i++) {
+			final long k = kt[i];
+			if (k != 0 && !im.contains(k, vt[i]))
+				return false;
+		}
+		return true;
 	}
 
 	@Override

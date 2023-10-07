@@ -129,6 +129,21 @@ public class IntHashMap<V> implements Cloneable {
 		return false;
 	}
 
+	public boolean contains(int key, @Nullable V value) {
+		if (key == 0)
+			return hasZeroValue && Objects.equals(zeroValue, value);
+		final int[] kt = keyTable;
+		final V[] vt = valueTable;
+		final int m = mask;
+		for (int i = hash(key); ; i = (i + 1) & m) {
+			final int k = kt[i];
+			if (k == key)
+				return Objects.equals(vt[i], value);
+			if (k == 0)
+				return false;
+		}
+	}
+
 	public @Nullable V get(int key) {
 		if (key == 0)
 			return hasZeroValue ? zeroValue : null;
@@ -635,6 +650,39 @@ public class IntHashMap<V> implements Cloneable {
 		map.keyTable = keyTable.clone();
 		map.valueTable = valueTable.clone();
 		return map;
+	}
+
+	@Override
+	public int hashCode() {
+		int h = 0;
+		final int[] kt = keyTable;
+		final V[] vt = valueTable;
+		for (int i = 0, n = kt.length; i < n; i++) {
+			final int k = kt[i];
+			if (k != 0)
+				h += (k ^ Objects.hashCode(vt[i]));
+		}
+		return hasZeroValue ? h + Objects.hashCode(zeroValue) : h;
+	}
+
+	@Override
+	public boolean equals(@Nullable Object o) {
+		if (o == this)
+			return true;
+		if (!(o instanceof IntHashMap))
+			return false;
+		@SuppressWarnings("unchecked")
+		IntHashMap<V> im = (IntHashMap<V>)o;
+		if (size != im.size || hasZeroValue != im.hasZeroValue)
+			return false;
+		final int[] kt = keyTable;
+		final V[] vt = valueTable;
+		for (int i = 0, n = kt.length; i < n; i++) {
+			final int k = kt[i];
+			if (k != 0 && !im.contains(k, vt[i]))
+				return false;
+		}
+		return true;
 	}
 
 	@Override

@@ -3,7 +3,6 @@ package UnitTest.Zeze.Util;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
 import junit.framework.TestCase;
-import org.junit.Assert;
 
 public class TestJsonWriter extends TestCase {
 	final JsonWriter jw = new JsonWriter();
@@ -180,8 +179,9 @@ public class TestJsonWriter extends TestCase {
 			testDouble(2, -0.10000000000000001, "-0.1");
 			testDouble(1, -0.10000000000000001, "-0.1");
 		} catch (Exception e) {
+			//noinspection CallToPrintStackTrace
 			e.printStackTrace();
-			Assert.fail(e.getMessage());
+			fail(e.getMessage());
 		}
 	}
 

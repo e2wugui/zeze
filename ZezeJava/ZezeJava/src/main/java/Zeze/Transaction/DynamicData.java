@@ -149,7 +149,7 @@ public abstract class DynamicData extends Data {
 	}
 
 	public static void registerJsonParser(Class<? extends DynamicData> cls) {
-		Json.instance.getClassMeta(cls).setParser((reader, classMeta, obj, parent) -> {
+		Json.instance.getClassMeta(cls).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
 			if (obj == null) {
 				obj = classMeta.getCtor().create();
 				if (obj == null)

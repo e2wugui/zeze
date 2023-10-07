@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.LongConsumer;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class LongHashSet implements Cloneable {
 	private int size;
@@ -252,6 +253,30 @@ public class LongHashSet implements Cloneable {
 		LongHashSet set = (LongHashSet)super.clone();
 		set.keyTable = keyTable.clone();
 		return set;
+	}
+
+	@Override
+	public int hashCode() {
+		int h = 0;
+		for (long k : keyTable)
+			if (k != 0)
+				h += Long.hashCode(k);
+		return hasZeroKey ? ~h : h;
+	}
+
+	@Override
+	public boolean equals(@Nullable Object o) {
+		if (o == this)
+			return true;
+		if (!(o instanceof LongHashSet))
+			return false;
+		LongHashSet ls = (LongHashSet)o;
+		if (size != ls.size || hasZeroKey != ls.hasZeroKey)
+			return false;
+		for (long k : keyTable)
+			if (k != 0 && !ls.contains(k))
+				return false;
+		return true;
 	}
 
 	@Override

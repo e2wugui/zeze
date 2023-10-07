@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongFunction;
 import sun.misc.Unsafe;
@@ -1150,6 +1151,30 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		public V value() {
 			return node.val;
 		}
+	}
+
+	@Override
+	public int hashCode() {
+		int h = 0;
+		for (MapIterator<V> it = entryIterator(); it.moveToNext(); )
+			h += Long.hashCode(it.key()) ^ Objects.hashCode(it.value());
+		return h;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == this)
+			return true;
+		if (!(obj instanceof LongConcurrentHashMap))
+			return false;
+		@SuppressWarnings("unchecked")
+		LongConcurrentHashMap<V> map = (LongConcurrentHashMap<V>)obj;
+		if (size() != map.size())
+			return false;
+		for (MapIterator<V> it = entryIterator(); it.moveToNext(); )
+			if (!Objects.equals(it.value(), map.get(it.key())))
+				return false;
+		return true;
 	}
 
 	// Unsafe mechanics

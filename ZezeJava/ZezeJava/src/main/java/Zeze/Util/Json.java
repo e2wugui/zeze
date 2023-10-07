@@ -39,7 +39,7 @@ public final class Json implements Cloneable {
 	static final int TYPE_LIST_FLAG = 0x20; // Collection<1~12> (parser only needs clear() & add(v))
 	static final int TYPE_MAP_FLAG = 0x30; // Map<String, 1~12> (parser only needs clear() & put(k,v))
 
-	interface KeyReader {
+	public interface KeyReader {
 		@NotNull
 		Object parse(@NotNull JsonReader jr, int b) throws ReflectiveOperationException;
 	}
@@ -48,19 +48,21 @@ public final class Json implements Cloneable {
 		T create() throws ReflectiveOperationException;
 	}
 
-	static final class FieldMeta {
-		final int hash; // for FieldMetaMap
-		final int type; // defined above
-		final int offset; // for unsafe access
-		final @NotNull Class<?> klass; // TYPE_CUSTOM:fieldClass; TYPE_LIST_FLAG/TYPE_MAP_FLAG:subValueClass
+	public static final class FieldMeta {
+		public final int hash; // for FieldMetaMap
+		public final int type; // defined above
+		public final int offset; // for unsafe access
+		public final @NotNull Class<?> klass; // TYPE_CUSTOM:fieldClass; TYPE_LIST_FLAG/TYPE_MAP_FLAG:subValueClass
 		transient @Nullable ClassMeta<?> classMeta; // from klass, lazy assigned
 		transient @Nullable FieldMeta next; // for FieldMetaMap
-		final byte[] name; // field name
-		final @Nullable Creator<?> ctor; // for TYPE_LIST_FLAG/TYPE_MAP_FLAG
-		final @Nullable KeyReader keyParser; // for TYPE_MAP_FLAG
+		public final byte[] name; // field name
+		public final @Nullable Creator<?> ctor; // for TYPE_LIST_FLAG/TYPE_MAP_FLAG
+		public final @Nullable KeyReader keyParser; // for TYPE_MAP_FLAG
+		public final @NotNull Field field;
+		public final @Nullable Type[] paramTypes;
 
 		FieldMeta(int type, int offset, @NotNull String name, @NotNull Class<?> klass, @Nullable Creator<?> ctor,
-				  @Nullable KeyReader keyReader) {
+				  @Nullable KeyReader keyReader, @NotNull Field field) {
 			this.name = name.getBytes(StandardCharsets.UTF_8);
 			this.hash = getKeyHash(this.name, 0, this.name.length);
 			this.type = type;
@@ -68,29 +70,35 @@ public final class Json implements Cloneable {
 			this.klass = klass;
 			this.ctor = ctor;
 			this.keyParser = keyReader;
+			this.field = field;
+			Type geneType = field.getGenericType();
+			paramTypes = geneType instanceof ParameterizedType
+					? ((ParameterizedType)geneType).getActualTypeArguments() : null;
 		}
 
 		@NotNull
-		String getName() {
+		public String getName() {
 			return new String(name, StandardCharsets.UTF_8);
 		}
 	}
 
 	public interface Parser<T> {
 		@Nullable
-		T parse(@NotNull JsonReader reader, @NotNull ClassMeta<T> classMeta, @Nullable T obj, @Nullable Object parent)
-				throws ReflectiveOperationException;
+		T parse(@NotNull JsonReader reader, @NotNull ClassMeta<T> classMeta, @Nullable FieldMeta fieldMeta,
+				@Nullable T obj, @Nullable Object parent) throws ReflectiveOperationException;
 
 		@SuppressWarnings("unchecked")
-		default @Nullable T parse0(@NotNull JsonReader reader, @NotNull ClassMeta<?> classMeta, @Nullable Object obj,
+		default @Nullable T parse0(@NotNull JsonReader reader, @NotNull ClassMeta<?> classMeta,
+								   @Nullable FieldMeta fieldMeta, @Nullable Object obj,
 								   @Nullable Object parent) throws ReflectiveOperationException {
-			return parse(reader, (ClassMeta<T>)classMeta, (T)obj, parent);
+			return parse(reader, (ClassMeta<T>)classMeta, fieldMeta, (T)obj, parent);
 		}
 	}
 
 	public interface Writer<T> {
 		void write(@NotNull JsonWriter writer, @NotNull ClassMeta<T> classMeta, @Nullable T obj);
 
+		// ensure +1
 		@SuppressWarnings("unchecked")
 		default void write0(@NotNull JsonWriter writer, @NotNull ClassMeta<?> classMeta, @Nullable Object obj) {
 			write(writer, (ClassMeta<T>)classMeta, (T)obj);
@@ -154,6 +162,10 @@ public final class Json implements Cloneable {
 
 		static boolean isInKeyReaderMap(Class<?> klass) {
 			return keyReaderMap.containsKey(klass);
+		}
+
+		public static KeyReader getKeyReader(Class<?> klass) {
+			return keyReaderMap.get(klass);
 		}
 
 		static boolean isAbstract(@NotNull Class<?> klass) {
@@ -225,7 +237,8 @@ public final class Json implements Cloneable {
 			int size = 0;
 			for (Class<?> c = klass; c != null; c = c.getSuperclass())
 				for (Field field : getDeclaredFields(c))
-					if ((field.getModifiers() & (Modifier.STATIC | Modifier.TRANSIENT)) == 0)
+					if ((field.getModifiers() & (Modifier.STATIC | Modifier.TRANSIENT)) == 0
+							&& !field.getName().startsWith("this$"))
 						size++;
 			valueTable = new FieldMeta[1 << (32 - Integer.numberOfLeadingZeros(size * 2 - 1))];
 			fieldMetas = new FieldMeta[size];
@@ -304,7 +317,7 @@ public final class Json implements Cloneable {
 					final BiFunction<Class<?>, Field, String> fieldNameFilter = json.fieldNameFilter;
 					final String fn = fieldNameFilter != null ? fieldNameFilter.apply(c, field) : fieldName;
 					put(j++, new FieldMeta(type, (int)offset, fn != null ? fn : fieldName, fieldClass, fieldCtor,
-							keyReader));
+							keyReader, field));
 				}
 			}
 		}
@@ -504,7 +517,7 @@ public final class Json implements Cloneable {
 			return fn;
 		};
 
-		json.getClassMeta(ByteBuffer.class).setParser((reader, classMeta, obj, parent) -> {
+		json.getClassMeta(ByteBuffer.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
 			final byte[] data = reader.parseByteString();
 			if (obj == null)
 				return ByteBuffer.Wrap(data != null ? data : ByteBuffer.Empty);
@@ -515,15 +528,15 @@ public final class Json implements Cloneable {
 			if (obj == null)
 				writer.write(json, null);
 			else {
-				String s = obj.toString();
-				writer.ensure(s.length() + 2);
-				writer.write(s, false);
-				// writer.ensure(obj.size() * 6 + 2);
-				// writer.write(obj.Bytes, obj.ReadIndex, obj.Size(), false);
+				// String s = obj.toString();
+				// writer.ensure(s.length() + 3);
+				// writer.write(s, false);
+				writer.ensure(obj.size() * 6 + 3);
+				writer.write(obj.Bytes, obj.ReadIndex, obj.size(), false);
 			}
 		});
 
-		json.getClassMeta(Binary.class).setParser((reader, classMeta, obj, parent) -> {
+		json.getClassMeta(Binary.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
 			byte[] s = reader.parseByteString();
 			return s != null ? new Binary(s) : Binary.Empty;
 		});
@@ -531,25 +544,25 @@ public final class Json implements Cloneable {
 			if (obj == null)
 				writer.write(json, null);
 			else {
-				String s = obj.toString();
-				writer.ensure(s.length() + 2);
-				writer.write(s, false);
-				// writer.ensure(obj.size() * 6 + 2);
-				// writer.write(obj.bytesUnsafe(), obj.getOffset(), obj.size(), false);
+				// String s = obj.toString();
+				// writer.ensure(s.length() + 3);
+				// writer.write(s, false);
+				writer.ensure(obj.size() * 6 + 3);
+				writer.write(obj.bytesUnsafe(), obj.getOffset(), obj.size(), false);
 			}
 		});
 
-		json.getClassMeta(byte[].class).setParser((reader, classMeta, obj, parent) -> reader.parseByteString());
+		json.getClassMeta(byte[].class).setParser((reader, classMeta, fieldMeta, obj, parent) -> reader.parseByteString());
 		json.getClassMeta(byte[].class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)
 				writer.write(json, null);
 			else {
-				writer.ensure(obj.length * 6 + 2);
+				writer.ensure(obj.length * 6 + 3);
 				writer.write(obj, false);
 			}
 		});
 
-		json.getClassMeta(DynamicBean.class).setParser((reader, classMeta, obj, parent) -> {
+		json.getClassMeta(DynamicBean.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
 			if (obj == null) {
 				if (parent instanceof PList2)
 					obj = (DynamicBean)((PList2<?>)parent).createValue();
@@ -567,7 +580,7 @@ public final class Json implements Cloneable {
 			return obj;
 		});
 
-		json.getClassMeta(CollOne.class).setParser((reader, classMeta, obj, parent) -> {
+		json.getClassMeta(CollOne.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
 			if (obj == null)
 				throw new UnsupportedOperationException();
 			reader.parse(json, obj.getValue());
@@ -577,6 +590,580 @@ public final class Json implements Cloneable {
 			if (obj == null)
 				throw new UnsupportedOperationException();
 			writer.write(json, obj.getValue());
+		});
+
+		json.getClassMeta(IntList.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
+			if (reader.next() != '[')
+				return obj;
+			if (obj == null)
+				obj = new IntList();
+			else
+				obj.clear();
+			for (int b = reader.skipNext(); b != ']'; b = reader.skipVar(']'))
+				obj.add(reader.parseInt());
+			reader.skip(1);
+			return obj;
+		});
+		json.getClassMeta(IntList.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				boolean comma = false;
+				writer.ensure(3);
+				writer.writeByteUnsafe((byte)'[');
+				if ((writer.getFlags() & JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT)
+						== JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT) {
+					writer.incTab();
+					for (int i = 0, n = obj.size(); i < n; i++) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.writeNewLineTabs();
+						writer.ensure(13);
+						writer.write(obj.get(i));
+						comma = true;
+					}
+					writer.decTab();
+					if (comma)
+						writer.writeNewLineTabs();
+				} else {
+					for (int i = 0, n = obj.size(); i < n; i++) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.ensure(13);
+						writer.write(obj.get(i));
+						comma = true;
+					}
+				}
+				writer.writeByteUnsafe((byte)']');
+			}
+		});
+
+		json.getClassMeta(LongList.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
+			if (reader.next() != '[')
+				return obj;
+			if (obj == null)
+				obj = new LongList();
+			else
+				obj.clear();
+			for (int b = reader.skipNext(); b != ']'; b = reader.skipVar(']'))
+				obj.add(reader.parseLong());
+			reader.skip(1);
+			return obj;
+		});
+		json.getClassMeta(LongList.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				boolean comma = false;
+				writer.ensure(3);
+				writer.writeByteUnsafe((byte)'[');
+				if ((writer.getFlags() & JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT)
+						== JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT) {
+					writer.incTab();
+					for (int i = 0, n = obj.size(); i < n; i++) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.writeNewLineTabs();
+						writer.ensure(22);
+						writer.write(obj.get(i));
+						comma = true;
+					}
+					writer.decTab();
+					if (comma)
+						writer.writeNewLineTabs();
+				} else {
+					for (int i = 0, n = obj.size(); i < n; i++) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.ensure(22);
+						writer.write(obj.get(i));
+						comma = true;
+					}
+				}
+				writer.writeByteUnsafe((byte)']');
+			}
+		});
+
+		json.getClassMeta(FloatList.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
+			if (reader.next() != '[')
+				return obj;
+			if (obj == null)
+				obj = new FloatList();
+			else
+				obj.clear();
+			for (int b = reader.skipNext(); b != ']'; b = reader.skipVar(']'))
+				obj.add((float)reader.parseDouble());
+			reader.skip(1);
+			return obj;
+		});
+		json.getClassMeta(FloatList.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				boolean comma = false;
+				writer.ensure(3);
+				writer.writeByteUnsafe((byte)'[');
+				if ((writer.getFlags() & JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT)
+						== JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT) {
+					writer.incTab();
+					for (int i = 0, n = obj.size(); i < n; i++) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.writeNewLineTabs();
+						writer.ensure(27);
+						writer.write(obj.get(i));
+						comma = true;
+					}
+					writer.decTab();
+					if (comma)
+						writer.writeNewLineTabs();
+				} else {
+					for (int i = 0, n = obj.size(); i < n; i++) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.ensure(27);
+						writer.write(obj.get(i));
+						comma = true;
+					}
+				}
+				writer.writeByteUnsafe((byte)']');
+			}
+		});
+
+		json.getClassMeta(Vector3List.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
+			if (reader.next() != '[')
+				return obj;
+			if (obj == null)
+				obj = new Vector3List();
+			else
+				obj.clear();
+			for (int b = reader.skipNext(); b != ']'; b = reader.skipVar(']'))
+				obj.add((float)reader.parseDouble());
+			reader.skip(1);
+			return obj;
+		});
+		json.getClassMeta(Vector3List.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				boolean comma = false;
+				writer.ensure(3);
+				writer.writeByteUnsafe((byte)'[');
+				if ((writer.getFlags() & JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT)
+						== JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT) {
+					writer.incTab();
+					for (int i = 0, n = obj.size(); i < n; i++) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.writeNewLineTabs();
+						writer.ensure(27);
+						writer.write(obj.get(i));
+						comma = true;
+					}
+					writer.decTab();
+					if (comma)
+						writer.writeNewLineTabs();
+				} else {
+					for (int i = 0, n = obj.size(); i < n; i++) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.ensure(27);
+						writer.write(obj.get(i));
+						comma = true;
+					}
+				}
+				writer.writeByteUnsafe((byte)']');
+			}
+		});
+
+		json.getClassMeta(Vector3IntList.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
+			if (reader.next() != '[')
+				return obj;
+			if (obj == null)
+				obj = new Vector3IntList();
+			else
+				obj.clear();
+			for (int b = reader.skipNext(); b != ']'; b = reader.skipVar(']'))
+				obj.add(reader.parseInt());
+			reader.skip(1);
+			return obj;
+		});
+		json.getClassMeta(Vector3IntList.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				boolean comma = false;
+				writer.ensure(3);
+				writer.writeByteUnsafe((byte)'[');
+				if ((writer.getFlags() & JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT)
+						== JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT) {
+					writer.incTab();
+					for (int i = 0, n = obj.size(); i < n; i++) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.writeNewLineTabs();
+						writer.ensure(13);
+						writer.write(obj.get(i));
+						comma = true;
+					}
+					writer.decTab();
+					if (comma)
+						writer.writeNewLineTabs();
+				} else {
+					for (int i = 0, n = obj.size(); i < n; i++) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.ensure(13);
+						writer.write(obj.get(i));
+						comma = true;
+					}
+				}
+				writer.writeByteUnsafe((byte)']');
+			}
+		});
+
+		json.getClassMeta(IntHashSet.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
+			if (reader.next() != '[')
+				return obj;
+			if (obj == null)
+				obj = new IntHashSet();
+			else
+				obj.clear();
+			for (int b = reader.skipNext(); b != ']'; b = reader.skipVar(']'))
+				obj.add(reader.parseInt());
+			reader.skip(1);
+			return obj;
+		});
+		json.getClassMeta(IntHashSet.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				boolean comma = false;
+				writer.ensure(3);
+				writer.writeByteUnsafe((byte)'[');
+				if ((writer.getFlags() & JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT)
+						== JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT) {
+					writer.incTab();
+					for (IntHashSet.Iterator it = obj.iterator(); it.moveToNext(); ) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.writeNewLineTabs();
+						writer.ensure(13);
+						writer.write(it.value());
+						comma = true;
+					}
+					writer.decTab();
+					if (comma)
+						writer.writeNewLineTabs();
+				} else {
+					for (IntHashSet.Iterator it = obj.iterator(); it.moveToNext(); ) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.ensure(13);
+						writer.write(it.value());
+						comma = true;
+					}
+				}
+				writer.writeByteUnsafe((byte)']');
+			}
+		});
+
+		json.getClassMeta(LongHashSet.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
+			if (reader.next() != '[')
+				return obj;
+			if (obj == null)
+				obj = new LongHashSet();
+			else
+				obj.clear();
+			for (int b = reader.skipNext(); b != ']'; b = reader.skipVar(']'))
+				obj.add(reader.parseLong());
+			reader.skip(1);
+			return obj;
+		});
+		json.getClassMeta(LongHashSet.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				boolean comma = false;
+				writer.ensure(3);
+				writer.writeByteUnsafe((byte)'[');
+				if ((writer.getFlags() & JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT)
+						== JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT) {
+					writer.incTab();
+					for (LongHashSet.Iterator it = obj.iterator(); it.moveToNext(); ) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.writeNewLineTabs();
+						writer.ensure(22);
+						writer.write(it.value());
+						comma = true;
+					}
+					writer.decTab();
+					if (comma)
+						writer.writeNewLineTabs();
+				} else {
+					for (LongHashSet.Iterator it = obj.iterator(); it.moveToNext(); ) {
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						writer.ensure(22);
+						writer.write(it.value());
+						comma = true;
+					}
+				}
+				writer.writeByteUnsafe((byte)']');
+			}
+		});
+
+		json.getClassMeta(IntHashMap.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
+			if (reader.next() != '{')
+				return obj;
+			if (obj == null)
+				obj = new IntHashMap<>();
+			else
+				obj.clear();
+			Class<?> valueClass = fieldMeta != null ? ((Class<?>)fieldMeta.paramTypes[0]) : null;
+			ClassMeta<?> valueMeta = valueClass != null ? instance.getClassMeta(valueClass) : null;
+			for (int b = reader.skipNext(); b != '}'; b = reader.skipVar('}')) {
+				int k = JsonReader.parseIntegerKey(reader, b);
+				reader.skipColon();
+				@SuppressWarnings({"unchecked", "unused"})
+				Object __ = obj.put(k, reader.parse(valueMeta));
+			}
+			reader.skip(1);
+			return obj;
+		});
+		json.getClassMeta(IntHashMap.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				boolean comma = false;
+				boolean noQuote = writer.isNoQuoteKey();
+				writer.ensure(1);
+				writer.writeByteUnsafe((byte)'{');
+				if (writer.isPrettyFormat()) {
+					for (IntHashMap<?>.Iterator it = obj.iterator(); it.moveToNext(); ) {
+						Object v = it.value();
+						if (v == null && !writer.isWriteNull())
+							continue;
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						else {
+							writer.incTab();
+							comma = true;
+						}
+						writer.writeNewLineTabs();
+						int k = it.key();
+						if (noQuote) {
+							writer.ensure(13);
+							writer.write(k);
+						} else {
+							writer.ensure(15);
+							writer.writeByteUnsafe((byte)'"');
+							writer.write(k);
+							writer.writeByteUnsafe((byte)'"');
+						}
+						writer.writeByteUnsafe((byte)':');
+						writer.writeByteUnsafe((byte)' ');
+						writer.write(v);
+					}
+					if (comma) {
+						writer.decTab();
+						writer.writeNewLineTabs();
+					} else
+						writer.ensure(2);
+				} else {
+					for (IntHashMap<?>.Iterator it = obj.iterator(); it.moveToNext(); ) {
+						Object v = it.value();
+						if (v == null && !writer.isWriteNull())
+							continue;
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						int k = it.key();
+						if (noQuote) {
+							writer.ensure(12);
+							writer.write(k);
+						} else {
+							writer.ensure(14);
+							writer.writeByteUnsafe((byte)'"');
+							writer.write(k);
+							writer.writeByteUnsafe((byte)'"');
+						}
+						writer.writeByteUnsafe((byte)':');
+						writer.write(v);
+						comma = true;
+					}
+					writer.ensure(2);
+				}
+				writer.writeByteUnsafe((byte)'}');
+			}
+		});
+
+		json.getClassMeta(LongHashMap.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
+			if (reader.next() != '{')
+				return obj;
+			if (obj == null)
+				obj = new LongHashMap<>();
+			else
+				obj.clear();
+			Class<?> valueClass = fieldMeta != null ? ((Class<?>)fieldMeta.paramTypes[0]) : null;
+			ClassMeta<?> valueMeta = valueClass != null ? instance.getClassMeta(valueClass) : null;
+			for (int b = reader.skipNext(); b != '}'; b = reader.skipVar('}')) {
+				long k = JsonReader.parseLongKey(reader, b);
+				reader.skipColon();
+				@SuppressWarnings({"unchecked", "unused"})
+				Object __ = obj.put(k, reader.parse(valueMeta));
+			}
+			reader.skip(1);
+			return obj;
+		});
+		json.getClassMeta(LongHashMap.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				boolean comma = false;
+				boolean noQuote = writer.isNoQuoteKey();
+				writer.ensure(1);
+				writer.writeByteUnsafe((byte)'{');
+				if (writer.isPrettyFormat()) {
+					for (LongHashMap<?>.Iterator it = obj.iterator(); it.moveToNext(); ) {
+						Object v = it.value();
+						if (v == null && !writer.isWriteNull())
+							continue;
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						else {
+							writer.incTab();
+							comma = true;
+						}
+						writer.writeNewLineTabs();
+						long k = it.key();
+						if (noQuote) {
+							writer.ensure(13);
+							writer.write(k);
+						} else {
+							writer.ensure(15);
+							writer.writeByteUnsafe((byte)'"');
+							writer.write(k);
+							writer.writeByteUnsafe((byte)'"');
+						}
+						writer.writeByteUnsafe((byte)':');
+						writer.writeByteUnsafe((byte)' ');
+						writer.write(v);
+					}
+					if (comma) {
+						writer.decTab();
+						writer.writeNewLineTabs();
+					} else
+						writer.ensure(2);
+				} else {
+					for (LongHashMap<?>.Iterator it = obj.iterator(); it.moveToNext(); ) {
+						Object v = it.value();
+						if (v == null && !writer.isWriteNull())
+							continue;
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						long k = it.key();
+						if (noQuote) {
+							writer.ensure(12);
+							writer.write(k);
+						} else {
+							writer.ensure(14);
+							writer.writeByteUnsafe((byte)'"');
+							writer.write(k);
+							writer.writeByteUnsafe((byte)'"');
+						}
+						writer.writeByteUnsafe((byte)':');
+						writer.write(v);
+						comma = true;
+					}
+					writer.ensure(2);
+				}
+				writer.writeByteUnsafe((byte)'}');
+			}
+		});
+
+		json.getClassMeta(LongConcurrentHashMap.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
+			if (reader.next() != '{')
+				return obj;
+			if (obj == null)
+				obj = new LongConcurrentHashMap<>();
+			else
+				obj.clear();
+			Class<?> valueClass = fieldMeta != null ? ((Class<?>)fieldMeta.paramTypes[0]) : null;
+			ClassMeta<?> valueMeta = valueClass != null ? instance.getClassMeta(valueClass) : null;
+			for (int b = reader.skipNext(); b != '}'; b = reader.skipVar('}')) {
+				long k = JsonReader.parseLongKey(reader, b);
+				reader.skipColon();
+				@SuppressWarnings({"unchecked", "unused"})
+				Object __ = obj.put(k, reader.parse(valueMeta));
+			}
+			reader.skip(1);
+			return obj;
+		});
+		json.getClassMeta(LongConcurrentHashMap.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				boolean comma = false;
+				boolean noQuote = writer.isNoQuoteKey();
+				writer.ensure(1);
+				writer.writeByteUnsafe((byte)'{');
+				if (writer.isPrettyFormat()) {
+					for (LongMap.MapIterator<?> it = obj.entryIterator(); it.moveToNext(); ) {
+						Object v = it.value();
+						if (v == null && !writer.isWriteNull())
+							continue;
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						else {
+							writer.incTab();
+							comma = true;
+						}
+						writer.writeNewLineTabs();
+						long k = it.key();
+						if (noQuote) {
+							writer.ensure(13);
+							writer.write(k);
+						} else {
+							writer.ensure(15);
+							writer.writeByteUnsafe((byte)'"');
+							writer.write(k);
+							writer.writeByteUnsafe((byte)'"');
+						}
+						writer.writeByteUnsafe((byte)':');
+						writer.writeByteUnsafe((byte)' ');
+						writer.write(v);
+					}
+					if (comma) {
+						writer.decTab();
+						writer.writeNewLineTabs();
+					} else
+						writer.ensure(2);
+				} else {
+					for (LongMap.MapIterator<?> it = obj.entryIterator(); it.moveToNext(); ) {
+						Object v = it.value();
+						if (v == null && !writer.isWriteNull())
+							continue;
+						if (comma)
+							writer.writeByteUnsafe((byte)',');
+						long k = it.key();
+						if (noQuote) {
+							writer.ensure(12);
+							writer.write(k);
+						} else {
+							writer.ensure(14);
+							writer.writeByteUnsafe((byte)'"');
+							writer.write(k);
+							writer.writeByteUnsafe((byte)'"');
+						}
+						writer.writeByteUnsafe((byte)':');
+						writer.write(v);
+						comma = true;
+					}
+					writer.ensure(2);
+				}
+				writer.writeByteUnsafe((byte)'}');
+			}
 		});
 	}
 }

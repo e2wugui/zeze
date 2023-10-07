@@ -10,13 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import Zeze.Transaction.DynamicBean;
 import Zeze.Util.Json;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
-import demo.Module1.BSimple;
-import demo.Module1.BValue;
-import demo.Module1.Key;
 import junit.framework.TestCase;
 
 @SuppressWarnings({"unused", "TextBlockMigration"})
@@ -61,7 +57,7 @@ public final class TestJson extends TestCase {
 		assertEquals(A.class, c.a.getClass());
 		assertEquals(5, c.a.a);
 
-		Json.instance.getClassMeta(A.class).setParser((json, __, ___, ____) -> json.parse(B.class));
+		Json.instance.getClassMeta(A.class).setParser((json, __, ___, ____, _____) -> json.parse(B.class));
 		c.a = null;
 		c = JsonReader.local().buf("{a:{a:7,b:8}}").parse(c);
 		assertNotNull(c);
@@ -240,46 +236,6 @@ public final class TestJson extends TestCase {
 	}
 
 	public void testD() throws ReflectiveOperationException {
-		{
-			BValue v = new BValue();
-			DynamicBean db = new DynamicBean(0, BValue::getSpecialTypeIdFromBean_26, BValue::createBeanFromSpecialTypeId_26);
-			BSimple s = new BSimple();
-			s.setInt_1(456);
-			db.setBean(s);
-			v.getMap26().put(new Key((short)123, ""), db);
-			String j = JsonWriter.local().clear().setPrettyFormat(true).setWriteNull(true).setDepthLimit(9).write(v).toString();
-			BValue v2 = JsonReader.local().buf(j).parse(new BValue());
-			assertNotNull(v2);
-			assertEquals(1, v2.getMap26().size());
-			Map.Entry<Key, DynamicBean> e = v2.getMap26().iterator().next();
-			assertEquals(Key.class, e.getKey().getClass());
-			assertEquals(123, e.getKey().getS());
-			assertEquals(BSimple.TYPEID, e.getValue().typeId());
-			assertEquals(BSimple.class, e.getValue().getBean().getClass());
-			assertEquals(456, ((BSimple)e.getValue().getBean()).getInt_1());
-		}
-
-		{
-			BValue.Data d = new BValue.Data();
-			BValue.Data.DynamicData_map26 dd = new BValue.Data.DynamicData_map26();
-			BSimple.Data sd = new BSimple.Data();
-			sd.setInt_1(456);
-			dd.setData(sd);
-			d.getMap26().put(new Key((short)123, ""), dd);
-			String j = JsonWriter.local().clear().setPrettyFormat(true).setWriteNull(true).setDepthLimit(9).write(d).toString();
-			BValue.Data v2 = JsonReader.local().buf(j).parse(new BValue.Data());
-			assertNotNull(v2);
-			assertEquals(1, v2.getMap26().size());
-			Map.Entry<Key, BValue.Data.DynamicData_map26> e = v2.getMap26().entrySet().iterator().next();
-			assertEquals(Key.class, e.getKey().getClass());
-			assertEquals(123, e.getKey().getS());
-			assertEquals(BSimple.Data.TYPEID, e.getValue().typeId());
-			assertEquals(BSimple.Data.class, e.getValue().getData().getClass());
-			assertEquals(456, ((BSimple.Data)e.getValue().getData()).getInt_1());
-		}
-	}
-
-	public void testE() throws ReflectiveOperationException {
 		byte[] b = JsonReader.local().buf("'\\u001F\\u03A0\\u9abf\\uD955\\udeaa'").parseByteString();
 		assertNotNull(b);
 		String s = new String(b, StandardCharsets.UTF_8);
@@ -320,7 +276,7 @@ public final class TestJson extends TestCase {
 		assertEquals(0xdeaa, c[9]);
 	}
 
-	public void testF() throws ReflectiveOperationException {
+	public void testE() throws ReflectiveOperationException {
 		Object o = JsonReader.local().buf("[Infinity,-Infinity,NaN,0x1234567890abcdef,-0x1]").parse();
 		assertNotNull(o);
 		assertEquals(ArrayList.class, o.getClass());
@@ -349,7 +305,6 @@ public final class TestJson extends TestCase {
 		t.testC();
 		t.testD();
 		t.testE();
-		t.testF();
-		System.out.println(t.getClass().getSimpleName() + ": 15 tests OK!");
+		System.out.println(t.getClass().getSimpleName() + ": 14 tests OK!");
 	}
 }

@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.IntConsumer;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class IntHashSet implements Cloneable {
 	private int size;
@@ -250,6 +251,30 @@ public class IntHashSet implements Cloneable {
 		IntHashSet set = (IntHashSet)super.clone();
 		set.keyTable = keyTable.clone();
 		return set;
+	}
+
+	@Override
+	public int hashCode() {
+		int h = 0;
+		for (int k : keyTable)
+			if (k != 0)
+				h += k;
+		return hasZeroKey ? ~h : h;
+	}
+
+	@Override
+	public boolean equals(@Nullable Object o) {
+		if (o == this)
+			return true;
+		if (!(o instanceof IntHashSet))
+			return false;
+		IntHashSet is = (IntHashSet)o;
+		if (size != is.size || hasZeroKey != is.hasZeroKey)
+			return false;
+		for (int k : keyTable)
+			if (k != 0 && !is.contains(k))
+				return false;
+		return true;
 	}
 
 	@Override

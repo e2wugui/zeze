@@ -305,6 +305,10 @@ public final class JsonWriter {
 		buf[pos++] = b;
 	}
 
+	public void writeByteUnsafe(byte b) {
+		buf[pos++] = b;
+	}
+
 	public void incTab() {
 		tabs++;
 	}
@@ -313,17 +317,21 @@ public final class JsonWriter {
 		tabs--;
 	}
 
+	// ensure +2
 	public void writeNewLineTabs() {
-		ensure(3 + tabs);
+		int n = tabs;
+		ensure(3 + n);
 		buf[pos++] = '\n';
-		for (int i = 0, n = tabs; i < n; i++)
+		for (int i = 0; i < n; i++)
 			buf[pos++] = '\t';
 	}
 
+	// ensure +1
 	public @NotNull JsonWriter write(@Nullable Object obj) {
 		return write(Json.instance, obj);
 	}
 
+	// ensure +1
 	public @NotNull JsonWriter write(@NotNull Json json, @Nullable Object obj) {
 		if (obj == null) {
 			ensure(5);
@@ -361,7 +369,7 @@ public final class JsonWriter {
 			write(((Short)obj).shortValue());
 			break;
 		case TYPE_WRAP_FLAG + TYPE_CHAR:
-			ensure(7);
+			ensure(6);
 			write(((Character)obj).charValue());
 			break;
 		case TYPE_WRAP_FLAG + TYPE_INT:
@@ -408,6 +416,12 @@ public final class JsonWriter {
 				buf[pos++] = '"';
 				break;
 			}
+			ClassMeta<?> classMeta = json.getClassMeta(klass);
+			Writer<?> writer = classMeta.writer;
+			if (writer != null) {
+				writer.write0(this, classMeta, obj);
+				break;
+			}
 			boolean comma = false;
 			if (obj instanceof Collection) {
 				ensure(1);
@@ -424,6 +438,8 @@ public final class JsonWriter {
 					tabs--;
 					if (comma)
 						writeNewLineTabs();
+					else
+						ensure(2);
 				} else {
 					for (Object o : (Collection<?>)obj) {
 						if (comma)
@@ -431,8 +447,8 @@ public final class JsonWriter {
 						write(json, o);
 						comma = true;
 					}
+					ensure(2);
 				}
-				ensure(2);
 				buf[pos++] = ']';
 				break;
 			}
@@ -451,6 +467,8 @@ public final class JsonWriter {
 					tabs--;
 					if (comma)
 						writeNewLineTabs();
+					else
+						ensure(2);
 				} else {
 					for (int i = 0, n = Array.getLength(obj); i < n; i++) {
 						if (comma)
@@ -458,8 +476,8 @@ public final class JsonWriter {
 						write(json, Array.get(obj, i));
 						comma = true;
 					}
+					ensure(2);
 				}
-				ensure(2);
 				buf[pos++] = ']';
 				break;
 			}
@@ -517,15 +535,10 @@ public final class JsonWriter {
 					if (comma) {
 						tabs--;
 						writeNewLineTabs();
-					}
+					} else
+						ensure(2);
 				}
 				buf[pos++] = '}';
-				break;
-			}
-			ClassMeta<?> classMeta = json.getClassMeta(klass);
-			Writer<?> writer = classMeta.writer;
-			if (writer != null) {
-				writer.write0(this, classMeta, obj);
 				break;
 			}
 			ensure(1);
