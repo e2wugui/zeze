@@ -65,6 +65,7 @@ public class SessionAll implements AutoCloseable {
 			return merge(rs.get(0), rs.get(1));
 
 		default:
+			// 这里直接一个循环处理不差吧，递归好像不能省什么。
 			var tmp = new ArrayList<BResult.Data>();
 			var odd = rs.size() % 2 == 1;
 			var pairEnd = odd ? rs.size() - 1 : rs.size();

@@ -204,4 +204,9 @@ public class ProviderUserSession {
 			throw new IllegalStateException("not auth");
 		return (ProviderUserSession)state;
 	}
+
+	@Override
+	public String toString() {
+		return "(account=" + dispatch.Argument.getAccount() + ",roleId=" + dispatch.Argument.getContext() + ")";
+	}
 }

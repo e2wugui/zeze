@@ -11,9 +11,13 @@ c# 并发上不去，只有4/8.
 c# GenModule.cs 根据 ResultHandle 是否异步，决定 async 和 NewProcedure 的生成方式。
 Focus Document
 dbh2
+0. raft异地备份方案，其中1/3 or 2/5异地运行，正常启动时，异地延迟启动，等主机房leader选出后再启动，
+   异常时异地可能成为leader，但故障恢复后，强制退出异地节点，把leader赶回主机房后再启动。难点在正常异常的判断。
 1. raftagent会建立所有node的连接并保持，由于已有新链接建立能力，发现leader后可以关闭其他node的连接；
 2. manager上有多个桶，每个桶都有独立连接，可以考虑用代理隧道复用连接使得一个manager只需要一个连接。
 3. 优先级不高，后期优化再考虑。
+4. dbh2 txnid 持久化生命期确认，是否仅针对执行中的事务？【确认为tid仅在事务持续期间存在，数据里面没有，但是存在于raft-log中】
+    是否需要改成自己分配用long？
 ----------------------------------------------------------------------------------------------------------
 Zege ChatControl 改成用WebView；
 Zege Notify客户端自行决定排序。
@@ -33,6 +37,58 @@ Zege Task
 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot alter 测试，需要mysql。
 LogService 测试。
+sessionall remain ”或“起来返回。
+sessionall 自动维护已经remain false的。
+logservice 仅提供账号视图，角色有特殊性，角色自行进一步分析？
+
+【dbh2】
+0. raft异地备份方案，其中1/3 or 2/5异地运行，正常启动时，异地延迟启动，等主机房leader选出后再启动，
+    异常时异地可能成为leader，但故障恢复后，强制退出异地节点，把leader赶回主机房后再启动。难点在正常异常的判断。
+4. dbh2 txnid 持久化生命期确认，是否仅针对执行中的事务？【确认为tid仅在事务持续期间存在，数据里面没有，但是存在于raft-log中】
+    是否需要改成自己分配用long？
+
+【LogService】
+1. sessionAll 全局搜索对局部remain的优化处理。
+2. 某个用户的全局Log视图，仅提供账号视图，角色有特殊性，这个关键是Linkd需要记录account，roleId(即context)
+
+【Redo与事务外交互的更强支持】
+事务外交互只能whileCommit或者whileRollback，极大的限制逻辑流程编写的灵活性。
+redo 与事务外交互的支持，提供txnid，外部服务用id唯一化请求，缓存结果，重复调用直接返回缓存结果。
+参数变化问题，也加入txnid一起作为key判断？
+这个事务外交互只适用于rpc，最低解决目标是搞定redirect，通用任意rpc性质调用lambda搞得定吗？
+
+【Arch加强】
+一，熔断
+	Hystrix, Resilience4j（https://blog.csdn.net/ReZero_486/article/details/123692768）
+	Hystrix已经停更，Resilience4j是spring的新替代产品。
+	考虑能不能直接引入Resilience4j！！！
+
+二，负载均衡 参考Ribbon
+	Arch choice 负载均衡，需要按最近请求数量选择。适应用于无状态服务。
+	Arch 响应时间长短负载均衡，只能用于Rpc场景，无法适应Protocol。
+Ribbon全貌附录
+	策略类	说明	备注
+	BestAvailableRule	先探测服务实例是否可用，如果可逐个考察实例，如果实例被标记为tripped	
+		以，则选择当前被分配最少请求的(因多次调用失败被标记忽略)则忽略，选
+		那个	择其中活动请求数最少的服务实例	
+	AvailabilityFilteringRule	过滤掉那些被标记为tripped的服Ribbon会使用AvailabilityPredicate类来处	
+		务实例、无法连接的服务实例，以理对应的过滤服务实例的逻辑及超过最大请求阈值的服务实例
+	ResponseTimeWeightedRule	响应时间权重策略	标注@Deprecated，已经废弃，不再讨论	
+	WeightedResponseTimeRule根据响应时间分配一个权重值使用平均/百分比响应时间的规则为每个服
+		(weight)。对于响应时间短的服务务器分配动态“权重”，然后以“加权轮询”实例，有更大的概率分配到请求;方式使用。
+		Ribbon会开启后台线程分析对反之，对于响应时间长的服务实应服务的响应时间，从而实现这个算法。
+		例，分配到请求的概率就会减少	在开始没有相关分析数据时，则采用轮询策略
+	RetryRule	重试服务策略	在一个特定的时间戳内，如果当前分配的服务实例不可用，则通过子策略(默认是轮询)来选定可用的服务实例
+	RoundRobinRule	轮询选择服务	通过下标，轮询服务实例列表，从而选择一个服务
+	RandomRule	随机选择服务	通过随机数，结合服务列表长度，来随机选择一个服务实例
+	ZoneAvoidanceRule	复合判断实例所在区域的性能和判断实例是否可用，并且过滤那些负载较故障，从而选择合适的实例，默认高的实例，然后选取对应的服务实例的策略
+
+三，隔离（不是Arch，实际上现在zeze里面主要是redirect）
+	线程池隔离？这个去看https://blog.csdn.net/ReZero_486/article/details/123692768
+
+【Zeze多数据库两段式提交不完善】
+zeze 多数据库时两段式提交不完善。如果局部commit失败，没有重做。但是重做需要侵入后端数据库，需要协作，有没有没办法？？？一般现有的中间件怎么处理这个问题的？
+
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/10/13 v1.3.4 doc; Dbh2; LogService; 
