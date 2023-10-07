@@ -19,7 +19,7 @@ local {{module.name}} = { }
         {{ variable.name }} = { id = {{ variable.id }}, type = '{{ variable.variable_type.full_name?? variable.variable_type }}',
         {{- case variable.type }}
             {{- when "map" }} key = '{{variable.variable_type.key_type.full_name?? variable.variable_type.key_type}}', value = '{{variable.variable_type.value_type.full_name?? variable.variable_type.value_type}}', 
-            {{- when "list","set" }} value = '{{variable.variable_type.value_type.full_name?? variable.variable_type.value_type}}', 
+            {{- when "array","list","set" }} value = '{{variable.variable_type.value_type.full_name?? variable.variable_type.value_type}}', 
             {{- when "dynamic" }} dynamcic_meta = { 
                 {{- for real_bean_kv in variable.variable_type.real_beans}} ['{{real_bean_kv.key}}'] = '{{real_bean_kv.value.full_name}}',
                 {{- end}} },

@@ -295,6 +295,7 @@ namespace Zeze.Services.ToLuaService2
                 case "double": return ByteBuffer.DOUBLE;
                 case "binary":
                 case "string": return ByteBuffer.BYTES;
+                case "array":
                 case "list":
                 case "set": return ByteBuffer.LIST;
                 case "map": return ByteBuffer.MAP;
