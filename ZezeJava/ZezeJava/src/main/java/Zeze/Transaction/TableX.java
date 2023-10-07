@@ -1009,25 +1009,23 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 
 		var lockey = getZeze().getLocks().get(tkey);
-		lockey.enterReadLock();
-		try {
-			for (int tryCount = 0; ; tryCount++) {
-				try {
-					var v = load(key).strongRef;
-					return v != null ? (V)v.copy() : null;
-				} catch (GoBackZeze e) {
-					if (currentT != null && currentT.isRunning() || tryCount >= 256)
-						throw e;
-				}
-				try {
-					//noinspection BusyWait
-					Thread.sleep(Random.getInstance().nextInt(10) + 5);
-				} catch (InterruptedException e) {
-					logger.error("", e);
-				}
+		for (int tryCount = 0; ; tryCount++) {
+			lockey.enterReadLock();
+			try {
+				var v = load(key).strongRef;
+				return v != null ? (V)v.copy() : null;
+			} catch (GoBackZeze e) {
+				if (currentT != null && currentT.isRunning() || tryCount >= 256)
+					throw e;
+			} finally {
+				lockey.exitReadLock();
 			}
-		} finally {
-			lockey.exitReadLock();
+			try {
+				//noinspection BusyWait
+				Thread.sleep(Random.getInstance().nextInt(10) + 5);
+			} catch (InterruptedException e) {
+				logger.error("", e);
+			}
 		}
 	}
 
