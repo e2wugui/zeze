@@ -7,12 +7,15 @@ import Zeze.Builtin.LogService.BCondition;
 import Zeze.Builtin.LogService.BLog;
 import Zeze.Builtin.LogService.BResult;
 import Zeze.Services.LogAgent;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Func1;
+import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
 
 public class SessionAll implements AutoCloseable {
 	private final LogAgent agent;
 	private final ConcurrentHashMap<String, Session> alls = new ConcurrentHashMap<>();
+	private final ConcurrentHashSet<String> finishedSession = new ConcurrentHashSet<>();
 
 	public SessionAll(LogAgent agent) {
 		this.agent = agent;
@@ -28,10 +31,11 @@ public class SessionAll implements AutoCloseable {
 			throws Exception {
 
 		// 异步发送所有请求。
-		var futures = new ArrayList<TaskCompletionSource<BResult.Data>>();
-		for (var session : alls.values())
-			futures.add(op.call(session)); // todo 连续请求时，搜索完成的Session最好跳过。
-
+		var futures = new ArrayList<KV<TaskCompletionSource<BResult.Data>, Session>>();
+		for (var session : alls.values()) {
+			if (!finishedSession.contains(session.getName()))
+				futures.add(KV.create(op.call(session), session));
+		}
 		// 等待结果并排序。
 		var rs = new ArrayList<BResult.Data>(futures.size());
 		var comparator = new Comparator<BLog.Data>() {
@@ -40,17 +44,23 @@ public class SessionAll implements AutoCloseable {
 				return Long.compare(o1.getTime(), o2.getTime());
 			}
 		};
+		var remain = false;
 		for (var future : futures) {
-			var r = future.get();
+			var r = future.getKey().get();
 			// 返回的结果基本有序，只是偶尔log4j会有一点点乱序，这里该用什么sort更快？
 			r.getLogs().sort(comparator);
-			rs.add(r); // todo 这里加入getLogs，便于后面的merge算法通用化。
+			remain = remain || r.isRemain();
+			if (!r.isRemain())
+				finishedSession.add(future.getValue().getName());
+			rs.add(r);
 		}
 		if (rs.isEmpty())
 			return new BResult.Data();
 
 		// 归并所有结果。
-		return merge(rs);
+		var rData =  merge(rs);
+		rData.setRemain(remain);
+		return rData;
 	}
 
 	public static BResult.Data merge(java.util.List<BResult.Data> rs) {
@@ -107,10 +117,14 @@ public class SessionAll implements AutoCloseable {
 	}
 
 	public BResult.Data search(int limit, boolean reset, BCondition.Data condition) throws Exception {
+		if (reset)
+			finishedSession.clear();
 		return operate((session) -> session.search(limit, reset, condition));
 	}
 
 	public BResult.Data browse(int limit, float offsetFactor, boolean reset, BCondition.Data condition) throws Exception {
+		if (reset)
+			finishedSession.clear();
 		return operate((session) -> session.browse(limit, offsetFactor, reset, condition));
 	}
 
@@ -118,5 +132,7 @@ public class SessionAll implements AutoCloseable {
 	public void close() throws Exception {
 		for (var session : alls.values())
 			session.close();
+		alls.clear();
+		finishedSession.clear();
 	}
 }

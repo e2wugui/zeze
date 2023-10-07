@@ -12,7 +12,7 @@ c# GenModule.cs 根据 ResultHandle 是否异步，决定 async 和 NewProcedure
 Focus Document
 dbh2
 0. raft异地备份方案，其中1/3 or 2/5异地运行，正常启动时，异地延迟启动，等主机房leader选出后再启动，
-   异常时异地可能成为leader，但故障恢复后，强制退出异地节点，把leader赶回主机房后再启动。难点在正常异常的判断。
+    异常时异地可能成为leader，但故障恢复后，强制退出异地节点，把leader赶回主机房后再启动。难点在正常异常的判断。
 1. raftagent会建立所有node的连接并保持，由于已有新链接建立能力，发现leader后可以关闭其他node的连接；
 2. manager上有多个桶，每个桶都有独立连接，可以考虑用代理隧道复用连接使得一个manager只需要一个连接。
 3. 优先级不高，后期优化再考虑。
@@ -36,26 +36,8 @@ Zege Task
 ----------------------------------------------------------------------------------------------------------
 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot alter 测试，需要mysql。
-LogService 测试。
-sessionall remain ”或“起来返回。
-sessionall 自动维护已经remain false的。
-logservice 仅提供账号视图，角色有特殊性，角色自行进一步分析？
-
-【dbh2】
-0. raft异地备份方案，其中1/3 or 2/5异地运行，正常启动时，异地延迟启动，等主机房leader选出后再启动，
-    异常时异地可能成为leader，但故障恢复后，强制退出异地节点，把leader赶回主机房后再启动。难点在正常异常的判断。
-4. dbh2 txnid 持久化生命期确认，是否仅针对执行中的事务？【确认为tid仅在事务持续期间存在，数据里面没有，但是存在于raft-log中】
-    是否需要改成自己分配用long？
-
 【LogService】
-1. sessionAll 全局搜索对局部remain的优化处理。
-2. 某个用户的全局Log视图，仅提供账号视图，角色有特殊性，这个关键是Linkd需要记录account，roleId(即context)
-
-【Redo与事务外交互的更强支持】
-事务外交互只能whileCommit或者whileRollback，极大的限制逻辑流程编写的灵活性。
-redo 与事务外交互的支持，提供txnid，外部服务用id唯一化请求，缓存结果，重复调用直接返回缓存结果。
-参数变化问题，也加入txnid一起作为key判断？
-这个事务外交互只适用于rpc，最低解决目标是搞定redirect，通用任意rpc性质调用lambda搞得定吗？
+LogService 测试。
 
 【Arch加强】
 一，熔断
@@ -86,13 +68,26 @@ Ribbon全貌附录
 三，隔离（不是Arch，实际上现在zeze里面主要是redirect）
 	线程池隔离？这个去看https://blog.csdn.net/ReZero_486/article/details/123692768
 
-【Zeze多数据库两段式提交不完善】
-zeze 多数据库时两段式提交不完善。如果局部commit失败，没有重做。但是重做需要侵入后端数据库，需要协作，有没有没办法？？？一般现有的中间件怎么处理这个问题的？
-
-
 ------------------------------------------------------------------------------------------------------------------------------
 2023/10/13 v1.3.4 doc; Dbh2; LogService; 
 ------------------------------------------------------------------------------------------------------------------------------
+LogService
+sessionall remain ”或“起来返回。
+sessionall 自动维护已经remain false的。
+1. sessionAll 全局搜索对局部remain的优化处理。
+logservice 仅提供账号视图，角色有特殊性，角色自行进一步分析？
+2. 某个用户的全局Log视图，仅提供账号视图，角色有特殊性，这个关键是Linkd需要记录account，roleId(即context)
+【Redo与事务外交互的更强支持】
+事务外交互只能whileCommit或者whileRollback，极大的限制逻辑流程编写的灵活性。
+redo 与事务外交互的支持，提供txnid，外部服务用id唯一化请求，缓存结果，重复调用直接返回缓存结果。
+参数变化问题，也加入txnid一起作为key判断？
+这个事务外交互只适用于rpc，最低解决目标是搞定redirect，通用任意rpc性质调用lambda搞得定吗？
+Rpc类请求.cache if in txn { txn.cache.put(txnid, result)；/* 事务持续期间都不会失效 */} else { global.cache.put(txnid, result); /* 超时失效，比如5秒。 */ }
+答案：经过讨论，rpc.cache 看来没什么用，如果要事务执行过程中使用rpc，整体逻辑以及第三方的实现应该能支持直接用。
+可靠的方式，还是whileCommit，进行事务外调度比较好。
+【Zeze多数据库两段式提交不完善】
+zeze 多数据库时两段式提交不完善。如果局部commit失败，没有重做。但是重做需要侵入后端数据库，需要协作，有没有没办法？？？一般现有的中间件怎么处理这个问题的？
+答案：zeze 在提交失败时，做了一定处理，下一次checkpoint.flush时，会再次重新执行保存(replace)，对于kv数据库，这个应该足够安全了。
 LogAgent 搭建完成。
 Str.format;
 Application.createServiceManager;
