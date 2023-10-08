@@ -219,6 +219,7 @@ public class ProviderDistribute {
 			frees.add(KV.create(ps, weight));
 			TotalWeight += weight;
 		}
+		maxWeight += 10000; // 让最大的请求provider也有机会选中。
 		TotalWeight = maxWeight * frees.size() - TotalWeight;
 		if (TotalWeight > 0) {
 			long randWeight = Random.getInstance().nextLong(TotalWeight);
