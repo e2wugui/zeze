@@ -2,12 +2,13 @@ package Zeze.Util;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import org.jetbrains.annotations.NotNull;
 
 public final class GlobalTimer {
 	// 当前的秒级时间戳,由定时器更新,为了性能用opaque方式读写而不用volatile,多数CPU都能让所有线程及时看到最新值
-	@SuppressWarnings("FieldMayBeFinal")
+	@SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
 	private static long curSec;
-	private static final VarHandle vhCurSec;
+	private static final @NotNull VarHandle vhCurSec;
 
 	static {
 		try {

@@ -44,6 +44,8 @@ public class TimeCounter {
 
 	// for debug
 	public TimeCounter(int seconds, boolean enableDiscardTask) {
+		if (seconds <= 0)
+			throw new IllegalArgumentException("seconds = " + seconds + " <= 0");
 		counters = new CounterSecond[seconds];
 		for (var i = 0; i < counters.length; ++i)
 			counters[i] = new CounterSecond();
