@@ -284,7 +284,8 @@ export module Zeze {
 
 	export abstract class Protocol implements Serializable {
 		public FamilyClass: number = FamilyClass.Protocol;
-		public ResultCode: bigint = 0n; // int
+		public ResultCode: number = 0; // int
+		public ResultCodeModule: number = 0; // int
 		public Sender: Socket | null = null;
 
 		public abstract ModuleId(): number;
@@ -384,11 +385,11 @@ export module Zeze {
 		}
 
 		public Encode(bb: ByteBuffer) {
-			if (this.ResultCode === 0n)
+			if (this.ResultCode === 0 && this.ResultCodeModule === 0)
 				bb.WriteInt(FamilyClass.Protocol);
 			else {
 				bb.WriteInt(FamilyClass.Protocol | FamilyClass.BitResultCode);
-				bb.WriteLong(this.ResultCode);
+				bb.WriteLong(Protocol.MakeTypeId(this.ResultCodeModule, this.ResultCode));
 			}
 			this.Argument.Encode(bb);
 		}
@@ -396,7 +397,11 @@ export module Zeze {
 		public Decode(bb: ByteBuffer) {
 			const header = bb.ReadInt();
 			this.FamilyClass = header & FamilyClass.FamilyClassMask;
-			this.ResultCode = ((header & FamilyClass.BitResultCode) !== 0) ? bb.ReadLong() : 0n;
+			const rc = ((header & FamilyClass.BitResultCode) !== 0) ? bb.ReadLong() : 0n;
+			this.ResultCode = Number(rc & 0xffff_ffffn);
+			this.ResultCodeModule = Number((rc >> 32n) & 0xffff_ffffn);
+			if (this.ResultCode > 0x7fff_ffff)
+				this.ResultCode -= 0x1_0000_0000;
 			this.Argument.Decode(bb);
 		}
 	}
@@ -432,7 +437,8 @@ export module Zeze {
 				const context = <Rpc<TArgument, TResult>><unknown>socket.service.RemoveRpcContext(this.sid);
 				if (context && context.ResponseHandle) {
 					context.IsTimeout = true;
-					context.ResultCode = -10n; // Timeout
+					context.ResultCode = -10; // Timeout
+					context.ResultCodeModule = 0;
 					context.ResponseHandle(context);
 				}
 			}, timeoutMs);
@@ -459,8 +465,9 @@ export module Zeze {
 			super.Send(this.Sender);
 		}
 
-		public SendResultCode(code: bigint) {
+		public SendResultCode(code: number, moduleId: number = 0) {
 			this.ResultCode = code;
+			this.ResultCodeModule = moduleId;
 			this.SendResult();
 		}
 
@@ -480,6 +487,7 @@ export module Zeze {
 			context.Result = this.Result;
 			context.Sender = this.Sender;
 			context.ResultCode = this.ResultCode;
+			context.ResultCodeModule = this.ResultCodeModule;
 			if (context.ResponseHandle)
 				context.ResponseHandle(context);
 		}
@@ -488,7 +496,11 @@ export module Zeze {
 			const header = bb.ReadInt();
 			this.FamilyClass = header & FamilyClass.FamilyClassMask;
 			this.IsRequest = this.FamilyClass === FamilyClass.Request;
-			this.ResultCode = ((header & FamilyClass.BitResultCode) !== 0) ? bb.ReadLong() : 0n;
+			const rc = ((header & FamilyClass.BitResultCode) !== 0) ? bb.ReadLong() : 0n;
+			this.ResultCode = Number(rc & 0xffff_ffffn);
+			this.ResultCodeModule = Number((rc >> 32n) & 0xffff_ffffn);
+			if (this.ResultCode > 0x7fff_ffff)
+				this.ResultCode -= 0x1_0000_0000;
 			this.sid = bb.ReadLong();
 			if (this.IsRequest)
 				this.Argument.Decode(bb);
@@ -499,11 +511,11 @@ export module Zeze {
 		Encode(bb: ByteBuffer) {
 			// skip value of this.FamilyClass
 			const header = this.IsRequest ? FamilyClass.Request : FamilyClass.Response;
-			if (this.ResultCode === 0n)
+			if (this.ResultCode === 0 && this.ResultCodeModule === 0)
 				bb.WriteInt(header);
 			else {
 				bb.WriteInt(header | FamilyClass.BitResultCode);
-				bb.WriteLong(this.ResultCode);
+				bb.WriteLong(Protocol.MakeTypeId(this.ResultCodeModule, this.ResultCode));
 			}
 			bb.WriteLong(this.sid);
 			if (this.IsRequest)
