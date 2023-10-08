@@ -219,7 +219,7 @@ public class ProviderDistribute {
 			frees.add(KV.create(ps, weight));
 			TotalWeight += weight;
 		}
-
+		TotalWeight = maxWeight * frees.size() - TotalWeight;
 		if (TotalWeight > 0) {
 			long randWeight = Random.getInstance().nextLong(TotalWeight);
 			for (var ps : frees) {
