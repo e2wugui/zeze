@@ -4,7 +4,6 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongFunction;
 import sun.misc.Unsafe;
@@ -325,6 +324,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 	 *        {@code equals} method; {@code false} otherwise
 	 * @throws NullPointerException if the specified key is null
 	 */
+	@Override
 	public boolean containsKey(long key) {
 		return get(key) != null;
 	}
@@ -339,6 +339,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 	 * 		specified value
 	 * @throws NullPointerException if the specified value is null
 	 */
+	@Override
 	public boolean containsValue(V value) {
 		if (value == null)
 			throw new NullPointerException();
@@ -421,6 +422,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 	}
 
 	// 注意这个computeIfAbsent并不等同于ConcurrentHashMap里的,mappingFunction有小概率无效执行,不适用于有非托管资源分配
+	@Override
 	public V computeIfAbsent(long key, LongFunction<? extends V> mappingFunction) {
 		V value = get(key);
 		if (value != null)
@@ -571,6 +573,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 	 * 		or {@code null} if there was no mapping for the key
 	 * @throws NullPointerException if the specified key or value is null
 	 */
+	@Override
 	public V putIfAbsent(long key, V value) {
 		return putVal(key, value, true);
 	}
@@ -582,6 +585,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 	}
 
 	/** @throws NullPointerException if any of the arguments are null */
+	@Override
 	public boolean replace(long key, V oldValue, V newValue) {
 		if (oldValue == null || newValue == null)
 			throw new NullPointerException();
@@ -593,6 +597,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 	 * 		or {@code null} if there was no mapping for the key
 	 * @throws NullPointerException if the specified key or value is null
 	 */
+	@Override
 	public V replace(long key, V value) {
 		if (value == null)
 			throw new NullPointerException();
@@ -610,6 +615,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 	 * @return the mapping for the key, if present; else the default value
 	 * @throws NullPointerException if the specified key is null
 	 */
+	@Override
 	public V getOrDefault(long key, V defaultValue) {
 		V v;
 		return (v = get(key)) == null ? defaultValue : v;
@@ -1151,30 +1157,6 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		public V value() {
 			return node.val;
 		}
-	}
-
-	@Override
-	public int hashCode() {
-		int h = 0;
-		for (MapIterator<V> it = entryIterator(); it.moveToNext(); )
-			h += Long.hashCode(it.key()) ^ Objects.hashCode(it.value());
-		return h;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (obj == this)
-			return true;
-		if (!(obj instanceof LongConcurrentHashMap))
-			return false;
-		@SuppressWarnings("unchecked")
-		LongConcurrentHashMap<V> map = (LongConcurrentHashMap<V>)obj;
-		if (size() != map.size())
-			return false;
-		for (MapIterator<V> it = entryIterator(); it.moveToNext(); )
-			if (!Objects.equals(it.value(), map.get(it.key())))
-				return false;
-		return true;
 	}
 
 	// Unsafe mechanics

@@ -214,7 +214,7 @@ public class TestJsonZeze extends TestCase {
 				M m = (M)o;
 				return Objects.equals(im, m.im)
 						&& Objects.equals(lm, m.lm)
-						&& Objects.equals(cm, m.cm);
+						&& LongMap.equals(cm, m.cm);
 			}
 		}
 
