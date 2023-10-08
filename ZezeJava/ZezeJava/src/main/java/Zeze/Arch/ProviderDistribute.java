@@ -11,6 +11,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Util.ConsistentHash;
+import Zeze.Util.KV;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 
@@ -123,7 +124,7 @@ public class ProviderDistribute {
 		provider.value = 0L;
 
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
-		var frees = new ArrayList<ProviderSession>(list.size());
+		var frees = new ArrayList<KV<ProviderSession, Integer>>(list.size());
 		var all = new ArrayList<ProviderSession>(list.size());
 		int TotalWeight = 0;
 
@@ -157,15 +158,74 @@ public class ProviderDistribute {
 			if (weight <= 0)
 				continue;
 
-			frees.add(ps);
+			frees.add(KV.create(ps, weight));
 			TotalWeight += weight;
 		}
 		if (TotalWeight > 0) {
 			int randWeight = Random.getInstance().nextInt(TotalWeight);
 			for (var ps : frees) {
-				int weight = ps.load.getProposeMaxOnline() - ps.load.getOnline();
+				int weight = ps.getValue();
 				if (randWeight < weight) {
-					provider.value = ps.getSessionId();
+					provider.value = ps.getKey().getSessionId();
+					return true;
+				}
+				randWeight -= weight;
+			}
+		}
+		// 选择失败，一般是都满载了，随机选择一个。
+		if (!all.isEmpty()) {
+			provider.value = all.get(Random.getInstance().nextInt(all.size())).getSessionId();
+			return true;
+		}
+		// no providers
+		return false;
+	}
+
+	public boolean choiceRequest(Agent.SubscribeState providers, OutLong provider, int maxAppVersion) {
+		provider.value = 0L;
+
+		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
+		var frees = new ArrayList<KV<ProviderSession, Long>>(list.size());
+		var all = new ArrayList<ProviderSession>(list.size());
+		long TotalWeight = 0;
+		long maxWeight = 0;
+
+		// 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
+		for (int i = list.size() - 1; i >= 0; --i) {
+			var serviceInfo = list.get(i);
+			var providerModuleState = (ProviderModuleState)providers.localStates.get(serviceInfo.getServiceIdentity());
+			if (providerModuleState == null) {
+				continue;
+			}
+			// Object tempVar2 = App.ProviderService.GetSocket(providerModuleState.getSessionId()).getUserState();
+			var s = providerService.GetSocket(providerModuleState.sessionId);
+			if (s == null)
+				continue;
+			var ps = (ProviderSession)s.getUserState();
+			if (ps == null)
+				continue; // 这里发现关闭的服务，仅仅忽略.
+
+			if (ps.load.getOverload() == BLoad.eOverload)
+				continue; // 忽略过载的服务器
+
+			if (ps.appVersion != maxAppVersion)
+				continue;
+
+			all.add(ps);
+
+			long weight = ps.timeCounter.count();
+			if (weight > maxWeight)
+				maxWeight = weight;
+			frees.add(KV.create(ps, weight));
+			TotalWeight += weight;
+		}
+
+		if (TotalWeight > 0) {
+			long randWeight = Random.getInstance().nextLong(TotalWeight);
+			for (var ps : frees) {
+				long weight = maxWeight - ps.getValue();
+				if (randWeight < weight) {
+					provider.value = ps.getKey().getSessionId();
 					return true;
 				}
 				randWeight -= weight;

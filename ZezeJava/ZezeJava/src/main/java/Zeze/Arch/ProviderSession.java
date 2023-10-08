@@ -2,10 +2,13 @@ package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BLoad;
+import Zeze.Util.TimeCounter;
 import org.jetbrains.annotations.NotNull;
 
 public class ProviderSession {
 	protected volatile @NotNull BLoad load = new BLoad();
+	protected TimeCounter timeCounter = new TimeCounter(5);
+
 	protected int serverId;
 	protected long sessionId;
 	protected @NotNull String serverLoadIp = "";

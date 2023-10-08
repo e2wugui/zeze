@@ -136,8 +136,15 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				return false;
 			break; // bind static later
 
-		default:
+		case BModule.ChoiceTypeLoad:
 			if (!distribute.choiceLoad(providers, provider, maxAppVersion.get()))
+				return false;
+			break; // bind static later
+
+		case BModule.ChoiceTypeRequest:
+			// fall down
+		default:
+			if (!distribute.choiceRequest(providers, provider, maxAppVersion.get()))
 				return false;
 			break; // bind static later
 		}

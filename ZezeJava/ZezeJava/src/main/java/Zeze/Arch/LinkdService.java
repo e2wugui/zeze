@@ -154,8 +154,10 @@ public class LinkdService extends HandshakeServer {
 				return true;
 			}
 
-			if (socket.Send(dispatch))
+			if (socket.Send(dispatch)) {
+				ps.timeCounter.increment();
 				return true;
+			}
 
 			return tryReportError(linkSession, moduleId, dispatch);
 		}
@@ -191,7 +193,10 @@ public class LinkdService extends HandshakeServer {
 			}
 
 			// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
-			return providerSocket.Send(dispatch);
+			if (providerSocket.Send(dispatch)) {
+				ps.timeCounter.increment();
+				return true;
+			}
 			// 找到provider但是发送之前连接关闭，当作没有找到处理。这个窗口很小，再次查找意义不大。
 		}
 		return false;
