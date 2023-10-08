@@ -39,6 +39,7 @@ Hot alter 测试，需要mysql。
 【Arch加强】
 一，熔断
 	Hystrix, Resilience4j（https://blog.csdn.net/ReZero_486/article/details/123692768）
+	https://zhuanlan.zhihu.com/p/51008825
 	Hystrix已经停更，Resilience4j是spring的新替代产品。
 	考虑能不能直接引入Resilience4j！！！
 三，隔离（不是Arch，实际上现在zeze里面主要是redirect）
