@@ -17,8 +17,11 @@ public class TimeCounter {
 		private int counter;
 	}
 
-	public synchronized void increment() {
-		var now = System.currentTimeMillis();
+	public void increment() {
+		increment(System.currentTimeMillis());
+	}
+
+	public synchronized void increment(long now) {
 		var last = counters[lastIndex];
 		if (now / 1000 == last.timestamp / 1000) {
 			// 同一秒，简单计数
@@ -39,23 +42,33 @@ public class TimeCounter {
 	}
 
 	public TimeCounter(int seconds) {
+		this(seconds, true);
+	}
+
+	// for debug
+	public TimeCounter(int seconds, boolean enableDiscardTask) {
 		counters = new CounterSecond[seconds];
 		for (var i = 0; i < counters.length; ++i)
 			counters[i] = new CounterSecond();
 
 		// 目前这个用于provider，数量不会很多，简单起见，每个计数启用一个定时任务。
-		Task.scheduleUnsafe(Random.getInstance().nextLong(1000), 1000, this::discard);
+		if (enableDiscardTask)
+			Task.scheduleUnsafe(Random.getInstance().nextLong(1000), 1000, this::discard);
 	}
 
 	public synchronized void discard() {
-		var nowSeconds = System.currentTimeMillis() / 1000;
+		discard(System.currentTimeMillis());
+	}
+
+	public synchronized void discard(long now) {
+		var nowSeconds = now / 1000;
 		var headIndex = lastIndex + 1;
 		if (headIndex >= counters.length)
 			headIndex = 0;
 
 		for (var i = 0; i < counters.length; ++i) {
-			var head = counters[headIndex];
-			if (nowSeconds - head.timestamp / 1000 < counters.length)
+			var head = counters[(headIndex + i) % counters.length];
+			if (nowSeconds - head.timestamp / 1000 <= counters.length)
 				break;
 
 			// reset

@@ -44,53 +44,11 @@ Hot alter 测试，需要mysql。
 三，隔离（不是Arch，实际上现在zeze里面主要是redirect）
 	线程池隔离？这个去看https://blog.csdn.net/ReZero_486/article/details/123692768
 ------------------------------------------------------------------------------------------------------------------------------
-2023/10/13 v1.3.4 doc; Dbh2; LogService; 
+2023/10/13 v1.3.4 doc; Dbh2; LogService; TimeCounter; Arch; 
 ------------------------------------------------------------------------------------------------------------------------------
 【Arch加强】
 二，负载均衡 参考Ribbon
 	Arch choice 负载均衡，需要按最近请求数量选择。适应用于无状态服务。
-	ProviderSesseion里面增加计数器，
-	public class TimeCounter {
-		ArrayDeque<CounterSecond> counters = new ArrayDeque<>(); // 5-10个。
-		public static class CounterSecond {
-			private long timestamp;
-			private final AtomicLong counter = new AtomicLong();
-			public void increace(long now, long maxQueueMs) {
-				if (now - timestamp > maxQueueMs) {
-					timestamp = now;
-					counter.getAndSet(1);
-				} else {
-					counter.increaceAndGet();
-				}
-			}
-			public CounterSecond(long now) {
-				timestamp = now;
-				counter.getAndSet(1);
-			}
-		}
-
-		public void increace(long now) {
-			if (counters.isEmpty()) {
-				counters.add(new CounterSecond(now));
-			} else if (now / 1000 == counters.getLast().timestamp / 1000) {
-				counter.getLast().counter.increaseAndGet();
-			} else {
-				counters.add(new CounterSecond(now));
-			}
-		}
-
-		public long count() {
-			var count = 0L;
-			for (var c : counters)
-				count += c.counter.get();
-			return count;
-		}
-
-		public void discardPerSecond() {
-			counter.poll();
-		}
-	}
-
 【LogService】
 LogService 测试。
 sessionall remain ”或“起来返回。
