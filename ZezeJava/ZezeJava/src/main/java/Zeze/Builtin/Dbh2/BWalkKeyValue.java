@@ -258,6 +258,7 @@ public final class BWalkKeyValue extends Zeze.Transaction.Bean implements BWalkK
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -7541456034311652913L;
 

@@ -318,6 +318,7 @@ public final class BCommand extends Zeze.Transaction.Bean implements BCommandRea
     }
 
 // 一个具体的操作。
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 3225161952412454913L;
 

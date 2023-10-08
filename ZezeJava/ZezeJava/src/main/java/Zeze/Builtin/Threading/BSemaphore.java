@@ -317,6 +317,7 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -308167851404701538L;
 

@@ -358,6 +358,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 3897751576670303080L;
 

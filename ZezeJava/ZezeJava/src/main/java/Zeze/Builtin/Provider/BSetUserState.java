@@ -261,6 +261,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -4860388989628287875L;
 

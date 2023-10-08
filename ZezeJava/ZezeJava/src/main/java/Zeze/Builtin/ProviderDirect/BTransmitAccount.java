@@ -436,6 +436,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 2637210793748287339L;
 

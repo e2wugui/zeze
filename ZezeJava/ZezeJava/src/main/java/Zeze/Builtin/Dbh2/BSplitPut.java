@@ -270,6 +270,7 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5420980520394401381L;
 

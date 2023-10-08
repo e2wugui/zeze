@@ -328,6 +328,7 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
     }
 
 // gs to link
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5883923521926593765L;
 

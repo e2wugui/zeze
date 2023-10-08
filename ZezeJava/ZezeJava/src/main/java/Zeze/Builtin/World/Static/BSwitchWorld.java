@@ -303,6 +303,7 @@ public final class BSwitchWorld extends Zeze.Transaction.Bean implements BSwitch
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -2702601729537956678L;
 

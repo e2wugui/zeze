@@ -232,6 +232,7 @@ public final class BRefused extends Zeze.Transaction.Bean implements BRefusedRea
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7657223106255732406L;
 

@@ -468,6 +468,7 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
 			<protocol name="AoiOperate" argument="BAoiOperate" handle="client"/>
 			<protocol name="AoiLeave" argument="BAoiLeave" handle="client"/>
 */
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -4883142059980084950L;
 
@@ -693,7 +694,8 @@ public static final class Data extends Zeze.Transaction.Data {
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.BEAN);
-                for (var _v_ : _x_) {
+                for (int _j_ = 0, _c_ = _x_.size(); _j_ < _c_; _j_++) {
+                    var _v_ = _x_.get(_j_);
                     _v_.encode(_o_);
                     _n_--;
                 }

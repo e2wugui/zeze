@@ -317,6 +317,7 @@ public final class BReadWriteLock extends Zeze.Transaction.Bean implements BRead
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5310988726582781550L;
 

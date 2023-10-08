@@ -203,6 +203,7 @@ public final class BEnterConfirm extends Zeze.Transaction.Bean implements BEnter
         return vars;
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7682260201605989500L;
 

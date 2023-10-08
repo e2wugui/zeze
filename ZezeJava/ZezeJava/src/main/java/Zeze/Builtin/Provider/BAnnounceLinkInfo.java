@@ -122,6 +122,7 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean implements BA
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
     }
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 6291432069805514560L;
 
