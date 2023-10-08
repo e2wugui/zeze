@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class ProviderSession {
 	protected volatile @NotNull BLoad load = new BLoad();
-	protected TimeCounter timeCounter = new TimeCounter(5);
+	protected final TimeCounter timeCounter = new TimeCounter(5);
 
 	protected int serverId;
 	protected long sessionId;
@@ -50,5 +50,4 @@ public class ProviderSession {
 	public void setDisableChoice(boolean value) {
 		disableChoice = value;
 	}
-
 }

@@ -14,17 +14,17 @@ public class TimeCounter {
 	}
 
 	public void increment() {
-		increment(System.currentTimeMillis());
+		increment(GlobalTimer.getCurrentSeconds());
 	}
 
-	public synchronized void increment(long now) {
+	public synchronized void increment(long nowSeconds) {
 		var last = counters[lastIndex];
-		var nowSeconds = now / 1000;
 		if (nowSeconds == last.seconds) {
 			// 同一秒，简单计数
 			last.counter++;
 		} else {
-			lastIndex = (lastIndex + 1) % counters.length;
+			if (++lastIndex >= counters.length)
+				lastIndex = 0;
 			last = counters[lastIndex];
 			last.seconds = nowSeconds;
 			last.counter = 1;
@@ -53,24 +53,24 @@ public class TimeCounter {
 			Task.scheduleUnsafe(Random.getInstance().nextLong(1000), 1000, this::discard);
 	}
 
-	public synchronized void discard() {
-		discard(System.currentTimeMillis());
+	public void discard() {
+		discard(GlobalTimer.getCurrentSeconds());
 	}
 
-	public synchronized void discard(long now) {
-		var nowSeconds = now / 1000;
-		var headIndex = lastIndex + 1;
-		if (headIndex >= counters.length)
-			headIndex = 0;
+	public synchronized void discard(long nowSeconds) {
+		var headIndex = lastIndex;
 
 		for (var i = 0; i < counters.length; ++i) {
-			var head = counters[(headIndex + i) % counters.length];
+			if (++headIndex >= counters.length)
+				headIndex = 0;
+			var head = counters[headIndex];
 			if (nowSeconds - head.seconds <= counters.length)
 				break;
 
 			// reset
-			head.seconds = 0; // 这个结合上面的if，会导致不必要的reset；这里用Long.MAX_VALUE，可以避免多余的reset，
-							  // 但要求记住headIndex，不能从lastIndex+1开始判断。
+			// 这个结合上面的if，会导致不必要的reset；这里用Long.MAX_VALUE，可以避免多余的reset，
+			// 但要求记住headIndex，不能从lastIndex+1开始判断。
+			head.seconds = 0;
 			head.counter = 0;
 		}
 	}

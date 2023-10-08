@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Util.Json;
@@ -15,6 +14,21 @@ import Zeze.Util.JsonWriter;
 import Zeze.Util.Task;
 
 public class Helper {
+	public static Vector2 decodeVector2(ArrayList<String> parents, ResultSet rs) throws SQLException {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		var x = rs.getFloat(_parents_name_ + "x");
+		var y = rs.getFloat(_parents_name_ + "y");
+		return new Vector2(x, y);
+	}
+
+	public static Vector3 decodeVector3(ArrayList<String> parents, ResultSet rs) throws SQLException {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		var x = rs.getFloat(_parents_name_ + "x");
+		var y = rs.getFloat(_parents_name_ + "y");
+		var z = rs.getFloat(_parents_name_ + "z");
+		return new Vector3(x, y, z);
+	}
+
 	public static Vector4 decodeVector4(ArrayList<String> parents, ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getFloat(_parents_name_ + "x");
@@ -31,21 +45,6 @@ public class Helper {
 		var z = rs.getFloat(_parents_name_ + "z");
 		var w = rs.getFloat(_parents_name_ + "w");
 		return new Quaternion(x, y, z, w);
-	}
-
-	public static Vector3 decodeVector3(ArrayList<String> parents, ResultSet rs) throws SQLException {
-		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-		var x = rs.getFloat(_parents_name_ + "x");
-		var y = rs.getFloat(_parents_name_ + "y");
-		var z = rs.getFloat(_parents_name_ + "z");
-		return new Vector3(x, y, z);
-	}
-
-	public static Vector2 decodeVector2(ArrayList<String> parents, ResultSet rs) throws SQLException {
-		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-		var x = rs.getFloat(_parents_name_ + "x");
-		var y = rs.getFloat(_parents_name_ + "y");
-		return new Vector2(x, y);
 	}
 
 	public static Vector2Int decodeVector2Int(ArrayList<String> parents, ResultSet rs) throws SQLException {
@@ -105,7 +104,7 @@ public class Helper {
 		st.appendInt(_parents_name_ + "z", value.z);
 	}
 
-	private static final Json json = Json.instance.clone();
+	private static final Json json = Json.instance; // .clone();
 	private static final Json.ClassMeta<DynamicBean> dynamicBeanMeta = json.getClassMeta(DynamicBean.class);
 
 	public static void decodeJsonDynamic(DynamicBean bean, String jsonStr) {
