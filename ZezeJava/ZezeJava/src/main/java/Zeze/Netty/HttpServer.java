@@ -57,6 +57,10 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		this(null, null, 10 * 60);
 	}
 
+	public HttpServer(@Nullable String fileHome, int fileCacheSeconds) {
+		this(null, fileHome, fileCacheSeconds);
+	}
+
 	public HttpServer(@Nullable Application zeze, @Nullable String fileHome, int fileCacheSeconds) {
 		this.zeze = zeze;
 		this.fileHome = fileHome;
