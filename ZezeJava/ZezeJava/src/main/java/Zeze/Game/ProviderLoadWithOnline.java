@@ -3,11 +3,11 @@ package Zeze.Game;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderLoadBase;
 
-public class ProviderLoad extends ProviderLoadBase {
+public class ProviderLoadWithOnline extends ProviderLoadBase {
 
 	public final Online online;
 
-	public ProviderLoad(Online online) {
+	public ProviderLoadWithOnline(Online online) {
 		super(online.providerApp.zeze);
 		this.online = online;
 	}

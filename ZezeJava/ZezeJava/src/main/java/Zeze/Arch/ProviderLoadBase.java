@@ -16,6 +16,10 @@ public abstract class ProviderLoadBase {
 	private final Application zeze;
 	private final ProviderOverload overload = new ProviderOverload();
 
+	public Application getZeze() {
+		return zeze;
+	}
+
 	public ProviderLoadBase(Application zeze) {
 		this.zeze = zeze;
 	}

@@ -8,16 +8,23 @@ import Zeze.Arch.ProviderService;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ProviderWithOnline extends ProviderImplement {
 	protected Online online; // 默认的Online. 需要外面调用create方法创建并初始化。App.Start.
+	private ProviderLoadWithOnline load;
+
 	protected final HashMap<String, Online> onlineSetMap = new HashMap<>(); // 所有创建过的Online,默认Online的key是空字符串. 需要外面调用默认Online.createOnlineSet创建
 
 	public Online getOnline() {
 		return online;
 	}
+	public @Nullable ProviderLoadWithOnline getLoad() {
+		return load;
+	}
+
 
 	public @Nullable Online getOnline(@Nullable String name) {
 		return name != null && !name.isEmpty() ? onlineSetMap.get(name) : online;
@@ -55,9 +62,16 @@ public class ProviderWithOnline extends ProviderImplement {
 				throw new IllegalStateException("duplicate name='" + name + '\'');
 			onlineSetMap.put(name, online.createOnlineSet(app, name));
 		}
+		// load报告仅定义在默认online实例中，OnlineSet不报告load，
+		// 【以后考虑改造定义方式】
+		// 即，OnlineSet的Load不独立报告，会单独定义但被综合以后，由默认Load统一报告。
+		load = new ProviderLoadWithOnline(online);
+		var config = app.getZeze().getConfig();
+		load.getOverload().register(Task.getThreadPool(), config);
 	}
 
 	public synchronized void start() {
+		load.start();
 		online.start();
 	}
 
@@ -67,5 +81,7 @@ public class ProviderWithOnline extends ProviderImplement {
 			onlineSetMap.clear();
 			online = null;
 		}
+		if (load != null)
+			load.stop();
 	}
 }

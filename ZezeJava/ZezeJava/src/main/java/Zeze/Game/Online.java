@@ -78,7 +78,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	protected static @Nullable Online defaultInstance; // 默认Online实例,stop后会置null
 
 	public final @NotNull ProviderApp providerApp;
-	private final @Nullable ProviderLoad load;
 	private final AtomicLong loginTimes = new AtomicLong();
 	private final TimerRole timerRole;
 
@@ -230,10 +229,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
-	public @Nullable ProviderLoad getLoad() {
-		return load;
-	}
-
 	public @NotNull TimerRole getTimerRole() {
 		return timerRole;
 	}
@@ -264,9 +259,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		defaultInstance = this;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
-		load = new ProviderLoad(this);
-		var config = zeze.getConfig();
-		load.getOverload().register(Task.getThreadPool(), config.getProviderThreshold(), config.getProviderOverload());
 		timerRole = new TimerRole(this);
 	}
 
@@ -282,10 +274,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 		providerApp = app.getZeze().redirect.providerApp;
 		RegisterZezeTables(providerApp.zeze);
-		// load报告仅定义在默认online实例中，OnlineSet不报告load，
-		// 【以后考虑改造定义方式】
-		// 即，OnlineSet的Load不独立报告，会单独定义但被综合以后，由默认Load统一报告。
-		load = null; // new ProviderLoad(this);
 		timerRole = new TimerRole(this);
 	}
 
@@ -323,8 +311,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	public void start() {
 		// default online 负责启动所有的online set。
 		if (defaultInstance == this) {
-			if (load != null)
-				load.start();
 			providerApp.builtinModules.put(this.getFullName(), this);
 			getProviderWithOnline().foreachOnline(online -> {
 				if (online != this)
@@ -354,8 +340,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				if (online != this)
 					online.stop();
 			});
-			if (load != null)
-				load.stop();
 			defaultInstance = null;
 		}
 		if (verifyLocalTimer != null)

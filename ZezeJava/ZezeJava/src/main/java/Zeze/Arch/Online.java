@@ -65,7 +65,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
 
 	public final ProviderApp providerApp;
-	private final ProviderLoad load;
 	private final AtomicLong loginTimes = new AtomicLong();
 
 	private final EventDispatcher loginEvents;
@@ -147,10 +146,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		long call(@NotNull String senderAccount, @NotNull String senderClientId, @NotNull String target, Binary parameter);
 	}
 
-	public ProviderLoad getLoad() {
-		return load;
-	}
-
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
 	private Future<?> verifyLocalTimer;
 
@@ -185,13 +180,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		providerApp = zeze.redirect.providerApp;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
-		load = new ProviderLoad(this);
-		var config = zeze.getConfig();
-		load.getOverload().register(Task.getThreadPool(), config.getProviderThreshold(), config.getProviderOverload());
 	}
 
 	public void start() {
-		load.start();
 		startLocalCheck();
 		providerApp.builtinModules.put(this.getFullName(), this);
 		var hotManager = providerApp.zeze.getHotManager();
@@ -220,7 +211,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (null != hotManager)
 			hotManager.removeHotUpgrade(this);
 		instance = null;
-		load.stop();
 		if (verifyLocalTimer != null)
 			verifyLocalTimer.cancel(false);
 	}

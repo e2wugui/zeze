@@ -4,12 +4,13 @@ import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import Zeze.Builtin.Provider.BLoad;
+import Zeze.Config;
 
 public class ProviderOverload {
 	private final HashSet<ThreadPoolMonitor> threadPools = new HashSet<>();
 
-	public void register(ExecutorService threadPool, int threshold, int overload) {
-		threadPools.add(new ThreadPoolMonitor(threadPool, threshold, overload));
+	public void register(ExecutorService threadPool, Config config) {
+		threadPools.add(new ThreadPoolMonitor(threadPool, config));
 	}
 
 	// 由LoadReporter读取报告。
@@ -27,22 +28,20 @@ public class ProviderOverload {
 
 	public static class ThreadPoolMonitor {
 		final ExecutorService threadPool;
-		final int threshold;
-		final int overload;
+		final Config config;
 
-		public ThreadPoolMonitor(ExecutorService threadPool, int threshold, int overload) {
+		public ThreadPoolMonitor(ExecutorService threadPool, Config config) {
 			this.threadPool = threadPool;
-			this.threshold = threshold;
-			this.overload = overload;
+			this.config = config;
 		}
 
 		public int overload() {
 			if (threadPool instanceof ThreadPoolExecutor) {
 				var pool = (ThreadPoolExecutor)threadPool;
 				var elementSize = pool.getQueue().size();
-				if (elementSize > overload)
+				if (elementSize > config.getProviderOverload())
 					return BLoad.eOverload;
-				if (elementSize > threshold)
+				if (elementSize > config.getProviderThreshold())
 					return BLoad.eThreshold;
 				return BLoad.eWorkFine;
 			}

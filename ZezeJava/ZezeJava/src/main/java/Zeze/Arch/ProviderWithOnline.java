@@ -3,12 +3,17 @@ package Zeze.Arch;
 import Zeze.AppBase;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Task;
 
 public class ProviderWithOnline extends ProviderImplement {
 	protected Online online; // 需要外面初始化。App.Start.
+	private ProviderLoadWithOnline load;
 
 	public Online getOnline() {
 		return online;
+	}
+	public ProviderLoadWithOnline getLoad() {
+		return load;
 	}
 
 	@Override
@@ -24,14 +29,20 @@ public class ProviderWithOnline extends ProviderImplement {
 	public void create(AppBase app) throws Exception {
 		online = Online.create(app);
 		online.Initialize(app);
+		load = new ProviderLoadWithOnline(online);
+		var config = app.getZeze().getConfig();
+		load.getOverload().register(Task.getThreadPool(), config);
 	}
 
 	public void start() {
+		load.start();
 		online.start();
 	}
 
 	public void stop() {
 		if (online != null)
 			online.stop();
+		if (load != null)
+			load.stop();
 	}
 }
