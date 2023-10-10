@@ -4,7 +4,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Vector3;
+import Zeze.Serialize.Vector3Int;
 import Zeze.Util.BitConverter;
+import Zeze.Util.Random;
 import demo.Bean1;
 import demo.Module1.Key;
 import demo.Module1.BSimple;
@@ -436,5 +439,70 @@ public class TestByteBuffer extends TestCase {
 		var bb2 = ByteBuffer.Allocate();
 		b.encode(bb2);
 		assertEquals(bb1, bb2);
+	}
+
+	public void testCollections() {
+		var r = Random.getInstance();
+		for (int i = 0; i < 1000; i++) {
+			var b = new BValue();
+			var d = new BValue.Data();
+
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getList30().add(j);
+				d.getList30().add(j);
+			}
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getList31().add((long)j);
+				d.getList31().add(j);
+			}
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getList32().add((float)j);
+				d.getList32().add(j);
+			}
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getList33().add(new Vector3(j, j * 11, j * 111));
+				d.getList33().add(j);
+				d.getList33().add(j * 11);
+				d.getList33().add(j * 111);
+			}
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getList34().add(new Vector3Int(j, j * 11, j * 111));
+				d.getList34().add(j);
+				d.getList34().add(j * 11);
+				d.getList34().add(j * 111);
+			}
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getSet35().add(j);
+				d.getSet35().add(j);
+			}
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getSet36().add((long)j);
+				d.getSet36().add(j);
+			}
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getMap37().put(j, j * 111);
+				d.getMap37().put(j, j * 111);
+			}
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getMap38().put((long)j, new BSimple(j, j * 111L, String.valueOf(j)));
+				d.getMap38().put(j, new BSimple.Data(j, j * 111L, String.valueOf(j), null));
+			}
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getLongList().add((long)j);
+				d.getLongList().add((long)j);
+			}
+
+			var bb = ByteBuffer.Allocate();
+			var db = ByteBuffer.Allocate();
+			b.encode(bb);
+			d.encode(db);
+			assertEquals(bb, db);
+			b.reset();
+			d.reset();
+			b.decode(bb);
+			d.decode(db);
+			assertEquals(b.toData(), d);
+			assertEquals(b, d.toBean());
+		}
 	}
 }

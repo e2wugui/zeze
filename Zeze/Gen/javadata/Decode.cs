@@ -336,7 +336,7 @@ namespace Zeze.Gen.javadata
                 sw.WriteLine(prefix + "        _x_.decode(" + bufName + ", _n_);");
                 sw.WriteLine(prefix + "    else {");
                 sw.WriteLine(prefix + "        for (; _n_ > 0; _n_--)");
-                sw.WriteLine(prefix + "            _x_.add(" + bufName + ".ReadFloat(_t_));");
+                sw.WriteLine(prefix + "            _x_.add(" + DecodeElement(vt, "_t_") + ");");
                 sw.WriteLine(prefix + "    }");
             }
             else
