@@ -446,8 +446,6 @@ public static final class Data extends Zeze.Transaction.Data {
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
 
-    private static int _PRE_ALLOC_SIZE_ = 16;
-
     @Override
     public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
