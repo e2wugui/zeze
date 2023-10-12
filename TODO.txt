@@ -24,7 +24,7 @@ raft异地备份分start，restart两个入口。dbh2共享链接master分配管
 2. Agent启用复用连接，把RaftRpc打包并且带上raft-bucket-id（目前直接可用的是raftconfig，比较长）。
 3. Manager根据raft-bucket-id找到raft并dispatch，并且把当前服用连接设置到RaftRpc 中。
 4. RaftRpc在sendResult的时候，发现有服用连接，则用服用连接的rpc打包并回复结果。
-*. 【要点】raft-bucket-id的定义；复用rpc定义；
+*. 【要点】raft-bucket-id的定义；复用rpc定义；首先需要搞清楚manager和bucket和raft的关系，确定新增ip，port保存在哪里；
 ----------------------------------------------------------------------------------------------------------
 Zege ChatControl 改成用WebView；
 Zege Notify客户端自行决定排序。
