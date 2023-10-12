@@ -191,9 +191,9 @@ public final class RaftConfig {
 			if (node.isEmpty())
 				continue;
 			var ipPort = node.split(":");
-			var ri = ipPort.length > 2 ? ipPort[2] : "";
-			var rp = ipPort.length > 3 ? Integer.parseInt(ipPort[3]) : 0;
-			addNode(new Node(ipPort[0], Integer.parseInt(ipPort[1]), ri, rp));
+			var proxyIp = ipPort.length > 2 ? ipPort[2] : "";
+			var proxyPort = ipPort.length > 3 ? Integer.parseInt(ipPort[3]) : 0;
+			addNode(new Node(ipPort[0], Integer.parseInt(ipPort[1]), proxyIp, proxyPort));
 		}
 	}
 
@@ -330,24 +330,24 @@ public final class RaftConfig {
 
 		// 当多个raft运行在一个进程内，可以设置Agent只链接这个进程，这几个raft共享连接。
 		// 这个需要一定的开发，这里仅提供基本的扩展配置点。
-		private final String realHost;
-		private final int realPort;
+		private final String proxyHost;
+		private final int proxyPort;
 		private Element self;
 
 		Node(Element self) {
 			this.self = self;
 			host = self.getAttribute("Host");
 			port = Integer.parseInt(self.getAttribute("Port"));
-			realHost = self.getAttribute("RealHost");
-			var attr = self.getAttribute("RealPort");
-			realPort = attr.isBlank() ? 0: Integer.parseInt(attr);
+			proxyHost = self.getAttribute("ProxyHost");
+			var attr = self.getAttribute("ProxyPort");
+			proxyPort = attr.isBlank() ? 0: Integer.parseInt(attr);
 		}
 
-		Node(String host, int port, String realHost, int realPort) {
+		Node(String host, int port, String proxyHost, int proxyPort) {
 			this.host = host;
 			this.port = port;
-			this.realHost = realHost;
-			this.realPort = realPort;
+			this.proxyHost = proxyHost;
+			this.proxyPort = proxyPort;
 		}
 
 		public String getHost() {
@@ -356,6 +356,14 @@ public final class RaftConfig {
 
 		public int getPort() {
 			return port;
+		}
+
+		public String getProxyHost() {
+			return proxyHost;
+		}
+
+		public int getProxyPort() {
+			return proxyPort;
 		}
 
 		public String getName() {
@@ -369,13 +377,13 @@ public final class RaftConfig {
 			}
 			self.setAttribute("Host", host);
 			self.setAttribute("Port", String.valueOf(port));
-			self.setAttribute("RealHost", realHost);
-			self.setAttribute("RealPort", String.valueOf(realPort));
+			self.setAttribute("ProxyHost", proxyHost);
+			self.setAttribute("ProxyPort", String.valueOf(proxyPort));
 		}
 
 		@Override
 		public String toString() {
-			return host + ":" + port + ":" + realHost + ":" + realPort;
+			return host + ":" + port + ":" + proxyHost + ":" + proxyPort;
 		}
 	}
 
