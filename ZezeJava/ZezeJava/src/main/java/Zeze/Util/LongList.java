@@ -12,28 +12,28 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	public static final long[] EMPTY = new long[0];
 	public static final int DEFAULT_SIZE = 8;
 
-	private long @NotNull [] _buffer = EMPTY;
-	private int _count;
+	private long @NotNull [] buffer = EMPTY;
+	private int count;
 
 	public static @NotNull LongList wrap(long @NotNull [] data, int count) {
 		LongList ll = new LongList();
-		ll._buffer = data;
-		ll._count = count > data.length ? data.length : Math.max(count, 0);
+		ll.buffer = data;
+		ll.count = count > data.length ? data.length : Math.max(count, 0);
 		return ll;
 	}
 
 	public static @NotNull LongList wrap(long @NotNull [] data) {
 		LongList ll = new LongList();
-		ll._buffer = data;
-		ll._count = data.length;
+		ll.buffer = data;
+		ll.count = data.length;
 		return ll;
 	}
 
 	public static @NotNull LongList createSpace(int count) {
 		LongList ll = new LongList();
 		if (count > 0) {
-			ll._buffer = new long[count];
-			ll._count = count;
+			ll.buffer = new long[count];
+			ll.count = count;
 		}
 		return ll;
 	}
@@ -59,90 +59,90 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	public long @NotNull [] array() {
-		return _buffer;
+		return buffer;
 	}
 
 	public boolean isEmpty() {
-		return _count <= 0;
+		return count <= 0;
 	}
 
 	public int size() {
-		return _count;
+		return count;
 	}
 
 	public int capacity() {
-		return _buffer.length;
+		return buffer.length;
 	}
 
 	public long get(int idx) {
-		return _buffer[idx];
+		return buffer[idx];
 	}
 
 	public void set(int idx, long value) {
-		_buffer[idx] = value;
+		buffer[idx] = value;
 	}
 
 	public long addValue(int idx, long value) {
-		_buffer[idx] = value += _buffer[idx];
+		buffer[idx] = value += buffer[idx];
 		return value;
 	}
 
 	public void clear() {
-		_count = 0;
+		count = 0;
 	}
 
 	public void reset() {
-		_buffer = EMPTY;
-		_count = 0;
+		buffer = EMPTY;
+		count = 0;
 	}
 
 	public long @NotNull [] toArray() {
-		int n = _count;
+		int n = count;
 		if (n <= 0)
 			return EMPTY;
 		long[] buf = new long[n];
-		System.arraycopy(_buffer, 0, buf, 0, n);
+		System.arraycopy(buffer, 0, buf, 0, n);
 		return buf;
 	}
 
 	public long @NotNull [] toArray(int fromIdx, int count) {
 		if (fromIdx < 0)
 			fromIdx = 0;
-		if (fromIdx >= _count || count <= 0)
+		if (fromIdx >= this.count || count <= 0)
 			return EMPTY;
 		int n = fromIdx + count;
-		n = n < 0 || n > _count ? _count - fromIdx : count;
+		n = n < 0 || n > this.count ? this.count - fromIdx : count;
 		long[] buf = new long[n];
-		System.arraycopy(_buffer, fromIdx, buf, 0, n);
+		System.arraycopy(buffer, fromIdx, buf, 0, n);
 		return buf;
 	}
 
 	public @NotNull LongList wraps(long @NotNull [] data, int count) {
-		_buffer = data;
-		_count = count > data.length ? data.length : Math.max(count, 0);
+		buffer = data;
+		this.count = count > data.length ? data.length : Math.max(count, 0);
 		return this;
 	}
 
 	public @NotNull LongList wraps(long @NotNull [] data) {
-		_buffer = data;
-		_count = data.length;
+		buffer = data;
+		count = data.length;
 		return this;
 	}
 
 	public void shrink(int count) {
 		long[] buffer;
-		int n = _count;
+		int n = this.count;
 		if (n <= 0) {
 			reset();
 			return;
 		}
 		if (count < n)
 			count = n;
-		if (count >= (buffer = _buffer).length)
+		if (count >= (buffer = this.buffer).length)
 			return;
 		long[] buf = new long[count];
 		System.arraycopy(buffer, 0, buf, 0, n);
-		_buffer = buf;
+		this.buffer = buf;
 	}
 
 	public void shrink() {
@@ -150,27 +150,27 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	public void reserve(int count) {
-		long[] buffer = _buffer;
+		long[] buffer = this.buffer;
 		if (count > buffer.length) {
 			int cap;
 			for (cap = DEFAULT_SIZE; count > cap; cap <<= 1) {
 				// empty
 			}
 			long[] buf = new long[cap];
-			int n = _count;
+			int n = this.count;
 			if (n > 0)
 				System.arraycopy(buffer, 0, buf, 0, n);
-			_buffer = buf;
+			this.buffer = buf;
 		}
 	}
 
 	public void reserveSpace(int count) {
-		if (count > _buffer.length) {
+		if (count > buffer.length) {
 			int cap;
 			for (cap = 8; count > cap; cap <<= 1) {
 				// empty
 			}
-			_buffer = new long[cap];
+			buffer = new long[cap];
 		}
 	}
 
@@ -179,26 +179,26 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 			count = 0;
 		else
 			reserve(count);
-		_count = count;
+		this.count = count;
 	}
 
 	public void replace(long @NotNull [] data, int fromIdx, int count) {
 		if (count <= 0) {
-			_count = 0;
+			this.count = 0;
 			return;
 		}
 		int len = data.length;
 		if (fromIdx < 0)
 			fromIdx = 0;
 		if (fromIdx >= len) {
-			_count = 0;
+			this.count = 0;
 			return;
 		}
 		if (count > (len -= fromIdx))
 			count = len;
 		reserveSpace(count);
-		System.arraycopy(data, fromIdx, _buffer, 0, count);
-		_count = count;
+		System.arraycopy(data, fromIdx, buffer, 0, count);
+		this.count = count;
 	}
 
 	public void replace(long @NotNull [] data) {
@@ -206,24 +206,24 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	public void replace(@NotNull LongList ll) {
-		replace(ll._buffer, 0, ll._count);
+		replace(ll.buffer, 0, ll.count);
 	}
 
 	public void swap(@NotNull LongList ll) {
-		int count = _count;
-		_count = ll._count;
-		ll._count = count;
-		long[] buf = ll._buffer;
-		ll._buffer = _buffer;
-		_buffer = buf;
+		int count = this.count;
+		this.count = ll.count;
+		ll.count = count;
+		long[] buf = ll.buffer;
+		ll.buffer = buffer;
+		buffer = buf;
 	}
 
 	public @NotNull LongList add(long value) {
-		int n = _count;
+		int n = count;
 		int nNew = n + 1;
 		reserve(nNew);
-		_buffer[n] = value;
-		_count = nNew;
+		buffer[n] = value;
+		count = nNew;
 		return this;
 	}
 
@@ -237,10 +237,10 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 			return this;
 		if (count > (len -= fromIdx))
 			count = len;
-		int n = _count;
+		int n = this.count;
 		reserve(n + count);
-		System.arraycopy(data, fromIdx, _buffer, n, count);
-		_count = n + count;
+		System.arraycopy(data, fromIdx, buffer, n, count);
+		this.count = n + count;
 		return this;
 	}
 
@@ -249,41 +249,41 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	public @NotNull LongList addAll(@NotNull LongList ll) {
-		return addAll(ll._buffer, 0, ll._count);
+		return addAll(ll.buffer, 0, ll.count);
 	}
 
 	public @NotNull LongList addAll(@NotNull Collection<Long> c) {
-		int n = _count;
+		int n = count;
 		reserve(n + c.size());
-		long[] buf = _buffer;
+		long[] buf = buffer;
 		for (Long v : c)
 			buf[n++] = v;
-		_count = n;
+		count = n;
 		return this;
 	}
 
 	public @NotNull void addAllTo(@NotNull Collection<Long> c) {
-		long[] buf = _buffer;
-		for (int i = 0, n = _count; i < n; i++)
+		long[] buf = buffer;
+		for (int i = 0, n = count; i < n; i++)
 			c.add(buf[i]);
 	}
 
 	public @NotNull LongList insert(int fromIdx, long data) {
-		int n = _count;
+		int n = count;
 		if (fromIdx < 0)
 			fromIdx = 0;
 		if (fromIdx >= n)
 			return add(data);
 		reserve(n + 1);
-		long[] buf = _buffer;
+		long[] buf = buffer;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + 1, n - fromIdx);
 		buf[fromIdx] = data;
-		_count = n + 1;
+		count = n + 1;
 		return this;
 	}
 
 	public @NotNull LongList insert(int fromIdx, long @NotNull [] data, int idx, int count) {
-		int n = _count;
+		int n = this.count;
 		if (fromIdx < 0)
 			fromIdx = 0;
 		if (fromIdx >= n)
@@ -298,10 +298,10 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 		if (count > (len -= idx))
 			count = len;
 		reserve(n + count);
-		long[] buf = _buffer;
+		long[] buf = buffer;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + count, n - fromIdx);
 		System.arraycopy(data, idx, buf, fromIdx, count);
-		_count = n + count;
+		this.count = n + count;
 		return this;
 	}
 
@@ -310,50 +310,50 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	public @NotNull LongList insert(int fromIdx, @NotNull LongList ll) {
-		return insert(fromIdx, ll._buffer, 0, ll._count);
+		return insert(fromIdx, ll.buffer, 0, ll.count);
 	}
 
 	public @NotNull LongList remove(int idx) {
-		int lastIdx = _count - 1;
+		int lastIdx = count - 1;
 		if (idx < 0 || idx > lastIdx)
 			return this;
-		_count = lastIdx;
+		count = lastIdx;
 		if (idx != lastIdx)
-			System.arraycopy(_buffer, idx + 1, _buffer, idx, lastIdx - idx);
+			System.arraycopy(buffer, idx + 1, buffer, idx, lastIdx - idx);
 		return this;
 	}
 
 	public @NotNull LongList removeAndExchangeLast(int idx) {
-		int lastIdx = _count - 1;
+		int lastIdx = count - 1;
 		if (idx >= 0 && idx <= lastIdx) {
-			_count = lastIdx;
-			_buffer[idx] = _buffer[lastIdx];
+			count = lastIdx;
+			buffer[idx] = buffer[lastIdx];
 		}
 		return this;
 	}
 
 	public @NotNull LongList erase(int fromIdx, int toIdx) {
-		int n = _count;
+		int n = count;
 		if (fromIdx < 0)
 			fromIdx = 0;
 		if (fromIdx >= n || fromIdx >= toIdx)
 			return this;
 		if (toIdx >= n)
-			_count = fromIdx;
+			count = fromIdx;
 		else {
-			System.arraycopy(_buffer, toIdx, _buffer, fromIdx, n -= toIdx);
-			_count = n + fromIdx;
+			System.arraycopy(buffer, toIdx, buffer, fromIdx, n -= toIdx);
+			count = n + fromIdx;
 		}
 		return this;
 	}
 
 	public @NotNull LongList eraseFront(int count) {
-		int n = _count;
+		int n = this.count;
 		if (count >= n)
-			_count = 0;
+			this.count = 0;
 		else if (count > 0) {
-			System.arraycopy(_buffer, count, _buffer, 0, n -= count);
-			_count = n;
+			System.arraycopy(buffer, count, buffer, 0, n -= count);
+			this.count = n;
 		}
 		return this;
 	}
@@ -363,12 +363,11 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	public int indexOf(long value, int fromIdx) {
-		long[] buf = _buffer;
-		int n = _count;
+		long[] buf = buffer;
+		int n = count;
 		for (int i = fromIdx; i < n; i++) {
-			if (buf[i] != value)
-				continue;
-			return i;
+			if (buf[i] == value)
+				return i;
 		}
 		return -1;
 	}
@@ -381,8 +380,8 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 
 	@Override
 	public int hashCode() {
-		long[] buf = _buffer;
-		int n = _count;
+		long[] buf = buffer;
+		int n = count;
 		long result = n;
 		if (n <= 32) {
 			for (int i = 0; i < n; i++)
@@ -401,16 +400,15 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	public int compareTo(@Nullable LongList ll) {
 		if (ll == null)
 			return 1;
-		int n0 = _count;
-		int n1 = ll._count;
+		int n0 = count;
+		int n1 = ll.count;
 		int n = Math.min(n0, n1);
-		long[] buf = _buffer;
-		long[] data = ll._buffer;
+		long[] buf = buffer;
+		long[] data = ll.buffer;
 		for (int i = 0; i < n; i++) {
 			long c = buf[i] - data[i];
-			if (c == 0L)
-				continue;
-			return c < 0L ? -1 : 1;
+			if (c != 0)
+				return c < 0 ? -1 : 1;
 		}
 		return n0 - n1;
 	}
@@ -422,15 +420,14 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 		if (!(o instanceof LongList))
 			return false;
 		LongList ll = (LongList)o;
-		int n = _count;
-		if (n != ll._count)
+		int n = count;
+		if (n != ll.count)
 			return false;
-		long[] buf = _buffer;
-		long[] data = ll._buffer;
+		long[] buf = buffer;
+		long[] data = ll.buffer;
 		for (int i = 0; i < n; i++) {
-			if (buf[i] == data[i])
-				continue;
-			return false;
+			if (buf[i] != data[i])
+				return false;
 		}
 		return true;
 	}
@@ -440,29 +437,28 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 			return true;
 		if (ll == null)
 			return false;
-		int n = _count;
-		if (n != ll._count)
+		int n = count;
+		if (n != ll.count)
 			return false;
-		long[] buf = _buffer;
-		long[] data = ll._buffer;
+		long[] buf = buffer;
+		long[] data = ll.buffer;
 		for (int i = 0; i < n; i++) {
-			if (buf[i] == data[i])
-				continue;
-			return false;
+			if (buf[i] != data[i])
+				return false;
 		}
 		return true;
 	}
 
 	public void foreach(@NotNull LongConsumer consumer) {
-		long[] buf = _buffer;
-		int n = _count;
+		long[] buf = buffer;
+		int n = count;
 		for (int i = 0; i < n; i++)
 			consumer.accept(buf[i]);
 	}
 
 	public boolean foreachPred(@NotNull LongPredicate predicate) {
-		long[] buf = _buffer;
-		int n = _count;
+		long[] buf = buffer;
+		int n = count;
 		for (int i = 0; i < n; i++) {
 			if (!predicate.test(buf[i]))
 				return false;
@@ -472,8 +468,8 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 
 	public @NotNull StringBuilder dump(@NotNull StringBuilder sb) {
 		sb.append('[');
-		long[] buf = _buffer;
-		int n = _count;
+		long[] buf = buffer;
+		int n = count;
 		if (n > 0) {
 			for (int i = 0; ; ) {
 				sb.append(buf[i]);
@@ -486,16 +482,16 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	public @NotNull String dump() {
-		int n = _count;
+		int n = count;
 		return n > 0 ? dump(new StringBuilder(n * 8)).toString() : "[]";
 	}
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		int n = _count;
+		int n = count;
 		bb.WriteUInt(n);
 		if (n > 0) {
-			long[] buf = _buffer;
+			long[] buf = buffer;
 			for (int i = 0; i < n; i++)
 				bb.WriteLong(buf[i]);
 		}
@@ -507,10 +503,10 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	public void encode(@NotNull ByteBuffer bb, int n) {
-		if (_count != n)
-			throw new java.util.ConcurrentModificationException(String.valueOf(_count));
+		if (count != n)
+			throw new java.util.ConcurrentModificationException(String.valueOf(count));
 		if (n > 0) {
-			long[] buf = _buffer;
+			long[] buf = buffer;
 			for (int i = 0; i < n; i++)
 				bb.WriteLong(buf[i]);
 		}
@@ -518,14 +514,14 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 
 	public void decode(@NotNull ByteBuffer bb, int n) {
 		reserveSpace(n);
-		long[] buf = _buffer;
+		long[] buf = buffer;
 		for (int i = 0; i < n; i++)
 			buf[i] = bb.ReadLong();
-		_count = n;
+		count = n;
 	}
 
 	@Override
 	public @NotNull String toString() {
-		return "[" + _count + "/" + _buffer.length + "]";
+		return "[" + count + "/" + buffer.length + "]";
 	}
 }

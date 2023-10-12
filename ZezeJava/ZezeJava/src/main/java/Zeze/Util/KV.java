@@ -8,8 +8,8 @@ public class KV<K, V> {
 		return key;
 	}
 
-	public final void setKey(K value) {
-		key = value;
+	public final void setKey(K key) {
+		this.key = key;
 	}
 
 	public final V getValue() {

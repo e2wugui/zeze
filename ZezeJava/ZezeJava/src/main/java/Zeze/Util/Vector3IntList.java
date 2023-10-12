@@ -12,23 +12,23 @@ import org.jetbrains.annotations.NotNull;
 public class Vector3IntList extends IntList {
 	public static @NotNull Vector3IntList wrap(int @NotNull [] data, int count) {
 		Vector3IntList o = new Vector3IntList();
-		o._buffer = data;
-		o._count = count > data.length ? data.length : Math.max(count, 0);
+		o.buffer = data;
+		o.count = count > data.length ? data.length : Math.max(count, 0);
 		return o;
 	}
 
 	public static @NotNull Vector3IntList wrap(int @NotNull [] data) {
 		Vector3IntList o = new Vector3IntList();
-		o._buffer = data;
-		o._count = data.length;
+		o.buffer = data;
+		o.count = data.length;
 		return o;
 	}
 
 	public static @NotNull Vector3IntList createSpace(int count) {
 		Vector3IntList o = new Vector3IntList();
 		if (count > 0) {
-			o._buffer = new int[count];
-			o._count = count;
+			o.buffer = new int[count];
+			o.count = count;
 		}
 		return o;
 	}
@@ -53,45 +53,45 @@ public class Vector3IntList extends IntList {
 	}
 
 	public int vectorSize() {
-		return _count / 3;
+		return count / 3;
 	}
 
 	public int vectorCapacity() {
-		return _buffer.length / 3;
+		return buffer.length / 3;
 	}
 
 	public int getX(int idx) {
-		return _buffer[idx * 3];
+		return buffer[idx * 3];
 	}
 
 	public int getY(int idx) {
-		return _buffer[idx * 3 + 1];
+		return buffer[idx * 3 + 1];
 	}
 
 	public int getZ(int idx) {
-		return _buffer[idx * 3 + 2];
+		return buffer[idx * 3 + 2];
 	}
 
 	public Vector3Int getVector(int idx) {
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		idx *= 3;
 		return new Vector3Int(buf[idx], buf[idx + 1], buf[idx + 2]);
 	}
 
 	public void setX(int idx, int x) {
-		_buffer[idx * 3] = x;
+		buffer[idx * 3] = x;
 	}
 
 	public void setY(int idx, int y) {
-		_buffer[idx * 3 + 1] = y;
+		buffer[idx * 3 + 1] = y;
 	}
 
 	public void setZ(int idx, int z) {
-		_buffer[idx * 3 + 2] = z;
+		buffer[idx * 3 + 2] = z;
 	}
 
 	public void set(int idx, int x, int y, int z) {
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		idx *= 3;
 		buf[idx] = x;
 		buf[idx + 1] = y;
@@ -99,28 +99,28 @@ public class Vector3IntList extends IntList {
 	}
 
 	public int addValueX(int idx, int x) {
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		idx *= 3;
 		buf[idx] = x += buf[idx];
 		return x;
 	}
 
 	public int addValueY(int idx, int y) {
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		idx = idx * 3 + 1;
 		buf[idx] = y += buf[idx];
 		return y;
 	}
 
 	public int addValueZ(int idx, int z) {
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		idx = idx * 3 + 2;
 		buf[idx] = z += buf[idx];
 		return z;
 	}
 
 	public void addValue(int idx, int x, int y, int z) {
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		idx *= 3;
 		buf[idx] += x;
 		buf[idx + 1] += y;
@@ -163,14 +163,14 @@ public class Vector3IntList extends IntList {
 	}
 
 	public @NotNull Vector3IntList add(int x, int y, int z) {
-		int n = _count;
+		int n = count;
 		int nNew = n + 3;
 		reserve(nNew);
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		buf[n] = x;
 		buf[n + 1] = y;
 		buf[n + 2] = z;
-		_count = nNew;
+		count = nNew;
 		return this;
 	}
 
@@ -203,38 +203,38 @@ public class Vector3IntList extends IntList {
 	}
 
 	public @NotNull Vector3IntList addAllVector(@NotNull Collection<Vector3Int> c) {
-		int n = _count;
+		int n = count;
 		reserve(n + c.size() * 3);
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		for (Vector3Int v : c) {
 			buf[n++] = v.x;
 			buf[n++] = v.y;
 			buf[n++] = v.z;
 		}
-		_count = n;
+		count = n;
 		return this;
 	}
 
 	public @NotNull void addAllToVector(@NotNull Collection<Vector3Int> c) {
-		int[] buf = _buffer;
-		for (int i = 0, n = _count - 2; i < n; i += 3)
+		int[] buf = buffer;
+		for (int i = 0, n = count - 2; i < n; i += 3)
 			c.add(new Vector3Int(buf[i], buf[i + 1], buf[i + 2]));
 	}
 
 	public @NotNull Vector3IntList insertVector(int fromIdx, int x, int y, int z) {
 		fromIdx *= 3;
-		int n = _count;
+		int n = count;
 		if (fromIdx < 0)
 			fromIdx = 0;
 		if (fromIdx >= n)
 			return add(x, y, z);
 		reserve(n + 3);
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + 3, n - fromIdx);
 		buf[fromIdx] = x;
 		buf[fromIdx + 1] = y;
 		buf[fromIdx + 2] = z;
-		_count = n + 3;
+		count = n + 3;
 		return this;
 	}
 
@@ -258,21 +258,21 @@ public class Vector3IntList extends IntList {
 
 	public @NotNull Vector3IntList removeVector(int idx) {
 		idx *= 3;
-		int lastIdx = _count - 3;
+		int lastIdx = count - 3;
 		if (idx < 0 || idx > lastIdx)
 			return this;
-		_count = lastIdx;
+		count = lastIdx;
 		if (idx != lastIdx)
-			System.arraycopy(_buffer, idx + 3, _buffer, idx, lastIdx - idx);
+			System.arraycopy(buffer, idx + 3, buffer, idx, lastIdx - idx);
 		return this;
 	}
 
 	public @NotNull Vector3IntList removeAndExchangeLastVector(int idx) {
 		idx *= 3;
-		int lastIdx = _count - 3;
+		int lastIdx = count - 3;
 		if (idx >= 0 && idx <= lastIdx) {
-			int[] buf = _buffer;
-			_count = lastIdx;
+			int[] buf = buffer;
+			count = lastIdx;
 			buf[idx] = buf[lastIdx];
 			buf[idx + 1] = buf[lastIdx + 1];
 			buf[idx + 2] = buf[lastIdx + 2];
@@ -295,8 +295,8 @@ public class Vector3IntList extends IntList {
 	}
 
 	public int indexOfVector(int x, int y, int z, int fromIdx) {
-		int[] buf = _buffer;
-		for (int i = fromIdx * 3, n = _count - 2; i < n; i += 3) {
+		int[] buf = buffer;
+		for (int i = fromIdx * 3, n = count - 2; i < n; i += 3) {
 			if (buf[i] == x && buf[i + 1] == y && buf[i + 2] == z)
 				return i / 3;
 		}
@@ -314,8 +314,8 @@ public class Vector3IntList extends IntList {
 	}
 
 	public void foreach(@NotNull Vector3IntConsumer consumer) {
-		int[] buf = _buffer;
-		for (int i = 0, n = _count - 2; i < n; i += 3)
+		int[] buf = buffer;
+		for (int i = 0, n = count - 2; i < n; i += 3)
 			consumer.accept(buf[i], buf[i + 1], buf[i + 2]);
 	}
 
@@ -324,8 +324,8 @@ public class Vector3IntList extends IntList {
 	}
 
 	public boolean foreachPred(@NotNull Vector3IntPredicate predicate) {
-		int[] buf = _buffer;
-		for (int i = 0, n = _count - 2; i < n; i += 3) {
+		int[] buf = buffer;
+		for (int i = 0, n = count - 2; i < n; i += 3) {
 			if (!predicate.test(buf[i], buf[i + 1], buf[i + 2]))
 				return false;
 		}
@@ -334,11 +334,11 @@ public class Vector3IntList extends IntList {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		int n = _count / 3;
+		int n = count / 3;
 		bb.WriteUInt(n);
 		if (n > 0) {
 			n *= 3;
-			int[] buf = _buffer;
+			int[] buf = buffer;
 			for (int i = 0; i < n; i++)
 				bb.WriteInt(buf[i]);
 		}
@@ -346,12 +346,12 @@ public class Vector3IntList extends IntList {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb, int n) {
-		int count = _count / 3;
+		int count = this.count / 3;
 		if (count != n)
 			throw new java.util.ConcurrentModificationException(String.valueOf(count));
 		if (n > 0) {
 			n *= 3;
-			int[] buf = _buffer;
+			int[] buf = buffer;
 			for (int i = 0; i < n; i++)
 				bb.WriteInt(buf[i]);
 		}

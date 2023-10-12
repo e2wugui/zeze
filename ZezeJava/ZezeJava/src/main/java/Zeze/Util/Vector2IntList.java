@@ -12,23 +12,23 @@ import org.jetbrains.annotations.NotNull;
 public class Vector2IntList extends IntList {
 	public static @NotNull Vector2IntList wrap(int @NotNull [] data, int count) {
 		Vector2IntList o = new Vector2IntList();
-		o._buffer = data;
-		o._count = count > data.length ? data.length : Math.max(count, 0);
+		o.buffer = data;
+		o.count = count > data.length ? data.length : Math.max(count, 0);
 		return o;
 	}
 
 	public static @NotNull Vector2IntList wrap(int @NotNull [] data) {
 		Vector2IntList o = new Vector2IntList();
-		o._buffer = data;
-		o._count = data.length;
+		o.buffer = data;
+		o.count = data.length;
 		return o;
 	}
 
 	public static @NotNull Vector2IntList createSpace(int count) {
 		Vector2IntList o = new Vector2IntList();
 		if (count > 0) {
-			o._buffer = new int[count];
-			o._count = count;
+			o.buffer = new int[count];
+			o.count = count;
 		}
 		return o;
 	}
@@ -53,58 +53,58 @@ public class Vector2IntList extends IntList {
 	}
 
 	public int vectorSize() {
-		return _count >> 1;
+		return count >> 1;
 	}
 
 	public int vectorCapacity() {
-		return _buffer.length >> 1;
+		return buffer.length >> 1;
 	}
 
 	public int getX(int idx) {
-		return _buffer[idx * 2];
+		return buffer[idx * 2];
 	}
 
 	public int getY(int idx) {
-		return _buffer[idx * 2 + 1];
+		return buffer[idx * 2 + 1];
 	}
 
 	public Vector2Int getVector(int idx) {
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		idx *= 2;
 		return new Vector2Int(buf[idx], buf[idx + 1]);
 	}
 
 	public void setX(int idx, int x) {
-		_buffer[idx * 2] = x;
+		buffer[idx * 2] = x;
 	}
 
 	public void setY(int idx, int y) {
-		_buffer[idx * 2 + 1] = y;
+		buffer[idx * 2 + 1] = y;
 	}
 
 	public void set(int idx, int x, int y) {
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		idx *= 2;
 		buf[idx] = x;
 		buf[idx + 1] = y;
 	}
 
 	public int addValueX(int idx, int x) {
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		idx *= 2;
 		buf[idx] = x += buf[idx];
 		return x;
 	}
 
 	public int addValueY(int idx, int y) {
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		idx = idx * 2 + 1;
 		buf[idx] = y += buf[idx];
 		return y;
 	}
 
 	public void addValue(int idx, int x, int y) {
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		idx *= 2;
 		buf[idx] += x;
 		buf[idx + 1] += y;
@@ -146,13 +146,13 @@ public class Vector2IntList extends IntList {
 	}
 
 	public @NotNull Vector2IntList add(int x, int y) {
-		int n = _count;
+		int n = count;
 		int nNew = n + 2;
 		reserve(nNew);
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		buf[n] = x;
 		buf[n + 1] = y;
-		_count = nNew;
+		count = nNew;
 		return this;
 	}
 
@@ -185,36 +185,36 @@ public class Vector2IntList extends IntList {
 	}
 
 	public @NotNull Vector2IntList addAllVector(@NotNull Collection<Vector2Int> c) {
-		int n = _count;
+		int n = count;
 		reserve(n + c.size() * 2);
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		for (Vector2Int v : c) {
 			buf[n++] = v.x;
 			buf[n++] = v.y;
 		}
-		_count = n;
+		count = n;
 		return this;
 	}
 
 	public @NotNull void addAllToVector(@NotNull Collection<Vector2Int> c) {
-		int[] buf = _buffer;
-		for (int i = 0, n = _count - 1; i < n; i += 2)
+		int[] buf = buffer;
+		for (int i = 0, n = count - 1; i < n; i += 2)
 			c.add(new Vector2Int(buf[i], buf[i + 1]));
 	}
 
 	public @NotNull Vector2IntList insertVector(int fromIdx, int x, int y) {
 		fromIdx *= 2;
-		int n = _count;
+		int n = count;
 		if (fromIdx < 0)
 			fromIdx = 0;
 		if (fromIdx >= n)
 			return add(x, y);
 		reserve(n + 2);
-		int[] buf = _buffer;
+		int[] buf = buffer;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + 2, n - fromIdx);
 		buf[fromIdx] = x;
 		buf[fromIdx + 1] = y;
-		_count = n + 2;
+		count = n + 2;
 		return this;
 	}
 
@@ -238,21 +238,21 @@ public class Vector2IntList extends IntList {
 
 	public @NotNull Vector2IntList removeVector(int idx) {
 		idx *= 2;
-		int lastIdx = _count - 2;
+		int lastIdx = count - 2;
 		if (idx < 0 || idx > lastIdx)
 			return this;
-		_count = lastIdx;
+		count = lastIdx;
 		if (idx != lastIdx)
-			System.arraycopy(_buffer, idx + 2, _buffer, idx, lastIdx - idx);
+			System.arraycopy(buffer, idx + 2, buffer, idx, lastIdx - idx);
 		return this;
 	}
 
 	public @NotNull Vector2IntList removeAndExchangeLastVector(int idx) {
 		idx *= 2;
-		int lastIdx = _count - 2;
+		int lastIdx = count - 2;
 		if (idx >= 0 && idx <= lastIdx) {
-			int[] buf = _buffer;
-			_count = lastIdx;
+			int[] buf = buffer;
+			count = lastIdx;
 			buf[idx] = buf[lastIdx];
 			buf[idx + 1] = buf[lastIdx + 1];
 		}
@@ -274,8 +274,8 @@ public class Vector2IntList extends IntList {
 	}
 
 	public int indexOfVector(int x, int y, int z, int fromIdx) {
-		int[] buf = _buffer;
-		for (int i = fromIdx * 2, n = _count - 1; i < n; i += 2) {
+		int[] buf = buffer;
+		for (int i = fromIdx * 2, n = count - 1; i < n; i += 2) {
 			if (buf[i] == x && buf[i + 1] == y && buf[i + 2] == z)
 				return i >> 1;
 		}
@@ -293,8 +293,8 @@ public class Vector2IntList extends IntList {
 	}
 
 	public void foreach(@NotNull Vector2IntConsumer consumer) {
-		int[] buf = _buffer;
-		for (int i = 0, n = _count - 1; i < n; i += 2)
+		int[] buf = buffer;
+		for (int i = 0, n = count - 1; i < n; i += 2)
 			consumer.accept(buf[i], buf[i + 1]);
 	}
 
@@ -303,8 +303,8 @@ public class Vector2IntList extends IntList {
 	}
 
 	public boolean foreachPred(@NotNull Vector2IntPredicate predicate) {
-		int[] buf = _buffer;
-		for (int i = 0, n = _count - 1; i < n; i += 2) {
+		int[] buf = buffer;
+		for (int i = 0, n = count - 1; i < n; i += 2) {
 			if (!predicate.test(buf[i], buf[i + 1]))
 				return false;
 		}
@@ -313,11 +313,11 @@ public class Vector2IntList extends IntList {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		int n = _count >> 1;
+		int n = count >> 1;
 		bb.WriteUInt(n);
 		if (n > 0) {
 			n *= 2;
-			int[] buf = _buffer;
+			int[] buf = buffer;
 			for (int i = 0; i < n; i++)
 				bb.WriteInt(buf[i]);
 		}
@@ -325,12 +325,12 @@ public class Vector2IntList extends IntList {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb, int n) {
-		int count = _count >> 1;
+		int count = this.count >> 1;
 		if (count != n)
 			throw new java.util.ConcurrentModificationException(String.valueOf(count));
 		if (n > 0) {
 			n *= 2;
-			int[] buf = _buffer;
+			int[] buf = buffer;
 			for (int i = 0; i < n; i++)
 				bb.WriteInt(buf[i]);
 		}
