@@ -103,10 +103,11 @@ public class MasterAgent extends AbstractMasterAgent {
 		return r.Result;
 	}
 
-	public void register(String dbh2RaftAcceptorName, int bucketCount) {
+	public void register(String dbh2RaftAcceptorName, int port, int bucketCount) {
 		var r = new Register();
 		r.Argument.setDbh2RaftAcceptorName(dbh2RaftAcceptorName);
 		r.Argument.setBucketCount(bucketCount);
+		r.Argument.setPort(port);
 		r.SendForWait(service.GetSocket()); // 这里不能等待，现在直接在网络线程中运行。
 	}
 

@@ -53,7 +53,7 @@ public class Dbh2FullTest {
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
-				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
+				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze" + i +".xml"));
 			for (var manager : managers)
 				manager.start();
 			dbh2AgentManager.start();
@@ -103,7 +103,7 @@ public class Dbh2FullTest {
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
-				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
+				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze" + i + ".xml"));
 			for (var manager : managers)
 				manager.start();
 			dbh2AgentManager.start();
@@ -146,7 +146,7 @@ public class Dbh2FullTest {
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
-				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze.xml"));
+				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze" + i + ".xml"));
 			for (var manager : managers)
 				manager.start();
 			dbh2AgentManager.start();

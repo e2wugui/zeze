@@ -8,6 +8,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     public static final long TYPEID = -3200018963971290421L;
 
     private String _Dbh2RaftAcceptorName;
+    private int _Port;
     private int _BucketCount;
 
     @Override
@@ -33,13 +34,33 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     @Override
+    public int getPort() {
+        if (!isManaged())
+            return _Port;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Port;
+        var log = (Log__Port)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _Port;
+    }
+
+    public void setPort(int value) {
+        if (!isManaged()) {
+            _Port = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Port(this, 2, value));
+    }
+
+    @Override
     public int getBucketCount() {
         if (!isManaged())
             return _BucketCount;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _BucketCount;
-        var log = (Log__BucketCount)txn.getLog(objectId() + 2);
+        var log = (Log__BucketCount)txn.getLog(objectId() + 3);
         return log != null ? log.value : _BucketCount;
     }
 
@@ -49,7 +70,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__BucketCount(this, 2, value));
+        txn.putLog(new Log__BucketCount(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -58,16 +79,18 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     @SuppressWarnings("deprecation")
-    public BRegister(String _Dbh2RaftAcceptorName_, int _BucketCount_) {
+    public BRegister(String _Dbh2RaftAcceptorName_, int _Port_, int _BucketCount_) {
         if (_Dbh2RaftAcceptorName_ == null)
             _Dbh2RaftAcceptorName_ = "";
         _Dbh2RaftAcceptorName = _Dbh2RaftAcceptorName_;
+        _Port = _Port_;
         _BucketCount = _BucketCount_;
     }
 
     @Override
     public void reset() {
         setDbh2RaftAcceptorName("");
+        setPort(0);
         setBucketCount(0);
         _unknown_ = null;
     }
@@ -86,12 +109,14 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
 
     public void assign(BRegister.Data other) {
         setDbh2RaftAcceptorName(other._Dbh2RaftAcceptorName);
+        setPort(other._Port);
         setBucketCount(other._BucketCount);
         _unknown_ = null;
     }
 
     public void assign(BRegister other) {
         setDbh2RaftAcceptorName(other.getDbh2RaftAcceptorName());
+        setPort(other.getPort());
         setBucketCount(other.getBucketCount());
         _unknown_ = other._unknown_;
     }
@@ -125,6 +150,13 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         public void commit() { ((BRegister)getBelong())._Dbh2RaftAcceptorName = value; }
     }
 
+    private static final class Log__Port extends Zeze.Transaction.Logs.LogInt {
+        public Log__Port(BRegister bean, int varId, int value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BRegister)getBelong())._Port = value; }
+    }
+
     private static final class Log__BucketCount extends Zeze.Transaction.Logs.LogInt {
         public Log__BucketCount(BRegister bean, int varId, int value) { super(bean, varId, value); }
 
@@ -144,6 +176,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BRegister: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Dbh2RaftAcceptorName=").append(getDbh2RaftAcceptorName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Port=").append(getPort()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("BucketCount=").append(getBucketCount()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -185,9 +218,16 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
             }
         }
         {
-            int _x_ = getBucketCount();
+            int _x_ = getPort();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = getBucketCount();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
@@ -205,6 +245,10 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
+            setPort(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
             setBucketCount(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -214,6 +258,8 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
 
     @Override
     public boolean negativeCheck() {
+        if (getPort() < 0)
+            return true;
         if (getBucketCount() < 0)
             return true;
         return false;
@@ -229,7 +275,8 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Dbh2RaftAcceptorName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _BucketCount = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 2: _Port = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _BucketCount = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }
@@ -240,6 +287,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         setDbh2RaftAcceptorName(rs.getString(_parents_name_ + "Dbh2RaftAcceptorName"));
         if (getDbh2RaftAcceptorName() == null)
             setDbh2RaftAcceptorName("");
+        setPort(rs.getInt(_parents_name_ + "Port"));
         setBucketCount(rs.getInt(_parents_name_ + "BucketCount"));
     }
 
@@ -247,6 +295,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Dbh2RaftAcceptorName", getDbh2RaftAcceptorName());
+        st.appendInt(_parents_name_ + "Port", getPort());
         st.appendInt(_parents_name_ + "BucketCount", getBucketCount());
     }
 
@@ -254,7 +303,8 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Dbh2RaftAcceptorName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "BucketCount", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Port", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "BucketCount", "int", "", ""));
         return vars;
     }
 
@@ -263,6 +313,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3200018963971290421L;
 
     private String _Dbh2RaftAcceptorName;
+    private int _Port;
     private int _BucketCount;
 
     public String getDbh2RaftAcceptorName() {
@@ -273,6 +324,14 @@ public static final class Data extends Zeze.Transaction.Data {
         if (value == null)
             throw new IllegalArgumentException();
         _Dbh2RaftAcceptorName = value;
+    }
+
+    public int getPort() {
+        return _Port;
+    }
+
+    public void setPort(int value) {
+        _Port = value;
     }
 
     public int getBucketCount() {
@@ -289,16 +348,18 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Dbh2RaftAcceptorName_, int _BucketCount_) {
+    public Data(String _Dbh2RaftAcceptorName_, int _Port_, int _BucketCount_) {
         if (_Dbh2RaftAcceptorName_ == null)
             _Dbh2RaftAcceptorName_ = "";
         _Dbh2RaftAcceptorName = _Dbh2RaftAcceptorName_;
+        _Port = _Port_;
         _BucketCount = _BucketCount_;
     }
 
     @Override
     public void reset() {
         _Dbh2RaftAcceptorName = "";
+        _Port = 0;
         _BucketCount = 0;
     }
 
@@ -316,11 +377,13 @@ public static final class Data extends Zeze.Transaction.Data {
 
     public void assign(BRegister other) {
         _Dbh2RaftAcceptorName = other.getDbh2RaftAcceptorName();
+        _Port = other.getPort();
         _BucketCount = other.getBucketCount();
     }
 
     public void assign(BRegister.Data other) {
         _Dbh2RaftAcceptorName = other._Dbh2RaftAcceptorName;
+        _Port = other._Port;
         _BucketCount = other._BucketCount;
     }
 
@@ -359,6 +422,7 @@ public static final class Data extends Zeze.Transaction.Data {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BRegister: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Dbh2RaftAcceptorName=").append(_Dbh2RaftAcceptorName).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Port=").append(_Port).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("BucketCount=").append(_BucketCount).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -385,9 +449,16 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
-            int _x_ = _BucketCount;
+            int _x_ = _Port;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            int _x_ = _BucketCount;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
@@ -403,6 +474,10 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
+            _Port = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
             _BucketCount = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }

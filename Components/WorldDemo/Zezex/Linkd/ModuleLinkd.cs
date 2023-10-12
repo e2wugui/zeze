@@ -10,12 +10,5 @@ namespace Zezex.Linkd
         public void Stop(global::Zeze.App app)
         {
         }
-
-        protected override async System.Threading.Tasks.Task<long> ProcessKeepAlive(Zeze.Net.Protocol _p)
-        {
-            var p = _p as KeepAlive;
-            return Zeze.Util.ResultCode.NotImplement;
-        }
-
     }
 }

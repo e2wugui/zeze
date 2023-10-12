@@ -1416,7 +1416,8 @@
 
 				<bean name="BRegister">
 					<variable id="1" name="Dbh2RaftAcceptorName" type="string"/>
-					<variable id="2" name="BucketCount" type="int"/>
+					<variable id="2" name="Port" type="int"/>
+					<variable id="3" name="BucketCount" type="int"/>
 				</bean>
 				<rpc name="Register" argument="BRegister" UseData="true" handle="server"/>
 

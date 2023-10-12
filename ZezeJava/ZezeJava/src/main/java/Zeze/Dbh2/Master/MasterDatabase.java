@@ -140,11 +140,16 @@ public class MasterDatabase {
 		var raftNames = new ArrayList<String>(managers.size());
 		for (var e : managers) {
 			sbRaft.append("    <node Host=\"");
-			sbRaft.append(e.data.getDbh2RaftAcceptorName());
-			sbRaft.append("\" Port=\"");
+			sbRaft.append(e.data.getDbh2RaftAcceptorName()).append("\"");
+
+			sbRaft.append(" Port=\"");
 			var portId = master.nextBucketPortId(e.data.getDbh2RaftAcceptorName());
-			sbRaft.append(portId);
-			sbRaft.append("\"/>\n");
+			sbRaft.append(portId).append("\"");
+
+			sbRaft.append(" RealHost=\"").append(e.data.getDbh2RaftAcceptorName()).append("\"");
+			sbRaft.append(" RealPort=\"").append(e.data.getPort()).append("\"");
+
+			sbRaft.append("/>\n");
 			raftNames.add(e.data.getDbh2RaftAcceptorName() + ":" + portId);
 		}
 		sbRaft.append("</raft>");
@@ -184,6 +189,7 @@ public class MasterDatabase {
 		if (null == table)
 			return master.errorCode(Master.eTableNotFound);
 
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 			var bucketNew = r.Argument.getTo();
@@ -220,6 +226,7 @@ public class MasterDatabase {
 		if (null == table)
 			return master.errorCode(Master.eTableNotFound);
 
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 			var bucketNew = r.Argument.getTo();
@@ -260,6 +267,7 @@ public class MasterDatabase {
 		}
 
 		var table = splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			if (table.buckets.get(bucket.getKeyFirst()) != null) {
 				// 桶已经存在，断点续传由manager自己负责，不能重复创建桶。

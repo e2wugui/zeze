@@ -13,7 +13,6 @@ import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Net.AsyncSocket;
 import Zeze.Raft.RaftConfig;
-import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -47,8 +46,8 @@ public class Dbh2Manager {
 		return masterAgent;
 	}
 
-	void register(String acceptor, int bucketCount) {
-		masterAgent.register(acceptor, bucketCount);
+	void register(String acceptor, int port, int bucketCount) {
+		masterAgent.register(acceptor, port, bucketCount);
 	}
 
 	protected long ProcessCreateBucketRequest(CreateBucket r) throws Exception {
@@ -81,6 +80,7 @@ public class Dbh2Manager {
 			super(config);
 		}
 
+		/*
 		private String getOneAcceptorIp() {
 			var outIp = new OutObject<String>(null);
 			getConfig().forEachAcceptor2((a) -> {
@@ -91,11 +91,15 @@ public class Dbh2Manager {
 				throw new RuntimeException("acceptor not found");
 			return outIp.value;
 		}
+		*/
 
 		@Override
 		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
-			Dbh2Manager.this.register(getOneAcceptorIp(), Dbh2Manager.this.dbh2s.size());
+			var ipPort = super.getOneAcceptorAddress();
+			if (ipPort.getKey() == null || ipPort.getValue() == 0)
+				throw new RuntimeException("manager acceptor not setup.");
+			Dbh2Manager.this.register(ipPort.getKey(), ipPort.getValue(), Dbh2Manager.this.dbh2s.size());
 		}
 	}
 
