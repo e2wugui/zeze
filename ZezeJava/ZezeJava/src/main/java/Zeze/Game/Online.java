@@ -722,7 +722,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			return 0;
 		}
 
-
 		online.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
 
 		var ret = linkBrokenTrigger(account, roleId);
@@ -1114,11 +1113,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private void processErrorSids(LongList errorSids, LinkRoles group) {
-		errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
+		errorSids.foreach(linkSid -> Task.run(providerApp.zeze.newProcedure(() -> {
 			int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 			// 补发的linkBroken没有account上下文
 			return idx >= 0 ? linkBroken("", group.roleIds.get(idx), group.linkName, linkSid) : 0;
-		}, "Online.triggerLinkBroken2").call());
+		}, "Online.triggerLinkBroken2")));
 	}
 
 	// 可在事务外执行
@@ -1196,15 +1195,15 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (connector == null) {
 			logger.warn("sendDirect: not found connector for linkName={} roleId={}", linkName, roleId);
 			// link miss
-			providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken0_a").call();
+			Task.run(providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken0_a"));
 			return false;
 		}
 		if (!connector.isHandshakeDone()) {
 			logger.warn("sendDirect: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
 			// link miss
-			providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken0_b").call();
+			Task.run(providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken0_b"));
 			return false;
 		}
 		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
@@ -1212,8 +1211,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (linkSocket == null) {
 			logger.warn("sendDirect: closed connector for linkName={} roleId={}", linkName, roleId);
 			// link miss
-			providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken0_c").call();
+			Task.run(providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken0_c"));
 			return false;
 		}
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));

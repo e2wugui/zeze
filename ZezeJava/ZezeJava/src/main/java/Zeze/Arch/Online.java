@@ -166,6 +166,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	public static void register(@NotNull Class<? extends Bean> cls) {
 		beanFactory.register(cls);
 	}
+
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
 	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
 
@@ -687,7 +688,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 //		return groups.values();
 //	}
 
-	private long triggerLinkBroken(@NotNull String linkName, @NotNull LongList errorSids, @NotNull Map<Long, LoginKey> contexts) {
+	private long triggerLinkBroken(@NotNull String linkName, @NotNull LongList errorSids,
+								   @NotNull Map<Long, LoginKey> contexts) {
 		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
 			var ctx = contexts.get(sid);
 			if (ctx != null) {
@@ -789,11 +791,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private void processErrorSids(LongList errorSids, LinkRoles group) {
-		errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
+		errorSids.foreach(linkSid -> Task.run(providerApp.zeze.newProcedure(() -> {
 			int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 			var loginKey = group.accounts.get(idx);
 			return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId, group.linkName, linkSid) : 0;
-		}, "Online.triggerLinkBroken2").call());
+		}, "Online.triggerLinkBroken2")));
 	}
 
 	// 可在事务外执行
@@ -881,15 +883,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (connector == null) {
 			logger.warn("sendDirect: not found connector for linkName={} account={} clientId={}",
 					linkName, account, clientId);
-			providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken1").call();
+			Task.run(providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken1"));
 			return false;
 		}
 		if (!connector.isHandshakeDone()) {
 			logger.warn("sendDirect: not isHandshakeDone for linkName={} account={} clientId={}",
 					linkName, account, clientId);
-			providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken1").call();
+			Task.run(providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken1"));
 			return false;
 		}
 		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
@@ -897,8 +899,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (linkSocket == null) {
 			logger.warn("sendDirect: closed connector for linkName={} account={} clientId={}",
 					linkName, account, clientId);
-			providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken1").call();
+			Task.run(providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken1"));
 			return false;
 		}
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
@@ -1379,10 +1381,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 		var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.encode(parameter));
 		// 发送协议请求在另外的事务中执行。
-		providerApp.zeze.newProcedure(() -> {
+		Task.run(providerApp.zeze.newProcedure(() -> {
 			transmitInProcedure(account, clientId, actionName, targets, binaryParam);
 			return Procedure.Success;
-		}, "Online.transmit").call();
+		}, "Online.transmit"));
 	}
 
 	public void transmitWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
