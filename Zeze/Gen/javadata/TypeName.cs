@@ -81,8 +81,14 @@ namespace Zeze.Gen.javadata
                     nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.LongList";
                 else if (valueName == "Float" && type.Variable.JavaType == "FloatList")
                     nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.FloatList";
+                else if (valueName == "Zeze.Serialize.Vector2" && type.Variable.JavaType == "Vector2List")
+                    nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.Vector2List";
                 else if (valueName == "Zeze.Serialize.Vector3" && type.Variable.JavaType == "Vector3List")
                     nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.Vector3List";
+                else if (valueName == "Zeze.Serialize.Vector4" && type.Variable.JavaType == "Vector4List")
+                    nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.Vector4List";
+                else if (valueName == "Zeze.Serialize.Vector2Int" && type.Variable.JavaType == "Vector2IntList")
+                    nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.Vector2IntList";
                 else if (valueName == "Zeze.Serialize.Vector3Int" && type.Variable.JavaType == "Vector3IntList")
                     nameRaw = nameOmitted = name = nameCollectionImplement = "Zeze.Util.Vector3IntList";
                 else

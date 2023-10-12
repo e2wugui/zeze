@@ -97,12 +97,15 @@
 			<variable id="30" name="list30" type="list[int]"         javaType="IntList"/>
 			<variable id="31" name="list31" type="list[long]"        javaType="LongList"/>
 			<variable id="32" name="list32" type="list[float]"       javaType="FloatList"/>
-			<variable id="33" name="list33" type="list[vector3]"     javaType="Vector3List"/>
-			<variable id="34" name="list34" type="list[vector3int]"  javaType="Vector3IntList"/>
-			<variable id="35" name="set35"  type="set[int]"          javaType="IntHashSet"/>
-			<variable id="36" name="set36"  type="set[long]"         javaType="LongHashSet"/>
-			<variable id="37" name="map37"  type="map[int,int]"      javaType="IntHashMap"/>
-			<variable id="38" name="map38"  type="map[long,BSimple]" javaType="LongHashMap"/>
+			<variable id="33" name="list33" type="list[vector2]"     javaType="Vector2List"/>
+			<variable id="34" name="list34" type="list[vector3]"     javaType="Vector3List"/>
+			<variable id="35" name="list35" type="list[vector4]"     javaType="Vector4List"/>
+			<variable id="36" name="list36" type="list[vector2int]"  javaType="Vector2IntList"/>
+			<variable id="37" name="list37" type="list[vector3int]"  javaType="Vector3IntList"/>
+			<variable id="38" name="set38"  type="set[int]"          javaType="IntHashSet"/>
+			<variable id="39" name="set39"  type="set[long]"         javaType="LongHashSet"/>
+			<variable id="40" name="map40"  type="map[int,int]"      javaType="IntHashMap"/>
+			<variable id="41" name="map41"  type="map[long,BSimple]" javaType="LongHashMap"/>
 
 			<variable id="50" name="version" type="long"/>
 

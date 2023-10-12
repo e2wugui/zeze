@@ -296,8 +296,7 @@ public class Vector3List extends FloatList {
 
 	public int indexOfVector(float x, float y, float z, int fromIdx) {
 		float[] buf = _buffer;
-		int n = _count - 2;
-		for (int i = fromIdx * 3; i < n; i += 3) {
+		for (int i = fromIdx * 3, n = _count - 2; i < n; i += 3) {
 			if (buf[i] == x && buf[i + 1] == y && buf[i + 2] == z)
 				return i / 3;
 		}
@@ -316,8 +315,7 @@ public class Vector3List extends FloatList {
 
 	public void foreach(@NotNull Vector3Consumer consumer) {
 		float[] buf = _buffer;
-		int n = _count - 2;
-		for (int i = 0; i < n; i += 3)
+		for (int i = 0, n = _count - 2; i < n; i += 3)
 			consumer.accept(buf[i], buf[i + 1], buf[i + 2]);
 	}
 
@@ -327,8 +325,7 @@ public class Vector3List extends FloatList {
 
 	public boolean foreachPred(@NotNull Vector3Predicate predicate) {
 		float[] buf = _buffer;
-		int n = _count - 2;
-		for (int i = 0; i < n; i += 3) {
+		for (int i = 0, n = _count - 2; i < n; i += 3) {
 			if (!predicate.test(buf[i], buf[i + 1], buf[i + 2]))
 				return false;
 		}

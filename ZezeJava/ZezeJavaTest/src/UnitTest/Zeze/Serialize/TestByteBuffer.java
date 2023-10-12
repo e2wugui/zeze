@@ -4,8 +4,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Vector2;
+import Zeze.Serialize.Vector2Int;
 import Zeze.Serialize.Vector3;
 import Zeze.Serialize.Vector3Int;
+import Zeze.Serialize.Vector4;
 import Zeze.Util.BitConverter;
 import Zeze.Util.Random;
 import demo.Bean1;
@@ -460,32 +463,49 @@ public class TestByteBuffer extends TestCase {
 				d.getList32().add(j);
 			}
 			for (int j = 0, n = r.nextInt(3); j < n; j++) {
-				b.getList33().add(new Vector3(j, j * 11, j * 111));
+				b.getList33().add(new Vector2(j, j * 11));
 				d.getList33().add(j);
 				d.getList33().add(j * 11);
-				d.getList33().add(j * 111);
 			}
 			for (int j = 0, n = r.nextInt(3); j < n; j++) {
-				b.getList34().add(new Vector3Int(j, j * 11, j * 111));
+				b.getList34().add(new Vector3(j, j * 11, j * 111));
 				d.getList34().add(j);
 				d.getList34().add(j * 11);
 				d.getList34().add(j * 111);
 			}
 			for (int j = 0, n = r.nextInt(3); j < n; j++) {
-				b.getSet35().add(j);
-				d.getSet35().add(j);
+				b.getList35().add(new Vector4(j, j * 11, j * 111, j * 1111));
+				d.getList35().add(j);
+				d.getList35().add(j * 11);
+				d.getList35().add(j * 111);
+				d.getList35().add(j * 1111);
 			}
 			for (int j = 0, n = r.nextInt(3); j < n; j++) {
-				b.getSet36().add((long)j);
-				d.getSet36().add(j);
+				b.getList36().add(new Vector2Int(j, j * 11));
+				d.getList36().add(j);
+				d.getList36().add(j * 11);
 			}
 			for (int j = 0, n = r.nextInt(3); j < n; j++) {
-				b.getMap37().put(j, j * 111);
-				d.getMap37().put(j, j * 111);
+				b.getList37().add(new Vector3Int(j, j * 11, j * 111));
+				d.getList37().add(j);
+				d.getList37().add(j * 11);
+				d.getList37().add(j * 111);
 			}
 			for (int j = 0, n = r.nextInt(3); j < n; j++) {
-				b.getMap38().put((long)j, new BSimple(j, j * 111L, String.valueOf(j)));
-				d.getMap38().put(j, new BSimple.Data(j, j * 111L, String.valueOf(j), null));
+				b.getSet38().add(j);
+				d.getSet38().add(j);
+			}
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getSet39().add((long)j);
+				d.getSet39().add(j);
+			}
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getMap40().put(j, j * 111);
+				d.getMap40().put(j, j * 111);
+			}
+			for (int j = 0, n = r.nextInt(3); j < n; j++) {
+				b.getMap41().put((long)j, new BSimple(j, j * 111L, String.valueOf(j)));
+				d.getMap41().put(j, new BSimple.Data(j, j * 111L, String.valueOf(j), null));
 			}
 			for (int j = 0, n = r.nextInt(3); j < n; j++) {
 				b.getLongList().add((long)j);
