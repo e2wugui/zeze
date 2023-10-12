@@ -19,6 +19,12 @@ dbh2
 4. dbh2 txnid 持久化生命期确认，是否仅针对执行中的事务？【确认为tid仅在事务持续期间存在，数据里面没有，但是存在于raft-log中】
     是否需要改成自己分配用long？
 raft异地备份分start，restart两个入口。dbh2共享链接master分配管理。
+0. Master分配到同一个manager的桶的配置加上manager的ip，port给Agent，Agent先可选的使用，支持复用连接也可以直接联系raft。
+1. Manager监听port用于服用连接。
+2. Agent启用复用连接，把RaftRpc打包并且带上raft-bucket-id（目前直接可用的是raftconfig，比较长）。
+3. Manager根据raft-bucket-id找到raft并dispatch，并且把当前服用连接设置到RaftRpc 中。
+4. RaftRpc在sendResult的时候，发现有服用连接，则用服用连接的rpc打包并回复结果。
+*. 【要点】raft-bucket-id的定义；复用rpc定义；
 ----------------------------------------------------------------------------------------------------------
 Zege ChatControl 改成用WebView；
 Zege Notify客户端自行决定排序。
