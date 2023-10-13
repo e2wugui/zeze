@@ -13,19 +13,8 @@ Focus Document
 dbh2
 0. raft异地备份方案，其中1/3 or 2/5异地运行，正常启动时，异地延迟启动，等主机房leader选出后再启动，
     异常时异地可能成为leader，但故障恢复后，强制退出异地节点，把leader赶回主机房后再启动。难点在正常异常的判断。
-1. raftagent会建立所有node的连接并保持，由于已有新链接建立能力，发现leader后可以关闭其他node的连接；
-2. manager上有多个桶，每个桶都有独立连接，可以考虑用代理隧道复用连接使得一个manager只需要一个连接。
-3. 优先级不高，后期优化再考虑。
 4. dbh2 txnid 持久化生命期确认，是否仅针对执行中的事务？【确认为tid仅在事务持续期间存在，数据里面没有，但是存在于raft-log中】
     是否需要改成自己分配用long？
-raft异地备份分start，restart两个入口。dbh2共享链接master分配管理。
-0. Master分配到同一个manager的桶的配置加上manager的ip，port给Agent，Agent先可选的使用，支持复用连接也可以直接联系raft。
-1. Manager监听port用于服用连接。
-2. Agent启用复用连接，把RaftRpc打包并且带上raft-bucket-id（目前直接可用的是raftconfig，比较长）。
-3. Manager根据raft-bucket-id找到raft并dispatch，并且把当前服用连接设置到RaftRpc 中。
-4. RaftRpc在sendResult的时候，发现有服用连接，则用服用连接的rpc打包并回复结果。
-*. 【要点】raft-bucket-id的定义；复用rpc定义；首先需要搞清楚manager和bucket和raft的关系，确定新增ip，port保存在哪里；
-*. raftConfig.node 增加manager的自定义。还挺麻烦！！！，先放放吧。应该修改RaftConfig.Node，增加RealHost,RealPort。
 ----------------------------------------------------------------------------------------------------------
 Zege ChatControl 改成用WebView；
 Zege Notify客户端自行决定排序。
@@ -45,8 +34,20 @@ Zege Task
 Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot alter 测试，需要mysql。
 ------------------------------------------------------------------------------------------------------------------------------
-2023/10/27 v1.3.5 
+2023/10/27 v1.3.5 Raft & Dbh2; 
 ------------------------------------------------------------------------------------------------------------------------------
+1. raftagent会建立所有node的连接并保持，由于已有新链接建立能力，发现leader后可以关闭其他node的连接；
+2. manager上有多个桶，每个桶都有独立连接，可以考虑用代理隧道复用连接使得一个manager只需要一个连接。
+3. 优先级不高，后期优化再考虑。
+raft异地备份分start，restart两个入口。dbh2共享链接master分配管理。
+0. Master分配到同一个manager的桶的配置加上manager的ip，port给Agent，Agent先可选的使用，支持复用连接也可以直接联系raft。
+1. Manager监听port用于服用连接。
+2. Agent启用复用连接，把RaftRpc打包并且带上raft-bucket-id（目前直接可用的是raftconfig，比较长）。
+3. Manager根据raft-bucket-id找到raft并dispatch，并且把当前服用连接设置到RaftRpc 中。
+4. RaftRpc在sendResult的时候，发现有服用连接，则用服用连接的rpc打包并回复结果。
+*. 【要点】raft-bucket-id的定义；复用rpc定义；首先需要搞清楚manager和bucket和raft的关系，确定新增ip，port保存在哪里；
+*. raftConfig.node 增加manager的自定义。还挺麻烦！！！，先放放吧。应该修改RaftConfig.Node，增加RealHost,RealPort。
+Raft/Proxy 多个raft节点运行在一个进程中，允许通过一个代理连接收发协议，共享这个连接，而不用每个节点建立自己的连接。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/10/9 v1.3.4 doc; Dbh2; LogService; TimeCounter; Arch; OverLoad; 

@@ -31,6 +31,15 @@ public class Server extends HandshakeBoth {
 
 	private final Raft raft;
 	private final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
+	private volatile ProxyServer proxyServer;
+
+	public ProxyServer getProxyServer() {
+		return proxyServer;
+	}
+
+	public synchronized void setProxyServer(ProxyServer proxyServer) {
+		this.proxyServer = proxyServer;
+	}
 
 	public Raft getRaft() {
 		return raft;
@@ -190,7 +199,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	@SuppressWarnings("UnusedReturnValue")
-	private long processRequest(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) {
+	public long processRequest(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) {
 		return Task.call(() -> {
 			if (raft.waitLeaderReady()) {
 				UniqueRequestState state = raft.getLogSequence().tryGetRequestState(p);
@@ -260,7 +269,7 @@ public class Server extends HandshakeBoth {
 		taskOneByOne.Execute(((IRaftRpc)p).getUnique(), func, name, cancel, mode);
 	}
 
-	private void trySendLeaderIs(AsyncSocket sender) {
+	public void trySendLeaderIs(AsyncSocket sender) {
 		String leaderId = raft.getLeaderId();
 		if (leaderId == null || leaderId.isEmpty())
 			return;
@@ -271,7 +280,7 @@ public class Server extends HandshakeBoth {
 		redirect.Argument.setTerm(raft.getLogSequence().getTerm());
 		redirect.Argument.setLeaderId(leaderId); // maybe empty
 		redirect.Argument.setLeader(raft.isLeader());
-		redirect.Send(sender); // ignore response
+		ProxyServer.send(this, proxyServer, redirect, raft.getName(), sender);
 	}
 
 	@Override
@@ -287,7 +296,7 @@ public class Server extends HandshakeBoth {
 					r.Argument.setTerm(raft.getLogSequence().getTerm());
 					r.Argument.setLeaderId(raft.getLeaderId());
 					r.Argument.setLeader(raft.isLeader());
-					r.Send(so); // skip result
+					ProxyServer.send(this, proxyServer, r, raft.getName(), so);
 				}
 			} finally {
 				raft.unlock();

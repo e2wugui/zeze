@@ -6,6 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.ProtocolFactoryFinder;
 import Zeze.Util.Task;
@@ -281,7 +282,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	 * @return decoded protocol instance. if decode fail return null.
 	 */
 	public static @Nullable Protocol<?> decode(@NotNull ProtocolFactoryFinder service,
-											   @NotNull ByteBuffer singleEncodedProtocol) {
+											   @NotNull ByteBuffer singleEncodedProtocol,
+											   @Nullable OutObject<Service.ProtocolFactoryHandle<?>> outFactoryHandle) {
 		int moduleId = singleEncodedProtocol.ReadInt4();
 		int protocolId = singleEncodedProtocol.ReadInt4();
 		int size = singleEncodedProtocol.ReadInt4();
@@ -298,17 +300,19 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		}
 		singleEncodedProtocol.ReadIndex = endReadIndex;
 		singleEncodedProtocol.WriteIndex = savedWriteIndex;
+		if (outFactoryHandle != null)
+			outFactoryHandle.value = factoryHandle;
 		return p;
 	}
 
 	public static @Nullable Protocol<?> decode(@NotNull Service service,
 											   @NotNull ByteBuffer singleEncodedProtocol) {
-		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol);
+		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol, null);
 	}
 
 	public static @Nullable Protocol<?> decode(@NotNull DatagramService service,
 											   @NotNull ByteBuffer singleEncodedProtocol) {
-		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol);
+		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol, null);
 	}
 
 	/**

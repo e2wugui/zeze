@@ -52,6 +52,7 @@ public final class Agent {
 	private final LongConcurrentHashMap<RaftRpc<?, ?>> urgentPending = new LongConcurrentHashMap<>();
 	private Action1<Agent> onSetLeader;
 	private final Lock mutex = new ReentrantLock();
+	private final ProxyAgent proxyAgent;
 
 	public RaftConfig getRaftConfig() {
 		return raftConfig;
@@ -127,7 +128,7 @@ public final class Agent {
 
 		rpc.setResponseHandle(p -> sendHandle(p, rpc));
 		ConnectorEx leader = this.leader;
-		if (!rpc.Send(leader != null ? leader.TryGetReadySocket() : null))
+		if (!ProxyAgent.send(client, proxyAgent, rpc, leader, leader.TryGetReadySocket()))
 			logger.debug("Send failed: leader={}, rpc={}", leader, rpc);
 	}
 
@@ -216,7 +217,7 @@ public final class Agent {
 
 		rpc.setResponseHandle(p -> sendForWaitHandle(p, rpc));
 		ConnectorEx leader = this.leader;
-		if (!rpc.Send(leader != null ? leader.TryGetReadySocket() : null))
+		if (!ProxyAgent.send(client, proxyAgent, rpc, leader, leader.TryGetReadySocket()))
 			logger.debug("Send failed: leader={}, rpc={}", leader, rpc);
 		return future;
 	}
@@ -258,12 +259,22 @@ public final class Agent {
 
 	public Agent(String name, Application zeze, RaftConfig raftConf) throws Exception {
 		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + '.' + zeze.getConfig().getServerId());
+		this.proxyAgent = null;
 		init(new NetClient(this, name, zeze), raftConf);
 	}
 
 	public Agent(String name, Application zeze, RaftConfig raftConf,
 				 Func3<Agent, String, Application, NetClient> netClientFactory) throws Exception {
 		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + '.' + zeze.getConfig().getServerId());
+		this.proxyAgent = null;
+		init(netClientFactory.call(this, name, zeze), raftConf);
+	}
+
+	public Agent(String name, Application zeze, RaftConfig raftConf,
+				 Func3<Agent, String, Application, NetClient> netClientFactory,
+				 ProxyAgent proxyAgent) throws Exception {
+		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + '.' + zeze.getConfig().getServerId());
+		this.proxyAgent = proxyAgent;
 		init(netClientFactory.call(this, name, zeze), raftConf);
 	}
 
@@ -276,6 +287,7 @@ public final class Agent {
 			config = Config.load();
 
 		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + ',' + config.getServerId());
+		this.proxyAgent = null;
 		init(new NetClient(this, name, config), raftConf);
 	}
 
@@ -285,6 +297,28 @@ public final class Agent {
 			config = Config.load();
 
 		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + ',' + config.getServerId());
+		this.proxyAgent = null;
+		init(netClientFactory.call(this, name, config), raftConf);
+	}
+
+	public Agent(String name, RaftConfig raftConf, Config config,
+				 ProxyAgent proxyAgent) throws Exception {
+		if (config == null)
+			config = Config.load();
+
+		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + ',' + config.getServerId());
+		this.proxyAgent = proxyAgent;
+		init(new NetClient(this, name, config), raftConf);
+	}
+
+	public Agent(String name, RaftConfig raftConf, Config config,
+				 Func3<Agent, String, Config, NetClient> netClientFactory,
+				 ProxyAgent proxyAgent) throws Exception {
+		if (config == null)
+			config = Config.load();
+
+		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + ',' + config.getServerId());
+		this.proxyAgent = proxyAgent;
 		init(netClientFactory.call(this, name, config), raftConf);
 	}
 
@@ -300,8 +334,13 @@ public final class Agent {
 		if (this.client.getConfig().connectorCount() != 0)
 			throw new IllegalStateException("Connector Found!");
 
-		for (var node : raftConfig.getNodes().values())
-			this.client.getConfig().addConnector(new ConnectorEx(node.getHost(), node.getPort()));
+		if (proxyAgent == null) {
+			// 没有启用代理，按原始raft方式建立连接器。
+			for (var node : raftConfig.getNodes().values())
+				this.client.getConfig().addConnector(new ConnectorEx(node.getHost(), node.getPort()));
+		} else {
+			proxyAgent.addAgent(this);
+		}
 
 		this.client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
 				LeaderIs::new, this::processLeaderIs, TransactionLevel.Serializable, DispatchMode.Normal));
@@ -323,6 +362,20 @@ public final class Agent {
 		ConnectorEx leader = this.leader;
 		logger.info("=============== LEADERIS Old={} New={} From={}",
 				leader != null ? leader.getName() : null, r.Argument.getLeaderId(), r.getSender());
+
+		// 启用代理（多个raft共享连接）。
+		if (null != proxyAgent) {
+			var newLeader = proxyAgent.getLeader(raftConfig.getNodes().get(r.Argument.getLeaderId()));
+			if (null != newLeader) {
+				if (setLeader(r, newLeader))
+					resend(true);
+
+				r.SendResultCode(0);
+				return Procedure.Success;
+			}
+			// else continue old process;
+		}
+		// else continue old process
 
 		var node = client.getConfig().findConnector(r.Argument.getLeaderId());
 		if (node == null) {
@@ -348,7 +401,7 @@ public final class Agent {
 
 		if (setLeader(r, node instanceof ConnectorEx ? (ConnectorEx)node : null))
 			resend(true);
-		// OnLeaderChanged?.Invoke(this);
+
 		r.SendResultCode(0);
 		return Procedure.Success;
 	}
@@ -398,7 +451,7 @@ public final class Agent {
 				if (isDebugEnabled)
 					logger.debug("ReSendU {}/{} {}", urgentPending.size(), leaderSocket, rpc);
 				rpc.setSendTime(now);
-				if (!rpc.Send(leaderSocket)) {
+				if (!ProxyAgent.send(client, proxyAgent, rpc, leader, leaderSocket)) {
 					logger.info("SendRequest failed {}", rpc);
 					break;
 				}
@@ -419,7 +472,7 @@ public final class Agent {
 				if (isDebugEnabled)
 					logger.debug("ReSend {}/{} {}", pending.size(), leaderSocket, rpc);
 				rpc.setSendTime(now);
-				if (!rpc.Send(leaderSocket)) {
+				if (!ProxyAgent.send(client, proxyAgent, rpc, leader, leaderSocket)) {
 					logger.info("SendRequest failed {}", rpc);
 					break;
 				}
