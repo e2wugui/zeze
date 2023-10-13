@@ -3,6 +3,7 @@ package Zeze.Raft;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Service;
@@ -57,18 +58,15 @@ public class ProxyAgent extends Service {
 	 */
 	public Agent.ConnectorEx getLeader(RaftConfig.Node node) {
 		if (!node.getProxyHost().isBlank() && node.getProxyPort() != 0) {
-			return connectors.computeIfAbsent(node.getProxyHost() + ":" + node.getProxyPort(),
-					(key) -> {
-						var newConnector = new Agent.ConnectorEx(node.getProxyHost(), node.getProxyPort());
-						newConnector.start();
-						return newConnector;
-					});
+			var outNew = new OutObject<Connector>();
+			if (getConfig().tryGetOrAddConnector(node.getProxyHost(), node.getProxyPort(), true, outNew)) {
+				outNew.value.start();
+			}
 		}
 		return null;
 	}
 
-	private ConcurrentHashMap<String, Agent.ConnectorEx> connectors = new ConcurrentHashMap<>();
-	private ConcurrentHashMap<String, Agent> agents = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Agent> agents = new ConcurrentHashMap<>();
 
 	public void addAgent(Agent agent) {
 		if (null != agents.putIfAbsent(agent.getName(), agent))
