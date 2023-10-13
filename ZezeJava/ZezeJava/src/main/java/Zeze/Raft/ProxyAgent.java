@@ -84,6 +84,7 @@ public class ProxyAgent extends Service {
 	 * @param leaderSocket leader.Socket。可能为null。
 	 * @return 发送结果，可能失败。
 	 */
+	@SuppressWarnings("unchecked")
 	public static boolean send(Service localService,
 							   ProxyAgent proxyAgent,
 							   RaftRpc<?, ?> rpc,
@@ -104,7 +105,6 @@ public class ProxyAgent extends Service {
 					if (null != resultRpc && null != rpc.getResponseHandle()) {
 						@SuppressWarnings("rawtypes")
 						var originHandle = (ProtocolHandle)rpc.getResponseHandle();
-						//noinspection unchecked
 						localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
 					}
 					return 0;

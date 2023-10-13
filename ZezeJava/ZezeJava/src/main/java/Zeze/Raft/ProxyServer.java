@@ -90,6 +90,7 @@ public class ProxyServer extends Service {
 	 * @param rpc 待发送rpc
 	 * @param sender 连接
 	 */
+	@SuppressWarnings("unchecked")
 	public static boolean send(Service localService, ProxyServer proxyServer, Rpc<?, ?> rpc, String raftName, AsyncSocket sender) {
 		if (null == sender)
 			return false; // 没有连接，直接失败。
@@ -106,7 +107,6 @@ public class ProxyServer extends Service {
 				if (null != resultRpc && null != rpc.getResponseHandle()) {
 					@SuppressWarnings("rawtypes")
 					var originHandle = (ProtocolHandle)rpc.getResponseHandle();
-					//noinspection unchecked
 					localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
 				}
 				return 0;
