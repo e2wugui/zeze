@@ -128,7 +128,8 @@ public final class Agent {
 
 		rpc.setResponseHandle(p -> sendHandle(p, rpc));
 		ConnectorEx leader = this.leader;
-		if (!ProxyAgent.send(client, proxyAgent, rpc, leader, leader.TryGetReadySocket()))
+		if (!ProxyAgent.send(client, proxyAgent, rpc,
+				leader, (null != leader) ? leader.TryGetReadySocket() : null))
 			logger.debug("Send failed: leader={}, rpc={}", leader, rpc);
 	}
 
@@ -217,7 +218,8 @@ public final class Agent {
 
 		rpc.setResponseHandle(p -> sendForWaitHandle(p, rpc));
 		ConnectorEx leader = this.leader;
-		if (!ProxyAgent.send(client, proxyAgent, rpc, leader, leader.TryGetReadySocket()))
+		if (!ProxyAgent.send(client, proxyAgent, rpc,
+				leader, (null != leader) ? leader.TryGetReadySocket() : null))
 			logger.debug("Send failed: leader={}, rpc={}", leader, rpc);
 		return future;
 	}
