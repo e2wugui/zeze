@@ -63,12 +63,12 @@ public class TestToData {
 		long sum = 0;
 		// encode
 		var b = new Zeze.Util.Benchmark();
-		for (var i = 0; i < 10_0000; ++i) {
+		for (var i = 0; i < 3_0000; ++i) {
 			var bb = ByteBuffer.Allocate();
 			bValue.encode(bb);
 			sum += bb.size();
 		}
-		var seconds = b.report("encode", 10_0000);
+		var seconds = b.report("encode", 3_0000);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 
 		// decode
@@ -76,13 +76,13 @@ public class TestToData {
 		var encoded = ByteBuffer.Allocate();
 		bValue.encode(encoded);
 		var dummy = 0;
-		for (var i = 0; i < 10_0000; ++i) {
+		for (var i = 0; i < 3_0000; ++i) {
 			var bb = ByteBuffer.Wrap(encoded.Bytes, encoded.ReadIndex, encoded.size());
 			var value = new BValue();
 			value.decode(bb);
 			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
 		}
-		seconds = b2.report("decode", 10_0000);
+		seconds = b2.report("decode", 3_0000);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 		System.out.println("dummy=" + dummy);
 	}
