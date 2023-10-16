@@ -201,13 +201,13 @@ public final class RaftConfig {
 		xmlDocument = xml;
 		xmlFileName = filename;
 		this.self = self;
-		name = self.getAttribute("Name");
+		name = self.getAttribute("Name").replace(':', '_');
 
 		var attr = self.getAttribute("DbHome");
 		if (!attr.isEmpty())
 			dbHome = attr;
 		if (dbHome == null)
-			dbHome = name.replace(':', '_');
+			dbHome = name;
 
 		attr = self.getAttribute("AppendEntriesTimeout");
 		if (!attr.isEmpty())

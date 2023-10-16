@@ -56,14 +56,14 @@ public class Connector {
 	public Connector(@NotNull String host, int port, boolean autoReconnect) {
 		hostNameOrAddress = host;
 		this.port = port;
-		name = host + ':' + port;
+		name = host + '_' + port;
 		isAutoReconnect = autoReconnect;
 	}
 
 	public Connector(@NotNull Element self) {
 		hostNameOrAddress = self.getAttribute("HostNameOrAddress");
 		port = Integer.parseInt(self.getAttribute("Port"));
-		name = hostNameOrAddress + ':' + port;
+		name = hostNameOrAddress + '_' + port;
 		String attr = self.getAttribute("IsAutoReconnect");
 		isAutoReconnect = !attr.isEmpty() && Boolean.parseBoolean(attr);
 		attr = self.getAttribute("MaxReconnectDelay");

@@ -279,7 +279,7 @@ public final class RaftConfig {
 		}
 
 		String getName() {
-			return Host + ':' + Port;
+			return Host + '_' + Port;
 		}
 
 		void Save(Document doc, Element parent) {

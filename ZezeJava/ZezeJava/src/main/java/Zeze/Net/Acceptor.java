@@ -38,7 +38,7 @@ public class Acceptor {
 	}
 
 	public final String getName() {
-		return Ip + ':' + Port;
+		return Ip + '_' + Port;
 	}
 
 	public final Service getService() {
