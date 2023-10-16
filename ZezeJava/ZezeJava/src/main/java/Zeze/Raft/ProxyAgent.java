@@ -44,10 +44,11 @@ public class ProxyAgent extends Service {
 		if (null == p)
 			return Procedure.NotImplement;
 
-		if (p.getTypeId() == LeaderIs.TypeId_) {
-			var leaderIs = (LeaderIs)p;
-			leaderIs.setProxyRequest(r);
-		}
+		if (!(p instanceof ProxyableRpc<?,?>))
+			throw new RuntimeException("not a proxyable rpc.");
+
+		var proxyable = (ProxyableRpc<?,?>)p;
+		proxyable.setProxyRequest(r);
 		// 重新派发一次，有点浪费线程切换，以后再考虑优化。
 		client.dispatchProtocol(p, outFactoryHandle.value);
 		return 0;
