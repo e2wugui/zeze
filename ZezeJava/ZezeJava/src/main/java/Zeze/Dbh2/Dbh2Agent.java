@@ -17,6 +17,7 @@ import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Raft.Agent;
+import Zeze.Raft.ProxyAgent;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RaftRpc;
 import Zeze.Serialize.ByteBuffer;
@@ -123,18 +124,28 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	}
 
 	public Dbh2Agent(String raftConfigString) throws Exception {
+		this(raftConfigString, (ProxyAgent)null);
+	}
+
+	public Dbh2Agent(String raftConfigString, ProxyAgent proxyAgent) throws Exception {
 		this.raftConfigString = raftConfigString;
 		var raftConf = RaftConfig.loadFromString(raftConfigString);
-		raftClient = new Agent("dbh2.raft", raftConf);
+		raftClient = new Agent("dbh2.raft", raftConf, null, proxyAgent);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		RegisterProtocols(raftClient.getClient());
 		raftClient.getClient().start();
 	}
 
 	public Dbh2Agent(String raftConfigString, Func3<Agent, String, Config, Agent.NetClient> netClientFactory) throws Exception {
+		this(raftConfigString, netClientFactory, null);
+	}
+
+	public Dbh2Agent(String raftConfigString,
+					 Func3<Agent, String, Config, Agent.NetClient> netClientFactory,
+					 ProxyAgent proxyAgent) throws Exception {
 		this.raftConfigString = raftConfigString;
 		var raftConf = RaftConfig.loadFromString(raftConfigString);
-		raftClient = new Agent("dbh2.raft", raftConf, null, netClientFactory);
+		raftClient = new Agent("dbh2.raft", raftConf, null, netClientFactory, proxyAgent);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		RegisterProtocols(raftClient.getClient());
 		raftClient.getClient().start();

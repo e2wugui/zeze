@@ -13,6 +13,7 @@ import Zeze.Dbh2.Master.MasterTable;
 import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Net.ServiceConf;
+import Zeze.Raft.ProxyAgent;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
@@ -39,6 +40,7 @@ public class Dbh2AgentManager {
 	// agent 不同 master 也装在一起。
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
 
+	private final ProxyAgent proxyAgent;
 	private final Config config;
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private Commit commit;
@@ -82,6 +84,7 @@ public class Dbh2AgentManager {
 				commitAgent = new CommitAgent();
 			}
 		}
+		proxyAgent = new ProxyAgent();
 	}
 
 	private static final SecureRandom secureRandom = new SecureRandom();
@@ -138,10 +141,12 @@ public class Dbh2AgentManager {
 		} else {
 			commitAgent.startAndWaitConnectionReady();
 		}
+		proxyAgent.start();
 		ShutdownHook.add(this, this::stop);
 	}
 
 	public synchronized void stop() throws Exception {
+		proxyAgent.stop();
 		for (var ma : masterAgent.values())
 			ma.stop();
 		masterAgent.clear();
@@ -234,7 +239,7 @@ public class Dbh2AgentManager {
 	public Dbh2Agent openBucket(String raftString) {
 		return agents.computeIfAbsent(raftString, _raft -> {
 			try {
-				return new Dbh2Agent(raftString);
+				return new Dbh2Agent(raftString, proxyAgent);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}

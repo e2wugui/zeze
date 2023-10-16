@@ -225,6 +225,17 @@ public final class Agent {
 	}
 
 	public static class ConnectorEx extends Connector {
+		private String raftName;
+
+		public String getRaftName() {
+			return raftName;
+		}
+
+		// proxy new 的时候需要设置。
+		public void setRaftName(String raftName) {
+			this.raftName = raftName;
+		}
+
 		public ConnectorEx(String host) {
 			this(host, 0);
 		}
@@ -346,6 +357,7 @@ public final class Agent {
 				this.client.getConfig().addConnector(new ConnectorEx(node.getHost(), node.getPort()));
 		} else {
 			proxyAgent.addAgent(this);
+			leader = proxyAgent.getLeader(raftConfig.getNodes().values().iterator().next());
 		}
 
 		this.client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
@@ -408,6 +420,7 @@ public final class Agent {
 		if (setLeader(r, node instanceof ConnectorEx ? (ConnectorEx)node : null))
 			resend(true);
 
+		// todo 代理模式，结果不能直接发送。
 		r.SendResultCode(0);
 		return Procedure.Success;
 	}

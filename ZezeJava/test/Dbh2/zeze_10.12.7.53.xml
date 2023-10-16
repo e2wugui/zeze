@@ -11,6 +11,8 @@
 	</ServiceConf>
 	<ServiceConf Name="Zeze.Dbh2.Master.Agent">
 		<Connector HostNameOrAddress="10.12.7.155" Port="10999"/>
-		<Acceptor Ip="10.12.7.53" Port="7785"/> 用来配置Dbh2.Manager的Raft的外部Ip和复用连接的监听端口。
+	</ServiceConf>
+	<ServiceConf Name="Zeze.Raft.ProxyServer">
+		<Acceptor Ip="127.0.0.1" Port="7785"/>
 	</ServiceConf>
 </zeze>

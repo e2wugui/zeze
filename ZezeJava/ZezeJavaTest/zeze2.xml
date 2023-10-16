@@ -42,6 +42,8 @@
 	</ServiceConf>
 	<ServiceConf Name="Zeze.Dbh2.Master.Agent">
 		<Connector HostNameOrAddress="127.0.0.1" Port="11000"/>
+	</ServiceConf>
+	<ServiceConf Name="Zeze.Raft.ProxyServer">
 		<Acceptor Ip="127.0.0.1" Port="7785"/>
 	</ServiceConf>
 	<ServiceConf Name="Zeze.Dbh2.Commit">

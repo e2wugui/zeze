@@ -11,8 +11,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
+import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.ServiceConf;
+import Zeze.Raft.ProxyServer;
 import Zeze.Raft.RaftConfig;
+import Zeze.Util.KV;
+import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -29,6 +34,7 @@ public class Dbh2Manager {
 	private static final Logger logger = LogManager.getLogger(Dbh2Manager.class);
 
 	private final MasterAgent masterAgent;
+	private final ProxyServer proxyServer;
 
 	static {
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
@@ -68,37 +74,38 @@ public class Dbh2Manager {
 		java.nio.file.Files.writeString(file.toPath(),
 				r.Argument.getRaftConfig(),
 				StandardOpenOption.CREATE);
-		dbh2s.computeIfAbsent(r.Argument.getRaftConfig(),
-				__ -> new Dbh2(this, raftConfig.getName(), raftConfig, null, false));
+		dbh2s.computeIfAbsent(r.Argument.getRaftConfig(), __ -> {
+			var dbh2 = new Dbh2(this, raftConfig.getName(), raftConfig, null, false);
+			proxyServer.addRaft(dbh2.getRaft());
+			return dbh2;
+		});
 		r.SendResult();
 		masterAgent.reportBucketCount(dbh2s.size());
 		return 0;
 	}
 
 	public class Service extends MasterAgent.Service {
+		private final ProxyServer proxyServer;
+
 		public Service(Config config) {
 			super(config);
+			proxyServer = null;
 		}
 
-		/*
-		private String getOneAcceptorIp() {
-			var outIp = new OutObject<String>(null);
-			getConfig().forEachAcceptor2((a) -> {
-				outIp.value = a.getIp();
-				return false;
-			});
-			if (null == outIp.value)
-				throw new RuntimeException("acceptor not found");
-			return outIp.value;
+		public Service(Config config, ProxyServer proxyServer) {
+			super(config);
+			this.proxyServer = proxyServer;
 		}
-		*/
 
 		@Override
 		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
-			var ipPort = super.getOneAcceptorAddress();
-			if (ipPort.getKey() == null || ipPort.getValue() == 0)
-				throw new RuntimeException("manager acceptor not setup.");
+
+			// 优先查找代理配置，
+			KV<String, Integer> ipPort =
+					null != proxyServer
+					? proxyServer.getOneAcceptorAddress()
+					: getOneAcceptorAddress();
 			Dbh2Manager.this.register(ipPort.getKey(), ipPort.getValue(), Dbh2Manager.this.dbh2s.size());
 		}
 	}
@@ -106,7 +113,8 @@ public class Dbh2Manager {
 	public Dbh2Manager(String home, String configXml) {
 		this.home = home;
 		var config = Config.load(configXml);
-		masterAgent = new MasterAgent(config, this::ProcessCreateBucketRequest, new Service(config));
+		proxyServer = new ProxyServer(config);
+		masterAgent = new MasterAgent(config, this::ProcessCreateBucketRequest, new Service(config, proxyServer));
 	}
 
 	private static void listRaftXmlFiles(File dir, ArrayList<File> out) {
@@ -131,10 +139,14 @@ public class Dbh2Manager {
 			var raftStr = new String(bytes, StandardCharsets.UTF_8);
 			var raftConfig = RaftConfig.loadFromString(raftStr);
 			raftConfig.setDbHome(raftXml.getParent());
-			dbh2s.computeIfAbsent(raftStr,
-					__ -> new Dbh2(this, raftConfig.getName(), raftConfig, null, false));
+			dbh2s.computeIfAbsent(raftStr, __ -> {
+				var dbh2 = new Dbh2(this, raftConfig.getName(), raftConfig, null, false);
+				proxyServer.addRaft(dbh2.getRaft());
+				return dbh2;
+			});
 		}
 		masterAgent.startAndWaitConnectionReady();
+		proxyServer.start();
 
 		loadMonitorTimer = Task.scheduleUnsafe(120_000, 120_000, this::loadMonitor);
 	}
@@ -177,6 +189,7 @@ public class Dbh2Manager {
 		if (null != loadMonitorTimer)
 			loadMonitorTimer.cancel(true);
 		ShutdownHook.remove(this);
+		proxyServer.stop();
 		masterAgent.stop();
 		for (var dbh2 : dbh2s.values())
 			dbh2.close();

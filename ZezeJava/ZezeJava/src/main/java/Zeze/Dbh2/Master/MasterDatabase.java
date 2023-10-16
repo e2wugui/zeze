@@ -146,8 +146,8 @@ public class MasterDatabase {
 			var portId = master.nextBucketPortId(e.data.getDbh2RaftAcceptorName());
 			sbRaft.append(portId).append("\"");
 
-			sbRaft.append(" RealHost=\"").append(e.data.getDbh2RaftAcceptorName()).append("\"");
-			sbRaft.append(" RealPort=\"").append(e.data.getPort()).append("\"");
+			sbRaft.append(" ProxyHost=\"").append(e.data.getDbh2RaftAcceptorName()).append("\"");
+			sbRaft.append(" ProxyPort=\"").append(e.data.getPort()).append("\"");
 
 			sbRaft.append("/>\n");
 			raftNames.add(e.data.getDbh2RaftAcceptorName() + ":" + portId);

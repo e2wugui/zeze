@@ -7,8 +7,8 @@ import Zeze.Net.Rpc;
  * 代理协议。
  */
 public class ProxyRequest extends Rpc<ProxyArgument, ProxyResult> {
-	public static final int ProtocolId_ = Bean.hash32(ProxyRequest.class.getName());
-	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
+	public static final int ProtocolId_ = Bean.hash32(ProxyRequest.class.getName()); // -2041182489
+	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 2253784807
 
 	public ProxyRequest() {
 		Argument = new ProxyArgument();

@@ -37,6 +37,10 @@ public class MasterAgent extends AbstractMasterAgent {
 		RegisterProtocols(this.service);
 	}
 
+	public Service getService() {
+		return service;
+	}
+
 	public void startAndWaitConnectionReady() {
 		try {
 			service.start();
