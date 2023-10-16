@@ -58,10 +58,13 @@ public class ProxyAgent extends Service {
 	 */
 	public Agent.ConnectorEx getLeader(RaftConfig.Node node) {
 		if (!node.getProxyHost().isBlank() && node.getProxyPort() != 0) {
-			var outNew = new OutObject<Connector>();
-			if (getConfig().tryGetOrAddConnector(node.getProxyHost(), node.getProxyPort(), true, outNew)) {
-				outNew.value.start();
+			var outConnector = new OutObject<Connector>();
+			if (getConfig().tryGetOrAddConnector(
+					node.getProxyHost(), node.getProxyPort(),
+					true, outConnector, Agent.ConnectorEx::new)) {
+				outConnector.value.start();
 			}
+			return (Agent.ConnectorEx)outConnector.value;
 		}
 		return null;
 	}

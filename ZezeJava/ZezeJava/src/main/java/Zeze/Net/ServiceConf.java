@@ -8,6 +8,8 @@ import java.util.function.Predicate;
 import Zeze.Config;
 import Zeze.Services.HandshakeOptions;
 import Zeze.Util.Action1;
+import Zeze.Util.Func2;
+import Zeze.Util.Func3;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.OutObject;
 import Zeze.Util.Str;
@@ -93,10 +95,21 @@ public final class ServiceConf {
 	 */
 	public boolean tryGetOrAddConnector(@NotNull String host, int port, boolean autoReconnect,
 										@Nullable OutObject<Connector> getOrAdd) {
+		return tryGetOrAddConnector(host, port, autoReconnect, getOrAdd, Connector::new);
+	}
+
+	public boolean tryGetOrAddConnector(@NotNull String host, int port, boolean autoReconnect,
+										@Nullable OutObject<Connector> getOrAdd,
+										Func3<String, Integer, Boolean, Connector> cf) {
 		var name = host + ":" + port;
 		final var addNew = new OutObject<Connector>();
 		var c = connectors.computeIfAbsent(name, __ -> {
-			Connector add = new Connector(host, port, autoReconnect);
+			Connector add;
+			try {
+				add = cf.call(host, port, autoReconnect);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
 			add.SetService(service);
 			addNew.value = add;
 			return add;

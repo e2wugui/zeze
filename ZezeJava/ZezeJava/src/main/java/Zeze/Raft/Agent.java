@@ -230,6 +230,10 @@ public final class Agent {
 		public ConnectorEx(String host, int port) {
 			super(host, port);
 		}
+
+		public ConnectorEx(String host, int port, boolean autoReconnect) {
+			super(host, port, autoReconnect);
+		}
 	}
 
 	public void stop() throws Exception {
