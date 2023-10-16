@@ -43,6 +43,11 @@ public class ProxyAgent extends Service {
 		var p = Protocol.decode(client::findProtocolFactoryHandle, ByteBuffer.Wrap(r.Argument.getRpcBinary()), outFactoryHandle);
 		if (null == p)
 			return Procedure.NotImplement;
+
+		if (p.getTypeId() == LeaderIs.TypeId_) {
+			var leaderIs = (LeaderIs)p;
+			leaderIs.setProxyRequest(r);
+		}
 		// 重新派发一次，有点浪费线程切换，以后再考虑优化。
 		client.dispatchProtocol(p, outFactoryHandle.value);
 		return 0;
@@ -97,7 +102,7 @@ public class ProxyAgent extends Service {
 
 		if (null != proxyAgent) {
 			if (null != leader) {
-				var proxyArgument = new ProxyArgument(leader.getRaftName(), rpc);
+				var proxyArgument = new ProxyArgument(leader.getName(), rpc);
 				var proxyRpc = new ProxyRequest(proxyArgument);
 				// leaderSocket 就是从leader中获取的，这里是为了在循环中发送的时候不用每次获取，优化！
 				return proxyRpc.Send(leaderSocket, (proxyRpcThis) -> {

@@ -227,8 +227,9 @@ public final class Agent {
 	public static class ConnectorEx extends Connector {
 		private String raftName;
 
-		public String getRaftName() {
-			return raftName;
+		@Override
+		public String getName() {
+			return raftName.isBlank() ? super.getName() : raftName;
 		}
 
 		// proxy new 的时候需要设置。
@@ -420,7 +421,6 @@ public final class Agent {
 		if (setLeader(r, node instanceof ConnectorEx ? (ConnectorEx)node : null))
 			resend(true);
 
-		// todo 代理模式，结果不能直接发送。
 		r.SendResultCode(0);
 		return Procedure.Success;
 	}

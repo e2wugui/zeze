@@ -87,7 +87,7 @@ public class Connector {
 		return port;
 	}
 
-	public final @NotNull String getName() {
+	public @NotNull String getName() {
 		return name;
 	}
 
