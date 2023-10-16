@@ -229,7 +229,7 @@ public final class Agent {
 
 		@Override
 		public String getName() {
-			return raftName.isBlank() ? super.getName() : raftName;
+			return (null == raftName || raftName.isBlank()) ? super.getName() : raftName;
 		}
 
 		// proxy new 的时候需要设置。
@@ -401,7 +401,7 @@ public final class Agent {
 			// 当前 Agent 没有 Leader 的配置，创建一个。
 			// 由于 Agent 在新增 node 时也会得到新配置广播，
 			// 一般不会发生这种情况。
-			var address = r.Argument.getLeaderId().split(":");
+			var address = r.Argument.getLeaderId().split("_");
 			if (address.length != 2)
 				return 0;
 

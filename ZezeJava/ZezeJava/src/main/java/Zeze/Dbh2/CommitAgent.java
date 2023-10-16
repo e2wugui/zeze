@@ -26,7 +26,7 @@ public class CommitAgent extends AbstractCommitAgent {
 	private final Service service;
 
 	private AsyncSocket connect(String host, int port) {
-		var name = host + ":" + port;
+		var name = host + "_" + port;
 		var connector = agents.computeIfAbsent(name, __ -> {
 			var out = new OutObject<Connector>();
 			if (service.getConfig().tryGetOrAddConnector(host, port, true, out)) {

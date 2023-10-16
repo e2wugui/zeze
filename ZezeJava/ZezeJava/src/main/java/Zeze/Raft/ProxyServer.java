@@ -3,6 +3,7 @@ package Zeze.Raft;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Config;
+import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
@@ -99,15 +100,19 @@ public class ProxyServer extends Service {
 			var proxyArgument = new ProxyArgument(raftName, rpc);
 			var proxyRpc = new ProxyRequest(proxyArgument);
 			return proxyRpc.Send(sender, (proxyRpcThis) -> {
-				var outFh = new OutObject<ProtocolFactoryHandle<?>>();
-				var resultRpc = Protocol.decode(
-						localService::findProtocolFactoryHandle,
-						ByteBuffer.Wrap(proxyRpc.Result.getData()),
-						outFh);
-				if (null != resultRpc && null != rpc.getResponseHandle()) {
-					@SuppressWarnings("rawtypes")
-					var originHandle = (ProtocolHandle)rpc.getResponseHandle();
-					localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
+				if (proxyRpc.getResultCode() == 0) {
+					var outFh = new OutObject<ProtocolFactoryHandle<?>>();
+					var resultRpc = Protocol.decode(
+							localService::findProtocolFactoryHandle,
+							ByteBuffer.Wrap(proxyRpc.Result.getData()),
+							outFh);
+					if (null != resultRpc && null != rpc.getResponseHandle()) {
+						@SuppressWarnings("rawtypes")
+						var originHandle = (ProtocolHandle)rpc.getResponseHandle();
+						localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
+					}
+				} else {
+					logger.error("Server ProxyRequest error={}", IModule.getErrorCode(proxyRpc.getResultCode()));
 				}
 				return 0;
 			});

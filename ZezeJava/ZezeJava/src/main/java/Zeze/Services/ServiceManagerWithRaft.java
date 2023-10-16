@@ -336,14 +336,14 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	private void addLoadObserver(String ip, int port, String sessionName) {
 		if (!ip.isEmpty() && port != 0) {
-			var loadObservers = tableLoadObservers.getOrAdd(ip + ":" + port);
+			var loadObservers = tableLoadObservers.getOrAdd(ip + "_" + port);
 			loadObservers.getObservers().add(sessionName);
 		}
 	}
 
 	@Override
 	protected long ProcessSetServerLoadRequest(SetServerLoad r) {
-		var loadObservers = tableLoadObservers.getOrAdd(r.Argument.ip + ":" + r.Argument.port);
+		var loadObservers = tableLoadObservers.getOrAdd(r.Argument.ip + "_" + r.Argument.port);
 		var observers = loadObservers.getObservers();
 
 		var set = new SetServerLoad();

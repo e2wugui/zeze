@@ -17,7 +17,7 @@ public class Dbh2Transaction implements Closeable {
 
 	@Override
 	public String toString() {
-		return batch.getQueryIp() + ":" + batch.getQueryPort();
+		return batch.getQueryIp() + "_" + batch.getQueryPort();
 	}
 
 	public String getQueryIp() {

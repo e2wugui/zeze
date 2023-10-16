@@ -58,7 +58,7 @@ public class Dbh2Manager {
 
 	protected long ProcessCreateBucketRequest(CreateBucket r) throws Exception {
 		var raftConfig = RaftConfig.loadFromString(r.Argument.getRaftConfig());
-		var portId = Integer.parseInt(raftConfig.getName().split(":")[1]);
+		var portId = Integer.parseInt(raftConfig.getName().split("_")[1]);
 		var bucketDir = Path.of(
 				home,
 				r.Argument.getDatabaseName(),

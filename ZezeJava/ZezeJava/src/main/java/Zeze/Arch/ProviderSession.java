@@ -23,7 +23,7 @@ public class ProviderSession {
 	protected final ConcurrentHashMap<String, ConcurrentHashMap<String, ProviderModuleState>> ServiceReadyStates = new ConcurrentHashMap<>();
 
 	public @NotNull String getServerLoadName() {
-		return serverLoadIp + ":" + serverLoadPort;
+		return serverLoadIp + "_" + serverLoadPort;
 	}
 
 	@Override

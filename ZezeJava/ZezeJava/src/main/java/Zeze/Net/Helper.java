@@ -146,7 +146,7 @@ public final class Helper {
 
 	public static boolean isPrivateIPv6(String ipAddress) {
 		boolean isPrivateIPv6 = false;
-		String[] ipParts = ipAddress.trim().split(":");
+		String[] ipParts = ipAddress.trim().split("_");
 		if (ipParts.length > 0) {
 			String firstBlock = ipParts[0];
 			String prefix = firstBlock.substring(0, 2);

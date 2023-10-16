@@ -80,7 +80,7 @@ public final class ServiceConf {
 	}
 
 	public @Nullable Connector findConnector(@NotNull String host, int port) {
-		return findConnector(host + ":" + port);
+		return findConnector(host + "_" + port);
 	}
 
 	/**
@@ -100,7 +100,7 @@ public final class ServiceConf {
 	public boolean tryGetOrAddConnector(@NotNull String host, int port, boolean autoReconnect,
 										@Nullable OutObject<Connector> getOrAdd,
 										Func3<String, Integer, Boolean, Connector> cf) {
-		var name = host + ":" + port;
+		var name = host + "_" + port;
 		final var addNew = new OutObject<Connector>();
 		var c = connectors.computeIfAbsent(name, __ -> {
 			Connector add;

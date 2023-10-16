@@ -45,7 +45,7 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	public synchronized void removeServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
-		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
+		var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
 		var conn = getConfig().findConnector(connName);
 		if (conn != null) {
 			conn.stop();
@@ -58,7 +58,7 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	public synchronized void addServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
-		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
+		var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
 		var ps = providerByLoadName.get(connName);
 		if (ps != null) {
 			// connection has ready.
@@ -91,7 +91,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		var current = new HashMap<String, BServiceInfo>();
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
 			addServer(ss, pm);
-			current.put(pm.getPassiveIp() + ":" + pm.getPassivePort(), pm);
+			current.put(pm.getPassiveIp() + "_" + pm.getPassivePort(), pm);
 		}
 		getConfig().forEachConnector(c -> current.remove(c.getName()));
 		for (var pm : current.values()) {

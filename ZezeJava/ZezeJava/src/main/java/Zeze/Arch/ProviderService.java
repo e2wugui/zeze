@@ -52,7 +52,7 @@ public class ProviderService extends HandshakeClient {
 	}
 
 	public static @NotNull String getLinkName(@NotNull BServiceInfo serviceInfo) {
-		return serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
+		return serviceInfo.getPassiveIp() + "_" + serviceInfo.getPassivePort();
 	}
 
 	public void kick(@NotNull String linkName, long linkSid, int code, @NotNull String desc) {

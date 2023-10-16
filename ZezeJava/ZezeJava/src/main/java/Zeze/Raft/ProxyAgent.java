@@ -2,6 +2,7 @@ package Zeze.Raft;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Config;
+import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
@@ -107,15 +108,19 @@ public class ProxyAgent extends Service {
 				var proxyRpc = new ProxyRequest(proxyArgument);
 				// leaderSocket 就是从leader中获取的，这里是为了在循环中发送的时候不用每次获取，优化！
 				return proxyRpc.Send(leaderSocket, (proxyRpcThis) -> {
-					var outFh = new OutObject<Service.ProtocolFactoryHandle<?>>();
-					var resultRpc = Protocol.decode(
-							localService::findProtocolFactoryHandle,
-							ByteBuffer.Wrap(proxyRpc.Result.getData()),
-							outFh);
-					if (null != resultRpc && null != rpc.getResponseHandle()) {
-						@SuppressWarnings("rawtypes")
-						var originHandle = (ProtocolHandle)rpc.getResponseHandle();
-						localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
+					if (proxyRpc.getResultCode() == 0) {
+						var outFh = new OutObject<Service.ProtocolFactoryHandle<?>>();
+						var resultRpc = Protocol.decode(
+								localService::findProtocolFactoryHandle,
+								ByteBuffer.Wrap(proxyRpc.Result.getData()),
+								outFh);
+						if (null != resultRpc && null != rpc.getResponseHandle()) {
+							@SuppressWarnings("rawtypes")
+							var originHandle = (ProtocolHandle)rpc.getResponseHandle();
+							localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
+						}
+					} else {
+						logger.error("Agent ProxyRequest error={}", IModule.getErrorCode(proxyRpc.getResultCode()));
 					}
 					return 0;
 				});

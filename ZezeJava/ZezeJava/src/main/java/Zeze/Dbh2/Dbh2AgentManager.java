@@ -168,7 +168,7 @@ public class Dbh2AgentManager {
 		return masterAgent.computeIfAbsent(masterName, _masterName -> {
 			var config1 = new Config();
 			var serviceConf = new ServiceConf();
-			var ipPort = _masterName.split(":");
+			var ipPort = _masterName.split("_");
 			config1.getServiceConfMap().put(MasterAgent.eServiceName, serviceConf);
 			serviceConf.tryGetOrAddConnector(ipPort[0], Integer.parseInt(ipPort[1]), true, null);
 			var m = new MasterAgent(config1);

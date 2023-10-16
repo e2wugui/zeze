@@ -10,7 +10,7 @@ public final class BServerLoad extends Bean {
 	public Binary param = Binary.Empty;
 
 	public String getName() {
-		return ip + ":" + port;
+		return ip + "_" + port;
 	}
 
 	@Override

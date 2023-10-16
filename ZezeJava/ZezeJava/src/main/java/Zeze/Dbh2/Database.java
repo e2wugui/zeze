@@ -30,7 +30,7 @@ public class Database extends Zeze.Transaction.Database {
 		// dbh2://ip:port/databaseName?user=xxx&passwd=xxx
 		try {
 			var url = new URI(getDatabaseUrl());
-			masterName = url.getHost() + ":" + url.getPort();
+			masterName = url.getHost() + "_" + url.getPort();
 			databaseName = new java.io.File(url.getPath()).getName();
 			if (databaseName.contains("@"))
 				throw new RuntimeException("'@' is reserve.");

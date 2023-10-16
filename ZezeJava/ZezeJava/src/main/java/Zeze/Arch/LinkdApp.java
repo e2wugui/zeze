@@ -97,13 +97,13 @@ public class LinkdApp {
 	}
 
 	public String getName() {
-		return linkdServiceName + "." + providerIp + ":" + providerPort;
+		return linkdServiceName + "." + providerIp + "_" + providerPort;
 	}
 
 	public void registerService(Binary extra) throws Exception {
 		this.commandConsoleService.start();
 
-		var identity = "@" + providerIp + ":" + providerPort;
+		var identity = "@" + providerIp + "_" + providerPort;
 		zeze.getServiceManager().registerService(linkdServiceName, identity,
 				providerIp, providerPort, extra);
 	}

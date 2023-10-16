@@ -531,7 +531,7 @@ public final class ServiceManagerServer implements Closeable {
 
 	private void addLoadObserver(String ip, int port, AsyncSocket sender) {
 		if (!ip.isEmpty() && port != 0)
-			loads.computeIfAbsent(ip + ":" + port, __ -> new LoadObservers(this)).addObserver(sender.getSessionId());
+			loads.computeIfAbsent(ip + "_" + port, __ -> new LoadObservers(this)).addObserver(sender.getSessionId());
 	}
 
 	private long processRegister(Register r) {

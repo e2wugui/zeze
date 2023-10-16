@@ -190,7 +190,7 @@ public final class RaftConfig {
 		for (var node : nodes) {
 			if (node.isEmpty())
 				continue;
-			var ipPort = node.split(":");
+			var ipPort = node.split("_");
 			var proxyIp = ipPort.length > 2 ? ipPort[2] : "";
 			var proxyPort = ipPort.length > 3 ? Integer.parseInt(ipPort[3]) : 0;
 			addNode(new Node(ipPort[0], Integer.parseInt(ipPort[1]), proxyIp, proxyPort));
@@ -367,7 +367,7 @@ public final class RaftConfig {
 		}
 
 		public String getName() {
-			return host + ':' + port;
+			return host + '_' + port;
 		}
 
 		void save(Document doc, Element parent) {
@@ -383,7 +383,7 @@ public final class RaftConfig {
 
 		@Override
 		public String toString() {
-			return host + ":" + port + ":" + proxyHost + ":" + proxyPort;
+			return host + "_" + port + "_" + proxyHost + "_" + proxyPort;
 		}
 	}
 
