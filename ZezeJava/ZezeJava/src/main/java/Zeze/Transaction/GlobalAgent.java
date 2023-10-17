@@ -136,7 +136,7 @@ public final class GlobalAgent implements IGlobalAgent {
 
 		agents = new Agent[hostNameOrAddress.length];
 		for (int i = 0; i < hostNameOrAddress.length; i++) {
-			var hp = hostNameOrAddress[i].split(":", -1);
+			var hp = hostNameOrAddress[i].split("_", -1);
 			agents[i] = new Agent(zeze, client, hp[0], hp.length > 1 ? Integer.parseInt(hp[1]) : port, i);
 		}
 	}

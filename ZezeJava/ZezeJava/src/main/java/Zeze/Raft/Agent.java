@@ -359,6 +359,7 @@ public final class Agent {
 		} else {
 			proxyAgent.addAgent(this);
 			leader = proxyAgent.getLeader(raftConfig.getNodes().values().iterator().next());
+			logger.info("proxy first leader {}", leader.getName());
 		}
 
 		this.client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
@@ -534,6 +535,7 @@ public final class Agent {
 				return false;
 			}
 
+			logger.info("proxy set leader {} -> {}", leader.getName(), newLeader.getName());
 			leader = newLeader; // change current Leader
 			term = r.Argument.getTerm();
 			if (newLeader != null)
