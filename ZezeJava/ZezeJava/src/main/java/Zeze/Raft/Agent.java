@@ -535,7 +535,7 @@ public final class Agent {
 				return false;
 			}
 
-			logger.info("proxy set leader {} -> {}", leader.getName(), newLeader.getName());
+			logger.info("proxy set leader {} -> {}", null != leader ? leader.getName() : "", newLeader.getName());
 			leader = newLeader; // change current Leader
 			term = r.Argument.getTerm();
 			if (newLeader != null)
