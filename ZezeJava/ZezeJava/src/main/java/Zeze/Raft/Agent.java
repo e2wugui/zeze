@@ -538,8 +538,7 @@ public final class Agent {
 			logger.info("proxy set leader {} -> {}", null != leader ? leader.getName() : "", newLeader.getName());
 			leader = newLeader; // change current Leader
 			term = r.Argument.getTerm();
-			if (newLeader != null)
-				newLeader.start(); // try connect immediately
+			newLeader.start(); // try connect immediately
 			Action1<Agent> onSetLeader = this.onSetLeader;
 			if (onSetLeader != null)
 				onSetLeader.run(this);
