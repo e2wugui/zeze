@@ -54,9 +54,10 @@ public class Log4jFile {
 
 	private boolean detailSeek(long time) throws IOException {
 		while (hasNext()) {
-			var log = next();
-			if (log.getTime() >= time)
+			// detailSeek没有处理当前数据，是定位，所以需要先判断当前数据，之后才next。
+			if (nextLog.getTime() >= time)
 				return true;
+			nextLog = tryNext();
 		}
 		return false;
 	}
