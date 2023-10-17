@@ -86,7 +86,7 @@ public class LinkdApp {
 
 	private void keepAliveCheckTimer() throws Exception {
 		var now = System.currentTimeMillis();
-		var timeout = PropertiesHelper.getInt("KeepAliveTimeout", 600_000);
+		var timeout = PropertiesHelper.getInt("KeepAliveTimeout", 180_000);
 		linkdService.foreach((link) -> {
 			var session = (LinkdUserSession)link.getUserState();
 			if (null != session && session.keepAliveTimeout(now, timeout)) {

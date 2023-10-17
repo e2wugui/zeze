@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
-import javax.validation.constraints.Null;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Handshake.Constant;
 import Zeze.Util.Action0;
@@ -178,9 +177,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return null;
 	}
 
-	public @Nullable InetAddress getLocalInetAddress() { // 已经close的情况下返回null
+	public @Nullable InetSocketAddress getLocalInet() { // 已经close的情况下返回null
 		SocketAddress sa = getLocalAddress();
-		return sa instanceof InetSocketAddress ? ((InetSocketAddress)sa).getAddress() : null;
+		return sa instanceof InetSocketAddress ? (InetSocketAddress)sa : null;
 	}
 
 	public @Nullable SocketAddress getRemoteAddress() { // 连接成功前返回null, 成功后即使close也不会返回null
@@ -190,11 +189,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public @Nullable InetSocketAddress getRemoteInet() {
 		SocketAddress sa = remoteAddress;
 		return sa instanceof InetSocketAddress ? ((InetSocketAddress)sa) : null;
-	}
-
-	public @Nullable InetAddress getRemoteInetAddress() { // 连接成功前返回null, 成功后即使close也不会返回null
-		SocketAddress sa = remoteAddress;
-		return sa instanceof InetSocketAddress ? ((InetSocketAddress)sa).getAddress() : null;
 	}
 
 	/**

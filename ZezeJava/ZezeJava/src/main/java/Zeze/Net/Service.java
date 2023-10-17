@@ -522,8 +522,8 @@ public class Service {
 	@SuppressWarnings("RedundantThrows")
 	public void dispatchUnknownProtocol(@NotNull AsyncSocket so, int moduleId, int protocolId, @NotNull ByteBuffer data)
 			throws Exception {
-		throw new UnsupportedOperationException(
-				this.getName() + " Unknown Protocol (" + moduleId + ", " + protocolId + ") size=" + data.size() + so);
+		throw new UnsupportedOperationException(getName() + " Unknown Protocol (" + moduleId + ", " + protocolId
+				+ ") size=" + data.size() + " so=" + so);
 	}
 
 	@SuppressWarnings("RedundantThrows")

@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import Zeze.Util.GlobalTimer;
 import Zeze.Util.Task;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -39,8 +40,7 @@ public class Netty implements Closeable {
 	private final @NotNull EventLoopGroup eventLoopGroup;
 
 	public static @NotNull String getDate() {
-		var timestamp = System.currentTimeMillis();
-		var second = timestamp / 1000;
+		var second = GlobalTimer.getCurrentMillis() / 1000;
 		if (second == lastSecond)
 			return lastDateStr;
 		var dateStr = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(

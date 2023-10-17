@@ -128,10 +128,10 @@ public class HandshakeBase extends Service {
 				BigInteger data = new BigInteger(p.Argument.encryptParam);
 				BigInteger rand = Helper.makeDHRandom();
 				byte[] material = Helper.computeDHKey(group, data, rand).toByteArray();
-				var localAddress = p.getSender().getLocalInetAddress();
+				var localInet = p.getSender().getLocalInet();
 				byte[] key = getConfig().getHandshakeOptions().getSecureIp() != null
 						? getConfig().getHandshakeOptions().getSecureIp()
-						: (localAddress != null ? localAddress.getAddress() : ByteBuffer.Empty);
+						: (localInet != null ? localInet.getAddress().getAddress() : ByteBuffer.Empty);
 				logger.debug("{} localIp={}", p.getSender().getSessionId(), Arrays.toString(key));
 				int half = material.length / 2;
 
@@ -204,9 +204,9 @@ public class HandshakeBase extends Service {
 				if (p.Argument.encryptType == Constant.eEncryptTypeAes) {
 					byte[] material = Helper.computeDHKey(1,
 							new BigInteger(p.Argument.encryptParam), ctx.dhRandom).toByteArray();
-					var remoteAddress = p.getSender().getRemoteInetAddress();
+					var remoteInet = p.getSender().getRemoteInet();
 
-					byte[] key = remoteAddress != null ? remoteAddress.getAddress() : ByteBuffer.Empty;
+					byte[] key = remoteInet != null ? remoteInet.getAddress().getAddress() : ByteBuffer.Empty;
 					logger.debug("{} remoteIp={}", p.getSender().getSessionId(), Arrays.toString(key));
 
 					int half = material.length / 2;

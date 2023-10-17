@@ -1521,18 +1521,19 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
 		var session = ProviderUserSession.get(rpc);
+		var account = session.getAccount();
 
-		var online = getOrAddOnline(session.getAccount());
-		var local = _tlocal.getOrAdd(session.getAccount());
+		var online = getOrAddOnline(account);
+		var local = _tlocal.getOrAdd(account);
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
-		Transaction.whileCommit(() -> putLocalActiveTime(session.getAccount()));
+		Transaction.whileCommit(() -> putLocalActiveTime(account));
 		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 
 		var onlineAccount = online.getAccount();
 		var isBound = !onlineAccount.isEmpty();
 		if (!isBound)
-			online.setAccount(session.getAccount()); // 这里依赖loginTrigger做进一步的角色是否属于账号的验证,验证失败会回滚
-		else if (!onlineAccount.equals(session.getAccount()))
+			online.setAccount(account); // 这里依赖loginTrigger做进一步的角色是否属于账号的验证,验证失败会回滚
+		else if (!onlineAccount.equals(account))
 			return Procedure.LogicError;
 
 		if (isBound && loginOnline.getLoginVersion() != loginOnline.getLogoutVersion()) {
@@ -1543,9 +1544,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
 				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 						BKick.ErrorDuplicateLogin,
-						"duplicate login " + session.getAccount() + ":" + rpc.Argument.getClientId());
+						"duplicate login " + account + ":" + rpc.Argument.getClientId());
 			}
-			var ret = logoutTrigger(session.getAccount(), rpc.Argument.getClientId());
+			var ret = logoutTrigger(account, rpc.Argument.getClientId());
 			if (0 != ret)
 				return ret;
 			// 发生了补Logout事件，重做Login。
@@ -1572,13 +1573,13 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		loginOnline.setReliableNotifyConfirmIndex(0);
 		loginOnline.setReliableNotifyIndex(0);
 		loginOnline.getReliableNotifyMark().clear();
-		openQueue(session.getAccount(), rpc.Argument.getClientId()).clear();
+		openQueue(account, rpc.Argument.getClientId()).clear();
 
 		// var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
 		loginOnline.setServerId(providerApp.zeze.getConfig().getServerId());
 
 		session.sendResponseWhileCommit(rpc);
-		return loginTrigger(session.getAccount(), rpc.Argument.getClientId());
+		return loginTrigger(account, rpc.Argument.getClientId());
 	}
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
@@ -1597,18 +1598,19 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
 		var session = ProviderUserSession.get(rpc);
+		var account = session.getAccount();
 
-		var online = getOrAddOnline(session.getAccount());
-		var local = _tlocal.getOrAdd(session.getAccount());
+		var online = getOrAddOnline(account);
+		var local = _tlocal.getOrAdd(account);
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
-		Transaction.whileCommit(() -> putLocalActiveTime(session.getAccount()));
+		Transaction.whileCommit(() -> putLocalActiveTime(account));
 		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
 
 		var onlineAccount = online.getAccount();
 		var isBound = !onlineAccount.isEmpty();
 		if (!isBound)
-			online.setAccount(session.getAccount()); // 这里依赖reloginTrigger做进一步的角色是否属于账号的验证,验证失败会回滚
-		else if (!onlineAccount.equals(session.getAccount()))
+			online.setAccount(account); // 这里依赖reloginTrigger做进一步的角色是否属于账号的验证,验证失败会回滚
+		else if (!onlineAccount.equals(account))
 			return Procedure.LogicError;
 
 		if (isBound && loginOnline.getLoginVersion() != loginOnline.getLogoutVersion()) {
@@ -1618,9 +1620,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
 				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 						BKick.ErrorDuplicateLogin,
-						"duplicate login " + session.getAccount() + ":" + rpc.Argument.getClientId());
+						"duplicate login " + account + ":" + rpc.Argument.getClientId());
 			}
-			var ret = logoutTrigger(session.getAccount(), rpc.Argument.getClientId());
+			var ret = logoutTrigger(account, rpc.Argument.getClientId());
 			if (0 != ret)
 				return ret;
 			// 发生了补Logout事件，重做ReLogin。
@@ -1650,11 +1652,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
 		session.sendResponseWhileCommit(rpc);
-		var ret = reloginTrigger(session.getAccount(), rpc.Argument.getClientId());
+		var ret = reloginTrigger(account, rpc.Argument.getClientId());
 		if (0 != ret)
 			return ret;
 
-		var syncResultCode = reliableNotifySync(session.getAccount(), rpc.Argument.getClientId(),
+		var syncResultCode = reliableNotifySync(account, rpc.Argument.getClientId(),
 				session, rpc.Argument.getReliableNotifyConfirmIndex(), true);
 
 		if (syncResultCode != ResultCodeSuccess)

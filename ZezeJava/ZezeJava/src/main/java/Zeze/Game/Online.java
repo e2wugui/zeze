@@ -1681,9 +1681,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var dispatch = ProviderImplement.localDispatch();
 		if (dispatch != null)
 			dispatch.Argument.setOnlineSetName(multiInstanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
-		var online = getOrAddOnline(rpc.Argument.getRoleId());
-		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
-		Transaction.whileCommit(() -> putLocalActiveTime(System.currentTimeMillis()));
+		var roleId = rpc.Argument.getRoleId();
+		var online = getOrAddOnline(roleId);
+		var local = _tlocal.getOrAdd(roleId);
+		Transaction.whileCommit(() -> putLocalActiveTime(roleId));
 		var link = online.getLink();
 
 		var onlineAccount = online.getAccount();
@@ -1699,7 +1700,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 						BKick.ErrorDuplicateLogin, "duplicate role login");
 			}
-			var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.LOGIN);
+			var ret = logoutTrigger(roleId, LogoutReason.LOGIN);
 			if (0 != ret)
 				return ret;
 			// 发生了补Logout事件，重做Login。
@@ -1718,12 +1719,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			//setUserState.Argument.getUserState().setLoginVersion(loginVersion);
 			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
-			setUserState.Argument.getUserState().setContext(String.valueOf(rpc.Argument.getRoleId()));
+			setUserState.Argument.getUserState().setContext(String.valueOf(roleId));
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
 		online.getReliableNotifyMark().clear();
-		openQueue(rpc.Argument.getRoleId()).clear();
+		openQueue(roleId).clear();
 		online.setReliableNotifyConfirmIndex(0);
 		online.setReliableNotifyIndex(0);
 
@@ -1732,7 +1733,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 		// Login的结果先提交进事务，然后再触发loginTrigger，这样loginTrigger中发送的协议排在后面。
 		session.sendResponseWhileCommit(rpc);
-		return loginTrigger(session.getAccount(), rpc.Argument.getRoleId());
+		return loginTrigger(session.getAccount(), roleId);
 	}
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
@@ -1767,9 +1768,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var dispatch = ProviderImplement.localDispatch();
 		if (dispatch != null)
 			dispatch.Argument.setOnlineSetName(multiInstanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
-		var online = getOrAddOnline(rpc.Argument.getRoleId());
-		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
-		Transaction.whileCommit(() -> putLocalActiveTime(System.currentTimeMillis()));
+		var roleId = rpc.Argument.getRoleId();
+		var online = getOrAddOnline(roleId);
+		var local = _tlocal.getOrAdd(roleId);
+		Transaction.whileCommit(() -> putLocalActiveTime(roleId));
 		var link = online.getLink();
 
 		var onlineAccount = online.getAccount();
@@ -1785,7 +1787,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 						BKick.ErrorDuplicateLogin, "duplicate role login");
 			}
-			var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.RE_LOGIN);
+			var ret = logoutTrigger(roleId, LogoutReason.RE_LOGIN);
 			if (0 != ret)
 				return ret;
 			// 发生了补Logout事件，重做ReLogin。
@@ -1804,7 +1806,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			//setUserState.Argument.getUserState().setLoginVersion(loginVersion);
 			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
-			setUserState.Argument.getUserState().setContext(String.valueOf(rpc.Argument.getRoleId()));
+			setUserState.Argument.getUserState().setContext(String.valueOf(roleId));
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
@@ -1814,11 +1816,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
 		session.sendResponseWhileCommit(rpc);
 
-		var ret = reloginTrigger(session.getAccount(), rpc.Argument.getRoleId());
+		var ret = reloginTrigger(session.getAccount(), roleId);
 		if (0 != ret)
 			return ret;
 
-		var syncResultCode = reliableNotifySync(rpc.Argument.getRoleId(), session,
+		var syncResultCode = reliableNotifySync(roleId, session,
 				rpc.Argument.getReliableNotifyConfirmIndex());
 		if (syncResultCode != ResultCodeSuccess)
 			return errorCode(syncResultCode);
