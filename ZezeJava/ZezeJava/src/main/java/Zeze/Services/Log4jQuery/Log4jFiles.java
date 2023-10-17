@@ -50,9 +50,10 @@ public class Log4jFiles {
 
 	private void slowSeek(long time) throws IOException {
 		while (hasNext()) {
-			var log = next();
+			var log = current.current();
 			if (log.getTime() >= time)
 				break;
+			next();
 		}
 	}
 

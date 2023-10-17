@@ -66,6 +66,10 @@ public class Log4jFile {
 		return nextLog != null;
 	}
 
+	public Log4jLog current() {
+		return nextLog;
+	}
+
 	public Log4jLog next() throws IOException {
 		var next = nextLog;
 		nextLog = tryNext();

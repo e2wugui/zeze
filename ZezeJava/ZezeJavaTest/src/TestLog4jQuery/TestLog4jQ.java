@@ -8,7 +8,7 @@ import Zeze.Services.Log4jQuery.Log4jLog;
 import Zeze.Services.Log4jQuery.Log4jSession;
 import org.junit.Test;
 
-public class TestLog4jQuery {
+public class TestLog4jQ {
 	@Test
 	public void testSearch() throws IOException {
 		var beginTime = Log4jLog.parseTime("23-08-25 09:19:00.801");
