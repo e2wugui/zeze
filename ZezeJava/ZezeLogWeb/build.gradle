@@ -1,0 +1,15 @@
+apply from: '../ZezeJava/build.gradle'
+
+dependencies {
+    implementation project(":ZezeJava")
+    implementation 'com.alibaba:fastjson:1.2.83'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "src"
+            srcDir "Gen"
+        }
+    }
+}
