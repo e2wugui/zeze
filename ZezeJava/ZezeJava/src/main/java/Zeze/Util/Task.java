@@ -254,7 +254,7 @@ public final class Task {
 
 	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
 									 @Nullable DispatchMode mode) {
-		return executeUnsafe(action, name, mode, defaultTimeout);
+		executeUnsafe(action, name, mode, defaultTimeout);
 	}
 
 	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
