@@ -33,10 +33,24 @@ Zege Task
 ----------------------------------------------------------------------------------------------------------
 Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot alter 测试，需要mysql。
-TlsAcceptor,TlsConnector,
+Zeze.Auth: protocol 权限
+1. 参考http的auth和acl，service dispatch 前增加调用：String authCheck(String account, moduleId, protocolId)。return null表示没有权限，否则表示权限detail。
+2. auth detail是否需要？authCheck已经能控制每条协议权限，有这个detail，可以把它传到protocol.authDetail中，当协议实现的时候做更细权限控制。
+3. Service 接口（例子）：authCheck，默认返回""；
+4. 第三方acl系统接入：为了接入这些可能的第三方系统，moduleId,protocolId可能需要合并成typeId。但是分开的好处是允许按module分配权限。
+5. zeze 所需要的接口很小，"acl"管理需要一个系统。要使用第三方acl管理系统，必然做不了特殊的东西，所以考虑：：：自己写一个管理系统？
+6. "acl"用account，暂不考虑roleid，因为游戏系统看起来不需要这么细的权限控制，只有企业系统才可能需要。
+7. authCheck可能不能做成service的接口，因为account只有再Provider.Dispatch里面才有。做成provider的扩展？这样权限检查就只能检查来自客户端，功能有所限制，但符合http性质了。
+
 ------------------------------------------------------------------------------------------------------------------------------
 2023/10/27 v1.3.5 Raft & Dbh2; For IPV6 Format;
 ------------------------------------------------------------------------------------------------------------------------------
+为了隔离代码，zeze部分代码的配置在创建时候拷贝一份传值进去，为了以后可能的支持配置重新加载，让配置尽可能“马上”生效，需要把配置的引用尽量改成对Config的直接读取。
+这里存在几个问题：1. 马上应该是尽量的；2. Config里面的一个配置对象通常保存在容器中，每次使用需要查询一次，虽然是map，有没有好办法优化这个。
+3. TableConf，ServiceConf都是把引用传入，以后不会跟随配置装载发生变化。这里考虑的优化是Config.reload实现的时候复用原来存在的TableConf,ServiceConf变量。
+【配置尽量支持热更结论：不支持了，改成，当需要热更支持时，使用专门的控制台命令去修改，并且修改相应的支持。因为尽量支持热更没什么用，也很难。】
+
+Tls 加入 AsyncSocket，可以利用 Netty 的类或者参考其中的实现，迁移代码出来。@张路
 Connector & RaftConfig.Node 编码方式 host:port 在ipv6下有问题，需要改造。
 1. raftagent会建立所有node的连接并保持，由于已有新链接建立能力，发现leader后可以关闭其他node的连接；
 2. manager上有多个桶，每个桶都有独立连接，可以考虑用代理隧道复用连接使得一个manager只需要一个连接。
