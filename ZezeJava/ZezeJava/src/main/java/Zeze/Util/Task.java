@@ -206,6 +206,11 @@ public final class Task {
 
 	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name,
 											   @Nullable DispatchMode mode) {
+		return runUnsafe(action, name, mode, defaultTimeout);
+	}
+
+	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name,
+											   @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			var future = new TaskCompletionSource<Long>();
@@ -228,7 +233,7 @@ public final class Task {
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
 				//noinspection ConstantValue
@@ -249,6 +254,11 @@ public final class Task {
 
 	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
 									 @Nullable DispatchMode mode) {
+		return executeUnsafe(action, name, mode, defaultTimeout);
+	}
+
+	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
+									 @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
@@ -268,7 +278,7 @@ public final class Task {
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
 				//noinspection ConstantValue
@@ -292,9 +302,13 @@ public final class Task {
 	}
 
 	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action) {
+		return scheduleUnsafe(initialDelay, action, defaultTimeout);
+	}
+
+	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action, long timeout) {
 		return threadPoolScheduled.schedule(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
 				logger.error("schedule", e);
@@ -307,9 +321,13 @@ public final class Task {
 	}
 
 	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func) {
+		return scheduleUnsafe(initialDelay, func, defaultTimeout);
+	}
+
+	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func, long timeout) {
 		return threadPoolScheduled.schedule(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return func.call();
 			} catch (Throwable e) { // logger.error
 				logger.error("schedule", e);
@@ -363,11 +381,15 @@ public final class Task {
 	}
 
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
+		return scheduleUnsafe(initialDelay, period, action, defaultTimeout);
+	}
+
+	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action, long timeout) {
 		var future = new TimerFuture<>();
 		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			future.lock();
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				//System.out.println(action);
 				if (future.isCancelled())
 					return;
@@ -548,6 +570,12 @@ public final class Task {
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 												  @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 												  @Nullable DispatchMode mode) {
+		return runUnsafe(func, p, actionWhenError, aName, mode, defaultTimeout);
+	}
+
+	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+												  @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+												  @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(func, p, actionWhenError, aName));
@@ -555,7 +583,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return call(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
@@ -581,13 +609,19 @@ public final class Task {
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 									 @Nullable DispatchMode mode) {
+		executeUnsafe(func, p, actionWhenError, aName, mode, defaultTimeout);
+	}
+
+	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+									 @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(func, p, actionWhenError, aName);
 			return;
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				call(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
@@ -708,6 +742,12 @@ public final class Task {
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 												  @Nullable Action2<Protocol<?>, Long> actionWhenError,
 												  @Nullable DispatchMode mode) {
+		return runUnsafe(procedure, from, actionWhenError, mode, defaultTimeout);
+	}
+
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+												  @Nullable Action2<Protocol<?>, Long> actionWhenError,
+												  @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure, from, actionWhenError));
@@ -715,7 +755,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return call(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -728,6 +768,13 @@ public final class Task {
 												  @NotNull OutObject<Protocol<?>> outProtocol,
 												  @Nullable Action2<Protocol<?>, Long> actionWhenError,
 												  @Nullable DispatchMode mode) {
+		return runUnsafe(procedure, outProtocol, actionWhenError, mode, defaultTimeout);
+	}
+
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure,
+												  @NotNull OutObject<Protocol<?>> outProtocol,
+												  @Nullable Action2<Protocol<?>, Long> actionWhenError,
+												  @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure, outProtocol, actionWhenError));
@@ -735,7 +782,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return call(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -764,13 +811,19 @@ public final class Task {
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 									 @Nullable Action2<Protocol<?>, Long> actionWhenError,
 									 @Nullable DispatchMode mode) {
+		executeUnsafe(procedure, from, actionWhenError, mode, defaultTimeout);
+	}
+
+	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+									 @Nullable Action2<Protocol<?>, Long> actionWhenError,
+									 @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(procedure, from, actionWhenError);
 			return;
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				call(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -781,13 +834,19 @@ public final class Task {
 	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 									 @Nullable Action2<Protocol<?>, Long> actionWhenError,
 									 @Nullable DispatchMode mode) {
+		executeUnsafe(procedure, outProtocol, actionWhenError, mode, defaultTimeout);
+	}
+
+	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+									 @Nullable Action2<Protocol<?>, Long> actionWhenError,
+									 @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(procedure, outProtocol, actionWhenError);
 			return;
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				call(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -833,6 +892,12 @@ public final class Task {
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure,
 															 @Nullable DispatchMode mode) {
+		return runRpcResponseUnsafe(procedure, mode, defaultTimeout);
+	}
+
+	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure,
+															 @Nullable DispatchMode mode,
+															 long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure));
@@ -840,7 +905,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> { // rpcResponseThreadPool
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return call(procedure);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -855,6 +920,11 @@ public final class Task {
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 															 @Nullable DispatchMode mode) {
+		return runRpcResponseUnsafe(func, p, mode, defaultTimeout);
+	}
+
+	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+															 @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(func, p));
@@ -862,7 +932,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> { // rpcResponseThreadPool
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return call(func, p);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", p != null ? p.getClass().getName() : null, e);
@@ -877,13 +947,19 @@ public final class Task {
 
 	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure,
 												@Nullable DispatchMode mode) {
+		executeRpcResponseUnsafe(procedure, mode, defaultTimeout);
+	}
+
+	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure,
+												@Nullable DispatchMode mode,
+												long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(procedure);
 			return;
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> { // rpcResponseThreadPool
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				call(procedure);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", procedure, e);
@@ -897,13 +973,18 @@ public final class Task {
 
 	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 												@Nullable DispatchMode mode) {
+		executeRpcResponseUnsafe(func, p, mode, defaultTimeout);
+	}
+
+	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+												@Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(func, p);
 			return;
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> { // rpcResponseThreadPool
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(defaultTimeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				call(func, p);
 			} catch (Throwable e) { // logger.error
 				logger.error("{}", p != null ? p.getClass().getName() : null, e);
