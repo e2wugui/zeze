@@ -2,12 +2,12 @@ package Zeze.Services.Handshake;
 
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Decrypt2;
+import Zeze.Net.Digest;
 import Zeze.Net.Encrypt2;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
@@ -114,37 +114,39 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		this();
 		Argument.clientPubKey = clientPubKey;
 		Argument.serverPubKeyMd5 = getPubKeyMd5(serverPubKey);
-		try {
-			clientIvKey = new byte[32];
-			new SecureRandom().nextBytes(clientIvKey);
-			var pubKey = RSAPublicKeyImpl.newKey(RSAUtil.KeyType.RSA, null, new BigInteger(1, serverPubKey), rsaE);
-			Argument.encIvKey = Cert.encryptRsa(pubKey, clientIvKey);
-		} catch (GeneralSecurityException e) {
-			Task.forceThrow(e);
-		}
+		Argument.encIvKey = encryptRsa(serverPubKey, clientIvKey = genIvKey());
 	}
 
-	public static byte @NotNull [] getPubKeyMd5(byte[] pubKey) {
+	public static byte @NotNull [] getPubKeyMd5(byte @NotNull [] pubKey) {
 		int i = 0;
 		for (; i < pubKey.length; i++) {
 			if (pubKey[i] != 0) // 跳过前面的字节0
 				break;
 		}
+		return Digest.md5(pubKey, i, pubKey.length - i);
+	}
+
+	public static byte @NotNull [] encryptRsa(byte @NotNull [] pubKey, byte @NotNull [] data) {
 		try {
-			var md5 = MessageDigest.getInstance("MD5");
-			md5.update(pubKey, i, pubKey.length - i);
-			return md5.digest();
+			var rsaPubKey = RSAPublicKeyImpl.newKey(RSAUtil.KeyType.RSA, null, new BigInteger(1, pubKey), rsaE);
+			return Cert.encryptRsa(rsaPubKey, data);
 		} catch (GeneralSecurityException e) {
 			Task.forceThrow(e);
-			return ByteBuffer.Empty; // never got here
+			return ByteBuffer.Empty; // never run here
 		}
 	}
 
-	public boolean send(@NotNull Service service, @NotNull AsyncSocket so) {
-		return send(service, so, null);
+	public static byte @NotNull [] genIvKey() {
+		var ivKey = new byte[32];
+		new SecureRandom().nextBytes(ivKey);
+		return ivKey;
 	}
 
-	public boolean send(@NotNull Service service, @NotNull AsyncSocket so, @Nullable PrivateKey clientPriKey) {
+	public boolean send(@NotNull AsyncSocket so) {
+		return send(so, null);
+	}
+
+	public boolean send(@NotNull AsyncSocket so, @Nullable PrivateKey clientPriKey) {
 		if ((Argument.clientPubKey == null) != (clientPriKey == null)) // 客户端公私钥必须同时提供
 			throw new IllegalArgumentException();
 		return Send(so, r -> {
@@ -170,56 +172,59 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			byte[] serverIv = Arrays.copyOfRange(serverIvKey, serverIvKeyLen - 32, serverIvKeyLen - 16);
 			byte[] serverKey = Arrays.copyOfRange(serverIvKey, serverIvKeyLen - 16, serverIvKeyLen);
 			new Encrypt2(null, serverKey, serverIv); //TODO
+			// r.getSender().setOutputSecurityCodec(Constant.eEncryptTypeAes, serverKey, Constant.eCompressTypeMppc);
 
 			byte[] clientIv = Arrays.copyOfRange(clientIvKey, 0, 16);
 			byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
 			new Decrypt2(null, clientKey, clientIv); //TODO
+			// r.getSender().setInputSecurityCodec(Constant.eEncryptTypeAes, clientKey, Constant.eCompressTypeMppc);
 			return 0;
 		});
 	}
 
-	public long processKeyExchangeRequest(@NotNull PrivateKey priKey, @NotNull byte[] pubKeyMd5) {
+	public long processKeyExchangeRequest(@NotNull PrivateKey priKey, byte @Nullable [] pubKeyMd5) {
 		if (!Arrays.equals(Argument.serverPubKeyMd5, pubKeyMd5)) {
 			trySendResultCode(Res.ErrorUnknownServerPubKey);
 			return 0;
 		}
+		byte[] clientIvKey;
 		try {
-			byte[] clientIvKey = Cert.decryptRsa(priKey, Argument.encIvKey);
-			int clientIvKeyLen = clientIvKey.length;
-			if (clientIvKeyLen < 32) {
+			clientIvKey = Cert.decryptRsa(priKey, Argument.encIvKey);
+		} catch (GeneralSecurityException e) {
+			Task.forceThrow(e);
+			return 0; // never run here
+		}
+		int clientIvKeyLen = clientIvKey.length;
+		if (clientIvKeyLen < 32) {
+			trySendResultCode(Res.ErrorDecryptFailed);
+			return 0;
+		}
+		for (int i = 0, e = clientIvKeyLen - 32; i < e; i++) {
+			if (clientIvKey[i] != 0) {
 				trySendResultCode(Res.ErrorDecryptFailed);
 				return 0;
 			}
-			for (int i = 0, e = clientIvKeyLen - 32; i < e; i++) {
-				if (clientIvKey[i] != 0) {
-					trySendResultCode(Res.ErrorDecryptFailed);
-					return 0;
-				}
-			}
-			byte[] clientIv = Arrays.copyOfRange(clientIvKey, clientIvKeyLen - 32, clientIvKeyLen - 16);
-			byte[] clientKey = Arrays.copyOfRange(clientIvKey, clientIvKeyLen - 16, clientIvKeyLen);
-			new Encrypt2(null, clientKey, clientIv); //TODO
-
-			var serverIvKey = new byte[32];
-			new SecureRandom().nextBytes(serverIvKey);
-			byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
-			byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
-			new Decrypt2(null, serverKey, serverIv); //TODO
-
-			if (Argument.clientPubKey.length > 0) {
-				//NOTE: 这里可以先认证一下客户端公钥是否合法,不合法就回复Res.ErrorUnknownClientPubKey
-				var clientPubKey = RSAPublicKeyImpl.newKey(RSAUtil.KeyType.RSA, null,
-						new BigInteger(1, Argument.clientPubKey), rsaE);
-				Result.encIvKey = Cert.encryptRsa(clientPubKey, serverIvKey);
-			} else {
-				for (int i = 0, j = clientIvKeyLen - 32; i < 32; i++, j++)
-					serverIvKey[i] ^= clientIvKey[j];
-				Result.encIvKey = serverIvKey;
-			}
-			trySendResultCode(0);
-		} catch (GeneralSecurityException e) {
-			Task.forceThrow(e);
 		}
+		byte[] clientIv = Arrays.copyOfRange(clientIvKey, clientIvKeyLen - 32, clientIvKeyLen - 16);
+		byte[] clientKey = Arrays.copyOfRange(clientIvKey, clientIvKeyLen - 16, clientIvKeyLen);
+		new Encrypt2(null, clientKey, clientIv); //TODO
+		// getSender().setOutputSecurityCodec(Constant.eEncryptTypeAes, clientKey, Constant.eCompressTypeMppc);
+
+		var serverIvKey = genIvKey();
+		byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
+		byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
+		new Decrypt2(null, serverKey, serverIv); //TODO
+		// getSender().setInputSecurityCodec(Constant.eEncryptTypeAes, serverKey, Constant.eCompressTypeMppc);
+
+		if (Argument.clientPubKey.length > 0) {
+			//NOTE: 这里可以先认证一下客户端公钥是否合法,不合法就回复Res.ErrorUnknownClientPubKey
+			Result.encIvKey = encryptRsa(Argument.clientPubKey, serverIvKey);
+		} else {
+			for (int i = 0, j = clientIvKeyLen - 32; i < 32; i++, j++)
+				serverIvKey[i] ^= clientIvKey[j];
+			Result.encIvKey = serverIvKey;
+		}
+		trySendResultCode(0);
 		return 0;
 	}
 
