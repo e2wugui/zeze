@@ -14,22 +14,6 @@
 	<external bean="Zeze.Services.ServiceManager.BSubscribeInfo"/>
 
 	<module name="Builtin" id="11000">
-		<!--
-		客户端 === KeyExchange(明文) ==> 服务器 (pubKeyMd5不能为空)
-		客户端 <== KeyExchange(明文) === 服务器 (pubKeyMd5为空表示密钥交换完成,否则还有下面的一次握手)
-		客户端 === KeyExchange(明文) ==> 服务器 (pubKeyMd5必须为空表示密钥交换完成)
-		客户端 === 其它协议(使用服务器生成的key加密) ==> 服务器
-		客户端 <== 其它协议(使用客户端生成的key加密) === 服务器
-		-->
-		<!--
-		<bean name="BKeyExchange"> resultCode=0表示目前处理KeyExchange成功,否则为非0,并将断开连接
-			<variable id="1" name="version"   type="int"/> 版本. 目前只定义初始版本:0,即固定使用RSA-2048作为非对称加密,AES-128(CFB模式)作为对称加密
-			<variable id="2" name="pubKeyMd5" type="binary"/> 对方公钥的MD5. 这里的公钥指:RSA的modulus以大端序列化成byte数组(最高位的字节不能为0)
-			<variable id="3" name="encIvKey"  type="binary"/> 如果pubKeyMd5不为空,则表示随机生成对称加密的iv和key各16字节拼接成32字节,以大端序使用对方公钥加密后再以大端序列化的结果; 否则表示双方随机生成的对称加密的iv和key的异或结果
-		</bean>
-		<protocol name="KeyExchange" argument="BKeyExchange" handle="client,server"/>
-		-->
-
 		<!-- Global With Raft 模块 -->
 		<module name="GlobalCacheManagerWithRaft" id="11001" DefaultTransactionLevel="None">
 			<!-- table -->

@@ -20,6 +20,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAKeyGenParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Date;
 import javax.crypto.Cipher;
@@ -172,9 +173,9 @@ public final class Cert {
 	}
 
 	// 生成RSA密钥对(公钥+私钥)
-	public static KeyPair generateRsaKeyPair() throws NoSuchAlgorithmException {
+	public static KeyPair generateRsaKeyPair() throws GeneralSecurityException {
 		var keyPairGen = KeyPairGenerator.getInstance("RSA");
-		keyPairGen.initialize(2048);
+		keyPairGen.initialize(new RSAKeyGenParameterSpec(2048, BigInteger.valueOf(65537)));
 		return keyPairGen.generateKeyPair();
 	}
 
