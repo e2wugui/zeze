@@ -37,6 +37,8 @@ dependencies {
 
     // for new Compress/Decompress Codec in Zeze.Net
     implementation 'com.github.luben:zstd-jni:1.5.5-5'
+
+    // implementation 'com.github.marianobarrios:tls-channel:0.8.1'
 }
 
 sourceSets {

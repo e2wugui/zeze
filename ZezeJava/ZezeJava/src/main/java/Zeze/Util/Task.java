@@ -384,7 +384,8 @@ public final class Task {
 		return scheduleUnsafe(initialDelay, period, action, defaultTimeout);
 	}
 
-	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action, long timeout) {
+	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action,
+														 long timeout) {
 		var future = new TimerFuture<>();
 		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
@@ -896,8 +897,7 @@ public final class Task {
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure,
-															 @Nullable DispatchMode mode,
-															 long timeout) {
+															 @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure));
@@ -945,13 +945,11 @@ public final class Task {
 		executeRpcResponseUnsafe(procedure, DispatchMode.Normal);
 	}
 
-	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure,
-												@Nullable DispatchMode mode) {
+	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
 		executeRpcResponseUnsafe(procedure, mode, defaultTimeout);
 	}
 
-	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure,
-												@Nullable DispatchMode mode,
+	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode,
 												long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(procedure);
