@@ -412,6 +412,10 @@ public class Schemas implements Serializable {
 		public transient Type type;
 		public boolean deleted;
 
+		// 如果是dynamic，下面的变量定义它静态包含的可能的Beans；
+		// 错误检查定义：1. 旧的映射不能被删除；2. typeId映射的className不能改变；
+		public final HashMap<Long, String> dynamicBeans = new HashMap<>();
+
 		@Override
 		public void decode(@NotNull ByteBuffer bb) {
 			id = bb.ReadInt();
@@ -420,6 +424,12 @@ public class Schemas implements Serializable {
 			keyName = bb.ReadString();
 			valueName = bb.ReadString();
 			deleted = bb.ReadBool();
+
+			for (var count = bb.ReadInt(); count > 0; --count) {
+				var typeId = bb.ReadLong();
+				var className = bb.ReadString();
+				dynamicBeans.put(typeId, className);
+			}
 		}
 
 		@Override
@@ -430,6 +440,12 @@ public class Schemas implements Serializable {
 			bb.WriteString(keyName);
 			bb.WriteString(valueName);
 			bb.WriteBool(deleted);
+
+			bb.WriteInt(dynamicBeans.size()); // size
+			for (var e : dynamicBeans.entrySet()) {
+				bb.WriteLong(e.getKey());
+				bb.WriteString(e.getValue());
+			}
 		}
 
 		public void compile(@NotNull Schemas s) {
@@ -437,6 +453,19 @@ public class Schemas implements Serializable {
 		}
 
 		public boolean isCompatible(@NotNull Variable other, @NotNull Context context) {
+			// dynamic 兼容检查。
+			if (typeName.equals("dynamic")) {
+				if (!other.typeName.equals("dynamic"))
+					throw new RuntimeException("dynamic cannot changed");
+				for (var oldE : other.dynamicBeans.entrySet()) {
+					var newV = dynamicBeans.get(oldE.getKey());
+					if (null == newV)
+						throw new RuntimeException("dynamic beans cannot remove, " + oldE.getValue());
+					if (!newV.equals(oldE.getValue()))
+						throw new RuntimeException("dynamic beans mapping cannot change, " + oldE.getValue() + "->" + newV);
+				}
+			}
+
 			return this.type.isCompatible(other.type, context,
 					(bean) ->
 					{
@@ -844,9 +873,9 @@ public class Schemas implements Serializable {
 		}
 
 		for (var table : tables.values()) {
-			var zTable = app.getTable(table.name);
-			if (zTable == null || zTable.isNew() || app.getConfig().autoResetTable())
-				continue;
+			//var zTable = app.getTable(table.name);
+			//if (zTable == null || zTable.isNew() || app.getConfig().autoResetTable())
+			//	continue;
 			var otherTable = other.tables.get(table.name);
 			if (null != otherTable) {
 				if (!table.isCompatible(otherTable, context))

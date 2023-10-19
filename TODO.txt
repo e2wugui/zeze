@@ -41,10 +41,20 @@ Zeze.Auth: protocol 权限
 5. zeze 所需要的接口很小，"acl"管理需要一个系统。要使用第三方acl管理系统，必然做不了特殊的东西，所以考虑：：：自己写一个管理系统？
 6. "acl"用account，暂不考虑roleid，因为游戏系统看起来不需要这么细的权限控制，只有企业系统才可能需要。
 7. authCheck可能不能做成service的接口，因为account只有再Provider.Dispatch里面才有。做成provider的扩展？这样权限检查就只能检查来自客户端，功能有所限制，但符合http性质了。
+Zeze.Component.Auth 设计草稿
+AuthKey=Beankey(moduleId, protocolId）
+AuthValue=Bean(Map<AuthKey, String>) String: AuthDetailFlags，保留来扩展，默认为""。
+table<account, AuthValue> tAuth;
+问题，
+AuthValue仅仅按单条记录来维护权限，存在表示有权限，要不要扩展成更多控制方式，
+比如：AuthValue.GrantAllDefault,map此时表示deny，DenyAllDefault,map此时表示allow，
+我暂时的想法是仅支持 AuthKey(moduleId, 0)表示整个模块grant，上面的all，deny,allow方式不支持。
+大家看看有没有更好的办法。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/10/27 v1.3.5 Raft & Dbh2; For IPV6 Format;
+2023/10/27 v1.3.5 Raft & Dbh2; For IPV6 Format; Schemas;
 ------------------------------------------------------------------------------------------------------------------------------
+Schemas 为 dynamic 类型增加错误检查：1. 旧的映射不能被删除；2. typeId映射的className不能改变；
 为了隔离代码，zeze部分代码的配置在创建时候拷贝一份传值进去，为了以后可能的支持配置重新加载，让配置尽可能“马上”生效，需要把配置的引用尽量改成对Config的直接读取。
 这里存在几个问题：1. 马上应该是尽量的；2. Config里面的一个配置对象通常保存在容器中，每次使用需要查询一次，虽然是map，有没有好办法优化这个。
 3. TableConf，ServiceConf都是把引用传入，以后不会跟随配置装载发生变化。这里考虑的优化是Config.reload实现的时候复用原来存在的TableConf,ServiceConf变量。
