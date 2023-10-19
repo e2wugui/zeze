@@ -199,6 +199,14 @@ public final class Task {
 			executeUnsafe(action, name, mode);
 	}
 
+	public static void run(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode, long timeout) {
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> executeUnsafe(action, name, mode, timeout));
+		else
+			executeUnsafe(action, name, mode, timeout);
+	}
+
 	// 注意: 以Unsafe结尾的方法在事务中也会立即异步执行,即使之后该事务redo或rollback也无法撤销,很可能不是想要的结果,所以小心使用
 	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name) {
 		return runUnsafe(action, name, DispatchMode.Normal);
@@ -301,6 +309,14 @@ public final class Task {
 			scheduleUnsafe(initialDelay, action);
 	}
 
+	public static void schedule(long initialDelay, @NotNull Action0 action, long timeout) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, action, timeout));
+		else
+			scheduleUnsafe(initialDelay, action, timeout);
+	}
+
 	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action) {
 		return scheduleUnsafe(initialDelay, action, defaultTimeout);
 	}
@@ -353,12 +369,25 @@ public final class Task {
 			scheduleAtUnsafe(hour, minute, period, action);
 	}
 
+	public static void scheduleAt(int hour, int minute, long period, @NotNull Action0 action, long timeout) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> scheduleAtUnsafe(hour, minute, period, action, timeout));
+		else
+			scheduleAtUnsafe(hour, minute, period, action, timeout);
+	}
+
 	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, @NotNull Action0 action) {
 		return scheduleAtUnsafe(hour, minute, -1, action);
 	}
 
 	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
 															   @NotNull Action0 action) {
+		return scheduleAtUnsafe(hour, minute, period, action, defaultTimeout);
+	}
+
+	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
+															   @NotNull Action0 action, long timeout) {
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, hour);
 		firstTime.set(Calendar.MINUTE, minute);
@@ -368,8 +397,8 @@ public final class Task {
 			firstTime.add(Calendar.DAY_OF_MONTH, 1); // tomorrow!
 		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
 		if (period > 0)
-			return scheduleUnsafe(delay, period, action);
-		return scheduleUnsafe(delay, action);
+			return scheduleUnsafe(delay, period, action, timeout);
+		return scheduleUnsafe(delay, action, timeout);
 	}
 
 	public static void schedule(long initialDelay, long period, @NotNull Action0 action) {
@@ -378,6 +407,14 @@ public final class Task {
 			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, period, action));
 		else
 			scheduleUnsafe(initialDelay, period, action);
+	}
+
+	public static void schedule(long initialDelay, long period, @NotNull Action0 action, long timeout) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, period, action, timeout));
+		else
+			scheduleUnsafe(initialDelay, period, action, timeout);
 	}
 
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
@@ -554,6 +591,16 @@ public final class Task {
 			executeUnsafe(func, p, actionWhenError, aName, mode);
 	}
 
+	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
+						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+						   @Nullable DispatchMode mode, long timeout) {
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> executeUnsafe(func, p, actionWhenError, aName, mode, timeout));
+		else
+			executeUnsafe(func, p, actionWhenError, aName, mode, timeout);
+	}
+
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		return runUnsafe(func, p, null, null, DispatchMode.Normal);
 	}
@@ -723,6 +770,16 @@ public final class Task {
 			executeUnsafe(procedure, from, actionWhenError, mode);
 	}
 
+	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+						   @Nullable Action2<Protocol<?>, Long> actionWhenError, @Nullable DispatchMode mode,
+						   long timeout) {
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> executeUnsafe(procedure, from, actionWhenError, mode, timeout));
+		else
+			executeUnsafe(procedure, from, actionWhenError, mode, timeout);
+	}
+
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure) {
 		return runUnsafe(procedure, DispatchMode.Normal);
 	}
@@ -871,6 +928,14 @@ public final class Task {
 			executeRpcResponseUnsafe(procedure, mode);
 	}
 
+	public static void runRpcResponse(@NotNull Procedure procedure, @Nullable DispatchMode mode, long timeout) {
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> executeRpcResponseUnsafe(procedure, mode, timeout));
+		else
+			executeRpcResponseUnsafe(procedure, mode, timeout);
+	}
+
 	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
@@ -885,6 +950,15 @@ public final class Task {
 			t.runWhileCommit(() -> executeRpcResponseUnsafe(func, p, mode));
 		else
 			executeRpcResponseUnsafe(func, p, mode);
+	}
+
+	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode,
+									  long timeout) {
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> executeRpcResponseUnsafe(func, p, mode, timeout));
+		else
+			executeRpcResponseUnsafe(func, p, mode, timeout);
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure) {
