@@ -5,6 +5,8 @@
 	CheckpointPeriod="60000" ServerId="0" CheckpointMode="Table"
 	>
 
+	<!--Property Key="" Value=""/-->
+
 	<!--
 	数据库配置。默认数据库的名字为空。
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>

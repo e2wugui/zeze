@@ -596,6 +596,12 @@ public final class Config {
 
 			Element e = (Element)node;
 			switch (e.getNodeName()) {
+			case "Property":
+				var k = e.getAttribute("Key");
+				if (!k.isEmpty())
+					System.setProperty(k, e.getAttribute("Value"));
+				break;
+
 			case "GlobalCacheManagersConf":
 				new GlobalCacheManagersConf(this, e);
 				break;
