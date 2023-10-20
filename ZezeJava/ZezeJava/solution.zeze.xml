@@ -1875,10 +1875,15 @@
 		</module>
 
 		<module name="Auth" id="11036">
-			<bean name="BAuthValue">
+			<bean name="BRoleAuth">
 				<variable id="1" name="Auths" type="map[long, string]"/>
 			</bean>			
-			<table name="tAuth" key="string" value="BAuthValue" />
+			<table name="tRoleAuth" key="string" value="BRoleAuth" />
+
+			<bean name="BAccountAuth">
+				<variable id="1" name="Roles" type="set[string]"/>
+			</bean>
+			<table name="tAccountAuth" key="string" value="BAccountAuth" />
 		</module>
 		<!--
 		可用id范围 [11037, 11100) [11102, 11999]

@@ -11,7 +11,8 @@ public abstract class AbstractAuth implements Zeze.IModule {
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
-    protected final Zeze.Builtin.Auth.tAuth _tAuth = new Zeze.Builtin.Auth.tAuth();
+    protected final Zeze.Builtin.Auth.tAccountAuth _tAccountAuth = new Zeze.Builtin.Auth.tAccountAuth();
+    protected final Zeze.Builtin.Auth.tRoleAuth _tRoleAuth = new Zeze.Builtin.Auth.tRoleAuth();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
@@ -20,11 +21,13 @@ public abstract class AbstractAuth implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tAuth.getName()).getDatabaseName(), _tAuth);
+        zeze.addTable(zeze.getConfig().getTableConf(_tAccountAuth.getName()).getDatabaseName(), _tAccountAuth);
+        zeze.addTable(zeze.getConfig().getTableConf(_tRoleAuth.getName()).getDatabaseName(), _tRoleAuth);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tAuth.getName()).getDatabaseName(), _tAuth);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tAccountAuth.getName()).getDatabaseName(), _tAccountAuth);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tRoleAuth.getName()).getDatabaseName(), _tRoleAuth);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

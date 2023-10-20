@@ -6,14 +6,14 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tAuth extends TableX<String, Zeze.Builtin.Auth.BAuthValue>
-        implements TableReadOnly<String, Zeze.Builtin.Auth.BAuthValue, Zeze.Builtin.Auth.BAuthValueReadOnly> {
-    public tAuth() {
-        super(1601559288, "Zeze_Builtin_Auth_tAuth");
+public final class tRoleAuth extends TableX<String, Zeze.Builtin.Auth.BRoleAuth>
+        implements TableReadOnly<String, Zeze.Builtin.Auth.BRoleAuth, Zeze.Builtin.Auth.BRoleAuthReadOnly> {
+    public tRoleAuth() {
+        super(85148051, "Zeze_Builtin_Auth_tRoleAuth");
     }
 
-    public tAuth(String suffix) {
-        super(1601559288, "Zeze_Builtin_Auth_tAuth", suffix);
+    public tRoleAuth(String suffix) {
+        super(85148051, "Zeze_Builtin_Auth_tRoleAuth", suffix);
     }
 
     public static final int VAR_Auths = 1;
@@ -47,12 +47,12 @@ public final class tAuth extends TableX<String, Zeze.Builtin.Auth.BAuthValue>
     }
 
     @Override
-    public Zeze.Builtin.Auth.BAuthValue newValue() {
-        return new Zeze.Builtin.Auth.BAuthValue();
+    public Zeze.Builtin.Auth.BRoleAuth newValue() {
+        return new Zeze.Builtin.Auth.BRoleAuth();
     }
 
     @Override
-    public Zeze.Builtin.Auth.BAuthValueReadOnly getReadOnly(String key) {
+    public Zeze.Builtin.Auth.BRoleAuthReadOnly getReadOnly(String key) {
         return get(key);
     }
 }

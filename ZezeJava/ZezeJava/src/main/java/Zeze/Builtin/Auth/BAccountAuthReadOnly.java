@@ -1,11 +1,11 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Auth;
 
-public interface BAuthValueReadOnly {
+public interface BAccountAuthReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BAuthValue copy();
+    BAccountAuth copy();
 
-    Zeze.Transaction.Collections.PMap1ReadOnly<Long, String> getAuthsReadOnly();
+    Zeze.Transaction.Collections.PSet1ReadOnly<String> getRolesReadOnly();
 }

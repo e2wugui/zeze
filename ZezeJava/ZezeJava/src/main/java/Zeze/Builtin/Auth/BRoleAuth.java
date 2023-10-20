@@ -4,8 +4,8 @@ package Zeze.Builtin.Auth;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
-public final class BAuthValue extends Zeze.Transaction.Bean implements BAuthValueReadOnly {
-    public static final long TYPEID = 7238851183572152445L;
+public final class BRoleAuth extends Zeze.Transaction.Bean implements BRoleAuthReadOnly {
+    public static final long TYPEID = -4077943315880725684L;
 
     private final Zeze.Transaction.Collections.PMap1<Long, String> _Auths;
 
@@ -19,7 +19,7 @@ public final class BAuthValue extends Zeze.Transaction.Bean implements BAuthValu
     }
 
     @SuppressWarnings("deprecation")
-    public BAuthValue() {
+    public BRoleAuth() {
         _Auths = new Zeze.Transaction.Collections.PMap1<>(Long.class, String.class);
         _Auths.variableId(1);
     }
@@ -30,25 +30,25 @@ public final class BAuthValue extends Zeze.Transaction.Bean implements BAuthValu
         _unknown_ = null;
     }
 
-    public void assign(BAuthValue other) {
+    public void assign(BRoleAuth other) {
         _Auths.clear();
         _Auths.putAll(other._Auths);
         _unknown_ = other._unknown_;
     }
 
-    public BAuthValue copyIfManaged() {
+    public BRoleAuth copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BAuthValue copy() {
-        var copy = new BAuthValue();
+    public BRoleAuth copy() {
+        var copy = new BRoleAuth();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BAuthValue a, BAuthValue b) {
-        BAuthValue save = a.copy();
+    public static void swap(BRoleAuth a, BRoleAuth b) {
+        BRoleAuth save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -67,7 +67,7 @@ public final class BAuthValue extends Zeze.Transaction.Bean implements BAuthValu
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Auth.BAuthValue: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Auth.BRoleAuth: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Auths={");
         if (!_Auths.isEmpty()) {

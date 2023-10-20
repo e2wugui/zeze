@@ -115,7 +115,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var auth = providerApp.zeze.getAuth();
 		if (null == auth)
 			return "";
-		return auth.getAuth(account, typeId);
+		return auth.getAccountAuth(account, typeId);
 	}
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
