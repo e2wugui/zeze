@@ -3,6 +3,11 @@ package Zeze.Netty;
 import java.io.Closeable;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -12,6 +17,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FewModifyMap;
+import Zeze.Util.GlobalTimer;
 import Zeze.Util.TaskOneByOneByKey;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -24,6 +30,8 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.ChannelInputShutdownEvent;
 import io.netty.channel.socket.ChannelInputShutdownReadComplete;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
@@ -38,6 +46,9 @@ import org.jetbrains.annotations.Nullable;
 public class HttpServer extends ChannelInitializer<SocketChannel> implements Closeable {
 	protected static final AttributeKey<Integer> idleTimeKey = AttributeKey.valueOf("ZezeIdleTime");
 	protected static final AttributeKey<Integer> outBufHashKey = AttributeKey.valueOf("ZezeOutBufHash"); // 用于判断输出buffer是否有变化
+	protected static final @NotNull ZoneId zoneId = ZoneId.of("GMT");
+	protected static long lastSecond;
+	protected static String lastDateStr;
 	protected final @Nullable Application zeze; // 只用于通过事务处理HTTP请求
 	protected final @Nullable String fileHome; // 客户端可下载的文件根目录
 	protected final int fileCacheSeconds; // 通知客户端文件下载的缓存时间(秒)
@@ -52,6 +63,35 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected @Nullable SslContext sslCtx;
 	protected @Nullable Future<?> scheduler;
 	protected @Nullable ChannelFuture channelFuture;
+
+	public static @NotNull String getDate() {
+		var second = GlobalTimer.getCurrentMillis() / 1000;
+		if (second == lastSecond)
+			return lastDateStr;
+		var dateStr = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
+				LocalDateTime.ofEpochSecond(second, 0, ZoneOffset.UTC), zoneId));
+		lastDateStr = dateStr;
+		lastSecond = second;
+		return dateStr;
+	}
+
+	public static @NotNull String getDate(long epochSecond) {
+		return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
+				LocalDateTime.ofEpochSecond(epochSecond, 0, ZoneOffset.UTC), zoneId));
+	}
+
+	public static long parseDate(@NotNull String dateStr) {
+		return LocalDateTime.parse(dateStr, DateTimeFormatter.RFC_1123_DATE_TIME).toEpochSecond(ZoneOffset.UTC);
+	}
+
+	public static long getLastDateSecond() {
+		return lastSecond;
+	}
+
+	public static @NotNull HttpHeaders setDate(@NotNull HttpHeaders headers) {
+		headers.set(HttpHeaderNames.DATE, getDate());
+		return headers;
+	}
 
 	public HttpServer() {
 		this(null, null, 10 * 60);

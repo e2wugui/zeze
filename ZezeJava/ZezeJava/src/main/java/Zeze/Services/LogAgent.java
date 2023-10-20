@@ -1,8 +1,11 @@
 package Zeze.Services;
 
+import java.util.Queue;
 import java.util.Set;
 import Zeze.Application;
+import Zeze.Builtin.LogService.Query;
 import Zeze.Config;
+import Zeze.IModule;
 import Zeze.Net.Connector;
 import Zeze.Services.Log4jQuery.Client;
 import Zeze.Services.Log4jQuery.LogServiceConf;
@@ -68,5 +71,14 @@ public class LogAgent extends AbstractLogAgent {
 
 	public SessionAll newSessionAll() {
 		return new SessionAll(this);
+	}
+
+	public String query(String serverName, String jsonArgument) {
+		var r = new Query();
+		r.Argument.setJson(jsonArgument);
+		r.SendForWait(__getLogServer(serverName).GetReadySocket()).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("query error=" + IModule.getErrorCode(r.getResultCode()));
+		return r.Result.getJson();
 	}
 }

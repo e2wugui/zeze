@@ -1,12 +1,6 @@
 package Zeze.Netty;
 
 import java.io.Closeable;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import Zeze.Util.GlobalTimer;
 import Zeze.Util.Task;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -20,8 +14,6 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
@@ -31,42 +23,10 @@ import org.jetbrains.annotations.Nullable;
 
 public class Netty implements Closeable {
 	static final @NotNull Logger logger = LogManager.getLogger(Netty.class);
-	private static final @NotNull ZoneId zoneId = ZoneId.of("GMT");
-	private static long lastSecond;
-	private static String lastDateStr;
 	private static final @NotNull Class<? extends ServerChannel> serverChannelClass =
 			Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class;
 
 	private final @NotNull EventLoopGroup eventLoopGroup;
-
-	public static @NotNull String getDate() {
-		var second = GlobalTimer.getCurrentMillis() / 1000;
-		if (second == lastSecond)
-			return lastDateStr;
-		var dateStr = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
-				LocalDateTime.ofEpochSecond(second, 0, ZoneOffset.UTC), zoneId));
-		lastDateStr = dateStr;
-		lastSecond = second;
-		return dateStr;
-	}
-
-	public static @NotNull String getDate(long epochSecond) {
-		return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
-				LocalDateTime.ofEpochSecond(epochSecond, 0, ZoneOffset.UTC), zoneId));
-	}
-
-	public static long parseDate(@NotNull String dateStr) {
-		return LocalDateTime.parse(dateStr, DateTimeFormatter.RFC_1123_DATE_TIME).toEpochSecond(ZoneOffset.UTC);
-	}
-
-	public static @NotNull HttpHeaders setDate(@NotNull HttpHeaders headers) {
-		headers.set(HttpHeaderNames.DATE, getDate());
-		return headers;
-	}
-
-	public static long getLastDateSecond() {
-		return lastSecond;
-	}
 
 	public Netty() {
 		this(Runtime.getRuntime().availableProcessors());

@@ -1094,7 +1094,8 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	}
 
 	public @NotNull Binary ReadBinary() {
-		return new Binary(ReadBytes());
+		var bytes = ReadBytes();
+		return bytes.length > 0 ? new Binary(bytes) : Binary.Empty;
 	}
 
 	public byte @NotNull [] ReadBytes() {

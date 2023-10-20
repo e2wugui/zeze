@@ -38,6 +38,14 @@ public abstract class AbstractLogService implements Zeze.IModule {
             service.AddFactoryHandle(47398709984234L, factoryHandle); // 11035, -549094422
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LogService.Query.class, Zeze.Builtin.LogService.Query.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.LogService.Query::new;
+            factoryHandle.Handle = this::ProcessQueryRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessQueryRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessQueryRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47396357146077L, factoryHandle); // 11035, 1393034717
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LogService.Search.class, Zeze.Builtin.LogService.Search.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.LogService.Search::new;
             factoryHandle.Handle = this::ProcessSearchRequest;
@@ -51,6 +59,7 @@ public abstract class AbstractLogService implements Zeze.IModule {
         service.getFactorys().remove(47397693120348L);
         service.getFactorys().remove(47398269404133L);
         service.getFactorys().remove(47398709984234L);
+        service.getFactorys().remove(47396357146077L);
         service.getFactorys().remove(47395054867890L);
     }
 
@@ -66,5 +75,6 @@ public abstract class AbstractLogService implements Zeze.IModule {
     protected abstract long ProcessBrowseRequest(Zeze.Builtin.LogService.Browse r) throws Exception;
     protected abstract long ProcessCloseSessionRequest(Zeze.Builtin.LogService.CloseSession r) throws Exception;
     protected abstract long ProcessNewSessionRequest(Zeze.Builtin.LogService.NewSession r) throws Exception;
+    protected abstract long ProcessQueryRequest(Zeze.Builtin.LogService.Query r) throws Exception;
     protected abstract long ProcessSearchRequest(Zeze.Builtin.LogService.Search r) throws Exception;
 }

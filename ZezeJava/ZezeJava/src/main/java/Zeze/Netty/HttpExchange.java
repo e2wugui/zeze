@@ -556,7 +556,7 @@ public class HttpExchange {
 		if (content == null)
 			content = Unpooled.EMPTY_BUFFER;
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, false);
-		var headers = Netty.setDate(res.headers())
+		var headers = HttpServer.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 				.set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
 		if (contentType != null)
@@ -601,10 +601,10 @@ public class HttpExchange {
 		// 检查 if-modified-since
 		var lastModified = file.lastModified() / 1000;
 		var ifModifiedSince = request != null ? request.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE) : null;
-		if (ifModifiedSince != null && !ifModifiedSince.isEmpty() && lastModified == Netty.parseDate(ifModifiedSince)) {
+		if (ifModifiedSince != null && !ifModifiedSince.isEmpty() && lastModified == HttpServer.parseDate(ifModifiedSince)) {
 			var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED, // 文件未改变
 					Unpooled.EMPTY_BUFFER, false);
-			Netty.setDate(res.headers())
+			HttpServer.setDate(res.headers())
 					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 					.set(HttpHeaderNames.CONTENT_LENGTH, 0);
 			close(context.writeAndFlush(res));
@@ -619,14 +619,14 @@ public class HttpExchange {
 		var contentLen = Math.max((to >= 0 ? to : fsize) - from, 0L);
 
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, false);
-		Netty.setDate(res.headers())
+		HttpServer.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(filePath))
 				.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
 				.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + (from + contentLen - 1) + '/' + fsize)
-				.set(HttpHeaderNames.EXPIRES, Netty.getDate(Netty.getLastDateSecond() + server.fileCacheSeconds))
+				.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + server.fileCacheSeconds))
 				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + server.fileCacheSeconds)
-				.set(HttpHeaderNames.LAST_MODIFIED, Netty.getDate(lastModified));
+				.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
 		context.write(res, context.voidPromise());
 
 		if (contentLen > 0 && !HttpMethod.HEAD.equals(request.method())) // 发文件任务全部交给Netty，并且发送完毕时关闭。

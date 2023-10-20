@@ -461,9 +461,9 @@ public final class Application {
 		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		if (schemas != null) {
 			schemas.compile();
-			var keyOfSchemas = ByteBuffer.Allocate(24);
+			var keyOfSchemas = ByteBuffer.Allocate(32);
 			var serverId = conf.getServerId();
-			keyOfSchemas.WriteString("zeze.Schemas." + serverId);
+			keyOfSchemas.WriteString("zeze.Schemas.V2." + serverId);
 			while (true) {
 				var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
 				long version = 0;

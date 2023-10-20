@@ -11,7 +11,7 @@ import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Netty.HttpExchange;
-import Zeze.Netty.Netty;
+import Zeze.Netty.HttpServer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
@@ -282,7 +282,7 @@ public class DbWeb extends AbstractDbWeb {
 			var tableName = qm.get("t");
 			Objects.requireNonNull(tableName, "tableName");
 			var table = (TableX<?, ?>)zeze.getTable(tableName);
-			x.beginStream(HttpResponseStatus.OK, Netty.setDate(new DefaultHttpHeaders())
+			x.beginStream(HttpResponseStatus.OK, HttpServer.setDate(new DefaultHttpHeaders())
 					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE));
 			beginStream = true;
 			x.sendStream(("ClearTable '" + tableName + "' begin ...\n").getBytes(StandardCharsets.UTF_8));

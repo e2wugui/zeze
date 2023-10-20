@@ -17,6 +17,9 @@ public class ResetDB {
 		if (null == other)
 			return;
 
+		app.getSchemas().checkCompatible(other, app);
+		// todo 先禁用“自动删除不兼容的表。”以后删除相关代码。
+		/*
 		if (!app.getConfig().autoResetTable()) {
 			app.getSchemas().checkCompatible(other, app);
 			return;
@@ -32,6 +35,7 @@ public class ResetDB {
 		logger.debug("reset db start!");
 
 		removeTable(defaultDb, removeList);
+		*/
 	}
 
 	private static List<String> getRemoveList(Schemas other, Application app) {

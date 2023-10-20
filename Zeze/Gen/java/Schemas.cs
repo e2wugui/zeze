@@ -92,12 +92,21 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"            var.name = \"{v.Name}\";");
                 sw.WriteLine($"            var.typeName = \"{GetFullName(v.VariableType)}\";");
                 if (v.VariableType is Types.TypeCollection collection)
+                {
                     sw.WriteLine($"            var.valueName = \"{GetFullName(collection.ValueType)}\";");
+                }
                 else if (v.VariableType is Types.TypeMap map)
                 {
                     sw.WriteLine($"            var.keyName = \"{GetFullName(map.KeyType)}\";");
                     sw.WriteLine($"            var.valueName = \"{GetFullName(map.ValueType)}\";");
                 }
+
+                if (v.VariableType is TypeDynamic dynamic)
+                {
+                    foreach (var real in dynamic.RealBeans)
+                        sw.WriteLine($"            var.dynamicBeans.put({real.Key}L, \"{real.Value.FullName}\");");
+                }
+
                 sw.WriteLine($"            bean.addVariable(var);");
                 sw.WriteLine($"        }}");
             }

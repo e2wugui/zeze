@@ -71,6 +71,7 @@
 			<variable id="14" name="dynamic14" type="dynamic">
 				<value bean="demo.Bean1:1"/>
 				<value bean="BSimple:2"/>
+				<value bean="BItem:3"/>
 			</variable>
 			<variable id="15" name="map15" type="map" key="long" value="long"/> com aa
 			<variable id="16" name="map16" type="map" key="Key" value="BSimple"/> com aa

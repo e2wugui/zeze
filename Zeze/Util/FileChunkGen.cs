@@ -93,7 +93,7 @@ namespace Zeze.Util
                             Chunks.Add(new Chunk() { Name = lineName, State = lineState, StartLine = line });
                             break;
                         case State.ChunkEnd:
-                            throw new Exception("chunk not found but ChunkEnd");
+                            throw new Exception("chunk not found but ChunkEnd: " + fileName);
                     }
                     continue;
                 }
@@ -110,7 +110,7 @@ namespace Zeze.Util
                                 Chunks.Add(new Chunk() { Name = lineName, State = lineState, StartLine = line });
                                 break;
                             case State.ChunkEnd:
-                                throw new Exception("current chunk is Normal but ChunkEnd");
+                                throw new Exception("current chunk is Normal but ChunkEnd: " + fileName);
                         }
                         break;
                     case State.ChunkStart:
@@ -120,7 +120,7 @@ namespace Zeze.Util
                                 current.Lines.Add(line);
                                 break;
                             case State.ChunkStart:
-                                throw new Exception("current chunk is ChunkStart but ChunkStart");
+                                throw new Exception("current chunk is ChunkStart but ChunkStart: " + fileName);
                             case State.ChunkEnd:
                                 current.State = lineState;
                                 current.EndLine = line;
@@ -139,13 +139,13 @@ namespace Zeze.Util
                                 Chunks.Add(new Chunk() { Name = lineName, State = lineState, StartLine = line });
                                 break;
                             case State.ChunkEnd:
-                                throw new Exception("current chunk is ChunkEnd but ChunkEnd");
+                                throw new Exception("current chunk is ChunkEnd but ChunkEnd: " + fileName);
                         }
                         break;
                 }
             }
             if (Chunks.Count > 0 && Chunks[Chunks.Count - 1].State == State.ChunkStart)
-                throw new Exception("chunk is not closed");
+                throw new Exception("chunk is not closed: " + fileName);
             return true;
         }
 

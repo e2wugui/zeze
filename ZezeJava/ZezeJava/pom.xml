@@ -113,21 +113,21 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
-		<log4j.version>2.20.0</log4j.version>
+		<log4j.version>2.21.0</log4j.version>
 		<annotations.version>24.0.1</annotations.version>
 		<pcollectons.version>4.0.1</pcollectons.version>
-		<rocksdbjni.version>8.5.3</rocksdbjni.version>
-		<netty.version>4.1.97.Final</netty.version>
+		<rocksdbjni.version>8.5.4</rocksdbjni.version>
+		<netty.version>4.1.100.Final</netty.version>
 		<slf4j.version>2.0.9</slf4j.version>
 		<tikv.version>3.3.5</tikv.version>
-		<druid.version>1.2.19</druid.version>
+		<druid.version>1.2.20</druid.version>
 		<mysql-connector-j.version>8.0.33</mysql-connector-j.version>
-		<aws-java-sdk-dynamodb.version>1.12.510</aws-java-sdk-dynamodb.version>
+		<aws-java-sdk-dynamodb.version>1.12.568</aws-java-sdk-dynamodb.version>
 		<rocketmq-client.version>4.9.7</rocketmq-client.version>
 		<javaee-api.version>8.0.1</javaee-api.version>
 		<jgrapht-core.version>1.5.2</jgrapht-core.version>
-		<opencsv.version>5.7.1</opencsv.version>
-		<zstd-jni.version>1.5.5-5</zstd-jni.version>
+		<opencsv.version>5.8</opencsv.version>
+		<zstd-jni.version>1.5.5-6</zstd-jni.version>
 		<junit.version>4.13.2</junit.version>
 	</properties>
 
