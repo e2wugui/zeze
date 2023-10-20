@@ -7,20 +7,20 @@ import Zeze.Serialize.ByteBuffer;
 public final class BAuthValue extends Zeze.Transaction.Bean implements BAuthValueReadOnly {
     public static final long TYPEID = 7238851183572152445L;
 
-    private final Zeze.Transaction.Collections.PMap1<Zeze.Builtin.Auth.BAuthKey, String> _Auths;
+    private final Zeze.Transaction.Collections.PMap1<Long, String> _Auths;
 
-    public Zeze.Transaction.Collections.PMap1<Zeze.Builtin.Auth.BAuthKey, String> getAuths() {
+    public Zeze.Transaction.Collections.PMap1<Long, String> getAuths() {
         return _Auths;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PMap1ReadOnly<Zeze.Builtin.Auth.BAuthKey, String> getAuthsReadOnly() {
+    public Zeze.Transaction.Collections.PMap1ReadOnly<Long, String> getAuthsReadOnly() {
         return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_Auths);
     }
 
     @SuppressWarnings("deprecation")
     public BAuthValue() {
-        _Auths = new Zeze.Transaction.Collections.PMap1<>(Zeze.Builtin.Auth.BAuthKey.class, String.class);
+        _Auths = new Zeze.Transaction.Collections.PMap1<>(Long.class, String.class);
         _Auths.variableId(1);
     }
 
@@ -74,9 +74,7 @@ public final class BAuthValue extends Zeze.Transaction.Bean implements BAuthValu
             sb.append(System.lineSeparator());
             level += 4;
             for (var _kv_ : _Auths.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(System.lineSeparator());
-                _kv_.getKey().buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
                 sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_kv_.getValue()).append(',').append(System.lineSeparator());
             }
             level -= 4;
@@ -120,9 +118,9 @@ public final class BAuthValue extends Zeze.Transaction.Bean implements BAuthValu
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
-                _o_.WriteMapType(_n_, ByteBuffer.BEAN, ByteBuffer.BYTES);
+                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BYTES);
                 for (var _e_ : _x_.entrySet()) {
-                    _e_.getKey().encode(_o_);
+                    _o_.WriteLong(_e_.getKey());
                     _o_.WriteString(_e_.getValue());
                     _n_--;
                 }
@@ -145,7 +143,7 @@ public final class BAuthValue extends Zeze.Transaction.Bean implements BAuthValu
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new Zeze.Builtin.Auth.BAuthKey(), _s_);
+                    var _k_ = _o_.ReadLong(_s_);
                     var _v_ = _o_.ReadString(_t_);
                     _x_.put(_k_, _v_);
                 }
@@ -196,7 +194,7 @@ public final class BAuthValue extends Zeze.Transaction.Bean implements BAuthValu
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Auths", "map", "BAuthKey", "string"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Auths", "map", "long", "string"));
         return vars;
     }
 }

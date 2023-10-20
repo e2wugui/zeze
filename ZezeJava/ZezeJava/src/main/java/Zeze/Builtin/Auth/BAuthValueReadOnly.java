@@ -7,5 +7,5 @@ public interface BAuthValueReadOnly {
     boolean negativeCheck();
     BAuthValue copy();
 
-    Zeze.Transaction.Collections.PMap1ReadOnly<Zeze.Builtin.Auth.BAuthKey, String> getAuthsReadOnly();
+    Zeze.Transaction.Collections.PMap1ReadOnly<Long, String> getAuthsReadOnly();
 }
