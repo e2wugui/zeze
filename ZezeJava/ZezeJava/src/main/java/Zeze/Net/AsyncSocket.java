@@ -544,6 +544,16 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return true;
 	}
 
+	public void pauseReceive() {
+		if (interestOps(SelectionKey.OP_READ, 0))
+			selector.wakeup();
+	}
+
+	public void resumeReceive() {
+		if (interestOps(0, SelectionKey.OP_READ))
+			selector.wakeup();
+	}
+
 	/**
 	 * 可能直接加到发送缓冲区，返回true则bytes不能再修改了。
 	 */

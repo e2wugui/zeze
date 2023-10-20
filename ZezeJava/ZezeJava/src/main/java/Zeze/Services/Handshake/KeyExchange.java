@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
+import java.security.interfaces.RSAKey;
 import java.util.Arrays;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Decrypt2;
@@ -21,9 +22,6 @@ import Zeze.Util.Cert;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import sun.security.rsa.RSAPrivateKeyImpl;
-import sun.security.rsa.RSAPublicKeyImpl;
-import sun.security.rsa.RSAUtil;
 
 // TCP连接成功后,主动连接方(客户端)先发密钥交换请求(KeyExchange)给被动连接方(服务器). 收到回复后,后续通信用双方各自随机生成的key做双向对称加密(己方生成的key用于对方加密发送,己方接收解密)
 // 客户端 === KeyExchange(明文请求) ==> 服务器 (客户端用服务器公钥加密客户端生成的key给服务器,可选提供客户端公钥)
@@ -34,7 +32,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	public static final int ModuleId = 0;
 	public static final int ProtocolId = Bean.hash32(KeyExchange.class.getName()); // 571437512 0x220F71C8
 	public static final long TypeId = Protocol.makeTypeId(ModuleId, ProtocolId); // 571437512 [00 00 00 00 C8 71 0F 22]
-	public static final BigInteger rsaE = BigInteger.valueOf(65537);
+	public static final BigInteger pubKeyE = BigInteger.valueOf(65537); // RSA公钥中的参数E,固定值
 
 	static {
 		register(TypeId, KeyExchange.class);
@@ -42,9 +40,9 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 	public static final class Arg implements Serializable {
 		public int version; // 版本. 目前只定义初始版本:0, 即固定使用RSA-2048(exponent固定为65537)作为非对称加密,AES-128(CFB模式)作为对称加密
-		public byte[] clientPubKey; // 本地客户端公钥. RSA公钥中的modulus以大端序列化成byte数组(最高位的字节不能为0). 用于对方验证自己的身份,可以为空(不验证,仅单向非对称加密)
+		public byte[] clientPubKey; // 本地客户端公钥. RSA公钥中的N(modulus)以大端序列化成byte数组(最高位的字节不能为0). 用于对方验证自己的身份,可以为空(不验证,仅单向非对称加密)
 		public byte[] serverPubKeyMd5; // 对方服务器公钥的MD5. 如上方法序列化后再做MD5, 用于对方选取所用的私钥
-		public byte[] encIvKey; // 随机生成对称加密的iv和key各16字节拼接成32字节,以大端序使用对方公钥加密后再以大端序列化的结果
+		public byte[] encIvKey; // 随机生成对称加密的iv和key各16字节拼接成32字节,以"RSA/ECB/PKCS1Padding"模式加密
 
 		@Override
 		public int preAllocSize() {
@@ -77,7 +75,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		public static final int ErrorDecryptFailed = 3; // 解密encIvKey失败
 
 		public int version; // 版本. 同Arg的version
-		public byte[] encIvKey; // 如果clientPubKey为空,表示双方随机生成的对称加密的iv和key的异或结果; 否则类似Arg中的encIvKey,给客户端发送服务器随机生成的iv和key
+		public byte[] encIvKey; // 如果clientPubKey为空,表示双方随机生成的对称加密的iv和key的异或结果; 否则类似Arg中的encIvKey,给客户端加密发送服务器随机生成的iv和key
 
 		@Override
 		public int preAllocSize() {
@@ -126,9 +124,9 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		return Digest.md5(pubKey, i, pubKey.length - i);
 	}
 
-	public static byte @NotNull [] encryptRsa(byte @NotNull [] pubKey, byte @NotNull [] data) {
+	public static byte @NotNull [] encryptRsa(byte @NotNull [] pubKeyN, byte @NotNull [] data) {
 		try {
-			var rsaPubKey = RSAPublicKeyImpl.newKey(RSAUtil.KeyType.RSA, null, new BigInteger(1, pubKey), rsaE);
+			var rsaPubKey = Cert.loadPublicKey(new BigInteger(1, pubKeyN), pubKeyE);
 			return Cert.encryptRsa(rsaPubKey, data);
 		} catch (GeneralSecurityException e) {
 			Task.forceThrow(e);
@@ -137,7 +135,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	}
 
 	public static byte @NotNull [] genIvKey() {
-		var ivKey = new byte[32];
+		byte[] ivKey = new byte[32];
 		new SecureRandom().nextBytes(ivKey);
 		return ivKey;
 	}
@@ -154,13 +152,8 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			int serverIvKeyLen;
 			if (clientPriKey != null) {
 				serverIvKey = Cert.decryptRsa(clientPriKey, Result.encIvKey);
-				serverIvKeyLen = serverIvKey.length;
-				if (serverIvKeyLen < 32)
+				if (serverIvKey.length != 32)
 					throw new IllegalStateException("ErrorDecryptFailed"); //TODO: 不该出现的意外情况,估计只能断开连接了
-				for (int i = 0, e = serverIvKeyLen - 32; i < e; i++) {
-					if (serverIvKey[i] != 0)
-						throw new IllegalStateException("ErrorDecryptFailed"); //TODO: 不该出现的意外情况,估计只能断开连接了
-				}
 			} else {
 				serverIvKey = Result.encIvKey;
 				serverIvKeyLen = serverIvKey.length;
@@ -169,8 +162,8 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 				for (int i = 0; i < 32; i++)
 					serverIvKey[i] ^= clientIvKey[i];
 			}
-			byte[] serverIv = Arrays.copyOfRange(serverIvKey, serverIvKeyLen - 32, serverIvKeyLen - 16);
-			byte[] serverKey = Arrays.copyOfRange(serverIvKey, serverIvKeyLen - 16, serverIvKeyLen);
+			byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
+			byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
 			new Encrypt2(null, serverKey, serverIv); //TODO
 			// r.getSender().setOutputSecurityCodec(Constant.eEncryptTypeAes, serverKey, Constant.eCompressTypeMppc);
 
@@ -194,23 +187,12 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			Task.forceThrow(e);
 			return 0; // never run here
 		}
-		int clientIvKeyLen = clientIvKey.length;
-		if (clientIvKeyLen < 32) {
+		if (clientIvKey.length != 32) {
 			trySendResultCode(Res.ErrorDecryptFailed);
 			return 0;
 		}
-		for (int i = 0, e = clientIvKeyLen - 32; i < e; i++) {
-			if (clientIvKey[i] != 0) {
-				trySendResultCode(Res.ErrorDecryptFailed);
-				return 0;
-			}
-		}
-		byte[] clientIv = Arrays.copyOfRange(clientIvKey, clientIvKeyLen - 32, clientIvKeyLen - 16);
-		byte[] clientKey = Arrays.copyOfRange(clientIvKey, clientIvKeyLen - 16, clientIvKeyLen);
-		new Encrypt2(null, clientKey, clientIv); //TODO
-		// getSender().setOutputSecurityCodec(Constant.eEncryptTypeAes, clientKey, Constant.eCompressTypeMppc);
 
-		var serverIvKey = genIvKey();
+		byte[] serverIvKey = genIvKey();
 		byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
 		byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
 		new Decrypt2(null, serverKey, serverIv); //TODO
@@ -220,16 +202,21 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			//NOTE: 这里可以先认证一下客户端公钥是否合法,不合法就回复Res.ErrorUnknownClientPubKey
 			Result.encIvKey = encryptRsa(Argument.clientPubKey, serverIvKey);
 		} else {
-			for (int i = 0, j = clientIvKeyLen - 32; i < 32; i++, j++)
-				serverIvKey[i] ^= clientIvKey[j];
+			for (int i = 0; i < 32; i++)
+				serverIvKey[i] ^= clientIvKey[i];
 			Result.encIvKey = serverIvKey;
 		}
 		trySendResultCode(0);
+
+		byte[] clientIv = Arrays.copyOfRange(clientIvKey, 0, 16);
+		byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
+		new Encrypt2(null, clientKey, clientIv); //TODO
+		// getSender().setOutputSecurityCodec(Constant.eEncryptTypeAes, clientKey, Constant.eCompressTypeMppc);
 		return 0;
 	}
 
 	public static void addHandler(@NotNull Service service, @NotNull PrivateKey serverPriKey) {
-		byte[] pubKeyMd5 = getPubKeyMd5(((RSAPrivateKeyImpl)serverPriKey).getModulus().toByteArray());
+		byte[] pubKeyMd5 = getPubKeyMd5(((RSAKey)serverPriKey).getModulus().toByteArray());
 		if (!service.getFactorys().containsKey(KeyExchange.TypeId)) {
 			service.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,
 					r -> r.processKeyExchangeRequest(serverPriKey, pubKeyMd5),
@@ -250,6 +237,42 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	@Override
 	public long getTypeId() {
 		return TypeId;
+	}
+
+	public static void main(String[] args) throws GeneralSecurityException {
+		// 生成RSA的公私钥
+		long t = System.nanoTime();
+		var keyPair = Cert.generateRsaKeyPair();
+		System.out.println("generateRsaKeyPair: " + (System.nanoTime() - t) / 1_000_000 + " ms");
+
+		// 获取RSA私钥并测试序列化/反序列化
+		var priKey = keyPair.getPrivate();
+		byte[] priKeyData = priKey.getEncoded();
+		var priKey2 = Cert.loadPrivateKey(priKeyData);
+		System.out.println("check priKey encoded: " + priKey.equals(priKey2));
+
+		// 获取RSA公钥并测试序列化/反序列化
+		var pubKey = keyPair.getPublic();
+		byte[] pubKeyData = pubKey.getEncoded();
+		var pubKey2 = Cert.loadPublicKey(pubKeyData);
+		System.out.println("check pubKey encoded: " + pubKey.equals(pubKey2));
+
+		// 获取RSA公钥中的参数N(modulus)
+		byte[] pubKeyN = ((RSAKey)pubKey).getModulus().toByteArray();
+		byte[] priKeyN = ((RSAKey)priKey).getModulus().toByteArray();
+		System.out.println("pubKeyN = [" + pubKeyN.length + "] " + pubKeyN[0] + ", " + pubKeyN[1] + ", ...");
+		System.out.println("priKeyN = [" + priKeyN.length + "] " + priKeyN[0] + ", " + priKeyN[1] + ", ...");
+		System.out.println("check N in pubKey and priKey: " + Arrays.equals(pubKeyN, priKeyN));
+
+		// 测试RSA加解密
+		byte[] data0 = new byte[32];
+		new SecureRandom().nextBytes(data0);
+		byte[] data1 = Cert.encryptRsa(pubKey2, data0);
+		byte[] data2 = Cert.decryptRsa(priKey2, data1);
+		System.out.println("original   = [" + data0.length + "] " + data0[0] + ", " + data0[1] + ", ...");
+		System.out.println("encryptRsa = [" + data1.length + "] " + data1[0] + ", " + data1[1] + ", ...");
+		System.out.println("decryptRsa = [" + data2.length + "] " + data2[0] + ", " + data2[1] + ", ...");
+		System.out.println("check decrypt data: " + Arrays.equals(data0, data2));
 	}
 }
 /*

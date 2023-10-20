@@ -115,10 +115,14 @@ public final class Cert {
 			var e = dv.data.getPositiveBigInteger();
 			if (dv.data.available() != 0)
 				throw new IOException("Extra data available");
-			return RSAPublicKeyImpl.newKey(RSAUtil.KeyType.RSA, null, n, e);
+			return loadPublicKey(n, e);
 		} catch (IOException ex) {
 			throw new InvalidKeyException("Invalid PKCS#1 encoding", ex);
 		}
+	}
+
+	public static PublicKey loadPublicKey(BigInteger n, BigInteger e) throws InvalidKeyException {
+		return RSAPublicKeyImpl.newKey(RSAUtil.KeyType.RSA, null, n, e);
 	}
 
 	// 从二进制编码加载RSA私钥(二进制编码即PrivateKey.getEncoded()的结果)
