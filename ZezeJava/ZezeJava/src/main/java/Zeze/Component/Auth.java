@@ -26,7 +26,7 @@ public class Auth extends AbstractAuth {
 	}
 
 	public String getAuth(String account, int moduleId, int protocolId) {
-		var value = _tAuth.get(account);
+		var value = _tAuth.selectDirty(account);
 		if (null == value)
 			return null;
 
