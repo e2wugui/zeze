@@ -14,6 +14,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
     public static final int ErrorSeeDescription = 5;
     public static final int ErrorOnlineSetName = 6;
     public static final int ErrorStopServer = 7;
+    public static final int ErrorAuth = 8;
     public static final int eControlClose = 0; // 通过ReportError报告给客户端，并关闭链接。
     public static final int eControlReportClient = 1; // 通过ReportError报告给客户端，不关闭链接。
     public static final int eControlReportLinkd = 2; // Linkd收到自行做些处理。
@@ -380,6 +381,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final int ErrorSeeDescription = 5;
     public static final int ErrorOnlineSetName = 6;
     public static final int ErrorStopServer = 7;
+    public static final int ErrorAuth = 8;
     public static final int eControlClose = 0; // 通过ReportError报告给客户端，并关闭链接。
     public static final int eControlReportClient = 1; // 通过ReportError报告给客户端，不关闭链接。
     public static final int eControlReportLinkd = 2; // Linkd收到自行做些处理。

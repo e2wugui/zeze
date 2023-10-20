@@ -384,6 +384,7 @@
 				<enum name="ErrorSeeDescription"    value="5"/>
 				<enum name="ErrorOnlineSetName"     value="6"/>
 				<enum name="ErrorStopServer"        value="7"/>
+				<enum name="ErrorAuth"        value="8"/>
 
 				<enum name="eControlClose"              value="0"/> 通过ReportError报告给客户端，并关闭链接。
 				<enum name="eControlReportClient"   value="1"/> 通过ReportError报告给客户端，不关闭链接。
@@ -1872,13 +1873,30 @@
 			<rpc name="Query" argument="BJson" result="BJson" handle="server"/>
 
 		</module>
+
+		<module name="Auth" id="11036">
+			<beankey name="BAuthKey">
+				<variable id="1" name="ModuleId" type="int"/>
+				<variable id="2" name="ProtocolId" type="int"/>
+			</beankey>
+			<bean name="BAuthValue">
+				<variable id="1" name="Auths" type="map[BAuthKey, string]"/>
+			</bean>			
+			<table name="tAuth" key="string" value="BAuthValue" />
+		</module>
 		<!--
-		可用id范围 [11036, 11100) [11102, 11999]
+		可用id范围 [11037, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="Auth" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Auth"/>
+		</service>
+	</component>
+
 	<component name="LogService" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.LogService"/>

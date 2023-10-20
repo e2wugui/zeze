@@ -111,6 +111,13 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		return new ProviderUserSession(p);
 	}
 
+	private String getAuthFlags(String account, long typeId) {
+		var auth = providerApp.zeze.getAuth();
+		if (null == auth)
+			return "";
+		return auth.getAuth(account, typeId);
+	}
+
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessDispatch(Dispatch p) {
@@ -119,6 +126,13 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var linkSid = arg.getLinkSid();
 		var typeId = arg.getProtocolType();
 		Protocol<?> p2 = null;
+
+		var authFlags = getAuthFlags(p.Argument.getAccount(), typeId);
+		if (authFlags == null) {
+			sendKick(sender, linkSid, BKick.ErrorAuth, "auth fail " + typeId, controlKick);
+			return Procedure.AuthFail;
+		}
+
 		try {
 			var factoryHandle = providerApp.providerService.findProtocolFactoryHandle(typeId);
 			if (factoryHandle == null) {
@@ -129,6 +143,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			localDispatch.set(p);
 			int psize = arg.getProtocolData().size();
 			var session = newSession(p);
+			session.setAuthFlags(authFlags);
 			var zeze = sender.getService().getZeze();
 			var txn = Transaction.getCurrent();
 			var outRpcContext = new OutObject<Rpc<?, ?>>();

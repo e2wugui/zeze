@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.RedirectBase;
+import Zeze.Component.Auth;
 import Zeze.Component.AutoKey;
 import Zeze.Component.AutoKeyOld;
 import Zeze.Component.DelayRemove;
@@ -86,10 +87,27 @@ public final class Application {
 
 	private StartState startState = StartState.eStopped;
 	public RedirectBase redirect;
+
+	private Auth auth;
+
 	private final HotHandle<EventDispatcher.EventHandle> hotHandle = new HotHandle<>();
 
 	public HotHandle<EventDispatcher.EventHandle> getHotHandle() {
 		return hotHandle;
+	}
+
+	public void enableAuth() {
+		if (isStart())
+			throw new RuntimeException("must enable auth before start.");
+
+		if (null != auth)
+			throw new RuntimeException("auth has enabled.");
+
+		auth = new Auth(this);
+	}
+
+	public Auth getAuth() {
+		return auth;
 	}
 
 	/**
@@ -609,6 +627,8 @@ public final class Application {
 			startState = StartState.eStarted;
 
 			delayRemove.start();
+			if (auth != null)
+				auth.start();
 			if (timer != null) {
 				timer.loadCustomClassAnd();
 			}
@@ -654,6 +674,11 @@ public final class Application {
 		if (timer != null) {
 			timer.stop();
 			timer = null;
+		}
+
+		if (auth != null) {
+			auth.stop();
+			auth = null;
 		}
 
 		if (LocalRocksCacheDb != null) {
