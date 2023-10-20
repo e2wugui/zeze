@@ -127,7 +127,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var typeId = arg.getProtocolType();
 		Protocol<?> p2 = null;
 
-		var authFlags = getAuthFlags(p.Argument.getAccount(), typeId);
+		var authFlags = getAuthFlags(arg.getAccount(), typeId);
 		if (authFlags == null) {
 			sendKick(sender, linkSid, BKick.ErrorAuth, "auth fail " + typeId, controlKick);
 			return Procedure.AuthFail;

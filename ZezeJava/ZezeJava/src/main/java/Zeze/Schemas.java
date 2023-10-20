@@ -11,6 +11,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Action1;
 import Zeze.Util.KV;
+import Zeze.Util.LongHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -414,7 +415,7 @@ public class Schemas implements Serializable {
 
 		// 如果是dynamic，下面的变量定义它静态包含的可能的Beans；
 		// 错误检查定义：1. 旧的映射不能被删除；2. typeId映射的className不能改变；
-		public final HashMap<Long, String> dynamicBeans = new HashMap<>();
+		public final LongHashMap<String> dynamicBeans = new LongHashMap<>();
 
 		@Override
 		public void decode(@NotNull ByteBuffer bb) {
@@ -442,9 +443,9 @@ public class Schemas implements Serializable {
 			bb.WriteBool(deleted);
 
 			bb.WriteInt(dynamicBeans.size()); // size
-			for (var e : dynamicBeans.entrySet()) {
-				bb.WriteLong(e.getKey());
-				bb.WriteString(e.getValue());
+			for (var it = dynamicBeans.iterator(); it.moveToNext(); ) {
+				bb.WriteLong(it.key());
+				bb.WriteString(it.value());
 			}
 		}
 
@@ -457,12 +458,12 @@ public class Schemas implements Serializable {
 			if (typeName.equals("dynamic")) {
 				if (!other.typeName.equals("dynamic"))
 					throw new RuntimeException("dynamic cannot changed");
-				for (var oldE : other.dynamicBeans.entrySet()) {
-					var newV = dynamicBeans.get(oldE.getKey());
+				for (var oldIt = other.dynamicBeans.iterator(); oldIt.moveToNext(); ) {
+					var newV = dynamicBeans.get(oldIt.key());
 					if (null == newV)
-						throw new RuntimeException("dynamic beans cannot remove, " + oldE.getValue());
-					if (!newV.equals(oldE.getValue()))
-						throw new RuntimeException("dynamic beans mapping cannot change, " + oldE.getValue() + "->" + newV);
+						throw new RuntimeException("dynamic beans cannot remove, " + oldIt.value());
+					if (!newV.equals(oldIt.value()))
+						throw new RuntimeException("dynamic beans mapping cannot change, " + oldIt.value() + "->" + newV);
 				}
 			}
 

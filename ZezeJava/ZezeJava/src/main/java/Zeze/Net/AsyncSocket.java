@@ -16,6 +16,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
 import java.util.function.LongSupplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Handshake.Constant;
@@ -470,6 +471,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			case Constant.eEncryptTypeDisable:
 				break;
 			case Constant.eEncryptTypeAes:
+				//noinspection DataFlowIssue
 				var keyMd5 = Digest.md5(encryptParam);
 				chain = new Decrypt2(chain, keyMd5, keyMd5);
 				break;
@@ -484,6 +486,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		});
 	}
 
+	public void setInputSecurityCodec(BiFunction<AsyncSocket, BufferCodec, Codec> creator) {
+		submitAction(() -> { // 进selector线程调用
+			inputCodecChain = creator.apply(this, inputBuffer);
+			//noinspection NonAtomicOperationOnVolatileField
+			security |= 1;
+			logger.info("setInputSecurityCodec: {} class={}", this, inputCodecChain.getClass());
+		});
+	}
+
 	public void setOutputSecurityCodec(int encryptType, byte @Nullable [] encryptParam, int compressType) {
 		submitAction(() -> { // 进selector线程调用
 			Codec chain = outputBuffer;
@@ -491,6 +502,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			case Constant.eEncryptTypeDisable:
 				break;
 			case Constant.eEncryptTypeAes:
+				//noinspection DataFlowIssue
 				var keyMd5 = Digest.md5(encryptParam);
 				chain = new Encrypt2(chain, keyMd5, keyMd5);
 				break;
@@ -515,6 +527,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 2;
 			logger.info("setOutputSecurityCodec: {} compress={} encrypt={}", this, compressType, encryptType);
+		});
+	}
+
+	public void setOutputSecurityCodec(BiFunction<AsyncSocket, OutputBuffer, Codec> creator) {
+		submitAction(() -> { // 进selector线程调用
+			outputCodecChain = creator.apply(this, outputBuffer);
+			//noinspection NonAtomicOperationOnVolatileField
+			security |= 2;
+			logger.info("setOutputSecurityCodec: {} class={}", this, outputCodecChain.getClass());
 		});
 	}
 

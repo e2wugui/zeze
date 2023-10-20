@@ -46,7 +46,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 		@Override
 		public int preAllocSize() {
-			return 540;
+			return 534; // 1 + 2+256 + 1+16 + 2+256
 		}
 
 		@Override
@@ -79,7 +79,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 		@Override
 		public int preAllocSize() {
-			return 260;
+			return 259; // 1 + 2+256
 		}
 
 		@Override
@@ -153,24 +153,22 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			if (clientPriKey != null) {
 				serverIvKey = Cert.decryptRsa(clientPriKey, Result.encIvKey);
 				if (serverIvKey.length != 32)
-					throw new IllegalStateException("ErrorDecryptFailed"); //TODO: 不该出现的意外情况,估计只能断开连接了
+					throw new IllegalStateException("ErrorDecryptFailed"); // 不该出现的意外情况,估计只能断开连接了
 			} else {
 				serverIvKey = Result.encIvKey;
 				serverIvKeyLen = serverIvKey.length;
 				if (serverIvKeyLen != 32)
-					throw new IllegalStateException("ErrorDecryptFailed"); //TODO: 不该出现的意外情况,估计只能断开连接了
+					throw new IllegalStateException("ErrorDecryptFailed"); // 不该出现的意外情况,估计只能断开连接了
 				for (int i = 0; i < 32; i++)
 					serverIvKey[i] ^= clientIvKey[i];
 			}
 			byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
 			byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
-			new Encrypt2(null, serverKey, serverIv); //TODO
-			// r.getSender().setOutputSecurityCodec(Constant.eEncryptTypeAes, serverKey, Constant.eCompressTypeMppc);
+			r.getSender().setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, serverKey, serverIv));
 
 			byte[] clientIv = Arrays.copyOfRange(clientIvKey, 0, 16);
 			byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
-			new Decrypt2(null, clientKey, clientIv); //TODO
-			// r.getSender().setInputSecurityCodec(Constant.eEncryptTypeAes, clientKey, Constant.eCompressTypeMppc);
+			r.getSender().setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, clientKey, clientIv));
 			return 0;
 		});
 	}
@@ -195,8 +193,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		byte[] serverIvKey = genIvKey();
 		byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
 		byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
-		new Decrypt2(null, serverKey, serverIv); //TODO
-		// getSender().setInputSecurityCodec(Constant.eEncryptTypeAes, serverKey, Constant.eCompressTypeMppc);
+		getSender().setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, serverKey, serverIv));
 
 		if (Argument.clientPubKey.length > 0) {
 			//NOTE: 这里可以先认证一下客户端公钥是否合法,不合法就回复Res.ErrorUnknownClientPubKey
@@ -210,8 +207,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 		byte[] clientIv = Arrays.copyOfRange(clientIvKey, 0, 16);
 		byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
-		new Encrypt2(null, clientKey, clientIv); //TODO
-		// getSender().setOutputSecurityCodec(Constant.eEncryptTypeAes, clientKey, Constant.eCompressTypeMppc);
+		getSender().setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, clientKey, clientIv));
 		return 0;
 	}
 
