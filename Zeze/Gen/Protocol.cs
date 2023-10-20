@@ -39,6 +39,8 @@ namespace Zeze.Gen
 
             string attr = self.GetAttribute("id");
             Id = attr.Length > 0 ? int.Parse(attr) : Util.FixedHash.Hash32(FullName);
+            if (Id == 0)
+                throw new Exception("Protocol.id can not be zero.");
             space.ProtocolIdRanges.CheckAdd(Id);
 
             Argument = self.GetAttribute("argument");
