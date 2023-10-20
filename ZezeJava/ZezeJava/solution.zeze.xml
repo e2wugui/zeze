@@ -1860,10 +1860,17 @@
 				<variable id="4" name="Condition" type="BCondition"/>
 			</bean>
 
+			<bean name="BJson">
+				<variable id="1" name="Json" type="string"/>
+			</bean>
+			
 			<rpc name="NewSession"  result="BSession" handle="server"/>
 			<rpc name="CloseSession" argument="BSession" handle="server"/>
 			<rpc name="Browse" argument="BBrowse" result="BResult" handle="server"/>
 			<rpc name="Search" argument="BSearch" result="BResult" handle="server"/>
+
+			<rpc name="Query" argument="BJson" result="BJson" handle="server"/>
+
 		</module>
 		<!--
 		可用id范围 [11036, 11100) [11102, 11999]

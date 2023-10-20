@@ -8,6 +8,7 @@ import Zeze.Builtin.LogService.BLog;
 import Zeze.Builtin.LogService.Browse;
 import Zeze.Builtin.LogService.CloseSession;
 import Zeze.Builtin.LogService.NewSession;
+import Zeze.Builtin.LogService.Query;
 import Zeze.Builtin.LogService.Search;
 import Zeze.Config;
 import Zeze.Services.Log4jQuery.Log4jLog;
@@ -161,4 +162,10 @@ public class LogService extends AbstractLogService {
         r.SendResult();
         return 0;
     }
+
+    @Override
+    protected long ProcessQueryRequest(Query r) throws Exception {
+        return Procedure.NotImplement;
+    }
+
 }
