@@ -989,11 +989,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (v == null)
 					return null;
 				lockey.enterReadLock();
-			try {
+				try {
 					return (V)v.copy();
-				} finally {
-					lockey.exitReadLock();
-				}
 				} finally {
 					lockey.exitReadLock();
 				}
