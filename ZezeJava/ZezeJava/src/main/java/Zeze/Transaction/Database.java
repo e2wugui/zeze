@@ -10,7 +10,6 @@ import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.KV;
-import Zeze.Util.OutObject;
 import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -325,55 +324,21 @@ public abstract class Database {
 			remove(t, (ByteBuffer)key);
 		}
 
-		private static <K extends Comparable<K>, V extends Bean>
-		boolean cacheCopy(TableX<K, V> table, K k, OutObject<V> outV) {
-			var r = table.getCache().get(k);
-			if (r != null) {
-				r.enterFairLock();
-				try {
-					if (r.getState() == StateShare || r.getState() == StateModify) {
-						// 拥有正确的状态：
-						@SuppressWarnings("unchecked")
-						var strongRef = (V)r.getSoftValue();
-						if (strongRef == null)
-							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-						@SuppressWarnings("unchecked")
-						var v = (V)strongRef.copy();
-						outV.value = v;
-					}
-				} finally {
-					r.exitFairLock();
-				}
-				// else GlobalCacheManager.StateInvalid
-				// 继续后面的处理：使用数据库中的数据。
-			}
-			return false;
-		}
-
+		@SuppressWarnings("unchecked")
 		private static <K extends Comparable<K>, V extends Bean>
 		boolean invokeCallback(TableX<K, V> table, byte[] key, byte[] value, TableWalkHandle<K, V> callback) {
 			K k = table.decodeKey(ByteBuffer.Wrap(key));
-			var outV = new OutObject<V>();
-			if (cacheCopy(table, k, outV))
-				return true; // 已经删除，返回true，继续循环。
-			if (outV.value != null) // cache中有数据，使用最新的数据。
-				return callback.handle(k, outV.value);
-			// 缓存中不存在或者正在被删除但还没提交，使用数据库中的数据。
-			return callback.handle(k, table.decodeValue(ByteBuffer.Wrap(value)));
-		}
-
-		private static <K extends Comparable<K>, V extends Bean>
-		boolean cacheRemoved(TableX<K, V> table, K k) {
+			V v = null;
 			var r = table.getCache().get(k);
 			if (r != null) {
 				r.enterFairLock();
 				try {
 					if (r.getState() == StateShare || r.getState() == StateModify) {
 						// 拥有正确的状态：
-						@SuppressWarnings("unchecked")
 						var strongRef = (V)r.getSoftValue();
 						if (strongRef == null)
-							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+							return true; // 已经被删除，但是还没有checkpoint的记录看不到。返回true，继续循环。
+						v = (V)strongRef.copy();
 					}
 				} finally {
 					r.exitFairLock();
@@ -381,14 +346,30 @@ public abstract class Database {
 				// else GlobalCacheManager.StateInvalid
 				// 继续后面的处理：使用数据库中的数据。
 			}
-			return false;
+			// cache中有数据，使用最新的数据; 缓存中不存在或者正在被删除但还没提交，使用数据库中的数据。
+			return callback.handle(k, v != null ? v : table.decodeValue(ByteBuffer.Wrap(value)));
 		}
 
 		private static <K extends Comparable<K>, V extends Bean>
 		boolean invokeCallback(TableX<K, V> table, byte[] key, TableWalkKey<K> callback) {
 			K k = table.decodeKey(ByteBuffer.Wrap(key));
-			if (cacheRemoved(table, k))
-				return true;
+			var r = table.getCache().get(k);
+			if (r != null) {
+				r.enterFairLock();
+				try {
+					if (r.getState() == StateShare || r.getState() == StateModify) {
+						// 拥有正确的状态：
+						@SuppressWarnings("unchecked")
+						var strongRef = (V)r.getSoftValue();
+						if (strongRef == null)
+							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+					}
+				} finally {
+					r.exitFairLock();
+				}
+				// else GlobalCacheManager.StateInvalid
+				// 继续后面的处理：使用数据库中的数据。
+			}
 			// 缓存中不存在或者正在被删除，使用数据库中的数据。
 			return callback.handle(k);
 		}
@@ -400,7 +381,6 @@ public abstract class Database {
 				throw new IllegalStateException("must be called without transaction");
 
 			return walk((key, value) -> invokeCallback(table, key, value, callback));
-
 		}
 
 		@Override
