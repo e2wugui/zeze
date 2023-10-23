@@ -1010,15 +1010,18 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		var lockey = getZeze().getLocks().get(tkey);
 		for (int tryCount = 0; ; tryCount++) {
-			var v = load(key).strongRef;
-			lockey.enterReadLock();
 			try {
+				V v;
+				lockey.enterReadLock();
+				try {
+					v = load(key).strongRef;
+				} finally {
+					lockey.exitReadLock();
+				}
 				return v != null ? (V)v.copy() : null;
 			} catch (GoBackZeze e) {
 				if (currentT != null && currentT.isRunning() || tryCount >= 256)
 					throw e;
-			} finally {
-				lockey.exitReadLock();
 			}
 			try {
 				//noinspection BusyWait
