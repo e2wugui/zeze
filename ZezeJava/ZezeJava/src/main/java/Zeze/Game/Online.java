@@ -360,7 +360,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public @Nullable BOnline getOnline(long roleId) {
-		return _tonline.get(roleId);
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			return _tonline.get(roleId);
+		return _tonline.selectDirty(roleId);
 	}
 
 	public @NotNull BOnline getOrAddOnline(long roleId) {

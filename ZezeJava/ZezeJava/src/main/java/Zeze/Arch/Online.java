@@ -225,7 +225,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public @Nullable BOnlines getOnline(@NotNull String account) {
-		return _tonline.get(account);
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			return _tonline.get(account);
+		return _tonline.selectDirty(account);
 	}
 
 	public @NotNull BOnlines getOrAddOnline(@NotNull String account) {
