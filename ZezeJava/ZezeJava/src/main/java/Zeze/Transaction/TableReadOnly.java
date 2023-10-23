@@ -26,8 +26,6 @@ public interface TableReadOnly<K extends Comparable<K>, V extends Bean, VReadOnl
 
 	long walk(TableWalkHandle<K, V> callback);
 
-	long walk(TableWalkHandle<K, V> callback, Runnable afterLock);
-
 	long walkCacheKey(TableWalkKey<K> callback);
 
 	long walkDatabaseKey(TableWalkKey<K> callback);
@@ -37,8 +35,6 @@ public interface TableReadOnly<K extends Comparable<K>, V extends Bean, VReadOnl
 	long walkDatabase(TableWalkHandle<K, V> callback);
 
 	long walkMemory(TableWalkHandle<K, V> callback);
-
-	long walkMemory(TableWalkHandle<K, V> callback, Runnable afterLock);
 
 	V selectCopy(K key);
 

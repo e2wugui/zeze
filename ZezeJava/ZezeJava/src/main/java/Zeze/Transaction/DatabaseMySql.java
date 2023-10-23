@@ -704,7 +704,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
-		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock, String orderBy) {
+		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback, String orderBy) {
 			if (dropped)
 				return 0;
 
@@ -716,8 +716,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						while (rs.next()) {
 							count++;
 							invokeCallback(table, rs, callback, null);
-							if (null != afterLock)
-								afterLock.run();
 						}
 						return count;
 					}
@@ -730,20 +728,20 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
-			return walk(table, callback, afterLock, ""); // 正序
+		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback) {
+			return walk(table, callback, ""); // 正序
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
+		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) {
 			// 反序
-			return walk(table, callback, afterLock, buildOrderByDesc(table));
+			return walk(table, callback, buildOrderByDesc(table));
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
 		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
-			   TableWalkHandle<K, V> callback, Runnable afterLock,
+			   TableWalkHandle<K, V> callback,
 			   String orderBy) {
 			if (dropped || proposeLimit <= 0)
 				return null;
@@ -761,8 +759,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						while (rs.next()) {
 							if (!invokeCallback(table, rs, callback, lastKey))
 								break;
-							if (null != afterLock)
-								afterLock.run();
 						}
 					}
 					return lastKey.value;
@@ -775,13 +771,12 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
-			return walk(table, exclusiveStartKey, proposeLimit, callback, afterLock, "");
+		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) {
+			return walk(table, exclusiveStartKey, proposeLimit, callback, "");
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
-		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback,
-				  Runnable afterLock, String orderBy) {
+		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, String orderBy) {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
@@ -798,8 +793,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						while (rs.next()) {
 							if (!invokeKeyCallback(table, rs, callback, lastKey))
 								break;
-							if (null != afterLock)
-								afterLock.run();
 						}
 					}
 					return lastKey.value;
@@ -812,23 +805,22 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
-			return walkKey(table, exclusiveStartKey, proposeLimit, callback, afterLock, "");
+		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
+			return walkKey(table, exclusiveStartKey, proposeLimit, callback, "");
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
-				   TableWalkHandle<K, V> callback, Runnable afterLock) {
+				   TableWalkHandle<K, V> callback) {
 			return walk(table, exclusiveStartKey, proposeLimit,
-					callback, afterLock,
-					buildOrderByDesc(table));
+					callback, buildOrderByDesc(table));
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
-			return walkKey(table, exclusiveStartKey, proposeLimit, callback, afterLock, buildOrderByDesc(table));
+		K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
+			return walkKey(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table));
 		}
 
 		private <K extends Comparable<K>, V extends Bean>

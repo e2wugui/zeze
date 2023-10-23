@@ -1472,7 +1472,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	private void verifyLocal() {
 		var batch = new VerifyBatch();
 		// 锁外执行事务
-		_tlocal.walkMemory((k, v) -> batch.add(k), batch::tryPerform);
+		_tlocal.walkMemory((k, v) -> {
+			batch.add(k);
+			batch.tryPerform();
+			return true;
+		});
 		batch.perform();
 		startLocalCheck();
 	}

@@ -34,9 +34,24 @@ Zege Task
 Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot alter 测试，需要mysql。
 // todo 先禁用“自动删除不兼容的表。”以后删除相关代码。
+
 ------------------------------------------------------------------------------------------------------------------------------
-2023/10/27 v1.3.5 Raft & Dbh2; For IPV6 Format; Schemas; LogWeb; 
+2023/10/27 v1.3.5 Raft & Dbh2; For IPV6 Format; Schemas; LogWeb; TableX.walk; 
 ------------------------------------------------------------------------------------------------------------------------------
+TableX.walk 回调改成copy-unlock-callback，去掉Runnable after。
+
+Slo @张路
+1. 99.9%请求处理时间在200ms内。否则记录日志并联系LogWeb告警。
+2. Procedure正常处理结果99.9%都是0，并定时记录错误的结果统计，用于分析。结果不为0的已经有详细日志了。
+3. 连接流量统计99.9%的时间低于10MB，LogWeb高于告警。
+4. Table Cache Hit。默认90%。
+实现选择
+1. Procedure本来在另一个统计里面，要不要合并到PerfCounter里面。
+2. 超过200ms的请求马上单独记录日志，用于分析。
+3. 拷贝内容，用于参考：区分平均值的“慢”和长尾值的“慢”的一个最简单办法是将请求按延迟分组计数（可以用来制作直方图）：
+延迟为0～10ms之间的请求数量有多少，30～100ms之间，100～300ms之间等。
+将直方图的边界定义为指数型增长（这个例子中倍数约为3）是直观展现请求分布的最好方式。
+
 Zeze.Auth: protocol 权限
 1. 参考http的auth和acl，service dispatch 前增加调用：String authCheck(String account, moduleId, protocolId)。return null表示没有权限，否则表示权限detail。
 2. auth detail是否需要？authCheck已经能控制每条协议权限，有这个detail，可以把它传到protocol.authDetail中，当协议实现的时候做更细权限控制。
@@ -56,6 +71,7 @@ AuthValue仅仅按单条记录来维护权限，存在表示有权限，要不�
 大家看看有没有更好的办法。
 
 ResetDB 删除，不再支持清除部分表。
+
 把logweb发展成zeze.platform, @牛海涛
 Schemas 为 dynamic 类型增加错误检查：1. 旧的映射不能被删除；2. typeId映射的className不能改变；
 为了隔离代码，zeze部分代码的配置在创建时候拷贝一份传值进去，为了以后可能的支持配置重新加载，让配置尽可能“马上”生效，需要把配置的引用尽量改成对Config的直接读取。

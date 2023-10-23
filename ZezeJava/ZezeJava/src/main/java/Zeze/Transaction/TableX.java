@@ -13,6 +13,7 @@ import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Util.KV;
 import Zeze.Util.Macro;
+import Zeze.Util.OutObject;
 import Zeze.Util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -776,6 +777,34 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return value;
 	}
 
+	public final K walk(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().walk(this, exclusiveStartKey, proposeLimit, callback);
+	}
+
+	public final K walkDesc(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().walkDesc(this, exclusiveStartKey, proposeLimit, callback);
+	}
+
+	public final K walkKey(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkKey<K> callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().walkKey(this, exclusiveStartKey, proposeLimit, callback);
+	}
+
+	public final K walkKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkKey<K> callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().walkKeyDesc(this, exclusiveStartKey, proposeLimit, callback);
+	}
+
 	/**
 	 * 事务外调用
 	 * 遍历表格。能看到记录的最新数据。
@@ -786,73 +815,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return count
 	 */
 	public final long walk(@NotNull TableWalkHandle<K, V> callback) {
-		return walk(callback, null);
-	}
-
-	public final K walk(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback) {
-		return walk(exclusiveStartKey, proposeLimit, callback, null);
-	}
-
-	public final K walk(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback,
-						@Nullable Runnable afterLock) {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
-		return storage.getDatabaseTable().walk(this, exclusiveStartKey, proposeLimit, callback, afterLock);
-	}
-
-	public final K walkDesc(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback) {
-		return walkDesc(exclusiveStartKey, proposeLimit, callback, null);
-	}
-
-	public final K walkDesc(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback,
-							@Nullable Runnable afterLock) {
-		var storage = this.storage;
-		if (storage == null)
-			throw new IllegalStateException("storage is in-memory or closed");
-		return storage.getDatabaseTable().walkDesc(this, exclusiveStartKey, proposeLimit, callback, afterLock);
-	}
-
-	public final K walkKey(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkKey<K> callback) {
-		return walkKey(exclusiveStartKey, proposeLimit, callback, null);
-	}
-
-	public final K walkKey(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkKey<K> callback,
-						   @Nullable Runnable afterLock) {
-		var storage = this.storage;
-		if (storage == null)
-			throw new IllegalStateException("storage is in-memory or closed");
-		return storage.getDatabaseTable().walkKey(this, exclusiveStartKey, proposeLimit, callback, afterLock);
-	}
-
-	public final K walkKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkKey<K> callback) {
-		return walkKeyDesc(exclusiveStartKey, proposeLimit, callback, null);
-	}
-
-	public final K walkKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkKey<K> callback,
-							   @Nullable Runnable afterLock) {
-		var storage = this.storage;
-		if (storage == null)
-			throw new IllegalStateException("storage is in-memory or closed");
-		return storage.getDatabaseTable().walkKeyDesc(this, exclusiveStartKey, proposeLimit, callback, afterLock);
-	}
-
-	public final long walk(@NotNull TableWalkHandle<K, V> callback, @Nullable Runnable afterLock) {
-		var storage = this.storage;
-		if (storage == null)
-			throw new IllegalStateException("storage is in-memory or closed");
-		return storage.getDatabaseTable().walk(this, callback, afterLock);
+		return storage.getDatabaseTable().walk(this, callback);
 	}
 
 	public final long walkDesc(@NotNull TableWalkHandle<K, V> callback) {
-		return walkDesc(callback, null);
-	}
-
-	public final long walkDesc(@NotNull TableWalkHandle<K, V> callback, @Nullable Runnable afterLock) {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
-		return storage.getDatabaseTable().walkDesc(this, callback, afterLock);
+		return storage.getDatabaseTable().walkDesc(this, callback);
 	}
 
 	public final long walkCacheKey(@NotNull TableWalkKey<K> callback) {
@@ -938,11 +911,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return count
 	 */
 	public final long walkMemory(@NotNull TableWalkHandle<K, V> callback) {
-		return walkMemory(callback, null);
-	}
-
-	// 内存表遍历。
-	public final long walkMemory(@NotNull TableWalkHandle<K, V> callback, @Nullable Runnable afterLock) {
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
 		// 还是先不限制，可以用于特殊地方。
@@ -952,33 +920,39 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		int count = 0;
 		for (var entry : cache.getDataMap().entrySet()) {
 			var r = entry.getValue();
-			var tKey = new TableKey(getId(), entry.getKey());
-			var lockey = getZeze().getLocks().get(tKey);
-			lockey.enterReadLock();
-			try {
-				// 这个条件表示本地拥有读或写状态的才能遍历到。对于内存表，能看到全部。
-				if (r.getState() == StateShare || r.getState() == StateModify) {
-					@SuppressWarnings("unchecked")
-					var strongRef = (V)r.getSoftValue();
-					if (strongRef == null) {
-						strongRef = localRocksCacheTable.find(this, r.getObjectKey());
-						if (strongRef == null)
-							continue;
-						// 被交换出去的记录，装载以后临时用，不保存下来。
-						//strongRef.initRootInfo(r.createRootInfoIfNeed(tKey), null);
-						//r.setSoftValue(strongRef);
-					}
-					count++;
-					if (!callback.handle(r.getObjectKey(), strongRef))
-						break;
-				}
-			} finally {
-				lockey.exitReadLock();
+			var v = cacheCopy(r);
+			if (null != v) {
+				count++;
+				if (!callback.handle(r.getObjectKey(), v))
+					break;
 			}
-			if (afterLock != null)
-				afterLock.run();
 		}
 		return count;
+	}
+
+	private V cacheCopy(Record1<K, V> r) {
+		r.enterFairLock();
+		try {
+			// 这个条件表示本地拥有读或写状态的才能遍历到。对于内存表，能看到全部。
+			if (r.getState() == StateShare || r.getState() == StateModify) {
+				@SuppressWarnings("unchecked")
+				var strongRef = (V)r.getSoftValue();
+				if (strongRef == null) {
+					strongRef = localRocksCacheTable.find(this, r.getObjectKey());
+					if (strongRef == null)
+						return null;
+					// 被交换出去的记录，装载以后临时用，不保存下来。
+					//strongRef.initRootInfo(r.createRootInfoIfNeed(tKey), null);
+					//r.setSoftValue(strongRef);
+				}
+				@SuppressWarnings("unchecked")
+				var v = (V)strongRef.copy();
+				return v;
+			}
+			return null;
+		} finally {
+			r.exitFairLock();
+		}
 	}
 
 	/**
@@ -1015,8 +989,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (v == null)
 					return null;
 				lockey.enterReadLock();
-				try {
+			try {
 					return (V)v.copy();
+				} finally {
+					lockey.exitReadLock();
+				}
 				} finally {
 					lockey.exitReadLock();
 				}
