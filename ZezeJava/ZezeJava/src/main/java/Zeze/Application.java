@@ -634,7 +634,7 @@ public final class Application {
 			}
 		} else
 			startState = StartState.eStarted;
-		ProcedureStatistics.getInstance().start(conf.getProcedureStatisticsReportPerod());
+		ProcedureStatistics.getInstance().start(conf.getProcedureStatisticsReportPeriod());
 		TableStatistics.getInstance().start(conf.getTableStatisticsReportPeriod());
 	}
 

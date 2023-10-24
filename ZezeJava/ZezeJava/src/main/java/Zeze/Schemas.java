@@ -222,11 +222,11 @@ public class Schemas implements Serializable {
 			if (other == this)
 				return true;
 			if (other == null) {
-				logger.error("not found other type. parent={}, name={}", parent, name);
+				logger.error("not found other type. name={}, type=? -> {}", parent, name);
 				return false;
 			}
 			if (!isTypeNameCompatible(name, other.name)) {
-				logger.error("types are not compatible. parent={}, name={} and {}", parent, name, other.name);
+				logger.error("types are not compatible. name={}, type={} -> {}", parent, other.name, name);
 				return false;
 			}
 
@@ -585,11 +585,11 @@ public class Schemas implements Serializable {
 							continue;
 						}
 						// 重用了已经被删除的var。此时vOther.Type也是null。
-						logger.error("Not Compatible. bean={} variable={} Can Not Reuse Deleted Variable.Id",
+						logger.error("Not Compatible Variable={}.{} Can Not Reuse Deleted Variable.Id",
 								name, vThis.name);
 						res = false;
 					} else if (!vThis.isCompatible(name, vOther, context)) {
-						logger.error("Not Compatible. bean={} variable={}", name, vOther.name);
+						logger.error("Not Compatible Variable={}.{}", name, vThis.name);
 						res = false;
 					}
 				} else {
@@ -787,7 +787,7 @@ public class Schemas implements Serializable {
 
 		public boolean isCompatible(@NotNull Table other, @NotNull Context context) {
 			if (!name.equals(other.name)) {
-				logger.error("table name is not matched: {} and {}", name, other.name);
+				logger.error("table name is not matched: {} -> {}", other.name, name);
 				return false;
 			}
 

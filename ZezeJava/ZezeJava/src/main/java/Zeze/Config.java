@@ -97,7 +97,7 @@ public final class Config {
 	private int providerThreshold = 3000;
 	private int providerOverload = 5000;
 
-	private long procedureStatisticsReportPerod = 60000;
+	private long procedureStatisticsReportPeriod = 60000;
 	private long tableStatisticsReportPeriod = 60000;
 	private String hotWorkingDir = "";
 	private String hotDistributeDir = "distributes";
@@ -118,16 +118,16 @@ public final class Config {
 		hotDistributeDir = value;
 	}
 
-	public long getProcedureStatisticsReportPerod() {
-		return procedureStatisticsReportPerod;
+	public long getProcedureStatisticsReportPeriod() {
+		return procedureStatisticsReportPeriod;
 	}
 
 	public long getTableStatisticsReportPeriod() {
 		return tableStatisticsReportPeriod;
 	}
 
-	public void setProcedureStatisticsReportPerod(long value) {
-		procedureStatisticsReportPerod = value;
+	public void setProcedureStatisticsReportPeriod(long value) {
+		procedureStatisticsReportPeriod = value;
 	}
 
 	public void setTableStatisticsReportPeriod(long value) {
@@ -575,9 +575,9 @@ public final class Config {
 		if (!attr.isBlank())
 			providerOverload = Integer.parseInt(attr);
 
-		attr = self.getAttribute("ProcedureStatisticsReportPerod");
+		attr = self.getAttribute("ProcedureStatisticsReportPeriod");
 		if (!attr.isBlank())
-			procedureStatisticsReportPerod = Long.parseLong(attr);
+			procedureStatisticsReportPeriod = Long.parseLong(attr);
 
 		attr = self.getAttribute("TableStatisticsReportPeriod");
 		if (!attr.isBlank())
