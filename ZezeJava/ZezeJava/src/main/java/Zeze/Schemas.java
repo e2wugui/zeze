@@ -7,9 +7,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
-import Zeze.Util.Action1;
 import Zeze.Util.KV;
 import Zeze.Util.LongHashMap;
 import org.apache.logging.log4j.LogManager;
@@ -33,6 +33,8 @@ import org.jetbrains.annotations.Nullable;
  * 所以这个功能暂时先不提供了。
  */
 public class Schemas implements Serializable {
+	private static final Logger logger = LogManager.getLogger(Schemas.class);
+
 	public static final class Checked {
 		private Bean previous;
 		private Bean current;
@@ -75,39 +77,25 @@ public class Schemas implements Serializable {
 
 	public static final class CheckResult {
 		private Bean bean;
-		private final ArrayList<Action1<Bean>> updates = new ArrayList<>();
-		private final ArrayList<Action1<Bean>> updateVariables = new ArrayList<>();
-
-		public Bean getBean() {
-			return bean;
-		}
+		private final ArrayList<Consumer<Bean>> updates = new ArrayList<>();
+		private final ArrayList<Consumer<Bean>> updateVariables = new ArrayList<>();
 
 		public void setBean(Bean value) {
 			bean = value;
 		}
 
-		private @NotNull ArrayList<Action1<Bean>> getUpdates() {
-			return updates;
+		public void addUpdate(@Nullable Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
+			if (update != null)
+				updates.add(update);
+			if (updateVariable != null)
+				updateVariables.add(updateVariable);
 		}
 
-		private @NotNull ArrayList<Action1<Bean>> getUpdateVariables() {
-			return updateVariables;
-		}
-
-		public void addUpdate(@NotNull Action1<Bean> Update, @Nullable Action1<Bean> UpdateVariable) {
-			getUpdates().add(Update);
-			if (null != UpdateVariable) {
-				getUpdateVariables().add(UpdateVariable);
-			}
-		}
-
-		public void update() throws Exception {
-			for (var update : getUpdates()) {
-				update.run(getBean());
-			}
-			for (var update : getUpdateVariables()) {
-				update.run(getBean());
-			}
+		public void update() {
+			for (var update : updates)
+				update.accept(bean);
+			for (var update : updateVariables)
+				update.accept(bean);
 		}
 	}
 
@@ -152,14 +140,14 @@ public class Schemas implements Serializable {
 		}
 
 		public @Nullable CheckResult getCheckResult(Bean previous, Bean current) {
-			Schemas.Checked tempVar = new Schemas.Checked();
+			var tempVar = new Schemas.Checked();
 			tempVar.setPrevious(previous);
 			tempVar.setCurrent(current);
 			return getChecked().get(tempVar);
 		}
 
 		public void addCheckResult(Bean previous, Bean current, @NotNull CheckResult result) {
-			Schemas.Checked tempVar = new Schemas.Checked();
+			var tempVar = new Schemas.Checked();
 			tempVar.setPrevious(previous);
 			tempVar.setCurrent(current);
 			if (null != getChecked().put(tempVar, result))
@@ -175,7 +163,7 @@ public class Schemas implements Serializable {
 				throw new IllegalStateException("duplicate bean in CopyBeanIfRemoved Map");
 		}
 
-		public void update() throws Exception {
+		public void update() {
 			for (var result : getChecked().values())
 				result.update();
 			for (var result : getCopyBeanIfRemoved().values())
@@ -229,39 +217,43 @@ public class Schemas implements Serializable {
 			return t0 != null && t0.equals(t1);
 		}
 
-		public boolean isCompatible(@Nullable Type other, @NotNull Context context,
-									@NotNull Action1<Bean> Update, @Nullable Action1<Bean> UpdateVariable) {
+		public boolean isCompatible(@NotNull String parent, @Nullable Type other, @NotNull Context context,
+									@NotNull Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
 			if (other == this)
 				return true;
-			if (other == null)
+			if (other == null) {
+				logger.error("not found other type. parent={}, name={}", parent, name);
 				return false;
-			if (!isTypeNameCompatible(name, other.name))
+			}
+			if (!isTypeNameCompatible(name, other.name)) {
+				logger.error("types are not compatible. parent={}, name={} and {}", parent, name, other.name);
 				return false;
+			}
 
+			boolean res = true;
 			// Name 相同的情况下，下面的 Key Value 仅在 Collection 时有值。
 			// 当 this.Key == null && other.Key != null 在 Name 相同的情况下是不可能发生的。
-			if (null != key) {
-				if (!key.isCompatible(other.key, context,
-						(bean) -> {
-							keyName = bean.name;
-							key = bean;
-						}, UpdateVariable)) {
-					return false;
+			if (key != null) {
+				if (!key.isCompatible(parent + ".key", other.key, context, bean -> {
+					keyName = bean.name;
+					key = bean;
+				}, updateVariable)) {
+					res = false;
 				}
 			} else if (other.key != null)
 				throw new IllegalStateException("(this.Key == null && other.Key != null) Impossible!");
 
-			if (null != value) {
-				return value.isCompatible(other.value, context,
-						(bean) -> {
-							valueName = bean.name;
-							value = bean;
-						}, UpdateVariable);
-			}
-			if (other.value != null)
+			if (value != null) {
+				if (!value.isCompatible(parent + ".value", other.value, context, bean -> {
+					valueName = bean.name;
+					value = bean;
+				}, updateVariable)) {
+					res = false;
+				}
+			} else if (other.value != null)
 				throw new IllegalStateException("(this.Value == null && other.Value != null) Impossible!");
 
-			return true;
+			return res;
 		}
 
 		@Override
@@ -288,22 +280,19 @@ public class Schemas implements Serializable {
 				((Bean)value).keyRefCount++;
 		}
 
-		public void tryCopyBeanIfRemoved(@NotNull Context context,
-										 @NotNull Action1<Bean> Update,
-										 @Nullable Action1<Bean> UpdateVariable) {
+		public void tryCopyBeanIfRemoved(@NotNull Context context, @NotNull Consumer<Bean> update,
+										 @Nullable Consumer<Bean> updateVariable) {
 			if (key != null) {
 				key.tryCopyBeanIfRemoved(context, bean -> {
-							keyName = bean.name;
-							key = bean;
-						},
-						UpdateVariable);
+					keyName = bean.name;
+					key = bean;
+				}, updateVariable);
 			}
 			if (value != null) {
 				value.tryCopyBeanIfRemoved(context, bean -> {
-							valueName = bean.name;
-							value = bean;
-						},
-						UpdateVariable);
+					valueName = bean.name;
+					value = bean;
+				}, updateVariable);
 			}
 		}
 
@@ -453,43 +442,48 @@ public class Schemas implements Serializable {
 			type = s.compile(typeName, keyName, valueName);
 		}
 
-		public boolean isCompatible(@NotNull Variable other, @NotNull Context context) {
+		public boolean isCompatible(@NotNull String parent, @NotNull Variable other, @NotNull Context context) {
+			boolean res = true;
 			// dynamic 兼容检查。
 			if (typeName.equals("dynamic")) {
-				if (!other.typeName.equals("dynamic"))
-					throw new RuntimeException("dynamic cannot changed");
-				for (var oldIt = other.dynamicBeans.iterator(); oldIt.moveToNext(); ) {
-					var newV = dynamicBeans.get(oldIt.key());
-					if (null == newV)
-						throw new RuntimeException("dynamic beans cannot remove, " + oldIt.value());
-					if (!newV.equals(oldIt.value()))
-						throw new RuntimeException("dynamic beans mapping cannot change, " + oldIt.value() + "->" + newV);
+				if (!other.typeName.equals("dynamic")) {
+					logger.error("dynamic cannot changed! bean={}, var={}", parent, name);
+					res = false;
+				} else {
+					for (var oldIt = other.dynamicBeans.iterator(); oldIt.moveToNext(); ) {
+						var newV = dynamicBeans.get(oldIt.key());
+						if (newV == null) {
+							logger.error("dynamic beans cannot remove! bean={}, var={}, removed={}",
+									parent, name, oldIt.value());
+							res = false;
+						} else if (!newV.equals(oldIt.value())) {
+							logger.error("dynamic beans mapping cannot change! bean={}, var={}, change={}->{}",
+									parent, name, oldIt.value(), newV);
+							res = false;
+						}
+					}
 				}
 			}
 
-			return this.type.isCompatible(other.type, context,
-					(bean) ->
-					{
-						typeName = bean.name;
-						type = bean;
-					},
-					(bean) ->
-					{
-						keyName = type.keyName;
-						valueName = type.valueName;
-					});
+			return type.isCompatible(parent + '.' + name, other.type, context, bean -> {
+				typeName = bean.name;
+				type = bean;
+			}, bean -> {
+				keyName = type.keyName;
+				valueName = type.valueName;
+			}) && res;
 		}
 
 		public final void update() {
-			keyName = this.type.keyName;
-			valueName = this.type.valueName;
+			keyName = type.keyName;
+			valueName = type.valueName;
 		}
 
-		public final void tryCopyBeanIfRemoved(Context context) {
-			this.type.tryCopyBeanIfRemoved(context, (bean) -> {
+		public final void tryCopyBeanIfRemoved(@NotNull Context context) {
+			type.tryCopyBeanIfRemoved(context, bean -> {
 				typeName = bean.name;
 				type = bean;
-			}, (bean) -> {
+			}, bean -> {
 				keyName = type.keyName;
 				valueName = type.valueName;
 			});
@@ -497,16 +491,14 @@ public class Schemas implements Serializable {
 	}
 
 	public static class Bean extends Type {
-		private static final Logger logger = LogManager.getLogger(Bean.class);
-
 		private final TreeMap<Integer, Variable> variables = new TreeMap<>();
 		private boolean isBeanKey;
 		private transient int keyRefCount;
 		// 这个变量当前是不需要的，作为额外的属性记录下来，以后可能要用。
 		private boolean deleted;
 		// 这里记录在当前版本Schemas中Bean的实际名字，只有生成的bean包含这个。
-		private String realName = "";
-		private boolean compatibleChecked = false;
+		private @NotNull String realName = "";
+		private boolean compatibleChecked;
 
 		public final @NotNull TreeMap<Integer, Variable> getVariables() {
 			return variables;
@@ -524,11 +516,11 @@ public class Schemas implements Serializable {
 			return deleted;
 		}
 
-		public final String getRealName() {
+		public final @NotNull String getRealName() {
 			return realName;
 		}
 
-		private void setRealName(String value) {
+		private void setRealName(@NotNull String value) {
 			realName = value;
 		}
 
@@ -548,28 +540,34 @@ public class Schemas implements Serializable {
 		 * @return true: compatible
 		 */
 		@Override
-		public boolean isCompatible(@Nullable Type other, @NotNull Context context, @NotNull Action1<Bean> Update,
-									@Nullable Action1<Bean> UpdateVariable) {
+		public boolean isCompatible(@NotNull String parent, @Nullable Type other, @NotNull Context context,
+									@Nullable Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
 			if (compatibleChecked)
 				return true;
 
-			if (other == null)
+			if (other == null) {
+				logger.error("other is null. parent={}, bean={}", parent, name);
 				return false;
+			}
 
-			if (!(other instanceof Bean))
+			if (!(other instanceof Bean)) {
+				logger.error("other is not Bean. parent={}, bean={}, other={}",
+						parent, name, other.getClass().getName());
 				return false;
+			}
 
 			Bean beanOther = (Bean)other;
 
 			CheckResult result = context.getCheckResult(beanOther, this);
 			if (null != result) {
-				result.addUpdate(Update, UpdateVariable);
+				result.addUpdate(update, updateVariable);
 				return true;
 			}
 			result = new CheckResult(); // result在后面可能被更新。
 			result.setBean(this);
 			context.addCheckResult(beanOther, this, result);
 
+			boolean res = true;
 			ArrayList<Variable> deleteds = new ArrayList<>();
 			for (var e : beanOther.getVariables().entrySet()) {
 				var vOther = e.getValue();
@@ -581,17 +579,18 @@ public class Schemas implements Serializable {
 						continue;
 					}
 					if (vOther.deleted) {
-						if (context.getConfig().getAllowSchemasReuseVariableIdWithSameType() && vThis.isCompatible(vOther, context)) {
+						if (context.getConfig().getAllowSchemasReuseVariableIdWithSameType()
+								&& vThis.isCompatible(name, vOther, context)) {
 							// 反悔
 							continue;
 						}
 						// 重用了已经被删除的var。此时vOther.Type也是null。
-						logger.error("Not Compatible. bean={} variable={} Can Not Reuse Deleted Variable.Id", name, vThis.name);
-						return false;
-					}
-					if (!vThis.isCompatible(vOther, context)) {
+						logger.error("Not Compatible. bean={} variable={} Can Not Reuse Deleted Variable.Id",
+								name, vThis.name);
+						res = false;
+					} else if (!vThis.isCompatible(name, vOther, context)) {
 						logger.error("Not Compatible. bean={} variable={}", name, vOther.name);
-						return false;
+						res = false;
 					}
 				} else {
 					// 新删除或以前删除的都创建一个新的。
@@ -611,8 +610,9 @@ public class Schemas implements Serializable {
 			// 如果没有被真正当作Key，忽略这个检查。
 			if (isBeanKey && getKeyRefCount() > 0 && beanOther.isBeanKey && beanOther.getKeyRefCount() > 0) {
 				if (getVariables().size() < beanOther.getVariables().size()) {
-					logger.error("Not Compatible. beankey={} Variables.Count < DB.Variables.Count,Must Be Reduced", name);
-					return false;
+					logger.error("Not Compatible. beankey={} Variables.Count < DB.Variables.Count, Must Be Reduced",
+							name);
+					res = false;
 				}
 				for (var e : beanOther.getVariables().entrySet()) {
 					var vOther = e.getValue();
@@ -622,8 +622,9 @@ public class Schemas implements Serializable {
 					}
 					if (!getVariables().containsKey(vOther.id)) {
 						// 被当作Key以后就不能再删除变量了。
-						logger.error("Not Compatible. beankey={} variable={} Not Exist", name, vOther.name);
-						return false;
+						logger.error("Not Compatible. beankey={} variable={}({}) Not Exist",
+								name, vOther.name, vOther.id);
+						res = false;
 					}
 				}
 			}
@@ -632,23 +633,23 @@ public class Schemas implements Serializable {
 				Bean newBean = ShadowCopy(context);
 				context.getCurrent().addBean(newBean);
 				result.setBean(newBean);
-				result.addUpdate(Update, UpdateVariable);
+				result.addUpdate(update, updateVariable);
 				for (var vDelete : deleteds) {
 					vDelete.tryCopyBeanIfRemoved(context);
 					newBean.getVariables().put(vDelete.id, vDelete);
 				}
 			}
 			compatibleChecked = true;
-			return true;
+			return res;
 		}
 
 		@Override
 		public void tryCopyBeanIfRemoved(@NotNull Context context,
-										 @NotNull Action1<Bean> Update,
-										 @Nullable Action1<Bean> UpdateVariable) {
+										 @NotNull Consumer<Bean> update,
+										 @Nullable Consumer<Bean> updateVariable) {
 			CheckResult result = context.getCopyBeanIfRemovedResult(this);
 			if (null != result) {
-				result.addUpdate(Update, UpdateVariable);
+				result.addUpdate(update, updateVariable);
 				return;
 			}
 			result = new CheckResult();
@@ -665,7 +666,7 @@ public class Schemas implements Serializable {
 				newBean.setRealName(getRealName()); // 原来是新建的Bean，要使用这个。
 				context.getCurrent().addBean(newBean);
 				result.setBean(newBean);
-				result.addUpdate(Update, UpdateVariable);
+				result.addUpdate(update, updateVariable);
 				return;
 			}
 
@@ -678,7 +679,7 @@ public class Schemas implements Serializable {
 			newBean2.deleted = true;
 			context.getCurrent().addBean(newBean2);
 			result.setBean(newBean2);
-			result.addUpdate(Update, UpdateVariable);
+			result.addUpdate(update, updateVariable);
 
 			for (var v : getVariables().values())
 				v.tryCopyBeanIfRemoved(context);
@@ -687,10 +688,10 @@ public class Schemas implements Serializable {
 		private @NotNull Bean ShadowCopy(@NotNull Context context) {
 			var newBean = new Bean();
 			newBean.name = context.generateUniqueName();
-			newBean.isBeanKey = this.isBeanKey;
-			newBean.keyRefCount = this.getKeyRefCount();
-			newBean.realName = this.name;
-			newBean.deleted = this.deleted;
+			newBean.isBeanKey = isBeanKey;
+			newBean.keyRefCount = getKeyRefCount();
+			newBean.realName = name;
+			newBean.deleted = deleted;
 			for (var v : getVariables().values())
 				newBean.getVariables().put(v.id, v);
 			return newBean;
@@ -762,7 +763,7 @@ public class Schemas implements Serializable {
 		public Table() {
 		}
 
-		public Table(String n, String k, String v) {
+		public Table(@NotNull String n, @NotNull String k, @NotNull String v) {
 			if (n.isEmpty())
 				throw new IllegalArgumentException("table name is empty");
 			name = n;
@@ -785,21 +786,19 @@ public class Schemas implements Serializable {
 		}
 
 		public boolean isCompatible(@NotNull Table other, @NotNull Context context) {
-			return name.equals(other.name)
-					&& keyType.isCompatible(other.keyType, context,
-					(bean) ->
-					{
-						keyName = bean.name;
-						keyType = bean;
-					},
-					null)
-					&& valueType.isCompatible(other.valueType, context,
-					(bean) ->
-					{
-						valueName = bean.name;
-						valueType = bean;
-					},
-					null);
+			if (!name.equals(other.name)) {
+				logger.error("table name is not matched: {} and {}", name, other.name);
+				return false;
+			}
+
+			boolean res = keyType.isCompatible(name, other.keyType, context, bean -> {
+				keyName = bean.name;
+				keyType = bean;
+			}, null);
+			return valueType.isCompatible(name, other.valueType, context, bean -> {
+				valueName = bean.name;
+				valueType = bean;
+			}, null) && res;
 		}
 
 		public void compile(@NotNull Schemas s) {
@@ -867,7 +866,7 @@ public class Schemas implements Serializable {
 		appPublishVersion = version;
 	}
 
-	public void checkCompatible(@Nullable Schemas other, @NotNull Application app) throws Exception {
+	public void checkCompatible(@Nullable Schemas other, @NotNull Application app) {
 		if (other == null)
 			return;
 
@@ -878,19 +877,25 @@ public class Schemas implements Serializable {
 			context.setConfig(app.getConfig());
 		}
 
+		boolean res = true;
 		for (var table : tables.values()) {
 			var otherTable = other.tables.get(table.name);
-			if (null != otherTable) {
-				if (!table.isCompatible(otherTable, context))
-					throw new IllegalStateException("Not Compatible Table=" + table.name);
+			if (otherTable != null && !table.isCompatible(otherTable, context)) {
+				logger.error("Not Compatible Table={}", table.name);
+				res = false;
 			}
 		}
 		// bean的dynamicBeans兼容检查时，没有递归进去，这里的引用可能有循环，所以单独对所有的bean再执行一遍兼容检查。
 		for (var bean : beans.values()) {
 			var oldBean = other.beans.get(bean.name);
-			if (null != oldBean)
-				bean.isCompatible(oldBean, context, __ -> {}, null);
+			if (oldBean != null && !bean.isCompatible("", oldBean, context, null, null)) {
+				logger.error("Not Compatible Bean={}", bean.name);
+				res = false;
+			}
 		}
+		if (!res)
+			throw new IllegalStateException("Found Incompatible Table or Bean! Fix them or Clear DB");
+
 		context.update();
 	}
 
@@ -958,12 +963,12 @@ public class Schemas implements Serializable {
 		return n;
 	}
 
-	public void addBean(Bean bean) {
+	public void addBean(@NotNull Bean bean) {
 		if (beans.put(bean.name, bean) != null)
 			throw new IllegalStateException("AddBean duplicate=" + bean.name);
 	}
 
-	public void addTable(Table table) {
+	public void addTable(@NotNull Table table) {
 		if (tables.put(table.name, table) != null)
 			throw new IllegalStateException("AddTable duplicate=" + table.name);
 	}
@@ -971,9 +976,9 @@ public class Schemas implements Serializable {
 	public transient final HashMap<String, RelationalTable> relationalTables = new HashMap<>();
 
 	public static class Column {
-		public final String name;
-		public final int[] varIds;
-		public final String sqlType;
+		public final @NotNull String name;
+		public final int @NotNull [] varIds;
+		public final @NotNull String sqlType;
 
 		// 辅助信息
 		public final int variableId;
@@ -984,10 +989,11 @@ public class Schemas implements Serializable {
 
 		@Override
 		public @NotNull String toString() {
-			return name + ":" + variableId;
+			return name + ':' + variableId;
 		}
 
-		public Column(String name, int[] varIds, Variable variable, String sqlType) {
+		public Column(@NotNull String name, int @NotNull [] varIds, @NotNull Variable variable,
+					  @NotNull String sqlType) {
 			this.name = name;
 			this.varIds = varIds;
 			this.variableId = variable.id;
@@ -1015,7 +1021,7 @@ public class Schemas implements Serializable {
 		public final ArrayList<Column> remove = new ArrayList<>();
 
 		public RelationalTable(@NotNull String name) {
-			this.tableName = name;
+			tableName = name;
 		}
 
 		public @NotNull String createTableSql() {
@@ -1146,7 +1152,8 @@ public class Schemas implements Serializable {
 	}
 	*/
 
-	public static Schemas.RelationalTable newRelationalTable(Schemas.Table cur, Schemas.Table other) {
+	public static @NotNull Schemas.RelationalTable newRelationalTable(@NotNull Schemas.Table cur,
+																	  @Nullable Schemas.Table other) {
 		var relational = new RelationalTable(cur.name);
 		relational.currentKeyColumns = cur.buildRelationalColumns(relational.current);
 		//System.out.println(relational.createTableSql());
@@ -1166,7 +1173,7 @@ public class Schemas implements Serializable {
 			for (var table : db.getTables()) {
 				if (table.isRelationalMapping()) {
 					var relational = newRelationalTable(
-							this.tables.get(table.getName()),
+							tables.get(table.getName()),
 							other != null ? other.tables.get(table.getName()) : null);
 					relationalTables.put(table.getName(), relational);
 				}
