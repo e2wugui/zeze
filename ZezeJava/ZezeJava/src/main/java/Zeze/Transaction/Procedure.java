@@ -59,7 +59,7 @@ public class Procedure {
 			return;
 
 		String module = result > 0 ? "@" + IModule.getModuleId(result) + ":" + IModule.getErrorCode(result) : "";
-		logger.log(level, "Procedure={} Return={}{}{}", p, result, module, message, ex);
+		logger.log(level, "Procedure={} Return={}{}:{}", p, result, module, message, ex);
 	}
 
 	private final @NotNull Application zeze;
@@ -156,15 +156,15 @@ public class Procedure {
 				ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(result).increment();
 			}
 			return result;
-		} catch (GoBackZeze gobackzeze) {
+		} catch (GoBackZeze goBackZeze) {
 			// 单独抓住这个异常，是为了能原样抛出，并且使用不同的级别记录日志。
 			// 对状态正确性没有影响。
 			currentT.rollback();
 			if (ENABLE_DEBUG_LOG)
-				logger.debug("GoBackZeze:", gobackzeze);
+				logger.debug("GoBackZeze: {}", this, goBackZeze);
 			else
-				logger.info("GoBackZeze: {}", gobackzeze.getMessage());
-			throw gobackzeze;
+				logger.info("GoBackZeze({}): {}", goBackZeze.getMessage(), this);
+			throw goBackZeze;
 		} catch (Throwable e) { // logger, rethrow AssertionError
 			// rollback.
 			currentT.rollback();

@@ -236,7 +236,7 @@ public final class Transaction {
 								if ((result == Procedure.Success && saveSize != 1)
 										|| (result != Procedure.Success && saveSize > 0)) {
 									// 这个错误不应该重做
-									logger.error("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
+									logger.error("perform({}): savepoints.size != 1", procedure);
 									finalRollback(procedure);
 									return Procedure.ErrorSavepoint;
 								}
@@ -258,7 +258,7 @@ public final class Transaction {
 								break; // retry
 
 							case Abort:
-								logger.warn("Transaction.Perform: Abort");
+								logger.warn("perform({}): Abort", procedure);
 								finalRollback(procedure);
 								return Procedure.AbortException;
 
@@ -279,10 +279,10 @@ public final class Transaction {
 							// 在 unit test 下，异常日志会被记录两次。
 							switch (state) {
 							case Running:
-								logger.error("Transaction.Perform:{} exception. run count:{}", procedure, tryCount, e);
+								logger.error("perform({}) exception. run count:{}", procedure, tryCount, e);
 								if (!savepoints.isEmpty()) {
 									// 这个错误不应该重做
-									logger.error("Transaction.Perform:{}. exception. savepoints.Count != 0.", procedure, e);
+									logger.error("perform({}) exception. !savepoints.isEmpty", procedure, e);
 									finalRollback(procedure);
 									return Procedure.ErrorSavepoint;
 								}
@@ -302,8 +302,8 @@ public final class Transaction {
 							case Abort:
 								// if (!"GlobalAgent.Acquire Failed".equals(e.getMessage()) &&
 								// 		!"GlobalAgent In FastErrorPeriod".equals(e.getMessage()))
-								// 	logger.warn("Transaction.Perform: Abort", e);
-								logger.warn("Transaction.Perform: Abort", e);
+								//	logger.warn("perform({}): Abort", procedure, e);
+								logger.warn("perform({}): Abort", procedure, e);
 								finalRollback(procedure);
 								return Procedure.AbortException;
 
@@ -338,7 +338,7 @@ public final class Transaction {
 						}
 
 						if (checkResult == CheckResult.RedoAndReleaseLock) {
-							// logger.debug("CheckResult.RedoAndReleaseLock break {}", procedure);
+							// logger.debug("checkResult.RedoAndReleaseLock({}): break", procedure);
 							if (PerfCounter.ENABLE_PERF)
 								PerfCounter.instance.addCountInfo(perfIndexTransactionRedoAndReleaseLock);
 							break;
@@ -349,15 +349,15 @@ public final class Transaction {
 				} finally {
 					checkpoint.exitFlushReadLock();
 				}
-				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
+				//logger.debug("checkpoint.WaitRun({})", procedure);
 				// 实现Fresh队列以后删除Sleep。
 				try {
 					Thread.sleep(Random.getInstance().nextInt(80) + 20);
 				} catch (InterruptedException e) {
-					logger.error("", e);
+					logger.error("perform({}): interrupted", procedure, e);
 				}
 			}
-			logger.error("Transaction.Perform:{}. too many try.", procedure);
+			logger.error("perform({}): too many try", procedure);
 			finalRollback(procedure);
 			return Procedure.TooManyTry;
 		} finally {
@@ -381,7 +381,8 @@ public final class Transaction {
 				} else {
 					typeStr = "rollback";
 				}
-				logger.error("{} Procedure={} Action={}", typeStr, procedure.getActionName(), action.getClass().getName(), e);
+				logger.error("{} Procedure={} Action={} exception:",
+						typeStr, procedure.getActionName(), action.getClass().getName(), e);
 			}
 		}
 	}
@@ -416,7 +417,7 @@ public final class Transaction {
 					}
 				}
 			} catch (Throwable e) { // halt
-				logger.fatal("Transaction.finalCommit {}", procedure, e);
+				logger.fatal("finalCommit({}) exception:", procedure, e);
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
 			}
@@ -451,7 +452,7 @@ public final class Transaction {
 			}
 			cc.notifyListener();
 		} catch (Throwable ex) { // logger.error
-			logger.error("", ex);
+			logger.error("finalCommit({}) exception:", procedure, ex);
 		}
 
 		triggerCommitActions(procedure);
