@@ -908,7 +908,6 @@ public final class Config {
 	public static final class TableConf {
 		private @NotNull String name = "";
 		private int cacheCapacity = 20000;
-		private int cacheConcurrencyLevel;
 		private int cacheInitialCapacity;
 		private int cacheNewAccessHotThreshold;
 		private float cacheFactor = 5.0f;
@@ -947,14 +946,6 @@ public final class Config {
 
 		public void setCacheFactor(float factor) {
 			cacheFactor = factor;
-		}
-
-		public int getCacheConcurrencyLevel() {
-			return cacheConcurrencyLevel;
-		}
-
-		public void setCacheConcurrencyLevel(int value) {
-			cacheConcurrencyLevel = value;
 		}
 
 		public int getCacheInitialCapacity() {
@@ -1049,9 +1040,6 @@ public final class Config {
 			attr = self.getAttribute("CheckpointWhenCommit");
 			if (!attr.isBlank())
 				setCheckpointWhenCommit(Boolean.parseBoolean(attr));
-			attr = self.getAttribute("CacheConcurrencyLevel");
-			if (!attr.isBlank())
-				setCacheConcurrencyLevel(Integer.parseInt(attr));
 			attr = self.getAttribute("CacheInitialCapacity");
 			if (!attr.isBlank())
 				setCacheInitialCapacity(Integer.parseInt(attr));

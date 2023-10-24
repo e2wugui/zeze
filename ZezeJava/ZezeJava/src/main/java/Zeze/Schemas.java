@@ -506,6 +506,7 @@ public class Schemas implements Serializable {
 		private boolean deleted;
 		// 这里记录在当前版本Schemas中Bean的实际名字，只有生成的bean包含这个。
 		private String realName = "";
+		private boolean compatibleChecked = false;
 
 		public final @NotNull TreeMap<Integer, Variable> getVariables() {
 			return variables;
@@ -549,6 +550,9 @@ public class Schemas implements Serializable {
 		@Override
 		public boolean isCompatible(@Nullable Type other, @NotNull Context context, @NotNull Action1<Bean> Update,
 									@Nullable Action1<Bean> UpdateVariable) {
+			if (compatibleChecked)
+				return true;
+
 			if (other == null)
 				return false;
 
@@ -634,6 +638,7 @@ public class Schemas implements Serializable {
 					newBean.getVariables().put(vDelete.id, vDelete);
 				}
 			}
+			compatibleChecked = true;
 			return true;
 		}
 
@@ -874,14 +879,17 @@ public class Schemas implements Serializable {
 		}
 
 		for (var table : tables.values()) {
-			//var zTable = app.getTable(table.name);
-			//if (zTable == null || zTable.isNew() || app.getConfig().autoResetTable())
-			//	continue;
 			var otherTable = other.tables.get(table.name);
 			if (null != otherTable) {
 				if (!table.isCompatible(otherTable, context))
 					throw new IllegalStateException("Not Compatible Table=" + table.name);
 			}
+		}
+		// bean的dynamicBeans兼容检查时，没有递归进去，这里的引用可能有循环，所以单独对所有的bean再执行一遍兼容检查。
+		for (var bean : beans.values()) {
+			var oldBean = other.beans.get(bean.name);
+			if (null != oldBean)
+				bean.isCompatible(oldBean, context, __ -> {}, null);
 		}
 		context.update();
 	}

@@ -60,8 +60,6 @@ public class App extends Zeze.AppBase {
 				conf.setCacheCapacity(ABasicSimpleAddOneThread.AddCount);
 				conf.setCacheFactor(1.0f);
 			}
-			if (conf.getCacheConcurrencyLevel() < CBasicSimpleAddConcurrent.ConcurrentLevel)
-				conf.setCacheConcurrencyLevel(CBasicSimpleAddConcurrent.ConcurrentLevel);
 		}
 	}
 

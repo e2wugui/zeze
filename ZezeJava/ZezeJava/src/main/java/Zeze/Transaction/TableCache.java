@@ -71,7 +71,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	private int getLruInitialCapacity() {
-		int c = (int)(getCacheInitialCapacity() * 0.2);
+		int c = getCacheInitialCapacity();
 		return Math.min(c, table.getTableConf().getCacheMaxLruInitialCapacity());
 	}
 
