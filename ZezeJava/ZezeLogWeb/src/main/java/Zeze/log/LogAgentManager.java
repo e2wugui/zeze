@@ -9,6 +9,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.log.handle.BrowseLogHandle;
 import Zeze.log.handle.GetLogServersHandle;
+import Zeze.log.handle.QueryHandle;
 import Zeze.log.handle.SearchLogHandle;
 
 public class LogAgentManager {
@@ -40,6 +41,7 @@ public class LogAgentManager {
         addHandler("/api/get_log_servers", new GetLogServersHandle());
         addHandler("/api/browse", new BrowseLogHandle());
         addHandler("/api/search", new SearchLogHandle());
+        addHandler("/api/query", new QueryHandle());
         httpServer.start(netty, 9980);
     }
 

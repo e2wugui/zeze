@@ -1,12 +1,18 @@
 package Zeze.Transaction;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.LongMap;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import com.amazonaws.services.dynamodbv2.xspec.S;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -58,6 +64,38 @@ public final class ProcedureStatistics {
 		if (sb.length() > 0)
 			logger.info(sb.toString());
 	}
+
+	public List<String> selectProcedureNameList(){
+		List<String> nameList = new ArrayList<>();
+		Enumeration<String> names = getProcedures().keys();
+		while (names.hasMoreElements()){
+			String name = names.nextElement();
+			nameList.add(name);
+		}
+		return nameList;
+	}
+
+	public List<ResultLog> selectProcedureResults(String procedureName){
+		Statistics statistics = procedures.get(procedureName);
+		if (statistics == null){
+			return Collections.emptyList();
+		}
+		List<ResultLog> resultLogs = new ArrayList<>();
+		LongConcurrentHashMap<LongAdder> results = statistics.getResults();
+		LongMap.LongIterator keys = results.keyIterator();
+		while (keys.hasNext()){
+			long key = keys.next();
+			LongAdder longAdder = results.get(key);
+			long sum = 0;
+			if (longAdder != null){
+				sum = longAdder.sum();
+			}
+			resultLogs.add(new ResultLog(key, sum));
+		}
+		return resultLogs;
+	}
+
+
 
 	public synchronized void stop() {
 		if (null != timer) {
@@ -150,4 +188,34 @@ public final class ProcedureStatistics {
 			}
 		}
 	}
+
+	public static final class ResultLog{
+		private long result;
+		private long sum;
+
+		public ResultLog(long result, long sum) {
+			this.result = result;
+			this.sum = sum;
+		}
+
+		public ResultLog() {
+		}
+
+		public long getSum() {
+			return sum;
+		}
+
+		public void setSum(long sum) {
+			this.sum = sum;
+		}
+
+		public long getResult() {
+			return result;
+		}
+
+		public void setResult(long result) {
+			this.result = result;
+		}
+	}
+
 }

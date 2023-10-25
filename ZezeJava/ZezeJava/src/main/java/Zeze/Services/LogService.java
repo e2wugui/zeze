@@ -15,6 +15,7 @@ import Zeze.Services.Log4jQuery.Log4jLog;
 import Zeze.Services.Log4jQuery.LogServiceConf;
 import Zeze.Services.Log4jQuery.Server;
 import Zeze.Services.Log4jQuery.ServerUserState;
+import Zeze.Services.Log4jQuery.handler.QueryHandlerManager;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Transaction.Procedure;
@@ -165,7 +166,11 @@ public class LogService extends AbstractLogService {
 
     @Override
     protected long ProcessQueryRequest(Query r) throws Exception {
-        return Procedure.NotImplement;
+        String json = r.Argument.getJson();
+        String result = QueryHandlerManager.invokeHandler(json);
+        r.Result.setJson(result);
+        r.SendResult();
+        return Procedure.Success;
     }
 
 }

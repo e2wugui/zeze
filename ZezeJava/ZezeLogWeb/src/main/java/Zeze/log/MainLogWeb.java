@@ -8,6 +8,7 @@ public class MainLogWeb {
 
 
     public static void main(String[] args) throws Exception {
+
         Task.tryInitThreadPool(null, null, null);
 
         var configXml = "server.xml";
