@@ -28,7 +28,7 @@ public class Acceptor {
 		else if (Ip.equals("@external"))
 			Ip = Helper.getOnePublicNetworkInterfaceIpAddress();
 
-		if (null == Ip || Ip.isBlank())
+		if (null == Ip)
 			throw new RuntimeException("Acceptor.Ip invalid " + Ip);
 	}
 
