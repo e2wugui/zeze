@@ -1,11 +1,10 @@
 package Zeze.Net;
 
 import java.net.InetSocketAddress;
-import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
 public class Acceptor {
-	private @NotNull String Ip;
+	private String Ip;
 	private int Port;
 	private Service Service;
 	private AsyncSocket Socket;
@@ -13,12 +12,24 @@ public class Acceptor {
 	public Acceptor(int port, String ip) {
 		Ip = ip != null ? ip : "";
 		Port = port;
+		fixIp();
 	}
 
 	public Acceptor(Element self) {
 		Ip = self.getAttribute("Ip");
 		String attr = self.getAttribute("Port");
 		Port = attr.isEmpty() ? 0 : Integer.parseInt(attr);
+		fixIp();
+	}
+
+	private void fixIp() {
+		if (Ip.equals("@internal"))
+			Ip = Helper.getOnePrivateNetworkInterfaceIpAddress();
+		else if (Ip.equals("@external"))
+			Ip = Helper.getOnePublicNetworkInterfaceIpAddress();
+
+		if (null == Ip || Ip.isBlank())
+			throw new RuntimeException("Acceptor.Ip invalid " + Ip);
 	}
 
 	public final String getIp() {

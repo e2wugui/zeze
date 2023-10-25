@@ -283,7 +283,7 @@ public class LinkdService extends HandshakeServer {
 		*/
 		var opt = getSocketOptions().getOverBandwidth();
 		if (opt == null)
-			return false; // discard
+			return false; // discard no
 		var rate = (double)(curSendSpeed) / opt;
 
 		// 总控

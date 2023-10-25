@@ -139,6 +139,7 @@ public class Daemon {
 	}
 
 	private static void destroySubprocess() throws InterruptedException {
+		// todo run jstack
 		subprocess.destroy();
 		joinMonitors();
 	}
