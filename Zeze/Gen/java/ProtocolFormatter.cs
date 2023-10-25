@@ -1,4 +1,5 @@
-﻿
+﻿using System;
+
 namespace Zeze.Gen.java
 {
     public class ProtocolFormatter
@@ -53,7 +54,20 @@ namespace Zeze.Gen.java
             {
                 sw.WriteLine("    @Override");
                 sw.WriteLine("    public int getCriticalLevel() {");
-                sw.WriteLine($"        return {p.CriticalLevel};");
+                switch (p.CriticalLevel)
+                {
+                    case Protocol.eCritical:
+                        sw.WriteLine("        return eCritical;");
+                        break;
+                    case Protocol.eNormal:
+                        sw.WriteLine("        return eNormal;");
+                        break;
+                    case Protocol.eSheddable:
+                        sw.WriteLine("        return eSheddable;");
+                        break;
+                    default:
+                        throw new NotSupportedException(p.CriticalLevel.ToString());
+                }
                 sw.WriteLine("    }");
                 sw.WriteLine();
             }

@@ -552,6 +552,7 @@ public class Service {
 		public @Nullable ProtocolHandle<P> Handle;
 		public TransactionLevel Level;
 		public DispatchMode Mode;
+		public int CriticalLevel = Protocol.eCriticalPlus;
 
 		public ProtocolFactoryHandle(@NotNull Class<P> protocolClass, long typeId) {
 			Class = protocolClass;
@@ -583,6 +584,7 @@ public class Service {
 			Handle = handle;
 			Level = level;
 			Mode = mode;
+			CriticalLevel = p.getCriticalLevel();
 		}
 	}
 

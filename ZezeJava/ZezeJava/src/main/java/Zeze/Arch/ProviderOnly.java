@@ -3,11 +3,13 @@ package Zeze.Arch;
 import Zeze.AppBase;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.Nullable;
 
 public class ProviderOnly extends ProviderImplement {
 	private ProviderLoadOnly load;
 
-	public ProviderLoadOnly getLoad() {
+	@Override
+	public @Nullable ProviderLoadOnly getLoad() {
 		return load;
 	}
 

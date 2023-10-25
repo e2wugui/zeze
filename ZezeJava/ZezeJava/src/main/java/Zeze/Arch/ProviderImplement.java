@@ -1,17 +1,22 @@
 package Zeze.Arch;
 
+import Zeze.Arch.Beans.BSend;
 import Zeze.Builtin.Provider.AnnounceLinkInfo;
 import Zeze.Builtin.Provider.BKick;
+import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Kick;
+import Zeze.Builtin.Provider.Send;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
@@ -34,6 +39,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	public void setControlKick(int control) {
 		controlKick = control;
 	}
+
+	public abstract @Nullable ProviderLoadBase getLoad();
 
 	void addServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
 		if (ss.getServiceName().equals(providerApp.linkdServiceName))
@@ -127,18 +134,54 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var typeId = arg.getProtocolType();
 		Protocol<?> p2 = null;
 
+		// 先检查是否未知协议
+		var factoryHandle = providerApp.providerService.findProtocolFactoryHandle(typeId);
+		if (factoryHandle == null) {
+			sendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol: " + typeId, controlKick);
+			return Procedure.LogicError;
+		}
+
+		// 验证协议权限
 		var authFlags = getAuthFlags(arg.getAccount(), typeId);
 		if (authFlags == null) {
 			sendKick(sender, linkSid, BKick.ErrorAuth, "auth fail " + typeId, controlKick);
 			return Procedure.AuthFail;
 		}
 
-		try {
-			var factoryHandle = providerApp.providerService.findProtocolFactoryHandle(typeId);
-			if (factoryHandle == null) {
-				sendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol: " + typeId, controlKick);
-				return Procedure.LogicError;
+		// 根据负载和协议级别处理熔断
+		var load = getLoad();
+		if (load != null) {
+			var overload = load.getOverload().getOverload();
+			if (overload != BLoad.eWorkFine) {
+				if (overload == BLoad.eThreshold && factoryHandle.CriticalLevel == Protocol.eSheddable ||
+						overload == BLoad.eOverload && factoryHandle.CriticalLevel != Protocol.eCriticalPlus) {
+					var pdata = arg.getProtocolData();
+					if (pdata.size() > 0 && (pdata.get(0) & FamilyClass.FamilyClassMask) == FamilyClass.Request) {
+						// 简单构造并回复该RPC
+						var bb = pdata.Wrap();
+						var header = bb.ReadInt();
+						if ((header & FamilyClass.BitResultCode) != 0)
+							bb.SkipLong(); // resultCode
+						var sessionId = bb.ReadLong();
+						bb = ByteBuffer.Allocate();
+						bb.WriteInt4(Protocol.getModuleId(typeId));
+						bb.WriteInt4(Protocol.getProtocolId(typeId));
+						int saveSize = bb.BeginWriteWithSize4();
+						bb.WriteInt(FamilyClass.Response | FamilyClass.BitResultCode);
+						bb.WriteLong(Procedure.Busy);
+						bb.WriteLong(sessionId);
+						EmptyBean.instance.encode(bb);
+						bb.EndWriteWithSize4(saveSize);
+						var pSend = new Send(new BSend(typeId, new Binary(bb)));
+						pSend.Argument.getLinkSids().add(linkSid);
+						pSend.Send(sender);
+					}
+					return 0;
+				}
 			}
+		}
+
+		try {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			localDispatch.set(p);
 			int psize = arg.getProtocolData().size();

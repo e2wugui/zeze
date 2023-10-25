@@ -4,6 +4,7 @@ import Zeze.AppBase;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.Nullable;
 
 public class ProviderWithOnline extends ProviderImplement {
 	protected Online online; // 需要外面初始化。App.Start.
@@ -12,7 +13,9 @@ public class ProviderWithOnline extends ProviderImplement {
 	public Online getOnline() {
 		return online;
 	}
-	public ProviderLoadWithOnline getLoad() {
+
+	@Override
+	public @Nullable ProviderLoadWithOnline getLoad() {
 		return load;
 	}
 

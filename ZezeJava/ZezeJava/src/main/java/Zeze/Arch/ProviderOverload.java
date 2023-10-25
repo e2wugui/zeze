@@ -9,17 +9,14 @@ import Zeze.Builtin.Provider.BLoad;
 import Zeze.Config;
 import Zeze.Util.Random;
 import Zeze.Util.ThreadDiagnosable;
+import org.jetbrains.annotations.NotNull;
 
 public class ProviderOverload {
 	private final HashSet<ThreadPoolMonitor> threadPools = new HashSet<>();
-	private final ScheduledExecutorService scheduledExecutorService;
+	private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+			ThreadDiagnosable.newFactory("ZezeLoadThread", Thread.MAX_PRIORITY));
 
-	public ProviderOverload() {
-		scheduledExecutorService = Executors.newScheduledThreadPool(
-				1, ThreadDiagnosable.newFactory("ZezeScheduledPool"));
-	}
-
-	public void register(ExecutorService threadPool, Config config) {
+	public void register(@NotNull ExecutorService threadPool, @NotNull Config config) {
 		threadPools.add(new ThreadPoolMonitor(threadPool, config));
 	}
 
@@ -36,12 +33,12 @@ public class ProviderOverload {
 		return result;
 	}
 
-	public class ThreadPoolMonitor {
-		final ExecutorService threadPool;
-		final Config config;
-		volatile int overload = BLoad.eWorkFine;
+	class ThreadPoolMonitor {
+		private final @NotNull ExecutorService threadPool;
+		private final @NotNull Config config;
+		private volatile long overload = BLoad.eWorkFine;
 
-		public ThreadPoolMonitor(ExecutorService threadPool, Config config) {
+		public ThreadPoolMonitor(@NotNull ExecutorService threadPool, @NotNull Config config) {
 			this.threadPool = threadPool;
 			this.config = config;
 			startDetectDelay();
@@ -49,40 +46,32 @@ public class ProviderOverload {
 
 		private synchronized void startDetectDelay() {
 			scheduledExecutorService.schedule(
-					this::detecting, Random.getInstance().nextLong(1000) + 1000, TimeUnit.MILLISECONDS);
+					this::detecting, Random.getInstance().nextInt(1000) + 1000, TimeUnit.MILLISECONDS);
 		}
 
+		private int calcOverload(long startTimeNs) {
+			var elapse = System.nanoTime() - startTimeNs;
+			if (elapse < config.getProviderThreshold())
+				return BLoad.eWorkFine;
+			if (elapse < config.getProviderOverload())
+				return BLoad.eThreshold;
+			return BLoad.eOverload;
+		}
+
+		@SuppressWarnings("NonAtomicOperationOnVolatileField")
 		private void detecting() {
-			var time = System.currentTimeMillis();
+			overload = (overload & 3) | (System.nanoTime() & ~3L); // 保留低2位保存的上次负载状态
 
 			// todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
 			threadPool.execute(() -> {
-				synchronized (this) {
-					var detectElapse = System.currentTimeMillis() - time;
-					if (detectElapse > config.getProviderOverload())
-						overload = BLoad.eOverload;
-					else if (detectElapse > config.getProviderThreshold())
-						overload = BLoad.eThreshold;
-					else
-						overload = BLoad.eWorkFine;
-
-					startDetectDelay();
-				}
+				overload = calcOverload(overload);
+				startDetectDelay();
 			});
 		}
 
 		public int overload() {
-			return overload;
-		}
-
-		@Override
-		public int hashCode() {
-			return threadPool.hashCode();
-		}
-
-		@Override
-		public boolean equals(Object other) {
-			return other == this; // 直接比较引用即可。
+			var startTime = overload; // 如果高位是0,则表示当前未开始检测,就取上次的负载结果,否则计算上次和当前的最大值
+			return (startTime & ~3L) == 0 ? (int)startTime : Math.max((int)startTime & 3, calcOverload(startTime));
 		}
 	}
 }

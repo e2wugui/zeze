@@ -21,6 +21,11 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	private static final LongConcurrentHashMap<Class<? extends Protocol<?>>> protocolClasses = new LongConcurrentHashMap<>();
 	private static final @NotNull VarHandle userStateHandle;
 
+	public static final int eCriticalPlus = 0;
+	public static final int eCritical = 1;
+	public static final int eNormal = 2;
+	public static final int eSheddable = 3;
+
 	private transient Object sender; // AsyncSocket or DatagramSession
 	@SuppressWarnings("unused")
 	private transient @Nullable Object userState;
@@ -35,11 +40,6 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 			throw new AssertionError(); // never run here
 		}
 	}
-
-	public final static int eCriticalPlus = 3;
-	public final static int eCritical = 2;
-	public final static int eNormal = 1;
-	public final static int eSheddable = 0;
 
 	public int getCriticalLevel() {
 		return eCriticalPlus;

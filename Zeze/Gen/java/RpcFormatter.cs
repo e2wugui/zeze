@@ -1,4 +1,5 @@
-﻿
+﻿using System;
+
 namespace Zeze.Gen.java
 {
     public class RpcFormatter
@@ -53,6 +54,27 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return TypeId_;");
             sw.WriteLine("    }");
             sw.WriteLine();
+            if (rpc.CriticalLevel != Protocol.eCriticalPlus)
+            {
+                sw.WriteLine("    @Override");
+                sw.WriteLine("    public int getCriticalLevel() {");
+                switch (rpc.CriticalLevel)
+                {
+                    case Protocol.eCritical:
+                        sw.WriteLine("        return eCritical;");
+                        break;
+                    case Protocol.eNormal:
+                        sw.WriteLine("        return eNormal;");
+                        break;
+                    case Protocol.eSheddable:
+                        sw.WriteLine("        return eSheddable;");
+                        break;
+                    default:
+                        throw new NotSupportedException(rpc.CriticalLevel.ToString());
+                }
+                sw.WriteLine("    }");
+                sw.WriteLine();
+            }
             // declare enums
             foreach (Types.Enum e in rpc.Enums)
                 sw.WriteLine($"    public static final {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);

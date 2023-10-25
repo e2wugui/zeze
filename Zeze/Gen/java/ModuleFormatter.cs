@@ -158,7 +158,7 @@ namespace Zeze.Gen.java
                         if (nextLine.Substring(b + 1).Trim() != subs[1] + ';')
                             continue;
                         lines[i] = line.Substring(0, p + 1) + nextLine.Substring(a + 1, b - a - 1).Trim()
-                            + ' ' + nextLine.Substring(3, e - 3).Trim() + line.Substring(q);
+                                                            + ' ' + nextLine.Substring(3, e - 3).Trim() + line.Substring(q);
                         lines.RemoveAt(i + j);
                         i += j - 1;
                         break;
@@ -298,6 +298,22 @@ namespace Zeze.Gen.java
                             sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{rpc.Name}Response\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
                             sw.WriteLine($"            factoryHandle.Mode = _reflect.getDispatchMode(\"Process{rpc.Name}Response\", Zeze.Transaction.DispatchMode.Normal);");
                         }
+                        switch (p.CriticalLevel)
+                        {
+                            case Protocol.eCriticalPlus:
+                                break;
+                            case Protocol.eCritical:
+                                sw.WriteLine("            factoryHandle.CriticalLevel = Zeze.Net.Protocol.eCritical;");
+                                break;
+                            case Protocol.eNormal:
+                                sw.WriteLine("            factoryHandle.CriticalLevel = Zeze.Net.Protocol.eNormal;");
+                                break;
+                            case Protocol.eSheddable:
+                                sw.WriteLine("            factoryHandle.CriticalLevel = Zeze.Net.Protocol.eSheddable;");
+                                break;
+                            default:
+                                throw new NotSupportedException(p.CriticalLevel.ToString());
+                        }
                         sw.WriteLine($"            {serviceVar}.AddFactoryHandle({rpc.TypeId}L, factoryHandle); // {rpc.Space.Id}, {rpc.Id}");
                         sw.WriteLine("        }");
                         continue;
@@ -316,6 +332,22 @@ namespace Zeze.Gen.java
                         sw.WriteLine($"            factoryHandle.Handle = this::Process{p.Name};");
                         sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{p.Name}\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
                         sw.WriteLine($"            factoryHandle.Mode = _reflect.getDispatchMode(\"Process{p.Name}\", Zeze.Transaction.DispatchMode.Normal);");
+                        switch (p.CriticalLevel)
+                        {
+                            case Protocol.eCriticalPlus:
+                                break;
+                            case Protocol.eCritical:
+                                sw.WriteLine("            factoryHandle.CriticalLevel = Zeze.Net.Protocol.eCritical;");
+                                break;
+                            case Protocol.eNormal:
+                                sw.WriteLine("            factoryHandle.CriticalLevel = Zeze.Net.Protocol.eNormal;");
+                                break;
+                            case Protocol.eSheddable:
+                                sw.WriteLine("            factoryHandle.CriticalLevel = Zeze.Net.Protocol.eSheddable;");
+                                break;
+                            default:
+                                throw new NotSupportedException(p.CriticalLevel.ToString());
+                        }
                         sw.WriteLine($"            {serviceVar}.AddFactoryHandle({p.TypeId}L, factoryHandle); // {p.Space.Id}, {p.Id}");
                         sw.WriteLine("        }");
                     }

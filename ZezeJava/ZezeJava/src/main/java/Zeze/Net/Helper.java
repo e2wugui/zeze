@@ -7,6 +7,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 
 public final class Helper {
 	public static final int MAX_BUFFER_SIZE = 0x4000_0000; // 1G
@@ -176,15 +177,18 @@ public final class Helper {
 		}
 	}
 
-	public static String getOnePrivateNetworkInterfaceIpAddress() {
+	public static @NotNull String getOnePrivateNetworkInterfaceIpAddress() {
 		try {
 			var interfaces = NetworkInterface.getNetworkInterfaces();
 			while (interfaces.hasMoreElements()) {
 				var inetAddresses = interfaces.nextElement().getInetAddresses();
 				if (inetAddresses.hasMoreElements()) {
 					var address = inetAddresses.nextElement();
-					if (isPrivateAddress(address))
-						return address.getHostAddress();
+					if (isPrivateAddress(address)) {
+						var ip = address.getHostAddress();
+						if (ip != null && !ip.isBlank())
+							return ip;
+					}
 				}
 			}
 			return "";
@@ -194,15 +198,18 @@ public final class Helper {
 		}
 	}
 
-	public static String getOnePublicNetworkInterfaceIpAddress() {
+	public static @NotNull String getOnePublicNetworkInterfaceIpAddress() {
 		try {
 			var interfaces = NetworkInterface.getNetworkInterfaces();
 			while (interfaces.hasMoreElements()) {
 				var inetAddresses = interfaces.nextElement().getInetAddresses();
 				if (inetAddresses.hasMoreElements()) {
 					var address = inetAddresses.nextElement();
-					if (!isPrivateAddress(address))
-						return address.getHostAddress();
+					if (!isPrivateAddress(address)) {
+						var ip = address.getHostAddress();
+						if (ip != null && !ip.isBlank())
+							return ip;
+					}
 				}
 			}
 			return "";

@@ -7,6 +7,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class ProviderLoadBase {
 	private long lastLoginTime;
@@ -24,7 +25,7 @@ public abstract class ProviderLoadBase {
 		this.zeze = zeze;
 	}
 
-	public ProviderOverload getOverload() {
+	public @NotNull ProviderOverload getOverload() {
 		return overload;
 	}
 

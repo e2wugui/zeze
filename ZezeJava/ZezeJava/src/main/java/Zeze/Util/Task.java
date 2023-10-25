@@ -122,17 +122,17 @@ public final class Task {
 			return false;
 
 		if (pool == null) {
-			int workerThreads = app == null
-					? 240
-					: Math.max(app.getConfig().getWorkerThreads(), Runtime.getRuntime().availableProcessors() * 30);
+			int workerThreads = app == null ? 240 : (app.getConfig().getWorkerThreads() > 0
+					? app.getConfig().getWorkerThreads()
+					: Runtime.getRuntime().availableProcessors() * 30);
 			threadPoolDefault = newFixedThreadPool(workerThreads, "ZezeTaskPool");
 		} else
 			threadPoolDefault = pool;
 
 		if (scheduled == null) {
-			int workerThreads = app == null
-					? 8
-					: Math.max(app.getConfig().getScheduledThreads(), Runtime.getRuntime().availableProcessors());
+			int workerThreads = app == null ? 8 : (app.getConfig().getScheduledThreads() > 0
+					? app.getConfig().getScheduledThreads()
+					: Runtime.getRuntime().availableProcessors());
 			threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
 					ThreadDiagnosable.newFactory("ZezeScheduledPool"));
 			/*

@@ -120,11 +120,11 @@
 		</beankey>
 		<beankey name="EmptyKey"/> beankey的注释
 
-		<protocol name="Protocol4" argument="BValue" handle="server,clientscript"/> protocol的注释
-		<protocol name="Protocol3" argument="demo.Module2.BValue" handle="server,clientscript" comment="protocol的注释"/>
+		<protocol name="Protocol4" argument="BValue" handle="server,clientscript" CriticalLevel="0"/> protocol的注释
+		<protocol name="Protocol3" argument="demo.Module2.BValue" handle="server,clientscript" CriticalLevel="1" comment="protocol的注释"/>
 		<!-- rpc的注释 -->
 		<rpc name="Rpc1" argument="BValue" result="BValue" handle="server" comment=""/>
-		<rpc name="Rpc2" argument="BValue" result="BValue" handle="clientscript"/> rpc的注释
+		<rpc name="Rpc2" argument="BValue" result="BValue" handle="clientscript" CriticalLevel="2"/> rpc的注释
 
 		<!-- table的注释 -->
 		<table name="Table1" key="long" value="BValue" RelationalMapping="true" memory="false" autokey="true"/>
@@ -141,7 +141,7 @@
 
 		<table name="tWalkPage" key="int" RelationalMapping="true" value="demo.Bean1" memory="false"/>
 
-		<protocol name="ProtocolUseData" argument="BValue" UseData="true" handle="server"/>
+		<protocol name="ProtocolUseData" argument="BValue" UseData="true" handle="server" CriticalLevel="3"/>
 
 		<table name="tAutoKeyRandom" key="binary" value="demo.Bean1" autokey="random"/>
 		<table name="tMemorySize" key="long" value="demo.Bean1" memory="true"/>

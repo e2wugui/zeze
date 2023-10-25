@@ -1,21 +1,23 @@
 package Zeze.Net;
 
 import java.net.InetSocketAddress;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 
 public class Acceptor {
-	private String Ip;
+	private @NotNull String Ip;
 	private int Port;
 	private Service Service;
 	private AsyncSocket Socket;
 
-	public Acceptor(int port, String ip) {
+	public Acceptor(int port, @Nullable String ip) {
 		Ip = ip != null ? ip : "";
 		Port = port;
 		fixIp();
 	}
 
-	public Acceptor(Element self) {
+	public Acceptor(@NotNull Element self) {
 		Ip = self.getAttribute("Ip");
 		String attr = self.getAttribute("Port");
 		Port = attr.isEmpty() ? 0 : Integer.parseInt(attr);
@@ -28,15 +30,15 @@ public class Acceptor {
 		else if (Ip.equals("@external"))
 			Ip = Helper.getOnePublicNetworkInterfaceIpAddress();
 
-		if (null == Ip)
-			throw new RuntimeException("Acceptor.Ip invalid " + Ip);
+		if (Ip.isBlank())
+			throw new IllegalStateException("Acceptor.Ip invalid: " + Ip);
 	}
 
-	public final String getIp() {
+	public final @NotNull String getIp() {
 		return Ip;
 	}
 
-	public final void setIp(String ip) {
+	public final void setIp(@Nullable String ip) {
 		Ip = ip != null ? ip : "";
 	}
 
@@ -48,7 +50,7 @@ public class Acceptor {
 		Port = port;
 	}
 
-	public final String getName() {
+	public final @NotNull String getName() {
 		return Ip + '_' + Port;
 	}
 

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Xml;
 using Zeze.Transaction;
 
@@ -30,10 +29,10 @@ namespace Zeze.Gen
         // setup in compile
         public Types.Type ArgumentType { get; private set; }
 
-        public const int eCriticalPlus = 3;
-        public const int eCritical = 2;
-        public const int eNormal = 1;
-        public const int eSheddable = 0;
+        public const int eCriticalPlus = 0;
+        public const int eCritical = 1;
+        public const int eNormal = 2;
+        public const int eSheddable = 3;
 
         public int CriticalLevel { get; private set; } = eCriticalPlus;
 
@@ -86,7 +85,7 @@ namespace Zeze.Gen
                 if (int.TryParse(attr, out var critical))
                 {
                     CriticalLevel = critical;
-                    if (CriticalLevel < eSheddable || CriticalLevel > eCriticalPlus)
+                    if (CriticalLevel < eCriticalPlus || CriticalLevel > eSheddable)
                         throw new Exception("invalid critical level " + attr + " " + FullName);
                 }
                 else

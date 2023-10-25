@@ -21,10 +21,11 @@ public class ProviderWithOnline extends ProviderImplement {
 	public Online getOnline() {
 		return online;
 	}
+
+	@Override
 	public @Nullable ProviderLoadWithOnline getLoad() {
 		return load;
 	}
-
 
 	public @Nullable Online getOnline(@Nullable String name) {
 		return name != null && !name.isEmpty() ? onlineSetMap.get(name) : online;
