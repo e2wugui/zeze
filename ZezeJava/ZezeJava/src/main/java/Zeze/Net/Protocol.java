@@ -38,7 +38,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 
 	public final static int eCriticalPlus = 3;
 	public final static int eCritical = 2;
-	public final static int eSheddablePlus = 1;
+	public final static int eNormal = 1;
 	public final static int eSheddable = 0;
 
 	public int getCriticalLevel() {

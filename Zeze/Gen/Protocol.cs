@@ -32,7 +32,7 @@ namespace Zeze.Gen
 
         public const int eCriticalPlus = 3;
         public const int eCritical = 2;
-        public const int eSheddablePlus = 1;
+        public const int eNormal = 1;
         public const int eSheddable = 0;
 
         public int CriticalLevel { get; private set; } = eCriticalPlus;
