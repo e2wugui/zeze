@@ -83,9 +83,24 @@ namespace Zeze.Gen
             attr = self.GetAttribute("CriticalLevel");
             if (!string.IsNullOrEmpty(attr))
             {
-                CriticalLevel = int.Parse(attr);
-                if (CriticalLevel < eSheddable || CriticalLevel > eCriticalPlus)
-                    throw new Exception("invalid critical level " + attr + " " + FullName);
+                if (int.TryParse(attr, out var critical))
+                {
+                    CriticalLevel = critical;
+                    if (CriticalLevel < eSheddable || CriticalLevel > eCriticalPlus)
+                        throw new Exception("invalid critical level " + attr + " " + FullName);
+                }
+                else
+                {
+                    switch (attr)
+                    {
+                        case "Sheddable": CriticalLevel = eSheddable; break;
+                        case "Normal": CriticalLevel = eNormal; break;
+                        case "Critical": CriticalLevel = eCritical; break;
+                        case "CriticalPlus": CriticalLevel = eCriticalPlus; break;
+                        default:
+                            throw new Exception("invalid critical level " + attr + " " + FullName);
+                    }
+                }
             }
 
             Comment = Types.Bean.GetComment(self);
