@@ -30,6 +30,13 @@ namespace Zeze.Gen
         // setup in compile
         public Types.Type ArgumentType { get; private set; }
 
+        public const int eCriticalPlus = 3;
+        public const int eCritical = 2;
+        public const int eSheddablePlus = 1;
+        public const int eSheddable = 0;
+
+        public int CriticalLevel { get; private set; } = eCriticalPlus;
+
         public Protocol(ModuleSpace space, XmlElement self)
         {
             Space = space;
@@ -72,6 +79,14 @@ namespace Zeze.Gen
                 "false" => false,
                 _ => space.UseData
             };
+
+            attr = self.GetAttribute("CriticalLevel");
+            if (!string.IsNullOrEmpty(attr))
+            {
+                CriticalLevel = int.Parse(attr);
+                if (CriticalLevel < eSheddable || CriticalLevel > eCriticalPlus)
+                    throw new Exception("invalid critical level " + attr + " " + FullName);
+            }
 
             Comment = Types.Bean.GetComment(self);
 

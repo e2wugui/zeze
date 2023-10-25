@@ -49,6 +49,14 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return TypeId_;");
             sw.WriteLine("    }");
             sw.WriteLine();
+            if (p.CriticalLevel != Protocol.eCriticalPlus)
+            {
+                sw.WriteLine("    @Override");
+                sw.WriteLine("    public int getCriticalLevel() {");
+                sw.WriteLine($"        return {p.CriticalLevel};");
+                sw.WriteLine("    }");
+                sw.WriteLine();
+            }
             // declare enums
             foreach (Types.Enum e in p.Enums)
             {

@@ -36,6 +36,15 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		}
 	}
 
+	public final static int eCriticalPlus = 3;
+	public final static int eCritical = 2;
+	public final static int eSheddablePlus = 1;
+	public final static int eSheddable = 0;
+
+	public int getCriticalLevel() {
+		return eCriticalPlus;
+	}
+
 	private static final class UserStateWithEncoded {
 		private transient @Nullable Object userState;
 		private transient final @NotNull ByteBuffer encodeShared;
