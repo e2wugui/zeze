@@ -50,6 +50,47 @@ public final class PerfCounter {
 		}
 	}
 
+	/**
+	 * 在Procedure中统计，由于嵌套存储过程存在，总数会比实际事务数多。
+	 * 一般嵌套存储过程很少用，事务数量也可以参考这里的数值，不单独统计。
+	 * 另外Transaction在重做时会在这里保存重做次数的统计。通过name和存储过程区分开来。
+	 */
+	public static final class ProcedureInfo {
+		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
+
+		final @NotNull String name;
+		@NotNull LongConcurrentHashMap<LongAdder> resultMap = new LongConcurrentHashMap<>();
+		@NotNull LongConcurrentHashMap<LongAdder> resultMapLast = new LongConcurrentHashMap<>();
+		long totalCount;
+		int succRatio; // 成功率百分比
+		int idleCount; // 没收集到信息的轮数
+
+		ProcedureInfo(@NotNull String name) {
+			this.name = name;
+		}
+
+		public @NotNull String getName() {
+			return name;
+		}
+
+		public @NotNull LongConcurrentHashMap<LongAdder> getResultMapLast() {
+			return resultMapLast;
+		}
+
+		public @NotNull LongAdder getOrAddResult(long resultCode) {
+			return resultMap.computeIfAbsent(resultCode, __ -> new LongAdder());
+		}
+
+		@Override
+		public String toString() {
+			var sb = new StringBuilder();
+			sb.append(name).append(':').append(succRatio).append('%');
+			for (var it = resultMapLast.entryIterator(); it.moveToNext(); )
+				sb.append(',').append(' ').append(it.key()).append(':').append(it.value());
+			return sb.toString();
+		}
+	}
+
 	private static final class CountInfo {
 		final @NotNull String name;
 		final LongAdder count = new LongAdder(); // 次数
@@ -86,6 +127,7 @@ public final class PerfCounter {
 
 	private final ConcurrentHashMap<Object, RunInfo> runInfoMap = new ConcurrentHashMap<>(); // key: Class or others
 	private final LongConcurrentHashMap<ProtocolInfo> protocolInfoMap = new LongConcurrentHashMap<>(); // key: typeId
+	private final ConcurrentHashMap<String, ProcedureInfo> procedureInfoMap = new ConcurrentHashMap<>(); // key: procedureName
 	private CountInfo[] countInfos = new CountInfo[0];
 	private final HashSet<Object> excludeRunKeys = new HashSet<>(); // value: Class or others
 	private final LongHashSet excludeProtocolTypeIds = new LongHashSet(); // value: typeId
@@ -232,6 +274,22 @@ public final class PerfCounter {
 		}
 	}
 
+	public @NotNull ConcurrentHashMap<String, ProcedureInfo> getProcedureInfoMap() {
+		return procedureInfoMap;
+	}
+
+	public @Nullable ProcedureInfo getProcedureInfo(@NotNull String name) {
+		return procedureInfoMap.get(name);
+	}
+
+	public @NotNull ProcedureInfo getOrAddProcedureInfo(@NotNull String name) {
+		return procedureInfoMap.computeIfAbsent(name, ProcedureInfo::new);
+	}
+
+	public void addProcedureInfo(@NotNull String name, long resultCode) {
+		getOrAddProcedureInfo(name).getOrAddResult(resultCode).increment();
+	}
+
 	public void addCountInfo(int index) {
 		addCountInfo(index, 1);
 	}
@@ -255,7 +313,7 @@ public final class PerfCounter {
 	public synchronized @Nullable ScheduledFuture<?> tryStartScheduledLog() {
 		var f = scheduleFuture;
 		if (ENABLE_PERF && (f == null || f.isCancelled())) {
-			long periodMs = Math.max(PERF_PERIOD, 1) * 1000L;
+			var periodMs = Math.max(PERF_PERIOD, 1) * 1000L;
 			scheduleFuture = f = Task.scheduleUnsafe(periodMs, periodMs, () -> logger.info(getLogAndReset()));
 		}
 		return f;
@@ -380,6 +438,42 @@ public final class PerfCounter {
 					.append("K = ").append(pi.lastSendCount).append(" * ")
 					.append(numFormatter.format(perSize)).append('B').append('\n');
 		}
+
+		var procedureTotal = 0L;
+		var procedureSucc = 0L;
+		var prList = new ArrayList<ProcedureInfo>(procedureInfoMap.size());
+		for (var it = procedureInfoMap.values().iterator(); it.hasNext(); ) {
+			var pi = it.next();
+			pi.resultMapLast = pi.resultMap;
+			pi.resultMap = new LongConcurrentHashMap<>();
+			var totalCount = 0L;
+			var succCount = 0L;
+			for (var it2 = pi.resultMapLast.entryIterator(); it2.moveToNext(); ) {
+				var v = it2.value().sum();
+				totalCount += v;
+				if (it2.key() == 0)
+					succCount = v;
+			}
+			if (totalCount == 0) {
+				if (++pi.idleCount >= ProcedureInfo.MAX_IDLE_COUNT)
+					it.remove();
+				continue;
+			}
+			procedureTotal += totalCount;
+			procedureSucc += succCount;
+			pi.totalCount = totalCount;
+			pi.succRatio = (int)(succCount * 100 / totalCount);
+			pi.idleCount = 0;
+			prList.add(pi);
+		}
+		sb.append(" [procedure: ").append(procedureSucc).append('/').append(procedureTotal).append('=')
+				.append(procedureTotal != 0 ? procedureSucc * 100 / procedureTotal : 0).append("%]\n");
+		prList.sort((pi0, pi1) -> {
+			var c = pi0.succRatio - pi1.succRatio;
+			return c != 0 ? Long.signum(c) : Long.signum(pi1.totalCount - pi0.totalCount);
+		});
+		for (int i = 0, n = Math.min(prList.size(), PERF_COUNT); i < n; i++)
+			sb.append(' ').append(' ').append(prList.get(i)).append('\n');
 
 		var cList = new ArrayList<CountInfo>(countInfos.length);
 		for (var ci : countInfos) {

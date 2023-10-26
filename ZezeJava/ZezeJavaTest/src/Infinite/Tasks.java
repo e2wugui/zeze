@@ -11,11 +11,11 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseMemory;
 import Zeze.Transaction.GoBackZeze;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutLong;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import org.apache.logging.log4j.Level;
 import org.junit.Assert;
@@ -82,9 +82,9 @@ public final class Tasks {
 			var name = getClass().getName();
 			var runCount = getRunCounter(name).sum();
 			var successCount = getSuccessCounter(name).sum();
-			var stats = ProcedureStatistics.getInstance().getOrAdd(name);
-			var abortCount = stats.getOrAdd(Procedure.AbortException).sum();
-			var tooManyTry = stats.getOrAdd(Procedure.TooManyTry).sum();
+			var stats = PerfCounter.instance.getOrAddProcedureInfo(name);
+			var abortCount = stats.getOrAddResult(Procedure.AbortException).sum();
+			var tooManyTry = stats.getOrAddResult(Procedure.TooManyTry).sum();
 			Simulate.logger.info("  totalCount({})={}", name, runCount);
 			Simulate.logger.info("successCount({})={}", name, successCount);
 			if (abortCount != 0)

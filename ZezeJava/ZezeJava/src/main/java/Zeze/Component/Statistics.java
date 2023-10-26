@@ -1,8 +1,8 @@
 package Zeze.Component;
 
 import Zeze.Netty.HttpExchange;
-import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.TableStatistics;
+import Zeze.Util.PerfCounter;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class Statistics extends AbstractStatistics {
@@ -12,10 +12,8 @@ public class Statistics extends AbstractStatistics {
 		var sb = new StringBuilder();
 
 		sb.append("Procedures:\n");
-		for (var p : ProcedureStatistics.getInstance().getProcedures().entrySet()) {
-			sb.append("    ").append(p.getKey()).append("\n");
-			p.getValue().buildString("        ", sb, "\n");
-		}
+		for (var p : PerfCounter.instance.getProcedureInfoMap().values())
+			sb.append("    ").append(p).append("\n");
 
 		sb.append("Tables:\n");
 		for (var it = TableStatistics.getInstance().getTables().entryIterator(); it.moveToNext(); ) {

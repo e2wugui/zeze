@@ -244,12 +244,6 @@ public final class Transaction {
 								if (checkResult == CheckResult.Success) {
 									if (result == Procedure.Success) {
 										finalCommit(procedure);
-										// 正常一次成功的不统计，用来观察redo多不多。
-										// 失败在 Procedure.cs 中的统计。
-										if (Macro.enableStatistics && tryCount > 0) {
-											ProcedureStatistics.getInstance().getOrAdd("Zeze.Transaction.TryCount")
-													.getOrAdd(tryCount).increment();
-										}
 										return Procedure.Success;
 									}
 									finalRollback(procedure, true);
@@ -717,10 +711,6 @@ public final class Transaction {
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state + ", msg: " + msg, cause);
 		state = TransactionState.RedoAndReleaseLock;
-		if (Macro.enableStatistics) {
-			//noinspection ConstantConditions
-			ProcedureStatistics.getInstance().getOrAdd(getTopProcedure().getActionName()).getOrAdd(Procedure.RedoAndRelease).increment();
-		}
 		GoBackZeze.Throw(msg, cause);
 	}
 
