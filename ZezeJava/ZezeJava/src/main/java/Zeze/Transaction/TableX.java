@@ -845,7 +845,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param callback walk callback
 	 * @return count
 	 */
-	public final long walkDatabase(@NotNull TableWalkHandleRaw callback) {
+	public final long walkDatabaseRaw(@NotNull TableWalkHandleRaw callback) {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -854,7 +854,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
-	public final long walkDatabaseDesc(@NotNull TableWalkHandleRaw callback) {
+	public final long walkDatabaseRawDesc(@NotNull TableWalkHandleRaw callback) {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");

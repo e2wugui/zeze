@@ -160,10 +160,7 @@ public class Procedure {
 			// 单独抓住这个异常，是为了能原样抛出，并且使用不同的级别记录日志。
 			// 对状态正确性没有影响。
 			currentT.rollback();
-			if (ENABLE_DEBUG_LOG)
-				logger.debug("GoBackZeze: {}", this, goBackZeze);
-			else
-				logger.info("GoBackZeze({}): {}", goBackZeze.getMessage(), this);
+			logger.info("GoBackZeze({}): {}", goBackZeze.getMessage(), this);
 			throw goBackZeze;
 		} catch (Throwable e) { // logger, rethrow AssertionError
 			// rollback.

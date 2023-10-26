@@ -1,6 +1,6 @@
 package Zeze.Arch;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -15,20 +15,25 @@ import org.jetbrains.annotations.NotNull;
 
 public class ProviderOverload {
 	private static final Logger logger = LogManager.getLogger(ProviderOverload.class);
-
-	private final HashSet<ThreadPoolMonitor> threadPools = new HashSet<>();
-	private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+	private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
 			ThreadDiagnosable.newFactory("ZezeLoadThread", Thread.MAX_PRIORITY));
 
-	public void register(@NotNull ExecutorService threadPool, @NotNull Config config) {
+	private final ArrayList<ThreadPoolMonitor> threadPools = new ArrayList<>();
+
+	public synchronized boolean register(@NotNull ExecutorService threadPool, @NotNull Config config) {
+		for (var tp : threadPools)
+			if (tp.threadPool == threadPool)
+				return false;
 		threadPools.add(new ThreadPoolMonitor(threadPool, config));
+		return true;
 	}
 
 	// 由LoadReporter读取报告。
 	public int getOverload() {
 		var result = BLoad.eWorkFine;
-		for (var threadPool : threadPools) {
-			var overload = threadPool.overload();
+		//noinspection ForLoopReplaceableByForEach
+		for (int i = 0, n = threadPools.size(); i < n; i++) {
+			var overload = threadPools.get(i).overload();
 			if (overload == BLoad.eOverload)
 				return overload;
 			if (overload == BLoad.eThreshold)
@@ -37,7 +42,7 @@ public class ProviderOverload {
 		return result;
 	}
 
-	class ThreadPoolMonitor {
+	static final class ThreadPoolMonitor {
 		private final @NotNull ExecutorService threadPool;
 		private final @NotNull Config config;
 		private volatile long overload = BLoad.eWorkFine;
