@@ -1,7 +1,6 @@
 package Zeze.Component;
 
 import Zeze.Netty.HttpExchange;
-import Zeze.Transaction.TableStatistics;
 import Zeze.Util.PerfCounter;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -16,10 +15,9 @@ public class Statistics extends AbstractStatistics {
 			sb.append("    ").append(p).append("\n");
 
 		sb.append("Tables:\n");
-		for (var it = TableStatistics.getInstance().getTables().entryIterator(); it.moveToNext(); ) {
-			sb.append("    ").append(it.key()).append("\n");
-			it.value().buildString("        ", sb, "\n");
-		}
+		sb.append("    ").append(PerfCounter.TableInfo.getLogTitle()).append('\n');
+		for (var t : PerfCounter.instance.getTableInfoMap())
+			sb.append("    ").append(t).append("\n");
 
 		x.sendPlainText(HttpResponseStatus.OK, sb.toString());
 	}

@@ -18,7 +18,7 @@ public final class ProcedureStatistics {
 		return Task.scheduleUnsafe(Watcher.CheckPeriod, Watcher.CheckPeriod, watcher::check);
 	}
 
-	public static final class Watcher {
+	static final class Watcher {
 		static final int CheckPeriod = 30_000; // 毫秒
 
 		private final @NotNull String procedureName;
@@ -26,14 +26,14 @@ public final class ProcedureStatistics {
 		private final Runnable reachHandle;
 		private long last;
 
-		public Watcher(@NotNull String procedureName, long reachPerSecond, Runnable handle) {
+		Watcher(@NotNull String procedureName, long reachPerSecond, Runnable handle) {
 			this.procedureName = procedureName;
 			last = getTotalCount(procedureName);
 			reach = reachPerSecond;
 			reachHandle = handle;
 		}
 
-		public static long getTotalCount(@NotNull String procedureName) {
+		static long getTotalCount(@NotNull String procedureName) {
 			long total = 0;
 			var pInfo = PerfCounter.instance.getProcedureInfo(procedureName);
 			if (pInfo != null) {
@@ -43,7 +43,7 @@ public final class ProcedureStatistics {
 			return total;
 		}
 
-		public void check() {
+		void check() {
 			long total = getTotalCount(procedureName);
 			if ((total - last) / CheckPeriod >= reach) {
 				try {

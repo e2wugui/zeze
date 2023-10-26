@@ -12,7 +12,7 @@ import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Util.KV;
-import Zeze.Util.Macro;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -153,7 +153,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			if (r != null && (rs = r.getState()) > checkState && rs != StateRemoved) {
 				logger.error("VerifyGlobalRecordState failed: serverId={}/{}, table={}, key={}, state={}, isModify={}",
 						getZeze().getConfig().getServerId(), table.getZeze().getConfig().getServerId(),
-						getName(), key, rs, isModify);
+						getName(), key, rs, isModify, new AssertionError());
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(-1);
 			}
@@ -204,9 +204,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 					var storage = this.storage;
 					if (storage != null) {
-						if (Macro.enableStatistics) {
-							TableStatistics.getInstance().getOrAdd(getId()).getStorageFindCount().increment();
-						}
+						PerfCounter.instance.getOrAddTableInfo(getId()).storageGet.increment();
 						strongRef = storage.getDatabaseTable().find(this, key);
 						if (strongRef != null) {
 							rocksCachePut(key, strongRef);

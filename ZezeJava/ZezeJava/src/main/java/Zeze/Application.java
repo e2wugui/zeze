@@ -38,7 +38,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.ResetDB;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
-import Zeze.Transaction.TableStatistics;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
@@ -633,7 +632,6 @@ public final class Application {
 			}
 		} else
 			startState = StartState.eStarted;
-		TableStatistics.getInstance().start(conf.getTableStatisticsReportPeriod());
 	}
 
 	public synchronized void stop() throws Exception {
@@ -641,7 +639,6 @@ public final class Application {
 			return;
 		startState = StartState.eStartingOrStopping;
 		ShutdownHook.remove(this);
-		TableStatistics.getInstance().stop();
 		logger.info("Stop ServerId={}", conf.getServerId());
 
 		if (achillesHeelDaemon != null) {

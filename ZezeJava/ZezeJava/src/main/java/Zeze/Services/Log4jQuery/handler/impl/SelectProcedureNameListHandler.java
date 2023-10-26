@@ -9,6 +9,6 @@ import Zeze.Util.PerfCounter;
 public class SelectProcedureNameListHandler implements QueryHandler<Object, List<String>> {
 	@Override
 	public List<String> invoke(Object param) {
-		return PerfCounter.instance.getProcedureInfoMap().keySet().stream().toList();
+		return List.copyOf(PerfCounter.instance.getProcedureInfoMap().keySet());
 	}
 }

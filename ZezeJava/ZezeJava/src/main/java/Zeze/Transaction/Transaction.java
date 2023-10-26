@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Util.Macro;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import org.apache.logging.log4j.LogManager;

@@ -13,6 +13,7 @@ import Zeze.Builtin.Provider.Send;
 import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableKey;
 import com.sun.management.OperatingSystemMXBean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,6 +92,63 @@ public final class PerfCounter {
 		}
 	}
 
+	public static final class TableInfo {
+		public final @NotNull String tableName;
+		public final LongAdder readLock = new LongAdder();
+		public final LongAdder writeLock = new LongAdder();
+		public final LongAdder storageGet = new LongAdder();
+		// 这两个统计用来观察cache清理的影响
+		public final LongAdder tryReadLock = new LongAdder();
+		public final LongAdder tryWriteLock = new LongAdder();
+		// global acquire 的次数，即时没有开启cache-sync，也会有一点点计数，因为没人抢，所以以后总是成功了。
+		public final LongAdder acquireShare = new LongAdder();
+		public final LongAdder acquireModify = new LongAdder();
+		public final LongAdder acquireInvalid = new LongAdder();
+
+		long readLockCount;
+		long writeLockCount;
+		long storageGetCount;
+		long tryReadLockCount;
+		long tryWriteLockCount;
+		long acquireShareCount;
+		long acquireModifyCount;
+		long acquireInvalidCount;
+		long lockCount;
+
+		TableInfo(@NotNull String tableName) {
+			this.tableName = tableName;
+		}
+
+		@NotNull TableInfo checkpointAndReset() {
+			readLockCount = readLock.sumThenReset();
+			writeLockCount = writeLock.sumThenReset();
+			storageGetCount = storageGet.sumThenReset();
+			tryReadLockCount = tryReadLock.sumThenReset();
+			tryWriteLockCount = tryWriteLock.sumThenReset();
+			acquireShareCount = acquireShare.sumThenReset();
+			acquireModifyCount = acquireModify.sumThenReset();
+			acquireInvalidCount = acquireInvalid.sumThenReset();
+			lockCount = readLockCount + writeLockCount;
+			return this;
+		}
+
+		public static @NotNull String getLogTitle() {
+			return String.format("%-60s CacheHit AcqShrHit AcqModHit AcqShrCnt AcqModCnt AcqInvCnt" +
+					" StoGetCnt LockCount  ReadLock WriteLock TryRdLock TryWtLock", "TableName");
+		}
+
+		@Override
+		public @NotNull String toString() {
+			float cacheHit = lockCount != 0 ? (lockCount - storageGetCount) * 100.0f / lockCount : 0;
+			float acquireShareHit = lockCount != 0 ? (lockCount - acquireShareCount) * 100.0f / lockCount : 0;
+			float acquireModifyHit = lockCount != 0 ? (lockCount - acquireModifyCount) * 100.0f / lockCount : 0;
+			return String.format("%-60s%8.2f%%%9.2f%%%9.2f%%%10d%10d%10d%10d%10d%10d%10d%10d%10d", tableName,
+					cacheHit, acquireShareHit, acquireModifyHit,
+					acquireShareCount, acquireModifyCount, acquireInvalidCount,
+					storageGetCount, lockCount, readLockCount, writeLockCount, tryReadLockCount, tryWriteLockCount);
+		}
+	}
+
 	private static final class CountInfo {
 		final @NotNull String name;
 		final LongAdder count = new LongAdder(); // 次数
@@ -128,6 +186,7 @@ public final class PerfCounter {
 	private final ConcurrentHashMap<Object, RunInfo> runInfoMap = new ConcurrentHashMap<>(); // key: Class or others
 	private final LongConcurrentHashMap<ProtocolInfo> protocolInfoMap = new LongConcurrentHashMap<>(); // key: typeId
 	private final ConcurrentHashMap<String, ProcedureInfo> procedureInfoMap = new ConcurrentHashMap<>(); // key: procedureName
+	private final LongConcurrentHashMap<TableInfo> tableInfoMap = new LongConcurrentHashMap<>(); // key: tableId
 	private CountInfo[] countInfos = new CountInfo[0];
 	private final HashSet<Object> excludeRunKeys = new HashSet<>(); // value: Class or others
 	private final LongHashSet excludeProtocolTypeIds = new LongHashSet(); // value: typeId
@@ -284,6 +343,21 @@ public final class PerfCounter {
 
 	public @NotNull ProcedureInfo getOrAddProcedureInfo(@NotNull String name) {
 		return procedureInfoMap.computeIfAbsent(name, ProcedureInfo::new);
+	}
+
+	public @NotNull LongConcurrentHashMap<TableInfo> getTableInfoMap() {
+		return tableInfoMap;
+	}
+
+	public @Nullable TableInfo getTableInfo(long tableId) {
+		return tableInfoMap.get(tableId);
+	}
+
+	public @NotNull TableInfo getOrAddTableInfo(long tableId) {
+		return tableInfoMap.computeIfAbsent(tableId, k -> {
+			var tableName = TableKey.tables.get(k);
+			return new TableInfo(tableName != null ? tableName : String.valueOf(k));
+		});
 	}
 
 	public void addProcedureInfo(@NotNull String name, long resultCode) {
@@ -474,6 +548,15 @@ public final class PerfCounter {
 		});
 		for (int i = 0, n = Math.min(prList.size(), PERF_COUNT); i < n; i++)
 			sb.append(' ').append(' ').append(prList.get(i)).append('\n');
+
+		var tList = new ArrayList<TableInfo>(tableInfoMap.size());
+		for (var ti : tableInfoMap)
+			tList.add(ti.checkpointAndReset());
+		sb.append(" [table: ").append(tList.size()).append(']').append('\n');
+		tList.sort((ti0, ti1) -> Long.signum(ti1.lockCount - ti0.lockCount));
+		sb.append(' ').append(' ').append(TableInfo.getLogTitle()).append('\n');
+		for (int i = 0, n = Math.min(tList.size(), PERF_COUNT); i < n; i++)
+			sb.append(' ').append(' ').append(tList.get(i)).append('\n');
 
 		var cList = new ArrayList<CountInfo>(countInfos.length);
 		for (var ci : countInfos) {

@@ -3,7 +3,6 @@ package Zeze.Transaction;
 import Zeze.Application;
 import Zeze.IModule;
 import Zeze.Util.FuncLong;
-import Zeze.Util.Macro;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.TaskCanceledException;
 import org.apache.logging.log4j.Level;
