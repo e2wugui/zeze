@@ -9,9 +9,13 @@ import Zeze.Builtin.Provider.BLoad;
 import Zeze.Config;
 import Zeze.Util.Random;
 import Zeze.Util.ThreadDiagnosable;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public class ProviderOverload {
+	private static final Logger logger = LogManager.getLogger(ProviderOverload.class);
+
 	private final HashSet<ThreadPoolMonitor> threadPools = new HashSet<>();
 	private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
 			ThreadDiagnosable.newFactory("ZezeLoadThread", Thread.MAX_PRIORITY));
@@ -49,8 +53,7 @@ public class ProviderOverload {
 					this::detecting, Random.getInstance().nextInt(1000) + 1000, TimeUnit.MILLISECONDS);
 		}
 
-		private int calcOverload(long startTimeNs) {
-			var elapse = System.nanoTime() - startTimeNs;
+		private int calcOverload(long elapse) {
 			if (elapse < config.getProviderThreshold())
 				return BLoad.eWorkFine;
 			if (elapse < config.getProviderOverload())
@@ -64,14 +67,20 @@ public class ProviderOverload {
 
 			// todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
 			threadPool.execute(() -> {
-				overload = calcOverload(overload);
+				var elapse = (System.nanoTime() - overload) / 1_000_000;
+				var o = calcOverload(elapse);
+				overload = o;
+				if (o != BLoad.eWorkFine)
+					logger.warn("detect overload={} elapse={}ms", o, elapse);
 				startDetectDelay();
 			});
 		}
 
 		public int overload() {
 			var startTime = overload; // 如果高位是0,则表示当前未开始检测,就取上次的负载结果,否则计算上次和当前的最大值
-			return (startTime & ~3L) == 0 ? (int)startTime : Math.max((int)startTime & 3, calcOverload(startTime));
+			return (startTime & ~3L) == 0
+					? (int)startTime
+					: Math.max((int)startTime & 3, calcOverload((System.nanoTime() - startTime) / 1_000_000));
 		}
 	}
 }
