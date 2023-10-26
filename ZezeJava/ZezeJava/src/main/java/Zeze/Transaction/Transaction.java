@@ -535,7 +535,8 @@ public final class Transaction {
 							e.atomicTupleRecord.record.isFresh(), false);
 					if (acquire.resultState != GlobalCacheManagerConst.StateModify) {
 						e.atomicTupleRecord.record.setNotFresh(); // 抢失败不再新鲜。
-						logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.atomicTupleRecord);
+						logger.debug("Acquire Failed. Maybe DeadLock Found: record={}, time={}",
+								e.atomicTupleRecord.record, e.atomicTupleRecord.timestamp);
 						e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateInvalid); // 这里保留StateShare更好吗？
 						return CheckResult.RedoAndReleaseLock;
 					}

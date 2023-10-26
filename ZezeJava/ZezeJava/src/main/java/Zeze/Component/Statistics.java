@@ -15,7 +15,8 @@ public class Statistics extends AbstractStatistics {
 			sb.append("    ").append(p).append("\n");
 
 		sb.append("Tables:\n");
-		sb.append("    ").append(PerfCounter.TableInfo.getLogTitle()).append('\n');
+		if (!PerfCounter.instance.getTableInfoMap().isEmpty())
+			sb.append("    ").append(PerfCounter.TableInfo.getLogTitle()).append('\n');
 		for (var t : PerfCounter.instance.getTableInfoMap())
 			sb.append("    ").append(t).append("\n");
 

@@ -553,10 +553,13 @@ public final class PerfCounter {
 		for (var ti : tableInfoMap)
 			tList.add(ti.checkpointAndReset());
 		sb.append(" [table: ").append(tList.size()).append(']').append('\n');
-		tList.sort((ti0, ti1) -> Long.signum(ti1.lockCount - ti0.lockCount));
-		sb.append(' ').append(' ').append(TableInfo.getLogTitle()).append('\n');
-		for (int i = 0, n = Math.min(tList.size(), PERF_COUNT); i < n; i++)
-			sb.append(' ').append(' ').append(tList.get(i)).append('\n');
+		int n = Math.min(tList.size(), PERF_COUNT);
+		if (n > 0) {
+			tList.sort((ti0, ti1) -> Long.signum(ti1.lockCount - ti0.lockCount));
+			sb.append(' ').append(' ').append(TableInfo.getLogTitle()).append('\n');
+			for (int i = 0; i < n; i++)
+				sb.append(' ').append(' ').append(tList.get(i)).append('\n');
+		}
 
 		var cList = new ArrayList<CountInfo>(countInfos.length);
 		for (var ci : countInfos) {
