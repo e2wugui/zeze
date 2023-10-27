@@ -101,6 +101,7 @@ public final class Config {
 	private long tableStatisticsReportPeriod = 60000;
 	private String hotWorkingDir = "";
 	private String hotDistributeDir = "distributes";
+	private int deadLockBreakerPeriod = 60000;
 
 	public String getHotWorkingDir() {
 		return hotWorkingDir;
@@ -116,6 +117,14 @@ public final class Config {
 
 	public void setHotDistributeDir(String value) {
 		hotDistributeDir = value;
+	}
+
+	public int getDeadLockBreakerPeriod() {
+		return deadLockBreakerPeriod;
+	}
+
+	public void setDeadLockBreakerPeriod(int period) {
+		this.deadLockBreakerPeriod = period;
 	}
 
 	public long getProcedureStatisticsReportPeriod() {
@@ -587,6 +596,10 @@ public final class Config {
 		attr = self.getAttribute("HotDistributeDir");
 		if (!attr.isBlank())
 			hotDistributeDir = attr;
+
+		attr = self.getAttribute("DeadLockBreakerPeriod");
+		if (!attr.isBlank())
+			deadLockBreakerPeriod = Integer.parseInt(attr);
 
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {
