@@ -36,7 +36,7 @@ public class DeadlockBreaker extends ThreadHelper {
 		while (true) {
 			int size = group.enumerate(threads, recurse);
 			if (size < threads.length) {
-				Map<Long, Thread> m = new HashMap<Long, Thread>();
+				var m = new HashMap<Long, Thread>();
 				for (int i = 0; i < size; ++i) {
 					Thread thread = threads[i];
 					if (null != thread)
@@ -66,7 +66,7 @@ public class DeadlockBreaker extends ThreadHelper {
 			try {
 				if (detect()) {
 					sleepIdleMs = 2000;
-					detectCount ++;
+					detectCount++;
 					if (detectCount >= 3) {
 						// 向 daemon 报告。
 						zeze.getAchillesHeelDaemon().deadlockReport();
@@ -99,7 +99,7 @@ public class DeadlockBreaker extends ThreadHelper {
 			return false;
 
 		// 构建死锁线程信息映射。
-		Map<Long, ThreadInfo> deadlockedThreads = new HashMap<Long, ThreadInfo>();
+		var deadlockedThreads = new HashMap<Long, ThreadInfo>();
 		for (ThreadInfo tinfo : threadMXBean.getThreadInfo(deadlockedThreadIds,
 				threadMXBean.isObjectMonitorUsageSupported(), threadMXBean.isSynchronizerUsageSupported())) {
 			try {
@@ -182,11 +182,11 @@ public class DeadlockBreaker extends ThreadHelper {
 					sb.append("\t-  blocked on ").append(tinfo.getLockInfo());
 					sb.append('\n');
 					break;
-				case WAITING, TIMED_WAITING:
+				case WAITING:
+				case TIMED_WAITING:
 					sb.append("\t-  waiting on ").append(tinfo.getLockInfo());
 					sb.append('\n');
 					break;
-				default:
 				}
 			}
 

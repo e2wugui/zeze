@@ -405,7 +405,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 	@SuppressWarnings("unchecked")
 	private static <K extends Comparable<K>, V extends Bean>
-	boolean invokeCallback(TableX<K, V> table, ResultSet rs, TableWalkHandle<K, V> callback, OutObject<K> outKey) throws SQLException {
+	boolean invokeCallback(TableX<K, V> table, ResultSet rs, TableWalkHandle<K, V> callback, OutObject<K> outKey)
+			throws SQLException {
 		K k = table.decodeKeyResultSet(rs);
 		if (null != outKey)
 			outKey.value = k;
@@ -416,7 +417,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try {
 				if (r.getState() == StateShare || r.getState() == StateModify) {
 					// 拥有正确的状态：
-					@SuppressWarnings("unchecked")
 					var strongRef = (V)r.getSoftValue();
 					if (strongRef == null)
 						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
@@ -618,7 +618,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					first = false;
 				else
 					sb.append(", ");
-				sb.append(" CHANGE COLUMN ").append(c.change.name).append(" ").append(c.name).append(" ").append(c.sqlType);
+				sb.append(" CHANGE COLUMN ").append(c.change.name).append(" ")
+						.append(c.name).append(" ").append(c.sqlType);
 			}
 			sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(")");
 

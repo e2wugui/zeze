@@ -49,11 +49,10 @@ public class ThreadHelper extends Thread {
 	}
 
 	/**
-	 * 
 	 * 挂起当前线程一段时间。
-	 * 
+	 * <p>
 	 * 通过 shutdown 或者 wakeup 打断。
-	 * 
+	 *
 	 * @param ms ms
 	 */
 	public final synchronized void sleepIdle(long ms) {
@@ -68,11 +67,6 @@ public class ThreadHelper extends Thread {
 	}
 
 	public Runnable cock() {
-		return new Runnable() {
-			@Override
-			public void run() {
-				ThreadHelper.this.wakeup();
-			}
-		};
+		return ThreadHelper.this::wakeup;
 	}
 }

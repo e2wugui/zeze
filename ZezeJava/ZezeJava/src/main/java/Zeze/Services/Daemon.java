@@ -1,10 +1,8 @@
 package Zeze.Services;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -23,7 +21,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
-import Zeze.Util.DeadlockBreaker;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -161,14 +158,14 @@ public class Daemon {
 		pidField.setAccessible(true);
 
 		// 获取pid值
-		return (int) pidField.get(process);
+		return (int)pidField.get(process);
 	}
 
 	private static void destroySubprocess() throws InterruptedException {
 		// run jstack
 		try {
 			var pid = String.valueOf(getProcessPid(subprocess));
-			var cmd = new String[] {"jstack", "-e", "-l", pid};
+			var cmd = new String[]{"jstack", "-e", "-l", pid};
 			var process = Runtime.getRuntime().exec(cmd);
 			Files.copy(new BufferedInputStream(process.getInputStream()), Path.of("jstack.", pid));
 			process.destroy();
