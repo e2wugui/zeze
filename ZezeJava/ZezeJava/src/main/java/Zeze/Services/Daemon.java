@@ -1,7 +1,10 @@
 package Zeze.Services;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -20,6 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.DeadlockBreaker;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -112,6 +116,11 @@ public class Daemon {
 						}
 						sendCommand(udpSocket, cmd.peer, new CommonResult(on.reliableSerialNo, code));
 						break;
+
+					case DeadlockReport.Command:
+						logger.warn("deadlock report");
+						destroySubprocess();
+						break;
 					}
 				} catch (SocketTimeoutException ex) {
 					// skip
@@ -138,8 +147,34 @@ public class Daemon {
 		monitors.clear();
 	}
 
+	public static int getProcessPid(Process process) throws NoSuchFieldException, IllegalAccessException {
+		// 获取ProcessImpl类
+		Class<?> clazz = process.getClass();
+		while (clazz != null && clazz != Process.class) {
+			clazz = clazz.getSuperclass();
+		}
+		if (clazz == null)
+			throw new RuntimeException("process class is null");
+
+		// 获取pid字段
+		var pidField = clazz.getDeclaredField("pid");
+		pidField.setAccessible(true);
+
+		// 获取pid值
+		return (int) pidField.get(process);
+	}
+
 	private static void destroySubprocess() throws InterruptedException {
-		// todo run jstack
+		// run jstack
+		try {
+			var pid = String.valueOf(getProcessPid(subprocess));
+			var cmd = new String[] {"jstack", "-e", "-l", pid};
+			var process = Runtime.getRuntime().exec(cmd);
+			Files.copy(new BufferedInputStream(process.getInputStream()), Path.of("jstack.", pid));
+			process.destroy();
+		} catch (Exception ex) {
+			logger.error("", ex);
+		}
 		subprocess.destroy();
 		joinMonitors();
 	}
@@ -495,12 +530,36 @@ public class Daemon {
 
 		@Override
 		public void encode(ByteBuffer bb) {
+			super.encode(bb);
 			bb.WriteInt(globalIndex);
 		}
 
 		@Override
 		public void decode(ByteBuffer bb) {
+			super.decode(bb);
 			globalIndex = bb.ReadInt();
+		}
+	}
+
+	public static class DeadlockReport extends Command {
+		public static final int Command = 4;
+
+		public DeadlockReport() {
+		}
+
+		@Override
+		public int command() {
+			return Command;
+		}
+
+		@Override
+		public void encode(ByteBuffer bb) {
+			super.encode(bb);
+		}
+
+		@Override
+		public void decode(ByteBuffer bb) {
+			super.decode(bb);
 		}
 	}
 }

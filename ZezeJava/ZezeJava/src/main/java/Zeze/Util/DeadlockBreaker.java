@@ -6,7 +6,7 @@ import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.util.HashMap;
 import java.util.Map;
-import Zeze.Config;
+import Zeze.Application;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -51,12 +51,12 @@ public class DeadlockBreaker extends ThreadHelper {
 	private final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
 	private final ThreadGroup rootThreadGroup;
 	private int sleepIdleMs = 1000;
-	private final Config config;
+	private final Application zeze;
 	private int detectCount = 0;
 
-	public DeadlockBreaker(Config config) {
+	public DeadlockBreaker(Application zeze) {
 		super("Zeze.Util.DeadlockBreaker");
-		this.config = config;
+		this.zeze = zeze;
 		rootThreadGroup = getRootThreadGroup();
 	}
 
@@ -69,12 +69,13 @@ public class DeadlockBreaker extends ThreadHelper {
 					detectCount ++;
 					if (detectCount >= 3) {
 						// 向 daemon 报告。
+						zeze.getAchillesHeelDaemon().deadlockReport();
 					}
 				} else {
 					detectCount = 0;
 					sleepIdleMs *= 2;
-					if (sleepIdleMs > config.getDeadLockBreakerPeriod())
-						sleepIdleMs = config.getDeadLockBreakerPeriod();
+					if (sleepIdleMs > zeze.getConfig().getDeadLockBreakerPeriod())
+						sleepIdleMs = zeze.getConfig().getDeadLockBreakerPeriod();
 				}
 				sleepIdle(sleepIdleMs);
 			} catch (Throwable ex) {
