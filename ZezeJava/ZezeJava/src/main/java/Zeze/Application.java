@@ -39,6 +39,7 @@ import Zeze.Transaction.ResetDB;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.DeadlockBreaker;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
@@ -72,6 +73,7 @@ public final class Application {
 	private DelayRemove delayRemove;
 	private IGlobalAgent globalAgent;
 	private AchillesHeelDaemon achillesHeelDaemon;
+	private final DeadlockBreaker deadlockBreaker;
 	private Checkpoint checkpoint;
 	private Future<?> flushWhenReduceTimerTask;
 	private Schemas schemas;
@@ -168,7 +170,6 @@ public final class Application {
 
 	@SuppressWarnings("deprecation")
 	public Application(@NotNull String projectName, @Nullable Config config) throws Exception {
-
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
 		if (conf.getServerId() > 0x3FFF) // 16383 encoded size = 2 bytes
@@ -188,6 +189,7 @@ public final class Application {
 			queueModule = new Zeze.Collections.Queue.Module(this);
 			delayRemove = new DelayRemove(this);
 		}
+		this.deadlockBreaker = new DeadlockBreaker(this);
 	}
 
 	private AppBase appBase;
@@ -632,9 +634,11 @@ public final class Application {
 			}
 		} else
 			startState = StartState.eStarted;
+		this.deadlockBreaker.start();
 	}
 
 	public synchronized void stop() throws Exception {
+		this.deadlockBreaker.shutdown();
 		if (startState == StartState.eStopped)
 			return;
 		startState = StartState.eStartingOrStopping;
