@@ -230,16 +230,22 @@ public abstract class Database {
 		long walkDesc(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback);
 
 		<K extends Comparable<K>, V extends Bean>
+		long walkKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback);
+
+		<K extends Comparable<K>, V extends Bean>
+		long walkKeyDesc(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback);
+
+		<K extends Comparable<K>, V extends Bean>
 		K walk(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 			   @NotNull TableWalkHandle<K, V> callback);
 
 		<K extends Comparable<K>, V extends Bean>
-		K walkKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-				  @NotNull TableWalkKey<K> callback);
-
-		<K extends Comparable<K>, V extends Bean>
 		K walkDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 				   @NotNull TableWalkHandle<K, V> callback);
+
+		<K extends Comparable<K>, V extends Bean>
+		K walkKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+				  @NotNull TableWalkKey<K> callback);
 
 		<K extends Comparable<K>, V extends Bean>
 		K walkKeyDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
@@ -256,6 +262,22 @@ public abstract class Database {
 
 		<K extends Comparable<K>, V extends Bean>
 		long walkDatabaseKeyDesc(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback);
+
+		<K extends Comparable<K>, V extends Bean>
+		K walkDatabase(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+					   @NotNull TableWalkHandle<K, V> callback);
+
+		<K extends Comparable<K>, V extends Bean>
+		K walkDatabaseDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+						   @NotNull TableWalkHandle<K, V> callback);
+
+		<K extends Comparable<K>, V extends Bean>
+		K walkDatabaseKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+						  @NotNull TableWalkKey<K> callback);
+
+		<K extends Comparable<K>, V extends Bean>
+		K walkDatabaseKeyDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+							  @NotNull TableWalkKey<K> callback);
 
 		void close();
 
@@ -385,12 +407,6 @@ public abstract class Database {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback) {
-			return walkKey(key -> callback.handle(table.decodeKey(ByteBuffer.Wrap(key))));
-		}
-
-		@Override
-		public <K extends Comparable<K>, V extends Bean>
 		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
@@ -400,8 +416,20 @@ public abstract class Database {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) {
-			return walkKeyDesc(key -> callback.handle(table.decodeKey(ByteBuffer.Wrap(key))));
+		long walkKey(TableX<K, V> table, TableWalkKey<K> callback) {
+			if (Zeze.Transaction.Transaction.getCurrent() != null)
+				throw new IllegalStateException("must be called without transaction");
+
+			return walkKey(key -> invokeCallback(table, key, callback));
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		long walkKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) {
+			if (Zeze.Transaction.Transaction.getCurrent() != null)
+				throw new IllegalStateException("must be called without transaction");
+
+			return walkKeyDesc(key -> invokeCallback(table, key, callback));
 		}
 
 		@Override
@@ -419,19 +447,6 @@ public abstract class Database {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
-			if (Zeze.Transaction.Transaction.getCurrent() != null)
-				throw new IllegalStateException("must be called without transaction");
-
-			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
-			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit,
-					key -> invokeCallback(table, key, callback));
-
-			return lastKey != null ? table.decodeKey(lastKey) : null;
-		}
-
-		@Override
-		public <K extends Comparable<K>, V extends Bean>
 		K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
@@ -439,6 +454,19 @@ public abstract class Database {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkDesc(encodedExclusiveStartKey, proposeLimit,
 					(key, value) -> invokeCallback(table, key, value, callback));
+
+			return lastKey != null ? table.decodeKey(lastKey) : null;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
+			if (Zeze.Transaction.Transaction.getCurrent() != null)
+				throw new IllegalStateException("must be called without transaction");
+
+			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit,
+					key -> invokeCallback(table, key, callback));
 
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
@@ -474,6 +502,61 @@ public abstract class Database {
 				V v = table.decodeValue(ByteBuffer.Wrap(value));
 				return callback.handle(k, v);
 			});
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback) {
+			return walkKey(key -> callback.handle(table.decodeKey(ByteBuffer.Wrap(key))));
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) {
+			return walkKeyDesc(key -> callback.handle(table.decodeKey(ByteBuffer.Wrap(key))));
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		K walkDatabase(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) {
+			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var lastKey = walk(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
+				K k = table.decodeKey(ByteBuffer.Wrap(key));
+				V v = table.decodeValue(ByteBuffer.Wrap(value));
+				return callback.handle(k, v);
+			});
+			return lastKey != null ? table.decodeKey(lastKey) : null;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		K walkDatabaseDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
+						   TableWalkHandle<K, V> callback) {
+			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var lastKey = walkDesc(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
+				K k = table.decodeKey(ByteBuffer.Wrap(key));
+				V v = table.decodeValue(ByteBuffer.Wrap(value));
+				return callback.handle(k, v);
+			});
+			return lastKey != null ? table.decodeKey(lastKey) : null;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		K walkDatabaseKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
+			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit,
+					key -> callback.handle(table.decodeKey(ByteBuffer.Wrap(key))));
+			return lastKey != null ? table.decodeKey(lastKey) : null;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		K walkDatabaseKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
+			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var lastKey = walkKeyDesc(encodedExclusiveStartKey, proposeLimit,
+					key -> callback.handle(table.decodeKey(ByteBuffer.Wrap(key))));
+			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
 	}
 
