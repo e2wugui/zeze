@@ -402,29 +402,33 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private static <K extends Comparable<K>, V extends Bean>
 	boolean invokeCallback(TableX<K, V> table, ResultSet rs, TableWalkHandle<K, V> callback, OutObject<K> outKey) throws SQLException {
 		K k = table.decodeKeyResultSet(rs);
 		if (null != outKey)
 			outKey.value = k;
-		var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
-		lockey.enterReadLock();
-		try {
-			var r = table.getCache().get(k);
-			if (r != null && r.getState() != StateRemoved) {
+		var r = table.getCache().get(k);
+		if (r != null) {
+			V v = null;
+			r.enterFairLock();
+			try {
 				if (r.getState() == StateShare || r.getState() == StateModify) {
 					// 拥有正确的状态：
 					@SuppressWarnings("unchecked")
 					var strongRef = (V)r.getSoftValue();
 					if (strongRef == null)
 						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-					return callback.handle(r.getObjectKey(), strongRef);
+					v = (V)strongRef.copy();
 				}
-				// else GlobalCacheManager.StateInvalid
-				// 继续后面的处理：使用数据库中的数据。
+			} finally {
+				r.exitFairLock();
 			}
-		} finally {
-			lockey.exitReadLock();
+			// 从cache中copy成功
+			if (v != null)
+				return callback.handle(k, v);
+			// else GlobalCacheManager.StateInvalid
+			// 继续后面的处理：使用数据库中的数据。
 		}
 		// 缓存中不存在或者正在被删除，使用数据库中的数据。
 		var value = table.newValue();
@@ -464,24 +468,22 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		K k = table.decodeKeyResultSet(rs);
 		if (outKey != null)
 			outKey.value = k;
-		var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
-		lockey.enterReadLock();
-		try {
-			var r = table.getCache().get(k);
-			if (r != null && r.getState() != StateRemoved) {
+		var r = table.getCache().get(k);
+		if (r != null) {
+			r.enterFairLock();
+			try {
 				if (r.getState() == StateShare || r.getState() == StateModify) {
 					// 拥有正确的状态：
 					@SuppressWarnings("unchecked")
 					var strongRef = (V)r.getSoftValue();
 					if (strongRef == null)
 						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-					return callback.handle(r.getObjectKey());
 				}
 				// else GlobalCacheManager.StateInvalid
 				// 继续后面的处理：使用数据库中的数据。
+			} finally {
+				r.exitFairLock();
 			}
-		} finally {
-			lockey.exitReadLock();
 		}
 		// 缓存中不存在或者正在被删除，使用数据库中的数据。
 		return callback.handle(k);

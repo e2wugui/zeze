@@ -52,6 +52,7 @@ public class DeadlockBreaker extends ThreadHelper {
 	private final ThreadGroup rootThreadGroup;
 	private int sleepIdleMs = 1000;
 	private final Config config;
+	private int detectCount = 0;
 
 	public DeadlockBreaker(Config config) {
 		super("Zeze.Util.DeadlockBreaker");
@@ -65,7 +66,12 @@ public class DeadlockBreaker extends ThreadHelper {
 			try {
 				if (detect()) {
 					sleepIdleMs = 2000;
+					detectCount ++;
+					if (detectCount >= 3) {
+						// 向 daemon 报告。
+					}
 				} else {
+					detectCount = 0;
 					sleepIdleMs *= 2;
 					if (sleepIdleMs > config.getDeadLockBreakerPeriod())
 						sleepIdleMs = config.getDeadLockBreakerPeriod();
