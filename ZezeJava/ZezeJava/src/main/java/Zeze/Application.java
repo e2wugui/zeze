@@ -72,7 +72,7 @@ public final class Application {
 	private DelayRemove delayRemove;
 	private IGlobalAgent globalAgent;
 	private AchillesHeelDaemon achillesHeelDaemon;
-	private final DeadlockBreaker deadlockBreaker;
+	private DeadlockBreaker deadlockBreaker;
 	private Checkpoint checkpoint;
 	private Future<?> flushWhenReduceTimerTask;
 	private Schemas schemas;
@@ -188,7 +188,6 @@ public final class Application {
 			queueModule = new Zeze.Collections.Queue.Module(this);
 			delayRemove = new DelayRemove(this);
 		}
-		this.deadlockBreaker = new DeadlockBreaker(this);
 	}
 
 	private AppBase appBase;
@@ -616,6 +615,7 @@ public final class Application {
 				}
 			}
 
+			this.deadlockBreaker = new DeadlockBreaker(this);
 			// Checkpoint
 			checkpoint = new Checkpoint(this, conf.getCheckpointMode(), databases.values(), serverId);
 			checkpoint.start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
@@ -637,7 +637,11 @@ public final class Application {
 	}
 
 	public synchronized void stop() throws Exception {
-		this.deadlockBreaker.shutdown();
+		if (null != deadlockBreaker) {
+			this.deadlockBreaker.shutdown();
+			deadlockBreaker = null;
+		}
+
 		if (startState == StartState.eStopped)
 			return;
 		startState = StartState.eStartingOrStopping;
