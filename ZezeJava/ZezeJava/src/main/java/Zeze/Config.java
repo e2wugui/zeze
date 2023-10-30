@@ -365,7 +365,7 @@ public final class Config {
 		return databaseConfMap;
 	}
 
-	private static Database createDatabase(@NotNull Application zeze, @NotNull DatabaseConf conf) throws RocksDBException {
+	private static Database createDatabase(@NotNull Application zeze, @NotNull DatabaseConf conf) throws Exception {
 		switch (conf.databaseType) {
 		case Memory:
 			return new DatabaseMemory(zeze, conf);
@@ -386,13 +386,14 @@ public final class Config {
 		}
 	}
 
-	public void createDatabase(@NotNull Application zeze, @NotNull HashMap<String, Database> map) throws RocksDBException {
+	public void createDatabase(@NotNull Application zeze, @NotNull HashMap<String, Database> map) throws Exception {
 		// add other database
 		for (var db : getDatabaseConfMap().values())
 			map.put(db.name, createDatabase(zeze, db));
 	}
 
-	public void clearInUseAndIAmSureAppStopped(@NotNull Application zeze, @Nullable HashMap<String, Database> databases) throws RocksDBException {
+	public void clearInUseAndIAmSureAppStopped(@NotNull Application zeze, @Nullable HashMap<String, Database> databases)
+			throws Exception {
 		if (databases == null) {
 			databases = new HashMap<>();
 			createDatabase(zeze, databases);

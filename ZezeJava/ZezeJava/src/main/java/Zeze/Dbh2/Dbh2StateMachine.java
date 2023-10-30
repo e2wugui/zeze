@@ -24,7 +24,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private static final Logger logger = LogManager.getLogger(Dbh2StateMachine.class);
 	private Bucket bucket;
 	private TidAllocator tidAllocator;
-	private final ConcurrentHashMap<Binary, Dbh2Transaction> transactions = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, Dbh2Transaction> transactions = new ConcurrentHashMap<>();
 	private Future<?> timer;
 	private CommitAgent commitAgent;
 	private final Dbh2 dbh2;
@@ -157,7 +157,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		return tidAllocator;
 	}
 
-	public ConcurrentHashMap<Binary, Dbh2Transaction> getTransactions() {
+	public ConcurrentHashMap<Long, Dbh2Transaction> getTransactions() {
 		return transactions;
 	}
 
@@ -292,7 +292,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void commitBatch(Binary tid) {
+	public void commitBatch(long tid) {
 		try (var txn = transactions.remove(tid)) {
 			counterCommitBatch.incrementAndGet();
 			if (null != txn) {
@@ -306,7 +306,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void undoBatch(Binary tid) {
+	public void undoBatch(long tid) {
 		try (var txn = transactions.remove(tid)) {
 			counterUndoBatch.incrementAndGet();
 			if (null != txn)

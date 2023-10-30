@@ -55,7 +55,7 @@ public class CommitAgent extends AbstractCommitAgent {
 		service.stop();
 	}
 
-	public BTransactionState.Data query(String host, int port, Binary tid, int rpcTimeout) {
+	public BTransactionState.Data query(String host, int port, long tid, int rpcTimeout) {
 		var r = new Query();
 		r.Argument.setTid(tid);
 		r.SendForWait(connect(host, port), rpcTimeout).await();

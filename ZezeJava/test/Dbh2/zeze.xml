@@ -6,6 +6,9 @@
 	ServiceManager="disable"
 	>
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
+	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
+		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
+	</ServiceConf>
 	<ServiceConf Name="Zeze.Dbh2.Master">
 		<Acceptor Ip="127.0.0.1" Port="10999"/>
 	</ServiceConf>

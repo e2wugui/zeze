@@ -1483,7 +1483,7 @@
 				<variable id="2" name="Deletes" type="set[binary]"/>
 				<variable id="3" name="QueryIp" type="string"/>
 				<variable id="4" name="QueryPort" type="int"/>
-				<variable id="5" name="Tid" type="binary"/>
+				<variable id="5" name="Tid" type="long"/>
 			</bean>
 			<bean name="BPrepareBatch">
 				<variable id="1" name="Master" type="string"/> 用来纠错
@@ -1492,7 +1492,7 @@
 				<variable id="4" name="Batch" type="BBatch"/>
 			</bean>
 			<bean name="BBatchTid">
-				<variable id="1" name="Tid" type="binary"/>
+				<variable id="1" name="Tid" type="long"/>
 			</bean>
 			<bean name="BRefused">
 				<variable id="1" name="Refused" type="map[string, BBatch]"/>

@@ -10,10 +10,10 @@ import Zeze.Serialize.ByteBuffer;
 public class LogUndoBatch extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogUndoBatch.class.getName());
 
-	private Binary tid;
+	private long tid;
 
 	public LogUndoBatch() {
-		this(Binary.Empty);
+		this(0L);
 	}
 
 	public LogUndoBatch(UndoBatch req) {
@@ -22,7 +22,7 @@ public class LogUndoBatch extends Log {
 			this.tid = req.Argument.getTid();
 	}
 
-	public LogUndoBatch(Binary tid) {
+	public LogUndoBatch(long tid) {
 		super(null);
 		this.tid = tid;
 	}
@@ -41,12 +41,12 @@ public class LogUndoBatch extends Log {
 	@Override
 	public void encode(ByteBuffer bb) {
 		super.encode(bb);
-		bb.WriteBinary(tid);
+		bb.WriteLong(tid);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
 		super.decode(bb);
-		tid = bb.ReadBinary();
+		tid = bb.ReadLong();
 	}
 }

@@ -7,10 +7,10 @@ import Zeze.Serialize.ByteBuffer;
 public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidReadOnly {
     public static final long TYPEID = -8862994320894252651L;
 
-    private Zeze.Net.Binary _Tid;
+    private long _Tid;
 
     @Override
-    public Zeze.Net.Binary getTid() {
+    public long getTid() {
         if (!isManaged())
             return _Tid;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
@@ -20,9 +20,7 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
         return log != null ? log.value : _Tid;
     }
 
-    public void setTid(Zeze.Net.Binary value) {
-        if (value == null)
-            throw new IllegalArgumentException();
+    public void setTid(long value) {
         if (!isManaged()) {
             _Tid = value;
             return;
@@ -33,19 +31,16 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
 
     @SuppressWarnings("deprecation")
     public BBatchTid() {
-        _Tid = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BBatchTid(Zeze.Net.Binary _Tid_) {
-        if (_Tid_ == null)
-            _Tid_ = Zeze.Net.Binary.Empty;
+    public BBatchTid(long _Tid_) {
         _Tid = _Tid_;
     }
 
     @Override
     public void reset() {
-        setTid(Zeze.Net.Binary.Empty);
+        setTid(0);
         _unknown_ = null;
     }
 
@@ -93,8 +88,8 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
         return TYPEID;
     }
 
-    private static final class Log__Tid extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Tid(BBatchTid bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+    private static final class Log__Tid extends Zeze.Transaction.Logs.LogLong {
+        public Log__Tid(BBatchTid bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
         public void commit() { ((BBatchTid)getBelong())._Tid = value; }
@@ -145,10 +140,10 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
         var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
-            var _x_ = getTid();
-            if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteBinary(_x_);
+            long _x_ = getTid();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
             }
         }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
@@ -161,11 +156,18 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTid(_o_.ReadBinary(_t_));
+            setTid(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
+    }
+
+    @Override
+    public boolean negativeCheck() {
+        if (getTid() < 0)
+            return true;
+        return false;
     }
 
     @SuppressWarnings("unchecked")
@@ -177,7 +179,7 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Tid = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _Tid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }
@@ -185,21 +187,19 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setTid(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Tid")));
-        if (getTid() == null)
-            setTid(Zeze.Net.Binary.Empty);
+        setTid(rs.getLong(_parents_name_ + "Tid"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendBinary(_parents_name_ + "Tid", getTid());
+        st.appendLong(_parents_name_ + "Tid", getTid());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Tid", "binary", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Tid", "long", "", ""));
         return vars;
     }
 
@@ -207,33 +207,28 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -8862994320894252651L;
 
-    private Zeze.Net.Binary _Tid;
+    private long _Tid;
 
-    public Zeze.Net.Binary getTid() {
+    public long getTid() {
         return _Tid;
     }
 
-    public void setTid(Zeze.Net.Binary value) {
-        if (value == null)
-            throw new IllegalArgumentException();
+    public void setTid(long value) {
         _Tid = value;
     }
 
     @SuppressWarnings("deprecation")
     public Data() {
-        _Tid = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Net.Binary _Tid_) {
-        if (_Tid_ == null)
-            _Tid_ = Zeze.Net.Binary.Empty;
+    public Data(long _Tid_) {
         _Tid = _Tid_;
     }
 
     @Override
     public void reset() {
-        _Tid = Zeze.Net.Binary.Empty;
+        _Tid = 0;
     }
 
     @Override
@@ -309,10 +304,10 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = _Tid;
-            if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteBinary(_x_);
+            long _x_ = _Tid;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -323,7 +318,7 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _Tid = _o_.ReadBinary(_t_);
+            _Tid = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

@@ -10,7 +10,7 @@ import Zeze.Serialize.ByteBuffer;
 public class LogCommitBatch extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogCommitBatch.class.getName());
 
-	private Binary tid;
+	private long tid;
 
 	public LogCommitBatch() {
 		this(null);
@@ -36,12 +36,12 @@ public class LogCommitBatch extends Log {
 	@Override
 	public void encode(ByteBuffer bb) {
 		super.encode(bb);
-		bb.WriteBinary(tid);
+		bb.WriteLong(tid);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
 		super.decode(bb);
-		tid = bb.ReadBinary();
+		tid = bb.ReadLong();
 	}
 }

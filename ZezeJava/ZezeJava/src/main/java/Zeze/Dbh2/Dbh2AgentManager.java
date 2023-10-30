@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Application;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Config;
@@ -15,6 +16,8 @@ import Zeze.Net.Binary;
 import Zeze.Net.ServiceConf;
 import Zeze.Raft.ProxyAgent;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.ServiceManager.AbstractAgent;
+import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
 import Zeze.Util.Action2;
@@ -46,6 +49,8 @@ public class Dbh2AgentManager {
 	private Commit commit;
 	private CommitAgent commitAgent;
 	private Future<?> refreshMasterTableTask;
+	private final AbstractAgent serviceManager;
+	private final AutoKey tidAutoKey;
 
 	public synchronized void startRefreshMasterTable(
 			String masterName, String databaseName, String tableName) {
@@ -63,13 +68,16 @@ public class Dbh2AgentManager {
 		return dbh2Config;
 	}
 
-	public Dbh2AgentManager(Config config) throws RocksDBException {
-		this(config, -1);
+	public Dbh2AgentManager(AbstractAgent serviceManager, Config config) throws Exception {
+		this(serviceManager, config, -1);
 	}
 
-	public Dbh2AgentManager(Config config, int serverId) throws RocksDBException {
+	public Dbh2AgentManager(AbstractAgent serviceManager, Config config, int serverId) throws Exception {
 		if (null == config)
 			config = Config.load();
+		this.serviceManager = serviceManager;
+		this.tidAutoKey = serviceManager.getAutoKey("Dbh2.AutoKey." + config.getName());
+
 		config.parseCustomize(dbh2Config);
 		if (serverId != -1) // 为了测试能指定一个不一样的serverId用来连续运行测试。
 			config.setServerId(serverId);
@@ -87,12 +95,8 @@ public class Dbh2AgentManager {
 		proxyAgent = new ProxyAgent();
 	}
 
-	private static final SecureRandom secureRandom = new SecureRandom();
-
-	public static byte[] nextTransactionId() {
-		var tid = new byte[20];
-		secureRandom.nextBytes(tid);
-		return tid;
+	public long nextTransactionId() {
+		return tidAutoKey.next();
 	}
 
 	public KV<String, Integer> commitServiceAcceptor() {
@@ -111,7 +115,7 @@ public class Dbh2AgentManager {
 		if (config.isDbh2LocalCommit()) {
 			var query = commitServiceAcceptor();
 			var state = CommitRocks.buildTransactionState(batches);
-			commit.getRocks().prepare(query.getKey(), query.getValue(), state, batches);
+			commit.getRocks().prepare(query.getKey(), query.getValue(), state, batches, null);
 		}
 		// 这个仅仅用来调试，不报错了。
 		// else throw new RuntimeException("commitBreakAfterPrepareForDebugOnly only work with local commit.");

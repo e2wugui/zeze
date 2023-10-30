@@ -51,7 +51,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.rocksdb.RocksDBException;
 
 public final class Application {
 	static final Logger logger = LogManager.getLogger(Application.class);
@@ -141,9 +140,9 @@ public final class Application {
 		return dbh2AgentManager;
 	}
 
-	public Dbh2AgentManager tryNewDbh2AgentManager() throws RocksDBException {
+	public Dbh2AgentManager tryNewDbh2AgentManager() throws Exception {
 		if (null == dbh2AgentManager)
-			dbh2AgentManager = new Dbh2AgentManager(conf);
+			dbh2AgentManager = new Dbh2AgentManager(serviceManager, conf);
 		return dbh2AgentManager;
 	}
 
@@ -177,9 +176,9 @@ public final class Application {
 		// Start Thread Pool
 		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化
 
+		serviceManager = createServiceManager(conf, projectName); // 必须在createDatabase之前初始化。里面的Dbh2需要用到serviceManager
 		conf.createDatabase(this, databases);
 		PerfCounter.instance.tryStartScheduledLog();
-		serviceManager = createServiceManager(conf, projectName);
 
 		if (!isNoDatabase()) {
 			// 自动初始化的组件。

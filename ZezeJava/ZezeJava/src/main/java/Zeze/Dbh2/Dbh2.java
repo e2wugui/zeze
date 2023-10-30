@@ -207,7 +207,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	@Override
 	protected long ProcessPrepareBatchRequest(PrepareBatch r) throws Exception {
-		//var tid = stateMachine.getTidAllocator().next(stateMachine);
 		// lock
 		var txn = new Dbh2Transaction(this, r.Argument.getBatch());
 		try {

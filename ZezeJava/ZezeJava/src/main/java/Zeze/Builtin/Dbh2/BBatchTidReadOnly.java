@@ -7,5 +7,5 @@ public interface BBatchTidReadOnly {
     boolean negativeCheck();
     BBatchTid copy();
 
-    Zeze.Net.Binary getTid();
+    long getTid();
 }

@@ -11,5 +11,5 @@ public interface BBatchReadOnly {
     Zeze.Transaction.Collections.PSet1ReadOnly<Zeze.Net.Binary> getDeletesReadOnly();
     String getQueryIp();
     int getQueryPort();
-    Zeze.Net.Binary getTid();
+    long getTid();
 }
