@@ -3,7 +3,7 @@
 <zeze
 	GlobalCacheManagerHostNameOrAddress="" GlobalCacheManagerPort="5002"
 	CheckpointPeriod="60000" ServerId="0" CheckpointMode="Table" CheckpointFlushMode="SingleThread" CheckpointModeTableFlushConcurrent="4"
-	ServiceManager="disable"
+	ServiceManager=""
 	>
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
