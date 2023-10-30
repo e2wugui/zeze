@@ -144,21 +144,31 @@ public class Daemon {
 		monitors.clear();
 	}
 
-	public static int getProcessPid(Process process) throws NoSuchFieldException, IllegalAccessException {
-		// 获取ProcessImpl类
-		Class<?> clazz = process.getClass();
-		while (clazz != null && clazz != Process.class) {
-			clazz = clazz.getSuperclass();
+	public static long getProcessPid(Process process) throws NoSuchFieldException, IllegalAccessException {
+		String processClassName = process.getClass().getName();
+
+		if (processClassName.equals("java.lang.UNIXProcess")) {
+			Class<?> clazz = process.getClass();
+			java.lang.reflect.Field pidField = clazz.getDeclaredField("pid");
+			pidField.setAccessible(true);
+			return (long) pidField.get(process);
 		}
-		if (clazz == null)
-			throw new RuntimeException("process class is null");
 
-		// 获取pid字段
-		var pidField = clazz.getDeclaredField("pid");
-		pidField.setAccessible(true);
+		// win32
+//		if (processClassName.equals("java.lang.Win32Process") || processClassName.equals("java.lang.ProcessImpl")) {
+//			Class<?> clazz = process.getClass();
+//			java.lang.reflect.Field handleField = clazz.getDeclaredField("handle");
+//			handleField.setAccessible(true);
+//			long handle = (long) handleField.get(process);
+//
+//			// 使用 Windows API 获取进程 ID
+//			var kernel = Kernel32.INSTANCE;
+//			var winHandle = new WinNT.HANDLE();
+//			winHandle.setPointer(Pointer.createConstant(handle));
+//			return kernel.GetProcessId(winHandle);
+//		}
 
-		// 获取pid值
-		return (int)pidField.get(process);
+		throw new RuntimeException("unknown platform. " + processClassName);
 	}
 
 	private static void destroySubprocess() throws InterruptedException {
@@ -237,6 +247,9 @@ public class Daemon {
 			break;
 		case Release.Command:
 			cmd = new Release(bb, p.getSocketAddress());
+			break;
+		case DeadlockReport.Command:
+			cmd = new DeadlockReport(bb, p.getSocketAddress());
 			break;
 		default:
 			throw new UnsupportedOperationException("Unknown Command =" + c);
@@ -542,6 +555,11 @@ public class Daemon {
 		public static final int Command = 4;
 
 		public DeadlockReport() {
+		}
+
+		public DeadlockReport(ByteBuffer bb, SocketAddress peer) {
+			this.decode(bb);
+			this.peer = peer;
 		}
 
 		@Override
