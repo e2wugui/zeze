@@ -11,11 +11,8 @@ import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.Task;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class LinkdApp {
-	static final Logger logger = LogManager.getLogger(LinkdApp.class);
 	public final String linkdServiceName;
 	public final Application zeze;
 	public final LinkdProvider linkdProvider;

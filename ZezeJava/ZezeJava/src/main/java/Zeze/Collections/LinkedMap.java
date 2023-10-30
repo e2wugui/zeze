@@ -153,7 +153,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			return openConcurrent(name, valueClass, 128, nodeSize);
 		}
 
-		@SuppressWarnings("unchecked")
+		@SuppressWarnings({"unchecked", "SameParameterValue"})
 		private <T extends Bean> @NotNull CHashMap<T> openConcurrent(
 				@NotNull String name, @NotNull Class<T> valueClass, int concurrencyLevel, int nodeSize) {
 			if (name.isEmpty())

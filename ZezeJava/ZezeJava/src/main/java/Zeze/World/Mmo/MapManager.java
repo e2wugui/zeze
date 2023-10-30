@@ -97,6 +97,7 @@ public class MapManager implements IMapManager, ICommand {
 
 	@Override
 	public long handle(String account, String playerId, Command c) throws Exception {
+		//noinspection SwitchStatementWithTooFewBranches
 		switch (c.Argument.getCommandId()) {
 		case BCommand.eEnterConfirm:
 			return onEnterConfirm(account, playerId, ICommand.decode(new BEnterConfirm.Data(), c));

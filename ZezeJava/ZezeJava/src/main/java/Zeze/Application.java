@@ -97,10 +97,10 @@ public final class Application {
 
 	public void enableAuth() {
 		if (isStart())
-			throw new RuntimeException("must enable auth before start.");
+			throw new IllegalStateException("must enable auth before start.");
 
 		if (null != auth)
-			throw new RuntimeException("auth has enabled.");
+			throw new IllegalStateException("auth has enabled.");
 
 		auth = new Auth(this);
 	}
@@ -126,7 +126,7 @@ public final class Application {
 		var callerCl = caller.getClassLoader();
 		// 只限制我们自己的HotModule，其他都允许。
 		if (null != hotManager && HotManager.isHotModule(callerCl))
-			throw new RuntimeException("caller must not hot.");
+			throw new IllegalStateException("caller must not hot.");
 	}
 
 	public void setHotManager(HotManager value) {

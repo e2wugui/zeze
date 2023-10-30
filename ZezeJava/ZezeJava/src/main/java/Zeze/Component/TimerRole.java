@@ -200,7 +200,7 @@ public class TimerRole {
 				logger.info("not online but transmit {}", roleId);
 				return; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
-			throw new RuntimeException("not online " + roleId);
+			throw new IllegalStateException("not online " + roleId);
 		}
 
 		var timer = online.providerApp.zeze.getTimer();
@@ -377,7 +377,7 @@ public class TimerRole {
 				logger.info("not online but transmit {}", roleId);
 				return; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
-			throw new RuntimeException("not online " + roleId);
+			throw new IllegalStateException("not online " + roleId);
 		}
 
 		var timer = online.providerApp.zeze.getTimer();
