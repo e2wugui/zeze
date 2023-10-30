@@ -1,9 +1,7 @@
 package Zeze.Services.Log4jQuery.handler;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +9,7 @@ import com.alibaba.fastjson.JSONObject;
 
 public class QueryHandlerManager{
 
-	private static Map<String, QueryHandleContainer> handlerMap = new HashMap<>();
+	private static final Map<String, QueryHandleContainer> handlerMap = new HashMap<>();
 	private static boolean initFinish = false;
 
 	public static void init(){
@@ -22,7 +20,8 @@ public class QueryHandlerManager{
 				HandlerCmd handlerCmd = handlerClass.getAnnotation(HandlerCmd.class);
 				if (handlerCmd != null){
 					String cmd = handlerCmd.value();
-					QueryHandleContainer queryHandleContainer = new QueryHandleContainer((QueryHandler)handlerClass.getConstructor(null).newInstance(null));
+					var instance = (QueryHandler<?, ?>)handlerClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
+					QueryHandleContainer queryHandleContainer = new QueryHandleContainer(instance);
 					handlerMap.put(cmd, queryHandleContainer);
 				}
 			} catch (Exception e) {
@@ -40,7 +39,7 @@ public class QueryHandlerManager{
 			init();
 			initFinish = true;
 		}
-		QueryRequest queryRequest = JSONObject.parseObject(req, QueryRequest.class);
+		var queryRequest = JSONObject.parseObject(req, QueryRequest.class);
 		Object param = queryRequest.getParam();
 		String cmd = queryRequest.getCmd();
 		QueryHandleContainer queryHandler = handlerMap.get(cmd);
@@ -49,27 +48,25 @@ public class QueryHandlerManager{
 		}
 
 		Object obj = queryHandler.invoke(param);
-		String result = JSONObject.toJSONString(obj);
-		return result;
+		return JSONObject.toJSONString(obj);
 	}
 
 
 	public static List<String> selectCmdList(){
-		List<String> list = new ArrayList<>(handlerMap.keySet());
-		return list;
+		return new ArrayList<>(handlerMap.keySet());
 	}
 
 
 	public static class QueryHandleContainer{
-		private QueryHandler queryHandler;
-		private Class paramClass;
+		private final QueryHandler<?, ?> queryHandler;
+		private Class<?> paramClass;
 
 
-		public QueryHandleContainer(QueryHandler queryHandler){
+		public QueryHandleContainer(QueryHandler<?, ?> queryHandler){
 			this.queryHandler = queryHandler;
 			Method[] declaredMethods = queryHandler.getClass().getDeclaredMethods();
 			for (Method method : declaredMethods){
-				if (method.getName() == "invoke"){
+				if (method.getName().equals("invoke")) {
 					Class<?> parameterType = method.getParameterTypes()[0];
 					if (parameterType != Object.class){
 						paramClass = parameterType;
@@ -80,12 +77,13 @@ public class QueryHandlerManager{
 		}
 
 
+		@SuppressWarnings("unchecked")
 		public Object invoke(Object o){
 			if (paramClass == null || paramClass == Object.class){
 				return queryHandler.invoke(null);
 			}
 
-			return queryHandler.invoke(cast(paramClass, (String)o));
+			return ((QueryHandler<Object, Object>)queryHandler).invoke(cast(paramClass, (String)o));
 
 		}
 

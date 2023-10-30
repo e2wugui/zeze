@@ -35,7 +35,6 @@ import Zeze.Transaction.GlobalAgent;
 import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Locks;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.ResetDB;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
@@ -498,7 +497,7 @@ public final class Application {
 					if (schemas.getAppPublishVersion() < schemasPrevious.getAppPublishVersion())
 						return; // 当前的发布版本小于先前时，不做任何操作，直接返回。
 
-					ResetDB.checkAndRemoveTable(schemasPrevious, this);
+					schemas.checkCompatible(schemasPrevious, this);
 					version = dataVersion.version;
 				}
 				// schemasPrevious maybe null
