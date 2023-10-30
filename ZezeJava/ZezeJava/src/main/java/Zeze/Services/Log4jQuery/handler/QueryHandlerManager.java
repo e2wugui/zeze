@@ -6,36 +6,35 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.alibaba.fastjson.JSONObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-public class QueryHandlerManager{
+public class QueryHandlerManager {
+	private static final Logger logger = LogManager.getLogger(QueryHandlerManager.class);
 
 	private static final Map<String, QueryHandleContainer> handlerMap = new HashMap<>();
 	private static boolean initFinish = false;
 
-	public static void init(){
+	public static void init() {
 		List<String> clazzNames = ClazzUtils.getClazzName("Zeze.Services.Log4jQuery.handler.impl", true);
-		clazzNames.forEach(clazz ->{
+		clazzNames.forEach(clazz -> {
 			try {
 				Class<?> handlerClass = Class.forName(clazz);
 				HandlerCmd handlerCmd = handlerClass.getAnnotation(HandlerCmd.class);
-				if (handlerCmd != null){
+				if (handlerCmd != null) {
 					String cmd = handlerCmd.value();
 					var instance = (QueryHandler<?, ?>)handlerClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 					QueryHandleContainer queryHandleContainer = new QueryHandleContainer(instance);
 					handlerMap.put(cmd, queryHandleContainer);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error("", e);
 			}
-
 		});
-
-
 	}
 
-
 	public static String invokeHandler(String req) throws ClassNotFoundException {
-		if (!initFinish){
+		if (!initFinish) {
 			init();
 			initFinish = true;
 		}
@@ -43,7 +42,7 @@ public class QueryHandlerManager{
 		Object param = queryRequest.getParam();
 		String cmd = queryRequest.getCmd();
 		QueryHandleContainer queryHandler = handlerMap.get(cmd);
-		if (queryHandler == null){
+		if (queryHandler == null) {
 			return "";
 		}
 
@@ -51,43 +50,37 @@ public class QueryHandlerManager{
 		return JSONObject.toJSONString(obj);
 	}
 
-
-	public static List<String> selectCmdList(){
+	public static List<String> selectCmdList() {
 		return new ArrayList<>(handlerMap.keySet());
 	}
 
-
-	public static class QueryHandleContainer{
+	public static class QueryHandleContainer {
 		private final QueryHandler<?, ?> queryHandler;
 		private Class<?> paramClass;
 
-
-		public QueryHandleContainer(QueryHandler<?, ?> queryHandler){
+		public QueryHandleContainer(QueryHandler<?, ?> queryHandler) {
 			this.queryHandler = queryHandler;
 			Method[] declaredMethods = queryHandler.getClass().getDeclaredMethods();
-			for (Method method : declaredMethods){
+			for (Method method : declaredMethods) {
 				if (method.getName().equals("invoke")) {
 					Class<?> parameterType = method.getParameterTypes()[0];
-					if (parameterType != Object.class){
+					if (parameterType != Object.class) {
 						paramClass = parameterType;
 					}
 				}
 			}
-
 		}
 
-
 		@SuppressWarnings("unchecked")
-		public Object invoke(Object o){
-			if (paramClass == null || paramClass == Object.class){
+		public Object invoke(Object o) {
+			if (paramClass == null || paramClass == Object.class) {
 				return queryHandler.invoke(null);
 			}
 
 			return ((QueryHandler<Object, Object>)queryHandler).invoke(cast(paramClass, (String)o));
-
 		}
 
-		private Object cast(Class<?> clazz, String str)  {
+		private static Object cast(Class<?> clazz, String str) {
 			if (clazz == String.class) {
 				return str;
 			}
@@ -120,11 +113,7 @@ public class QueryHandlerManager{
 				return Boolean.valueOf(str);
 			default:
 				return JSONObject.parseObject(str, clazz);
-
 			}
-
 		}
 	}
-
-
 }
