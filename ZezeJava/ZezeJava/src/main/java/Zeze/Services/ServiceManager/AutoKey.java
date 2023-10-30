@@ -1,10 +1,12 @@
 package Zeze.Services.ServiceManager;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public final class AutoKey {
 	private final String name;
 	private final AbstractAgent agent;
-	private int count;
-	private long current;
+	private final AtomicLong current = new AtomicLong();
+	private volatile long end;
 
 	public AutoKey(String name, AbstractAgent agent) {
 		this.name = name;
@@ -19,12 +21,8 @@ public final class AutoKey {
 		return agent;
 	}
 
-	public int getCount() {
-		return count;
-	}
-
 	public long getCurrent() {
-		return current;
+		return current.get();
 	}
 
 	private static final int ALLOCATE_COUNT_MIN = 64;
@@ -47,20 +45,30 @@ public final class AutoKey {
 		allocateCount = (int)Math.min(Math.max(newCount, ALLOCATE_COUNT_MIN), ALLOCATE_COUNT_MAX);
 	}
 
-	public synchronized long next() {
-		adjustAllocateCount();
-		if (count <= 0) {
-			agent.allocate(this, allocateCount);
-			if (count <= 0)
-				throw new IllegalStateException("AllocateId failed for " + name);
-		}
+	public long next() {
+		for (; ; ) {
+			var id = current.get();
+			var idEnd = end;
+			if (id < idEnd) {
+				if (current.compareAndSet(id, id + 1))
+					return id;
+				continue;
+			}
 
-		count--;
-		return current++;
+			synchronized (this) {
+				if (idEnd == end) {
+					adjustAllocateCount();
+					agent.allocate(this, allocateCount);
+				}
+			}
+		}
 	}
 
 	void setCurrentAndCount(long current, int count) {
-		this.current = current;
-		this.count = count;
+		if (count <= 0)
+			throw new IllegalStateException("count = " + count);
+		end = Long.MIN_VALUE; // 确保赋值新的current和end之前不会并发分配
+		this.current.set(current);
+		end = current + count;
 	}
 }
