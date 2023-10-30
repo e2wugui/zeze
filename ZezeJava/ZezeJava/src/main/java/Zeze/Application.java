@@ -631,9 +631,10 @@ public final class Application {
 			if (timer != null) {
 				timer.loadCustomClassAnd();
 			}
+			if (null != deadlockBreaker)
+				deadlockBreaker.start();
 		} else
 			startState = StartState.eStarted;
-		this.deadlockBreaker.start();
 	}
 
 	public synchronized void stop() throws Exception {
