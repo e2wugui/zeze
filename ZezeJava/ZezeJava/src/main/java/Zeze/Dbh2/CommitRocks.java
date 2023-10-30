@@ -86,7 +86,7 @@ public class CommitRocks {
 			}
 			for (var e : futures)
 				e.await();
-			removeCommitIndex(key, 0, key.length);
+			removeCommitIndex(key);
 		} catch (Throwable ex) {
 			// timer will redo
 			logger.error("", ex);
@@ -112,9 +112,9 @@ public class CommitRocks {
 	}
 
 	public BTransactionState.Data query(long tid) throws RocksDBException {
-		var tidBytes = ByteBuffer.Allocate();
-		tidBytes.WriteLong(tid);
-		var value = commitPoint.get(tidBytes.Bytes, tidBytes.ReadIndex, tidBytes.size());
+		var tidBytes = new byte[8];
+		ByteBuffer.longBeHandler.set(tidBytes, 0, tid);
+		var value = commitPoint.get(tidBytes);
 		if (null == value) {
 			logger.warn("query but not found {}", tid);
 			return null;
@@ -168,10 +168,10 @@ public class CommitRocks {
 	}
 
 	public long prepare(String queryHost, int queryPort, BTransactionState.Data state, BPrepareBatches.Data batches,
-						ByteBuffer tidEncoded) {
+						byte[] tidEncoded) {
 		var tid = manager.nextTransactionId();
-		var tidBytes = null != tidEncoded ? tidEncoded : ByteBuffer.Allocate();
-		tidBytes.WriteLong(tid);
+		var tidBytes = null != tidEncoded ? tidEncoded : new byte[8];
+		ByteBuffer.longBeHandler.set(tidBytes, 0, tid);
 		var prepareTime = System.currentTimeMillis();
 		try {
 			// prepare
@@ -198,13 +198,13 @@ public class CommitRocks {
 
 		} catch (Throwable ex) {
 			undo(tid, state);
-			removeCommitIndex(tidBytes.Bytes, tidBytes.ReadIndex, tidBytes.size());
+			removeCommitIndex(tidBytes);
 			throw new RuntimeException(ex);
 		}
 
 		if (System.currentTimeMillis() - prepareTime > manager.getDbh2Config().getPrepareMaxTime()) {
 			undo(tid, state);
-			removeCommitIndex(tidBytes.Bytes, tidBytes.ReadIndex, tidBytes.size());
+			removeCommitIndex(tidBytes);
 			throw new RuntimeException("max prepare time exceed.");
 		}
 		return tid;
@@ -212,7 +212,7 @@ public class CommitRocks {
 
 	public void commit(String queryHost, int queryPort, BPrepareBatches.Data batches) {
 		var state = buildTransactionState(batches);
-		var tidBytes = ByteBuffer.Allocate();
+		var tidBytes = new byte[8];
 		var tid = prepare(queryHost, queryPort, state, batches, tidBytes);
 
 		try {
@@ -220,7 +220,7 @@ public class CommitRocks {
 			saveCommitPoint(tidBytes, state, Commit.eCommitting);
 		} catch (Throwable ex) {
 			undo(tid, state);
-			removeCommitIndex(tidBytes.Bytes, tidBytes.ReadIndex, tidBytes.size());
+			removeCommitIndex(tidBytes);
 			throw new RuntimeException(ex);
 		}
 
@@ -232,7 +232,7 @@ public class CommitRocks {
 			}
 			for (var e : futures)
 				e.await();
-			removeCommitIndex(tidBytes.Bytes, tidBytes.ReadIndex, tidBytes.size());
+			removeCommitIndex(tidBytes);
 		} catch (Throwable ex) {
 			// timer will redo
 			logger.error("", ex);
@@ -247,7 +247,7 @@ public class CommitRocks {
 		return bState;
 	}
 
-	private void saveCommitPoint(ByteBuffer tidBytes, BTransactionState.Data bState, int state) throws RocksDBException {
+	private void saveCommitPoint(byte[] tidBytes, BTransactionState.Data bState, int state) throws RocksDBException {
 		bState.setState(state);
 		var bb = ByteBuffer.Allocate();
 		bState.encode(bb);
@@ -255,15 +255,15 @@ public class CommitRocks {
 		bbIndex.WriteInt(state);
 		try (var batch = database.borrowBatch()) {
 			// todo putIfAbsent ？？？ 报错！
-			commitPoint.put(batch, tidBytes.Bytes, tidBytes.size(), bb.Bytes, bb.WriteIndex);
-			commitIndex.put(batch, tidBytes.Bytes, tidBytes.size(), bbIndex.Bytes, bbIndex.WriteIndex);
+			commitPoint.put(batch, tidBytes, tidBytes.length, bb.Bytes, bb.WriteIndex);
+			commitIndex.put(batch, tidBytes, tidBytes.length, bbIndex.Bytes, bbIndex.WriteIndex);
 			batch.commit(writeOptions);
 		}
 	}
 
-	private void removeCommitIndex(byte[] tidBytes, int offset, int size) {
+	private void removeCommitIndex(byte[] tidBytes) {
 		try {
-			commitIndex.delete(tidBytes, offset, size);
+			commitIndex.delete(tidBytes);
 		} catch (RocksDBException e) {
 			// 这个错误仅仅记录日志，所有没有删除的index，以后重启和Timer会尝试重做。
 			logger.error("", e);
