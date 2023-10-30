@@ -144,40 +144,13 @@ public class Daemon {
 		monitors.clear();
 	}
 
-	public static long getProcessPid(Process process) throws NoSuchFieldException, IllegalAccessException {
-		String processClassName = process.getClass().getName();
-
-		if (processClassName.equals("java.lang.UNIXProcess")) {
-			Class<?> clazz = process.getClass();
-			java.lang.reflect.Field pidField = clazz.getDeclaredField("pid");
-			pidField.setAccessible(true);
-			return (long) pidField.get(process);
-		}
-
-		// win32
-//		if (processClassName.equals("java.lang.Win32Process") || processClassName.equals("java.lang.ProcessImpl")) {
-//			Class<?> clazz = process.getClass();
-//			java.lang.reflect.Field handleField = clazz.getDeclaredField("handle");
-//			handleField.setAccessible(true);
-//			long handle = (long) handleField.get(process);
-//
-//			// 使用 Windows API 获取进程 ID
-//			var kernel = Kernel32.INSTANCE;
-//			var winHandle = new WinNT.HANDLE();
-//			winHandle.setPointer(Pointer.createConstant(handle));
-//			return kernel.GetProcessId(winHandle);
-//		}
-
-		throw new RuntimeException("unknown platform. " + processClassName);
-	}
-
 	private static void destroySubprocess() throws InterruptedException {
 		// run jstack
 		try {
-			var pid = String.valueOf(getProcessPid(subprocess));
+			var pid = String.valueOf(subprocess.pid());
 			var cmd = new String[]{"jstack", "-e", "-l", pid};
 			var process = Runtime.getRuntime().exec(cmd);
-			Files.copy(new BufferedInputStream(process.getInputStream()), Path.of("jstack.", pid));
+			Files.copy(new BufferedInputStream(process.getInputStream()), Path.of("jstack." + pid));
 			process.destroy();
 		} catch (Exception ex) {
 			logger.error("", ex);
