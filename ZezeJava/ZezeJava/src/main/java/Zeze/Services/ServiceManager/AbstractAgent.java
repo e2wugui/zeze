@@ -107,7 +107,7 @@ public abstract class AbstractAgent implements Closeable {
 
 	protected abstract boolean sendReadyList(String serviceName, long serialId);
 
-	protected abstract void allocate(AutoKey autoKey);
+	protected abstract void allocate(AutoKey autoKey, int pool);
 
 	public abstract void start() throws Exception;
 

@@ -160,10 +160,12 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	protected void allocate(AutoKey autoKey) {
+	protected void allocate(AutoKey autoKey, int pool) {
+		if (pool < 1)
+			throw new IllegalArgumentException();
 		var r = new AllocateId();
 		r.Argument.setName(autoKey.getName());
-		r.Argument.setCount(1024);
+		r.Argument.setCount(pool);
 		r.SendAndWaitCheckResultCode(client.getSocket());
 		autoKey.setCurrentAndCount(r.Result.getStartId(), r.Result.getCount());
 	}

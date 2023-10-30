@@ -189,10 +189,12 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected void allocate(AutoKey autoKey) {
+	protected void allocate(AutoKey autoKey, int pool) {
+		if (pool < 1)
+			throw new IllegalArgumentException();
 		var r = new AllocateId();
 		r.Argument.setName(autoKey.getName());
-		r.Argument.setCount(1024);
+		r.Argument.setCount(pool);
 		raftClient.sendForWait(r).await();
 		if (r.getResultCode() == 0) // setCurrentAndCount is in super.
 			setCurrentAndCount(autoKey, r.Result.getStartId(), r.Result.getCount());
