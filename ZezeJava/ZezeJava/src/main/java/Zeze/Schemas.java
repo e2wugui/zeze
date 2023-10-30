@@ -6,7 +6,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -491,7 +491,7 @@ public class Schemas implements Serializable {
 	}
 
 	public static class Bean extends Type {
-		private final TreeMap<Integer, Variable> variables = new TreeMap<>();
+		private final ConcurrentHashMap<Integer, Variable> variables = new ConcurrentHashMap<>();
 		private boolean isBeanKey;
 		private transient int keyRefCount;
 		// 这个变量当前是不需要的，作为额外的属性记录下来，以后可能要用。
@@ -500,7 +500,7 @@ public class Schemas implements Serializable {
 		private @NotNull String realName = "";
 		private boolean compatibleChecked;
 
-		public final @NotNull TreeMap<Integer, Variable> getVariables() {
+		public final @NotNull ConcurrentHashMap<Integer, Variable> getVariables() {
 			return variables;
 		}
 
@@ -852,9 +852,9 @@ public class Schemas implements Serializable {
 		}
 	}
 
-	public final TreeMap<String, Table> tables = new TreeMap<>();
-	public final TreeMap<String, Bean> beans = new TreeMap<>();
-	private transient final TreeMap<String, Type> basicTypes = new TreeMap<>();
+	public final ConcurrentHashMap<String, Table> tables = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<String, Bean> beans = new ConcurrentHashMap<>();
+	private transient final ConcurrentHashMap<String, Type> basicTypes = new ConcurrentHashMap<>();
 
 	private int appPublishVersion;
 
