@@ -175,7 +175,7 @@ public class CommitRocks {
 		var prepareTime = System.currentTimeMillis();
 		try {
 			// prepare
-			saveCommitPoint(tid, state, Commit.ePreparing);
+			saveCommitPoint(tidBytes, state, Commit.ePreparing);
 			var futures = new ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
 			for (var e : batches.getDatas().entrySet()) {
 				var batch = e.getValue();
@@ -192,7 +192,7 @@ public class CommitRocks {
 					for (var future : futures) {
 						state.getBuckets().add((String)future.getContext());
 					}
-					saveCommitPoint(tid, state, Commit.ePreparing);
+					saveCommitPoint(tidBytes, state, Commit.ePreparing);
 				}
 			}
 
@@ -217,7 +217,7 @@ public class CommitRocks {
 
 		try {
 			// 保存 commit-point，如果失败，则 undo。
-			saveCommitPoint(tid, state, Commit.eCommitting);
+			saveCommitPoint(tidBytes, state, Commit.eCommitting);
 		} catch (Throwable ex) {
 			undo(tid, state);
 			removeCommitIndex(tidBytes.Bytes, tidBytes.ReadIndex, tidBytes.size());
@@ -247,15 +247,14 @@ public class CommitRocks {
 		return bState;
 	}
 
-	private void saveCommitPoint(long tid, BTransactionState.Data bState, int state) throws RocksDBException {
+	private void saveCommitPoint(ByteBuffer tidBytes, BTransactionState.Data bState, int state) throws RocksDBException {
 		bState.setState(state);
 		var bb = ByteBuffer.Allocate();
 		bState.encode(bb);
 		var bbIndex = ByteBuffer.Allocate(5);
 		bbIndex.WriteInt(state);
-		var tidBytes = ByteBuffer.Allocate();
-		tidBytes.WriteLong(tid);
 		try (var batch = database.borrowBatch()) {
+			// todo putIfAbsent ？？？ 报错！
 			commitPoint.put(batch, tidBytes.Bytes, tidBytes.size(), bb.Bytes, bb.WriteIndex);
 			commitIndex.put(batch, tidBytes.Bytes, tidBytes.size(), bbIndex.Bytes, bbIndex.WriteIndex);
 			batch.commit(writeOptions);
