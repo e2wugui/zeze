@@ -36,8 +36,8 @@ public class TimerRole {
 	private static final Logger logger = LogManager.getLogger(TimerRole.class);
 	public static final String eOnlineTimers = "Zeze.Component.TimerGameOnline";
 	// public static final String eTimerHandleName = "Zeze.Component.TimerGameOnline.Handle";
-	public final static String eTransmitCronTimer = "Zeze.TimerRole.TransmitCronTimer";
-	public final static String eTransmitSimpleTimer = "Zeze.TimerRole.TransmitSimpleTimer";
+	public static final String eTransmitCronTimer = "Zeze.TimerRole.TransmitCronTimer";
+	public static final String eTransmitSimpleTimer = "Zeze.TimerRole.TransmitSimpleTimer";
 
 	final @NotNull Online online;
 
@@ -123,12 +123,12 @@ public class TimerRole {
 	}
 
 	public boolean scheduleOnlineNamedHot(long roleId, @NotNull String timerId, @NotNull String cron, long times,
-									   long endTime, @NotNull Class<? extends TimerHandle> handleName,
-									   @Nullable Bean customData, String oneByOneKey) throws Exception {
+										  long endTime, @NotNull Class<? extends TimerHandle> handleName,
+										  @Nullable Bean customData, String oneByOneKey) throws Exception {
 		if (online._tRoleTimers().get(timerId) != null)
 			return false;
 		var cronTimer = new BCronTimer();
-		Timer.initCronTimer(cronTimer, cron, times, endTime,oneByOneKey);
+		Timer.initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
 		scheduleOnlineHot(roleId, timerId, cronTimer, handleName, customData, false);
 		return true;
 	}
@@ -353,7 +353,7 @@ public class TimerRole {
 	}
 
 	private void scheduleOnline(long roleId, @NotNull String timerId, @NotNull BCronTimer cronTimer,
-										   @NotNull TimerHandle name, @Nullable Bean customData, boolean fromTransmit) {
+								@NotNull TimerHandle name, @Nullable Bean customData, boolean fromTransmit) {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion) {
 			if (fromTransmit) {
@@ -395,8 +395,8 @@ public class TimerRole {
 	}
 
 	private void scheduleOnlineHot(long roleId, @NotNull String timerId, @NotNull BCronTimer cronTimer,
-											  @NotNull Class<? extends TimerHandle> name, @Nullable Bean customData,
-											  boolean fromTransmit) {
+								   @NotNull Class<? extends TimerHandle> name, @Nullable Bean customData,
+								   boolean fromTransmit) {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion) {
 			if (fromTransmit) {
@@ -479,7 +479,7 @@ public class TimerRole {
 		if (null != timerIndex)
 			return false;
 		scheduleOffline(timerId, roleId, delay, period, times, endTime, missFirePolicy,
-				handleClassName, customData,oneByOneKey);
+				handleClassName, customData, oneByOneKey);
 		return true;
 	}
 

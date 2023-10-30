@@ -19,7 +19,7 @@ import Zeze.Util.OutObject;
  * 另外，ProxyDispatch 的代码也写在这里，只是一个静态函数。
  */
 public class ProxyAgent extends Service {
-	public final static String eProxyAgentName = "Zeze.Raft.ProxyAgent";
+	public static final String eProxyAgentName = "Zeze.Raft.ProxyAgent";
 
 	public ProxyAgent() {
 		super(eProxyAgentName, (Config)null);
@@ -33,6 +33,7 @@ public class ProxyAgent extends Service {
 
 	/**
 	 * 把代理请求派发到指定的raft中执行。
+	 *
 	 * @param r ProxyRequest
 	 */
 	private long ProcessProxyRequest(ProxyRequest r) throws Exception {
@@ -45,10 +46,10 @@ public class ProxyAgent extends Service {
 		if (null == p)
 			return Procedure.NotImplement;
 
-		if (!(p instanceof ProxyableRpc<?,?>))
+		if (!(p instanceof ProxyableRpc<?, ?>))
 			throw new RuntimeException("not a proxyable rpc.");
 
-		var proxyable = (ProxyableRpc<?,?>)p;
+		var proxyable = (ProxyableRpc<?, ?>)p;
 		proxyable.setProxyRequest(r);
 		// 重新派发一次，有点浪费线程切换，以后再考虑优化。
 		client.dispatchProtocol(p, outFactoryHandle.value);
@@ -57,6 +58,7 @@ public class ProxyAgent extends Service {
 
 	/**
 	 * 获取Leader的ConnectorEx，
+	 *
 	 * @param node leader node config
 	 * @return Agent.ConnectorEx
 	 */
@@ -88,12 +90,12 @@ public class ProxyAgent extends Service {
 	 * 如果启用了代理，则把rpc包装成代理协议，发送出去；
 	 * 否则按原始raft请求发送出去。
 	 *
-	 * @see ProxyServer send
-	 * @param proxyAgent 启用代理的实例
-	 * @param rpc 发送的rpc
-	 * @param leader leader连接器，可能是原始的，也可能是伪造的。可能为null。
+	 * @param proxyAgent   启用代理的实例
+	 * @param rpc          发送的rpc
+	 * @param leader       leader连接器，可能是原始的，也可能是伪造的。可能为null。
 	 * @param leaderSocket leader.Socket。可能为null。
 	 * @return 发送结果，可能失败。
+	 * @see ProxyServer send
 	 */
 	@SuppressWarnings("unchecked")
 	public static boolean send(Service localService,

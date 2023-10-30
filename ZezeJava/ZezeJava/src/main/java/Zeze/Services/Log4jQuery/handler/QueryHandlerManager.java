@@ -5,7 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import com.alibaba.fastjson.JSONObject;
+import Zeze.Util.JsonReader;
+import Zeze.Util.JsonWriter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -33,21 +34,21 @@ public class QueryHandlerManager {
 		});
 	}
 
-	public static String invokeHandler(String req) throws ClassNotFoundException {
+	public static String invokeHandler(String req) throws ReflectiveOperationException {
 		if (!initFinish) {
 			init();
 			initFinish = true;
 		}
-		var queryRequest = JSONObject.parseObject(req, QueryRequest.class);
-		Object param = queryRequest.getParam();
-		String cmd = queryRequest.getCmd();
+		var queryRequest = JsonReader.local().buf(req).parse(QueryRequest.class);
+		Object param = queryRequest != null ? queryRequest.getParam() : null;
+		String cmd = queryRequest != null ? queryRequest.getCmd() : null;
 		QueryHandleContainer queryHandler = handlerMap.get(cmd);
 		if (queryHandler == null) {
 			return "";
 		}
 
 		Object obj = queryHandler.invoke(param);
-		return JSONObject.toJSONString(obj);
+		return JsonWriter.local().clear().write(obj).toString();
 	}
 
 	public static List<String> selectCmdList() {
@@ -72,7 +73,7 @@ public class QueryHandlerManager {
 		}
 
 		@SuppressWarnings("unchecked")
-		public Object invoke(Object o) {
+		public Object invoke(Object o) throws ReflectiveOperationException {
 			if (paramClass == null || paramClass == Object.class) {
 				return queryHandler.invoke(null);
 			}
@@ -80,7 +81,7 @@ public class QueryHandlerManager {
 			return ((QueryHandler<Object, Object>)queryHandler).invoke(cast(paramClass, (String)o));
 		}
 
-		private static Object cast(Class<?> clazz, String str) {
+		private static Object cast(Class<?> clazz, String str) throws ReflectiveOperationException {
 			if (clazz == String.class) {
 				return str;
 			}
@@ -98,10 +99,6 @@ public class QueryHandlerManager {
 			case "short":
 			case "java.lang.Short":
 				return Short.valueOf(str);
-			case "string":
-			case "String":
-			case "java.lang.String":
-				return str;
 			case "float":
 			case "java.lang.Float":
 				return Float.valueOf(str);
@@ -111,8 +108,11 @@ public class QueryHandlerManager {
 			case "boolean":
 			case "java.lang.Boolean":
 				return Boolean.valueOf(str);
+			case "char":
+			case "java.lang.Character":
+				return (char)Integer.parseInt(str);
 			default:
-				return JSONObject.parseObject(str, clazz);
+				return JsonReader.local().buf(str).parse(clazz);
 			}
 		}
 	}

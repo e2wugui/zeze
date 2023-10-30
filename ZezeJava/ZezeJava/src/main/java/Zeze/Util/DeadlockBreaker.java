@@ -87,7 +87,7 @@ public class DeadlockBreaker extends ThreadHelper {
 	/**
 	 * ThreadInfo 最多只打印出8层的栈信息 see ThreadInfo.MAX_FRAMES
 	 */
-	private final static int MAXDEPTH = 255;
+	private static final int MAX_DEPTH = 255;
 
 	/**
 	 * 检测死锁，并尝试打破死锁环。
@@ -171,7 +171,7 @@ public class DeadlockBreaker extends ThreadHelper {
 		sb.append('\n');
 		StackTraceElement[] stackTrace = tinfo.getStackTrace();
 		int i = 0;
-		for (; i < stackTrace.length && i < MAXDEPTH; i++) {
+		for (; i < stackTrace.length && i < MAX_DEPTH; i++) {
 			StackTraceElement ste = stackTrace[i];
 			sb.append("\tat ").append(ste.toString());
 			sb.append('\n');

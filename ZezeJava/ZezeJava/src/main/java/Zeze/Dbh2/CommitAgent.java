@@ -8,7 +8,6 @@ import Zeze.Builtin.Dbh2.Commit.Query;
 import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Util.OutObject;
 

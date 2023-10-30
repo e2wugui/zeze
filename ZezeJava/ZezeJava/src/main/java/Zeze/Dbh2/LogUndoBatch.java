@@ -1,7 +1,6 @@
 package Zeze.Dbh2;
 
 import Zeze.Builtin.Dbh2.UndoBatch;
-import Zeze.Net.Binary;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;

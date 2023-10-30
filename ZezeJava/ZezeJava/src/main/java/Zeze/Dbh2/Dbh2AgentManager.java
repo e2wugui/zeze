@@ -1,11 +1,9 @@
 package Zeze.Dbh2;
 
-import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import Zeze.Application;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Config;
@@ -27,7 +25,6 @@ import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.rocksdb.RocksDBException;
 
 /**
  * 这个类管理到桶的raft-client-agent。
@@ -66,6 +63,10 @@ public class Dbh2AgentManager {
 
 	public Dbh2Config getDbh2Config() {
 		return dbh2Config;
+	}
+
+	public AbstractAgent getServiceManager() {
+		return serviceManager;
 	}
 
 	public Dbh2AgentManager(AbstractAgent serviceManager, Config config) throws Exception {

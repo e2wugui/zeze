@@ -23,7 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
-/**
+/*
  * 【要点】
  * 1. 【要求】World模块的所有客户端协议必须经过TaskOneByOneByKey排队，以Account为key。
  *    这点由Arch框架实现。定制Arch时，需要保留这个特性。
@@ -54,17 +54,20 @@ import org.jetbrains.annotations.NotNull;
  */
 public class World extends AbstractWorld {
 	private static final Logger logger = LogManager.getLogger(World.class);
+	private static final BeanFactory beanFactory = new BeanFactory();
 
-	private final static BeanFactory beanFactory = new BeanFactory();
 	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return bean.typeId();
 	}
+
 	public static long getSpecialTypeIdFromBean(Data data) {
 		return data.typeId();
 	}
+
 	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
+
 	public static Data createDataFromSpecialTypeId(long typeId) {
 		return beanFactory.createDataFromSpecialTypeId(typeId);
 	}
@@ -204,13 +207,13 @@ public class World extends AbstractWorld {
 
 	public void initializeDefaultMmo() throws Exception {
 		setMapManager(new MapManager(this));
-		setMyWorld(new IMyWorld() {});
+		setMyWorld(new IMyWorld() {
+		});
 		installComponent(new MoveSimple(this));
 	}
 
 	@RedirectToServer
 	public void redirectToServer(int serverId) {
-
 	}
 
 	// todo 抽象Skill时再来决定参数。

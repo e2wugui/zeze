@@ -162,7 +162,7 @@ public class HotModule extends ClassLoader implements Closeable {
 		}
 	}
 
-	public final static String eModuleConfigName = "META-INF/module.config";
+	public static final String eModuleConfigName = "META-INF/module.config";
 
 	public BModule.Data loadModuleConfig() throws Exception {
 		var entry = jar.getEntry(eModuleConfigName);
