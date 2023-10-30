@@ -5,6 +5,7 @@ import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
@@ -89,10 +90,8 @@ public class LinkdApp {
 		var timeout = PropertiesHelper.getInt("KeepAliveTimeout", 180_000);
 		linkdService.foreach((link) -> {
 			var session = (LinkdUserSession)link.getUserState();
-			if (null != session && session.keepAliveTimeout(now, timeout)) {
-				logger.warn("KeepAlive timeout: {}", link);
-				link.close();
-			}
+			if (null != session && session.keepAliveTimeout(now, timeout))
+				link.close(Service.keepAliveException);
 		});
 	}
 

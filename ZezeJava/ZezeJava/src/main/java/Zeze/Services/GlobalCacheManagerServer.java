@@ -801,7 +801,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			var peer = instance.server.GetSocket(sessionId);
 			if (null != peer) {
 				peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
-				peer.close(); // 关闭连接，强制Agent重新登录。
+				peer.close(kickException); // 关闭连接，强制Agent重新登录。
 			}
 			sessionId = 0; // 清除网络状态。
 		}

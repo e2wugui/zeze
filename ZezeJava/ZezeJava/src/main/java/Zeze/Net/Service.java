@@ -1,5 +1,6 @@
 package Zeze.Net;
 
+import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.net.InetAddress;
@@ -40,6 +41,10 @@ public class Service {
 	private static final @NotNull VarHandle closedRecvCountHandle, closedRecvSizeHandle;
 	private static final @NotNull VarHandle closedSendCountHandle, closedSendSizeHandle, closedSendRawSizeHandle;
 	protected static final @NotNull VarHandle overflowSizeHandle, overflowCountHandle;
+	protected static final IOException serviceStoppedException = new IOException("serviceStopped");
+	protected static final IOException inputClosedException = new IOException("inputClosed");
+	protected static final IOException throttleException = new IOException("checkThrottle failed");
+	public static final IOException keepAliveException = new IOException("checkKeepAlive failed");
 
 	static {
 		var l = MethodHandles.lookup();
@@ -256,7 +261,7 @@ public class Service {
 		config.stop();
 
 		for (AsyncSocket as : socketMap)
-			as.close(); // remove in callback OnSocketClose
+			as.close(serviceStoppedException); // remove in callback OnSocketClose
 
 		// 先不清除，让Rpc的TimerTask仍然在超时以后触发回调。
 		// 【考虑一下】也许在服务停止时马上触发回调并且清除上下文比较好。
@@ -411,7 +416,7 @@ public class Service {
 	 */
 	@SuppressWarnings("MethodMayBeStatic")
 	public void OnSocketInputClosed(@NotNull AsyncSocket so) throws Exception {
-		so.close();
+		so.close(inputClosedException);
 	}
 
 	// 用来派发异步rpc回调。
@@ -784,7 +789,7 @@ public class Service {
 		var throttle = sender.getTimeThrottle();
 		if (null != throttle && !throttle.checkNow(size)) {
 			// trySendResultCode(Procedure.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
-			sender.close(); // 默认关闭连接。
+			sender.close(throttleException); // 默认关闭连接。
 			return false; // 超过速度控制，丢弃这条协议。
 		}
 		return true;
@@ -885,8 +890,7 @@ public class Service {
 
 	@SuppressWarnings("MethodMayBeStatic")
 	protected void onKeepAliveTimeout(AsyncSocket socket) throws Exception {
-		logger.info("socket keep alive timeout: {}", socket);
-		socket.close();
+		socket.close(keepAliveException);
 	}
 
 	/**

@@ -2,10 +2,12 @@ package Zeze.Util;
 
 import Zeze.Net.SocketOptions;
 
-public interface TimeThrottle {
+public interface TimeThrottle extends AutoCloseable {
 	boolean checkNow(int size);
 
-	void close();
+	@SuppressWarnings("override")
+	default void close() {
+	}
 
 	static TimeThrottle create(SocketOptions options) {
 		return create(options.getTimeThrottle(), options.getTimeThrottleSeconds(),

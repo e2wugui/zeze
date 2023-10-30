@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import java.io.IOException;
 import Zeze.Application;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
@@ -13,6 +14,9 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public final class GlobalClient extends Service {
+	private static final IOException loginException = new IOException("login failed");
+	private static final IOException reloginTimeoutException = new IOException("relogin timeout");
+
 	public GlobalClient(GlobalAgent agent, Application zeze) {
 		super(agent.getZeze().getProjectName() + ".GlobalClient", zeze);
 	}
@@ -28,14 +32,12 @@ public final class GlobalClient extends Service {
 			reLogin.Argument.globalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
 			logger.debug("GlobalClient Send ReLogin: {}", reLogin.Argument);
 			reLogin.Send(so, (ThisRpc) -> {
-				logger.debug("GlobalClient Recv Login. isTimeout={}, resultCode={}",
-						reLogin.isTimeout(), reLogin.getResultCode());
 				if (reLogin.isTimeout()) {
-					so.close();
+					so.close(reloginTimeoutException);
 				} else if (reLogin.getResultCode() != 0) {
 					// 清理本地已经分配的记录锁。
 					// 1. 关闭网络。下面两行有点重复，就这样了。
-					so.close(new Exception("GlobalAgent.ReLogin Fail code=" + reLogin.getResultCode()));
+					so.close(new IOException("GlobalAgent.ReLogin Fail code=" + reLogin.getResultCode()));
 					//noinspection DataFlowIssue
 					so.getConnector().stop();
 					// 2. 开始清理，由守护线程保护，必须成功。
@@ -46,6 +48,7 @@ public final class GlobalClient extends Service {
 						so.getConnector().start();
 					});
 				} else {
+					logger.debug("GlobalClient Recv Login");
 					agent.getLoginTimes().getAndIncrement();
 					agent.setActiveTime(System.currentTimeMillis());
 					super.OnHandshakeDone(so);
@@ -59,11 +62,12 @@ public final class GlobalClient extends Service {
 			login.Argument.debugMode = Reflect.inDebugMode;
 			logger.debug("GlobalClient Send Login: {}", login.Argument);
 			login.Send(so, (ThisRpc) -> {
-				logger.debug("GlobalClient Recv Login. isTimeout={}, resultCode={}",
-						login.isTimeout(), login.getResultCode());
 				if (login.isTimeout() || login.getResultCode() != 0) {
-					so.close();
+					logger.error("GlobalClient Recv Login. isTimeout={}, resultCode={}",
+							login.isTimeout(), login.getResultCode());
+					so.close(loginException);
 				} else {
+					logger.debug("GlobalClient Recv Login");
 					agent.setActiveTime(System.currentTimeMillis());
 					agent.getLoginTimes().getAndIncrement();
 					agent.initialize(login.Result.maxNetPing, login.Result.serverProcessTime, login.Result.serverReleaseTimeout);

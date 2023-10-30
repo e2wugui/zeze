@@ -1,5 +1,6 @@
 package Zeze.Net;
 
+import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import Zeze.Serialize.ByteBuffer;
@@ -20,6 +21,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	private static final Logger logger = LogManager.getLogger(Protocol.class);
 	private static final LongConcurrentHashMap<Class<? extends Protocol<?>>> protocolClasses = new LongConcurrentHashMap<>();
 	private static final @NotNull VarHandle userStateHandle;
+	protected static final IOException noHandlerException = new IOException("noHandler");
 
 	public static final int eCriticalPlus = 0;
 	public static final int eCritical = 1;
@@ -261,7 +263,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 
 		logger.warn("handle({}): Protocol Handle Not Found: {}", service.getName(), this);
 		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null) {
-			((AsyncSocket)sender).close();
+			((AsyncSocket)sender).close(noHandlerException);
 			return 0;
 		}
 
