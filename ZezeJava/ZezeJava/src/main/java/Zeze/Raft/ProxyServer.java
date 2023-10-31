@@ -65,6 +65,7 @@ public class ProxyServer extends Service {
 					p.getClass().getName(),
 					() -> p.SendResultCode(Procedure.RaftRetry),
 					outFactoryHandle.value.Mode);
+			return 0;
 		}
 
 		// else 如果不是leader，不处理请求，也不发送rpc的正常结果，以后Raft.Agent会resend。
