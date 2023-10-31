@@ -360,7 +360,7 @@ public class Service {
 
 	@SuppressWarnings({"RedundantThrows", "MethodMayBeStatic"})
 	public void OnSocketAcceptError(@NotNull AsyncSocket listener, @NotNull Throwable e) throws Exception {
-		logger.error("OnSocketAcceptError: {}", listener, e);
+		logger.error("OnSocketAcceptError: {} exception:", listener, e);
 	}
 
 	/**
@@ -721,7 +721,7 @@ public class Service {
 				r.setIsTimeout(isTimeout);
 				r.onRemoved();
 			} catch (Throwable e) { // run handle. 必须捕捉所有异常。
-				logger.error("ManualContext.OnRemoved", e);
+				logger.error("ManualContext.onRemoved exception:", e);
 			}
 		}
 		return r;

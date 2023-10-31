@@ -281,7 +281,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				try {
 					ssc.close();
 				} catch (Exception ex) {
-					logger.error("ServerSocketChannel.close", ex);
+					logger.error("ServerSocketChannel.close exception:", ex);
 				}
 			}
 			throw new IllegalStateException("bind " + localEP, e);
@@ -426,7 +426,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				try {
 					sc.close();
 				} catch (Exception ex) {
-					logger.error("SocketChannel.close", ex);
+					logger.error("SocketChannel.close exception:", ex);
 				}
 			}
 			Task.forceThrow(e);
@@ -544,7 +544,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (c != 0) {
 			if (c < SEND_CLOSE_DETAIL_MAX) {
 				closedHandle.compareAndSet(this, (byte)c, (byte)(c + 1));
-				logger.error("submitAction to closed socket: {}", this, new Exception());
+				logger.error("submitAction to closed socket: {}", this, new Exception("only for stack trace"));
 			} else
 				logger.error("submitAction to closed socket: {}", this);
 			return false;
@@ -696,7 +696,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (FamilyClass.isRpc(familyClass))
 				rpcSessionId = bb.ReadLong();
 		} catch (Exception e) {
-			logger.error("decode protocol failed: moduleId={}, protocolId={}, size={}",
+			logger.error("decode protocol(moduleId={}, protocolId={}, size={}) exception:",
 					moduleId, protocolId, bb.WriteIndex - beginReadIndex, e);
 		}
 		var sb = new StringBuilder();
@@ -726,7 +726,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (FamilyClass.isRpc(familyClass))
 				rpcSessionId = bb.ReadLong();
 		} catch (Exception e) {
-			logger.error("decode protocol failed: moduleId={}, protocolId={}, size={}",
+			logger.error("decode protocol(moduleId={}, protocolId={}, size={}) exception:",
 					moduleId, protocolId, bb.WriteIndex - beginReadIndex, e);
 		}
 		var sb = new StringBuilder();
@@ -942,7 +942,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		try {
 			selectionKey.channel().close();
 		} catch (Exception e) {
-			logger.error("SocketChannel.close", e);
+			logger.error("SocketChannel.close exception:", e);
 		}
 		selector.addTask(() -> { // 进selector线程调用
 			if (outputBuffer != null)
@@ -950,7 +950,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			try {
 				service.OnSocketDisposed(this);
 			} catch (Exception e) {
-				logger.error("Service.OnSocketDisposed", e);
+				logger.error("service.OnSocketDisposed exception:", e);
 			}
 		});
 		selector.wakeup();
@@ -964,23 +964,23 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 		if (ex != null) {
 			if (ex instanceof IOException)
-				logger.info("close: {} {}", this, ex);
+				logger.info("close: {} {}", this, ex.getClass() == IOException.class ? ex.getMessage() : ex);
 			else
-				logger.warn("close: {}", this, ex);
+				logger.warn("close: {} exception:", this, ex);
 		} else
-			logger.info("close: {} {}", this, gracefully ? " gracefully" : "");
+			logger.info("close: {}{}", this, gracefully ? " gracefully" : "");
 
 		if (acceptorOrConnector instanceof Connector) {
 			try {
 				((Connector)acceptorOrConnector).OnSocketClose(this, ex);
 			} catch (Exception e) {
-				logger.error("Connector.OnSocketClose", e);
+				logger.error("Connector.OnSocketClose exception:", e);
 			}
 		}
 		try {
 			service.OnSocketClose(this, ex);
 		} catch (Exception e) {
-			logger.error("Service.OnSocketClose", e);
+			logger.error("Service.OnSocketClose exception:", e);
 		}
 
 		if (gracefully) {
