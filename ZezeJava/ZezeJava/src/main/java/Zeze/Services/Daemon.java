@@ -51,11 +51,10 @@ public class Daemon {
 			var restart = false;
 			while (true) {
 				var command = new ArrayList<String>();
-				command.add("java");
-				command.add("-D" + propertyNamePort + "=" + udpSocket.getLocalPort());
-				if (restart)
-					command.add("-D" + propertyNameClearInUse + "=true");
 				Collections.addAll(command, args);
+				if (restart)
+					command.add(1, "-D" + propertyNameClearInUse + "=true");
+				command.add(1, "-D" + propertyNamePort + "=" + udpSocket.getLocalPort());
 
 				var pb = new ProcessBuilder(command);
 				pb.inheritIO();
