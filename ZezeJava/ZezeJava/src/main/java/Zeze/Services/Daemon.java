@@ -42,10 +42,18 @@ public class Daemon {
 	private static final LongConcurrentHashMap<PendingPacket> pendings = new LongConcurrentHashMap<>();
 	private static volatile Future<?> timer;
 
+	public static long getLongProperty(String name, long def) {
+		var p = System.getProperty(name);
+		if (null == p || p.isBlank())
+			return def;
+		return Long.parseLong(p);
+	}
+
 	public static void main(String[] args) throws Exception {
 		// udp for subprocess register
 		udpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
 		udpSocket.setSoTimeout(200);
+		var minAliveTime = getLongProperty("MinAliveTime", 30 * 60 * 1000);
 
 		try {
 			var restart = false;
@@ -60,11 +68,16 @@ public class Daemon {
 				pb.inheritIO();
 
 				subprocess = pb.start();
+				var startTime = System.currentTimeMillis();
 				var exitCode = mainRun();
 				if (exitCode == 0)
 					break;
 				joinMonitors();
 				logger.warn("Subprocess Restart! ExitCode={}", exitCode);
+				if (System.currentTimeMillis() - startTime < minAliveTime) {
+					logger.fatal("subprocess alive too short. " + minAliveTime);
+					break;
+				}
 				restart = true;
 			}
 		} catch (Throwable ex) { // print stacktrace.
@@ -155,6 +168,7 @@ public class Daemon {
 			logger.error("", ex);
 		}
 		subprocess.destroy();
+		subprocess = null;
 		joinMonitors();
 	}
 
