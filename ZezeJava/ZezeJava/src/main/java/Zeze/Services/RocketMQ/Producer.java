@@ -14,9 +14,10 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class Producer extends AbstractProducer {
-//	private static final Logger logger = LogManager.getLogger(Producer.class);
+//	private static final Logger logger = LogManager.getLogger();
 	public final Zeze.Application zeze;
 	private TransactionMQProducer producer;
+
 
 	public Producer(Zeze.Application zeze) {
 		this.zeze = zeze;
@@ -45,6 +46,25 @@ public class Producer extends AbstractProducer {
 		producer.sendMessageInTransaction(msg, procedureAction);
 	}
 
+	/*
+	 * 发送消息，并且把消息跟一个本地存储绑定起来。仅当本地落地成功，消息才会被发送。如果落地失败，消息将被取消。
+	 * @param msg message
+	 * @throws MQClientException send exception
+	 */
+	/*
+	public void sendMessageSafe(Message msg) throws MQClientException {
+		producer.sendMessageInTransaction(msg, safeMessageAction);
+	}
+
+	private final SafeMessageAction safeMessageAction = new SafeMessageAction();
+	static class SafeMessageAction {
+
+		public boolean run(Message msg) throws Exception {
+			return true;
+		}
+	}
+	*/
+
 	/**
 	 * 发送普通消息。没有相关事务。
 	 * @param msg message
@@ -64,6 +84,19 @@ public class Producer extends AbstractProducer {
 	class MQListener implements org.apache.rocketmq.client.producer.TransactionListener {
 		@Override
 		public LocalTransactionState executeLocalTransaction(Message msg, Object procedureObj) {
+			/*
+			if (procedureObj == safeMessageAction) {
+				var safe = (SafeMessageAction)procedureObj;
+				try {
+					return safe.run(msg)
+							? LocalTransactionState.COMMIT_MESSAGE
+							: LocalTransactionState.ROLLBACK_MESSAGE;
+				} catch (Exception e) {
+					logger.error("", e);
+					return LocalTransactionState.ROLLBACK_MESSAGE;
+				}
+			}
+			*/
 			var procedureAction = (FuncLong)procedureObj;
 			var ret = Task.call(zeze.newProcedure(() -> {
 				String transactionId = msg.getTransactionId();

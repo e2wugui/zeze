@@ -1091,6 +1091,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				var v = cr.newestValue();
 				return v != null ? (V)v.copy() : null;
 			}
+			if (currentT.isCompleted())
+				throw new RuntimeException("completed transaction not support.");
 			currentT.setAlwaysReleaseLockWhenRedo();
 		}
 
