@@ -22,6 +22,8 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerWithRaftAgent implements IGlobalAgent {
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaftAgent.class);
@@ -134,12 +136,12 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	}
 
 	@Override
-	public final int getGlobalCacheManagerHashIndex(Binary gkey) {
+	public final int getGlobalCacheManagerHashIndex(@NotNull Binary gkey) {
 		return gkey.hashCode() % agents.length;
 	}
 
 	@Override
-	public AcquireResult acquire(Binary gkey, int state, boolean fresh, boolean noWait) {
+	public @Nullable AcquireResult acquire(@NotNull Binary gkey, int state, boolean fresh, boolean noWait) {
 		var agent = agents[getGlobalCacheManagerHashIndex(gkey)]; // hash
 		if (agent.isReleasing()) {
 			agent.setFastFail();
