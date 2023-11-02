@@ -104,6 +104,7 @@ public final class PerfCounter {
 		public final LongAdder acquireShare = new LongAdder();
 		public final LongAdder acquireModify = new LongAdder();
 		public final LongAdder acquireInvalid = new LongAdder();
+		public final LongAdder reduceInvalid = new LongAdder();
 
 		long readLockCount;
 		long writeLockCount;
@@ -113,6 +114,7 @@ public final class PerfCounter {
 		long acquireShareCount;
 		long acquireModifyCount;
 		long acquireInvalidCount;
+		long reduceInvalidCount;
 		long lockCount;
 
 		TableInfo(@NotNull String tableName) {
@@ -128,12 +130,13 @@ public final class PerfCounter {
 			acquireShareCount = acquireShare.sumThenReset();
 			acquireModifyCount = acquireModify.sumThenReset();
 			acquireInvalidCount = acquireInvalid.sumThenReset();
+			reduceInvalidCount = reduceInvalid.sumThenReset();
 			lockCount = readLockCount + writeLockCount;
 			return this;
 		}
 
 		public static @NotNull String getLogTitle() {
-			return String.format("%-60s CacheHit AcqShrHit AcqModHit AcqShrCnt AcqModCnt AcqInvCnt" +
+			return String.format("%-60s CacheHit AcqShrHit AcqModHit AcqShrCnt AcqModCnt AcqInvCnt ReduceCnt" +
 					" StoGetCnt LockCount  ReadLock WriteLock TryRdLock TryWtLock", "TableName");
 		}
 
@@ -142,9 +145,9 @@ public final class PerfCounter {
 			float cacheHit = lockCount != 0 ? (lockCount - storageGetCount) * 100.0f / lockCount : 0;
 			float acquireShareHit = lockCount != 0 ? (lockCount - acquireShareCount) * 100.0f / lockCount : 0;
 			float acquireModifyHit = lockCount != 0 ? (lockCount - acquireModifyCount) * 100.0f / lockCount : 0;
-			return String.format("%-60s%8.2f%%%9.2f%%%9.2f%%%10d%10d%10d%10d%10d%10d%10d%10d%10d", tableName,
+			return String.format("%-60s%8.2f%%%9.2f%%%9.2f%%%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d", tableName,
 					cacheHit, acquireShareHit, acquireModifyHit,
-					acquireShareCount, acquireModifyCount, acquireInvalidCount,
+					acquireShareCount, acquireModifyCount, acquireInvalidCount, reduceInvalidCount,
 					storageGetCount, lockCount, readLockCount, writeLockCount, tryReadLockCount, tryWriteLockCount);
 		}
 	}

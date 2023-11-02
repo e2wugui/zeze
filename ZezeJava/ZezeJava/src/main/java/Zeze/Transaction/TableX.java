@@ -426,6 +426,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 				case StateShare:
 					r.setState(StateInvalid);
+					PerfCounter.instance.getOrAddTableInfo(getId()).reduceInvalid.increment();
 					// 不删除记录，让TableCache.CleanNow处理。
 					if (r.getDirty())
 						break;
@@ -436,6 +437,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 				case StateModify:
 					r.setState(StateInvalid);
+					PerfCounter.instance.getOrAddTableInfo(getId()).reduceInvalid.increment();
 					if (r.getDirty())
 						break;
 					if (isTraceEnabled)
@@ -1092,7 +1094,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				return v != null ? (V)v.copy() : null;
 			}
 			if (currentT.isCompleted())
-				throw new RuntimeException("completed transaction not support.");
+				throw new IllegalStateException("completed transaction can not selectCopy record not accessed");
 			currentT.setAlwaysReleaseLockWhenRedo();
 		}
 

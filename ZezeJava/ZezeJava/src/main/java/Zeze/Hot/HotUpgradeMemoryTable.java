@@ -1,7 +1,7 @@
 package Zeze.Hot;
 
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Services.GlobalCacheManagerServer;
+import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Transaction.Table;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
@@ -39,7 +39,7 @@ public class HotUpgradeMemoryTable {
 				var newValue = cur.newValueBean();
 				newValue.decode(bbValue);
 				//logger.info("retreat: " + newKey + " " + newValue);
-				cur.__direct_put_cache__(newKey, newValue, GlobalCacheManagerServer.StateModify);
+				cur.__direct_put_cache__(newKey, newValue, GlobalCacheManagerConst.StateModify);
 				return true;
 			});
 		} finally {
