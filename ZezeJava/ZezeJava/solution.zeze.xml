@@ -1885,13 +1885,94 @@
 			</bean>
 			<table name="tAccountAuth" key="string" value="BAccountAuth" />
 		</module>
+
+		<module name="Zoker" id="11037" UseData="true" DefaultTransactionLevel="None">
+			<!--
+			只能新建服务，发布成功，整个目录RENAME并且备份旧的版本。
+			Zoker是服务器，但是Zoker主动连接监控平台。
+			-->
+			<enum name="eDuplicateZoker" value="1"/> Zoker名字重复了
+
+			<bean name="BRegister">
+				<variable id="1" name="ZokerName" type="string"/>
+			</bean>
+			<rpc name="Register" argument="BRegister" handle="client"/>
+
+			<!-- 文件基本操作，支持断点续传，MD5校验 -->
+			<enum name="eOpenError"       value="1"/> 打开文件发生了系统错误
+			<enum name="eAppendOffset" value="2"/> 添加数据时，Offset越界了（超出结尾）
+			<enum name="eCloseError"       value="3"/> 关闭文件发生了系统错误
+
+			<bean name="BOpenFile">
+				<variable id="1" name="FileName" type="string"/>
+			</bean>
+			<bean name="BOpenFileResult">
+				<variable id="1" name="Offset" type="long"/>
+			</bean>
+			<bean name="BAppendFile">
+				<variable id="1" name="FileName" type="string"/>
+				<variable id="2" name="Offset" type="long"/>
+				<variable id="3" name="Chunk" type="binary"/>
+			</bean>
+			<bean name="BAppendFileResult">
+			</bean>
+			<bean name="BCloseFile">
+				<variable id="1" name="FileName" type="string"/>
+				<variable id="2" name="Md5" type="binary"/>
+			</bean>
+			<bean name="BCloseFileResult">
+			</bean>
+
+			<rpc name="OpenFile" argument="BOpenFile" result="BOpenFileResult" handle="server"/>
+			<rpc name="AppendFile" argument="BAppendFile" result="BAppendFileResult"  handle="server"/>
+			<rpc name="CloseFile" argument="BCloseFile" result="BCloseFileResult"  handle="server"/>
+			
+			<!-- 发布，升级高层接口使用文件操作完成，不需要定义rpc -->
+
+			<!-- 发布的程序查询，启动，关闭，重启 -->
+			<enum name="eStopTimeout"  value="1"/> 打开文件发生了系统错误
+			<enum name="eAppendOffset" value="2"/> 添加数据时，Offset越界了（超出结尾）
+			<enum name="eCloseError"       value="3"/> 关闭文件发生了系统错误
+
+			<bean name="BService">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="State" type="string"/> Running,Stopped
+				<variable id="3" name="Ps" type="string"/> some ps result
+			</bean>
+			<bean name="BListServiceResult">
+				<variable id="1" name="Services" type="list[BService]"/>
+			</bean>
+			<bean name="BStartService">
+				<variable id="1" name="ServiceName" type="string"/>
+			</bean>
+			<bean name="BStopService">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="Force" type="bool"/> like kill -9
+			</bean>
+			<rpc name="ListSerivce" result="BListServiceResult"  handle="server"/> <!-- 工作目录的第一级子目录既是 -->
+			<rpc name="StartService" argument="BStartService" result="BService"  handle="server"/>
+			<rpc name="StopService" argument="BStopService" result="BService"  handle="server"/>
+		</module>
+
 		<!--
-		可用id范围 [11037, 11100) [11102, 11999]
+		可用id范围 [11038, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="Zoker" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Zoker"/>
+		</service>
+	</component>
+
+	<component name="ZokerAgent" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Zoker"/>
+		</service>
+	</component>
+
 	<component name="Auth" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Auth"/>
