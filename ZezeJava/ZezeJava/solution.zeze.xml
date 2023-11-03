@@ -1929,7 +1929,7 @@
 			
 			<!-- 发布，升级高层接口使用文件操作完成，不需要定义rpc -->
 
-			<!-- 发布的程序查询，启动，关闭，重启 -->
+			<!-- 服务：查询，启动，关闭 -->
 			<enum name="eStopTimeout"  value="1"/> 打开文件发生了系统错误
 			<enum name="eAppendOffset" value="2"/> 添加数据时，Offset越界了（超出结尾）
 			<enum name="eCloseError"       value="3"/> 关闭文件发生了系统错误
@@ -1937,7 +1937,7 @@
 			<bean name="BService">
 				<variable id="1" name="ServiceName" type="string"/>
 				<variable id="2" name="State" type="string"/> Running,Stopped
-				<variable id="3" name="Ps" type="string"/> some ps result
+				<variable id="3" name="Ps" type="string"/> some ps result ... todo
 			</bean>
 			<bean name="BListServiceResult">
 				<variable id="1" name="Services" type="list[BService]"/>
