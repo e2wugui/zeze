@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import Zeze.Services.Log4jQuery.handler.entity.SimpleField;
 import com.alibaba.fastjson.JSONObject;
 
 public class QueryHandlerManager{
@@ -59,10 +60,15 @@ public class QueryHandlerManager{
 		return list;
 	}
 
+	public static QueryHandleContainer getQueryHandleContainer(String cmd){
+		return handlerMap.get(cmd);
+	}
+
 
 	public static class QueryHandleContainer{
 		private QueryHandler queryHandler;
 		private Class paramClass;
+		private List<SimpleField> fields = new ArrayList<>();
 
 
 		public QueryHandleContainer(QueryHandler queryHandler){
@@ -73,12 +79,24 @@ public class QueryHandlerManager{
 					Class<?> parameterType = method.getParameterTypes()[0];
 					if (parameterType != Object.class){
 						paramClass = parameterType;
+						Field[] paramFields = paramClass.getDeclaredFields();
+						for (Field field : paramFields) {
+							String name = field.getName();
+							Class<?> type = field.getType();
+							fields.add(new SimpleField(name, type.getName()));
+						}
 					}
 				}
 			}
-
 		}
 
+		public Class getParamClass() {
+			return paramClass;
+		}
+
+		public List<SimpleField> getFields() {
+			return fields;
+		}
 
 		public Object invoke(Object o){
 			if (paramClass == null || paramClass == Object.class){
