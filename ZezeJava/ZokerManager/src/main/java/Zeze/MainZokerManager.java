@@ -1,10 +1,11 @@
-package Zeze.log;
+package Zeze;
 
 import Zeze.Config;
 import Zeze.Services.LogService;
 import Zeze.Util.Task;
+import Zeze.log.LogAgentManager;
 
-public class MainLogWeb {
+public class MainZokerManager {
 
 
     public static void main(String[] args) throws Exception {

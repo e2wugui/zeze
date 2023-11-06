@@ -10,11 +10,11 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/ZezeJava" />
             <option value="$PROJECT_DIR$/ZezeJavaTest" />
-            <option value="$PROJECT_DIR$/ZezeLogWeb" />
             <option value="$PROJECT_DIR$/ZezexJava" />
             <option value="$PROJECT_DIR$/ZezexJava/client" />
             <option value="$PROJECT_DIR$/ZezexJava/linkd" />
             <option value="$PROJECT_DIR$/ZezexJava/server" />
+            <option value="$PROJECT_DIR$/ZokerManager" />
           </set>
         </option>
       </GradleProjectSettings>
