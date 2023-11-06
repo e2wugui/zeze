@@ -1902,6 +1902,7 @@
 			<enum name="eOpenError"       value="1"/> 打开文件发生了系统错误
 			<enum name="eAppendOffset" value="2"/> 添加数据时，Offset越界了（超出结尾）
 			<enum name="eCloseError"       value="3"/> 关闭文件发生了系统错误
+			<enum name="eMd5Mismatch"  value="4"/> 关闭文件时，验证md5失败
 
 			<bean name="BOpenFile">
 				<variable id="1" name="FileName" type="string"/>

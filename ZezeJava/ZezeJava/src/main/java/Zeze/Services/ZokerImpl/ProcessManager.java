@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Zoker.BService;
 import Zeze.Builtin.Zoker.StartService;
 import Zeze.Builtin.Zoker.StopService;
+import Zeze.Util.Task;
 
 public class ProcessManager {
 	private final ConcurrentHashMap<String, Process> processes = new ConcurrentHashMap<>();
@@ -42,8 +43,9 @@ public class ProcessManager {
 		try {
 			return pb.start();
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
 		}
+		return null; // never got here
 	}
 
 	public void startService(StartService r) {
@@ -51,6 +53,7 @@ public class ProcessManager {
 		var process = processes.computeIfAbsent(serviceName, __ -> newProcess(serviceName));
 		r.Result.setServiceName(serviceName);
 		r.Result.setState("running");
+		assert process != null;
 		r.Result.setPs(process.info().toString());
 	}
 

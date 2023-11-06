@@ -1,17 +1,28 @@
 package Zeze.Services;
 
-import java.io.File;
-import Zeze.Builtin.Zoker.BService;
+import Zeze.Config;
 import Zeze.Services.ZokerImpl.FileManager;
 import Zeze.Services.ZokerImpl.ProcessManager;
+import Zeze.Services.ZokerImpl.ZokerService;
 
 public class Zoker extends AbstractZoker {
+    private final ZokerService serverWithConnector; // Zoker是server，但它主动连接ZokerAgent
     private final FileManager fileManager;
     private final ProcessManager processManager;
 
-    public Zoker(String baseDir) {
+    public Zoker(Config config, String baseDir) {
+        serverWithConnector = new ZokerService(config);
         fileManager = new FileManager(baseDir);
         processManager = new ProcessManager();
+        RegisterProtocols(serverWithConnector);
+    }
+
+    public void start() throws Exception {
+        serverWithConnector.start();
+    }
+
+    public void stop() throws Exception {
+        serverWithConnector.start();
     }
 
     @Override
@@ -31,7 +42,8 @@ public class Zoker extends AbstractZoker {
 
     @Override
     protected long ProcessCloseFileRequest(Zeze.Builtin.Zoker.CloseFile r) throws Exception {
-        fileManager.close(r.Argument.getFileName(), r.Argument.getMd5());
+        if (!fileManager.closeAndVerify(r.Argument.getFileName(), r.Argument.getMd5()))
+            return eMd5Mismatch;
         r.SendResult();
         return 0;
     }
