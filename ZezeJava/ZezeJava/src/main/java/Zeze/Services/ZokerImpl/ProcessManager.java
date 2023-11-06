@@ -2,6 +2,7 @@ package Zeze.Services.ZokerImpl;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Zoker.BService;
@@ -10,13 +11,14 @@ import Zeze.Builtin.Zoker.StopService;
 import Zeze.Util.Task;
 
 public class ProcessManager {
+	private final String baseDir;
 	private final ConcurrentHashMap<String, Process> processes = new ConcurrentHashMap<>();
 
-	public ProcessManager() {
-
+	public ProcessManager(String baseDir) {
+		this.baseDir = baseDir;
 	}
 
-	public void listService(String baseDir, java.util.ArrayList<Zeze.Builtin.Zoker.BService.Data> out) {
+	public void listService(java.util.ArrayList<Zeze.Builtin.Zoker.BService.Data> out) {
 		var listFiles = new File(baseDir).listFiles();
 		if (null != listFiles) {
 			for (var file : listFiles) {
@@ -33,12 +35,13 @@ public class ProcessManager {
 		}
 	}
 
-	private static java.util.List<String> buildCommand(String serviceName) {
+	private java.util.List<String> buildCommand(String serviceName) {
 		return new ArrayList<>(); // todo 需要确定服务进程启动规范(service.xml?或脚本)
 	}
 
-	private static Process newProcess(String serviceName) {
+	private Process newProcess(String serviceName) {
 		var pb = new ProcessBuilder();
+		pb.directory(Path.of(baseDir, serviceName).toFile());
 		pb.command(buildCommand(serviceName));
 		try {
 			return pb.start();

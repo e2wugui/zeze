@@ -13,7 +13,7 @@ public class Zoker extends AbstractZoker {
     public Zoker(Config config, String baseDir) {
         serverWithConnector = new ZokerService(config);
         fileManager = new FileManager(baseDir);
-        processManager = new ProcessManager();
+        processManager = new ProcessManager(baseDir);
         RegisterProtocols(serverWithConnector);
     }
 
@@ -50,7 +50,7 @@ public class Zoker extends AbstractZoker {
 
     @Override
     protected long ProcessListSerivceRequest(Zeze.Builtin.Zoker.ListSerivce r) throws Exception {
-        processManager.listService(fileManager.getBaseDir(), r.Result.getServices());
+        processManager.listService(r.Result.getServices());
         r.SendResult();
         return 0;
     }
