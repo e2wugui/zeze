@@ -1,10 +1,14 @@
 package Zeze.Services.Log4jQuery.handler;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import Zeze.Services.Log4jQuery.handler.entity.SimpleField;
+import com.alibaba.fastjson.JSONObject;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
 import org.apache.logging.log4j.LogManager;
@@ -55,10 +59,16 @@ public class QueryHandlerManager {
 		return new ArrayList<>(handlerMap.keySet());
 	}
 
+
+	public static QueryHandleContainer getQueryHandleContainer(String cmd){
+		return handlerMap.get(cmd);
+	}
+
+
 	public static class QueryHandleContainer {
 		private final QueryHandler<?, ?> queryHandler;
 		private Class<?> paramClass;
-
+		private List<SimpleField> fields = new ArrayList<>();
 		public QueryHandleContainer(QueryHandler<?, ?> queryHandler) {
 			this.queryHandler = queryHandler;
 			Method[] declaredMethods = queryHandler.getClass().getDeclaredMethods();
@@ -67,17 +77,33 @@ public class QueryHandlerManager {
 					Class<?> parameterType = method.getParameterTypes()[0];
 					if (parameterType != Object.class) {
 						paramClass = parameterType;
+						Field[] paramFields = paramClass.getDeclaredFields();
+						for (Field field : paramFields) {
+							String name = field.getName();
+							Class<?> type = field.getType();
+							fields.add(new SimpleField(name, type.getName()));
+						}
 					}
 				}
 			}
+
 		}
+
+		public Class getParamClass() {
+			return paramClass;
+		}
+
+		public List<SimpleField> getFields() {
+			return fields;
+		}
+
+
 
 		@SuppressWarnings("unchecked")
 		public Object invoke(Object o) throws ReflectiveOperationException {
 			if (paramClass == null || paramClass == Object.class) {
 				return queryHandler.invoke(null);
 			}
-
 			return ((QueryHandler<Object, Object>)queryHandler).invoke(cast(paramClass, (String)o));
 		}
 
