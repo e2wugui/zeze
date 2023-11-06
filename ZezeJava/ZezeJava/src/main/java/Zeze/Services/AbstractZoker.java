@@ -15,9 +15,6 @@ public abstract class AbstractZoker implements Zeze.IModule {
     public static final int eOpenError = 1; // 打开文件发生了系统错误
     public static final int eAppendOffset = 2; // 添加数据时，Offset越界了（超出结尾）
     public static final int eCloseError = 3; // 关闭文件发生了系统错误
-    public static final int eStopTimeout = 1; // 打开文件发生了系统错误
-    public static final int eAppendOffset = 2; // 添加数据时，Offset越界了（超出结尾）
-    public static final int eCloseError = 3; // 关闭文件发生了系统错误
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());

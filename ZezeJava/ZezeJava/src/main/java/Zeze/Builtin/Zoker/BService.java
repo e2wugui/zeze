@@ -3,13 +3,14 @@ package Zeze.Builtin.Zoker;
 
 import Zeze.Serialize.ByteBuffer;
 
+// 服务：查询，启动，关闭
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BService extends Zeze.Transaction.Bean implements BServiceReadOnly {
     public static final long TYPEID = 8648379280162192984L;
 
     private String _ServiceName;
     private String _State; // Running,Stopped
-    private String _Ps; // some ps result
+    private String _Ps; // some ps result ... todo
 
     @Override
     public String getServiceName() {
@@ -313,13 +314,14 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
         return vars;
     }
 
+// 服务：查询，启动，关闭
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8648379280162192984L;
 
     private String _ServiceName;
     private String _State; // Running,Stopped
-    private String _Ps; // some ps result
+    private String _Ps; // some ps result ... todo
 
     public String getServiceName() {
         return _ServiceName;
