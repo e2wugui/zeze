@@ -430,8 +430,9 @@ public final class ServiceManagerServer implements Closeable {
 								r.SendAndWaitCheckResultCode(s);
 							} catch (Throwable ex) { // resource close. logger.error
 								if (s != null)
-									s.close();
-								logger.error("ServiceManager.KeepAlive", ex);
+									s.close(ex);
+								else
+									logger.error("ServiceManager.KeepAlive", ex);
 							}
 						});
 			} else

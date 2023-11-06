@@ -37,6 +37,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	private static final Logger logger = LogManager.getLogger(LinkdProvider.class);
 	protected static final String dumpFilename = System.getProperty("dumpLinkdOutput");
 	protected static final boolean enableDump = dumpFilename != null;
+	protected static final IOException sendException = new IOException("LinkdProvider send failed");
 
 	protected LinkdApp linkdApp;
 	protected ProviderDistribute distribute;
@@ -158,7 +159,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			// 版本不匹配，继续尝试查找。
 			providerSocket = null; // clear first.
 
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (providers) {
 				for (int i = 0, n = providers.localStates.size(); i < n; i++) {
 					var e = providers.getNextStateEntry();
@@ -377,7 +377,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				// 探测协议不需要转发给客户端。
 				if (CheckLinkSession.TypeId_ != r.Argument.getProtocolType()) {
 					if (!socket.Send(pdata))
-						socket.close();
+						socket.close(sendException);
 					if (enableDump)
 						tryDump(socket, pdata);
 				}

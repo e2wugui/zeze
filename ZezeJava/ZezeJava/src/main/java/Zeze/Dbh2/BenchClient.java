@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutLong;
@@ -38,6 +39,11 @@ public class BenchClient {
 			var tableAccess = 1;
 			var selector = Runtime.getRuntime().availableProcessors();
 			var get = false;
+
+			var serviceManager = Application.createServiceManager(Config.load(), "Dbh2ServiceManager");
+			assert serviceManager != null;
+			serviceManager.start();
+			serviceManager.waitReady();
 
 			for (int i = 0; i < args.length; ++i) {
 				switch (args[i]) {
@@ -73,7 +79,7 @@ public class BenchClient {
 			Zeze.Net.Selectors.getInstance().add(selector - 1);
 			PerfCounter.instance.tryStartScheduledLog();
 
-			var dbh2AgentManager = new Dbh2AgentManager(null);
+			var dbh2AgentManager = new Dbh2AgentManager(serviceManager, null);
 			dbh2AgentManager.start();
 			var database = newDatabase(dbh2AgentManager, masterIp, masterPort);
 			var tables = new ArrayList<Zeze.Transaction.Database.AbstractKVTable>();

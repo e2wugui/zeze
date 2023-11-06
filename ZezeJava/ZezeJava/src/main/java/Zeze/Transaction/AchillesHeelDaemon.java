@@ -143,6 +143,16 @@ public class AchillesHeelDaemon {
 			pd.stopAndJoin();
 	}
 
+	public void deadlockReport() {
+		if (pd != null) {
+			try {
+				Daemon.sendCommand(pd.udpSocket, pd.daemonSocketAddress, new Daemon.DeadlockReport());
+			} catch (IOException e) {
+				logger.error("", e);
+			}
+		}
+	}
+
 	public void onInitialize(GlobalAgentBase agent) {
 		if (pd != null) {
 			try {

@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class RecordAccessed extends Bean {
 	public static final class PutLog extends Log1<RecordAccessed, Bean> {
@@ -25,15 +26,15 @@ public final class RecordAccessed extends Bean {
 		}
 	}
 
-	final AtomicTupleRecord<?, ?> atomicTupleRecord;
+	final @NotNull AtomicTupleRecord<?, ?> atomicTupleRecord;
 	boolean dirty;
 	PutLog committedPutLog; // Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
 
-	public RecordAccessed(AtomicTupleRecord<?, ?> a) {
+	public RecordAccessed(@NotNull AtomicTupleRecord<?, ?> a) {
 		atomicTupleRecord = a;
 	}
 
-	public Bean newestValue() {
+	public @Nullable Bean newestValue() {
 		//noinspection ConstantConditions
 		var log = Transaction.getCurrent().getLog(objectId());
 		return log instanceof PutLog ? ((PutLog)log).getValue() : atomicTupleRecord.strongRef;

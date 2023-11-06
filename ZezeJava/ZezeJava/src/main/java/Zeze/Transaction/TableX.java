@@ -12,7 +12,7 @@ import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Util.KV;
-import Zeze.Util.Macro;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -153,7 +153,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			if (r != null && (rs = r.getState()) > checkState && rs != StateRemoved) {
 				logger.error("VerifyGlobalRecordState failed: serverId={}/{}, table={}, key={}, state={}, isModify={}",
 						getZeze().getConfig().getServerId(), table.getZeze().getConfig().getServerId(),
-						getName(), key, rs, isModify);
+						getName(), key, rs, isModify, new AssertionError());
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(-1);
 			}
@@ -204,9 +204,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 					var storage = this.storage;
 					if (storage != null) {
-						if (Macro.enableStatistics) {
-							TableStatistics.getInstance().getOrAdd(getId()).getStorageFindCount().increment();
-						}
+						PerfCounter.instance.getOrAddTableInfo(getId()).storageGet.increment();
 						strongRef = storage.getDatabaseTable().find(this, key);
 						if (strongRef != null) {
 							rocksCachePut(key, strongRef);
@@ -428,6 +426,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 				case StateShare:
 					r.setState(StateInvalid);
+					PerfCounter.instance.getOrAddTableInfo(getId()).reduceInvalid.increment();
 					// 不删除记录，让TableCache.CleanNow处理。
 					if (r.getDirty())
 						break;
@@ -438,6 +437,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 				case StateModify:
 					r.setState(StateInvalid);
+					PerfCounter.instance.getOrAddTableInfo(getId()).reduceInvalid.increment();
 					if (r.getDirty())
 						break;
 					if (isTraceEnabled)
@@ -827,15 +827,22 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return storage.getDatabaseTable().walkDesc(this, callback);
 	}
 
-	public final long walkCacheKey(@NotNull TableWalkKey<K> callback) {
-		return cache.walkKey(callback);
-	}
-
-	public final long walkDatabaseKey(@NotNull TableWalkKey<K> callback) {
+	public final long walkKey(@NotNull TableWalkKey<K> callback) {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
-		return storage.getDatabaseTable().walkDatabaseKey(this, callback);
+		return storage.getDatabaseTable().walkKey(this, callback);
+	}
+
+	public final long walkKeyDesc(@NotNull TableWalkKey<K> callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().walkKeyDesc(this, callback);
+	}
+
+	public final long walkCacheKey(@NotNull TableWalkKey<K> callback) {
+		return cache.walkKey(callback);
 	}
 
 	/**
@@ -845,7 +852,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param callback walk callback
 	 * @return count
 	 */
-	public final long walkDatabase(@NotNull TableWalkHandleRaw callback) {
+	public final long walkDatabaseRaw(@NotNull TableWalkHandleRaw callback) {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -854,12 +861,74 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
-	public final long walkDatabaseDesc(@NotNull TableWalkHandleRaw callback) {
+	public final long walkDatabaseRawDesc(@NotNull TableWalkHandleRaw callback) {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
 			return ((Database.AbstractKVTable)storage.getDatabaseTable()).walkDesc(callback);
+		throw new UnsupportedOperationException("Not A KV Table.");
+	}
+
+	public final long walkDatabaseRawKey(@NotNull TableWalkKeyRaw callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
+			return ((Database.AbstractKVTable)storage.getDatabaseTable()).walkKey(callback);
+		throw new UnsupportedOperationException("Not A KV Table.");
+	}
+
+	public final long walkDatabaseRawKeyDesc(@NotNull TableWalkKeyRaw callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
+			return ((Database.AbstractKVTable)storage.getDatabaseTable()).walkKeyDesc(callback);
+		throw new UnsupportedOperationException("Not A KV Table.");
+	}
+
+	public final ByteBuffer walkDatabaseRaw(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+											@NotNull TableWalkHandleRaw callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
+			return ((Database.AbstractKVTable)storage.getDatabaseTable()).walk(
+					exclusiveStartKey, proposeLimit, callback);
+		throw new UnsupportedOperationException("Not A KV Table.");
+	}
+
+	public final ByteBuffer walkDatabaseRawDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+												@NotNull TableWalkHandleRaw callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
+			return ((Database.AbstractKVTable)storage.getDatabaseTable()).walkDesc(
+					exclusiveStartKey, proposeLimit, callback);
+		throw new UnsupportedOperationException("Not A KV Table.");
+	}
+
+	public final ByteBuffer walkDatabaseRawKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+											   @NotNull TableWalkKeyRaw callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
+			return ((Database.AbstractKVTable)storage.getDatabaseTable()).walkKey(
+					exclusiveStartKey, proposeLimit, callback);
+		throw new UnsupportedOperationException("Not A KV Table.");
+	}
+
+	public final ByteBuffer walkDatabaseRawKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+												   @NotNull TableWalkKeyRaw callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
+			return ((Database.AbstractKVTable)storage.getDatabaseTable()).walkKeyDesc(
+					exclusiveStartKey, proposeLimit, callback);
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
@@ -882,6 +951,52 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDatabaseDesc(this, callback);
+	}
+
+	public final long walkDatabaseKey(@NotNull TableWalkKey<K> callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().walkDatabaseKey(this, callback);
+	}
+
+	public final long walkDatabaseKeyDesc(@NotNull TableWalkKey<K> callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().walkDatabaseKeyDesc(this, callback);
+	}
+
+	public final K walkDatabase(@Nullable K exclusiveStartKey, int proposeLimit,
+								@NotNull TableWalkHandle<K, V> callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().walkDatabase(this, exclusiveStartKey, proposeLimit, callback);
+	}
+
+	public final K walkDatabaseDesc(@Nullable K exclusiveStartKey, int proposeLimit,
+									@NotNull TableWalkHandle<K, V> callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().walkDatabaseDesc(this, exclusiveStartKey, proposeLimit, callback);
+	}
+
+	public final K walkDatabaseKey(@Nullable K exclusiveStartKey, int proposeLimit,
+								   @NotNull TableWalkKey<K> callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().walkDatabaseKey(this, exclusiveStartKey, proposeLimit, callback);
+	}
+
+	public final K walkDatabaseKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit,
+									   @NotNull TableWalkKey<K> callback) {
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().walkDatabaseKeyDesc(this, exclusiveStartKey, proposeLimit, callback);
 	}
 
 	@Override
@@ -978,6 +1093,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				var v = cr.newestValue();
 				return v != null ? (V)v.copy() : null;
 			}
+			if (currentT.isCompleted())
+				throw new IllegalStateException("completed transaction can not selectCopy record not accessed");
 			currentT.setAlwaysReleaseLockWhenRedo();
 		}
 

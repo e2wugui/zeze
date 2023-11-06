@@ -8,7 +8,6 @@ import Zeze.Builtin.Dbh2.Commit.Query;
 import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Util.OutObject;
 
@@ -55,7 +54,7 @@ public class CommitAgent extends AbstractCommitAgent {
 		service.stop();
 	}
 
-	public BTransactionState.Data query(String host, int port, Binary tid, int rpcTimeout) {
+	public BTransactionState.Data query(String host, int port, long tid, int rpcTimeout) {
 		var r = new Query();
 		r.Argument.setTid(tid);
 		r.SendForWait(connect(host, port), rpcTimeout).await();

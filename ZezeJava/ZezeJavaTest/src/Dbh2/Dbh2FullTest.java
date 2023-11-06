@@ -45,11 +45,15 @@ public class Dbh2FullTest {
 
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
+		var serviceManager = Application.createServiceManager(Config.load(), "Dbh2ServiceManager");
+		assert serviceManager != null;
+		serviceManager.start();
+		serviceManager.waitReady();
 
 		var value = ByteBuffer.Wrap(new byte[]{1, 2, 3, 4});
 		Database database = null;
 		Application.renameAndDeleteDirectory(new File("CommitRocks"));
-		var dbh2AgentManager = new Dbh2AgentManager(null, 100);
+		var dbh2AgentManager = new Dbh2AgentManager(serviceManager, null, 100);
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
@@ -97,9 +101,14 @@ public class Dbh2FullTest {
 
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
+		var serviceManager = Application.createServiceManager(Config.load(), "Dbh2ServiceManager");
+		assert serviceManager != null;
+		serviceManager.start();
+		serviceManager.waitReady();
+
 		Database database = null;
 		Application.renameAndDeleteDirectory(new File("CommitRocks"));
-		var dbh2AgentManager = new Dbh2AgentManager(null, 100);
+		var dbh2AgentManager = new Dbh2AgentManager(serviceManager, null, 100);
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
@@ -140,9 +149,13 @@ public class Dbh2FullTest {
 
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
+		var serviceManager = Application.createServiceManager(Config.load(), "Dbh2ServiceManager");
+		assert serviceManager != null;
+		serviceManager.start();
+		serviceManager.waitReady();
 		Database database = null;
 		Application.renameAndDeleteDirectory(new File("CommitRocks"));
-		var dbh2AgentManager = new Dbh2AgentManager(null, 100);
+		var dbh2AgentManager = new Dbh2AgentManager(serviceManager, null, 100);
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)

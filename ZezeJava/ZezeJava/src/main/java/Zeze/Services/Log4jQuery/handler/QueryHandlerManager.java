@@ -1,113 +1,87 @@
 package Zeze.Services.Log4jQuery.handler;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import Zeze.Services.Log4jQuery.handler.entity.SimpleField;
-import com.alibaba.fastjson.JSONObject;
+import Zeze.Util.JsonReader;
+import Zeze.Util.JsonWriter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-public class QueryHandlerManager{
+public class QueryHandlerManager {
+	private static final Logger logger = LogManager.getLogger(QueryHandlerManager.class);
 
-	private static Map<String, QueryHandleContainer> handlerMap = new HashMap<>();
+	private static final Map<String, QueryHandleContainer> handlerMap = new HashMap<>();
 	private static boolean initFinish = false;
 
-	public static void init(){
+	public static void init() {
 		List<String> clazzNames = ClazzUtils.getClazzName("Zeze.Services.Log4jQuery.handler.impl", true);
-		clazzNames.forEach(clazz ->{
+		clazzNames.forEach(clazz -> {
 			try {
 				Class<?> handlerClass = Class.forName(clazz);
 				HandlerCmd handlerCmd = handlerClass.getAnnotation(HandlerCmd.class);
-				if (handlerCmd != null){
+				if (handlerCmd != null) {
 					String cmd = handlerCmd.value();
-					QueryHandleContainer queryHandleContainer = new QueryHandleContainer((QueryHandler)handlerClass.getConstructor(null).newInstance(null));
+					var instance = (QueryHandler<?, ?>)handlerClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
+					QueryHandleContainer queryHandleContainer = new QueryHandleContainer(instance);
 					handlerMap.put(cmd, queryHandleContainer);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error("", e);
 			}
-
 		});
-
-
 	}
 
-
-	public static String invokeHandler(String req) throws ClassNotFoundException {
-		if (!initFinish){
+	public static String invokeHandler(String req) throws ReflectiveOperationException {
+		if (!initFinish) {
 			init();
 			initFinish = true;
 		}
-		QueryRequest queryRequest = JSONObject.parseObject(req, QueryRequest.class);
-		Object param = queryRequest.getParam();
-		String cmd = queryRequest.getCmd();
+		var queryRequest = JsonReader.local().buf(req).parse(QueryRequest.class);
+		Object param = queryRequest != null ? queryRequest.getParam() : null;
+		String cmd = queryRequest != null ? queryRequest.getCmd() : null;
 		QueryHandleContainer queryHandler = handlerMap.get(cmd);
-		if (queryHandler == null){
+		if (queryHandler == null) {
 			return "";
 		}
 
 		Object obj = queryHandler.invoke(param);
-		String result = JSONObject.toJSONString(obj);
-		return result;
+		return JsonWriter.local().clear().write(obj).toString();
 	}
 
-
-	public static List<String> selectCmdList(){
-		List<String> list = new ArrayList<>(handlerMap.keySet());
-		return list;
+	public static List<String> selectCmdList() {
+		return new ArrayList<>(handlerMap.keySet());
 	}
 
-	public static QueryHandleContainer getQueryHandleContainer(String cmd){
-		return handlerMap.get(cmd);
-	}
+	public static class QueryHandleContainer {
+		private final QueryHandler<?, ?> queryHandler;
+		private Class<?> paramClass;
 
-
-	public static class QueryHandleContainer{
-		private QueryHandler queryHandler;
-		private Class paramClass;
-		private List<SimpleField> fields = new ArrayList<>();
-
-
-		public QueryHandleContainer(QueryHandler queryHandler){
+		public QueryHandleContainer(QueryHandler<?, ?> queryHandler) {
 			this.queryHandler = queryHandler;
 			Method[] declaredMethods = queryHandler.getClass().getDeclaredMethods();
-			for (Method method : declaredMethods){
-				if (method.getName() == "invoke"){
+			for (Method method : declaredMethods) {
+				if (method.getName().equals("invoke")) {
 					Class<?> parameterType = method.getParameterTypes()[0];
-					if (parameterType != Object.class){
+					if (parameterType != Object.class) {
 						paramClass = parameterType;
-						Field[] paramFields = paramClass.getDeclaredFields();
-						for (Field field : paramFields) {
-							String name = field.getName();
-							Class<?> type = field.getType();
-							fields.add(new SimpleField(name, type.getName()));
-						}
 					}
 				}
 			}
 		}
 
-		public Class getParamClass() {
-			return paramClass;
-		}
-
-		public List<SimpleField> getFields() {
-			return fields;
-		}
-
-		public Object invoke(Object o){
-			if (paramClass == null || paramClass == Object.class){
+		@SuppressWarnings("unchecked")
+		public Object invoke(Object o) throws ReflectiveOperationException {
+			if (paramClass == null || paramClass == Object.class) {
 				return queryHandler.invoke(null);
 			}
 
-			return queryHandler.invoke(cast(paramClass, (String)o));
-
+			return ((QueryHandler<Object, Object>)queryHandler).invoke(cast(paramClass, (String)o));
 		}
 
-		private Object cast(Class<?> clazz, String str)  {
+		private static Object cast(Class<?> clazz, String str) throws ReflectiveOperationException {
 			if (clazz == String.class) {
 				return str;
 			}
@@ -125,10 +99,6 @@ public class QueryHandlerManager{
 			case "short":
 			case "java.lang.Short":
 				return Short.valueOf(str);
-			case "string":
-			case "String":
-			case "java.lang.String":
-				return str;
 			case "float":
 			case "java.lang.Float":
 				return Float.valueOf(str);
@@ -138,13 +108,12 @@ public class QueryHandlerManager{
 			case "boolean":
 			case "java.lang.Boolean":
 				return Boolean.valueOf(str);
+			case "char":
+			case "java.lang.Character":
+				return (char)Integer.parseInt(str);
 			default:
-				return JSONObject.parseObject(str, clazz);
-
+				return JsonReader.local().buf(str).parse(clazz);
 			}
-
 		}
 	}
-
-
 }

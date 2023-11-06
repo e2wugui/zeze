@@ -12,6 +12,7 @@ import Zeze.Util.Func3;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.OutObject;
 import Zeze.Util.Str;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
@@ -107,7 +108,8 @@ public final class ServiceConf {
 			try {
 				add = cf.call(host, port, autoReconnect);
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
 			add.SetService(service);
 			addNew.value = add;

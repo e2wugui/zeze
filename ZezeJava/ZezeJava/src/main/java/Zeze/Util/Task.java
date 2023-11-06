@@ -18,7 +18,6 @@ import Zeze.Net.Service;
 import Zeze.Raft.RaftRetryException;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.Transaction;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -497,8 +496,6 @@ public final class Task {
 				logger.error("LogAndStatistics Exception", e);
 			}
 		}
-		if (Macro.enableStatistics)
-			ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(result).increment();
 	}
 
 	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p) {

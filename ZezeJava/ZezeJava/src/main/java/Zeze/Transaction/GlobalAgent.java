@@ -18,6 +18,8 @@ import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class GlobalAgent implements IGlobalAgent {
 	private static final Logger logger = LogManager.getLogger(GlobalAgent.class);
@@ -150,7 +152,7 @@ public final class GlobalAgent implements IGlobalAgent {
 	}
 
 	@Override
-	public int getGlobalCacheManagerHashIndex(Binary gkey) {
+	public int getGlobalCacheManagerHashIndex(@NotNull Binary gkey) {
 		return gkey.hashCode() % agents.length;
 	}
 
@@ -164,7 +166,7 @@ public final class GlobalAgent implements IGlobalAgent {
 	}
 
 	@Override
-	public AcquireResult acquire(Binary gkey, int state, boolean fresh, boolean noWait) {
+	public @Nullable AcquireResult acquire(@NotNull Binary gkey, int state, boolean fresh, boolean noWait) {
 		var agent = agents[getGlobalCacheManagerHashIndex(gkey)]; // hash
 		if (agent.isReleasing()) {
 			agent.setFastFail();
@@ -204,10 +206,11 @@ public final class GlobalAgent implements IGlobalAgent {
 
 		if (rpc.getResultCode() == GlobalCacheManagerConst.AcquireModifyFailed
 				|| rpc.getResultCode() == GlobalCacheManagerConst.AcquireShareFailed) {
+			var tableId = (int)ByteBuffer.ToLong(gkey.bytesUnsafe(), gkey.getOffset(), Math.min(4, gkey.size()));
 			var trans = Transaction.getCurrent();
 			if (trans == null)
-				throw new GoBackZeze("GlobalAgent.Acquire Failed: " + gkey);
-			trans.throwAbort("GlobalAgent.Acquire Failed: " + gkey, null);
+				throw new GoBackZeze("GlobalAgent.Acquire Failed: " + gkey + " tableId=" + tableId);
+			trans.throwAbort("GlobalAgent.Acquire Failed: " + gkey + " tableId=" + tableId, null);
 			// never got here
 		}
 		var rc = rpc.getResultCode();

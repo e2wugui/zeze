@@ -62,13 +62,17 @@ public class Dbh2Transaction implements Closeable {
 	public void prepareBatch(Bucket bucket) throws RocksDBException {
 		var tid = batch.getTid();
 		var value = ByteBuffer.encode(batch);
-		bucket.getTrans().put(tid.bytesUnsafe(), tid.getOffset(), tid.size(),
+		var tidBytes = ByteBuffer.Allocate();
+		tidBytes.WriteLong(tid);
+		bucket.getTrans().put(tidBytes.Bytes, tidBytes.ReadIndex, tidBytes.size(),
 				value.Bytes, value.ReadIndex, value.WriteIndex);
 	}
 
 	public void undoBatch(Bucket bucket) throws RocksDBException {
 		var tid = batch.getTid();
-		bucket.getTrans().delete(tid.bytesUnsafe(), tid.getOffset(), tid.size());
+		var tidBytes = ByteBuffer.Allocate();
+		tidBytes.WriteLong(tid);
+		bucket.getTrans().delete(tidBytes.Bytes, tidBytes.ReadIndex, tidBytes.size());
 	}
 
 	public void commitBatch(Bucket bucket) throws RocksDBException {
@@ -84,7 +88,9 @@ public class Dbh2Transaction implements Closeable {
 		}
 
 		var tid = batch.getTid();
-		bucket.getTrans().delete(b, tid.bytesUnsafe(), tid.getOffset(), tid.size());
+		var tidBytes = ByteBuffer.Allocate();
+		tidBytes.WriteLong(tid);
+		bucket.getTrans().delete(b, tidBytes.Bytes, tidBytes.ReadIndex, tidBytes.size());
 
 		b.commit(bucket.getWriteOptions());
 	}

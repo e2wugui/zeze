@@ -29,6 +29,8 @@ public class Acceptor {
 			Ip = Helper.getOnePrivateNetworkInterfaceIpAddress();
 		else if (Ip.equals("@external"))
 			Ip = Helper.getOnePublicNetworkInterfaceIpAddress();
+		else
+			return;
 
 		if (Ip.isBlank())
 			throw new IllegalStateException("Acceptor.Ip invalid: " + Ip);

@@ -56,8 +56,4 @@ public class TimeThrottleQueue implements TimeThrottle {
 		marks.offer(new Packet(now, size)); // 不重新读取now了。
 		return marks.size() <= limit && (bandwidth >= 0 && bandwidth < bandwidthLimit);
 	}
-
-	@Override
-	public void close() {
-	}
 }

@@ -3,7 +3,6 @@ package Zeze.Transaction;
 import Zeze.Application;
 import Zeze.IModule;
 import Zeze.Util.FuncLong;
-import Zeze.Util.Macro;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.TaskCanceledException;
 import org.apache.logging.log4j.Level;
@@ -132,38 +131,30 @@ public class Procedure {
 
 		currentT.begin();
 		currentT.getProcedureStack().add(this);
+		long result = Exception;
 		try {
 //			var r = runWhileCommit;
 //			if (r != null) {
 //				runWhileCommit = null;
 //				currentT.runWhileCommit(r);
 //			}
-			long result = process();
+			result = process();
 			currentT.verifyRunning(); // 防止应用抓住了异常，通过return方式返回。
 
 			if (result == Success) {
 				currentT.commit();
-				if (Macro.enableStatistics) {
-					ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(result).increment();
-				}
 				return Success;
 			}
 			currentT.rollback();
 			var tmpLogAction = logAction;
 			if (tmpLogAction != null)
 				tmpLogAction.run(null, result, this, "");
-			if (Macro.enableStatistics) {
-				ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(result).increment();
-			}
 			return result;
 		} catch (GoBackZeze goBackZeze) {
 			// 单独抓住这个异常，是为了能原样抛出，并且使用不同的级别记录日志。
 			// 对状态正确性没有影响。
 			currentT.rollback();
-			if (ENABLE_DEBUG_LOG)
-				logger.debug("GoBackZeze: {}", this, goBackZeze);
-			else
-				logger.info("GoBackZeze({}): {}", goBackZeze.getMessage(), this);
+			logger.info("GoBackZeze({}): {}", goBackZeze.getMessage(), this);
 			throw goBackZeze;
 		} catch (Throwable e) { // logger, rethrow AssertionError
 			// rollback.
@@ -173,9 +164,6 @@ public class Procedure {
 				if (tmpLogAction != null)
 					tmpLogAction.run(e, Exception, this, "");
 			});
-			if (Macro.enableStatistics) {
-				ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(Exception).increment();
-			}
 			// 验证状态：Running状态将吃掉所有异常。
 			currentT.verifyRunning();
 			// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
@@ -185,6 +173,7 @@ public class Procedure {
 			return e instanceof TaskCanceledException ? CancelException : Exception;
 		} finally {
 			currentT.getProcedureStack().remove(currentT.getProcedureStack().size() - 1);
+			PerfCounter.instance.addProcedureInfo(actionName, result);
 		}
 	}
 

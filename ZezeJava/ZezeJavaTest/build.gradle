@@ -16,7 +16,7 @@ dependencies {
 
     // for jdbc(mysql,sqlserver,tidb)
     implementation 'com.alibaba:druid:1.2.20'
-    implementation 'com.mysql:mysql-connector-j:8.0.33'
+    implementation 'com.mysql:mysql-connector-j:8.2.0'
 
     // for websocket
     implementation 'org.java-websocket:Java-WebSocket:1.5.4'

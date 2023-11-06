@@ -215,7 +215,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	@Override
 	public void SendResult(@Nullable Binary result) {
 		if (sendResultDone) {
-			logger.error("Rpc.SendResult Already Done: {} {}", getSender(), this, new Exception());
+			logger.error("Rpc.SendResult Already Done: {} {}", getSender(), this, new Exception("only for stack trace"));
 			return;
 		}
 		sendResultDone = true;
@@ -282,7 +282,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (responseHandle != null)
 			return responseHandle.handle(this);
 
-		logger.debug("rpc response handle miss. {}", this);
+		logger.debug("rpc response handle miss: {}", this);
 		return 0;
 	}
 

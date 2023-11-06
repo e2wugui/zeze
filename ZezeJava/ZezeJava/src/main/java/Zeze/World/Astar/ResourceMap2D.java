@@ -4,7 +4,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 public class ResourceMap2D implements IResourceMap {
-	private final byte [] masks;
+	@SuppressWarnings("MismatchedReadAndWriteOfArray")
+	private final byte[] masks;
 	private final int width;
 	private final int height;
 
@@ -43,8 +44,8 @@ public class ResourceMap2D implements IResourceMap {
 		astar.traverseCorner(this, current, target, +1, -1, 7, 0, -1, +1, 0);
 		astar.traverseCross(this, current, target, toIndex(current.index.x - 1, current.index.z), 5);
 		astar.traverseCross(this, current, target, toIndex(current.index.x + 1, current.index.z), 5);
-		astar.traverseCorner(this, current, target, -1, +1, 7, -1, 0,  0, +1);
+		astar.traverseCorner(this, current, target, -1, +1, 7, -1, 0, 0, +1);
 		astar.traverseCross(this, current, target, toIndex(current.index.x - 1, current.index.z + 1), 5);
-		astar.traverseCorner(this, current, target,+1, +1, 7, +1, 0, 0, +1);
+		astar.traverseCorner(this, current, target, +1, +1, 7, +1, 0, 0, +1);
 	}
 }

@@ -5,16 +5,14 @@ import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.Task;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class LinkdApp {
-	static final Logger logger = LogManager.getLogger(LinkdApp.class);
 	public final String linkdServiceName;
 	public final Application zeze;
 	public final LinkdProvider linkdProvider;
@@ -89,10 +87,8 @@ public class LinkdApp {
 		var timeout = PropertiesHelper.getInt("KeepAliveTimeout", 180_000);
 		linkdService.foreach((link) -> {
 			var session = (LinkdUserSession)link.getUserState();
-			if (null != session && session.keepAliveTimeout(now, timeout)) {
-				logger.warn("KeepAlive timeout: {}", link);
-				link.close();
-			}
+			if (null != session && session.keepAliveTimeout(now, timeout))
+				link.close(Service.keepAliveException);
 		});
 	}
 

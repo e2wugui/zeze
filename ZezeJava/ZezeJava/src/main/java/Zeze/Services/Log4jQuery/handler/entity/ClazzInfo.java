@@ -3,16 +3,16 @@ package Zeze.Services.Log4jQuery.handler.entity;
 import java.util.List;
 
 public class ClazzInfo {
-	private boolean baseType;
+	private boolean isBaseType;
 	private String clazzName;
 	private List<SimpleField> fields;
 
 	public boolean isBaseType() {
-		return baseType;
+		return isBaseType;
 	}
 
 	public void setBaseType(boolean baseType) {
-		this.baseType = baseType;
+		isBaseType = baseType;
 	}
 
 	public String getClazzName() {

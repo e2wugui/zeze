@@ -29,6 +29,10 @@ public class LogAgent extends AbstractLogAgent {
 		RegisterProtocols(client);
 	}
 
+	public LogServiceConf getLogConf() {
+		return logConf;
+	}
+
 	public void start() throws Exception {
 		client.start();
 		var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);

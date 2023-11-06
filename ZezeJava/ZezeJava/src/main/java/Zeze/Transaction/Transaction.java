@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Util.Macro;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import org.apache.logging.log4j.LogManager;
@@ -244,12 +243,6 @@ public final class Transaction {
 								if (checkResult == CheckResult.Success) {
 									if (result == Procedure.Success) {
 										finalCommit(procedure);
-										// 正常一次成功的不统计，用来观察redo多不多。
-										// 失败在 Procedure.cs 中的统计。
-										if (Macro.enableStatistics && tryCount > 0) {
-											ProcedureStatistics.getInstance().getOrAdd("Zeze.Transaction.TryCount")
-													.getOrAdd(tryCount).increment();
-										}
 										return Procedure.Success;
 									}
 									finalRollback(procedure, true);
@@ -542,7 +535,8 @@ public final class Transaction {
 							e.atomicTupleRecord.record.isFresh(), false);
 					if (acquire.resultState != GlobalCacheManagerConst.StateModify) {
 						e.atomicTupleRecord.record.setNotFresh(); // 抢失败不再新鲜。
-						logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.atomicTupleRecord);
+						logger.debug("Acquire Failed. Maybe DeadLock Found: record={}, time={}",
+								e.atomicTupleRecord.record, e.atomicTupleRecord.timestamp);
 						e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateInvalid); // 这里保留StateShare更好吗？
 						return CheckResult.RedoAndReleaseLock;
 					}
@@ -717,10 +711,6 @@ public final class Transaction {
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state + ", msg: " + msg, cause);
 		state = TransactionState.RedoAndReleaseLock;
-		if (Macro.enableStatistics) {
-			//noinspection ConstantConditions
-			ProcedureStatistics.getInstance().getOrAdd(getTopProcedure().getActionName()).getOrAdd(Procedure.RedoAndRelease).increment();
-		}
 		GoBackZeze.Throw(msg, cause);
 	}
 

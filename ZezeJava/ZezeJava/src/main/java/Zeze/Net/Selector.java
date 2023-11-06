@@ -140,23 +140,24 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	}
 
 	public void close() {
+		if (Thread.currentThread() == this) {
+			Task.getCriticalThreadPool().execute(this::close);
+			return;
+		}
+
 		running = false;
 		selector.wakeup();
 
-		// join
-		while (true) {
-			try {
-				join();
-				break;
-			} catch (Exception ex) {
-				logger.error("{} close skip.", getClass().getName(), ex);
-			}
+		try {
+			join();
+		} catch (Exception e) {
+			logger.error("wait selector thread {} exception:", getClass().getName(), e);
 		}
 
 		try {
 			selector.close();
 		} catch (Exception e) {
-			logger.error("{} selector.close skip.", getClass().getName(), e);
+			logger.error("selector.close {} exception:", getClass().getName(), e);
 		}
 	}
 
@@ -177,7 +178,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 				}
 			};
 			thread.setDaemon(true);
-			thread.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));
+			thread.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception:", e));
 			thread.start();
 		}
 
@@ -239,22 +240,22 @@ public class Selector extends Thread implements ByteBufferAllocator {
 							try {
 								handle.doException(key, e);
 							} catch (Throwable e3) { // Skip. 必须捕捉所有异常。
-								logger.error("Selector.run", e);
-								logger.error("SelectorHandle.doException: {}", e, e3);
+								logger.error("SelectorHandle.doHandle exception:", e);
+								logger.error("SelectorHandle.doException({}) exception:", e, e3);
 							}
 						} else
-							logger.error("Selector.run", e);
+							logger.error("SelectorHandle.doHandle(null) exception:", e);
 						try {
 							key.channel().close();
 						} catch (Throwable e2) { // Skip. 必须捕捉所有异常。
-							logger.error("SocketChannel.close", e2);
+							logger.error("SocketChannel.close exception:", e2);
 						}
 					}
 				}, selectTimeout);
 				for (Runnable r; (r = taskQueue.poll()) != null; )
 					r.run();
 			} catch (Throwable e) { // ??? 必须捕捉所有异常。
-				logger.error("Selector.run", e);
+				logger.error("Selector.run exception:", e);
 			}
 		}
 	}

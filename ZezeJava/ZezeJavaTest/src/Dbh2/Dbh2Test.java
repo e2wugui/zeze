@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import Zeze.Application;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
+import Zeze.Config;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.Net.Binary;
@@ -77,8 +78,12 @@ public class Dbh2Test {
 					<node Host="127.0.0.1" Port="19005"/>
 				</raft>
 				""");
+		var serviceManager = Application.createServiceManager(Config.load(), "Dbh2ServiceManager");
+		assert serviceManager != null;
+		serviceManager.start();
+		serviceManager.waitReady();
 		Application.renameAndDeleteDirectory(new File("CommitRocks"));
-		var dbh2AgentManager = new Dbh2AgentManager(null, 101);
+		var dbh2AgentManager = new Dbh2AgentManager(serviceManager, null, 101);
 		try {
 			final var db = "database";
 			final var tb1 = "table1";
@@ -107,7 +112,7 @@ public class Dbh2Test {
 			{
 				var batch = new BPrepareBatch.Data("", db, tb1, null);
 				batch.getBatch().getPuts().put(key, value);
-				batch.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
+				batch.getBatch().setTid(dbh2AgentManager.nextTransactionId());
 				bucket1.agent().prepareBatch(batch).await();
 				bucket1.agent().commitBatch(batch.getBatch().getTid()).await();
 			}
@@ -120,7 +125,7 @@ public class Dbh2Test {
 			{
 				var batch = new BPrepareBatch.Data("", db, tb1, null);
 				batch.getBatch().getPuts().put(key, Binary.Empty);
-				batch.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
+				batch.getBatch().setTid(dbh2AgentManager.nextTransactionId());
 				bucket1.agent().prepareBatch(batch).await();
 				bucket1.agent().undoBatch(batch.getBatch().getTid()).await();
 			}
@@ -133,7 +138,7 @@ public class Dbh2Test {
 			{
 				var batch = new BPrepareBatch.Data("", db, tb1, null);
 				batch.getBatch().getDeletes().add(key);
-				batch.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
+				batch.getBatch().setTid(dbh2AgentManager.nextTransactionId());
 				bucket1.agent().prepareBatch(batch).await();
 				bucket1.agent().commitBatch(batch.getBatch().getTid()).await();
 			}
@@ -148,7 +153,7 @@ public class Dbh2Test {
 				var batch1 = new BPrepareBatch.Data("", db, tb1, null);
 				var batch2 = new BPrepareBatch.Data("", db, tb2, null);
 
-				batch1.getBatch().setTid(new Binary(Dbh2AgentManager.nextTransactionId()));
+				batch1.getBatch().setTid(dbh2AgentManager.nextTransactionId());
 				batch2.getBatch().setTid(batch1.getBatch().getTid());
 
 				batch1.getBatch().getPuts().put(key, value);

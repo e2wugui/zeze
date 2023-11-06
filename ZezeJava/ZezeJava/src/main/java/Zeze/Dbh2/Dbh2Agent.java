@@ -86,14 +86,14 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return raftClient.sendForWait(r);
 	}
 
-	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> commitBatch(Binary tid) {
+	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> commitBatch(long tid) {
 		var r = new CommitBatch();
 		r.Argument.setTid(tid);
 		r.setTimeout(config.getRpcTimeout());
 		return raftClient.sendForWait(r);
 	}
 
-	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> undoBatch(Binary tid) {
+	public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> undoBatch(long tid) {
 		var r = new UndoBatch();
 		r.Argument.setTid(tid);
 		r.setTimeout(config.getRpcTimeout());

@@ -1,6 +1,10 @@
 package Zeze.Services;
 
+import java.io.IOException;
+
 public interface GlobalCacheManagerConst {
+	IOException kickException = new IOException("GlobalCacheManager kick");
+
 	int StateInvalid = 0;
 	int StateShare = 1;
 	int StateModify = 2;

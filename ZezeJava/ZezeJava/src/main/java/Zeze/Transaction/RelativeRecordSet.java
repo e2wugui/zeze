@@ -188,6 +188,7 @@ public final class RelativeRecordSet {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private static void verify(ArrayList<TreeMap<String, ArrayList<Object>>> groupLocked,
 							   TreeMap<String, ArrayList<Object>> groupTrans,
 							   RelativeRecordSet result) {
@@ -213,6 +214,7 @@ public final class RelativeRecordSet {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private static void build(Transaction trans, TreeMap<String, ArrayList<Object>> groupTrans) {
 		for (var ar : trans.getAccessedRecords().values()) {
 			groupTrans.computeIfAbsent(ar.atomicTupleRecord.record.getTable().getName(), __ -> new ArrayList<>())
@@ -220,6 +222,7 @@ public final class RelativeRecordSet {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private static void build(ArrayList<RelativeRecordSet> locked, ArrayList<TreeMap<String, ArrayList<Object>>> groupLocked) {
 		for (var rrs : locked) {
 			var group = new TreeMap<String, ArrayList<Object>>();

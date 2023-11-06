@@ -3,8 +3,6 @@ package UnitTest.Zeze.Trans;
 import java.util.ArrayList;
 import java.util.List;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.TableWalkHandle;
-import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Util.OutInt;
 import demo.App;
 import demo.Bean1;
@@ -178,7 +176,7 @@ public class TestWalkPage {
 		var walkTimes = new OutInt(0);
 
 		if (!t.isUseRelationalMapping()) {
-			t.walkDatabase((TableWalkHandleRaw)(key, value) -> {
+			t.walkDatabaseRaw((key, value) -> {
 				var bbKey = t.decodeKey(ByteBuffer.Wrap(key));
 				walkTimes.value += 1;
 				walkedKeys.add(bbKey);
@@ -197,7 +195,7 @@ public class TestWalkPage {
 		var walkTimes = new OutInt(0);
 
 		if (!t.isUseRelationalMapping()) {
-			t.walkDatabaseDesc((TableWalkHandleRaw)(key, value) -> {
+			t.walkDatabaseRawDesc((key, value) -> {
 				var bbKey = t.decodeKey(ByteBuffer.Wrap(key));
 				walkTimes.value += 1;
 				walkedKeys.add(bbKey);
@@ -215,7 +213,7 @@ public class TestWalkPage {
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 
-		t.walkDatabase((TableWalkHandle<Integer, Bean1>)(key, value) -> {
+		t.walkDatabase((key, value) -> {
 			walkTimes.value += 1;
 			walkedKeys.add(key);
 			return true;
@@ -232,7 +230,7 @@ public class TestWalkPage {
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 
-		t.walkDatabaseDesc((TableWalkHandle<Integer, Bean1>)(key, value) -> {
+		t.walkDatabaseDesc((key, value) -> {
 			walkTimes.value += 1;
 			walkedKeys.add(key);
 			return true;

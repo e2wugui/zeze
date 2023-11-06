@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Util.Macro;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,21 +91,17 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 		if (isTraceEnabled)
 			logger.trace("Acquire NewState={} {}", state, this);
-		if (Macro.enableStatistics) {
-			var stat = TableStatistics.getInstance().getOrAdd(table.getId());
-			switch (state) {
-			case GlobalCacheManagerConst.StateInvalid:
-				stat.getGlobalAcquireInvalid().increment();
-				break;
-
-			case GlobalCacheManagerConst.StateShare:
-				stat.getGlobalAcquireShare().increment();
-				break;
-
-			case GlobalCacheManagerConst.StateModify:
-				stat.getGlobalAcquireModify().increment();
-				break;
-			}
+		var tInfo = PerfCounter.instance.getOrAddTableInfo(table.getId());
+		switch (state) {
+		case GlobalCacheManagerConst.StateInvalid:
+			tInfo.acquireInvalid.increment();
+			break;
+		case GlobalCacheManagerConst.StateShare:
+			tInfo.acquireShare.increment();
+			break;
+		case GlobalCacheManagerConst.StateModify:
+			tInfo.acquireModify.increment();
+			break;
 		}
 		return agent.acquire(table.encodeGlobalKey(key), state, fresh, noWait);
 	}

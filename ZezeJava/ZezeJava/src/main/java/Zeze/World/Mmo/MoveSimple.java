@@ -27,6 +27,7 @@ public class MoveSimple implements IComponent, ICommand {
 
 	@Override
 	public long handle(String account, String playerId, Command c) throws Exception {
+		//noinspection SwitchStatementWithTooFewBranches
 		switch (c.Argument.getCommandId()) {
 		case BCommand.eMoveMmo:
 			return onMove(account, playerId, c.Argument.getMapInstanceId(), ICommand.decode(new BMove.Data(), c));

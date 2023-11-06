@@ -11,7 +11,7 @@ import Zeze.Util.Benchmark;
 import Zeze.Util.Reflect;
 
 public class DistributeServer {
-	private final static TreeMap<String, Bean> beans = new TreeMap<>();
+	private static final TreeMap<String, Bean> beans = new TreeMap<>();
 	private static int count = 0;
 	private static String solution = null;
 
@@ -19,7 +19,7 @@ public class DistributeServer {
 		return beans;
 	}
 
-	public static void main(String [] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		String host = "127.0.0.1";
 		int port = 4545;
 

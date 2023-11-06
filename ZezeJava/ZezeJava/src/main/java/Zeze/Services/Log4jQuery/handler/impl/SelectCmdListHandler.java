@@ -7,10 +7,8 @@ import Zeze.Services.Log4jQuery.handler.QueryHandlerManager;
 
 @HandlerCmd("cmd_list")
 public class SelectCmdListHandler implements QueryHandler<Object, List<String>> {
-		@Override
-		public List<String> invoke(Object param) {
-			List<String> list = QueryHandlerManager.selectCmdList();
-			return list;
-		}
-
+	@Override
+	public List<String> invoke(Object param) {
+		return QueryHandlerManager.selectCmdList();
 	}
+}

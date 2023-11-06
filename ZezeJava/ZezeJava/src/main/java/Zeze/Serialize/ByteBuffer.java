@@ -347,6 +347,13 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		intLeHandler.set(Bytes, writeIndex, v);
 	}
 
+	public void WriteInt4BE(int v) {
+		EnsureWrite(4);
+		int writeIndex = WriteIndex;
+		WriteIndex = writeIndex + 4;
+		intBeHandler.set(Bytes, writeIndex, v);
+	}
+
 	public void WriteInt4s(int @NotNull [] buf, int offset, int length) {
 		int n = length * 4;
 		EnsureWrite(n);
@@ -377,6 +384,13 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		int writeIndex = WriteIndex;
 		WriteIndex = writeIndex + 8;
 		longLeHandler.set(Bytes, writeIndex, v);
+	}
+
+	public void WriteLong8BE(long v) {
+		EnsureWrite(8);
+		int writeIndex = WriteIndex;
+		WriteIndex = writeIndex + 8;
+		longBeHandler.set(Bytes, writeIndex, v);
 	}
 
 	public void WriteLong8s(long @NotNull [] buf, int offset, int length) {

@@ -47,6 +47,7 @@ public class Log4jFile {
 		return false;
 	}
 
+	@SuppressWarnings({"MethodMayBeStatic", "unused"})
 	private long getIndexOffset(long time) {
 		// todo index seek
 		return 0;

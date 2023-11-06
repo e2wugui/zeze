@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -41,30 +42,42 @@ public class Daemon {
 	private static final LongConcurrentHashMap<PendingPacket> pendings = new LongConcurrentHashMap<>();
 	private static volatile Future<?> timer;
 
+	public static long getLongProperty(String name, long def) {
+		var p = System.getProperty(name);
+		if (null == p || p.isBlank())
+			return def;
+		return Long.parseLong(p);
+	}
+
 	public static void main(String[] args) throws Exception {
 		// udp for subprocess register
 		udpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
 		udpSocket.setSoTimeout(200);
+		var minAliveTime = getLongProperty("MinAliveTime", 30 * 60 * 1000);
 
 		try {
 			var restart = false;
 			while (true) {
 				var command = new ArrayList<String>();
-				command.add("java");
-				command.add("-D" + propertyNamePort + "=" + udpSocket.getLocalPort());
-				if (restart)
-					command.add("-D" + propertyNameClearInUse + "=true");
 				Collections.addAll(command, args);
+				if (restart)
+					command.add(1, "-D" + propertyNameClearInUse + "=true");
+				command.add(1, "-D" + propertyNamePort + "=" + udpSocket.getLocalPort());
 
 				var pb = new ProcessBuilder(command);
 				pb.inheritIO();
 
 				subprocess = pb.start();
+				var startTime = System.currentTimeMillis();
 				var exitCode = mainRun();
 				if (exitCode == 0)
 					break;
 				joinMonitors();
 				logger.warn("Subprocess Restart! ExitCode={}", exitCode);
+				if (System.currentTimeMillis() - startTime < minAliveTime) {
+					logger.fatal("subprocess alive too short. " + minAliveTime);
+					break;
+				}
 				restart = true;
 			}
 		} catch (Throwable ex) { // print stacktrace.
@@ -112,6 +125,11 @@ public class Daemon {
 						}
 						sendCommand(udpSocket, cmd.peer, new CommonResult(on.reliableSerialNo, code));
 						break;
+
+					case DeadlockReport.Command:
+						logger.warn("deadlock report");
+						destroySubprocess();
+						break;
 					}
 				} catch (SocketTimeoutException ex) {
 					// skip
@@ -139,8 +157,18 @@ public class Daemon {
 	}
 
 	private static void destroySubprocess() throws InterruptedException {
-		// todo run jstack
+		// run jstack
+		try {
+			var pid = String.valueOf(subprocess.pid());
+			var cmd = new String[]{"jstack", "-e", "-l", pid};
+			var process = Runtime.getRuntime().exec(cmd);
+			Files.copy(new BufferedInputStream(process.getInputStream()), Path.of("jstack." + pid));
+			process.destroy();
+		} catch (Exception ex) {
+			logger.error("", ex);
+		}
 		subprocess.destroy();
+		subprocess = null;
 		joinMonitors();
 	}
 
@@ -205,6 +233,9 @@ public class Daemon {
 			break;
 		case Release.Command:
 			cmd = new Release(bb, p.getSocketAddress());
+			break;
+		case DeadlockReport.Command:
+			cmd = new DeadlockReport(bb, p.getSocketAddress());
 			break;
 		default:
 			throw new UnsupportedOperationException("Unknown Command =" + c);
@@ -495,12 +526,41 @@ public class Daemon {
 
 		@Override
 		public void encode(ByteBuffer bb) {
+			super.encode(bb);
 			bb.WriteInt(globalIndex);
 		}
 
 		@Override
 		public void decode(ByteBuffer bb) {
+			super.decode(bb);
 			globalIndex = bb.ReadInt();
+		}
+	}
+
+	public static class DeadlockReport extends Command {
+		public static final int Command = 4;
+
+		public DeadlockReport() {
+		}
+
+		public DeadlockReport(ByteBuffer bb, SocketAddress peer) {
+			this.decode(bb);
+			this.peer = peer;
+		}
+
+		@Override
+		public int command() {
+			return Command;
+		}
+
+		@Override
+		public void encode(ByteBuffer bb) {
+			super.encode(bb);
+		}
+
+		@Override
+		public void decode(ByteBuffer bb) {
+			super.decode(bb);
 		}
 	}
 }

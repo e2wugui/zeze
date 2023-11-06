@@ -35,12 +35,10 @@ import Zeze.Transaction.GlobalAgent;
 import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Locks;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.ProcedureStatistics;
-import Zeze.Transaction.ResetDB;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
-import Zeze.Transaction.TableStatistics;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.DeadlockBreaker;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
@@ -53,7 +51,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.rocksdb.RocksDBException;
 
 public final class Application {
 	static final Logger logger = LogManager.getLogger(Application.class);
@@ -74,6 +71,7 @@ public final class Application {
 	private DelayRemove delayRemove;
 	private IGlobalAgent globalAgent;
 	private AchillesHeelDaemon achillesHeelDaemon;
+	private DeadlockBreaker deadlockBreaker;
 	private Checkpoint checkpoint;
 	private Future<?> flushWhenReduceTimerTask;
 	private Schemas schemas;
@@ -98,10 +96,10 @@ public final class Application {
 
 	public void enableAuth() {
 		if (isStart())
-			throw new RuntimeException("must enable auth before start.");
+			throw new IllegalStateException("must enable auth before start.");
 
 		if (null != auth)
-			throw new RuntimeException("auth has enabled.");
+			throw new IllegalStateException("auth has enabled.");
 
 		auth = new Auth(this);
 	}
@@ -127,7 +125,7 @@ public final class Application {
 		var callerCl = caller.getClassLoader();
 		// 只限制我们自己的HotModule，其他都允许。
 		if (null != hotManager && HotManager.isHotModule(callerCl))
-			throw new RuntimeException("caller must not hot.");
+			throw new IllegalStateException("caller must not hot.");
 	}
 
 	public void setHotManager(HotManager value) {
@@ -142,9 +140,9 @@ public final class Application {
 		return dbh2AgentManager;
 	}
 
-	public Dbh2AgentManager tryNewDbh2AgentManager() throws RocksDBException {
+	public Dbh2AgentManager tryNewDbh2AgentManager() throws Exception {
 		if (null == dbh2AgentManager)
-			dbh2AgentManager = new Dbh2AgentManager(conf);
+			dbh2AgentManager = new Dbh2AgentManager(serviceManager, conf);
 		return dbh2AgentManager;
 	}
 
@@ -170,7 +168,6 @@ public final class Application {
 
 	@SuppressWarnings("deprecation")
 	public Application(@NotNull String projectName, @Nullable Config config) throws Exception {
-
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
 		if (conf.getServerId() > 0x3FFF) // 16383 encoded size = 2 bytes
@@ -179,9 +176,9 @@ public final class Application {
 		// Start Thread Pool
 		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化
 
+		serviceManager = createServiceManager(conf, projectName); // 必须在createDatabase之前初始化。里面的Dbh2需要用到serviceManager
 		conf.createDatabase(this, databases);
 		PerfCounter.instance.tryStartScheduledLog();
-		serviceManager = createServiceManager(conf, projectName);
 
 		if (!isNoDatabase()) {
 			// 自动初始化的组件。
@@ -498,7 +495,7 @@ public final class Application {
 					if (schemas.getAppPublishVersion() < schemasPrevious.getAppPublishVersion())
 						return; // 当前的发布版本小于先前时，不做任何操作，直接返回。
 
-					ResetDB.checkAndRemoveTable(schemasPrevious, this);
+					schemas.checkCompatible(schemasPrevious, this);
 					version = dataVersion.version;
 				}
 				// schemasPrevious maybe null
@@ -617,6 +614,7 @@ public final class Application {
 				}
 			}
 
+			this.deadlockBreaker = new DeadlockBreaker(this);
 			// Checkpoint
 			checkpoint = new Checkpoint(this, conf.getCheckpointMode(), databases.values(), serverId);
 			checkpoint.start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
@@ -632,19 +630,22 @@ public final class Application {
 			if (timer != null) {
 				timer.loadCustomClassAnd();
 			}
+			if (null != deadlockBreaker)
+				deadlockBreaker.start();
 		} else
 			startState = StartState.eStarted;
-		ProcedureStatistics.getInstance().start(conf.getProcedureStatisticsReportPeriod());
-		TableStatistics.getInstance().start(conf.getTableStatisticsReportPeriod());
 	}
 
 	public synchronized void stop() throws Exception {
+		if (null != deadlockBreaker) {
+			this.deadlockBreaker.shutdown();
+			deadlockBreaker = null;
+		}
+
 		if (startState == StartState.eStopped)
 			return;
 		startState = StartState.eStartingOrStopping;
 		ShutdownHook.remove(this);
-		TableStatistics.getInstance().stop();
-		ProcedureStatistics.getInstance().stop();
 		logger.info("Stop ServerId={}", conf.getServerId());
 
 		if (achillesHeelDaemon != null) {

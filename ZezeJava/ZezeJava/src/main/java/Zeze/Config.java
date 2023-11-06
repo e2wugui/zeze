@@ -20,7 +20,6 @@ import com.amazonaws.regions.Regions;
 import org.apache.logging.log4j.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.rocksdb.RocksDBException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -101,6 +100,7 @@ public final class Config {
 	private long tableStatisticsReportPeriod = 60000;
 	private String hotWorkingDir = "";
 	private String hotDistributeDir = "distributes";
+	private int deadLockBreakerPeriod = 60000;
 
 	public String getHotWorkingDir() {
 		return hotWorkingDir;
@@ -116,6 +116,14 @@ public final class Config {
 
 	public void setHotDistributeDir(String value) {
 		hotDistributeDir = value;
+	}
+
+	public int getDeadLockBreakerPeriod() {
+		return deadLockBreakerPeriod;
+	}
+
+	public void setDeadLockBreakerPeriod(int period) {
+		this.deadLockBreakerPeriod = period;
 	}
 
 	public long getProcedureStatisticsReportPeriod() {
@@ -356,7 +364,7 @@ public final class Config {
 		return databaseConfMap;
 	}
 
-	private static Database createDatabase(@NotNull Application zeze, @NotNull DatabaseConf conf) throws RocksDBException {
+	private static Database createDatabase(@NotNull Application zeze, @NotNull DatabaseConf conf) throws Exception {
 		switch (conf.databaseType) {
 		case Memory:
 			return new DatabaseMemory(zeze, conf);
@@ -377,13 +385,14 @@ public final class Config {
 		}
 	}
 
-	public void createDatabase(@NotNull Application zeze, @NotNull HashMap<String, Database> map) throws RocksDBException {
+	public void createDatabase(@NotNull Application zeze, @NotNull HashMap<String, Database> map) throws Exception {
 		// add other database
 		for (var db : getDatabaseConfMap().values())
 			map.put(db.name, createDatabase(zeze, db));
 	}
 
-	public void clearInUseAndIAmSureAppStopped(@NotNull Application zeze, @Nullable HashMap<String, Database> databases) throws RocksDBException {
+	public void clearInUseAndIAmSureAppStopped(@NotNull Application zeze, @Nullable HashMap<String, Database> databases)
+			throws Exception {
 		if (databases == null) {
 			databases = new HashMap<>();
 			createDatabase(zeze, databases);
@@ -587,6 +596,10 @@ public final class Config {
 		attr = self.getAttribute("HotDistributeDir");
 		if (!attr.isBlank())
 			hotDistributeDir = attr;
+
+		attr = self.getAttribute("DeadLockBreakerPeriod");
+		if (!attr.isBlank())
+			deadLockBreakerPeriod = Integer.parseInt(attr);
 
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {

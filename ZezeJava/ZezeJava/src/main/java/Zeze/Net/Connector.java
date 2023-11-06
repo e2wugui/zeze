@@ -1,5 +1,6 @@
 package Zeze.Net;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -208,12 +209,14 @@ public class Connector {
 			}
 			if (socket == null)
 				return; // not start or has stopped.
-			futureSocket.setException(e != null ? e : new Exception("Connector Stopped: " + getName())); // try set
+			if (e == null)
+				e = new IOException("Connector Stopped: " + getName());
+			futureSocket.setException(e); // try set
 			futureSocket = new TaskCompletionSource<>(); // prepare future to next connect.
 			isConnected = false;
 			as = socket;
 			socket = null; // 阻止递归。
 		}
-		as.close();
+		as.close(e);
 	}
 }
