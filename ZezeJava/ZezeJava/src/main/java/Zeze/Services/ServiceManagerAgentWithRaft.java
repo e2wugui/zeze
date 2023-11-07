@@ -128,7 +128,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	protected long ProcessRegisterRequest(Register r) throws Exception {
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state == null)
-			return Update.ServiceNotSubscribe;
+			return errorCode(Update.ServiceNotSubscribe);
 		state.onRegister(r.Argument);
 		r.SendResult();
 		return 0;
