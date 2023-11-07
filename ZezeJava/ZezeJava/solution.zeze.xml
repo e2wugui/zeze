@@ -1898,35 +1898,49 @@
 			</bean>
 			<rpc name="Register" argument="BRegister" handle="client"/>
 
-			<!-- 文件基本操作，支持断点续传，MD5校验 -->
+			<!--
+			发布更新文件基本操作，支持断点续传，MD5校验
+			-->
 			<enum name="eOpenError"       value="1"/> 打开文件发生了系统错误
 			<enum name="eAppendOffset" value="2"/> 添加数据时，Offset越界了（超出结尾）
 			<enum name="eCloseError"       value="3"/> 关闭文件发生了系统错误
 			<enum name="eMd5Mismatch"  value="4"/> 关闭文件时，验证md5失败
+			<enum name="eServiceOldExists"  value="5"/> 发布更新服务时，发现备份目录存在
+			<enum name="eMoveOldFail"  value="6"/> 发布更新服务时，备份失败
+			<enum name="eCommitFail"  value="7"/> 发布更新服务时，发布服务失败
 
 			<bean name="BOpenFile">
-				<variable id="1" name="FileName" type="string"/>
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="FileName" type="string"/>
 			</bean>
 			<bean name="BOpenFileResult">
 				<variable id="1" name="Offset" type="long"/>
 			</bean>
 			<bean name="BAppendFile">
-				<variable id="1" name="FileName" type="string"/>
-				<variable id="2" name="Offset" type="long"/>
-				<variable id="3" name="Chunk" type="binary"/>
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="FileName" type="string"/>
+				<variable id="3" name="Offset" type="long"/>
+				<variable id="4" name="Chunk" type="binary"/>
 			</bean>
 			<bean name="BAppendFileResult">
 			</bean>
 			<bean name="BCloseFile">
-				<variable id="1" name="FileName" type="string"/>
-				<variable id="2" name="Md5" type="binary"/>
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="FileName" type="string"/>
+				<variable id="3" name="Md5" type="binary"/>
 			</bean>
 			<bean name="BCloseFileResult">
+			</bean>
+			<bean name="BCommitService">
+				<variable id="1" name="ServiceName" type="string"/>
+			</bean>
+			<bean name="BCommitServiceResult">
 			</bean>
 
 			<rpc name="OpenFile" argument="BOpenFile" result="BOpenFileResult" handle="server"/>
 			<rpc name="AppendFile" argument="BAppendFile" result="BAppendFileResult"  handle="server"/>
 			<rpc name="CloseFile" argument="BCloseFile" result="BCloseFileResult"  handle="server"/>
+			<rpc name="CommitService" argument="BCommitService" result="BCommitServiceResult"  handle="server"/>
 			
 			<!-- 发布，升级高层接口使用文件操作完成，不需要定义rpc -->
 

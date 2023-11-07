@@ -7,5 +7,6 @@ public interface BOpenFileReadOnly {
     boolean negativeCheck();
     BOpenFile copy();
 
+    String getServiceName();
     String getFileName();
 }

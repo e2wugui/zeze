@@ -7,6 +7,7 @@ public interface BAppendFileReadOnly {
     boolean negativeCheck();
     BAppendFile copy();
 
+    String getServiceName();
     String getFileName();
     long getOffset();
     Zeze.Net.Binary getChunk();

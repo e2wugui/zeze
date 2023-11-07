@@ -7,8 +7,31 @@ import Zeze.Serialize.ByteBuffer;
 public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFileReadOnly {
     public static final long TYPEID = 5018222612881627001L;
 
+    private String _ServiceName;
     private String _FileName;
     private Zeze.Net.Binary _Md5;
+
+    @Override
+    public String getServiceName() {
+        if (!isManaged())
+            return _ServiceName;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _ServiceName;
+        var log = (Log__ServiceName)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _ServiceName;
+    }
+
+    public void setServiceName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _ServiceName = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__ServiceName(this, 1, value));
+    }
 
     @Override
     public String getFileName() {
@@ -17,7 +40,7 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _FileName;
-        var log = (Log__FileName)txn.getLog(objectId() + 1);
+        var log = (Log__FileName)txn.getLog(objectId() + 2);
         return log != null ? log.value : _FileName;
     }
 
@@ -29,7 +52,7 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__FileName(this, 1, value));
+        txn.putLog(new Log__FileName(this, 2, value));
     }
 
     @Override
@@ -39,7 +62,7 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Md5;
-        var log = (Log__Md5)txn.getLog(objectId() + 2);
+        var log = (Log__Md5)txn.getLog(objectId() + 3);
         return log != null ? log.value : _Md5;
     }
 
@@ -51,17 +74,21 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Md5(this, 2, value));
+        txn.putLog(new Log__Md5(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
     public BCloseFile() {
+        _ServiceName = "";
         _FileName = "";
         _Md5 = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BCloseFile(String _FileName_, Zeze.Net.Binary _Md5_) {
+    public BCloseFile(String _ServiceName_, String _FileName_, Zeze.Net.Binary _Md5_) {
+        if (_ServiceName_ == null)
+            _ServiceName_ = "";
+        _ServiceName = _ServiceName_;
         if (_FileName_ == null)
             _FileName_ = "";
         _FileName = _FileName_;
@@ -72,6 +99,7 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
 
     @Override
     public void reset() {
+        setServiceName("");
         setFileName("");
         setMd5(Zeze.Net.Binary.Empty);
         _unknown_ = null;
@@ -90,12 +118,14 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
     }
 
     public void assign(BCloseFile.Data other) {
+        setServiceName(other._ServiceName);
         setFileName(other._FileName);
         setMd5(other._Md5);
         _unknown_ = null;
     }
 
     public void assign(BCloseFile other) {
+        setServiceName(other.getServiceName());
         setFileName(other.getFileName());
         setMd5(other.getMd5());
         _unknown_ = other._unknown_;
@@ -123,6 +153,13 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         return TYPEID;
     }
 
+    private static final class Log__ServiceName extends Zeze.Transaction.Logs.LogString {
+        public Log__ServiceName(BCloseFile bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BCloseFile)getBelong())._ServiceName = value; }
+    }
+
     private static final class Log__FileName extends Zeze.Transaction.Logs.LogString {
         public Log__FileName(BCloseFile bean, int varId, String value) { super(bean, varId, value); }
 
@@ -148,6 +185,7 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BCloseFile: {").append(System.lineSeparator());
         level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(getServiceName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("FileName=").append(getFileName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Md5=").append(getMd5()).append(System.lineSeparator());
         level -= 4;
@@ -183,16 +221,23 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
-            String _x_ = getFileName();
+            String _x_ = getServiceName();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
+            String _x_ = getFileName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
             var _x_ = getMd5();
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
@@ -206,10 +251,14 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setFileName(_o_.ReadString(_t_));
+            setServiceName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
+            setFileName(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
             setMd5(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -226,8 +275,9 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _FileName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _Md5 = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _ServiceName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _FileName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 3: _Md5 = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }
@@ -235,6 +285,9 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setServiceName(rs.getString(_parents_name_ + "ServiceName"));
+        if (getServiceName() == null)
+            setServiceName("");
         setFileName(rs.getString(_parents_name_ + "FileName"));
         if (getFileName() == null)
             setFileName("");
@@ -246,6 +299,7 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "ServiceName", getServiceName());
         st.appendString(_parents_name_ + "FileName", getFileName());
         st.appendBinary(_parents_name_ + "Md5", getMd5());
     }
@@ -253,8 +307,9 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "FileName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Md5", "binary", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "FileName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Md5", "binary", "", ""));
         return vars;
     }
 
@@ -262,8 +317,19 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5018222612881627001L;
 
+    private String _ServiceName;
     private String _FileName;
     private Zeze.Net.Binary _Md5;
+
+    public String getServiceName() {
+        return _ServiceName;
+    }
+
+    public void setServiceName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _ServiceName = value;
+    }
 
     public String getFileName() {
         return _FileName;
@@ -287,12 +353,16 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @SuppressWarnings("deprecation")
     public Data() {
+        _ServiceName = "";
         _FileName = "";
         _Md5 = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _FileName_, Zeze.Net.Binary _Md5_) {
+    public Data(String _ServiceName_, String _FileName_, Zeze.Net.Binary _Md5_) {
+        if (_ServiceName_ == null)
+            _ServiceName_ = "";
+        _ServiceName = _ServiceName_;
         if (_FileName_ == null)
             _FileName_ = "";
         _FileName = _FileName_;
@@ -303,6 +373,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void reset() {
+        _ServiceName = "";
         _FileName = "";
         _Md5 = Zeze.Net.Binary.Empty;
     }
@@ -320,11 +391,13 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BCloseFile other) {
+        _ServiceName = other.getServiceName();
         _FileName = other.getFileName();
         _Md5 = other.getMd5();
     }
 
     public void assign(BCloseFile.Data other) {
+        _ServiceName = other._ServiceName;
         _FileName = other._FileName;
         _Md5 = other._Md5;
     }
@@ -363,6 +436,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BCloseFile: {").append(System.lineSeparator());
         level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(_ServiceName).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("FileName=").append(_FileName).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Md5=").append(_Md5).append(System.lineSeparator());
         level -= 4;
@@ -383,16 +457,23 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = _FileName;
+            String _x_ = _ServiceName;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
+            String _x_ = _FileName;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
             var _x_ = _Md5;
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
@@ -404,10 +485,14 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _FileName = _o_.ReadString(_t_);
+            _ServiceName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
+            _FileName = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
             _Md5 = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }

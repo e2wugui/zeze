@@ -16,6 +16,9 @@ public abstract class AbstractZoker implements Zeze.IModule {
     public static final int eAppendOffset = 2; // 添加数据时，Offset越界了（超出结尾）
     public static final int eCloseError = 3; // 关闭文件发生了系统错误
     public static final int eMd5Mismatch = 4; // 关闭文件时，验证md5失败
+    public static final int eServiceOldExists = 5; // 发布更新服务时，发现备份目录存在
+    public static final int eMoveOldFail = 6; // 发布更新服务时，备份失败
+    public static final int eCommitFail = 7; // 发布更新服务时，发布服务失败
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
@@ -34,6 +37,14 @@ public abstract class AbstractZoker implements Zeze.IModule {
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessCloseFileRequest", Zeze.Transaction.TransactionLevel.None);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessCloseFileRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47406729836341L, factoryHandle); // 11037, -1119176907
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.CommitService.class, Zeze.Builtin.Zoker.CommitService.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Zoker.CommitService::new;
+            factoryHandle.Handle = this::ProcessCommitServiceRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitServiceRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitServiceRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47406581820129L, factoryHandle); // 11037, -1267193119
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.ListSerivce.class, Zeze.Builtin.Zoker.ListSerivce.TypeId_);
@@ -79,6 +90,7 @@ public abstract class AbstractZoker implements Zeze.IModule {
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47406035711083L);
         service.getFactorys().remove(47406729836341L);
+        service.getFactorys().remove(47406581820129L);
         service.getFactorys().remove(47404082048889L);
         service.getFactorys().remove(47405642508207L);
         service.getFactorys().remove(47407341877675L);
@@ -97,6 +109,7 @@ public abstract class AbstractZoker implements Zeze.IModule {
 
     protected abstract long ProcessAppendFileRequest(Zeze.Builtin.Zoker.AppendFile r) throws Exception;
     protected abstract long ProcessCloseFileRequest(Zeze.Builtin.Zoker.CloseFile r) throws Exception;
+    protected abstract long ProcessCommitServiceRequest(Zeze.Builtin.Zoker.CommitService r) throws Exception;
     protected abstract long ProcessListSerivceRequest(Zeze.Builtin.Zoker.ListSerivce r) throws Exception;
     protected abstract long ProcessOpenFileRequest(Zeze.Builtin.Zoker.OpenFile r) throws Exception;
     protected abstract long ProcessStartServiceRequest(Zeze.Builtin.Zoker.StartService r) throws Exception;

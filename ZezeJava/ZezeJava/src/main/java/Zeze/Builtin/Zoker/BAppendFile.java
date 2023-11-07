@@ -7,9 +7,32 @@ import Zeze.Serialize.ByteBuffer;
 public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendFileReadOnly {
     public static final long TYPEID = -5838123267142656915L;
 
+    private String _ServiceName;
     private String _FileName;
     private long _Offset;
     private Zeze.Net.Binary _Chunk;
+
+    @Override
+    public String getServiceName() {
+        if (!isManaged())
+            return _ServiceName;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _ServiceName;
+        var log = (Log__ServiceName)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _ServiceName;
+    }
+
+    public void setServiceName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _ServiceName = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__ServiceName(this, 1, value));
+    }
 
     @Override
     public String getFileName() {
@@ -18,7 +41,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _FileName;
-        var log = (Log__FileName)txn.getLog(objectId() + 1);
+        var log = (Log__FileName)txn.getLog(objectId() + 2);
         return log != null ? log.value : _FileName;
     }
 
@@ -30,7 +53,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__FileName(this, 1, value));
+        txn.putLog(new Log__FileName(this, 2, value));
     }
 
     @Override
@@ -40,7 +63,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Offset;
-        var log = (Log__Offset)txn.getLog(objectId() + 2);
+        var log = (Log__Offset)txn.getLog(objectId() + 3);
         return log != null ? log.value : _Offset;
     }
 
@@ -50,7 +73,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Offset(this, 2, value));
+        txn.putLog(new Log__Offset(this, 3, value));
     }
 
     @Override
@@ -60,7 +83,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Chunk;
-        var log = (Log__Chunk)txn.getLog(objectId() + 3);
+        var log = (Log__Chunk)txn.getLog(objectId() + 4);
         return log != null ? log.value : _Chunk;
     }
 
@@ -72,17 +95,21 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Chunk(this, 3, value));
+        txn.putLog(new Log__Chunk(this, 4, value));
     }
 
     @SuppressWarnings("deprecation")
     public BAppendFile() {
+        _ServiceName = "";
         _FileName = "";
         _Chunk = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BAppendFile(String _FileName_, long _Offset_, Zeze.Net.Binary _Chunk_) {
+    public BAppendFile(String _ServiceName_, String _FileName_, long _Offset_, Zeze.Net.Binary _Chunk_) {
+        if (_ServiceName_ == null)
+            _ServiceName_ = "";
+        _ServiceName = _ServiceName_;
         if (_FileName_ == null)
             _FileName_ = "";
         _FileName = _FileName_;
@@ -94,6 +121,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
 
     @Override
     public void reset() {
+        setServiceName("");
         setFileName("");
         setOffset(0);
         setChunk(Zeze.Net.Binary.Empty);
@@ -113,6 +141,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     }
 
     public void assign(BAppendFile.Data other) {
+        setServiceName(other._ServiceName);
         setFileName(other._FileName);
         setOffset(other._Offset);
         setChunk(other._Chunk);
@@ -120,6 +149,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     }
 
     public void assign(BAppendFile other) {
+        setServiceName(other.getServiceName());
         setFileName(other.getFileName());
         setOffset(other.getOffset());
         setChunk(other.getChunk());
@@ -146,6 +176,13 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     @Override
     public long typeId() {
         return TYPEID;
+    }
+
+    private static final class Log__ServiceName extends Zeze.Transaction.Logs.LogString {
+        public Log__ServiceName(BAppendFile bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BAppendFile)getBelong())._ServiceName = value; }
     }
 
     private static final class Log__FileName extends Zeze.Transaction.Logs.LogString {
@@ -180,6 +217,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BAppendFile: {").append(System.lineSeparator());
         level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(getServiceName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("FileName=").append(getFileName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Offset=").append(getOffset()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Chunk=").append(getChunk()).append(System.lineSeparator());
@@ -216,23 +254,30 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
-            String _x_ = getFileName();
+            String _x_ = getServiceName();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
+            String _x_ = getFileName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
             long _x_ = getOffset();
             if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
         {
             var _x_ = getChunk();
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
@@ -246,14 +291,18 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setFileName(_o_.ReadString(_t_));
+            setServiceName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setOffset(_o_.ReadLong(_t_));
+            setFileName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
+            setOffset(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
             setChunk(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -277,9 +326,10 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _FileName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _Offset = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _Chunk = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _ServiceName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _FileName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 3: _Offset = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 4: _Chunk = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }
@@ -287,6 +337,9 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setServiceName(rs.getString(_parents_name_ + "ServiceName"));
+        if (getServiceName() == null)
+            setServiceName("");
         setFileName(rs.getString(_parents_name_ + "FileName"));
         if (getFileName() == null)
             setFileName("");
@@ -299,6 +352,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "ServiceName", getServiceName());
         st.appendString(_parents_name_ + "FileName", getFileName());
         st.appendLong(_parents_name_ + "Offset", getOffset());
         st.appendBinary(_parents_name_ + "Chunk", getChunk());
@@ -307,9 +361,10 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "FileName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Offset", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Chunk", "binary", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "FileName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Offset", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Chunk", "binary", "", ""));
         return vars;
     }
 
@@ -317,9 +372,20 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -5838123267142656915L;
 
+    private String _ServiceName;
     private String _FileName;
     private long _Offset;
     private Zeze.Net.Binary _Chunk;
+
+    public String getServiceName() {
+        return _ServiceName;
+    }
+
+    public void setServiceName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _ServiceName = value;
+    }
 
     public String getFileName() {
         return _FileName;
@@ -351,12 +417,16 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @SuppressWarnings("deprecation")
     public Data() {
+        _ServiceName = "";
         _FileName = "";
         _Chunk = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _FileName_, long _Offset_, Zeze.Net.Binary _Chunk_) {
+    public Data(String _ServiceName_, String _FileName_, long _Offset_, Zeze.Net.Binary _Chunk_) {
+        if (_ServiceName_ == null)
+            _ServiceName_ = "";
+        _ServiceName = _ServiceName_;
         if (_FileName_ == null)
             _FileName_ = "";
         _FileName = _FileName_;
@@ -368,6 +438,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void reset() {
+        _ServiceName = "";
         _FileName = "";
         _Offset = 0;
         _Chunk = Zeze.Net.Binary.Empty;
@@ -386,12 +457,14 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BAppendFile other) {
+        _ServiceName = other.getServiceName();
         _FileName = other.getFileName();
         _Offset = other.getOffset();
         _Chunk = other.getChunk();
     }
 
     public void assign(BAppendFile.Data other) {
+        _ServiceName = other._ServiceName;
         _FileName = other._FileName;
         _Offset = other._Offset;
         _Chunk = other._Chunk;
@@ -431,6 +504,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BAppendFile: {").append(System.lineSeparator());
         level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(_ServiceName).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("FileName=").append(_FileName).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Offset=").append(_Offset).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Chunk=").append(_Chunk).append(System.lineSeparator());
@@ -452,23 +526,30 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = _FileName;
+            String _x_ = _ServiceName;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
+            String _x_ = _FileName;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
             long _x_ = _Offset;
             if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
         {
             var _x_ = _Chunk;
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
@@ -480,14 +561,18 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _FileName = _o_.ReadString(_t_);
+            _ServiceName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            _Offset = _o_.ReadLong(_t_);
+            _FileName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
+            _Offset = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
             _Chunk = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }

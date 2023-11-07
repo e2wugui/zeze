@@ -2,24 +2,28 @@ package Zeze.Services.ZokerImpl;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Zoker.BService;
 import Zeze.Builtin.Zoker.StartService;
 import Zeze.Builtin.Zoker.StopService;
+import Zeze.Services.Zoker;
 import Zeze.Util.Task;
 
-public class ProcessManager {
-	private final String baseDir;
+public class ServiceManager {
+	private final Zoker zoker;
 	private final ConcurrentHashMap<String, Process> processes = new ConcurrentHashMap<>();
 
-	public ProcessManager(String baseDir) {
-		this.baseDir = baseDir;
+	public ServiceManager(Zoker zoker) {
+		this.zoker = zoker;
+	}
+
+	public Zoker getZoker() {
+		return zoker;
 	}
 
 	public void listService(java.util.ArrayList<Zeze.Builtin.Zoker.BService.Data> out) {
-		var listFiles = new File(baseDir).listFiles();
+		var listFiles = zoker.getServiceDir().listFiles();
 		if (null != listFiles) {
 			for (var file : listFiles) {
 				if (file.isDirectory()) {
@@ -41,7 +45,7 @@ public class ProcessManager {
 
 	private Process newProcess(String serviceName) {
 		var pb = new ProcessBuilder();
-		pb.directory(Path.of(baseDir, serviceName).toFile());
+		pb.directory(new File(zoker.getServiceDir(), serviceName));
 		pb.command(buildCommand(serviceName));
 		try {
 			return pb.start();

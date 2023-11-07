@@ -1,13 +1,11 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Zoker;
 
-public interface BCloseFileReadOnly {
+public interface BCommitServiceReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BCloseFile copy();
+    BCommitService copy();
 
     String getServiceName();
-    String getFileName();
-    Zeze.Net.Binary getMd5();
 }
