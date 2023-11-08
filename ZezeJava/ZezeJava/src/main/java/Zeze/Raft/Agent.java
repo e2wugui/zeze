@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -8,6 +9,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.ToLongFunction;
 import Zeze.Application;
 import Zeze.Config;
+import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
@@ -188,13 +190,13 @@ public final class Agent {
 		return Procedure.Success;
 	}
 
-	public <TArgument extends Serializable, TResult extends Serializable> TaskCompletionSourceX<RaftRpc<TArgument, TResult>> sendForWait(
-			RaftRpc<TArgument, TResult> rpc) {
+	public <TArgument extends Serializable, TResult extends Serializable> TaskCompletionSourceX<RaftRpc<TArgument, TResult>>
+		sendForWait(RaftRpc<TArgument, TResult> rpc) {
 		return sendForWait(rpc, false);
 	}
 
-	public <TArgument extends Serializable, TResult extends Serializable> TaskCompletionSourceX<RaftRpc<TArgument, TResult>> sendForWait(
-			RaftRpc<TArgument, TResult> rpc, boolean urgent) {
+	public <TArgument extends Serializable, TResult extends Serializable> TaskCompletionSourceX<RaftRpc<TArgument, TResult>>
+		sendForWait(RaftRpc<TArgument, TResult> rpc, boolean urgent) {
 		if (pendingLimit > 0 && pending.size() > pendingLimit) // UrgentPending不限制。
 			throw new IllegalStateException("too many pending");
 		// 由于interface不能把setter弄成保护的，实际上外面可以修改。
@@ -369,6 +371,10 @@ public final class Agent {
 
 		this.client.AddFactoryHandle(GetLeader.TypeId_, new Service.ProtocolFactoryHandle<>(
 				GetLeader::new, null, TransactionLevel.None, DispatchMode.Normal));
+		this.client.AddFactoryHandle(StartServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
+				StartServerConnector::new, null, TransactionLevel.None, DispatchMode.Normal));
+		this.client.AddFactoryHandle(StopServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
+				StopServerConnector::new, null, TransactionLevel.None, DispatchMode.Normal));
 		// ugly
 		resendTask = Task.scheduleUnsafe(1000, 1000, this::resend);
 	}
@@ -602,16 +608,22 @@ public final class Agent {
 		send(new GetLeader(), (p) -> handle.applyAsLong((GetLeader)p));
 	}
 
-	public static RaftConfig.Node waitForLeader(RaftConfig raftConfig) {
-		return waitForLeader(raftConfig, 5000);
+	public static ConnectorEx waitForLeader(RaftConfig raftConfig) {
+		return waitForLeader(raftConfig, 0, null);
 	}
 
-	public static RaftConfig.Node waitForLeader(RaftConfig raftConfig, long timeoutMs) {
+	public static ConnectorEx waitForLeader(RaftConfig raftConfig, long timeoutMs) {
+		return waitForLeader(raftConfig, timeoutMs, null);
+	}
+
+	public static ConnectorEx waitForLeader(RaftConfig raftConfig, long timeoutMs, OutObject<Agent> out) {
 		if (raftConfig.getSuggestMajorityCount() < raftConfig.getMajorityCount())
-			throw new RuntimeException("majority node too few.");
+			throw new RuntimeException("suggest majority node too few.");
 
 		try {
-			var agent = new Agent("", raftConfig);
+			var randName = new byte[32];
+			Zeze.Util.Random.getInstance().nextBytes(randName);
+			var agent = new Agent(Arrays.toString(randName), raftConfig);
 			try {
 				var future = new TaskCompletionSource<ConnectorEx>();
 				agent.setOnSetLeader((_agent) -> future.setResult(_agent.getLeader()));
@@ -628,8 +640,12 @@ public final class Agent {
 				// 上面有两个地方setResult，谁先都可以。一般onSetLeader先完成。
 				// java.Future.setResult可以重复调用，重复的会被忽略。
 				// 如果是c#，需要使用TrySetResult。
-				var leader = future.get(timeoutMs, TimeUnit.MILLISECONDS); // 这里使用用户超时，需要确保超时大于选举需要的时间。
-				return raftConfig.getNodes().get(leader.getName());
+				if (timeoutMs <= 0) {
+					timeoutMs = raftConfig.getLeaderHeartbeatTimer()
+							+ raftConfig.getElectionTimeoutMax()
+							+ raftConfig.getAppendEntriesTimeout();
+				}
+				return future.get(timeoutMs, TimeUnit.MILLISECONDS); // 这里使用用户超时，需要确保超时大于选举需要的时间。
 			} finally {
 				agent.stop();
 			}
@@ -639,18 +655,84 @@ public final class Agent {
 		}
 	}
 
-	public static boolean driveOutNotSuggestMajorityLeader(RaftConfig raftConfig) {
-		var leaderNode = waitForLeader(raftConfig);
-		if (null == leaderNode)
-			return false;
-		if (leaderNode.isSuggestMajority())
-			return true;
+	public static ConnectorEx waitForLeader(Agent agent, RaftConfig raftConfig, long timeoutMs) throws Exception {
+		var future = new TaskCompletionSource<ConnectorEx>();
+		agent.setOnSetLeader((_agent) -> future.setResult(_agent.getLeader()));
+		var netConfig = agent.getClient().getConfig();
+		agent.getLeaderAsync((get) -> {
+			if (get.getResultCode() == 0)
+				future.setResult((ConnectorEx)netConfig.findConnector(get.Result.getLeaderId()));
+			return 0;
+		});
+		// 上面有两个地方setResult，谁先都可以。一般onSetLeader先完成。
+		// java.Future.setResult可以重复调用，重复的会被忽略。
+		// 如果是c#，需要使用TrySetResult。
+		if (timeoutMs <= 0) {
+			timeoutMs = raftConfig.getLeaderHeartbeatTimer()
+					+ raftConfig.getElectionTimeoutMax()
+					+ raftConfig.getAppendEntriesTimeout();
+		}
+		return future.get(timeoutMs, TimeUnit.MILLISECONDS); // 这里使用用户超时，需要确保超时大于选举需要的时间。
+	}
 
-		// todo
-		//  检测活跃的建议的节点数量足够，达到多数派；
-		//  停止所有非建议的节点；
-		//  重启所有非建议的节点；
-		//  达到把Leader驱赶回主机房（建议节点成为Leader）；
-		return false;
+	public java.util.List<ConnectorEx> getActiveSuggestMajorityConnectors() {
+		var result = new ArrayList<ConnectorEx>();
+		for (var node : raftConfig.getNodes().values()) {
+			var connector = client.getConfig().findConnector(node.getName());
+			if (null != connector && connector.TryGetReadySocket() != null)
+				result.add((ConnectorEx)connector);
+		}
+		return result;
+	}
+
+	/**
+	 * 把Leader赶回主机房（建议节点成为Leader）。
+	 * @param raftConfig raftConfig
+	 * @return null，表示成功，！null表示错误描述。
+	 */
+	public static String driveOutNotSuggestMajorityLeader(RaftConfig raftConfig) {
+		var agentOut = new OutObject<Agent>();
+		var leader = waitForLeader(raftConfig, 0, agentOut);
+		if (null == leader)
+			return "no leader.";
+		var leaderNode = raftConfig.getNodes().get(leader.getName());
+		if (leaderNode.isSuggestMajority())
+			return null;
+
+		// 检测活跃的建议的节点数量足够，达到多数派；
+		if (agentOut.value.getActiveSuggestMajorityConnectors().size() < raftConfig.getMajorityCount())
+			return "active suggest majority count not enough.";
+		var stoppeds = new ArrayList<ConnectorEx>();
+		try {
+			// 停止非建议的节点的Leader；
+			// 不能一下子停止所有的非建议节点；
+			// 需要一步一步驱赶，其他非建议节点可能是最新的，需要它传播下去。
+			while (!leaderNode.isSuggestMajority()) {
+				var stopServer = new StopServerConnector();
+				stopServer.SendForWait(leader.TryGetReadySocket()).await();
+				if (stopServer.getResultCode() != 0)
+					return "stop server for " + leader.getName() + " error=" + IModule.getErrorCode(stopServer.getResultCode());
+				stoppeds.add(leader);
+				// 等待选举出新的Leader。
+				leader = waitForLeader(agentOut.value, raftConfig, 0);
+				if (null == leader)
+					return "no leader.";
+				leaderNode = raftConfig.getNodes().get(leader.getName());
+			}
+			return null;
+
+		} catch (Exception ex) {
+			return ex.toString();
+
+		} finally {
+			// 重启所有停掉的节点；
+			for (var stopped : stoppeds) {
+				var startServer = new StartServerConnector();
+				startServer.SendForWait(stopped.TryGetReadySocket()).await();
+				if (startServer.getResultCode() != 0)
+					logger.error("stop server for {}  error={}",
+							stopped.getName(), IModule.getErrorCode(startServer.getResultCode()));
+			}
+		}
 	}
 }

@@ -862,6 +862,10 @@ public final class Raft {
 				LeaderIs::new, Raft::processLeaderIs, TransactionLevel.Serializable, DispatchMode.Normal));
 		server.AddFactoryHandle(GetLeader.TypeId_, new Service.ProtocolFactoryHandle<>(
 				GetLeader::new, this::processGetLeader, TransactionLevel.None, DispatchMode.Normal));
+		server.AddFactoryHandle(StartServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
+				StartServerConnector::new, this::processStartServer, TransactionLevel.None, DispatchMode.Normal));
+		server.AddFactoryHandle(StopServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
+				StopServerConnector::new, this::processStopServer, TransactionLevel.None, DispatchMode.Normal));
 	}
 
 	private long processGetLeader(GetLeader r) {
@@ -878,6 +882,18 @@ public final class Raft {
 		r.Result.setLeaderId(leaderId); // maybe empty
 		r.Result.setLeader(isLeader());
 		r.trySendResultCode(Procedure.Success);
+		return 0;
+	}
+
+	private long processStartServer(StartServerConnector r) {
+		server.getConfig().forEachConnector(Connector::stop);
+		r.SendResult();
+		return 0;
+	}
+
+	private long processStopServer(StopServerConnector r) {
+		server.getConfig().forEachConnector(Connector::start);
+		r.SendResult();
 		return 0;
 	}
 }

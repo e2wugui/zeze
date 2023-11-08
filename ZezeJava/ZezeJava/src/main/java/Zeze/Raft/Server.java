@@ -244,8 +244,9 @@ public class Server extends HandshakeBoth {
 			return;
 		}
 
-		if (p.getTypeId() == GetLeader.TypeId_) {
-			// 这条协议定义成了普通的用户请求，
+		var pTypeId = p.getTypeId();
+		if (pTypeId == GetLeader.TypeId_ || pTypeId == StartServerConnector.TypeId_ || pTypeId == StopServerConnector.TypeId_) {
+			// 这几条协议定义成了普通的用户请求，
 			// 但是这条协议不需要自己是Leader也能工作，
 			// 所以提前拦截，派发处理。see Raft::processGetLeader
 			dispatchRaftRequest(p, () -> processRequest(p, factoryHandle),
