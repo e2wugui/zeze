@@ -860,5 +860,24 @@ public final class Raft {
 				InstallSnapshot::new, this::processInstallSnapshot, TransactionLevel.Serializable, DispatchMode.Normal));
 		server.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
 				LeaderIs::new, Raft::processLeaderIs, TransactionLevel.Serializable, DispatchMode.Normal));
+		server.AddFactoryHandle(GetLeader.TypeId_, new Service.ProtocolFactoryHandle<>(
+				GetLeader::new, this::processGetLeader, TransactionLevel.None, DispatchMode.Normal));
+	}
+
+	private long processGetLeader(GetLeader r) {
+		// see Server::trySendLeaderIs
+		String leaderId = getLeaderId();
+		if (leaderId == null || leaderId.isEmpty())
+			return Procedure.Unknown;
+
+		if (getName().equals(leaderId) && !isLeader())
+			return Procedure.Unknown;
+
+		// redirect
+		r.Result.setTerm(getLogSequence().getTerm());
+		r.Result.setLeaderId(leaderId); // maybe empty
+		r.Result.setLeader(isLeader());
+		r.trySendResultCode(Procedure.Success);
+		return 0;
 	}
 }

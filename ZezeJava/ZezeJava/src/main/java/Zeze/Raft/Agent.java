@@ -2,6 +2,7 @@ package Zeze.Raft;
 
 import java.util.ArrayList;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.ToLongFunction;
@@ -27,6 +28,7 @@ import Zeze.Util.OutObject;
 import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskCompletionSourceX;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -365,6 +367,8 @@ public final class Agent {
 		this.client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
 				LeaderIs::new, this::processLeaderIs, TransactionLevel.Serializable, DispatchMode.Normal));
 
+		this.client.AddFactoryHandle(GetLeader.TypeId_, new Service.ProtocolFactoryHandle<>(
+				GetLeader::new, null, TransactionLevel.None, DispatchMode.Normal));
 		// ugly
 		resendTask = Task.scheduleUnsafe(1000, 1000, this::resend);
 	}
@@ -592,5 +596,61 @@ public final class Agent {
 				Task.executeUnsafe(() -> p.handle(this, factoryHandle),
 						p, Protocol::trySendResultCode, null, factoryHandle.Mode);
 		}
+	}
+
+	public void getLeaderAsync(ToLongFunction<GetLeader> handle) {
+		send(new GetLeader(), (p) -> handle.applyAsLong((GetLeader)p));
+	}
+
+	public static RaftConfig.Node waitForLeader(RaftConfig raftConfig) {
+		return waitForLeader(raftConfig, 5000);
+	}
+
+	public static RaftConfig.Node waitForLeader(RaftConfig raftConfig, long timeoutMs) {
+		if (raftConfig.getSuggestMajorityCount() < raftConfig.getMajorityCount())
+			throw new RuntimeException("majority node too few.");
+
+		try {
+			var agent = new Agent("", raftConfig);
+			try {
+				var future = new TaskCompletionSource<ConnectorEx>();
+				agent.setOnSetLeader((_agent) -> future.setResult(_agent.getLeader()));
+				agent.getClient().start();
+				var netConfig = agent.getClient().getConfig();
+				// 如果相信onSetLeader是即时的，不会丢失，本来不需要主动GetLeader。
+				// 为了确保让流程运转起来，定义一个用户空间的请求GetLeader，主动发送。
+				// 这个请求在没有leader的时候也可以发送，它会resend，最终等到leader选举出来，当然也有超时。
+				agent.getLeaderAsync((get) -> {
+					if (get.getResultCode() == 0)
+						future.setResult((ConnectorEx)netConfig.findConnector(get.Result.getLeaderId()));
+					return 0;
+				});
+				// 上面有两个地方setResult，谁先都可以。一般onSetLeader先完成。
+				// java.Future.setResult可以重复调用，重复的会被忽略。
+				// 如果是c#，需要使用TrySetResult。
+				var leader = future.get(timeoutMs, TimeUnit.MILLISECONDS); // 这里使用用户超时，需要确保超时大于选举需要的时间。
+				return raftConfig.getNodes().get(leader.getName());
+			} finally {
+				agent.stop();
+			}
+		} catch (Exception ex) {
+			logger.warn("", ex);
+			return null;
+		}
+	}
+
+	public static boolean driveOutNotSuggestMajorityLeader(RaftConfig raftConfig) {
+		var leaderNode = waitForLeader(raftConfig);
+		if (null == leaderNode)
+			return false;
+		if (leaderNode.isSuggestMajority())
+			return true;
+
+		// todo
+		//  检测活跃的建议的节点数量足够，达到多数派；
+		//  停止所有非建议的节点；
+		//  重启所有非建议的节点；
+		//  达到把Leader驱赶回主机房（建议节点成为Leader）；
+		return false;
 	}
 }

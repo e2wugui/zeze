@@ -90,7 +90,11 @@ public final class RaftConfig {
 
 	// 多数确认时：大于等于这个即可，因为还有自己(Leader)。
 	public int getHalfCount() {
-		return nodes.size() / 2;
+		return nodes.size() >>> 1;
+	}
+
+	public int getMajorityCount() {
+		return nodes.size() >>> 1 + 1;
 	}
 
 	public String getDbHome() {
@@ -337,6 +341,12 @@ public final class RaftConfig {
 		// 这个需要一定的开发，这里仅提供基本的扩展配置点。
 		private final String proxyHost;
 		private final int proxyPort;
+
+		// 多数。
+		// 当raft把节点分布到异地机房中，但是在主机房保留足够的多数派，推荐Leader都在主机房中产生。
+		// 这个配置用来区分是否主机房。
+		// 默认true，所有的节点都在主机房。
+		private final boolean suggestMajority;
 		private Element self;
 
 		Node(Element self) {
@@ -345,14 +355,21 @@ public final class RaftConfig {
 			port = Integer.parseInt(self.getAttribute("Port"));
 			proxyHost = self.getAttribute("ProxyHost");
 			var attr = self.getAttribute("ProxyPort");
-			proxyPort = attr.isBlank() ? 0: Integer.parseInt(attr);
+			proxyPort = attr.isBlank() ? 0 : Integer.parseInt(attr);
+			attr = self.getAttribute("SuggestMajority");
+			suggestMajority = attr.isBlank() || Boolean.parseBoolean(attr);
 		}
 
 		Node(String host, int port, String proxyHost, int proxyPort) {
+			this(host, port, proxyHost, proxyPort, true);
+		}
+
+		Node(String host, int port, String proxyHost, int proxyPort, boolean majority) {
 			this.host = host;
 			this.port = port;
 			this.proxyHost = proxyHost;
 			this.proxyPort = proxyPort;
+			this.suggestMajority = majority;
 		}
 
 		public String getHost() {
@@ -375,6 +392,10 @@ public final class RaftConfig {
 			return host + '_' + port;
 		}
 
+		public boolean isSuggestMajority() {
+			return suggestMajority;
+		}
+
 		void save(Document doc, Element parent) {
 			if (self == null) {
 				self = doc.createElement("node");
@@ -384,6 +405,7 @@ public final class RaftConfig {
 			self.setAttribute("Port", String.valueOf(port));
 			self.setAttribute("ProxyHost", proxyHost);
 			self.setAttribute("ProxyPort", String.valueOf(proxyPort));
+			self.setAttribute("SuggestMajority", String.valueOf(suggestMajority));
 		}
 
 		@Override
@@ -392,8 +414,16 @@ public final class RaftConfig {
 		}
 	}
 
+	public int getSuggestMajorityCount() {
+		var count = 0;
+		for (var node : nodes.values())
+			if (node.isSuggestMajority())
+				count ++;
+		return count;
+	}
+
 	public static void main(String[] args) {
-		var conf = RaftConfig.loadFromSortedNames("-127.0.0.1:10004-127.0.0.1:10005-127.0.0.1:10006");
+		var conf = RaftConfig.loadFromSortedNames("-127.0.0.1_10004-127.0.0.1_10005-127.0.0.1_10006");
 		System.out.println(conf.getNodes());
 	}
 }
