@@ -40,7 +40,7 @@ public class Dbh2FullTest {
 	@Test
 	public void testBench() throws Exception {
 		System.setProperty("Dbh2MasterDefaultBucketPortId", "18000");
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 		Zeze.Net.Selectors.getInstance().add(7);
 
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
@@ -57,7 +57,7 @@ public class Dbh2FullTest {
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
-				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze" + i +".xml"));
+				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze" + i + ".xml"));
 			for (var manager : managers)
 				manager.start();
 			dbh2AgentManager.start();
@@ -97,7 +97,7 @@ public class Dbh2FullTest {
 	public void testCommitServerQueryVerify() throws Exception {
 		System.setProperty("Dbh2MasterDefaultBucketPortId", "18000");
 
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
@@ -145,7 +145,7 @@ public class Dbh2FullTest {
 	public void testFull() throws Exception {
 		System.setProperty("Dbh2MasterDefaultBucketPortId", "18000");
 
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();

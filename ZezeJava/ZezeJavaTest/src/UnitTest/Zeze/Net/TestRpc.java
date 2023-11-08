@@ -15,7 +15,7 @@ public class TestRpc extends TestCase {
 
 	public final void testRpcSimple() throws Exception {
 		Service server = new Service("TestRpc.Server");
-		Zeze.Util.Task.tryInitThreadPool(null, null, null);
+		Zeze.Util.Task.tryInitThreadPool();
 		FirstRpc first = new FirstRpc();
 		Factory<Protocol<?>> f = FirstRpc::new;
 		System.out.println(first.getTypeId());

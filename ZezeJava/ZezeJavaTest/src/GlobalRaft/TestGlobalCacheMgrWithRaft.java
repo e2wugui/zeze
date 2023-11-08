@@ -69,7 +69,7 @@ public class TestGlobalCacheMgrWithRaft {
 			logger.fatal("uncaught fatal exception for thread: {}", t.getName(), e);
 		});
 
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 //		Task.initThreadPool((ThreadPoolExecutor)Executors.newFixedThreadPool(10, new ThreadFactoryWithName("globalRaftTest")),
 //				(ScheduledThreadPoolExecutor)Executors.newScheduledThreadPool(3, new ThreadFactoryWithName("globalRaftTest-sch")));
 

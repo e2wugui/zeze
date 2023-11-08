@@ -11,7 +11,7 @@ import org.junit.Test;
 public class TestLogService {
 	@Test
 	public void testLogService() throws Exception {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		var configXml = "server.xml";
 		var logService = new LogService(Config.load(configXml));

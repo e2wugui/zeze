@@ -61,7 +61,7 @@ public class Dbh2Test {
 
 	@Test
 	public void testDbh2() throws Exception {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 		var bucket1 = new Bucket("""
 				<?xml version="1.0" encoding="utf-8"?>
 				<raft Name="">

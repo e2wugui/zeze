@@ -72,7 +72,7 @@ public class TestTask extends TestCase {
 	static ConcurrentHashSet<TaskClient> tasksInfoClient = new ConcurrentHashSet<>(); // 模拟一份在客户端的任务数据
 
 	public void test1() throws Exception {
-		Zeze.Util.Task.tryInitThreadPool(null, null, null);
+		Zeze.Util.Task.tryInitThreadPool();
 
 		try {
 			start();

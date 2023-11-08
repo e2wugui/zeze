@@ -20,7 +20,7 @@ public class Bench1Mysql {
 		try (var dataSource = new DruidDataSource()) {
 			dataSource.setUrl(url);
 			dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
-			Zeze.Util.Task.tryInitThreadPool(null, null, null);
+			Zeze.Util.Task.tryInitThreadPool();
 			var futures = new ArrayList<Future<?>>();
 			var bTotal = new Zeze.Util.Benchmark();
 			final var count = 1_0000;

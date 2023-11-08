@@ -33,7 +33,7 @@ public class HotUpgradeMemoryTable {
 				}
 				// key value retreat
 				var bbKey = old.encodeKey(k);
-				var newKey = cur.decodeKeyObject(bbKey);
+				var newKey = cur.decodeKey(bbKey);
 				var bbValue = ByteBuffer.Allocate();
 				v.encode(bbValue);
 				var newValue = cur.newValueBean();

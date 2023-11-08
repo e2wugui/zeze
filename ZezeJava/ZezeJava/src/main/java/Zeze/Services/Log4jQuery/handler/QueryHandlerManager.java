@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 
 import Zeze.Services.Log4jQuery.handler.entity.SimpleField;
-import com.alibaba.fastjson.JSONObject;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
 import org.apache.logging.log4j.LogManager;
@@ -68,7 +67,7 @@ public class QueryHandlerManager {
 	public static class QueryHandleContainer {
 		private final QueryHandler<?, ?> queryHandler;
 		private Class<?> paramClass;
-		private List<SimpleField> fields = new ArrayList<>();
+		private final List<SimpleField> fields = new ArrayList<>();
 		public QueryHandleContainer(QueryHandler<?, ?> queryHandler) {
 			this.queryHandler = queryHandler;
 			Method[] declaredMethods = queryHandler.getClass().getDeclaredMethods();
@@ -89,7 +88,7 @@ public class QueryHandlerManager {
 
 		}
 
-		public Class getParamClass() {
+		public Class<?> getParamClass() {
 			return paramClass;
 		}
 

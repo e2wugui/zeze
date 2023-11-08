@@ -729,11 +729,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return encodeKey((K)key);
 	}
 
-	@Override
-	public Object decodeKeyObject(@NotNull ByteBuffer bb) {
-		return decodeKey(bb);
+	public @NotNull K decodeKey(byte @NotNull [] bytes) {
+		return decodeKey(ByteBuffer.Wrap(bytes));
 	}
 
+	@Override
 	public abstract @NotNull K decodeKey(@NotNull ByteBuffer bb);
 
 	public abstract @NotNull K decodeKeyResultSet(@NotNull ResultSet rs) throws java.sql.SQLException;
@@ -774,6 +774,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		V value = newValue();
 		value.decode(bb);
 		return value;
+	}
+
+	public final @NotNull V decodeValue(byte @NotNull [] bytes) {
+		return decodeValue(ByteBuffer.Wrap(bytes));
 	}
 
 	public final K walk(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback) {

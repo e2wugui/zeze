@@ -16,7 +16,7 @@ public class SelectCmdParamHandler implements QueryHandler<String, ClazzInfo> {
 			if (queryHandleContainer == null){
 				return clazzInfo;
 			}
-			Class paramClass = queryHandleContainer.getParamClass();
+			Class<?> paramClass = queryHandleContainer.getParamClass();
 			clazzInfo.setClazzName(paramClass.getName());
 			if (paramClass.isAssignableFrom(Number.class) || paramClass == Boolean.class || paramClass == String.class){
 				clazzInfo.setBaseType(true);

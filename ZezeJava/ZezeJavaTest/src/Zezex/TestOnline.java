@@ -73,7 +73,7 @@ public class TestOnline extends TestCase {
 	}
 
 	public void test3() throws Exception {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		for (int i = 0; i < ClientCount; ++i) {
 			var client = new ClientGame.App();

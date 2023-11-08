@@ -115,6 +115,14 @@ public final class Task {
 		ThreadDiagnosable.startDiagnose(30_000);
 	}
 
+	public static boolean tryInitThreadPool() {
+		return tryInitThreadPool(null);
+	}
+
+	public static boolean tryInitThreadPool(@Nullable Application app) {
+		return tryInitThreadPool(app, null, null);
+	}
+
 	public static synchronized boolean tryInitThreadPool(@Nullable Application app, @Nullable ExecutorService pool,
 														 @Nullable ScheduledExecutorService scheduled) {
 		if (threadPoolDefault != null || threadPoolScheduled != null)

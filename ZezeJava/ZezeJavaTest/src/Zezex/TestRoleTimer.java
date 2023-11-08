@@ -101,7 +101,7 @@ public class TestRoleTimer {
 
 	@Test
 	public void testRoleTimer1() throws Exception {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		try {
 			log("Role Online Timer 初始化测试环境");
@@ -178,7 +178,7 @@ public class TestRoleTimer {
 
 	@Test
 	public void testRoleTimerCron1() throws Exception {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		try {
 			log("Role Online Timer 初始化测试环境");
@@ -262,7 +262,7 @@ public class TestRoleTimer {
 
 	@Test
 	public void testRoleTimer2() throws Exception {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		try {
 			log("Role Offline Timer 测试启动");
@@ -318,7 +318,7 @@ public class TestRoleTimer {
 
 	@Test
 	public void testRoleTimerCron2() throws Exception {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		try {
 			log("Role Offline Timer 测试启动");

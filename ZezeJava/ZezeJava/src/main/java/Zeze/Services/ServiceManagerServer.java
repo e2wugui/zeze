@@ -905,7 +905,7 @@ public final class ServiceManagerServer implements Closeable {
 		String raftName = null;
 		String raftConf = "servicemanager.raft.xml";
 
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {

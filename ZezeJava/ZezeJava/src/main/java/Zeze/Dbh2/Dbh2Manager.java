@@ -195,7 +195,7 @@ public class Dbh2Manager {
 
 	public static void main(String[] args) {
 		try {
-			Task.tryInitThreadPool(null, null, null);
+			Task.tryInitThreadPool();
 
 			var selector = 1;
 

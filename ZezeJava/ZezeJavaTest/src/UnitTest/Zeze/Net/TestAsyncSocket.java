@@ -8,7 +8,7 @@ import junit.framework.TestCase;
 
 public class TestAsyncSocket extends TestCase {
 	static {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 	}
 
 	public void testMain() {

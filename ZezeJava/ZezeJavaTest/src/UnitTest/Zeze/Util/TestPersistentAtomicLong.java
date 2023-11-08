@@ -12,7 +12,7 @@ import java.util.concurrent.Future;
 
 public class TestPersistentAtomicLong extends TestCase {
 	public void testConcurrent() {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		var p1 = PersistentAtomicLong.getOrAdd("TestPersistentAtomicLong", 10);
 		var p2 = PersistentAtomicLong.getOrAdd("TestPersistentAtomicLong", 10);

@@ -970,7 +970,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		String raftName = null;
 		String raftConf = "global.raft.xml";
 
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {

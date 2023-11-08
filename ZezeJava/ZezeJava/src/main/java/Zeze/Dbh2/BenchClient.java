@@ -29,7 +29,7 @@ public class BenchClient {
 
 	public static void main(String[] args) {
 		try {
-			Task.tryInitThreadPool(null, null, null);
+			Task.tryInitThreadPool();
 
 			var tableNumber = 1;
 			var threadNumber = 128;

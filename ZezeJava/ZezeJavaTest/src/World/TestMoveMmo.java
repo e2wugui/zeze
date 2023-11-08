@@ -22,7 +22,7 @@ public class TestMoveMmo {
 
 	@Test
 	public void testMoveBench() throws Exception {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		var map = new CubeMap(App.Instance.world.getMapManager(), 0, 128, 128);
 		var center = map.toIndex(0, 0, 0);

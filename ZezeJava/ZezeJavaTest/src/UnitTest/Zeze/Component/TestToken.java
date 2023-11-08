@@ -19,7 +19,7 @@ public class TestToken {
 
 	@Test
 	public void testToken() throws Exception {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 		var tokenServer = new Token().start(null, null, 5003);
 		try {
 			var tokenClient = new Token.TokenClient(null).start("127.0.0.1", 5003);
@@ -49,7 +49,7 @@ public class TestToken {
 
 	@Test
 	public void testTopic() throws Exception {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 		var tokenServer = new Token().start(null, null, 5003);
 		try {
 			var tokenClient = new Token.TokenClient(null).start("127.0.0.1", 5003);
@@ -78,7 +78,7 @@ public class TestToken {
 	@Ignore
 	@Test
 	public void testKeepAlive() throws Exception {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 		var conf = new Config();
 		var sconf = new ServiceConf();
 		sconf.getHandshakeOptions().setKeepCheckPeriod(1);

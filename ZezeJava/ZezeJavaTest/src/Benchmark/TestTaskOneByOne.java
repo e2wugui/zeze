@@ -19,7 +19,7 @@ public class TestTaskOneByOne {
 
 	@Test
 	public void testBenchmark() throws InterruptedException {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 		var oo = new TaskOneByOneByKey();
 		var b = new Zeze.Util.Benchmark();
 		for (int i = 0; i < TaskCount; ++i) {
@@ -42,7 +42,7 @@ public class TestTaskOneByOne {
 
 	@Test
 	public void testBenchmark2() throws InterruptedException {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 		var oo = new TaskOneByOneByKey2();
 		var b = new Zeze.Util.Benchmark();
 		for (int i = 0; i < TaskCount; ++i) {
@@ -89,7 +89,7 @@ public class TestTaskOneByOne {
 
 	@Test
 	public void testCyclicBarrier() throws InterruptedException {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 		taskIds.clear();
 		var oo = new TaskOneByOneByKey();
 		var b = new Zeze.Util.Benchmark();
@@ -126,7 +126,7 @@ public class TestTaskOneByOne {
 
 	@Test
 	public void testCyclicBarrier2() throws InterruptedException {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 		taskIds.clear();
 		var oo = new TaskOneByOneByKey2();
 		var b = new Zeze.Util.Benchmark();

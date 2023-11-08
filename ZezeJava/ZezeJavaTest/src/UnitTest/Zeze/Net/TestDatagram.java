@@ -20,7 +20,7 @@ import org.junit.Test;
 public class TestDatagram {
 	@Test
 	public void testSendDispatch() throws IOException, InterruptedException {
-		Task.tryInitThreadPool(null, null, null);
+		Task.tryInitThreadPool();
 
 		var service = new TestDatagramService();
 		service.addFactoryHandle(ProtoValue.TypeId_, new Service.ProtocolFactoryHandle<>(

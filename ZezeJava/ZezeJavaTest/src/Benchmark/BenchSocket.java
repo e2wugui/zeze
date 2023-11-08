@@ -555,7 +555,7 @@ public class BenchSocket {
 		client.getSocketOptions().setOutputBufferMaxSize(maxOutputBufferSize);
 		maxOutputBufferSize -= 1024;
 
-		Zeze.Util.Task.tryInitThreadPool(null, null, null);
+		Zeze.Util.Task.tryInitThreadPool();
 
 		// 生成一些随机大小的协议参数Bean。
 		var bValues = new ArrayList<BValue>();
