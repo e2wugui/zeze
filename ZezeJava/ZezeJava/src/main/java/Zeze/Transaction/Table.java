@@ -138,6 +138,4 @@ public abstract class Table {
 	public abstract @NotNull ByteBuffer encodeKey(@NotNull Object key);
 
 	public abstract @NotNull Object decodeKey(@NotNull ByteBuffer bb);
-
-	public abstract Bean newValueBean();
 }

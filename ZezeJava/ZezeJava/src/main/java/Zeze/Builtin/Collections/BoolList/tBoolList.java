@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
+@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tBoolList extends TableX<Zeze.Builtin.Collections.BoolList.BKey, Zeze.Builtin.Collections.BoolList.BValue>
         implements TableReadOnly<Zeze.Builtin.Collections.BoolList.BKey, Zeze.Builtin.Collections.BoolList.BValue, Zeze.Builtin.Collections.BoolList.BValueReadOnly> {
     public tBoolList() {

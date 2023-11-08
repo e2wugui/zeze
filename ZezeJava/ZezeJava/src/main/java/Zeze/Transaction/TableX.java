@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.function.Supplier;
 import Zeze.Application;
@@ -736,7 +737,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	@Override
 	public abstract @NotNull K decodeKey(@NotNull ByteBuffer bb);
 
-	public abstract @NotNull K decodeKeyResultSet(@NotNull ResultSet rs) throws java.sql.SQLException;
+	public abstract @NotNull K decodeKeyResultSet(@NotNull ResultSet rs) throws SQLException;
 
 	public abstract void encodeKeySQLStatement(@NotNull SQLStatement st, @NotNull K _v_);
 
@@ -758,11 +759,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	public abstract @NotNull V newValue();
-
-	@Override
-	public Bean newValueBean() {
-		return newValue();
-	}
 
 	/**
 	 * 解码系列化的数据到对象。

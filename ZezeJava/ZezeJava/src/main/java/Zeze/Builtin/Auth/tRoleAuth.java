@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
+@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tRoleAuth extends TableX<String, Zeze.Builtin.Auth.BRoleAuth>
         implements TableReadOnly<String, Zeze.Builtin.Auth.BRoleAuth, Zeze.Builtin.Auth.BRoleAuthReadOnly> {
     public tRoleAuth() {

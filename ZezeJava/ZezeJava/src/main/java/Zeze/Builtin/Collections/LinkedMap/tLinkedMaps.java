@@ -6,7 +6,7 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 // key: LinkedMap的Name
-@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
+@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tLinkedMaps extends TableX<String, Zeze.Builtin.Collections.LinkedMap.BLinkedMap>
         implements TableReadOnly<String, Zeze.Builtin.Collections.LinkedMap.BLinkedMap, Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly> {
     public tLinkedMaps() {

@@ -6,7 +6,7 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 // key: Queue的Name
-@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
+@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tQueues extends TableX<String, Zeze.Builtin.Collections.Queue.BQueue>
         implements TableReadOnly<String, Zeze.Builtin.Collections.Queue.BQueue, Zeze.Builtin.Collections.Queue.BQueueReadOnly> {
     public tQueues() {

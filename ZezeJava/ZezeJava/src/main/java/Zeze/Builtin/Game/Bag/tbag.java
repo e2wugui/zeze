@@ -6,7 +6,7 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 // key is bag name
-@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
+@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tbag extends TableX<String, Zeze.Builtin.Game.Bag.BBag>
         implements TableReadOnly<String, Zeze.Builtin.Game.Bag.BBag, Zeze.Builtin.Game.Bag.BBagReadOnly> {
     public tbag() {

@@ -36,7 +36,7 @@ public class HotUpgradeMemoryTable {
 				var newKey = cur.decodeKey(bbKey);
 				var bbValue = ByteBuffer.Allocate();
 				v.encode(bbValue);
-				var newValue = cur.newValueBean();
+				var newValue = cur.newValue();
 				newValue.decode(bbValue);
 				//logger.info("retreat: " + newKey + " " + newValue);
 				cur.__direct_put_cache__(newKey, newValue, GlobalCacheManagerConst.StateModify);

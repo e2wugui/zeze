@@ -6,7 +6,7 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 // key is serverId，一台服务器一个记录。
-@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
+@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tLoad extends TableX<Zeze.Builtin.World.BServerMapKey, Zeze.Builtin.World.BLoadMap>
         implements TableReadOnly<Zeze.Builtin.World.BServerMapKey, Zeze.Builtin.World.BLoadMap, Zeze.Builtin.World.BLoadMapReadOnly> {
     public tLoad() {

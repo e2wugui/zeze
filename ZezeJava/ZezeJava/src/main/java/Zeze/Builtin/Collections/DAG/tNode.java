@@ -6,7 +6,7 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 // Table: 有向图节点表
-@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
+@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tNode extends TableX<Zeze.Builtin.Collections.DAG.BDAGNodeKey, Zeze.Builtin.Collections.DAG.BDAGNode>
         implements TableReadOnly<Zeze.Builtin.Collections.DAG.BDAGNodeKey, Zeze.Builtin.Collections.DAG.BDAGNode, Zeze.Builtin.Collections.DAG.BDAGNodeReadOnly> {
     public tNode() {

@@ -6,7 +6,7 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 // Task的总表，包含了所有的Task的Bean
-@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
+@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tTask extends TableX<Zeze.Builtin.Game.TaskBase.BTaskKey, Zeze.Builtin.Game.TaskBase.BTask>
         implements TableReadOnly<Zeze.Builtin.Game.TaskBase.BTaskKey, Zeze.Builtin.Game.TaskBase.BTask, Zeze.Builtin.Game.TaskBase.BTaskReadOnly> {
     public tTask() {

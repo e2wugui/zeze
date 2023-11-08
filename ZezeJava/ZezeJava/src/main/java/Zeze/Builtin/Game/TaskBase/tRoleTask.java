@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
+@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.TaskBase.BRoleTasks>
         implements TableReadOnly<Long, Zeze.Builtin.Game.TaskBase.BRoleTasks, Zeze.Builtin.Game.TaskBase.BRoleTasksReadOnly> {
     public tRoleTask() {

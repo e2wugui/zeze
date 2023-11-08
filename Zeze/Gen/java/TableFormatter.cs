@@ -31,7 +31,7 @@ namespace Zeze.Gen.java
             string keyboxing = BoxingName.GetBoxingName(table.KeyType);
             if (table.Comment.Length > 0)
                 sw.WriteLine(table.Comment);
-            sw.WriteLine("@SuppressWarnings({\"DuplicateBranchesInSwitch\", \"RedundantSuppression\"})");
+            sw.WriteLine("@SuppressWarnings({\"DuplicateBranchesInSwitch\", \"NullableProblems\", \"RedundantSuppression\"})");
             sw.WriteLine("public final class " + table.Name + $" extends TableX<{keyboxing}, {value}>");
             sw.WriteLine($"        implements TableReadOnly<{keyboxing}, {value}, {value}ReadOnly> {{");
             sw.WriteLine("    public " + table.Name + "() {");

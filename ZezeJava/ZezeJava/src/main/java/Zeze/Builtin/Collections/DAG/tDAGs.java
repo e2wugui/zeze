@@ -6,7 +6,7 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 // Key: 有向图自己的名字
-@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
+@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tDAGs extends TableX<String, Zeze.Builtin.Collections.DAG.BDAG>
         implements TableReadOnly<String, Zeze.Builtin.Collections.DAG.BDAG, Zeze.Builtin.Collections.DAG.BDAGReadOnly> {
     public tDAGs() {
