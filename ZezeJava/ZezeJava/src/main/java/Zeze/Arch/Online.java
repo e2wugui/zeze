@@ -153,7 +153,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return GenModule.createRedirectModule(Online.class, app);
 	}
 
-	public static long getSpecialTypeIdFromBean(@NotNull Bean bean) {
+	public static long getSpecialTypeIdFromBean(@NotNull Serializable bean) {
 		return bean.typeId();
 	}
 
@@ -163,7 +163,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
-	public static void register(@NotNull Class<? extends Bean> cls) {
+	public static void register(@NotNull Class<? extends Serializable> cls) {
 		beanFactory.register(cls);
 	}
 

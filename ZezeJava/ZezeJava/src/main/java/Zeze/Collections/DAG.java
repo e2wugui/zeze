@@ -4,13 +4,14 @@ import java.lang.invoke.MethodHandle;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.DAG.BDAGNode;
 import Zeze.Builtin.Collections.DAG.BDAGNodeKey;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public class DAG<V extends Bean> {
 	public static final BeanFactory beanFactory = new BeanFactory();
-	public static long getSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Serializable bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 	public static Bean createBeanFromSpecialTypeId(long typeId) {

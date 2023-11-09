@@ -13,6 +13,7 @@ import Zeze.Builtin.Game.Bag.BBag;
 import Zeze.Builtin.Game.Bag.BItem;
 import Zeze.Builtin.Game.Bag.tbag;
 import Zeze.Collections.BeanFactory;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 
 public class Bag {
@@ -21,7 +22,7 @@ public class Bag {
 	// Module.Start的时候自动装载注册的ClassName。
 	private static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long getSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Serializable bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 

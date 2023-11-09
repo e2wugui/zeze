@@ -25,6 +25,7 @@ import Zeze.Game.Task.ConditionNPCTalk;
 import Zeze.Game.Task.ConditionReachPosition;
 import Zeze.Game.Task.ConditionSubmitItem;
 import Zeze.Game.Task.DailyTask;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentHashSet;
@@ -150,7 +151,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 	// @formatter:off
 	private static final BeanFactory beanFactory = new BeanFactory();
-	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
+	public static long getSpecialTypeIdFromBean(Serializable bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
 	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
 	@SuppressWarnings("unchecked")
 	public Class<ExtendedBean> getExtendedBeanClass() {

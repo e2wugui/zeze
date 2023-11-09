@@ -27,6 +27,7 @@ import Zeze.Hot.HotBeanFactory;
 import Zeze.Hot.HotHandle;
 import Zeze.Hot.HotManager;
 import Zeze.Hot.HotModule;
+import Zeze.Serialize.Serializable;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
@@ -45,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
 public class Timer extends AbstractTimer implements HotBeanFactory {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long getSpecialTypeIdFromBean(@NotNull Bean bean) {
+	public static long getSpecialTypeIdFromBean(@NotNull Serializable bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 
@@ -53,7 +54,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
-	public static long getOnlineSpecialTypeIdFromBean(@NotNull Bean bean) {
+	public static long getOnlineSpecialTypeIdFromBean(@NotNull Serializable bean) {
 		return bean.typeId();
 	}
 
@@ -83,7 +84,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			RegisterZezeTables(zeze);
 	}
 
-	static void register(@NotNull Class<? extends Bean> cls) {
+	static void register(@NotNull Class<? extends Serializable> cls) {
 		beanFactory.register(cls);
 	}
 

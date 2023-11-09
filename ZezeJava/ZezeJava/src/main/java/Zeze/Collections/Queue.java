@@ -8,6 +8,7 @@ import Zeze.Builtin.Collections.Queue.BQueueNodeValue;
 import Zeze.Hot.HotBeanFactory;
 import Zeze.Hot.HotManager;
 import Zeze.Hot.HotModule;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Util.ConcurrentHashSet;
@@ -15,7 +16,7 @@ import Zeze.Util.ConcurrentHashSet;
 public class Queue<V extends Bean> implements HotBeanFactory {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long getSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Serializable bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 

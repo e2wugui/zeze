@@ -4,6 +4,7 @@ import java.lang.reflect.ParameterizedType;
 import javax.json.JsonObject;
 import Zeze.Builtin.Game.TaskBase.BTaskCondition;
 import Zeze.Collections.BeanFactory;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 
 public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean extends Bean> {
@@ -34,7 +35,7 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	public ConditionBean getExtendedBean() { return (ConditionBean)bean.getExtendedData().getBean(); }
 	private static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
+	public static long getSpecialTypeIdFromBean(Serializable bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
 
 	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
 

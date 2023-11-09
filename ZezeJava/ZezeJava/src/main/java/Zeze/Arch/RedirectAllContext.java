@@ -49,14 +49,14 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 			return; // 如果已经超时,那就只能忽略后续的结果了
 		for (var e : res.Argument.getHashs().entrySet()) {
 			int hash = e.getKey();
-			var result = e.getValue();
-			var resultCode = result.getReturnCode();
+			var resultData = e.getValue();
+			var resultCode = resultData.getReturnCode();
 			if (resultDecoder != null) {
-				R resultBean = resultDecoder.apply(resultCode == Procedure.Success ? result.getParams() : null);
-				resultBean.setHash(hash);
-				resultBean.setResultCode(resultCode);
-				if (hashResults.putIfAbsent(hash, resultBean) == null) // 不可能回复相同hash的多个结果,忽略掉后面的好了
-					future.result(this, resultBean);
+				R result = resultDecoder.apply(resultCode == Procedure.Success ? resultData.getParams() : null);
+				result.setHash(hash);
+				result.setResultCode(resultCode);
+				if (hashResults.putIfAbsent(hash, result) == null) // 不可能回复相同hash的多个结果,忽略掉后面的好了
+					future.result(this, result);
 			} else
 				hashResults.put(hash, null);
 		}

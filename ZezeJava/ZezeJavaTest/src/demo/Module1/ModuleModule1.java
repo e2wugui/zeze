@@ -1,6 +1,7 @@
 package demo.Module1;
 
 import Zeze.Collections.BeanFactory;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import org.jetbrains.annotations.NotNull;
@@ -8,12 +9,8 @@ import org.jetbrains.annotations.NotNull;
 public class ModuleModule1 extends AbstractModule {
 	public static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long getSpecialTypeIdFromBean(Bean bean) {
-		return bean.typeId();
-	}
-
-	public static long getSpecialTypeIdFromBean(Data data) {
-		return data.typeId();
+	public static long getSpecialTypeIdFromBean(Serializable s) {
+		return s.typeId();
 	}
 
 	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {

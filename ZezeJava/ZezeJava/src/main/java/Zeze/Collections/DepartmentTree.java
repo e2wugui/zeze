@@ -5,6 +5,7 @@ import Zeze.Builtin.Collections.DepartmentTree.*;
 import Zeze.Hot.HotBeanFactory;
 import Zeze.Hot.HotManager;
 import Zeze.Hot.HotModule;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Util.ConcurrentHashSet;
@@ -18,7 +19,7 @@ public class DepartmentTree<
 		TDepartmentData extends Bean> implements HotBeanFactory {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long getSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Serializable bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 

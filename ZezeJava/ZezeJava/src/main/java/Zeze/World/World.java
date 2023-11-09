@@ -15,6 +15,7 @@ import Zeze.Builtin.World.Command;
 import Zeze.Builtin.World.Query;
 import Zeze.Builtin.World.tLoad;
 import Zeze.Collections.BeanFactory;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.World.Mmo.MapManager;
@@ -56,12 +57,8 @@ public class World extends AbstractWorld {
 	private static final Logger logger = LogManager.getLogger(World.class);
 	private static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long getSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Serializable bean) {
 		return bean.typeId();
-	}
-
-	public static long getSpecialTypeIdFromBean(Data data) {
-		return data.typeId();
 	}
 
 	public static Bean createBeanFromSpecialTypeId(long typeId) {

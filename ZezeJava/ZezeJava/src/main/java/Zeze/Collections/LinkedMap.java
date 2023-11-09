@@ -14,6 +14,7 @@ import Zeze.Hot.HotManager;
 import Zeze.Hot.HotModule;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.ChangeListener;
 import Zeze.Transaction.Changes;
@@ -26,7 +27,7 @@ import org.jetbrains.annotations.Nullable;
 public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	public static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long getSpecialTypeIdFromBean(@NotNull Bean bean) {
+	public static long getSpecialTypeIdFromBean(@NotNull Serializable bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 
