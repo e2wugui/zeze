@@ -6,7 +6,7 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.21.0'
     implementation 'org.jetbrains:annotations:24.0.1'
     implementation 'org.pcollections:pcollections:4.0.1'
-    implementation 'org.rocksdb:rocksdbjni:8.5.4'
+    implementation 'org.rocksdb:rocksdbjni:8.6.7'
 
     // for netty
     implementation 'io.netty:netty-codec-http:4.1.100.Final'
