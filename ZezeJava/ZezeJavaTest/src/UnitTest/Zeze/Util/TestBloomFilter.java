@@ -11,8 +11,10 @@ import org.junit.Test;
 
 public class TestBloomFilter implements BloomFilter.BitArray {
 	private static final Logger logger = LogManager.getLogger(TestBloomFilter.class);
-	private static final int BYTE_COUNT = 0x10_0000;
-	private static final int KEY_COUNT = 0x10_0000;
+	private static final int HASH_COUNT = 6;
+	private static final int BYTE_COUNT = 4096;
+	private static final int KEY_COUNT = 2048;
+	private static final int FAKE_KEY_COUNT = 20480;
 
 	private final ByteBuffer bb = ByteBuffer.allocateDirect(BloomFilter.toPowerOfTwo(BYTE_COUNT));
 
@@ -34,7 +36,7 @@ public class TestBloomFilter implements BloomFilter.BitArray {
 
 	@Test
 	public void testSimple() {
-		var bf = new BloomFilter(this, KEY_COUNT);
+		var bf = new BloomFilter(this, HASH_COUNT);
 		logger.info("TestBloomFilter.bitsPerKey = {}", bf.getBitsPerKey());
 		var sr = new StableRandom(1);
 		var keys = new LongHashSet();
@@ -52,13 +54,13 @@ public class TestBloomFilter implements BloomFilter.BitArray {
 
 		sr.setSeed(System.currentTimeMillis());
 		long err = 0;
-		for (int i = 0; i < KEY_COUNT; i++) {
+		for (int i = 0; i < FAKE_KEY_COUNT; i++) {
 			var v = sr.next64();
 			while (keys.contains(v))
 				v = sr.next64();
 			err += bf.testKey(v) ? 1 : 0;
 		}
-		logger.info("TestBloomFilter.err = {}/{} {}%", err, KEY_COUNT, err * 100f / KEY_COUNT);
+		logger.info("TestBloomFilter.err = {}/{} {}%", err, FAKE_KEY_COUNT, err * 100f / FAKE_KEY_COUNT);
 		logger.info("TestBloomFilter.totalBits = {}/{} {}% => {}%",
 				bf.getTotalBits(), BYTE_COUNT * 8,
 				bf.getTotalBits() * 100 / (BYTE_COUNT * 8),

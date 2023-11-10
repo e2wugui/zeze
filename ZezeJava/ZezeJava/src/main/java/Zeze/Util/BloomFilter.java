@@ -29,13 +29,13 @@ public class BloomFilter {
 	}
 
 	/**
-	 * @param maxKeyCount 预计最多记录的key数量,决定了每个key分配几个bit. 跟bitArray.getCapacity()一起影响testKey的出错概率
+	 * @param bitsPerKey 每个key的hash计算次数和设置/判断bit的次数. 这个次数可通过下面main方法测量出一个合适的值
 	 */
-	public BloomFilter(@NotNull BloomFilter.BitArray bitArray, int maxKeyCount) {
+	public BloomFilter(@NotNull BloomFilter.BitArray bitArray, int bitsPerKey) {
 		this.bitArray = bitArray;
 		capacity = bitArray.getCapacity();
 		mask = isPowerOfTwo(capacity) ? capacity - 1 : 0;
-		this.bitsPerKey = Math.max((int)(capacity * Math.log(2) / maxKeyCount), 1); // ln(2) = 0.6931471805599453
+		this.bitsPerKey = bitsPerKey;
 	}
 
 	public int getBitsPerKey() {
@@ -87,5 +87,18 @@ public class BloomFilter {
 			}
 		}
 		return true;
+	}
+
+	// 测量工具
+	public static void main(String[] args) {
+		final long BYTE_SIZE = 4L * 1024; // hash空间字节容量
+		final double FAULT_RATE = 0.001; // 错误率(假key判真的概率)
+		for (int bitsPerKey = 1; bitsPerKey <= 16; bitsPerKey++) {
+			System.out.print("bitsPerKey = " + bitsPerKey + ": "); // 几次hash
+			long keys = (long)(Math.log(1 - Math.pow(FAULT_RATE, 1.0 / bitsPerKey))
+					/ Math.log((double)(BYTE_SIZE * 8 - 1) / (BYTE_SIZE * 8))
+					/ bitsPerKey);
+			System.out.println(keys); // 计算最多能存放key的数量期望值
+		}
 	}
 }
