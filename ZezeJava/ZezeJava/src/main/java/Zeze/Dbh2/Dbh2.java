@@ -134,7 +134,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	public Dbh2(Dbh2Manager manager, String raftName, RaftConfig raftConf, Config config, boolean writeOptionSync) {
 		this.manager = manager;
 
-		var selfNode = raftConf.getNodes().get(raftConf.getName());
+		var selfNode = raftConf.getNodes().get(raftName);
 		if (!selfNode.isSuggestMajority()) {
 			// 根据配置，发现自己不是推荐的多数派，先去检测(等待)建议的多数派产生Leader。
 			// 如果检测失败，继续启动过程，此后即时不是推荐的，也可能成为Leader。
