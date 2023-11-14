@@ -76,7 +76,7 @@ void addItemToBag(long roleid, int itemId) {
 }
 ```
 
-<b>上手准备</b>
+##上手准备
 
 1.	git clone https://gitee.com/e2wugui/zeze
 2.	运行 zeze\gen_use_publish.bat。
@@ -84,7 +84,7 @@ void addItemToBag(long roleid, int itemId) {
 4.	Csharp版使用vs2022或其他兼容编辑器打开zeze/Zeze.sln
 5.	Java版使用idea打开 zeze/ZezeJava即可正常Build All。
 
-<b>Java开发准备 (如果只关注C#开发,可跳过)</b>
+## Java开发准备 (如果只关注C#开发,可跳过)
 
 1. JDK 17 任意发行版均可
    推荐: https://adoptium.net/releases
@@ -94,7 +94,7 @@ void addItemToBag(long roleid, int itemId) {
 3. (可选) Maven: https://maven.apache.org/download.cgi
 4. (可选) Ant: https://ant.apache.org/bindownload.cgi
 
-<b>C#开发准备 (如果只关注Java开发,可只安装.NET SDK)</b>
+## C#开发准备 (如果只关注Java开发,可只安装.NET SDK)
 
 1. .NET 6 SDK (如果安装下面的Visual Studio,可以不用单独安装这个)
    https://dotnet.microsoft.com/en-us/download/dotnet/6.0 (通常选择Windows, x64)
@@ -105,31 +105,31 @@ void addItemToBag(long roleid, int itemId) {
 3. (可选) VSCode (完全免费的轻量级IDE)
    https://code.visualstudio.com/ (安装官方C#插件)
 
-<b>Java编译</b>
+## Java编译
 
 1. 启动IDEA, 打开zeze框架中的 ZezeJava 目录, 会自动加载4个模块(框架核心+测试+2
    个示例)
 2. 如果编译找不到某些类, 需要执行下面的"生成代码"
 
-<b>C#编译</b>
+## C#编译
 
 1. 仅用SDK: 在zeze框架根目录下使用命令行编译: dotnet build Zeze.sln
 2. 使用VS2022: 启动VS2022, 打开zeze框架根目录下的Zeze.sln, 执行编译命令
 3. 如果编译找不到某些类, 需要执行下面的"生成代码"
 
-<b>Java示例工程生成代码</b>
+## Java Sample
 
 需要先执行上面的C#编译Gen工程
 1. 在 ZezeJava/ZezexJava, ZezeJava/ZezeJavaTest 目录下执行 gen.bat
 
-<b>C#示例工程生成代码</b>
+## C# Sample
 
 需要先执行上面的C#编译Gen工程
 在 Sample, UnitTest 目录下执行 gen.bat
 
-<b>分布式架构</b>
+## 分布式架构
 
-TODO 图
+![arch](../images/arch.png)
 
 上图是Zeze默认的框架结构，具有一定通用性。某些情况下，自己可以搭建全新的架构。
 
@@ -141,7 +141,7 @@ TODO 图
 * GlobalCacheManager 一致性缓存支持服务器。Zeze提供，不需要开发。
 * Database 后端数据库，支持Mysql,Sqlserver,Tikv。将来Zeze会根据需要支持更多的数据库。
 
-<b>单实例架构</b>
+## 单实例架构
 
 系统内只有一个GameServer，客户端直接连接GameServer。此时不需要ServiceManager
 和GlobalCacheManager。由于分布式架构本质上也包含了单实例架构，所以这个模式的例
@@ -149,7 +149,7 @@ TODO 图
 乎一样，架构应该仅影响程序框架。如果需要实现全新的架构，最好不要影响业务开发，方
 便需要的时候进行迁移。
 
-<b>创建Zeze应用（Java）</b>
+## 创建Zeze应用（Java）
 
 跟创建普通Idea项目一样创建工程，把项目到Zeze依赖建立好，一个普通的Zeze应用就
 创建好了。这里实际上不需要什么特殊操作，因为Zeze虽然是一个框架，但没有太多侵入
@@ -247,7 +247,7 @@ public final class ModuleLogin extends AbstractModule {
 }
 ```
 
-<b>创建Arch.Linkd（Java）</b>
+## 创建Arch.Linkd（Java）
 
 * Solution.linkd.xml
 ```
