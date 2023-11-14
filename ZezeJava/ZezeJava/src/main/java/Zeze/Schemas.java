@@ -524,6 +524,10 @@ public class Schemas implements Serializable {
 			realName = value;
 		}
 
+		public final @NotNull String getNameForLog() {
+			return realName.isEmpty() ? name : realName;
+		}
+
 		public Bean() {
 		}
 
@@ -546,13 +550,13 @@ public class Schemas implements Serializable {
 				return true;
 
 			if (other == null) {
-				logger.error("other is null. parent={}, bean={}", parent, name);
+				logger.error("other is null. parent={}, bean={}", parent, getNameForLog());
 				return false;
 			}
 
 			if (!(other instanceof Bean)) {
 				logger.error("other is not Bean. parent={}, bean={}, other={}",
-						parent, name, other.getClass().getName());
+						parent, getNameForLog(), other.getClass().getName());
 				return false;
 			}
 
@@ -580,16 +584,16 @@ public class Schemas implements Serializable {
 					}
 					if (vOther.deleted) {
 						if (context.getConfig().getAllowSchemasReuseVariableIdWithSameType()
-								&& vThis.isCompatible(name, vOther, context)) {
+								&& vThis.isCompatible(getNameForLog(), vOther, context)) {
 							// 反悔
 							continue;
 						}
 						// 重用了已经被删除的var。此时vOther.Type也是null。
 						logger.error("Not Compatible Variable={}.{} Can Not Reuse Deleted Variable.Id",
-								name, vThis.name);
+								getNameForLog(), vThis.name);
 						res = false;
-					} else if (!vThis.isCompatible(name, vOther, context)) {
-						logger.error("Not Compatible Variable={}.{}", name, vThis.name);
+					} else if (!vThis.isCompatible(getNameForLog(), vOther, context)) {
+						logger.error("Not Compatible Variable={}.{}", getNameForLog(), vThis.name);
 						res = false;
 					}
 				} else {
@@ -611,7 +615,7 @@ public class Schemas implements Serializable {
 			if (isBeanKey && getKeyRefCount() > 0 && beanOther.isBeanKey && beanOther.getKeyRefCount() > 0) {
 				if (getVariables().size() < beanOther.getVariables().size()) {
 					logger.error("Not Compatible. beankey={} Variables.Count < DB.Variables.Count, Must Be Reduced",
-							name);
+							getNameForLog());
 					res = false;
 				}
 				for (var e : beanOther.getVariables().entrySet()) {
@@ -623,7 +627,7 @@ public class Schemas implements Serializable {
 					if (!getVariables().containsKey(vOther.id)) {
 						// 被当作Key以后就不能再删除变量了。
 						logger.error("Not Compatible. beankey={} variable={}({}) Not Exist",
-								name, vOther.name, vOther.id);
+								getNameForLog(), vOther.name, vOther.id);
 						res = false;
 					}
 				}
