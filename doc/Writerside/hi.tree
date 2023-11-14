@@ -5,12 +5,36 @@
 <instance-profile id="hi" name="Help Instance"
                  start-page="">
 
-    <toc-element topic="导读.md"/>
+    <toc-element topic="Preface.md"/>
     <toc-element topic="What-Is-Zeze.md">
     </toc-element>
     <toc-element topic="Why-Zeze.md"/>
     <toc-element topic="Quick-Start.md"/>
     <toc-element topic="Transaction.md"/>
-    <toc-element topic="Solution-xml详解.md"/>
-    <toc-element topic="事务和第三方系统交互问题.md"/>
+    <toc-element topic="Solution-xml.md"/>
+    <toc-element topic="Transaction-ThirdParty-Interactions.md"/>
+    <toc-element topic="Listener.md"/>
+    <toc-element topic="Arch.md"/>
+    <toc-element topic="Bean.md"/>
+    <toc-element topic="Serialize.md"/>
+    <toc-element topic="Net.md"/>
+    <toc-element topic="One-World-One-Dream.md"/>
+    <toc-element topic="Raft.md"/>
+    <toc-element topic="Platform.md"/>
+    <toc-element topic="Component.md"/>
+    <toc-element topic="Collections.md"/>
+    <toc-element topic="Game.md"/>
+    <toc-element topic="Services.md"/>
+    <toc-element topic="Web-Netty.md"/>
+    <toc-element topic="Limit.md"/>
+    <toc-element topic="Release-And-Update.md"/>
+    <toc-element topic="Misc.md"/>
+    <toc-element topic="suggestion.md"/>
+    <toc-element topic="Performance.md"/>
+    <toc-element topic="Custom-Configuration.md"/>
+    <toc-element topic="DevOps-and-configuration.md"/>
+    <toc-element topic="Inside-Zeze.md"/>
+    <toc-element topic="History.md"/>
+    <toc-element topic="Git.md"/>
+    <toc-element topic="Others.md"/>
 </instance-profile>
