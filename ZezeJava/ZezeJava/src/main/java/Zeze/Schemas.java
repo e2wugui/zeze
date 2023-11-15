@@ -103,9 +103,7 @@ public class Schemas implements Serializable {
 		private Schemas current;
 		private Schemas previous;
 		private final HashMap<Checked, CheckResult> checked = new HashMap<>();
-		private final HashMap<Bean, CheckResult> copyBeanIfRemoved = new HashMap<>();
 		private Config config;
-		private long renameCount;
 
 		public Schemas getCurrent() {
 			return current;
@@ -125,10 +123,6 @@ public class Schemas implements Serializable {
 
 		public @NotNull HashMap<Checked, CheckResult> getChecked() {
 			return checked;
-		}
-
-		public @NotNull HashMap<Bean, CheckResult> getCopyBeanIfRemoved() {
-			return copyBeanIfRemoved;
 		}
 
 		public Config getConfig() {
@@ -154,25 +148,9 @@ public class Schemas implements Serializable {
 				throw new IllegalStateException("duplicate var in Checked Map");
 		}
 
-		public @Nullable CheckResult getCopyBeanIfRemovedResult(@NotNull Bean bean) {
-			return getCopyBeanIfRemoved().get(bean);
-		}
-
-		public void addCopyBeanIfRemovedResult(@NotNull Bean bean, @NotNull CheckResult result) {
-			if (null != getCopyBeanIfRemoved().put(bean, result))
-				throw new IllegalStateException("duplicate bean in CopyBeanIfRemoved Map");
-		}
-
 		public void update() {
 			for (var result : getChecked().values())
 				result.update();
-			for (var result : getCopyBeanIfRemoved().values())
-				result.update();
-		}
-
-		public @NotNull String generateUniqueName() {
-			renameCount++;
-			return "_" + renameCount;
 		}
 	}
 
@@ -280,22 +258,6 @@ public class Schemas implements Serializable {
 				((Bean)value).keyRefCount++;
 		}
 
-		public void tryCopyBeanIfRemoved(@NotNull Context context, @NotNull Consumer<Bean> update,
-										 @Nullable Consumer<Bean> updateVariable) {
-			if (key != null) {
-				key.tryCopyBeanIfRemoved(context, bean -> {
-					keyName = bean.name;
-					key = bean;
-				}, updateVariable);
-			}
-			if (value != null) {
-				value.tryCopyBeanIfRemoved(context, bean -> {
-					valueName = bean.name;
-					value = bean;
-				}, updateVariable);
-			}
-		}
-
 		private static final Map<String, String> sqlTypeTable = new HashMap<>();
 
 		static {
@@ -400,7 +362,6 @@ public class Schemas implements Serializable {
 		public String keyName = "";
 		public String valueName = "";
 		public transient Type type;
-		public boolean deleted;
 
 		// 如果是dynamic，下面的变量定义它静态包含的可能的Beans；
 		// 错误检查定义：1. 旧的映射不能被删除；2. typeId映射的className不能改变；
@@ -413,7 +374,6 @@ public class Schemas implements Serializable {
 			typeName = bb.ReadString();
 			keyName = bb.ReadString();
 			valueName = bb.ReadString();
-			deleted = bb.ReadBool();
 
 			for (var count = bb.ReadInt(); count > 0; --count) {
 				var typeId = bb.ReadLong();
@@ -429,7 +389,6 @@ public class Schemas implements Serializable {
 			bb.WriteString(typeName);
 			bb.WriteString(keyName);
 			bb.WriteString(valueName);
-			bb.WriteBool(deleted);
 
 			bb.WriteInt(dynamicBeans.size()); // size
 			for (var it = dynamicBeans.iterator(); it.moveToNext(); ) {
@@ -478,27 +437,14 @@ public class Schemas implements Serializable {
 			keyName = type.keyName;
 			valueName = type.valueName;
 		}
-
-		public final void tryCopyBeanIfRemoved(@NotNull Context context) {
-			type.tryCopyBeanIfRemoved(context, bean -> {
-				typeName = bean.name;
-				type = bean;
-			}, bean -> {
-				keyName = type.keyName;
-				valueName = type.valueName;
-			});
-		}
 	}
 
 	public static class Bean extends Type {
 		private final ConcurrentHashMap<Integer, Variable> variables = new ConcurrentHashMap<>();
 		private boolean isBeanKey;
 		private transient int keyRefCount;
-		// 这个变量当前是不需要的，作为额外的属性记录下来，以后可能要用。
-		private boolean deleted;
-		// 这里记录在当前版本Schemas中Bean的实际名字，只有生成的bean包含这个。
-		private @NotNull String realName = "";
 		private boolean compatibleChecked;
+		private final ConcurrentHashMap<Integer, Variable> deletedVars = new ConcurrentHashMap<>();
 
 		public final @NotNull ConcurrentHashMap<Integer, Variable> getVariables() {
 			return variables;
@@ -512,20 +458,8 @@ public class Schemas implements Serializable {
 			keyRefCount = value;
 		}
 
-		public final boolean getDeleted() {
-			return deleted;
-		}
-
-		public final @NotNull String getRealName() {
-			return realName;
-		}
-
-		private void setRealName(@NotNull String value) {
-			realName = value;
-		}
-
-		public final @NotNull String getNameForLog() {
-			return realName.isEmpty() ? name : realName;
+		public final ConcurrentHashMap<Integer, Variable> getDeletedVars() {
+			return deletedVars;
 		}
 
 		public Bean() {
@@ -534,6 +468,10 @@ public class Schemas implements Serializable {
 		public Bean(String name, boolean isBeanKey) {
 			this.name = name;
 			this.isBeanKey = isBeanKey;
+		}
+
+		public String getName() {
+			return name;
 		}
 
 		/**
@@ -546,17 +484,21 @@ public class Schemas implements Serializable {
 		@Override
 		public boolean isCompatible(@NotNull String parent, @Nullable Type other, @NotNull Context context,
 									@Nullable Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
+			if (name.endsWith(".BTestSchemas")) {
+				logger.info("break");
+			}
+
 			if (compatibleChecked)
 				return true;
 
 			if (other == null) {
-				logger.error("other is null. parent={}, bean={}", parent, getNameForLog());
+				logger.error("other is null. parent={}, bean={}", parent, getName());
 				return false;
 			}
 
 			if (!(other instanceof Bean)) {
 				logger.error("other is not Bean. parent={}, bean={}, other={}",
-						parent, getNameForLog(), other.getClass().getName());
+						parent, getName(), other.getClass().getName());
 				return false;
 			}
 
@@ -572,145 +514,78 @@ public class Schemas implements Serializable {
 			context.addCheckResult(beanOther, this, result);
 
 			boolean res = true;
-			ArrayList<Variable> deleteds = new ArrayList<>();
-			for (var e : beanOther.getVariables().entrySet()) {
-				var vOther = e.getValue();
-				var vThis = getVariables().get(vOther.id);
+
+			// 先检查是不是反悔
+			for (var vOldDeleted : beanOther.deletedVars.values()) {
+				var vThis = variables.get(vOldDeleted.id);
 				if (null != vThis) {
-					if (vThis.deleted) {
-						// bean 可能被多个地方使用，前面比较的时候，创建或者复制了被删除的变量。
-						// 所以可能存在已经被删除var，这个时候忽略比较就行了。
+					if (context.getConfig().getAllowSchemasReuseVariableIdWithSameType()
+							&& vThis.isCompatible(getName(), vOldDeleted, context)) {
+						// 反悔
+						logger.info("Regret Success. Variable={}.{}", getName(), vThis.name);
 						continue;
 					}
-					if (vOther.deleted) {
-						if (context.getConfig().getAllowSchemasReuseVariableIdWithSameType()
-								&& vThis.isCompatible(getNameForLog(), vOther, context)) {
-							// 反悔
-							continue;
-						}
-						// 重用了已经被删除的var。此时vOther.Type也是null。
+					logger.error("Not Compatible. Variable={}.{} Can Not Reuse Deleted Variable.Id",
+							getName(), vThis.name);
+					res = false;
+				} else {
+					deletedVars.put(vOldDeleted.id, vOldDeleted);
+				}
+			}
+			// 遍历当前变量，进行兼容检查。
+			for (var e : beanOther.variables.entrySet()) {
+				var vOther = e.getValue();
+				var vThis = variables.get(vOther.id);
+				if (null != vThis) {
+					if (!vThis.isCompatible(getName(), vOther, context)) {
+						// 正常比较。
 						logger.error("Not Compatible Variable={}.{} Can Not Reuse Deleted Variable.Id",
-								getNameForLog(), vThis.name);
-						res = false;
-					} else if (!vThis.isCompatible(getNameForLog(), vOther, context)) {
-						logger.error("Not Compatible Variable={}.{}", getNameForLog(), vThis.name);
+								getName(), vThis.name);
 						res = false;
 					}
 				} else {
-					// 新删除或以前删除的都创建一个新的。
-					Variable tempVar2 = new Variable();
-					tempVar2.id = vOther.id;
-					tempVar2.name = vOther.name;
-					tempVar2.typeName = vOther.typeName;
-					tempVar2.keyName = vOther.keyName;
-					tempVar2.valueName = vOther.valueName;
-					tempVar2.type = vOther.type;
-					tempVar2.deleted = true;
-					deleteds.add(tempVar2);
+					// vThis == null 表示新删除的。
+					deletedVars.put(vOther.id, vOther);
 				}
 			}
 			// 限制beankey的var只能增加，不能减少。
 			// 如果发生了Bean和BeanKey改变，忽略这个检查。
 			// 如果没有被真正当作Key，忽略这个检查。
 			if (isBeanKey && getKeyRefCount() > 0 && beanOther.isBeanKey && beanOther.getKeyRefCount() > 0) {
-				if (getVariables().size() < beanOther.getVariables().size()) {
+				if (variables.size() < beanOther.variables.size()) {
 					logger.error("Not Compatible. beankey={} Variables.Count < DB.Variables.Count, Must Be Reduced",
-							getNameForLog());
+							getName());
 					res = false;
 				}
 				for (var e : beanOther.getVariables().entrySet()) {
 					var vOther = e.getValue();
-					if (vOther.deleted) {
-						// 当作Key前允许删除变量，所以可能存在已经被删除的变量。
-						continue;
-					}
 					if (!getVariables().containsKey(vOther.id)) {
 						// 被当作Key以后就不能再删除变量了。
 						logger.error("Not Compatible. beankey={} variable={}({}) Not Exist",
-								getNameForLog(), vOther.name, vOther.id);
+								getName(), vOther.name, vOther.id);
 						res = false;
 					}
 				}
 			}
 
-			if (!deleteds.isEmpty()) {
-				Bean newBean = ShadowCopy(context);
-				context.getCurrent().addBean(newBean);
-				result.setBean(newBean);
-				result.addUpdate(update, updateVariable);
-				for (var vDelete : deleteds) {
-					vDelete.tryCopyBeanIfRemoved(context);
-					newBean.getVariables().put(vDelete.id, vDelete);
-				}
-			}
 			compatibleChecked = true;
 			return res;
 		}
 
-		@Override
-		public void tryCopyBeanIfRemoved(@NotNull Context context,
-										 @NotNull Consumer<Bean> update,
-										 @Nullable Consumer<Bean> updateVariable) {
-			CheckResult result = context.getCopyBeanIfRemovedResult(this);
-			if (null != result) {
-				result.addUpdate(update, updateVariable);
-				return;
-			}
-			result = new CheckResult();
-			result.setBean(this);
-			context.addCopyBeanIfRemovedResult(this, result);
-
-			if (name.startsWith("_")) {
-				// bean 是内部创建的，可能是原来删除的，也可能是合并改名引起的。
-				if (context.getCurrent().beans.containsKey(getRealName())) {
-					return;
-				}
-
-				var newBean = ShadowCopy(context);
-				newBean.setRealName(getRealName()); // 原来是新建的Bean，要使用这个。
-				context.getCurrent().addBean(newBean);
-				result.setBean(newBean);
-				result.addUpdate(update, updateVariable);
-				return;
-			}
-
-			// 通过查找当前Schemas来发现RefZero。
-			if (context.getCurrent().beans.containsKey(name)) {
-				return;
-			}
-
-			var newBean2 = ShadowCopy(context);
-			newBean2.deleted = true;
-			context.getCurrent().addBean(newBean2);
-			result.setBean(newBean2);
-			result.addUpdate(update, updateVariable);
-
-			for (var v : getVariables().values())
-				v.tryCopyBeanIfRemoved(context);
-		}
-
-		private @NotNull Bean ShadowCopy(@NotNull Context context) {
-			var newBean = new Bean();
-			newBean.name = context.generateUniqueName();
-			newBean.isBeanKey = isBeanKey;
-			newBean.keyRefCount = getKeyRefCount();
-			newBean.realName = name;
-			newBean.deleted = deleted;
-			for (var v : getVariables().values())
-				newBean.getVariables().put(v.id, v);
-			return newBean;
-		}
 
 		@Override
 		public void decode(@NotNull ByteBuffer bb) {
 			name = bb.ReadString();
 			isBeanKey = bb.ReadBool();
-			deleted = bb.ReadBool();
-			realName = bb.ReadString();
 			for (int count = bb.ReadInt(); count > 0; --count) {
 				var v = new Variable();
 				v.decode(bb);
 				getVariables().put(v.id, v);
+			}
+			for (int count = bb.ReadInt(); count > 0; --count) {
+				var v = new Variable();
+				v.decode(bb);
+				deletedVars.put(v.id, v);
 			}
 		}
 
@@ -718,16 +593,19 @@ public class Schemas implements Serializable {
 		public void encode(@NotNull ByteBuffer bb) {
 			bb.WriteString(name);
 			bb.WriteBool(isBeanKey);
-			bb.WriteBool(deleted);
-			bb.WriteString(realName);
 			bb.WriteInt(getVariables().size());
 			for (var v : getVariables().values())
+				v.encode(bb);
+			bb.WriteInt(deletedVars.size());
+			for (var v : deletedVars.values())
 				v.encode(bb);
 		}
 
 		@Override
 		public void compile(@NotNull Schemas s) {
 			for (var v : getVariables().values())
+				v.compile(s);
+			for (var v : getDeletedVars().values())
 				v.compile(s);
 		}
 
@@ -891,8 +769,6 @@ public class Schemas implements Serializable {
 		}
 		// bean的dynamicBeans兼容检查时，没有递归进去，这里的引用可能有循环，所以单独对所有的bean再执行一遍兼容检查。
 		for (var bean : beans.values()) {
-			if (bean.name.startsWith("_"))
-				continue;
 			var oldBean = other.beans.get(bean.name);
 			if (oldBean != null && !bean.isCompatible("", oldBean, context, null, null)) {
 				logger.error("Not Compatible Bean={}", bean.name);

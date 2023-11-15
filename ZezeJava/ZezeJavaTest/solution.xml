@@ -13,6 +13,12 @@
 	</bean>
 
 	<module name="Module1" id="1"> module的注释
+		<bean name="BTestSchemas">
+			<variable id="1" name="Var1" type="long"/>
+			<variable id="2" name="Var2" type="long"/>
+		</bean>
+		<table name="tTestSchemas" key="long" value="BTestSchemas"/>
+
 		<beankey name="AutoKey"> beankey的注释
 			<variable id="1" name="Name" type="string"/> 一般就是表名。
 			<variable id="2" name="LocalId" type="long"/>

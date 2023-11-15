@@ -478,7 +478,7 @@ public final class Application {
 			schemas.compile();
 			var keyOfSchemas = ByteBuffer.Allocate(32);
 			var serverId = conf.getServerId();
-			keyOfSchemas.WriteString("zeze.Schemas.V2." + serverId);
+			keyOfSchemas.WriteString("zeze.Schemas.V3." + serverId);
 			while (true) {
 				var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
 				long version = 0;
@@ -565,8 +565,11 @@ public final class Application {
 
 		var noDatabase = isNoDatabase();
 		if (!noDatabase) {
-			if ("true".equalsIgnoreCase(System.getProperty(Daemon.propertyNameClearInUse)))
+			if ("true".equalsIgnoreCase(System.getProperty(Daemon.propertyNameClearInUse))) {
 				conf.clearInUseAndIAmSureAppStopped(this, databases);
+				//var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
+				//defaultDb.getDirectOperates().unlock();
+			}
 
 			// Set Database InUse
 			for (var db : databases.values())
