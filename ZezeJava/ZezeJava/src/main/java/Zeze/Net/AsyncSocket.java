@@ -275,7 +275,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			inputBuffer = null;
 			outputBuffer = null;
 			selectionKey = selector.register(ssc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
-			interestOps(0, SelectionKey.OP_ACCEPT);
+			addInterestOps(SelectionKey.OP_ACCEPT);
 			selector.wakeup();
 		} catch (IOException e) {
 			if (ssc != null) {
@@ -312,6 +312,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					throw connectFailedException;
 				// 先修改事件，防止doConnectSuccess发送数据注册了新的事件导致OP_CONNECT重新触发。
 				// 虽然实际上在回调中应该不会唤醒Selector重入。
+				removeInterestOps(SelectionKey.OP_CONNECT);
 				doConnectSuccess(sc);
 			} catch (Exception e) {
 				close(e); // if OnSocketConnectError throw Exception, this will close in doException
@@ -364,7 +365,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		logger.info("Accepted: {} for {}:{} recvBuf={}, sendBuf={}", this, service.getClass().getName(),
 				service.getName(), so.getReceiveBufferSize(), so.getSendBufferSize());
 		service.OnSocketAccept(this);
-		interestOps(0, SelectionKey.OP_READ);
+		addInterestOps(SelectionKey.OP_READ);
 		selector.wakeup();
 	}
 
@@ -379,7 +380,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (acceptorOrConnector instanceof Connector)
 			((Connector)acceptorOrConnector).OnSocketConnected(this);
 		service.OnSocketConnected(this);
-		interestOps(SelectionKey.OP_CONNECT, SelectionKey.OP_READ);
+		addInterestOps(SelectionKey.OP_READ);
 	}
 
 	public AsyncSocket(@NotNull Service service, @Nullable String hostNameOrAddress, int port,
@@ -419,7 +420,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (sc.connect(new InetSocketAddress(address, port))) // 马上成功时，还没有注册到Selector中。
 				doConnectSuccess(sc);
 			else
-				interestOps(0, SelectionKey.OP_CONNECT);
+				addInterestOps(SelectionKey.OP_CONNECT);
 			selector.wakeup();
 		} catch (Exception e) {
 			if (sc != null) {
@@ -550,28 +551,28 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			return false;
 		}
 		operates.offer(callback);
-		if (interestOps(0, SelectionKey.OP_WRITE))
+		if (addInterestOps(SelectionKey.OP_WRITE))
 			selector.wakeup();
 		return true;
 	}
 
 	// 返回是否实际修改过,需要后续wakeup
-	private boolean interestOps(int remove, int add) {
-		int ops = selectionKey.interestOps();
-		int opsNew = (ops & ~remove) | add;
-		if (ops == opsNew)
-			return false;
-		selectionKey.interestOps(opsNew);
-		return true;
+	private boolean addInterestOps(int ops) {
+		return (selectionKey.interestOpsOr(ops) & ops) != ops;
+	}
+
+	// 返回是否实际修改过,需要后续wakeup
+	private boolean removeInterestOps(int ops) {
+		return (selectionKey.interestOpsAnd(~ops) & ops) != 0;
 	}
 
 	public void pauseReceive() {
-		if (interestOps(SelectionKey.OP_READ, 0))
+		if (removeInterestOps(SelectionKey.OP_READ))
 			selector.wakeup();
 	}
 
 	public void resumeReceive() {
-		if (interestOps(0, SelectionKey.OP_READ))
+		if (addInterestOps(SelectionKey.OP_READ))
 			selector.wakeup();
 	}
 
@@ -924,13 +925,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			// 必须和把Operate加入队列同步！否则可能会出现，刚加入操作没有被处理，但是OP_WRITE又被Remove的问题。
 			if (operates.isEmpty() && flushed) { // 此时bufSize=0,下次循环会触发flush
 				// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
-				interestOps(SelectionKey.OP_WRITE, 0);
+				removeInterestOps(SelectionKey.OP_WRITE);
 				if (operates.isEmpty()) { // 再判断一次,避免跟submitAction的并发竞争问题
 					if (closePending)
 						realClose();
 					return;
 				}
-				interestOps(0, SelectionKey.OP_WRITE);
+				addInterestOps(SelectionKey.OP_WRITE);
 			}
 			// 发现数据，继续尝试处理。
 		}
@@ -985,7 +986,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 		if (gracefully) {
 			closePending = true;
-			if (interestOps(0, SelectionKey.OP_WRITE))
+			if (addInterestOps(SelectionKey.OP_WRITE))
 				selector.wakeup();
 			Task.schedule(120 * 1000, this::realClose); // 最多给2分钟清空输出队列。
 		} else
