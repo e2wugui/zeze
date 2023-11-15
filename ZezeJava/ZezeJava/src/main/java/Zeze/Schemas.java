@@ -891,6 +891,8 @@ public class Schemas implements Serializable {
 		}
 		// bean的dynamicBeans兼容检查时，没有递归进去，这里的引用可能有循环，所以单独对所有的bean再执行一遍兼容检查。
 		for (var bean : beans.values()) {
+			if (bean.name.startsWith("_"))
+				continue;
 			var oldBean = other.beans.get(bean.name);
 			if (oldBean != null && !bean.isCompatible("", oldBean, context, null, null)) {
 				logger.error("Not Compatible Bean={}", bean.name);
