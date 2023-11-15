@@ -44,6 +44,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private static final @NotNull VarHandle closedHandle, outputBufferSizeHandle;
 	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED
 	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
+	private static final IOException connectFailedException = new IOException("connect failed");
 	private static final AtomicLong sessionIdGen = new AtomicLong(1);
 	private static @NotNull LongSupplier sessionIdGenFunc = sessionIdGen::getAndIncrement;
 
@@ -292,11 +293,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public void doHandle(@NotNull SelectionKey key) throws Exception {
 		SelectableChannel channel = key.channel();
 		int ops = key.readyOps();
-		if ((ops & SelectionKey.OP_READ) != 0)
-			processReceive((SocketChannel)channel);
-		if ((ops & SelectionKey.OP_WRITE) != 0)
-			doWrite((SocketChannel)channel);
-
 		if ((ops & SelectionKey.OP_ACCEPT) != 0) {
 			SocketChannel sc = null;
 			try {
@@ -307,23 +303,27 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				if (sc != null)
 					sc.close();
 				service.OnSocketAcceptError(this, e);
+				return;
 			}
 		} else if ((ops & SelectionKey.OP_CONNECT) != 0) {
-			Throwable e = null;
 			try {
 				SocketChannel sc = (SocketChannel)channel;
-				if (sc.finishConnect()) {
-					// 先修改事件，防止doConnectSuccess发送数据注册了新的事件导致OP_CONNECT重新触发。
-					// 虽然实际上在回调中应该不会唤醒Selector重入。
-					doConnectSuccess(sc);
-					return;
-				}
-			} catch (Exception ex) {
-				e = ex;
+				if (!sc.finishConnect())
+					throw connectFailedException;
+				// 先修改事件，防止doConnectSuccess发送数据注册了新的事件导致OP_CONNECT重新触发。
+				// 虽然实际上在回调中应该不会唤醒Selector重入。
+				doConnectSuccess(sc);
+			} catch (Exception e) {
+				close(e); // if OnSocketConnectError throw Exception, this will close in doException
+				service.OnSocketConnectError(this, e);
+				return;
 			}
-			close(e); // if OnSocketConnectError throw Exception, this will close in doException
-			service.OnSocketConnectError(this, e);
 		}
+
+		if ((ops & SelectionKey.OP_READ) != 0)
+			processReceive((SocketChannel)channel);
+		if ((ops & SelectionKey.OP_WRITE) != 0)
+			doWrite((SocketChannel)channel);
 	}
 
 	@Override
