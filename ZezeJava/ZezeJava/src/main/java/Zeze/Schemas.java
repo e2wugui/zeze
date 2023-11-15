@@ -484,10 +484,10 @@ public class Schemas implements Serializable {
 		@Override
 		public boolean isCompatible(@NotNull String parent, @Nullable Type other, @NotNull Context context,
 									@Nullable Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
-			if (name.endsWith(".BTestSchemas")) {
-				logger.info("break");
-			}
-
+//			if (name.endsWith(".BTestSchemas")) {
+//				logger.info("break");
+//			}
+//
 			if (compatibleChecked)
 				return true;
 
