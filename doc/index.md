@@ -1,2 +1,2 @@
-![前言](Writerside/topics/Preface.md)
+[前言](Writerside/topics/Preface.md)
 
