@@ -155,6 +155,10 @@
 		<bean name="BOnlyData" UseData="only">
 			<variable id="1" default="1" name="s" type="int"/> com aa
 		</bean>
+		<protocol name="ProtocolOnlyUseData" argument="BOnlyData" UseData="true" handle="server"/>
+		<protocol name="ProtocolOnlyData" argument="BOnlyData" handle="server"/>
+		<rpc name="RpcOnlyUseData" argument="BOnlyData" UseData="true" handle="server"/>
+		<rpc name="RpcOnlyData" result="BOnlyData" handle="server"/>
 	</module>
 
 	<!-- module的注释 -->

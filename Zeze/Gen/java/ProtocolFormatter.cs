@@ -1,4 +1,5 @@
 ﻿using System;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
@@ -25,7 +26,8 @@ namespace Zeze.Gen.java
             string argument = p.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(p.ArgumentType);
             if (p.UseData)
             {
-                if (null == p.ArgumentType || false == p.ArgumentType.IsKeyable)
+                if ((p.ArgumentType == null || !p.ArgumentType.IsKeyable)
+                        && (!(p.ArgumentType is Bean) || !((Bean)p.ArgumentType).OnlyData))
                     argument += ".Data";
             }
 

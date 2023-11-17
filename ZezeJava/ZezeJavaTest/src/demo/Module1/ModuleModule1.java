@@ -87,6 +87,26 @@ public class ModuleModule1 extends AbstractModule {
 		return Zeze.Transaction.Procedure.NotImplement;
 	}
 
+    @Override
+    protected long ProcessProtocolOnlyData(demo.Module1.ProtocolOnlyData p) {
+        return Zeze.Transaction.Procedure.NotImplement;
+    }
+
+    @Override
+    protected long ProcessProtocolOnlyUseData(demo.Module1.ProtocolOnlyUseData p) {
+        return Zeze.Transaction.Procedure.NotImplement;
+    }
+
+    @Override
+    protected long ProcessRpcOnlyDataRequest(demo.Module1.RpcOnlyData r) {
+        return Zeze.Transaction.Procedure.NotImplement;
+    }
+
+    @Override
+    protected long ProcessRpcOnlyUseDataRequest(demo.Module1.RpcOnlyUseData r) {
+        return Zeze.Transaction.Procedure.NotImplement;
+    }
+
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleModule1(demo.App app) {
         super(app);

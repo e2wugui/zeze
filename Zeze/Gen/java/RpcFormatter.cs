@@ -1,4 +1,5 @@
 ﻿using System;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
@@ -27,9 +28,11 @@ namespace Zeze.Gen.java
             string baseclass = string.IsNullOrEmpty(rpc.Base) ? "Zeze.Net.Rpc" : rpc.Base;
             if (rpc.UseData)
             {
-                if (null == rpc.ArgumentType || false == rpc.ArgumentType.IsKeyable)
+                if ((rpc.ArgumentType == null || !rpc.ArgumentType.IsKeyable)
+                    && (!(rpc.ArgumentType is Bean) || !((Bean)rpc.ArgumentType).OnlyData))
                     argument += ".Data";
-                if (null == rpc.ResultType || false == rpc.ResultType.IsKeyable)
+                if ((rpc.ResultType == null || !rpc.ResultType.IsKeyable)
+                    && (!(rpc.ResultType is Bean) || !((Bean)rpc.ResultType).OnlyData))
                     result += ".Data";
             }
 
