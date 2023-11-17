@@ -338,7 +338,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		var header = bb.ReadInt();
 		var familyClass = header & FamilyClass.FamilyClassMask;
 		if (!FamilyClass.isRpc(familyClass))
-			throw new IllegalStateException("invalid header(" + header + ") for decoding rpc " + getClass());
+			throw new IllegalStateException("invalid header(" + header + ") for decoding rpc: " + getClass().getName());
 		isRequest = familyClass == FamilyClass.Request;
 		resultCode = (header & FamilyClass.BitResultCode) != 0 ? bb.ReadLong() : 0;
 		sessionId = bb.ReadLong();

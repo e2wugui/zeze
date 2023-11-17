@@ -9,6 +9,10 @@ public interface Serializable {
 
 	void decode(@NotNull ByteBuffer bb);
 
+	default void decode(@NotNull NioByteBuffer bb) {
+		throw new UnsupportedOperationException();
+	}
+
 	default long typeId() {
 		return 0;
 	}
