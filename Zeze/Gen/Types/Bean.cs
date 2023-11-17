@@ -153,6 +153,7 @@ namespace Zeze.Gen.Types
 		public string Version { get; private set; }
 		public bool MappingClass { get; private set; }
 		public bool UseData { get; private set; }
+		public bool OnlyData { get; private set; }
 		public bool CustomTypeId { get; private set; }
 
 		private List<Variable> VariablesIdOrder_;
@@ -230,12 +231,25 @@ namespace Zeze.Gen.Types
 			MappingClass = self.GetAttribute("MappingClass").Equals("true");
 			if (MappingClass)
 				space.AddMappingClassBean(this);
-			UseData = self.GetAttribute("UseData") switch
+			switch (self.GetAttribute("UseData"))
 			{
-				"true" => true,
-				"false" => false,
-				_ => space.UseData
-			};
+				case "true":
+					UseData = true;
+					OnlyData = false;
+					break;
+				case "false":
+					UseData = false;
+					OnlyData = false;
+					break;
+				case "only":
+					UseData = true;
+					OnlyData = true;
+					break;
+				default:
+					UseData = space.UseData;
+					OnlyData = space.OnlyData;
+					break;
+			}
 			RedirectResult = self.GetAttribute("RedirectResult").Equals("true");
 
             XmlNodeList childNodes = self.ChildNodes;

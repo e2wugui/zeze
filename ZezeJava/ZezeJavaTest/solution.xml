@@ -151,6 +151,10 @@
 
 		<table name="tAutoKeyRandom" key="binary" value="demo.Bean1" autokey="random"/>
 		<table name="tMemorySize" key="long" value="demo.Bean1" memory="true"/>
+
+		<bean name="BOnlyData" UseData="only">
+			<variable id="1" default="1" name="s" type="int"/> com aa
+		</bean>
 	</module>
 
 	<!-- module的注释 -->

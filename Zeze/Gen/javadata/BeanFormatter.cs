@@ -12,14 +12,17 @@ namespace Zeze.Gen.javadata
             this.bean = bean;
         }
 
-        public void Make(StreamWriter sw)
+        public void Make(StreamWriter sw, string className)
         {
-            sw.WriteLine();
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
+            var static0 = bean.OnlyData ? "" : "static ";
             var final = bean.Extendable ? "" : "final ";
-            sw.WriteLine("@SuppressWarnings(\"ForLoopReplaceableByForEach\")");
-            sw.WriteLine($"public static {final}class Data extends Zeze.Transaction.Data {{");
+            if (bean.OnlyData)
+                sw.WriteLine("@SuppressWarnings({\"ForLoopReplaceableByForEach\", \"RedundantIfStatement\", \"RedundantSuppression\", \"UnusedAssignment\"})");
+            else
+                sw.WriteLine("@SuppressWarnings(\"ForLoopReplaceableByForEach\")");
+            sw.WriteLine($"public {static0}{final}class {className} extends Zeze.Transaction.Data {{");
             WriteDefine(sw);
             sw.WriteLine("}");
         }
@@ -75,7 +78,10 @@ namespace Zeze.Gen.javadata
                 foreach (var real in type.RealBeans)
                 {
                     sw.WriteLine($"{prefix}    if (typeId == {real.Key}L)");
-                    sw.WriteLine($"{prefix}        return new {real.Value.FullName}.Data();");
+                    if (real.Value.OnlyData)
+                        sw.WriteLine($"{prefix}        return new {real.Value.FullName}();");
+                    else
+                        sw.WriteLine($"{prefix}        return new {real.Value.FullName}.Data();");
                 }
                 sw.WriteLine($"{prefix}    if (typeId == Zeze.Transaction.EmptyBean.Data.TYPEID)");
                 sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.Data.instance;");
@@ -98,6 +104,7 @@ namespace Zeze.Gen.javadata
 
         public void WriteDefine(StreamWriter sw)
         {
+            var className = bean.OnlyData ? bean.Name : bean.Name + ".Data";
             sw.WriteLine("    public static final long TYPEID = " + bean.TypeId + "L;");
             sw.WriteLine();
             // declare enums
@@ -138,13 +145,13 @@ namespace Zeze.Gen.javadata
             Assign.Make(bean, sw, "    ");
             // Copy
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public " + bean.Name + ".Data copy() {");
-            sw.WriteLine("        var copy = new " + bean.Name + ".Data();");
+            sw.WriteLine("    public " + className + " copy() {");
+            sw.WriteLine("        var copy = new " + className + "();");
             sw.WriteLine("        copy.assign(this);");
             sw.WriteLine("        return copy;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine($"    public static void swap({bean.Name}.Data a, {bean.Name}.Data b) {{");
+            sw.WriteLine($"    public static void swap({className} a, {className} b) {{");
             sw.WriteLine($"        var save = a.copy();");
             sw.WriteLine("        a.assign(b);");
             sw.WriteLine("        b.assign(save);");
@@ -156,8 +163,8 @@ namespace Zeze.Gen.javadata
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine($"    public {bean.Name}.Data clone() {{");
-            sw.WriteLine($"        return ({bean.Name}.Data)super.clone();");
+            sw.WriteLine($"    public {className} clone() {{");
+            sw.WriteLine($"        return ({className})super.clone();");
             sw.WriteLine("    }");
             sw.WriteLine();
             java.Tostring.Make(bean, sw, "    ", true);

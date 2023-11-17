@@ -220,7 +220,11 @@ namespace Zeze.Gen
                     foreach (var b in mod.BeanKeys.Values)
                         b.Depends(depends, parent1);
                     foreach (var b in mod.Beans.Values)
+                    {
                         b.Depends(depends, parent1);
+                        if (b.OnlyData)
+                            depends.Add(b); // OnlyData的Bean都生成,不根据依赖了
+                    }
                 }
                 // 加入额外引用的bean,beankey，一般引入定义在不是本项目模块中的。
                 foreach (string n in Program.Refs(Self, "bean"))

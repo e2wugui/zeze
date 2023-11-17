@@ -19,8 +19,11 @@ namespace Zeze.Gen.javadata
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            // sw.WriteLine(prefix + "private static int _PRE_ALLOC_SIZE_ = 16;");
-            // sw.WriteLine();
+            if (bean.OnlyData)
+            {
+                sw.WriteLine(prefix + "private static int _PRE_ALLOC_SIZE_ = 16;");
+                sw.WriteLine();
+            }
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public int preAllocSize() {");
             sw.WriteLine(prefix + "    return _PRE_ALLOC_SIZE_;");

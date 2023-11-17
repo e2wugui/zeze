@@ -287,6 +287,11 @@ namespace Zeze.Gen
             return DataBeans.Contains(type);
         }
 
+        public static bool isOnlyData(Types.Type type)
+        {
+            return type is Bean && ((Bean)type).OnlyData;
+        }
+
         public static void Print(object obj, ConsoleColor color)
         {
             try

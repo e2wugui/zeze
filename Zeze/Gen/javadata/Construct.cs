@@ -12,8 +12,9 @@ namespace Zeze.Gen.javadata
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
+            var className = bean.OnlyData ? bean.Name : "Data";
             sw.WriteLine(prefix + "@SuppressWarnings(\"deprecation\")");
-            sw.WriteLine(prefix + "public Data() {");
+            sw.WriteLine(prefix + "public " + className + "() {");
             var hasCtorParam = false;
             foreach (var var in bean.Variables)
             {
@@ -27,7 +28,7 @@ namespace Zeze.Gen.javadata
             if (hasCtorParam)
             {
                 sw.WriteLine(prefix + "@SuppressWarnings(\"deprecation\")");
-                sw.Write(prefix + "public Data(");
+                sw.Write(prefix + "public " + className + "(");
                 var first = true;
                 foreach (var var in bean.Variables)
                 {
