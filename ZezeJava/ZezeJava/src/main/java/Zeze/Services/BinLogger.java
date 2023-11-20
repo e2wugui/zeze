@@ -6,13 +6,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-import Zeze.Collections.BeanFactory;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
@@ -68,7 +69,7 @@ public final class BinLogger {
 		}
 
 		public LogData(long roleId, @NotNull Serializable s) {
-			this(roleId, s.typeId(), BeanFactory.toByteBuffer(s, null));
+			this(roleId, s.typeId(), ByteBuffer.encode(s));
 		}
 
 		@Override
@@ -336,6 +337,7 @@ public final class BinLogger {
 			logger.info("lock logPath: '{}'", logPath);
 			try {
 				// 1.目录上锁
+				Files.createDirectories(Path.of(logPath));
 				lockFile = new RandomAccessFile(logPath + "LOCK", "rw");
 				if (lockFile.getChannel().tryLock() == null)
 					throw new IOException("tryLock LOCK file failed");
@@ -387,6 +389,7 @@ public final class BinLogger {
 
 		private void stopLogger() throws Exception {
 			if (writeLogThread != null) {
+				logger.info("waiting for writeLogThread ...");
 				writeLogThread.join(); // 线程还没开始时也不会等待
 				writeLogThread = null;
 			}
