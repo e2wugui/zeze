@@ -15,10 +15,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Supplier;
 import Zeze.Net.Binary;
-import Zeze.Transaction.DynamicBean;
-import Zeze.Transaction.DynamicData;
 import Zeze.Util.BitConverter;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.IntHashMap;
@@ -27,26 +24,43 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ByteBuffer implements Comparable<ByteBuffer> {
+public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	public static final @NotNull VarHandle intLeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
 	public static final @NotNull VarHandle intBeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
 	public static final @NotNull VarHandle longLeHandler = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
 	public static final @NotNull VarHandle longBeHandler = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
-	public static final boolean IGNORE_INCOMPATIBLE_FIELD = false; // 不忽略兼容字段则会抛异常
 	public static final byte[] Empty = new byte[0];
 
 	public byte @NotNull [] Bytes;
 	public int ReadIndex;
 	public int WriteIndex;
 
+	@Override
+	public int getReadIndex() {
+		return ReadIndex;
+	}
+
+	@Override
+	public void setReadIndex(int ri) {
+		ReadIndex = ri;
+	}
+
+	@Override
+	public int getWriteIndex() {
+		return WriteIndex;
+	}
+
+	@Override
 	public int capacity() {
 		return Bytes.length;
 	}
 
+	@Override
 	public int size() {
 		return WriteIndex - ReadIndex;
 	}
 
+	@Override
 	public boolean isEmpty() {
 		return ReadIndex >= WriteIndex;
 	}
@@ -97,6 +111,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteIndex = writeIndex;
 	}
 
+	@Override
 	public void FreeInternalBuffer() {
 		Bytes = Empty;
 		Reset();
@@ -139,7 +154,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	public void Replace(int writeIndex, byte @NotNull [] src, int offset, int len) {
 		if (writeIndex < ReadIndex || writeIndex + len > WriteIndex) {
 			throw new IllegalStateException("Replace writeIndex=" + writeIndex + ", len=" + len
-					+ " at " + ReadIndex + '/' + WriteIndex);
+					+ " at " + getReadIndex() + '/' + getWriteIndex());
 		}
 		System.arraycopy(src, offset, Bytes, writeIndex, len);
 	}
@@ -155,7 +170,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		int oldWriteIndex = ReadIndex + saveSize;
 		if (oldWriteIndex + 4 > WriteIndex) {
 			throw new IllegalStateException("EndWriteWithSize4 saveSize=" + saveSize
-					+ " at " + ReadIndex + '/' + WriteIndex);
+					+ " at " + getReadIndex() + '/' + getWriteIndex());
 		}
 		intLeHandler.set(Bytes, oldWriteIndex, WriteIndex - oldWriteIndex - 4);
 	}
@@ -249,6 +264,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			Reset();
 	}
 
+	@Override
 	public byte @NotNull [] Copy() {
 		int size = size();
 		if (size == 0)
@@ -262,14 +278,17 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return WriteIndex == Bytes.length && ReadIndex == 0 ? Bytes : Copy();
 	}
 
+	@Override
 	public void Reset() {
 		ReadIndex = 0;
 		WriteIndex = 0;
 	}
 
 	protected int toPower2(int needSize) {
-		if ((needSize & 0xffff_ffffL) > 0x4000_0000)
-			throw new IllegalStateException("invalid needSize=" + needSize + " at " + ReadIndex + '/' + WriteIndex);
+		if ((needSize & 0xffff_ffffL) > 0x4000_0000) {
+			throw new IllegalStateException("invalid needSize=" + needSize
+					+ " at " + getReadIndex() + '/' + getWriteIndex());
+		}
 		int size = 16;
 		while (size < needSize)
 			size <<= 1;
@@ -305,7 +324,8 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("ensureRead " + ReadIndex + '+' + size + " > " + WriteIndex);
 	}
 
-	protected void ensureRead(int size) {
+	@Override
+	public void ensureRead(int size) {
 		if (ReadIndex + size > WriteIndex)
 			throwEnsureReadException(size);
 	}
@@ -315,6 +335,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		Bytes[WriteIndex++] = (byte)(b ? 1 : 0);
 	}
 
+	@Override
 	public boolean ReadBool() {
 		ensureRead(1);
 		int b = Bytes[ReadIndex];
@@ -335,6 +356,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		Bytes[WriteIndex++] = (byte)v;
 	}
 
+	@Override
 	public byte ReadByte() {
 		ensureRead(1);
 		return Bytes[ReadIndex++];
@@ -363,6 +385,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			intLeHandler.set(Bytes, writeIndex, buf[offset + i]);
 	}
 
+	@Override
 	public int ReadInt4() {
 		ensureRead(4);
 		int v = ToInt(Bytes, ReadIndex);
@@ -370,6 +393,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return v;
 	}
 
+	@Override
 	public void ReadInt4s(int @NotNull [] buf, int offset, int length) {
 		int n = length * 4;
 		ensureRead(n);
@@ -402,6 +426,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			longLeHandler.set(Bytes, writeIndex, buf[offset + i]);
 	}
 
+	@Override
 	public long ReadLong8() {
 		ensureRead(8);
 		long v = ToLong(Bytes, ReadIndex);
@@ -409,6 +434,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return v;
 	}
 
+	@Override
 	public void ReadLong8s(long @NotNull [] buf, int offset, int length) {
 		int n = length * 8;
 		ensureRead(n);
@@ -466,11 +492,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
-	// 返回值应被看作是无符号32位整数
-	public int ReadUInt() {
-		return (int)ReadULong();
-	}
-
+	@Override
 	public void SkipUInt() {
 		ensureRead(1);
 		int readIndex = ReadIndex;
@@ -738,48 +760,6 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteIndex = writeIndex + 9;
 	}
 
-	// 返回值应被看作是无符号64位整数
-	public long ReadULong() {
-		int b = ReadByte();
-		switch ((b >> 4) & 0xf) {
-		//@formatter:off
-		case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: return b;
-		case  8: case  9: case 10: case 11: return ((b & 0x3f) <<  8) + ReadLong1();
-		case 12: case 13:                   return ((b & 0x1f) << 16) + ReadLong2BE();
-		case 14:                            return ((b & 0x0f) << 24) + ReadLong3BE();
-		default:
-			switch (b & 0xf) {
-			case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7:
-				return ((long)(b & 7) << 32) + ReadLong4BE();
-			case  8: case  9: case 10: case 11: return ((long)(b & 3) << 40) + ReadLong5BE();
-			case 12: case 13:                   return ((long)(b & 1) << 48) + ReadLong6BE();
-			case 14:                            return ReadLong7BE();
-			default:                            return ReadLong8BE();
-			}
-		//@formatter:on
-		}
-	}
-
-	public void SkipULong() {
-		int b = ReadByte();
-		switch ((b >> 4) & 0xf) {
-		//@formatter:off
-		case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: return;
-		case  8: case  9: case 10: case 11: Skip(1); return;
-		case 12: case 13:                   Skip(2); return;
-		case 14:                            Skip(3); return;
-		default:
-			switch (b & 0xf) {
-			case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: Skip(4); return;
-			case  8: case  9: case 10: case 11: Skip(5); return;
-			case 12: case 13:                   Skip(6); return;
-			case 14:                            Skip(7); return;
-			default:                            Skip(8);
-			}
-		//@formatter:on
-		}
-	}
-
 	public void WriteVector2(@NotNull Vector2 v) {
 		EnsureWrite(8);
 		byte[] bytes = Bytes;
@@ -825,11 +805,13 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteInt(v.z);
 	}
 
+	@Override
 	public long ReadLong1() {
 		ensureRead(1);
 		return Bytes[ReadIndex++] & 0xff;
 	}
 
+	@Override
 	public long ReadLong2BE() {
 		ensureRead(2);
 		byte[] bytes = Bytes;
@@ -839,6 +821,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 				(bytes[readIndex + 1] & 0xff);
 	}
 
+	@Override
 	public long ReadLong3BE() {
 		ensureRead(3);
 		byte[] bytes = Bytes;
@@ -849,6 +832,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 				(bytes[readIndex + 2] & 0xff);
 	}
 
+	@Override
 	public long ReadLong4BE() {
 		ensureRead(4);
 		int readIndex = ReadIndex;
@@ -856,6 +840,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return (int)intBeHandler.get(Bytes, readIndex) & 0xffff_ffffL;
 	}
 
+	@Override
 	public long ReadLong5BE() {
 		ensureRead(5);
 		byte[] bytes = Bytes;
@@ -865,6 +850,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 				((int)intBeHandler.get(bytes, readIndex + 1) & 0xffff_ffffL);
 	}
 
+	@Override
 	public long ReadLong6BE() {
 		ensureRead(6);
 		byte[] bytes = Bytes;
@@ -875,6 +861,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 				((int)intBeHandler.get(bytes, readIndex + 2) & 0xffff_ffffL);
 	}
 
+	@Override
 	public long ReadLong7BE() {
 		ensureRead(7);
 		byte[] bytes = Bytes;
@@ -886,6 +873,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 				((int)intBeHandler.get(bytes, readIndex + 3) & 0xffff_ffffL);
 	}
 
+	@Override
 	public long ReadLong8BE() {
 		ensureRead(8);
 		int readIndex = ReadIndex;
@@ -893,6 +881,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return (long)longBeHandler.get(Bytes, readIndex);
 	}
 
+	@Override
 	public long ReadLong() {
 		ensureRead(1);
 		int b = Bytes[ReadIndex++];
@@ -926,6 +915,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
+	@Override
 	public void SkipLong() {
 		ensureRead(1);
 		int b = Bytes[ReadIndex++];
@@ -959,10 +949,6 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteLong(v);
 	}
 
-	public int ReadInt() {
-		return (int)ReadLong();
-	}
-
 	public void WriteFloat(float v) {
 		WriteInt4(Float.floatToRawIntBits(v));
 	}
@@ -976,6 +962,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			intLeHandler.set(Bytes, writeIndex, Float.floatToRawIntBits(buf[offset + i]));
 	}
 
+	@Override
 	public float ReadFloat() {
 		ensureRead(4);
 		float v = ToFloat(Bytes, ReadIndex);
@@ -983,6 +970,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return v;
 	}
 
+	@Override
 	public void ReadFloats(float @NotNull [] buf, int offset, int length) {
 		int n = length * 4;
 		ensureRead(n);
@@ -1005,6 +993,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			longLeHandler.set(Bytes, writeIndex, Double.doubleToRawLongBits(buf[offset + i]));
 	}
 
+	@Override
 	public double ReadDouble() {
 		ensureRead(8);
 		double v = ToDouble(Bytes, ReadIndex);
@@ -1012,6 +1001,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return v;
 	}
 
+	@Override
 	public void ReadDoubles(double @NotNull [] buf, int offset, int length) {
 		int n = length * 8;
 		ensureRead(n);
@@ -1078,13 +1068,14 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteIndex = wi;
 	}
 
+	@Override
 	public @NotNull String ReadString() {
 		int n = ReadUInt();
 		if (n == 0)
 			return "";
 		if (n < 0) {
 			throw new IllegalStateException("invalid length for ReadString: " + n
-					+ " at " + ReadIndex + '/' + WriteIndex);
+					+ " at " + getReadIndex() + '/' + getWriteIndex());
 		}
 		ensureRead(n);
 		String v = new String(Bytes, ReadIndex, n, StandardCharsets.UTF_8);
@@ -1107,18 +1098,14 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		binary.encode(this);
 	}
 
-	public @NotNull Binary ReadBinary() {
-		var bytes = ReadBytes();
-		return bytes.length > 0 ? new Binary(bytes) : Binary.Empty;
-	}
-
+	@Override
 	public byte @NotNull [] ReadBytes() {
 		int n = ReadUInt();
 		if (n == 0)
 			return Empty;
 		if (n < 0) {
 			throw new IllegalStateException("invalid length for ReadBytes: " + n
-					+ " at " + ReadIndex + '/' + WriteIndex);
+					+ " at " + getReadIndex() + '/' + getWriteIndex());
 		}
 		ensureRead(n);
 		byte[] v = new byte[n];
@@ -1127,27 +1114,10 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return v;
 	}
 
+	@Override
 	public void Skip(int n) {
 		ensureRead(n);
 		ReadIndex += n;
-	}
-
-	public void SkipBytes() {
-		int n = ReadUInt();
-		if (n < 0) {
-			throw new IllegalStateException("invalid length for SkipBytes: " + n
-					+ " at " + ReadIndex + '/' + WriteIndex);
-		}
-		Skip(n);
-	}
-
-	public void SkipBytes4() {
-		int n = ReadInt4();
-		if (n < 0) {
-			throw new IllegalStateException("invalid length for SkipBytes4: " + n
-					+ " at " + ReadIndex + '/' + WriteIndex);
-		}
-		Skip(n);
 	}
 
 	/**
@@ -1157,7 +1127,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		int n = ReadUInt();
 		if (n < 0) {
 			throw new IllegalStateException("invalid length for ReadByteBuffer: " + n
-					+ " at " + ReadIndex + '/' + WriteIndex);
+					+ " at " + getReadIndex() + '/' + getWriteIndex());
 		}
 		ensureRead(n);
 		int cur = ReadIndex;
@@ -1244,26 +1214,6 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return calc_hashnr(Bytes, ReadIndex, size());
 	}
 
-	// 只能增加新的类型定义，增加时记得同步 SkipUnknownField
-	public static final int
-			INTEGER = 0, // byte,short,int,long,bool
-			FLOAT = 1, // float
-			DOUBLE = 2, // double
-			BYTES = 3, // binary,string
-			LIST = 4, // list,set
-			MAP = 5, // map
-			BEAN = 6, // bean
-			DYNAMIC = 7, // dynamic
-			VECTOR2 = 8, // float{x,y}
-			VECTOR2INT = 9, // int{x,y}
-			VECTOR3 = 10, // float{x,y,z}
-			VECTOR3INT = 11, // int{x,y,z}
-			VECTOR4 = 12; // float{x,y,z,w} Quaternion
-
-	public static final int TAG_SHIFT = 4;
-	public static final int TAG_MASK = (1 << TAG_SHIFT) - 1;
-	public static final int ID_MASK = 0xff - TAG_MASK;
-
 	public static void VerifyArrayIndex(byte @NotNull [] bytes, int length) {
 		int bytesLen = bytes.length;
 		if ((length | (bytesLen - length)) < 0)
@@ -1291,14 +1241,6 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			s.encode(this);
 	}
 
-	public <T extends Serializable> void decode(@NotNull Collection<T> c, @NotNull Supplier<T> factory) {
-		for (int n = ReadUInt(); n > 0; n--) {
-			T v = factory.get();
-			v.decode(this);
-			c.add(v);
-		}
-	}
-
 	public int WriteTag(int lastVarId, int varId, int type) {
 		int deltaId = varId - lastVarId;
 		if (deltaId < 0xf)
@@ -1324,138 +1266,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteUInt(mapSize);
 	}
 
-	public int ReadTagSize(int tagByte) {
-		int deltaId = (tagByte & ID_MASK) >> TAG_SHIFT;
-		return deltaId < 0xf ? deltaId : 0xf + ReadUInt();
-	}
-
-	public boolean ReadBool(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == INTEGER)
-			return ReadLong() != 0;
-		if (type == FLOAT)
-			return ReadFloat() != 0;
-		if (type == DOUBLE)
-			return ReadDouble() != 0;
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return false;
-		}
-		throw new IllegalStateException("can not ReadBool for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public byte ReadByte(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == INTEGER)
-			return (byte)ReadLong();
-		if (type == FLOAT)
-			return (byte)ReadFloat();
-		if (type == DOUBLE)
-			return (byte)ReadDouble();
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return 0;
-		}
-		throw new IllegalStateException("can not ReadByte for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public short ReadShort(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == INTEGER)
-			return (short)ReadLong();
-		if (type == FLOAT)
-			return (short)ReadFloat();
-		if (type == DOUBLE)
-			return (short)ReadDouble();
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return 0;
-		}
-		throw new IllegalStateException("can not ReadShort for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public int ReadInt(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == INTEGER)
-			return (int)ReadLong();
-		if (type == FLOAT)
-			return (int)ReadFloat();
-		if (type == DOUBLE)
-			return (int)ReadDouble();
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return 0;
-		}
-		throw new IllegalStateException("can not ReadInt for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public long ReadLong(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == INTEGER)
-			return ReadLong();
-		if (type == FLOAT)
-			return (long)ReadFloat();
-		if (type == DOUBLE)
-			return (long)ReadDouble();
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return 0;
-		}
-		throw new IllegalStateException("can not ReadLong for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public float ReadFloat(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == FLOAT)
-			return ReadFloat();
-		if (type == DOUBLE)
-			return (float)ReadDouble();
-		if (type == INTEGER)
-			return ReadLong();
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return 0;
-		}
-		throw new IllegalStateException("can not ReadFloat for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public double ReadDouble(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == DOUBLE)
-			return ReadDouble();
-		if (type == FLOAT)
-			return ReadFloat();
-		if (type == INTEGER)
-			return ReadLong();
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return 0;
-		}
-		throw new IllegalStateException("can not ReadDouble for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public @NotNull Binary ReadBinary(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == BYTES)
-			return ReadBinary();
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return Binary.Empty;
-		}
-		throw new IllegalStateException("can not ReadBinary for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public @NotNull String ReadString(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == BYTES)
-			return ReadString();
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return "";
-		}
-		throw new IllegalStateException("can not ReadString for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
+	@Override
 	public @NotNull Vector2 ReadVector2() {
 		ensureRead(8);
 		int i = ReadIndex;
@@ -1465,6 +1276,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return new Vector2(x, y);
 	}
 
+	@Override
 	public @NotNull Vector3 ReadVector3() {
 		ensureRead(12);
 		int i = ReadIndex;
@@ -1475,6 +1287,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return new Vector3(x, y, z);
 	}
 
+	@Override
 	public @NotNull Vector4 ReadVector4() {
 		ensureRead(16);
 		int i = ReadIndex;
@@ -1486,6 +1299,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return new Vector4(x, y, z, w);
 	}
 
+	@Override
 	public @NotNull Quaternion ReadQuaternion() {
 		ensureRead(16);
 		int i = ReadIndex;
@@ -1495,307 +1309,6 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		float w = ToFloat(Bytes, i + 12);
 		ReadIndex = i + 16;
 		return new Quaternion(x, y, z, w);
-	}
-
-	public @NotNull Vector2Int ReadVector2Int() {
-		int x = ReadInt();
-		int y = ReadInt();
-		return new Vector2Int(x, y);
-	}
-
-	public @NotNull Vector3Int ReadVector3Int() {
-		int x = ReadInt();
-		int y = ReadInt();
-		int z = ReadInt();
-		return new Vector3Int(x, y, z);
-	}
-
-	public @NotNull Vector2 ReadVector2(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == VECTOR2)
-			return ReadVector2();
-		if (type == VECTOR3)
-			return ReadVector3();
-		if (type == VECTOR4)
-			return ReadVector4();
-		if (type == VECTOR2INT)
-			return new Vector2(ReadVector2Int());
-		if (type == VECTOR3INT)
-			return new Vector3(ReadVector3Int());
-		if (type == FLOAT)
-			return new Vector2(ReadFloat(), 0);
-		if (type == DOUBLE)
-			return new Vector2((float)ReadDouble(), 0);
-		if (type == INTEGER)
-			return new Vector2(ReadLong(), 0);
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return Vector2.ZERO;
-		}
-		throw new IllegalStateException("can not ReadVector2 for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public @NotNull Vector3 ReadVector3(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == VECTOR3)
-			return ReadVector3();
-		if (type == VECTOR2)
-			return new Vector3(ReadVector2());
-		if (type == VECTOR4)
-			return ReadVector4();
-		if (type == VECTOR3INT)
-			return new Vector3(ReadVector3Int());
-		if (type == VECTOR2INT)
-			return new Vector3(ReadVector2Int());
-		if (type == FLOAT)
-			return new Vector3(ReadFloat(), 0, 0);
-		if (type == DOUBLE)
-			return new Vector3((float)ReadDouble(), 0, 0);
-		if (type == INTEGER)
-			return new Vector3(ReadLong(), 0, 0);
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return Vector3.ZERO;
-		}
-		throw new IllegalStateException("can not ReadVector3 for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public @NotNull Vector4 ReadVector4(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == VECTOR4)
-			return ReadVector4();
-		if (type == VECTOR3)
-			return new Vector4(ReadVector3());
-		if (type == VECTOR2)
-			return new Vector4(ReadVector2());
-		if (type == VECTOR3INT)
-			return new Vector4(ReadVector3Int());
-		if (type == VECTOR2INT)
-			return new Vector4(ReadVector2Int());
-		if (type == FLOAT)
-			return new Vector4(ReadFloat(), 0, 0, 0);
-		if (type == DOUBLE)
-			return new Vector4((float)ReadDouble(), 0, 0, 0);
-		if (type == INTEGER)
-			return new Vector4(ReadLong(), 0, 0, 0);
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return Vector4.ZERO;
-		}
-		throw new IllegalStateException("can not ReadVector4 for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public @NotNull Quaternion ReadQuaternion(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == VECTOR4)
-			return ReadQuaternion();
-		if (type == VECTOR3)
-			return new Quaternion(ReadVector3());
-		if (type == VECTOR2)
-			return new Quaternion(ReadVector2());
-		if (type == VECTOR3INT)
-			return new Quaternion(ReadVector3Int());
-		if (type == VECTOR2INT)
-			return new Quaternion(ReadVector2Int());
-		if (type == FLOAT)
-			return new Quaternion(ReadFloat(), 0, 0, 0);
-		if (type == DOUBLE)
-			return new Quaternion((float)ReadDouble(), 0, 0, 0);
-		if (type == INTEGER)
-			return new Quaternion(ReadLong(), 0, 0, 0);
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return Quaternion.ZERO;
-		}
-		throw new IllegalStateException("can not ReadQuaternion for type=" + type
-				+ " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public @NotNull Vector2Int ReadVector2Int(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == VECTOR2INT)
-			return ReadVector2Int();
-		if (type == VECTOR3INT)
-			return ReadVector3Int();
-		if (type == VECTOR2)
-			return new Vector2Int(ReadVector2());
-		if (type == VECTOR3)
-			return new Vector3Int(ReadVector3());
-		if (type == VECTOR4)
-			return new Vector3Int(ReadVector4());
-		if (type == INTEGER)
-			return new Vector2Int(ReadInt(), 0);
-		if (type == FLOAT)
-			return new Vector2Int((int)ReadFloat(), 0);
-		if (type == DOUBLE)
-			return new Vector2Int((int)ReadDouble(), 0);
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return Vector2Int.ZERO;
-		}
-		throw new IllegalStateException("can not ReadVector2Int for type=" + type
-				+ " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public @NotNull Vector3Int ReadVector3Int(int tag) {
-		int type = tag & TAG_MASK;
-		if (type == VECTOR3INT)
-			return ReadVector3Int();
-		if (type == VECTOR2INT)
-			return new Vector3Int(ReadVector2Int());
-		if (type == VECTOR3)
-			return new Vector3Int(ReadVector3());
-		if (type == VECTOR2)
-			return new Vector3Int(ReadVector2());
-		if (type == VECTOR4)
-			return new Vector3Int(ReadVector4());
-		if (type == INTEGER)
-			return new Vector3Int(ReadInt(), 0, 0);
-		if (type == FLOAT)
-			return new Vector3Int((int)ReadFloat(), 0, 0);
-		if (type == DOUBLE)
-			return new Vector3Int((int)ReadDouble(), 0, 0);
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return Vector3Int.ZERO;
-		}
-		throw new IllegalStateException("can not ReadVector3Int for type=" + type
-				+ " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public <T extends Serializable> @NotNull T ReadBean(@NotNull T bean, int tag) {
-		int type = tag & TAG_MASK;
-		if (type == BEAN)
-			bean.decode(this);
-		else if (type == DYNAMIC) {
-			SkipLong();
-			bean.decode(this);
-		} else if (IGNORE_INCOMPATIBLE_FIELD)
-			SkipUnknownField(tag);
-		else {
-			throw new IllegalStateException("can not ReadBean(" + bean.getClass().getName() + ") for type=" + type
-					+ " at " + ReadIndex + '/' + WriteIndex);
-		}
-		return bean;
-	}
-
-	public @NotNull DynamicBean ReadDynamic(@NotNull DynamicBean dynBean, int tag) {
-		int type = tag & TAG_MASK;
-		if (type == DYNAMIC)
-			dynBean.decode(this);
-		else if (type == BEAN)
-			dynBean.newBean(0).decode(this);
-		else if (IGNORE_INCOMPATIBLE_FIELD)
-			SkipUnknownField(tag);
-		else
-			throw new IllegalStateException("can not ReadDynamic for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-		return dynBean;
-	}
-
-	public @NotNull DynamicData ReadDynamic(@NotNull DynamicData dynBean, int tag) {
-		int type = tag & TAG_MASK;
-		if (type == DYNAMIC) {
-			dynBean.decode(this);
-			return dynBean;
-		}
-		if (type == BEAN) {
-			var bean = dynBean.toData(0);
-			if (bean != null) {
-				bean.decode(this);
-				return dynBean;
-			}
-		}
-		if (IGNORE_INCOMPATIBLE_FIELD) {
-			SkipUnknownField(tag);
-			return dynBean;
-		}
-		throw new IllegalStateException("can not ReadDynamic for type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-	}
-
-	public void SkipUnknownFieldOrThrow(int tag, @NotNull String curType) {
-		if (IGNORE_INCOMPATIBLE_FIELD)
-			SkipUnknownField(tag);
-		else {
-			throw new IllegalStateException("can not read " + curType + " for type=" + (tag & TAG_MASK)
-					+ " at " + ReadIndex + '/' + WriteIndex);
-		}
-	}
-
-	public void SkipUnknownField(int tag, int count) {
-		while (--count >= 0)
-			SkipUnknownField(tag);
-	}
-
-	public void SkipUnknownField(int type1, int type2, int count) {
-		type1 |= 0x10; // ensure high bits not zero
-		type2 |= 0x10; // ensure high bits not zero
-		while (--count >= 0) {
-			SkipUnknownField(type1);
-			SkipUnknownField(type2);
-		}
-	}
-
-	public void SkipUnknownField(int tag) {
-		int type = tag & TAG_MASK;
-		switch (type) {
-		case INTEGER:
-			SkipLong();
-			return;
-		case FLOAT:
-			if (tag == FLOAT) // high bits == 0
-				return;
-			Skip(4);
-			return;
-		case DOUBLE:
-		case VECTOR2:
-			Skip(8);
-			return;
-		case VECTOR2INT:
-			SkipLong();
-			SkipLong();
-			return;
-		case VECTOR3:
-			Skip(12);
-			return;
-		case VECTOR3INT:
-			SkipLong();
-			SkipLong();
-			SkipLong();
-			return;
-		case VECTOR4:
-			Skip(16);
-			return;
-		case BYTES:
-			SkipBytes();
-			return;
-		case LIST:
-			int t = ReadByte();
-			SkipUnknownField(t, ReadTagSize(t));
-			return;
-		case MAP:
-			t = ReadByte();
-			SkipUnknownField(t >> TAG_SHIFT, t, ReadUInt());
-			return;
-		case DYNAMIC:
-			SkipLong();
-			//noinspection fallthrough
-		case BEAN:
-			while ((t = ReadByte()) != 0) {
-				if ((t & ID_MASK) == 0xf0)
-					SkipUInt();
-				SkipUnknownField(t);
-			}
-			return;
-		default:
-			throw new IllegalStateException("SkipUnknownField: type=" + type + " at " + ReadIndex + '/' + WriteIndex);
-		}
-	}
-
-	public void skipAllUnknownFields(int tag) {
-		while (tag != 0) {
-			SkipUnknownField(tag);
-			ReadTagSize(tag = ReadByte());
-		}
 	}
 
 	public @Nullable ByteBuffer readUnknownField(int idx, int tag, @Nullable ByteBuffer unknown) {
@@ -1820,10 +1333,6 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			idx += ReadTagSize(tag = ReadByte());
 		}
 		return unknown != null ? unknown.CopyIf() : null;
-	}
-
-	public long readUnknownIndex() {
-		return ReadIndex < WriteIndex ? ReadUInt() : Long.MAX_VALUE;
 	}
 
 	public int writeUnknownField(int lastIdx, long idx, @NotNull ByteBuffer unknown) {
