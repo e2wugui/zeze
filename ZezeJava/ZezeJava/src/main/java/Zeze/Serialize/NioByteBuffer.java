@@ -86,7 +86,10 @@ public class NioByteBuffer implements Comparable<NioByteBuffer> {
 		if (size == 0)
 			return ByteBuffer.Empty;
 		byte[] copy = new byte[size];
-		bb.get(bb.position(), copy);
+		// bb.get(bb.position(), copy); // need JDK13+
+		int pos = bb.position();
+		bb.get(copy);
+		bb.position(pos);
 		return copy;
 	}
 

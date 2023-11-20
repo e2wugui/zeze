@@ -5,12 +5,13 @@ import java.io.Closeable;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.channels.FileChannel.MapMode;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Collections.BeanFactory;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
@@ -21,12 +22,11 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Selectors;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.NioByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.Json;
+import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.LogManager;
@@ -37,8 +37,10 @@ import org.jetbrains.annotations.Nullable;
 public final class BinLogger {
 	private static final Logger logger = LogManager.getLogger(BinLogger.class);
 	private static final int timeZoneOffset = TimeZone.getDefault().getRawOffset(); // 北京时间(+8): 28800_000
-	private static final long MAX_LOG_SIZE = 1L << 30;
 	private static final int DEFAULT_PORT = 5004;
+	private static final int MAX_LOG_SIZE = 0xfffff; // 1M-1
+	private static final int QUEUE_COUNT_LIMIT = 1024 * 1024; // 1M
+	private static final int QUEUE_SIZE_LIMIT = Math.max(256 * 1024 * 1024, MAX_LOG_SIZE); // 256M, 不能小于MAX_LOG_SIZE
 
 	public static final class LogData extends Protocol<LogData> {
 		public static final int protocolId = Bean.hash32(LogData.class.getName()); // 117415474
@@ -188,20 +190,33 @@ public final class BinLogger {
 			try {
 				decodeProtocol(typeId, bb, factoryHandle, so).handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
 			} catch (Throwable e) { // logger.error
-				logger.error("dispatchProtocol exception:", e);
+				logger.error("BinLoggerAgent.dispatchProtocol exception:", e);
 			}
 		}
 	}
 
 	public static final class BinLoggerService extends Service {
-		private static final int BIN_BUFFER = 1024 * 1024;
-		private static final int OTHER_BUFFER = 64 * 1024;
+		private static final int BIN_BUFFER = 1024 * 1024; // bin类型文件的写缓冲区大小,积累到一定量或定期flush给OS
+		private static final int OTHER_BUFFER = 64 * 1024; // 同上,用于其它类型文件
 
-		private final @NotNull String logPath;
-		private @Nullable RandomAccessFile lockFile;
-		private @Nullable BufferedOutputStream binFile, posFile, tsFile, dtFile, idFile;
+		private final @NotNull String logPath; // 日志保存的路径,以"/"结尾,日志文件名(除后缀名)是8位日期数字
+		private @Nullable RandomAccessFile lockFile; // 以"LOCK"命名的文件,用于BinLogger对象独占日志写入权限
+		private BufferedOutputStream binFile; // Bean(Data)结构日志经过二进制序列化紧凑连续保存的文件
+		private BufferedOutputStream posFile; // 每条日志在bin文件中的位置和大小,小端保存为8字节整数,其中位置占高44位,大小占低20位
+		private BufferedOutputStream tsFile; // 每条日志的时间戳,小端保存为8字节整数,其中高44位是UTC毫秒时间戳,低20位是该时间戳的日志序号(从0开始)
+		private BufferedOutputStream dtFile; // 每条日志的Bean类型,小端保存为8字节整数
+		private BufferedOutputStream idFile; // 每条日志的所属ID,小端保存为8字节整数,通常为角色ID
+		private long binSize;
+		private Thread writeLogThread;
+		private ArrayList<LogData> writeLogQueue; // 写日志队列
+		private @NotNull ArrayList<LogData> readLogQueue = new ArrayList<>(); // 读日志队列
+		private final @NotNull ReentrantLock queueLock = new ReentrantLock(); // 队列锁
+		private final @NotNull Condition queueLockCond = queueLock.newCondition(); // 队列锁等待条件
+		private long writeLogQueueSize;
+		private long lastTs, lastFlushMs;
 		private int curDayStamp;
 		private boolean started;
+		private boolean waitingQueue;
 
 		public BinLoggerService(@Nullable String logPath) {
 			this(null, logPath);
@@ -228,6 +243,7 @@ public final class BinLogger {
 
 			AddFactoryHandle(LogData.typeId, new ProtocolFactoryHandle<>(LogData::new, this::processLogData,
 					TransactionLevel.None, DispatchMode.Direct));
+			ShutdownHook.add(this::stop);
 		}
 
 		@Override
@@ -240,7 +256,7 @@ public final class BinLogger {
 			if (started)
 				stop();
 			started = true;
-
+			logger.info("BinLoggerService starting ...");
 			var sc = getConfig();
 			if (sc.acceptorCount() == 0)
 				sc.addAcceptor(new Acceptor(port > 0 ? port : DEFAULT_PORT, host));
@@ -254,13 +270,15 @@ public final class BinLogger {
 				});
 			}
 			startLogger();
-			// ShutdownHook.add(BinLogger::trySaveFile);
 			super.start();
 		}
 
 		@Override
 		public synchronized void stop() throws Exception {
+			if (!started)
+				return;
 			started = false;
+			logger.info("BinLoggerService stopping ...");
 			try {
 				super.stop();
 			} finally {
@@ -268,20 +286,33 @@ public final class BinLogger {
 			}
 		}
 
-		@Override
-		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb,
-									 @NotNull ProtocolFactoryHandle<?> factoryHandle,
-									 @NotNull AsyncSocket so) throws Exception {
-			try {
-				decodeProtocol(typeId, bb, factoryHandle, so).handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
-			} catch (Throwable e) { // logger.error
-				logger.error("dispatchProtocol exception:", e);
-			}
-		}
+		private static final class RecoveryFile implements Closeable {
+			final @NotNull RandomAccessFile raf;
+			final @NotNull FileChannel fc;
+			final long size;
 
-		private long processLogData(@NotNull LogData p) {
-			//TODO
-			return 0;
+			private RecoveryFile(@NotNull String fileName) throws IOException {
+				RandomAccessFile f = null;
+				try {
+					raf = f = new RandomAccessFile(fileName, "rw");
+					fc = f.getChannel();
+					size = fc.size();
+				} catch (Throwable e) {
+					if (f != null)
+						f.close();
+					throw e;
+				}
+			}
+
+			void tryTruncate(long size) throws IOException {
+				if (this.size != size)
+					fc.truncate(size);
+			}
+
+			@Override
+			public void close() throws IOException {
+				raf.close();
+			}
 		}
 
 		private static int toDayStamp(long utcMs) {
@@ -289,44 +320,66 @@ public final class BinLogger {
 		}
 
 		@SuppressWarnings("deprecation")
-		private static String toDayStr(int dayStamp) { // 20231117
+		private static @NotNull String toDayStr(int dayStamp) { // 20231117
 			var date = new Date(dayStamp * 86400_000L - timeZoneOffset);
 			return String.format("%4d%2d%2d", date.getYear() + 1900, date.getMonth() + 1, date.getDate());
 		}
 
-		private void startLogger() throws IOException {
+		private void startLogger() throws Exception {
+			logger.info("lock logPath: '{}'", logPath);
 			try {
 				// 1.目录上锁
 				lockFile = new RandomAccessFile(logPath + "LOCK", "rw");
 				if (lockFile.getChannel().tryLock() == null)
 					throw new IOException("tryLock LOCK file failed");
-				// 2.修复当前打开的文件
+				// 2.修复并打开当天的所有日志和索引文件
 				curDayStamp = toDayStamp(System.currentTimeMillis());
-				var fileNamePrefix = logPath + toDayStr(curDayStamp);
-				recover(fileNamePrefix);
-				// 3.打开当日文件
-				binFile = new BufferedOutputStream(new FileOutputStream(fileNamePrefix + ".bin", true), BIN_BUFFER);
-				posFile = new BufferedOutputStream(new FileOutputStream(fileNamePrefix + ".pos", true), OTHER_BUFFER);
-				tsFile = new BufferedOutputStream(new FileOutputStream(fileNamePrefix + ".ts", true), OTHER_BUFFER);
-				dtFile = new BufferedOutputStream(new FileOutputStream(fileNamePrefix + ".dt", true), OTHER_BUFFER);
-				idFile = new BufferedOutputStream(new FileOutputStream(fileNamePrefix + ".id", true), OTHER_BUFFER);
-			} catch (Throwable e) {
-				try {
-					stopLogger();
-				} catch (Exception ignored) {
+				var fnPrefix = logPath + toDayStr(curDayStamp);
+				try (var binF = new RecoveryFile(fnPrefix + ".bin");
+					 var posF = new RecoveryFile(fnPrefix + ".pos");
+					 var tsF = new RecoveryFile(fnPrefix + ".ts");
+					 var dtF = new RecoveryFile(fnPrefix + ".dt");
+					 var idF = new RecoveryFile(fnPrefix + ".id")) {
+					binSize = binF.size;
+					logger.info("recovery: bin,pos,ts,dt,id.size={},{},{},{},{}; fileNamePrefix='{}'",
+							binSize, posF.size, tsF.size, dtF.size, idF.size, fnPrefix);
+					var otherTruncateSize = Math.min(Math.min(Math.min(posF.size, tsF.size), dtF.size), idF.size) & ~7;
+					var buf = new byte[8];
+					for (; otherTruncateSize >= 8; otherTruncateSize -= 8) {
+						posF.raf.seek(otherTruncateSize - 8);
+						posF.raf.read(buf);
+						var posLen = ByteBuffer.ToLong(buf, 0);
+						if ((posLen >>> 20) + (posLen & 0xfffff) <= binSize)
+							break;
+					}
+					logger.info("recovery: truncate size={}", otherTruncateSize);
+					posF.tryTruncate(otherTruncateSize);
+					tsF.tryTruncate(otherTruncateSize);
+					dtF.tryTruncate(otherTruncateSize);
+					idF.tryTruncate(otherTruncateSize);
+					lastFlushMs = System.currentTimeMillis();
+					binFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".bin", true), BIN_BUFFER);
+					posFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".pos", true), OTHER_BUFFER);
+					tsFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".ts", true), OTHER_BUFFER);
+					dtFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".dt", true), OTHER_BUFFER);
+					idFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".id", true), OTHER_BUFFER);
 				}
+				// 3.开启写日志线程
+				writeLogQueue = new ArrayList<>();
+				writeLogThread = new Thread(this::writeLogThread, "WriteLogThread");
+				writeLogThread.start();
+			} catch (Throwable e) {
+				started = false;
+				stopLogger();
 				throw e;
 			}
 		}
 
-		private static void forceClose(Closeable c) {
-			try {
-				c.close();
-			} catch (Exception ignored) {
+		private void stopLogger() throws Exception {
+			if (writeLogThread != null) {
+				writeLogThread.join(); // 线程还没开始时也不会等待
+				writeLogThread = null;
 			}
-		}
-
-		private void stopLogger() throws IOException {
 			if (idFile != null) {
 				forceClose(idFile);
 				idFile = null;
@@ -351,81 +404,133 @@ public final class BinLogger {
 				forceClose(lockFile);
 				lockFile = null;
 			}
+			logger.info("unlock logPath: '{}'", logPath);
 		}
 
-		private static final class RecoveryFile implements Closeable {
-			final RandomAccessFile raf;
-			final FileChannel fc;
-			final long size;
+		private static void forceClose(@NotNull Closeable c) {
+			try {
+				c.close();
+			} catch (Exception ignored) {
+			}
+		}
 
-			private RecoveryFile(String fileName) throws IOException {
-				RandomAccessFile f = null;
+		@Override
+		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb,
+									 @NotNull ProtocolFactoryHandle<?> factoryHandle,
+									 @NotNull AsyncSocket so) throws Exception {
+			try {
+				decodeProtocol(typeId, bb, factoryHandle, so).handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
+			} catch (Throwable e) { // logger.error
+				logger.error("BinLoggerService.dispatchProtocol exception:", e);
+			}
+		}
+
+		private long processLogData(@NotNull LogData p) throws InterruptedException {
+			int dataSize = p.data.size();
+			if (dataSize > MAX_LOG_SIZE) {
+				logger.warn("too long size of LogData: roleId={}, type={}, size={}, sender={}",
+						p.roleId, p.dataType, dataSize, p.getSender());
+			} else {
+				queueLock.lock();
 				try {
-					raf = f = new RandomAccessFile(fileName, "rw");
-					fc = f.getChannel();
-					size = fc.size();
-				} catch (Throwable e) {
-					if (f != null)
-						f.close();
-					throw e;
-				}
-			}
-
-			void tryTruncate(long size) throws IOException {
-				if (this.size != size)
-					fc.truncate(size);
-			}
-
-			@Override
-			public void close() throws IOException {
-				raf.close();
-			}
-		}
-
-		private static void recover(@NotNull String fileNamePrefix) throws IOException {
-			try (var binF = new RecoveryFile(fileNamePrefix + ".bin");
-				 var posF = new RecoveryFile(fileNamePrefix + ".pos");
-				 var tsF = new RecoveryFile(fileNamePrefix + ".ts");
-				 var dtF = new RecoveryFile(fileNamePrefix + ".dt");
-				 var idF = new RecoveryFile(fileNamePrefix + ".id")) {
-				logger.info("recovery: bin,pos,ts,dt,id size = {},{},{},{},{}",
-						binF.size, posF.size, tsF.size, dtF.size, idF.size);
-				var otherMinSize = Math.min(Math.min(Math.min(posF.size, tsF.size), dtF.size), idF.size) & ~7;
-				posF.tryTruncate(otherMinSize);
-				tsF.tryTruncate(otherMinSize);
-				dtF.tryTruncate(otherMinSize);
-				idF.tryTruncate(otherMinSize);
-				if (otherMinSize == 0) {
-					binF.tryTruncate(0);
-					return;
-				}
-				var buf = new byte[8];
-				for (long otherSize = otherMinSize; otherSize > 0; otherSize -= 8) {
-					posF.raf.seek(otherSize - 8);
-					posF.raf.read(buf);
-					var pos = ByteBuffer.ToLong(buf, 0);
-					if (pos < binF.size) {
-						MappedByteBuffer mbb = null;
-						try {
-							mbb = binF.fc.map(MapMode.READ_ONLY, pos, Math.min(binF.size - pos, MAX_LOG_SIZE));
-							var nbb = NioByteBuffer.Wrap(mbb);
-							nbb.SkipUnknownField(ByteBuffer.BEAN);
-							//TODO
-						} finally {
-							if (mbb != null)
-								Json.getUnsafe().invokeCleaner(mbb);
+					for (; ; ) {
+						var wlq = writeLogQueue;
+						if (wlq == null) {
+							logger.info("drop LogData: roleId={}, type={}, size={}, sender={}",
+									p.roleId, p.dataType, dataSize, p.getSender());
+						} else {
+							var newQueueSize = writeLogQueueSize + dataSize;
+							if (newQueueSize > QUEUE_SIZE_LIMIT || wlq.size() >= QUEUE_COUNT_LIMIT) {
+								waitingQueue = true;
+								queueLockCond.await();
+								continue;
+							}
+							writeLogQueueSize = newQueueSize;
+							wlq.add(p);
 						}
+						break;
 					}
+				} finally {
+					queueLock.unlock();
 				}
 			}
+			return 0;
 		}
 
-		private void writeLogger() {
-			//TODO
-		}
-
-		private void rollLogger() {
-			//TODO
+		private void writeLogThread() {
+			for (var buf = new byte[8]; ; ) {
+				try {
+					int queueSize;
+					queueLock.lock();
+					try {
+						var wlq = writeLogQueue;
+						if (wlq == null)
+							break;
+						queueSize = wlq.size();
+						if (queueSize > 0) {
+							writeLogQueue = readLogQueue;
+							readLogQueue = wlq;
+							if (waitingQueue) {
+								waitingQueue = false;
+								queueLockCond.signalAll();
+							}
+						}
+						if (!started)
+							writeLogQueue = null;
+					} finally {
+						queueLock.unlock();
+					}
+					if (queueSize > 0) {
+						var curMs = System.currentTimeMillis();
+						if (curMs > lastTs >> 20)
+							lastTs = curMs << 20;
+						var dayStamp = toDayStamp(curMs);
+						if (dayStamp != curDayStamp) {
+							curDayStamp = dayStamp;
+							binFile.close();
+							posFile.close();
+							tsFile.close();
+							dtFile.close();
+							idFile.close();
+							var fnPrefix = logPath + toDayStr(curDayStamp);
+							binFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".bin"), BIN_BUFFER);
+							posFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".pos"), OTHER_BUFFER);
+							tsFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".ts"), OTHER_BUFFER);
+							dtFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".dt"), OTHER_BUFFER);
+							idFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".id"), OTHER_BUFFER);
+						}
+						for (int i = 0; i < queueSize; i++) {
+							var logData = readLogQueue.get(i);
+							var data = logData.data;
+							var dataSize = data.size();
+							binFile.write(data.Bytes, data.ReadIndex, dataSize);
+							ByteBuffer.longLeHandler.set(buf, 0, (binSize << 20) + dataSize);
+							posFile.write(buf);
+							binSize += dataSize;
+							ByteBuffer.longLeHandler.set(buf, 0, lastTs++);
+							tsFile.write(buf);
+							ByteBuffer.longLeHandler.set(buf, 0, logData.dataType);
+							dtFile.write(buf);
+							ByteBuffer.longLeHandler.set(buf, 0, logData.roleId);
+							idFile.write(buf);
+						}
+						readLogQueue.clear();
+						if (curMs - lastFlushMs >= 1_000) { // 最多一秒刷新一次
+							lastFlushMs = curMs;
+							binFile.flush();
+							posFile.flush();
+							tsFile.flush();
+							dtFile.flush();
+							idFile.flush();
+						}
+					} else {
+						//noinspection BusyWait
+						Thread.sleep(100);
+					}
+				} catch (Throwable e) {
+					logger.error("writeLogThread exception:", e);
+				}
+			}
 		}
 	}
 
