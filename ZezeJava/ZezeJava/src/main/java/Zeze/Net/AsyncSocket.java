@@ -613,7 +613,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return false;
 	}
 
-	public static @NotNull String toStr(@NotNull Object obj) {
+	public static @NotNull String toStr(@Nullable Object obj) {
 		return ENABLE_PROTOCOL_LOG_OLD
 				? String.valueOf(obj)
 				: JsonWriter.local().clear().setFlagsAndDepthLimit(JsonWriter.FLAG_NO_QUOTE_KEY, 16)
