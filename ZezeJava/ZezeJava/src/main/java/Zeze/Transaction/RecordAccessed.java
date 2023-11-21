@@ -6,8 +6,29 @@ import org.jetbrains.annotations.Nullable;
 
 public final class RecordAccessed extends Bean {
 	public static final class PutLog extends Log1<RecordAccessed, Bean> {
-		public PutLog(RecordAccessed bean, Bean putValue) {
+		public PutLog(RecordAccessed bean, Bean putValue, boolean removeWhileRollback) {
 			super(bean, 0, putValue);
+			if (removeWhileRollback) {
+				Transaction.whileRollback(this::removeIf);
+			}
+		}
+
+		private void removeIf() {
+			// 1. 目前这是memory表专用的。
+			// 2. rollback的时候调用。
+			// 3. 锁定方式，
+			// a) 简单就是单个记录锁定，需要考虑死锁可能。rollback有可能持有锁。
+			// b) rollback的时候，收集这种特别的记录，按commit方式锁定，允许多个表。
+			//    这个复杂点，估计需要重构代码。
+			// c) 无锁？
+			// 4. 删除条件（AND）
+			// a) timestamp 不变
+			// b) value == null，这是保护性，限定条件，使得功能仅限于cache.remove，专用。
+			/*
+			var ra = (RecordAccessed)getBean();
+			var r = ra.atomicTupleRecord.record;
+			r.getTTable().getCache().remove(r.getObjectKey(), r);
+			*/
 		}
 
 		@Override
@@ -41,7 +62,11 @@ public final class RecordAccessed extends Bean {
 	}
 
 	public void put(Transaction current, Bean putValue) {
-		current.putLog(new PutLog(this, putValue));
+		current.putLog(new PutLog(this, putValue, false));
+	}
+
+	public void put(Transaction current, Bean putValue, boolean removeWhileRollback) {
+		current.putLog(new PutLog(this, putValue, removeWhileRollback));
 	}
 
 	public void remove(Transaction current) {

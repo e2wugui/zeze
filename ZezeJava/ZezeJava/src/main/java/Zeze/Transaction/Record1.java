@@ -51,6 +51,10 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return table;
 	}
 
+	public TableX<K, V> getTTable() {
+		return table;
+	}
+
 	@Override
 	public @NotNull K getObjectKey() {
 		return key;
