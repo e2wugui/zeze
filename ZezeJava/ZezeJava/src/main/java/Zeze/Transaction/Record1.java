@@ -47,11 +47,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	}
 
 	@Override
-	public @NotNull Table getTable() {
-		return table;
-	}
-
-	public TableX<K, V> getTTable() {
+	public @NotNull TableX<K, V> getTable() {
 		return table;
 	}
 
@@ -79,6 +75,10 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 	boolean compareAndSetLruNodeNull(ConcurrentHashMap<K, Record1<K, V>> c) {
 		return LRU_NODE_HANDLE.compareAndSet(this, c, null);
+	}
+
+	void removeFromTableCache() {
+		table.getCache().remove(key, this);
 	}
 
 	@Override

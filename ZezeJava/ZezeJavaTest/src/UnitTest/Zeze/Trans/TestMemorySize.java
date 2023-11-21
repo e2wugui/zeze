@@ -36,4 +36,20 @@ public class TestMemorySize {
 		}, "Insert").call();
 		Assert.assertEquals(0, App.Instance.demo_Module1.tMemorySize().getCacheSize());
 	}
+
+	@Test
+	public void testMemoryRollback() {
+		Assert.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			App.Instance.demo_Module1.tMemorySize().remove(9L);
+			return 0;
+		}, "testMemoryRollback1").call());
+
+		var oldSize = App.Instance.demo_Module1.tMemorySize().getCacheSize();
+		Assert.assertEquals(1, App.Instance.Zeze.newProcedure(() -> {
+			App.Instance.demo_Module1.tMemorySize().getOrAdd(9L);
+			return 1;
+		}, "testMemoryRollback2").call());
+		var newSize = App.Instance.demo_Module1.tMemorySize().getCacheSize();
+		Assert.assertEquals(oldSize, newSize);
+	}
 }
