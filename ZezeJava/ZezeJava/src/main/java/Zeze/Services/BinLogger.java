@@ -23,6 +23,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Selectors;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
@@ -107,7 +108,7 @@ public final class BinLogger {
 		}
 
 		@Override
-		public void decode(@NotNull ByteBuffer bb) {
+		public void decode(@NotNull IByteBuffer bb) {
 			var header = bb.ReadInt();
 			if ((header & FamilyClass.FamilyClassMask) != FamilyClass.Protocol) {
 				throw new IllegalStateException("invalid header(" + header + ") for decoding protocol "

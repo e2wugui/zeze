@@ -7,11 +7,7 @@ import org.jetbrains.annotations.NotNull;
 public interface Serializable {
 	void encode(@NotNull ByteBuffer bb);
 
-	void decode(@NotNull ByteBuffer bb);
-
-	default void decode(@NotNull IByteBuffer bb) {
-		//TODO
-	}
+	void decode(@NotNull IByteBuffer bb);
 
 	default long typeId() {
 		return 0;

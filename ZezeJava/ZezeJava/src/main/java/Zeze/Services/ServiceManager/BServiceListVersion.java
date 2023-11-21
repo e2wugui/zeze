@@ -1,6 +1,7 @@
 package Zeze.Services.ServiceManager;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public final class BServiceListVersion extends Bean {
@@ -8,7 +9,7 @@ public final class BServiceListVersion extends Bean {
 	public long serialId;
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		serviceName = bb.ReadString();
 		serialId = bb.ReadLong();
 	}

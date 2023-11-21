@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,7 +22,7 @@ public class EmptyBean extends Bean {
 	};
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		bb.SkipUnknownField(ByteBuffer.BEAN);
 	}
 
@@ -79,7 +80,7 @@ public class EmptyBean extends Bean {
 		}
 
 		@Override
-		public void decode(@NotNull ByteBuffer bb) {
+		public void decode(@NotNull IByteBuffer bb) {
 			bb.SkipUnknownField(ByteBuffer.BEAN);
 		}
 

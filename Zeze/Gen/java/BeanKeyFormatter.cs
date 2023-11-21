@@ -22,7 +22,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("package " + beanKey.Space.Path() + ";");
             sw.WriteLine();
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
-
+            sw.WriteLine("import Zeze.Serialize.IByteBuffer;");
             sw.WriteLine();
             if (beanKey.Comment.Length > 0)
                 sw.WriteLine(beanKey.Comment);

@@ -2,6 +2,7 @@
 package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 
 // ======================================== Task的Bean数据 ========================================
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
@@ -62,7 +63,7 @@ public final class BTaskKey implements Zeze.Transaction.BeanKey, Comparable<BTas
     }
 
     @Override
-    public void decode(ByteBuffer _o_) {
+    public void decode(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {

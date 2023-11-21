@@ -17,6 +17,7 @@ import Zeze.Arch.RedirectToServer;
 import Zeze.Hot.HotService;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
@@ -578,7 +579,7 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			a = bb.ReadInt();
 		}
 	}

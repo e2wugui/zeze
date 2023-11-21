@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 
 public class LogMap1<K, V> extends LogMap<K, V> {
@@ -81,7 +82,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		putted.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		var valueDecoder = valueCodecFuncs.decoder;

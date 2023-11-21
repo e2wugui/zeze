@@ -3,6 +3,7 @@ package Zeze.Raft.RocksRaft;
 import java.util.ArrayList;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import org.pcollections.Empty;
 
@@ -119,7 +120,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		var decoder = valueCodecFuncs.decoder;
 		opLogs.clear();
 		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {

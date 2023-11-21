@@ -1,6 +1,7 @@
 package Zeze.Transaction.Logs;
 
 import Zeze.Net.Binary;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
@@ -27,7 +28,7 @@ public abstract class LogBinary extends Log {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		value = bb.ReadBinary();
 	}
 

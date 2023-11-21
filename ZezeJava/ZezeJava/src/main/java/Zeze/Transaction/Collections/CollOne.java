@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
@@ -84,7 +85,7 @@ public final class CollOne<V extends Bean> extends Collection {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		var Value = getValue();
 		Value.decode(bb);
 	}

@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
 public class UniqueRequestId implements Serializable {
@@ -30,7 +31,7 @@ public class UniqueRequestId implements Serializable {
 	}
 
 	@Override
-	public final void decode(ByteBuffer bb) {
+	public final void decode(IByteBuffer bb) {
 		clientId = bb.ReadString();
 		requestId = bb.ReadLong();
 	}

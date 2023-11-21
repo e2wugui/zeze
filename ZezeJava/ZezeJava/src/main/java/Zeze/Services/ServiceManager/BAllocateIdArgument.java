@@ -1,6 +1,7 @@
 package Zeze.Services.ServiceManager;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public final class BAllocateIdArgument extends Bean {
@@ -24,7 +25,7 @@ public final class BAllocateIdArgument extends Bean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		setName(bb.ReadString());
 		setCount(bb.ReadInt());
 	}

@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 final class HeartbeatLog extends Log {
@@ -43,7 +44,7 @@ final class HeartbeatLog extends Log {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		super.decode(bb);
 		operate = bb.ReadInt();
 	}

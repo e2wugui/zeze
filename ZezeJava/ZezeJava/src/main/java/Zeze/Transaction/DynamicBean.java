@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.Collection;
 import Zeze.Transaction.Collections.LogBean;
@@ -144,7 +145,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		// 由于可能在事务中执行，这里仅修改Bean
 		// TypeId 在 Bean 提交时才修改，但是要在事务中读到最新值，参见 TypeId 的 getter 实现。
 		var newTypeId = bb.ReadLong();

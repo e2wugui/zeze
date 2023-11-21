@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.Json;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -108,7 +109,7 @@ public abstract class DynamicData extends Data {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		var newTypeId = bb.ReadLong();
 		var newData = toData(newTypeId);
 		if (newData == null) {

@@ -1,6 +1,7 @@
 package Zeze.Net;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -334,7 +335,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		var header = bb.ReadInt();
 		var familyClass = header & FamilyClass.FamilyClassMask;
 		if (!FamilyClass.isRpc(familyClass))

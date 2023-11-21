@@ -3,6 +3,7 @@ package Zeze.Transaction.Collections;
 import java.util.ArrayList;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
@@ -131,7 +132,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		var decoder = meta.valueDecoder;
 		opLogs.clear();
 		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {

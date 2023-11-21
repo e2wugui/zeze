@@ -7,6 +7,7 @@ import Zeze.Raft.LogSequence;
 import Zeze.Raft.RocksRaft.Log1.LogInt;
 import Zeze.Raft.RocksRaft.Log1.LogLong;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.SimpleAssert;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
@@ -141,7 +142,7 @@ public final class Test {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			_Int32MapKey_ = bb.ReadInt();
 
 			setI(bb.ReadInt());
@@ -204,7 +205,7 @@ public final class Test {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			setI(bb.ReadInt());
 		}
 

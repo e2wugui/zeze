@@ -14,6 +14,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
@@ -58,7 +59,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		}
 
 		@Override
-		public void decode(@NotNull ByteBuffer bb) {
+		public void decode(@NotNull IByteBuffer bb) {
 			version = bb.ReadInt();
 			if (version != 0)
 				throw new UnsupportedOperationException("version = " + version);
@@ -89,7 +90,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		}
 
 		@Override
-		public void decode(@NotNull ByteBuffer bb) {
+		public void decode(@NotNull IByteBuffer bb) {
 			version = bb.ReadInt();
 			if (version != 0)
 				throw new UnsupportedOperationException("version = " + version);

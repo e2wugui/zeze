@@ -2,6 +2,7 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public class BOfflineNotify extends Bean {
@@ -19,7 +20,7 @@ public class BOfflineNotify extends Bean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		serverId = bb.ReadInt();
 		notifyId = bb.ReadString();
 		notifySerialId = bb.ReadLong();

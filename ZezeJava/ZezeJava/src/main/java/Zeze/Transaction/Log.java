@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import java.util.function.Supplier;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.LongConcurrentHashMap;
 
@@ -78,7 +79,7 @@ public abstract class Log implements Serializable {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		throw new UnsupportedOperationException();
 	}
 }

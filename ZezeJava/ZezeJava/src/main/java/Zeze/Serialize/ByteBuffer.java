@@ -1,10 +1,8 @@
 package Zeze.Serialize;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -318,10 +316,6 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		int newSize = WriteIndex + size;
 		if (newSize > Bytes.length)
 			growCapacityNoCompact(newSize);
-	}
-
-	private void throwEnsureReadException(int size) {
-		throw new IllegalStateException("ensureRead " + ReadIndex + '+' + size + " > " + WriteIndex);
 	}
 
 	@Override
@@ -881,70 +875,6 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return (long)longBeHandler.get(Bytes, readIndex);
 	}
 
-	@Override
-	public long ReadLong() {
-		ensureRead(1);
-		int b = Bytes[ReadIndex++];
-		switch ((b >> 3) & 0x1f) {
-		//@formatter:off
-		case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
-		case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return b;
-		case 0x08: case 0x09: case 0x0a: case 0x0b: return ((b - 0x40 ) <<  8) + ReadLong1();
-		case 0x14: case 0x15: case 0x16: case 0x17: return ((b + 0x40 ) <<  8) + ReadLong1();
-		case 0x0c: case 0x0d:                       return ((b - 0x60 ) << 16) + ReadLong2BE();
-		case 0x12: case 0x13:                       return ((b + 0x60 ) << 16) + ReadLong2BE();
-		case 0x0e:                                  return ((b - 0x70L) << 24) + ReadLong3BE();
-		case 0x11:                                  return ((b + 0x70L) << 24) + ReadLong3BE();
-		case 0x0f:
-			switch (b & 7) {
-			case 0: case 1: case 2: case 3: return ((long)(b - 0x78) << 32) + ReadLong4BE();
-			case 4: case 5:                 return ((long)(b - 0x7c) << 40) + ReadLong5BE();
-			case 6:                         return ReadLong6BE();
-			default: long r = ReadLong7BE(); return r < 0x80_0000_0000_0000L ?
-					r : ((r - 0x80_0000_0000_0000L) << 8) + ReadLong1();
-			}
-		default: // 0x10
-			switch (b & 7) {
-			case 4: case 5: case 6: case 7: return ((long)(b + 0x78) << 32) + ReadLong4BE();
-			case 2: case 3:                 return ((long)(b + 0x7c) << 40) + ReadLong5BE();
-			case 1:                         return 0xffff_0000_0000_0000L + ReadLong6BE();
-			default: long r = ReadLong7BE(); return r >= 0x80_0000_0000_0000L ?
-					0xff00_0000_0000_0000L + r : ((r + 0x80_0000_0000_0000L) << 8) + ReadLong1();
-			}
-		//@formatter:on
-		}
-	}
-
-	@Override
-	public void SkipLong() {
-		ensureRead(1);
-		int b = Bytes[ReadIndex++];
-		switch ((b >> 3) & 0x1f) {
-		//@formatter:off
-		case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
-		case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return;
-		case 0x08: case 0x09: case 0x0a: case 0x0b:
-		case 0x14: case 0x15: case 0x16: case 0x17: Skip(1); return;
-		case 0x0c: case 0x0d: case 0x12: case 0x13: Skip(2); return;
-		case 0x0e: case 0x11:                       Skip(3); return;
-		case 0x0f:
-			switch (b & 7) {
-			case 0: case 1: case 2: case 3: Skip(4); return;
-			case 4: case 5:                 Skip(5); return;
-			case 6:                         Skip(6); return;
-			default: ensureRead(1); Skip(6 + (Bytes[ReadIndex++] >>> 31)); return;
-			}
-		default: // 0x10
-			switch (b & 7) {
-			case 4: case 5: case 6: case 7: Skip(4); return;
-			case 2: case 3:                 Skip(5); return;
-			case 1:                         Skip(6); return;
-			default: ensureRead(1); Skip(7 - (Bytes[ReadIndex++] >>> 31));
-			}
-		//@formatter:on
-		}
-	}
-
 	public void WriteInt(int v) {
 		WriteLong(v);
 	}
@@ -1123,6 +1053,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	/**
 	 * 会推进ReadIndex，但是返回的ByteBuffer和原来的共享内存。
 	 */
+	@Override
 	public @NotNull ByteBuffer ReadByteBuffer() {
 		int n = ReadUInt();
 		if (n < 0) {
@@ -1149,18 +1080,6 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public <T extends java.io.Serializable> T ReadJavaObject() {
-		var bb = ReadByteBuffer();
-		try (var bs = new ByteArrayInputStream(bb.Bytes, bb.ReadIndex, bb.size());
-			 var os = new ObjectInputStream(bs)) {
-			return (T)os.readObject();
-		} catch (IOException | ClassNotFoundException e) {
-			Task.forceThrow(e);
-			return null; // never run here
-		}
-	}
-
 	@Override
 	public String toString() {
 		return BitConverter.toStringWithLimit(Bytes, ReadIndex, size(), 16, 4);
@@ -1170,6 +1089,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	public boolean equals(@Nullable Object other) {
 		if (other instanceof ByteBuffer)
 			return equals((ByteBuffer)other);
+		if (other instanceof NioByteBuffer)
+			return ((NioByteBuffer)other).bb.equals(java.nio.ByteBuffer.wrap(Bytes, ReadIndex, size()));
 		if (other instanceof byte[]) {
 			var bytes = (byte[])other;
 			return Arrays.equals(Bytes, ReadIndex, WriteIndex, bytes, 0, bytes.length);
@@ -1311,6 +1232,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return new Quaternion(x, y, z, w);
 	}
 
+	@Override
 	public @Nullable ByteBuffer readUnknownField(int idx, int tag, @Nullable ByteBuffer unknown) {
 		int beginIdx = ReadIndex;
 		SkipUnknownField(tag);
@@ -1325,14 +1247,6 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			return unknown;
 		}
 		throw new UnsupportedOperationException("readUnknownField: unsupported for derived bean");
-	}
-
-	public @Nullable byte[] readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
-		while (tag != 0) {
-			unknown = readUnknownField(idx, tag, unknown);
-			idx += ReadTagSize(tag = ReadByte());
-		}
-		return unknown != null ? unknown.CopyIf() : null;
 	}
 
 	public int writeUnknownField(int lastIdx, long idx, @NotNull ByteBuffer unknown) {

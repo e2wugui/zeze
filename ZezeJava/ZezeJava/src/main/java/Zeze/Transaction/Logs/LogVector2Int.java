@@ -1,6 +1,7 @@
 package Zeze.Transaction.Logs;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Vector2Int;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
@@ -27,7 +28,7 @@ public abstract class LogVector2Int extends Log {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		value = bb.ReadVector2Int();
 	}
 

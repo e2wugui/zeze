@@ -3,6 +3,7 @@ package Zeze.Raft;
 import Zeze.Net.Binary;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,7 +37,7 @@ public class ProxyArgument implements Serializable {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		raftId = bb.ReadString();
 		rpc = bb.ReadBinary();
 	}

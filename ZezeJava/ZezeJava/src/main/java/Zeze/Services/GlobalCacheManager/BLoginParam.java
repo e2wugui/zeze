@@ -1,6 +1,7 @@
 package Zeze.Services.GlobalCacheManager;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public class BLoginParam extends Bean {
@@ -14,7 +15,7 @@ public class BLoginParam extends Bean {
 	public boolean debugMode; // 调试模式下不检查Release Timeout,方便单步调试
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		serverId = bb.ReadInt();
 		globalCacheManagerHashIndex = bb.ReadInt();
 		debugMode = bb.ReadBool();

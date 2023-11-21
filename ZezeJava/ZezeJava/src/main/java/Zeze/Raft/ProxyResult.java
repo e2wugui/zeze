@@ -2,6 +2,7 @@ package Zeze.Raft;
 
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,7 +30,7 @@ public class ProxyResult implements Serializable {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		data = bb.ReadBinary();
 	}
 }

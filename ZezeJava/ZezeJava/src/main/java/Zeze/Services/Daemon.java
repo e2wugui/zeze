@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
@@ -366,7 +367,7 @@ public class Daemon {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			reliableSerialNo = bb.ReadLong();
 		}
 	}
@@ -383,7 +384,7 @@ public class Daemon {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			serverDaemonTimeout = bb.ReadInt();
 			serverReleaseTimeout = bb.ReadInt();
 		}
@@ -422,7 +423,7 @@ public class Daemon {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			super.decode(bb);
 			serverId = bb.ReadInt();
 			globalCount = bb.ReadInt();
@@ -464,7 +465,7 @@ public class Daemon {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			super.decode(bb);
 			serverId = bb.ReadInt();
 			globalIndex = bb.ReadInt();
@@ -499,7 +500,7 @@ public class Daemon {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			super.decode(bb);
 			code = bb.ReadInt();
 		}
@@ -531,7 +532,7 @@ public class Daemon {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			super.decode(bb);
 			globalIndex = bb.ReadInt();
 		}
@@ -559,7 +560,7 @@ public class Daemon {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			super.decode(bb);
 		}
 	}

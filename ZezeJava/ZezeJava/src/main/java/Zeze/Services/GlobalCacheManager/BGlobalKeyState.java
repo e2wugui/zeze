@@ -2,6 +2,7 @@ package Zeze.Services.GlobalCacheManager;
 
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public class BGlobalKeyState extends Bean {
@@ -9,7 +10,7 @@ public class BGlobalKeyState extends Bean {
 	public int state;
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		globalKey = bb.ReadBinary();
 		state = bb.ReadInt();
 	}

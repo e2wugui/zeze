@@ -2,6 +2,7 @@
 package Zeze.Builtin.Collections.Queue;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 
 /*
 				1. 单向链表。2. Value没有索引。3. 每个Value记录加入的时间。4. 只能从Head提取，从Tail添加。5. 用作Stack时也可以从Head添加。
@@ -407,7 +408,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
     }
 
     @Override
-    public void decode(ByteBuffer _o_) {
+    public void decode(IByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);

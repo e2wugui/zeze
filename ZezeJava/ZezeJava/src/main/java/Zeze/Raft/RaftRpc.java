@@ -5,6 +5,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.TaskCompletionSource;
 
@@ -103,7 +104,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		var header = bb.ReadInt();
 		var familyClass = header & FamilyClass.FamilyClassMask;
 		if (!FamilyClass.isRaftRpc(familyClass))

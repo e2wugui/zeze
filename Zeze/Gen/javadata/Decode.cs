@@ -20,7 +20,7 @@ namespace Zeze.Gen.javadata
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void decode(ByteBuffer _o_) {");
+            sw.WriteLine(prefix + "public void decode(IByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
             if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
@@ -82,7 +82,7 @@ namespace Zeze.Gen.javadata
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void decode(ByteBuffer _o_) {");
+            sw.WriteLine(prefix + "public void decode(IByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
             if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");

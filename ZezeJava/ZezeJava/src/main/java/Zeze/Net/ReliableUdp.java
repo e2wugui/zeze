@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.LongConcurrentHashMap;
@@ -110,7 +111,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			// TypePacket 外面解析。
 			serialId = bb.ReadLong();
 			bytes = bb.ReadBytes();
@@ -135,7 +136,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 		public final LongHashSet serialIds = new LongHashSet();
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			// TypePacket 外面解析。
 			command = bb.ReadInt();
 			for (int count = bb.ReadInt(); count > 0; --count) {

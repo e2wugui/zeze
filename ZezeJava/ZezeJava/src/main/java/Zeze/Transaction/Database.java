@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.KV;
 import Zeze.Util.ShutdownHook;
@@ -579,7 +580,7 @@ public abstract class Database {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			data = ByteBuffer.Wrap(bb.ReadBytes());
 			version = bb.ReadLong();
 		}

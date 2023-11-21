@@ -9,6 +9,7 @@ import Zeze.Net.Protocol;
 import Zeze.Raft.RaftRetryException;
 import Zeze.Raft.RocksRaft.Log1.LogBeanKey;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.ThrowAgainException;
@@ -94,7 +95,7 @@ public final class Transaction {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 

@@ -2,6 +2,7 @@
 package Zeze.Builtin.RocketMQ.Producer;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BTransactionMessageResult extends Zeze.Transaction.Bean implements BTransactionMessageResultReadOnly {
@@ -173,7 +174,7 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
     }
 
     @Override
-    public void decode(ByteBuffer _o_) {
+    public void decode(IByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);

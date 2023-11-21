@@ -1,6 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
 
@@ -114,7 +115,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		var valueDecoder = valueCodecFuncs.decoder;

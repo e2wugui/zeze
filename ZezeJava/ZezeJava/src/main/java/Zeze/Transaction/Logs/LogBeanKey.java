@@ -1,6 +1,7 @@
 package Zeze.Transaction.Logs;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.Meta1;
@@ -31,7 +32,7 @@ public abstract class LogBeanKey<T extends Serializable> extends Log {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		try {
 			value = (T)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke

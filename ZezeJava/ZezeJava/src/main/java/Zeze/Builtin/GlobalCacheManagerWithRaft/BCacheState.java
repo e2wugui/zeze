@@ -2,6 +2,7 @@
 package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 
 // table
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
@@ -152,7 +153,7 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    public void decode(ByteBuffer _o_) {
+    public void decode(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         while (_t_ != 0 && _i_ < 2) {

@@ -8,6 +8,7 @@ import Zeze.Raft.IRaftRpc;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashMap;
 
@@ -132,7 +133,7 @@ public final class Changes extends Zeze.Raft.Log {
 			}
 		}
 
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			state = bb.ReadInt();
 			switch (state) {
 			case Remove:
@@ -241,7 +242,7 @@ public final class Changes extends Zeze.Raft.Log {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var tkey = new TableKey();
 			var r = new Record();

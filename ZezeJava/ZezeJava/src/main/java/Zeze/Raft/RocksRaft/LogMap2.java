@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
@@ -75,7 +76,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		changedWithKey.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {

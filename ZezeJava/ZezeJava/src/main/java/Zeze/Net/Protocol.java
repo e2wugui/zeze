@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
@@ -177,7 +178,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		var header = bb.ReadInt();
 		if ((header & FamilyClass.FamilyClassMask) != FamilyClass.Protocol) {
 			throw new IllegalStateException("invalid header(" + header + ") for decoding protocol: "

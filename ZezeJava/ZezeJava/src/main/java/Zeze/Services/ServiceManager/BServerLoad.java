@@ -2,6 +2,7 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public final class BServerLoad extends Bean {
@@ -14,7 +15,7 @@ public final class BServerLoad extends Bean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		ip = bb.ReadString();
 		port = bb.ReadInt();
 		param = bb.ReadBinary();

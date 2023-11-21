@@ -1,6 +1,7 @@
 package Zeze.Arch.Beans;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 
 public final class BSendResult extends Zeze.Transaction.Bean {
 	public static final long TYPEID = -7186434891670297524L;
@@ -88,7 +89,7 @@ public final class BSendResult extends Zeze.Transaction.Bean {
 
 	@SuppressWarnings("UnusedAssignment")
 	@Override
-	public void decode(ByteBuffer _o_) {
+	public void decode(IByteBuffer _o_) {
 		int _t_ = _o_.ReadByte();
 		int _i_ = _o_.ReadTagSize(_t_);
 		if (_i_ == 1) {

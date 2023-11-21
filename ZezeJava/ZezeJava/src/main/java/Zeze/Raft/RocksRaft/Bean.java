@@ -2,6 +2,7 @@ package Zeze.Raft.RocksRaft;
 
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.HasManagedException;
 import Zeze.Util.Str;
@@ -74,7 +75,7 @@ public abstract class Bean implements Serializable {
 	public abstract void encode(ByteBuffer bb);
 
 	@Override
-	public abstract void decode(ByteBuffer bb);
+	public abstract void decode(IByteBuffer bb);
 
 	public abstract Bean copy();
 

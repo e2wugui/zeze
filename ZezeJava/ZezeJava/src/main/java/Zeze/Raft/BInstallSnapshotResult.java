@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 final class BInstallSnapshotResult extends Bean {
@@ -34,7 +35,7 @@ final class BInstallSnapshotResult extends Bean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		term = bb.ReadLong();
 		offset = bb.ReadLong();
 	}

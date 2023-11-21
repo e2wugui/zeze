@@ -1,6 +1,7 @@
 package Zeze.Services.Handshake;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public final class BSHandshakeArgument extends Bean {
@@ -10,7 +11,7 @@ public final class BSHandshakeArgument extends Bean {
 	public int encryptType;
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		encryptParam = bb.ReadBytes();
 		compressS2c = bb.ReadInt();
 		compressC2s = bb.ReadInt();

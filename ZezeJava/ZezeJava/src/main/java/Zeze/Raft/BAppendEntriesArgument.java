@@ -3,6 +3,7 @@ package Zeze.Raft;
 import java.util.ArrayList;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 final class BAppendEntriesArgument extends Bean {
@@ -84,7 +85,7 @@ final class BAppendEntriesArgument extends Bean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		term = bb.ReadLong();
 		leaderId = bb.ReadString();
 		prevLogIndex = bb.ReadLong();

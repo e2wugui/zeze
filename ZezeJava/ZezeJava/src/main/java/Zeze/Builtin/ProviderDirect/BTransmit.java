@@ -2,6 +2,7 @@
 package Zeze.Builtin.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitReadOnly {
@@ -330,7 +331,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     }
 
     @Override
-    public void decode(ByteBuffer _o_) {
+    public void decode(IByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
@@ -674,7 +675,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void decode(ByteBuffer _o_) {
+    public void decode(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {

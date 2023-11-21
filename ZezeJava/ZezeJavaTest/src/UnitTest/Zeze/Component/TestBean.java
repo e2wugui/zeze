@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Component;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.NotNull;
@@ -50,7 +51,7 @@ public class TestBean extends Bean {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		testValue = bb.ReadInt();
 	}
 }

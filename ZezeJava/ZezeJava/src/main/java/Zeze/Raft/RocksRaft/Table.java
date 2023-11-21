@@ -5,6 +5,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.ConcurrentLruLike;
 import Zeze.Util.Func1;
@@ -24,7 +25,7 @@ public final class Table<K, V extends Bean> {
 	private final int templateId;
 	private final String name;
 	private final BiConsumer<ByteBuffer, K> keyEncodeFunc;
-	private final Function<ByteBuffer, K> keyDecodeFunc;
+	private final Function<IByteBuffer, K> keyDecodeFunc;
 	private final MethodHandle valueFactory;
 	private int cacheCapacity = 10000;
 	private RocksDatabase.Table rocksTable;
@@ -96,7 +97,7 @@ public final class Table<K, V extends Bean> {
 		keyEncodeFunc.accept(bb, key);
 	}
 
-	public K decodeKey(ByteBuffer bb) {
+	public K decodeKey(IByteBuffer bb) {
 		return keyDecodeFunc.apply(bb);
 	}
 

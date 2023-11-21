@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.function.LongConsumer;
 import java.util.function.LongPredicate;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -498,7 +499,7 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		decode(bb, bb.ReadUInt());
 	}
 
@@ -512,7 +513,7 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 		}
 	}
 
-	public void decode(@NotNull ByteBuffer bb, int n) {
+	public void decode(@NotNull IByteBuffer bb, int n) {
 		reserveSpace(n);
 		long[] buf = buffer;
 		for (int i = 0; i < n; i++)

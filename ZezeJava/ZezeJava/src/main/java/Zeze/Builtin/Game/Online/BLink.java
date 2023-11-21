@@ -2,6 +2,7 @@
 package Zeze.Builtin.Game.Online;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
 public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> {
@@ -94,7 +95,7 @@ public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> 
     }
 
     @Override
-    public void decode(ByteBuffer _o_) {
+    public void decode(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {

@@ -1,6 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
 
@@ -103,7 +104,7 @@ public class CollSet1<V> extends CollSet<V> {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		clear();
 		var decoder = valueCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--)

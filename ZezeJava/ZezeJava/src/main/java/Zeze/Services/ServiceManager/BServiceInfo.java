@@ -2,6 +2,7 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public final class BServiceInfo extends Bean implements Comparable<BServiceInfo> {
@@ -86,7 +87,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		serviceName = bb.ReadString();
 		serviceIdentity = bb.ReadString();
 		passiveIp = bb.ReadString();

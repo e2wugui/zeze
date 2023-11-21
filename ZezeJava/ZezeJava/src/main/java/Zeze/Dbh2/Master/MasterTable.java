@@ -6,6 +6,7 @@ import java.util.TreeMap;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
 public class MasterTable {
@@ -47,7 +48,7 @@ public class MasterTable {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			created = bb.ReadBool();
 			buckets.clear();
 			for (var size = bb.ReadInt(); size > 0; --size) {

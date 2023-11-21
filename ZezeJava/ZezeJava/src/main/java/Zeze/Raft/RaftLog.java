@@ -3,6 +3,7 @@ package Zeze.Raft;
 import java.util.function.IntFunction;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Action2;
 
@@ -67,7 +68,7 @@ public final class RaftLog implements Serializable {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		term = bb.ReadLong();
 		index = bb.ReadLong();
 		log = logFactory.apply(bb.ReadInt4());

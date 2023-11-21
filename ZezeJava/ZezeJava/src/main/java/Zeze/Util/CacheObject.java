@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
 public interface CacheObject extends Serializable {
@@ -22,7 +23,7 @@ public interface CacheObject extends Serializable {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 

@@ -2,6 +2,7 @@ package Zeze.Transaction.Collections;
 
 import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
@@ -70,7 +71,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var value = new LogBean();

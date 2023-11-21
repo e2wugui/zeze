@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
@@ -204,7 +205,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		clear();
 		var decoder = meta.keyDecoder;
 		try {

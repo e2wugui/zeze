@@ -18,9 +18,9 @@ public final class SerializeHelper {
 	@SuppressWarnings("ClassCanBeRecord")
 	public static final class CodecFuncs<T> {
 		public final @NotNull BiConsumer<ByteBuffer, T> encoder;
-		public final @NotNull Function<ByteBuffer, T> decoder;
+		public final @NotNull Function<IByteBuffer, T> decoder;
 
-		public CodecFuncs(@NotNull BiConsumer<ByteBuffer, T> encoder, @NotNull Function<ByteBuffer, T> decoder) {
+		public CodecFuncs(@NotNull BiConsumer<ByteBuffer, T> encoder, @NotNull Function<IByteBuffer, T> decoder) {
 			this.encoder = encoder;
 			this.decoder = decoder;
 		}
@@ -29,13 +29,13 @@ public final class SerializeHelper {
 	private static final HashMap<Class<?>, CodecFuncs<?>> codecs = new HashMap<>();
 
 	static {
-		var boolCodec = new CodecFuncs<>(ByteBuffer::WriteBool, ByteBuffer::ReadBool);
+		var boolCodec = new CodecFuncs<>(ByteBuffer::WriteBool, IByteBuffer::ReadBool);
 		var byteCodec = new CodecFuncs<>((bb, obj) -> bb.WriteLong(((Number)obj).longValue()), bb -> (byte)bb.ReadLong());
 		var shortCodec = new CodecFuncs<>((bb, obj) -> bb.WriteLong(((Number)obj).longValue()), bb -> (short)bb.ReadLong());
 		var intCodec = new CodecFuncs<>((bb, obj) -> bb.WriteLong(((Number)obj).longValue()), bb -> (int)bb.ReadLong());
-		var longCodec = new CodecFuncs<>((bb, obj) -> bb.WriteLong(((Number)obj).longValue()), ByteBuffer::ReadLong);
-		var floatCodec = new CodecFuncs<>((bb, obj) -> bb.WriteFloat(((Number)obj).floatValue()), ByteBuffer::ReadFloat);
-		var doubleCodec = new CodecFuncs<>((bb, obj) -> bb.WriteDouble(((Number)obj).doubleValue()), ByteBuffer::ReadDouble);
+		var longCodec = new CodecFuncs<>((bb, obj) -> bb.WriteLong(((Number)obj).longValue()), IByteBuffer::ReadLong);
+		var floatCodec = new CodecFuncs<>((bb, obj) -> bb.WriteFloat(((Number)obj).floatValue()), IByteBuffer::ReadFloat);
+		var doubleCodec = new CodecFuncs<>((bb, obj) -> bb.WriteDouble(((Number)obj).doubleValue()), IByteBuffer::ReadDouble);
 
 		codecs.put(boolean.class, boolCodec);
 		codecs.put(Boolean.class, boolCodec);
@@ -51,14 +51,14 @@ public final class SerializeHelper {
 		codecs.put(Float.class, floatCodec);
 		codecs.put(double.class, doubleCodec);
 		codecs.put(Double.class, doubleCodec);
-		codecs.put(String.class, new CodecFuncs<>(ByteBuffer::WriteString, ByteBuffer::ReadString));
-		codecs.put(Binary.class, new CodecFuncs<>(ByteBuffer::WriteBinary, ByteBuffer::ReadBinary));
-		codecs.put(Vector2.class, new CodecFuncs<>(ByteBuffer::WriteVector2, ByteBuffer::ReadVector2));
-		codecs.put(Vector2Int.class, new CodecFuncs<>(ByteBuffer::WriteVector2Int, ByteBuffer::ReadVector2Int));
-		codecs.put(Vector3.class, new CodecFuncs<>(ByteBuffer::WriteVector3, ByteBuffer::ReadVector3));
-		codecs.put(Vector3Int.class, new CodecFuncs<>(ByteBuffer::WriteVector3Int, ByteBuffer::ReadVector3Int));
-		codecs.put(Vector4.class, new CodecFuncs<>(ByteBuffer::WriteVector4, ByteBuffer::ReadVector4));
-		codecs.put(Quaternion.class, new CodecFuncs<>(ByteBuffer::WriteQuaternion, ByteBuffer::ReadQuaternion));
+		codecs.put(String.class, new CodecFuncs<>(ByteBuffer::WriteString, IByteBuffer::ReadString));
+		codecs.put(Binary.class, new CodecFuncs<>(ByteBuffer::WriteBinary, IByteBuffer::ReadBinary));
+		codecs.put(Vector2.class, new CodecFuncs<>(ByteBuffer::WriteVector2, IByteBuffer::ReadVector2));
+		codecs.put(Vector2Int.class, new CodecFuncs<>(ByteBuffer::WriteVector2Int, IByteBuffer::ReadVector2Int));
+		codecs.put(Vector3.class, new CodecFuncs<>(ByteBuffer::WriteVector3, IByteBuffer::ReadVector3));
+		codecs.put(Vector3Int.class, new CodecFuncs<>(ByteBuffer::WriteVector3Int, IByteBuffer::ReadVector3Int));
+		codecs.put(Vector4.class, new CodecFuncs<>(ByteBuffer::WriteVector4, IByteBuffer::ReadVector4));
+		codecs.put(Quaternion.class, new CodecFuncs<>(ByteBuffer::WriteQuaternion, IByteBuffer::ReadQuaternion));
 	}
 
 	public static <T> @NotNull BiConsumer<ByteBuffer, T> createEncodeFunc(@NotNull Class<T> cls) {
@@ -71,7 +71,7 @@ public final class SerializeHelper {
 		return (bb, obj) -> ((Serializable)obj).encode(bb);
 	}
 
-	public static <T> @NotNull Function<ByteBuffer, T> createDecodeFunc(@NotNull Class<T> cls) {
+	public static <T> @NotNull Function<IByteBuffer, T> createDecodeFunc(@NotNull Class<T> cls) {
 		@SuppressWarnings("unchecked")
 		var codec = (CodecFuncs<T>)codecs.get(cls);
 		if (codec != null)

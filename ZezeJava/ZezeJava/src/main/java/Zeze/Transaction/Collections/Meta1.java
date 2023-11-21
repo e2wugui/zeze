@@ -7,6 +7,7 @@ import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
@@ -26,7 +27,7 @@ public final class Meta1<V> {
 
 	public final int logTypeId;
 	public final BiConsumer<ByteBuffer, V> valueEncoder; // 只用于非Bean类型
-	public final Function<ByteBuffer, V> valueDecoder; // 只用于非Bean类型
+	public final Function<IByteBuffer, V> valueDecoder; // 只用于非Bean类型
 	public final MethodHandle valueFactory; // 只用于Bean类型
 
 	private Meta1(long headHash, @NotNull Class<V> valueClass) {

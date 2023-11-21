@@ -1,6 +1,7 @@
 package UnitTest.Zeze;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
@@ -8,7 +9,7 @@ import org.junit.Assert;
 
 public class BMyBean extends Bean {
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		_i = bb.ReadInt();
 	}
 

@@ -1,6 +1,7 @@
 package Zeze.Services.Handshake;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public final class BCHandshakeArgument extends Bean {
@@ -11,7 +12,7 @@ public final class BCHandshakeArgument extends Bean {
 	public int compressC2s = Constant.eCompressTypeDisable; // 默认的时候由服务器决定是否压缩。
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		encryptType = bb.ReadInt();
 		encryptParam = bb.ReadBytes();
 

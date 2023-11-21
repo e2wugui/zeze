@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
@@ -101,7 +102,7 @@ public class LogSet1<V> extends LogSet<V> {
 
 	@SuppressWarnings("DataFlowIssue")
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		var decoder = meta.valueDecoder;
 
 		added.clear();

@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.Collection;
 import Zeze.Transaction.Collections.LogBean;
@@ -81,7 +82,7 @@ public class LogDynamic extends LogBean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		var parentTypeName = bb.ReadString();
 		var varId = bb.ReadInt();
 		var hasValue = bb.ReadBool();

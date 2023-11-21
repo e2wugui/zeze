@@ -2,6 +2,7 @@
 package Zeze.Builtin.Game.Bag;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyReadOnly {
@@ -178,7 +179,7 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
     }
 
     @Override
-    public void decode(ByteBuffer _o_) {
+    public void decode(IByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);

@@ -2,6 +2,7 @@ package Zeze.Raft;
 
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
 class UniqueRequestState implements Serializable {
@@ -36,7 +37,7 @@ class UniqueRequestState implements Serializable {
 	}
 
 	@Override
-	public final void decode(ByteBuffer bb) {
+	public final void decode(IByteBuffer bb) {
 		logIndex = bb.ReadLong();
 		isApplied = bb.ReadBool();
 		rpcResult = bb.ReadBinary();

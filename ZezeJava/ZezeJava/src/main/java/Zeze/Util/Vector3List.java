@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Vector3;
 import org.jetbrains.annotations.NotNull;
 
@@ -350,7 +351,7 @@ public class Vector3List extends FloatList {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb, int n) {
+	public void decode(@NotNull IByteBuffer bb, int n) {
 		super.decode(bb, n * 3);
 	}
 }

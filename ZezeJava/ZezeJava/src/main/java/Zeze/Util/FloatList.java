@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -501,7 +502,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		decode(bb, bb.ReadUInt());
 	}
 
@@ -512,7 +513,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 			bb.WriteFloats(buffer, 0, n);
 	}
 
-	public void decode(@NotNull ByteBuffer bb, int n) {
+	public void decode(@NotNull IByteBuffer bb, int n) {
 		reserveSpace(n);
 		bb.ReadFloats(buffer, 0, n);
 		count = n;

@@ -2,6 +2,7 @@ package Zeze.Raft.RocksRaft;
 
 import java.util.function.Supplier;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.LongConcurrentHashMap;
 
@@ -70,5 +71,5 @@ public abstract class Log implements Serializable {
 	public abstract void encode(ByteBuffer bb);
 
 	@Override
-	public abstract void decode(ByteBuffer bb);
+	public abstract void decode(IByteBuffer bb);
 }

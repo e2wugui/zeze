@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandle;
 import Zeze.Raft.RocksRaft.Bean;
 import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
@@ -34,7 +35,7 @@ public class LogBeanKey<T extends Serializable> extends Log {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		try {
 			value = (T)valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke

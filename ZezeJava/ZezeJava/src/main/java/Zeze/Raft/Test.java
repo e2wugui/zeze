@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
@@ -603,7 +604,7 @@ public class Test {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			count = bb.ReadLong();
 		}
 
@@ -682,7 +683,7 @@ public class Test {
 			}
 
 			@Override
-			public void decode(ByteBuffer bb) {
+			public void decode(IByteBuffer bb) {
 				super.decode(bb);
 			}
 		}

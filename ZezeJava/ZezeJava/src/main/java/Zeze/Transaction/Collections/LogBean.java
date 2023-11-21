@@ -1,6 +1,7 @@
 package Zeze.Transaction.Collections;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
@@ -72,7 +73,7 @@ public class LogBean extends Log {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		int n = bb.ReadUInt();
 		if (n > 0) {
 			var variables = getVariablesOrNew();

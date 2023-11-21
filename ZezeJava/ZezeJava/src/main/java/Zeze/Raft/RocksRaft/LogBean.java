@@ -1,6 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.IntHashMap;
 
 public class LogBean extends Log {
@@ -63,7 +64,7 @@ public class LogBean extends Log {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		int n = bb.ReadUInt();
 		if (n > 0) {
 			var variables = getVariablesOrNew();

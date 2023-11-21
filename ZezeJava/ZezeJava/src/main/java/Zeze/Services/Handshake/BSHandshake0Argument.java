@@ -2,6 +2,7 @@ package Zeze.Services.Handshake;
 
 import java.util.ArrayList;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public class BSHandshake0Argument extends Bean {
@@ -25,7 +26,7 @@ public class BSHandshake0Argument extends Bean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		encryptType = bb.ReadInt();
 		supportedEncryptList.clear();
 		supportedCompressList.clear();

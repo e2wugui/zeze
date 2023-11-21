@@ -22,6 +22,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine("package " + bean.Space.Path() + ";");
             sw.WriteLine();
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
+            sw.WriteLine("import Zeze.Serialize.IByteBuffer;");
             sw.WriteLine();
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
@@ -50,9 +51,9 @@ namespace Zeze.Gen.rrjava
             {
                 Type vt = v.VariableType;
                 string final = vt is TypeCollection
-                    || vt is TypeMap
-                    || vt is Bean
-                    || vt is TypeDynamic
+                               || vt is TypeMap
+                               || vt is Bean
+                               || vt is TypeDynamic
                     ? "final " : "";
                 sw.WriteLine("    private " + final + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
                 // ReadOnlyMap

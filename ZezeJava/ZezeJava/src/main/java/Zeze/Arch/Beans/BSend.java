@@ -1,6 +1,7 @@
 package Zeze.Arch.Beans;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
 public class BSend extends Zeze.Transaction.Bean {
@@ -137,7 +138,7 @@ public class BSend extends Zeze.Transaction.Bean {
 
 	@SuppressWarnings("UnusedAssignment")
 	@Override
-	public void decode(@NotNull ByteBuffer _o_) {
+	public void decode(@NotNull IByteBuffer _o_) {
 		int _t_ = _o_.ReadByte();
 		int _i_ = _o_.ReadTagSize(_t_);
 		if (_i_ == 1) {

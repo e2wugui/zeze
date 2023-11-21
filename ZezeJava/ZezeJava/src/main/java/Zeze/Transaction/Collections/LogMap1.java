@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
@@ -105,7 +106,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		replaced.clear();
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;

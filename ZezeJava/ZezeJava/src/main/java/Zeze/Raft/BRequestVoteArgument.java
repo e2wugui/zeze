@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 final class BRequestVoteArgument extends Bean {
@@ -60,7 +61,7 @@ final class BRequestVoteArgument extends Bean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		term = bb.ReadLong();
 		candidateId = bb.ReadString();
 		lastLogIndex = bb.ReadLong();

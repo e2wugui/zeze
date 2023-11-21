@@ -3,6 +3,7 @@ package Zeze.Raft.RocksRaft.Log1;
 import Zeze.Raft.RocksRaft.Bean;
 import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Vector2Int;
 
 public class LogVector2Int extends Log {
@@ -27,7 +28,7 @@ public class LogVector2Int extends Log {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		value = bb.ReadVector2Int();
 	}
 

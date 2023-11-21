@@ -2,6 +2,7 @@ package Zeze.Raft.RocksRaft;
 
 import java.lang.invoke.MethodHandle;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
@@ -176,7 +177,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			V value;

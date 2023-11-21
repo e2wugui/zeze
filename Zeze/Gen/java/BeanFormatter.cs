@@ -14,7 +14,7 @@ namespace Zeze.Gen.java
         {
             this.bean = bean;
         }
-        
+
         public void MakeRedirectResult(string baseDir, Project project)
         {
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".java");
@@ -72,6 +72,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("package " + bean.Space.Path() + ";");
             sw.WriteLine();
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
+            sw.WriteLine("import Zeze.Serialize.IByteBuffer;");
             sw.WriteLine();
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);

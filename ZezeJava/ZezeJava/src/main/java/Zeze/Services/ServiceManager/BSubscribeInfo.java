@@ -1,6 +1,7 @@
 package Zeze.Services.ServiceManager;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public final class BSubscribeInfo extends Bean {
@@ -36,7 +37,7 @@ public final class BSubscribeInfo extends Bean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		setServiceName(bb.ReadString());
 		setSubscribeType(bb.ReadInt());
 	}

@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.KV;
 import Zeze.Util.LongHashMap;
@@ -235,7 +236,7 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void decode(@NotNull ByteBuffer bb) {
+		public void decode(@NotNull IByteBuffer bb) {
 			name = bb.ReadString();
 			keyName = bb.ReadString();
 			valueName = bb.ReadString();
@@ -368,7 +369,7 @@ public class Schemas implements Serializable {
 		public final LongHashMap<String> dynamicBeans = new LongHashMap<>();
 
 		@Override
-		public void decode(@NotNull ByteBuffer bb) {
+		public void decode(@NotNull IByteBuffer bb) {
 			id = bb.ReadInt();
 			name = bb.ReadString();
 			typeName = bb.ReadString();
@@ -572,9 +573,8 @@ public class Schemas implements Serializable {
 			return res;
 		}
 
-
 		@Override
-		public void decode(@NotNull ByteBuffer bb) {
+		public void decode(@NotNull IByteBuffer bb) {
 			name = bb.ReadString();
 			isBeanKey = bb.ReadBool();
 			for (int count = bb.ReadInt(); count > 0; --count) {
@@ -654,7 +654,7 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void decode(@NotNull ByteBuffer bb) {
+		public void decode(@NotNull IByteBuffer bb) {
 			name = bb.ReadString();
 			keyName = bb.ReadString();
 			valueName = bb.ReadString();
@@ -782,7 +782,7 @@ public class Schemas implements Serializable {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		for (int count = bb.ReadInt(); count > 0; --count) {
 			var table = new Table();
 			table.decode(bb);
@@ -796,7 +796,7 @@ public class Schemas implements Serializable {
 				throw new IllegalStateException("duplicate bean=" + bean.name);
 		}
 		// 新增的appPublishVersion在旧版里面可能没有。
-		if (bb.WriteIndex > bb.ReadIndex) {
+		if (bb.getWriteIndex() > bb.getReadIndex()) {
 			appPublishVersion = bb.ReadInt();
 		}
 	}

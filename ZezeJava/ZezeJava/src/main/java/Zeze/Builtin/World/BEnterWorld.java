@@ -2,6 +2,7 @@
 package Zeze.Builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 
 /*
 为了不污染根空间，改成Command了。
@@ -343,7 +344,7 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
     }
 
     @Override
-    public void decode(ByteBuffer _o_) {
+    public void decode(IByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
@@ -705,7 +706,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void decode(ByteBuffer _o_) {
+    public void decode(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {

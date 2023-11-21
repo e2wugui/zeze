@@ -2,6 +2,7 @@ package Zeze.Raft;
 
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
 /**
@@ -70,7 +71,7 @@ public abstract class Log implements Serializable {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		unique.decode(bb);
 		createTime = bb.ReadLong();
 		rpcResult = bb.ReadBinary();

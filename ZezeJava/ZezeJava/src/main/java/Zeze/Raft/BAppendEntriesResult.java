@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 final class BAppendEntriesResult extends Bean {
@@ -40,7 +41,7 @@ final class BAppendEntriesResult extends Bean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		term = bb.ReadLong();
 		success = bb.ReadBool();
 		nextIndex = bb.ReadLong();

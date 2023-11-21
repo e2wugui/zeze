@@ -5,6 +5,7 @@ import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 
 public class LogEndSplit extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogEndSplit.class.getName());
@@ -49,7 +50,7 @@ public class LogEndSplit extends Log {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		super.decode(bb);
 		from = new BBucketMeta.Data();
 		from.decode(bb);

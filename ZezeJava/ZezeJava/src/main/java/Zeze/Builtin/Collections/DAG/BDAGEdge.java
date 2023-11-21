@@ -2,6 +2,7 @@
 package Zeze.Builtin.Collections.DAG;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 
 // 有向图的边类型（如：任务的连接方式）
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
@@ -194,7 +195,7 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
     }
 
     @Override
-    public void decode(ByteBuffer _o_) {
+    public void decode(IByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);

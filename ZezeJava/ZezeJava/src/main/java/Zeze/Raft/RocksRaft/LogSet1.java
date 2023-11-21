@@ -3,6 +3,7 @@ package Zeze.Raft.RocksRaft;
 import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import org.pcollections.Empty;
 
@@ -74,7 +75,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		var decoder = valueCodecFuncs.decoder;
 
 		added.clear();

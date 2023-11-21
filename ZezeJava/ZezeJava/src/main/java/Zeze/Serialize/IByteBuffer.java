@@ -1,11 +1,16 @@
 package Zeze.Serialize;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.Collection;
 import java.util.function.Supplier;
 import Zeze.Net.Binary;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.DynamicData;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface IByteBuffer {
 	boolean IGNORE_INCOMPATIBLE_FIELD = false; // 不忽略兼容字段则会抛异常
@@ -47,6 +52,10 @@ public interface IByteBuffer {
 
 	void Reset();
 
+	default void throwEnsureReadException(int size) {
+		throw new IllegalStateException("ensureRead " + getReadIndex() + '+' + size + " > " + getWriteIndex());
+	}
+
 	void ensureRead(int size);
 
 	boolean ReadBool();
@@ -78,6 +87,7 @@ public interface IByteBuffer {
 		case 12: case 13:                   return ((b & 0x1f) << 16) + ReadLong2BE();
 		case 14:                            return ((b & 0x0f) << 24) + ReadLong3BE();
 		default:
+			//noinspection EnhancedSwitchMigration
 			switch (b & 0xf) {
 			case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7:
 				return ((long)(b & 7) << 32) + ReadLong4BE();
@@ -126,9 +136,67 @@ public interface IByteBuffer {
 
 	long ReadLong8BE();
 
-	long ReadLong();
+	default long ReadLong() {
+		int b = ReadByte();
+		switch ((b >> 3) & 0x1f) {
+		//@formatter:off
+		case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
+		case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return b;
+		case 0x08: case 0x09: case 0x0a: case 0x0b: return ((b - 0x40 ) <<  8) + ReadLong1();
+		case 0x14: case 0x15: case 0x16: case 0x17: return ((b + 0x40 ) <<  8) + ReadLong1();
+		case 0x0c: case 0x0d:                       return ((b - 0x60 ) << 16) + ReadLong2BE();
+		case 0x12: case 0x13:                       return ((b + 0x60 ) << 16) + ReadLong2BE();
+		case 0x0e:                                  return ((b - 0x70L) << 24) + ReadLong3BE();
+		case 0x11:                                  return ((b + 0x70L) << 24) + ReadLong3BE();
+		case 0x0f:
+			//noinspection EnhancedSwitchMigration
+			switch (b & 7) {
+			case 0: case 1: case 2: case 3: return ((long)(b - 0x78) << 32) + ReadLong4BE();
+			case 4: case 5:                 return ((long)(b - 0x7c) << 40) + ReadLong5BE();
+			case 6:                         return ReadLong6BE();
+			default: long r = ReadLong7BE(); return r < 0x80_0000_0000_0000L ?
+					r : ((r - 0x80_0000_0000_0000L) << 8) + ReadLong1();
+			}
+		default: // 0x10
+			//noinspection EnhancedSwitchMigration
+			switch (b & 7) {
+			case 4: case 5: case 6: case 7: return ((long)(b + 0x78) << 32) + ReadLong4BE();
+			case 2: case 3:                 return ((long)(b + 0x7c) << 40) + ReadLong5BE();
+			case 1:                         return 0xffff_0000_0000_0000L + ReadLong6BE();
+			default: long r = ReadLong7BE(); return r >= 0x80_0000_0000_0000L ?
+					0xff00_0000_0000_0000L + r : ((r + 0x80_0000_0000_0000L) << 8) + ReadLong1();
+			}
+		//@formatter:on
+		}
+	}
 
-	void SkipLong();
+	default void SkipLong() {
+		int b = ReadByte();
+		switch ((b >> 3) & 0x1f) {
+		//@formatter:off
+		case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
+		case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return;
+		case 0x08: case 0x09: case 0x0a: case 0x0b:
+		case 0x14: case 0x15: case 0x16: case 0x17: Skip(1); return;
+		case 0x0c: case 0x0d: case 0x12: case 0x13: Skip(2); return;
+		case 0x0e: case 0x11:                       Skip(3); return;
+		case 0x0f:
+			switch (b & 7) {
+			case 0: case 1: case 2: case 3: Skip(4); return;
+			case 4: case 5:                 Skip(5); return;
+			case 6:                         Skip(6); return;
+			default: Skip(6 + (ReadByte() >>> 31)); return;
+			}
+		default: // 0x10
+			switch (b & 7) {
+			case 4: case 5: case 6: case 7: Skip(4); return;
+			case 2: case 3:                 Skip(5); return;
+			case 1:                         Skip(6); return;
+			default: Skip(7 - (ReadByte() >>> 31));
+			}
+		//@formatter:on
+		}
+	}
 
 	default int ReadInt() {
 		return (int)ReadLong();
@@ -152,6 +220,20 @@ public interface IByteBuffer {
 	byte @NotNull [] ReadBytes();
 
 	void Skip(int n);
+
+	@NotNull ByteBuffer ReadByteBuffer();
+
+	@SuppressWarnings("unchecked")
+	default <T extends java.io.Serializable> T ReadJavaObject() {
+		var bb = ReadByteBuffer();
+		try (var bs = new ByteArrayInputStream(bb.Bytes, bb.ReadIndex, bb.size());
+			 var os = new ObjectInputStream(bs)) {
+			return (T)os.readObject();
+		} catch (IOException | ClassNotFoundException e) {
+			Task.forceThrow(e);
+			return null; // never run here
+		}
+	}
 
 	default void SkipBytes() {
 		int n = ReadUInt();
@@ -327,6 +409,16 @@ public interface IByteBuffer {
 	@NotNull Vector4 ReadVector4();
 
 	@NotNull Quaternion ReadQuaternion();
+
+	@Nullable ByteBuffer readUnknownField(int idx, int tag, @Nullable ByteBuffer unknown);
+
+	default @Nullable byte[] readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
+		while (tag != 0) {
+			unknown = readUnknownField(idx, tag, unknown);
+			idx += ReadTagSize(tag = ReadByte());
+		}
+		return unknown != null ? unknown.CopyIf() : null;
+	}
 
 	default @NotNull Vector2Int ReadVector2Int() {
 		int x = ReadInt();

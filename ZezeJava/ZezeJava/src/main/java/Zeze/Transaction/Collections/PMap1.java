@@ -2,6 +2,7 @@ package Zeze.Transaction.Collections;
 
 import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
@@ -137,7 +138,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		clear();
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;

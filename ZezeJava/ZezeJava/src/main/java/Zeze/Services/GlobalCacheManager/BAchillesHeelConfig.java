@@ -1,6 +1,7 @@
 package Zeze.Services.GlobalCacheManager;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public class BAchillesHeelConfig extends Bean {
@@ -16,7 +17,7 @@ public class BAchillesHeelConfig extends Bean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		maxNetPing = bb.ReadInt();
 		serverProcessTime = bb.ReadInt();
 		serverReleaseTimeout = bb.ReadInt();

@@ -3,6 +3,7 @@ package Zeze.Raft.RocksRaft;
 import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.OutInt;
 import Zeze.Util.Reflect;
@@ -73,7 +74,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var value = new LogBean();

@@ -1,6 +1,7 @@
 package Zeze.Services.GlobalCacheManager;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public class BAchillesHeel extends Bean {
@@ -9,7 +10,7 @@ public class BAchillesHeel extends Bean {
 	public int globalCacheManagerHashIndex; // 安全验证
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		serverId = bb.ReadInt();
 		secureKey = bb.ReadString();
 		globalCacheManagerHashIndex = bb.ReadInt();

@@ -1,6 +1,7 @@
 package Zeze.Transaction.Collections;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
@@ -70,7 +71,7 @@ public class LogOne<V extends Bean> extends LogBean {
 	}
 
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		throw new UnsupportedOperationException();
         /*
         var hasValue = bb.ReadBool();

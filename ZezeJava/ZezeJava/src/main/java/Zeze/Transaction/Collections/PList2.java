@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
@@ -235,7 +236,7 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(@NotNull ByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		clear();
 		try {
 			for (int i = bb.ReadUInt(); i > 0; i--) {

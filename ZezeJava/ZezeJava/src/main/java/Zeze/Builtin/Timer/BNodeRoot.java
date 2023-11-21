@@ -2,6 +2,7 @@
 package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootReadOnly {
@@ -212,7 +213,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
     }
 
     @Override
-    public void decode(ByteBuffer _o_) {
+    public void decode(IByteBuffer _o_) {
         ByteBuffer _u_ = null;
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
