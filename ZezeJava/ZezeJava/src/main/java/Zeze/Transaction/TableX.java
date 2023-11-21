@@ -92,6 +92,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return cache;
 	}
 
+	public TableCache<K, V>
+
 	protected final @Nullable AutoKey getAutoKey() {
 		return autoKey;
 	}
@@ -607,7 +609,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		V add = newValue();
 		add.initRootInfo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
-		cr.put(currentT, add);
+		cr.put(currentT, add, isMemory());
 		return add;
 	}
 
