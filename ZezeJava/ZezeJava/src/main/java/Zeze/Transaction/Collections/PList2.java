@@ -175,7 +175,7 @@ public class PList2<V extends Bean> extends PList<V> {
 				tmpList.add(newV);
 			}
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 			listLog.addAll(tmpList);
