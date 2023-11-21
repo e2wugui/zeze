@@ -42,35 +42,30 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 		return !bb.hasRemaining();
 	}
 
-	public static @NotNull NioByteBuffer Wrap(@NotNull java.nio.ByteBuffer obb) {
-		return Wrap(obb.array(), obb.position(), obb.remaining());
-	}
-
-	public static @NotNull NioByteBuffer Wrap(@NotNull NioByteBuffer nbb) {
-		var obb = nbb.bb;
-		return Wrap(obb.array(), obb.position(), obb.remaining());
+	public static @NotNull NioByteBuffer Wrap(@NotNull java.nio.ByteBuffer bb) {
+		return new NioByteBuffer(bb);
 	}
 
 	public static @NotNull NioByteBuffer Wrap(byte @NotNull [] bytes) {
-		return new NioByteBuffer(bytes, 0, bytes.length);
+		return new NioByteBuffer(java.nio.ByteBuffer.wrap(bytes));
 	}
 
 	public static @NotNull NioByteBuffer Wrap(byte @NotNull [] bytes, int length) {
 		ByteBuffer.VerifyArrayIndex(bytes, length);
-		return new NioByteBuffer(bytes, 0, length);
+		return new NioByteBuffer(java.nio.ByteBuffer.wrap(bytes, 0, length));
 	}
 
 	public static @NotNull NioByteBuffer Wrap(byte @NotNull [] bytes, int offset, int length) {
 		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
-		return new NioByteBuffer(bytes, offset, offset + length);
+		return new NioByteBuffer(java.nio.ByteBuffer.wrap(bytes, offset, length));
 	}
 
 	public static @NotNull NioByteBuffer Wrap(@NotNull Binary binary) {
-		return new NioByteBuffer(binary.bytesUnsafe(), binary.getOffset(), binary.size());
+		return new NioByteBuffer(java.nio.ByteBuffer.wrap(binary.bytesUnsafe(), binary.getOffset(), binary.size()));
 	}
 
-	protected NioByteBuffer(byte @NotNull [] bytes, int readIndex, int writeIndex) {
-		bb = java.nio.ByteBuffer.wrap(bytes, readIndex, writeIndex - readIndex);
+	protected NioByteBuffer(@NotNull java.nio.ByteBuffer bb) {
+		this.bb = bb;
 	}
 
 	@Override
