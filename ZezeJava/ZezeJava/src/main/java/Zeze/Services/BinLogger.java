@@ -578,7 +578,7 @@ public final class BinLogger {
 				path = args[++i].trim();
 				break;
 			default:
-				throw new IllegalArgumentException("unknown argument: " + args[i]);
+				throw new IllegalArgumentException("unknown argument: '" + args[i] + '\'');
 			}
 		}
 

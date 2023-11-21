@@ -1,6 +1,9 @@
 package Zeze.Transaction.Collections;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.function.UnaryOperator;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
@@ -139,6 +142,37 @@ public class PList1<V> extends PList<V> {
 		var oldList = list;
 		list = list.minusAll(c);
 		return oldList != list;
+	}
+
+	@Override
+	public void replaceAll(@NotNull UnaryOperator<V> operator) {
+		if (isManaged()) {
+			var tmpList = new ArrayList<V>(size());
+			for (V v : this)
+				tmpList.add(operator.apply(v));
+			@SuppressWarnings("unchecked")
+			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
+			listLog.clear();
+			listLog.addAll(tmpList);
+			return;
+		}
+		list.replaceAll(operator);
+	}
+
+	@Override
+	public void sort(@NotNull Comparator<? super V> c) {
+		if (isManaged()) {
+			var tmpList = new ArrayList<>(this);
+			tmpList.sort(c);
+			@SuppressWarnings("unchecked")
+			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
+			listLog.clear();
+			listLog.addAll(tmpList);
+			return;
+		}
+		list.sort(c);
 	}
 
 	@Override

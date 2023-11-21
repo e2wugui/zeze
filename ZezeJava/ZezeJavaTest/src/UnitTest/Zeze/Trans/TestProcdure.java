@@ -1,11 +1,14 @@
 package UnitTest.Zeze.Trans;
 
+import java.util.Comparator;
 import UnitTest.Zeze.BMyBean;
 import Zeze.Serialize.Vector2;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Record1;
 import Zeze.Transaction.TableKey;
+import Zeze.Util.Random;
 import demo.App;
+import demo.Bean1;
 import demo.Module1.BSimple;
 import org.junit.After;
 import org.junit.Assert;
@@ -113,5 +116,35 @@ public class TestProcdure {
 			}, "Nest").call());
 			return 0;
 		}, "testNestLogOneLogDynamic").call());
+	}
+
+	@Test
+	public void testSortList() throws Exception {
+		Assert.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var value = App.Instance.demo_Module1.getTable1().getOrAdd(18990L);
+			value.getList9().clear();
+			for (int i = 0; i < 10; i++) {
+				var b1 = new Bean1();
+				b1.setV1(Random.getInstance().nextInt());
+				value.getList9().add(b1);
+			}
+			return 0;
+		}, "testSortList1").call());
+
+		Assert.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var value = App.Instance.demo_Module1.getTable1().getOrAdd(18990L);
+			value.getList9().sort(Comparator.comparingInt(Bean1::getV1));
+			return 0;
+		}, "testSortList2").call());
+
+		var b = App.Instance.demo_Module1.getTable1().selectDirty(18990L);
+		Assert.assertNotNull(b);
+		var last = Integer.MIN_VALUE;
+		for (Bean1 b1 : b.getList9()) {
+			// System.out.println(b1.getV1());
+			Assert.assertTrue(last <= b1.getV1());
+			last = b1.getV1();
+		}
+		// System.out.println("OK");
 	}
 }

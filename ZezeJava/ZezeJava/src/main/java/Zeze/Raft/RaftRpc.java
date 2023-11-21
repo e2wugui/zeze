@@ -108,7 +108,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 		var header = bb.ReadInt();
 		var familyClass = header & FamilyClass.FamilyClassMask;
 		if (!FamilyClass.isRaftRpc(familyClass))
-			throw new IllegalStateException("invalid header(" + header + ") for decoding raft rpc " + getClass());
+			throw new IllegalStateException("invalid header(" + header + ") for decoding raft rpc " + getClass().getName());
 		setRequest(familyClass == FamilyClass.RaftRequest);
 		resultCode = (header & FamilyClass.BitResultCode) != 0 ? bb.ReadLong() : 0;
 		setSessionId(bb.ReadLong());

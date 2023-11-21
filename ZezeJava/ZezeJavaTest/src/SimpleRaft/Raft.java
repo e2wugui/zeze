@@ -236,7 +236,7 @@ public class Raft {
 			else if (event instanceof AddLog)
 				onProcess((AddLog)event);
 			else
-				throw new UnsupportedOperationException("unknown event type: " + event.getClass());
+				throw new UnsupportedOperationException("unknown event type: " + event.getClass().getName());
 		}
 		if (selfId == leaderId) { // 如果是leader的话,判断appendingTimeouts是否有超时,超时则发心跳
 			for (int i = 0; i < raftCount; i++)

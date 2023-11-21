@@ -427,7 +427,7 @@ public class HttpExchange {
 			handler.WebSocketHandle.onPong(this, frame.content());
 		else {
 			Netty.logger.error("unknown websocket message type = {} from {}",
-					frame.getClass(), context.channel().remoteAddress());
+					frame.getClass().getName(), context.channel().remoteAddress());
 			closeConnectionNow();
 		}
 	}
