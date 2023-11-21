@@ -10,7 +10,6 @@ public final class RecordAccessed extends Bean {
 		public PutLog(RecordAccessed bean, Bean putValue, boolean removeWhileRollback) {
 			super(bean, 0, putValue);
 			if (removeWhileRollback) {
-				var beginTimestamp = bean.atomicTupleRecord.record.getTimestamp();
 				Transaction.whileRollback(() -> {
 					// 1. 目前这是memory表专用的。
 					// 2. rollback的时候调用。
@@ -25,7 +24,7 @@ public final class RecordAccessed extends Bean {
 					var r = bean.atomicTupleRecord.record;
 					r.enterFairLock();
 					try {
-						if (r.getTimestamp() == beginTimestamp)
+						if (r.getTimestamp() == bean.atomicTupleRecord.timestamp)
 							r.removeFromTableCache();
 					} finally {
 						r.exitFairLock();
