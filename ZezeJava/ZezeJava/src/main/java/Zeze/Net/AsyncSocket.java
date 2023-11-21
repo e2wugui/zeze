@@ -492,7 +492,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			inputCodecChain = creator.apply(this, inputBuffer);
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 1;
-			logger.info("setInputSecurityCodec: {} class={}", this, inputCodecChain.getClass());
+			logger.info("setInputSecurityCodec: {} class={}", this, inputCodecChain.getClass().getName());
 		});
 	}
 
@@ -536,7 +536,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			outputCodecChain = creator.apply(this, outputBuffer);
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 2;
-			logger.info("setOutputSecurityCodec: {} class={}", this, outputCodecChain.getClass());
+			logger.info("setOutputSecurityCodec: {} class={}", this, outputCodecChain.getClass().getName());
 		});
 	}
 

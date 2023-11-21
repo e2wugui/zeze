@@ -1,11 +1,8 @@
 package Zeze.Transaction.Collections;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.function.UnaryOperator;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
@@ -233,26 +230,9 @@ public abstract class PList<V> extends Collection implements List<V> {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override
-	public void replaceAll(@NotNull UnaryOperator<V> operator) {
-		var list = new ArrayList<V>(size());
-		for (V v : this)
-			list.add(operator.apply(v));
-		clear();
-		addAll(list);
-	}
-
 	@Deprecated // unsupported
 	@Override
 	public @NotNull List<V> subList(int fromIndex, int toIndex) {
 		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void sort(@NotNull Comparator<? super V> c) {
-		var list = new ArrayList<>(this);
-		list.sort(c);
-		clear();
-		addAll(list);
 	}
 }
