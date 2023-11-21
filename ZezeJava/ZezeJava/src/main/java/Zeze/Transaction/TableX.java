@@ -92,8 +92,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return cache;
 	}
 
-	public TableCache<K, V>
-
 	protected final @Nullable AutoKey getAutoKey() {
 		return autoKey;
 	}

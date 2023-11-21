@@ -25,11 +25,7 @@ public final class RecordAccessed extends Bean {
 			// 4. 删除条件（AND）
 			// a) timestamp 不变
 			// b) value == null，这是保护性，限定条件，使得功能仅限于cache.remove，专用。
-			/*
-			var ra = (RecordAccessed)getBean();
-			var r = ra.atomicTupleRecord.record;
-			r.getTTable().getCache().remove(r.getObjectKey(), r);
-			*/
+			((RecordAccessed)getBean()).atomicTupleRecord.record.removeFromTableCache();
 		}
 
 		@Override
@@ -63,7 +59,7 @@ public final class RecordAccessed extends Bean {
 	}
 
 	public void put(Transaction current, Bean putValue) {
-		current.putLog(new PutLog(this, putValue, false));
+		put(current, putValue, false);
 	}
 
 	public void put(Transaction current, Bean putValue, boolean removeWhileRollback) {
