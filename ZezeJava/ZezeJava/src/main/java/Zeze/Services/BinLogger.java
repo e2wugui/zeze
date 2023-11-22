@@ -40,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
 public final class BinLogger {
 	private static final Logger logger = LogManager.getLogger(BinLogger.class);
 	private static final int perfIndexSendLogFail = PerfCounter.instance.registerCountIndex("BinLogger.SendLogFail");
+	private static final int perfIndexWriteLog = PerfCounter.instance.registerCountIndex("BinLogger.WriteLog");
 	private static final int timeZoneOffset = TimeZone.getDefault().getRawOffset(); // 北京时间(+8): 28800_000
 	private static final int DEFAULT_PORT = 5004; // 服务的默认端口号
 	private static final int MAX_LOG_SIZE = 0xfffff; // 1M-1, 单条日志数据的最大长度(涉及文件格式设计,不能改动)
@@ -421,6 +422,7 @@ public final class BinLogger {
 				logger.warn("too long size of LogData: roleId={}, type={}, size={}, sender={}",
 						p.roleId, p.dataType, dataSize, p.getSender());
 			} else {
+				var timeBegin = 0L;
 				queueLock.lock();
 				try {
 					for (; ; ) {
@@ -433,12 +435,16 @@ public final class BinLogger {
 							wlq.add(p);
 							return 0;
 						}
+						if (timeBegin == 0)
+							timeBegin = System.nanoTime();
 						waitingQueue = true;
 						queueLockCond.await();
 					}
 				} finally {
 					queueLock.unlock();
 				}
+				if (timeBegin != 0)
+					PerfCounter.instance.addRunInfo("BinLogger.waitQueue", System.nanoTime() - timeBegin);
 				logger.info("drop LogData: roleId={}, type={}, size={}, sender={}",
 						p.roleId, p.dataType, dataSize, p.getSender());
 			}
@@ -507,6 +513,7 @@ public final class BinLogger {
 							idFile.write(buf);
 						}
 						readLogQueue.clear();
+						PerfCounter.instance.addCountInfo(perfIndexWriteLog, queueSize);
 					} else {
 						if (curMs - lastFlushMs >= FLUSH_PERIOD) { // 定时刷新到OS
 							lastFlushMs = curMs;
@@ -573,6 +580,7 @@ public final class BinLogger {
 				Executors.newSingleThreadScheduledExecutor(new ThreadFactoryWithName("ZezeScheduledPool")));
 		if (Selectors.getInstance().getCount() < threadCount)
 			Selectors.getInstance().add(threadCount - Selectors.getInstance().getCount());
+		PerfCounter.instance.tryStartScheduledLog();
 
 		new BinLoggerService(path).start(host, port);
 		synchronized (Thread.currentThread()) {
