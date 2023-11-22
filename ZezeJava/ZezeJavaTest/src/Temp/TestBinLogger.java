@@ -24,8 +24,7 @@ public class TestBinLogger {
 		service.start(null, 5004);
 
 		var agent = new BinLogger.BinLoggerAgent();
-		agent.start("127.0.0.1", 5004);
-		agent.waitReady();
+		agent.start("127.0.0.1", 5004).waitReady();
 
 		var b = new BValue.Data();
 		b.setInt_1(9);

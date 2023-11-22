@@ -28,6 +28,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
@@ -38,6 +39,7 @@ import org.jetbrains.annotations.Nullable;
 
 public final class BinLogger {
 	private static final Logger logger = LogManager.getLogger(BinLogger.class);
+	private static final int perfIndexSendLogFail = PerfCounter.instance.registerCountIndex("BinLogger.SendLogFail");
 	private static final int timeZoneOffset = TimeZone.getDefault().getRawOffset(); // 北京时间(+8): 28800_000
 	private static final int DEFAULT_PORT = 5004; // 服务的默认端口号
 	private static final int MAX_LOG_SIZE = 0xfffff; // 1M-1, 单条日志数据的最大长度(涉及文件格式设计,不能改动)
@@ -186,18 +188,10 @@ public final class BinLogger {
 
 		public boolean sendLog(long roleId, @NotNull Serializable log) {
 			var so = connector.getSocket();
-			return so != null && so.Send(new LogData(roleId, log));
-		}
-
-		@Override
-		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb,
-									 @NotNull ProtocolFactoryHandle<?> factoryHandle,
-									 @NotNull AsyncSocket so) {
-			try {
-				decodeProtocol(typeId, bb, factoryHandle, so).handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
-			} catch (Throwable e) { // logger.error
-				logger.error("BinLoggerAgent.dispatchProtocol exception:", e);
-			}
+			if (so != null && so.Send(new LogData(roleId, log)))
+				return true;
+			PerfCounter.instance.addCountInfo(perfIndexSendLogFail);
+			return false;
 		}
 	}
 
@@ -300,8 +294,7 @@ public final class BinLogger {
 					fc = f.getChannel();
 					size = fc.size();
 				} catch (Throwable e) {
-					if (f != null)
-						forceClose(f);
+					forceClose(f);
 					throw e;
 				}
 			}
@@ -317,19 +310,21 @@ public final class BinLogger {
 			}
 		}
 
-		private static void forceClose(@NotNull Closeable f) {
-			try {
-				f.close();
-			} catch (Exception ignored) {
+		private static void forceClose(@Nullable Closeable f) {
+			if (f != null) {
+				try {
+					f.close();
+				} catch (Exception ignored) {
+				}
 			}
 		}
 
-		private static int toDayStamp(long utcMs) {
+		private static int toDayStamp(long utcMs) { // UTC毫秒时间戳 => 日期戳(天数)
 			return (int)((utcMs + timeZoneOffset) / 86400_000);
 		}
 
 		@SuppressWarnings("deprecation")
-		private static @NotNull String toDayStr(int dayStamp) { // 20231117
+		private static @NotNull String toDayStr(int dayStamp) { // 日期戳(天数) => "yyyyMMdd"
 			var date = new Date(dayStamp * 86400_000L - timeZoneOffset);
 			return String.format("%4d%2d%2d", date.getYear() + 1900, date.getMonth() + 1, date.getDate());
 		}
@@ -394,30 +389,18 @@ public final class BinLogger {
 				writeLogThread.join(); // 线程还没开始时也不会等待
 				writeLogThread = null;
 			}
-			if (idFile != null) {
-				forceClose(idFile);
-				idFile = null;
-			}
-			if (dtFile != null) {
-				forceClose(dtFile);
-				dtFile = null;
-			}
-			if (tsFile != null) {
-				forceClose(tsFile);
-				tsFile = null;
-			}
-			if (posFile != null) {
-				forceClose(posFile);
-				posFile = null;
-			}
-			if (binFile != null) {
-				forceClose(binFile);
-				binFile = null;
-			}
-			if (lockFile != null) {
-				forceClose(lockFile);
-				lockFile = null;
-			}
+			forceClose(idFile);
+			forceClose(dtFile);
+			forceClose(tsFile);
+			forceClose(posFile);
+			forceClose(binFile);
+			forceClose(lockFile);
+			idFile = null;
+			dtFile = null;
+			tsFile = null;
+			posFile = null;
+			binFile = null;
+			lockFile = null;
 			logger.info("unlock logPath: '{}'", logPath);
 		}
 
@@ -426,7 +409,7 @@ public final class BinLogger {
 									 @NotNull ProtocolFactoryHandle<?> factoryHandle,
 									 @NotNull AsyncSocket so) {
 			try {
-				decodeProtocol(typeId, bb, factoryHandle, so).handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
+				decodeProtocol(typeId, bb, factoryHandle, so).handle(this, factoryHandle); // 直接跑在IO线程上
 			} catch (Throwable e) { // logger.error
 				logger.error("BinLoggerService.dispatchProtocol exception:", e);
 			}
@@ -488,12 +471,12 @@ public final class BinLogger {
 					} finally {
 						queueLock.unlock();
 					}
+					var curMs = System.currentTimeMillis();
 					if (queueSize > 0) {
-						var curMs = System.currentTimeMillis();
 						if (curMs != lastTs >>> 20)
 							lastTs = curMs << 20;
 						var dayStamp = toDayStamp(curMs);
-						if (dayStamp != curDayStamp) {
+						if (dayStamp != curDayStamp) { // 判断是否要轮转日志文件
 							curDayStamp = dayStamp;
 							var fnPrefix = logPath + toDayStr(curDayStamp);
 							forceClose(binFile);
@@ -508,7 +491,7 @@ public final class BinLogger {
 							idFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".id"), OTHER_BUFFER);
 							lastFlushMs = System.currentTimeMillis();
 						}
-						for (int i = 0; i < queueSize; i++) {
+						for (int i = 0; i < queueSize; i++) { // 把当前队列里的日志全部写入日志和索引文件,用相同的毫秒时间戳应该没问题
 							var logData = readLogQueue.get(i);
 							var data = logData.data;
 							var dataSize = data.size();
@@ -524,7 +507,8 @@ public final class BinLogger {
 							idFile.write(buf);
 						}
 						readLogQueue.clear();
-						if (curMs - lastFlushMs >= FLUSH_PERIOD) { // 最多一秒刷新一次
+					} else {
+						if (curMs - lastFlushMs >= FLUSH_PERIOD) { // 定时刷新到OS
 							lastFlushMs = curMs;
 							binFile.flush();
 							posFile.flush();
@@ -532,9 +516,10 @@ public final class BinLogger {
 							dtFile.flush();
 							idFile.flush();
 						}
-					} else if (started) {
-						//noinspection BusyWait
-						Thread.sleep(WRITE_THREAD_IDLE_SLEEP);
+						if (started) {
+							//noinspection BusyWait
+							Thread.sleep(WRITE_THREAD_IDLE_SLEEP);
+						}
 					}
 				} catch (Throwable e) {
 					logger.error("writeLogThread exception:", e);
