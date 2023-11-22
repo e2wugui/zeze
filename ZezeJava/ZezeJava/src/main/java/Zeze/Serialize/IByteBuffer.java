@@ -120,7 +120,9 @@ public interface IByteBuffer {
 		}
 	}
 
-	long ReadLong1();
+	default long ReadLong1() {
+		return ReadByte() & 0xffL;
+	}
 
 	long ReadLong2BE();
 

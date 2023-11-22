@@ -69,7 +69,7 @@ public final class BeanFactory {
 	 * @param hotModules    相关的 HotModule's JarFile
 	 */
 	public static void resetHot(@NotNull Map<BeanFactory, List<Class<?>>> beanFactories,
-								@NotNull List<JarFile> hotModules) throws IOException {
+								@NotNull List<JarFile> hotModules) {
 		for (JarFile jf : hotModules)
 			reloadClassesFromJar(jf);
 
@@ -126,7 +126,7 @@ public final class BeanFactory {
 		return n;
 	}
 
-	public static int loadClassesFromPath(@NotNull String path, boolean initClasses) throws IOException {
+	public static int loadClassesFromPath(@NotNull String path, boolean initClasses) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
 		synchronized (allClassNameMap) {
@@ -154,7 +154,7 @@ public final class BeanFactory {
 		return n;
 	}
 
-	public static int reloadClassesFromJar(@NotNull JarFile jarFile) throws IOException {
+	public static int reloadClassesFromJar(@NotNull JarFile jarFile) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
 		synchronized (allClassNameMap) {

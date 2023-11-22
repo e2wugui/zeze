@@ -1502,7 +1502,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	@RedirectToServer
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
-	protected void redirectRemoveLocal(int serverId, @NotNull String account) throws Exception {
+	protected void redirectRemoveLocal(int serverId, @NotNull String account) {
 		providerApp.zeze.newProcedure(() -> tryRemoveLocal(account), "Online.redirectRemoveLocal").call();
 	}
 

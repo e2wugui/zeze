@@ -170,7 +170,7 @@ public class Reflect {
 		}
 	}
 
-	public static @NotNull ArrayList<String> collectClassNamesFromJar(JarFile jarFile) throws IOException {
+	public static @NotNull ArrayList<String> collectClassNamesFromJar(JarFile jarFile) {
 		var classNames = new ArrayList<String>();
 		for (var e = jarFile.entries(); e.hasMoreElements(); ) {
 			var fn = e.nextElement().getName();

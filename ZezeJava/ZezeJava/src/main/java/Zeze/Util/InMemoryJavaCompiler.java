@@ -121,7 +121,7 @@ public class InMemoryJavaCompiler {
 		return classLoader.findClass(className);
 	}
 
-	public byte[] compileToByteCode(String className, String sourceCode) throws ClassNotFoundException {
+	public byte[] compileToByteCode(String className, String sourceCode) {
 		sourceCodes.clear();
 		String exMsg = addSource(className, sourceCode).compileAll();
 		if (exMsg != null)
@@ -143,8 +143,7 @@ public class InMemoryJavaCompiler {
 		}
 	}
 
-	public void compileAllToByteCode(Map<String, String> classNameAndCodes, Map<String, byte[]> classNameAndByteCodes)
-			throws ClassNotFoundException {
+	public void compileAllToByteCode(Map<String, String> classNameAndCodes, Map<String, byte[]> classNameAndByteCodes) {
 		sourceCodes.clear();
 		for (Map.Entry<String, String> e : classNameAndCodes.entrySet())
 			addSource(e.getKey(), e.getValue());
@@ -163,7 +162,7 @@ public class InMemoryJavaCompiler {
 		return classNameAndClasses;
 	}
 
-	public Map<String, byte[]> compileAllToByteCode(Map<String, String> classNameAndCodes) throws ClassNotFoundException {
+	public Map<String, byte[]> compileAllToByteCode(Map<String, String> classNameAndCodes) {
 		var classNameAndByteCodes = new HashMap<String, byte[]>(classNameAndCodes.size());
 		compileAllToByteCode(classNameAndCodes, classNameAndByteCodes);
 		return classNameAndByteCodes;

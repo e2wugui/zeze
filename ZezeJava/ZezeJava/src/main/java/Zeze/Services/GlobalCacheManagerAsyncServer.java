@@ -214,7 +214,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return 0;
 	}
 
-	private long processLogin(Login rpc) throws Exception {
+	private long processLogin(Login rpc) {
 		logger.info("ProcessLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
 		if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.globalCacheManagerHashIndex, true)) {
@@ -249,7 +249,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return 0;
 	}
 
-	private long processNormalClose(NormalClose rpc) throws Exception {
+	private long processNormalClose(NormalClose rpc) {
 		logger.info("ProcessNormalClose: {} RequestId={}", rpc.getSender(), rpc.getSessionId());
 		var session = (CacheHolder)rpc.getSender().getUserState();
 		if (session == null) {

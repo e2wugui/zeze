@@ -79,8 +79,8 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 		if (size == 0)
 			return ByteBuffer.Empty;
 		byte[] copy = new byte[size];
-		// bb.get(getReadIndex(), copy); // need JDK13+
-		int pos = getReadIndex();
+		// bb.get(bb.position(), copy); // need JDK13+
+		int pos = bb.position();
 		bb.get(copy);
 		bb.position(pos);
 		return copy;
@@ -94,14 +94,14 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public void ensureRead(int size) {
-		if (getReadIndex() + size > getWriteIndex())
+		if (bb.position() + size > bb.limit())
 			throwEnsureReadException(size);
 	}
 
 	@Override
 	public boolean ReadBool() {
 		ensureRead(1);
-		int pos = getReadIndex();
+		int pos = bb.position();
 		int b = bb.get(pos);
 		if ((b & ~1) == 0) { // fast-path
 			bb.position(pos + 1);
@@ -127,7 +127,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	public void ReadInt4s(int @NotNull [] buf, int offset, int length) {
 		int n = length * 4;
 		ensureRead(n);
-		int readIndex = getReadIndex();
+		int readIndex = bb.position();
 		bb.position(readIndex + n);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
 		for (int i = 0; i < length; i++, readIndex += 4)
@@ -145,7 +145,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	public void ReadLong8s(long @NotNull [] buf, int offset, int length) {
 		int n = length * 8;
 		ensureRead(n);
-		int readIndex = getReadIndex();
+		int readIndex = bb.position();
 		bb.position(readIndex + n);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
 		for (int i = 0; i < length; i++, readIndex += 8)
@@ -155,7 +155,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	@Override
 	public void SkipUInt() {
 		ensureRead(1);
-		int readIndex = getReadIndex();
+		int readIndex = bb.position();
 		int v = bb.get(readIndex) & 0xff;
 		if (v < 0x80)
 			bb.position(readIndex + 1);
@@ -172,11 +172,6 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 			ensureRead(5);
 			bb.position(readIndex + 5);
 		}
-	}
-
-	@Override
-	public long ReadLong1() {
-		return ReadByte() & 0xff;
 	}
 
 	@Override
@@ -244,7 +239,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	public void ReadFloats(float @NotNull [] buf, int offset, int length) {
 		int n = length * 4;
 		ensureRead(n);
-		int readIndex = getReadIndex();
+		int readIndex = bb.position();
 		bb.position(readIndex + n);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
 		for (int i = 0; i < length; i++, readIndex += 4)
@@ -262,7 +257,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	public void ReadDoubles(double @NotNull [] buf, int offset, int length) {
 		int n = length * 8;
 		ensureRead(n);
-		int readIndex = getReadIndex();
+		int readIndex = bb.position();
 		bb.position(readIndex + n);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
 		for (int i = 0; i < length; i++, readIndex += 8)
@@ -276,11 +271,11 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 			return "";
 		if (n < 0) {
 			throw new IllegalStateException("invalid length for ReadString: " + n
-					+ " at " + getReadIndex() + '/' + getWriteIndex());
+					+ " at " + bb.position() + '/' + bb.limit());
 		}
 		ensureRead(n);
 		if (bb.hasArray()) {
-			int pos = getReadIndex();
+			int pos = bb.position();
 			bb.position(pos + n);
 			return new String(bb.array(), pos, n, StandardCharsets.UTF_8);
 		}
@@ -296,7 +291,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 			return ByteBuffer.Empty;
 		if (n < 0) {
 			throw new IllegalStateException("invalid length for ReadBytes: " + n
-					+ " at " + getReadIndex() + '/' + getWriteIndex());
+					+ " at " + bb.position() + '/' + bb.limit());
 		}
 		ensureRead(n);
 		var bytes = new byte[n];
@@ -307,7 +302,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	@Override
 	public void Skip(int n) {
 		ensureRead(n);
-		bb.position(getReadIndex() + n);
+		bb.position(bb.position() + n);
 	}
 
 	@Override
@@ -394,7 +389,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 		int size = bb.position() - beginIdx;
 		if (size > 0) {
 			if (unknown == null)
-				unknown = ByteBuffer.Allocate(16);
+				unknown = ByteBuffer.Allocate(ByteBuffer.WriteUIntSize(idx) + 1 + ByteBuffer.WriteUIntSize(size) + size);
 			unknown.WriteUInt(idx);
 			unknown.WriteByte(tag & TAG_MASK);
 			unknown.WriteUInt(size);

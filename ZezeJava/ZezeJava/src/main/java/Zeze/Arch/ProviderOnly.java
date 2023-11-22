@@ -14,11 +14,11 @@ public class ProviderOnly extends ProviderImplement {
 	}
 
 	@Override
-	protected long ProcessLinkBroken(LinkBroken p) throws Exception {
+	protected long ProcessLinkBroken(LinkBroken p) {
 		return 0;
 	}
 
-	public void create(AppBase app) throws Exception {
+	public void create(AppBase app) {
 		load = new ProviderLoadOnly(app.getZeze());
 		var config = app.getZeze().getConfig();
 		load.getOverload().register(Task.getThreadPool(), config);

@@ -49,7 +49,7 @@ public final class ClassReloader {
 		premain(args, inst);
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) {
 		if (args.length != 2) {
 			System.exit(-1);
 			return;

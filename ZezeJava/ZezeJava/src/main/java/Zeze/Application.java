@@ -296,7 +296,7 @@ public final class Application {
 		replaceTableRecent.clear();
 	}
 
-	public Schemas __upgrade_schemas__(Schemas schemas) throws Exception {
+	public Schemas __upgrade_schemas__(Schemas schemas) {
 		var current = this.schemas;
 		this.schemasPrevious = null;
 		this.schemas = schemas;
@@ -472,7 +472,7 @@ public final class Application {
 	*/
 
 	// 数据库Meta兼容检查，返回旧的Schemas。
-	private void schemasCompatible() throws Exception {
+	private void schemasCompatible() {
 		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		if (schemas != null) {
 			schemas.compile();
@@ -510,7 +510,7 @@ public final class Application {
 		}
 	}
 
-	private void atomicOpenDatabase() throws Exception {
+	private void atomicOpenDatabase() throws InterruptedException {
 		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		while (true) {
 			if (!defaultDb.getDirectOperates().tryLock()) {

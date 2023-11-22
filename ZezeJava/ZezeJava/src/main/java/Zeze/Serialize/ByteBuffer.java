@@ -152,7 +152,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	public void Replace(int writeIndex, byte @NotNull [] src, int offset, int len) {
 		if (writeIndex < ReadIndex || writeIndex + len > WriteIndex) {
 			throw new IllegalStateException("Replace writeIndex=" + writeIndex + ", len=" + len
-					+ " at " + getReadIndex() + '/' + getWriteIndex());
+					+ " at " + ReadIndex + '/' + WriteIndex);
 		}
 		System.arraycopy(src, offset, Bytes, writeIndex, len);
 	}
@@ -168,7 +168,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		int oldWriteIndex = ReadIndex + saveSize;
 		if (oldWriteIndex + 4 > WriteIndex) {
 			throw new IllegalStateException("EndWriteWithSize4 saveSize=" + saveSize
-					+ " at " + getReadIndex() + '/' + getWriteIndex());
+					+ " at " + ReadIndex + '/' + WriteIndex);
 		}
 		intLeHandler.set(Bytes, oldWriteIndex, WriteIndex - oldWriteIndex - 4);
 	}
@@ -285,7 +285,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	protected int toPower2(int needSize) {
 		if ((needSize & 0xffff_ffffL) > 0x4000_0000) {
 			throw new IllegalStateException("invalid needSize=" + needSize
-					+ " at " + getReadIndex() + '/' + getWriteIndex());
+					+ " at " + ReadIndex + '/' + WriteIndex);
 		}
 		int size = 16;
 		while (size < needSize)
@@ -800,12 +800,6 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@Override
-	public long ReadLong1() {
-		ensureRead(1);
-		return Bytes[ReadIndex++] & 0xff;
-	}
-
-	@Override
 	public long ReadLong2BE() {
 		ensureRead(2);
 		byte[] bytes = Bytes;
@@ -1005,7 +999,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			return "";
 		if (n < 0) {
 			throw new IllegalStateException("invalid length for ReadString: " + n
-					+ " at " + getReadIndex() + '/' + getWriteIndex());
+					+ " at " + ReadIndex + '/' + WriteIndex);
 		}
 		ensureRead(n);
 		String v = new String(Bytes, ReadIndex, n, StandardCharsets.UTF_8);
@@ -1035,7 +1029,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			return Empty;
 		if (n < 0) {
 			throw new IllegalStateException("invalid length for ReadBytes: " + n
-					+ " at " + getReadIndex() + '/' + getWriteIndex());
+					+ " at " + ReadIndex + '/' + WriteIndex);
 		}
 		ensureRead(n);
 		byte[] v = new byte[n];
@@ -1058,7 +1052,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		int n = ReadUInt();
 		if (n < 0) {
 			throw new IllegalStateException("invalid length for ReadByteBuffer: " + n
-					+ " at " + getReadIndex() + '/' + getWriteIndex());
+					+ " at " + ReadIndex + '/' + WriteIndex);
 		}
 		ensureRead(n);
 		int cur = ReadIndex;
@@ -1239,7 +1233,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		int size = ReadIndex - beginIdx;
 		if (size > 0) {
 			if (unknown == null)
-				unknown = ByteBuffer.Allocate(16);
+				unknown = ByteBuffer.Allocate(ByteBuffer.WriteUIntSize(idx) + 1 + ByteBuffer.WriteUIntSize(size) + size);
 			unknown.WriteUInt(idx);
 			unknown.WriteByte(tag & TAG_MASK);
 			unknown.WriteUInt(size);

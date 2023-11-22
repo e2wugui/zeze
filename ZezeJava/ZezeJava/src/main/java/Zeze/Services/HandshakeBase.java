@@ -71,7 +71,7 @@ public class HandshakeBase extends Service {
 		}
 	}
 
-	private static long processKeepAliveRequest(KeepAlive r) throws Exception {
+	private static long processKeepAliveRequest(KeepAlive r) {
 		r.SendResult();
 		return 0L;
 	}

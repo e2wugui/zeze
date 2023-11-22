@@ -37,6 +37,15 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/*
+高吞吐量的日志接收记录器. 包括客户端(Agent,日志发送方,支持多个)和服务器端(Service,日志接收方,负责存盘).
+功能: 支持日志时间,日志类型和自定义ID三种索引,日志目录写入互斥机制,启动时修复索引,每天轮转日志数据和索引,友好关闭(支持shutdown触发).
+高吞吐手段: 单独的写日志线程,从队列里批量取日志,有缓存的文件写入,定期刷给OS.
+      日志数据以尽可能紧凑的二进制方式传输和存储, 服务器端不解析数据本身,原样保存.
+限制: 单条日志数据限制<1M,单日日志数据文件最大16TB,日志时间限制在(1970年~2527年),系统时间不回调的话,不会出现相同的日志时间戳.
+瓶颈及风险: 如果发送的日志速率超过写日志线程的写入速率,会达到传输队列指定的条数或大小上限,导致服务器端接收日志的IO线程暂停工作,
+      进而导致客户端无法发送或产生堆积,此时发送方应主动丢弃. 记录的日志时间戳由服务器端在写入时确定. 过时的日志文件需要其它清理手段.
+*/
 public final class BinLogger {
 	private static final Logger logger = LogManager.getLogger(BinLogger.class);
 	private static final int perfIndexSendLogFail = PerfCounter.instance.registerCountIndex("BinLogger.SendLogFail");
@@ -555,18 +564,18 @@ public final class BinLogger {
 
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
-			case "-host":
+			case "-host": // 指定监听的IP,不指定则监听所有IP,如果当前目录存在zeze.xml且定义了BinLoggerService,则默认以配置为准
 				host = args[++i];
 				if (host.isBlank())
 					host = null;
 				break;
-			case "-port":
+			case "-port": // 指定监听端口号,默认DEFAULT_PORT常量,如果当前目录存在zeze.xml且定义了BinLoggerService,则默认以配置为准
 				port = Integer.parseInt(args[++i]);
 				break;
-			case "-threads":
+			case "-threads": // 网络IO线程数,默认0表示CPU核数
 				threadCount = Integer.parseInt(args[++i]);
 				break;
-			case "-path":
+			case "-path": // 输出二进制日志的相对路径,默认"binlog"
 				path = args[++i].trim();
 				break;
 			default:

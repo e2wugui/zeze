@@ -107,7 +107,7 @@ public class ProviderApp {
 	 * 这是为了发布打包的时候，用来构建模块配置，所有的变量都不需要使用。
 	 */
 	@SuppressWarnings("DataFlowIssue")
-	public ProviderApp(Application zeze) throws Exception {
+	public ProviderApp(Application zeze) {
 		this.zeze = zeze;
 		this.zeze.setProviderApp(this);
 		this.zeze.redirect = new RedirectBase(this);

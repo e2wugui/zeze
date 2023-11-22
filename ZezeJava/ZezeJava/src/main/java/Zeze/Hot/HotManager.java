@@ -302,7 +302,7 @@ public class HotManager extends ClassLoader {
 		}
 
 		@Override
-		public void run() throws Exception {
+		public void run() {
 			// 恢复schemas
 			zeze.__upgrade_schemas__(oldSchemas);
 			// 导致HotModule重新start并导致Register。
