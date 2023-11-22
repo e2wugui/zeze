@@ -21,13 +21,16 @@ public final class RecordAccessed extends Bean {
 					// 4. 删除条件（AND）
 					// a) timestamp 不变
 					// b) value == null，这是保护性，限定条件，使得功能仅限于cache.remove，专用。
-					var r = bean.atomicTupleRecord.record;
-					r.enterFairLock();
+					//noinspection DataFlowIssue
+					var lockey = Transaction.getCurrent().getLockey(bean.tableKey());
+					lockey.enterReadLock();
 					try {
-						if (r.getTimestamp() == bean.atomicTupleRecord.timestamp)
+						var tr = bean.atomicTupleRecord;
+						var r = tr.record;
+						if (r.getTimestamp() == tr.timestamp && r.getSoftValue() == null)
 							r.removeFromTableCache();
 					} finally {
-						r.exitFairLock();
+						lockey.exitReadLock();
 					}
 				});
 			}

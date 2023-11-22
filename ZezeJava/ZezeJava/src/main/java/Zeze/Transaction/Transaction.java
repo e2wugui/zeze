@@ -559,8 +559,12 @@ public final class Transaction {
 		}
 	}
 
+	@NotNull Lockey getLockey(TableKey key) {
+		return locks.get(key);
+	}
+
 	private @NotNull CheckResult lockAndCheck(@NotNull Map.Entry<TableKey, RecordAccessed> e) {
-		Lockey lockey = locks.get(e.getKey());
+		Lockey lockey = getLockey(e.getKey());
 		boolean writeLock = e.getValue().dirty;
 		lockey.enterLock(writeLock);
 		holdLocks.add(lockey);
