@@ -166,8 +166,10 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public void replaceAll(@NotNull UnaryOperator<V> operator) {
+		if (list.isEmpty())
+			return;
+		var tmpList = new ArrayList<V>(size());
 		if (isManaged()) {
-			var tmpList = new ArrayList<V>(size());
 			for (V v : this) {
 				var newV = operator.apply(v);
 				if (newV != v)
@@ -181,14 +183,19 @@ public class PList2<V extends Bean> extends PList<V> {
 			listLog.addAll(tmpList);
 			return;
 		}
-		list.replaceAll(operator);
+		for (V v : this)
+			tmpList.add(operator.apply(v));
+		list = Empty.vector();
+		list = list.plusAll(tmpList);
 	}
 
 	@Override
 	public void sort(@NotNull Comparator<? super V> c) {
+		if (list.isEmpty())
+			return;
+		var tmpList = new ArrayList<>(this);
+		tmpList.sort(c);
 		if (isManaged()) {
-			var tmpList = new ArrayList<>(this);
-			tmpList.sort(c);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -196,7 +203,8 @@ public class PList2<V extends Bean> extends PList<V> {
 			listLog.addAll(tmpList);
 			return;
 		}
-		list.sort(c);
+		list = Empty.vector();
+		list = list.plusAll(tmpList);
 	}
 
 	@Override
