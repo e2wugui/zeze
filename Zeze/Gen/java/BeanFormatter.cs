@@ -74,12 +74,12 @@ namespace Zeze.Gen.java
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
             sw.WriteLine("import Zeze.Serialize.IByteBuffer;");
             sw.WriteLine();
-            if (bean.Comment.Length > 0)
-                sw.WriteLine(bean.Comment);
             if (Program.isOnlyData(bean))
                 new javadata.BeanFormatter(bean).Make(sw, bean.Name);
             else
             {
+                if (bean.Comment.Length > 0)
+                    sw.WriteLine(bean.Comment);
                 sw.WriteLine("@SuppressWarnings({\"NullableProblems\", \"RedundantIfStatement\", \"RedundantSuppression\", \"SuspiciousNameCombination\", \"SwitchStatementWithTooFewBranches\", \"UnusedAssignment\"})");
                 var final = bean.Extendable ? "" : "final ";
                 sw.WriteLine($"public {final}class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
