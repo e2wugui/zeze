@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import Zeze.Application;
 import Zeze.Hot.HotGuard;
 import Zeze.IModule;
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolErrorHandle;
 import Zeze.Net.Service;
@@ -476,11 +477,21 @@ public final class Task {
 		Object userState;
 		String userStateStr = p != null && (userState = p.getUserState()) != null ? " UserState=" + userState : "";
 
-		if (result > 0) {
-			logger.log(level, "Action={}{} Return={}@{}:{}", actionName, userStateStr, result,
-					IModule.getModuleId(result), IModule.getErrorCode(result), ex);
-		} else
-			logger.log(level, "Action={}{} Return={}", actionName, userStateStr, result, ex);
+		if (result != 0 && p != null) {
+			if (result > 0) {
+				logger.log(level, "Action={}{} Return={}@{}:{} Arg={}", actionName, userStateStr, result,
+						IModule.getModuleId(result), IModule.getErrorCode(result), AsyncSocket.toStr(p.Argument), ex);
+			} else {
+				logger.log(level, "Action={}{} Return={} Arg={}", actionName, userStateStr, result,
+						AsyncSocket.toStr(p.Argument), ex);
+			}
+		} else {
+			if (result > 0) {
+				logger.log(level, "Action={}{} Return={}@{}:{}", actionName, userStateStr, result,
+						IModule.getModuleId(result), IModule.getErrorCode(result), ex);
+			} else
+				logger.log(level, "Action={}{} Return={}", actionName, userStateStr, result, ex);
+		}
 	}
 
 	public static void logAndStatistics(long result, @Nullable Protocol<?> p, boolean IsRequestSaved) {
