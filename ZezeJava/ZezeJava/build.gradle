@@ -2,11 +2,11 @@ apply from: '../build.gradle'
 
 dependencies {
     // required dependencies
-    implementation 'org.apache.logging.log4j:log4j-api:2.21.0'
-    implementation 'org.apache.logging.log4j:log4j-core:2.21.0'
-    implementation 'org.jetbrains:annotations:24.0.1'
+    implementation 'org.apache.logging.log4j:log4j-api:2.22.0'
+    implementation 'org.apache.logging.log4j:log4j-core:2.22.0'
+    implementation 'org.jetbrains:annotations:24.1.0'
     implementation 'org.pcollections:pcollections:4.0.1'
-    implementation 'org.rocksdb:rocksdbjni:8.6.7'
+    implementation 'org.rocksdb:rocksdbjni:8.7.3'
 
     // for netty
     implementation 'io.netty:netty-codec-http:4.1.100.Final'
@@ -33,7 +33,7 @@ dependencies {
 
     // for task component
     compileOnly 'org.jgrapht:jgrapht-core:1.5.2'
-    compileOnly 'com.opencsv:opencsv:5.8'
+    compileOnly 'com.opencsv:opencsv:5.9'
 
     // for new Compress/Decompress Codec in Zeze.Net
     compileOnly 'com.github.luben:zstd-jni:1.5.5-6'
