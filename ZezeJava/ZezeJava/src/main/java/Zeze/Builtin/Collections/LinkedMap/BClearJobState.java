@@ -4,7 +4,7 @@ package Zeze.Builtin.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BClearJobState extends Zeze.Transaction.Bean implements BClearJobStateReadOnly {
     public static final long TYPEID = 8599835992466746563L;
 

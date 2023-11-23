@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 // 地图实例（线）的负载
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly {
     public static final long TYPEID = -3855690854900982322L;
 

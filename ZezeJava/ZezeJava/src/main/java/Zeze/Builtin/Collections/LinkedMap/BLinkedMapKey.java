@@ -4,7 +4,7 @@ package Zeze.Builtin.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"MethodMayBeStatic", "NullableProblems", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BLinkedMapKey implements Zeze.Transaction.BeanKey, Comparable<BLinkedMapKey> {
     private String _Name; // LinkedMap的Name
     private String _ValueId; // LinkedMap的Key转成字符串类型

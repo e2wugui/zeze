@@ -4,7 +4,7 @@ package Zeze.Builtin.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implements BModuleRedirectAllResultReadOnly {
     public static final long TYPEID = -6979067915808179070L;
 

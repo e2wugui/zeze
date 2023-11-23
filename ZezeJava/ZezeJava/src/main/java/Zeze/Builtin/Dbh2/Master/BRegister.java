@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2.Master;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BRegister extends Zeze.Transaction.Bean implements BRegisterReadOnly {
     public static final long TYPEID = -3200018963971290421L;
 

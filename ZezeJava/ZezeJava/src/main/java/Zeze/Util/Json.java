@@ -9,8 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.BeanKey;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.PList2;
 import Zeze.Transaction.Collections.PMap2;
@@ -508,11 +508,10 @@ public final class Json implements Cloneable {
 		json.fieldNameFilter = (klass, field) -> {
 			final String fn = field.getName();
 			if (fn.charAt(0) == '_' &&
-					(Bean.class.isAssignableFrom(klass) // bean
-							|| Data.class.isAssignableFrom(klass) // data
-							|| Zeze.Raft.RocksRaft.Bean.class.isAssignableFrom(klass) // RocksRaft bean
-							|| (Serializable.class.isAssignableFrom(klass)
-							&& Comparable.class.isAssignableFrom(klass)))) // beankey
+					(Data.class.isAssignableFrom(klass) // data
+							|| Bean.class.isAssignableFrom(klass) // bean
+							|| BeanKey.class.isAssignableFrom(klass) // beankey
+							|| Zeze.Raft.RocksRaft.Bean.class.isAssignableFrom(klass))) // RocksRaft bean
 				return fn.substring(1); // 特殊规则: 忽略字段前的下划线前缀
 			return fn;
 		};

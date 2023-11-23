@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2.Commit;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPrepareBatchesReadOnly {
     public static final long TYPEID = -2881093366329974312L;
 

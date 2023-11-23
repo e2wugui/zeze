@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 // TODO: 允许广播
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BTaskCondition extends Zeze.Transaction.Bean implements BTaskConditionReadOnly {
     public static final long TYPEID = 4477615436284693494L;
 

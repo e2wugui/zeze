@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 // 内置条件类型：提交物品
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BTConditionSubmitItem extends Zeze.Transaction.Bean implements BTConditionSubmitItemReadOnly {
     public static final long TYPEID = 5009432016461298914L;
 

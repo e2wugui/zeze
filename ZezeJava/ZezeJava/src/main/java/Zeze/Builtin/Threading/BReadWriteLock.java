@@ -4,7 +4,7 @@ package Zeze.Builtin.Threading;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BReadWriteLock extends Zeze.Transaction.Bean implements BReadWriteLockReadOnly {
     public static final long TYPEID = 5310988726582781550L;
 

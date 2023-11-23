@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketMetaReadOnly {
     public static final long TYPEID = 8589859502117192635L;
 

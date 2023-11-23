@@ -4,7 +4,7 @@ package Zeze.Builtin.Collections.DepartmentTree;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"MethodMayBeStatic", "NullableProblems", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BDepartmentKey implements Zeze.Transaction.BeanKey, Comparable<BDepartmentKey> {
     private String _Owner;
     private long _DepartmentId;

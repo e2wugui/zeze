@@ -4,7 +4,7 @@ package Zeze.Builtin.Collections.DepartmentTree;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements BDepartmentTreeNodeReadOnly {
     public static final long TYPEID = 2712461973987809351L;
 

@@ -163,7 +163,7 @@ namespace Zeze.Gen.javadata
 
         public virtual void Visit(Bean type)
         {
-            name = type.FullName + ".Data";
+            name = type.OnlyData ? type.FullName : type.FullName + ".Data";
         }
 
         public virtual void Visit(BeanKey type)

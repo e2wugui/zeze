@@ -4,7 +4,7 @@ package Zeze.Builtin.Zoker;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BCommitServiceResult extends Zeze.Transaction.Bean implements BCommitServiceResultReadOnly {
     public static final long TYPEID = 7236706023884749986L;
 

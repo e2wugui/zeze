@@ -4,7 +4,7 @@ package Zeze.Builtin.Game.TaskBase;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BBroadcastTaskEvent extends Zeze.Transaction.Bean implements BBroadcastTaskEventReadOnly {
     public static final long TYPEID = 2627115510834301728L;
 

@@ -4,7 +4,7 @@ package Zeze.Builtin.Provider;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BSetDisableChoice extends Zeze.Transaction.Bean implements BSetDisableChoiceReadOnly {
     public static final long TYPEID = -1885417062233949302L;
 

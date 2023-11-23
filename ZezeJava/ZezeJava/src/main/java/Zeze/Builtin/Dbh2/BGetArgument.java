@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArgumentReadOnly {
     public static final long TYPEID = 4922212073054736979L;
 

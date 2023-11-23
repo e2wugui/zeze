@@ -4,7 +4,7 @@ package Zeze.Builtin.ServiceManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnly {
     public static final long TYPEID = -3414862908883999968L;
 

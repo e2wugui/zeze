@@ -4,7 +4,7 @@ package Zeze.Builtin.Game.Rank;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"MethodMayBeStatic", "NullableProblems", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparable<BConcurrentKey> {
     public static final int TimeTypeTotal = 0; // 所有时间
     public static final int TimeTypeDay = 1; // 每天：Year为当前时间的年份，Offset为天

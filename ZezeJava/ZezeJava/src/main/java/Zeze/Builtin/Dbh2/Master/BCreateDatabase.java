@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2.Master;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCreateDatabaseReadOnly {
     public static final long TYPEID = -4068258744708449065L;
 

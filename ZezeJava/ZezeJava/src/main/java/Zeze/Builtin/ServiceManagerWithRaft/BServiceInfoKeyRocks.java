@@ -4,7 +4,7 @@ package Zeze.Builtin.ServiceManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"MethodMayBeStatic", "NullableProblems", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BServiceInfoKeyRocks implements Zeze.Transaction.BeanKey, Comparable<BServiceInfoKeyRocks> {
     private String _ServiceName;
     private String _ServiceIdentity;

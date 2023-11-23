@@ -40,7 +40,7 @@ namespace Zeze.Gen.javadata
 
             sw.WriteLine(prefix + "public void assign(" + bean.Name + " other) {");
             foreach (Variable var in bean.Variables)
-                var.VariableType.Accept(new Assign(var, sw, prefix + "    ", true));
+                var.VariableType.Accept(new Assign(var, sw, prefix + "    ", !bean.OnlyData));
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
 
@@ -186,7 +186,7 @@ namespace Zeze.Gen.javadata
 
         public void Visit(Bean type)
         {
-            if (transBean)
+            if (transBean && !type.OnlyData)
                 sw.WriteLine(prefix + var.NamePrivate + ".assign(other." + var.NamePrivate + ".getValue());");
             else
                 sw.WriteLine(prefix + var.NamePrivate + ".assign(other." + var.NamePrivate + ");");

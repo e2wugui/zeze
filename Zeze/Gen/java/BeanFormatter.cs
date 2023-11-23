@@ -80,7 +80,7 @@ namespace Zeze.Gen.java
                 new javadata.BeanFormatter(bean).Make(sw, bean.Name);
             else
             {
-                sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\", \"NullableProblems\", \"SuspiciousNameCombination\"})");
+                sw.WriteLine("@SuppressWarnings({\"NullableProblems\", \"RedundantIfStatement\", \"RedundantSuppression\", \"SuspiciousNameCombination\", \"SwitchStatementWithTooFewBranches\", \"UnusedAssignment\"})");
                 var final = bean.Extendable ? "" : "final ";
                 sw.WriteLine($"public {final}class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
                 WriteDefine(sw, project);

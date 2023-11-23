@@ -4,7 +4,7 @@ package Zeze.Builtin.HotDistribute;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BLastVersionBeanInfo extends Zeze.Transaction.Bean implements BLastVersionBeanInfoReadOnly {
     public static final long TYPEID = -6575391224958548024L;
 

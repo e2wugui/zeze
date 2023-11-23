@@ -15,7 +15,7 @@ import Zeze.Serialize.IByteBuffer;
 			<protocol name="AoiOperate" argument="BAoiOperate" handle="client"/>
 			<protocol name="AoiLeave" argument="BAoiLeave" handle="client"/>
 */
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWorldReadOnly {
     public static final long TYPEID = -4883142059980084950L;
 

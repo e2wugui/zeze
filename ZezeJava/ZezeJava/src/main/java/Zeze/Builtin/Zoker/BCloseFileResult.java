@@ -4,7 +4,7 @@ package Zeze.Builtin.Zoker;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BCloseFileResult extends Zeze.Transaction.Bean implements BCloseFileResultReadOnly {
     public static final long TYPEID = -7182461917252786180L;
 

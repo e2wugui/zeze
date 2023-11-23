@@ -4,7 +4,7 @@ package Zeze.Builtin.Zoker;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpenFileResultReadOnly {
     public static final long TYPEID = -1853465675021018096L;
 

@@ -4,7 +4,7 @@ package Zeze.Builtin.Game.TaskBase;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BTConditionSubmitItemEvent extends Zeze.Transaction.Bean implements BTConditionSubmitItemEventReadOnly {
     public static final long TYPEID = 2677200728701178820L;
 

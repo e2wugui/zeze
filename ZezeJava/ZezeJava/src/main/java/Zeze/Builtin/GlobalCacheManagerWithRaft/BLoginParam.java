@@ -4,7 +4,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BLoginParam extends Zeze.Transaction.Bean implements BLoginParamReadOnly {
     public static final long TYPEID = 9076855952725286109L;
 

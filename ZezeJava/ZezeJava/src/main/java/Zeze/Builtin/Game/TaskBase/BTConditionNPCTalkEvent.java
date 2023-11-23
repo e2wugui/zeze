@@ -4,7 +4,7 @@ package Zeze.Builtin.Game.TaskBase;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean implements BTConditionNPCTalkEventReadOnly {
     public static final long TYPEID = -4899454112203602000L;
 

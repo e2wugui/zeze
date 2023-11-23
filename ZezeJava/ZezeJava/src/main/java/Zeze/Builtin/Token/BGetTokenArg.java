@@ -4,7 +4,7 @@ package Zeze.Builtin.Token;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTokenArgReadOnly {
     public static final long TYPEID = 3072398246496713168L;
 

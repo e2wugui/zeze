@@ -4,7 +4,7 @@ package Zeze.Builtin.World;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"MethodMayBeStatic", "NullableProblems", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BServerMapKey implements Zeze.Transaction.BeanKey, Comparable<BServerMapKey> {
     private int _ServerId; // 服务器编号
     private int _MapId; // 地图配置编号

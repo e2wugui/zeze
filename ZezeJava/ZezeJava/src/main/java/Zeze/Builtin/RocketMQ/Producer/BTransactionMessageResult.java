@@ -4,7 +4,7 @@ package Zeze.Builtin.RocketMQ.Producer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BTransactionMessageResult extends Zeze.Transaction.Bean implements BTransactionMessageResultReadOnly {
     public static final long TYPEID = 9172956284242602104L;
 

@@ -4,7 +4,7 @@ package Zeze.Builtin.Game.TaskBase;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseReadOnly {
     public static final long TYPEID = 621285588433689865L;
 

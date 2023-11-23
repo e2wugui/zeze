@@ -4,7 +4,7 @@ package Zeze.Builtin.World.Static;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements BSwitchWorldResultReadOnly {
     public static final long TYPEID = 5224332116004611997L;
 

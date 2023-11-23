@@ -4,7 +4,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BReduceParam extends Zeze.Transaction.Bean implements BReduceParamReadOnly {
     public static final long TYPEID = -7052326232144455304L;
 

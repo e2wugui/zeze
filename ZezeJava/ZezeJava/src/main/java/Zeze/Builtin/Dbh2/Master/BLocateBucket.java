@@ -10,7 +10,7 @@ import Zeze.Serialize.IByteBuffer;
 				不更新旧桶，桶的定位方法可以工作（只依赖桶的KeyFrist），但感觉不好。
 				所以LocateBucket先不用，仅使用GetBuckets。
 */
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocateBucketReadOnly {
     public static final long TYPEID = 8564400157292168322L;
 

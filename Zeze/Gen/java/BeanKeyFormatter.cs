@@ -26,7 +26,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             if (beanKey.Comment.Length > 0)
                 sw.WriteLine(beanKey.Comment);
-            sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"RedundantSuppression\", \"MethodMayBeStatic\", \"PatternVariableCanBeUsed\", \"NullableProblems\", \"SuspiciousNameCombination\"})");
+            sw.WriteLine("@SuppressWarnings({\"MethodMayBeStatic\", \"NullableProblems\", \"PatternVariableCanBeUsed\", \"RedundantIfStatement\", \"RedundantSuppression\", \"SuspiciousNameCombination\", \"UnusedAssignment\"})");
             sw.WriteLine($"public final class {beanKey.Name} implements Zeze.Transaction.BeanKey, Comparable<{beanKey.Name}> {{");
 
             // declare enums

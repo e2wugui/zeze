@@ -9,7 +9,7 @@ import Zeze.Serialize.IByteBuffer;
 					所有的TaskEvent均由这个rpc驱动（仿照现serverdev的结构）
 					这个rpc的参数是BTaskEvent，内部的DynamicData是各个不同的任务的不同Event数据
 */
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEventReadOnly {
     public static final long TYPEID = -5362050394114558969L;
 
