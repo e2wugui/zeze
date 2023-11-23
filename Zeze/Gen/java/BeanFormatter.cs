@@ -62,7 +62,8 @@ namespace Zeze.Gen.java
                 return;
             }
 
-            MakeReadOnly(baseDir);
+            if (!Program.isOnlyData(bean))
+                MakeReadOnly(baseDir);
 
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".java");
             if (sw == null)
