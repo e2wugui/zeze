@@ -27,6 +27,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class Task {
+	private static final boolean USE_UNLIMITED_VIRTUAL_THREAD = false; // 通常不建议开,事务并发量太大时并发冲突可能很高导致频繁redo
+
 	// 默认不开启热更，这个实现希望能被优化掉，几乎不造成影响。
 	// 开启热更时，由App.HotManager初始化的时候设置。
 	@SuppressWarnings("CanBeFinal")
@@ -70,13 +72,15 @@ public final class Task {
 
 	// 固定数量的线程池, 普通优先级, 自动优先使用支持虚拟线程(不限制数量), 用于处理普通任务
 	public static @NotNull ExecutorService newFixedThreadPool(int threadCount, @NotNull String threadNamePrefix) {
-		try {
-			//noinspection JavaReflectionMemberAccess
-			var es = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
-					(Class<?>[])null).invoke(null);
-			logger.info("newFixedThreadPool({},{}) use virtual thread pool", threadCount, threadNamePrefix);
-			return es;
-		} catch (ReflectiveOperationException ignored) {
+		if (USE_UNLIMITED_VIRTUAL_THREAD) {
+			try {
+				//noinspection JavaReflectionMemberAccess
+				var es = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
+						(Class<?>[])null).invoke(null);
+				logger.info("newFixedThreadPool({},{}) use unlimited virtual thread pool", threadCount, threadNamePrefix);
+				return es;
+			} catch (ReflectiveOperationException ignored) {
+			}
 		}
 		return Executors.newFixedThreadPool(threadCount, new ThreadFactoryWithName(threadNamePrefix));
 	}
