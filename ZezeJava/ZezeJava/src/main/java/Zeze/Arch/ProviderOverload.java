@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Config;
 import Zeze.Util.Random;
-import Zeze.Util.ThreadDiagnosable;
+import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 public class ProviderOverload {
 	private static final Logger logger = LogManager.getLogger(ProviderOverload.class);
 	private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
-			ThreadDiagnosable.newFactory("ZezeLoadThread", Thread.MAX_PRIORITY));
+			new ThreadFactoryWithName("ZezeLoadThread", Thread.MAX_PRIORITY));
 
 	private final ArrayList<ThreadPoolMonitor> threadPools = new ArrayList<>();
 
