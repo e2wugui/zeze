@@ -28,7 +28,7 @@ public class InMemoryJavaCompiler {
 	private DynamicClassLoader classLoader;
 	private Iterable<String> options;
 	private final ArrayList<SourceCode> sourceCodes = new ArrayList<>();
-	private boolean ignoreWarnings;
+	private int ignoreWarningLevel = 2; // 0:>=OTHER 1:>=NOTE 2:>=MANDATORY_WARNING 3:>=WARNING 4:>=ERROR
 
 	public InMemoryJavaCompiler() {
 		this(ClassLoader.getSystemClassLoader());
@@ -69,7 +69,12 @@ public class InMemoryJavaCompiler {
 	 * Ignore non-critical compiler output, like unchecked/unsafe operation warnings.
 	 */
 	public InMemoryJavaCompiler ignoreWarnings() {
-		ignoreWarnings = true;
+		ignoreWarningLevel = 4;
+		return this;
+	}
+
+	public InMemoryJavaCompiler setIgnoreWarningLevel(int level) {
+		ignoreWarningLevel = level;
 		return this;
 	}
 
@@ -90,24 +95,33 @@ public class InMemoryJavaCompiler {
 				collector, options, null, sourceCodes).call();
 		if (!collector.getDiagnostics().isEmpty()) {
 			StringBuilder exceptionMsg = new StringBuilder("Unable to compile the source");
-			boolean hasWarnings = false, hasErrors = false;
+			int warningLevel = 0;
 			for (Diagnostic<?> d : collector.getDiagnostics()) {
 				switch (d.getKind()) {
-				case NOTE:
-				case MANDATORY_WARNING:
-				case WARNING:
-					hasWarnings = true;
+				case OTHER:
+					warningLevel = Math.max(warningLevel, 1);
 					break;
-				default: // OTHER, ERROR
-					hasErrors = true;
+				case NOTE:
+					warningLevel = Math.max(warningLevel, 2);
+					break;
+				case MANDATORY_WARNING:
+					warningLevel = Math.max(warningLevel, 3);
+					break;
+				case WARNING:
+					warningLevel = Math.max(warningLevel, 4);
+					break;
+				default: // ERROR
+					warningLevel = 5;
 					break;
 				}
 				exceptionMsg.append('\n').append("[kind=").append(d.getKind());
-				exceptionMsg.append(", ").append("class=").append(((SourceCode)d.getSource()).getClassName());
+				var source = d.getSource();
+				if (source instanceof SourceCode)
+					exceptionMsg.append(", ").append("class=").append(((SourceCode)source).getClassName());
 				exceptionMsg.append(", ").append("line=").append(d.getLineNumber());
 				exceptionMsg.append(", ").append("message=").append(d.getMessage(Locale.US)).append(']');
 			}
-			if (hasWarnings && !ignoreWarnings || hasErrors)
+			if (ignoreWarningLevel < warningLevel)
 				return exceptionMsg.toString();
 		}
 		return null;
