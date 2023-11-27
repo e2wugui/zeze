@@ -29,10 +29,10 @@ class ModuleModule1(demo.Module1.AbstractModule):
 
     # noinspection PyPep8Naming
     @staticmethod
-    def createBeanFromSpecialTypeId(id):
-        if id == 0:
+    def createBeanFromSpecialTypeId(type_id):
+        if type_id == 0:
             return EmptyBean()
-        raise Exception("unknown type_id = " + id)
+        raise Exception("unknown type_id = " + type_id)
 
     def process_Protocol3(self, r):
         raise NotImplementedError("process_Protocol3")

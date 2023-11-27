@@ -1,4 +1,7 @@
-import errno, selectors, socket, time
+import errno
+import selectors
+import socket
+import time
 
 from zeze.bean import Serializable
 from zeze.buffer import ByteBuffer

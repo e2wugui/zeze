@@ -34,7 +34,7 @@ class ByteBuffer:
     def verify_array_index(buffer, offset, length):
         if not isinstance(buffer, bytearray):
             raise Exception(f"buffer is not bytearray: {type(buffer)}")
-        if type(offset) != int or type(length) != int:
+        if offset is not int or length is not int:
             raise Exception(f"offset or length is not int: {type(offset)}, {type(length)}")
         buf_len = len(buffer)
         if offset < 0 or length < 0 or offset + length > buf_len:
@@ -818,7 +818,7 @@ class ByteBuffer:
 
     @staticmethod
     def utf8_size(s):
-        if type(s) != str:
+        if s is not str:
             return 0
         bn = 0
         for c in s:
