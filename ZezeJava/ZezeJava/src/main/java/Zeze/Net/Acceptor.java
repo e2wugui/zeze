@@ -26,9 +26,9 @@ public class Acceptor {
 
 	private void fixIp() {
 		if (Ip.equals("@internal"))
-			Ip = Helper.getOnePrivateNetworkInterfaceIpAddress();
+			Ip = Helper.selectOneIpAddress(true);
 		else if (Ip.equals("@external"))
-			Ip = Helper.getOnePublicNetworkInterfaceIpAddress();
+			Ip = Helper.selectOneIpAddress(false);
 		else
 			return;
 

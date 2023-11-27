@@ -1,13 +1,15 @@
 package Zeze.Net;
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
-import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Helper {
 	public static final int MAX_BUFFER_SIZE = 0x4000_0000; // 1G
@@ -33,7 +35,7 @@ public final class Helper {
 	 * @param increment 需要增加的空间。
 	 * @return 剩余空间足够的buffer。
 	 */
-	public static ByteBuffer realloc(ByteBuffer buffer, int increment) {
+	public static @NotNull ByteBuffer realloc(@Nullable ByteBuffer buffer, int increment) {
 		if (null == buffer) {
 			return ByteBuffer.allocate(roundup(increment));
 		}
@@ -68,7 +70,7 @@ public final class Helper {
 	/**
 	 * 把整数形式保存的 IpAddress 和 port 转换成 InetSocketAddress。
 	 */
-	public static InetSocketAddress inetSocketAddress(int address, int port) {
+	public static @NotNull InetSocketAddress inetSocketAddress(int address, int port) {
 		return new InetSocketAddress(inetAddress(address), port);
 	}
 
@@ -77,7 +79,7 @@ public final class Helper {
 	 *
 	 * @throws IllegalArgumentException if addr is not a ip4 address
 	 */
-	public static int ip4(InetAddress addr) {
+	public static int ip4(@NotNull InetAddress addr) {
 		byte[] addrs = addr.getAddress();
 		if (addrs.length != 4)
 			throw new IllegalArgumentException(addr + " is not a ip4 address");
@@ -87,7 +89,7 @@ public final class Helper {
 	/**
 	 * 把整数(大端)形式保存的 IpAddress 转换成 InetAddress。
 	 */
-	public static InetAddress inetAddress(int address) {
+	public static @NotNull InetAddress inetAddress(int address) {
 		try {
 			byte[] addr = new byte[4];
 			Zeze.Serialize.ByteBuffer.intBeHandler.set(addr, 0, address);
@@ -98,124 +100,66 @@ public final class Helper {
 		}
 	}
 
-	public static boolean isIp4(InetAddress address) {
-		return address.getAddress().length == 4;
-	}
-
-	public static boolean isIp6(InetAddress address) {
-		return address.getAddress().length == 16;
-	}
-
-	public static InetAddress toInetAddress(String hostOrAddress) throws UnknownHostException {
+	// 域名解析
+	public static @NotNull InetAddress toInetAddress(@Nullable String hostOrAddress) throws UnknownHostException {
 		return InetAddress.getByName(hostOrAddress);
 	}
 
-	public static boolean isPrivateAddress(InetAddress address) {
-		if (isIp4(address)) {
-			return isPrivateIPv4(address.toString());
+	private static int getAddressLevel(@Nullable InetAddress addr, boolean preferInternal) {
+		if (addr instanceof Inet4Address) {
+			if (addr.isSiteLocalAddress()) // 局域网
+				return preferInternal ? 0 : 2;
+			if (addr.isLoopbackAddress()) // 本机
+				return 4;
+			return preferInternal ? 2 : 0;
 		}
-		if (isIp6(address)) {
-			return isPrivateIPv6(address.toString());
+		if (addr instanceof Inet6Address) {
+			if (addr.isSiteLocalAddress()) // 局域网
+				return preferInternal ? 1 : 3;
+			if (addr.isLoopbackAddress()) // 本机
+				return 5;
+			return preferInternal ? 3 : 1;
 		}
-		throw new UnsupportedOperationException("Unknown InetAddress! address=" + address);
+		return 6;
 	}
 
-	public static boolean isPrivateIPv4(String ipAddress) {
+	// preferInternal=true 优先级: IPv4 SiteLocal > IPv6 SiteLocal > IPv4 External > IPv6 External > IPv4 Loopback > IPv6 Loopback
+	// preferInternal=false优先级: IPv4 External > IPv6 External > IPv4 SiteLocal > IPv6 SiteLocal > IPv4 Loopback > IPv6 Loopback
+	public static @NotNull String selectOneIpAddress(boolean preferInternal) {
 		try {
-			String[] ipAddressArray = ipAddress.split("\\.");
-			int[] ipParts = new int[ipAddressArray.length];
-			for (int i = 0; i < ipAddressArray.length; i++) {
-				ipParts[i] = Integer.parseInt(ipAddressArray[i].trim());
-			}
-
-			switch (ipParts[0]) {
-			case 10:
-			case 127:
-				return true;
-			case 172:
-				return (ipParts[1] >= 16) && (ipParts[1] < 32);
-			case 192:
-				return (ipParts[1] == 168);
-			case 169:
-				return (ipParts[1] == 254);
-			}
-		} catch (Exception ignored) {
-		}
-
-		return false;
-	}
-
-	public static boolean isPrivateIPv6(String ipAddress) {
-		boolean isPrivateIPv6 = false;
-		String[] ipParts = ipAddress.trim().split("_");
-		if (ipParts.length > 0) {
-			String firstBlock = ipParts[0];
-			String prefix = firstBlock.substring(0, 2);
-
-			if (firstBlock.equalsIgnoreCase("fe80")
-					|| firstBlock.equalsIgnoreCase("100")
-					|| ((prefix.equalsIgnoreCase("fc") && firstBlock.length() >= 4))
-					|| ((prefix.equalsIgnoreCase("fd") && firstBlock.length() >= 4))) {
-				isPrivateIPv6 = true;
-			}
-		}
-		return isPrivateIPv6;
-	}
-
-	public static String getOneNetworkInterfaceIpAddress() {
-		try {
-			var interfaces = NetworkInterface.getNetworkInterfaces();
-			while (interfaces.hasMoreElements()) {
-				var inetAddresses = interfaces.nextElement().getInetAddresses();
-				if (inetAddresses.hasMoreElements())
-					return inetAddresses.nextElement().getHostAddress();
-			}
-			return "";
-		} catch (SocketException e) {
-			Task.forceThrow(e);
-			return null; // never run here
-		}
-	}
-
-	public static @NotNull String getOnePrivateNetworkInterfaceIpAddress() {
-		try {
-			var interfaces = NetworkInterface.getNetworkInterfaces();
-			while (interfaces.hasMoreElements()) {
-				var inetAddresses = interfaces.nextElement().getInetAddresses();
-				if (inetAddresses.hasMoreElements()) {
-					var address = inetAddresses.nextElement();
-					if (isPrivateAddress(address)) {
-						var ip = address.getHostAddress();
-						if (ip != null && !ip.isBlank())
-							return ip;
+			InetAddress bestAddr = null;
+			int bestLevel = 6;
+			for (var nis = NetworkInterface.getNetworkInterfaces(); nis.hasMoreElements(); ) {
+				for (var addrs = nis.nextElement().getInetAddresses(); addrs.hasMoreElements(); ) {
+					var addr = addrs.nextElement();
+					int level = getAddressLevel(addr, preferInternal);
+					if (level < bestLevel) {
+						bestAddr = addr;
+						bestLevel = level;
 					}
 				}
 			}
-			return "";
+			return bestAddr != null ? bestAddr.getHostAddress() : "";
 		} catch (Exception e) {
 			Task.forceThrow(e);
-			return null; // never run here
+			return ""; // never run here
 		}
 	}
 
-	public static @NotNull String getOnePublicNetworkInterfaceIpAddress() {
-		try {
-			var interfaces = NetworkInterface.getNetworkInterfaces();
-			while (interfaces.hasMoreElements()) {
-				var inetAddresses = interfaces.nextElement().getInetAddresses();
-				if (inetAddresses.hasMoreElements()) {
-					var address = inetAddresses.nextElement();
-					if (!isPrivateAddress(address)) {
-						var ip = address.getHostAddress();
-						if (ip != null && !ip.isBlank())
-							return ip;
-					}
-				}
+	// 枚举并输出本机的所有网卡的所有IP地址
+	public static void main(String[] args) throws Exception {
+		System.out.println("@internal: " + selectOneIpAddress(true));
+		System.out.println("@external: " + selectOneIpAddress(false));
+		System.out.println("Loopback : " + InetAddress.getLoopbackAddress());
+		System.out.println("LocalHost: " + InetAddress.getLocalHost().getHostAddress());
+		for (var nis = NetworkInterface.getNetworkInterfaces(); nis.hasMoreElements(); ) {
+			var ni = nis.nextElement();
+			System.out.println(ni.getIndex() + ": " + ni.getName() + ", " + ni.getDisplayName());
+			for (var addrs = ni.getInetAddresses(); addrs.hasMoreElements(); ) {
+				var addr = addrs.nextElement();
+				System.out.println("  " + addr.getClass().getSimpleName() + ": " + addr
+						+ ", Loopback=" + addr.isLoopbackAddress() + ", SiteLocal=" + addr.isSiteLocalAddress());
 			}
-			return "";
-		} catch (Exception e) {
-			Task.forceThrow(e);
-			return null; // never run here
 		}
 	}
 }
