@@ -173,7 +173,7 @@ namespace Zeze.Gen.javadata
             if (bean.Equalable)
             {
                 sw.WriteLine();
-                java.Equal.Make(bean, sw, "    ", true);
+                java.Equal.Make(bean, sw, "    ", !bean.OnlyData);
                 java.HashCode.Make(bean, sw, "    ", true);
             }
             //NegativeCheck.Make(bean, sw, "    ");
