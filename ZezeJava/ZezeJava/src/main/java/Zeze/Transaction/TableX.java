@@ -1100,12 +1100,33 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			currentT.setAlwaysReleaseLockWhenRedo();
 		}
 
-		var lockey = getZeze().getLocks().get(tkey);
+		Lockey lockey = null;
 		for (int tryCount = 0; ; tryCount++) {
 			try {
-				V v = load(key).strongRef;
+				V v;
+				if (isMemory()) {
+					var r = cache.get(key);
+					if (r == null)
+						return null;
+					r.enterFairLock();
+					try {
+						v = (V)r.getSoftValue();
+						if (v == null && !r.getDirty()) {
+							v = localRocksCacheTable.find(this, key);
+							if (v != null) {
+								v.initRootInfo(r.createRootInfoIfNeed(tkey), null);
+								r.setSoftValue(v);
+							}
+						}
+					} finally {
+						r.exitFairLock();
+					}
+				} else
+					v = load(key).strongRef;
 				if (v == null)
 					return null;
+				if (lockey == null)
+					lockey = getZeze().getLocks().get(tkey);
 				lockey.enterReadLock();
 				try {
 					return (V)v.copy();
@@ -1134,14 +1155,34 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("key is null");
+		var tkey = new TableKey(getId(), key);
 		var currentT = Transaction.getCurrent();
 		if (currentT != null) {
-			var cr = currentT.getRecordAccessed(new TableKey(getId(), key));
+			var cr = currentT.getRecordAccessed(tkey);
 			if (cr != null)
 				return (V)cr.newestValue();
 		}
 
-		var tkey = new TableKey(getId(), key);
+		if (isMemory()) {
+			var r = cache.get(key);
+			if (r == null)
+				return null;
+			r.enterFairLock();
+			try {
+				V v = (V)r.getSoftValue();
+				if (v == null && !r.getDirty()) {
+					v = localRocksCacheTable.find(this, key);
+					if (v != null) {
+						v.initRootInfo(r.createRootInfoIfNeed(tkey), null);
+						r.setSoftValue(v);
+					}
+				}
+				return v;
+			} finally {
+				r.exitFairLock();
+			}
+		}
+
 		while (true) {
 			var r = cache.getOrAdd(key, () -> new Record1<>(this, key, null));
 			r.enterFairLock(); // 对同一个记录，不允许重入。
