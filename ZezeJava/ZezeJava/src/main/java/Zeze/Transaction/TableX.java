@@ -625,7 +625,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var cr = currentT.getRecordAccessed(tkey);
 		//noinspection DataFlowIssue
 		value.initRootInfoWithRedo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
-		cr.put(currentT, value);
+		cr.put(currentT, value, isMemory());
 		return true;
 	}
 
@@ -646,15 +646,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (value == null)
 			throw new IllegalArgumentException("value is null");
 
+		var removeWhileRollback = false;
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.getRecordAccessed(tkey);
 		if (cr == null) {
 			var r = load(key);
 			cr = new RecordAccessed(r);
 			currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr);
+			removeWhileRollback = isMemory() && r.strongRef == null;
 		}
 		value.initRootInfoWithRedo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
-		cr.put(currentT, value);
+		cr.put(currentT, value, removeWhileRollback);
 	}
 
 	@Override
@@ -674,13 +676,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.getRecordAccessed(tkey);
 		if (cr != null) {
-			cr.put(currentT, null);
+			cr.put(currentT, null, false);
 			return;
 		}
 
 		var r = load(key);
 		cr = new RecordAccessed(r);
-		cr.put(currentT, null);
+		cr.put(currentT, null, isMemory() && r.strongRef == null);
 		currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr);
 	}
 
@@ -1123,8 +1125,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	public final @Nullable V selectDirty(@NotNull K key) {
+		return selectDirty(key, 3_000);
+	}
+
+	@SuppressWarnings("unchecked")
+	public final @Nullable V selectDirty(@NotNull K key, int cacheTTL) {
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("key is null");
@@ -1146,7 +1152,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (r.getState() == StateInvalid && storage != null) {
 					var now = System.currentTimeMillis();
 					var ts = r.getTimestamp();
-					if (ts >= 0 || now + ts > 5_000) { // 距上次selectDirty超过5秒则从数据库里加载最新值
+					if (ts >= 0 || now + ts > cacheTTL) { // 距上次selectDirty超过5秒则从数据库里加载最新值
 						PerfCounter.instance.getOrAddTableInfo(getId()).storageGet.increment();
 						V strongRef = storage.getDatabaseTable().find(this, key);
 						r.setSoftValue(strongRef); // r.Value still maybe null

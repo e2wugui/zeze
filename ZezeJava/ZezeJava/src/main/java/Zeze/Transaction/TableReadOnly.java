@@ -122,6 +122,8 @@ public interface TableReadOnly<K extends Comparable<K>, V extends Bean, VReadOnl
 
 	@Nullable V selectDirty(@NotNull K key);
 
+	@Nullable V selectDirty(@NotNull K key, int ttl);
+
 	boolean isNew();
 
 	@NotNull ByteBuffer encodeChangeListenerWithSpecialName(@Nullable String specialName, @NotNull Object key,

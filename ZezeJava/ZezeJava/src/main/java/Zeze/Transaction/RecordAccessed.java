@@ -66,16 +66,8 @@ public final class RecordAccessed extends Bean {
 		return log instanceof PutLog ? ((PutLog)log).getValue() : atomicTupleRecord.strongRef;
 	}
 
-	public void put(Transaction current, Bean putValue) {
-		put(current, putValue, false);
-	}
-
 	public void put(Transaction current, Bean putValue, boolean removeWhileRollback) {
 		current.putLog(new PutLog(this, putValue, removeWhileRollback));
-	}
-
-	public void remove(Transaction current) {
-		put(current, null);
 	}
 
 	@Override
