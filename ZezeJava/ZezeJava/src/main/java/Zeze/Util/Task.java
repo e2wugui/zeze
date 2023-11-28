@@ -154,7 +154,7 @@ public final class Task {
 			action.run();
 		} catch (Exception ex) {
 			//noinspection ConstantValue
-			logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", ex);
+			logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", ex);
 		} finally {
 			//noinspection ConstantValue
 			if (PerfCounter.ENABLE_PERF && action != null)
@@ -168,7 +168,7 @@ public final class Task {
 			return func.call();
 		} catch (Exception ex) {
 			//noinspection ConstantValue
-			logger.error("{}", name != null ? name : func != null ? func.getClass().getName() : "", ex);
+			logger.error("{} exception:", name != null ? name : func != null ? func.getClass().getName() : "", ex);
 			return Procedure.Exception;
 		} finally {
 			//noinspection ConstantValue
@@ -221,7 +221,7 @@ public final class Task {
 				future.setResult(0L);
 			} catch (Exception e) {
 				//noinspection ConstantValue
-				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", e);
+				logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", e);
 				future.setException(e);
 			} finally {
 				//noinspection ConstantValue
@@ -239,7 +239,7 @@ public final class Task {
 				action.run();
 			} catch (Throwable e) { // logger.error
 				//noinspection ConstantValue
-				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", e);
+				logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", e);
 			} finally {
 				//noinspection ConstantValue
 				if (PerfCounter.ENABLE_PERF && action != null) {
@@ -267,7 +267,7 @@ public final class Task {
 				action.run();
 			} catch (Exception e) {
 				//noinspection ConstantValue
-				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", e);
+				logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", e);
 			} finally {
 				//noinspection ConstantValue
 				if (PerfCounter.ENABLE_PERF && action != null) {
@@ -284,7 +284,7 @@ public final class Task {
 				action.run();
 			} catch (Throwable e) { // logger.error
 				//noinspection ConstantValue
-				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", e);
+				logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", e);
 			} finally {
 				//noinspection ConstantValue
 				if (PerfCounter.ENABLE_PERF && action != null) {
@@ -321,7 +321,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
-				logger.error("schedule", e);
+				logger.error("schedule exception:", e);
 			} finally {
 				//noinspection ConstantValue
 				if (PerfCounter.ENABLE_PERF && action != null)
@@ -340,7 +340,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return func.call();
 			} catch (Throwable e) { // logger.error
-				logger.error("schedule", e);
+				logger.error("schedule exception:", e);
 				forceThrow(e);
 				return null; // never run here
 			} finally {
@@ -427,7 +427,7 @@ public final class Task {
 					return;
 				action.run();
 			} catch (Throwable e) { // logger.error
-				logger.error("schedule", e);
+				logger.error("schedule exception:", e);
 			} finally {
 				future.unlock();
 				//noinspection ConstantValue
@@ -496,7 +496,7 @@ public final class Task {
 			try {
 				tmpVolatile.run(ex, result, p, actionName);
 			} catch (Exception e) {
-				logger.error("LogAndStatistics Exception", e);
+				logger.error("LogAndStatistics exception:", e);
 			}
 		}
 	}
@@ -543,7 +543,7 @@ public final class Task {
 				try {
 					actionWhenError.handle(p, errorCode);
 				} catch (Exception e) {
-					logger.error("{}", aName != null ? aName : p.getClass().getName(), e);
+					logger.error("{} exception:", aName != null ? aName : p.getClass().getName(), e);
 				}
 			}
 			logAndStatistics(ex, errorCode, p, p == null || isRequestSaved, aName);
@@ -636,7 +636,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return call(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
-				logger.error("{}", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
+				logger.error("{} exception:", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
 				return Procedure.Exception;
 			}
 		});
@@ -674,7 +674,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				call(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
-				logger.error("{}", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
+				logger.error("{} exception:", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
 			}
 		});
 	}
@@ -704,10 +704,10 @@ public final class Task {
 				try {
 					actionWhenError.run(from, Procedure.Exception);
 				} catch (Exception e) {
-					logger.error("ActionWhenError Exception", e);
+					logger.error("ActionWhenError exception:", e);
 				}
 			}
-			logger.error("{}", procedure, ex);
+			logger.error("{} exception:", procedure, ex);
 			return Procedure.Exception;
 		}
 	}
@@ -730,10 +730,10 @@ public final class Task {
 				try {
 					actionWhenError.run(from, Procedure.Exception);
 				} catch (Exception e) {
-					logger.error("ActionWhenError Exception", e);
+					logger.error("ActionWhenError exception:", e);
 				}
 			}
-			logger.error("{}", procedure, ex);
+			logger.error("{} exception:", procedure, ex);
 			return Procedure.Exception;
 		}
 	}
@@ -818,7 +818,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return call(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
-				logger.error("{}", procedure, e);
+				logger.error("{} exception:", procedure, e);
 				return Procedure.Exception;
 			}
 		});
@@ -845,7 +845,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return call(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
-				logger.error("{}", procedure, e);
+				logger.error("{} exception:", procedure, e);
 				return Procedure.Exception;
 			}
 		});
@@ -886,7 +886,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				call(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
-				logger.error("{}", procedure, e);
+				logger.error("{} exception:", procedure, e);
 			}
 		});
 	}
@@ -909,7 +909,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				call(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
-				logger.error("{}", procedure, e);
+				logger.error("{} exception:", procedure, e);
 			}
 		});
 	}
@@ -984,7 +984,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return call(procedure);
 			} catch (Throwable e) { // logger.error
-				logger.error("{}", procedure, e);
+				logger.error("{} exception:", procedure, e);
 				return Procedure.Exception;
 			}
 		});
@@ -1011,7 +1011,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return call(func, p);
 			} catch (Throwable e) { // logger.error
-				logger.error("{}", p != null ? p.getClass().getName() : null, e);
+				logger.error("{} exception:", p != null ? p.getClass().getName() : null, e);
 				return Procedure.Exception;
 			}
 		});
@@ -1036,7 +1036,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				call(procedure);
 			} catch (Throwable e) { // logger.error
-				logger.error("{}", procedure, e);
+				logger.error("{} exception:", procedure, e);
 			}
 		});
 	}
@@ -1061,7 +1061,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				call(func, p);
 			} catch (Throwable e) { // logger.error
-				logger.error("{}", p != null ? p.getClass().getName() : null, e);
+				logger.error("{} exception:", p != null ? p.getClass().getName() : null, e);
 			}
 		});
 	}

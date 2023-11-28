@@ -877,7 +877,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						if (reduce.isTimeout()) { // 等待失败不再看作成功。
 							cacheHolder.setError();
 							logger.warn("Reduce Timeout {} AcquireState={} CacheState={} arg={}",
-									rpc.getSender().getUserState(), StateModify, cs, reduce.Argument);
+									rpc.getSender(), StateModify, cs, reduce.Argument);
 						} else {
 							switch (reduce.Result.state) {
 							case StateInvalid:
@@ -925,7 +925,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		public String toString() {
 			StringBuilder sb = new StringBuilder();
 			ByteBuffer.BuildString(sb, share);
-			return String.format("P%d M%s S%s", acquireStatePending, modify, sb);
+			return String.format("(P%d M%s S%s)", acquireStatePending, modify, sb);
 		}
 	}
 
