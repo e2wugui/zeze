@@ -1134,18 +1134,47 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			if (cr != null)
 				return (V)cr.newestValue();
 		}
-		for (int tryCount = 0; ; tryCount++) {
+
+		var tkey = new TableKey(getId(), key);
+		while (true) {
+			var r = cache.getOrAdd(key, () -> new Record1<>(this, key, null));
+			r.enterFairLock(); // 对同一个记录，不允许重入。
 			try {
-				return load(key).strongRef;
-			} catch (GoBackZeze e) {
-				if (currentT != null && currentT.isRunning() || tryCount >= 256)
-					throw e;
-			}
-			try {
-				//noinspection BusyWait
-				Thread.sleep(Random.getInstance().nextInt(10) + 5);
-			} catch (InterruptedException e) {
-				logger.error("", e);
+				if (r.getState() == StateRemoved)
+					continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
+				var storage = this.storage;
+				if (r.getState() == StateInvalid && storage != null) {
+					var now = System.currentTimeMillis();
+					var ts = r.getTimestamp();
+					if (ts >= 0 || now + ts > 5_000) { // 距上次selectDirty超过5秒则从数据库里加载最新值
+						PerfCounter.instance.getOrAddTableInfo(getId()).storageGet.increment();
+						V strongRef = storage.getDatabaseTable().find(this, key);
+						r.setSoftValue(strongRef); // r.Value still maybe null
+						// 【注意】这个变量不管 OldTable 中是否存在的情况。
+						r.setExistInBackDatabase(strongRef != null);
+						if (strongRef != null) {
+							rocksCachePut(key, strongRef);
+							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
+						} else
+							rocksCacheRemove(key);
+						r.setTimestamp(-now);
+						if (isTraceEnabled)
+							logger.trace("LoadDirty {}", r);
+						return strongRef;
+					}
+				}
+				V strongRef = (V)r.getSoftValue();
+				if (strongRef == null && !r.getDirty()) {
+					var find = localRocksCacheTable.find(this, key);
+					if (find != null) {
+						strongRef = find;
+						strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
+						r.setSoftValue(strongRef);
+					}
+				}
+				return strongRef;
+			} finally {
+				r.exitFairLock();
 			}
 		}
 	}
