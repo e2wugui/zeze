@@ -38,7 +38,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	private long savedTimestampForCheckpointPeriod;
 	private boolean existInBackDatabase;
 	private boolean existInBackDatabaseSavedForFlushRemove;
-	private volatile ConcurrentHashMap<K, Record1<K, V>> lruNode;
+	private volatile @Nullable ConcurrentHashMap<K, Record1<K, V>> lruNode;
 
 	public Record1(@NotNull TableX<K, V> table, @NotNull K key, @Nullable V value) {
 		super(value);
@@ -60,20 +60,20 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		existInBackDatabase = value;
 	}
 
-	ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
+	@Nullable ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
 		return lruNode;
 	}
 
-	void setLruNode(ConcurrentHashMap<K, Record1<K, V>> value) {
+	void setLruNode(@NotNull ConcurrentHashMap<K, Record1<K, V>> value) {
 		lruNode = value;
 	}
 
 	@SuppressWarnings("unchecked")
-	ConcurrentHashMap<K, Record1<K, V>> getAndSetLruNodeNull() {
+	@Nullable ConcurrentHashMap<K, Record1<K, V>> getAndSetLruNodeNull() {
 		return (ConcurrentHashMap<K, Record1<K, V>>)LRU_NODE_HANDLE.getAndSet(this, null);
 	}
 
-	boolean compareAndSetLruNodeNull(ConcurrentHashMap<K, Record1<K, V>> c) {
+	boolean compareAndSetLruNodeNull(@NotNull ConcurrentHashMap<K, Record1<K, V>> c) {
 		return LRU_NODE_HANDLE.compareAndSet(this, c, null);
 	}
 
@@ -82,13 +82,13 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return String.format("T=%s K=%s S=%d T=%d", table.getName(), key, getState(), getTimestamp()); // V {Value}";
 		// 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
 	}
 
 	@Override
-	public IGlobalAgent.AcquireResult acquire(int state, boolean fresh, boolean noWait) {
+	public @Nullable IGlobalAgent.AcquireResult acquire(int state, boolean fresh, boolean noWait) {
 		IGlobalAgent agent;
 		if (table.getStorage() == null || (agent = table.getZeze().getGlobalAgent()) == null) // 不支持内存表cache同步。
 			return IGlobalAgent.AcquireResult.getSuccessResult(state);
@@ -111,7 +111,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	}
 
 	@Override
-	public void commit(RecordAccessed accessed) {
+	public void commit(@NotNull RecordAccessed accessed) {
 		if (null != accessed.committedPutLog) {
 			setSoftValue(accessed.committedPutLog.getValue());
 			if (table.isMemory() && accessed.committedPutLog.getValue() == null) {
@@ -148,7 +148,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		}
 	}
 
-	boolean tryEncodeN(ConcurrentHashMap<K, Record1<K, V>> changed, ConcurrentHashMap<K, Record1<K, V>> encoded) {
+	boolean tryEncodeN(@NotNull ConcurrentHashMap<K, Record1<K, V>> changed,
+					   @NotNull ConcurrentHashMap<K, Record1<K, V>> encoded) {
 		Lockey lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), key));
 		if (!lockey.tryEnterReadLock(0)) {
 			return false;
@@ -174,26 +175,27 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		savedTimestampForCheckpointPeriod = getTimestamp();
 
 		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
+		var v = strongDirtyValue;
 		if (table.isUseRelationalMapping()) {
 			var sqlKey = new SQLStatement();
 			table.encodeKeySQLStatement(sqlKey, key);
-			if (strongDirtyValue == null) {
+			if (v == null)
 				snapshotValue = null;
-			} else {
+			else {
 				var sqlValue = new SQLStatement();
 				var parents = new ArrayList<String>();
-				strongDirtyValue.encodeSQLStatement(parents, sqlValue);
+				v.encodeSQLStatement(parents, sqlValue);
 				snapshotValue = sqlValue;
 			}
 			snapshotKey = sqlKey;
 
 			// 编码用来存储到本地rocksdb的cache中。
 			snapshotKeyLocal = table.encodeKey(key);
-			snapshotValueLocal = strongDirtyValue != null ? ByteBuffer.encode(strongDirtyValue) : null;
+			snapshotValueLocal = v != null ? ByteBuffer.encode(v) : null;
 		} else {
 			// KV表，本地Cache和远程一样。
 			snapshotKeyLocal = snapshotKey = table.encodeKey(key);
-			snapshotValueLocal = snapshotValue = strongDirtyValue != null ? ByteBuffer.encode(strongDirtyValue) : null;
+			snapshotValueLocal = snapshotValue = v != null ? ByteBuffer.encode(v) : null;
 		}
 		// 【注意】
 		// 这个标志本来应该在真正写到Database之后修改才是最合适的；
@@ -219,7 +221,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		existInBackDatabase = null != snapshotValue;
 	}
 
-	void flush(Database.Transaction t, HashMap<Database, Database.Transaction> tss, Database.Transaction lct) {
+	void flush(@NotNull Database.Transaction t, @NotNull HashMap<Database, Database.Transaction> tss,
+			   @Nullable Database.Transaction lct) {
 		if (null != table.getOldTable()) {
 			// will clear in Cleanup.
 			setDatabaseTransactionOldTmp(tss.get(table.getOldTable().getDatabase()));
@@ -228,7 +231,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	}
 
 	@Override
-	public void flush(Database.Transaction t, Database.Transaction lct) {
+	public void flush(@NotNull Database.Transaction t, @Nullable Database.Transaction lct) {
 		if (!getDirty())
 			return;
 
