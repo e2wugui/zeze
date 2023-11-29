@@ -46,11 +46,11 @@ public abstract class Record {
 	 * Flush(rrs): foreach (r in rrs) r.ClearDirty 不需要锁。
 	 */
 	private boolean dirty;
-	protected volatile Bean strongDirtyValue;
+	protected volatile @Nullable Bean strongDirtyValue;
 
 	private volatile long timestamp;
-	private volatile SoftReference<Bean> softValue;
-	private volatile RelativeRecordSet relativeRecordSet = new RelativeRecordSet();
+	private volatile @NotNull SoftReference<Bean> softValue;
+	private volatile @NotNull RelativeRecordSet relativeRecordSet = new RelativeRecordSet();
 	private volatile int state;
 
 	// too many try
@@ -101,19 +101,19 @@ public abstract class Record {
 		timestamp = value;
 	}
 
-	final Bean getSoftValue() {
+	final @Nullable Bean getSoftValue() {
 		return softValue.get();
 	}
 
-	final void setSoftValue(Bean value) {
+	final void setSoftValue(@Nullable Bean value) {
 		softValue = new SoftReference<>(value);
 	}
 
-	final RelativeRecordSet getRelativeRecordSet() {
+	final @NotNull RelativeRecordSet getRelativeRecordSet() {
 		return relativeRecordSet;
 	}
 
-	final void setRelativeRecordSet(RelativeRecordSet value) {
+	final void setRelativeRecordSet(@NotNull RelativeRecordSet value) {
 		relativeRecordSet = value;
 	}
 
@@ -164,19 +164,19 @@ public abstract class Record {
 		return cur != null ? cur : new RootInfo(this, tkey);
 	}
 
-	public abstract Table getTable();
+	public abstract @NotNull Table getTable();
 
-	public abstract Object getObjectKey();
+	public abstract @NotNull Object getObjectKey();
 
 	public abstract void setDirty();
 
-	public abstract IGlobalAgent.AcquireResult acquire(int state, boolean fresh, boolean noWait);
+	public abstract @Nullable IGlobalAgent.AcquireResult acquire(int state, boolean fresh, boolean noWait);
 
 	public abstract void encode0();
 
-	public abstract void flush(Database.Transaction t, Database.Transaction lct);
+	public abstract void flush(@NotNull Database.Transaction t, @Nullable Database.Transaction lct);
 
-	public abstract void commit(RecordAccessed accessed);
+	public abstract void commit(@NotNull RecordAccessed accessed);
 
 	public abstract void cleanup();
 }

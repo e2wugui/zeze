@@ -470,13 +470,36 @@ public final class Transaction {
 
 	/**
 	 * 只能添加一次。
-	 *
-	 * @param r record accessed
 	 */
-	void addRecordAccessed(@NotNull Record.RootInfo root, @NotNull RecordAccessed r) {
+	void addRecordAccessed(@NotNull Record.RootInfo root, @NotNull RecordAccessed ra, boolean removeWhileRollback) {
 		verifyRunning();
-		r.initRootInfo(root, null);
-		accessedRecords.put(root.getTableKey(), r);
+		ra.initRootInfo(root, null);
+		accessedRecords.put(root.getTableKey(), ra);
+
+		if (removeWhileRollback) {
+			runWhileRollback(() -> {
+				// 1. 目前这是memory表专用的。
+				// 2. rollback的时候调用。
+				// 3. 锁定方式，
+				// a) 简单就是单个记录锁定，需要考虑死锁可能。rollback有可能持有锁。
+				// b) rollback的时候，收集这种特别的记录，按commit方式锁定，允许多个表。
+				//    这个复杂点，估计需要重构代码。
+				// c) 无锁？
+				// 4. 删除条件（AND）
+				// a) timestamp 不变
+				// b) value == null，这是保护性，限定条件，使得功能仅限于cache.remove，专用。
+				var lockey = getLockey(ra.tableKey());
+				lockey.enterReadLock();
+				try {
+					var tr = ra.atomicTupleRecord;
+					var r = tr.record;
+					if (r.getTimestamp() == tr.timestamp && r.getSoftValue() == null)
+						r.removeFromTableCache();
+				} finally {
+					lockey.exitReadLock();
+				}
+			});
+		}
 	}
 
 	public @Nullable RecordAccessed getRecordAccessed(@NotNull TableKey key) {
@@ -533,6 +556,7 @@ public final class Transaction {
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
 					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
 							e.atomicTupleRecord.record.isFresh(), false);
+					//noinspection DataFlowIssue
 					if (acquire.resultState != GlobalCacheManagerConst.StateModify) {
 						e.atomicTupleRecord.record.setNotFresh(); // 抢失败不再新鲜。
 						logger.debug("Acquire Failed. Maybe DeadLock Found: record={}, time={}",

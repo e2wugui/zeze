@@ -1,15 +1,18 @@
 package Zeze.Transaction;
 
-public abstract class Log1<TBean extends Bean, TValue> extends Log {
-	private final TValue value;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-	protected Log1(Bean bean, int varId, TValue value) {
+public abstract class Log1<TBean extends Bean, TValue> extends Log {
+	private final @Nullable TValue value;
+
+	protected Log1(@NotNull Bean bean, int varId, @Nullable TValue value) {
 		setBean(bean);
 		setVariableId(varId);
 		this.value = value;
 	}
 
-	public final TValue getValue() {
+	public final @Nullable TValue getValue() {
 		return value;
 	}
 
@@ -19,7 +22,7 @@ public abstract class Log1<TBean extends Bean, TValue> extends Log {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return String.valueOf(value);
 	}
 }

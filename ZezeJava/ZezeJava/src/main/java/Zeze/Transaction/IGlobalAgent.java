@@ -7,14 +7,14 @@ import org.jetbrains.annotations.Nullable;
 
 public interface IGlobalAgent extends Closeable {
 	class AcquireResult {
-		private static final AcquireResult[] successResults = new AcquireResult[4];
+		private static final @NotNull AcquireResult[] successResults = new AcquireResult[4];
 
 		static {
 			for (int i = 0; i < successResults.length; i++)
 				successResults[i] = new AcquireResult(0, i);
 		}
 
-		public static AcquireResult getSuccessResult(int state) {
+		public static @NotNull AcquireResult getSuccessResult(int state) {
 			return successResults[state];
 		}
 
