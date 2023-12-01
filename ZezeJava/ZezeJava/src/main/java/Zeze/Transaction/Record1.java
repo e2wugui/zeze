@@ -119,7 +119,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 				table.getCache().remove(key, this);
 				return; // 内存表已经删除，done
 			}
-		}
+		} else if (accessed.atomicTupleRecord.strongRef == null && table.isMemory())
+			table.getCache().remove(key, this);
 		setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
 		setDirty();
 		//System.out.println("commit: " + this + " put=" + accessed.CommittedPutLog + " atr=" + accessed.AtomicTupleRecord);
