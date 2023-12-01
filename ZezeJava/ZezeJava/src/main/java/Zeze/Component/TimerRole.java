@@ -49,6 +49,7 @@ public class TimerRole {
 		// online timer 生命期和 Online.Local 一致。
 		online.getLocalRemoveEvents().add(EventDispatcher.Mode.RunEmbed, this::onLocalRemoveEvent);
 		online.getLoginEvents().add(EventDispatcher.Mode.RunEmbed, this::onLoginEvent);
+		online.getReloginEvents().add(EventDispatcher.Mode.RunEmbed, this::onLoginEvent);
 	}
 
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
@@ -507,8 +508,10 @@ public class TimerRole {
 			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
-		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit())
-			throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
+		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit()) {
+			// throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
+			logger.error("too many offline timers. roleId={}, size={}", roleId, offline.getOfflineTimers().size());
+		}
 
 		if (null != offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()))
 			throw new IllegalStateException("duplicate timerName. roleId=" + roleId);

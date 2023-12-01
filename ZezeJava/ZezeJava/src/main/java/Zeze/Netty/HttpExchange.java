@@ -589,7 +589,7 @@ public class HttpExchange {
 	public void sendFile(@NotNull String filePath) throws Exception {
 		var fileHome = server.fileHome;
 		if (fileHome == null) {
-			close(sendPlainText(HttpResponseStatus.FORBIDDEN, null));
+			close(send404());
 			return;
 		}
 		var file = new File(fileHome.isEmpty() ? "." : fileHome, filePath);

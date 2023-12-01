@@ -144,13 +144,17 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		sslCtx = SslContextBuilder.forServer(priKey, keyPassword, keyCertChain).build();
 	}
 
-	public synchronized @NotNull ChannelFuture start(@NotNull Netty netty, int port) {
+	public @NotNull ChannelFuture start(@NotNull Netty netty, int port) {
+		return start(netty, null, port);
+	}
+
+	public synchronized @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) {
 		if (scheduler != null)
 			throw new IllegalStateException("already started");
 		scheduler = netty.getEventLoopGroup().scheduleWithFixedDelay(
 				() -> channels.keySet().forEach(this::checkTimeout),
 				checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
-		return channelFuture = netty.startServer(this, port);
+		return channelFuture = netty.startServer(this, host, port);
 	}
 
 	@Override
