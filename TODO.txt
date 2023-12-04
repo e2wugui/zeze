@@ -29,10 +29,22 @@ Zege Task
 Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot alter 测试，需要mysql。
 ------------------------------------------------------------------------------------------------------------------------------
-2023/11/30 v1.3.7 Writerside; Schemas;
+2023/12/4 v1.3.7 Writerside; Schemas; Memory Table; selectDirty; PLIst; IByteBuffer; BinLogger; Virtual-Thread；
 ------------------------------------------------------------------------------------------------------------------------------
 Schemas 反悔新实现；【记住所有删除的变量】
 zeze.docx 格式化成新的Writerside格式。
+（请假了两周，@张路修订了一些中还要bug，记录一下打一个tag）
+Memory Table.size 现实不正确，原因是cache的设计允许value为null，但这个对于momory表不合适，
+	旧修订：remove时，马上删除null value的记录。
+	更多修订：所有会导致null value进入cache的地方都需要设置事务回滚时删除记录。
+	张路修改了好多地方，大概率补全了。
+selectDirty 在whileCommit中比较广泛的使用，此时保持了锁，而selectDirty旧实现可能会去global申请锁，导致分布式死锁。
+	修改方式是重新定义selectDirty，给他降级。即不再访问global，仅看本地有没有，没有直接从后端数据库读取，不管
+	数据是否最新。这个新定义仍然符合"dirty"的定义，而且避免了死锁的发生。
+PList.replaceAll .sort 方法【加强】。
+IByteBuffer 抽象和引用到decode中。
+BinLogger
+Virtual-Thread 的应用和相关修订。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/11/13 v1.3.6 DeadlockBreaker; Dbh2; Zoker; Raft; 
