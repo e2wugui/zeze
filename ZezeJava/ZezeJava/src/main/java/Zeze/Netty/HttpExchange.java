@@ -189,7 +189,7 @@ public class HttpExchange {
 		if (msg instanceof HttpRequest) {
 			request = ReferenceCountUtil.retain((HttpRequest)msg);
 			var path = path();
-			handler = server.handlers.get(path);
+			handler = server.getHandler(path);
 			if (handler == null) {
 				sendFile(filePath(path));
 				return;

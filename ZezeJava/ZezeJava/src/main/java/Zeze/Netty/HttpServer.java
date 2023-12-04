@@ -232,6 +232,10 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		handlers.remove(path);
 	}
 
+	public @Nullable HttpHandler getHandler(@NotNull String path) {
+		return handlers.get(path);
+	}
+
 	// 允许扩展HttpExchange类
 	public @NotNull HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
 		return new HttpExchange(this, context);
