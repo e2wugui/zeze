@@ -407,6 +407,10 @@ public final class Transaction {
 							var oldVersion = null != oldValue ? oldValue.version() : 0;
 							newValue.version(oldVersion + 1);
 						}
+					} else if (v.atomicTupleRecord.strongRef == null) {
+						var r = v.atomicTupleRecord.record;
+						if (r.getTable().isMemory())
+							r.removeFromTableCache();
 					}
 				}
 			} catch (Throwable e) { // halt

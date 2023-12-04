@@ -52,4 +52,48 @@ public class TestMemorySize {
 		var newSize = App.Instance.demo_Module1.tMemorySize().getCacheSize();
 		Assert.assertEquals(oldSize, newSize);
 	}
+
+	@Test
+	public void testMemoryCache() {
+		Assert.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			App.Instance.demo_Module1.tMemorySize().remove(8L);
+			return 0;
+		}, "testMemoryCache").call());
+
+		var oldSize = App.Instance.demo_Module1.tMemorySize().getCacheSize();
+		for (int i = 0; i < 0x40; i++) {
+			int j = i;
+			int r = i & 1;
+			Assert.assertEquals(r, App.Instance.Zeze.newProcedure(() -> {
+				if (r == 1) {
+					Bean1 v = null;
+					switch ((j >> 1) & 3) {
+					case 0:
+						v = App.Instance.demo_Module1.tMemorySize().get(8L);
+						break;
+					case 1:
+						v = App.Instance.demo_Module1.tMemorySize().getOrAdd(8L);
+						break;
+					case 2:
+						v = new Bean1(11);
+						App.Instance.demo_Module1.tMemorySize().tryAdd(8L, v);
+						break;
+					case 3:
+						v = new Bean1(22);
+						App.Instance.demo_Module1.tMemorySize().put(8L, v);
+						break;
+					}
+					if (v != null && ((j >> 3) & 1) == 1)
+						v.setV1(123);
+				} else
+					App.Instance.demo_Module1.tMemorySize().get(8L);
+				if (((j >> 4) & 1) == 1)
+					App.Instance.demo_Module1.tMemorySize().get(8L);
+				if (((j >> 5) & 1) == 1)
+					App.Instance.demo_Module1.tMemorySize().remove(8L);
+				return r;
+			}, "testMemoryCache" + i).call());
+			Assert.assertEquals(oldSize, App.Instance.demo_Module1.tMemorySize().getCacheSize());
+		}
+	}
 }
