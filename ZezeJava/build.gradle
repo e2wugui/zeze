@@ -15,11 +15,14 @@ allprojects {
             downloadSources = true
             excludeDirs += files(
                     'autokeys',
+                    'binlog',
                     'doc',
                     'gradle',
+                    'log',
                     'test',
                     'ZezeJava/autokeys',
                     'ZezeJava/lib',
+                    'ZezeJava/log',
                     'ZezeJava/target',
                     'ZezeJavaTest/CommitRocks',
                     'ZezeJavaTest/CommitRocks100',
