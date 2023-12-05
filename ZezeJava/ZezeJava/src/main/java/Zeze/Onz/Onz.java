@@ -1,15 +1,19 @@
 package Zeze.Onz;
 
+import Zeze.Serialize.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
+import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.RelativeRecordSet;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.Task;
 
 public class Onz extends AbstractOnz {
     private final ConcurrentHashMap<String, OnzProcedureStub<?, ?>> procedureStubs = new ConcurrentHashMap<>();
     private final LongConcurrentHashMap<RelativeRecordSet> onzRrs = new LongConcurrentHashMap<>();
+    private final LongConcurrentHashMap<OnzSaga> sagas = new LongConcurrentHashMap<>();
     private final OnzService service;
 
     public static class OnzService extends Service {
@@ -76,17 +80,59 @@ public class Onz extends AbstractOnz {
     }
 
     @Override
-    protected long ProcessFuncProcedureRequest(Zeze.Builtin.Onz.FuncProcedure r) {
-        return Zeze.Transaction.Procedure.NotImplement;
+    protected long ProcessFuncProcedureRequest(Zeze.Builtin.Onz.FuncProcedure r) throws Exception {
+        var stub = procedureStubs.get(r.Argument.getFuncName());
+        if (stub == null)
+            return errorCode(eProcedureNotFound);
+        var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
+        var procedure = stub.newProcedure(r.Argument.getOnzTid(), buffer);
+        var rc = Task.call(stub.getZeze().newProcedure(procedure, procedure.getName()));
+        if (rc != 0)
+            return rc;
+
+        var bbResult = ByteBuffer.Allocate();
+        procedure.getResult().encode(bbResult);
+        r.Result.setFuncResult(new Binary(bbResult));
+        r.SendResult();
+        return 0;
     }
 
     @Override
-    protected long ProcessFuncSagaRequest(Zeze.Builtin.Onz.FuncSaga r) {
-        return Zeze.Transaction.Procedure.NotImplement;
+    protected long ProcessFuncSagaRequest(Zeze.Builtin.Onz.FuncSaga r) throws Exception {
+        var stub = procedureStubs.get(r.Argument.getFuncName());
+        if (stub == null)
+            return errorCode(eProcedureNotFound);
+
+        var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
+        var procedure = stub.newProcedure(r.Argument.getOnzTid(), buffer);
+        if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), (OnzSaga)procedure))
+            return errorCode(eSagaTidExist);
+
+        var rc = Task.call(stub.getZeze().newProcedure(procedure, procedure.getName()));
+        if (rc != 0)
+            return rc;
+
+        var bbResult = ByteBuffer.Allocate();
+        procedure.getResult().encode(bbResult);
+        r.Result.setFuncResult(new Binary(bbResult));
+        r.SendResult();
+        return 0;
     }
 
     @Override
     protected long ProcessFuncSagaCancelRequest(Zeze.Builtin.Onz.FuncSagaCancel r) {
-        return Zeze.Transaction.Procedure.NotImplement;
+        var context = sagas.remove(r.Argument.getOnzTid());
+        if (context == null)
+            return errorCode(eSagaNotFound);
+
+        // 没有设置cancel标志时，表示事务正常结束，用来删除sagas上下文。
+        if (r.Argument.isCancel()) {
+            var rc = Task.call(context.getStub().getZeze().newProcedure(context, context.getName()));
+            if (rc != 0)
+                return rc;
+        }
+
+        r.SendResult();
+        return 0;
     }
 }

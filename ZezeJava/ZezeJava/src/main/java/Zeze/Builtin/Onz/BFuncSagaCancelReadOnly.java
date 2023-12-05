@@ -8,4 +8,5 @@ public interface BFuncSagaCancelReadOnly {
     BFuncSagaCancel copy();
 
     long getOnzTid();
+    boolean isCancel();
 }

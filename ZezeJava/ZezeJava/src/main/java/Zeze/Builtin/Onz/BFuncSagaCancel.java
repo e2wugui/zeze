@@ -9,6 +9,7 @@ public final class BFuncSagaCancel extends Zeze.Transaction.Bean implements BFun
     public static final long TYPEID = 3083002385468886997L;
 
     private long _OnzTid;
+    private boolean _Cancel;
 
     @Override
     public long getOnzTid() {
@@ -30,18 +31,40 @@ public final class BFuncSagaCancel extends Zeze.Transaction.Bean implements BFun
         txn.putLog(new Log__OnzTid(this, 1, value));
     }
 
+    @Override
+    public boolean isCancel() {
+        if (!isManaged())
+            return _Cancel;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Cancel;
+        var log = (Log__Cancel)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _Cancel;
+    }
+
+    public void setCancel(boolean value) {
+        if (!isManaged()) {
+            _Cancel = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Cancel(this, 2, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BFuncSagaCancel() {
     }
 
     @SuppressWarnings("deprecation")
-    public BFuncSagaCancel(long _OnzTid_) {
+    public BFuncSagaCancel(long _OnzTid_, boolean _Cancel_) {
         _OnzTid = _OnzTid_;
+        _Cancel = _Cancel_;
     }
 
     @Override
     public void reset() {
         setOnzTid(0);
+        setCancel(false);
         _unknown_ = null;
     }
 
@@ -59,11 +82,13 @@ public final class BFuncSagaCancel extends Zeze.Transaction.Bean implements BFun
 
     public void assign(BFuncSagaCancel.Data other) {
         setOnzTid(other._OnzTid);
+        setCancel(other._Cancel);
         _unknown_ = null;
     }
 
     public void assign(BFuncSagaCancel other) {
         setOnzTid(other.getOnzTid());
+        setCancel(other.isCancel());
         _unknown_ = other._unknown_;
     }
 
@@ -96,6 +121,13 @@ public final class BFuncSagaCancel extends Zeze.Transaction.Bean implements BFun
         public void commit() { ((BFuncSagaCancel)getBelong())._OnzTid = value; }
     }
 
+    private static final class Log__Cancel extends Zeze.Transaction.Logs.LogBool {
+        public Log__Cancel(BFuncSagaCancel bean, int varId, boolean value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BFuncSagaCancel)getBelong())._Cancel = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -107,7 +139,8 @@ public final class BFuncSagaCancel extends Zeze.Transaction.Bean implements BFun
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BFuncSagaCancel: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("OnzTid=").append(getOnzTid()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OnzTid=").append(getOnzTid()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Cancel=").append(isCancel()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -147,6 +180,13 @@ public final class BFuncSagaCancel extends Zeze.Transaction.Bean implements BFun
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            boolean _x_ = isCancel();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -158,6 +198,10 @@ public final class BFuncSagaCancel extends Zeze.Transaction.Bean implements BFun
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
             setOnzTid(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            setCancel(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -181,6 +225,7 @@ public final class BFuncSagaCancel extends Zeze.Transaction.Bean implements BFun
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _OnzTid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _Cancel = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
             }
         }
     }
@@ -189,18 +234,21 @@ public final class BFuncSagaCancel extends Zeze.Transaction.Bean implements BFun
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setOnzTid(rs.getLong(_parents_name_ + "OnzTid"));
+        setCancel(rs.getBoolean(_parents_name_ + "Cancel"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "OnzTid", getOnzTid());
+        st.appendBoolean(_parents_name_ + "Cancel", isCancel());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "OnzTid", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Cancel", "bool", "", ""));
         return vars;
     }
 
@@ -209,6 +257,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 3083002385468886997L;
 
     private long _OnzTid;
+    private boolean _Cancel;
 
     public long getOnzTid() {
         return _OnzTid;
@@ -218,18 +267,28 @@ public static final class Data extends Zeze.Transaction.Data {
         _OnzTid = value;
     }
 
+    public boolean isCancel() {
+        return _Cancel;
+    }
+
+    public void setCancel(boolean value) {
+        _Cancel = value;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _OnzTid_) {
+    public Data(long _OnzTid_, boolean _Cancel_) {
         _OnzTid = _OnzTid_;
+        _Cancel = _Cancel_;
     }
 
     @Override
     public void reset() {
         _OnzTid = 0;
+        _Cancel = false;
     }
 
     @Override
@@ -246,10 +305,12 @@ public static final class Data extends Zeze.Transaction.Data {
 
     public void assign(BFuncSagaCancel other) {
         _OnzTid = other.getOnzTid();
+        _Cancel = other.isCancel();
     }
 
     public void assign(BFuncSagaCancel.Data other) {
         _OnzTid = other._OnzTid;
+        _Cancel = other._Cancel;
     }
 
     @Override
@@ -286,7 +347,8 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BFuncSagaCancel: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("OnzTid=").append(_OnzTid).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OnzTid=").append(_OnzTid).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Cancel=").append(_Cancel).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -311,6 +373,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            boolean _x_ = _Cancel;
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -320,6 +389,10 @@ public static final class Data extends Zeze.Transaction.Data {
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
             _OnzTid = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _Cancel = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

@@ -1982,6 +1982,10 @@
 		</module>
 
 		<module name="Onz" id="11038" UseData="true" DefaultTransactionLevel="None">
+			<enum name="eProcedureNotFound" value="1"/>
+			<enum name="eSagaNotFound" value="2"/>
+			<enum name="eSagaTidExist" value="3"/>
+			
 			<bean name="BFuncProcedure">
 				<variable id="1" name="OnzTid" type="long"/>
 				<variable id="2" name="FuncName" type="string"/>
@@ -2008,6 +2012,7 @@
 
 			<bean name="BFuncSagaCancel">
 				<variable id="1" name="OnzTid" type="long"/>
+				<variable id="2" name="Cancel" type="bool"/>
 			</bean>
 
 			<bean name="BFuncSagaCancelResult">

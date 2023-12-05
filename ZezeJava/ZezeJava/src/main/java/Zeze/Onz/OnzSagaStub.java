@@ -20,11 +20,11 @@ public class OnzSagaStub<A extends Bean, R extends Bean> extends OnzProcedureStu
 	}
 
 	@Override
-	public Procedure newZezeProcedure(long onzTid, IByteBuffer buffer) throws Exception {
+	public OnzProcedure newProcedure(long onzTid, IByteBuffer buffer) throws Exception {
 		var a = super.getArgumentClass().getConstructor((Class<?>[])null).newInstance((Object[])null);
 		var r = super.getResultClass().getConstructor((Class<?>[])null).newInstance((Object[])null);
 		a.decode(buffer);
-		return super.getZeze().newProcedure(new OnzSaga(onzTid, this, a, r), super.getName());
+		return new OnzSaga(onzTid, this, a, r);
 	}
 
 	@SuppressWarnings("unchecked")

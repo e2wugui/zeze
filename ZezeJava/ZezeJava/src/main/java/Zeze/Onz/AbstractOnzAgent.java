@@ -11,6 +11,10 @@ public abstract class AbstractOnzAgent implements Zeze.IModule {
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
+    public static final int eProcedureNotFound = 1;
+    public static final int eSagaNotFound = 2;
+    public static final int eSagaTidExist = 3;
+
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
