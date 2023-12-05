@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -10,6 +11,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Application;
+import Zeze.Onz.Procedure;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -286,16 +288,16 @@ public final class Checkpoint {
 		}
 	}
 
-	public void flush(Transaction trans) {
+	public void flush(Transaction trans, Zeze.Onz.Procedure onzProcedure) {
 		var records = new ArrayList<Record>(trans.getAccessedRecords().size());
 		for (var ar : trans.getAccessedRecords().values()) {
 			if (ar.dirty)
 				records.add(ar.atomicTupleRecord.record);
 		}
-		flush(records);
+		flush(records, null != onzProcedure ? Set.of(onzProcedure) : Set.of());
 	}
 
-	public void flush(Iterable<Record> rs) {
+	public void flush(Iterable<Record> rs, Set<Procedure> onzProcedures) {
 		var dts = new IdentityHashMap<Database, Database.Transaction>();
 		Database.Transaction localCacheTransaction = zeze.getLocalRocksCacheDb().beginTransaction();
 
@@ -315,6 +317,7 @@ public final class Checkpoint {
 			for (var r : rs) {
 				r.encode0();
 			}
+			Zeze.Onz.Procedure.sendFlushAndWait(onzProcedures);
 			// 保存到数据库中
 			for (var r : rs) {
 				r.flush(r.getDatabaseTransactionTmp(), localCacheTransaction);
@@ -368,7 +371,7 @@ public final class Checkpoint {
 	public void flush(RelativeRecordSet rs) {
 		// rs.MergeTo == null &&  check outside
 		if (rs.getRecordSet() != null) {
-			flush(rs.getRecordSet());
+			flush(rs.getRecordSet(), rs.getOnzProcedures());
 			for (var r : rs.getRecordSet()) {
 				r.setDirty(false);
 			}

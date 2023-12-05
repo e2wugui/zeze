@@ -388,7 +388,16 @@ public final class Transaction {
 		triggerActions(procedure);
 	}
 
+	private Zeze.Onz.Procedure onzProcedure;
+	public void setOnzProcedure(Zeze.Onz.Procedure onzProcedure) {
+		this.onzProcedure = onzProcedure;
+	}
+
 	private void finalCommit(@NotNull Procedure procedure) {
+		// onz patch: onz事务执行阶段的2段式同步等待。
+		if (null != onzProcedure) {
+			onzProcedure.sendReadyAndWait();
+		}
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		// 可以在最终提交里可以实现每事务checkpoint。
 		var lastSp = savepoints.get(savepoints.size() - 1);
@@ -418,7 +427,7 @@ public final class Transaction {
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
 			}
-		});
+		}, onzProcedure); // onz patch: 新增参数
 
 		// 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
 		// 不再支持在回调中再次执行事务。

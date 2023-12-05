@@ -19,6 +19,7 @@ import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.Hot.HotHandle;
 import Zeze.Hot.HotManager;
 import Zeze.Hot.HotUpgradeMemoryTable;
+import Zeze.Onz.OnzManager;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Daemon;
 import Zeze.Services.GlobalCacheManagerWithRaftAgent;
@@ -87,11 +88,16 @@ public final class Application {
 	public RedirectBase redirect;
 
 	private Auth auth;
+	private final OnzManager onzManager = new OnzManager();
 
 	private final HotHandle<EventDispatcher.EventHandle> hotHandle = new HotHandle<>();
 
 	public HotHandle<EventDispatcher.EventHandle> getHotHandle() {
 		return hotHandle;
+	}
+
+	public OnzManager getOnzManager() {
+		return onzManager;
 	}
 
 	public void enableAuth() {

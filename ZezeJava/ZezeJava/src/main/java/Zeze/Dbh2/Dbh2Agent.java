@@ -69,7 +69,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		r.setTimeout(config.getRpcTimeout());
 		raftClient.sendForWait(r).await();
 
-		if (r.getResultCode() == errorCode(eBucketMissmatch))
+		if (r.getResultCode() == errorCode(eBucketMismatch))
 			return KV.create(false, null);
 
 		if (r.getResultCode() != 0)

@@ -2,12 +2,14 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * see zeze/README.md -> 18) 事务提交模式
@@ -31,6 +33,16 @@ public final class RelativeRecordSet {
 
 	RelativeRecordSet getMergeTo() {
 		return mergeTo;
+	}
+
+	Set<Zeze.Onz.Procedure> onzProcedures = new HashSet<>();
+
+	public Set<Zeze.Onz.Procedure> getOnzProcedures() {
+		return onzProcedures;
+	}
+
+	public void addOnzProcedures(@NotNull Zeze.Onz.Procedure onzProcedures) {
+		this.onzProcedures.add(onzProcedures);
 	}
 
 	private void merge(Record r) {
@@ -90,13 +102,14 @@ public final class RelativeRecordSet {
 		mutex.unlock();
 	}
 
-	static void tryUpdateAndCheckpoint(Transaction trans, Procedure procedure, Runnable commit) {
+	static void tryUpdateAndCheckpoint(Transaction trans, Procedure procedure, Runnable commit,
+									   Zeze.Onz.Procedure onzProcedure) {
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately:
 			commit.run();
 			var checkpoint = procedure.getZeze().getCheckpoint();
 			if (checkpoint != null)
-				checkpoint.flush(trans);
+				checkpoint.flush(trans, onzProcedure);
 			// 这种模式下 RelativeRecordSet 都是空的。
 			return;
 
@@ -142,7 +155,7 @@ public final class RelativeRecordSet {
 			commit.run();
 			var checkpoint = procedure.getZeze().getCheckpoint();
 			if (checkpoint != null)
-				checkpoint.flush(trans);
+				checkpoint.flush(trans, onzProcedure);
 			// 这种情况下 RelativeRecordSet 都是空的。
 			//logger.Debug($"allCheckpointWhenCommit AccessedCount={trans.AccessedRecords.Count}");
 			return;
@@ -164,8 +177,10 @@ public final class RelativeRecordSet {
 					// mergedSet 合并结果是孤立的，不需要Flush。
 					// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
 					var checkpoint = procedure.getZeze().getCheckpoint();
-					if (checkpoint != null)
+					if (checkpoint != null) {
+						procedure.getZeze().getOnzManager().markRrs(mergedSet, onzProcedure);
 						checkpoint.relativeRecordSetMap.add(mergedSet);
+					}
 				}
 			}
 			// else
@@ -413,10 +428,12 @@ public final class RelativeRecordSet {
 					nr += rrs.recordSet.size();
 				}
 				var rs = new ArrayList<Record>(nr);
+				var onzProcedures = new HashSet<Zeze.Onz.Procedure>(nr);
 				for (var rrs : sortedRrs.values()) {
 					if (rrs.mergeTo != null)
 						continue; // merged or deleted
 					rs.addAll(rrs.recordSet);
+					onzProcedures.addAll(rrs.getOnzProcedures());
 				}
 				/*
 				var debug = new java.util.HashMap<String, ArrayList<Object>>();
@@ -425,7 +442,7 @@ public final class RelativeRecordSet {
 				Checkpoint.logger.info(debug.toString() + sortedRrs.keySet());
 				*/
 
-				checkpoint.flush(rs);
+				checkpoint.flush(rs, onzProcedures);
 				for (var r : rs)
 					r.setDirty(false);
 				for (var rrs : sortedRrs.values()) {

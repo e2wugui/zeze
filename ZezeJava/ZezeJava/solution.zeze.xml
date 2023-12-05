@@ -1447,7 +1447,7 @@
 			</module>
 
 			<enum name="eBucketNotFound" value="1"/>
-			<enum name="eBucketMissmatch" value="2"/>
+			<enum name="eBucketMismatch" value="2"/>
 			<enum name="eDuplicateTid" value="3"/>
 
 			<bean name="BBucketMeta">

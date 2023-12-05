@@ -12,7 +12,7 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
     @Override public boolean isBuiltin() { return true; }
 
     public static final int eBucketNotFound = 1;
-    public static final int eBucketMissmatch = 2;
+    public static final int eBucketMismatch = 2;
     public static final int eDuplicateTid = 3;
 
     public void RegisterProtocols(Zeze.Net.Service service) {

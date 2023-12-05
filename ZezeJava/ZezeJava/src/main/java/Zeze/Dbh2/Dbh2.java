@@ -190,7 +190,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			// 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
 			var bucket = stateMachine.getBucket();
 			if (!bucket.inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
-				return errorCode(eBucketMissmatch);
+				return errorCode(eBucketMismatch);
 			var value = bucket.get(r.Argument.getKey());
 			if (null == value)
 				r.Result.setNull(true);
@@ -221,7 +221,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				return errorCode(eDuplicateTid);
 			// check inBucket
 			if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
-				return errorCode(eBucketMissmatch);
+				return errorCode(eBucketMismatch);
 
 			var refused = r.Result; // 对于puts可以考虑只传key，网络占用少一些。
 			var splitHistory = stateMachine.getBucket().getSplitMetaHistory();
