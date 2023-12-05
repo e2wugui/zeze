@@ -1981,13 +1981,60 @@
 			-->
 		</module>
 
+		<module name="Onz" id="11038" UseData="true" DefaultTransactionLevel="None">
+			<bean name="BFuncProcedure">
+				<variable id="1" name="OnzTid" type="long"/>
+				<variable id="2" name="FuncName" type="string"/>
+				<variable id="3" name="FuncArgument" type="binary"/>
+			</bean>
+
+			<bean name="BFuncProcedureResult">
+				<variable id="1" name="FuncResult" type="binary"/>
+			</bean>
+
+			<rpc name="FuncProcedure" argument="BFuncProcedure" result="BFuncProcedureResult" handle="server"/>
+
+			<bean name="BFuncSaga"> saga confirm
+				<variable id="1" name="OnzTid" type="long"/>
+				<variable id="2" name="FuncName" type="string"/>
+				<variable id="3" name="FuncArgument" type="binary"/>
+			</bean>
+
+			<bean name="BFuncSagaResult">
+				<variable id="1" name="FuncResult" type="binary"/>
+			</bean>
+
+			<rpc name="FuncSaga" argument="BFuncSaga" result="BFuncSagaResult" handle="server"/>
+
+			<bean name="BFuncSagaCancel">
+				<variable id="1" name="OnzTid" type="long"/>
+			</bean>
+
+			<bean name="BFuncSagaCancelResult">
+			</bean>
+
+			<rpc name="FuncSagaCancel" argument="BFuncSagaCancel" result="BFuncSagaCancelResult" handle="server"/>
+		</module>
+
 		<!--
-		可用id范围 [11038, 11100) [11102, 11999]
+		可用id范围 [11039, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="Onz" gendir="src/main/java" genrelativedir="Zeze/Onz" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Onz"/>
+		</service>
+	</component>
+
+	<component name="OnzAgent" gendir="src/main/java" genrelativedir="Zeze/Onz" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Onz"/>
+		</service>
+	</component>
+
 	<component name="Zoker" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Zoker"/>

@@ -6,13 +6,13 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 
 public class OnzSagaStub<A extends Bean, R extends Bean> extends OnzProcedureStub<A, R> {
-	private final OnzFuncConfirm<A, R> func;
-	private final OnzFuncCancel funcCancel;
+	private final OnzFuncSaga<A, R> func;
+	private final OnzFuncSagaCancel funcCancel;
 
 	public OnzSagaStub(Application zeze,
 					   String name,
-					   OnzFuncConfirm<A, R> func, Class<A> argumentClass, Class<R> resultClass,
-					   OnzFuncCancel funcCancel) {
+					   OnzFuncSaga<A, R> func, Class<A> argumentClass, Class<R> resultClass,
+					   OnzFuncSagaCancel funcCancel) {
 		// super.func 在saga模式下未用。
 		super(zeze, name, null, argumentClass, resultClass);
 		this.func = func;

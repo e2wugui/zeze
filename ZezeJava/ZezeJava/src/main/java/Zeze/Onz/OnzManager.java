@@ -26,7 +26,7 @@ public class OnzManager {
 
 	public <A extends Bean, R extends Bean> void registerSaga(
 			Application zeze,
-			String name, OnzFuncConfirm<A, R> func, OnzFuncCancel funcCancel,
+			String name, OnzFuncSaga<A, R> func, OnzFuncSagaCancel funcCancel,
 			Class<A> argumentClass, Class<R> resultClass) {
 
 		if (null != procedureStubs.putIfAbsent(name,
@@ -44,6 +44,7 @@ public class OnzManager {
 			//  因为不同的zeze集群的rrs.flush时机是没有统一控制的。
 			//  这个追溯流程有点复杂，看看实现上有没有更好的方法。
 			// todo 这里的代码随便写的。
+			// todo onzRrs 的删除：准备采取不严格定时扫描检测删除，严格生命期需要侵入到原来zeze的代码，怕有遗漏。
 			for (var onz : rrs.getOnzProcedures()) {
 				onzRrs.put(onz.getOnzTid(), rrs);
 			}
