@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
+import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
@@ -388,8 +389,8 @@ public final class Transaction {
 		triggerActions(procedure);
 	}
 
-	private Zeze.Onz.Procedure onzProcedure;
-	public void setOnzProcedure(Zeze.Onz.Procedure onzProcedure) {
+	private OnzProcedure onzProcedure;
+	public void setOnzProcedure(OnzProcedure onzProcedure) {
 		this.onzProcedure = onzProcedure;
 	}
 

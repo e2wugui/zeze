@@ -4,9 +4,11 @@ import java.util.Set;
 import Zeze.Application;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.FuncLong;
 
-public class Procedure implements Zeze.Util.FuncLong {
+public class OnzProcedure implements FuncLong {
 	public static class Stub<A extends Bean, R extends Bean> {
 		private final Application zeze;
 		private final String name;
@@ -22,11 +24,11 @@ public class Procedure implements Zeze.Util.FuncLong {
 			this.resultClass = resultClass;
 		}
 
-		public Zeze.Transaction.Procedure newZezeProcedure(long onzTid, IByteBuffer buffer) throws Exception {
+		public Procedure newZezeProcedure(long onzTid, IByteBuffer buffer) throws Exception {
 			var a = argumentClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 			var r = resultClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 			a.decode(buffer);
-			return zeze.newProcedure(new Procedure(onzTid,this, a, r), name);
+			return zeze.newProcedure(new OnzProcedure(onzTid, this, a, r), name);
 		}
 
 		public String getName() {
@@ -45,7 +47,7 @@ public class Procedure implements Zeze.Util.FuncLong {
 	private final Bean argument;
 	private final Bean result;
 
-	public Procedure(long onzTid, Stub<?, ?> stub, Bean argument, Bean result) {
+	public OnzProcedure(long onzTid, Stub<?, ?> stub, Bean argument, Bean result) {
 		this.onzTid = onzTid;
 		this.stub = stub;
 		this.argument = argument;
@@ -90,7 +92,7 @@ public class Procedure implements Zeze.Util.FuncLong {
 	}
 
 	// helper
-	public static void sendFlushAndWait(Set<Procedure> onzProcedures) {
+	public static void sendFlushAndWait(Set<OnzProcedure> onzProcedures) {
 		// send all
 		for (var onz : onzProcedures) {
 			if (null != onz)

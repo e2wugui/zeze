@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -35,13 +36,15 @@ public final class RelativeRecordSet {
 		return mergeTo;
 	}
 
-	Set<Zeze.Onz.Procedure> onzProcedures = new HashSet<>();
+	Set<OnzProcedure> onzProcedures = Set.of();
 
-	public Set<Zeze.Onz.Procedure> getOnzProcedures() {
+	public Set<OnzProcedure> getOnzProcedures() {
 		return onzProcedures;
 	}
 
-	public void addOnzProcedures(@NotNull Zeze.Onz.Procedure onzProcedures) {
+	public void addOnzProcedures(@NotNull OnzProcedure onzProcedures) {
+		if (this.onzProcedures.isEmpty())
+			this.onzProcedures = new HashSet<>();
 		this.onzProcedures.add(onzProcedures);
 	}
 
@@ -103,7 +106,7 @@ public final class RelativeRecordSet {
 	}
 
 	static void tryUpdateAndCheckpoint(Transaction trans, Procedure procedure, Runnable commit,
-									   Zeze.Onz.Procedure onzProcedure) {
+									   OnzProcedure onzProcedure) {
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately:
 			commit.run();
@@ -428,7 +431,7 @@ public final class RelativeRecordSet {
 					nr += rrs.recordSet.size();
 				}
 				var rs = new ArrayList<Record>(nr);
-				var onzProcedures = new HashSet<Zeze.Onz.Procedure>(nr);
+				var onzProcedures = new HashSet<OnzProcedure>(nr);
 				for (var rrs : sortedRrs.values()) {
 					if (rrs.mergeTo != null)
 						continue; // merged or deleted

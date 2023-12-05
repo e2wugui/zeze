@@ -11,7 +11,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Application;
-import Zeze.Onz.Procedure;
+import Zeze.Onz.OnzProcedure;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -288,7 +288,7 @@ public final class Checkpoint {
 		}
 	}
 
-	public void flush(Transaction trans, Zeze.Onz.Procedure onzProcedure) {
+	public void flush(Transaction trans, OnzProcedure onzProcedure) {
 		var records = new ArrayList<Record>(trans.getAccessedRecords().size());
 		for (var ar : trans.getAccessedRecords().values()) {
 			if (ar.dirty)
@@ -297,7 +297,7 @@ public final class Checkpoint {
 		flush(records, null != onzProcedure ? Set.of(onzProcedure) : Set.of());
 	}
 
-	public void flush(Iterable<Record> rs, Set<Procedure> onzProcedures) {
+	public void flush(Iterable<Record> rs, Set<OnzProcedure> onzProcedures) {
 		var dts = new IdentityHashMap<Database, Database.Transaction>();
 		Database.Transaction localCacheTransaction = zeze.getLocalRocksCacheDb().beginTransaction();
 
@@ -317,7 +317,7 @@ public final class Checkpoint {
 			for (var r : rs) {
 				r.encode0();
 			}
-			Zeze.Onz.Procedure.sendFlushAndWait(onzProcedures);
+			OnzProcedure.sendFlushAndWait(onzProcedures);
 			// 保存到数据库中
 			for (var r : rs) {
 				r.flush(r.getDatabaseTransactionTmp(), localCacheTransaction);

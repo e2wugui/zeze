@@ -4,11 +4,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.RelativeRecordSet;
-import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.LongConcurrentHashMap;
 
 public class OnzManager {
-	private final ConcurrentHashMap<String, Procedure.Stub<?, ?>> procedureStubs = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, OnzProcedure.Stub<?, ?>> procedureStubs = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<RelativeRecordSet> onzRrs = new LongConcurrentHashMap<>();
 
 	public OnzManager() {
@@ -20,11 +19,11 @@ public class OnzManager {
 			String name, FuncRemote<A, R> func,
 			Class<A> argumentClass, Class<R> resultClass) {
 
-		if (null != procedureStubs.putIfAbsent(name, new Procedure.Stub<>(zeze, name, func, argumentClass, resultClass)))
+		if (null != procedureStubs.putIfAbsent(name, new OnzProcedure.Stub<>(zeze, name, func, argumentClass, resultClass)))
 			throw new RuntimeException("duplicate Onz Procedure Name=" + name);
 	}
 
-	public void markRrs(RelativeRecordSet rrs, Procedure onzProcedure) {
+	public void markRrs(RelativeRecordSet rrs, OnzProcedure onzProcedure) {
 		if (null != onzProcedure) {
 			rrs.addOnzProcedures(onzProcedure);
 			// todo 这里标记并记录rrs相关信息，
