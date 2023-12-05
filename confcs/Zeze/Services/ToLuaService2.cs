@@ -1160,25 +1160,20 @@ namespace Zeze.Services.ToLuaService2
                 {
                     bool hasTable = !isKV && PushTableField(luaState);
                     long beanTypeId = bb.ReadLong();
-                    if (varMeta.DynamicMeta != null && varMeta.DynamicMeta.SpecialTypeIdToBean.TryGetValue(beanTypeId, out var dynamicBeanMeta))
+                    if (varMeta.DynamicMeta != null && varMeta.DynamicMeta.SpecialTypeIdToBean.TryGetValue(beanTypeId, out var dynamicBeanMeta)
+                        || beanMetas.TryGetValue(beanTypeId, out dynamicBeanMeta))
                     {
-                        // os.BeginReadSegment(out var state);
                         DecodeBean(luaState, bb, dynamicBeanMeta, hasTable);
-                        // os.EndReadSegment(state);
                     }
                     else
                     {
                         bb.SkipUnknownField(ByteBuffer.BEAN);
                         if (!hasTable)
                             Lua.CreateTable(luaState, 0, 0);
+                        Lua.PushString(luaState, "__type_id__");
+                        Lua.PushString(luaState, beanTypeId.ToString());
+                        Lua.SetTable(luaState, -3);
                     }
-                    // else
-                    // {
-                    //     // empty bean 先特殊处理一下，反正要改到c版本去，就不管了
-                    //     bb.ReadInt();
-                    //     if (!hasTable)
-                    //         Lua.CreateTable(luaState, 0, 0);
-                    // }
                     break;
                 }
                 case ByteBuffer.VECTOR2:
