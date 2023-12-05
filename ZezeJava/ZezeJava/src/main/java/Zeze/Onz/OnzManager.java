@@ -7,7 +7,7 @@ import Zeze.Transaction.RelativeRecordSet;
 import Zeze.Util.LongConcurrentHashMap;
 
 public class OnzManager {
-	private final ConcurrentHashMap<String, OnzProcedure.Stub<?, ?>> procedureStubs = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, OnzProcedureStub<?, ?>> procedureStubs = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<RelativeRecordSet> onzRrs = new LongConcurrentHashMap<>();
 
 	public OnzManager() {
@@ -16,10 +16,21 @@ public class OnzManager {
 
 	public <A extends Bean, R extends Bean> void register(
 			Application zeze,
-			String name, FuncRemote<A, R> func,
+			String name, OnzFuncProcedure<A, R> func,
 			Class<A> argumentClass, Class<R> resultClass) {
 
-		if (null != procedureStubs.putIfAbsent(name, new OnzProcedure.Stub<>(zeze, name, func, argumentClass, resultClass)))
+		if (null != procedureStubs.putIfAbsent(name,
+				new OnzProcedureStub<>(zeze, name, func, argumentClass, resultClass)))
+			throw new RuntimeException("duplicate Onz Procedure Name=" + name);
+	}
+
+	public <A extends Bean, R extends Bean> void registerSaga(
+			Application zeze,
+			String name, OnzFuncConfirm<A, R> func, OnzFuncCancel funcCancel,
+			Class<A> argumentClass, Class<R> resultClass) {
+
+		if (null != procedureStubs.putIfAbsent(name,
+				new OnzSagaStub<>(zeze, name, func, argumentClass, resultClass, funcCancel)))
 			throw new RuntimeException("duplicate Onz Procedure Name=" + name);
 	}
 

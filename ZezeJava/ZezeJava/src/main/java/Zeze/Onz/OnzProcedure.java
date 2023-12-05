@@ -9,45 +9,12 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 
 public class OnzProcedure implements FuncLong {
-	public static class Stub<A extends Bean, R extends Bean> {
-		private final Application zeze;
-		private final String name;
-		private final FuncRemote<A, R> func;
-		private final Class<A> argumentClass;
-		private final Class<R> resultClass;
-
-		public Stub(Application zeze, String name, FuncRemote<A, R> func, Class<A> argumentClass, Class<R> resultClass) {
-			this.zeze = zeze;
-			this.name = name;
-			this.func = func;
-			this.argumentClass = argumentClass;
-			this.resultClass = resultClass;
-		}
-
-		public Procedure newZezeProcedure(long onzTid, IByteBuffer buffer) throws Exception {
-			var a = argumentClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
-			var r = resultClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
-			a.decode(buffer);
-			return zeze.newProcedure(new OnzProcedure(onzTid, this, a, r), name);
-		}
-
-		public String getName() {
-			return name;
-		}
-
-		// 类型具体化辅助函数
-		@SuppressWarnings("unchecked")
-		public long call(Bean argument, Bean result) throws Exception {
-			return func.call((A)argument, (R)result);
-		}
-	}
-
 	private final long onzTid;
-	private final Stub<?, ?> stub;
+	private final OnzProcedureStub<?, ?> stub;
 	private final Bean argument;
 	private final Bean result;
 
-	public OnzProcedure(long onzTid, Stub<?, ?> stub, Bean argument, Bean result) {
+	public OnzProcedure(long onzTid, OnzProcedureStub<?, ?> stub, Bean argument, Bean result) {
 		this.onzTid = onzTid;
 		this.stub = stub;
 		this.argument = argument;
@@ -56,6 +23,18 @@ public class OnzProcedure implements FuncLong {
 
 	public long getOnzTid() {
 		return onzTid;
+	}
+
+	public OnzProcedureStub<?, ?> getStub() {
+		return stub;
+	}
+
+	public Bean getArgument() {
+		return argument;
+	}
+
+	public Bean getResult() {
+		return result;
 	}
 
 	@Override
@@ -69,7 +48,7 @@ public class OnzProcedure implements FuncLong {
 			throw new RuntimeException("no transaction.");
 		txn.setOnzProcedure(this);
 		try {
-			return stub.call(argument, result);
+			return stub.call(this, argument, result);
 		} finally {
 			txn.setOnzProcedure(null);
 		}
@@ -83,11 +62,11 @@ public class OnzProcedure implements FuncLong {
 		// 发送事务执行阶段的两段式提交的准备完成，同时等待一起提交的信号。
 	}
 
-	private void sendFlushReady() {
+	protected void sendFlushReady() {
 		// 发送事务保存阶段的两段式提交的准备完成，同时等待一起提交的信号。
 	}
 
-	private void flushWait() {
+	protected void flushWait() {
 
 	}
 
