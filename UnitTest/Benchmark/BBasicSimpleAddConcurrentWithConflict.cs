@@ -9,7 +9,7 @@ namespace Benchmark
     [TestClass]
     public class BBasicSimpleAddConcurrentWithConflict
     {
-        public const int AddCount = 1_0_000;
+        public const int AddCount = 100_0000;
         public const int ConcurrentLevel = 1_000;
         [TestMethod]
         public void testBenchmark() {
