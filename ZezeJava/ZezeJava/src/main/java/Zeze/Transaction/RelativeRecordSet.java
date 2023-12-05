@@ -181,7 +181,7 @@ public final class RelativeRecordSet {
 					// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
 					var checkpoint = procedure.getZeze().getCheckpoint();
 					if (checkpoint != null) {
-						procedure.getZeze().getOnzManager().markRrs(mergedSet, onzProcedure);
+						procedure.getZeze().getOnz().markRrs(mergedSet, onzProcedure);
 						checkpoint.relativeRecordSetMap.add(mergedSet);
 					}
 				}

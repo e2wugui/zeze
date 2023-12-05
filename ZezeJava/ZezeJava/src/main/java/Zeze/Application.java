@@ -19,7 +19,7 @@ import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.Hot.HotHandle;
 import Zeze.Hot.HotManager;
 import Zeze.Hot.HotUpgradeMemoryTable;
-import Zeze.Onz.OnzManager;
+import Zeze.Onz.Onz;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Daemon;
 import Zeze.Services.GlobalCacheManagerWithRaftAgent;
@@ -88,7 +88,7 @@ public final class Application {
 	public RedirectBase redirect;
 
 	private Auth auth;
-	private final OnzManager onzManager = new OnzManager();
+	private Onz onz;
 
 	private final HotHandle<EventDispatcher.EventHandle> hotHandle = new HotHandle<>();
 
@@ -96,8 +96,8 @@ public final class Application {
 		return hotHandle;
 	}
 
-	public OnzManager getOnzManager() {
-		return onzManager;
+	public Onz getOnz() {
+		return onz;
 	}
 
 	public void enableAuth() {
@@ -192,6 +192,8 @@ public final class Application {
 			autoKeyOld = new AutoKeyOld.Module(this);
 			queueModule = new Zeze.Collections.Queue.Module(this);
 			delayRemove = new DelayRemove(this);
+
+			onz = new Onz(this);
 		}
 	}
 
@@ -641,11 +643,18 @@ public final class Application {
 			}
 			if (null != deadlockBreaker)
 				deadlockBreaker.start();
+			if (null != onz)
+				onz.start();
 		} else
 			startState = StartState.eStarted;
 	}
 
 	public synchronized void stop() throws Exception {
+		if (null != onz) {
+			onz.stop();
+			onz = null;
+		}
+
 		if (null != deadlockBreaker) {
 			this.deadlockBreaker.shutdown();
 			deadlockBreaker = null;
