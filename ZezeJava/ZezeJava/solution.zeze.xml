@@ -1986,6 +1986,7 @@
 			<enum name="eSagaNotFound" value="2"/>
 			<enum name="eSagaTidExist" value="3"/>
 			<enum name="eOnzTidNotFound" value="4"/>
+			<enum name="eRollback" value="5"/>
 			
 			<enum name="eFlushAsync" value="1"/>
 			<enum name="eFlushImmediately" value="2"/>
