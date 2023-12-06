@@ -11,6 +11,7 @@ import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * see zeze/README.md -> 18) 事务提交模式
@@ -36,19 +37,19 @@ public final class RelativeRecordSet {
 		return mergeTo;
 	}
 
-	/*
-	Set<OnzProcedure> onzProcedures = Set.of();
+	private Set<OnzProcedure> onzProcedures;
 
-	public Set<OnzProcedure> getOnzProcedures() {
+	public @Nullable Set<OnzProcedure> getOnzProcedures() {
 		return onzProcedures;
 	}
 
-	public void addOnzProcedures(@NotNull OnzProcedure onzProcedures) {
-		if (this.onzProcedures.isEmpty())
-			this.onzProcedures = new HashSet<>();
-		this.onzProcedures.add(onzProcedures);
+	public void addOnzProcedures(@Nullable OnzProcedure onzProcedure) {
+		if (null != onzProcedure){
+			if (null == onzProcedures)
+				onzProcedures = new HashSet<>();
+			onzProcedures.add(onzProcedure);
+		}
 	}
-	*/
 
 	private void merge(Record r) {
 		//if (r.getRelativeRecordSet().RecordSet != null)
@@ -79,6 +80,12 @@ public final class RelativeRecordSet {
 		for (var r : rrs.recordSet) {
 			recordSet.add(r);
 			r.setRelativeRecordSet(this);
+		}
+
+		if (null != rrs.onzProcedures) {
+			if (null == this.onzProcedures)
+				this.onzProcedures = new HashSet<>();
+			this.onzProcedures.addAll(rrs.onzProcedures);
 		}
 
 		rrs.mergeTo = this;
@@ -173,10 +180,11 @@ public final class RelativeRecordSet {
 			if (!locked.isEmpty()) {
 				var mergedSet = _merge_(locked, trans, allRead);
 				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
+				mergedSet.addOnzProcedures(onzProcedure);
 				if (needFlushNow) {
 					var checkpoint = procedure.getZeze().getCheckpoint();
 					if (checkpoint != null)
-						checkpoint.flush(mergedSet, onzProcedure);
+						checkpoint.flush(mergedSet);
 					mergedSet.delete();
 					//logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
 				} else if (mergedSet.recordSet != null) {
@@ -184,8 +192,6 @@ public final class RelativeRecordSet {
 					// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
 					var checkpoint = procedure.getZeze().getCheckpoint();
 					if (checkpoint != null) {
-						// Onz.FlushPeriod 模式需要，暂不支持。
-						// procedure.getZeze().getOnz().markRrs(mergedSet, onzProcedure);
 						checkpoint.relativeRecordSetMap.add(mergedSet);
 					}
 				}
@@ -477,7 +483,7 @@ public final class RelativeRecordSet {
 		rrs.lock();
 		try {
 			if (rrs.mergeTo == null) {
-				checkpoint.flush(rrs, null);
+				checkpoint.flush(rrs);
 				rrs.delete();
 			}
 			checkpoint.relativeRecordSetMap.remove(rrs);
@@ -582,7 +588,7 @@ public final class RelativeRecordSet {
 		try {
 			if (rrs.mergeTo == null) {
 				if (rrs.recordSet != null) { // 孤立记录不用保存，肯定没有修改。
-					checkpoint.flush(rrs, null);
+					checkpoint.flush(rrs);
 					rrs.delete();
 				}
 				return null;

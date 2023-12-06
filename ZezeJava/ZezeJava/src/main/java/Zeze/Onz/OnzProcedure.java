@@ -102,17 +102,18 @@ public class OnzProcedure implements FuncLong {
 	}
 
 	// helper
-	// 注意参数是一个集合是为了实现eFlushPeriod准备的，历史原因。现在不实现了，本质上只需要传递一个可为空的OnzProcedure变量即可。
 	public static void sendFlushAndWait(Set<OnzProcedure> onzProcedures) {
-		// send all
-		var futures = new ArrayList<TaskCompletionSource<Long>>();
-		for (var onz : onzProcedures) {
-			if (null != onz && onz.isEnd())
-				futures.add(onz.sendFlushReady());
-		}
-		// wait all
-		for (var future : futures) {
-			future.await();
+		if (null != onzProcedures) {
+			// send all
+			var futures = new ArrayList<TaskCompletionSource<Long>>();
+			for (var onz : onzProcedures) {
+				if (null != onz && onz.isEnd())
+					futures.add(onz.sendFlushReady());
+			}
+			// wait all
+			for (var future : futures) {
+				future.await();
+			}
 		}
 	}
 }
