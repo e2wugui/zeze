@@ -1,5 +1,6 @@
 package Zeze.Onz;
 
+import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Bean;
 
 /**
@@ -20,6 +21,10 @@ public class OnzServer {
 		return onzAgent;
 	}
 
+	public AsyncSocket getZezeInstance(String zezeName) {
+		return null; // todo
+	}
+
 	public void perform(String name, OnzFuncTransaction func) {
 		perform(name, func, Onz.eFlushImmediately, null, null);
 	}
@@ -31,10 +36,14 @@ public class OnzServer {
 	public void perform(String name, OnzFuncTransaction func, int flushMode, Bean argument, Bean result) {
 		var t = new OnzTransaction(this, name, func, flushMode, argument, result);
 		try {
+			onzAgent.addTransaction(t);
 			t.perform();
-			t.commit();
+			t.commit(); // todo sage不需要，怎么识别;
+			t.waitFlushDone();
 		} catch (Throwable ex) {
 			t.rollback();
+		} finally {
+			onzAgent.removeTransaction(t);
 		}
 	}
 }

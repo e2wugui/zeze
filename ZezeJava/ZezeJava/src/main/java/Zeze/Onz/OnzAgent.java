@@ -16,6 +16,15 @@ import Zeze.Util.TaskCompletionSource;
 public class OnzAgent extends AbstractOnzAgent {
 	private final LongConcurrentHashMap<OnzTransaction> transactions = new LongConcurrentHashMap<>();
 
+	void addTransaction(OnzTransaction t) {
+		if (null != transactions.putIfAbsent(t.getOnzTid(), t))
+			throw new RuntimeException("duplication onzTransactionTid=" + t.getOnzTid());
+	}
+
+	void removeTransaction(OnzTransaction t) {
+		transactions.remove(t.getOnzTid());
+	}
+
 	@Override
 	protected long ProcessReadyRequest(Ready r) throws Exception {
 		var pending = transactions.get(r.Argument.getOnzTid());
