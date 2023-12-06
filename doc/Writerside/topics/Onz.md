@@ -20,14 +20,16 @@ Onz支持两段式提交模式和Saga模式两种分布式事务。
 * Saga的优点是对相关Zeze集群几乎没有影响。
 * Saga的缺点是需要支持取消，对能支持的逻辑功能有一定限制。
 
-## 安全等级
+## 保存模式
 Flush是保存事务到后端数据库的Zeze叫法。
 
 * FlushAsync
 
 Onz分布式事务只提交到Zeze集群的缓存中，没有立即保存到后端数据库。不同步保存行为，
 以后每个Zeze集群自由的选择自己的保存时间。显然，如果某个Zeze服务在保存前宕机，
-那么它上面的事务修改就没有保存，会丢失，造成数据不一致。
+那么它上面的事务修改就没有保存，会丢失，造成数据不一致。这个模式看起来不好用，
+但是由于这个系统基于java，意料之外的宕机很少发生，所以也具备了一定的可用性。
+对完整性要求不高，性能要求很高的功能可以采用。
 
 * FlushImmediately
 
@@ -61,7 +63,7 @@ Onz按两段式或者Saga模式实现事务执行阶段，但没有马上保存�
 
 ## Api
 
-### OnzProcedure(Zeze内实现)
+### OnzProcedure(在Zeze服武器内实现)
 * 两段式实现注册
 ```
 public <A extends Bean, R extends Bean> void register(
@@ -77,13 +79,12 @@ public <A extends Bean, R extends Bean> void registerSaga(
             Class<A> argumentClass, Class<R> resultClass)
 ```
 
-### OnzTransaction
+### OnzTransaction(OnzServer的实现)
 ```
 // todo 还没有完全设计好
 public interface OnzTransaction {
     String getName();
-    int getLevel();
-    int getFlushLevel();
+    int getFlushMode();
     long perform() throws Exception;
 }
 ```

@@ -1985,11 +1985,17 @@
 			<enum name="eProcedureNotFound" value="1"/>
 			<enum name="eSagaNotFound" value="2"/>
 			<enum name="eSagaTidExist" value="3"/>
+			<enum name="eOnzTidNotFound" value="4"/>
 			
+			<enum name="eFlushAsync" value="1"/>
+			<enum name="eFlushImmediately" value="2"/>
+			<!-- <enum name="eFlushPeriod" value="3"/> --> 有问题，不实现
+
 			<bean name="BFuncProcedure">
 				<variable id="1" name="OnzTid" type="long"/>
 				<variable id="2" name="FuncName" type="string"/>
 				<variable id="3" name="FuncArgument" type="binary"/>
+				<variable id="4" name="FlushMode" type="int"/>
 			</bean>
 
 			<bean name="BFuncProcedureResult">
@@ -2002,6 +2008,7 @@
 				<variable id="1" name="OnzTid" type="long"/>
 				<variable id="2" name="FuncName" type="string"/>
 				<variable id="3" name="FuncArgument" type="binary"/>
+				<variable id="4" name="FlushMode" type="int"/>
 			</bean>
 
 			<bean name="BFuncSagaResult">
@@ -2010,15 +2017,26 @@
 
 			<rpc name="FuncSaga" argument="BFuncSaga" result="BFuncSagaResult" handle="server"/>
 
-			<bean name="BFuncSagaCancel">
+			<bean name="BFuncSagaEnd">
 				<variable id="1" name="OnzTid" type="long"/>
 				<variable id="2" name="Cancel" type="bool"/>
 			</bean>
 
-			<bean name="BFuncSagaCancelResult">
+			<bean name="BFuncSagaEndResult">
 			</bean>
 
-			<rpc name="FuncSagaCancel" argument="BFuncSagaCancel" result="BFuncSagaCancelResult" handle="server"/>
+			<rpc name="FuncSagaEnd" argument="BFuncSagaEnd" result="BFuncSagaEndResult" handle="server"/>
+			
+			<!-- 2段提交相关控制协议 -->
+			<bean name="BReady">
+				<variable id="1" name="OnzTid" type="long"/>
+			</bean>
+			<rpc name="Ready" argument="BReady" handle="client"/>
+
+			<bean name="BFlushReady">
+				<variable id="1" name="OnzTid" type="long"/>
+			</bean>
+			<rpc name="FlushReady" argument="BFlushReady" handle="client"/>
 		</module>
 
 		<!--

@@ -36,6 +36,7 @@ public final class RelativeRecordSet {
 		return mergeTo;
 	}
 
+	/*
 	Set<OnzProcedure> onzProcedures = Set.of();
 
 	public Set<OnzProcedure> getOnzProcedures() {
@@ -47,6 +48,7 @@ public final class RelativeRecordSet {
 			this.onzProcedures = new HashSet<>();
 		this.onzProcedures.add(onzProcedures);
 	}
+	*/
 
 	private void merge(Record r) {
 		//if (r.getRelativeRecordSet().RecordSet != null)
@@ -114,19 +116,20 @@ public final class RelativeRecordSet {
 			if (checkpoint != null)
 				checkpoint.flush(trans, onzProcedure);
 			// 这种模式下 RelativeRecordSet 都是空的。
-			return;
+			return; // done
 
 		case Period:
+			if (null != onzProcedure)
+				throw new RuntimeException("Onz Procedure Not Supported On Period Mode.");
 			commit.run();
-			// 这种模式下 RelativeRecordSet 都是空的。
-			return;
+			return; // done
 
 		default:
 			break;
 		}
 
 		// CheckpointMode.Table
-		boolean needFlushNow = false;
+		boolean needFlushNow = onzProcedure != null; // 此参数存在即表示Onz.eFlushImmediately。
 		boolean allCheckpointWhenCommit = true;
 
 		var all = new TreeMap<Long, RelativeRecordSet>();
@@ -173,7 +176,7 @@ public final class RelativeRecordSet {
 				if (needFlushNow) {
 					var checkpoint = procedure.getZeze().getCheckpoint();
 					if (checkpoint != null)
-						checkpoint.flush(mergedSet);
+						checkpoint.flush(mergedSet, onzProcedure);
 					mergedSet.delete();
 					//logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
 				} else if (mergedSet.recordSet != null) {
@@ -181,7 +184,8 @@ public final class RelativeRecordSet {
 					// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
 					var checkpoint = procedure.getZeze().getCheckpoint();
 					if (checkpoint != null) {
-						procedure.getZeze().getOnz().markRrs(mergedSet, onzProcedure);
+						// Onz.FlushPeriod 模式需要，暂不支持。
+						// procedure.getZeze().getOnz().markRrs(mergedSet, onzProcedure);
 						checkpoint.relativeRecordSetMap.add(mergedSet);
 					}
 				}
@@ -431,12 +435,12 @@ public final class RelativeRecordSet {
 					nr += rrs.recordSet.size();
 				}
 				var rs = new ArrayList<Record>(nr);
-				var onzProcedures = new HashSet<OnzProcedure>(nr);
+				var onzProcedures = new HashSet<OnzProcedure>();
 				for (var rrs : sortedRrs.values()) {
 					if (rrs.mergeTo != null)
 						continue; // merged or deleted
 					rs.addAll(rrs.recordSet);
-					onzProcedures.addAll(rrs.getOnzProcedures());
+					//onzProcedures.addAll(rrs.getOnzProcedures());
 				}
 				/*
 				var debug = new java.util.HashMap<String, ArrayList<Object>>();
@@ -473,7 +477,7 @@ public final class RelativeRecordSet {
 		rrs.lock();
 		try {
 			if (rrs.mergeTo == null) {
-				checkpoint.flush(rrs);
+				checkpoint.flush(rrs, null);
 				rrs.delete();
 			}
 			checkpoint.relativeRecordSetMap.remove(rrs);
@@ -578,7 +582,7 @@ public final class RelativeRecordSet {
 		try {
 			if (rrs.mergeTo == null) {
 				if (rrs.recordSet != null) { // 孤立记录不用保存，肯定没有修改。
-					checkpoint.flush(rrs);
+					checkpoint.flush(rrs, null);
 					rrs.delete();
 				}
 				return null;

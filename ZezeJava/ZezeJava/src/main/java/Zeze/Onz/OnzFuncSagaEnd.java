@@ -1,6 +1,6 @@
 package Zeze.Onz;
 
 @FunctionalInterface
-public interface OnzFuncSagaCancel {
+public interface OnzFuncSagaEnd {
 	long call(OnzSaga saga) throws Exception;
 }

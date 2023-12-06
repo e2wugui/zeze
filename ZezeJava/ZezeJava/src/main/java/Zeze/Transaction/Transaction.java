@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
+import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.PerfCounter;
@@ -396,8 +397,11 @@ public final class Transaction {
 
 	private void finalCommit(@NotNull Procedure procedure) {
 		// onz patch: onz事务执行阶段的2段式同步等待。
+		OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
 		if (null != onzProcedure) {
 			onzProcedure.sendReadyAndWait();
+			if (onzProcedure.getFlushMode() != Onz.eFlushAsync)
+				flushMode = onzProcedure;
 		}
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		// 可以在最终提交里可以实现每事务checkpoint。
@@ -428,7 +432,7 @@ public final class Transaction {
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
 			}
-		}, onzProcedure); // onz patch: 新增参数
+		}, flushMode); // onz patch: 新增参数
 
 		// 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
 		// 不再支持在回调中再次执行事务。

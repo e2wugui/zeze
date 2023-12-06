@@ -5,46 +5,46 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
-public final class BFuncSagaCancelResult extends Zeze.Transaction.Bean implements BFuncSagaCancelResultReadOnly {
-    public static final long TYPEID = 5696458544197081816L;
+public final class BFuncSagaEndResult extends Zeze.Transaction.Bean implements BFuncSagaEndResultReadOnly {
+    public static final long TYPEID = 2922016010361722937L;
 
     @SuppressWarnings("deprecation")
-    public BFuncSagaCancelResult() {
+    public BFuncSagaEndResult() {
     }
 
     @Override
-    public Zeze.Builtin.Onz.BFuncSagaCancelResult.Data toData() {
-        var data = new Zeze.Builtin.Onz.BFuncSagaCancelResult.Data();
+    public Zeze.Builtin.Onz.BFuncSagaEndResult.Data toData() {
+        var data = new Zeze.Builtin.Onz.BFuncSagaEndResult.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Onz.BFuncSagaCancelResult.Data)other);
+        assign((Zeze.Builtin.Onz.BFuncSagaEndResult.Data)other);
     }
 
-    public void assign(BFuncSagaCancelResult.Data other) {
+    public void assign(BFuncSagaEndResult.Data other) {
         _unknown_ = null;
     }
 
-    public void assign(BFuncSagaCancelResult other) {
+    public void assign(BFuncSagaEndResult other) {
         _unknown_ = other._unknown_;
     }
 
-    public BFuncSagaCancelResult copyIfManaged() {
+    public BFuncSagaEndResult copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BFuncSagaCancelResult copy() {
-        var copy = new BFuncSagaCancelResult();
+    public BFuncSagaEndResult copy() {
+        var copy = new BFuncSagaEndResult();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BFuncSagaCancelResult a, BFuncSagaCancelResult b) {
-        BFuncSagaCancelResult save = a.copy();
+    public static void swap(BFuncSagaEndResult a, BFuncSagaEndResult b) {
+        BFuncSagaEndResult save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -63,7 +63,7 @@ public final class BFuncSagaCancelResult extends Zeze.Transaction.Bean implement
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BFuncSagaCancelResult: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BFuncSagaEndResult: {").append(System.lineSeparator());
         level += 4;
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -125,7 +125,7 @@ public final class BFuncSagaCancelResult extends Zeze.Transaction.Bean implement
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = 5696458544197081816L;
+    public static final long TYPEID = 2922016010361722937L;
 
     @SuppressWarnings("deprecation")
     public Data() {
@@ -136,31 +136,31 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public Zeze.Builtin.Onz.BFuncSagaCancelResult toBean() {
-        var bean = new Zeze.Builtin.Onz.BFuncSagaCancelResult();
+    public Zeze.Builtin.Onz.BFuncSagaEndResult toBean() {
+        var bean = new Zeze.Builtin.Onz.BFuncSagaEndResult();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BFuncSagaCancelResult)other);
+        assign((BFuncSagaEndResult)other);
     }
 
-    public void assign(BFuncSagaCancelResult other) {
+    public void assign(BFuncSagaEndResult other) {
     }
 
-    public void assign(BFuncSagaCancelResult.Data other) {
+    public void assign(BFuncSagaEndResult.Data other) {
     }
 
     @Override
-    public BFuncSagaCancelResult.Data copy() {
-        var copy = new BFuncSagaCancelResult.Data();
+    public BFuncSagaEndResult.Data copy() {
+        var copy = new BFuncSagaEndResult.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BFuncSagaCancelResult.Data a, BFuncSagaCancelResult.Data b) {
+    public static void swap(BFuncSagaEndResult.Data a, BFuncSagaEndResult.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -172,8 +172,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BFuncSagaCancelResult.Data clone() {
-        return (BFuncSagaCancelResult.Data)super.clone();
+    public BFuncSagaEndResult.Data clone() {
+        return (BFuncSagaEndResult.Data)super.clone();
     }
 
     @Override
@@ -185,7 +185,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BFuncSagaCancelResult: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BFuncSagaEndResult: {").append(System.lineSeparator());
         level += 4;
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');

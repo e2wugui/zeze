@@ -368,10 +368,10 @@ public final class Checkpoint {
 	}
 
 	// under lock(rs)
-	public void flush(RelativeRecordSet rs) {
+	public void flush(RelativeRecordSet rs, OnzProcedure onzProcedure) {
 		// rs.MergeTo == null &&  check outside
 		if (rs.getRecordSet() != null) {
-			flush(rs.getRecordSet(), rs.getOnzProcedures());
+			flush(rs.getRecordSet(), null != onzProcedure ? Set.of(onzProcedure) : Set.of());
 			for (var r : rs.getRecordSet()) {
 				r.setDirty(false);
 			}

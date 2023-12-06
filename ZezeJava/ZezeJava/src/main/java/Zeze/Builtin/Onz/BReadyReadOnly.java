@@ -1,12 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Onz;
 
-public interface BFuncSagaCancelReadOnly {
+// 2段提交相关控制协议
+public interface BReadyReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BFuncSagaCancel copy();
+    BReady copy();
 
     long getOnzTid();
-    boolean isCancel();
 }

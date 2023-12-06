@@ -6,13 +6,12 @@ import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.RelativeRecordSet;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
 
 public class Onz extends AbstractOnz {
     private final ConcurrentHashMap<String, OnzProcedureStub<?, ?>> procedureStubs = new ConcurrentHashMap<>();
-    private final LongConcurrentHashMap<RelativeRecordSet> onzRrs = new LongConcurrentHashMap<>();
+    //private final LongConcurrentHashMap<RelativeRecordSet> onzRrs = new LongConcurrentHashMap<>();
     private final LongConcurrentHashMap<OnzSaga> sagas = new LongConcurrentHashMap<>();
     private final OnzService service;
 
@@ -54,7 +53,7 @@ public class Onz extends AbstractOnz {
 
     public <A extends Bean, R extends Bean> void registerSaga(
             Application zeze,
-            String name, OnzFuncSaga<A, R> func, OnzFuncSagaCancel funcCancel,
+            String name, OnzFuncSaga<A, R> func, OnzFuncSagaEnd funcCancel,
             Class<A> argumentClass, Class<R> resultClass) {
 
         if (null != procedureStubs.putIfAbsent(name,
@@ -62,22 +61,25 @@ public class Onz extends AbstractOnz {
             throw new RuntimeException("duplicate Onz Procedure Name=" + name);
     }
 
+    // FlushPeriod 需要实现时再来完善这个。
+    /*
     public void markRrs(RelativeRecordSet rrs, OnzProcedure onzProcedure) {
         if (null != onzProcedure) {
             rrs.addOnzProcedures(onzProcedure);
-            // todo 这里标记并记录rrs相关信息，
+            // 这里标记并记录rrs相关信息，
             //  用来在任意一个zeze集群发起rrs.flush的时候，
             //  能通知到相关onz，onz能追溯到这个onz事务相关的其他zeze集群，
             //  最终让其他相关的zeze集群也同步开始flush。
             //  因为不同的zeze集群的rrs.flush时机是没有统一控制的。
             //  这个追溯流程有点复杂，看看实现上有没有更好的方法。
-            // todo 这里的代码随便写的。
-            // todo onzRrs 的删除：准备采取不严格定时扫描检测删除，严格生命期需要侵入到原来zeze的代码，怕有遗漏。
+            // 这里的代码随便写的。
+            // onzRrs 的删除：准备采取不严格定时扫描检测删除，严格生命期需要侵入到原来zeze的代码，怕有遗漏。
             for (var onz : rrs.getOnzProcedures()) {
                 onzRrs.put(onz.getOnzTid(), rrs);
             }
         }
     }
+    */
 
     @Override
     protected long ProcessFuncProcedureRequest(Zeze.Builtin.Onz.FuncProcedure r) throws Exception {
@@ -85,7 +87,7 @@ public class Onz extends AbstractOnz {
         if (stub == null)
             return errorCode(eProcedureNotFound);
         var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
-        var procedure = stub.newProcedure(r.Argument.getOnzTid(), buffer);
+        var procedure = stub.newProcedure(r.getSender(), r.Argument.getOnzTid(), r.Argument.getFlushMode(), buffer);
         var rc = Task.call(stub.getZeze().newProcedure(procedure, procedure.getName()));
         if (rc != 0)
             return rc;
@@ -104,7 +106,7 @@ public class Onz extends AbstractOnz {
             return errorCode(eProcedureNotFound);
 
         var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
-        var procedure = stub.newProcedure(r.Argument.getOnzTid(), buffer);
+        var procedure = stub.newProcedure(r.getSender(), r.Argument.getOnzTid(), r.Argument.getFlushMode(), buffer);
         if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), (OnzSaga)procedure))
             return errorCode(eSagaTidExist);
 
@@ -120,7 +122,7 @@ public class Onz extends AbstractOnz {
     }
 
     @Override
-    protected long ProcessFuncSagaCancelRequest(Zeze.Builtin.Onz.FuncSagaCancel r) {
+    protected long ProcessFuncSagaEndRequest(Zeze.Builtin.Onz.FuncSagaEnd r) {
         var context = sagas.remove(r.Argument.getOnzTid());
         if (context == null)
             return errorCode(eSagaNotFound);
@@ -131,6 +133,7 @@ public class Onz extends AbstractOnz {
             if (rc != 0)
                 return rc;
         }
+        context.setEnd();
 
         r.SendResult();
         return 0;

@@ -14,9 +14,19 @@ public abstract class AbstractOnz implements Zeze.IModule {
     public static final int eProcedureNotFound = 1;
     public static final int eSagaNotFound = 2;
     public static final int eSagaTidExist = 3;
+    public static final int eOnzTidNotFound = 4;
+    public static final int eFlushAsync = 1;
+    public static final int eFlushImmediately = 2;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.FlushReady.class, Zeze.Builtin.Onz.FlushReady.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Onz.FlushReady::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessFlushReadyResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessFlushReadyResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47410000793930L, factoryHandle); // 11038, -2143186614
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.FuncProcedure.class, Zeze.Builtin.Onz.FuncProcedure.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Onz.FuncProcedure::new;
@@ -34,19 +44,28 @@ public abstract class AbstractOnz implements Zeze.IModule {
             service.AddFactoryHandle(47411539774123L, factoryHandle); // 11038, -604206421
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.FuncSagaCancel.class, Zeze.Builtin.Onz.FuncSagaCancel.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Onz.FuncSagaCancel::new;
-            factoryHandle.Handle = this::ProcessFuncSagaCancelRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessFuncSagaCancelRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessFuncSagaCancelRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47410516942946L, factoryHandle); // 11038, -1627037598
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.FuncSagaEnd.class, Zeze.Builtin.Onz.FuncSagaEnd.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Onz.FuncSagaEnd::new;
+            factoryHandle.Handle = this::ProcessFuncSagaEndRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessFuncSagaEndRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessFuncSagaEndRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47409308020494L, factoryHandle); // 11038, 1459007246
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.Ready.class, Zeze.Builtin.Onz.Ready.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Onz.Ready::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReadyResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReadyResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47410769183880L, factoryHandle); // 11038, -1374796664
         }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47410000793930L);
         service.getFactorys().remove(47410672249436L);
         service.getFactorys().remove(47411539774123L);
-        service.getFactorys().remove(47410516942946L);
+        service.getFactorys().remove(47409308020494L);
+        service.getFactorys().remove(47410769183880L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -60,5 +79,5 @@ public abstract class AbstractOnz implements Zeze.IModule {
 
     protected abstract long ProcessFuncProcedureRequest(Zeze.Builtin.Onz.FuncProcedure r) throws Exception;
     protected abstract long ProcessFuncSagaRequest(Zeze.Builtin.Onz.FuncSaga r) throws Exception;
-    protected abstract long ProcessFuncSagaCancelRequest(Zeze.Builtin.Onz.FuncSagaCancel r) throws Exception;
+    protected abstract long ProcessFuncSagaEndRequest(Zeze.Builtin.Onz.FuncSagaEnd r) throws Exception;
 }

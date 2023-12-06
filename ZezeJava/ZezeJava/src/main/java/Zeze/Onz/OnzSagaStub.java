@@ -1,18 +1,18 @@
 package Zeze.Onz;
 
 import Zeze.Application;
+import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Procedure;
 
 public class OnzSagaStub<A extends Bean, R extends Bean> extends OnzProcedureStub<A, R> {
 	private final OnzFuncSaga<A, R> func;
-	private final OnzFuncSagaCancel funcCancel;
+	private final OnzFuncSagaEnd funcCancel;
 
 	public OnzSagaStub(Application zeze,
 					   String name,
 					   OnzFuncSaga<A, R> func, Class<A> argumentClass, Class<R> resultClass,
-					   OnzFuncSagaCancel funcCancel) {
+					   OnzFuncSagaEnd funcCancel) {
 		// super.func 在saga模式下未用。
 		super(zeze, name, null, argumentClass, resultClass);
 		this.func = func;
@@ -20,11 +20,11 @@ public class OnzSagaStub<A extends Bean, R extends Bean> extends OnzProcedureStu
 	}
 
 	@Override
-	public OnzProcedure newProcedure(long onzTid, IByteBuffer buffer) throws Exception {
+	public OnzProcedure newProcedure(AsyncSocket onzServer, long onzTid, int flushMode, IByteBuffer buffer) throws Exception {
 		var a = super.getArgumentClass().getConstructor((Class<?>[])null).newInstance((Object[])null);
 		var r = super.getResultClass().getConstructor((Class<?>[])null).newInstance((Object[])null);
 		a.decode(buffer);
-		return new OnzSaga(onzTid, this, a, r);
+		return new OnzSaga(onzServer, onzTid, flushMode,this, a, r);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -34,7 +34,7 @@ public class OnzSagaStub<A extends Bean, R extends Bean> extends OnzProcedureStu
 	}
 
 	@Override
-	public long cancel(OnzProcedure onzProcedure) throws Exception {
+	public long end(OnzProcedure onzProcedure) throws Exception {
 		return funcCancel.call((OnzSaga)onzProcedure);
 	}
 }

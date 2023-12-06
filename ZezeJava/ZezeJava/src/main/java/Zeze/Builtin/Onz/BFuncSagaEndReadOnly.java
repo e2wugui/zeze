@@ -1,15 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Onz;
 
-// saga confirm
-public interface BFuncSagaReadOnly {
+public interface BFuncSagaEndReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BFuncSaga copy();
+    BFuncSagaEnd copy();
 
     long getOnzTid();
-    String getFuncName();
-    Zeze.Net.Binary getFuncArgument();
-    int getFlushMode();
+    boolean isCancel();
 }
