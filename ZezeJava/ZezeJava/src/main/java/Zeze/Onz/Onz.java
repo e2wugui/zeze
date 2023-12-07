@@ -10,6 +10,8 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
 
 public class Onz extends AbstractOnz {
+    public static final String eServiceName = "Onz";
+
     private final ConcurrentHashMap<String, OnzProcedureStub<?, ?>> procedureStubs = new ConcurrentHashMap<>();
     private final LongConcurrentHashMap<OnzSaga> sagas = new LongConcurrentHashMap<>();
     private final OnzService service;
@@ -22,7 +24,8 @@ public class Onz extends AbstractOnz {
     }
 
     public Onz(Application zeze) {
-        if (null != zeze.getConfig().getServiceConf(OnzService.eName)) {
+        var config = zeze.getConfig();
+        if (null != config.getServiceConf(OnzService.eName)) {
             service = new OnzService(zeze);
             RegisterProtocols(service);
         } else {
@@ -31,8 +34,16 @@ public class Onz extends AbstractOnz {
     }
 
     public void start() throws Exception {
-        if (null != service)
+        if (null != service) {
             service.start();
+            var kv = service.getOneAcceptorAddress();
+            var ip = kv.getKey();
+            var port = kv.getValue();
+            var zeze = service.getZeze();
+            var config = zeze.getConfig();
+            var identity = String.valueOf(config.getServerId());
+            zeze.getServiceManager().registerService(eServiceName, identity, ip, port);
+        }
     }
 
     public void stop() throws Exception {
