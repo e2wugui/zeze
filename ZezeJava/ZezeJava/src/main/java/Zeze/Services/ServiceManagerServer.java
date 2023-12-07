@@ -719,10 +719,15 @@ public final class ServiceManagerServer implements Closeable {
 		this(ipaddress, port, config, -1);
 	}
 
-	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port, @NotNull Config config, int startNotifyDelay)
-			throws Exception {
-		PerfCounter.instance.tryStartScheduledLog();
+	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
+								@NotNull Config config, int startNotifyDelay) throws Exception{
+		this(ipaddress, port, config, startNotifyDelay, "autokeys");
+	}
 
+	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
+								@NotNull Config config, int startNotifyDelay,
+								String autokeys) throws Exception {
+		PerfCounter.instance.tryStartScheduledLog();
 		config.parseCustomize(this.conf);
 
 		if (startNotifyDelay >= 0)
@@ -765,7 +770,7 @@ public final class ServiceManagerServer implements Closeable {
 		threading = new ThreadingServer(server, conf);
 		threading.RegisterProtocols(server);
 
-		autoKeysDb = RocksDatabase.open(Path.of(this.conf.dbHome, "autokeys").toString());
+		autoKeysDb = RocksDatabase.open(Path.of(this.conf.dbHome, autokeys).toString());
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		serverSocket = server.newServerSocket(ipaddress, port,
@@ -904,6 +909,8 @@ public final class ServiceManagerServer implements Closeable {
 
 		String raftName = null;
 		String raftConf = "servicemanager.raft.xml";
+		String autokeys = "autokeys";
+		int startNotifyDelay = -1;
 
 		Task.tryInitThreadPool();
 
@@ -925,6 +932,12 @@ public final class ServiceManagerServer implements Closeable {
 				i++;
 				// ThreadPool.SetMinThreads(int.Parse(args[i]), completionPortThreads);
 				break;
+			case "-autokeys":
+				autokeys = args[++i];
+				break;
+			case "-startNotifyDelay":
+				startNotifyDelay = Integer.parseInt(args[++i]);
+				break;
 			default:
 				throw new IllegalArgumentException("unknown argument: " + args[i]);
 			}
@@ -935,7 +948,7 @@ public final class ServiceManagerServer implements Closeable {
 			var conf = new ServiceManagerServer.Conf();
 			var config = Config.load();
 			config.parseCustomize(conf);
-			try (var ignored = new ServiceManagerServer(address, port, config)) {
+			try (var ignored = new ServiceManagerServer(address, port, config, startNotifyDelay, autokeys)) {
 				synchronized (Thread.currentThread()) {
 					Thread.currentThread().wait();
 				}

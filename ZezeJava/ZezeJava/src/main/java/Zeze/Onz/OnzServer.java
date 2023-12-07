@@ -14,6 +14,8 @@ import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Procedure;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * 开发onz服务器基础
@@ -23,6 +25,8 @@ import Zeze.Transaction.Procedure;
  * 不同的server实例功能可以交叉也可以完全不同，
  */
 public class OnzServer extends AbstractOnz {
+	private static final Logger logger = LogManager.getLogger();
+
 	private final OnzAgent onzAgent = new OnzAgent();
 	private final boolean sharedServiceManager;
 	private final ConcurrentHashMap<String, AbstractAgent> zezes = new ConcurrentHashMap<>();
@@ -52,6 +56,13 @@ public class OnzServer extends AbstractOnz {
 			var serviceManager = Application.createServiceManager(zezeConfig, "OnzServerServiceManager");
 			if (serviceManager == null)
 				throw new RuntimeException("serviceManager not found for " + zezeNameAndConfig[0] + " zezes=" + zezeConfigs);
+			serviceManager.start();
+			try {
+				serviceManager.waitReady();
+			} catch (Exception ignored) {
+				// raft 版第一次等待由于选择leader原因肯定会失败一次。
+				serviceManager.waitReady();
+			}
 			serviceManager.subscribeService(Onz.eServiceName, BSubscribeInfo.SubscribeTypeSimple);
 			this.zezes.put(zezeNameAndConfig[0], serviceManager);
 		}
@@ -81,6 +92,13 @@ public class OnzServer extends AbstractOnz {
 		var serviceManager = Application.createServiceManager(config, "OnzServerServiceManager");
 		if (serviceManager == null)
 			throw new RuntimeException("create ServiceManager fail. " + sharedZezeConfig);
+		serviceManager.start();
+		try {
+			serviceManager.waitReady();
+		} catch (Exception ignored) {
+			// raft 版第一次等待由于选择leader原因肯定会失败一次。
+			serviceManager.waitReady();
+		}
 		var zezeArray = specialZezeNames.split(";");
 		for (var zeze : zezeArray) {
 			if (this.zezes.containsKey(zeze))
@@ -176,13 +194,13 @@ public class OnzServer extends AbstractOnz {
 				txn.commit();
 				txn.waitFlushDone();
 				return 0;
-			} else {
-				txn.rollback();
 			}
+			txn.rollback();
 			return rc;
 
 		} catch (Throwable ex) {
 			txn.rollback();
+			logger.error("", ex);
 			return Procedure.Exception;
 
 		} finally {

@@ -13,6 +13,17 @@
 	</bean>
 
 	<module name="Module1" id="1"> module的注释
+		<bean name="BKuafu" UseData="true">
+			<variable id="1" name="Account" type="long"/>
+			<variable id="2" name="Money" type="long"/>
+		</bean>
+
+		<bean name="BKuafuResult" UseData="true">
+			<variable id="1" name="Money" type="long"/>
+		</bean>
+
+		<table name="tKuafu" key="long" value="BKuafu" />
+
 		<bean name="BTestSchemas">
 			<variable id="1" name="Var1" type="long"/>
 			<variable id="2" name="Var2" type="long"/>

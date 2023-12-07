@@ -17,6 +17,10 @@ public class ModuleModule1 extends AbstractModule {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
+	public tKuafu getKuafu() {
+		return _tKuafu;
+	}
+
 	public static @NotNull Data createDataFromSpecialTypeId(long typeId) {
 		return beanFactory.createDataFromSpecialTypeId(typeId);
 	}
