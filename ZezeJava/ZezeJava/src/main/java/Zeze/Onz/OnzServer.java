@@ -2,12 +2,18 @@ package Zeze.Onz;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
+import Zeze.Builtin.Onz.FuncProcedure;
+import Zeze.Builtin.Onz.FuncSaga;
+import Zeze.Builtin.Onz.FuncSagaEnd;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Net.Connector;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
-import Zeze.Transaction.Bean;
+import Zeze.Transaction.Data;
+import Zeze.Transaction.Procedure;
 
 /**
  * 开发onz服务器基础
@@ -16,11 +22,13 @@ import Zeze.Transaction.Bean;
  * 允许多个server实例，
  * 不同的server实例功能可以交叉也可以完全不同，
  */
-public class OnzServer {
+public class OnzServer extends AbstractOnz {
 	private final OnzAgent onzAgent = new OnzAgent();
 	private final boolean sharedServiceManager;
 	private final ConcurrentHashMap<String, AbstractAgent> zezes = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Connector> instances = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, OnzTransactionStub<?, ?>> remoteStubs = new ConcurrentHashMap<>();
+	private final OnzServerService service;
 
 	/**
 	 * 每个zeze集群使用独立的ServiceManager实例时，使用这个方法构造OnzServer。
@@ -32,7 +40,7 @@ public class OnzServer {
 	 * 以后用于Onz分布式事务的调用。
 	 * 需要唯一。
 	 */
-	public OnzServer(String zezeConfigs) throws Exception {
+	public OnzServer(String zezeConfigs, Config myConfig) throws Exception {
 		var zezesArray = zezeConfigs.split(";");
 		for (var zeze : zezesArray) {
 			var zezeNameAndConfig = zeze.split("=");
@@ -48,6 +56,17 @@ public class OnzServer {
 			this.zezes.put(zezeNameAndConfig[0], serviceManager);
 		}
 		this.sharedServiceManager = false;
+
+		service = new OnzServerService(myConfig);
+		RegisterProtocols(service);
+	}
+
+	public void start() throws Exception {
+		service.start();
+	}
+
+	public void stop() throws Exception {
+		service.stop();
 	}
 
 	/**
@@ -57,7 +76,7 @@ public class OnzServer {
 	 * @param sharedZezeConfig 共享的ServiceManager配置
 	 * @param specialZezeNames 共享配置时，已经配置成不同的zeze集群的唯一名字的列表，OnzServer不再自定义命名。
 	 */
-	public OnzServer(String sharedZezeConfig, String specialZezeNames) throws Exception {
+	public OnzServer(String sharedZezeConfig, String specialZezeNames, Config myConfig) throws Exception {
 		var config = Config.load(sharedZezeConfig);
 		var serviceManager = Application.createServiceManager(config, "OnzServerServiceManager");
 		if (serviceManager == null)
@@ -70,6 +89,8 @@ public class OnzServer {
 		}
 		this.sharedServiceManager = true;
 		serviceManager.subscribeService(Onz.eServiceName, BSubscribeInfo.SubscribeTypeSimple);
+		service = new OnzServerService(myConfig);
+		RegisterProtocols(service);
 	}
 
 	public OnzAgent getOnzAgent() {
@@ -111,33 +132,91 @@ public class OnzServer {
 		return connector.GetReadySocket();
 	}
 
-	public void perform(String name, OnzFuncTransaction func) {
-		perform(name, func, Onz.eFlushImmediately, 10_000, null, null);
+	/**
+	 * 独立进程运行OnzServer时需要注册。
+	 * 嵌入时不用注册。
+	 */
+	public <A extends Data, R extends Data> void register(Class<OnzTransaction<?, ?>> txnClass,
+														  Class<A> argumentClass, Class<R> resultClass) {
+		if (null != remoteStubs.putIfAbsent(txnClass.getName(),
+				new OnzTransactionStub<>(this, argumentClass, resultClass)))
+			throw new RuntimeException("duplicate OnzTransaction Name=" + txnClass.getName());
 	}
 
-	public void perform(String name, OnzFuncTransaction func, int flushMode) {
-		perform(name, func, flushMode, 10_000, null, null);
+	/**
+	 * Class.forName & set ; 主动创建并且控制txn的初始化。
+	 * 由于嵌入时，本地是知道className的，可以直接new出来，
+	 * 以获得更大灵活度。
+	 */
+	public static <A extends Data, R extends Data> OnzTransaction<A, R> createTransaction(
+			String name, OnzServer onzServer, A argument, R result) throws Exception {
+
+		@SuppressWarnings("unchecked")
+		var cls = (Class<OnzTransaction<A, R>>)Class.forName(name);
+		var txn = cls.getConstructor((Class<?>[])null).newInstance((Object[])null);
+		txn.setOnzServer(onzServer);
+		txn.setArgument(argument);
+		txn.setResult(result);
+		return txn;
 	}
 
-	public void perform(String name, OnzFuncTransaction func, int flushMode, int flushTimeout) {
-		perform(name, func, flushMode, flushTimeout, null, null);
-	}
-
-	public void perform(String name, OnzFuncTransaction func, int flushMode, int flushTimeout, Bean argument, Bean result) {
-		var t = new OnzTransaction(this, name, func, flushMode, flushTimeout, argument, result);
+	/**
+	 * 执行onz分布式事务。
+	 *
+	 * 1. 自行决定txn的创建和初始化。
+	 * 2. 可以不通过A,R结构传递参数和结果，完全自定义实现。
+	 * 3. 设置其他onz事务的控制参数。如flushMode,flushTimeout等。
+	 */
+	public long perform(OnzTransaction<?, ?> txn) {
 		try {
-			onzAgent.addTransaction(t);
-			if (0 == t.perform()) {
-				t.waitPendingAsync();
-				t.commit();
-				t.waitFlushDone();
+			onzAgent.addTransaction(txn);
+			var rc = txn.perform();
+			if (0 == rc) {
+				txn.waitPendingAsync();
+				txn.commit();
+				txn.waitFlushDone();
+				return 0;
 			} else {
-				t.rollback();
+				txn.rollback();
 			}
+			return rc;
+
 		} catch (Throwable ex) {
-			t.rollback();
+			txn.rollback();
+			return Procedure.Exception;
+
 		} finally {
-			onzAgent.removeTransaction(t);
+			onzAgent.removeTransaction(txn);
 		}
+	}
+
+	@Override
+	protected long ProcessFuncProcedureRequest(FuncProcedure r) throws Exception {
+		// 这个本来是嵌入zeze的组件Onz的处理协议，直接拿来作为OnzServer的远程调用，够用，还超了一点。
+		var stub = remoteStubs.get(r.Argument.getFuncName());
+		if (stub == null)
+			return errorCode(eProcedureNotFound);
+
+		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
+		var txn = stub.createTransaction(r.Argument.getFuncName(), buffer);
+		var rc = perform(txn);
+		if (0 != rc)
+			return rc;
+
+		var bbResult = ByteBuffer.Allocate();
+		txn.getResult().encode(bbResult);
+		r.Result.setFuncResult(new Binary(bbResult));
+		r.SendResult();
+		return 0;
+	}
+
+	@Override
+	protected long ProcessFuncSagaRequest(FuncSaga r) throws Exception {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	protected long ProcessFuncSagaEndRequest(FuncSagaEnd r) throws Exception {
+		throw new UnsupportedOperationException();
 	}
 }

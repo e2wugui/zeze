@@ -21,11 +21,11 @@ public class OnzProcedureStub<A extends Bean, R extends Bean> {
 		this.resultClass = resultClass;
 	}
 
-	public OnzProcedure newProcedure(AsyncSocket onzServer, BFuncProcedure.Data argument, IByteBuffer buffer) throws Exception {
+	public OnzProcedure newProcedure(AsyncSocket onzServer, BFuncProcedure.Data funcArgument, IByteBuffer buffer) throws Exception {
 		var a = argumentClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 		var r = resultClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 		a.decode(buffer);
-		return new OnzProcedure(onzServer, argument,this, a, r);
+		return new OnzProcedure(onzServer, funcArgument,this, a, r);
 	}
 
 	public Application getZeze() {

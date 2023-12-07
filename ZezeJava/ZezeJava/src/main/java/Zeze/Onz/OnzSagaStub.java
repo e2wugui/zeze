@@ -25,11 +25,11 @@ public class OnzSagaStub<A extends Bean, R extends Bean, T extends Bean> extends
 	}
 
 	@Override
-	public OnzProcedure newProcedure(AsyncSocket onzServer, BFuncProcedure.Data argument, IByteBuffer buffer) throws Exception {
+	public OnzProcedure newProcedure(AsyncSocket onzServer, BFuncProcedure.Data funcArgument, IByteBuffer buffer) throws Exception {
 		var a = super.getArgumentClass().getConstructor((Class<?>[])null).newInstance((Object[])null);
 		var r = super.getResultClass().getConstructor((Class<?>[])null).newInstance((Object[])null);
 		a.decode(buffer);
-		return new OnzSaga(onzServer, argument,this, a, r);
+		return new OnzSaga(onzServer, funcArgument,this, a, r);
 	}
 
 	@SuppressWarnings("unchecked")

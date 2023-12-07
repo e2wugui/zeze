@@ -7,7 +7,7 @@ import Zeze.Builtin.Onz.Ready;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Transaction.Data;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.TaskCompletionSource;
 
@@ -43,7 +43,7 @@ public class OnzAgent extends AbstractOnzAgent {
 		return 0;
 	}
 
-	static <A extends Bean, R extends Bean> TaskCompletionSource<R>
+	static <A extends Data, R extends Data> TaskCompletionSource<R>
 	callProcedureAsync(OnzTransaction pending,
 					   AsyncSocket zezeOnzInstance,
 					   String onzProcedureName, A argument, R result, int flushMode) {
@@ -73,7 +73,7 @@ public class OnzAgent extends AbstractOnzAgent {
 		return future;
 	}
 
-	static <A extends Bean, R extends Bean> TaskCompletionSource<R>
+	static <A extends Data, R extends Data> TaskCompletionSource<R>
 	callSagaAsync(OnzTransaction pending,
 				  AsyncSocket zezeOnzInstance,
 				  String onzProcedureName, A argument, R result, int flushMode) {

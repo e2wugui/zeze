@@ -9,23 +9,22 @@ import Zeze.Builtin.Onz.Ready;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Rpc;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Data;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class OnzTransaction {
+public abstract class OnzTransaction<A extends Data, R extends Data> {
 	protected static final Logger logger = LogManager.getLogger();
 
-	private final OnzServer onzServer;
-	private final String name;
-	private final OnzFuncTransaction func;
-	private final int flushMode;
-	private final int flushTimeout;
-	private final Bean argument;
-	private final Bean result;
+	private OnzServer onzServer;
+	private int flushMode = Onz.eFlushImmediately;
+	private int flushTimeout = 10_000;
+	private A argument;
+	private R result;
 	private boolean pendingAsync = false;
 
 	synchronized void waitPendingAsync() throws InterruptedException {
@@ -39,25 +38,10 @@ public class OnzTransaction {
 		this.notify();
 	}
 
-	OnzTransaction(OnzServer onzServer,
-						  String name, OnzFuncTransaction func,
-						  int flushMode, int flushTimeout,
-						  Bean argument, Bean result) {
+	protected abstract long perform() throws Exception;
+
+	public void setOnzServer(OnzServer onzServer) {
 		this.onzServer = onzServer;
-		this.name = name;
-		this.func = func;
-		this.flushMode = flushMode;
-		this.flushTimeout = flushTimeout;
-		this.argument = argument;
-		this.result = result;
-	}
-
-	long perform() throws Exception {
-		return this.func.perform(this);
-	}
-
-	public String getName() {
-		return name;
 	}
 
 	public int getFlushMode() {
@@ -68,23 +52,39 @@ public class OnzTransaction {
 		return flushTimeout;
 	}
 
-	public Bean getArgument() {
+	public A getArgument() {
 		return argument;
 	}
 
-	public Bean getResult() {
+	public R getResult() {
 		return result;
 	}
 
+	public void setFlushMode(int flushMode) {
+		this.flushMode = flushMode;
+	}
+
+	public void setFlushTimeout(int flushTimeout) {
+		this.flushTimeout = flushTimeout;
+	}
+
+	public void setArgument(A argument) {
+		this.argument = argument;
+	}
+
+	public void setResult(R result) {
+		this.result = result;
+	}
+
 	// 远程调用辅助函数
-	public <A extends Bean, R extends Bean> TaskCompletionSource<R>
-		callProcedureAsync(String zezeName, String onzProcedureName, A argument, R result) {
+	public <A2 extends Data, R2 extends Data> TaskCompletionSource<R2>
+		callProcedureAsync(String zezeName, String onzProcedureName, A2 argument, R2 result) {
 		// procedure sage 互斥。
 		if (!zezeSagas.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. saga has called.");
 		var zezeInstance = onzServer.getZezeInstance(zezeName);
 		// 限制每个zeze集群最多一个调用.
-		var newCall = new OutObject<TaskCompletionSource<R>>();
+		var newCall = new OutObject<TaskCompletionSource<R2>>();
 		zezeProcedures.computeIfAbsent(zezeInstance, __ -> newCall.value
 				= OnzAgent.callProcedureAsync(
 				this, zezeInstance, onzProcedureName, argument, result, flushMode));
@@ -93,14 +93,14 @@ public class OnzTransaction {
 		return newCall.value;
 	}
 
-	public <A extends Bean, R extends Bean> TaskCompletionSource<R>
-		callSagaAsync(String zezeName, String onzProcedureName, A argument, R result) {
+	public <A2 extends Data, R2 extends Data> TaskCompletionSource<R2>
+		callSagaAsync(String zezeName, String onzProcedureName, A2 argument, R2 result) {
 		// procedure sage 互斥。
 		if (!zezeProcedures.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. procedure has called.");
 		var zezeInstance = onzServer.getZezeInstance(zezeName);
 		// 限制每个zeze集群最多一个调用.
-		var newCall = new OutObject<TaskCompletionSource<R>>();
+		var newCall = new OutObject<TaskCompletionSource<R2>>();
 		zezeSagas.computeIfAbsent(zezeInstance, __ -> newCall.value
 				= OnzAgent.callSagaAsync(
 					this, zezeInstance, onzProcedureName, argument, result, flushMode));
