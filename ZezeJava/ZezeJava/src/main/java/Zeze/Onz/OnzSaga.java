@@ -1,15 +1,21 @@
 package Zeze.Onz;
 
+import Zeze.Builtin.Onz.BFuncProcedure;
 import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Bean;
 
 public class OnzSaga extends OnzProcedure {
 	private boolean end = false;
+	private final long startTime = System.currentTimeMillis();
 
 	public OnzSaga(AsyncSocket onzServer,
-				   long onzTid, int flushMode,
-				   OnzSagaStub<?, ?> stub, Bean argument, Bean result) {
-		super(onzServer, onzTid, flushMode, stub, argument, result);
+				   BFuncProcedure.Data funcArgument,
+				   OnzSagaStub<?, ?, ?> stub, Bean argument, Bean result) {
+		super(onzServer, funcArgument, stub, argument, result);
+	}
+
+	public long getStartTime() {
+		return startTime;
 	}
 
 	@Override

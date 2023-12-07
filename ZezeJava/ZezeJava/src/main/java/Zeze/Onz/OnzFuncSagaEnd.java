@@ -1,6 +1,8 @@
 package Zeze.Onz;
 
+import Zeze.Transaction.Bean;
+
 @FunctionalInterface
-public interface OnzFuncSagaEnd {
-	long call(OnzSaga saga) throws Exception;
+public interface OnzFuncSagaEnd<A extends Bean> {
+	long call(OnzSaga saga, A cancelArgument) throws Exception;
 }

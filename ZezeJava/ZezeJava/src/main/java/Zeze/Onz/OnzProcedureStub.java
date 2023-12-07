@@ -1,6 +1,7 @@
 package Zeze.Onz;
 
 import Zeze.Application;
+import Zeze.Builtin.Onz.BFuncProcedure;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -20,11 +21,11 @@ public class OnzProcedureStub<A extends Bean, R extends Bean> {
 		this.resultClass = resultClass;
 	}
 
-	public OnzProcedure newProcedure(AsyncSocket onzServer, long onzTid, int flushMode, IByteBuffer buffer) throws Exception {
+	public OnzProcedure newProcedure(AsyncSocket onzServer, BFuncProcedure.Data argument, IByteBuffer buffer) throws Exception {
 		var a = argumentClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 		var r = resultClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 		a.decode(buffer);
-		return new OnzProcedure(onzServer, onzTid, flushMode,this, a, r);
+		return new OnzProcedure(onzServer, argument,this, a, r);
 	}
 
 	public Application getZeze() {
@@ -47,10 +48,5 @@ public class OnzProcedureStub<A extends Bean, R extends Bean> {
 	@SuppressWarnings("unchecked")
 	public long call(OnzProcedure onzProcedure, Bean argument, Bean result) throws Exception {
 		return func.call(onzProcedure, (A)argument, (R)result);
-	}
-
-	// 用于saga
-	public long end(OnzProcedure onzProcedure) throws Exception {
-		throw new UnsupportedOperationException(name);
 	}
 }

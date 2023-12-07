@@ -23,21 +23,36 @@ public class OnzTransaction {
 	private final String name;
 	private final OnzFuncTransaction func;
 	private final int flushMode;
+	private final int flushTimeout;
 	private final Bean argument;
 	private final Bean result;
+	private boolean pendingAsync = false;
 
-	public OnzTransaction(OnzServer onzServer,
+	synchronized void waitPendingAsync() throws InterruptedException {
+		while (pendingAsync) {
+			this.wait();
+		}
+	}
+
+	public synchronized void setPendingAsync(boolean pending) {
+		this.pendingAsync = pending;
+		this.notify();
+	}
+
+	OnzTransaction(OnzServer onzServer,
 						  String name, OnzFuncTransaction func,
-						  int flushMode, Bean argument, Bean result) {
+						  int flushMode, int flushTimeout,
+						  Bean argument, Bean result) {
 		this.onzServer = onzServer;
 		this.name = name;
 		this.func = func;
 		this.flushMode = flushMode;
+		this.flushTimeout = flushTimeout;
 		this.argument = argument;
 		this.result = result;
 	}
 
-	public long perform() throws Exception {
+	long perform() throws Exception {
 		return this.func.perform(this);
 	}
 
@@ -47,6 +62,10 @@ public class OnzTransaction {
 
 	public int getFlushMode() {
 		return flushMode;
+	}
+
+	public int getFlushTimeout() {
+		return flushTimeout;
 	}
 
 	public Bean getArgument() {
@@ -59,7 +78,7 @@ public class OnzTransaction {
 
 	// 远程调用辅助函数
 	public <A extends Bean, R extends Bean> TaskCompletionSource<R>
-	callProcedureAsync(String zezeName, String onzProcedureName, A argument, R result) {
+		callProcedureAsync(String zezeName, String onzProcedureName, A argument, R result) {
 		// procedure sage 互斥。
 		if (!zezeSagas.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. saga has called.");
@@ -67,7 +86,7 @@ public class OnzTransaction {
 		// 限制每个zeze集群最多一个调用.
 		var newCall = new OutObject<TaskCompletionSource<R>>();
 		zezeProcedures.computeIfAbsent(zezeInstance, __ -> newCall.value
-				= onzServer.getOnzAgent().callProcedureAsync(
+				= OnzAgent.callProcedureAsync(
 				this, zezeInstance, onzProcedureName, argument, result, flushMode));
 		if (newCall.value == null)
 			throw new RuntimeException("too many funcProcedure on same zezeInstance.");
@@ -75,7 +94,7 @@ public class OnzTransaction {
 	}
 
 	public <A extends Bean, R extends Bean> TaskCompletionSource<R>
-	callSagaAsync(String zezeName, String onzProcedureName, A argument, R result) {
+		callSagaAsync(String zezeName, String onzProcedureName, A argument, R result) {
 		// procedure sage 互斥。
 		if (!zezeProcedures.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. procedure has called.");
@@ -83,7 +102,7 @@ public class OnzTransaction {
 		// 限制每个zeze集群最多一个调用.
 		var newCall = new OutObject<TaskCompletionSource<R>>();
 		zezeSagas.computeIfAbsent(zezeInstance, __ -> newCall.value
-				= onzServer.getOnzAgent().callSagaAsync(
+				= OnzAgent.callSagaAsync(
 					this, zezeInstance, onzProcedureName, argument, result, flushMode));
 		if (newCall.value == null)
 			throw new RuntimeException("too many funcSaga on same zezeInstance.");
@@ -111,7 +130,7 @@ public class OnzTransaction {
 			try {
 				saga.get();
 			} catch (InterruptedException | ExecutionException e) {
-				logger.error("future.await", e);
+				logger.error("await saga result.", e);
 			}
 		}
 		var futures = new ArrayList<TaskCompletionSource<?>>();
@@ -123,14 +142,19 @@ public class OnzTransaction {
 					futures.add(r.SendForWait(e.getKey()));
 				}
 			} catch (InterruptedException | ExecutionException ex) {
-				logger.error("future.get.", ex);
+				logger.error("cancel if saga success.", ex);
 			}
 		}
-		for (var future : futures)
-			future.await();
+		for (var future : futures) {
+			try {
+				future.get();
+			} catch (InterruptedException | ExecutionException e) {
+				logger.error("await cancel result.", e);
+			}
+		}
 	}
 
-	public void commit() throws ExecutionException, InterruptedException {
+	void commit() throws ExecutionException, InterruptedException {
 		// 对于saga，readies是空的。
 		for (var ready : readies)
 			ready.SendResult();
@@ -139,7 +163,7 @@ public class OnzTransaction {
 		endSaga();
 	}
 
-	public void rollback() {
+	void rollback() {
 		// 对于saga，readies是空的。
 		for (var ready : readies)
 			ready.trySendResultCode(IModule.errorCode(Onz.ModuleId, Onz.eRollback));
@@ -148,12 +172,9 @@ public class OnzTransaction {
 		cancelSaga();
 	}
 
-	public void waitFlushDone() {
+	void waitFlushDone() {
 		if (flushMode == Onz.eFlushImmediately)
 			flushDone.await();
-		// todo
-		//  1. zeze.flush阶段抛出异常怎么处理？
-		//  2. onzSerer错误？
 	}
 
 	private final long onzTid = 0; // allocate todo
@@ -169,11 +190,11 @@ public class OnzTransaction {
 		return onzTid;
 	}
 
-	public void trySetReady(Ready r) {
+	void trySetReady(Ready r) {
 		readies.add(r);
 	}
 
-	public void trySetFlushReady(FlushReady r) {
+	void trySetFlushReady(FlushReady r) {
 		flushReadies.add(r);
 
 		if (flushReadies.size() == zezeProcedures.size() || flushReadies.size() == zezeSagas.size()) {

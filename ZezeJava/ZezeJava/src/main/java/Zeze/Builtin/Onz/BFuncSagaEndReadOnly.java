@@ -9,4 +9,5 @@ public interface BFuncSagaEndReadOnly {
 
     long getOnzTid();
     boolean isCancel();
+    Zeze.Net.Binary getFuncArgument();
 }

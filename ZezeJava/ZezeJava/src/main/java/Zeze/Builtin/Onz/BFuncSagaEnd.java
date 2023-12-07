@@ -10,6 +10,7 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
 
     private long _OnzTid;
     private boolean _Cancel;
+    private Zeze.Net.Binary _FuncArgument;
 
     @Override
     public long getOnzTid() {
@@ -51,20 +52,47 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         txn.putLog(new Log__Cancel(this, 2, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BFuncSagaEnd() {
+    @Override
+    public Zeze.Net.Binary getFuncArgument() {
+        if (!isManaged())
+            return _FuncArgument;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _FuncArgument;
+        var log = (Log__FuncArgument)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _FuncArgument;
+    }
+
+    public void setFuncArgument(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _FuncArgument = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__FuncArgument(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BFuncSagaEnd(long _OnzTid_, boolean _Cancel_) {
+    public BFuncSagaEnd() {
+        _FuncArgument = Zeze.Net.Binary.Empty;
+    }
+
+    @SuppressWarnings("deprecation")
+    public BFuncSagaEnd(long _OnzTid_, boolean _Cancel_, Zeze.Net.Binary _FuncArgument_) {
         _OnzTid = _OnzTid_;
         _Cancel = _Cancel_;
+        if (_FuncArgument_ == null)
+            _FuncArgument_ = Zeze.Net.Binary.Empty;
+        _FuncArgument = _FuncArgument_;
     }
 
     @Override
     public void reset() {
         setOnzTid(0);
         setCancel(false);
+        setFuncArgument(Zeze.Net.Binary.Empty);
         _unknown_ = null;
     }
 
@@ -83,12 +111,14 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
     public void assign(BFuncSagaEnd.Data other) {
         setOnzTid(other._OnzTid);
         setCancel(other._Cancel);
+        setFuncArgument(other._FuncArgument);
         _unknown_ = null;
     }
 
     public void assign(BFuncSagaEnd other) {
         setOnzTid(other.getOnzTid());
         setCancel(other.isCancel());
+        setFuncArgument(other.getFuncArgument());
         _unknown_ = other._unknown_;
     }
 
@@ -128,6 +158,13 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         public void commit() { ((BFuncSagaEnd)getBelong())._Cancel = value; }
     }
 
+    private static final class Log__FuncArgument extends Zeze.Transaction.Logs.LogBinary {
+        public Log__FuncArgument(BFuncSagaEnd bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BFuncSagaEnd)getBelong())._FuncArgument = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -140,7 +177,8 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BFuncSagaEnd: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("OnzTid=").append(getOnzTid()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Cancel=").append(isCancel()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Cancel=").append(isCancel()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("FuncArgument=").append(getFuncArgument()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -187,6 +225,13 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
                 _o_.WriteByte(1);
             }
         }
+        {
+            var _x_ = getFuncArgument();
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -202,6 +247,10 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         }
         if (_i_ == 2) {
             setCancel(_o_.ReadBool(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setFuncArgument(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -226,6 +275,7 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
             switch (vlog.getVariableId()) {
                 case 1: _OnzTid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _Cancel = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 3: _FuncArgument = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }
@@ -235,6 +285,9 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setOnzTid(rs.getLong(_parents_name_ + "OnzTid"));
         setCancel(rs.getBoolean(_parents_name_ + "Cancel"));
+        setFuncArgument(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "FuncArgument")));
+        if (getFuncArgument() == null)
+            setFuncArgument(Zeze.Net.Binary.Empty);
     }
 
     @Override
@@ -242,6 +295,7 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "OnzTid", getOnzTid());
         st.appendBoolean(_parents_name_ + "Cancel", isCancel());
+        st.appendBinary(_parents_name_ + "FuncArgument", getFuncArgument());
     }
 
     @Override
@@ -249,6 +303,7 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "OnzTid", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Cancel", "bool", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "FuncArgument", "binary", "", ""));
         return vars;
     }
 
@@ -258,6 +313,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private long _OnzTid;
     private boolean _Cancel;
+    private Zeze.Net.Binary _FuncArgument;
 
     public long getOnzTid() {
         return _OnzTid;
@@ -275,20 +331,35 @@ public static final class Data extends Zeze.Transaction.Data {
         _Cancel = value;
     }
 
-    @SuppressWarnings("deprecation")
-    public Data() {
+    public Zeze.Net.Binary getFuncArgument() {
+        return _FuncArgument;
+    }
+
+    public void setFuncArgument(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _FuncArgument = value;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _OnzTid_, boolean _Cancel_) {
+    public Data() {
+        _FuncArgument = Zeze.Net.Binary.Empty;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(long _OnzTid_, boolean _Cancel_, Zeze.Net.Binary _FuncArgument_) {
         _OnzTid = _OnzTid_;
         _Cancel = _Cancel_;
+        if (_FuncArgument_ == null)
+            _FuncArgument_ = Zeze.Net.Binary.Empty;
+        _FuncArgument = _FuncArgument_;
     }
 
     @Override
     public void reset() {
         _OnzTid = 0;
         _Cancel = false;
+        _FuncArgument = Zeze.Net.Binary.Empty;
     }
 
     @Override
@@ -306,11 +377,13 @@ public static final class Data extends Zeze.Transaction.Data {
     public void assign(BFuncSagaEnd other) {
         _OnzTid = other.getOnzTid();
         _Cancel = other.isCancel();
+        _FuncArgument = other.getFuncArgument();
     }
 
     public void assign(BFuncSagaEnd.Data other) {
         _OnzTid = other._OnzTid;
         _Cancel = other._Cancel;
+        _FuncArgument = other._FuncArgument;
     }
 
     @Override
@@ -348,7 +421,8 @@ public static final class Data extends Zeze.Transaction.Data {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BFuncSagaEnd: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("OnzTid=").append(_OnzTid).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Cancel=").append(_Cancel).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Cancel=").append(_Cancel).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("FuncArgument=").append(_FuncArgument).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -380,6 +454,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteByte(1);
             }
         }
+        {
+            var _x_ = _FuncArgument;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -393,6 +474,10 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 2) {
             _Cancel = _o_.ReadBool(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _FuncArgument = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

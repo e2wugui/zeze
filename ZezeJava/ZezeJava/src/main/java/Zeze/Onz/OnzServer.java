@@ -26,20 +26,28 @@ public class OnzServer {
 	}
 
 	public void perform(String name, OnzFuncTransaction func) {
-		perform(name, func, Onz.eFlushImmediately, null, null);
+		perform(name, func, Onz.eFlushImmediately, 10_000, null, null);
 	}
 
 	public void perform(String name, OnzFuncTransaction func, int flushMode) {
-		perform(name, func, flushMode, null, null);
+		perform(name, func, flushMode, 10_000, null, null);
 	}
 
-	public void perform(String name, OnzFuncTransaction func, int flushMode, Bean argument, Bean result) {
-		var t = new OnzTransaction(this, name, func, flushMode, argument, result);
+	public void perform(String name, OnzFuncTransaction func, int flushMode, int flushTimeout) {
+		perform(name, func, flushMode, flushTimeout, null, null);
+	}
+
+	public void perform(String name, OnzFuncTransaction func, int flushMode, int flushTimeout, Bean argument, Bean result) {
+		var t = new OnzTransaction(this, name, func, flushMode, flushTimeout, argument, result);
 		try {
 			onzAgent.addTransaction(t);
-			t.perform();
-			t.commit(); // todo sage不需要，怎么识别;
-			t.waitFlushDone();
+			if (0 == t.perform()) {
+				t.waitPendingAsync();
+				t.commit();
+				t.waitFlushDone();
+			} else {
+				t.rollback();
+			}
 		} catch (Throwable ex) {
 			t.rollback();
 		} finally {

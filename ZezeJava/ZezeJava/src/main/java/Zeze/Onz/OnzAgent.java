@@ -1,10 +1,8 @@
 package Zeze.Onz;
 
-import Zeze.Builtin.Onz.BFuncSagaEnd;
 import Zeze.Builtin.Onz.FlushReady;
 import Zeze.Builtin.Onz.FuncProcedure;
 import Zeze.Builtin.Onz.FuncSaga;
-import Zeze.Builtin.Onz.FuncSagaEnd;
 import Zeze.Builtin.Onz.Ready;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -45,7 +43,7 @@ public class OnzAgent extends AbstractOnzAgent {
 		return 0;
 	}
 
-	<A extends Bean, R extends Bean> TaskCompletionSource<R>
+	static <A extends Bean, R extends Bean> TaskCompletionSource<R>
 	callProcedureAsync(OnzTransaction pending,
 					   AsyncSocket zezeOnzInstance,
 					   String onzProcedureName, A argument, R result, int flushMode) {
@@ -55,6 +53,7 @@ public class OnzAgent extends AbstractOnzAgent {
 		r.Argument.setOnzTid(pending.getOnzTid());
 		r.Argument.setFuncName(onzProcedureName);
 		r.Argument.setFlushMode(flushMode);
+		r.Argument.setFlushTimeout(pending.getFlushTimeout());
 		var bbArgument = ByteBuffer.Allocate();
 		argument.encode(bbArgument);
 		r.Argument.setFuncArgument(new Binary(bbArgument));
@@ -74,7 +73,7 @@ public class OnzAgent extends AbstractOnzAgent {
 		return future;
 	}
 
-	<A extends Bean, R extends Bean> TaskCompletionSource<R>
+	static <A extends Bean, R extends Bean> TaskCompletionSource<R>
 	callSagaAsync(OnzTransaction pending,
 				  AsyncSocket zezeOnzInstance,
 				  String onzProcedureName, A argument, R result, int flushMode) {
@@ -84,6 +83,7 @@ public class OnzAgent extends AbstractOnzAgent {
 		r.Argument.setOnzTid(pending.getOnzTid());
 		r.Argument.setFuncName(onzProcedureName);
 		r.Argument.setFlushMode(flushMode);
+		r.Argument.setFlushTimeout(pending.getFlushTimeout());
 		var bbArgument = ByteBuffer.Allocate();
 		argument.encode(bbArgument);
 		r.Argument.setFuncArgument(new Binary(bbArgument));
@@ -97,23 +97,6 @@ public class OnzAgent extends AbstractOnzAgent {
 				future.setException(new RuntimeException(
 						"call error: " + onzProcedureName
 								+ " code=" + r.getResultCode()));
-			}
-			return 0;
-		});
-		return future;
-	}
-
-	TaskCompletionSource<BFuncSagaEnd.Data> callSagaEndAsync(OnzTransaction pending, AsyncSocket zezeOnzInstance) {
-
-		var future  = new TaskCompletionSource<BFuncSagaEnd.Data>();
-		var r = new FuncSagaEnd();
-		r.Argument.setOnzTid(pending.getOnzTid());
-
-		r.Send(zezeOnzInstance, (p) ->{
-			if (r.getResultCode() == 0) {
-				future.setResult(new BFuncSagaEnd.Data());
-			} else {
-				future.setException(new RuntimeException("call error: " + " code=" + r.getResultCode()));
 			}
 			return 0;
 		});

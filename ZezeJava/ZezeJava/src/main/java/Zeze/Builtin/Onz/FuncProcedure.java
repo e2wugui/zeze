@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Onz;
 
+// 两个rpc参数虽然完全一样，但开启的逻辑操作不同。
 public class FuncProcedure extends Zeze.Net.Rpc<Zeze.Builtin.Onz.BFuncProcedure.Data, Zeze.Builtin.Onz.BFuncProcedureResult.Data> {
     public static final int ModuleId_ = 11038;
     public static final int ProtocolId_ = -1471731108; // 2823236188

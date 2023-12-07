@@ -1997,32 +1997,24 @@
 				<variable id="2" name="FuncName" type="string"/>
 				<variable id="3" name="FuncArgument" type="binary"/>
 				<variable id="4" name="FlushMode" type="int"/>
+				<variable id="5" name="FlushTimeout" type="int"/>
 			</bean>
 
 			<bean name="BFuncProcedureResult">
 				<variable id="1" name="FuncResult" type="binary"/>
 			</bean>
 
+			<!-- 两个rpc参数虽然完全一样，但开启的逻辑操作不同。-->
 			<rpc name="FuncProcedure" argument="BFuncProcedure" result="BFuncProcedureResult" handle="server"/>
-
-			<bean name="BFuncSaga"> saga confirm
-				<variable id="1" name="OnzTid" type="long"/>
-				<variable id="2" name="FuncName" type="string"/>
-				<variable id="3" name="FuncArgument" type="binary"/>
-				<variable id="4" name="FlushMode" type="int"/>
-			</bean>
-
-			<bean name="BFuncSagaResult">
-				<variable id="1" name="FuncResult" type="binary"/>
-			</bean>
-
-			<rpc name="FuncSaga" argument="BFuncSaga" result="BFuncSagaResult" handle="server"/>
+			<rpc name="FuncSaga" argument="BFuncProcedure" result="BFuncProcedureResult" handle="server"/>
 
 			<bean name="BFuncSagaEnd">
 				<variable id="1" name="OnzTid" type="long"/>
 				<variable id="2" name="Cancel" type="bool"/>
+				<variable id="3" name="FuncArgument" type="binary"/>
 			</bean>
 
+			<!-- 保留这个结构，以后可能需要返回结果 -->
 			<bean name="BFuncSagaEndResult">
 			</bean>
 

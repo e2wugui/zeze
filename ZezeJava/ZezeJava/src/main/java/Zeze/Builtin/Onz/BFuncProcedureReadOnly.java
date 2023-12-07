@@ -12,4 +12,5 @@ public interface BFuncProcedureReadOnly {
     String getFuncName();
     Zeze.Net.Binary getFuncArgument();
     int getFlushMode();
+    int getFlushTimeout();
 }

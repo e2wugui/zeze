@@ -4,6 +4,7 @@ package Zeze.Builtin.Onz;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
+// 保留这个结构，以后可能需要返回结果
 @SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BFuncSagaEndResult extends Zeze.Transaction.Bean implements BFuncSagaEndResultReadOnly {
     public static final long TYPEID = 2922016010361722937L;
@@ -123,6 +124,7 @@ public final class BFuncSagaEndResult extends Zeze.Transaction.Bean implements B
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
     }
 
+// 保留这个结构，以后可能需要返回结果
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 2922016010361722937L;

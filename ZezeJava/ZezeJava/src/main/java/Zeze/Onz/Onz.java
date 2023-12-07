@@ -11,7 +11,6 @@ import Zeze.Util.Task;
 
 public class Onz extends AbstractOnz {
     private final ConcurrentHashMap<String, OnzProcedureStub<?, ?>> procedureStubs = new ConcurrentHashMap<>();
-    //private final LongConcurrentHashMap<RelativeRecordSet> onzRrs = new LongConcurrentHashMap<>();
     private final LongConcurrentHashMap<OnzSaga> sagas = new LongConcurrentHashMap<>();
     private final OnzService service;
 
@@ -51,13 +50,13 @@ public class Onz extends AbstractOnz {
             throw new RuntimeException("duplicate Onz Procedure Name=" + name);
     }
 
-    public <A extends Bean, R extends Bean> void registerSaga(
+    public <A extends Bean, R extends Bean, T extends Bean> void registerSaga(
             Application zeze,
-            String name, OnzFuncSaga<A, R> func, OnzFuncSagaEnd funcCancel,
-            Class<A> argumentClass, Class<R> resultClass) {
+            String name, OnzFuncSaga<A, R> func, OnzFuncSagaEnd<T> funcCancel,
+            Class<A> argumentClass, Class<R> resultClass, Class<T> cancelClass) {
 
         if (null != procedureStubs.putIfAbsent(name,
-                new OnzSagaStub<>(zeze, name, func, argumentClass, resultClass, funcCancel)))
+                new OnzSagaStub<>(zeze, name, func, argumentClass, resultClass, funcCancel, cancelClass)))
             throw new RuntimeException("duplicate Onz Procedure Name=" + name);
     }
 
@@ -67,7 +66,7 @@ public class Onz extends AbstractOnz {
         if (stub == null)
             return errorCode(eProcedureNotFound);
         var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
-        var procedure = stub.newProcedure(r.getSender(), r.Argument.getOnzTid(), r.Argument.getFlushMode(), buffer);
+        var procedure = stub.newProcedure(r.getSender(), r.Argument, buffer);
         var rc = Task.call(stub.getZeze().newProcedure(procedure, procedure.getName()));
         if (rc != 0)
             return rc;
@@ -86,7 +85,7 @@ public class Onz extends AbstractOnz {
             return errorCode(eProcedureNotFound);
 
         var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
-        var procedure = stub.newProcedure(r.getSender(), r.Argument.getOnzTid(), r.Argument.getFlushMode(), buffer);
+        var procedure = stub.newProcedure(r.getSender(), r.Argument, buffer);
         if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), (OnzSaga)procedure))
             return errorCode(eSagaTidExist);
 
@@ -102,14 +101,16 @@ public class Onz extends AbstractOnz {
     }
 
     @Override
-    protected long ProcessFuncSagaEndRequest(Zeze.Builtin.Onz.FuncSagaEnd r) {
+    protected long ProcessFuncSagaEndRequest(Zeze.Builtin.Onz.FuncSagaEnd r) throws Exception {
         var context = sagas.remove(r.Argument.getOnzTid());
         if (context == null)
             return errorCode(eSagaNotFound);
 
         // 没有设置cancel标志时，表示事务正常结束，用来删除sagas上下文。
         if (r.Argument.isCancel()) {
-            var rc = Task.call(context.getStub().getZeze().newProcedure(context, context.getName()));
+            var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
+            var cancelArgument = stub.decodeCancelArgument(r.Argument.getFuncArgument());
+            var rc = Task.call(stub.getZeze().newProcedure(() -> stub.end(context, cancelArgument), context.getName()));
             if (rc != 0)
                 return rc;
         }
