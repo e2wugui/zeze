@@ -3,6 +3,7 @@ package Zeze.Transaction.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.NoSuchElementException;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
@@ -142,62 +143,79 @@ public abstract class PList<V> extends Collection implements List<V> {
 
 	@Override
 	public @NotNull ListIterator<V> listIterator(int index) {
+		int size = size();
+		if (index < 0 || index > size)
+			throw new IndexOutOfBoundsException("invalid index = " + index + " (size = " + size + ')');
 		return new ListIterator<>() {
-			private final Iterator<V> it = getList().iterator();
-			private int index;
+			private int idx = index;
+			private int lastWay; // 1:next; 2:previous
 
 			@Override
 			public boolean hasNext() {
-				return it.hasNext();
+				return idx < size();
 			}
 
 			@Override
 			public V next() {
-				var v = it.next();
-				index = Math.abs(index) + 1;
+				int i = idx;
+				if (i >= size())
+					throw new NoSuchElementException();
+				V v = get(i++);
+				idx = i;
+				lastWay = 1;
 				return v;
 			}
 
 			@Override
 			public boolean hasPrevious() {
-				throw new UnsupportedOperationException();
+				return idx > 0;
 			}
 
 			@Override
 			public V previous() {
-				throw new UnsupportedOperationException();
+				int i = idx;
+				if (i <= 0)
+					throw new NoSuchElementException();
+				V v = get(--i);
+				idx = i;
+				lastWay = 2;
+				return v;
 			}
 
 			@Override
 			public int nextIndex() {
-				throw new UnsupportedOperationException();
+				return idx;
 			}
 
 			@Override
 			public int previousIndex() {
-				throw new UnsupportedOperationException();
+				return idx - 1;
 			}
 
 			@Override
 			public void remove() {
-				int i = index;
-				if (i <= 0)
-					throw new IllegalStateException(); // removed or not next
-				PList.this.remove(--i);
-				index = -i;
+				if (lastWay == 0)
+					throw new IllegalStateException();
+				if (lastWay == 1) // next
+					PList.this.remove(--idx);
+				else // previous
+					PList.this.remove(idx);
+				lastWay = 0;
 			}
 
 			@Override
 			public void set(V v) {
-				int i = index;
-				if (i <= 0)
-					throw new IllegalStateException(); // removed or not next
-				PList.this.set(i - 1, v);
+				if (lastWay == 0)
+					throw new IllegalStateException();
+				if (lastWay == 1) // next
+					PList.this.set(idx - 1, v);
+				else // previous
+					PList.this.set(idx, v);
 			}
 
 			@Override
 			public void add(V v) {
-				throw new UnsupportedOperationException();
+				PList.this.add(idx++, v);
 			}
 		};
 	}
