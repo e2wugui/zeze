@@ -3,6 +3,9 @@ package Zeze.Onz;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import Zeze.Builtin.Onz.Checkpoint;
 import Zeze.Builtin.Onz.FlushReady;
 import Zeze.Builtin.Onz.FuncSagaEnd;
 import Zeze.Builtin.Onz.Ready;
@@ -154,9 +157,13 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 	}
 
 	void commit() throws ExecutionException, InterruptedException {
-		// 对于saga，readies是空的。
+		// 对于saga，readies,zezeProcedures都是空的。
+		if (readies.size() < zezeProcedures.size())
+			throw new RuntimeException("not enough readies");
+
 		for (var r : readies) {
 			logger.info("Ready sender={} argument={}", r.Argument, r.getSender());
+			// commit丢失在现有的模式下无法实现重新提交。
 			r.SendResult();
 		}
 
@@ -174,8 +181,29 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 	}
 
 	void waitFlushDone() {
-		if (flushMode == Onz.eFlushImmediately)
-			flushDone.await();
+		if (flushMode == Onz.eFlushImmediately) {
+			try {
+				flushDone.get(flushTimeout, TimeUnit.MILLISECONDS);
+			} catch (InterruptedException | ExecutionException | TimeoutException e) {
+				logger.warn("waitFlushDone", e);
+				// 马上回复现有的flushReady。允许它们继续flush。降为FlushAsync。
+				for (var ready : flushReadies)
+					ready.SendResult();
+				// todo 触发当前没有flushReady或者所有相关zeze的完整Checkpoint。
+				//  1. 安全起见是所有zeze，上面的ready.SendResult也可能丢失。
+				//  2. 需要完整Checkpoint的zeze要不要持久化，以后持续触发。这点看起来没有必要。
+				//  3. 这里要不要等待触发结果返回。先处理成等待。
+				for (var zeze : zezeProcedures.keySet())
+					checkpoint(zeze);
+				for (var zeze : zezeSagas.keySet())
+					checkpoint(zeze);
+			}
+		}
+	}
+
+	private static void checkpoint(AsyncSocket zeze) {
+		var r = new Checkpoint();
+		r.SendForWait(zeze).await();
 	}
 
 	private final long onzTid = 0; // allocate todo

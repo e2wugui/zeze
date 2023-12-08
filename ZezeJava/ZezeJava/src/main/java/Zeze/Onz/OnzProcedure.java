@@ -14,8 +14,11 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 import Zeze.Util.TaskCompletionSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class OnzProcedure implements FuncLong {
+	private static final Logger logger = LogManager.getLogger();
 	private final BFuncProcedure.Data funcArgument;
 	private final OnzProcedureStub<?, ?> stub;
 	private final Bean argument;
@@ -88,7 +91,8 @@ public class OnzProcedure implements FuncLong {
 		// 发送事务执行阶段的两段式提交的准备完成，同时等待一起提交的信号。
 		var r = new Ready();
 		r.Argument.setOnzTid(getOnzTid());
-		r.SendForWait(rpc.getSender()).await();
+		if (!r.SendForWait(rpc.getSender()).await(funcArgument.getFlushTimeout()))
+			throw new RuntimeException("waitSendReady timeout.");
 	}
 
 	protected TaskCompletionSource<Long> sendFlushReady() {
@@ -96,14 +100,16 @@ public class OnzProcedure implements FuncLong {
 		var future = new TaskCompletionSource<Long>();
 		var r = new FlushReady();
 		r.Argument.setOnzTid(getOnzTid());
-		r.Send(rpc.getSender(), (p) -> {
+		if (!r.Send(rpc.getSender(), (p) -> {
 			if (r.getResultCode() == 0) {
 				future.setResult(0L);
-			} else {
-				future.setException(new RuntimeException("FlushReady error=" + IModule.getErrorCode(r.getResultCode())));
+				return 0;
 			}
+			logger.warn("waitFlushReady timeout, {}", funcArgument);
 			return 0;
-		});
+		}, funcArgument.getFlushTimeout())) {
+			logger.warn("sendFlushReady fail, {}", funcArgument);
+		}
 		return future;
 	}
 

@@ -2030,6 +2030,8 @@
 				<variable id="1" name="OnzTid" type="long"/>
 			</bean>
 			<rpc name="FlushReady" argument="BFlushReady" handle="client"/>
+			
+			<rpc name="Checkpoint" handle="server"/>
 		</module>
 
 		<!--

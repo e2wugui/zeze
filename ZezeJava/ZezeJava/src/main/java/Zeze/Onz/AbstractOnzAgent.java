@@ -22,6 +22,13 @@ public abstract class AbstractOnzAgent implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.Checkpoint.class, Zeze.Builtin.Onz.Checkpoint.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Onz.Checkpoint::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCheckpointResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCheckpointResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47411858488468L, factoryHandle); // 11038, -285492076
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.FlushReady.class, Zeze.Builtin.Onz.FlushReady.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Onz.FlushReady::new;
             factoryHandle.Handle = this::ProcessFlushReadyRequest;
@@ -61,6 +68,7 @@ public abstract class AbstractOnzAgent implements Zeze.IModule {
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47411858488468L);
         service.getFactorys().remove(47410000793930L);
         service.getFactorys().remove(47410672249436L);
         service.getFactorys().remove(47411539774123L);

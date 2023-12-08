@@ -1,5 +1,6 @@
 package Zeze.Onz;
 
+import Zeze.Builtin.Onz.Checkpoint;
 import Zeze.Serialize.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
@@ -69,6 +70,13 @@ public class Onz extends AbstractOnz {
         if (null != procedureStubs.putIfAbsent(name,
                 new OnzSagaStub<>(zeze, name, func, argumentClass, resultClass, funcCancel, cancelClass)))
             throw new RuntimeException("duplicate Onz Procedure Name=" + name);
+    }
+
+    @Override
+    protected long ProcessCheckpointRequest(Checkpoint r) throws Exception {
+        service.getZeze().checkpointRun();
+        r.SendResult();
+        return 0;
     }
 
     @Override

@@ -2,6 +2,7 @@ package Zeze.Onz;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
+import Zeze.Builtin.Onz.Checkpoint;
 import Zeze.Builtin.Onz.FuncProcedure;
 import Zeze.Builtin.Onz.FuncSaga;
 import Zeze.Builtin.Onz.FuncSagaEnd;
@@ -209,6 +210,11 @@ public class OnzServer extends AbstractOnz {
 		} finally {
 			onzAgent.removeTransaction(txn);
 		}
+	}
+
+	@Override
+	protected long ProcessCheckpointRequest(Checkpoint r) throws Exception {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
