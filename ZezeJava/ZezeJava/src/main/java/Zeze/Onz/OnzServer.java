@@ -39,10 +39,8 @@ public class OnzServer extends AbstractOnz {
 	 * 建议按这种方式配置，便于解耦。
 	 * 此时zezes编码如下：
 	 * zeze1=zeze1.xml;zeze2=zeze2.xml;...
-	 * zeze1,zeze2是OnzServer自己对每个zeze集群的命名，
+	 * zeze1,zeze2是OnzServer自己对每个zeze集群的命名，以后用于Onz分布式事务的调用。需要唯一。
 	 * zeze1.xml,zeze2.xml是不同zeze集群的配置文件path。
-	 * 以后用于Onz分布式事务的调用。
-	 * 需要唯一。
 	 */
 	public OnzServer(String zezeConfigs, Config myConfig) throws Exception {
 		var zezesArray = zezeConfigs.split(";");

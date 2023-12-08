@@ -46,13 +46,23 @@ Onz按两段式或者Saga模式实现事务执行阶段，但没有马上保存�
 的Zeze集群不可控的被完全关联起来，谁都不允许出错。【所以，这个等级在没有好的解决方案
 前不考虑支持】
 
+## Flush退化
+Onz事务在执行阶段如果发生两段式协调失败，那么所有事务回滚，不会有任何影响。事务Flush阶段
+失败采取降低一致性要求的方案进行处理，即退化为FlushAsync，不再两段式协调Flush。错误处理
+规则如下：
+
+1. Zeze服务器方，它等待FlushReady超时，记录日志继续保存。相当于降级为FlushAsync模式。
+2. OnzServer协调方，收不到部分Zeze服务器的FlushReady，先允许已经FlushReady的继续保存，
+然后定时发起未收到FlushReady的部分Zeze服务器的全服Checkpoint，触发它的Flush流程，直到
+相关Zeze服务器的数据保存成功。
+
+以上策略就是退化，它的核心思路是尽量降低数据不一致的发生。
+
 ## 开发模式
 
 1. 开发OnzProcedure。在不同的Zeze上分别实现Onz分布式事务的自己相关逻辑并注册。
 2. 实现OnzTransaction接口。完成不同Zeze上的远程调用。支持并发调用或者顺序调用。
-这些OnzTransaction需要注册到OnzServer中。
-3. 使用OnzServer的接口调用Onz分布式事务功能。这点在下面的运行模式介绍里面会有进
-一步信息。
+当需要以独立进程方式运行OnzServer时，把OnzTransaction注册到OnzServer中。
 
 ## 运行模式
 
@@ -63,35 +73,76 @@ Onz按两段式或者Saga模式实现事务执行阶段，但没有马上保存�
 
 ## Api
 
-### OnzProcedure(在Zeze服武器内实现)
-* 两段式实现注册
+### OnzProcedure(在Zeze服务器内实现)
+* 两段式实现注册和实现接口
 ```
 public <A extends Bean, R extends Bean> void register(
             Application zeze,
             String name, OnzFuncProcedure<A, R> func,
             Class<A> argumentClass, Class<R> resultClass)
+
+@FunctionalInterface
+public interface OnzFuncProcedure<A extends Bean, R extends Bean> {
+	long call(OnzProcedure onzProcedure, A argument, R result) throws Exception;
+}
 ```
-* Sage实现注册
+
+* Sage实现注册和实现接口
 ```
-public <A extends Bean, R extends Bean> void registerSaga(
-            Application zeze,
-            String name, OnzFuncSaga<A, R> func, OnzFuncSagaCancel funcCancel,
-            Class<A> argumentClass, Class<R> resultClass)
+public <A extends Bean, R extends Bean, T extends Bean> void registerSaga(
+        Application zeze,
+        String name, OnzFuncSaga<A, R> func, OnzFuncSagaEnd<T> funcCancel,
+        Class<A> argumentClass, Class<R> resultClass, Class<T> cancelClass)
+            
+@FunctionalInterface
+public interface OnzFuncSaga<A extends Bean, R extends Bean> {
+	long call(OnzSaga sage, A argument, R result) throws Exception;
+}
+
 ```
 
 ### OnzTransaction(OnzServer的实现)
+
 ```
-// todo 还没有完全设计好
-public interface OnzTransaction {
-    String getName();
-    int getFlushMode();
-    long perform() throws Exception;
+public MyOnzTransaction extends OnzTransaction {
+    @Override
+    protected long perform() throws Exception {
+        // 调用相关Zeze服务器的OnzProcdure。
+		var future1 = super.callProcedureAsync("zeze1", "kuafu", a1, r1);
+		var future2 = super.callProcedureAsync("zeze2", "kuafu", a2, r2);
+
+        // 等待处理结果
+		future1.get();
+		future2.get();
+    }
 }
 ```
 
 ### OnzServer
 ```
-// todo 还没有完全设计好
-public void register(OnzTransaction onzTransaction);
-public Bean call(String onzTransactionName, Bean argument);
+/**
+ * 每个zeze集群使用独立的ServiceManager实例时，使用这个方法构造OnzServer。
+ * 建议按这种方式配置，便于解耦。
+ * 此时zezes编码如下：
+ * zeze1=zeze1.xml;zeze2=zeze2.xml;...
+ * zeze1,zeze2是OnzServer自己对每个zeze集群的命名，以后用于Onz分布式事务的调用。需要唯一。
+ * zeze1.xml,zeze2.xml是不同zeze集群的配置文件path。
+ */
+public OnzServer(String zezeConfigs, Config myConfig);
+
+public void start() throws Exception;
+public void stop() throws Exception;
+
+/**
+ * 独立进程运行OnzServer时需要注册。
+ * 嵌入时不用注册。
+ */
+public <A extends Data, R extends Data>
+    void register(Class<OnzTransaction<?, ?>> txnClass,
+                  Class<A> argumentClass, Class<R> resultClass);
+
+/**
+ * 执行OnzTransaction。
+ */
+public long perform(OnzTransaction<?, ?> txn) {
 ```
