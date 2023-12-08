@@ -120,6 +120,7 @@ public final class Transaction {
 		alwaysReleaseLockWhenRedo = false;
 		redoBeans.clear();
 		redoActions.clear();
+		onzProcedure = null;
 	}
 
 	public void begin() {

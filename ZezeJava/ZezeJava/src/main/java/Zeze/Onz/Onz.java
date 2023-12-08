@@ -77,16 +77,8 @@ public class Onz extends AbstractOnz {
         if (stub == null)
             return errorCode(eProcedureNotFound);
         var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
-        var procedure = stub.newProcedure(r.getSender(), r.Argument, buffer);
-        var rc = Task.call(stub.getZeze().newProcedure(procedure, procedure.getName()));
-        if (rc != 0)
-            return rc;
-
-        var bbResult = ByteBuffer.Allocate();
-        procedure.getResult().encode(bbResult);
-        r.Result.setFuncResult(new Binary(bbResult));
-        r.SendResult();
-        return 0;
+        var procedure = stub.newProcedure(r, r.Argument, buffer);
+        return Task.call(stub.getZeze().newProcedure(procedure, procedure.getName()));
     }
 
     @Override
@@ -96,19 +88,11 @@ public class Onz extends AbstractOnz {
             return errorCode(eProcedureNotFound);
 
         var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
-        var procedure = stub.newProcedure(r.getSender(), r.Argument, buffer);
+        var procedure = stub.newProcedure(r, r.Argument, buffer);
         if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), (OnzSaga)procedure))
             return errorCode(eSagaTidExist);
 
-        var rc = Task.call(stub.getZeze().newProcedure(procedure, procedure.getName()));
-        if (rc != 0)
-            return rc;
-
-        var bbResult = ByteBuffer.Allocate();
-        procedure.getResult().encode(bbResult);
-        r.Result.setFuncResult(new Binary(bbResult));
-        r.SendResult();
-        return 0;
+        return Task.call(stub.getZeze().newProcedure(procedure, procedure.getName()));
     }
 
     @Override

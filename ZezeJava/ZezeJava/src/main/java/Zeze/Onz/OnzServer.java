@@ -27,7 +27,7 @@ import org.apache.logging.log4j.Logger;
 public class OnzServer extends AbstractOnz {
 	private static final Logger logger = LogManager.getLogger();
 
-	private final OnzAgent onzAgent = new OnzAgent();
+	private final OnzAgent onzAgent;
 	private final boolean sharedServiceManager;
 	private final ConcurrentHashMap<String, AbstractAgent> zezes = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Connector> instances = new ConcurrentHashMap<>();
@@ -69,14 +69,17 @@ public class OnzServer extends AbstractOnz {
 		this.sharedServiceManager = false;
 
 		service = new OnzServerService(myConfig);
+		onzAgent = new OnzAgent();
 		RegisterProtocols(service);
 	}
 
 	public void start() throws Exception {
 		service.start();
+		onzAgent.start();
 	}
 
 	public void stop() throws Exception {
+		onzAgent.stop();
 		service.stop();
 	}
 
@@ -108,6 +111,7 @@ public class OnzServer extends AbstractOnz {
 		this.sharedServiceManager = true;
 		serviceManager.subscribeService(Onz.eServiceName, BSubscribeInfo.SubscribeTypeSimple);
 		service = new OnzServerService(myConfig);
+		onzAgent = new OnzAgent();
 		RegisterProtocols(service);
 	}
 
@@ -141,6 +145,7 @@ public class OnzServer extends AbstractOnz {
 				continue; // 跳过当前的
 
 			connector = new Connector(ip, port);
+			connector.SetService(onzAgent.getService());
 			connector.start();
 			instances.put(zezeName, connector);
 			break;

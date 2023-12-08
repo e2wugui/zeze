@@ -6,6 +6,8 @@ import Zeze.Onz.OnzServer;
 import demo.App;
 import demo.Module1.BKuafu;
 import demo.Module1.BKuafuResult;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -46,13 +48,15 @@ public class Test1 {
 		return 0;
 	}
 
+	protected static final Logger logger = LogManager.getLogger();
+
 	@Test
 	public void test1() throws Exception {
 		Thread.sleep(2000);
 		var txn = new KuafuTransaction(1, 1, 1);
 		txn.setOnzServer(onzServer);
 		Assert.assertEquals(0, onzServer.perform(txn));
-		System.out.println("m1=" + txn.m1 + " m2=" + txn.m2);
+		logger.info("after perform m1=" + txn.m1 + " m2=" + txn.m2);
 		Assert.assertEquals(0, txn.m1 + txn.m2);
 	}
 }

@@ -4,22 +4,49 @@ import Zeze.Builtin.Onz.FlushReady;
 import Zeze.Builtin.Onz.FuncProcedure;
 import Zeze.Builtin.Onz.FuncSaga;
 import Zeze.Builtin.Onz.Ready;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Data;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.TaskCompletionSource;
 
 public class OnzAgent extends AbstractOnzAgent {
-	private final LongConcurrentHashMap<OnzTransaction> transactions = new LongConcurrentHashMap<>();
+	private final LongConcurrentHashMap<OnzTransaction<?, ?>> transactions = new LongConcurrentHashMap<>();
+	private final AgentService service = new AgentService();
 
-	void addTransaction(OnzTransaction t) {
+	public static class AgentService extends Service {
+		public static final String eServiceName = "OnzAgent";
+
+		public AgentService() {
+			super(eServiceName);
+		}
+	}
+
+	public OnzAgent() {
+		RegisterProtocols(service);
+	}
+
+	public void start() throws Exception {
+		service.start();
+	}
+
+	public void stop() throws Exception {
+		service.stop();
+	}
+
+	public AgentService getService() {
+		return service;
+	}
+
+	void addTransaction(OnzTransaction<?, ?> t) {
 		if (null != transactions.putIfAbsent(t.getOnzTid(), t))
 			throw new RuntimeException("duplication onzTransactionTid=" + t.getOnzTid());
 	}
 
-	void removeTransaction(OnzTransaction t) {
+	void removeTransaction(OnzTransaction<?, ?> t) {
 		transactions.remove(t.getOnzTid());
 	}
 
@@ -44,7 +71,7 @@ public class OnzAgent extends AbstractOnzAgent {
 	}
 
 	static <A extends Data, R extends Data> TaskCompletionSource<R>
-	callProcedureAsync(OnzTransaction pending,
+	callProcedureAsync(OnzTransaction<?, ?> pending,
 					   AsyncSocket zezeOnzInstance,
 					   String onzProcedureName, A argument, R result, int flushMode) {
 
@@ -74,7 +101,7 @@ public class OnzAgent extends AbstractOnzAgent {
 	}
 
 	static <A extends Data, R extends Data> TaskCompletionSource<R>
-	callSagaAsync(OnzTransaction pending,
+	callSagaAsync(OnzTransaction<?, ?> pending,
 				  AsyncSocket zezeOnzInstance,
 				  String onzProcedureName, A argument, R result, int flushMode) {
 

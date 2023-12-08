@@ -49,4 +49,7 @@
 	<ServiceConf Name="Zeze.Dbh2.Commit">
 		<Acceptor Ip="127.0.0.1" Port="7788"/>
 	</ServiceConf>
+	<ServiceConf Name="Zeze.Onz.Server">
+		<Acceptor Ip="127.0.0.1" Port="9000"/>
+	</ServiceConf>
 </zeze>

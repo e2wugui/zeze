@@ -9,7 +9,6 @@ import Zeze.Builtin.Onz.Ready;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Rpc;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Data;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.OutObject;
@@ -156,8 +155,10 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 
 	void commit() throws ExecutionException, InterruptedException {
 		// 对于saga，readies是空的。
-		for (var ready : readies)
-			ready.SendResult();
+		for (var r : readies) {
+			logger.info("Ready sender={} argument={}", r.Argument, r.getSender());
+			r.SendResult();
+		}
 
 		// 对于procedure，下面函数里面访问的zezeSagas是空的。
 		endSaga();
@@ -195,6 +196,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 	}
 
 	void trySetFlushReady(FlushReady r) {
+		logger.info("FlushReady sender={} argument={}", r.Argument, r.getSender());
 		flushReadies.add(r);
 
 		if (flushReadies.size() == zezeProcedures.size() || flushReadies.size() == zezeSagas.size()) {

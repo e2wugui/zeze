@@ -2,8 +2,8 @@ package Zeze.Onz;
 
 import Zeze.Application;
 import Zeze.Builtin.Onz.BFuncProcedure;
-import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -25,11 +25,11 @@ public class OnzSagaStub<A extends Bean, R extends Bean, T extends Bean> extends
 	}
 
 	@Override
-	public OnzProcedure newProcedure(AsyncSocket onzServer, BFuncProcedure.Data funcArgument, IByteBuffer buffer) throws Exception {
+	public OnzProcedure newProcedure(Rpc<?, ?> rpc, BFuncProcedure.Data funcArgument, IByteBuffer buffer) throws Exception {
 		var a = super.getArgumentClass().getConstructor((Class<?>[])null).newInstance((Object[])null);
 		var r = super.getResultClass().getConstructor((Class<?>[])null).newInstance((Object[])null);
 		a.decode(buffer);
-		return new OnzSaga(onzServer, funcArgument,this, a, r);
+		return new OnzSaga(rpc, funcArgument,this, a, r);
 	}
 
 	@SuppressWarnings("unchecked")
