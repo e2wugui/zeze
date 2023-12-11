@@ -1,5 +1,6 @@
 package Zeze.Transaction.Collections;
 
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -147,75 +148,90 @@ public abstract class PList<V> extends Collection implements List<V> {
 		if (index < 0 || index > size)
 			throw new IndexOutOfBoundsException("invalid index = " + index + " (size = " + size + ')');
 		return new ListIterator<>() {
-			private int idx = index;
-			private int lastWay; // 1:next; 2:previous
+			private int cursor = index;
+			private int lastRet = -1;
 
 			@Override
 			public boolean hasNext() {
-				return idx < size();
+				return cursor < size();
 			}
 
 			@Override
 			public V next() {
-				int i = idx;
-				if (i >= size())
-					throw new NoSuchElementException();
-				V v = get(i++);
-				idx = i;
-				lastWay = 1;
-				return v;
+				try {
+					int i = cursor;
+					V v = get(i);
+					cursor = i + 1;
+					lastRet = i;
+					return v;
+				} catch (IndexOutOfBoundsException e) {
+					throw new NoSuchElementException(e);
+				}
 			}
 
 			@Override
 			public boolean hasPrevious() {
-				return idx > 0;
+				return cursor > 0;
 			}
 
 			@Override
 			public V previous() {
-				int i = idx;
-				if (i <= 0)
-					throw new NoSuchElementException();
-				V v = get(--i);
-				idx = i;
-				lastWay = 2;
-				return v;
+				try {
+					int i = cursor - 1;
+					V v = get(i);
+					cursor = i;
+					lastRet = i;
+					return v;
+				} catch (IndexOutOfBoundsException e) {
+					throw new NoSuchElementException(e);
+				}
 			}
 
 			@Override
 			public int nextIndex() {
-				return idx;
+				return cursor;
 			}
 
 			@Override
 			public int previousIndex() {
-				return idx - 1;
+				return cursor - 1;
 			}
 
 			@Override
 			public void remove() {
-				if (lastWay == 0)
+				if (lastRet < 0)
 					throw new IllegalStateException();
-				if (lastWay == 1) // next
-					PList.this.remove(--idx);
-				else // previous
-					PList.this.remove(idx);
-				lastWay = 0;
+				try {
+					PList.this.remove(lastRet);
+					if (lastRet < cursor)
+						cursor--;
+					lastRet = -1;
+				} catch (IndexOutOfBoundsException e) {
+					throw new ConcurrentModificationException();
+				}
 			}
 
 			@Override
 			public void set(V v) {
-				if (lastWay == 0)
+				if (lastRet < 0)
 					throw new IllegalStateException();
-				if (lastWay == 1) // next
-					PList.this.set(idx - 1, v);
-				else // previous
-					PList.this.set(idx, v);
+				try {
+					PList.this.set(lastRet, v);
+				} catch (IndexOutOfBoundsException e) {
+					throw new ConcurrentModificationException();
+				}
 			}
 
 			@Override
 			public void add(V v) {
-				PList.this.add(idx++, v);
+				try {
+					int i = cursor;
+					PList.this.add(i, v);
+					cursor = i + 1;
+					lastRet = -1;
+				} catch (IndexOutOfBoundsException e) {
+					throw new ConcurrentModificationException();
+				}
 			}
 		};
 	}
