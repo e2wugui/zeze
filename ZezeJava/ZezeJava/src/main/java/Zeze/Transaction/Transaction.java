@@ -66,6 +66,7 @@ public final class Transaction {
 	private boolean alwaysReleaseLockWhenRedo;
 	private final ArrayList<Bean> redoBeans = new ArrayList<>();
 	private final ArrayList<Runnable> redoActions = new ArrayList<>();
+	private @Nullable OnzProcedure onzProcedure;
 
 	private Transaction() {
 	}
@@ -391,7 +392,6 @@ public final class Transaction {
 		triggerActions(procedure);
 	}
 
-	private OnzProcedure onzProcedure;
 	public void setOnzProcedure(OnzProcedure onzProcedure) {
 		this.onzProcedure = onzProcedure;
 	}

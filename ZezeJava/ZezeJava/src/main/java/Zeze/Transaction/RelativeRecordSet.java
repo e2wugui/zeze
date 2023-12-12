@@ -10,7 +10,6 @@ import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -28,6 +27,7 @@ public final class RelativeRecordSet {
 	// 可做的小优化：把Count小的关联集合Merge到大的里面。
 	private HashSet<Record> recordSet;
 	private volatile RelativeRecordSet mergeTo; // 不为null表示发生了变化，其中 == Deleted 表示被删除（已经Flush了）。
+	private @Nullable Set<OnzProcedure> onzProcedures;
 
 	HashSet<Record> getRecordSet() {
 		return recordSet;
@@ -37,14 +37,12 @@ public final class RelativeRecordSet {
 		return mergeTo;
 	}
 
-	private Set<OnzProcedure> onzProcedures;
-
 	public @Nullable Set<OnzProcedure> getOnzProcedures() {
 		return onzProcedures;
 	}
 
 	public void addOnzProcedures(@Nullable OnzProcedure onzProcedure) {
-		if (null != onzProcedure){
+		if (null != onzProcedure) {
 			if (null == onzProcedures)
 				onzProcedures = new HashSet<>();
 			onzProcedures.add(onzProcedure);

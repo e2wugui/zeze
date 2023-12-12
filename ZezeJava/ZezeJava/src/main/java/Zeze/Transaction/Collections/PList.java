@@ -165,7 +165,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 					lastRet = i;
 					return v;
 				} catch (IndexOutOfBoundsException e) {
-					throw new NoSuchElementException(e);
+					throw new NoSuchElementException();
 				}
 			}
 
@@ -183,7 +183,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 					lastRet = i;
 					return v;
 				} catch (IndexOutOfBoundsException e) {
-					throw new NoSuchElementException(e);
+					throw new NoSuchElementException();
 				}
 			}
 
