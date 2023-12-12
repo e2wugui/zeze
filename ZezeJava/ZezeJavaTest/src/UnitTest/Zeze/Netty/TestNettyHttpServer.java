@@ -14,6 +14,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
+import Zeze.Netty.Http;
 import Zeze.Netty.HttpExchange;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.HttpWebSocketHandle;
@@ -22,11 +23,13 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
+import Zeze.Util.Task;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.AttributeKey;
+import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -37,13 +40,19 @@ public class TestNettyHttpServer {
 	private static HttpServer server;
 	private static int port;
 
+	@SuppressWarnings("unused")
+	@Http.Get(transactionLevel = TransactionLevel.Serializable, dispatchMode = DispatchMode.Direct)
+	public static void testFull(@NotNull HttpExchange x) {
+		x.sendPlainText(HttpResponseStatus.OK, "fullBody");
+	}
+
 	@BeforeClass
 	public static void setUp() throws Exception {
+		Task.tryInitThreadPool();
 		netty = new Netty(1);
 		server = new HttpServer();
 
-		server.addHandler("/testFull", 1024, TransactionLevel.Serializable, DispatchMode.Direct,
-				x -> x.sendPlainText(HttpResponseStatus.OK, "fullBody"));
+		Http.register(server, TestNettyHttpServer.class);
 
 		var ck = AttributeKey.<CompositeByteBuf>valueOf("c");
 		server.addHandler("/testStream", TransactionLevel.Serializable, DispatchMode.Direct,
