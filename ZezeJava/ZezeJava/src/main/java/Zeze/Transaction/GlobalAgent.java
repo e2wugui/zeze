@@ -94,7 +94,7 @@ public final class GlobalAgent implements IGlobalAgent {
 				setFastFail();
 				throwException("GlobalAgent Login Failed", abort);
 			}
-			return null; // never got here.
+			return null; // never run here
 		}
 
 		public void close() {
@@ -194,7 +194,7 @@ public final class GlobalAgent implements IGlobalAgent {
 			if (trans == null)
 				throw new GoBackZeze("Acquire", e);
 			trans.throwAbort("Acquire", e);
-			// never got here
+			// never run here
 		}
 		/*
 		if (rpc.ResultCode != 0) { // 这个用来跟踪调试，正常流程使用Result.State检查结果。
@@ -211,7 +211,7 @@ public final class GlobalAgent implements IGlobalAgent {
 			if (trans == null)
 				throw new GoBackZeze("GlobalAgent.Acquire Failed: " + gkey + " tableId=" + tableId);
 			trans.throwAbort("GlobalAgent.Acquire Failed: " + gkey + " tableId=" + tableId, null);
-			// never got here
+			// never run here
 		}
 		var rc = rpc.getResultCode();
 		state = rpc.Result.state;

@@ -140,7 +140,7 @@ public class Daemon {
 			} catch (Throwable ex) { // print stacktrace.
 				logger.fatal("Daemon.mainRun", ex);
 				fatalExit();
-				return -1; // never get here
+				return -1; // never run here
 			}
 		}
 	}

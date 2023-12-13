@@ -53,7 +53,7 @@ public class ServiceManager {
 		} catch (IOException e) {
 			Task.forceThrow(e);
 		}
-		return null; // never got here
+		return null; // never run here
 	}
 
 	public void startService(StartService r) {

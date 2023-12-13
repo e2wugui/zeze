@@ -57,7 +57,7 @@ public final class BeanFactory {
 			return beanClass.getConstructor().newInstance().typeId();
 		} catch (Exception ex) {
 			Task.forceThrow(ex);
-			return 0; // never got here
+			return 0; // never run here
 		}
 	}
 

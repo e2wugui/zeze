@@ -159,7 +159,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			if (trans == null)
 				Task.forceThrow(e);
 			trans.throwAbort("WaitLoginSuccess", e);
-			// never got here
+			// never run here
 		}
 
 		var rpc = new Acquire();
@@ -182,7 +182,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			if (trans == null)
 				throw new IllegalStateException("Acquire Timeout");
 			trans.throwAbort("Acquire Timeout", null);
-			// never got here
+			// never run here
 		}
 		if (!rpc.isTimeout())
 			agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
@@ -192,7 +192,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			if (trans == null)
 				throw new IllegalStateException("GlobalAgent.Acquire Failed");
 			trans.throwAbort("GlobalAgent.Acquire Failed", null);
-			// never got here
+			// never run here
 		}
 		if (rpc.getResultCode() == GlobalCacheManagerConst.AcquireModifyFailed
 				|| rpc.getResultCode() == GlobalCacheManagerConst.AcquireShareFailed) {
@@ -200,7 +200,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			if (trans == null)
 				throw new IllegalStateException("GlobalAgent.Acquire Failed");
 			trans.throwAbort("GlobalAgent.Acquire Failed", null);
-			// never got here
+			// never run here
 		}
 		var rc = rpc.getResultCode();
 		state = rpc.Result.getState();
