@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <zeze
-	GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5004"
+	GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5012"
 	CheckpointPeriod="60000" ServerId="1111" CheckpointMode="Table" CheckpointFlushMode="SingleThread" CheckpointModeTableFlushConcurrent="4"
 	ServiceManager=""
 	>
@@ -13,7 +13,7 @@
 	<GlobalCacheManagersConf>
 		<host name="global.raft.xml"/>
 	</GlobalCacheManagersConf>
-	
+
 	<ServiceManagerConf raftXml="servicemanager.raft.xml"/>
 
 	<!--
@@ -35,9 +35,9 @@
 	<TableConf Name="demo_Module1_tflush" CacheCapacity="1000"/>
 
 	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
-		<Connector HostNameOrAddress="127.0.0.1" Port="5003"/>
+		<Connector HostNameOrAddress="127.0.0.1" Port="5011"/>
 	</ServiceConf>
-	
+
 	<ServiceConf Name="TestServer" EncryptType="1" CompressS2c="1" CompressC2s="1">
 		<Acceptor Ip="127.0.0.1" Port="7770"/>
 	</ServiceConf>
