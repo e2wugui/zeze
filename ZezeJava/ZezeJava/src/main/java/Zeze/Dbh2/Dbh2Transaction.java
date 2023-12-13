@@ -37,7 +37,7 @@ public class Dbh2Transaction implements Closeable {
 	 *
 	 * @param batch batch parameter
 	 */
-	public Dbh2Transaction(Dbh2 dbh2, BBatch.Data batch) throws InterruptedException, RocksDBException {
+	public Dbh2Transaction(Dbh2 dbh2, BBatch.Data batch) throws InterruptedException {
 		this.batch = batch;
 		this.createTime = System.currentTimeMillis();
 

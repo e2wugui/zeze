@@ -501,7 +501,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		return it;
 	}
 
-	private RocksIterator locateMiddle(Binary middleKey) throws RocksDBException {
+	private RocksIterator locateMiddle(Binary middleKey) {
 		var it = stateMachine.getBucket().getData().iterator();
 		it.seek(Database.copyIf(middleKey.bytesUnsafe(), middleKey.getOffset(), middleKey.size()));
 		if (!it.isValid()) {

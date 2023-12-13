@@ -3,6 +3,7 @@ package Zeze.Services.ZokerImpl;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Zoker.BService;
 import Zeze.Builtin.Zoker.StartService;
@@ -22,7 +23,7 @@ public class ServiceManager {
 		return zoker;
 	}
 
-	public void listService(java.util.ArrayList<Zeze.Builtin.Zoker.BService.Data> out) {
+	public void listService(ArrayList<Zeze.Builtin.Zoker.BService.Data> out) {
 		var listFiles = zoker.getServiceDir().listFiles();
 		if (null != listFiles) {
 			for (var file : listFiles) {
@@ -39,7 +40,7 @@ public class ServiceManager {
 		}
 	}
 
-	private java.util.List<String> buildCommand(String serviceName) {
+	private List<String> buildCommand(String serviceName) {
 		return new ArrayList<>(); // todo 需要确定服务进程启动规范(service.xml?或脚本)
 	}
 

@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings("VulnerableCodeUsages")
 public class Netty implements Closeable {
 	static final @NotNull Logger logger = LogManager.getLogger(Netty.class);
 	private static final @NotNull Class<? extends ServerChannel> serverChannelClass =

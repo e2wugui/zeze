@@ -6,7 +6,6 @@ import Zeze.Builtin.Onz.BFuncProcedure;
 import Zeze.Builtin.Onz.FlushReady;
 import Zeze.Builtin.Onz.FuncProcedure;
 import Zeze.Builtin.Onz.Ready;
-import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;

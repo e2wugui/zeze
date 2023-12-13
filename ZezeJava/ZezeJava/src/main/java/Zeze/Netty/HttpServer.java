@@ -42,6 +42,7 @@ import io.netty.util.ReferenceCountUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings("VulnerableCodeUsages")
 @Sharable
 public class HttpServer extends ChannelInitializer<SocketChannel> implements Closeable {
 	protected static final AttributeKey<Integer> idleTimeKey = AttributeKey.valueOf("ZezeIdleTime");
@@ -226,10 +227,12 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	public void addHandler(@NotNull String path, @NotNull HttpHandler handler) {
 		if (handlers.putIfAbsent(path, handler) != null)
 			throw new IllegalStateException("add handler: duplicate path=" + path);
+		Netty.logger.debug("addHandler: {}", path);
 	}
 
 	public void removeHandler(@NotNull String path) {
-		handlers.remove(path);
+		if (handlers.remove(path) != null)
+			Netty.logger.debug("removeHandler: {}", path);
 	}
 
 	public @Nullable HttpHandler getHandler(@NotNull String path) {

@@ -40,7 +40,6 @@ public class TestNettyHttpServer {
 	private static HttpServer server;
 	private static int port;
 
-	@SuppressWarnings("unused")
 	@Http.Get(transactionLevel = TransactionLevel.Serializable, dispatchMode = DispatchMode.Direct)
 	public static void testFull(@NotNull HttpExchange x) {
 		x.sendPlainText(HttpResponseStatus.OK, "fullBody");

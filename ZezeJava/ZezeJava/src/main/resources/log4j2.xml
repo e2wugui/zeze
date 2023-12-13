@@ -16,6 +16,7 @@
 		<RollingFile name="AllLog" fileName="${path}/${name}${ext}" filePattern="${path}/${name}.%d{yy-MM-dd}-%i${ext}">
 			<PatternLayout charset="UTF-8" pattern="%d{yy-MM-dd HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
 			<Policies>
+				<TimeBasedTriggeringPolicy interval="1" modulate="true" />
 				<SizeBasedTriggeringPolicy size="100 MB" />
 			</Policies>
 			<DefaultRolloverStrategy max="1000"/>
@@ -25,6 +26,7 @@
 			<ThresholdFilter level="WARN" onMatch="ACCEPT" onMismatch="DENY" />
 			<PatternLayout charset="UTF-8" pattern="%d{yy-MM-dd HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
 			<Policies>
+				<TimeBasedTriggeringPolicy interval="1" modulate="true" />
 				<SizeBasedTriggeringPolicy size="100 MB" />
 			</Policies>
 			<DefaultRolloverStrategy max="1000"/>

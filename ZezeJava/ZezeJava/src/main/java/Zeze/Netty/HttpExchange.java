@@ -51,6 +51,7 @@ import io.netty.util.ReferenceCountUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings({"VulnerableCodeUsages", "UnusedReturnValue"})
 public class HttpExchange {
 	protected static final int CLOSE_FINISH = 0; // 正常结束HttpExchange,不关闭连接
 	protected static final int CLOSE_ON_FLUSH = 1; // 结束HttpExchange,发送完时关闭连接

@@ -4,7 +4,6 @@ import Zeze.Builtin.Onz.FlushReady;
 import Zeze.Builtin.Onz.FuncProcedure;
 import Zeze.Builtin.Onz.FuncSaga;
 import Zeze.Builtin.Onz.Ready;
-import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
