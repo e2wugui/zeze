@@ -10,6 +10,7 @@ import java.nio.file.OpenOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
@@ -122,6 +123,23 @@ public class HttpExchange {
 
 	public @NotNull ByteBuf content() {
 		return content;
+	}
+
+	public @NotNull String contentString() {
+		return content.toString(StandardCharsets.UTF_8);
+	}
+
+	public byte @NotNull [] contentBytes() {
+		var c = content;
+		var size = c.readableBytes();
+		if (size <= 0)
+			return ByteBuffer.Empty;
+		int offset = c.readerIndex();
+		if (offset == 0 && c.hasArray())
+			return c.array();
+		var buf = new byte[size];
+		c.getBytes(c.readerIndex(), buf);
+		return buf;
 	}
 
 	public static @NotNull String urlDecode(@NotNull String s) {
