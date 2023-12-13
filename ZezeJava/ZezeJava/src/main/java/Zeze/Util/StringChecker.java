@@ -82,7 +82,6 @@ public final class StringChecker {
 			return false;
 		}
 
-		@SuppressWarnings("UnusedReturnValue")
 		boolean replace(char @NotNull [] chars, char replaceChar) {
 			Trie trie = this;
 			int iLast = 0, eLast = 0;

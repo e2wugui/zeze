@@ -372,7 +372,6 @@ public class TestGlobalCacheMgrWithRaft {
 		}
 	}
 
-	@SuppressWarnings("UnusedReturnValue")
 	private boolean CheckCurrentCount(String testName) throws Exception {
 		return CheckCurrentCount(testName, true);
 	}

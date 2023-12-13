@@ -201,7 +201,6 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 		return 0L;
 	}
 
-	@SuppressWarnings("UnusedReturnValue")
 	private long LoadTimerLocal() {
 		var serverId = App.Zeze.getConfig().getServerId();
 		final var out = new OutObject<BNodeRoot>();

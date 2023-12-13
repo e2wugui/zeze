@@ -596,7 +596,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return 0;
 	}
 
-	@SuppressWarnings("UnusedReturnValue")
 	private long linkBrokenTrigger(@SuppressWarnings("unused") @NotNull String account, long roleId) throws Exception {
 		var arg = new LinkBrokenArgument();
 		arg.roleId = roleId;

@@ -14,6 +14,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Http {
 	private Http() {
@@ -22,29 +23,29 @@ public final class Http {
 	@Target(ElementType.TYPE)
 	@Retention(RetentionPolicy.RUNTIME)
 	public @interface Path {
-		String path() default ""; // 空表示没有父路径,否则必须以'/'开头
+		@Nullable String path() default ""; // 空表示没有父路径,否则必须以'/'开头
 	}
 
 	@Target(ElementType.METHOD)
 	@Retention(RetentionPolicy.RUNTIME)
 	public @interface Get {
-		String path() default ""; // 空表示以方法名命名,否则必须以'/'开头
+		@Nullable String path() default ""; // 空表示以方法名命名,否则必须以'/'开头
 
-		TransactionLevel transactionLevel() default TransactionLevel.None;
+		@Nullable TransactionLevel transactionLevel() default TransactionLevel.None;
 
-		DispatchMode dispatchMode() default DispatchMode.Normal;
+		@Nullable DispatchMode dispatchMode() default DispatchMode.Normal;
 	}
 
 	@Target(ElementType.METHOD)
 	@Retention(RetentionPolicy.RUNTIME)
 	public @interface Post {
-		String path() default ""; // 空表示以方法名命名,否则必须以'/'开头
+		@Nullable String path() default ""; // 空表示以方法名命名,否则必须以'/'开头
 
 		int maxContentLength() default 4096;
 
-		TransactionLevel transactionLevel() default TransactionLevel.None;
+		@Nullable TransactionLevel transactionLevel() default TransactionLevel.None;
 
-		DispatchMode dispatchMode() default DispatchMode.Normal;
+		@Nullable DispatchMode dispatchMode() default DispatchMode.Normal;
 	}
 
 	public static int register(@NotNull HttpServer httpServer, @NotNull Class<?> handleClass) {

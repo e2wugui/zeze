@@ -1122,7 +1122,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 	// 收到接管通知的服务器调用这个函数进行接管处理。
 	// @serverId 需要接管的服务器Id。
-	@SuppressWarnings("UnusedReturnValue")
 	private long spliceLoadTimer(int serverId, long loadSerialNo) {
 		if (serverId == zeze.getConfig().getServerId())
 			return 0; // skip self

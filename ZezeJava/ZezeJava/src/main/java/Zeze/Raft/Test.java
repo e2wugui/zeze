@@ -194,7 +194,6 @@ public class Test {
 		return sb.toString();
 	}
 
-	@SuppressWarnings("UnusedReturnValue")
 	private boolean checkCurrentCount(String stepName) {
 		return checkCurrentCount(stepName, true);
 	}

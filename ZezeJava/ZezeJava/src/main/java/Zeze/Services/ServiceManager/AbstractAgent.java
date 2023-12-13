@@ -168,7 +168,6 @@ public abstract class AbstractAgent implements Closeable {
 		}
 
 		// NOT UNDER LOCK
-		@SuppressWarnings("UnusedReturnValue")
 		private boolean trySendReadyServiceList() {
 			var pending = serviceInfosPending;
 			if (pending == null)

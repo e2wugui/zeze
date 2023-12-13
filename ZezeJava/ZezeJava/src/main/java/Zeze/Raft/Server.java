@@ -198,7 +198,6 @@ public class Server extends HandshakeBoth {
 		super.dispatchRpcResponse(p, responseHandle, factoryHandle);
 	}
 
-	@SuppressWarnings("UnusedReturnValue")
 	public long processRequest(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) {
 		return Task.call(() -> {
 			if (raft.waitLeaderReady()) {
