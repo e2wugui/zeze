@@ -144,12 +144,15 @@ public final class Str {
 		}
 		buf[pos] = ' ';
 		Number num;
+		var jr = JsonReader.local();
 		try {
-			num = (Number)JsonReader.local().buf(buf).parseNumber();
+			num = (Number)jr.buf(buf).parseNumber();
 			if (num instanceof Long || num instanceof Integer)
 				return Math.multiplyExact(num.longValue(), scale);
 		} catch (Exception e) {
 			throw new IllegalStateException("long overflow for '" + s + "'", e);
+		} finally {
+			jr.reset();
 		}
 		double v = num.doubleValue() * scale;
 		if (!Double.isFinite(v))

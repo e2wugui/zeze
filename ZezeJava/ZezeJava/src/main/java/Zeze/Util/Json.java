@@ -502,6 +502,96 @@ public final class Json implements Cloneable {
 		classMetas.clear();
 	}
 
+	public static <T> @Nullable T parse(@NotNull String jsonStr, @Nullable Class<T> klass) {
+		JsonReader jr = JsonReader.local();
+		try {
+			return jr.buf(jsonStr).parse(klass);
+		} catch (ReflectiveOperationException e) {
+			Task.forceThrow(e);
+			return null; // neven run here
+		} finally {
+			jr.reset();
+		}
+	}
+
+	public static <T> @Nullable T parse(byte @NotNull [] jsonStr, @Nullable Class<T> klass) {
+		JsonReader jr = JsonReader.local();
+		try {
+			return jr.buf(jsonStr).parse(klass);
+		} catch (ReflectiveOperationException e) {
+			Task.forceThrow(e);
+			return null; // neven run here
+		} finally {
+			jr.reset();
+		}
+	}
+
+	public static <T> @Nullable T parse(byte @NotNull [] jsonStr, int pos, @Nullable Class<T> klass) {
+		JsonReader jr = JsonReader.local();
+		try {
+			return jr.buf(jsonStr, pos).parse(klass);
+		} catch (ReflectiveOperationException e) {
+			Task.forceThrow(e);
+			return null; // neven run here
+		} finally {
+			jr.reset();
+		}
+	}
+
+	public static <T> @Nullable T parse(@NotNull String jsonStr, @Nullable T obj) {
+		JsonReader jr = JsonReader.local();
+		try {
+			return jr.buf(jsonStr).parse(obj);
+		} catch (ReflectiveOperationException e) {
+			Task.forceThrow(e);
+			return null; // neven run here
+		} finally {
+			jr.reset();
+		}
+	}
+
+	public static <T> @Nullable T parse(byte @NotNull [] jsonStr, @Nullable T obj) {
+		JsonReader jr = JsonReader.local();
+		try {
+			return jr.buf(jsonStr).parse(obj);
+		} catch (ReflectiveOperationException e) {
+			Task.forceThrow(e);
+			return null; // neven run here
+		} finally {
+			jr.reset();
+		}
+	}
+
+	public static <T> @Nullable T parse(byte @NotNull [] jsonStr, int pos, @Nullable T obj) {
+		JsonReader jr = JsonReader.local();
+		try {
+			return jr.buf(jsonStr, pos).parse(obj);
+		} catch (ReflectiveOperationException e) {
+			Task.forceThrow(e);
+			return null; // neven run here
+		} finally {
+			jr.reset();
+		}
+	}
+
+	public static @NotNull String toCompactString(@Nullable Object obj) {
+		JsonWriter jw = JsonWriter.local();
+		try {
+			return jw.clear().setFlagsAndDepthLimit(0, 16).write(obj).toString();
+		} finally {
+			jw.clear();
+		}
+	}
+
+	public static byte @NotNull [] toCompactBytes(@Nullable Object obj) {
+		JsonWriter jw = JsonWriter.local();
+		try {
+			return jw.clear().setFlagsAndDepthLimit(0, 16).write(obj).toBytes();
+		} finally {
+			jw.clear();
+		}
+	}
+
 	static {
 		Json json = instance;
 

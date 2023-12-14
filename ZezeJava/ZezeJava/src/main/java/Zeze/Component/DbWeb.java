@@ -18,7 +18,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableWalkKey;
 import Zeze.Transaction.TableX;
-import Zeze.Util.JsonReader;
+import Zeze.Util.Json;
 import Zeze.Util.JsonWriter;
 import Zeze.Util.OutLong;
 import Zeze.Util.Str;
@@ -33,24 +33,22 @@ public class DbWeb extends AbstractDbWeb {
 	private String cachedListHtml;
 
 	public static String toJsonForView(Object obj) {
-		var jw = JsonWriter.local().clear();
-		var oldFlags = jw.getFlags();
-		var oldDepth = jw.getDepthLimit();
-		var str = jw.setFlagsAndDepthLimit(JsonWriter.FLAG_PRETTY_FORMAT | JsonWriter.FLAG_WRAP_ELEMENT, 16)
-				.write(obj).toString();
-		jw.setFlags(oldFlags);
-		jw.setDepthLimit(oldDepth);
-		return str;
+		var jw = JsonWriter.local();
+		try {
+			return jw.clear().setFlagsAndDepthLimit(JsonWriter.FLAG_PRETTY_FORMAT | JsonWriter.FLAG_WRAP_ELEMENT, 16)
+					.write(obj).toString();
+		} finally {
+			jw.clear();
+		}
 	}
 
 	public static String toJsonForCompact(Object obj) {
-		var jw = JsonWriter.local().clear();
-		var oldFlags = jw.getFlags();
-		var oldDepth = jw.getDepthLimit();
-		var str = jw.setFlagsAndDepthLimit(JsonWriter.FLAG_NO_QUOTE_KEY, 16).write(obj).toString();
-		jw.setFlags(oldFlags);
-		jw.setDepthLimit(oldDepth);
-		return str;
+		var jw = JsonWriter.local();
+		try {
+			return jw.clear().setFlagsAndDepthLimit(JsonWriter.FLAG_NO_QUOTE_KEY, 16).write(obj).toString();
+		} finally {
+			jw.clear();
+		}
 	}
 
 	@Override
@@ -113,7 +111,7 @@ public class DbWeb extends AbstractDbWeb {
 		else if (keyType == Binary.class)
 			k = new Binary(key);
 		else if (Serializable.class.isAssignableFrom((Class<?>)keyType)) // BeanKey
-			k = JsonReader.local().buf(key).parse((Class<?>)keyType);
+			k = Json.parse(key, (Class<?>)keyType);
 		else
 			throw new IllegalStateException("ERROR: unsupported key of " + keyType + " for table " + table.getName());
 		return k;
@@ -217,7 +215,7 @@ public class DbWeb extends AbstractDbWeb {
 			var k = parseKey(table, key);
 			var valueClass = (Class<?>)
 					((ParameterizedType)table.getClass().getGenericSuperclass()).getActualTypeArguments()[1];
-			var v = JsonReader.local().buf(value).parse(valueClass);
+			var v = Json.parse(value, valueClass);
 			if (v == null) {
 				x.sendPlainText(HttpResponseStatus.OK, "parse value failed!");
 				return;
@@ -274,6 +272,7 @@ public class DbWeb extends AbstractDbWeb {
 		} while (lastKey != null);
 	}
 
+	@SuppressWarnings("VulnerableCodeUsages")
 	@Override
 	protected void OnServletClearTable(HttpExchange x) {
 		var beginStream = false;

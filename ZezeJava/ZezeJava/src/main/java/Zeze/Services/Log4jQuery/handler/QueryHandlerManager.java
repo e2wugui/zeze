@@ -6,10 +6,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import Zeze.Services.Log4jQuery.handler.entity.SimpleField;
-import Zeze.Util.JsonReader;
-import Zeze.Util.JsonWriter;
+import Zeze.Util.Json;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -42,7 +40,7 @@ public class QueryHandlerManager {
 			init();
 			initFinish = true;
 		}
-		var queryRequest = JsonReader.local().buf(req).parse(QueryRequest.class);
+		var queryRequest = Json.parse(req, QueryRequest.class);
 		Object param = queryRequest != null ? queryRequest.getParam() : null;
 		String cmd = queryRequest != null ? queryRequest.getCmd() : null;
 		QueryHandleContainer queryHandler = handlerMap.get(cmd);
@@ -51,23 +49,22 @@ public class QueryHandlerManager {
 		}
 
 		Object obj = queryHandler.invoke(param);
-		return JsonWriter.local().clear().write(obj).toString();
+		return Json.toCompactString(obj);
 	}
 
 	public static List<String> selectCmdList() {
 		return new ArrayList<>(handlerMap.keySet());
 	}
 
-
-	public static QueryHandleContainer getQueryHandleContainer(String cmd){
+	public static QueryHandleContainer getQueryHandleContainer(String cmd) {
 		return handlerMap.get(cmd);
 	}
-
 
 	public static class QueryHandleContainer {
 		private final QueryHandler<?, ?> queryHandler;
 		private Class<?> paramClass;
 		private final List<SimpleField> fields = new ArrayList<>();
+
 		public QueryHandleContainer(QueryHandler<?, ?> queryHandler) {
 			this.queryHandler = queryHandler;
 			Method[] declaredMethods = queryHandler.getClass().getDeclaredMethods();
@@ -95,8 +92,6 @@ public class QueryHandlerManager {
 		public List<SimpleField> getFields() {
 			return fields;
 		}
-
-
 
 		@SuppressWarnings("unchecked")
 		public Object invoke(Object o) throws ReflectiveOperationException {
@@ -137,7 +132,7 @@ public class QueryHandlerManager {
 			case "java.lang.Character":
 				return (char)Integer.parseInt(str);
 			default:
-				return JsonReader.local().buf(str).parse(clazz);
+				return Json.parse(str, clazz);
 			}
 		}
 	}
