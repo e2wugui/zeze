@@ -26,6 +26,7 @@ import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultHttpResponse;
+import io.netty.handler.codec.http.DefaultLastHttpContent;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -36,6 +37,11 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
+import io.netty.handler.codec.http.multipart.HttpDataFactory;
+import io.netty.handler.codec.http.multipart.HttpPostMultipartRequestDecoder;
+import io.netty.handler.codec.http.multipart.MemoryAttribute;
+import io.netty.handler.codec.http.multipart.MemoryFileUpload;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
@@ -63,6 +69,7 @@ public class HttpExchange {
 	protected static final @NotNull Pattern rangePattern = Pattern.compile("[ =\\-/]");
 	protected static final OpenOption[] emptyOpenOptions = new OpenOption[0];
 	protected static final @NotNull VarHandle detachedHandle;
+	protected static final HttpDataFactory httpDataFactory = new DefaultHttpDataFactory(false);
 
 	static {
 		try {
@@ -140,6 +147,39 @@ public class HttpExchange {
 		var buf = new byte[size];
 		c.getBytes(c.readerIndex(), buf);
 		return buf;
+	}
+
+	public @NotNull HttpPostMultipartRequestDecoder contentMultipart() {
+		var req = request;
+		if (req == null)
+			throw new IllegalStateException();
+		var multipart = new HttpPostMultipartRequestDecoder(httpDataFactory, req);
+		var c = content;
+		if (req instanceof HttpContent) {
+			int s = ((HttpContent)req).content().readableBytes();
+			c = c.slice(s, c.readableBytes() - s);
+		}
+		if (c.readableBytes() > 0)
+			multipart.offer(new DefaultLastHttpContent(c));
+		return multipart;
+	}
+
+	public static @NotNull String getMultipartString(@NotNull HttpPostMultipartRequestDecoder multipart,
+													 @NotNull String key) {
+		var httpData = multipart.getBodyHttpData(key);
+		return httpData instanceof MemoryAttribute ? ((MemoryAttribute)httpData).getValue() : "";
+	}
+
+	public static byte @NotNull [] getMultipartBytes(@NotNull HttpPostMultipartRequestDecoder multipart,
+													 @NotNull String key) {
+		var httpData = multipart.getBodyHttpData(key);
+		return httpData instanceof MemoryAttribute ? ((MemoryAttribute)httpData).get() : ByteBuffer.Empty;
+	}
+
+	public static byte @NotNull [] getMultipartFile(@NotNull HttpPostMultipartRequestDecoder multipart,
+													@NotNull String key) {
+		var httpData = multipart.getBodyHttpData(key);
+		return httpData instanceof MemoryFileUpload ? ((MemoryFileUpload)httpData).get() : ByteBuffer.Empty;
 	}
 
 	public static @NotNull String urlDecode(@NotNull String s) {
@@ -593,12 +633,22 @@ public class HttpExchange {
 		return send(status, "text/plain; charset=utf-8", text);
 	}
 
+	public @NotNull ChannelFuture sendPlainText(@NotNull HttpResponseStatus status, byte @Nullable [] text) {
+		return send(status, "text/plain; charset=utf-8", text == null || text.length == 0 ? Unpooled.EMPTY_BUFFER
+				: Unpooled.wrappedBuffer(text));
+	}
+
 	public @NotNull ChannelFuture sendHtml(@NotNull HttpResponseStatus status, @Nullable String html) {
 		return send(status, "text/html; charset=utf-8", html);
 	}
 
 	public @NotNull ChannelFuture sendJson(@NotNull HttpResponseStatus status, @Nullable String json) {
 		return send(status, "application/json; charset=utf-8", json);
+	}
+
+	public @NotNull ChannelFuture sendJson(@NotNull HttpResponseStatus status, byte @Nullable [] json) {
+		return send(status, "application/json; charset=utf-8", json == null || json.length == 0 ? Unpooled.EMPTY_BUFFER
+				: Unpooled.wrappedBuffer(json));
 	}
 
 	public @NotNull ChannelFuture sendXml(@NotNull HttpResponseStatus status, @Nullable String xml) {
@@ -654,7 +704,7 @@ public class HttpExchange {
 	}
 
 	public @NotNull ChannelFuture send404() {
-		return sendPlainText(HttpResponseStatus.NOT_FOUND, null);
+		return sendPlainText(HttpResponseStatus.NOT_FOUND, (byte[])null);
 	}
 
 	public @NotNull ChannelFuture send500(@NotNull Throwable ex) {

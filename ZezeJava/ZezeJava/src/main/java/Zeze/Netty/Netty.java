@@ -61,7 +61,7 @@ public class Netty implements Closeable {
 				.channel(serverChannelClass)
 				.childHandler(handler);
 		ChannelFuture future;
-		if (host != null) {
+		if (host != null && !(host = host.trim()).isEmpty()) {
 			future = bs.bind(host, port);
 			logger.info("startServer {} on {}:{}", handler.getClass().getName(), host, port);
 		} else {

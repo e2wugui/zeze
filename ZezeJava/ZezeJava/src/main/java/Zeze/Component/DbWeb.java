@@ -35,7 +35,7 @@ public class DbWeb extends AbstractDbWeb {
 	public static String toJsonForView(Object obj) {
 		var jw = JsonWriter.local();
 		try {
-			return jw.clear().setFlagsAndDepthLimit(JsonWriter.FLAG_PRETTY_FORMAT | JsonWriter.FLAG_WRAP_ELEMENT, 16)
+			return jw.clear().setFlagsAndDepthLimit(JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT, 16)
 					.write(obj).toString();
 		} finally {
 			jw.clear();
