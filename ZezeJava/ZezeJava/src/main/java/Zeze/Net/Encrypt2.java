@@ -3,7 +3,6 @@ package Zeze.Net;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import Zeze.Util.Json;
-import Zeze.Util.Task;
 
 // AES(CFB) Encrypt
 public final class Encrypt2 implements Codec {
@@ -33,8 +32,7 @@ public final class Encrypt2 implements Codec {
 			mhCryptInit = lookup.unreflect(mCryptInit);
 			mhCryptEncrypt = lookup.unreflect(mCryptEncrypt);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw new ExceptionInInitializerError(e);
 		}
 	}
 

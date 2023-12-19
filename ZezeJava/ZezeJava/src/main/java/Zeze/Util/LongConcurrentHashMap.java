@@ -1203,7 +1203,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 				throw new Error("data type scale not a power of two");
 			ASHIFT = 31 - Integer.numberOfLeadingZeros(scale);
 		} catch (Exception e) {
-			throw new Error(e);
+			throw new ExceptionInInitializerError(e);
 		}
 	}
 }

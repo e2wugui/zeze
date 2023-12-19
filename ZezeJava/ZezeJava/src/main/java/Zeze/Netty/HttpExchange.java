@@ -75,8 +75,7 @@ public class HttpExchange {
 		try {
 			detachedHandle = MethodHandles.lookup().findVarHandle(HttpExchange.class, "detached", int.class);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw new ExceptionInInitializerError(e);
 		}
 	}
 

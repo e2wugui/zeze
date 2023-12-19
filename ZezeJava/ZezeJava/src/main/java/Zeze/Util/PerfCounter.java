@@ -179,8 +179,7 @@ public final class PerfCounter {
 			totalDirectCapacity = (AtomicLong)Json.setAccessible(cBits.getDeclaredField("TOTAL_CAPACITY")).get(null);
 			directCount = (AtomicLong)Json.setAccessible(cBits.getDeclaredField("COUNT")).get(null);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // neven run here
+			throw new ExceptionInInitializerError(e);
 		}
 	}
 

@@ -54,8 +54,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			closedHandle = lookup.findVarHandle(AsyncSocket.class, "closed", byte.class);
 			outputBufferSizeHandle = lookup.findVarHandle(AsyncSocket.class, "outputBufferSize", long.class);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw new ExceptionInInitializerError(e);
 		}
 
 		var str = System.getProperty("protocolLogExcept");

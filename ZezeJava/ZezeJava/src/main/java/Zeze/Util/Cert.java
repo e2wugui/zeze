@@ -60,7 +60,7 @@ public final class Cert {
 			m.invoke(Certificate.class.getModule(), "sun.security.util"); // --add-opens java.base/sun.security.util=ALL-UNNAMED
 			m.invoke(Certificate.class.getModule(), "sun.security.x509"); // --add-opens java.base/sun.security.x509=ALL-UNNAMED
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
+			throw new ExceptionInInitializerError(e);
 		}
 	}
 

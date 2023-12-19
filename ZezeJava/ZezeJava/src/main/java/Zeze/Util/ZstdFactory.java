@@ -50,8 +50,7 @@ public final class ZstdFactory {
 			mhDecompressStream = getMethodHandle(lookup, cls, "decompressStream", long.class, byte[].class, int.class,
 					byte[].class, int.class); // stream, dst, dstSize, src, srcEnd (read srcPos & dstPos, write srcPos & dstPos)
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw new ExceptionInInitializerError(e);
 		}
 	}
 

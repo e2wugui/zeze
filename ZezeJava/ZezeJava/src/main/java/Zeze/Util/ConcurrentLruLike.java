@@ -24,8 +24,7 @@ public class ConcurrentLruLike<K, V> {
 			try {
 				LRU_NODE_HANDLE = MethodHandles.lookup().findVarHandle(LruItem.class, "lruNode", ConcurrentHashMap.class);
 			} catch (ReflectiveOperationException e) {
-				Task.forceThrow(e);
-				throw new AssertionError(); // never run here
+				throw new ExceptionInInitializerError(e);
 			}
 		}
 

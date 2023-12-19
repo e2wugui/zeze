@@ -12,11 +12,11 @@ public final class GlobalTimer {
 
 	static {
 		try {
-			vhCurMs = MethodHandles.lookup().findStaticVarHandle(GlobalTimer.class, "curMs", long.class);
-			vhCurSec = MethodHandles.lookup().findStaticVarHandle(GlobalTimer.class, "curSec", long.class);
+			var lookup = MethodHandles.lookup();
+			vhCurMs = lookup.findStaticVarHandle(GlobalTimer.class, "curMs", long.class);
+			vhCurSec = lookup.findStaticVarHandle(GlobalTimer.class, "curSec", long.class);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw new ExceptionInInitializerError(e);
 		}
 
 		vhCurMs.setOpaque(System.currentTimeMillis());

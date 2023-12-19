@@ -1,6 +1,5 @@
 package Zeze.Onz;
 
-import Zeze.Application;
 import Zeze.Builtin.Onz.BFuncProcedure;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.IByteBuffer;

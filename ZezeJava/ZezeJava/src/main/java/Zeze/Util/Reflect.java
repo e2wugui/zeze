@@ -38,8 +38,7 @@ public class Reflect {
 		try {
 			supplierMH = MethodHandles.lookup().findVirtual(Supplier.class, "get", MethodType.methodType(Object.class));
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw new ExceptionInInitializerError(e);
 		}
 
 		stableNameMap.put(boolean.class, "bool");

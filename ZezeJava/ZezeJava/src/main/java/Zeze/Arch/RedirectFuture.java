@@ -17,8 +17,9 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 
 	static {
 		try {
-			ON_SUCCESS = MethodHandles.lookup().findVarHandle(RedirectFuture.class, "onSuccess", Action1.class);
-			ON_FAIL = MethodHandles.lookup().findVarHandle(RedirectFuture.class, "onFail", Action1.class);
+			var lookup = MethodHandles.lookup();
+			ON_SUCCESS = lookup.findVarHandle(RedirectFuture.class, "onSuccess", Action1.class);
+			ON_FAIL = lookup.findVarHandle(RedirectFuture.class, "onFail", Action1.class);
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
 		}

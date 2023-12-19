@@ -26,8 +26,7 @@ public final class TaskOneByOneByKey2 {
 		try {
 			vhSubmitted = MethodHandles.lookup().findVarHandle(TaskOneByOne.class, "submitted", boolean.class);
 		} catch (ReflectiveOperationException e) {
-			Zeze.Util.Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw new ExceptionInInitializerError(e);
 		}
 	}
 
@@ -76,8 +75,7 @@ public final class TaskOneByOneByKey2 {
 			try {
 				vhCount = MethodHandles.lookup().findVarHandle(Barrier.class, "count", int.class);
 			} catch (ReflectiveOperationException e) {
-				Zeze.Util.Task.forceThrow(e);
-				throw new AssertionError(); // never run here
+				throw new ExceptionInInitializerError(e);
 			}
 		}
 

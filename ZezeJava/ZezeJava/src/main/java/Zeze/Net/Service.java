@@ -47,18 +47,17 @@ public class Service {
 	public static final IOException keepAliveException = new IOException("checkKeepAlive failed");
 
 	static {
-		var l = MethodHandles.lookup();
+		var lookup = MethodHandles.lookup();
 		try {
-			closedRecvCountHandle = l.findVarHandle(Service.class, "closedRecvCount", long.class);
-			closedRecvSizeHandle = l.findVarHandle(Service.class, "closedRecvSize", long.class);
-			closedSendCountHandle = l.findVarHandle(Service.class, "closedSendCount", long.class);
-			closedSendSizeHandle = l.findVarHandle(Service.class, "closedSendSize", long.class);
-			closedSendRawSizeHandle = l.findVarHandle(Service.class, "closedSendRawSize", long.class);
-			overflowSizeHandle = l.findVarHandle(Service.class, "overflowSize", long.class);
-			overflowCountHandle = l.findVarHandle(Service.class, "overflowCount", int.class);
+			closedRecvCountHandle = lookup.findVarHandle(Service.class, "closedRecvCount", long.class);
+			closedRecvSizeHandle = lookup.findVarHandle(Service.class, "closedRecvSize", long.class);
+			closedSendCountHandle = lookup.findVarHandle(Service.class, "closedSendCount", long.class);
+			closedSendSizeHandle = lookup.findVarHandle(Service.class, "closedSendSize", long.class);
+			closedSendRawSizeHandle = lookup.findVarHandle(Service.class, "closedSendRawSize", long.class);
+			overflowSizeHandle = lookup.findVarHandle(Service.class, "overflowSize", long.class);
+			overflowCountHandle = lookup.findVarHandle(Service.class, "overflowCount", int.class);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw new ExceptionInInitializerError(e);
 		}
 	}
 

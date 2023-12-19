@@ -430,7 +430,7 @@ public final class Json implements Cloneable {
 			STRING_CODE_OFFSET = BYTE_STRING ?
 					unsafe.objectFieldOffset(Objects.requireNonNull(getDeclaredField(String.class, "coder"))) : 0;
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			throw new ExceptionInInitializerError(e);
 		}
 	}
 

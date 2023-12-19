@@ -59,6 +59,7 @@ public final class Http {
 					+ handleClass.getName());
 		}
 
+		var lookup = MethodHandles.lookup();
 		for (var method : handleClass.getDeclaredMethods()) {
 			Annotation httpAnno = null;
 			for (var anno : method.getAnnotations()) {
@@ -108,7 +109,6 @@ public final class Http {
 
 			HttpEndStreamHandle handler;
 			try {
-				var lookup = MethodHandles.lookup();
 				var mt = MethodType.methodType(void.class, HttpExchange.class);
 				var callSite = LambdaMetafactory.metafactory(lookup, "onEndStream",
 						MethodType.methodType(HttpEndStreamHandle.class), mt, lookup.unreflect(method), mt);

@@ -11,7 +11,6 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.ProtocolFactoryFinder;
-import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -39,8 +38,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		try {
 			userStateHandle = MethodHandles.lookup().findVarHandle(Protocol.class, "userState", Object.class);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw new ExceptionInInitializerError(e);
 		}
 	}
 

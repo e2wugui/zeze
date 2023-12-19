@@ -35,8 +35,9 @@ public class TaskCompletionSource<R> implements Future<R> {
 
 	static {
 		try {
-			RESULT = MethodHandles.lookup().findVarHandle(TaskCompletionSource.class, "result", Object.class);
-			WAIT_HEAD = MethodHandles.lookup().findVarHandle(TaskCompletionSource.class, "waitHead", Object.class);
+			var lookup = MethodHandles.lookup();
+			RESULT = lookup.findVarHandle(TaskCompletionSource.class, "result", Object.class);
+			WAIT_HEAD = lookup.findVarHandle(TaskCompletionSource.class, "waitHead", Object.class);
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
 		}

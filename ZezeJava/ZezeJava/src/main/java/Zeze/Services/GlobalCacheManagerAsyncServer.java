@@ -332,8 +332,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			try {
 				vhCounter = MethodHandles.lookup().findVarHandle(CountDownFuture.class, "counter", int.class);
 			} catch (ReflectiveOperationException e) {
-				Task.forceThrow(e);
-				throw new AssertionError(); // never run here
+				throw new ExceptionInInitializerError(e);
 			}
 		}
 

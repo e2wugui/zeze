@@ -73,8 +73,7 @@ public class RocksDatabase implements Closeable {
 			c.setAccessible(true);
 			mhWriteBatchNew = lookup.unreflectConstructor(c);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw new ExceptionInInitializerError(e);
 		}
 	}
 
