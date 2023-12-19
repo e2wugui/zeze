@@ -1,10 +1,12 @@
 package Zeze.Onz;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import Zeze.Builtin.Onz.BSavedCommits;
 import Zeze.Builtin.Onz.Checkpoint;
 import Zeze.Builtin.Onz.Commit;
 import Zeze.Builtin.Onz.FlushReady;
@@ -157,14 +159,31 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 		}
 	}
 
-	void commit() throws ExecutionException, InterruptedException {
+	public BSavedCommits.Data buildSavedCommits() {
+		var bState = new BSavedCommits.Data();
+		for (var e : zezeProcedures.keySet()) {
+			bState.getOnzs().add(Objects.requireNonNull(e.getConnector()).getName());
+		}
+		return bState;
+	}
+
+	void commit(byte[] tidBytes, BSavedCommits.Data state) throws ExecutionException, InterruptedException {
 		// 对于saga，zezeProcedures都是空的。
-		// todo 持久化，并且在异常情况下，重发Commit。
+		// 持久化，并且在异常情况下，重发Commit。
 		//  可以解决commit阶段网络异常导致zeze服务器没有收到commit，
 		//  可以解决commit阶段OnzAgent宕机导致commit丢失，
 		//  但是无法解决所有问题，比如：后面的flush阶段的完整性是不完备的，存在降级（FlushAsync），只是一种尽量的策略。
 		//  无法解决zeze服commit后flush前的zeze服宕机问题。实现起来麻烦，而且成效不够显著。
 		//  本质的核心问题是Onz的zeze端没有持久化ready，导致即使补发commit也无法非常可靠。
+
+		try {
+			onzServer.saveCommitPoint(tidBytes, state, AbstractOnz.eCommitting);
+		} catch (Throwable ex) {
+			rollback();
+			onzServer.removeCommitIndex(tidBytes);
+			throw new RuntimeException(ex);
+		}
+
 		for (var zeze : zezeProcedures.keySet()) {
 			var r = new Commit();
 			r.Argument.setOnzTid(onzTid);
@@ -175,6 +194,9 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 
 		// 对于procedure，下面函数里面访问的zezeSagas是空的。
 		endSaga();
+
+		// commit success
+		onzServer.removeCommitIndex(tidBytes);
 	}
 
 	void rollback() {

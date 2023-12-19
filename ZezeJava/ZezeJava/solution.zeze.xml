@@ -2027,6 +2027,17 @@
 			<rpc name="Commit" argument="BCommit" handle="server"/>
 			<rpc name="Rollback" argument="BCommit" handle="server"/>
 
+			<!-- 2段式Commit阶段可靠性提高结构 -->
+			<enum name="eCommitNotExist" value="0"/>
+			<enum name="ePreparing" value="1"/>
+			<enum name="eCommitting" value="2"/>
+
+			<bean name="BSavedCommits">
+				<variable id="1" name="State" type="int"/>
+				<variable id="2" name="Onzs" type="set[string]"/>
+			</bean>
+
+			<!-- Flush阶段控制协议 -->
 			<bean name="BFlushReady">
 				<variable id="1" name="OnzTid" type="long"/>
 			</bean>

@@ -93,10 +93,8 @@ public class Onz extends AbstractOnz {
     @Override
     protected long ProcessCommitRequest(Commit r) throws Exception {
         var procedure = readyProcedures.remove(r.Argument.getOnzTid());
-        if (null == procedure)
-            return errorCode(eProcedureNotFound);
-
-        procedure.commit();
+        if (null != procedure)
+            procedure.commit();
         r.SendResult();
         return 0;
     }
@@ -104,10 +102,8 @@ public class Onz extends AbstractOnz {
     @Override
     protected long ProcessRollbackRequest(Rollback r) throws Exception {
         var procedure = readyProcedures.remove(r.Argument.getOnzTid());
-        if (null == procedure)
-            return errorCode(eProcedureNotFound);
-
-        procedure.rollback();
+        if (null != procedure)
+            procedure.rollback();
         r.SendResult();
         return 0;
     }

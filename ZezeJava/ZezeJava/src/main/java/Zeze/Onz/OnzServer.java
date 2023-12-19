@@ -1,7 +1,12 @@
 package Zeze.Onz;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import Zeze.Application;
+import Zeze.Builtin.Onz.BSavedCommits;
 import Zeze.Builtin.Onz.Checkpoint;
 import Zeze.Builtin.Onz.Commit;
 import Zeze.Builtin.Onz.FuncProcedure;
@@ -16,9 +21,16 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Data;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Func2;
+import Zeze.Util.RocksDatabase;
+import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.rocksdb.RocksDBException;
+import org.rocksdb.WriteOptions;
 
 /**
  * 开发onz服务器基础
@@ -37,6 +49,20 @@ public class OnzServer extends AbstractOnz {
 	private final ConcurrentHashMap<String, OnzTransactionStub<?, ?>> remoteStubs = new ConcurrentHashMap<>();
 	private final OnzServerService service;
 
+	private final RocksDatabase database;
+	private final RocksDatabase.Table commitPoint;
+	private final RocksDatabase.Table commitIndex;
+	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
+	private Future<?> redoTimer;
+
+	public void setWriteOptions(WriteOptions writeOptions) {
+		this.writeOptions = writeOptions;
+	}
+
+	public WriteOptions getWriteOptions() {
+		return writeOptions;
+	}
+
 	/**
 	 * 每个zeze集群使用独立的ServiceManager实例时，使用这个方法构造OnzServer。
 	 * 建议按这种方式配置，便于解耦。
@@ -46,6 +72,10 @@ public class OnzServer extends AbstractOnz {
 	 * zeze1.xml,zeze2.xml是不同zeze集群的配置文件path。
 	 */
 	public OnzServer(String zezeConfigs, Config myConfig) throws Exception {
+		database = new RocksDatabase("CommitOnzServer" + myConfig.getServerId());
+		commitPoint = database.getOrAddTable("CommitPoint");
+		commitIndex = database.getOrAddTable("CommitIndex");
+
 		var zezesArray = zezeConfigs.split(";");
 		for (var zeze : zezesArray) {
 			var zezeNameAndConfig = zeze.split("=");
@@ -77,9 +107,108 @@ public class OnzServer extends AbstractOnz {
 	public void start() throws Exception {
 		service.start();
 		onzAgent.start();
+
+		try {
+			redoTimer();
+		} catch (Exception ex) {
+			logger.error("first try.", ex);
+		}
+		// 1 minute?
+		redoTimer = Task.scheduleUnsafe(60000, 60000, this::redoTimer);
+	}
+
+	private void redoTimer() throws RocksDBException {
+		try (var it = commitIndex.iterator()) {
+			for (it.seekToFirst(); it.isValid(); it.next()) {
+				var value = it.value();
+				var state = ByteBuffer.Wrap(value).ReadInt();
+				switch (state) {
+				case eCommitting:
+					redo(it.key(), OnzServer::commit);
+					break;
+				case ePreparing:
+					redo(it.key(), OnzServer::rollback);
+					break;
+				}
+			}
+		}
+	}
+
+	private static TaskCompletionSource<EmptyBean.Data> commit(Connector conn, long tid) {
+		var r = new Commit();
+		r.Argument.setOnzTid(tid);
+		return r.SendForWait(conn.GetReadySocket());
+	}
+
+	private static TaskCompletionSource<EmptyBean.Data> rollback(Connector conn, long tid) {
+		var r = new Rollback();
+		r.Argument.setOnzTid(tid);
+		return r.SendForWait(conn.GetReadySocket());
+	}
+
+	private void redo(byte[] key, Func2<Connector, Long, TaskCompletionSource<EmptyBean.Data>> func) throws RocksDBException {
+
+		var value = Objects.requireNonNull(commitPoint.get(key));
+		var state = new BSavedCommits.Data();
+		state.decode(ByteBuffer.Wrap(value));
+
+		var zezeOnzs = new HashMap<String, Connector>();
+		var tid = ByteBuffer.ToLongBE(key, 0);
+		try {
+			var futures = new ArrayList<TaskCompletionSource<?>>();
+			for (var e : state.getOnzs()) {
+				futures.add(func.call(openRedoConnection(zezeOnzs, e), tid));
+			}
+			for (var e : futures)
+				e.await();
+			removeCommitIndex(key);
+		} catch (Throwable ex) {
+			// timer will redo
+			logger.error("", ex);
+		} finally {
+			for (var zeze : zezeOnzs.values())
+				zeze.stop();
+		}
+	}
+
+	void saveCommitPoint(byte[] tidBytes, BSavedCommits.Data bState, int state) throws RocksDBException {
+		bState.setState(state);
+		var bb = ByteBuffer.Allocate();
+		bState.encode(bb);
+		var bbIndex = ByteBuffer.Allocate(5);
+		bbIndex.WriteInt(state);
+		try (var batch = database.borrowBatch()) {
+			// putIfAbsent ？？？ 报错！
+			commitPoint.put(batch, tidBytes, tidBytes.length, bb.Bytes, bb.WriteIndex);
+			commitIndex.put(batch, tidBytes, tidBytes.length, bbIndex.Bytes, bbIndex.WriteIndex);
+			batch.commit(writeOptions);
+		}
+	}
+
+	void removeCommitIndex(byte[] tidBytes) {
+		try {
+			commitIndex.delete(tidBytes);
+		} catch (RocksDBException e) {
+			// 这个错误仅仅记录日志，所有没有删除的index，以后重启和Timer会尝试重做。
+			logger.error("", e);
+		}
+	}
+
+	private static Connector openRedoConnection(HashMap<String, Connector> conns, String ip_port) {
+		var conn = conns.computeIfAbsent(ip_port, __ -> {
+			var newConn = new Connector(ip_port, false);
+			newConn.start();
+			return newConn;
+		});
+		conn.GetReadySocket();
+		return conn;
 	}
 
 	public void stop() throws Exception {
+		if (null != redoTimer)
+			redoTimer.cancel(false);
+		database.close();
+
 		onzAgent.stop();
 		service.stop();
 	}
@@ -92,6 +221,10 @@ public class OnzServer extends AbstractOnz {
 	 * @param specialZezeNames 共享配置时，已经配置成不同的zeze集群的唯一名字的列表，OnzServer不再自定义命名。
 	 */
 	public OnzServer(String sharedZezeConfig, String specialZezeNames, Config myConfig) throws Exception {
+		database = new RocksDatabase("CommitOnzServer" + myConfig.getServerId());
+		commitPoint = database.getOrAddTable("CommitPoint");
+		commitIndex = database.getOrAddTable("CommitIndex");
+
 		var config = Config.load(sharedZezeConfig);
 		var serviceManager = Application.createServiceManager(config, "OnzServerServiceManager");
 		if (serviceManager == null)
@@ -195,9 +328,13 @@ public class OnzServer extends AbstractOnz {
 		try {
 			onzAgent.addTransaction(txn);
 			var rc = txn.perform();
+			var state = txn.buildSavedCommits();
+			var tidBytes = new byte[8];
+			ByteBuffer.longBeHandler.set(tidBytes, 0, txn.getOnzTid());
+			saveCommitPoint(tidBytes, state, ePreparing);
 			if (0 == rc) {
 				txn.waitPendingAsync();
-				txn.commit();
+				txn.commit(tidBytes, state);
 				txn.waitFlushDone();
 				return 0;
 			}

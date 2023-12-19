@@ -50,15 +50,22 @@ public class Connector {
 		}
 	}
 
+	public Connector(@NotNull String hostAndPort, boolean autoReconnect) {
+		var ipp = hostAndPort.split("_");
+		this.hostNameOrAddress = ipp[0];
+		this.port = Integer.parseInt(ipp[1]);
+		this.name = this.hostNameOrAddress + "_" + this.port;
+		this.isAutoReconnect = autoReconnect;
+	}
 	public Connector(@NotNull String host, int port) {
 		this(host, port, true);
 	}
 
 	public Connector(@NotNull String host, int port, boolean autoReconnect) {
-		hostNameOrAddress = host;
+		this.hostNameOrAddress = host;
 		this.port = port;
-		name = host + '_' + port;
-		isAutoReconnect = autoReconnect;
+		this.name = host + '_' + port;
+		this.isAutoReconnect = autoReconnect;
 	}
 
 	public Connector(@NotNull Element self) {

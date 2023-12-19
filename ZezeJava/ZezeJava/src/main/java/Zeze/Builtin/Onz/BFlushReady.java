@@ -4,6 +4,7 @@ package Zeze.Builtin.Onz;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
+// Flush阶段控制协议
 @SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BFlushReady extends Zeze.Transaction.Bean implements BFlushReadyReadOnly {
     public static final long TYPEID = 774144301369122476L;
@@ -204,6 +205,7 @@ public final class BFlushReady extends Zeze.Transaction.Bean implements BFlushRe
         return vars;
     }
 
+// Flush阶段控制协议
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 774144301369122476L;

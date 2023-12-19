@@ -18,6 +18,9 @@ public abstract class AbstractOnz implements Zeze.IModule {
     public static final int eRollback = 5;
     public static final int eFlushAsync = 1;
     public static final int eFlushImmediately = 2;
+    public static final int eCommitNotExist = 0;
+    public static final int ePreparing = 1;
+    public static final int eCommitting = 2;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
