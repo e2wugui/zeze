@@ -9,8 +9,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.LockSupport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,18 +17,87 @@ import org.jetbrains.annotations.Nullable;
  * @param <R> 为了性能优化考虑,R不能是ExecutionException,也不能是CancellationException
  */
 public class TaskCompletionSource<R> implements Future<R> {
-	private static final @NotNull VarHandle RESULT;
+	private static final @NotNull VarHandle RESULT, WAIT_HEAD;
 	protected static final Exception NULL_RESULT = new LambdaConversionException(null, null, false, false);
 
 	private volatile @SuppressWarnings("unused") Object result;
-	private final ReentrantLock lock = new ReentrantLock();
-	private final @NotNull Condition cond = lock.newCondition();
+	private volatile @SuppressWarnings("unused") Object waitHead; // Node -> Node -> ... -> Thread
+
+	private static final class Node {
+		final @NotNull Thread thread;
+		final @NotNull Object next; // Node or Thread
+
+		Node(@NotNull Thread thread, @NotNull Object next) {
+			this.thread = thread;
+			this.next = next;
+		}
+	}
 
 	static {
 		try {
 			RESULT = MethodHandles.lookup().findVarHandle(TaskCompletionSource.class, "result", Object.class);
+			WAIT_HEAD = MethodHandles.lookup().findVarHandle(TaskCompletionSource.class, "waitHead", Object.class);
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
+		}
+	}
+
+	private void push(@NotNull Thread t) {
+		for (; ; ) {
+			var h = waitHead;
+			if (h == null) {
+				if (WAIT_HEAD.compareAndSet(this, null, t))
+					return;
+			} else if (WAIT_HEAD.compareAndSet(this, h, new Node(t, h)))
+				return;
+		}
+	}
+
+	private void unparkAll() {
+		for (; ; ) {
+			var h = waitHead;
+			if (h == null)
+				return;
+			if (WAIT_HEAD.compareAndSet(this, h, null)) {
+				for (; ; ) {
+					if (h instanceof Thread) {
+						LockSupport.unpark((Thread)h);
+						return;
+					}
+					var n = (Node)h;
+					LockSupport.unpark(n.thread);
+					h = n.next;
+				}
+			}
+		}
+	}
+
+	/**
+	 * @return found param thread
+	 */
+	@SuppressWarnings("BooleanMethodIsAlwaysInverted")
+	private boolean unparkAllExcept(@NotNull Thread thread) {
+		for (; ; ) {
+			var h = waitHead;
+			if (h == null)
+				return false;
+			if (WAIT_HEAD.compareAndSet(this, h, null)) {
+				for (var found = false; ; ) {
+					if (h instanceof Thread) {
+						if (thread == h)
+							return true;
+						LockSupport.unpark((Thread)h);
+						return found;
+					}
+					var n = (Node)h;
+					var t = n.thread;
+					h = n.next;
+					if (thread == t)
+						found = true;
+					else
+						LockSupport.unpark(t);
+				}
+			}
 		}
 	}
 
@@ -41,12 +109,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 		if (r == null)
 			r = NULL_RESULT;
 		if (RESULT.compareAndSet(this, null, r)) {
-			lock.lock();
-			try {
-				cond.signalAll();
-			} finally {
-				lock.unlock();
-			}
+			unparkAll();
 			return true;
 		}
 		return false;
@@ -83,38 +146,38 @@ public class TaskCompletionSource<R> implements Future<R> {
 
 	@Override
 	public R get() throws InterruptedException, ExecutionException {
-		Object r = result;
+		var r = result;
 		if (r == null) {
-			assert !Thread.currentThread().getName().startsWith("Selector");
-			lock.lock();
-			try {
-				while ((r = result) == null)
-					cond.await();
-			} finally {
-				lock.unlock();
+			var ct = Thread.currentThread();
+			assert !ct.getName().startsWith("Selector");
+			push(ct);
+			if ((r = result) == null || !unparkAllExcept(ct)) {
+				LockSupport.park();
+				if (Thread.interrupted())
+					throw new InterruptedException();
+				r = result;
 			}
 		}
 		return toResult(r);
 	}
 
 	@Override
-	public R get(long timeout, @NotNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-		Object r = result;
+	public R get(long timeout, @NotNull TimeUnit unit)
+			throws InterruptedException, ExecutionException, TimeoutException {
+		var r = result;
 		if (r == null) {
-			timeout = unit.toMillis(timeout);
+			timeout = unit.toNanos(timeout);
 			if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
 				throw new TimeoutException();
-			assert !Thread.currentThread().getName().startsWith("Selector");
-			lock.lock();
-			try {
-				if ((r = result) == null) {
-					//noinspection ResultOfMethodCallIgnored
-					cond.await(timeout, TimeUnit.MILLISECONDS);
-					if ((r = result) == null)
-						throw new TimeoutException();
-				}
-			} finally {
-				lock.unlock();
+			var ct = Thread.currentThread();
+			assert !ct.getName().startsWith("Selector");
+			push(ct);
+			if ((r = result) == null || !unparkAllExcept(ct)) {
+				LockSupport.parkNanos(timeout);
+				if (Thread.interrupted())
+					throw new InterruptedException();
+				if ((r = result) == null)
+					throw new TimeoutException();
 			}
 		}
 		return toResult(r);
@@ -122,7 +185,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 
 	protected R toResult(Object o) throws ExecutionException {
 		if (o instanceof Exception) {
-			Class<?> cls = o.getClass();
+			var cls = o.getClass();
 			if (cls == ExecutionException.class || cls == CancellationException.class)
 				throw new ExecutionException((Throwable)o);
 			if (o == NULL_RESULT)
