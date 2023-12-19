@@ -159,12 +159,16 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 
 	void commit() throws ExecutionException, InterruptedException {
 		// 对于saga，zezeProcedures都是空的。
+		// todo 持久化，并且在异常情况下，重发Commit。
+		//  可以解决commit阶段网络异常导致zeze服务器没有收到commit，
+		//  可以解决commit阶段OnzAgent宕机导致commit丢失，
+		//  但是无法解决所有问题，比如：后面的flush阶段的完整性是不完备的，存在降级（FlushAsync），只是一种尽量的策略。
 		for (var zeze : zezeProcedures.keySet()) {
 			var r = new Commit();
 			r.Argument.setOnzTid(onzTid);
 			r.SendForWait(zeze).await();
 			if (r.getResultCode() != 0)
-				throw new RuntimeException("fatal error commit fail.");
+				logger.fatal("commit error " + IModule.getErrorCode(r.getResultCode()));
 		}
 
 		// 对于procedure，下面函数里面访问的zezeSagas是空的。
@@ -172,7 +176,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 	}
 
 	void rollback() {
-		// 对于saga，readies是空的。
+		// 对于saga，是空的。
 		for (var zeze : zezeProcedures.keySet()) {
 			var r = new Rollback();
 			r.Argument.setOnzTid(onzTid);
