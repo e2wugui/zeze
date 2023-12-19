@@ -73,35 +73,6 @@ public class TaskCompletionSource<R> implements Future<R> {
 		}
 	}
 
-	/**
-	 * @return found param thread
-	 */
-	@SuppressWarnings("BooleanMethodIsAlwaysInverted")
-	private boolean unparkAllExcept(@NotNull Thread thread) {
-		for (; ; ) {
-			var h = waitHead;
-			if (h == null)
-				return false;
-			if (WAIT_HEAD.compareAndSet(this, h, null)) {
-				for (var found = false; ; ) {
-					if (h instanceof Thread) {
-						if (thread == h)
-							return true;
-						LockSupport.unpark((Thread)h);
-						return found;
-					}
-					var n = (Node)h;
-					var t = n.thread;
-					h = n.next;
-					if (thread == t)
-						found = true;
-					else
-						LockSupport.unpark(t);
-				}
-			}
-		}
-	}
-
 	protected @Nullable Object getRawResult() {
 		return result;
 	}
@@ -152,11 +123,14 @@ public class TaskCompletionSource<R> implements Future<R> {
 			var ct = Thread.currentThread();
 			assert !ct.getName().startsWith("Selector");
 			push(ct);
-			if ((r = result) == null || !unparkAllExcept(ct)) {
-				LockSupport.park();
-				if (Thread.interrupted())
-					throw new InterruptedException();
-				r = result;
+			if ((r = result) != null)
+				unparkAll();
+			else {
+				do {
+					LockSupport.park();
+					if (Thread.interrupted())
+						throw new InterruptedException();
+				} while ((r = result) == null);
 			}
 		}
 		return toResult(r);
@@ -167,18 +141,22 @@ public class TaskCompletionSource<R> implements Future<R> {
 			throws InterruptedException, ExecutionException, TimeoutException {
 		var r = result;
 		if (r == null) {
-			timeout = unit.toNanos(timeout);
-			if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
-				throw new TimeoutException();
 			var ct = Thread.currentThread();
 			assert !ct.getName().startsWith("Selector");
 			push(ct);
-			if ((r = result) == null || !unparkAllExcept(ct)) {
-				LockSupport.parkNanos(timeout);
-				if (Thread.interrupted())
-					throw new InterruptedException();
-				if ((r = result) == null)
-					throw new TimeoutException();
+			if ((r = result) != null)
+				unparkAll();
+			else {
+				timeout = unit.toNanos(timeout);
+				var deadline = System.nanoTime() + timeout;
+				do {
+					if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
+						throw new TimeoutException();
+					LockSupport.parkNanos(timeout);
+					if (Thread.interrupted())
+						throw new InterruptedException();
+					timeout = deadline - System.nanoTime();
+				} while ((r = result) == null);
 			}
 		}
 		return toResult(r);
