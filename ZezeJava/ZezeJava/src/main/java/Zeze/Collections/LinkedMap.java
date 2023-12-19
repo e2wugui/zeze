@@ -151,7 +151,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 
 		public <T extends Bean> @NotNull CHashMap<T> openConcurrent(
 				@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
-			return openConcurrent(name, valueClass, 128, nodeSize);
+			return openConcurrent(name, valueClass, 256, nodeSize);
 		}
 
 		@SuppressWarnings({"unchecked", "SameParameterValue"})
@@ -162,11 +162,11 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			if (nodeSize < 1)
 				throw new IllegalArgumentException("nodeSize < 1");
 
-			// todo concurrencyLevel 应该持久化？因为现在写法，本进程访问会忽略后续不一样的concurrencyLevel，
+			// concurrencyLevel 应该持久化？因为现在写法，本进程访问会忽略后续不一样的concurrencyLevel，
 			//  但是多进程，没有保护到，会出错。
 			//  但是如果concurrencyLevel持久化，要不要提供修改它的能力？
 			//  题外话，LinkedMap的nodeSize是可以随时改的，它只影响新的node的大小，node大小不一样是可以的。
-			//  在concurrencyLevel可以修改前，不直接暴露这个方法，只暴露固定128级别的方法。
+			//  先不直接暴露这个方法，只暴露固定级别的方法。
 			if (name.contains("@"))
 				throw new IllegalArgumentException("name contains '@', that is reserved.");
 			// CHashMap和LinkedMap共享一个名字空间，并且CHashMap内部还会创建一批LinkedMap。

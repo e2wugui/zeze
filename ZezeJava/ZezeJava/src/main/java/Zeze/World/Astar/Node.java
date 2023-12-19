@@ -19,7 +19,7 @@ public class Node implements FastPriorityQueueNode<Node> {
 	public void open(Node parent, int cost, Node target) {
 		this.parent = parent;
 		this.gcost  = parent.gcost + cost;
-		// todo 评价函数3d
+		// 评价函数3d
 		this.fcost  = this.gcost + 5 * (Math.abs(target.index.x - this.index.x)
 				+ Math.abs(target.index.z - this.index.z));
 	}

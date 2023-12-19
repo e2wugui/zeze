@@ -463,7 +463,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			case Constant.eCompressTypeZstd:
 				chain = new DecompressZstd(chain, 128 * 1024, 128 * 1024);
 				break;
-			// TODO: 新增压缩算法支持这里加case
+			// 新增压缩算法支持这里加case
 			default:
 				throw new UnsupportedOperationException("SetInputSecurityCodec: unknown compressType=" + compressType);
 			}
@@ -475,7 +475,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				var keyMd5 = Digest.md5(encryptParam);
 				chain = new Decrypt2(chain, keyMd5, keyMd5);
 				break;
-			//TODO: 新增加密算法支持这里加case
+			// 新增加密算法支持这里加case
 			default:
 				throw new UnsupportedOperationException("SetInputSecurityCodec: unknown encryptType=" + encryptType);
 			}
@@ -506,7 +506,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				var keyMd5 = Digest.md5(encryptParam);
 				chain = new Encrypt2(chain, keyMd5, keyMd5);
 				break;
-			//TODO: 新增加密算法支持这里加case
+			// 新增加密算法支持这里加case
 			default:
 				throw new UnsupportedOperationException("SetOutputSecurityCodec: unknown encryptType=" + encryptType);
 			}
@@ -519,7 +519,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			case Constant.eCompressTypeZstd:
 				chain = new CompressZstd(chain);
 				break;
-			//TODO: 新增压缩算法支持这里加case
+			// 新增压缩算法支持这里加case
 			default:
 				throw new UnsupportedOperationException("SetOutputSecurityCodec: unknown compress=" + compressType);
 			}

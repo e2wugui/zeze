@@ -29,7 +29,7 @@ public final class ThreadDiagnosable {
 											&& t.getPriority() <= Thread.NORM_PRIORITY) {
 										logger.warn("INTERRUPT thread '{}' for task timeout", t.getName());
 										t.interrupt();
-										// todo more more ...
+										// more more ...
 									}
 								}
 							}

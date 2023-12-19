@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 /**
- * todo 这是初始版本。
+ * 这是初始版本。
  */
 
 public final class ModuleEquip extends AbstractModule implements IModuleEquip {
@@ -467,7 +467,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	public void calculateFighter(IFighter fighter) {
-		// todo 加上getId()以后才能用。
+		// 加上getId()以后才能用。
 		/*
 		if (fighter.getId().getType() != BFighterId.TypeRole) {
 			return;

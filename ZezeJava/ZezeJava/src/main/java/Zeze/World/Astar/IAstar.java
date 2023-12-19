@@ -10,14 +10,14 @@ public interface IAstar {
 	// 坐标是世界坐标.
 	boolean find(IResourceMap map, Vector3 fromV3, Vector3 toV3, Deque<Node> path /* out */);
 
-	// todo ResourceMap2D 专用, 参数有点丑.看看能不能调整一下.
-	// todo ResourceMapVoxel 如果也需要直接走斜对角,需要重构.
+	// ResourceMap2D 专用, 参数有点丑.看看能不能调整一下.
+	// ResourceMapVoxel 如果也需要直接走斜对角,需要重构.
 	void traverseCorner(IResourceMap map,
 						Node current, Node target,
 						int cx, int cz, int cost, int cx0, int cz0, int cx1, int cz1);
 
 	// ResourceMap2D, ResourceMapVoxel 都使用.
-	// todo cost 参数去掉,让astar实现自己内部定义?
+	// FIXME cost 参数去掉,让astar实现自己内部定义?
 	void traverseCross(IResourceMap map,
 					   Node current, Node target,
 					   NodeIndex to, int cost);

@@ -163,6 +163,8 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 		//  可以解决commit阶段网络异常导致zeze服务器没有收到commit，
 		//  可以解决commit阶段OnzAgent宕机导致commit丢失，
 		//  但是无法解决所有问题，比如：后面的flush阶段的完整性是不完备的，存在降级（FlushAsync），只是一种尽量的策略。
+		//  无法解决zeze服commit后flush前的zeze服宕机问题。实现起来麻烦，而且成效不够显著。
+		//  本质的核心问题是Onz的zeze端没有持久化ready，导致即使补发commit也无法非常可靠。
 		for (var zeze : zezeProcedures.keySet()) {
 			var r = new Commit();
 			r.Argument.setOnzTid(onzTid);
@@ -199,7 +201,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 				// 马上回复现有的flushReady。允许它们继续flush。降为FlushAsync。
 				for (var ready : flushReadies)
 					ready.SendResult();
-				// todo 触发当前没有flushReady或者所有相关zeze的完整Checkpoint。
+				// 触发当前没有flushReady或者所有相关zeze的完整Checkpoint。
 				//  1. 安全起见是所有zeze，上面的ready.SendResult也可能丢失。
 				//  2. 需要完整Checkpoint的zeze要不要持久化，以后持续触发。这点看起来没有必要。
 				//  3. 这里要不要等待触发结果返回。先处理成等待。

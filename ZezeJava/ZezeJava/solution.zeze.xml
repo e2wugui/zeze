@@ -1948,7 +1948,7 @@
 			<bean name="BService">
 				<variable id="1" name="ServiceName" type="string"/>
 				<variable id="2" name="State" type="string"/> Running,Stopped
-				<variable id="3" name="Ps" type="string"/> some ps result ... todo
+				<variable id="3" name="Ps" type="string"/> some ps result ...
 			</bean>
 			<bean name="BListServiceResult">
 				<variable id="1" name="Services" type="list[BService]"/>

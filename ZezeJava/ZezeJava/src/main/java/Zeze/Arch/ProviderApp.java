@@ -132,7 +132,8 @@ public class ProviderApp {
 		this.modules.putAll(staticBinds);
 		this.modules.putAll(dynamicModules);
 
-		// todo 难道上面的 buildStaticBinds & buildDynamicBinds 会没有处理全。导致这里需要补充一下？
+		// 上面的 buildStaticBinds & buildDynamicBinds 不包含所有模块，下面需要补充。
+		// 用于ProviderDirect。
 		var defaultModuleConfig = new BModule.Data(
 				BModule.ChoiceTypeDefault,
 				BModule.ConfigTypeDefault,

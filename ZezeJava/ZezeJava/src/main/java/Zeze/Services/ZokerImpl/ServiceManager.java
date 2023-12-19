@@ -41,7 +41,7 @@ public class ServiceManager {
 	}
 
 	private List<String> buildCommand(String serviceName) {
-		return new ArrayList<>(); // todo 需要确定服务进程启动规范(service.xml?或脚本)
+		return new ArrayList<>();
 	}
 
 	private Process newProcess(String serviceName) {
@@ -75,7 +75,7 @@ public class ServiceManager {
 		r.Result.setState("");
 		r.Result.setPs(process.info().toString());
 
-		// todo waitFor timeout? 1 超时时间由客户都安控制？2 超时返回结果，恢复processes（上面remove了）
+		// waitFor timeout? 1 超时时间由客户都安控制？2 超时返回结果，恢复processes（上面remove了）
 		if (r.Argument.isForce())
 			return process.destroyForcibly().waitFor();
 

@@ -97,7 +97,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 		public int offset;
 		public int length;
 
-		// 发送端用来记录这个包的重发 TimerTask。TODO 每个包一个Timer很浪费，先这样。
+		// 发送端用来记录这个包的重发 TimerTask。每个包一个Timer很浪费，先这样。
 		public transient Future<?> resendTimerTask;
 
 		public Packet() {
@@ -261,7 +261,6 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 			session.recvWindow.put(packet.serialId, packet);
 
 			// 请求重发。
-			// TODO 这里应该需要延迟一下，因为即使发生了乱序，可能在短时间内，包会继续到达。
 			var resend = new Control();
 			resend.command = Control.Resend;
 			for (var serialId = session.lastDispatchedSerialId + 1; serialId < session.maxRecvPacketSerialId; ++serialId) {

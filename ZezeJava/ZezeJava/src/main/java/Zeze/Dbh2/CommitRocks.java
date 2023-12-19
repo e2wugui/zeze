@@ -254,7 +254,7 @@ public class CommitRocks {
 		var bbIndex = ByteBuffer.Allocate(5);
 		bbIndex.WriteInt(state);
 		try (var batch = database.borrowBatch()) {
-			// todo putIfAbsent ？？？ 报错！
+			// putIfAbsent ？？？ 报错！
 			commitPoint.put(batch, tidBytes, tidBytes.length, bb.Bytes, bb.WriteIndex);
 			commitIndex.put(batch, tidBytes, tidBytes.length, bbIndex.Bytes, bbIndex.WriteIndex);
 			batch.commit(writeOptions);

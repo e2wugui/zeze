@@ -121,7 +121,7 @@ public class AoiSimple implements IAoi {
 		var newIndex = map.toIndex(move.getPosition());
 		var newCube = map.getOrAdd(newIndex);
 
-		// todo 先最大化锁住所有cube，保证可用。
+		// 先最大化锁住所有cube，保证可用。
 		//  一次锁住较少的cube的方案需要验证是否可行，备注-微信群里有点分析。
 		var dp = cube.index.distancePerpendicular(newIndex);
 		switch (dp) {
@@ -305,7 +305,7 @@ public class AoiSimple implements IAoi {
 		var index = map.toIndex(self.getBean().getMoving().getPosition());
 		var centers = map.center(index, rangeX, rangeY, rangeZ);
 
-		// todo 由于notify的处理，客户端在没有enter时可以忽略。
+		// 由于notify的处理，客户端在没有enter时可以忽略。
 		//  这里应该可以一个一个cube锁定。先最大化锁定！
 		try (var ignored = new LockGuard(centers)) {
 			processNotify(self, centers, operateId, operate);

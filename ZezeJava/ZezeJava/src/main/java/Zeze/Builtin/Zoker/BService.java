@@ -11,7 +11,7 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
 
     private String _ServiceName;
     private String _State; // Running,Stopped
-    private String _Ps; // some ps result ... todo
+    private String _Ps; // some ps result ...
 
     @Override
     public String getServiceName() {
@@ -322,7 +322,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private String _ServiceName;
     private String _State; // Running,Stopped
-    private String _Ps; // some ps result ... todo
+    private String _Ps; // some ps result ...
 
     public String getServiceName() {
         return _ServiceName;
