@@ -6,9 +6,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import Zeze.Builtin.Onz.Checkpoint;
+import Zeze.Builtin.Onz.Commit;
 import Zeze.Builtin.Onz.FlushReady;
 import Zeze.Builtin.Onz.FuncSagaEnd;
-import Zeze.Builtin.Onz.Ready;
+import Zeze.Builtin.Onz.Rollback;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Rpc;
@@ -157,14 +158,13 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 	}
 
 	void commit() throws ExecutionException, InterruptedException {
-		// 对于saga，readies,zezeProcedures都是空的。
-		if (readies.size() < zezeProcedures.size())
-			throw new RuntimeException("not enough readies");
-
-		for (var r : readies) {
-			logger.debug("Ready sender={} argument={}", r.Argument, r.getSender());
-			// commit丢失在现有的模式下无法实现重新提交。
-			r.SendResult();
+		// 对于saga，zezeProcedures都是空的。
+		for (var zeze : zezeProcedures.keySet()) {
+			var r = new Commit();
+			r.Argument.setOnzTid(onzTid);
+			r.SendForWait(zeze).await();
+			if (r.getResultCode() != 0)
+				throw new RuntimeException("fatal error commit fail.");
 		}
 
 		// 对于procedure，下面函数里面访问的zezeSagas是空的。
@@ -173,8 +173,14 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 
 	void rollback() {
 		// 对于saga，readies是空的。
-		for (var ready : readies)
-			ready.trySendResultCode(IModule.errorCode(Onz.ModuleId, Onz.eRollback));
+		for (var zeze : zezeProcedures.keySet()) {
+			var r = new Rollback();
+			r.Argument.setOnzTid(onzTid);
+			r.SendForWait(zeze).await();
+			if (r.getResultCode() != 0) {
+				logger.fatal("rollback error " + IModule.getErrorCode(r.getResultCode()));
+			}
+		}
 
 		// 对于procedure，下面函数里面访问的zezeSagas是空的。
 		cancelSaga();
@@ -207,7 +213,6 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 	}
 
 	private final long onzTid = 0; // allocate todo
-	private final ConcurrentHashSet<Rpc<?, ?>> readies = new ConcurrentHashSet<>();
 	private final ConcurrentHashSet<Rpc<?, ?>> flushReadies = new ConcurrentHashSet<>();
 	private final TaskCompletionSource<Integer> flushDone = new TaskCompletionSource<>();
 
@@ -217,10 +222,6 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 
 	public long getOnzTid() {
 		return onzTid;
-	}
-
-	void trySetReady(Ready r) {
-		readies.add(r);
 	}
 
 	void trySetFlushReady(FlushReady r) {

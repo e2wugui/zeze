@@ -7,14 +7,14 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public class OnzProcedureStub<A extends Bean, R extends Bean> {
-	private final Application zeze;
+	private final Onz onz;
 	private final String name;
 	private final OnzFuncProcedure<A, R> func;
 	private final Class<A> argumentClass;
 	private final Class<R> resultClass;
 
-	public OnzProcedureStub(Application zeze, String name, OnzFuncProcedure<A, R> func, Class<A> argumentClass, Class<R> resultClass) {
-		this.zeze = zeze;
+	public OnzProcedureStub(Onz onz, String name, OnzFuncProcedure<A, R> func, Class<A> argumentClass, Class<R> resultClass) {
+		this.onz = onz;
 		this.name = name;
 		this.func = func;
 		this.argumentClass = argumentClass;
@@ -28,8 +28,8 @@ public class OnzProcedureStub<A extends Bean, R extends Bean> {
 		return new OnzProcedure(rpc, funcArgument,this, a, r);
 	}
 
-	public Application getZeze() {
-		return zeze;
+	public Onz getOnz() {
+		return onz;
 	}
 
 	public String getName() {

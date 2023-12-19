@@ -2021,10 +2021,11 @@
 			<rpc name="FuncSagaEnd" argument="BFuncSagaEnd" result="BFuncSagaEndResult" handle="server"/>
 			
 			<!-- 2段提交相关控制协议 -->
-			<bean name="BReady">
+			<bean name="BCommit">
 				<variable id="1" name="OnzTid" type="long"/>
 			</bean>
-			<rpc name="Ready" argument="BReady" handle="client"/>
+			<rpc name="Commit" argument="BCommit" handle="server"/>
+			<rpc name="Rollback" argument="BCommit" handle="server"/>
 
 			<bean name="BFlushReady">
 				<variable id="1" name="OnzTid" type="long"/>

@@ -13,12 +13,12 @@ public class OnzSagaStub<A extends Bean, R extends Bean, T extends Bean> extends
 	private final OnzFuncSagaEnd<T> funcCancel;
 	private final Class<T> cancelClass;
 
-	public OnzSagaStub(Application zeze,
+	public OnzSagaStub(Onz onz,
 					   String name,
 					   OnzFuncSaga<A, R> func, Class<A> argumentClass, Class<R> resultClass,
 					   OnzFuncSagaEnd<T> funcCancel, Class<T> cancelClass) {
 		// super.func 在saga模式下未用。
-		super(zeze, name, null, argumentClass, resultClass);
+		super(onz, name, null, argumentClass, resultClass);
 		this.func = func;
 		this.funcCancel = funcCancel;
 		this.cancelClass = cancelClass;

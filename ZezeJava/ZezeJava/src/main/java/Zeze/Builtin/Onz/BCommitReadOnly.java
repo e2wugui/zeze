@@ -2,11 +2,11 @@
 package Zeze.Builtin.Onz;
 
 // 2段提交相关控制协议
-public interface BReadyReadOnly {
+public interface BCommitReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BReady copy();
+    BCommit copy();
 
     long getOnzTid();
 }

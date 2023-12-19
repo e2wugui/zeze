@@ -3,6 +3,8 @@ package Zeze.Onz;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Builtin.Onz.Checkpoint;
+import Zeze.Builtin.Onz.Commit;
+import Zeze.Builtin.Onz.Rollback;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
@@ -13,8 +15,19 @@ public class Onz extends AbstractOnz {
     public static final String eServiceName = "Onz";
 
     private final ConcurrentHashMap<String, OnzProcedureStub<?, ?>> procedureStubs = new ConcurrentHashMap<>();
+    private final LongConcurrentHashMap<OnzProcedure> readyProcedures = new LongConcurrentHashMap<>();
     private final LongConcurrentHashMap<OnzSaga> sagas = new LongConcurrentHashMap<>();
     private final OnzService service;
+    private final Application zeze;
+
+    void markReadyProcedure(OnzProcedure procedure) {
+        if (null != readyProcedures.putIfAbsent(procedure.getOnzTid(), procedure))
+            throw new RuntimeException("ready procedure exist. " + procedure.getOnzTid());
+    }
+
+    public Application getZeze() {
+        return zeze;
+    }
 
     public static class OnzService extends Service {
         public static final String eName = "Zeze.Onz.Server";
@@ -24,6 +37,7 @@ public class Onz extends AbstractOnz {
     }
 
     public Onz(Application zeze) {
+        this.zeze = zeze;
         var config = zeze.getConfig();
         if (null != config.getServiceConf(OnzService.eName)) {
             service = new OnzService(zeze);
@@ -52,22 +66,20 @@ public class Onz extends AbstractOnz {
     }
 
     public <A extends Bean, R extends Bean> void register(
-            Application zeze,
             String name, OnzFuncProcedure<A, R> func,
             Class<A> argumentClass, Class<R> resultClass) {
 
         if (null != procedureStubs.putIfAbsent(name,
-                new OnzProcedureStub<>(zeze, name, func, argumentClass, resultClass)))
+                new OnzProcedureStub<>(this, name, func, argumentClass, resultClass)))
             throw new RuntimeException("duplicate Onz Procedure Name=" + name);
     }
 
     public <A extends Bean, R extends Bean, T extends Bean> void registerSaga(
-            Application zeze,
             String name, OnzFuncSaga<A, R> func, OnzFuncSagaEnd<T> funcCancel,
             Class<A> argumentClass, Class<R> resultClass, Class<T> cancelClass) {
 
         if (null != procedureStubs.putIfAbsent(name,
-                new OnzSagaStub<>(zeze, name, func, argumentClass, resultClass, funcCancel, cancelClass)))
+                new OnzSagaStub<>(this, name, func, argumentClass, resultClass, funcCancel, cancelClass)))
             throw new RuntimeException("duplicate Onz Procedure Name=" + name);
     }
 
@@ -79,13 +91,35 @@ public class Onz extends AbstractOnz {
     }
 
     @Override
+    protected long ProcessCommitRequest(Commit r) throws Exception {
+        var procedure = readyProcedures.remove(r.Argument.getOnzTid());
+        if (null == procedure)
+            return errorCode(eProcedureNotFound);
+
+        procedure.commit();
+        r.SendResult();
+        return 0;
+    }
+
+    @Override
+    protected long ProcessRollbackRequest(Rollback r) throws Exception {
+        var procedure = readyProcedures.remove(r.Argument.getOnzTid());
+        if (null == procedure)
+            return errorCode(eProcedureNotFound);
+
+        procedure.rollback();
+        r.SendResult();
+        return 0;
+    }
+
+    @Override
     protected long ProcessFuncProcedureRequest(Zeze.Builtin.Onz.FuncProcedure r) throws Exception {
         var stub = procedureStubs.get(r.Argument.getFuncName());
         if (stub == null)
             return errorCode(eProcedureNotFound);
         var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
         var procedure = stub.newProcedure(r, r.Argument, buffer);
-        return Task.call(stub.getZeze().newProcedure(procedure, procedure.getName()));
+        return Task.call(zeze.newProcedure(procedure, procedure.getName()));
     }
 
     @Override
@@ -99,7 +133,7 @@ public class Onz extends AbstractOnz {
         if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), (OnzSaga)procedure))
             return errorCode(eSagaTidExist);
 
-        return Task.call(stub.getZeze().newProcedure(procedure, procedure.getName()));
+        return Task.call(zeze.newProcedure(procedure, procedure.getName()));
     }
 
     @Override
@@ -112,7 +146,7 @@ public class Onz extends AbstractOnz {
         if (r.Argument.isCancel()) {
             var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
             var cancelArgument = stub.decodeCancelArgument(r.Argument.getFuncArgument());
-            var rc = Task.call(stub.getZeze().newProcedure(() -> stub.end(context, cancelArgument), context.getName()));
+            var rc = Task.call(zeze.newProcedure(() -> stub.end(context, cancelArgument), context.getName()));
             if (rc != 0)
                 return rc;
         }

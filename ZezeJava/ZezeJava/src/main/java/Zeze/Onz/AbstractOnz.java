@@ -30,6 +30,14 @@ public abstract class AbstractOnz implements Zeze.IModule {
             service.AddFactoryHandle(47411858488468L, factoryHandle); // 11038, -285492076
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.Commit.class, Zeze.Builtin.Onz.Commit.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Onz.Commit::new;
+            factoryHandle.Handle = this::ProcessCommitRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47411106178581L, factoryHandle); // 11038, -1037801963
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.FlushReady.class, Zeze.Builtin.Onz.FlushReady.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Onz.FlushReady::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessFlushReadyResponse", Zeze.Transaction.TransactionLevel.None);
@@ -61,21 +69,23 @@ public abstract class AbstractOnz implements Zeze.IModule {
             service.AddFactoryHandle(47409308020494L, factoryHandle); // 11038, 1459007246
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.Ready.class, Zeze.Builtin.Onz.Ready.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Onz.Ready::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReadyResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReadyResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47410769183880L, factoryHandle); // 11038, -1374796664
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.Rollback.class, Zeze.Builtin.Onz.Rollback.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Onz.Rollback::new;
+            factoryHandle.Handle = this::ProcessRollbackRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRollbackRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRollbackRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47410112848658L, factoryHandle); // 11038, -2031131886
         }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47411858488468L);
+        service.getFactorys().remove(47411106178581L);
         service.getFactorys().remove(47410000793930L);
         service.getFactorys().remove(47410672249436L);
         service.getFactorys().remove(47411539774123L);
         service.getFactorys().remove(47409308020494L);
-        service.getFactorys().remove(47410769183880L);
+        service.getFactorys().remove(47410112848658L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -88,7 +98,9 @@ public abstract class AbstractOnz implements Zeze.IModule {
     }
 
     protected abstract long ProcessCheckpointRequest(Zeze.Builtin.Onz.Checkpoint r) throws Exception;
+    protected abstract long ProcessCommitRequest(Zeze.Builtin.Onz.Commit r) throws Exception;
     protected abstract long ProcessFuncProcedureRequest(Zeze.Builtin.Onz.FuncProcedure r) throws Exception;
     protected abstract long ProcessFuncSagaRequest(Zeze.Builtin.Onz.FuncSaga r) throws Exception;
     protected abstract long ProcessFuncSagaEndRequest(Zeze.Builtin.Onz.FuncSagaEnd r) throws Exception;
+    protected abstract long ProcessRollbackRequest(Zeze.Builtin.Onz.Rollback r) throws Exception;
 }

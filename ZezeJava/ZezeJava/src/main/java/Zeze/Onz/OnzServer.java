@@ -3,9 +3,11 @@ package Zeze.Onz;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Builtin.Onz.Checkpoint;
+import Zeze.Builtin.Onz.Commit;
 import Zeze.Builtin.Onz.FuncProcedure;
 import Zeze.Builtin.Onz.FuncSaga;
 import Zeze.Builtin.Onz.FuncSagaEnd;
+import Zeze.Builtin.Onz.Rollback;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -218,6 +220,11 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	@Override
+	protected long ProcessCommitRequest(Commit r) throws Exception {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	protected long ProcessFuncProcedureRequest(FuncProcedure r) throws Exception {
 		// 这个本来是嵌入zeze的组件Onz的处理协议，直接拿来作为OnzServer的远程调用，够用，还超了一点。
 		var stub = remoteStubs.get(r.Argument.getFuncName());
@@ -244,6 +251,11 @@ public class OnzServer extends AbstractOnz {
 
 	@Override
 	protected long ProcessFuncSagaEndRequest(FuncSagaEnd r) throws Exception {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	protected long ProcessRollbackRequest(Rollback r) throws Exception {
 		throw new UnsupportedOperationException();
 	}
 }

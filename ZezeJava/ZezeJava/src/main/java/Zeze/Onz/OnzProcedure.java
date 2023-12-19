@@ -5,7 +5,6 @@ import java.util.Set;
 import Zeze.Builtin.Onz.BFuncProcedure;
 import Zeze.Builtin.Onz.FlushReady;
 import Zeze.Builtin.Onz.FuncProcedure;
-import Zeze.Builtin.Onz.Ready;
 import Zeze.Net.Binary;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
@@ -23,6 +22,7 @@ public class OnzProcedure implements FuncLong {
 	private final Bean argument;
 	private final Bean result;
 	private final Rpc<?, ?> rpc;
+	private volatile TaskCompletionSource<Boolean> commitFuture;
 
 	public Rpc<?, ?> getRpc() {
 		return rpc;
@@ -79,7 +79,19 @@ public class OnzProcedure implements FuncLong {
 		return stub.getName();
 	}
 
+	void commit() {
+		// throw if null
+		commitFuture.setResult(true);
+	}
+
+	void rollback() {
+		commitFuture.setException(new RuntimeException("rollback"));
+	}
+
 	public void sendReadyAndWait() {
+		commitFuture = new TaskCompletionSource<>();
+		stub.getOnz().markReadyProcedure(this);
+
 		// 发送rpc结果
 		var req = (FuncProcedure)rpc;
 		var bbResult = ByteBuffer.Allocate();
@@ -88,10 +100,7 @@ public class OnzProcedure implements FuncLong {
 		req.SendResult();
 
 		// 发送事务执行阶段的两段式提交的准备完成，同时等待一起提交的信号。
-		var r = new Ready();
-		r.Argument.setOnzTid(getOnzTid());
-		if (!r.SendForWait(rpc.getSender()).await(funcArgument.getFlushTimeout()))
-			throw new RuntimeException("waitSendReady timeout.");
+		commitFuture.await();
 	}
 
 	protected TaskCompletionSource<Long> sendFlushReady() {

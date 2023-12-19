@@ -3,7 +3,6 @@ package Zeze.Onz;
 import Zeze.Builtin.Onz.FlushReady;
 import Zeze.Builtin.Onz.FuncProcedure;
 import Zeze.Builtin.Onz.FuncSaga;
-import Zeze.Builtin.Onz.Ready;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
@@ -47,16 +46,6 @@ public class OnzAgent extends AbstractOnzAgent {
 
 	void removeTransaction(OnzTransaction<?, ?> t) {
 		transactions.remove(t.getOnzTid());
-	}
-
-	@Override
-	protected long ProcessReadyRequest(Ready r) throws Exception {
-		var pending = transactions.get(r.Argument.getOnzTid());
-		if (null == pending)
-			return errorCode(eOnzTidNotFound);
-
-		pending.trySetReady(r);
-		return 0;
 	}
 
 	@Override

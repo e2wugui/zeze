@@ -24,8 +24,8 @@ public class TestOnz {
 		zeze2.Start(config2);
 
 		// 写到App启动里面，不用写两次，这里专门用于这个测试。
-		App.Instance.Zeze.getOnz().register(App.Instance.Zeze, "kuafu", TestOnz::kuaFu, BKuafu.class, BKuafuResult.class);
-		zeze2.Zeze.getOnz().register(zeze2.Zeze, "kuafu", TestOnz::kuaFu, BKuafu.class, BKuafuResult.class);
+		App.Instance.Zeze.getOnz().register("kuafu", TestOnz::kuaFu, BKuafu.class, BKuafuResult.class);
+		zeze2.Zeze.getOnz().register("kuafu", TestOnz::kuaFu, BKuafu.class, BKuafuResult.class);
 
 		// 随便load一个，里面的OnzServer远程调用服务没有配置，里面讲不会初始化网络。
 		// 现在这个测试嵌入方式使用OnzServer。
@@ -41,7 +41,7 @@ public class TestOnz {
 	}
 
 	private static long kuaFu(OnzProcedure onzProcedure, BKuafu argument, BKuafuResult result) {
-		var app = (App)onzProcedure.getStub().getZeze().getAppBase();
+		var app = (App)onzProcedure.getStub().getOnz().getZeze().getAppBase();
 		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
 		result.setMoney(account.getMoney());

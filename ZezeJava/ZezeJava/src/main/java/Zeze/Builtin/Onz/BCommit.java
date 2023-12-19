@@ -6,8 +6,8 @@ import Zeze.Serialize.IByteBuffer;
 
 // 2段提交相关控制协议
 @SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
-public final class BReady extends Zeze.Transaction.Bean implements BReadyReadOnly {
-    public static final long TYPEID = -1114903983417342670L;
+public final class BCommit extends Zeze.Transaction.Bean implements BCommitReadOnly {
+    public static final long TYPEID = 835137953772665828L;
 
     private long _OnzTid;
 
@@ -32,11 +32,11 @@ public final class BReady extends Zeze.Transaction.Bean implements BReadyReadOnl
     }
 
     @SuppressWarnings("deprecation")
-    public BReady() {
+    public BCommit() {
     }
 
     @SuppressWarnings("deprecation")
-    public BReady(long _OnzTid_) {
+    public BCommit(long _OnzTid_) {
         _OnzTid = _OnzTid_;
     }
 
@@ -47,40 +47,40 @@ public final class BReady extends Zeze.Transaction.Bean implements BReadyReadOnl
     }
 
     @Override
-    public Zeze.Builtin.Onz.BReady.Data toData() {
-        var data = new Zeze.Builtin.Onz.BReady.Data();
+    public Zeze.Builtin.Onz.BCommit.Data toData() {
+        var data = new Zeze.Builtin.Onz.BCommit.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Onz.BReady.Data)other);
+        assign((Zeze.Builtin.Onz.BCommit.Data)other);
     }
 
-    public void assign(BReady.Data other) {
+    public void assign(BCommit.Data other) {
         setOnzTid(other._OnzTid);
         _unknown_ = null;
     }
 
-    public void assign(BReady other) {
+    public void assign(BCommit other) {
         setOnzTid(other.getOnzTid());
         _unknown_ = other._unknown_;
     }
 
-    public BReady copyIfManaged() {
+    public BCommit copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BReady copy() {
-        var copy = new BReady();
+    public BCommit copy() {
+        var copy = new BCommit();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BReady a, BReady b) {
-        BReady save = a.copy();
+    public static void swap(BCommit a, BCommit b) {
+        BCommit save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -91,10 +91,10 @@ public final class BReady extends Zeze.Transaction.Bean implements BReadyReadOnl
     }
 
     private static final class Log__OnzTid extends Zeze.Transaction.Logs.LogLong {
-        public Log__OnzTid(BReady bean, int varId, long value) { super(bean, varId, value); }
+        public Log__OnzTid(BCommit bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BReady)getBelong())._OnzTid = value; }
+        public void commit() { ((BCommit)getBelong())._OnzTid = value; }
     }
 
     @Override
@@ -106,7 +106,7 @@ public final class BReady extends Zeze.Transaction.Bean implements BReadyReadOnl
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BReady: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BCommit: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("OnzTid=").append(getOnzTid()).append(System.lineSeparator());
         level -= 4;
@@ -208,7 +208,7 @@ public final class BReady extends Zeze.Transaction.Bean implements BReadyReadOnl
 // 2段提交相关控制协议
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = -1114903983417342670L;
+    public static final long TYPEID = 835137953772665828L;
 
     private long _OnzTid;
 
@@ -235,33 +235,33 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public Zeze.Builtin.Onz.BReady toBean() {
-        var bean = new Zeze.Builtin.Onz.BReady();
+    public Zeze.Builtin.Onz.BCommit toBean() {
+        var bean = new Zeze.Builtin.Onz.BCommit();
         bean.assign(this);
         return bean;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BReady)other);
+        assign((BCommit)other);
     }
 
-    public void assign(BReady other) {
+    public void assign(BCommit other) {
         _OnzTid = other.getOnzTid();
     }
 
-    public void assign(BReady.Data other) {
+    public void assign(BCommit.Data other) {
         _OnzTid = other._OnzTid;
     }
 
     @Override
-    public BReady.Data copy() {
-        var copy = new BReady.Data();
+    public BCommit.Data copy() {
+        var copy = new BCommit.Data();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BReady.Data a, BReady.Data b) {
+    public static void swap(BCommit.Data a, BCommit.Data b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -273,8 +273,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BReady.Data clone() {
-        return (BReady.Data)super.clone();
+    public BCommit.Data clone() {
+        return (BCommit.Data)super.clone();
     }
 
     @Override
@@ -286,7 +286,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BReady: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BCommit: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("OnzTid=").append(_OnzTid).append(System.lineSeparator());
         level -= 4;
