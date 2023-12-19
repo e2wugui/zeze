@@ -27,6 +27,7 @@ public class TestConcurrentStartServer {
 				var config1 = Config.load("zeze.xml");
 				config1.setServerId(20);
 				config1.getServiceConfMap().remove("TestServer");
+				config1.getServiceConfMap().remove("Zeze.Onz.Server");
 				app1.Start(config1);
 				start1.value = 1;
 			} catch(Throwable e) {
@@ -39,6 +40,7 @@ public class TestConcurrentStartServer {
 				var config2 = Config.load("zeze.xml");
 				config2.setServerId(21);
 				config2.getServiceConfMap().remove("TestServer");
+				config2.getServiceConfMap().remove("Zeze.Onz.Server");
 				app2.Start(config2);
 				start2.value = 1;
 			} catch (Throwable e) {
@@ -51,6 +53,7 @@ public class TestConcurrentStartServer {
 				var config3 = Config.load("zeze.xml");
 				config3.setServerId(22);
 				config3.getServiceConfMap().remove("TestServer");
+				config3.getServiceConfMap().remove("Zeze.Onz.Server");
 				app3.Start(config3);
 				start3.value = 1;
 			} catch (Throwable e) {

@@ -76,6 +76,8 @@ public class TestGlobal extends TestCase {
 		}
 		config1.getServiceConfMap().remove("TestServer");
 		config2.getServiceConfMap().remove("TestServer");
+		config1.getServiceConfMap().remove("Zeze.Onz.Server");
+		config2.getServiceConfMap().remove("Zeze.Onz.Server");
 
 		app1.Start(config1);
 		app2.Start(config2);

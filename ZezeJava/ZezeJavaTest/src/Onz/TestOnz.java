@@ -13,7 +13,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class Test1 {
+public class TestOnz {
 	private App zeze2 = new App();
 	private OnzServer onzServer;
 
@@ -24,8 +24,8 @@ public class Test1 {
 		zeze2.Start(config2);
 
 		// 写到App启动里面，不用写两次，这里专门用于这个测试。
-		App.Instance.Zeze.getOnz().register(App.Instance.Zeze, "kuafu", Test1::kuaFu, BKuafu.class, BKuafuResult.class);
-		zeze2.Zeze.getOnz().register(zeze2.Zeze, "kuafu", Test1::kuaFu, BKuafu.class, BKuafuResult.class);
+		App.Instance.Zeze.getOnz().register(App.Instance.Zeze, "kuafu", TestOnz::kuaFu, BKuafu.class, BKuafuResult.class);
+		zeze2.Zeze.getOnz().register(zeze2.Zeze, "kuafu", TestOnz::kuaFu, BKuafu.class, BKuafuResult.class);
 
 		// 随便load一个，里面的OnzServer远程调用服务没有配置，里面讲不会初始化网络。
 		// 现在这个测试嵌入方式使用OnzServer。
@@ -51,7 +51,7 @@ public class Test1 {
 	protected static final Logger logger = LogManager.getLogger();
 
 	@Test
-	public void test1() throws Exception {
+	public void testOnz() throws Exception {
 		Thread.sleep(2000);
 		var txn = new KuafuTransaction(1, 1, 1);
 		txn.setOnzServer(onzServer);
