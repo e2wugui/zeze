@@ -162,7 +162,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 			throw new RuntimeException("not enough readies");
 
 		for (var r : readies) {
-			logger.info("Ready sender={} argument={}", r.Argument, r.getSender());
+			logger.debug("Ready sender={} argument={}", r.Argument, r.getSender());
 			// commit丢失在现有的模式下无法实现重新提交。
 			r.SendResult();
 		}
@@ -224,7 +224,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 	}
 
 	void trySetFlushReady(FlushReady r) {
-		logger.info("FlushReady sender={} argument={}", r.Argument, r.getSender());
+		logger.debug("FlushReady sender={} argument={}", r.Argument, r.getSender());
 		flushReadies.add(r);
 
 		if (flushReadies.size() == zezeProcedures.size() || flushReadies.size() == zezeSagas.size()) {
