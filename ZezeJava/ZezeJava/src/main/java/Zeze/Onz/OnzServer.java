@@ -332,6 +332,13 @@ public class OnzServer extends AbstractOnz {
 			var tidBytes = new byte[8];
 			ByteBuffer.longBeHandler.set(tidBytes, 0, txn.getOnzTid());
 			saveCommitPoint(tidBytes, state, ePreparing);
+			// 这里和下面的txn.Commit分成两步saveCommitPoint，
+			// 实际上这中间没有做太多额外的事情，可以考虑合并成异步，
+			// 但为了明确两个事务状态，仍然分开。原因如下：
+			// 参考Dbh2的两步：由于Dbh2一开始就知道所有的服务器，所以可以一开始就保存一次ePreparing，
+			// 而这上面的perform是便执行边产生服务器地址，无法一开始保存事务状态。
+			// 最严格的做法是每产生一个服务器地址，就写一次ePreparing（包含所有的服务器地址）。
+			// 现在先简单处理为：等待perform完成。
 			if (0 == rc) {
 				txn.waitPendingAsync();
 				txn.commit(tidBytes, state);
