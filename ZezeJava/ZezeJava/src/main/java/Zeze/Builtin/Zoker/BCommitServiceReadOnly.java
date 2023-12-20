@@ -8,4 +8,5 @@ public interface BCommitServiceReadOnly {
     BCommitService copy();
 
     String getServiceName();
+    String getVersionNo();
 }

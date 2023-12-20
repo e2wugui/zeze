@@ -1,10 +1,17 @@
 package Zeze.Services;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Zoker.AppendFile;
 import Zeze.Builtin.Zoker.BListServiceResult;
 import Zeze.Builtin.Zoker.BService;
 import Zeze.Builtin.Zoker.CloseFile;
+import Zeze.Builtin.Zoker.CommitService;
 import Zeze.Builtin.Zoker.ListSerivce;
 import Zeze.Builtin.Zoker.OpenFile;
 import Zeze.Builtin.Zoker.StartService;
@@ -65,12 +72,16 @@ public class ZokerAgent extends AbstractZokerAgent {
         return r.Result.getOffset();
     }
 
-    public void appendFile(String zokerName, String fileName, long offset, Binary data) {
+    public void appendFile(String zokerName, String fileName, long offset, byte[] data) {
+        appendFile(zokerName, fileName, offset, data, 0, data.length);
+    }
+
+    public void appendFile(String zokerName, String fileName, long offset, byte[] data, int dataOffset, int dataLength) {
         var zoker = getZoker(zokerName);
         var r = new AppendFile();
         r.Argument.setFileName(fileName);
         r.Argument.setOffset(offset);
-        r.Argument.setChunk(data);
+        r.Argument.setChunk(new Binary(data, dataOffset, dataLength));
         r.SendForWait(zoker).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("append file error. " + IModule.getErrorCode(r.getResultCode()));
@@ -85,6 +96,68 @@ public class ZokerAgent extends AbstractZokerAgent {
         r.SendForWait(zoker).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("close file error. " + IModule.getErrorCode(r.getResultCode()));
+    }
+
+    /**
+     * 发布服务到zoker上。
+     * @param zokerName zoker name
+     * @param localServiceHome local service home 服务文件目录所在的文件夹
+     * @param serviceName service name
+     * @param versionNo version no 将被当作文件路径名，不能包含文件路径不支持的字符。
+     */
+    public void distributeService(String zokerName, File localServiceHome, String serviceName, String versionNo) throws Exception {
+        var serviceDir = new File(localServiceHome, serviceName);
+        if (!serviceDir.isDirectory() || !serviceDir.exists())
+            throw new RuntimeException("service dir error.");
+        distributeService(zokerName, localServiceHome.toPath(), serviceDir);
+        var r = new CommitService();
+        r.Argument.setServiceName(serviceName);
+        r.Argument.setVersionNo(versionNo);
+        r.SendForWait(getZoker(zokerName)).await();
+        if (r.getResultCode() != 0)
+            throw new RuntimeException("commit service error=" + IModule.getErrorCode(r.getResultCode()));
+    }
+
+    private static void md5To(MessageDigest md5, BufferedInputStream bis, long toOffset) throws IOException {
+        var buffer = new byte[16 * 1024];
+        while (toOffset > 0) {
+            var tryReadLen = (int)(toOffset > buffer.length ? buffer.length : toOffset);
+            var rc = bis.read(buffer, 0, tryReadLen);
+            if (rc >= 0) {
+                toOffset -= rc;
+                md5.update(buffer, 0, rc);
+                continue;
+            }
+            throw new RuntimeException("md5To not enough data");
+        }
+    }
+
+    private void distributeService(String zokerName, Path localServiceHome, File serviceDir) throws Exception {
+        var files = serviceDir.listFiles();
+        if (null == files)
+            return;
+
+        for (var file : files) {
+            if (file.isDirectory()) {
+                distributeService(zokerName, localServiceHome, file);
+                continue;
+            }
+            var fileRelativeName = localServiceHome.relativize(file.toPath()).toString().replace("\\", "/");
+            var md5 = MessageDigest.getInstance("MD5");
+            var fileOffset = openFile(zokerName, fileRelativeName);
+            try (var bis = new BufferedInputStream(new FileInputStream(file))) {
+                md5To(md5, bis, fileOffset);
+                var buffer = new byte[16 * 1024];
+                var rc = 0;
+                while ((rc = bis.read(buffer)) >= 0) {
+                    md5.update(buffer, 0, rc);
+                    appendFile(zokerName, fileRelativeName, fileOffset, buffer, 0, rc);
+                    fileOffset += rc;
+                }
+            } finally {
+                closeFile(zokerName, fileRelativeName, new Binary(md5.digest()));
+            }
+        }
     }
 
     public BListServiceResult.Data listService(String zokerName) {

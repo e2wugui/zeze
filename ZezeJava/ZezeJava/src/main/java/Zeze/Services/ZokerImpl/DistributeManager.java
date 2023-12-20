@@ -54,8 +54,7 @@ public class DistributeManager {
 	public long commitService(CommitService r) {
 		var serviceFrom = new File(zoker.getDistributeDir(), r.Argument.getServiceName());
 		var serviceTo = new File(zoker.getServiceDir(), r.Argument.getServiceName());
-		var serviceOld = new File(new File(zoker.getServiceOldDir(), r.Argument.getServiceName()),
-				String.valueOf(System.currentTimeMillis())); // todo old serialNo Or versionNo?
+		var serviceOld = new File(new File(zoker.getServiceOldDir(), r.Argument.getServiceName()), r.Argument.getVersionNo());
 		if (serviceTo.exists()) {
 			if (serviceOld.exists())
 				return zoker.errorCode(Zoker.eServiceOldExists);

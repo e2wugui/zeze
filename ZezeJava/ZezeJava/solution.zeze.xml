@@ -1933,6 +1933,7 @@
 			</bean>
 			<bean name="BCommitService">
 				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="VersionNo" type="string"/>
 			</bean>
 			<bean name="BCommitServiceResult">
 			</bean>
