@@ -47,6 +47,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 
 	public void setOnzServer(OnzServer onzServer) {
 		this.onzServer = onzServer;
+		this.onzTid = onzServer.nextOnzTid();
 	}
 
 	public int getFlushMode() {
@@ -240,7 +241,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 		r.SendForWait(zeze).await();
 	}
 
-	private final long onzTid = 0; // allocate todo
+	private long onzTid;
 	private final ConcurrentHashSet<Rpc<?, ?>> flushReadies = new ConcurrentHashSet<>();
 	private final TaskCompletionSource<Integer> flushDone = new TaskCompletionSource<>();
 

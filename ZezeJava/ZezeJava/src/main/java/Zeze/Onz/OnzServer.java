@@ -19,6 +19,7 @@ import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AbstractAgent;
+import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.EmptyBean;
@@ -54,6 +55,12 @@ public class OnzServer extends AbstractOnz {
 	private final RocksDatabase.Table commitIndex;
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
 	private Future<?> redoTimer;
+	private final AbstractAgent myServiceManager;
+	private final AutoKey onzTidAutoKey;
+
+	public long nextOnzTid() {
+		return onzTidAutoKey.next();
+	}
 
 	public void setWriteOptions(WriteOptions writeOptions) {
 		this.writeOptions = writeOptions;
@@ -72,6 +79,18 @@ public class OnzServer extends AbstractOnz {
 	 * zeze1.xml,zeze2.xml是不同zeze集群的配置文件path。
 	 */
 	public OnzServer(String zezeConfigs, Config myConfig) throws Exception {
+		myServiceManager = Application.createServiceManager(myConfig, "OnzServerMyServiceManager");
+		if (myServiceManager == null)
+			throw new RuntimeException("My ServiceManager not found");
+		myServiceManager.start();
+		try {
+			myServiceManager.waitReady();
+		} catch (Exception ignored) {
+			// raft 版第一次等待由于选择leader原因肯定会失败一次。
+			myServiceManager.waitReady();
+		}
+		onzTidAutoKey = myServiceManager.getAutoKey("OnzServerTidAutoKey");
+
 		database = new RocksDatabase("CommitOnzServer" + myConfig.getServerId());
 		commitPoint = database.getOrAddTable("CommitPoint");
 		commitIndex = database.getOrAddTable("CommitIndex");
@@ -221,6 +240,18 @@ public class OnzServer extends AbstractOnz {
 	 * @param specialZezeNames 共享配置时，已经配置成不同的zeze集群的唯一名字的列表，OnzServer不再自定义命名。
 	 */
 	public OnzServer(String sharedZezeConfig, String specialZezeNames, Config myConfig) throws Exception {
+		myServiceManager = Application.createServiceManager(myConfig, "OnzServerMyServiceManager");
+		if (myServiceManager == null)
+			throw new RuntimeException("My ServiceManager not found");
+		myServiceManager.start();
+		try {
+			myServiceManager.waitReady();
+		} catch (Exception ignored) {
+			// raft 版第一次等待由于选择leader原因肯定会失败一次。
+			myServiceManager.waitReady();
+		}
+		onzTidAutoKey = myServiceManager.getAutoKey("OnzServerTidAutoKey");
+
 		database = new RocksDatabase("CommitOnzServer" + myConfig.getServerId());
 		commitPoint = database.getOrAddTable("CommitPoint");
 		commitIndex = database.getOrAddTable("CommitIndex");
