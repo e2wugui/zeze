@@ -363,7 +363,8 @@ public final class Agent {
 		} else {
 			proxyAgent.addAgent(this);
 			leader = proxyAgent.getLeader(raftConfig.getNodes().values().iterator().next());
-			logger.info("proxy first leader {}", leader.getName());
+			logger.info("proxy first leader {} {}_{}",
+					leader.getName(), leader.getHostNameOrAddress(), leader.getPort());
 		}
 
 		this.client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
@@ -545,7 +546,13 @@ public final class Agent {
 				return false;
 			}
 
-			logger.info("proxy set leader {} -> {}", null != leader ? leader.getName() : "", newLeader.getName());
+			logger.info("proxy set leader {} {}_{}->{} {}_{}",
+					null != leader ? leader.getName() : "",
+					null != leader ? leader.getHostNameOrAddress() : "",
+					null != leader ? leader.getPort() : "",
+					newLeader.getName(),
+					newLeader.getHostNameOrAddress(),
+					newLeader.getPort());
 			leader = newLeader; // change current Leader
 			term = r.Argument.getTerm();
 			newLeader.start(); // try connect immediately

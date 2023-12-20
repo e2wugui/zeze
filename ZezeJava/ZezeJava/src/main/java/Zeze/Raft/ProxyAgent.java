@@ -109,6 +109,7 @@ public class ProxyAgent extends Service {
 				var proxyArgument = new ProxyArgument(leader.getName(), rpc);
 				var proxyRpc = new ProxyRequest(proxyArgument);
 				// leaderSocket 就是从leader中获取的，这里是为了在循环中发送的时候不用每次获取，优化！
+				//logger.info("send to {}", leaderSocket.getRemoteAddress());
 				return proxyRpc.Send(leaderSocket, (proxyRpcThis) -> {
 					if (proxyRpc.getResultCode() == 0) {
 						var outFh = new OutObject<Service.ProtocolFactoryHandle<?>>();
