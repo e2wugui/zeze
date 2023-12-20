@@ -3,8 +3,10 @@ package Zeze.Util;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Formatter;
 import java.util.Map;
 import Zeze.Net.Binary;
@@ -172,11 +174,28 @@ public final class Str {
 			if (p == null)
 				throw new IllegalArgumentException("var name not found. " + varName);
 
-			// todo 支持格式化更多类型
-			if (p instanceof Integer) {
+			// 支持格式化更多类型
+			if (p instanceof Boolean) {
+				formatSb.append("%b");
+				paramsList.add(p);
+			} else if (p instanceof Character) {
+				formatSb.append("%c");
+				paramsList.add(p);
+			} else if (p instanceof Byte || p instanceof Short
+					|| p instanceof Integer || p instanceof Long
+					|| p instanceof BigInteger) {
 				formatSb.append("%d");
 				paramsList.add(p);
+			} else if (p instanceof Float || p instanceof Double) {
+				formatSb.append("%f");
+				paramsList.add(p);
+			} else if (p instanceof Date) {
+				formatSb.append("%t");
+				paramsList.add(p);
 			} else if (p instanceof String) {
+				formatSb.append("%s");
+				paramsList.add(p);
+			} else  {
 				formatSb.append("%s");
 				paramsList.add(p);
 			}
