@@ -968,7 +968,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 		if (ex != null) {
 			if (ex instanceof IOException)
-				logger.info("close: {} {}", this, ex.getClass() == IOException.class ? ex.getMessage() : ex);
+				logger.info("close: {} {}", this, ex);
 			else
 				logger.warn("close: {} exception:", this, ex);
 		} else

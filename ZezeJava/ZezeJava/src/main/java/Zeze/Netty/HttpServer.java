@@ -1,6 +1,7 @@
 package Zeze.Netty;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
@@ -317,10 +318,13 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	@Override
 	public void exceptionCaught(@NotNull ChannelHandlerContext ctx, @NotNull Throwable cause) {
 		try {
-			Netty.logger.error("exceptionCaught from {}", ctx.channel().remoteAddress(), cause);
+			if (cause instanceof IOException)
+				Netty.logger.info("exceptionCaught: {} {}", ctx.channel().remoteAddress(), cause);
+			else
+				Netty.logger.error("exceptionCaught: {} exception:", ctx.channel().remoteAddress(), cause);
 			var x = exchanges.get(ctx.channel().id());
 			if (x != null)
-				x.send500(cause); // 需要可配置，或者根据Debug|Release选择。
+				x.send500(cause);
 		} finally {
 			ctx.flush().close();
 		}

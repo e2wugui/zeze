@@ -164,11 +164,15 @@ public class TaskCompletionSource<R> implements Future<R> {
 
 	protected R toResult(Object o) throws ExecutionException {
 		if (o instanceof Exception) {
-			var cls = o.getClass();
-			if (cls == ExecutionException.class || cls == CancellationException.class)
-				throw new ExecutionException((Throwable)o);
 			if (o == NULL_RESULT)
 				o = null;
+			else {
+				var cls = o.getClass();
+				if (cls == ExecutionException.class)
+					throw (ExecutionException)o;
+				if (cls == CancellationException.class)
+					throw (CancellationException)o;
+			}
 		}
 		@SuppressWarnings("unchecked")
 		R r = (R)o;
