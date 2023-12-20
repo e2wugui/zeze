@@ -306,7 +306,7 @@ public class Server extends HandshakeBoth {
 					r.Argument.setTerm(raft.getLogSequence().getTerm());
 					r.Argument.setLeaderId(raft.getLeaderId());
 					r.Argument.setLeader(raft.isLeader());
-					ProxyServer.send(this, proxyServer, r, raft.getName(), so);
+					r.Send(so);
 				}
 			} finally {
 				raft.unlock();
