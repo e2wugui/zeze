@@ -261,7 +261,7 @@ public class DatabaseTikv extends Database {
 			else
 				it = client.scan0(startKey, endKey);
 
-			// todo 参考rocksdb，看看tikv能不能支持it.seek.
+			// 参考rocksdb，看看tikv能不能支持it.seek.
 			byte[] lastKey = null;
 			while (it.hasNext()) {
 				var kv = it.next();

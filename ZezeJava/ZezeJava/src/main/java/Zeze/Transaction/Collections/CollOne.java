@@ -110,7 +110,7 @@ public final class CollOne<V extends Bean> extends Collection {
 		@SuppressWarnings("unchecked")
 		var log = (LogOne<V>)_log;
 		//noinspection ConstantValue
-		if (null != log.value) { // FIXME: value是否真的可以为null,目前没看到哪里可以让它为null
+		if (null != log.value) { // value是否真的可以为null,目前没看到哪里可以让它为null
 			_Value = log.value;
 		} else if (null != log.logBean) {
 			_Value.followerApply(log.logBean);

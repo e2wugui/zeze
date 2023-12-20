@@ -48,7 +48,7 @@ public class LogOne<V extends Bean> extends LogBean {
 	@Override
 	public void commit() {
 		//noinspection ConstantValue
-		if (value != null) { //FIXME: value是否真的可以为null,目前没看到哪里可以让它为null
+		if (value != null) { // value是否真的可以为null,目前没看到哪里可以让它为null
 			((CollOne<V>)getThis())._Value = value;
 		}
 	}
@@ -56,7 +56,7 @@ public class LogOne<V extends Bean> extends LogBean {
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		//noinspection ConstantValue
-		if (null != value) { //FIXME: value是否真的可以为null,目前没看到哪里可以让它为null
+		if (null != value) { // value是否真的可以为null,目前没看到哪里可以让它为null
 			bb.WriteBool(true);
 			value.encode(bb);
 		} else {
