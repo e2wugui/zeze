@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import java.lang.invoke.LambdaConversionException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.concurrent.CancellationException;
@@ -13,12 +12,9 @@ import java.util.concurrent.locks.LockSupport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * @param <R> 为了性能优化考虑,R不能是ExecutionException,也不能是CancellationException
- */
 public class TaskCompletionSource<R> implements Future<R> {
 	private static final @NotNull VarHandle RESULT, WAIT_HEAD;
-	protected static final Exception NULL_RESULT = new LambdaConversionException(null, null, false, false);
+	protected static final AltResult NULL_RESULT = new AltResult(null);
 
 	private volatile @SuppressWarnings("unused") Object result;
 	private volatile @SuppressWarnings("unused") Object waitHead; // Node -> Node -> ... -> Thread
@@ -30,6 +26,14 @@ public class TaskCompletionSource<R> implements Future<R> {
 		Node(@NotNull Thread thread, @NotNull Object next) {
 			this.thread = thread;
 			this.next = next;
+		}
+	}
+
+	protected static final class AltResult {
+		public final @Nullable Throwable e;
+
+		AltResult(@Nullable Throwable e) {
+			this.e = e;
 		}
 	}
 
@@ -77,38 +81,38 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return result;
 	}
 
-	private boolean setRawResult(@Nullable Object r) {
-		if (r == null)
-			r = NULL_RESULT;
-		if (RESULT.compareAndSet(this, null, r)) {
-			unparkAll();
-			return true;
-		}
-		return false;
+	private boolean setRawResult(@NotNull Object r) {
+		if (!RESULT.compareAndSet(this, null, r))
+			return false;
+		unparkAll();
+		return true;
 	}
 
 	public boolean setResult(@Nullable R r) {
-		return setRawResult(r);
+		return setRawResult(r != null ? r : NULL_RESULT);
 	}
 
-	public boolean setException(@Nullable Throwable e) {
-		return setRawResult(new ExecutionException(e));
+	public boolean setException(@NotNull Throwable e) {
+		//noinspection ConstantValue
+		if (e == null)
+			throw new NullPointerException();
+		return setRawResult(new AltResult(e));
 	}
 
 	@Override
 	public boolean cancel(boolean mayInterruptIfRunning) {
-		return setRawResult(new CancellationException());
+		return setRawResult(new AltResult(new CancellationException()));
 	}
 
 	@Override
 	public boolean isCancelled() {
 		Object r = result;
-		return r != null && r.getClass() == CancellationException.class;
+		return r instanceof AltResult && ((AltResult)r).e instanceof CancellationException;
 	}
 
 	public boolean isCompletedExceptionally() {
 		Object r = result;
-		return r != null && r.getClass() == ExecutionException.class;
+		return r instanceof AltResult && ((AltResult)r).e != null;
 	}
 
 	@Override
@@ -162,17 +166,17 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return toResult(r);
 	}
 
-	protected R toResult(Object o) throws ExecutionException {
-		if (o instanceof Exception) {
-			if (o == NULL_RESULT)
-				o = null;
-			else {
-				var cls = o.getClass();
-				if (cls == ExecutionException.class)
-					throw (ExecutionException)o;
-				if (cls == CancellationException.class)
-					throw (CancellationException)o;
-			}
+	protected @Nullable R toResult(@NotNull Object o) throws ExecutionException {
+		if (o instanceof AltResult) {
+			var e = ((AltResult)o).e;
+			if (e == null)
+				return null;
+			if (e instanceof CancellationException)
+				throw (CancellationException)e;
+			Throwable c;
+			if ((e instanceof CompletionException) && (c = e.getCause()) != null)
+				e = c;
+			throw new ExecutionException(e);
 		}
 		@SuppressWarnings("unchecked")
 		R r = (R)o;

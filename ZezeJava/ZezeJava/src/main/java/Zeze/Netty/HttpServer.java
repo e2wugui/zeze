@@ -19,6 +19,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.GlobalTimer;
+import Zeze.Util.PropertiesHelper;
 import Zeze.Util.TaskOneByOneByKey;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -46,6 +47,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("VulnerableCodeUsages")
 @Sharable
 public class HttpServer extends ChannelInitializer<SocketChannel> implements Closeable {
+	protected static final int sendStackTrace = PropertiesHelper.getInt("HttpServer.sendStackTrace", 1);
 	protected static final AttributeKey<Integer> idleTimeKey = AttributeKey.valueOf("ZezeIdleTime");
 	protected static final AttributeKey<Integer> outBufHashKey = AttributeKey.valueOf("ZezeOutBufHash"); // 用于判断输出buffer是否有变化
 	protected static final @NotNull ZoneId zoneId = ZoneId.of("GMT");
@@ -323,8 +325,14 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 			else
 				Netty.logger.error("exceptionCaught: {} exception:", ctx.channel().remoteAddress(), cause);
 			var x = exchanges.get(ctx.channel().id());
-			if (x != null)
-				x.send500(cause);
+			if (x != null) {
+				if (sendStackTrace > 0)
+					x.send500(cause);
+				else if (sendStackTrace == 0)
+					x.send500(cause.toString());
+				else
+					x.send500((String)null);
+			}
 		} finally {
 			ctx.flush().close();
 		}

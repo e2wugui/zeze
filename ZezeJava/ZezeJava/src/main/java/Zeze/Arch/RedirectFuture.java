@@ -2,8 +2,6 @@ package Zeze.Arch;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
 import Zeze.Util.Action1;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -88,12 +86,11 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 			throw new IllegalArgumentException("already onSuccess");
 		var result = getRawResult();
 		if (result != null) {
-			if (result instanceof Exception) {
-				var cls = result.getClass();
-				if (cls == ExecutionException.class || cls == CancellationException.class)
+			if (result instanceof AltResult) {
+				var e = ((AltResult)result).e;
+				if (e != null)
 					return this;
-				if (result == NULL_RESULT)
-					result = null;
+				result = null;
 			}
 			@SuppressWarnings("unchecked")
 			R r = (R)result;
@@ -109,8 +106,11 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		if (!ON_FAIL.compareAndSet(this, null, onFail))
 			throw new IllegalArgumentException("already onFail");
 		var result = getRawResult();
-		if (result != null && result.getClass() == ExecutionException.class)
-			tryTriggerOnFail((RedirectException)((ExecutionException)result).getCause());
+		if (result instanceof AltResult) {
+			var e = ((AltResult)result).e;
+			if (e != null)
+				tryTriggerOnFail((RedirectException)e);
+		}
 		return this;
 	}
 

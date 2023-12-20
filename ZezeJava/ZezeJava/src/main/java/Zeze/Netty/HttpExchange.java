@@ -710,7 +710,7 @@ public class HttpExchange {
 		return sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, Str.stacktrace(ex));
 	}
 
-	public @NotNull ChannelFuture send500(@NotNull String text) {
+	public @NotNull ChannelFuture send500(@Nullable String text) {
 		return sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, text);
 	}
 
