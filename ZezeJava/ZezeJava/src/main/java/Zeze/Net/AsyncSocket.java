@@ -413,7 +413,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			operates = new ConcurrentLinkedQueue<>();
 			inputBuffer = new BufferCodec();
 			outputBuffer = new OutputBuffer(selector);
-			InetAddress address = InetAddress.getByName(hostNameOrAddress); // TODO async dns lookup
+			InetAddress address = InetAddress.getByName(hostNameOrAddress); // async dns lookup
 			selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 			// 必须在connect前设置，否则selectionKey没初始化，有可能事件丢失？（现象好像是doHandle触发了）。
 			if (sc.connect(new InetSocketAddress(address, port))) // 马上成功时，还没有注册到Selector中。

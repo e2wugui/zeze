@@ -282,7 +282,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 
 		var session = sessions.get(source);
 
-		// TODO 需要确定控制协议是否需要动态创建Session。
+		// 需要确定控制协议是否需要动态创建Session。
 		if (session == null)
 			session = dynamicCreateSession(source);
 
