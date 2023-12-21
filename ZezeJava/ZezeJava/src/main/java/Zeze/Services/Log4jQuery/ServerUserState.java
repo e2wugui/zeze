@@ -16,7 +16,7 @@ public class ServerUserState {
 	}
 
 	public void newLogSession(long sid) throws IOException {
-		var logSession = new Log4jSession(conf.logActive, conf.logRotateDir);
+		var logSession = new Log4jSession(conf.logActive, conf.logDir, conf.logDatePattern);
 		var exist = logSessions.putIfAbsent(sid, logSession);
 		if (null != exist) {
 			logSession.close();

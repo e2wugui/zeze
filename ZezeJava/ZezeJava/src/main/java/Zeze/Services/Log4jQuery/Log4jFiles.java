@@ -15,8 +15,8 @@ public class Log4jFiles {
 	private int currentIndex = -1;
 	private Log4jFile current;
 
-	public Log4jFiles(@NotNull String logActive, @Nullable String logRotateDir) throws IOException {
-		loadRotateDir(logRotateDir);
+	public Log4jFiles(@NotNull String logActive, @Nullable String logDir, @NotNull String datePattern) throws IOException {
+		loadRotateDir(logDir);
 		var active = new File(logActive);
 		if (active.exists())
 			files.add(active);

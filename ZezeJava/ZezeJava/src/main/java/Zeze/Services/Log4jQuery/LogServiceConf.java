@@ -8,7 +8,8 @@ import org.w3c.dom.Element;
 
 public class LogServiceConf implements Config.ICustomize {
 	public String logActive;
-	public String logRotateDir;
+	public String logDir = ".";
+	public String logDatePattern = ".yyyy-MM-dd";
 	public String logTimeFormat;
 	public String serviceIdentity = "#LogService_{serverId}_{host}_{port}";
 
@@ -20,11 +21,16 @@ public class LogServiceConf implements Config.ICustomize {
 	@Override
 	public void parse(@NotNull Element self) {
 		logActive = self.getAttribute("LogActive");
-		logRotateDir = self.getAttribute("LogRotateDir");
+		var attr = self.getAttribute("LogDir");
+		if (!attr.isBlank())
+			logDir = attr;
+		attr = self.getAttribute("LogDatePattern");
+		if (!attr.isBlank())
+			logDatePattern = attr;
 		logTimeFormat = self.getAttribute("LogTimeFormat");
 		if (!logTimeFormat.isBlank())
 			Log4jLog.LogTimeFormat = logTimeFormat;
-		var attr = self.getAttribute("ServiceIdentity");
+		attr = self.getAttribute("ServiceIdentity");
 		if (!attr.isBlank())
 			serviceIdentity = attr;
 	}

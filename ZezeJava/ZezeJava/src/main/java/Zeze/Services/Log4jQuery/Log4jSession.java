@@ -15,8 +15,8 @@ public class Log4jSession {
 	/**
 	 * 构造一个搜索会话。
 	 */
-	public Log4jSession(@NotNull String logActive, @Nullable String logRotateDir) throws IOException {
-		this.files = new Log4jFiles(logActive, logRotateDir);
+	public Log4jSession(@NotNull String logActive, @Nullable String logDir, @NotNull String datePattern) throws IOException {
+		this.files = new Log4jFiles(logActive, logDir, datePattern);
 	}
 
 	public void reset() throws IOException {
