@@ -46,3 +46,6 @@ x64/
 /Zeze/Arch/linkd
 /ZezeJava/test/autokeys2
 /ZezeJava/ZezeJavaTest/CommitOnzServer0
+/ZezeJava/ZezeJavaTest/testMmapFile
+/ZezeJava/ZezeJavaTest/testMmapFile.mmap
+/ZezeJava/ZezeJavaTest/testMmapFile.rename
