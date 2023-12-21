@@ -16,15 +16,18 @@ import Zeze.Util.OutObject;
 
 public class ProxyServer extends Service {
 	public static final String eProxyServerName = "Zeze.Raft.ProxyServer";
+	private final int rpcTimeout;
 
-	public ProxyServer(Config config) {
+	public ProxyServer(Config config, int rpcTimeout) {
 		super(eProxyServerName, config);
+		this.rpcTimeout = rpcTimeout;
 
 		RegisterProtocols();
 	}
 
-	public ProxyServer(Application zeze) {
+	public ProxyServer(Application zeze, int rpcTimeout) {
 		super(eProxyServerName, zeze);
+		this.rpcTimeout = rpcTimeout;
 
 		RegisterProtocols();
 	}
@@ -116,7 +119,7 @@ public class ProxyServer extends Service {
 					logger.error("Server ProxyRequest error={}", IModule.getErrorCode(proxyRpc.getResultCode()));
 				}
 				return 0;
-			});
+			}, proxyServer.rpcTimeout);
 		}
 
 		// 旧的独立的直接的raft访问发送方式。

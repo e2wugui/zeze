@@ -20,9 +20,11 @@ import Zeze.Util.OutObject;
  */
 public class ProxyAgent extends Service {
 	public static final String eProxyAgentName = "Zeze.Raft.ProxyAgent";
+	private final int rpcTimeout;
 
-	public ProxyAgent() {
+	public ProxyAgent(int rpcTimeout) {
 		super(eProxyAgentName, (Config)null);
+		this.rpcTimeout = rpcTimeout;
 
 		AddFactoryHandle(ProxyRequest.TypeId_, new Service.ProtocolFactoryHandle<>(
 				ProxyRequest::new,
@@ -126,7 +128,7 @@ public class ProxyAgent extends Service {
 						logger.error("Agent ProxyRequest error={}", IModule.getErrorCode(proxyRpc.getResultCode()));
 					}
 					return 0;
-				});
+				}, proxyAgent.rpcTimeout);
 			}
 			// leader 还没有选出。
 			return false;

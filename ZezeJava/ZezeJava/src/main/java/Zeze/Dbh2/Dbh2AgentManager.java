@@ -93,7 +93,7 @@ public class Dbh2AgentManager {
 				commitAgent = new CommitAgent();
 			}
 		}
-		proxyAgent = new ProxyAgent();
+		proxyAgent = new ProxyAgent(dbh2Config.getRpcTimeout());
 	}
 
 	public long nextTransactionId() {

@@ -40,6 +40,7 @@ public class Dbh2Manager {
 
 	private Future<?> loadMonitorTimer;
 	final AtomicLong atomicSerialNo = new AtomicLong();
+	private final Dbh2Config dbh2Config = new Dbh2Config();
 
 	private final String home;
 
@@ -110,7 +111,8 @@ public class Dbh2Manager {
 	public Dbh2Manager(String home, String configXml) {
 		this.home = home;
 		var config = Config.load(configXml);
-		proxyServer = new ProxyServer(config);
+		config.parseCustomize(this.dbh2Config);
+		proxyServer = new ProxyServer(config, dbh2Config.getRpcTimeout());
 		masterAgent = new MasterAgent(config, this::ProcessCreateBucketRequest, new Service(config, proxyServer));
 	}
 
