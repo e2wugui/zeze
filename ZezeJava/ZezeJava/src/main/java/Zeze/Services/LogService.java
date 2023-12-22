@@ -11,6 +11,7 @@ import Zeze.Builtin.LogService.NewSession;
 import Zeze.Builtin.LogService.Query;
 import Zeze.Builtin.LogService.Search;
 import Zeze.Config;
+import Zeze.Services.Log4jQuery.Log4jFileManager;
 import Zeze.Services.Log4jQuery.Log4jLog;
 import Zeze.Services.Log4jQuery.LogServiceConf;
 import Zeze.Services.Log4jQuery.Server;
@@ -28,6 +29,7 @@ public class LogService extends AbstractLogService {
     private final Server server;
     private final String passiveIp;
     private final int passivePort;
+    private final Log4jFileManager logManager;
 
     public static void main(String [] args) throws Exception {
         var configXml = "zeze.xml";
@@ -47,17 +49,22 @@ public class LogService extends AbstractLogService {
         }
     }
 
+    public Log4jFileManager getLogManager() {
+        return logManager;
+    }
+
     public LogService(Config config) throws Exception {
         this.conf = config;
         logConf = new LogServiceConf();
         config.parseCustomize(logConf);
 
-        this.server = new Server(logConf, config);
+        this.server = new Server(this, config);
         var kv = server.getOnePassiveAddress();
         passiveIp = kv.getKey();
         passivePort = kv.getValue();
         logConf.formatServiceIdentity(conf.getServerId(), passiveIp, passivePort);
         serviceManager = Application.createServiceManager(conf, "LogServiceServer");
+        logManager = new Log4jFileManager(logConf.logActive, logConf.logDir, logConf.logDatePattern);
         RegisterProtocols(server);
     }
 

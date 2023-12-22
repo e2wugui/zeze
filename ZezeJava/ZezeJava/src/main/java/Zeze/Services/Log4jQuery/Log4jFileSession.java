@@ -6,15 +6,22 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-public class Log4jFile {
+public class Log4jFileSession {
 	private final File file;
 	private final RandomAccessFile randomAccessFile;
 	private BufferedReader bufferedReader;
 	private Log4jLog nextLog; // 下一条完整的日志。
 	private Log4jLog nextNextMaybePartLog; // 下下一条日志，可能不完整。
+	private LogIndex index;
 
-	public Log4jFile(File file) throws IOException {
+	@Override
+	public String toString() {
+		return file.toString();
+	}
+
+	public Log4jFileSession(File file, LogIndex index) throws IOException {
 		this.file = file;
+		this.index = index;
 		this.randomAccessFile = new RandomAccessFile(file, "r");
 		this.bufferedReader = new BufferedReader(new FileReader(randomAccessFile.getFD()));
 		this.nextLog = tryNext();

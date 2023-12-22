@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -34,15 +35,15 @@ public class LogIndex {
 
 	public final static int eIndexRecordSize = 16;
 
-	private final String fileName;
+	private final File file;
 	private MappedByteBuffer mmap;
 	private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
 	private long beginTime;
 	private long endTime;
 
-	public LogIndex(String fileName) throws Exception {
+	public LogIndex(File file) throws Exception {
 		// 修正由于文件系统刷新不是原子导致的索引记录可能不完整的问题。
-		try (var channel = new FileOutputStream(fileName, true).getChannel()) {
+		try (var channel = new FileOutputStream(file, true).getChannel()) {
 			var fileSize = channel.size();
 			if ((fileSize & (eIndexRecordSize - 1)) != 0)
 				channel.truncate(fileSize / eIndexRecordSize * eIndexRecordSize);
@@ -58,7 +59,7 @@ public class LogIndex {
 			this.beginTime = Long.MAX_VALUE;
 			this.endTime = 0;
 		}
-		this.fileName = fileName;
+		this.file = file;
 	}
 
 	public boolean inTimeRange(long time) {
@@ -74,7 +75,7 @@ public class LogIndex {
 	}
 
 	private int mmap(int newAllocateSize) throws IOException {
-		try (var channel = new RandomAccessFile(fileName, "rw").getChannel()) {
+		try (var channel = new RandomAccessFile(file, "rw").getChannel()) {
 			var currentSize = channel.size();
 			mmap = channel.map(FileChannel.MapMode.READ_WRITE, 0, currentSize + newAllocateSize);
 			return (int)currentSize;

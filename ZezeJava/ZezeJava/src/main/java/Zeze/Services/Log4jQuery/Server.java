@@ -3,20 +3,22 @@ package Zeze.Services.Log4jQuery;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
+import Zeze.Services.LogService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class Server extends Service {
-	private final LogServiceConf conf;
+	private final LogService logService;
+	private Log4jFileManager manager;
 
-	public Server(LogServiceConf conf, Config config) {
+	public Server(LogService logService, Config config) {
 		super("Zeze.LogService.Server", config);
-		this.conf = conf;
+		this.logService = logService;
 	}
 
 	@Override
 	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
-		so.setUserState(new ServerUserState(conf));
+		so.setUserState(new ServerUserState(logService));
 		super.OnHandshakeDone(so);
 	}
 

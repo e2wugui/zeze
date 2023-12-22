@@ -5,18 +5,16 @@ import java.util.List;
 import java.util.Deque;
 import java.util.regex.Pattern;
 import Zeze.Builtin.LogService.BCondition;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class Log4jSession {
-	private final Log4jFileManager files;
+	private final Log4jFileWalker files;
 	private long beginTime = -2; // 用来检测发现开始时间发生变化，此时需要重置并且seek。
 
 	/**
 	 * 构造一个搜索会话。
 	 */
-	public Log4jSession(@NotNull String logActive, @Nullable String logDir, @NotNull String datePattern) throws IOException {
-		this.files = new Log4jFileManager(logActive, logDir, datePattern);
+	public Log4jSession(Log4jFileManager files) throws IOException {
+		this.files = new Log4jFileWalker(files);
 	}
 
 	public void reset() throws IOException {
