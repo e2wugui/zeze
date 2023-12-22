@@ -9,14 +9,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class Log4jSession {
-	private final Log4jFiles files;
+	private final Log4jFileManager files;
 	private long beginTime = -2; // 用来检测发现开始时间发生变化，此时需要重置并且seek。
 
 	/**
 	 * 构造一个搜索会话。
 	 */
 	public Log4jSession(@NotNull String logActive, @Nullable String logDir, @NotNull String datePattern) throws IOException {
-		this.files = new Log4jFiles(logActive, logDir, datePattern);
+		this.files = new Log4jFileManager(logActive, logDir, datePattern);
 	}
 
 	public void reset() throws IOException {

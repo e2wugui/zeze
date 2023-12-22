@@ -10,12 +10,12 @@ import org.jetbrains.annotations.Nullable;
 /**
  * 日志文件集合，能搜索当前存在的所有日志。
  */
-public class Log4jFiles {
+public class Log4jFileManager {
 	private final ArrayList<File> files = new ArrayList<>();
 	private int currentIndex = -1;
 	private Log4jFile current;
 
-	public Log4jFiles(@NotNull String logActive, @Nullable String logDir, @NotNull String datePattern) throws IOException {
+	public Log4jFileManager(@NotNull String logActive, @Nullable String logDir, @NotNull String datePattern) throws IOException {
 		loadRotateDir(logDir);
 		var active = new File(logActive);
 		if (active.exists())
