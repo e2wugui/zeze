@@ -40,7 +40,10 @@ public class Log4jFileSession implements Closeable {
 	 * @return true if seek success
 	 */
 	public boolean seek(long time) throws IOException {
-		var offset = getIndexOffset(time);
+		return seek(getIndexOffset(time), time);
+	}
+
+	public boolean seek(long offset, long time) throws IOException {
 		if (offset >= 0) {
 			randomAccessFile.seek(offset);
 			this.nextLog = tryNext();
@@ -53,6 +56,7 @@ public class Log4jFileSession implements Closeable {
 		// 没有索引时，从头开始搜索。
 		if (null != index) {
 			var offset = index.lowerBound(time);
+			System.out.println(" ===================== " + offset);
 			if (offset != -1)
 				return offset;
 		}

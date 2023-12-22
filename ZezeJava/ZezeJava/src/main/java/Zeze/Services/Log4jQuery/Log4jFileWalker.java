@@ -1,6 +1,7 @@
 package Zeze.Services.Log4jQuery;
 
 import java.io.IOException;
+import Zeze.Util.OutInt;
 
 /**
  * 日志文件集合，能搜索当前存在的所有日志。
@@ -26,8 +27,17 @@ public class Log4jFileWalker {
 	}
 
 	public void seek(long time) throws IOException {
-		// todo files.seek();
-		slowSeek(time);
+		var out = new OutInt();
+		var log4jFileSession = files.seek(time, out);
+		if (null == log4jFileSession) {
+			slowSeek(time);
+			return;
+		}
+
+		currentIndex = out.value;
+		if (null != current)
+			current.close();
+		current = log4jFileSession;
 	}
 
 	private void slowSeek(long time) throws IOException {

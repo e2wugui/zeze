@@ -12,6 +12,7 @@ import Zeze.Util.OutLong;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import Zeze.Util.OutInt;
 
 /**
  * 日志文件集合，能搜索当前存在的所有日志。
@@ -62,6 +63,19 @@ public class Log4jFileManager {
 			// 暂时先不处理！
 			files.add(Log4jFile.of(active, loadIndex(active,logActive + ".index")));
 		}
+	}
+
+	public Log4jFileSession seek(long time, OutInt out) throws IOException {
+		for (var i = files.size() - 1; i >= 0; --i) {
+			var file = files.get(i);
+			if (time >= file.index.getBeginTime()) {
+				out.value = i;
+				var logFileSession = new Log4jFileSession(file.file, file.index, charsetName);
+				logFileSession.seek(time);
+				return logFileSession;
+			}
+		}
+		return null;
 	}
 
 	public String getCurrentLogFileName() {
@@ -153,9 +167,12 @@ public class Log4jFileManager {
 	private LogIndex loadIndex(File logFile, String logIndexFileName) throws Exception {
 		var indexFile = new File(logDir, logIndexFileName);
 		var index = new LogIndex(indexFile);
+		// 索引没有建立完成的需要继续
 		try (var log = new Log4jFileSession(logFile, null, charsetName)) {
 			var indexes = new ArrayList<LogIndex.Record>();
 			var lastIndexTime = index.getEndTime();
+			var offset = index.lowerBound(lastIndexTime);
+			log.seek(offset, lastIndexTime);
 			while (log.hasNext()) {
 				var next = log.next();
 				if (next.getTime() - lastIndexTime >= 10_000) {

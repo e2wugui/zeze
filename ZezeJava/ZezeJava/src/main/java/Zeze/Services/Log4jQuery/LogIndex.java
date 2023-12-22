@@ -62,10 +62,6 @@ public class LogIndex {
 		}
 	}
 
-	public boolean inTimeRange(long time) {
-		return time >= beginTime && time <= endTime;
-	}
-
 	public long getBeginTime() {
 		return beginTime;
 	}
@@ -123,7 +119,7 @@ public class LogIndex {
 		try {
 			var size = mmap.limit() / eIndexRecordSize;
 			var idx = lowerBoundIndex(time, size);
-			if (idx > size)
+			if (idx >= size)
 				return -1;
 			return mmap.getLong(idx * eIndexRecordSize + 8);
 		} finally {
