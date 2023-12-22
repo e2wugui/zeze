@@ -16,7 +16,7 @@ public class TestLog4jQ {
 		var endTime = -1; // Log4jLog.parseTime("23-08-25 09:19:00.816");
 		var logActive = "zeze.log";
 		var pattern = "23-10-16 17:01:59.497";
-		var logManager = new Log4jFileManager(logActive, "log", ".yyyy-MM-dd");
+		var logManager = new Log4jFileManager(logActive, "log", ".yyyy-MM-dd", "utf-8");
 		var session = new Log4jSession(logManager);
 		var result = new ArrayList<Log4jLog>();
 		var reset = false;
@@ -43,7 +43,7 @@ public class TestLog4jQ {
 		var endTime = -1; // Log4jLog.parseTime("23-08-25 09:19:01.239");
 		var logActive = "zeze.log";
 		var pattern = "ZezeTaskPool-101";
-		var logManager = new Log4jFileManager(logActive, "log", ".yyyy-MM-dd");
+		var logManager = new Log4jFileManager(logActive, "log", ".yyyy-MM-dd", "utf-8");
 		var session = new Log4jSession(logManager);
 		var result = new LinkedList<Log4jLog>();
 		while (session.browseContains(result, beginTime, endTime,

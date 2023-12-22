@@ -48,6 +48,7 @@ public class LogIndex {
 			if ((fileSize & (eIndexRecordSize - 1)) != 0)
 				channel.truncate(fileSize / eIndexRecordSize * eIndexRecordSize);
 		}
+		this.file = file;
 		mmap(0);
 
 		// initialize beginTime & endTime
@@ -59,7 +60,6 @@ public class LogIndex {
 			this.beginTime = Long.MAX_VALUE;
 			this.endTime = 0;
 		}
-		this.file = file;
 	}
 
 	public boolean inTimeRange(long time) {
@@ -99,7 +99,6 @@ public class LogIndex {
 				mmap.putLong(r.time);
 				mmap.putLong(r.offset);
 			}
-			mmap.limit(mmap.limit() + newSize);
 
 			// new beginTime & endTime
 			var first = rs.get(0);

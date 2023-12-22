@@ -12,6 +12,7 @@ public class LogServiceConf implements Config.ICustomize {
 	public String logDatePattern = ".yyyy-MM-dd";
 	public String logTimeFormat;
 	public String serviceIdentity = "#LogService_{serverId}_{host}_{port}";
+	public String charsetName = "utf-8";
 
 	@Override
 	public @NotNull String getName() {
@@ -33,6 +34,9 @@ public class LogServiceConf implements Config.ICustomize {
 		attr = self.getAttribute("ServiceIdentity");
 		if (!attr.isBlank())
 			serviceIdentity = attr;
+		attr = self.getAttribute("CharsetName");
+		if (!attr.isBlank())
+			charsetName = attr;
 	}
 
 	public void formatServiceIdentity(int serverId, String host, int port) {

@@ -1,29 +1,26 @@
 package Zeze.Services.Log4jQuery;
 
-import java.io.BufferedReader;
+import java.io.Closeable;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.RandomAccessFile;
+import Zeze.Util.BufferedRandomFile;
 
-public class Log4jFileSession {
+public class Log4jFileSession implements Closeable {
 	private final File file;
-	private final RandomAccessFile randomAccessFile;
-	private BufferedReader bufferedReader;
+	private final BufferedRandomFile randomAccessFile;
 	private Log4jLog nextLog; // 下一条完整的日志。
 	private Log4jLog nextNextMaybePartLog; // 下下一条日志，可能不完整。
-	private LogIndex index;
+	private final LogIndex index;
 
 	@Override
 	public String toString() {
 		return file.toString();
 	}
 
-	public Log4jFileSession(File file, LogIndex index) throws IOException {
+	public Log4jFileSession(File file, LogIndex index, String charsetName) throws IOException {
 		this.file = file;
 		this.index = index;
-		this.randomAccessFile = new RandomAccessFile(file, "r");
-		this.bufferedReader = new BufferedReader(new FileReader(randomAccessFile.getFD()));
+		this.randomAccessFile = new BufferedRandomFile(file, charsetName);
 		this.nextLog = tryNext();
 	}
 
@@ -32,8 +29,7 @@ public class Log4jFileSession {
 	}
 
 	public void reset() throws IOException {
-		randomAccessFile.seek(0);
-		this.bufferedReader = new BufferedReader(new FileReader(randomAccessFile.getFD()));
+		this.randomAccessFile.seek(0);
 		this.nextLog = tryNext();
 	}
 
@@ -47,16 +43,19 @@ public class Log4jFileSession {
 		var offset = getIndexOffset(time);
 		if (offset >= 0) {
 			randomAccessFile.seek(offset);
-			this.bufferedReader = new BufferedReader(new FileReader(randomAccessFile.getFD()));
 			this.nextLog = tryNext();
 			return detailSeek(time);
 		}
 		return false;
 	}
 
-	@SuppressWarnings({"MethodMayBeStatic", "unused"})
 	private long getIndexOffset(long time) {
-		// todo index seek
+		// 没有索引时，从头开始搜索。
+		if (null != index) {
+			var offset = index.lowerBound(time);
+			if (offset != -1)
+				return offset;
+		}
 		return 0;
 	}
 
@@ -86,8 +85,12 @@ public class Log4jFileSession {
 
 	private Log4jLog tryNextPart() throws IOException {
 		String line;
-		while ((line = bufferedReader.readLine()) != null) {
-			var log = Log4jLog.tryParse(line);
+		while (true) {
+			var offset = randomAccessFile.getPosition();
+			line = randomAccessFile.readLine();
+			if (line == null)
+				break;
+			var log = Log4jLog.tryParse(offset, line);
 			if (null == log) {
 				// 不是日志起始，那么这个肯定是多行日志的孤儿，忽略。
 				continue;
@@ -109,8 +112,12 @@ public class Log4jFileSession {
 		var next = nextNextMaybePartLog;
 		nextNextMaybePartLog = null; // 先清空，下面的循环如果发现有剩下的日志，会重新设置上。
 		String line;
-		while ((line = bufferedReader.readLine()) != null) {
-			var log = Log4jLog.tryParse(line);
+		while (true) {
+			var offset = randomAccessFile.getPosition();
+			line = randomAccessFile.readLine();
+			if (line == null)
+				break;
+			var log = Log4jLog.tryParse(offset, line);
 			if (null == log) {
 				next.addLine(line);
 				continue;
@@ -122,8 +129,8 @@ public class Log4jFileSession {
 		return next;
 	}
 
+	@Override
 	public void close() throws IOException {
-		bufferedReader.close();
 		randomAccessFile.close();
 	}
 }

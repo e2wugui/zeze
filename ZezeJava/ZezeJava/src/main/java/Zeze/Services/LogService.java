@@ -20,6 +20,7 @@ import Zeze.Services.Log4jQuery.handler.QueryHandlerManager;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Transaction.Procedure;
+import org.jetbrains.annotations.NotNull;
 
 public class LogService extends AbstractLogService {
     private final AtomicLong sidSeed = new AtomicLong();
@@ -64,7 +65,7 @@ public class LogService extends AbstractLogService {
         passivePort = kv.getValue();
         logConf.formatServiceIdentity(conf.getServerId(), passiveIp, passivePort);
         serviceManager = Application.createServiceManager(conf, "LogServiceServer");
-        logManager = new Log4jFileManager(logConf.logActive, logConf.logDir, logConf.logDatePattern);
+        logManager = new Log4jFileManager(logConf.logActive, logConf.logDir, logConf.logDatePattern, logConf.charsetName);
         RegisterProtocols(server);
     }
 

@@ -39,13 +39,19 @@ public class Log4jFileManager {
 	private final String logFileEnd;
 	private final String logDir;
 	private final String logDatePattern;
+	private final String charsetName;
 
-	public Log4jFileManager(@NotNull String logActive, @NotNull String logDir, @NotNull String datePattern) throws Exception {
+	public Log4jFileManager(@NotNull String logActive,
+							@NotNull String logDir,
+							@NotNull String datePattern,
+							@NotNull String charsetName) throws Exception {
 		var fulls = logActive.split("\\.");
 		this.logFileBegin = fulls[0];
 		this.logFileEnd = fulls.length > 1 ? fulls[1] : "";
 		this.logDir = logDir;
 		this.logDatePattern = datePattern;
+		this.charsetName = charsetName;
+
 		this.fileCreateDetector = new FileCreateDetector(logDir, this::onFileCreated);
 
 		loadRotates(logDir);
@@ -54,7 +60,7 @@ public class Log4jFileManager {
 			// 警告，如果启动的瞬间发生了log4j rotate，由于原子性没有保证，可能会创建多余的Log4jFile，
 			// 搜索的时候忽略文件不存在的错误？
 			// 暂时先不处理！
-			files.add(Log4jFile.of(active, loadIndex(new File(logDir, logActive + ".index"))));
+			files.add(Log4jFile.of(active, loadIndex(active,logActive + ".index")));
 		}
 	}
 
@@ -122,7 +128,7 @@ public class Log4jFileManager {
 
 	public Log4jFileSession get(int index) throws IOException {
 		var file = files.get(index);
-		return new Log4jFileSession(file.file, file.index);
+		return new Log4jFileSession(file.file, file.index, charsetName);
 	}
 
 	private void loadRotates(String logRotateDir) throws Exception {
@@ -138,18 +144,33 @@ public class Log4jFileManager {
 			}
 			rotates.sort(Comparator.comparingLong(KV::getKey));
 			for (var kv : rotates) {
-				this.files.add(Log4jFile.of(
-						new File(logDir, kv.getValue()),
-						loadIndex(new File(logDir, kv.getValue() + ".index"))
-				));
+				var logFile = new File(logDir, kv.getValue());
+				this.files.add(Log4jFile.of(logFile, loadIndex(logFile, kv.getValue() + ".index")));
 			}
 		}
 	}
 
-	private LogIndex loadIndex(File file) throws Exception {
-		if (!file.exists()) {
-			return null;
+	private LogIndex loadIndex(File logFile, String logIndexFileName) throws Exception {
+		var indexFile = new File(logDir, logIndexFileName);
+		var index = new LogIndex(indexFile);
+		try (var log = new Log4jFileSession(logFile, null, charsetName)) {
+			var indexes = new ArrayList<LogIndex.Record>();
+			var lastIndexTime = index.getEndTime();
+			while (log.hasNext()) {
+				var next = log.next();
+				if (next.getTime() - lastIndexTime >= 10_000) {
+					// 每10s建立一条索引。
+					indexes.add(LogIndex.Record.of(next.getTime(), next.getOffset()));
+					if (indexes.size() >= 100) {
+						index.addIndex(indexes);
+						lastIndexTime = indexes.get(indexes.size() - 1).time;
+						indexes.clear();
+					}
+				}
+			}
+			if (!indexes.isEmpty())
+				index.addIndex(indexes);
 		}
-		return new LogIndex(file);
+		return index;
 	}
 }

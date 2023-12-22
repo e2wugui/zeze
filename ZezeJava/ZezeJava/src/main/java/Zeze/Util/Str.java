@@ -3,12 +3,17 @@ package Zeze.Util;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Formatter;
 import java.util.Map;
+import java.util.Objects;
 import Zeze.Net.Binary;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
 import org.jetbrains.annotations.NotNull;
@@ -21,6 +26,15 @@ public final class Str {
 	private static final String[] EMPTY = new String[0];
 
 	private Str() {
+	}
+
+	public static Charset lookupCharset(String csn) throws UnsupportedEncodingException {
+		Objects.requireNonNull(csn);
+		try {
+			return Charset.forName(csn);
+		} catch (UnsupportedCharsetException | IllegalCharsetNameException x) {
+			throw new UnsupportedEncodingException(csn);
+		}
 	}
 
 	static {

@@ -6,11 +6,13 @@ import java.util.List;
 
 public class Log4jLog {
 	private final long time;
+	private final long offset;
 	private volatile String log;
 	private final StringBuilder lines = new StringBuilder();
 
-	public Log4jLog(long time, String line) {
+	public Log4jLog(long time, long offset, String line) {
 		this.time = time;
+		this.offset = offset;
 		this.lines.append(line);
 	}
 
@@ -20,6 +22,9 @@ public class Log4jLog {
 
 	public long getTime() {
 		return time;
+	}
+	public long getOffset() {
+		return offset;
 	}
 
 	public String getLog() {
@@ -76,7 +81,7 @@ public class Log4jLog {
 		return date.getTime();
 	}
 
-	public static Log4jLog tryParse(String line) {
+	public static Log4jLog tryParse(long offset, String line) {
 		var dayOffset = line.indexOf(' ');
 		if (dayOffset > 0) {
 			var timeOffset = line.indexOf(' ', dayOffset + 1);
@@ -86,7 +91,7 @@ public class Log4jLog {
 				var simpleDateFormat = new SimpleDateFormat(LogTimeFormat);
 				var date = simpleDateFormat.parse(strTime, parsePosition);
 				if (null != date && parsePosition.getErrorIndex() == -1) {
-					return new Log4jLog(date.getTime(), line);
+					return new Log4jLog(date.getTime(), offset, line);
 				}
 			}
 		}
