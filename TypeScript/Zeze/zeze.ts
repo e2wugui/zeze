@@ -96,11 +96,9 @@ export module Zeze {
 			}
 
 			let bn = BigInt('0x' + hex.join(''));
-			// console.log(bn.toString(16));
 			if (!pos) {
 				bn = BigInt('0b' + bn.toString(2).split('').map(i => i === '0' ? 1 : 0).join('')) + BigInt(1);
 				bn = -bn;
-				// console.log(bn.toString(16));
 			}
 			return bn;
 		}
@@ -362,15 +360,19 @@ export module Zeze {
 
 				const buffer = new ByteBuffer(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
-				const type: bigint = Protocol.MakeTypeId(moduleId, protocolId);
-				const factoryHandle = service.FactoryHandleMap.get(type);
-				if (factoryHandle != null) {
-					const p = factoryHandle.factory();
-					p.Decode(buffer);
-					p.Sender = socket;
-					p.Dispatch(service, factoryHandle);
-				} else
-				  service.DispatchUnknownProtocol(socket, type, buffer);
+				try {
+					const type: bigint = Protocol.MakeTypeId(moduleId, protocolId);
+					const factoryHandle = service.FactoryHandleMap.get(type);
+					if (factoryHandle != null) {
+						const p = factoryHandle.factory();
+						p.Decode(buffer);
+						p.Sender = socket;
+						p.Dispatch(service, factoryHandle);
+					} else
+						service.DispatchUnknownProtocol(socket, type, buffer);
+				} catch (e) {
+					console.log(e);
+				}
 			}
 			input.ReadIndex = os.ReadIndex;
 		}

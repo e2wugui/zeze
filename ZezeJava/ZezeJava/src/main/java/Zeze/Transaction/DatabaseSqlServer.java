@@ -388,7 +388,6 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		@Override
 		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			var my = (JdbcTrans)t;
-			//noinspection SpellCheckingInspection
 			String sql = "update " + getName() + " set value=? where id=?" + " if @@rowcount = 0 and @@error = 0 insert into " + getName() + " values(?,?)";
 			try (var cmd = my.Connection.prepareStatement(sql)) {
 				var keyCopy = key.CopyIf();
