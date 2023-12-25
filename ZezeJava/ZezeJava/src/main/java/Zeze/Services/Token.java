@@ -1,21 +1,18 @@
 package Zeze.Services;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.SoftReference;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
@@ -47,7 +44,10 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
+import Zeze.Util.PropertiesHelper;
+import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -59,9 +59,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /*
-TODO:
-1. 避免token过多导致内存占用过高. 数据库化? 淘汰机制?
-2. token续期服务. 跟初始设置的ttl如何兼顾? 覆盖还是选最大值?
+TODO: token续期服务. 跟初始设置的ttl如何兼顾? 覆盖还是选最大值? 目前暂无计划, 等有需求再说
 */
 public final class Token extends AbstractToken {
 	private static final Logger logger = LogManager.getLogger(Token.class);
@@ -70,6 +68,8 @@ public final class Token extends AbstractToken {
 	private static final byte[] tokenCharTable = new byte[TOKEN_CHAR_USED];
 	private static final boolean canLogNotifyTopic = AsyncSocket.ENABLE_PROTOCOL_LOG
 			&& AsyncSocket.canLogProtocol(NotifyTopic.TypeId_);
+	private static final ReferenceQueue<Object> refQueue = new ReferenceQueue<>();
+	private static Thread tokenRefCleaner;
 
 	static {
 		int i = 0;
@@ -326,7 +326,9 @@ public final class Token extends AbstractToken {
 		}
 	}
 
-	private static final class TokenState {
+	private static final class TokenState extends SoftReference<Object> {
+		final Token token;
+		final String key;
 		final ReentrantLock lock = new ReentrantLock();
 		final @Nullable InetSocketAddress remoteAddr;
 		final @NotNull Binary context; // 绑定的上下文
@@ -334,21 +336,34 @@ public final class Token extends AbstractToken {
 		final long endTime; // 失效时间戳(毫秒)
 		long count; // 已访问次数
 
-		TokenState(@Nullable SocketAddress remoteAddr, @NotNull Binary context, long ttl) {
+		TokenState(@NotNull Token token, @NotNull String key, @Nullable SocketAddress remoteAddr,
+				   @NotNull Binary context, long ttl) {
+			super(new Object(), Token.refQueue);
+			this.token = token;
+			this.key = key;
 			this.remoteAddr = remoteAddr instanceof InetSocketAddress ? (InetSocketAddress)remoteAddr : null;
 			this.context = context;
 			this.createTime = System.currentTimeMillis();
 			this.endTime = createTime + ttl;
 		}
 
-		TokenState(@NotNull ByteBuffer bb) throws UnknownHostException {
+		TokenState(@NotNull Token token, @NotNull String key, @NotNull ByteBuffer bb) {
+			super(new Object(), Token.refQueue);
+			this.token = token;
+			this.key = key;
 			int v = bb.ReadByte();
 			if (v == 0)
 				remoteAddr = null;
 			else if (v == 1) {
 				var ip = bb.ReadBytes();
 				int port = bb.ReadInt();
-				remoteAddr = new InetSocketAddress(InetAddress.getByAddress(ip), port);
+				InetAddress addr;
+				try {
+					addr = InetAddress.getByAddress(ip);
+				} catch (Exception e) {
+					addr = null;
+				}
+				remoteAddr = addr != null ? new InetSocketAddress(addr, port) : null;
 			} else
 				throw new IllegalStateException("unknown TokenState version = " + v);
 			context = bb.ReadBinary();
@@ -357,7 +372,22 @@ public final class Token extends AbstractToken {
 			count = bb.ReadLong();
 		}
 
-		void encode(@NotNull ByteBuffer bb) {
+		static long decodeEndTime(@NotNull ByteBuffer bb) {
+			int v = bb.ReadByte();
+			if (v == 1) {
+				bb.ReadBytes(); // ip
+				bb.ReadInt(); // port
+			} else if (v != 0)
+				throw new IllegalStateException("unknown TokenState version = " + v);
+			bb.ReadBinary(); // context
+			bb.ReadLong(); // createTime
+			return bb.ReadLong(); // endTime
+			// bb.ReadLong(); // count
+		}
+
+		@NotNull ByteBuffer encode(@Nullable ByteBuffer bb) {
+			if (bb == null)
+				bb = ByteBuffer.Allocate(32);
 			bb.WriteByte(remoteAddr != null ? 1 : 0);
 			if (remoteAddr != null) {
 				bb.WriteBytes(remoteAddr.getAddress().getAddress()); // getHostName()不靠谱,只记IP地址吧
@@ -367,6 +397,7 @@ public final class Token extends AbstractToken {
 			bb.WriteLong(createTime);
 			bb.WriteLong(endTime);
 			bb.WriteLong(count);
+			return bb;
 		}
 
 		@NotNull String getRemoteAddr() {
@@ -375,16 +406,53 @@ public final class Token extends AbstractToken {
 		}
 	}
 
+	private static void cleanTokenRef() {
+		for (var bb = ByteBuffer.Allocate(32); ; ) {
+			try {
+				var state = (TokenState)refQueue.remove();
+				var k = state.key.getBytes(StandardCharsets.UTF_8);
+				state.lock.lock();
+				try {
+					if (state.count != Long.MIN_VALUE) {
+						bb.Reset();
+						var v = state.encode(bb);
+						state.count = Long.MIN_VALUE;
+						state.token.tokenMapTable.put(k, 0, k.length, v.Bytes, 0, v.WriteIndex);
+						state.token.tokenMap.remove(state.key, state);
+					}
+				} finally {
+					state.lock.unlock();
+				}
+			} catch (Exception e) {
+				logger.error("cleanTokenRef exception:", e);
+			}
+		}
+	}
+
 	private final Random tokenRandom = new SecureRandom();
 	private final ConcurrentHashMap<String, TokenState> tokenMap = new ConcurrentHashMap<>();
 	private final LongAdder newCounter = new LongAdder(); // 分配计数
+	private RocksDatabase rocksdb;
+	private RocksDatabase.Table tokenMapTable;
 	private TokenServer service;
 	private TimerFuture<?> cleanTokenMapFuture;
+	private ScheduledFuture<?> cleanTokenMapTableFuture;
 
 	// 参数host,port优先; 如果传null/<=0则以conf为准; 如果conf也没配置则用默认值null/DEFAULT_PORT
 	public synchronized Token start(@Nullable Config conf, @Nullable String host, int port) throws Exception {
 		if (service != null)
 			return this;
+
+		rocksdb = new RocksDatabase(PropertiesHelper.getString("token.rocksdb", "db"));
+		tokenMapTable = rocksdb.getOrAddTable("tokenMap");
+
+		synchronized (Token.class) {
+			if (tokenRefCleaner == null) {
+				tokenRefCleaner = new Thread(Token::cleanTokenRef, "TokenRefCleaner");
+				tokenRefCleaner.setDaemon(true);
+				tokenRefCleaner.start();
+			}
+		}
 
 		PerfCounter.instance.tryStartScheduledLog();
 
@@ -405,103 +473,107 @@ public final class Token extends AbstractToken {
 		service.start();
 
 		cleanTokenMapFuture = Task.scheduleUnsafe(1000, 1000, this::cleanTokenMap);
+		cleanTokenMapTableFuture = Task.scheduleAtUnsafe(3, 14, this::cleanTokenMapTable);
 		return this;
 	}
 
 	public synchronized void stop() throws Exception {
-		if (service != null) {
+		if (cleanTokenMapTableFuture != null) {
+			cleanTokenMapTableFuture.cancel(true);
+			cleanTokenMapTableFuture = null;
+		}
+		if (cleanTokenMapFuture != null) {
 			cleanTokenMapFuture.cancel(true);
-			tokenMap.clear();
+			cleanTokenMapFuture = null;
+		}
+		if (service != null) {
 			service.stop();
 			service = null;
 		}
+		if (rocksdb != null)
+			saveDB();
+		tokenMap.clear();
+	}
+
+	public synchronized void closeDb() {
+		if (rocksdb != null) {
+			rocksdb.close();
+			rocksdb = null;
+		}
+		tokenMapTable = null;
 	}
 
 	private void cleanTokenMap() {
 		var time = System.currentTimeMillis();
 		for (var e : tokenMap.entrySet()) {
 			var state = e.getValue();
-			if (time >= state.endTime)
+			if (time >= state.endTime) {
+				state.count = Long.MIN_VALUE;
 				tokenMap.remove(e.getKey(), state);
+			}
 		}
 	}
 
-	public boolean tryLoadLatestSaveFile() {
-		var maxTime = 0L;
-		File maxFile = null;
-		var files = new File(".").listFiles();
-		if (files != null) {
-			for (var file : files) {
-				if (file.isFile()) {
-					var fn = file.getName();
-					if (fn.startsWith("token_") && fn.endsWith(".save")) {
-						try {
-							var time = Long.parseLong(fn.substring(6, fn.length() - 5));
-							if (maxTime < time) {
-								maxTime = time;
-								maxFile = file;
-							}
-						} catch (Exception ignored) {
+	private void cleanTokenMapTable() {
+		logger.info("cleanTokenMapTable: begin");
+		var now = System.currentTimeMillis();
+		var bb = ByteBuffer.Wrap(ByteBuffer.Empty);
+		var batch = rocksdb.newBatch();
+		long n = 0, d = 0;
+		try (var it = tokenMapTable.iterator()) {
+			for (it.seekToFirst(); it.isValid(); it.next()) {
+				try {
+					bb.wraps(it.value());
+					if (now >= TokenState.decodeEndTime(bb)) {
+						tokenMapTable.delete(batch, it.key());
+						d++;
+					}
+					n++;
+				} catch (Exception e) {
+					logger.warn("cleanTokenMapTable exception:", e);
+				}
+				if (Thread.interrupted())
+					break;
+			}
+			batch.commit();
+		} catch (Exception e) {
+			logger.error("cleanTokenMapTable exception:", e);
+		} finally {
+			logger.info("cleanTokenMapTable: {} => {} ({} ms)", n, n - d, System.currentTimeMillis() - now);
+			cleanTokenMapTableFuture = Task.scheduleAtUnsafe(3, 14, this::cleanTokenMapTable);
+		}
+	}
+
+	private boolean saveDB() {
+		var timeBegin = System.nanoTime();
+		long n = 0;
+		try {
+			var bb = ByteBuffer.Allocate(32);
+			try (var batch = rocksdb.newBatch()) {
+				for (var state : tokenMap.values()) {
+					var k = state.key.getBytes(StandardCharsets.UTF_8);
+					state.lock.lock();
+					try {
+						if (state.count != Long.MIN_VALUE) {
+							bb.Reset();
+							var v = state.encode(bb);
+							state.count = Long.MIN_VALUE;
+							tokenMapTable.put(batch, k, 0, k.length, v.Bytes, 0, v.WriteIndex);
+							tokenMap.remove(state.key, state);
+							n++;
 						}
+					} finally {
+						state.lock.unlock();
 					}
 				}
+				batch.commit();
 			}
-		}
-		if (maxFile == null) {
-			logger.info("tryLoadLatestSaveFile: not found any");
-			return false;
-		}
-		try {
-			decode(ByteBuffer.Wrap(Files.readAllBytes(maxFile.toPath())));
-			logger.info("tryLoadLatestSaveFile('{}') OK ({} tokens)", maxFile.getAbsolutePath(), tokenMap.size());
-			return true;
 		} catch (Exception e) {
-			logger.error("tryLoadLatestSaveFile('{}') failed ({} tokens loaded):",
-					maxFile.getAbsolutePath(), tokenMap.size(), e);
+			logger.error("trySaveDB failed:", e);
 			return false;
 		}
-	}
-
-	public boolean trySaveFile() {
-		var fn = "token_" + System.currentTimeMillis() + ".save";
-		try (var fos = new FileOutputStream(fn)) {
-			var bb = ByteBuffer.Allocate(1024);
-			encode(bb, fos);
-			fos.write(bb.Bytes, bb.ReadIndex, bb.size());
-		} catch (Exception e) {
-			logger.error("trySaveFile('{}') failed:", fn, e);
-			return false;
-		}
-		logger.info("trySaveFile('{}') OK", fn);
+		logger.info("trySaveDB {} OK ({} ms)", n, (System.nanoTime() - timeBegin) / 1_000_000);
 		return true;
-	}
-
-	private void encode(@NotNull ByteBuffer bb, @NotNull OutputStream os) throws IOException {
-		bb.WriteByte(1); // version
-		bb.WriteLong(newCounter.sum());
-		for (var e : tokenMap.entrySet()) {
-			bb.WriteByte(1); // a new token record
-			bb.WriteString(e.getKey());
-			e.getValue().encode(bb);
-			if (bb.size() >= 65536) { // 写到一定量就输出到os里,避免bb积累太多数据
-				os.write(bb.Bytes, bb.ReadIndex, bb.size());
-				bb.Reset();
-			}
-		}
-		bb.WriteByte(0); // end of token records
-	}
-
-	private void decode(@NotNull ByteBuffer bb) throws UnknownHostException {
-		tokenMap.clear();
-		int v = bb.ReadByte();
-		if (v != 1)
-			throw new IllegalStateException("unknown Token version = " + v);
-		newCounter.reset();
-		newCounter.add(bb.ReadLong());
-		while (bb.ReadByte() == 1) {
-			var k = bb.ReadString();
-			tokenMap.put(k, new TokenState(bb));
-		}
 	}
 
 	@Override
@@ -514,9 +586,15 @@ public final class Token extends AbstractToken {
 		}
 		var remoteAddr = r.getSender().getRemoteAddress();
 		String token;
+		var created = new OutObject<Boolean>();
 		do {
 			token = genToken();
-		} while (tokenMap.putIfAbsent(token, new TokenState(remoteAddr, arg.getContext(), ttl)) != null);
+			// 这里严格来说应该再检查一下数据库里有没有这个token,但考虑到token含有秒时间戳,在tokenMap的软引用存活期不应该小于1秒
+			tokenMap.computeIfAbsent(token, t -> {
+				created.value = true;
+				return new TokenState(this, t, remoteAddr, arg.getContext(), ttl);
+			});
+		} while (!created.value);
 		newCounter.increment();
 		r.Result.setToken(token);
 		r.SendResultCode(0);
@@ -528,36 +606,51 @@ public final class Token extends AbstractToken {
 		var arg = r.Argument;
 		var res = r.Result;
 		var token = arg.getToken();
-		var state = tokenMap.get(token);
-		if (state == null) {
-			res.setTime(-1);
+		var maxCount = arg.getMaxCount();
+		for (; ; ) {
+			var state = tokenMap.get(token);
+			if (state == null) {
+				try {
+					var v = tokenMapTable.get(token.getBytes(StandardCharsets.UTF_8));
+					if (v != null)
+						state = tokenMap.computeIfAbsent(token, t -> new TokenState(this, t, ByteBuffer.Wrap(v)));
+				} catch (Exception e) {
+					logger.warn("tokenMapTable.get exception:", e);
+				}
+				if (state == null) {
+					res.setTime(-1);
+					r.SendResultCode(0);
+					return Procedure.Success;
+				}
+			} else
+				state.get(); // touch SoftReference
+			state.lock.lock();
+			try {
+				if (state.count == Long.MIN_VALUE)
+					continue; // removed, retry
+				var time = System.currentTimeMillis();
+				if (time >= state.endTime) {
+					state.count = Long.MIN_VALUE;
+					tokenMap.remove(token, state);
+					res.setTime(-2);
+				} else {
+					var count = state.count + 1;
+					if (maxCount > 0 && count >= maxCount && !tokenMap.remove(token, state))
+						res.setTime(-3);
+					else {
+						state.count = count;
+						res.setContext(state.context);
+						res.setCount(count);
+						res.setTime(time - state.createTime);
+					}
+				}
+			} finally {
+				state.lock.unlock();
+			}
+			res.setAddr(state.getRemoteAddr());
 			r.SendResultCode(0);
 			return Procedure.Success;
 		}
-		res.setAddr(state.getRemoteAddr());
-		var maxCount = arg.getMaxCount();
-		state.lock.lock();
-		try {
-			var time = System.currentTimeMillis();
-			if (time >= state.endTime) {
-				tokenMap.remove(token, state);
-				res.setTime(-2);
-			} else {
-				var count = state.count + 1;
-				if (maxCount > 0 && count >= maxCount && !tokenMap.remove(token, state))
-					res.setTime(-3);
-				else {
-					state.count = count;
-					res.setContext(state.context);
-					res.setCount(count);
-					res.setTime(time - state.createTime);
-				}
-			}
-		} finally {
-			state.lock.unlock();
-		}
-		r.SendResultCode(0);
-		return Procedure.Success;
 	}
 
 	@Override
@@ -696,8 +789,7 @@ public final class Token extends AbstractToken {
 			Selectors.getInstance().add(threadCount - Selectors.getInstance().getCount());
 
 		var token = new Token();
-		token.tryLoadLatestSaveFile();
-		ShutdownHook.add(token::trySaveFile);
+		ShutdownHook.add(token::stop);
 
 		token.start(null, host, port);
 		synchronized (Thread.currentThread()) {
