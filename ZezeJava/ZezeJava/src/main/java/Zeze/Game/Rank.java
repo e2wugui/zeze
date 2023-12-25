@@ -368,8 +368,21 @@ public class Rank extends AbstractRank {
 			}
 		}
 
-		// todo 推测计算可能的排名。需要当前分数，总可排数量。
-		return position;
+		return -1;
+	}
+
+	public long getRankPositionWithGuess(BConcurrentKey keyHint, long roleId, long score, long totalUser) throws Exception {
+		var pos = getRankPosition(keyHint, roleId);
+		if (pos > 0)
+			return pos;
+
+		var total = getRankTotal(keyHint);
+		var list = total.getTableValue().getRankList();
+
+		var lastRankScore = list.isEmpty() ? 0 : list.get(list.size() - 1).getValue();
+		var lastRankPosition = list.size();
+
+		return totalUser - (long)((double)score / lastRankScore * (totalUser - lastRankPosition));
 	}
 
 	public void deleteRank(BConcurrentKey keyHint) {
