@@ -24,10 +24,11 @@ public class Session implements AutoCloseable {
 		return serverName;
 	}
 
-	public Session(LogAgent agent, String serverName) {
+	public Session(LogAgent agent, String serverName, String logName) {
 		this.agent = agent;
 		this.serverName = serverName;
 		var r = new NewSession();
+		r.Argument.setLogName(logName);
 		r.SendForWait(agent.__getLogServer(serverName).GetReadySocket()).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("error " + r.getResultCode());

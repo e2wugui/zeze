@@ -16,8 +16,8 @@ public class ServerUserState {
 		return logSessions.get(sid);
 	}
 
-	public void newLogSession(long sid) throws IOException {
-		var logSession = new Log4jSession(logService.getLogManager());
+	public void newLogSession(String logName, long sid) throws IOException {
+		var logSession = new Log4jSession(logService.getLogManager(logName));
 		var exist = logSessions.putIfAbsent(sid, logSession);
 		if (null != exist) {
 			logSession.close();

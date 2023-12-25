@@ -14,7 +14,6 @@ import Zeze.Util.Random;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 import Zeze.Util.OutInt;
 import java.util.concurrent.Future;
 
@@ -42,31 +41,24 @@ public class Log4jFileManager {
 	private final FileCreateDetector fileCreateDetector;
 	private final String logFileBegin;
 	private final String logFileEnd;
-	private final String logDir;
-	private final String logDatePattern;
-	private final String charsetName;
+	private final LogServiceConf.LogConf logConf;
 	private final Future<?> buildIndexTimer;
 
-	public Log4jFileManager(@NotNull String logActive,
-							@NotNull String logDir,
-							@NotNull String datePattern,
-							@NotNull String charsetName) throws Exception {
-		var fulls = logActive.split("\\.");
+	public Log4jFileManager(LogServiceConf.LogConf logConf) throws Exception {
+		this.logConf = logConf;
+		var fulls = logConf.logActive.split("\\.");
 		this.logFileBegin = fulls[0];
 		this.logFileEnd = fulls.length > 1 ? fulls[1] : "";
-		this.logDir = logDir;
-		this.logDatePattern = datePattern;
-		this.charsetName = charsetName;
 
-		this.fileCreateDetector = new FileCreateDetector(logDir, this::onFileCreated);
+		this.fileCreateDetector = new FileCreateDetector(logConf.logDir, this::onFileCreated);
 
-		loadRotates(logDir);
-		var active = new File(logDir, logActive);
+		loadRotates(logConf.logDir);
+		var active = new File(logConf.logDir, logConf.logActive);
 		if (active.exists()) {
 			// 警告，如果启动的瞬间发生了log4j rotate，由于原子性没有保证，可能会创建多余的Log4jFile，
 			// 搜索的时候忽略文件不存在的错误？
 			// 暂时先不处理！
-			files.add(Log4jFile.of(active, loadIndex(active,logActive + ".index")));
+			files.add(Log4jFile.of(active, loadIndex(active,logConf.logActive + ".index")));
 		}
 		var period = 300_000L;
 		buildIndexTimer = Task.scheduleUnsafe(Random.getInstance().nextLong(period), period, this::buildIndex);
@@ -78,7 +70,7 @@ public class Log4jFileManager {
 			var file = files.get(i);
 			if (time >= file.index.getBeginTime()) {
 				out.value = i;
-				var logFileSession = new Log4jFileSession(file.file, file.index, charsetName);
+				var logFileSession = new Log4jFileSession(file.file, file.index, logConf.charsetName);
 				logFileSession.seek(time);
 				return logFileSession;
 			}
@@ -95,7 +87,7 @@ public class Log4jFileManager {
 	}
 
 	public String getLogDir() {
-		return logDir;
+		return logConf.logDir;
 	}
 
 	public int testFileName(String fileName, OutLong out) {
@@ -106,7 +98,7 @@ public class Log4jFileManager {
 			// rotate log file name = logFileBegin + logDatePattern + '.' + logFileEnd;
 			// logDatePattern默认是 .yyyy-MM-dd
 			var datePatternPart = fileName.substring(logFileBegin.length(), fileName.length() - logFileEnd.length() - 1);
-			var formatter = new SimpleDateFormat(logDatePattern);
+			var formatter = new SimpleDateFormat(logConf.logDatePattern);
 			try {
 				var date = formatter.parse(datePatternPart);
 				if (null != out)
@@ -128,7 +120,7 @@ public class Log4jFileManager {
 				var currentLogFileName = getCurrentLogFileName();
 				if (fileName.equals(currentLogFileName)
 					&& (files.isEmpty() || !files.get(files.size() - 1).file.getName().equals(currentLogFileName))) {
-					var logFile = new File(logDir, fileName);
+					var logFile = new File(logConf.logDir, fileName);
 					files.add(Log4jFile.of(logFile, loadIndex(logFile, getCurrentIndexFileName())));
 				}
 				break;
@@ -140,13 +132,13 @@ public class Log4jFileManager {
 				var last = files.get(files.size() - 1);
 				if (last.file.getName().equals(getCurrentLogFileName())) {
 					// rename index file
-					var indexFile = Path.of(logDir, getCurrentIndexFileName()).toFile();
+					var indexFile = Path.of(logConf.logDir, getCurrentIndexFileName()).toFile();
 					if (indexFile.exists()) {
-						if (!indexFile.renameTo(new File(logDir, fileName + ".index")))
+						if (!indexFile.renameTo(new File(logConf.logDir, fileName + ".index")))
 							logger.error("rename error. " + indexFile);
 					}
 					// 修改file指向新的logFile。index保持不变。
-					last.file = new File(logDir, fileName);
+					last.file = new File(logConf.logDir, fileName);
 				}
 				break;
 			}
@@ -170,7 +162,7 @@ public class Log4jFileManager {
 
 	public Log4jFileSession get(int index) throws IOException {
 		var file = files.get(index);
-		return new Log4jFileSession(file.file, file.index, charsetName);
+		return new Log4jFileSession(file.file, file.index, logConf.charsetName);
 	}
 
 	private void loadRotates(String logRotateDir) throws Exception {
@@ -178,7 +170,7 @@ public class Log4jFileManager {
 		var rotates = new ArrayList<KV<Long, String>>();
 		if (null != listFiles) {
 			for (var file : listFiles) {
-				if (file.isFile()) {
+				if (file.isFile() && file.getName().endsWith(".log")) {
 					var date = new OutLong();
 					if (1 == testFileName(file.getName(), date))
 						rotates.add(KV.create(date.value, file.getName()));
@@ -186,14 +178,14 @@ public class Log4jFileManager {
 			}
 			rotates.sort(Comparator.comparingLong(KV::getKey));
 			for (var kv : rotates) {
-				var logFile = new File(logDir, kv.getValue());
+				var logFile = new File(logConf.logDir, kv.getValue());
 				this.files.add(Log4jFile.of(logFile, loadIndex(logFile, kv.getValue() + ".index")));
 			}
 		}
 	}
 
 	private void removeOldLinkFiles() {
-		var linkDir = new File(logDir, "indexLinks");
+		var linkDir = new File(logConf.logDir, "indexLinks");
 		var links = linkDir.listFiles();
 		var max = 0L;
 		File maxFile = null;
@@ -219,7 +211,7 @@ public class Log4jFileManager {
 	}
 
 	private File nextLinkFile() throws IOException {
-		var linkDir = new File(logDir, "indexLinks");
+		var linkDir = new File(logConf.logDir, "indexLinks");
 		Files.createDirectories(linkDir.toPath());
 		var links = linkDir.listFiles();
 		var max = 0L;
@@ -237,16 +229,25 @@ public class Log4jFileManager {
 	}
 
 	private LogIndex loadIndex(File logFile, String logIndexFileName) throws Exception {
-		var indexFile = new File(logDir, logIndexFileName);
-		var linkFile = nextLinkFile();
-		var linkPath = Files.createLink(linkFile.toPath(), indexFile.toPath());
-		var index = new LogIndex(linkPath.toFile());
+		if (logIndexFileName.equals(getCurrentIndexFileName())) {
+			var indexFile = new File(logConf.logDir, logIndexFileName);
+			if (!indexFile.exists()) {
+				Files.createFile(indexFile.toPath());
+			}
+			var linkFile = nextLinkFile();
+			var linkPath = Files.createLink(linkFile.toPath(), indexFile.toPath());
+			var index = new LogIndex(linkPath.toFile());
+			return loadIndex(logFile, index);
+		}
+
+		var indexFile = new File(logConf.logDir, logIndexFileName);
+		var index = new LogIndex(indexFile);
 		return loadIndex(logFile, index);
 	}
 
 	private LogIndex loadIndex(File logFile, LogIndex index) throws Exception {
 		// 索引没有建立完成的需要继续
-		try (var log = new Log4jFileSession(logFile, null, charsetName)) {
+		try (var log = new Log4jFileSession(logFile, null, logConf.charsetName)) {
 			var indexes = new ArrayList<LogIndex.Record>();
 			var lastIndexTime = index.getEndTime();
 			var offset = index.lowerBound(lastIndexTime);

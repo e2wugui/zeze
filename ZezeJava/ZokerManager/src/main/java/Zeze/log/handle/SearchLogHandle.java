@@ -31,6 +31,7 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 			SearchLogParam searchLogParam = JSONObject.parseObject(str, SearchLogParam.class);
 			LogAgent logAgent = LogAgentManager.getInstance().getLogAgent();
 			String serverName = searchLogParam.getServerName();
+			String logName = searchLogParam.getLogName();
 
 			BCondition.Data con = new BCondition.Data();
 			con.setBeginTime(searchLogParam.parseBeginTime());
@@ -43,7 +44,7 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 			Object session = FileSessionManager.get(socketAddress);
 			if (serverName != null && !serverName.trim().isEmpty()) {
 				if (searchLogParam.isChangeSession() || !(session instanceof Session)) {
-					session = logAgent.newSession(serverName);
+					session = logAgent.newSession(serverName, logName);
 					x.setUserState(session);
 					FileSessionManager.put(socketAddress, session);
 				}
@@ -52,7 +53,7 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 				x.sendJson(HttpResponseStatus.OK, JSONObject.toJSONString(BaseResponse.succResult(data)));
 			} else {
 				if (searchLogParam.isChangeSession() || !(session instanceof SessionAll)) {
-					session = logAgent.newSessionAll();
+					session = logAgent.newSessionAll(logName);
 					x.setUserState(session);
 					FileSessionManager.put(socketAddress, session);
 				}

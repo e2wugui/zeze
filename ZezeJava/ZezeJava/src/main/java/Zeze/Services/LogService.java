@@ -2,6 +2,7 @@ package Zeze.Services;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
 import Zeze.Builtin.LogService.BLog;
@@ -20,17 +21,16 @@ import Zeze.Services.Log4jQuery.handler.QueryHandlerManager;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Transaction.Procedure;
-import org.jetbrains.annotations.NotNull;
 
 public class LogService extends AbstractLogService {
     private final AtomicLong sidSeed = new AtomicLong();
     private final Config conf;
-    private final LogServiceConf logConf;
+    private final LogServiceConf logConfs;
     private final AbstractAgent serviceManager;
     private final Server server;
     private final String passiveIp;
     private final int passivePort;
-    private final Log4jFileManager logManager;
+    private final ConcurrentHashMap<String, Log4jFileManager> logManagers = new ConcurrentHashMap<>();
 
     public static void main(String [] args) throws Exception {
         var configXml = "zeze.xml";
@@ -50,22 +50,29 @@ public class LogService extends AbstractLogService {
         }
     }
 
-    public Log4jFileManager getLogManager() {
-        return logManager;
+    public ConcurrentHashMap<String, Log4jFileManager> getLogManagers() {
+        return logManagers;
+    }
+
+    public Log4jFileManager getLogManager(String logName) {
+        return logManagers.get(logName);
     }
 
     public LogService(Config config) throws Exception {
         this.conf = config;
-        logConf = new LogServiceConf();
-        config.parseCustomize(logConf);
+        logConfs = new LogServiceConf();
+        config.parseCustomize(logConfs);
 
         this.server = new Server(this, config);
         var kv = server.getOnePassiveAddress();
         passiveIp = kv.getKey();
         passivePort = kv.getValue();
-        logConf.formatServiceIdentity(conf.getServerId(), passiveIp, passivePort);
+        // build serviceIdentity
+        for (var logConf : logConfs.getLogConfs().values()) {
+            logManagers.put(logConf.getName(), new Log4jFileManager(logConf));
+        }
+        logConfs.formatServiceIdentity(conf.getServerId(), passiveIp, passivePort);
         serviceManager = Application.createServiceManager(conf, "LogServiceServer");
-        logManager = new Log4jFileManager(logConf.logActive, logConf.logDir, logConf.logDatePattern, logConf.charsetName);
         RegisterProtocols(server);
     }
 
@@ -80,7 +87,7 @@ public class LogService extends AbstractLogService {
                 // raft 版第一次等待由于选择leader原因肯定会失败一次。
                 serviceManager.waitReady();
             }
-            serviceManager.registerService("Zeze.LogService", logConf.serviceIdentity, passiveIp, passivePort);
+            serviceManager.registerService("Zeze.LogService", logConfs.serviceIdentity, passiveIp, passivePort);
         }
     }
 
@@ -102,7 +109,7 @@ public class LogService extends AbstractLogService {
     protected long ProcessNewSessionRequest(NewSession r) throws Exception {
         var agent = (ServerUserState)r.getSender().getUserState();
         r.Result.setId(sidSeed.incrementAndGet());
-        agent.newLogSession(r.Result.getId());
+        agent.newLogSession(r.Argument.getLogName(), r.Result.getId());
         r.SendResult();
         return 0;
     }

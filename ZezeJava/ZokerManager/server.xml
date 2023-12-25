@@ -32,7 +32,10 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 
 
 	//LogActive="log/zeze.log"
-	<CustomizeConf Name="LogServiceConf"   LogRotateDir="log"/>
+	<CustomizeConf Name="LogServiceConf">
+		<LogConf LogActive="zeze.log" logDir="log"/>
+		<LogConf LogActive="zeze_error.log" logDir="log"/>
+	</CustomizeConf>
 
 	<ServiceConf Name="Zeze.LogService.Server">
 		<Acceptor Ip="127.0.0.1" Port="7790"/>

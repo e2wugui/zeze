@@ -17,10 +17,10 @@ public class SessionAll implements AutoCloseable {
 	private final ConcurrentHashMap<String, Session> alls = new ConcurrentHashMap<>();
 	private final ConcurrentHashSet<String> finishedSession = new ConcurrentHashSet<>();
 
-	public SessionAll(LogAgent agent) {
+	public SessionAll(LogAgent agent, String logName) {
 		this.agent = agent;
 		for (var serverName : agent.getLogServers())
-			alls.put(serverName, agent.newSession(serverName));
+			alls.put(serverName, agent.newSession(serverName, logName));
 	}
 
 	public LogAgent getAgent() {

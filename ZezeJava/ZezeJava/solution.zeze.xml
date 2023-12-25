@@ -1846,6 +1846,10 @@
 				<variable id="1" name="Id" type="long"/>
 			</bean>
 
+			<bean name="BNewSession">
+				<variable id="1" name="LogName" type="string"/>
+			</bean>
+
 			<bean name="BBrowse">
 				<variable id="1" name="Id" type="long"/>
 				<variable id="2" name="Limit" type="int"/>
@@ -1865,7 +1869,7 @@
 				<variable id="1" name="Json" type="string"/>
 			</bean>
 			
-			<rpc name="NewSession"  result="BSession" handle="server"/>
+			<rpc name="NewSession"  argument="BNewSession" result="BSession" handle="server"/>
 			<rpc name="CloseSession" argument="BSession" handle="server"/>
 			<rpc name="Browse" argument="BBrowse" result="BResult" handle="server"/>
 			<rpc name="Search" argument="BSearch" result="BResult" handle="server"/>

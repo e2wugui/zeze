@@ -60,8 +60,8 @@ public class LogAgent extends AbstractLogAgent {
 			serviceManager.close();
 	}
 
-	public Session newSession(String serverName) {
-		return new Session(this, serverName);
+	public Session newSession(String serverName, String logName) {
+		return new Session(this, serverName, logName);
 	}
 
 	public Set<String> getLogServers() {
@@ -72,8 +72,8 @@ public class LogAgent extends AbstractLogAgent {
 		return client.getLogServers().get(serverName);
 	}
 
-	public SessionAll newSessionAll() {
-		return new SessionAll(this);
+	public SessionAll newSessionAll(String logName) {
+		return new SessionAll(this, logName);
 	}
 
 	public String query(String serverName, String jsonArgument) {

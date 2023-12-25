@@ -11,6 +11,7 @@ public class SearchLogParam {
 	private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
 	private String serverName;
+	private String logName;
 	private boolean reset;
 	private float offsetFactor;
 	private int limit;
@@ -27,6 +28,14 @@ public class SearchLogParam {
 
 	public void setServerName(String serverName) {
 		this.serverName = serverName;
+	}
+
+	public String getLogName() {
+		return logName;
+	}
+
+	public void setLogName(String logName) {
+		this.logName = logName;
 	}
 
 	public boolean isReset() {

@@ -32,16 +32,17 @@ public class TestLogService {
 			var words = new ArrayList<String>();
 			words.add("23-08-25 09:19:00.813");
 			cond.setWords(words);
+			var logName = "zeze.log";
 			for (var serverName : logAgent.getLogServers()) {
 				System.out.println("search --------->" + serverName);
-				try (var session = logAgent.newSession(serverName)) {
+				try (var session = logAgent.newSession(serverName, logName)) {
 					// 这个session可以保存到http-session中，重复使用时，从上一次的位置继续搜索，
 					// 下面的reset参数控制从头开始。
 					var rData = session.search(3, false, cond).get();
 					System.out.println(rData);
 				}
 			}
-			try (var sessionAll = logAgent.newSessionAll()) {
+			try (var sessionAll = logAgent.newSessionAll("zeze.log")) {
 				var rData = sessionAll.search(3, false, cond);
 				System.out.println(rData);
 			}
