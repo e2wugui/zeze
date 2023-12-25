@@ -84,7 +84,6 @@ public class ServiceManager {
 			return process.waitFor();
 		}
 
-		// todo 不支持温和退出的时候怎么办。
 		return process.destroyForcibly().waitFor();
 	}
 

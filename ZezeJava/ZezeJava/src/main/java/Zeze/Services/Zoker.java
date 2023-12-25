@@ -11,7 +11,7 @@ import Zeze.Services.ZokerImpl.ZokerService;
 
 public class Zoker extends AbstractZoker {
     private final ZokerService serverWithConnector; // Zoker是server，但它主动连接ZokerAgent
-    private final DistributeManager distibuteManager;
+    private final DistributeManager distributeManager;
     private final ServiceManager processManager;
     private final File serviceDir;
     private final File distributeDir;
@@ -32,7 +32,7 @@ public class Zoker extends AbstractZoker {
         Files.createDirectory(serviceOldDir.toPath());
 
         // implement
-        distibuteManager = new DistributeManager(this);
+        distributeManager = new DistributeManager(this);
         processManager = new ServiceManager(this);
         RegisterProtocols(serverWithConnector);
     }
@@ -63,7 +63,7 @@ public class Zoker extends AbstractZoker {
 
     @Override
     protected long ProcessOpenFileRequest(Zeze.Builtin.Zoker.OpenFile r) throws Exception {
-        var fileBin = distibuteManager.open(r.Argument.getServiceName(), r.Argument.getFileName());
+        var fileBin = distributeManager.open(r.Argument.getServiceName(), r.Argument.getFileName());
         r.Result.setOffset(fileBin.getLength());
         r.SendResult();
         return 0;
@@ -71,7 +71,7 @@ public class Zoker extends AbstractZoker {
 
     @Override
     protected long ProcessAppendFileRequest(Zeze.Builtin.Zoker.AppendFile r) throws Exception {
-        distibuteManager.append(r.Argument.getServiceName(),
+        distributeManager.append(r.Argument.getServiceName(),
                 r.Argument.getFileName(),
                 r.Argument.getOffset(), r.Argument.getChunk());
         r.SendResult();
@@ -80,7 +80,7 @@ public class Zoker extends AbstractZoker {
 
     @Override
     protected long ProcessCloseFileRequest(Zeze.Builtin.Zoker.CloseFile r) throws Exception {
-        if (!distibuteManager.closeAndVerify(r.Argument.getServiceName(),
+        if (!distributeManager.closeAndVerify(r.Argument.getServiceName(),
                 r.Argument.getFileName(), r.Argument.getMd5()))
             return errorCode(eMd5Mismatch);
         r.SendResult();
@@ -89,7 +89,7 @@ public class Zoker extends AbstractZoker {
 
     @Override
     protected long ProcessCommitServiceRequest(Zeze.Builtin.Zoker.CommitService r) throws Exception {
-        return distibuteManager.commitService(r);
+        return distributeManager.commitService(r);
     }
 
     @Override

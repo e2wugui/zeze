@@ -1,9 +1,23 @@
 package Zeze.Hot;
 
+import Zeze.Builtin.HotDistribute.AppendFile;
+import Zeze.Builtin.HotDistribute.CloseFile;
+import Zeze.Builtin.HotDistribute.Commit;
+import Zeze.Builtin.HotDistribute.OpenFile;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 
+/**
+ * 热更发布控制台。
+ * 【其中，多版本bean方案的服务模块。未用，计划用直接bean支持热更方案替换，先保留】
+ * 现在使用中的功能：拷贝jar的文件操作；全部拷贝完成提交命令；
+ */
 public class HotDistribute extends AbstractHotDistribute {
+    private final DistributeManager distributeManager;
+
+    public HotDistribute(DistributeManager distributeManager) {
+        this.distributeManager = distributeManager;
+    }
 
     public static String removeVersion(String beanName) {
         if (!beanName.endsWith("_"))
@@ -18,6 +32,40 @@ public class HotDistribute extends AbstractHotDistribute {
         if (i < 0)
             throw new RuntimeException("invalid versioned bean name");
         return beanName.substring(0, i);
+    }
+
+    @Override
+    protected long ProcessOpenFileRequest(OpenFile r) throws Exception {
+        var fileBin = distributeManager.open(r.Argument.getFileName());
+        r.Result.setOffset(fileBin.getLength());
+        r.SendResult();
+        return 0;
+    }
+
+    @Override
+    protected long ProcessAppendFileRequest(AppendFile r) throws Exception {
+        distributeManager.append(
+                r.Argument.getFileName(),
+                r.Argument.getOffset(),
+                r.Argument.getChunk());
+        r.SendResult();
+        return 0;
+    }
+
+    @Override
+    protected long ProcessCloseFileRequest(CloseFile r) throws Exception {
+        if (!distributeManager.closeAndVerify(r.Argument.getFileName(), r.Argument.getMd5()))
+            return errorCode(eMd5Mismatch);
+        r.SendResult();
+        return 0;
+    }
+
+    @Override
+    protected long ProcessCommitRequest(Commit r) throws Exception {
+        distributeManager.commitDistribute();
+        var rc = distributeManager.getHotManager().tryDistribute();
+        r.SendResultCode(rc);
+        return 0;
     }
 
     @Override

@@ -106,6 +106,19 @@ public class Distribute {
 			e.getValue().close();
 		}
 		hotModuleJars.clear();
+
+		var hotAgents = new ArrayList<HotAgent>();
+		for (var hotManager : hotManagers) {
+			hotAgents.add(new HotAgent(hotManager));
+		}
+		for (var hotAgent : hotAgents) {
+			hotAgent.distribute(new File(workingDir, "modules"));
+			hotAgent.distribute(new File(workingDir, "interfaces"));
+		}
+		// HotManager 加上Ready阶段（保持锁定）；然后集中Commit即可实现原子发布。
+		for (var hotAgent : hotAgents) {
+			hotAgent.commit();
+		}
 	}
 
 	private void packModuleConfig(IModule module, BModule.Data config) {
@@ -132,6 +145,8 @@ public class Distribute {
 		}
 		return null;
 	}
+
+	private static final ArrayList<String> hotManagers = new ArrayList<String>();
 
 	public static void main(String [] args) throws Exception {
 		var classesDir = "build/classes/java/main";
@@ -160,6 +175,9 @@ public class Distribute {
 				break;
 			case "-config":
 				configXml = args[++i];
+				break;
+			default:
+				hotManagers.add(args[i]);
 				break;
 			}
 		}

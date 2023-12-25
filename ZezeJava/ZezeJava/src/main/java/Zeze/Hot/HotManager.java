@@ -22,10 +22,13 @@ import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Collections.BeanFactory;
+import Zeze.Config;
 import Zeze.IModule;
+import Zeze.Net.Service;
 import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FewModifyMap;
@@ -70,6 +73,24 @@ public class HotManager extends ClassLoader {
 
 	private final ConcurrentHashSet<HotUpgrade> hotUpgrades = new ConcurrentHashSet<>();
 	private final ConcurrentHashSet<HotBeanFactory> hotBeanFactories = new ConcurrentHashSet<>();
+
+	private final DistributeManager distributeManager = new DistributeManager(this);
+	private final HotDistribute hotDistribute = new HotDistribute(distributeManager);
+	private final HotManagerService hotManagerService;
+
+	public DistributeManager getDistributeManager() {
+		return distributeManager;
+	}
+
+	public HotDistribute getHotDistribute() {
+		return hotDistribute;
+	}
+
+	public static class HotManagerService extends Service {
+		public HotManagerService(Config config) {
+			super("Zeze.HotManagerService", config);
+		}
+	}
 
 	public void addHotBeanFactory(HotBeanFactory hotBeanFactory) {
 		hotBeanFactories.add(hotBeanFactory);
@@ -561,6 +582,8 @@ public class HotManager extends ClassLoader {
 	}
 
 	public HotManager(AppBase app, String workingDir, String distributeDir) throws Exception {
+		hotManagerService = new HotManagerService(app.getZeze().getConfig());
+
 		//System.out.println(workingDir);
 		//System.out.println(distributeDir);
 		BeanFactory.setApplication(app.getZeze());
@@ -590,41 +613,51 @@ public class HotManager extends ClassLoader {
 
 		this.loadExistInterfaces(interfacesPath.toFile());
 		this.loadExistModules(modulePath.toFile());
+
+		hotDistribute.RegisterProtocols(hotManagerService);
+	}
+
+	/**
+	 * 使用即时命令，可以更快速的得到响应。
+	 * 准备把 Distribute.java 发展成发布工具。
+	 * 支持远程，多服务器发布。
+	 * 支持原子发布。
+	 */
+	public long tryDistribute() {
+		try {
+			var ready = Path.of(distributeDir, "ready");
+			if (Files.exists(ready)) {
+				try {
+					readyLines = Files.readAllLines(ready);
+					if (null != installReadies())
+						Files.deleteIfExists(ready); // success
+					else
+						renameDistributes();
+					return 0;
+				} catch (Throwable ex) {
+					logger.error("", ex);
+					renameDistributes();
+				}
+			}
+		} catch (Throwable ex) {
+			logger.error("", ex);
+		}
+		return Procedure.Exception;
 	}
 
 	public void start() throws Exception {
 		var iModules = createModuleInstance(modules.values());
 		var i = 0;
+
 		// 这里要求modules.values()遍历顺序稳定，在modules没有改变时，应该是符合要求的吧。
 		for (var module : modules.values()) {
 			module.setService(iModules[i++]);
 		}
 
-		// todo 先能工作，使用即时命令，可以更快速的得到响应。
-		//  准备把 Distribute.java 发展成发布工具。
-		//  支持远程，多服务器发布。
-		//  支持原子发布。
-		var ready = Path.of(distributeDir, "ready");
-		Task.getScheduledThreadPool().scheduleAtFixedRate(() -> {
-			try {
-				if (Files.exists(ready)) {
-					try {
-						readyLines = Files.readAllLines(ready);
-						if (null != installReadies())
-							Files.deleteIfExists(ready); // success
-						else
-							renameDistributes();
-					} catch (Throwable ex) {
-						logger.error("", ex);
-						renameDistributes();
-					}
-				}
-			} catch (Throwable ex) {
-				logger.error("", ex);
-			}
-		}, 1000, 1000, TimeUnit.MILLISECONDS);
-
+		Task.getScheduledThreadPool().scheduleAtFixedRate(
+				this::tryDistribute, 10000, 10000, TimeUnit.MILLISECONDS);
 		Task.hotGuard = this::enterReadLock;
+		hotManagerService.start();
 	}
 
 	private volatile java.util.List<String> readyLines;
@@ -685,6 +718,7 @@ public class HotManager extends ClassLoader {
 	}
 
 	public void stopModule(String moduleName) throws Exception {
+		hotManagerService.stop();
 		var module = modules.get(moduleName);
 		if (null != module)
 			module.stop();

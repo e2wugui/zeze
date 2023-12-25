@@ -1,10 +1,10 @@
 // auto-generated @formatter:off
 package Zeze.Hot;
 
-public abstract class AbstractHotDistribute implements Zeze.IModule {
+public abstract class AbstractHotAgent implements Zeze.IModule {
     public static final int ModuleId = 11033;
-    public static final String ModuleName = "HotDistribute";
-    public static final String ModuleFullName = "Zeze.Hot.HotDistribute";
+    public static final String ModuleName = "HotAgent";
+    public static final String ModuleFullName = "Zeze.Hot.HotAgent";
 
     @Override public int getId() { return ModuleId; }
     @Override public String getName() { return ModuleName; }
@@ -24,41 +24,36 @@ public abstract class AbstractHotDistribute implements Zeze.IModule {
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.AppendFile.class, Zeze.Builtin.HotDistribute.AppendFile.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.HotDistribute.AppendFile::new;
-            factoryHandle.Handle = this::ProcessAppendFileRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAppendFileRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAppendFileRequest", Zeze.Transaction.DispatchMode.Normal);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAppendFileResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAppendFileResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47389309196186L, factoryHandle); // 11033, -1359947878
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.CloseFile.class, Zeze.Builtin.HotDistribute.CloseFile.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.HotDistribute.CloseFile::new;
-            factoryHandle.Handle = this::ProcessCloseFileRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCloseFileRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCloseFileRequest", Zeze.Transaction.DispatchMode.Normal);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCloseFileResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCloseFileResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47390444626489L, factoryHandle); // 11033, -224517575
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.Commit.class, Zeze.Builtin.HotDistribute.Commit.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.HotDistribute.Commit::new;
-            factoryHandle.Handle = this::ProcessCommitRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitRequest", Zeze.Transaction.DispatchMode.Normal);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47390636330467L, factoryHandle); // 11033, -32813597
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.GetLastVersionBeanInfo.class, Zeze.Builtin.HotDistribute.GetLastVersionBeanInfo.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.HotDistribute.GetLastVersionBeanInfo::new;
-            factoryHandle.Handle = this::ProcessGetLastVersionBeanInfoRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessGetLastVersionBeanInfoRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessGetLastVersionBeanInfoRequest", Zeze.Transaction.DispatchMode.Normal);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessGetLastVersionBeanInfoResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessGetLastVersionBeanInfoResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47389512970537L, factoryHandle); // 11033, -1156173527
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.OpenFile.class, Zeze.Builtin.HotDistribute.OpenFile.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.HotDistribute.OpenFile::new;
-            factoryHandle.Handle = this::ProcessOpenFileRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessOpenFileRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessOpenFileRequest", Zeze.Transaction.DispatchMode.Normal);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessOpenFileResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessOpenFileResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47390201795475L, factoryHandle); // 11033, -467348589
         }
     }
@@ -79,10 +74,4 @@ public abstract class AbstractHotDistribute implements Zeze.IModule {
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
-
-    protected abstract long ProcessAppendFileRequest(Zeze.Builtin.HotDistribute.AppendFile r) throws Exception;
-    protected abstract long ProcessCloseFileRequest(Zeze.Builtin.HotDistribute.CloseFile r) throws Exception;
-    protected abstract long ProcessCommitRequest(Zeze.Builtin.HotDistribute.Commit r) throws Exception;
-    protected abstract long ProcessGetLastVersionBeanInfoRequest(Zeze.Builtin.HotDistribute.GetLastVersionBeanInfo r) throws Exception;
-    protected abstract long ProcessOpenFileRequest(Zeze.Builtin.HotDistribute.OpenFile r) throws Exception;
 }

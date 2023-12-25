@@ -10,6 +10,9 @@ import Zeze.Transaction.Bean;
 import Zeze.Util.Benchmark;
 import Zeze.Util.Reflect;
 
+/**
+ * 多版本bean方案的服务模块。【未用，计划用直接bean支持热更方案替换，先保留】
+ */
 public class DistributeServer {
 	private static final TreeMap<String, Bean> beans = new TreeMap<>();
 	private static int count = 0;
@@ -64,7 +67,7 @@ public class DistributeServer {
 		b.report("DistributeServer Beans", beans.size());
 
 		var server = new ServerService();
-		var hotDistribute = new HotDistribute();
+		var hotDistribute = new HotDistribute(null); // 这个参数，内部的文件发布功能没法使用。
 
 		try {
 			hotDistribute.RegisterProtocols(server);
