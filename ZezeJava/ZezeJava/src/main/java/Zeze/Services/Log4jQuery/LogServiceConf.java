@@ -71,6 +71,8 @@ public class LogServiceConf implements Config.ICustomize {
 			Node node = childNodes.item(i);
 			if (node.getNodeType() != Node.ELEMENT_NODE)
 				continue;
+			if (!node.getNodeName().equals("LogConf"))
+				continue;
 
 			Element e = (Element)node;
 			var logConf = new LogConf(e);
