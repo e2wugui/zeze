@@ -14,18 +14,22 @@ zeze_cache_*/
 
 Redirect_*.java
 
-/log4j2.xml
-/raft.xml
-/zeze.xml
-/ZezeJavaTest/test.ks
-/ZezeJavaTest/CommitRocks*
-/ZezeJavaTest/DiffLockAndNoLock
-/ZezeJavaTest/hot/distributes
-/ZezeJavaTest/RocksDB
-/ZezeJavaTest/manager*
-/ZezeJavaTest/master
-/ZezexJava/server/hot
-/ZezexJava/server/hotrun
+/test/autokeys2
 /test/Dbh2/CommitRocks*
 /test/Dbh2/manager*
 /test/Dbh2/master
+/ZezeJavaTest/test.ks
+/ZezeJavaTest/CommitOnzServer0
+/ZezeJavaTest/CommitRocks*
+/ZezeJavaTest/DiffLockAndNoLock
+/ZezeJavaTest/hot/distributes
+/ZezeJavaTest/manager*
+/ZezeJavaTest/master
+/ZezeJavaTest/RocksDB
+/ZezeJavaTest/testMmapFile*
+/ZezeJavaTest/token_db
+/ZezexJava/server/hot
+/ZezexJava/server/hotrun
+/log4j2.xml
+/raft.xml
+/zeze.xml

@@ -58,9 +58,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/*
-TODO: token续期服务. 跟初始设置的ttl如何兼顾? 覆盖还是选最大值? 目前暂无计划, 等有需求再说
-*/
+// token续期服务. 跟初始设置的ttl如何兼顾? 覆盖还是选最大值? 目前暂无计划, 等有需求再说
 public final class Token extends AbstractToken {
 	private static final Logger logger = LogManager.getLogger(Token.class);
 	private static final int DEFAULT_PORT = 5003;
@@ -68,6 +66,7 @@ public final class Token extends AbstractToken {
 	private static final byte[] tokenCharTable = new byte[TOKEN_CHAR_USED];
 	private static final boolean canLogNotifyTopic = AsyncSocket.ENABLE_PROTOCOL_LOG
 			&& AsyncSocket.canLogProtocol(NotifyTopic.TypeId_);
+	private static final int perfIndexTokenSoftRefClean = PerfCounter.instance.registerCountIndex("TokenSoftRefClean");
 	private static final ReferenceQueue<Object> refQueue = new ReferenceQueue<>();
 	private static Thread tokenRefCleaner;
 
@@ -334,7 +333,7 @@ public final class Token extends AbstractToken {
 		final @NotNull Binary context; // 绑定的上下文
 		final long createTime; // 创建时间戳(毫秒)
 		final long endTime; // 失效时间戳(毫秒)
-		long count; // 已访问次数
+		long count; // 已访问次数. -1表示刚刚删除
 
 		TokenState(@NotNull Token token, @NotNull String key, @Nullable SocketAddress remoteAddr,
 				   @NotNull Binary context, long ttl) {
@@ -369,7 +368,7 @@ public final class Token extends AbstractToken {
 			context = bb.ReadBinary();
 			createTime = bb.ReadLong();
 			endTime = bb.ReadLong();
-			count = bb.ReadLong();
+			count = Math.max(bb.ReadLong(), 0);
 		}
 
 		static long decodeEndTime(@NotNull ByteBuffer bb) {
@@ -409,20 +408,24 @@ public final class Token extends AbstractToken {
 	private static void cleanTokenRef() {
 		for (var bb = ByteBuffer.Allocate(32); ; ) {
 			try {
+				var now = System.currentTimeMillis();
 				var state = (TokenState)refQueue.remove();
 				var k = state.key.getBytes(StandardCharsets.UTF_8);
 				state.lock.lock();
 				try {
-					if (state.count != Long.MIN_VALUE) {
-						bb.Reset();
-						var v = state.encode(bb);
-						state.count = Long.MIN_VALUE;
-						state.token.tokenMapTable.put(k, 0, k.length, v.Bytes, 0, v.WriteIndex);
+					if (state.count != -1) {
+						if (now <= state.endTime) {
+							bb.Reset();
+							var v = state.encode(bb);
+							state.token.tokenMapTable.put(k, 0, k.length, v.Bytes, 0, v.WriteIndex);
+						}
+						state.count = -1;
 						state.token.tokenMap.remove(state.key, state);
 					}
 				} finally {
 					state.lock.unlock();
 				}
+				PerfCounter.instance.addCountInfo(perfIndexTokenSoftRefClean);
 			} catch (Exception e) {
 				logger.error("cleanTokenRef exception:", e);
 			}
@@ -443,13 +446,14 @@ public final class Token extends AbstractToken {
 		if (service != null)
 			return this;
 
-		rocksdb = new RocksDatabase(PropertiesHelper.getString("token.rocksdb", "db"));
+		rocksdb = new RocksDatabase(PropertiesHelper.getString("token.rocksdb", "token_db"));
 		tokenMapTable = rocksdb.getOrAddTable("tokenMap");
 
 		synchronized (Token.class) {
 			if (tokenRefCleaner == null) {
 				tokenRefCleaner = new Thread(Token::cleanTokenRef, "TokenRefCleaner");
 				tokenRefCleaner.setDaemon(true);
+				tokenRefCleaner.setPriority(Thread.MAX_PRIORITY);
 				tokenRefCleaner.start();
 			}
 		}
@@ -504,18 +508,23 @@ public final class Token extends AbstractToken {
 	}
 
 	private void cleanTokenMap() {
-		var time = System.currentTimeMillis();
-		for (var e : tokenMap.entrySet()) {
-			var state = e.getValue();
-			if (time >= state.endTime) {
-				state.count = Long.MIN_VALUE;
-				tokenMap.remove(e.getKey(), state);
+		var now = System.currentTimeMillis();
+		for (var state : tokenMap.values()) {
+			if (state.endTime < now && state.lock.tryLock()) {
+				try {
+					if (state.count != -1) {
+						state.count = -1;
+						tokenMap.remove(state.key, state);
+					}
+				} finally {
+					state.lock.unlock();
+				}
 			}
 		}
 	}
 
 	private void cleanTokenMapTable() {
-		logger.info("cleanTokenMapTable: begin");
+		logger.info("cleanTokenMapTable: begin ...");
 		var now = System.currentTimeMillis();
 		var bb = ByteBuffer.Wrap(ByteBuffer.Empty);
 		var batch = rocksdb.newBatch();
@@ -524,7 +533,7 @@ public final class Token extends AbstractToken {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				try {
 					bb.wraps(it.value());
-					if (now >= TokenState.decodeEndTime(bb)) {
+					if (TokenState.decodeEndTime(bb) < now) {
 						tokenMapTable.delete(batch, it.key());
 						d++;
 					}
@@ -545,20 +554,24 @@ public final class Token extends AbstractToken {
 	}
 
 	private boolean saveDB() {
-		var timeBegin = System.nanoTime();
-		long n = 0;
+		logger.info("saveDB begin ...");
 		try {
+			var timeBegin = System.nanoTime();
+			long n = 0;
 			var bb = ByteBuffer.Allocate(32);
 			try (var batch = rocksdb.newBatch()) {
+				var now = System.currentTimeMillis();
 				for (var state : tokenMap.values()) {
 					var k = state.key.getBytes(StandardCharsets.UTF_8);
 					state.lock.lock();
 					try {
-						if (state.count != Long.MIN_VALUE) {
-							bb.Reset();
-							var v = state.encode(bb);
-							state.count = Long.MIN_VALUE;
-							tokenMapTable.put(batch, k, 0, k.length, v.Bytes, 0, v.WriteIndex);
+						if (state.count != -1) {
+							if (now <= state.endTime) {
+								bb.Reset();
+								var v = state.encode(bb);
+								tokenMapTable.put(batch, k, 0, k.length, v.Bytes, 0, v.WriteIndex);
+							}
+							state.count = -1;
 							tokenMap.remove(state.key, state);
 							n++;
 						}
@@ -568,12 +581,12 @@ public final class Token extends AbstractToken {
 				}
 				batch.commit();
 			}
+			logger.info("saveDB end ({}, {} ms)", n, (System.nanoTime() - timeBegin) / 1_000_000);
+			return true;
 		} catch (Exception e) {
-			logger.error("trySaveDB failed:", e);
+			logger.error("saveDB exception:", e);
 			return false;
 		}
-		logger.info("trySaveDB {} OK ({} ms)", n, (System.nanoTime() - timeBegin) / 1_000_000);
-		return true;
 	}
 
 	@Override
@@ -626,11 +639,11 @@ public final class Token extends AbstractToken {
 				state.get(); // touch SoftReference
 			state.lock.lock();
 			try {
-				if (state.count == Long.MIN_VALUE)
+				if (state.count == -1)
 					continue; // removed, retry
 				var time = System.currentTimeMillis();
 				if (time >= state.endTime) {
-					state.count = Long.MIN_VALUE;
+					state.count = -1;
 					tokenMap.remove(token, state);
 					res.setTime(-2);
 				} else {

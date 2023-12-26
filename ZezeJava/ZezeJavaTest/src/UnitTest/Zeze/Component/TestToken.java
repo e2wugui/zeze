@@ -44,6 +44,7 @@ public class TestToken {
 			}
 		} finally {
 			tokenServer.stop();
+			tokenServer.closeDb();
 		}
 	}
 
@@ -72,6 +73,7 @@ public class TestToken {
 			}
 		} finally {
 			tokenServer.stop();
+			tokenServer.closeDb();
 		}
 	}
 
@@ -102,6 +104,7 @@ public class TestToken {
 			}
 		} finally {
 			tokenServer.stop();
+			tokenServer.closeDb();
 		}
 	}
 }
