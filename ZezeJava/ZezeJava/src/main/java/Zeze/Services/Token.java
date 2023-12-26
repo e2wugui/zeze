@@ -442,8 +442,11 @@ public final class Token extends AbstractToken {
 			try {
 				var state = (TokenState)(stateBufCount == 0 ? refQueue.remove() : refQueue.poll());
 				if (state == null) {
-					for (int i = 0; i < stateBufCount; i++)
+					for (int i = 0; i < stateBufCount; i++) {
+						//noinspection DataFlowIssue
 						moveToDB(stateBuf[i], bb, true);
+						stateBuf[i] = null;
+					}
 					stateBufCount = 0;
 				} else {
 					if (!moveToDB(state, bb, stateBufCount == STATE_BUF_COUNT))
