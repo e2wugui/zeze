@@ -405,28 +405,52 @@ public final class Token extends AbstractToken {
 		}
 	}
 
-	private static void cleanTokenRef() {
-		for (var bb = ByteBuffer.Allocate(32); ; ) {
-			try {
-				var now = System.currentTimeMillis();
-				var state = (TokenState)refQueue.remove();
-				var k = state.key.getBytes(StandardCharsets.UTF_8);
+	private static boolean moveToDB(@NotNull TokenState state, @NotNull ByteBuffer bb, boolean waitLock)
+			throws Exception {
+		ReentrantLock lock = null;
+		try {
+			var k = state.key.getBytes(StandardCharsets.UTF_8);
+			if (waitLock)
 				state.lock.lock();
-				try {
-					if (state.count != -1) {
-						if (now <= state.endTime) {
-							bb.Reset();
-							var v = state.encode(bb);
-							state.token.tokenMapTable.put(k, 0, k.length, v.Bytes, 0, v.WriteIndex);
-						}
-						state.count = -1;
-						state.token.tokenMap.remove(state.key, state);
-					}
-				} finally {
-					state.lock.unlock();
+			else if (!state.lock.tryLock())
+				return false;
+			lock = state.lock;
+			if (state.count != -1) {
+				if (System.currentTimeMillis() <= state.endTime) {
+					bb.Reset();
+					var v = state.encode(bb);
+					state.token.tokenMapTable.put(k, 0, k.length, v.Bytes, 0, v.WriteIndex);
 				}
-				PerfCounter.instance.addCountInfo(perfIndexTokenSoftRefClean);
-			} catch (Exception e) {
+				state.count = -1;
+				state.token.tokenMap.remove(state.key, state);
+			}
+		} catch (Throwable e) { // logger.error
+			logger.error("cleanTokenRef.moveToDB exception:", e);
+		} finally {
+			if (lock != null)
+				lock.unlock();
+		}
+		return true;
+	}
+
+	private static void cleanTokenRef() {
+		final int STATE_BUF_COUNT = 256;
+		var bb = ByteBuffer.Allocate(32);
+		var stateBuf = new TokenState[STATE_BUF_COUNT];
+		int stateBufCount = 0;
+		for (; ; ) {
+			try {
+				var state = (TokenState)(stateBufCount == 0 ? refQueue.remove() : refQueue.poll());
+				if (state == null) {
+					for (int i = 0; i < stateBufCount; i++)
+						moveToDB(stateBuf[i], bb, true);
+					stateBufCount = 0;
+				} else {
+					if (!moveToDB(state, bb, stateBufCount == STATE_BUF_COUNT))
+						stateBuf[stateBufCount++] = state;
+					PerfCounter.instance.addCountInfo(perfIndexTokenSoftRefClean);
+				}
+			} catch (Throwable e) { // logger.error
 				logger.error("cleanTokenRef exception:", e);
 			}
 		}
@@ -639,7 +663,8 @@ public final class Token extends AbstractToken {
 				state.get(); // touch SoftReference
 			state.lock.lock();
 			try {
-				if (state.count == -1)
+				var count = state.count;
+				if (count == -1)
 					continue; // removed, retry
 				var time = System.currentTimeMillis();
 				if (time >= state.endTime) {
@@ -647,7 +672,7 @@ public final class Token extends AbstractToken {
 					tokenMap.remove(token, state);
 					res.setTime(-2);
 				} else {
-					var count = state.count + 1;
+					count++;
 					if (maxCount > 0 && count >= maxCount && !tokenMap.remove(token, state))
 						res.setTime(-3);
 					else {
