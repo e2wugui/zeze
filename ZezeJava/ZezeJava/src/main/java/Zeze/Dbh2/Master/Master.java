@@ -15,7 +15,6 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMySql;
-import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.RocksDatabase;

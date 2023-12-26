@@ -469,7 +469,7 @@ public class RocksDatabase implements Closeable {
 		public long getKeyNumbers() throws RocksDBException {
 			return rocksDb.getLongProperty(cfHandle, "rocksdb.estimate-num-keys");
 		}
-		
+
 		public @NotNull String getName() {
 			return name;
 		}

@@ -181,6 +181,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		}
 	}
 
+	// 这是一个低开销的检测空闲超时的方法,不准确但只会比预设的超时时间长,写超时可能会多出readIdleTimeout的时长
 	protected void checkTimeout(@NotNull Channel channel) {
 		var idleTimeAttr = channel.attr(idleTimeKey);
 		var idleTimeObj = idleTimeAttr.get();

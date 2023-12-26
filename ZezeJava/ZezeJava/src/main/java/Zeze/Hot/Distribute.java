@@ -146,7 +146,7 @@ public class Distribute {
 		return null;
 	}
 
-	private static final ArrayList<String> hotManagers = new ArrayList<String>();
+	private static final ArrayList<String> hotManagers = new ArrayList<>();
 
 	public static void main(String [] args) throws Exception {
 		var classesDir = "build/classes/java/main";
