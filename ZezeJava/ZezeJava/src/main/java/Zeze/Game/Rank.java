@@ -357,7 +357,13 @@ public class Rank extends AbstractRank {
 	}
 
 	public long getRankPosition(BConcurrentKey keyHint, long roleId) throws Exception {
+		return getRankPosition(keyHint, roleId, null);
+	}
+
+	public long getRankPosition(BConcurrentKey keyHint, long roleId, OutObject<RankTotal> out) throws Exception {
 		var total = getRankTotal(keyHint);
+		if (null != out)
+			out.value = total;
 
 		// 判断是否在版内，并且得到排名位置。
 		var position = 0;
@@ -372,13 +378,12 @@ public class Rank extends AbstractRank {
 	}
 
 	public long getRankPositionWithGuess(BConcurrentKey keyHint, long roleId, long score, long totalUser) throws Exception {
-		var pos = getRankPosition(keyHint, roleId);
+		var total = new OutObject<RankTotal>();
+		var pos = getRankPosition(keyHint, roleId, total);
 		if (pos > 0)
 			return pos;
 
-		var total = getRankTotal(keyHint);
-		var list = total.getTableValue().getRankList();
-
+		var list = total.value.getTableValue().getRankList();
 		var lastRankScore = list.isEmpty() ? 0 : list.get(list.size() - 1).getValue();
 		var lastRankPosition = list.size();
 
