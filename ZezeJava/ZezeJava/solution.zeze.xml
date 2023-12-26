@@ -936,7 +936,7 @@
 				<enum name="CompleteCollectItem" value="33"/>
 				<enum name="CompleteSubmitItem" value="34"/>
 				<enum name="CompleteArriveNPC" value="35"/>
-				<bean name="BTaskCondition"> TODO: 允许广播
+				<bean name="BTaskCondition"> 允许广播
 					<variable id="2" name="conditionType" type="string"/> Condition的完成类型
 					<variable id="3" name="extendedData" type="dynamic"> 用于自定义扩展Condition的数据
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
@@ -1444,7 +1444,56 @@
 				<rpc name="EndMove" argument="BEndMove" UseData="true" handle="server"/>
 
 				<rpc name="CheckFreeManager" result="BBucketCount" UseData="true" handle="server"/>
-			</module>
+
+				<!-- Zeze.Transaction.Database.Operates 实现协议-->
+				<bean name="BSetInUse">
+					<enum name="eSuccess" value="0"/>
+					<enum name="eDefaultError" value="1"/>
+					<enum name="eInstanceAlreadyExists" value="2"/>
+					<enum name="eInsertInstanceError" value="3"/>
+					<enum name="eGlobalNotSame" value="4"/>
+					<enum name="eInsertGlobalError" value="5"/>
+					<enum name="eTooManyInstanceWithoutGlobal" value="6"/>
+
+					<variable id="1" name="LocalId" type="int"/> serverId
+					<variable id="2" name="Global" type="string"/>
+				</bean>
+
+				<bean name="BClearInUse">
+					<enum name="eSuccess" value="0"/>
+					<enum name="eDefaultError" value="1"/>
+					<enum name="eInstanceNotExists" value="2"/>
+
+					<variable id="1" name="LocalId" type="int"/> serverId
+					<variable id="2" name="Global" type="string"/> global config, not use now, reserve for strict check.
+				</bean>
+
+				<bean name="BSaveDataWithSameVersion">
+					<variable id="1" name="Key" type="binary"/>
+					<variable id="2" name="Data" type="binary"/>
+					<variable id="3" name="Version" type="long"/>
+				</bean>
+				<bean name="BSaveDataWithSameVersionResult">
+					<variable id="1" name="Success" type="bool"/>
+					<variable id="2" name="Version" type="long"/>
+				</bean>
+
+				<bean name="BGetDataWithVersion">
+					<variable id="1" name="Key" type="binary"/>
+				</bean>
+				<bean name="BGetDataWithVersionResult">
+					<variable id="1" name="Data" type="binary"/>
+					<variable id="2" name="Version" type="long"/>
+				</bean>
+
+				<rpc name="SetInUse" argument="BSetInUse" UseData="true" handle="server"/>
+				<rpc name="ClearInUse" argument="BClearInUse"  UseData="true" handle="server"/>
+				<rpc name="SaveDataWithSameVersion" argument="BSaveDataWithSameVersion" result="BSaveDataWithSameVersionResult" UseData="true" handle="server"/>
+				<rpc name="GetDataWithVersion" argument="BGetDataWithVersion" result="BGetDataWithVersionResult" UseData="true" handle="server"/>
+				<rpc name="TryLock" UseData="true" handle="server"/>
+				<rpc name="UnLock" UseData="true" handle="server"/>
+
+			</module> master
 
 			<enum name="eBucketNotFound" value="1"/>
 			<enum name="eBucketMismatch" value="2"/>

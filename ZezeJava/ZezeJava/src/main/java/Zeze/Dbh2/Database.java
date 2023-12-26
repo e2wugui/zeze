@@ -4,8 +4,15 @@ import java.net.URI;
 import Zeze.Application;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
+import Zeze.Builtin.Dbh2.Master.ClearInUse;
+import Zeze.Builtin.Dbh2.Master.GetDataWithVersion;
+import Zeze.Builtin.Dbh2.Master.SaveDataWithSameVersion;
+import Zeze.Builtin.Dbh2.Master.SetInUse;
+import Zeze.Builtin.Dbh2.Master.TryLock;
+import Zeze.Builtin.Dbh2.Master.UnLock;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
+import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableWalkHandleRaw;
@@ -13,6 +20,7 @@ import Zeze.Transaction.TableWalkKeyRaw;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.Nullable;
+import Zeze.Builtin.Dbh2.Master.BSetInUse;
 
 /**
  * 适配zeze-Database
@@ -33,7 +41,7 @@ public class Database extends Zeze.Transaction.Database {
 			masterName = url.getHost() + "_" + url.getPort();
 			databaseName = new java.io.File(url.getPath()).getName();
 			if (databaseName.contains("@"))
-				throw new RuntimeException("'@' is reserve.");
+				throw new RuntimeException("databaseName: '@' is reserve.");
 			/*
 			var query = HttpExchange.parseQuery(url.getQuery());
 			user = query.get("user");
@@ -42,9 +50,97 @@ public class Database extends Zeze.Transaction.Database {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-		setDirectOperates(new NullOperates()); // todo operates
+		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesDbh2());
 
 		masterAgent = dbh2AgentManager.openDatabase(masterName, databaseName);
+	}
+
+	private final class OperatesDbh2 implements Operates {
+
+		@Override
+		public void setInUse(int localId, String global) {
+			var r = new SetInUse();
+			r.Argument.setLocalId(localId);
+			r.Argument.setGlobal(global);
+
+			r.SendForWait(masterAgent.getService().GetSocket()).await();
+
+			switch ((int)r.getResultCode()) {
+			case 0:
+				return; // success
+			case BSetInUse.eDefaultError:
+				throw new IllegalStateException("Unknown Error");
+			case BSetInUse.eInstanceAlreadyExists:
+				throw new IllegalStateException("Instance Exist.");
+			case BSetInUse.eInsertInstanceError:
+				throw new IllegalStateException("Insert LocalId Failed");
+			case BSetInUse.eGlobalNotSame:
+				throw new IllegalStateException("Global Not Equals");
+			case BSetInUse.eInsertGlobalError:
+				throw new IllegalStateException("Insert Global Failed");
+			case BSetInUse.eTooManyInstanceWithoutGlobal:
+				throw new IllegalStateException("Instance Greater Than One But No Global");
+			default:
+				throw new IllegalStateException("Unknown ReturnValue");
+			}
+		}
+
+		@Override
+		public int clearInUse(int localId, String global) {
+			var r = new ClearInUse();
+			r.Argument.setLocalId(localId);
+			r.Argument.setGlobal(global);
+			r.SendForWait(masterAgent.getService().GetSocket()).await();
+
+			// clear: 不检查结果，直接返回
+			return (int)r.getResultCode();
+		}
+
+		@Override
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+			var r = new SaveDataWithSameVersion();
+			r.Argument.setKey(new Binary(key));
+			r.Argument.setData(new Binary(data));
+			r.Argument.setVersion(version);
+			r.SendForWait(masterAgent.getService().GetSocket()).await();
+			if (r.getResultCode() != 0)
+				throw new RuntimeException("SaveDataWithSameVersion error=" + IModule.getErrorCode(r.getResultCode()));
+
+			return KV.create(r.Result.getVersion(), r.Result.isSuccess());
+		}
+
+		@Override
+		public DataWithVersion getDataWithVersion(ByteBuffer key) {
+			var r = new GetDataWithVersion();
+			r.Argument.setKey(new Binary(key));
+			r.SendForWait(masterAgent.getService().GetSocket()).await();
+			if (r.getResultCode() != 0) {
+				// skip error
+				logger.warn("GetDataWithSameVersion error={}", IModule.getErrorCode(r.getResultCode()));
+				return null;
+			}
+			var result = new DataWithVersion();
+			result.data = ByteBuffer.Wrap(r.Result.getData());
+			result.version = r.Result.getVersion();
+			return result;
+		}
+
+		@Override
+		public boolean tryLock() {
+			var r = new TryLock();
+			r.SendForWait(masterAgent.getService().GetSocket()).await();
+			if (r.getResultCode() != 0)
+				logger.info("TryLock error={}", IModule.getErrorCode(r.getResultCode()));
+			return r.getResultCode() == 0;
+		}
+
+		@Override
+		public void unlock() {
+			var r = new UnLock();
+			r.SendForWait(masterAgent.getService().GetSocket()).await();
+			if (r.getResultCode() != 0)
+				logger.warn("UnLock error={}", IModule.getErrorCode(r.getResultCode()));
+		}
 	}
 
 	@Override

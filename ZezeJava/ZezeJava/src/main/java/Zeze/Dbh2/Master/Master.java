@@ -9,20 +9,27 @@ import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.Master.BRegister;
 import Zeze.Builtin.Dbh2.Master.CheckFreeManager;
+import Zeze.Builtin.Dbh2.Master.ClearInUse;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
 import Zeze.Builtin.Dbh2.Master.EndMove;
 import Zeze.Builtin.Dbh2.Master.EndSplit;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
+import Zeze.Builtin.Dbh2.Master.GetDataWithVersion;
 import Zeze.Builtin.Dbh2.Master.LocateBucket;
 import Zeze.Builtin.Dbh2.Master.Register;
 import Zeze.Builtin.Dbh2.Master.ReportBucketCount;
 import Zeze.Builtin.Dbh2.Master.ReportLoad;
+import Zeze.Builtin.Dbh2.Master.SaveDataWithSameVersion;
+import Zeze.Builtin.Dbh2.Master.SetInUse;
+import Zeze.Builtin.Dbh2.Master.TryLock;
+import Zeze.Builtin.Dbh2.Master.UnLock;
 import Zeze.Config;
 import Zeze.Dbh2.Dbh2Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.RocksDatabase;
@@ -276,4 +283,41 @@ public class Master extends AbstractMaster {
 		r.SendResult();
 		return 0;
 	}
+
+	@Override
+	protected long ProcessSetInUseRequest(SetInUse r) throws Exception {
+		r.SendResult();
+		return 0;
+	}
+
+	@Override
+	protected long ProcessClearInUseRequest(ClearInUse r) throws Exception {
+		r.SendResult();
+		return 0;
+	}
+
+	@Override
+	protected long ProcessSaveDataWithSameVersionRequest(SaveDataWithSameVersion r) throws Exception {
+		r.SendResult();
+		return 0;
+	}
+
+	@Override
+	protected long ProcessGetDataWithVersionRequest(GetDataWithVersion r) throws Exception {
+		r.SendResultCode(Procedure.NotImplement);
+		return 0;
+	}
+
+	@Override
+	protected long ProcessTryLockRequest(TryLock r) throws Exception {
+		r.SendResult();
+		return 0;
+	}
+
+	@Override
+	protected long ProcessUnLockRequest(UnLock r) throws Exception {
+		r.SendResult();
+		return 0;
+	}
+
 }

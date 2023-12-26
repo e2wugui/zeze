@@ -162,7 +162,7 @@ public class Dbh2Manager {
 			hasSplitting |= dbh2.getStateMachine().getBucket().getSplittingMeta() != null;
 
 			// 达到分桶条件之一：负载高于最大值的80%。
-			// todo 这里可以考虑dbFileSize(min,max)，当库比较大时也分桶，另外库很小时即使负载高也不分桶。
+			// 这里可以考虑dbFileSize(min,max)，当库比较大时也分桶，另外库很小时即使负载高也不分桶。
 			if (load > dbh2.getDbh2Config().getSplitLoad())
 				willSplit.add(dbh2);
 			if (load > maxLoad) {

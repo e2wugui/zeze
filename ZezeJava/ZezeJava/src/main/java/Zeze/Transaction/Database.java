@@ -640,7 +640,7 @@ public abstract class Database {
 
 		DataWithVersion getDataWithVersion(ByteBuffer key);
 
-		// 只有mysql实现这个。
+		// 只有mysql,dbh2实现这个。
 		default boolean tryLock() {
 			return true;
 		}
