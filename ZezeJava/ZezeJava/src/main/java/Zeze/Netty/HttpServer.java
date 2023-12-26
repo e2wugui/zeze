@@ -9,6 +9,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +30,7 @@ import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.socket.ChannelInputShutdownEvent;
 import io.netty.channel.socket.ChannelInputShutdownReadComplete;
 import io.netty.channel.socket.SocketChannel;
@@ -191,10 +193,10 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		// 判断写超时前判断写buffer的状态是否有变化,有变化则重新idle计时
 		var outBuf = channel.unsafe().outboundBuffer();
 		if (outBuf != null) {
-			int hash = System.identityHashCode(outBuf.current()) ^ Long.hashCode(outBuf.currentProgress());
+			var msg = outBuf.current();
+			var hash = msg != null ? System.identityHashCode(msg) ^ Long.hashCode(outBuf.currentProgress()) : null;
 			var outBufHashAttr = channel.attr(outBufHashKey);
-			var outBufHash = outBufHashAttr.get();
-			if (outBufHash == null || outBufHash != hash) {
+			if (!Objects.equals(outBufHashAttr.get(), hash)) {
 				outBufHashAttr.set(hash);
 				idleTimeAttr.set(0);
 				return;
@@ -209,6 +211,12 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 			else
 				channel.close();
 		}
+	}
+
+	protected static void onBeforeWrite(@NotNull Channel channel) {
+		var outBufHashAttr = channel.attr(outBufHashKey);
+		if (outBufHashAttr.get() == null)
+			outBufHashAttr.set(0);
 	}
 
 	public void addHandler(@NotNull String path, int maxContentLength, @Nullable TransactionLevel level,
@@ -256,7 +264,13 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		var p = ch.pipeline();
 		if (sslCtx != null)
 			p.addLast(sslCtx.newHandler(ch.alloc()));
-		p.addLast(new HttpResponseEncoder());
+		p.addLast(new HttpResponseEncoder() {
+			@Override
+			public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+				onBeforeWrite(ctx.channel());
+				super.write(ctx, msg, promise);
+			}
+		});
 		p.addLast(new HttpRequestDecoder(4096, 8192, 8192, false));
 		p.addLast(this);
 		ch.config().setWriteBufferHighWaterMark(writePendingLimit);

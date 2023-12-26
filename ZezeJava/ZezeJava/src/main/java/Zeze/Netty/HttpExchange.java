@@ -22,6 +22,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelOutboundHandlerAdapter;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpContent;
@@ -244,6 +246,8 @@ public class HttpExchange {
 	}
 
 	void channelRead(Object msg) throws Exception {
+		var channel = context.channel();
+		channel.attr(HttpServer.idleTimeKey).set(null);
 		if (msg instanceof HttpRequest) {
 			request = ReferenceCountUtil.retain((HttpRequest)msg);
 			var path = path();
@@ -256,6 +260,13 @@ public class HttpExchange {
 				context.pipeline().addLast(new WebSocketServerProtocolHandler(WebSocketServerProtocolConfig.newBuilder()
 						.websocketPath(path).decoderConfig(WebSocketDecoderConfig.newBuilder().withUTF8Validator(false)
 								.build()).build()));
+				context.pipeline().addFirst(new ChannelOutboundHandlerAdapter() {
+					@Override
+					public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+						HttpServer.onBeforeWrite(ctx.channel());
+						super.write(ctx, msg, promise);
+					}
+				});
 				inStreamMode = true;
 				//noinspection ConstantConditions
 				handler.WebSocketHandle.onOpen(this);
@@ -283,7 +294,7 @@ public class HttpExchange {
 			return;
 		} else if (!(msg instanceof HttpContent)) {
 			Netty.logger.error("unknown message type = {} from {}",
-					(msg != null ? msg.getClass() : null), context.channel().remoteAddress());
+					(msg != null ? msg.getClass() : null), channel.remoteAddress());
 			closeConnectionNow();
 			return;
 		} else if (request == null || handler == null) // 缺失上文的msg,可能很罕见,忽略吧
@@ -298,7 +309,7 @@ public class HttpExchange {
 			else {
 				if (content.readableBytes() + n > handler.MaxContentLength) {
 					Netty.logger.error("content size = {} + {} > {} from {}", content.readableBytes(), n,
-							handler.MaxContentLength, context.channel().remoteAddress());
+							handler.MaxContentLength, channel.remoteAddress());
 					closeConnectionNow();
 					return;
 				}
