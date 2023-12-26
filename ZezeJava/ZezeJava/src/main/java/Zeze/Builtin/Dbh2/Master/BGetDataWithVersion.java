@@ -8,6 +8,8 @@ import Zeze.Serialize.IByteBuffer;
 public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements BGetDataWithVersionReadOnly {
     public static final long TYPEID = 7905452008753397388L;
 
+    public static final int eDataNotExists = 1;
+
     private Zeze.Net.Binary _Key;
 
     @Override
@@ -207,6 +209,8 @@ public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements 
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7905452008753397388L;
+
+    public static final int eDataNotExists = 1;
 
     private Zeze.Net.Binary _Key;
 

@@ -4,6 +4,7 @@ import java.net.URI;
 import Zeze.Application;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
+import Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion;
 import Zeze.Builtin.Dbh2.Master.ClearInUse;
 import Zeze.Builtin.Dbh2.Master.GetDataWithVersion;
 import Zeze.Builtin.Dbh2.Master.SaveDataWithSameVersion;
@@ -65,8 +66,8 @@ public class Database extends Zeze.Transaction.Database {
 
 			r.SendForWait(masterAgent.getService().GetSocket()).await();
 
-			switch ((int)r.getResultCode()) {
-			case 0:
+			switch (IModule.getErrorCode(r.getResultCode())) {
+			case BSetInUse.eSuccess:
 				return; // success
 			case BSetInUse.eDefaultError:
 				throw new IllegalStateException("Unknown Error");
@@ -93,7 +94,7 @@ public class Database extends Zeze.Transaction.Database {
 			r.SendForWait(masterAgent.getService().GetSocket()).await();
 
 			// clear: 不检查结果，直接返回
-			return (int)r.getResultCode();
+			return IModule.getErrorCode(r.getResultCode());
 		}
 
 		@Override
@@ -103,10 +104,16 @@ public class Database extends Zeze.Transaction.Database {
 			r.Argument.setData(new Binary(data));
 			r.Argument.setVersion(version);
 			r.SendForWait(masterAgent.getService().GetSocket()).await();
-			if (r.getResultCode() != 0)
-				throw new RuntimeException("SaveDataWithSameVersion error=" + IModule.getErrorCode(r.getResultCode()));
+			var error = IModule.getErrorCode(r.getResultCode());
+			switch (error) {
+				case BSaveDataWithSameVersion.eSuccess:
+					return KV.create(r.Result.getVersion(), true);
+				case BSaveDataWithSameVersion.eVersionMismatch:
+					return KV.create(0L, false);
+				default:
+					throw new RuntimeException("SaveDataWithSameVersion error=" + error);
+			}
 
-			return KV.create(r.Result.getVersion(), r.Result.isSuccess());
 		}
 
 		@Override
@@ -116,7 +123,6 @@ public class Database extends Zeze.Transaction.Database {
 			r.SendForWait(masterAgent.getService().GetSocket()).await();
 			if (r.getResultCode() != 0) {
 				// skip error
-				logger.warn("GetDataWithSameVersion error={}", IModule.getErrorCode(r.getResultCode()));
 				return null;
 			}
 			var result = new DataWithVersion();

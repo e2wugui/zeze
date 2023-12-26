@@ -71,7 +71,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 	}
 
-	private static final byte[] keyOfLock = ("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
+	public static final byte[] keyOfLock = ("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
 	private final class OperatesMySql implements Operates {
 		@Override

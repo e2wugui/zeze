@@ -7,6 +7,5 @@ public interface BSaveDataWithSameVersionResultReadOnly {
     boolean negativeCheck();
     BSaveDataWithSameVersionResult copy();
 
-    boolean isSuccess();
     long getVersion();
 }

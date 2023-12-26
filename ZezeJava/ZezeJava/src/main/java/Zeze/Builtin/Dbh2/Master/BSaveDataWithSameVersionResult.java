@@ -8,28 +8,7 @@ import Zeze.Serialize.IByteBuffer;
 public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean implements BSaveDataWithSameVersionResultReadOnly {
     public static final long TYPEID = 1346251189599769952L;
 
-    private boolean _Success;
     private long _Version;
-
-    @Override
-    public boolean isSuccess() {
-        if (!isManaged())
-            return _Success;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _Success;
-        var log = (Log__Success)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _Success;
-    }
-
-    public void setSuccess(boolean value) {
-        if (!isManaged()) {
-            _Success = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Success(this, 1, value));
-    }
 
     @Override
     public long getVersion() {
@@ -38,7 +17,7 @@ public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean 
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Version;
-        var log = (Log__Version)txn.getLog(objectId() + 2);
+        var log = (Log__Version)txn.getLog(objectId() + 1);
         return log != null ? log.value : _Version;
     }
 
@@ -48,7 +27,7 @@ public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean 
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Version(this, 2, value));
+        txn.putLog(new Log__Version(this, 1, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -56,14 +35,12 @@ public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean 
     }
 
     @SuppressWarnings("deprecation")
-    public BSaveDataWithSameVersionResult(boolean _Success_, long _Version_) {
-        _Success = _Success_;
+    public BSaveDataWithSameVersionResult(long _Version_) {
         _Version = _Version_;
     }
 
     @Override
     public void reset() {
-        setSuccess(false);
         setVersion(0);
         _unknown_ = null;
     }
@@ -81,13 +58,11 @@ public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean 
     }
 
     public void assign(BSaveDataWithSameVersionResult.Data other) {
-        setSuccess(other._Success);
         setVersion(other._Version);
         _unknown_ = null;
     }
 
     public void assign(BSaveDataWithSameVersionResult other) {
-        setSuccess(other.isSuccess());
         setVersion(other.getVersion());
         _unknown_ = other._unknown_;
     }
@@ -114,13 +89,6 @@ public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean 
         return TYPEID;
     }
 
-    private static final class Log__Success extends Zeze.Transaction.Logs.LogBool {
-        public Log__Success(BSaveDataWithSameVersionResult bean, int varId, boolean value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BSaveDataWithSameVersionResult)getBelong())._Success = value; }
-    }
-
     private static final class Log__Version extends Zeze.Transaction.Logs.LogLong {
         public Log__Version(BSaveDataWithSameVersionResult bean, int varId, long value) { super(bean, varId, value); }
 
@@ -139,7 +107,6 @@ public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean 
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersionResult: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Success=").append(isSuccess()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Version=").append(getVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -174,16 +141,9 @@ public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean 
         var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
-            boolean _x_ = isSuccess();
-            if (_x_) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
-                _o_.WriteByte(1);
-            }
-        }
-        {
             long _x_ = getVersion();
             if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
@@ -197,10 +157,6 @@ public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean 
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setSuccess(_o_.ReadBool(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
             setVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -224,8 +180,7 @@ public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean 
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Success = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
-                case 2: _Version = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _Version = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }
@@ -233,22 +188,19 @@ public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean 
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setSuccess(rs.getBoolean(_parents_name_ + "Success"));
         setVersion(rs.getLong(_parents_name_ + "Version"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendBoolean(_parents_name_ + "Success", isSuccess());
         st.appendLong(_parents_name_ + "Version", getVersion());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Success", "bool", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Version", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Version", "long", "", ""));
         return vars;
     }
 
@@ -256,16 +208,7 @@ public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean 
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 1346251189599769952L;
 
-    private boolean _Success;
     private long _Version;
-
-    public boolean isSuccess() {
-        return _Success;
-    }
-
-    public void setSuccess(boolean value) {
-        _Success = value;
-    }
 
     public long getVersion() {
         return _Version;
@@ -280,14 +223,12 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(boolean _Success_, long _Version_) {
-        _Success = _Success_;
+    public Data(long _Version_) {
         _Version = _Version_;
     }
 
     @Override
     public void reset() {
-        _Success = false;
         _Version = 0;
     }
 
@@ -304,12 +245,10 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BSaveDataWithSameVersionResult other) {
-        _Success = other.isSuccess();
         _Version = other.getVersion();
     }
 
     public void assign(BSaveDataWithSameVersionResult.Data other) {
-        _Success = other._Success;
         _Version = other._Version;
     }
 
@@ -347,7 +286,6 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersionResult: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Success=").append(_Success).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Version=").append(_Version).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -367,16 +305,9 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            boolean _x_ = _Success;
-            if (_x_) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
-                _o_.WriteByte(1);
-            }
-        }
-        {
             long _x_ = _Version;
             if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
@@ -388,10 +319,6 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _Success = _o_.ReadBool(_t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
             _Version = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }

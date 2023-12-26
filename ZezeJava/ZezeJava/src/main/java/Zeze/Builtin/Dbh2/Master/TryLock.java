@@ -22,6 +22,8 @@ public class TryLock extends Zeze.Net.Rpc<Zeze.Transaction.EmptyBean.Data, Zeze.
         return TypeId_;
     }
 
+    public static final int eLockNotExists = 1;
+
     public TryLock() {
         Argument = Zeze.Transaction.EmptyBean.Data.instance;
         Result = Zeze.Transaction.EmptyBean.Data.instance;

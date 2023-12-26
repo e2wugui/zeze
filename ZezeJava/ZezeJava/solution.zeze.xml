@@ -1469,16 +1469,22 @@
 				</bean>
 
 				<bean name="BSaveDataWithSameVersion">
+					<enum name="eSuccess" value="0"/>
+					<enum name="eDefaultError" value="1"/>
+					<enum name="eVersionMismatch" value="2"/>
+					<enum name="eUpdateError" value="3"/>
+
 					<variable id="1" name="Key" type="binary"/>
 					<variable id="2" name="Data" type="binary"/>
 					<variable id="3" name="Version" type="long"/>
 				</bean>
 				<bean name="BSaveDataWithSameVersionResult">
-					<variable id="1" name="Success" type="bool"/>
-					<variable id="2" name="Version" type="long"/>
+					<variable id="1" name="Version" type="long"/>
 				</bean>
 
 				<bean name="BGetDataWithVersion">
+					<enum name="eDataNotExists" value="1"/>
+
 					<variable id="1" name="Key" type="binary"/>
 				</bean>
 				<bean name="BGetDataWithVersionResult">
@@ -1490,7 +1496,9 @@
 				<rpc name="ClearInUse" argument="BClearInUse"  UseData="true" handle="server"/>
 				<rpc name="SaveDataWithSameVersion" argument="BSaveDataWithSameVersion" result="BSaveDataWithSameVersionResult" UseData="true" handle="server"/>
 				<rpc name="GetDataWithVersion" argument="BGetDataWithVersion" result="BGetDataWithVersionResult" UseData="true" handle="server"/>
-				<rpc name="TryLock" UseData="true" handle="server"/>
+				<rpc name="TryLock" UseData="true" handle="server">
+					<enum name="eLockNotExists" value="1"/>
+				</rpc>
 				<rpc name="UnLock" UseData="true" handle="server"/>
 
 			</module> master

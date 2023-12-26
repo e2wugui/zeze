@@ -8,6 +8,11 @@ import Zeze.Serialize.IByteBuffer;
 public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implements BSaveDataWithSameVersionReadOnly {
     public static final long TYPEID = -2351623358007351459L;
 
+    public static final int eSuccess = 0;
+    public static final int eDefaultError = 1;
+    public static final int eVersionMismatch = 2;
+    public static final int eUpdateError = 3;
+
     private Zeze.Net.Binary _Key;
     private Zeze.Net.Binary _Data;
     private long _Version;
@@ -317,6 +322,11 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -2351623358007351459L;
+
+    public static final int eSuccess = 0;
+    public static final int eDefaultError = 1;
+    public static final int eVersionMismatch = 2;
+    public static final int eUpdateError = 3;
 
     private Zeze.Net.Binary _Key;
     private Zeze.Net.Binary _Data;

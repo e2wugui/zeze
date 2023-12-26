@@ -7,33 +7,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Builtin.Dbh2.Master.BRegister;
-import Zeze.Builtin.Dbh2.Master.CheckFreeManager;
-import Zeze.Builtin.Dbh2.Master.ClearInUse;
-import Zeze.Builtin.Dbh2.Master.CreateDatabase;
-import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
-import Zeze.Builtin.Dbh2.Master.CreateTable;
-import Zeze.Builtin.Dbh2.Master.EndMove;
-import Zeze.Builtin.Dbh2.Master.EndSplit;
-import Zeze.Builtin.Dbh2.Master.GetBuckets;
-import Zeze.Builtin.Dbh2.Master.GetDataWithVersion;
-import Zeze.Builtin.Dbh2.Master.LocateBucket;
-import Zeze.Builtin.Dbh2.Master.Register;
-import Zeze.Builtin.Dbh2.Master.ReportBucketCount;
-import Zeze.Builtin.Dbh2.Master.ReportLoad;
-import Zeze.Builtin.Dbh2.Master.SaveDataWithSameVersion;
-import Zeze.Builtin.Dbh2.Master.SetInUse;
-import Zeze.Builtin.Dbh2.Master.TryLock;
-import Zeze.Builtin.Dbh2.Master.UnLock;
+import Zeze.Builtin.Dbh2.Master.*;
 import Zeze.Config;
 import Zeze.Dbh2.Dbh2Config;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Database;
+import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.RocksDatabase;
-import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 public class Master extends AbstractMaster {
@@ -54,7 +39,10 @@ public class Master extends AbstractMaster {
 	}
 
 	private final ArrayList<Manager> managers = new ArrayList<>();
-	private final RocksDB masterDb;
+	private final RocksDatabase masterDb;
+	private final RocksDatabase.Table seedTable;
+	private final RocksDatabase.Table zezeInstanceTable;
+	private final RocksDatabase.Table zezeDataTable;
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private final Config zezeConfig;
 
@@ -70,7 +58,11 @@ public class Master extends AbstractMaster {
 		this.home = home;
 		zezeConfig = Config.load();
 		zezeConfig.parseCustomize(dbh2Config);
-		masterDb = RocksDatabase.open(Path.of(home, MasterDbName).toString());
+		masterDb = new RocksDatabase(Path.of(home, MasterDbName).toString(),
+				RocksDatabase.DbType.eOptimisticTransactionDb);
+		seedTable = masterDb.getOrAddTable("seed");
+		zezeInstanceTable = masterDb.getOrAddTable("instance");
+		zezeDataTable = masterDb.getOrAddTable("data");
 
 		var dbs = new File(home).listFiles();
 		if (null != dbs) {
@@ -97,16 +89,18 @@ public class Master extends AbstractMaster {
 	}
 
 	public synchronized int nextBucketPortId(String acceptorName) throws RocksDBException {
+		// seedTable 不使用事务。
 		var seed = PropertiesHelper.getInt("Dbh2MasterDefaultBucketPortId", 10000);
 		var seedKey = acceptorName.getBytes(StandardCharsets.UTF_8);
-		var seedValue = masterDb.get(RocksDatabase.getDefaultReadOptions(), seedKey);
+		var seedValue = seedTable.get(RocksDatabase.getDefaultReadOptions(), seedKey);
 		if (null != seedValue) {
 			seed = ByteBuffer.Wrap(seedValue).ReadInt();
 		}
 		seed++;
 		var bb = ByteBuffer.Allocate(5);
 		bb.WriteInt(seed);
-		masterDb.put(RocksDatabase.getDefaultWriteOptions(), seedKey, 0, seedKey.length, bb.Bytes, 0, bb.WriteIndex);
+		seedTable.put(RocksDatabase.getDefaultWriteOptions(), seedKey,
+				0, seedKey.length, bb.Bytes, 0, bb.WriteIndex);
 		return seed;
 	}
 
@@ -284,38 +278,174 @@ public class Master extends AbstractMaster {
 		return 0;
 	}
 
+	private final static byte[] emptyValue = new byte[0];
+
 	@Override
-	protected long ProcessSetInUseRequest(SetInUse r) throws Exception {
+	protected synchronized long ProcessSetInUseRequest(SetInUse r) throws Exception {
+		try (var trans = masterDb.beginOptimisticTransaction()) {
+			r.setResultCode(errorCode(BSetInUse.eDefaultError));
+
+			var bbKey = ByteBuffer.Allocate();
+			bbKey.WriteInt(r.Argument.getLocalId());
+
+			// insert instance
+			if (null != zezeInstanceTable.get(bbKey.Bytes, bbKey.ReadIndex, bbKey.size()))
+				return errorCode(BSetInUse.eInstanceAlreadyExists);
+			r.setResultCode(errorCode(BSetInUse.eInsertInstanceError));
+			zezeInstanceTable.put(trans, bbKey.Bytes, bbKey.ReadIndex, bbKey.size(),
+					emptyValue, 0, emptyValue.length);
+
+			// check global
+			var currentGlobal = zezeDataTable.get(emptyValue);
+			if (null != currentGlobal) {
+				if (0 != Arrays.compare(currentGlobal, r.Argument.getGlobal().getBytes(StandardCharsets.UTF_8)))
+					return errorCode(BSetInUse.eGlobalNotSame);
+			} else {
+				r.setResultCode(errorCode(BSetInUse.eInsertGlobalError));
+				zezeDataTable.put(trans, emptyValue, r.Argument.getGlobal().getBytes(StandardCharsets.UTF_8));
+			}
+
+			// check instance count
+			try (var it = zezeInstanceTable.iterator()) {
+				for (it.seekToFirst(); it.isValid(); it.next()) {
+					var exist = it.key();
+					if (0 == Arrays.compare(bbKey.Bytes, bbKey.ReadIndex, bbKey.WriteIndex, exist, 0, exist.length))
+						continue;
+					// instance count 初始为1，需要计算事务中（上面的zezeInstanceTable.put）刚刚加入的instance。
+					// 上面的compare严格的忽略掉刚刚事务中加入的（实际上应该看不到）
+					// 这样到达这里instance count已经大于1，可以直接返回错误了。
+					// 这个流程请参考 DatabaseMySql procedure _ZezeSetInUse_。
+					if (r.Argument.getGlobal().isEmpty())
+						return errorCode(BSetInUse.eTooManyInstanceWithoutGlobal);
+				}
+			}
+			r.setResultCode(errorCode(BSetInUse.eSuccess));
+			trans.commit();
+		} finally {
+			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
+		}
+		return 0;
+	}
+
+	@Override
+	protected synchronized long ProcessClearInUseRequest(ClearInUse r) throws Exception {
+		try (var trans = masterDb.beginOptimisticTransaction()) {
+			r.setResultCode(errorCode(BClearInUse.eDefaultError));
+
+			var bbKey = ByteBuffer.Allocate();
+			bbKey.WriteInt(r.Argument.getLocalId());
+
+			r.setResultCode(errorCode(BClearInUse.eInstanceNotExists));
+			zezeInstanceTable.delete(trans, bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
+
+			// check instance count
+			try (var it = zezeInstanceTable.iterator()) {
+				for (it.seekToFirst(); it.isValid(); it.next()) {
+					var exist = it.key();
+					if (0 == Arrays.compare(bbKey.Bytes, bbKey.ReadIndex, bbKey.WriteIndex, exist, 0, exist.length))
+						continue;
+					// instance count 初始为1，需要忽略事务中（上面的zezeInstanceTable.delete(）刚刚删除的。
+					// 这样到达这里instance count表示有剩下的。可以直接返回结果了。
+					// 这个流程请参考 DatabaseMySql procedure _ZezeClearInUse_。
+					r.setResultCode(errorCode(BClearInUse.eSuccess));
+					trans.commit();
+					return 0; // done;
+				}
+			}
+			// 到达这里表示zezeInstanceTable为空或者只存在将被删除的key。
+			zezeDataTable.delete(trans, emptyValue);
+			r.setResultCode(errorCode(BClearInUse.eSuccess));
+			trans.commit();
+		} finally {
+			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
+		}
+		return 0;
+	}
+
+	@Override
+	protected synchronized long ProcessSaveDataWithSameVersionRequest(SaveDataWithSameVersion r) throws Exception {
+		try (var trans = masterDb.beginOptimisticTransaction()) {
+			r.setResultCode(errorCode(BSaveDataWithSameVersion.eDefaultError));
+			var id = r.Argument.getKey();
+			var exist = zezeDataTable.get(id.bytesUnsafe(), id.getOffset(), id.size());
+			var bbData = ByteBuffer.Allocate();
+			var newVersion = r.Argument.getVersion();
+			if (null != exist) {
+				var dvExist = Database.DataWithVersion.decode(exist);
+				if (dvExist.version != r.Argument.getVersion())
+					return errorCode(BSaveDataWithSameVersion.eVersionMismatch);
+				newVersion++;
+				dvExist.version = newVersion;
+				dvExist.data = ByteBuffer.Wrap(r.Argument.getData());
+				dvExist.encode(bbData);
+			} else {
+				var dvInsert = new Database.DataWithVersion();
+				dvInsert.version = r.Argument.getVersion();
+				dvInsert.data = ByteBuffer.Wrap(r.Argument.getData());
+				dvInsert.encode(bbData);
+			}
+			r.setResultCode(errorCode(BSaveDataWithSameVersion.eUpdateError));
+			zezeDataTable.put(trans, id.bytesUnsafe(), id.getOffset(), id.size(),
+					bbData.Bytes, bbData.ReadIndex, bbData.size());
+			r.setResultCode(errorCode(BSaveDataWithSameVersion.eSuccess));
+			r.Result.setVersion(newVersion);
+			trans.commit();
+			return 0;
+		} finally {
+			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
+		}
+	}
+
+	@Override
+	protected synchronized long ProcessGetDataWithVersionRequest(GetDataWithVersion r) throws Exception {
+		var id = r.Argument.getKey();
+		var exist = zezeDataTable.get(id.bytesUnsafe(), id.getOffset(), id.size());
+		if (null == exist)
+			return errorCode(BGetDataWithVersion.eDataNotExists);
+		var dv = Database.DataWithVersion.decode(exist);
+		r.Result.setData(new Binary(dv.data));
+		r.Result.setVersion(dv.version);
+		r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
+		return 0;
+	}
+
+	@Override
+	protected synchronized long ProcessTryLockRequest(TryLock r) throws Exception {
+		var exist = zezeDataTable.get(DatabaseMySql.keyOfLock);
+		var bbData = ByteBuffer.Allocate();
+		if (exist != null) {
+			var dvExist = Database.DataWithVersion.decode(exist);
+			if (dvExist.version != 0)
+				return errorCode(TryLock.eLockNotExists);
+
+			dvExist.version = 1;
+			dvExist.encode(bbData);
+		} else {
+			var dvInsert = new Database.DataWithVersion();
+			dvInsert.data = ByteBuffer.Allocate();
+			dvInsert.version = 1;
+			dvInsert.encode(bbData);
+		}
+		zezeDataTable.put(DatabaseMySql.keyOfLock, 0, DatabaseMySql.keyOfLock.length,
+				bbData.Bytes, bbData.ReadIndex, bbData.size());
 		r.SendResult();
 		return 0;
 	}
 
 	@Override
-	protected long ProcessClearInUseRequest(ClearInUse r) throws Exception {
-		r.SendResult();
-		return 0;
-	}
+	protected synchronized long ProcessUnLockRequest(UnLock r) throws Exception {
+		// 完全忽略错误的写法是直接put一个干净的记录(version==0)到表内。
 
-	@Override
-	protected long ProcessSaveDataWithSameVersionRequest(SaveDataWithSameVersion r) throws Exception {
-		r.SendResult();
-		return 0;
-	}
+		var exist = zezeDataTable.get(DatabaseMySql.keyOfLock);
+		if (exist == null)
+			return errorCode(TryLock.eLockNotExists);
 
-	@Override
-	protected long ProcessGetDataWithVersionRequest(GetDataWithVersion r) throws Exception {
-		r.SendResultCode(Procedure.NotImplement);
-		return 0;
-	}
-
-	@Override
-	protected long ProcessTryLockRequest(TryLock r) throws Exception {
-		r.SendResult();
-		return 0;
-	}
-
-	@Override
-	protected long ProcessUnLockRequest(UnLock r) throws Exception {
+		var dv = Database.DataWithVersion.decode(exist);
+		dv.version = 0;
+		var bbData = ByteBuffer.Allocate();
+		dv.encode(bbData);
+		zezeDataTable.put(DatabaseMySql.keyOfLock, 0, DatabaseMySql.keyOfLock.length,
+				bbData.Bytes, bbData.ReadIndex, bbData.size());
 		r.SendResult();
 		return 0;
 	}
