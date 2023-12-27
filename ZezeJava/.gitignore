@@ -10,6 +10,7 @@ Gen/
 lib/
 log/
 target/
+token_db/
 zeze_cache_*/
 
 Redirect_*.java

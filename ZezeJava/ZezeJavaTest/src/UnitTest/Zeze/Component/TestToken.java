@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import Zeze.Config;
 import Zeze.Net.Binary;
@@ -105,6 +106,75 @@ public class TestToken {
 		} finally {
 			tokenServer.stop();
 			tokenServer.closeDb();
+		}
+	}
+
+	// -Xmx1g -XX:SoftRefLRUPolicyMSPerMB=1000
+	public static void main(String[] args) throws Exception {
+		final int TEST_COUNT = 10_000_000; // 申请的token总数
+		final int MAX_RPC_COUNT = 1000; // 并发RPC请求上限
+		System.setProperty("perfPeriod", "10");
+		System.setProperty("noDebugMode", "true");
+		Task.tryInitThreadPool();
+		var tokenServer = new Token().start(null, null, 5003);
+		tokenServer.getService().getConfig().getSocketOptions().setOutputBufferMaxSize(10 << 20);
+		try {
+			var tokenClient = new Token.TokenClient(null).start("127.0.0.1", 5003);
+			try {
+				tokenClient.getConfig().getSocketOptions().setOutputBufferMaxSize(10 << 20);
+				tokenClient.waitReady();
+				System.out.println("INFO: test begin");
+				var sem = new Semaphore(MAX_RPC_COUNT);
+				for (int i = 0; i < TEST_COUNT; i++) {
+					if (i % (TEST_COUNT / 100) == 0)
+						System.out.println("INFO: " + i);
+					sem.acquire();
+					if (!tokenClient.newToken(new Binary(new byte[100]), 600_000, r -> {
+						if (r.getResultCode() != 0) {
+							System.out.println("ERROR: rpc1.resultCode=" + r.getResultCode());
+							sem.release();
+						} else {
+							var token = r.Result.getToken();
+							if (token.length() != 24) {
+								System.out.println("ERROR: token.length=" + token.length());
+								sem.release();
+							} else {
+								if (!tokenClient.getToken(token, 100, r2 -> {
+									if (r2.getResultCode() != 0)
+										System.out.println("ERROR: rpc2.resultCode=" + r2.getResultCode());
+									else {
+										var res = r2.Result;
+										if (res.getContext().size() != 100)
+											System.out.println("ERROR: context.size=" + res.getContext().size());
+										if (res.getCount() <= 0)
+											System.out.println("ERROR: res.count=" + res.getCount());
+										if (res.getTime() < 0)
+											System.out.println("ERROR: res.time=" + res.getTime());
+									}
+									sem.release();
+									return 0;
+								})) {
+									System.out.println("ERROR: send rpc2 failed");
+									sem.release();
+								}
+							}
+						}
+						return 0;
+					})) {
+						System.out.println("ERROR: send rpc1 failed");
+						sem.release();
+					}
+				}
+				System.out.println("INFO: send finish, wait left res");
+				sem.acquire(MAX_RPC_COUNT);
+				System.out.println("INFO: test OK!");
+			} finally {
+				tokenClient.stop();
+			}
+		} finally {
+			tokenServer.stop();
+			tokenServer.closeDb();
+			System.out.println("INFO: test end!");
 		}
 	}
 }

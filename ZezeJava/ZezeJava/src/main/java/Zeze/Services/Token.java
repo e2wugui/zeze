@@ -245,7 +245,7 @@ public final class Token extends AbstractToken {
 		}
 	}
 
-	private static final class TokenServer extends HandshakeServer {
+	public static final class TokenServer extends HandshakeServer {
 		private static final class Session {
 			final @NotNull AsyncSocket so;
 			final HashSet<String> subTopics = new HashSet<>(); // 该session已订阅的主题,只在Session所在的IO线程访问,不需要考虑并发
@@ -467,6 +467,10 @@ public final class Token extends AbstractToken {
 	private TokenServer service;
 	private TimerFuture<?> cleanTokenMapFuture;
 	private ScheduledFuture<?> cleanTokenMapTableFuture;
+
+	public TokenServer getService() {
+		return service;
+	}
 
 	// 参数host,port优先; 如果传null/<=0则以conf为准; 如果conf也没配置则用默认值null/DEFAULT_PORT
 	public synchronized Token start(@Nullable Config conf, @Nullable String host, int port) throws Exception {
