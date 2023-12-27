@@ -15,7 +15,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import Zeze.Builtin.Token.BGetTokenArg;
 import Zeze.Builtin.Token.BGetTokenRes;
@@ -44,6 +43,7 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.FastLock;
 import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.PropertiesHelper;
@@ -325,10 +325,11 @@ public final class Token extends AbstractToken {
 		}
 	}
 
+	// TokenState+Object+key+lock+context+CHM.Note+CHM.table: 80+16+(24+16+24)+32+(24+16+X)+32+4 = 268+X bytes
 	private static final class TokenState extends SoftReference<Object> {
 		final Token token;
 		final String key;
-		final ReentrantLock lock = new ReentrantLock();
+		final FastLock lock = new FastLock();
 		final @Nullable InetSocketAddress remoteAddr;
 		final @NotNull Binary context; // 绑定的上下文
 		final long createTime; // 创建时间戳(毫秒)
@@ -407,7 +408,7 @@ public final class Token extends AbstractToken {
 
 	private static boolean moveToDB(@NotNull TokenState state, @NotNull ByteBuffer bb, boolean waitLock)
 			throws Exception {
-		ReentrantLock lock = null;
+		FastLock lock = null;
 		try {
 			var k = state.key.getBytes(StandardCharsets.UTF_8);
 			if (waitLock)

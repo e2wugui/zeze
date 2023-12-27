@@ -68,10 +68,15 @@ public class TestRocksDb {
 			var value = new byte[128];
 			var rand = ThreadLocalRandom.current();
 			var t = System.nanoTime();
+			var batch = db.newBatch2();
 			for (int i = 0; i < 10_000_000; ) {
 				rand.nextBytes(key);
-				table.put(key, 0, key.length, value, 0, value.length);
-				if (++i % 100_000 == 0) {
+				table.put(batch, key, 0, key.length, value, 0, value.length);
+				if (++i % 10 == 0) {
+					batch.commit(RocksDatabase.getDefaultWriteOptions());
+					batch.clear();
+				}
+				if (i % 100_000 == 0) {
 					var tt = System.nanoTime();
 					System.out.println(i + ": " + (tt - t) / 1_000_000 + " ms, " + (tt - t) / 100_000 + " ns/put");
 					t = tt;
