@@ -3,6 +3,7 @@ package Dbh2;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Raft.LogSequence;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.BitConverter;
@@ -55,6 +56,27 @@ public class TestRocksDb {
 			}
 		} finally {
 			LogSequence.deleteDirectory(path.toFile());
+		}
+	}
+
+	public static void main(String[] args) throws RocksDBException {
+		var path = Path.of("TestRocksDb");
+		LogSequence.deleteDirectory(path.toFile());
+		try (var db = new RocksDatabase(path.toString())) {
+			var table = db.getOrAddTable("TestTable");
+			var key = new byte[24];
+			var value = new byte[128];
+			var rand = ThreadLocalRandom.current();
+			var t = System.nanoTime();
+			for (int i = 0; i < 10_000_000; ) {
+				rand.nextBytes(key);
+				table.put(key, 0, key.length, value, 0, value.length);
+				if (++i % 100_000 == 0) {
+					var tt = System.nanoTime();
+					System.out.println(i + ": " + (tt - t) / 1_000_000 + " ms, " + (tt - t) / 100_000 + " ns/put");
+					t = tt;
+				}
+			}
 		}
 	}
 }

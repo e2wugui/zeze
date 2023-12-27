@@ -4,12 +4,13 @@ binlog/
 build/
 classes/
 db/
-RocksDB/
 dbhome/
 Gen/
 lib/
 log/
+RocksDB/
 target/
+TestRocksDb/
 token_db/
 zeze_cache_*/
 
@@ -26,9 +27,7 @@ Redirect_*.java
 /ZezeJavaTest/hot/distributes
 /ZezeJavaTest/manager*
 /ZezeJavaTest/master
-/ZezeJavaTest/RocksDB
 /ZezeJavaTest/testMmapFile*
-/ZezeJavaTest/token_db
 /ZezexJava/server/hot
 /ZezexJava/server/hotrun
 /log4j2.xml

@@ -806,7 +806,8 @@ public final class Token extends AbstractToken {
 
 		String host = null;
 		int port = 0;
-		int threadCount = 0;
+		int netThreadCount = 0;
+		int workerThreadCount = 0;
 
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
@@ -818,20 +819,25 @@ public final class Token extends AbstractToken {
 			case "-port":
 				port = Integer.parseInt(args[++i]);
 				break;
-			case "-threads":
-				threadCount = Integer.parseInt(args[++i]);
+			case "-net-threads":
+				netThreadCount = Integer.parseInt(args[++i]);
+				break;
+			case "-worker-threads":
+				workerThreadCount = Integer.parseInt(args[++i]);
 				break;
 			default:
 				throw new IllegalArgumentException("unknown argument: " + args[i]);
 			}
 		}
 
-		if (threadCount < 1)
-			threadCount = Runtime.getRuntime().availableProcessors();
-		Task.initThreadPool(Task.newCriticalThreadPool("ZezeTaskPool"),
+		if (netThreadCount < 1)
+			netThreadCount = Runtime.getRuntime().availableProcessors();
+		if (workerThreadCount < 1)
+			workerThreadCount = Runtime.getRuntime().availableProcessors() * 2;
+		Task.initThreadPool(Task.newFixedThreadPool(workerThreadCount, "ZezeTaskPool"),
 				Executors.newSingleThreadScheduledExecutor(new ThreadFactoryWithName("ZezeScheduledPool")));
-		if (Selectors.getInstance().getCount() < threadCount)
-			Selectors.getInstance().add(threadCount - Selectors.getInstance().getCount());
+		if (Selectors.getInstance().getCount() < netThreadCount)
+			Selectors.getInstance().add(netThreadCount - Selectors.getInstance().getCount());
 
 		var token = new Token();
 		ShutdownHook.add(token::stop);

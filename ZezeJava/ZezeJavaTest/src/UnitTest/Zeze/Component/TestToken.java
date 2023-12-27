@@ -109,10 +109,11 @@ public class TestToken {
 		}
 	}
 
+	// Token压力测试
 	// -Xmx1g -XX:SoftRefLRUPolicyMSPerMB=1000
 	public static void main(String[] args) throws Exception {
 		final int TEST_COUNT = 10_000_000; // 申请的token总数
-		final int MAX_RPC_COUNT = 1000; // 并发RPC请求上限
+		final int MAX_RPC_COUNT = Runtime.getRuntime().availableProcessors() * 2; // 并发RPC请求上限
 		System.setProperty("perfPeriod", "10");
 		System.setProperty("noDebugMode", "true");
 		Task.tryInitThreadPool();
