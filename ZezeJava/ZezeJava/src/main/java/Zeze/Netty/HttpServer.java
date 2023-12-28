@@ -2,6 +2,7 @@ package Zeze.Netty;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
@@ -34,6 +35,7 @@ import io.netty.channel.ChannelPromise;
 import io.netty.channel.socket.ChannelInputShutdownEvent;
 import io.netty.channel.socket.ChannelInputShutdownReadComplete;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.unix.Errors;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
@@ -335,18 +337,22 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	@Override
 	public void exceptionCaught(@NotNull ChannelHandlerContext ctx, @NotNull Throwable cause) {
 		try {
+			var ch = ctx.channel();
+			var addr = ch.remoteAddress();
 			if (cause instanceof IOException)
-				Netty.logger.info("exceptionCaught: {} {}", ctx.channel().remoteAddress(), cause);
+				Netty.logger.info("exceptionCaught: {} {}", addr, cause);
 			else
-				Netty.logger.error("exceptionCaught: {} exception:", ctx.channel().remoteAddress(), cause);
-			var x = exchanges.get(ctx.channel().id());
-			if (x != null) {
-				if (sendStackTrace > 0)
-					x.send500(cause);
-				else if (sendStackTrace == 0)
-					x.send500(cause.toString());
-				else
-					x.send500((String)null);
+				Netty.logger.error("exceptionCaught: {} exception:", addr, cause);
+			if (!(cause instanceof Errors.NativeIoException) && !(cause instanceof SocketException)) { // Connection reset by peer
+				var x = exchanges.get(ch.id());
+				if (x != null && ch.isActive()) {
+					if (sendStackTrace > 0)
+						x.send500(cause);
+					else if (sendStackTrace == 0)
+						x.send500(cause.toString());
+					else
+						x.send500((String)null);
+				}
 			}
 		} finally {
 			ctx.flush().close();
