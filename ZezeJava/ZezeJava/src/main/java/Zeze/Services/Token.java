@@ -325,7 +325,7 @@ public final class Token extends AbstractToken {
 		}
 	}
 
-	// TokenState+Object+key+lock+context+CHM.Note+CHM.table: 80+16+(24+16+24)+24+(24+16+X)+32+4 = 260+X bytes
+	// TokenState+Object+key+lock+context+CHM.Note+CHM.table: 80+16+(24+16+24)+32+(24+16+X)+32+4 = 268+X bytes
 	private static final class TokenState extends SoftReference<Object> {
 		final Token token;
 		final String key;

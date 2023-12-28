@@ -35,8 +35,8 @@ public class TestFastLock {
 	}
 
 	public static void main(String[] args) throws InterruptedException {
-		final int THREAD_COUNT = 5;
-		final int LOOP_COUNT = 10_000;
+		final int THREAD_COUNT = 4;
+		final int LOOP_COUNT = 10_000_000;
 		{
 			var oldTime = System.nanoTime();
 			var lock = new ReentrantLock();
@@ -48,7 +48,7 @@ public class TestFastLock {
 						lock.lock();
 						try {
 							var v = value[0];
-							for (int k = 0; k < 10000; k++)
+							for (int k = 0; k < 100; k++)
 								v = (v ^ k) + k;
 							value[0] = v + 1;
 						} finally {
@@ -72,7 +72,7 @@ public class TestFastLock {
 						lock.lock();
 						try {
 							var v = value[0];
-							for (int k = 0; k < 10000; k++)
+							for (int k = 0; k < 100; k++)
 								v = (v ^ k) + k;
 							value[0] = v + 1;
 						} finally {
