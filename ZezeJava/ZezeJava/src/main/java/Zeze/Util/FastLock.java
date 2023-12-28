@@ -78,6 +78,8 @@ public class FastLock {
 	private void lockSlow() {
 		var ct = Thread.currentThread();
 		push(ct);
+		if (tryLock())
+			tryPopAndUnpark();
 		do {
 			LockSupport.park();
 		} while (ownerThread != ct);
