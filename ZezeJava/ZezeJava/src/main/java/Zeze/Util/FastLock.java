@@ -1,66 +1,94 @@
 package Zeze.Util;
 
-import java.util.concurrent.locks.AbstractQueuedSynchronizer;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.util.concurrent.locks.LockSupport;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-// 只提供几个方法,效果跟ReentrantLock一致,但去掉了对象包装,相当于ReentrantLock.NonfairSync,开启压缩指针时包括对象头共32字节
-public class FastLock extends AbstractQueuedSynchronizer {
-	public boolean tryLock() {
-		var current = Thread.currentThread();
-		int c = getState();
-		if (c == 0) {
-			if (compareAndSetState(0, 1)) {
-				setExclusiveOwnerThread(current);
+// 高性能的非可重入锁,开启压缩指针时包括对象头共24字节,只有1个等待线程不分配额外线程,再多等待每个占24字节
+public class FastLock {
+	private static final @NotNull VarHandle vhState, vhWaitHead;
+
+	static {
+		try {
+			var lookup = MethodHandles.lookup();
+			vhState = lookup.findVarHandle(FastLock.class, "state", int.class);
+			vhWaitHead = lookup.findVarHandle(FastLock.class, "waitHead", Object.class);
+		} catch (ReflectiveOperationException e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
+
+	private static final class Node {
+		final @NotNull Thread thread;
+		final @NotNull Object next; // Node or Thread
+
+		Node(@NotNull Thread thread, @NotNull Object next) {
+			this.thread = thread;
+			this.next = next;
+		}
+	}
+
+	private volatile int state;
+	@SuppressWarnings("unused")
+	private volatile @Nullable Object waitHead; // Node -> ... -> Node -> Thread
+	private Thread ownerThread;
+
+	private void push(@NotNull Thread t) {
+		for (; ; ) {
+			var h = waitHead;
+			if (vhWaitHead.compareAndSet(this, h, h == null ? t : new Node(t, h)))
+				return;
+		}
+	}
+
+	private boolean tryPopAndUnpark() {
+		for (; ; ) {
+			var h = waitHead;
+			if (h == null)
+				return false;
+			Object next;
+			Thread thread;
+			if (h instanceof Node) {
+				var n = (Node)h;
+				next = n.next;
+				thread = n.thread;
+			} else {
+				next = null;
+				thread = (Thread)h;
+			}
+			if (vhWaitHead.compareAndSet(this, h, next)) {
+				ownerThread = thread;
+				LockSupport.unpark(thread);
 				return true;
 			}
-		} else if (getExclusiveOwnerThread() == current) {
-			if (++c < 0)
-				throw new Error("Maximum lock count exceeded");
-			setState(c);
-			return true;
 		}
-		return false;
+	}
+
+	public boolean tryLock() {
+		return vhState.compareAndSet(this, 0, 1);
 	}
 
 	public void lock() {
-		var current = Thread.currentThread();
-		if (compareAndSetState(0, 1))
-			setExclusiveOwnerThread(current);
-		else if (getExclusiveOwnerThread() == current) {
-			int c = getState() + 1;
-			if (c < 0)
-				throw new Error("Maximum lock count exceeded");
-			setState(c);
-		} else
-			acquire(1);
+		if (!tryLock())
+			lockSlow();
+	}
+
+	private void lockSlow() {
+		var ct = Thread.currentThread();
+		push(ct);
+		do {
+			LockSupport.park();
+		} while (ownerThread != ct);
+		ownerThread = null;
 	}
 
 	public void unlock() {
-		release(1);
-	}
-
-	@Override
-	protected boolean isHeldExclusively() {
-		return getExclusiveOwnerThread() == Thread.currentThread();
-	}
-
-	@Override
-	protected boolean tryAcquire(int acquires) {
-		if (getState() == 0 && compareAndSetState(0, acquires)) {
-			setExclusiveOwnerThread(Thread.currentThread());
-			return true;
+		while (!tryPopAndUnpark()) {
+			state = 0;
+			if (waitHead == null || !tryLock()) // retry
+				break;
 		}
-		return false;
-	}
-
-	@Override
-	protected boolean tryRelease(int releases) {
-		int c = getState() - releases;
-		if (getExclusiveOwnerThread() != Thread.currentThread())
-			throw new IllegalMonitorStateException();
-		var free = c == 0;
-		if (free)
-			setExclusiveOwnerThread(null);
-		setState(c);
-		return free;
 	}
 }
