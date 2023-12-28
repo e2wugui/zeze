@@ -45,8 +45,8 @@ public class HugeMappedFile implements Closeable {
 		mapped.put(blockIndex, b);
 	}
 
-	private static final int MaxBlockSize = 2 << 30; // 1G
-	private static final int BlockMask = 2 << 30 - 1;
+	private static final int MaxBlockSize = 1 << 30; // 1G
+	private static final int BlockMask = MaxBlockSize - 1;
 
 	private MappedByteBuffer mapped(long offset) {
 		if (offset < 0 || offset >= this.fileSize)
