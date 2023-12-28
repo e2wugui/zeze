@@ -35,17 +35,18 @@ public class HugeMappedFile implements Closeable {
 
 	public byte get(long index) {
 		var mapped = mapped(index);
-		var blockIndex = (int)index & Integer.MAX_VALUE;
+		var blockIndex = (int)index & BlockMask;
 		return mapped.get(blockIndex);
 	}
 
 	public void set(long index, byte b) {
 		var mapped = mapped(index);
-		var blockIndex = (int)index & Integer.MAX_VALUE;
+		var blockIndex = (int)index & BlockMask;
 		mapped.put(blockIndex, b);
 	}
 
 	private static final int MaxBlockSize = 2 << 30; // 1G
+	private static final int BlockMask = 2 << 30 - 1;
 
 	private MappedByteBuffer mapped(long offset) {
 		if (offset < 0 || offset >= this.fileSize)
