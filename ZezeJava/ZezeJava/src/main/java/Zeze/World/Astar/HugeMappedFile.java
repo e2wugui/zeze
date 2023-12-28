@@ -45,7 +45,7 @@ public class HugeMappedFile implements Closeable {
 		mapped.put(blockIndex, b);
 	}
 
-	private static final long MaxBlockSize = (long)Integer.MAX_VALUE + 1;
+	private static final int MaxBlockSize = 2 << 30; // 1G
 
 	private MappedByteBuffer mapped(long offset) {
 		if (offset < 0 || offset >= this.fileSize)
@@ -54,7 +54,7 @@ public class HugeMappedFile implements Closeable {
 		var blockIndex = offset / MaxBlockSize;
 		return mapped.computeIfAbsent(blockIndex, __ -> {
 			try {
-				// 每一个mmap块的size为2G，除了最后一块。
+				// 每一个mmap块的size为MaxBlockSize，除了最后一块。
 				var position = blockIndex * MaxBlockSize; // 当前这一块映射的起始位置。
 				var wishEndSize = position + MaxBlockSize; // 当前这一块的【期望】结束位置。
 				var size = wishEndSize < this.fileSize ? MaxBlockSize : (this.fileSize - position);
