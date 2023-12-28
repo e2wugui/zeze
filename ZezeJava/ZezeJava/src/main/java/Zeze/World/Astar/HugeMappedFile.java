@@ -67,6 +67,8 @@ public class HugeMappedFile implements Closeable {
 
 	@Override
 	public void close() throws IOException {
+		for (var m : mapped.values())
+			m.force();
 		this.mapped.clear();
 		channel.close();
 	}
