@@ -3,11 +3,11 @@ package Zeze.World.Astar;
 import org.jetbrains.annotations.NotNull;
 
 public class NodeIndex implements Comparable<NodeIndex> {
-	public final int x;
-	public final int z;
-	public final int yIndex;
+	public final long x;
+	public final long z;
+	public final long yIndex;
 
-	public NodeIndex(int x, int z, int yIndex) {
+	public NodeIndex(long x, long z, long yIndex) {
 		this.x = x;
 		this.z = z;
 		this.yIndex = yIndex;
@@ -24,13 +24,13 @@ public class NodeIndex implements Comparable<NodeIndex> {
 
 	@Override
 	public int compareTo(@NotNull NodeIndex o) {
-		var c = Integer.compare(x, o.x);
+		var c = Long.compare(x, o.x);
 		if (0 != c)
 			return c;
-		c = Integer.compare(z, o.z);
+		c = Long.compare(z, o.z);
 		if (0 != c)
 			return c;
-		return Integer.compare(yIndex, o.yIndex);
+		return Long.compare(yIndex, o.yIndex);
 	}
 
 	public NodeIndex sub(NodeIndex o, IResourceMap map) {

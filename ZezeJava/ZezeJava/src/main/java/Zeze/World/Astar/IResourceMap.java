@@ -1,8 +1,9 @@
 package Zeze.World.Astar;
 
+import java.io.Closeable;
 import Zeze.Serialize.Vector3;
 
-public interface IResourceMap {
+public interface IResourceMap extends Closeable {
 	long getWidth();
 
 	long getHeight();
@@ -24,7 +25,7 @@ public interface IResourceMap {
 		return toIndex(xi, zi);
 	}
 
-	default NodeIndex toIndex(int x, int z) {
+	default NodeIndex toIndex(long x, long z) {
 		// 这是grid2d的实现.
 		return new NodeIndex(x, z, 0);
 	}
@@ -40,7 +41,7 @@ public interface IResourceMap {
 	// to展开,没用Index类型是为了在不是必要的时候少创建一个对象.
 	// from是已经扫描过的Node,index肯定创建好了.
 	// 这样有点不一致的感觉,但也有好处,不同的类型比起一串int要好理解一点.
-	default boolean walkable(NodeIndex from, int toX, int toZ, int toYIndex) {
+	default boolean walkable(NodeIndex from, long toX, long toZ, long toYIndex) {
 		return walkable(toX, toZ);
 	}
 

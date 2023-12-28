@@ -1,15 +1,25 @@
 package Zeze.World.Astar;
 
 import Zeze.Serialize.Vector3;
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
 public class ResourceMapVoxel implements IResourceMap {
-	private long width;
-	private long height;
-	private int unitWidth;
-	private int unitHeight;
+	private final long width;
+	private final long height;
+	private final int unitWidth;
+	private final int unitHeight;
 	private HashMap<VoxelIndex, List<VoxelNode>> voxels;
+
+	public ResourceMapVoxel(File file) {
+		var info = file.getName().split("_");
+		this.width = Long.parseLong(info[1]);
+		this.height = Long.parseLong(info[2]);
+		this.unitWidth = Integer.parseInt(info[3]);
+		this.unitHeight = Integer.parseInt(info[4]);
+	}
 
 	@Override
 	public long getWidth() {
@@ -37,7 +47,7 @@ public class ResourceMapVoxel implements IResourceMap {
 	}
 
 	@Override
-	public NodeIndex toIndex(int x, int z) {
+	public NodeIndex toIndex(long x, long z) {
 		return IResourceMap.super.toIndex(x, z);
 	}
 
@@ -47,7 +57,7 @@ public class ResourceMapVoxel implements IResourceMap {
 	}
 
 	@Override
-	public boolean walkable(NodeIndex from, int toX, int toZ, int toYIndex) {
+	public boolean walkable(NodeIndex from, long toX, long toZ, long toYIndex) {
 		return IResourceMap.super.walkable(from, toX, toZ, toYIndex);
 	}
 
@@ -57,5 +67,10 @@ public class ResourceMapVoxel implements IResourceMap {
 		astar.traverseCross(this, current, target, toIndex(current.index.x - 1, current.index.z), 5);
 		astar.traverseCross(this, current, target, toIndex(current.index.x + 1, current.index.z), 5);
 		astar.traverseCross(this, current, target, toIndex(current.index.x, current.index.z + 1), 5);
+	}
+
+	@Override
+	public void close() throws IOException {
+
 	}
 }

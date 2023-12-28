@@ -1,6 +1,7 @@
 package Zeze.World.Astar;
 
 import java.io.File;
+import java.io.IOException;
 
 public class ResourceMap2D implements IResourceMap {
 	private final HugeMappedFile mappedFile;
@@ -45,5 +46,10 @@ public class ResourceMap2D implements IResourceMap {
 		astar.traverseCorner(this, current, target, -1, +1, 7, -1, 0, 0, +1);
 		astar.traverseCross(this, current, target, toIndex(current.index.x, current.index.z + 1), 5);
 		astar.traverseCorner(this, current, target, +1, +1, 7, +1, 0, 0, +1);
+	}
+
+	@Override
+	public void close() throws IOException {
+		mappedFile.close();
 	}
 }

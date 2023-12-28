@@ -1,5 +1,6 @@
 package Zeze.World.Astar;
 
+import java.io.IOException;
 import java.util.Deque;
 import Zeze.Serialize.Vector3;
 
@@ -61,7 +62,7 @@ public class ResourceMapView implements IResourceMap {
 	}
 
 	@Override
-	public boolean walkable(NodeIndex from, int toX, int toZ, int toYIndex) {
+	public boolean walkable(NodeIndex from, long toX, long toZ, long toYIndex) {
 		if (from.x >= width || from.z >= height || toX >= width || toZ >= height)
 			return false;
 
@@ -83,6 +84,12 @@ public class ResourceMapView implements IResourceMap {
 		// restore
 		current.index = currentIndex;
 		target.index = targetIndex;
+	}
+
+	@Override
+	public void close() throws IOException {
+		// view 不关闭实际的资源。
+		// 这个方法不需要实现。
 	}
 
 	class AstarWrapper implements IAstar {
