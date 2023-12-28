@@ -3,13 +3,9 @@ package Zeze.World.Astar;
 import Zeze.Serialize.Vector3;
 
 public interface IResourceMap {
-	default int getWidth() {
-		return 1024 * 30 / 16;
-	}
+	long getWidth();
 
-	default int getHeight() {
-		return 768 * 30 / 16;
-	}
+	long getHeight();
 
 	default float getUnitWidth() {
 		return 16;
@@ -36,7 +32,7 @@ public interface IResourceMap {
 	// 判断一个单位的可达
 	// grid2d 返回可达,
 	// voxel 总是true.
-	boolean walkable(int x, int z);
+	boolean walkable(long x, long z);
 
 	// 从from到to是否可达,from,to是相邻的.
 	// grid2d 放回walkable(to.x, to.z);

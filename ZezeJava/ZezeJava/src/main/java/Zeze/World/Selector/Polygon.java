@@ -54,6 +54,10 @@ public class Polygon implements ISelector {
 		}
 		//origin.getBean().getMoving().getDirect();
 		// todo rotate polygon
+		// polygon = new polygon: list, position(0,0,0),direct(1, 0, 0)
+		// polygon.setPosition(caster.position());
+		// polygon.setDirect(caster.direct());
+		// polygon.list();
 		context.cubes = CubeMap.polygon2d(origin.getCube().map, worldPolygon, isConvex);
 		return context.cubes;
 	}

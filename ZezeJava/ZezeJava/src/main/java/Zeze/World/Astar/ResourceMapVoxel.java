@@ -5,19 +5,19 @@ import java.util.HashMap;
 import java.util.List;
 
 public class ResourceMapVoxel implements IResourceMap {
-	private int width;
-	private int height;
+	private long width;
+	private long height;
 	private int unitWidth;
 	private int unitHeight;
 	private HashMap<VoxelIndex, List<VoxelNode>> voxels;
 
 	@Override
-	public int getWidth() {
+	public long getWidth() {
 		return width;
 	}
 
 	@Override
-	public int getHeight() {
+	public long getHeight() {
 		return height;
 	}
 
@@ -42,7 +42,7 @@ public class ResourceMapVoxel implements IResourceMap {
 	}
 
 	@Override
-	public boolean walkable(int x, int z) {
+	public boolean walkable(long x, long z) {
 		return false;
 	}
 
@@ -53,8 +53,9 @@ public class ResourceMapVoxel implements IResourceMap {
 
 	@Override
 	public void traverseNeighbors(IAstar astar, Node current, Node target) {
-		// todo
-		var to = toIndex(0, 0);
-		astar.traverseCross(this, current, target, to, 5);
+		astar.traverseCross(this, current, target, toIndex(current.index.x, current.index.z - 1), 5);
+		astar.traverseCross(this, current, target, toIndex(current.index.x - 1, current.index.z), 5);
+		astar.traverseCross(this, current, target, toIndex(current.index.x + 1, current.index.z), 5);
+		astar.traverseCross(this, current, target, toIndex(current.index.x, current.index.z + 1), 5);
 	}
 }

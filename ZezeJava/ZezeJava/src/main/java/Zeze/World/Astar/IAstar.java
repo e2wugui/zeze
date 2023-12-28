@@ -17,7 +17,6 @@ public interface IAstar {
 						int cx, int cz, int cost, int cx0, int cz0, int cx1, int cz1);
 
 	// ResourceMap2D, ResourceMapVoxel 都使用.
-	// FIXME cost 参数去掉,让astar实现自己内部定义?
 	void traverseCross(IResourceMap map,
 					   Node current, Node target,
 					   NodeIndex to, int cost);

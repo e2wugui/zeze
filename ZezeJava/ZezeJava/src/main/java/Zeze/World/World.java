@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
  * 1. 【要求】World模块的所有客户端协议必须经过TaskOneByOneByKey排队，以Account为key。
  *    这点由Arch框架实现。定制Arch时，需要保留这个特性。
  * 2. 【要求】每个场景地图在这里使用 int mapId 描述。要求有一张以mapId为key的索引表。
- * 3. 【要求】每个场景地图需要提供的必要数据（todo)
+ * 3. 【要求】每个场景地图需要提供的必要数据
  * 4. 地图运行实例管理器可自定义，默认有一个。
  * 5. 地图内动态实体可以任意定义，在这里用dynamic描述数据，用脚本实现操作。
  *    dynamic支持的bean类型可以有多个，也可以使用同一个bean，自己在bean内部再抽象。
@@ -37,7 +37,7 @@ import org.jetbrains.annotations.NotNull;
  *    传输使用binary描述系列化的数据。
  * 6. 状态同步之移动部分World内部实现。多版本，可自定义。
  * 7. 状态同步之战斗（技能）World提供框架。多版本，可自定义。
- * 8. 地图内动态实体共享模式：（todo）
+ * 8. 地图内动态实体共享模式：
  * a) public, 地图实例内玩家全部可见，访问同一个实例。比如某些挖矿模式，挖完一定数量就消失了一段时间再重生。
  * b) protect, ？？？
  * c) private, 只有一个玩家可见。比如无法共享的任务物品拾取，当拥有这个任务时创建实体，仅由这个玩家使用。

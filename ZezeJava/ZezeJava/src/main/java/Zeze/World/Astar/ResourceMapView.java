@@ -9,8 +9,8 @@ import Zeze.Serialize.Vector3;
 public class ResourceMapView implements IResourceMap {
 	private final NodeIndex offset;
 	private final IResourceMap map;
-	private final int width;
-	private final int height;
+	private final long width;
+	private final long height;
 
 	public ResourceMapView(NodeIndex center, NodeIndex range, IResourceMap map) {
 		if (range.x <= 0 || range.z <= 0)
@@ -20,17 +20,17 @@ public class ResourceMapView implements IResourceMap {
 		var z = center.z - range.z;
 		this.offset = map.toIndex(x, z);
 		this.map = map;
-		this.width = (range.x << 1) + 1;
-		this.height= (range.z << 1) + 1;
+		this.width = ((long)range.x << 1) + 1;
+		this.height= ((long)range.z << 1) + 1;
 	}
 
 	@Override
-	public int getWidth() {
+	public long getWidth() {
 		return width;
 	}
 
 	@Override
-	public int getHeight() {
+	public long getHeight() {
 		return height;
 	}
 
@@ -45,7 +45,7 @@ public class ResourceMapView implements IResourceMap {
 	}
 
 	@Override
-	public boolean walkable(int x, int z) {
+	public boolean walkable(long x, long z) {
 		if (x >= width || z >= height)
 			return false;
 
