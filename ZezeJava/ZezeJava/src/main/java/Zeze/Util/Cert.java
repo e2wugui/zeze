@@ -99,14 +99,19 @@ public final class Cert {
 	}
 
 	// 以PKCS#8的二进制编码加载RSA公钥(此二进制编码即PublicKey.getEncoded()的结果)
-	public static PublicKey loadPublicKey(byte[] encodedPublicKey) throws GeneralSecurityException {
+	public static PublicKey loadRsaPublicKey(byte[] encodedPublicKey) throws GeneralSecurityException {
 		return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(encodedPublicKey));
+	}
+
+	// 以PKCS#8的二进制编码加载椭圆曲线公钥(此二进制编码即PublicKey.getEncoded()的结果)
+	public static PublicKey loadEcPublicKey(byte[] encodedPublicKey) throws GeneralSecurityException {
+		return KeyFactory.getInstance("EC").generatePublic(new X509EncodedKeySpec(encodedPublicKey));
 	}
 
 	// 以PKCS#1的二进制编码加载RSA公钥
 	// 编译和运行时需要: --add-exports/--add-opens java.base/sun.security.rsa=ALL-UNNAMED
 	// 编译和运行时需要: --add-exports/--add-opens java.base/sun.security.util=ALL-UNNAMED
-	public static PublicKey loadPublicKeyByPkcs1(byte[] encodedPublicKey) throws InvalidKeyException {
+	public static PublicKey loadRsaPublicKeyByPkcs1(byte[] encodedPublicKey) throws InvalidKeyException {
 		try {
 			var dv = new DerValue(encodedPublicKey);
 			if (dv.tag != DerValue.tag_Sequence)
@@ -115,19 +120,24 @@ public final class Cert {
 			var e = dv.data.getPositiveBigInteger();
 			if (dv.data.available() != 0)
 				throw new IOException("Extra data available");
-			return loadPublicKey(n, e);
+			return loadRsaPublicKey(n, e);
 		} catch (IOException ex) {
 			throw new InvalidKeyException("Invalid PKCS#1 encoding", ex);
 		}
 	}
 
-	public static PublicKey loadPublicKey(BigInteger n, BigInteger e) throws InvalidKeyException {
+	public static PublicKey loadRsaPublicKey(BigInteger n, BigInteger e) throws InvalidKeyException {
 		return RSAPublicKeyImpl.newKey(RSAUtil.KeyType.RSA, null, n, e);
 	}
 
 	// 从二进制编码加载RSA私钥(二进制编码即PrivateKey.getEncoded()的结果)
-	public static PrivateKey loadPrivateKey(byte[] encodedPrivateKey) throws GeneralSecurityException {
+	public static PrivateKey loadRsaPrivateKey(byte[] encodedPrivateKey) throws GeneralSecurityException {
 		return KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(encodedPrivateKey));
+	}
+
+	// 从二进制编码加载椭圆曲线私钥(二进制编码即PrivateKey.getEncoded()的结果)
+	public static PrivateKey loadEcPrivateKey(byte[] encodedPrivateKey) throws GeneralSecurityException {
+		return KeyFactory.getInstance("EC").generatePrivate(new PKCS8EncodedKeySpec(encodedPrivateKey));
 	}
 
 	private static int getDerValueSize(int dataSize) {
@@ -163,7 +173,7 @@ public final class Cert {
 		return offset + dataSize;
 	}
 
-	public static byte[] exportPublicKeyToPkcs1(PublicKey publicKey) {
+	public static byte[] exportRsaPublicKeyToPkcs1(PublicKey publicKey) {
 		var rpk = (RSAPublicKeyImpl)publicKey;
 		var mod = rpk.getModulus().toByteArray();
 		var exp = rpk.getPublicExponent().toByteArray();
@@ -183,9 +193,16 @@ public final class Cert {
 		return keyPairGen.generateKeyPair();
 	}
 
+	// 生成椭圆曲线密钥对(公钥+私钥)
+	public static KeyPair generateEcKeyPair() throws GeneralSecurityException {
+		var keyPairGen = KeyPairGenerator.getInstance("EC");
+		keyPairGen.initialize(256);
+		return keyPairGen.generateKeyPair();
+	}
+
 	// 用owner的公钥为owner生成证书,并用issuer的私钥为证书签名,返回该证书
-	public static X509Certificate generate(String ownerName, PublicKey publicKey, String issuerName,
-										   PrivateKey privateKey, int validDays)
+	public static X509Certificate generateRsaCert(String ownerName, PublicKey publicKey, String issuerName,
+												  PrivateKey privateKeyForSign, int validDays)
 			throws GeneralSecurityException, IOException {
 		var certInfo = new X509CertInfo();
 		certInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
@@ -211,7 +228,7 @@ public final class Cert {
 		certInfo.set(CertificateAlgorithmId.NAME + '.' + CertificateAlgorithmId.ALGORITHM, algoId);
 
 		var cert = new X509CertImpl(certInfo);
-		cert.sign(privateKey, "SHA256withRSA");
+		cert.sign(privateKeyForSign, "SHA256withRSA");
 		return cert;
 	}
 
@@ -219,7 +236,7 @@ public final class Cert {
 	public static void saveKeyStore(OutputStream outputStream, String passwd, String alias, PublicKey publicKey,
 									PrivateKey privateKey, String ownerName, int validDays)
 			throws GeneralSecurityException, IOException {
-		var cert = generate(ownerName, publicKey, ownerName, privateKey, validDays);
+		var cert = generateRsaCert(ownerName, publicKey, ownerName, privateKey, validDays);
 		cert.verify(publicKey); // 此行可选
 
 		var keyStore = KeyStore.getInstance("pkcs12");
@@ -230,12 +247,12 @@ public final class Cert {
 	}
 
 	// 使用RSA私钥对数据签名
-	public static byte[] sign(PrivateKey privateKey, byte[] data) throws GeneralSecurityException {
-		return sign(privateKey, data, 0, data.length);
+	public static byte[] signRsa(PrivateKey privateKey, byte[] data) throws GeneralSecurityException {
+		return signRsa(privateKey, data, 0, data.length);
 	}
 
 	// 使用RSA私钥对数据签名
-	public static byte[] sign(PrivateKey privateKey, byte[] data, int offset, int count)
+	public static byte[] signRsa(PrivateKey privateKey, byte[] data, int offset, int count)
 			throws GeneralSecurityException {
 		var signer = Signature.getInstance("SHA256WithRSA");
 		signer.initSign(privateKey);
@@ -244,15 +261,44 @@ public final class Cert {
 	}
 
 	// 使用RSA公钥验证签名
-	public static boolean verifySign(PublicKey publicKey, byte[] data, byte[] signature)
+	public static boolean verifySignRsa(PublicKey publicKey, byte[] data, byte[] signature)
 			throws GeneralSecurityException {
-		return verifySign(publicKey, data, 0, data.length, signature);
+		return verifySignRsa(publicKey, data, 0, data.length, signature);
 	}
 
 	// 使用RSA公钥验证签名
-	public static boolean verifySign(PublicKey publicKey, byte[] data, int offset, int count, byte[] signature)
+	public static boolean verifySignRsa(PublicKey publicKey, byte[] data, int offset, int count, byte[] signature)
 			throws GeneralSecurityException {
 		var signer = Signature.getInstance("SHA256WithRSA");
+		signer.initVerify(publicKey);
+		signer.update(data, offset, count);
+		return signer.verify(signature);
+	}
+
+	// 使用椭圆曲线私钥对数据签名
+	public static byte[] signEc(PrivateKey privateKey, byte[] data) throws GeneralSecurityException {
+		return signEc(privateKey, data, 0, data.length);
+	}
+
+	// 使用椭圆曲线私钥对数据签名
+	public static byte[] signEc(PrivateKey privateKey, byte[] data, int offset, int count)
+			throws GeneralSecurityException {
+		var signer = Signature.getInstance("SHA256withECDSA");
+		signer.initSign(privateKey);
+		signer.update(data, offset, count);
+		return signer.sign();
+	}
+
+	// 使用椭圆曲线公钥验证签名
+	public static boolean verifySignEc(PublicKey publicKey, byte[] data, byte[] signature)
+			throws GeneralSecurityException {
+		return verifySignEc(publicKey, data, 0, data.length, signature);
+	}
+
+	// 使用椭圆曲线公钥验证签名
+	public static boolean verifySignEc(PublicKey publicKey, byte[] data, int offset, int count, byte[] signature)
+			throws GeneralSecurityException {
+		var signer = Signature.getInstance("SHA256withECDSA");
 		signer.initVerify(publicKey);
 		signer.update(data, offset, count);
 		return signer.verify(signature);

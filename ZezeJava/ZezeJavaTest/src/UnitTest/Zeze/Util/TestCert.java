@@ -35,13 +35,14 @@ public class TestCert extends TestCase {
 
 		if (new File("signature").exists()) {
 			var signature = Files.readAllBytes(Path.of("signature"));
-			var verify = verifySign(publicKey, data, signature);
+			var verify = verifySignRsa(publicKey, data, signature);
 			Assert.assertEquals(RSA_BLOCK_SIZE, signature.length);
 			Assert.assertTrue(verify);
 		}
 
-		var signature2 = sign(privateKey, data);
-		var verify2 = verifySign(publicKey, data, signature2);
+		var signature2 = signRsa(privateKey, data);
+		System.out.println("RSA sign.length=" + signature2.length);
+		var verify2 = verifySignRsa(publicKey, data, signature2);
 		Assert.assertEquals(RSA_BLOCK_SIZE, signature2.length);
 		Assert.assertTrue(verify2);
 
@@ -75,10 +76,12 @@ public class TestCert extends TestCase {
 		var keyPair = generateRsaKeyPair();
 		System.out.println("generateRsaKeyPair: " + (System.currentTimeMillis() - t) + " ms");
 		var encodedPublicKey = keyPair.getPublic().getEncoded();
-		publicKey = loadPublicKey(encodedPublicKey);
+		System.out.println("RSA pubKey.encodeSize=" + encodedPublicKey.length);
+		publicKey = loadRsaPublicKey(encodedPublicKey);
 		Assert.assertArrayEquals(encodedPublicKey, publicKey.getEncoded());
 		var encodedPrivateKey = keyPair.getPrivate().getEncoded();
-		privateKey = loadPrivateKey(encodedPrivateKey);
+		System.out.println("RSA priKey.encodeSize=" + encodedPrivateKey.length);
+		privateKey = loadRsaPrivateKey(encodedPrivateKey);
 		Assert.assertArrayEquals(encodedPrivateKey, privateKey.getEncoded());
 		Assert.assertEquals(((RSAKey)publicKey).getModulus(), ((RSAKey)privateKey).getModulus());
 
@@ -87,10 +90,27 @@ public class TestCert extends TestCase {
 		cert = loadCertificate(certData);
 		Assert.assertArrayEquals(certData, cert.getEncoded());
 
-		var pkcs1 = exportPublicKeyToPkcs1(keyPair.getPublic());
-		var pubKey = loadPublicKeyByPkcs1(pkcs1);
+		var pkcs1 = exportRsaPublicKeyToPkcs1(keyPair.getPublic());
+		var pubKey = loadRsaPublicKeyByPkcs1(pkcs1);
 		Assert.assertArrayEquals(keyPair.getPublic().getEncoded(), pubKey.getEncoded());
 
 //		saveKeyStore(new FileOutputStream("save.ks"), "123456", "test", keyPair.getPublic(), keyPair.getPrivate(), "test", 365);
+
+		t = System.currentTimeMillis();
+		keyPair = generateEcKeyPair();
+		System.out.println("generateEcKeyPair:  " + (System.currentTimeMillis() - t) + " ms");
+		encodedPublicKey = keyPair.getPublic().getEncoded();
+		System.out.println("EC  pubKey.encodeSize=" + encodedPublicKey.length);
+		publicKey = loadEcPublicKey(encodedPublicKey);
+		Assert.assertArrayEquals(encodedPublicKey, publicKey.getEncoded());
+		encodedPrivateKey = keyPair.getPrivate().getEncoded();
+		System.out.println("EC  priKey.encodeSize=" + encodedPrivateKey.length);
+		privateKey = loadEcPrivateKey(encodedPrivateKey);
+		Assert.assertArrayEquals(encodedPrivateKey, privateKey.getEncoded());
+
+		signature2 = signEc(privateKey, data);
+		System.out.println("EC  sign.length=" + signature2.length);
+		verify2 = verifySignEc(publicKey, data, signature2);
+		Assert.assertTrue(verify2);
 	}
 }

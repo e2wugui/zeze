@@ -127,7 +127,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 	public static byte @NotNull [] encryptRsa(byte @NotNull [] pubKeyN, byte @NotNull [] data) {
 		try {
-			var rsaPubKey = Cert.loadPublicKey(new BigInteger(1, pubKeyN), pubKeyE);
+			var rsaPubKey = Cert.loadRsaPublicKey(new BigInteger(1, pubKeyN), pubKeyE);
 			return Cert.encryptRsa(rsaPubKey, data);
 		} catch (GeneralSecurityException e) {
 			Task.forceThrow(e);
@@ -245,13 +245,13 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		// 获取RSA私钥并测试序列化/反序列化
 		var priKey = keyPair.getPrivate();
 		byte[] priKeyData = priKey.getEncoded();
-		var priKey2 = Cert.loadPrivateKey(priKeyData);
+		var priKey2 = Cert.loadRsaPrivateKey(priKeyData);
 		System.out.println("check priKey encoded: " + priKey.equals(priKey2));
 
 		// 获取RSA公钥并测试序列化/反序列化
 		var pubKey = keyPair.getPublic();
 		byte[] pubKeyData = pubKey.getEncoded();
-		var pubKey2 = Cert.loadPublicKey(pubKeyData);
+		var pubKey2 = Cert.loadRsaPublicKey(pubKeyData);
 		System.out.println("check pubKey encoded: " + pubKey.equals(pubKey2));
 
 		// 获取RSA公钥中的参数N(modulus)
