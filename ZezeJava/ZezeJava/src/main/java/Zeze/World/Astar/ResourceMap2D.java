@@ -69,12 +69,13 @@ public class ResourceMap2D implements IResourceMap {
 		if (width <= 0 || height <= 0)
 			return; // skip empty rect
 
-		var w = Math.min(width, getWidth() - x);
-		var h = Math.min(height, getHeight() - z);
+		var xEnd = Math.min(x + width, getWidth());
+		var zEnd = Math.min(z + height, getHeight());
 
-		for (var row = 0; row < h; ++row) {
-			for (var col = 0; col < w; ++col) {
-				var index = (row + x) + (col + z) * getWidth();
+		for (var row = z; row < zEnd; ++row) {
+			var rowBegin = row * getWidth();
+			for (var col = x; col < xEnd; ++col) {
+				var index = col + rowBegin;
 				mappedFile.set(index, b);
 			}
 		}
