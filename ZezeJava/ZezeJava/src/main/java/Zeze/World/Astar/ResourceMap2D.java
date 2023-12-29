@@ -2,6 +2,7 @@ package Zeze.World.Astar;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class ResourceMap2D implements IResourceMap {
 	private final HugeMappedFile mappedFile;
@@ -72,12 +73,12 @@ public class ResourceMap2D implements IResourceMap {
 		var xEnd = Math.min(x + width, getWidth());
 		var zEnd = Math.min(z + height, getHeight());
 
+		var rowBytes = new byte[(int)(xEnd - x)];
+		if (b != 0)
+			Arrays.fill(rowBytes, b);
 		for (var row = z; row < zEnd; ++row) {
 			var rowBegin = row * getWidth();
-			for (var col = x; col < xEnd; ++col) {
-				var index = col + rowBegin;
-				mappedFile.set(index, b);
-			}
+			mappedFile.set(rowBegin, rowBytes);
 		}
 	}
 

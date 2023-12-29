@@ -45,6 +45,14 @@ public class HugeMappedFile implements Closeable {
 		mapped.put(blockIndex, b);
 	}
 
+	public void set(long index, byte[] bytes) {
+		var mapped = mapped(index);
+		var blockIndex = (int)index & BlockMask;
+		// todo jdk 13 以后改成 mapped.put(blockIndex, bytes);
+		mapped.position(blockIndex);
+		mapped.put(bytes);
+	}
+
 	private static final int MaxBlockSize = 1 << 30; // 1G
 	private static final int BlockMask = MaxBlockSize - 1;
 

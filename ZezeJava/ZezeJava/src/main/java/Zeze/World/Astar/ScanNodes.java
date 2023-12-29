@@ -32,10 +32,8 @@ public class ScanNodes {
 
 	public Node getNode(NodeIndex index) {
 		var node = nodes.computeIfAbsent(index, Node::new);
-		if (nodes.size() > maxScanNodes) {
-			nodes.clear();
+		if (nodes.size() > maxScanNodes)
 			throw new TooManyScanNodes();
-		}
 		return node;
 	}
 
