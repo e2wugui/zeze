@@ -17,38 +17,31 @@ import java.util.HashMap;
  * ResourceMapView(offsetWidth, offsetHeight, width, height);
  */
 public class ScanNodes {
-	private final int maxWidth;
-	private final int maxHeight;
+	private final long maxScanNodes;
 	private final HashMap<NodeIndex, Node> nodes = new HashMap<>();
 	private int onClosedList;  // 记录，节点是否是关闭的标志。用来避免初始化节点。
 	private int onOpenList;
 
-	public ScanNodes(int maxWidth, int maxHeight) {
-		this.maxWidth = maxWidth;
-		this.maxHeight = maxHeight;
+	public ScanNodes() {
+		this(100 * 1024 * 1024);
 	}
 
-	public boolean isOutofRange(IResourceMap amap) {
-		return amap.getWidth() > maxWidth || amap.getHeight() > maxHeight;
-	}
-
-	public int getMaxWidth() {
-		return maxWidth;
-	}
-
-	public int getMaxHeight() {
-		return maxHeight;
+	public ScanNodes(long maxScanNodes) {
+		this.maxScanNodes = maxScanNodes;
 	}
 
 	public Node getNode(NodeIndex index) {
-		// todo NodeAllocator
-		return nodes.computeIfAbsent(index, Node::new);
+		var node = nodes.computeIfAbsent(index, Node::new);
+		if (nodes.size() > maxScanNodes) {
+			nodes.clear();
+			throw new TooManyScanNodes();
+		}
+		return node;
 	}
 
 	public void initialize() {
 		if (onClosedList == 0) {
 			// 标志已经超出整数范围，循环回来。重新初始化一次节点的标志位。
-			// todo 新建一个 NodeAllocator;
 			onOpenList   = 1;
 			onClosedList = 2;
 		} else {

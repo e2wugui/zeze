@@ -15,9 +15,6 @@ public class Astar implements IAstar {
 
 	@Override
 	public boolean find(IResourceMap map, Vector3 fromV3, Vector3 toV3, Deque<Node> path /* out */) {
-		if (scanNodes.isOutofRange(map))
-			return false; // 地图大小超过限制（see ScanNodesFixed 说明）
-
 		var to = map.toIndex(toV3);
 		if (!map.walkable(to.x, to.z))
 			return false; // 目标点不可达,起始点允许是障碍
