@@ -281,7 +281,7 @@ public class HttpExchange {
 				if (HttpUtil.is100ContinueExpected(request)) {
 					if (!handler.isStreamMode() && HttpUtil.getContentLength(request, 0) > handler.MaxContentLength) {
 						closeConnectionOnFlush(context.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-								HttpResponseStatus.EXPECTATION_FAILED, Unpooled.EMPTY_BUFFER, false)));
+								HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER, false)));
 						return;
 					}
 					context.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
@@ -310,7 +310,8 @@ public class HttpExchange {
 				if (content.readableBytes() + n > handler.MaxContentLength) {
 					Netty.logger.error("content size = {} + {} > {} from {}", content.readableBytes(), n,
 							handler.MaxContentLength, channel.remoteAddress());
-					closeConnectionNow();
+					closeConnectionOnFlush(context.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+							HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER, false)));
 					return;
 				}
 				b.retain();
