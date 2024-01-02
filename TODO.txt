@@ -29,8 +29,9 @@ Zege Task
 Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot alter 测试，需要mysql。
 ------------------------------------------------------------------------------------------------------------------------------
-2024/1/5 v1.3.9 Log4jQuery; Token; Dbh2.Operates; World;
+2024/1/5 v1.3.9 Log4jQuery; Token; Dbh2.Operates; World; Astar.ScanNodes.maxScanNodes;
 ------------------------------------------------------------------------------------------------------------------------------
+Astar.ScanNodes.maxScanNodes 限制。每次搜索创建结构来用。不共享Astar,ScanNodes变量。
 World.ResourceMap2d, HugeMappedFile
 Dbh2.Operates 实现完成。实现方式为，Master.Rpc服务。
 Token SoftReference, RocksDb
