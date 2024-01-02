@@ -115,22 +115,34 @@ class Task
 ```
 public class TaskBase {
 	// from user
-	void accept();
-	void finish();
-	void abandon();
+	void accept(int taskId);
+	void finish(int taskId);
+	void abandon(int taskId);
 
 	// 玩家已接任务列表管理接口，涉及读取以及状态变化更新通知。
 	// TODO 更新采取的Listener模式：全部增量更新可实现（目前部分客户端环境不支持），但是这种更新方式会失去当前变化的上下文。
 	...
 
 	// 服务器内部接口
+	void accept(long roleId, int taskId);
+	void abandon(long roleId, int taskId);
 	void dispatch(long roleId, ConditionEvent event);
 }
 
 public class RewardBase {
-	void reward(long roleid, int rewardId); // 唯一接口
-	Reward getReward(int rewardId); // 待定
+	Reward getReward(int rewardId); // 唯一接口
 	// Reward 的抽象关键：任务需要读取奖励内容并表现给玩家。
+	// Reward=list<(type, itemId)> 是一个物品列表，这里的物品是广义的物品，实际上可以包括任何东西。
+	// 客户端拿到这个列表自己根据type，itemId进行表现。
+	// TODO 奖励全部包含，选择部分，等等这个怎么抽象。
+
+	public abstract class Reward {
+		abstract list<(type, itemId)> getReward();
+		abstract void reward(long roleId);
+	}
+	// Reward 实现
+	// 提供一个默认实现？
+	// 解决了上面的TODO，也就解决了奖励的配置接口。
 }
 
 public class AchievementBase {
