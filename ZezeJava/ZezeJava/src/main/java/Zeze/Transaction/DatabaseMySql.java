@@ -417,10 +417,23 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try {
 				if (r.getState() == StateShare || r.getState() == StateModify) {
 					// 拥有正确的状态：
-					var strongRef = (V)r.getSoftValue();
-					if (strongRef == null)
+					v = (V)r.getSoftValue();
+					if (v != null) {
+						var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
+						if (lockey.tryEnterReadLock(0)) {
+							try {
+								v = (V)v.copy();
+							} finally {
+								lockey.exitReadLock();
+							}
+						} else
+							v = table.getLocalRocksCacheTable().find(table, k);
+					} else if (r.getDirty())
 						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-					v = (V)strongRef.copy();
+					else
+						v = table.getLocalRocksCacheTable().find(table, k);
+					if (v == null)
+						return true; // 已经被删除
 				}
 			} finally {
 				r.exitFairLock();
@@ -477,8 +490,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				if (r.getState() == StateShare || r.getState() == StateModify) {
 					// 拥有正确的状态：
 					@SuppressWarnings("unchecked")
-					var strongRef = (V)r.getSoftValue();
-					if (strongRef == null)
+					var v = (V)r.getSoftValue();
+					if (v == null && !r.getDirty())
+						v = table.getLocalRocksCacheTable().find(table, k);
+					if (v == null)
 						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
 				}
 				// else GlobalCacheManager.StateInvalid

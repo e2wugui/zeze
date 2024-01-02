@@ -358,10 +358,23 @@ public abstract class Database {
 				try {
 					if (r.getState() == StateShare || r.getState() == StateModify) {
 						// 拥有正确的状态：
-						var strongRef = (V)r.getSoftValue();
-						if (strongRef == null)
-							return true; // 已经被删除，但是还没有checkpoint的记录看不到。返回true，继续循环。
-						v = (V)strongRef.copy();
+						v = (V)r.getSoftValue();
+						if (v != null) {
+							var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
+							if (lockey.tryEnterReadLock(0)) {
+								try {
+									v = (V)v.copy();
+								} finally {
+									lockey.exitReadLock();
+								}
+							} else
+								v = table.getLocalRocksCacheTable().find(table, k);
+						} else if (r.getDirty())
+							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+						else
+							v = table.getLocalRocksCacheTable().find(table, k);
+						if (v == null)
+							return true; // 已经被删除
 					}
 				} finally {
 					r.exitFairLock();
@@ -383,8 +396,10 @@ public abstract class Database {
 					if (r.getState() == StateShare || r.getState() == StateModify) {
 						// 拥有正确的状态：
 						@SuppressWarnings("unchecked")
-						var strongRef = (V)r.getSoftValue();
-						if (strongRef == null)
+						var v = (V)r.getSoftValue();
+						if (v == null && !r.getDirty())
+							v = table.getLocalRocksCacheTable().find(table, key);
+						if (v == null)
 							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
 					}
 				} finally {
