@@ -60,7 +60,10 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 		// if (!rwLock.IsReadLockHeld) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
 		PerfCounter.instance.getOrAddTableInfo(tableKey.getId()).tryReadLock.increment();
 		try {
-			return rwLock.readLock().tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
+			var readLock = rwLock.readLock();
+			if (millisecondsTimeout > 0)
+				return readLock.tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
+			return readLock.tryLock();
 		} catch (InterruptedException e) {
 			Task.forceThrow(e);
 			return false; // never run here
@@ -71,7 +74,10 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
 			PerfCounter.instance.getOrAddTableInfo(tableKey.getId()).tryWriteLock.increment();
 		try {
-			return rwLock.writeLock().tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
+			var writeLock = rwLock.writeLock();
+			if (millisecondsTimeout > 0)
+				return writeLock.tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
+			return writeLock.tryLock();
 		} catch (InterruptedException e) {
 			Task.forceThrow(e);
 			return false; // never run here

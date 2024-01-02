@@ -2,7 +2,6 @@ package Zeze.Transaction;
 
 import java.lang.ref.SoftReference;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Services.GlobalCacheManagerConst;
 import org.jetbrains.annotations.NotNull;

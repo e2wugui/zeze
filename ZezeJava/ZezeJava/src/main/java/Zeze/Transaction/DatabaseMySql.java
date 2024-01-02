@@ -403,7 +403,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private static <K extends Comparable<K>, V extends Bean>
 	boolean invokeCallback(TableX<K, V> table, ResultSet rs, TableWalkHandle<K, V> callback, OutObject<K> outKey)
 			throws SQLException {
@@ -417,10 +416,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try {
 				if (r.getState() == StateShare || r.getState() == StateModify) {
 					// 拥有正确的状态：
-					var strongRef = r.loadSoftValue(new TableKey(table.getId(), k));
-					if (strongRef == null)
-						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-					v = (V)strongRef.copy();
+					v = r.copyValue();
+					if (v == null)
+						return true; // 已经被删除，但是还没有checkpoint的记录看不到。返回true，继续循环。
 				}
 			} finally {
 				r.exitFairLock();
@@ -476,10 +474,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try {
 				if (r.getState() == StateShare || r.getState() == StateModify) {
 					// 拥有正确的状态：
-					@SuppressWarnings("unchecked")
-					var strongRef = r.loadSoftValue(new TableKey(table.getId(), k));
-					if (strongRef == null)
-						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+					if (r.getValue() == null)
+						return true; // 已经被删除，但是还没有checkpoint的记录看不到。返回true，继续循环。
 				}
 				// else GlobalCacheManager.StateInvalid
 				// 继续后面的处理：使用数据库中的数据。

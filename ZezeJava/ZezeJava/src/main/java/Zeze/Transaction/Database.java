@@ -347,7 +347,6 @@ public abstract class Database {
 			remove(t, (ByteBuffer)key);
 		}
 
-		@SuppressWarnings("unchecked")
 		private static <K extends Comparable<K>, V extends Bean>
 		boolean invokeCallback(TableX<K, V> table, byte[] key, byte[] value, TableWalkHandle<K, V> callback) {
 			K k = table.decodeKey(ByteBuffer.Wrap(key));
@@ -358,10 +357,9 @@ public abstract class Database {
 				try {
 					if (r.getState() == StateShare || r.getState() == StateModify) {
 						// 拥有正确的状态：
-						var strongRef = r.loadSoftValue(new TableKey(table.getId(), k));
-						if (strongRef == null)
+						v = r.copyValue();
+						if (v == null)
 							return true; // 已经被删除，但是还没有checkpoint的记录看不到。返回true，继续循环。
-						v = (V)strongRef.copy();
 					}
 				} finally {
 					r.exitFairLock();
@@ -382,10 +380,8 @@ public abstract class Database {
 				try {
 					if (r.getState() == StateShare || r.getState() == StateModify) {
 						// 拥有正确的状态：
-						@SuppressWarnings("unchecked")
-						var strongRef = r.loadSoftValue(new TableKey(table.getId(), k));
-						if (strongRef == null)
-							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+						if (r.getValue() == null)
+							return true; // 已经被删除，但是还没有checkpoint的记录看不到。返回true，继续循环。
 					}
 				} finally {
 					r.exitFairLock();

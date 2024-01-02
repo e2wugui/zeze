@@ -1111,7 +1111,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						return null;
 					r.enterFairLock();
 					try {
-						v = r.loadSoftValue(tkey);
+						v = r.loadValue();
 					} finally {
 						r.exitFairLock();
 					}
@@ -1171,15 +1171,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				return null;
 			r.enterFairLock();
 			try {
-				V v = (V)r.getSoftValue();
-				if (v == null && !r.getDirty()) {
-					v = localRocksCacheTable.find(this, key);
-					if (v != null) {
-						v.initRootInfo(r.createRootInfoIfNeed(tkey), null);
-						r.setSoftValue(v);
-					}
-				}
-				return v;
+				return r.loadValue();
 			} finally {
 				r.exitFairLock();
 			}
@@ -1212,7 +1204,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						return strongRef;
 					}
 				}
-				return r.loadSoftValue(tkey);
+				return r.loadValue();
 			} finally {
 				r.exitFairLock();
 			}

@@ -44,17 +44,43 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		this.key = key;
 	}
 
-	@SuppressWarnings("unchecked")
-	@Nullable V loadSoftValue(TableKey tkey) {
+	@Nullable V getValue() {
+		@SuppressWarnings("unchecked")
+		var v = (V)getSoftValue();
+		if (v == null && !getDirty())
+			v = table.getLocalRocksCacheTable().find(table, key);
+		return v;
+	}
+
+	@Nullable V copyValue() {
 		var v = getSoftValue();
+		if (v != null) {
+			var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), key));
+			if (lockey.tryEnterReadLock(0)) {
+				try {
+					@SuppressWarnings("unchecked")
+					V v1 = (V)v.copy();
+					return v1;
+				} finally {
+					lockey.exitReadLock();
+				}
+			}
+		} else if (getDirty())
+			return null;
+		return table.getLocalRocksCacheTable().find(table, key);
+	}
+
+	@Nullable V loadValue() {
+		@SuppressWarnings("unchecked")
+		var v = (V)getSoftValue();
 		if (v == null && !getDirty()) {
-			v = getTable().getLocalRocksCacheTable().find(getTable(), key);
+			v = table.getLocalRocksCacheTable().find(table, key);
 			if (v != null) {
-				v.initRootInfo(createRootInfoIfNeed(tkey), null);
+				v.initRootInfo(createRootInfoIfNeed(new TableKey(table.getId(), key)), null);
 				setSoftValue(v);
 			}
 		}
-		return (V)v;
+		return v;
 	}
 
 	@Override
