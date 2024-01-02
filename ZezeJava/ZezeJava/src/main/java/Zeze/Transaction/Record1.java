@@ -44,6 +44,19 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		this.key = key;
 	}
 
+	@SuppressWarnings("unchecked")
+	@Nullable V loadSoftValue(TableKey tkey) {
+		var v = getSoftValue();
+		if (v == null && !getDirty()) {
+			v = getTable().getLocalRocksCacheTable().find(getTable(), key);
+			if (v != null) {
+				v.initRootInfo(createRootInfoIfNeed(tkey), null);
+				setSoftValue(v);
+			}
+		}
+		return (V)v;
+	}
+
 	@Override
 	public @NotNull TableX<K, V> getTable() {
 		return table;

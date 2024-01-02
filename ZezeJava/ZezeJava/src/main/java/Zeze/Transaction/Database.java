@@ -358,7 +358,7 @@ public abstract class Database {
 				try {
 					if (r.getState() == StateShare || r.getState() == StateModify) {
 						// 拥有正确的状态：
-						var strongRef = (V)r.getSoftValue();
+						var strongRef = r.loadSoftValue(new TableKey(table.getId(), k));
 						if (strongRef == null)
 							return true; // 已经被删除，但是还没有checkpoint的记录看不到。返回true，继续循环。
 						v = (V)strongRef.copy();
@@ -383,7 +383,7 @@ public abstract class Database {
 					if (r.getState() == StateShare || r.getState() == StateModify) {
 						// 拥有正确的状态：
 						@SuppressWarnings("unchecked")
-						var strongRef = (V)r.getSoftValue();
+						var strongRef = r.loadSoftValue(new TableKey(table.getId(), k));
 						if (strongRef == null)
 							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
 					}

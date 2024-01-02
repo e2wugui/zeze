@@ -417,7 +417,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try {
 				if (r.getState() == StateShare || r.getState() == StateModify) {
 					// 拥有正确的状态：
-					var strongRef = (V)r.getSoftValue();
+					var strongRef = r.loadSoftValue(new TableKey(table.getId(), k));
 					if (strongRef == null)
 						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
 					v = (V)strongRef.copy();
@@ -477,7 +477,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				if (r.getState() == StateShare || r.getState() == StateModify) {
 					// 拥有正确的状态：
 					@SuppressWarnings("unchecked")
-					var strongRef = (V)r.getSoftValue();
+					var strongRef = r.loadSoftValue(new TableKey(table.getId(), k));
 					if (strongRef == null)
 						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
 				}
