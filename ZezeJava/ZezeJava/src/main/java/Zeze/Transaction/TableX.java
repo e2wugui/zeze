@@ -1096,8 +1096,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				var v = cr.newestValue();
 				return v != null ? (V)v.copy() : null;
 			}
-			if (currentT.isCompleted())
-				throw new IllegalStateException("completed transaction can not selectCopy record not accessed");
+//			if (currentT.isCompleted())
+//				throw new IllegalStateException("completed transaction can not selectCopy record not accessed");
 			currentT.setAlwaysReleaseLockWhenRedo();
 		}
 
@@ -1111,22 +1111,24 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						return null;
 					r.enterFairLock();
 					try {
-						v = r.loadValue();
+						return r.copyValue();
 					} finally {
 						r.exitFairLock();
 					}
-				} else
-					v = load(key).strongRef;
+				}
+				v = load(key).strongRef;
 				if (v == null)
 					return null;
 				if (lockey == null)
 					lockey = getZeze().getLocks().get(tkey);
-				lockey.enterReadLock();
-				try {
-					return (V)v.copy();
-				} finally {
-					lockey.exitReadLock();
+				if (lockey.tryEnterReadLock(0)) {
+					try {
+						return (V)v.copy();
+					} finally {
+						lockey.exitReadLock();
+					}
 				}
+				return localRocksCacheTable.find(this, key);
 			} catch (GoBackZeze e) {
 				if (currentT != null && currentT.isRunning() || tryCount >= 256)
 					throw e;
