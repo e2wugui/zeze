@@ -1,13 +1,15 @@
 package Zeze.Game;
 
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Game.TaskModule.Abandon;
 import Zeze.Builtin.Game.TaskModule.Accept;
-import Zeze.Builtin.Game.TaskModule.BCondition;
+import Zeze.Builtin.Game.TaskModule.BRoleTasks;
 import Zeze.Builtin.Game.TaskModule.Finish;
+import Zeze.Builtin.Game.TaskModule.GetRoleTasks;
 import Zeze.Collections.BeanFactory;
-import Zeze.Game.Task.Condition;
 import Zeze.Game.Task.ConditionEvent;
 import Zeze.Game.Task.TaskGraphics;
+import Zeze.Game.Task.TaskImpl;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 
@@ -28,6 +30,11 @@ public class TaskModule extends AbstractTaskModule {
 		return 0;
 	}
 
+	@Override
+	protected long ProcessGetRoleTasksRequest(GetRoleTasks r) throws Exception {
+		return 0;
+	}
+
 	// 服务器内部接口
 	public void accept(long roleId, int taskId) {
 
@@ -37,8 +44,8 @@ public class TaskModule extends AbstractTaskModule {
 
 	}
 
-	public void dispatch(long roleId, ConditionEvent event) {
-
+	public void dispatch(long roleId, ConditionEvent event) throws Exception {
+		TaskImpl.dispatch(this, roleId, event);
 	}
 
 	private TaskGraphics taskGraphics;
@@ -47,8 +54,8 @@ public class TaskModule extends AbstractTaskModule {
 		return taskGraphics;
 	}
 
-	public Condition buildCondition(BCondition bean) {
-		return null;
+	public BRoleTasks getRoleTasks(long roleId) {
+		return _tRoleTasks.getOrAdd(roleId);
 	}
 
 	public static long getSpecialTypeIdFromBean(Bean bean) {

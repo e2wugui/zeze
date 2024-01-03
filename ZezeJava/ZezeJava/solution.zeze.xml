@@ -845,6 +845,21 @@
 				<rpc name="Accept" argument="BTaskId" handle="server"/>
 				<rpc name="Finish" argument="BTaskId" handle="server"/>
 				<rpc name="Abandon" argument="BTaskId" handle="server"/>
+
+				<bean name="BTaskDescription">
+					<variable id="1" name="TaskId"  type="int"/>
+					<variable id="2" name="TaskState"  type="int"/>
+					<variable id="3" name="Conditions"  type="list[BCondition]"/> 保留全部状态，达到功能最大化。
+					<variable id="4" name="RewardId"  type="int"/> 调试目的，客户端未用。
+					<variable id="5" name="RewardType"  type="int"/>
+					<variable id="6" name="RewardParam"  type="binary"/>
+				</bean>
+				<bean name="BGetRoleTasksResult">
+					<variable id="1" name="Tasks"  type="map[int, BTaskDescription]"/>
+				</bean>
+				<rpc name="GetRoleTasks" result="BGetRoleTasksResult" handle="server"/>
+				<protocol name="TaskRemoved" argument="BTaskId" handle="client"/>
+				<protocol name="TaskChanged" argument="BTaskDescription" handle="client"/>
 				
 				<bean name="BTaskConfig">
 					<variable id="1" name="PreposeTasks"  type="set[int]"/>
@@ -858,18 +873,40 @@
 					</variable>
 				</bean>
 				
+				<enum name="eTaskAccepted" value="0"/> 任务接受时的初始状态
+				<enum name="eTaskDone" value="1"/> 任务完成状态
+				<enum name="eTaskCompleted" value="2"/> 任务结束状态（已经发换奖励）
+
 				<bean name="BTask">
-					<variable id="1" name="Phases"  type="list[BPhase]"/>
+					<variable id="1" name="TaskId"  type="int"/>
+
+					<!-- 阶段或者直接内含的多个条件两种模式一般分开使用，要嘛单独使用阶段，要嘛内含多个条件，当然混用也是可以的。-->
+					<!-- 阶段 -->
+					<variable id="2" name="Phases"  type="list[BPhase]"/>
+					<!-- 直接内含的多个条件 -->
+					<variable id="3" name="Conditions"  type="list[BCondition]"/>
+					<variable id="4" name="IndexSet"  type="set[int]"/>
+					
+					<!-- 其他属性 -->
+					<variable id="5" name="TaskState"  type="int"/>
+					<variable id="6" name="AutoCompleted"  type="bool"/>
+					<variable id="7" name="RewardId"  type="int"/>
 				</bean>
 
 				<bean name="BPhase">
 					<variable id="1" name="Conditions"  type="list[BCondition]"/>
+					<variable id="2" name="IndexSet"  type="set[int]"/>
 				</bean>
 
 				<bean name="BCondition">
 					<variable id="1" name="ClassName"  type="string"/>
 					<variable id="2" name="Parameter"  type="binary"/>
 				</bean>
+
+				<bean name="BRoleTasks">
+					<variable id="1" name="Tasks"  type="map[int, BTask]"/> key是taskId，这种描述意味着相同的任务不能同时接多次。
+				</bean>
+				<table name="tRoleTasks" key="long" value="BRoleTasks"/>
 
 			</module> TaskModule
 

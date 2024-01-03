@@ -11,6 +11,12 @@ public abstract class AbstractTaskModule implements Zeze.IModule {
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
+    public static final int eTaskAccepted = 0; // 任务接受时的初始状态
+    public static final int eTaskDone = 1; // 任务完成状态
+    public static final int eTaskCompleted = 2; // 任务结束状态（已经发换奖励）
+
+    protected final Zeze.Builtin.Game.TaskModule.tRoleTasks _tRoleTasks = new Zeze.Builtin.Game.TaskModule.tRoleTasks();
+
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
@@ -37,18 +43,29 @@ public abstract class AbstractTaskModule implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessFinishRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47324807161935L, factoryHandle); // 11018, -1437472689
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.TaskModule.GetRoleTasks.class, Zeze.Builtin.Game.TaskModule.GetRoleTasks.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Game.TaskModule.GetRoleTasks::new;
+            factoryHandle.Handle = this::ProcessGetRoleTasksRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessGetRoleTasksRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessGetRoleTasksRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47326109130780L, factoryHandle); // 11018, -135503844
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47322741362506L);
         service.getFactorys().remove(47322259291035L);
         service.getFactorys().remove(47324807161935L);
+        service.getFactorys().remove(47326109130780L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
+        zeze.addTable(zeze.getConfig().getTableConf(_tRoleTasks.getName()).getDatabaseName(), _tRoleTasks);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
+        zeze.removeTable(zeze.getConfig().getTableConf(_tRoleTasks.getName()).getDatabaseName(), _tRoleTasks);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
@@ -57,4 +74,5 @@ public abstract class AbstractTaskModule implements Zeze.IModule {
     protected abstract long ProcessAbandonRequest(Zeze.Builtin.Game.TaskModule.Abandon r) throws Exception;
     protected abstract long ProcessAcceptRequest(Zeze.Builtin.Game.TaskModule.Accept r) throws Exception;
     protected abstract long ProcessFinishRequest(Zeze.Builtin.Game.TaskModule.Finish r) throws Exception;
+    protected abstract long ProcessGetRoleTasksRequest(Zeze.Builtin.Game.TaskModule.GetRoleTasks r) throws Exception;
 }

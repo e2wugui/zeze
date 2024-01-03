@@ -9,6 +9,7 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
     public static final long TYPEID = -4991109539831580788L;
 
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.TaskModule.BCondition> _Conditions;
+    private final Zeze.Transaction.Collections.PSet1<Integer> _IndexSet;
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.TaskModule.BCondition> getConditions() {
         return _Conditions;
@@ -19,15 +20,27 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
         return new Zeze.Transaction.Collections.PList2ReadOnly<>(_Conditions);
     }
 
+    public Zeze.Transaction.Collections.PSet1<Integer> getIndexSet() {
+        return _IndexSet;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PSet1ReadOnly<Integer> getIndexSetReadOnly() {
+        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_IndexSet);
+    }
+
     @SuppressWarnings("deprecation")
     public BPhase() {
         _Conditions = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.TaskModule.BCondition.class);
         _Conditions.variableId(1);
+        _IndexSet = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
+        _IndexSet.variableId(2);
     }
 
     @Override
     public void reset() {
         _Conditions.clear();
+        _IndexSet.clear();
         _unknown_ = null;
     }
 
@@ -35,6 +48,8 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
         _Conditions.clear();
         for (var e : other._Conditions)
             _Conditions.add(e.copy());
+        _IndexSet.clear();
+        _IndexSet.addAll(other._IndexSet);
         _unknown_ = other._unknown_;
     }
 
@@ -83,7 +98,18 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append(']').append(System.lineSeparator());
+        sb.append(']').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("IndexSet={");
+        if (!_IndexSet.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _IndexSet) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append('}').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -130,6 +156,20 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        {
+            var _x_ = _IndexSet;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_) {
+                    _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -149,6 +189,16 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            var _x_ = _IndexSet;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadInt(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -156,11 +206,22 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Conditions.initRootInfo(root, this);
+        _IndexSet.initRootInfo(root, this);
     }
 
     @Override
     protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
         _Conditions.initRootInfoWithRedo(root, this);
+        _IndexSet.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
+    public boolean negativeCheck() {
+        for (var _v_ : _IndexSet) {
+            if (_v_ < 0)
+                return true;
+        }
+        return false;
     }
 
     @SuppressWarnings("unchecked")
@@ -173,6 +234,7 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Conditions.followerApply(vlog); break;
+                case 2: _IndexSet.followerApply(vlog); break;
             }
         }
     }
@@ -181,18 +243,21 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         Zeze.Serialize.Helper.decodeJsonList(_Conditions, Zeze.Builtin.Game.TaskModule.BCondition.class, rs.getString(_parents_name_ + "Conditions"));
+        Zeze.Serialize.Helper.decodeJsonSet(_IndexSet, Integer.class, rs.getString(_parents_name_ + "IndexSet"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Conditions", Zeze.Serialize.Helper.encodeJson(_Conditions));
+        st.appendString(_parents_name_ + "IndexSet", Zeze.Serialize.Helper.encodeJson(_IndexSet));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Conditions", "list", "", "BCondition"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "IndexSet", "set", "", "int"));
         return vars;
     }
 }
