@@ -63,4 +63,7 @@ public class TaskGraphics {
 		key.WriteInt(taskId);
 		roots.delete(key.Bytes, key.ReadIndex, key.size());
 	}
+
+	// todo 上面的任务编辑辅助方法还不够高级，比如删除任务，当这个任务是root时，也是需要删除root的。类似这样的编辑关联。
+	//  当开始写编辑器，并且直接使用这个类作为后端存储时，再来加强。
 }
