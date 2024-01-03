@@ -427,7 +427,9 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 
 				String sql = "SELECT id,value FROM " + getName();
-				if (!asc)
+				if (asc)
+					sql += " ORDER BY id";
+				else
 					sql += " ORDER BY id DESC";
 
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -455,7 +457,9 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 
 				String sql = "SELECT id FROM " + getName();
-				if (!asc)
+				if (asc)
+					sql += " ORDER BY id";
+				else
 					sql += " ORDER BY id DESC";
 				try (var cmd = connection.prepareStatement(sql)) {
 					long count = 0;
@@ -485,7 +489,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 
 				String sql = "SELECT top ? id,value FROM " + getName()
-						+ (exclusiveStartKey != null ? " WHERE id > ?" : "");
+						+ (exclusiveStartKey != null ? " WHERE id > ?" : "")
+						+ " ORDER BY id";
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.setInt(1, proposeLimit);
 					if (exclusiveStartKey != null)
@@ -516,7 +521,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 
 				String sql = "SELECT top ? id FROM " + getName()
-						+ (exclusiveStartKey != null ? " WHERE id > ?" : "");
+						+ (exclusiveStartKey != null ? " WHERE id > ?" : "")
+						+ " ORDER BY id";
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.setInt(1, proposeLimit);
 					if (exclusiveStartKey != null)

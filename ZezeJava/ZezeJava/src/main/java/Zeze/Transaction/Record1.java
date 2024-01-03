@@ -44,12 +44,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		this.key = key;
 	}
 
-	@Nullable V getValue() {
-		@SuppressWarnings("unchecked")
-		var v = (V)getSoftValue();
-		if (v == null && !getDirty())
-			v = table.getLocalRocksCacheTable().find(table, key);
-		return v;
+	boolean containsValue() {
+		return getSoftValue() != null || !getDirty() && table.getLocalRocksCacheTable().containsKey(table, key);
 	}
 
 	@Nullable V copyValue() {

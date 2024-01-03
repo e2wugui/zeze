@@ -437,6 +437,12 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	}
 
 	private static <K extends Comparable<K>, V extends Bean>
+	String buildOrder(TableX<K, V> table) {
+		// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
+		return " ORDER BY " + table.getRelationalTable().currentKeyColumns;
+	}
+
+	private static <K extends Comparable<K>, V extends Bean>
 	String buildOrderByDesc(TableX<K, V> table) {
 		// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
 		var orderBy = table.getRelationalTable().currentKeyColumns;
@@ -474,7 +480,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try {
 				if (r.getState() == StateShare || r.getState() == StateModify) {
 					// 拥有正确的状态：
-					if (r.getValue() == null)
+					if (!r.containsValue())
 						return true; // 已经被删除，但是还没有checkpoint的记录看不到。返回true，继续循环。
 				}
 				// else GlobalCacheManager.StateInvalid
@@ -662,6 +668,32 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		@Override
+		public <K extends Comparable<K>, V extends Bean> boolean containsKey(TableX<K, V> table, Object key) {
+			if (dropped)
+				return false;
+
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var st = new SQLStatement();
+			table.encodeKeySQLStatement(st, key);
+			var sql = "SELECT * FROM " + name + " WHERE " + buildKeyWhere(st);
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(true);
+				try (var pre = conn.prepareStatement(sql)) {
+					setParams(pre, 1, st.params);
+					try (var rs = pre.executeQuery()) {
+						return rs.next();
+					}
+				}
+			} catch (SQLException e) {
+				Task.forceThrow(e);
+				return false; // never run here
+			} finally {
+				if (PerfCounter.ENABLE_PERF)
+					PerfCounter.instance.addRunInfo("MySQL.select", System.nanoTime() - timeBegin);
+			}
+		}
+
+		@Override
 		public void replace(Transaction t, Object key, Object value) {
 			if (dropped)
 				return;
@@ -750,7 +782,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback) {
-			return walk(table, callback, ""); // 正序
+			return walk(table, callback, buildOrder(table)); // 正序
 		}
 
 		@Override
@@ -762,7 +794,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walkKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback) {
-			return walkKey(table, callback, ""); // 正序
+			return walkKey(table, callback, buildOrder(table)); // 正序
 		}
 
 		@Override
@@ -832,7 +864,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) {
-			return walk(table, exclusiveStartKey, proposeLimit, callback, "");
+			return walk(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table));
 		}
 
 		@Override
@@ -845,7 +877,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
-			return walkKey(table, exclusiveStartKey, proposeLimit, callback, "");
+			return walkKey(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table));
 		}
 
 		@Override
@@ -911,7 +943,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback) {
-			return walkDatabase(table, callback, "");
+			return walkDatabase(table, callback, buildOrder(table));
 		}
 
 		@Override
@@ -923,7 +955,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback) {
-			return walkDatabaseKey(table, callback, "");
+			return walkDatabaseKey(table, callback, buildOrder(table));
 		}
 
 		@Override
@@ -1002,7 +1034,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public <K extends Comparable<K>, V extends Bean>
 		K walkDatabase(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 					   @NotNull TableWalkHandle<K, V> callback) {
-			return walkDatabase(table, exclusiveStartKey, proposeLimit, callback, "");
+			return walkDatabase(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table));
 		}
 
 		@Override
@@ -1016,7 +1048,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public <K extends Comparable<K>, V extends Bean>
 		K walkDatabaseKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 						  @NotNull TableWalkKey<K> callback) {
-			return walkDatabaseKey(table, exclusiveStartKey, proposeLimit, callback, "");
+			return walkDatabaseKey(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table));
 		}
 
 		@Override
@@ -1197,7 +1229,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 
 				String sql = "SELECT id,value FROM " + name;
-				if (!asc)
+				if (asc)
+					sql += " ORDER BY id";
+				else
 					sql += " ORDER BY id DESC";
 				try (var cmd = connection.prepareStatement(sql)) {
 					long count = 0;
@@ -1227,7 +1261,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 
 				String sql = "SELECT id FROM " + name;
-				if (!asc)
+				if (asc)
+					sql += " ORDER BY id";
+				else
 					sql += " ORDER BY id DESC";
 				try (var cmd = connection.prepareStatement(sql)) {
 					long count = 0;
@@ -1257,7 +1293,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 
 				String sql = "SELECT id,value FROM " + name
-						+ (exclusiveStartKey != null ? " WHERE id > ?" : "") + " LIMIT ?";
+						+ (exclusiveStartKey != null ? " WHERE id > ?" : "") + " ORDER BY id LIMIT ?";
 				try (var cmd = connection.prepareStatement(sql)) {
 					var index = 1;
 					if (exclusiveStartKey != null)
@@ -1288,7 +1324,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 
 				String sql = "SELECT id FROM " + name
-						+ (exclusiveStartKey != null ? " WHERE id > ?" : "") + " LIMIT ?";
+						+ (exclusiveStartKey != null ? " WHERE id > ?" : "") + " ORDER BY id LIMIT ?";
 				try (var cmd = connection.prepareStatement(sql)) {
 					var index = 1;
 					if (exclusiveStartKey != null)

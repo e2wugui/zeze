@@ -217,6 +217,8 @@ public abstract class Database {
 		// TableX类型下沉到这里，准备添加关系表映射。
 		<K extends Comparable<K>, V extends Bean> @Nullable V find(@NotNull TableX<K, V> table, @NotNull Object key);
 
+		<K extends Comparable<K>, V extends Bean> boolean containsKey(@NotNull TableX<K, V> table, @NotNull Object key);
+
 		// 这里的key，value具体含义由Table实现解释。
 		// 对于KV表，key,value都是ByteBuffer类型。
 		// 对于关系表，key,value是SQLStatement类型。
@@ -327,7 +329,7 @@ public abstract class Database {
 											   @NotNull TableWalkKeyRaw callback);
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> V find(TableX<K, V> table, Object key) {
+		public <K extends Comparable<K>, V extends Bean> V find(@NotNull TableX<K, V> table, @NotNull Object key) {
 			var bbKey = table.encodeKey(key);
 			var bbValue = find(bbKey);
 			if (bbValue == null)
@@ -338,12 +340,18 @@ public abstract class Database {
 		}
 
 		@Override
-		public void replace(Transaction t, Object key, Object value) {
+		public <K extends Comparable<K>, V extends Bean> boolean containsKey(@NotNull TableX<K, V> table,
+																			 @NotNull Object key) {
+			return find(table.encodeKey(key)) != null;
+		}
+
+		@Override
+		public void replace(@NotNull Transaction t, @NotNull Object key, @NotNull Object value) {
 			replace(t, (ByteBuffer)key, (ByteBuffer)value);
 		}
 
 		@Override
-		public void remove(Transaction t, Object key) {
+		public void remove(@NotNull Transaction t, @NotNull Object key) {
 			remove(t, (ByteBuffer)key);
 		}
 
@@ -380,7 +388,7 @@ public abstract class Database {
 				try {
 					if (r.getState() == StateShare || r.getState() == StateModify) {
 						// 拥有正确的状态：
-						if (r.getValue() == null)
+						if (!r.containsValue())
 							return true; // 已经被删除，但是还没有checkpoint的记录看不到。返回true，继续循环。
 					}
 				} finally {
