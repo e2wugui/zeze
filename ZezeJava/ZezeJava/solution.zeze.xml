@@ -861,18 +861,20 @@
 				<protocol name="TaskRemoved" argument="BTaskId" handle="client"/>
 				<protocol name="TaskChanged" argument="BTaskDescription" handle="client"/>
 				
-				<bean name="BTaskConfig">
-					<variable id="1" name="PreposeTasks"  type="set[int]"/>
-					<variable id="2" name="FollowTasks"  type="set[int]"/>
-					<variable id="3" name="AcceptNpc"  type="int"/>
-					<variable id="4" name="FinishNpc"  type="int"/>
-					<variable id="5" name="CustomData"  type="dynamic">
+				<bean name="BTaskConfig" UseData="true">
+					<variable id="1" name="TaskId"  type="int"/>
+					<variable id="2" name="PreposeTasks"  type="set[int]"/> 前置任务
+					<variable id="3" name="FollowTasks"  type="set[int]"/> 后续任务
+					<variable id="4" name="AcceptNpc"  type="int"/> 接受任务的NpcId
+					<variable id="5" name="FinishNpc"  type="int"/> 完成任务的NpcId
+					<variable id="6" name="ExtendData"  type="dynamic"> 任务自定义属性
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskModule::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskModule::createBeanFromSpecialTypeId"/>
 						<CreateDataFromSpecialTypeId value="Zeze.Game.TaskModule::createDataFromSpecialTypeId"/>
 					</variable>
+					<variable id="7" name="TaskConditions" type="BTask"/> 任务条件
 				</bean>
-				
+
 				<enum name="eTaskAccepted" value="0"/> 任务接受时的初始状态
 				<enum name="eTaskDone" value="1"/> 任务完成状态
 				<enum name="eTaskCompleted" value="2"/> 任务结束状态（已经发换奖励）

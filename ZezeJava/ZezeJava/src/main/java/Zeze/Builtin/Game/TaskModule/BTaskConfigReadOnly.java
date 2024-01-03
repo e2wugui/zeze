@@ -7,9 +7,11 @@ public interface BTaskConfigReadOnly {
     boolean negativeCheck();
     BTaskConfig copy();
 
+    int getTaskId();
     Zeze.Transaction.Collections.PSet1ReadOnly<Integer> getPreposeTasksReadOnly();
     Zeze.Transaction.Collections.PSet1ReadOnly<Integer> getFollowTasksReadOnly();
     int getAcceptNpc();
     int getFinishNpc();
-    Zeze.Transaction.DynamicBeanReadOnly getCustomDataReadOnly();
+    Zeze.Transaction.DynamicBeanReadOnly getExtendDataReadOnly();
+    Zeze.Builtin.Game.TaskModule.BTaskReadOnly getTaskConditionsReadOnly();
 }

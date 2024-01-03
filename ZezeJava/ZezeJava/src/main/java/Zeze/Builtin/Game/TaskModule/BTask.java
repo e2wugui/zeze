@@ -171,6 +171,40 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         _unknown_ = null;
     }
 
+    @Override
+    public Zeze.Builtin.Game.TaskModule.BTask.Data toData() {
+        var data = new Zeze.Builtin.Game.TaskModule.BTask.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Game.TaskModule.BTask.Data)other);
+    }
+
+    public void assign(BTask.Data other) {
+        setTaskId(other._TaskId);
+        _Phases.clear();
+        for (var e : other._Phases) {
+            Zeze.Builtin.Game.TaskModule.BPhase data = new Zeze.Builtin.Game.TaskModule.BPhase();
+            data.assign(e);
+            _Phases.add(data);
+        }
+        _Conditions.clear();
+        for (var e : other._Conditions) {
+            Zeze.Builtin.Game.TaskModule.BCondition data = new Zeze.Builtin.Game.TaskModule.BCondition();
+            data.assign(e);
+            _Conditions.add(data);
+        }
+        _IndexSet.clear();
+        _IndexSet.addAll(other._IndexSet);
+        setTaskState(other._TaskState);
+        setAutoCompleted(other._AutoCompleted);
+        setRewardId(other._RewardId);
+        _unknown_ = null;
+    }
+
     public void assign(BTask other) {
         setTaskId(other.getTaskId());
         _Phases.clear();
@@ -539,4 +573,385 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "RewardId", "int", "", ""));
         return vars;
     }
+
+@SuppressWarnings("ForLoopReplaceableByForEach")
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = 4718982452353518468L;
+
+    private int _TaskId;
+    private java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BPhase.Data> _Phases;
+    private java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> _Conditions;
+    private java.util.HashSet<Integer> _IndexSet;
+    private int _TaskState;
+    private boolean _AutoCompleted;
+    private int _RewardId;
+
+    public int getTaskId() {
+        return _TaskId;
+    }
+
+    public void setTaskId(int value) {
+        _TaskId = value;
+    }
+
+    public java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BPhase.Data> getPhases() {
+        return _Phases;
+    }
+
+    public void setPhases(java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BPhase.Data> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Phases = value;
+    }
+
+    public java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> getConditions() {
+        return _Conditions;
+    }
+
+    public void setConditions(java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Conditions = value;
+    }
+
+    public java.util.HashSet<Integer> getIndexSet() {
+        return _IndexSet;
+    }
+
+    public void setIndexSet(java.util.HashSet<Integer> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _IndexSet = value;
+    }
+
+    public int getTaskState() {
+        return _TaskState;
+    }
+
+    public void setTaskState(int value) {
+        _TaskState = value;
+    }
+
+    public boolean isAutoCompleted() {
+        return _AutoCompleted;
+    }
+
+    public void setAutoCompleted(boolean value) {
+        _AutoCompleted = value;
+    }
+
+    public int getRewardId() {
+        return _RewardId;
+    }
+
+    public void setRewardId(int value) {
+        _RewardId = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _Phases = new java.util.ArrayList<>();
+        _Conditions = new java.util.ArrayList<>();
+        _IndexSet = new java.util.HashSet<>();
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(int _TaskId_, java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BPhase.Data> _Phases_, java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> _Conditions_, java.util.HashSet<Integer> _IndexSet_, int _TaskState_, boolean _AutoCompleted_, int _RewardId_) {
+        _TaskId = _TaskId_;
+        if (_Phases_ == null)
+            _Phases_ = new java.util.ArrayList<>();
+        _Phases = _Phases_;
+        if (_Conditions_ == null)
+            _Conditions_ = new java.util.ArrayList<>();
+        _Conditions = _Conditions_;
+        if (_IndexSet_ == null)
+            _IndexSet_ = new java.util.HashSet<>();
+        _IndexSet = _IndexSet_;
+        _TaskState = _TaskState_;
+        _AutoCompleted = _AutoCompleted_;
+        _RewardId = _RewardId_;
+    }
+
+    @Override
+    public void reset() {
+        _TaskId = 0;
+        _Phases.clear();
+        _Conditions.clear();
+        _IndexSet.clear();
+        _TaskState = 0;
+        _AutoCompleted = false;
+        _RewardId = 0;
+    }
+
+    @Override
+    public Zeze.Builtin.Game.TaskModule.BTask toBean() {
+        var bean = new Zeze.Builtin.Game.TaskModule.BTask();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BTask)other);
+    }
+
+    public void assign(BTask other) {
+        _TaskId = other.getTaskId();
+        _Phases.clear();
+        for (var e : other._Phases) {
+            Zeze.Builtin.Game.TaskModule.BPhase.Data data = new Zeze.Builtin.Game.TaskModule.BPhase.Data();
+            data.assign(e);
+            _Phases.add(data);
+        }
+        _Conditions.clear();
+        for (var e : other._Conditions) {
+            Zeze.Builtin.Game.TaskModule.BCondition.Data data = new Zeze.Builtin.Game.TaskModule.BCondition.Data();
+            data.assign(e);
+            _Conditions.add(data);
+        }
+        _IndexSet.clear();
+        _IndexSet.addAll(other._IndexSet);
+        _TaskState = other.getTaskState();
+        _AutoCompleted = other.isAutoCompleted();
+        _RewardId = other.getRewardId();
+    }
+
+    public void assign(BTask.Data other) {
+        _TaskId = other._TaskId;
+        _Phases.clear();
+        for (var e : other._Phases)
+            _Phases.add(e.copy());
+        _Conditions.clear();
+        for (var e : other._Conditions)
+            _Conditions.add(e.copy());
+        _IndexSet.clear();
+        _IndexSet.addAll(other._IndexSet);
+        _TaskState = other._TaskState;
+        _AutoCompleted = other._AutoCompleted;
+        _RewardId = other._RewardId;
+    }
+
+    @Override
+    public BTask.Data copy() {
+        var copy = new BTask.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BTask.Data a, BTask.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BTask.Data clone() {
+        return (BTask.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskModule.BTask: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskId=").append(_TaskId).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Phases=[");
+        if (!_Phases.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _Phases) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
+                _item_.buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append(']').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Conditions=[");
+        if (!_Conditions.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _Conditions) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
+                _item_.buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append(']').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("IndexSet={");
+        if (!_IndexSet.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _IndexSet) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskState=").append(_TaskState).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("AutoCompleted=").append(_AutoCompleted).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("RewardId=").append(_RewardId).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            int _x_ = _TaskId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            var _x_ = _Phases;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.BEAN);
+                for (int _j_ = 0, _c_ = _x_.size(); _j_ < _c_; _j_++) {
+                    var _v_ = _x_.get(_j_);
+                    _v_.encode(_o_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        {
+            var _x_ = _Conditions;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.BEAN);
+                for (int _j_ = 0, _c_ = _x_.size(); _j_ < _c_; _j_++) {
+                    var _v_ = _x_.get(_j_);
+                    _v_.encode(_o_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        {
+            var _x_ = _IndexSet;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_) {
+                    _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        {
+            int _x_ = _TaskState;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            boolean _x_ = _AutoCompleted;
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
+        {
+            int _x_ = _RewardId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(IByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _TaskId = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            var _x_ = _Phases;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.Game.TaskModule.BPhase.Data(), _t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            var _x_ = _Conditions;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.Game.TaskModule.BCondition.Data(), _t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            var _x_ = _IndexSet;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadInt(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            _TaskState = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 6) {
+            _AutoCompleted = _o_.ReadBool(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            _RewardId = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

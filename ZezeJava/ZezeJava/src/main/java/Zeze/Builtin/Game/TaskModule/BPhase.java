@@ -44,6 +44,30 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
         _unknown_ = null;
     }
 
+    @Override
+    public Zeze.Builtin.Game.TaskModule.BPhase.Data toData() {
+        var data = new Zeze.Builtin.Game.TaskModule.BPhase.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Game.TaskModule.BPhase.Data)other);
+    }
+
+    public void assign(BPhase.Data other) {
+        _Conditions.clear();
+        for (var e : other._Conditions) {
+            Zeze.Builtin.Game.TaskModule.BCondition data = new Zeze.Builtin.Game.TaskModule.BCondition();
+            data.assign(e);
+            _Conditions.add(data);
+        }
+        _IndexSet.clear();
+        _IndexSet.addAll(other._IndexSet);
+        _unknown_ = null;
+    }
+
     public void assign(BPhase other) {
         _Conditions.clear();
         for (var e : other._Conditions)
@@ -260,4 +284,222 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "IndexSet", "set", "", "int"));
         return vars;
     }
+
+@SuppressWarnings("ForLoopReplaceableByForEach")
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = -4991109539831580788L;
+
+    private java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> _Conditions;
+    private java.util.HashSet<Integer> _IndexSet;
+
+    public java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> getConditions() {
+        return _Conditions;
+    }
+
+    public void setConditions(java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Conditions = value;
+    }
+
+    public java.util.HashSet<Integer> getIndexSet() {
+        return _IndexSet;
+    }
+
+    public void setIndexSet(java.util.HashSet<Integer> value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _IndexSet = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _Conditions = new java.util.ArrayList<>();
+        _IndexSet = new java.util.HashSet<>();
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> _Conditions_, java.util.HashSet<Integer> _IndexSet_) {
+        if (_Conditions_ == null)
+            _Conditions_ = new java.util.ArrayList<>();
+        _Conditions = _Conditions_;
+        if (_IndexSet_ == null)
+            _IndexSet_ = new java.util.HashSet<>();
+        _IndexSet = _IndexSet_;
+    }
+
+    @Override
+    public void reset() {
+        _Conditions.clear();
+        _IndexSet.clear();
+    }
+
+    @Override
+    public Zeze.Builtin.Game.TaskModule.BPhase toBean() {
+        var bean = new Zeze.Builtin.Game.TaskModule.BPhase();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BPhase)other);
+    }
+
+    public void assign(BPhase other) {
+        _Conditions.clear();
+        for (var e : other._Conditions) {
+            Zeze.Builtin.Game.TaskModule.BCondition.Data data = new Zeze.Builtin.Game.TaskModule.BCondition.Data();
+            data.assign(e);
+            _Conditions.add(data);
+        }
+        _IndexSet.clear();
+        _IndexSet.addAll(other._IndexSet);
+    }
+
+    public void assign(BPhase.Data other) {
+        _Conditions.clear();
+        for (var e : other._Conditions)
+            _Conditions.add(e.copy());
+        _IndexSet.clear();
+        _IndexSet.addAll(other._IndexSet);
+    }
+
+    @Override
+    public BPhase.Data copy() {
+        var copy = new BPhase.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BPhase.Data a, BPhase.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BPhase.Data clone() {
+        return (BPhase.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskModule.BPhase: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("Conditions=[");
+        if (!_Conditions.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _Conditions) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
+                _item_.buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append(']').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("IndexSet={");
+        if (!_IndexSet.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _IndexSet) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append('}').append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            var _x_ = _Conditions;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.BEAN);
+                for (int _j_ = 0, _c_ = _x_.size(); _j_ < _c_; _j_++) {
+                    var _v_ = _x_.get(_j_);
+                    _v_.encode(_o_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        {
+            var _x_ = _IndexSet;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_) {
+                    _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(IByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            var _x_ = _Conditions;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.Game.TaskModule.BCondition.Data(), _t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            var _x_ = _IndexSet;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadInt(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

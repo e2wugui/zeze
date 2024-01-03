@@ -24,6 +24,12 @@ public interface Condition extends Serializable {
 		return c;
 	}
 
+	static Condition construct(BCondition.Data bean) throws Exception {
+		var c = construct(bean.getClassName());
+		c.decode(ByteBuffer.Wrap(bean.getParameter()));
+		return c;
+	}
+
 	static Condition construct(String className) throws Exception {
 		return (Condition)Class.forName(className).getConstructor().newInstance();
 	}

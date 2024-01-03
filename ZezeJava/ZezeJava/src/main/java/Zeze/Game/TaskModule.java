@@ -62,6 +62,10 @@ public class TaskModule extends AbstractTaskModule {
 		return bean.typeId();
 	}
 
+	public static long getSpecialTypeIdFromBean(Data bean) {
+		return bean.typeId();
+	}
+
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static Bean createBeanFromSpecialTypeId(long typeId) {

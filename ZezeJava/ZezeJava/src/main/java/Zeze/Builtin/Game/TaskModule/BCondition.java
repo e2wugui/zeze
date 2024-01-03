@@ -78,6 +78,24 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         _unknown_ = null;
     }
 
+    @Override
+    public Zeze.Builtin.Game.TaskModule.BCondition.Data toData() {
+        var data = new Zeze.Builtin.Game.TaskModule.BCondition.Data();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Game.TaskModule.BCondition.Data)other);
+    }
+
+    public void assign(BCondition.Data other) {
+        setClassName(other._ClassName);
+        setParameter(other._Parameter);
+        _unknown_ = null;
+    }
+
     public void assign(BCondition other) {
         setClassName(other.getClassName());
         setParameter(other.getParameter());
@@ -240,4 +258,164 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Parameter", "binary", "", ""));
         return vars;
     }
+
+@SuppressWarnings("ForLoopReplaceableByForEach")
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = -6038954901559182436L;
+
+    private String _ClassName;
+    private Zeze.Net.Binary _Parameter;
+
+    public String getClassName() {
+        return _ClassName;
+    }
+
+    public void setClassName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _ClassName = value;
+    }
+
+    public Zeze.Net.Binary getParameter() {
+        return _Parameter;
+    }
+
+    public void setParameter(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Parameter = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _ClassName = "";
+        _Parameter = Zeze.Net.Binary.Empty;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(String _ClassName_, Zeze.Net.Binary _Parameter_) {
+        if (_ClassName_ == null)
+            _ClassName_ = "";
+        _ClassName = _ClassName_;
+        if (_Parameter_ == null)
+            _Parameter_ = Zeze.Net.Binary.Empty;
+        _Parameter = _Parameter_;
+    }
+
+    @Override
+    public void reset() {
+        _ClassName = "";
+        _Parameter = Zeze.Net.Binary.Empty;
+    }
+
+    @Override
+    public Zeze.Builtin.Game.TaskModule.BCondition toBean() {
+        var bean = new Zeze.Builtin.Game.TaskModule.BCondition();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BCondition)other);
+    }
+
+    public void assign(BCondition other) {
+        _ClassName = other.getClassName();
+        _Parameter = other.getParameter();
+    }
+
+    public void assign(BCondition.Data other) {
+        _ClassName = other._ClassName;
+        _Parameter = other._Parameter;
+    }
+
+    @Override
+    public BCondition.Data copy() {
+        var copy = new BCondition.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BCondition.Data a, BCondition.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public BCondition.Data clone() {
+        return (BCondition.Data)super.clone();
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskModule.BCondition: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ClassName=").append(_ClassName).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Parameter=").append(_Parameter).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            String _x_ = _ClassName;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            var _x_ = _Parameter;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(IByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            _ClassName = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _Parameter = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }
