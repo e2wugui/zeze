@@ -150,6 +150,13 @@ public class HttpExchange {
 		return buf;
 	}
 
+	public void releaseContent() {
+		if (content != Unpooled.EMPTY_BUFFER) {
+			content.release();
+			content = Unpooled.EMPTY_BUFFER;
+		}
+	}
+
 	public @NotNull HttpPostMultipartRequestDecoder contentMultipart() {
 		var req = request;
 		if (req == null)
@@ -564,10 +571,7 @@ public class HttpExchange {
 				Task.forceThrow(e);
 			}
 		}
-		if (content != Unpooled.EMPTY_BUFFER) {
-			content.release();
-			content = Unpooled.EMPTY_BUFFER;
-		}
+		releaseContent();
 		if (request != null) {
 			ReferenceCountUtil.release(request);
 			request = null;
