@@ -3,7 +3,6 @@ ConfigEditor 自动完成: Foreign；自动id，Load 的时候记录maxid，以�
 ConfigEditor 更多自动完成？普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
 ConfigEditor enum 现在不支持引用在其他文档定义的，有需要了再来加。
 DatabaseTikv.OperatesTikv
-Task
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 c# fresh 有bug？
@@ -29,8 +28,10 @@ Zege Task
 Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot alter 测试，需要mysql。
 ------------------------------------------------------------------------------------------------------------------------------
-2024/1/5 v1.3.9 Log4jQuery; Token; Dbh2.Operates; World; Astar.ScanNodes.maxScanNodes;
+2024/1/5 v1.3.9 Log4jQuery; Token; Dbh2.Operates; World; Astar.ScanNodes.maxScanNodes; Task & Reward; Database.Walk
 ------------------------------------------------------------------------------------------------------------------------------
+Task & Reward 通用任务系统，包括奖励。
+Database.Walk BUG 修复在soft被清除时没有装载的问题。
 Astar.ScanNodes.maxScanNodes 限制。每次搜索创建结构来用。不共享Astar,ScanNodes变量。
 World.ResourceMap2d, HugeMappedFile
 Dbh2.Operates 实现完成。实现方式为，Master.Rpc服务。

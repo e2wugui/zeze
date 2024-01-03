@@ -56,6 +56,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		var v = getSoftValue();
 		if (v != null) {
 			var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), key));
+			// 注意：这个在fairLock里执行，而原则上为了避免死锁，锁的策略是先加lockey，再加fairLock，
+			// 这里由于用的try，所以虽然违背了原则，但也不会死锁。
 			if (lockey.tryEnterReadLock(0)) {
 				try {
 					@SuppressWarnings("unchecked")

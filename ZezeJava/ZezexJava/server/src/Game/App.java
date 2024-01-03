@@ -2,7 +2,6 @@ package Game;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
@@ -15,7 +14,6 @@ import Zeze.Component.TimerHandle;
 import Zeze.Config;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderWithOnline;
-import Zeze.Game.TaskBase;
 import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.JsonReader;
@@ -109,7 +107,6 @@ public final class App extends Zeze.AppBase {
 			System.out.println("New Source File Has Generate. Re-Compile Need.");
 			System.exit(0);
 		}
-		taskModule = new TaskBase.Module(getZeze());
 		LinkedMapModule = new LinkedMap.Module(Zeze);
 		DepartmentTreeModule = new DepartmentTree.Module(Zeze, LinkedMapModule);
 
@@ -182,8 +179,6 @@ public final class App extends Zeze.AppBase {
 		destroyServices();
 		destroyZeze();
 	}
-
-	public TaskBase.Module taskModule;
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
     public Zeze.Application Zeze;
