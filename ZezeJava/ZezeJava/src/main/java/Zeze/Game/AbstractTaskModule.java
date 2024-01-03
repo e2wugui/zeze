@@ -12,9 +12,37 @@ public abstract class AbstractTaskModule implements Zeze.IModule {
     @Override public boolean isBuiltin() { return true; }
 
     public void RegisterProtocols(Zeze.Net.Service service) {
+        var _reflect = new Zeze.Util.Reflect(getClass());
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.TaskModule.Abandon.class, Zeze.Builtin.Game.TaskModule.Abandon.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Game.TaskModule.Abandon::new;
+            factoryHandle.Handle = this::ProcessAbandonRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAbandonRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAbandonRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47322741362506L, factoryHandle); // 11018, 791695178
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.TaskModule.Accept.class, Zeze.Builtin.Game.TaskModule.Accept.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Game.TaskModule.Accept::new;
+            factoryHandle.Handle = this::ProcessAcceptRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAcceptRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAcceptRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47322259291035L, factoryHandle); // 11018, 309623707
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.TaskModule.Finish.class, Zeze.Builtin.Game.TaskModule.Finish.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Game.TaskModule.Finish::new;
+            factoryHandle.Handle = this::ProcessFinishRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessFinishRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessFinishRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47324807161935L, factoryHandle); // 11018, -1437472689
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47322741362506L);
+        service.getFactorys().remove(47322259291035L);
+        service.getFactorys().remove(47324807161935L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -25,4 +53,8 @@ public abstract class AbstractTaskModule implements Zeze.IModule {
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
+
+    protected abstract long ProcessAbandonRequest(Zeze.Builtin.Game.TaskModule.Abandon r) throws Exception;
+    protected abstract long ProcessAcceptRequest(Zeze.Builtin.Game.TaskModule.Accept r) throws Exception;
+    protected abstract long ProcessFinishRequest(Zeze.Builtin.Game.TaskModule.Finish r) throws Exception;
 }

@@ -838,6 +838,39 @@
 			</module> Rank 11015
 
 			<module name="TaskModule" id="11018">
+				<bean name="BTaskId">
+					<variable id="1" name="TaskId"  type="int"/>
+				</bean>
+				
+				<rpc name="Accept" argument="BTaskId" handle="server"/>
+				<rpc name="Finish" argument="BTaskId" handle="server"/>
+				<rpc name="Abandon" argument="BTaskId" handle="server"/>
+				
+				<bean name="BTaskConfig">
+					<variable id="1" name="PreposeTasks"  type="set[int]"/>
+					<variable id="2" name="FollowTasks"  type="set[int]"/>
+					<variable id="3" name="AcceptNpc"  type="int"/>
+					<variable id="4" name="FinishNpc"  type="int"/>
+					<variable id="5" name="CustomData"  type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskModule::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskModule::createBeanFromSpecialTypeId"/>
+						<CreateDataFromSpecialTypeId value="Zeze.Game.TaskModule::createDataFromSpecialTypeId"/>
+					</variable>
+				</bean>
+				
+				<bean name="BTask">
+					<variable id="1" name="Phases"  type="list[BPhase]"/>
+				</bean>
+
+				<bean name="BPhase">
+					<variable id="1" name="Conditions"  type="list[BCondition]"/>
+				</bean>
+
+				<bean name="BCondition">
+					<variable id="1" name="ClassName"  type="string"/>
+					<variable id="2" name="Parameter"  type="binary"/>
+				</bean>
+
 			</module> TaskModule
 
 		</module> Game
