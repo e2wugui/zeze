@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.TaskModule;
 
+// 这里分解成Accepted等明确操作更灵活，但这样应该足够了。
 public class TaskChanged extends Zeze.Net.Protocol<Zeze.Builtin.Game.TaskModule.BTaskDescription> {
     public static final int ModuleId_ = 11018;
     public static final int ProtocolId_ = -116392023; // 4178575273

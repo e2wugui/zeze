@@ -10,6 +10,7 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
 
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.TaskModule.BCondition> _Conditions;
     private final Zeze.Transaction.Collections.PSet1<Integer> _IndexSet;
+    private String _Description;
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.TaskModule.BCondition> getConditions() {
         return _Conditions;
@@ -29,18 +30,53 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
         return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_IndexSet);
     }
 
+    @Override
+    public String getDescription() {
+        if (!isManaged())
+            return _Description;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Description;
+        var log = (Log__Description)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Description;
+    }
+
+    public void setDescription(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Description = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Description(this, 3, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BPhase() {
         _Conditions = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.TaskModule.BCondition.class);
         _Conditions.variableId(1);
         _IndexSet = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
         _IndexSet.variableId(2);
+        _Description = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BPhase(String _Description_) {
+        _Conditions = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.TaskModule.BCondition.class);
+        _Conditions.variableId(1);
+        _IndexSet = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
+        _IndexSet.variableId(2);
+        if (_Description_ == null)
+            _Description_ = "";
+        _Description = _Description_;
     }
 
     @Override
     public void reset() {
         _Conditions.clear();
         _IndexSet.clear();
+        setDescription("");
         _unknown_ = null;
     }
 
@@ -65,6 +101,7 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
         }
         _IndexSet.clear();
         _IndexSet.addAll(other._IndexSet);
+        setDescription(other._Description);
         _unknown_ = null;
     }
 
@@ -74,6 +111,7 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
             _Conditions.add(e.copy());
         _IndexSet.clear();
         _IndexSet.addAll(other._IndexSet);
+        setDescription(other.getDescription());
         _unknown_ = other._unknown_;
     }
 
@@ -97,6 +135,13 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
     @Override
     public long typeId() {
         return TYPEID;
+    }
+
+    private static final class Log__Description extends Zeze.Transaction.Logs.LogString {
+        public Log__Description(BPhase bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BPhase)getBelong())._Description = value; }
     }
 
     @Override
@@ -133,7 +178,8 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append('}').append(System.lineSeparator());
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Description=").append(getDescription()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -194,6 +240,13 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        {
+            String _x_ = getDescription();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -221,6 +274,10 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
                     _x_.add(_o_.ReadInt(_t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setDescription(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -259,6 +316,7 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
             switch (vlog.getVariableId()) {
                 case 1: _Conditions.followerApply(vlog); break;
                 case 2: _IndexSet.followerApply(vlog); break;
+                case 3: _Description = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }
@@ -268,6 +326,9 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         Zeze.Serialize.Helper.decodeJsonList(_Conditions, Zeze.Builtin.Game.TaskModule.BCondition.class, rs.getString(_parents_name_ + "Conditions"));
         Zeze.Serialize.Helper.decodeJsonSet(_IndexSet, Integer.class, rs.getString(_parents_name_ + "IndexSet"));
+        setDescription(rs.getString(_parents_name_ + "Description"));
+        if (getDescription() == null)
+            setDescription("");
     }
 
     @Override
@@ -275,6 +336,7 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Conditions", Zeze.Serialize.Helper.encodeJson(_Conditions));
         st.appendString(_parents_name_ + "IndexSet", Zeze.Serialize.Helper.encodeJson(_IndexSet));
+        st.appendString(_parents_name_ + "Description", getDescription());
     }
 
     @Override
@@ -282,6 +344,7 @@ public final class BPhase extends Zeze.Transaction.Bean implements BPhaseReadOnl
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Conditions", "list", "", "BCondition"));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "IndexSet", "set", "", "int"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Description", "string", "", ""));
         return vars;
     }
 
@@ -291,6 +354,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> _Conditions;
     private java.util.HashSet<Integer> _IndexSet;
+    private String _Description;
 
     public java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> getConditions() {
         return _Conditions;
@@ -312,26 +376,41 @@ public static final class Data extends Zeze.Transaction.Data {
         _IndexSet = value;
     }
 
+    public String getDescription() {
+        return _Description;
+    }
+
+    public void setDescription(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Description = value;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _Conditions = new java.util.ArrayList<>();
         _IndexSet = new java.util.HashSet<>();
+        _Description = "";
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> _Conditions_, java.util.HashSet<Integer> _IndexSet_) {
+    public Data(java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> _Conditions_, java.util.HashSet<Integer> _IndexSet_, String _Description_) {
         if (_Conditions_ == null)
             _Conditions_ = new java.util.ArrayList<>();
         _Conditions = _Conditions_;
         if (_IndexSet_ == null)
             _IndexSet_ = new java.util.HashSet<>();
         _IndexSet = _IndexSet_;
+        if (_Description_ == null)
+            _Description_ = "";
+        _Description = _Description_;
     }
 
     @Override
     public void reset() {
         _Conditions.clear();
         _IndexSet.clear();
+        _Description = "";
     }
 
     @Override
@@ -355,6 +434,7 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         _IndexSet.clear();
         _IndexSet.addAll(other._IndexSet);
+        _Description = other.getDescription();
     }
 
     public void assign(BPhase.Data other) {
@@ -363,6 +443,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _Conditions.add(e.copy());
         _IndexSet.clear();
         _IndexSet.addAll(other._IndexSet);
+        _Description = other._Description;
     }
 
     @Override
@@ -422,7 +503,8 @@ public static final class Data extends Zeze.Transaction.Data {
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append('}').append(System.lineSeparator());
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Description=").append(_Description).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -469,6 +551,13 @@ public static final class Data extends Zeze.Transaction.Data {
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        {
+            String _x_ = _Description;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -494,6 +583,10 @@ public static final class Data extends Zeze.Transaction.Data {
                     _x_.add(_o_.ReadInt(_t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _Description = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

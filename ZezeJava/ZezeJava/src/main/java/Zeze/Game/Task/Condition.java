@@ -16,6 +16,8 @@ public interface Condition extends Serializable {
 	}
 
 	// 描述，用于客户端显示。
+	// 这是个json，用来详细表达ui需要的元素。
+	// 最简单的结构是：{ done: "true|false", des: "description" }
 	String getDescription();
 
 	static Condition construct(BCondition bean) throws Exception {

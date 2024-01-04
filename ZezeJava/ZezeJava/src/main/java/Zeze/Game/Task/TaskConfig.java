@@ -21,7 +21,7 @@ public class TaskConfig {
 
 	// 编辑中的直接条件和阶段（阶段中的条件）。
 	private final List<Condition> editingConditions = new ArrayList<>();
-	private final List<List<Condition>> editingPhases = new ArrayList<>();
+	private final List<PhaseConfig> editingPhases = new ArrayList<>();
 
 	public TaskConfig(BTaskConfig.Data data) throws Exception {
 		this.data = data;
@@ -30,10 +30,10 @@ public class TaskConfig {
 			editingConditions.add(Condition.construct(c));
 
 		for (var p : data.getTaskConditions().getPhases()) {
-			var ep = new ArrayList<Condition>();
+			var ep = new PhaseConfig(p.getDescription());
 			editingPhases.add(ep);
 			for (var c : p.getConditions())
-				ep.add(Condition.construct(c));
+				ep.getConditions().add(Condition.construct(c));
 		}
 	}
 
@@ -66,8 +66,8 @@ public class TaskConfig {
 		for (var editingPhase : editingPhases) {
 			var phase = new BPhase.Data();
 			// not need phase.getIndexSet().clear();
-			for (var i = 0; i < editingPhase.size(); ++i) {
-				var condition = toData(editingPhase.get(i));
+			for (var i = 0; i < editingPhase.getConditions().size(); ++i) {
+				var condition = toData(editingPhase.getConditions().get(i));
 				phase.getConditions().add(condition);
 				phase.getIndexSet().add(i);
 			}
@@ -120,7 +120,7 @@ public class TaskConfig {
 		return editingConditions;
 	}
 
-	public List<List<Condition>> getPhases() {
+	public List<PhaseConfig> getPhases() {
 		return editingPhases;
 	}
 }

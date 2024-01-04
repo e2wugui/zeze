@@ -849,17 +849,19 @@
 				<bean name="BTaskDescription">
 					<variable id="1" name="TaskId"  type="int"/>
 					<variable id="2" name="TaskState"  type="int"/>
-					<variable id="3" name="Conditions"  type="list[BCondition]"/> 保留全部状态，达到功能最大化。
-					<variable id="4" name="RewardId"  type="int"/> 调试目的，客户端未用。
-					<variable id="5" name="RewardType"  type="int"/>
-					<variable id="6" name="RewardParam"  type="binary"/>
+					<variable id="3" name="PhaseDescription"  type="string"/> 
+					<variable id="4" name="PhaseConditions"  type="list[string]"/>
+					<variable id="5" name="Conditions"  type="list[string]"/>
+					<variable id="6" name="RewardId"  type="int"/> 调试目的，客户端未用。
+					<variable id="7" name="RewardType"  type="int"/>
+					<variable id="8" name="RewardParam"  type="binary"/>
 				</bean>
 				<bean name="BGetRoleTasksResult">
 					<variable id="1" name="Tasks"  type="map[int, BTaskDescription]"/>
 				</bean>
 				<rpc name="GetRoleTasks" result="BGetRoleTasksResult" handle="server"/>
 				<protocol name="TaskRemoved" argument="BTaskId" handle="client"/>
-				<protocol name="TaskChanged" argument="BTaskDescription" handle="client"/>
+				<protocol name="TaskChanged" argument="BTaskDescription" handle="client"/> 这里分解成Accepted等明确操作更灵活，但这样应该足够了。
 				
 				<bean name="BTaskConfig" UseData="true">
 					<variable id="1" name="TaskId"  type="int"/>
@@ -898,6 +900,7 @@
 				<bean name="BPhase">
 					<variable id="1" name="Conditions"  type="list[BCondition]"/>
 					<variable id="2" name="IndexSet"  type="set[int]"/>
+					<variable id="3" name="Description"  type="string"/>
 				</bean>
 
 				<bean name="BCondition">

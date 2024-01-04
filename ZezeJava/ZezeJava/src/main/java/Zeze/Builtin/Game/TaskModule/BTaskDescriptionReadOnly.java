@@ -9,7 +9,9 @@ public interface BTaskDescriptionReadOnly {
 
     int getTaskId();
     int getTaskState();
-    Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Game.TaskModule.BCondition, Zeze.Builtin.Game.TaskModule.BConditionReadOnly> getConditionsReadOnly();
+    String getPhaseDescription();
+    Zeze.Transaction.Collections.PList1ReadOnly<String> getPhaseConditionsReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<String> getConditionsReadOnly();
     int getRewardId();
     int getRewardType();
     Zeze.Net.Binary getRewardParam();

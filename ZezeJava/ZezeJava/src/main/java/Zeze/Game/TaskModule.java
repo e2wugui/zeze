@@ -8,12 +8,23 @@ import Zeze.Builtin.Game.TaskModule.Finish;
 import Zeze.Builtin.Game.TaskModule.GetRoleTasks;
 import Zeze.Collections.BeanFactory;
 import Zeze.Game.Task.ConditionEvent;
+import Zeze.Game.Task.RewardConfig;
 import Zeze.Game.Task.TaskGraphics;
 import Zeze.Game.Task.TaskImpl;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 
 public class TaskModule extends AbstractTaskModule {
+	private final Online online;
+
+	public TaskModule(Online online) {
+		this.online = online;
+	}
+
+	public Online getOnline() {
+		return online;
+	}
+
 	// 玩家操作
 	@Override
 	protected long ProcessAbandonRequest(Abandon r) throws Exception {
@@ -49,9 +60,14 @@ public class TaskModule extends AbstractTaskModule {
 	}
 
 	private TaskGraphics taskGraphics;
+	private RewardConfig rewardConfig;
 
 	public TaskGraphics getTaskGraphics() {
 		return taskGraphics;
+	}
+
+	public RewardConfig getRewardConfig() {
+		return rewardConfig;
 	}
 
 	public BRoleTasks getRoleTasks(long roleId) {
