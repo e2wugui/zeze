@@ -253,8 +253,8 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		return handlers.get(path);
 	}
 
-	// 允许扩展HttpExchange类
-	public @NotNull HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
+	// 允许扩展HttpExchange类,返回null表示忽略处理(通常要回复状态并关闭连接). 使用恰当策略提前忽略可以避免同时接收太多请求数据导致OOM
+	public @Nullable HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
 		return new HttpExchange(this, context);
 	}
 
@@ -293,9 +293,11 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		try {
 			var channelId = ctx.channel().id();
 			HttpExchange x;
-			if (msg instanceof HttpRequest)
-				exchanges.put(channelId, x = createHttpExchange(ctx));
-			else if ((x = exchanges.get(channelId)) == null)
+			if (msg instanceof HttpRequest) {
+				if ((x = createHttpExchange(ctx)) == null)
+					return;
+				exchanges.put(channelId, x);
+			} else if ((x = exchanges.get(channelId)) == null)
 				return;
 			x.channelRead(msg);
 		} finally {

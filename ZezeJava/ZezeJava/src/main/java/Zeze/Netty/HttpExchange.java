@@ -150,6 +150,7 @@ public class HttpExchange {
 		return buf;
 	}
 
+	// 用于close前提前释放content数据,如果不再需要用的话
 	public void releaseContent() {
 		if (content != Unpooled.EMPTY_BUFFER) {
 			content.release();
