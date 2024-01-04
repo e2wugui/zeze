@@ -60,10 +60,14 @@ public class TaskModule extends AbstractTaskModule {
 	}
 
 	private TaskGraphics taskGraphics;
-	private RewardConfig rewardConfig;
+	private final RewardConfig rewardConfig = new RewardConfig();
 
 	public TaskGraphics getTaskGraphics() {
 		return taskGraphics;
+	}
+
+	public void setTaskGraphics(TaskGraphics taskGraphics) {
+		this.taskGraphics = taskGraphics;
 	}
 
 	public RewardConfig getRewardConfig() {

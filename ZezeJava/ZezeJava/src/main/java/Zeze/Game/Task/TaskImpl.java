@@ -85,7 +85,7 @@ public class TaskImpl {
 		for (var i = 0; i < conditons.size(); ++i) {
 			var bean = conditons.get(i);
 			var condition = Condition.construct(bean);
-			if (condition.getName().equals(event.getName()) && condition.accept(event)) {
+			if (condition.accept(event)) {
 				if (condition.isDone())
 					indexSet.remove(i);
 
