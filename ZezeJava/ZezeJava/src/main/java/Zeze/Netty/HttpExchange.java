@@ -253,7 +253,7 @@ public class HttpExchange {
 		return path.substring(i);
 	}
 
-	void channelRead(Object msg) throws Exception {
+	protected void channelRead(Object msg) throws Exception {
 		var channel = context.channel();
 		channel.attr(HttpServer.idleTimeKey).set(null);
 		if (msg instanceof HttpRequest) {
@@ -338,7 +338,7 @@ public class HttpExchange {
 	}
 
 	@SuppressWarnings("DataFlowIssue")
-	private void fireBeginStream() {
+	protected void fireBeginStream() {
 		if (handler == null)
 			return;
 		var r = parseRange(HttpHeaderNames.CONTENT_RANGE);
@@ -360,7 +360,7 @@ public class HttpExchange {
 		}
 	}
 
-	private void fireStreamContentHandle(@NotNull HttpContent c) {
+	protected void fireStreamContentHandle(@NotNull HttpContent c) {
 		var handle = handler != null ? handler.StreamContentHandle : null;
 		if (handle == null)
 			return;
@@ -400,7 +400,7 @@ public class HttpExchange {
 		return this;
 	}
 
-	private void invokeEndStream() throws Exception {
+	protected void invokeEndStream() throws Exception {
 		try {
 			var handle = handler != null ? handler.EndStreamHandle : null;
 			if (handle != null)
@@ -412,7 +412,7 @@ public class HttpExchange {
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	private void fireEndStreamHandle() {
+	protected void fireEndStreamHandle() {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			var p = server.zeze.newProcedure(() -> {
 				var handle = handler.EndStreamHandle;
@@ -445,7 +445,7 @@ public class HttpExchange {
 		}
 	}
 
-	private void fireWebSocket(@NotNull WebSocketFrame frame) {
+	protected void fireWebSocket(@NotNull WebSocketFrame frame) {
 		if (handler == null)
 			return;
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
@@ -488,7 +488,7 @@ public class HttpExchange {
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	private void fireWebSocket0(@NotNull WebSocketFrame frame) throws Exception {
+	protected void fireWebSocket0(@NotNull WebSocketFrame frame) throws Exception {
 		if (frame instanceof BinaryWebSocketFrame)
 			handler.WebSocketHandle.onBinary(this, frame.content());
 		else if (frame instanceof TextWebSocketFrame)
@@ -514,7 +514,7 @@ public class HttpExchange {
 	// 上传请求/下载回复: content-range: bytes from-to/size 范围是[from,to]
 	// 参考: https://www.jianshu.com/p/acca9656e250
 	// 返回: [from, to, size]
-	private long[] parseRange(@NotNull AsciiString headerName) {
+	protected long[] parseRange(@NotNull AsciiString headerName) {
 		var r = new long[]{-1, -1, -1};
 		//noinspection DataFlowIssue
 		var headers = request.headers();
@@ -545,7 +545,7 @@ public class HttpExchange {
 		return r;
 	}
 
-	private static long parse(@NotNull String s) {
+	protected static long parse(@NotNull String s) {
 		if (s.isEmpty())
 			return -1;
 		try {
@@ -555,11 +555,7 @@ public class HttpExchange {
 		}
 	}
 
-	void channelReadClosed() {
-		willCloseConnection = true;
-	}
-
-	private void closeInEventLoop() {
+	protected void closeInEventLoop() {
 		if (inStreamMode) {
 			inStreamMode = false;
 			try {
@@ -581,7 +577,7 @@ public class HttpExchange {
 			context.close();
 	}
 
-	void close(int method, @Nullable ChannelFuture cf) {
+	protected void close(int method, @Nullable ChannelFuture cf) {
 		if ((int)detachedHandle.getAndSet(this, 2) == 2)
 			return;
 		var ch = context.channel();

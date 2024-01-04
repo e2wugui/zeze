@@ -54,7 +54,7 @@ public class BloomFilter {
 	 * 当前实现参考自LevelDB,如果能提供更多hash值效果会更好一点.
 	 * addKey的算法要跟testKey保持一致.
 	 *
-	 * @param keyHash 传入的hash值越均匀越好
+	 * @param keyHash 传入的hash值越均匀越好(完整64位)
 	 */
 	public void addKey(long keyHash) {
 		long delta = Long.rotateRight(keyHash, 17);

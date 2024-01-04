@@ -319,7 +319,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 			Netty.logger.info("inputClose: {}", ctx.channel().remoteAddress());
 			var x = exchanges.get(ctx.channel().id());
 			if (x != null)
-				x.channelReadClosed();
+				x.willCloseConnection = true;
 			else
 				ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
 		}
