@@ -17,7 +17,6 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAKeyGenParameterSpec;
@@ -33,9 +32,7 @@ import sun.security.rsa.RSAUtil;
 import sun.security.util.DerValue;
 import sun.security.x509.AlgorithmId;
 import sun.security.x509.CertificateAlgorithmId;
-import sun.security.x509.CertificateIssuerName;
 import sun.security.x509.CertificateSerialNumber;
-import sun.security.x509.CertificateSubjectName;
 import sun.security.x509.CertificateValidity;
 import sun.security.x509.CertificateVersion;
 import sun.security.x509.CertificateX509Key;
@@ -205,31 +202,15 @@ public final class Cert {
 												  PrivateKey privateKeyForSign, int validDays)
 			throws GeneralSecurityException, IOException {
 		var certInfo = new X509CertInfo();
-		certInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
-		certInfo.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(new BigInteger(160, new SecureRandom())));
-		var owner = new X500Name("CN=" + ownerName);
-		try {
-			certInfo.set(X509CertInfo.SUBJECT, new CertificateSubjectName(owner));
-		} catch (CertificateException ignore) {
-			certInfo.set(X509CertInfo.SUBJECT, owner);
-		}
-		var issuer = new X500Name("CN=" + issuerName);
-		try {
-			certInfo.set(X509CertInfo.ISSUER, new CertificateIssuerName(issuer));
-		} catch (CertificateException ignore) {
-			certInfo.set(X509CertInfo.ISSUER, issuer);
-		}
+		certInfo.setVersion(new CertificateVersion(CertificateVersion.V3));
+		certInfo.setSerialNumber(new CertificateSerialNumber(new BigInteger(160, new SecureRandom())));
+		certInfo.setSubject(new X500Name("CN=" + ownerName));
+		certInfo.setIssuer(new X500Name("CN=" + issuerName));
 		var nowTime = System.currentTimeMillis();
-		var endTime = nowTime + validDays * 86400_000L;
-		certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(new Date(nowTime), new Date(endTime)));
-		certInfo.set(X509CertInfo.KEY, new CertificateX509Key(publicKey));
-		var algoId = AlgorithmId.get("1.2.840.113549.1.1.11"); // SHA256withRSA
-		certInfo.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(algoId));
-		certInfo.set(CertificateAlgorithmId.NAME + '.' + CertificateAlgorithmId.ALGORITHM, algoId);
-
-		var cert = new X509CertImpl(certInfo);
-		cert.sign(privateKeyForSign, "SHA256withRSA");
-		return cert;
+		certInfo.setValidity(new CertificateValidity(new Date(nowTime), new Date(nowTime + validDays * 86400_000L)));
+		certInfo.setKey(new CertificateX509Key(publicKey));
+		certInfo.setAlgorithmId(new CertificateAlgorithmId(new AlgorithmId(AlgorithmId.SHA256withRSA_oid)));
+		return X509CertImpl.newSigned(certInfo, privateKeyForSign, "SHA256withRSA");
 	}
 
 	// 为RSA公钥和私钥生成自签名的公钥证书并连同私钥保存到用密码加密的KeyStore输出流

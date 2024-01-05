@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 public class PerfByteBufferCapacity {
 	private static void cleanup() throws InterruptedException {
 		System.gc();
-		System.runFinalization();
+		// System.runFinalization();
 		Thread.sleep(1000);
 	}
 

@@ -41,10 +41,11 @@ public class TestLock extends TestCase {
 		k4 = null;
 		for (int i = 0; i < 10; ++i) {
 			System.gc();
-			System.runFinalization();
+			// System.runFinalization();
 			try {
 				Thread.sleep(200);
 			} catch (InterruptedException e) {
+				//noinspection CallToPrintStackTrace
 				e.printStackTrace();
 			}
 
