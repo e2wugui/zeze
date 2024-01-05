@@ -14,4 +14,5 @@ public interface BTaskConfigReadOnly {
     int getFinishNpc();
     Zeze.Transaction.DynamicBeanReadOnly getExtendDataReadOnly();
     Zeze.Builtin.Game.TaskModule.BTaskReadOnly getTaskConditionsReadOnly();
+    int getPreposeRequired();
 }

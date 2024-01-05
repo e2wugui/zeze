@@ -18,6 +18,7 @@ import java.util.List;
  */
 public class TaskConfig {
 	private final BTaskConfig.Data data;
+	private int originAcceptNpcId;
 
 	// 编辑中的直接条件和阶段（阶段中的条件）。
 	private final List<Condition> editingConditions = new ArrayList<>();
@@ -25,7 +26,7 @@ public class TaskConfig {
 
 	public TaskConfig(BTaskConfig.Data data) throws Exception {
 		this.data = data;
-
+		originAcceptNpcId = data.getAcceptNpc(); // 先保存记住
 		for (var c : data.getTaskConditions().getConditions())
 			editingConditions.add(Condition.construct(c));
 
@@ -35,6 +36,10 @@ public class TaskConfig {
 			for (var c : p.getConditions())
 				ep.getConditions().add(Condition.construct(c));
 		}
+	}
+
+	public int getOriginAcceptNpcId() {
+		return originAcceptNpcId;
 	}
 
 	public TaskConfig() {

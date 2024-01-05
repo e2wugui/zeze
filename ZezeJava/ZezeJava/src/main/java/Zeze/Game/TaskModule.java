@@ -1,24 +1,30 @@
 package Zeze.Game;
 
-import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Game.TaskModule.Abandon;
 import Zeze.Builtin.Game.TaskModule.Accept;
 import Zeze.Builtin.Game.TaskModule.BRoleTasks;
+import Zeze.Builtin.Game.TaskModule.BTaskConfig;
+import Zeze.Builtin.Game.TaskModule.BTaskId;
 import Zeze.Builtin.Game.TaskModule.Finish;
 import Zeze.Builtin.Game.TaskModule.GetRoleTasks;
 import Zeze.Collections.BeanFactory;
+import Zeze.Collections.LinkedMap;
+import Zeze.Game.Task.CheckTaskAcceptable;
 import Zeze.Game.Task.ConditionEvent;
 import Zeze.Game.Task.RewardConfig;
 import Zeze.Game.Task.TaskGraphics;
 import Zeze.Game.Task.TaskImpl;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
+import Zeze.Transaction.EmptyBean;
 
 public class TaskModule extends AbstractTaskModule {
 	private final Online online;
+	private final LinkedMap.Module linkedMapModule;
 
-	public TaskModule(Online online) {
+	public TaskModule(Online online, LinkedMap.Module linkedMapModule) {
 		this.online = online;
+		this.linkedMapModule =linkedMapModule;
 	}
 
 	public Online getOnline() {
@@ -61,6 +67,15 @@ public class TaskModule extends AbstractTaskModule {
 
 	private TaskGraphics taskGraphics;
 	private final RewardConfig rewardConfig = new RewardConfig();
+	private CheckTaskAcceptable checkTaskAcceptable;
+
+	public void setCheckTaskAcceptable(CheckTaskAcceptable checkTaskAcceptable) {
+		this.checkTaskAcceptable = checkTaskAcceptable;
+	}
+
+	public CheckTaskAcceptable getCheckTaskAcceptable() {
+		return checkTaskAcceptable;
+	}
 
 	public TaskGraphics getTaskGraphics() {
 		return taskGraphics;
@@ -76,6 +91,16 @@ public class TaskModule extends AbstractTaskModule {
 
 	public BRoleTasks getRoleTasks(long roleId) {
 		return _tRoleTasks.getOrAdd(roleId);
+	}
+
+	public boolean checkTaskAcceptCondition(BTaskConfig.Data task, long roleId) {
+		if (null != checkTaskAcceptable)
+			checkTaskAcceptable.check(task, roleId);
+		return true;
+	}
+
+	public LinkedMap<EmptyBean> getRoleCompletedTasks(long roleId) {
+		return linkedMapModule.open("Zeze.Game.Task.Completed." + roleId, EmptyBean.class);
 	}
 
 	public static long getSpecialTypeIdFromBean(Bean bean) {

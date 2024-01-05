@@ -875,6 +875,11 @@
 						<CreateDataFromSpecialTypeId value="Zeze.Game.TaskModule::createDataFromSpecialTypeId"/>
 					</variable>
 					<variable id="7" name="TaskConditions" type="BTask"/> 任务条件
+					<variable id="8" name="PreposeRequired" type="int"/> 需要的前置任务完成数量，0表示全部。
+				</bean>
+
+				<bean name="BTaskSet" UseData="true">
+					<variable id="1" name="TaskIds"  type="set[int]"/>
 				</bean>
 
 				<enum name="eTaskAccepted" value="0"/> 任务接受时的初始状态

@@ -3,11 +3,16 @@ package Zeze.Game.Task;
 import Zeze.Builtin.Game.TaskModule.BCondition;
 import Zeze.Builtin.Game.TaskModule.BRoleTasks;
 import Zeze.Builtin.Game.TaskModule.BTask;
+import Zeze.Builtin.Game.TaskModule.BTaskConfig;
 import Zeze.Builtin.Game.TaskModule.TaskChanged;
 import Zeze.Builtin.Game.TaskModule.TaskRemoved;
+import Zeze.Collections.LinkedMap;
 import Zeze.Game.TaskModule;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.EmptyBean;
+import org.rocksdb.RocksDBException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -98,5 +103,52 @@ public class TaskImpl {
 			}
 		}
 		return false;
+	}
+
+	// 获取这个roleId在这个npc上的可接任务，初始版本，没有精确过滤。
+	// acceptableTasks 返回可接任务。npc头顶将显示黄色叹号。
+	// hasTasks 有任务，但还不满足条件，这种任务一般不显示，但对于某些特殊任务（比如剧情），可能需要先显示灰色叹号。
+	public static void getNpcAcceptTasks(TaskModule module, long roleId, int npcId,
+										 List<BTaskConfig.Data> acceptableTasks,
+										 List<BTaskConfig.Data> hasTasks) throws RocksDBException {
+		var npcAcceptTasks = module.getTaskGraphics().getNpcAcceptTasks(npcId);
+		for (var taskId : npcAcceptTasks.getTaskIds()) {
+			var task = module.getTaskGraphics().getTask(taskId);
+			if (checkPreposeTask(task, module.getRoleCompletedTasks(roleId))
+					&& module.checkTaskAcceptCondition(task, roleId)) {
+				acceptableTasks.add(task); // 这个任务可接（黄色叹号）。
+			} else {
+				hasTasks.add(task);
+			}
+		}
+	}
+
+	// 检查前置任务条件是否满足。
+	public static boolean checkPreposeTask(BTaskConfig.Data task, LinkedMap<EmptyBean> completed) {
+		var n = task.getPreposeRequired();
+		if (n <= 0 || n > task.getPreposeTasks().size())
+			n = task.getPreposeTasks().size();
+
+		for (var prepose : task.getPreposeTasks()) {
+			// contains
+			if (completed.get((long)prepose) != null) {
+				--n;
+				if (n == 0)
+					return true;
+			}
+		}
+		return false;
+	}
+
+	// 获取某个npd是否有这个roleId玩家可以交接的任务。
+	public static List<BTask> getNpcFinishTasks(TaskModule module, long roleId, int npcId) throws RocksDBException {
+		var result = new ArrayList<BTask>();
+		for (var task : module.getRoleTasks(roleId).getTasks().values()) {
+			var config = module.getTaskGraphics().getTask(task.getTaskId());
+			if (config.getFinishNpc() == npcId && task.getTaskState() == TaskModule.eTaskDone) {
+				result.add(task);
+			}
+		}
+		return result;
 	}
 }

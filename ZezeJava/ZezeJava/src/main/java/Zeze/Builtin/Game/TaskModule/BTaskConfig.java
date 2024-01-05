@@ -28,6 +28,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
     }
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Game.TaskModule.BTask> _TaskConditions; // 任务条件
+    private int _PreposeRequired; // 需要的前置任务完成数量，0表示全部。
 
     @Override
     public int getTaskId() {
@@ -129,6 +130,26 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         return _TaskConditions.getValue();
     }
 
+    @Override
+    public int getPreposeRequired() {
+        if (!isManaged())
+            return _PreposeRequired;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _PreposeRequired;
+        var log = (Log__PreposeRequired)txn.getLog(objectId() + 8);
+        return log != null ? log.value : _PreposeRequired;
+    }
+
+    public void setPreposeRequired(int value) {
+        if (!isManaged()) {
+            _PreposeRequired = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__PreposeRequired(this, 8, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BTaskConfig() {
         _PreposeTasks = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
@@ -141,7 +162,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskConfig(int _TaskId_, int _AcceptNpc_, int _FinishNpc_) {
+    public BTaskConfig(int _TaskId_, int _AcceptNpc_, int _FinishNpc_, int _PreposeRequired_) {
         _TaskId = _TaskId_;
         _PreposeTasks = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
         _PreposeTasks.variableId(2);
@@ -152,6 +173,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         _ExtendData = newDynamicBean_ExtendData();
         _TaskConditions = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Game.TaskModule.BTask(), Zeze.Builtin.Game.TaskModule.BTask.class);
         _TaskConditions.variableId(7);
+        _PreposeRequired = _PreposeRequired_;
     }
 
     @Override
@@ -163,6 +185,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         setFinishNpc(0);
         _ExtendData.reset();
         _TaskConditions.reset();
+        setPreposeRequired(0);
         _unknown_ = null;
     }
 
@@ -190,6 +213,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         Zeze.Builtin.Game.TaskModule.BTask data_TaskConditions = new Zeze.Builtin.Game.TaskModule.BTask();
         data_TaskConditions.assign(other._TaskConditions);
         _TaskConditions.setValue(data_TaskConditions);
+        setPreposeRequired(other._PreposeRequired);
         _unknown_ = null;
     }
 
@@ -203,6 +227,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         setFinishNpc(other.getFinishNpc());
         _ExtendData.assign(other._ExtendData);
         _TaskConditions.assign(other._TaskConditions);
+        setPreposeRequired(other.getPreposeRequired());
         _unknown_ = other._unknown_;
     }
 
@@ -249,6 +274,13 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         public void commit() { ((BTaskConfig)getBelong())._FinishNpc = value; }
     }
 
+    private static final class Log__PreposeRequired extends Zeze.Transaction.Logs.LogInt {
+        public Log__PreposeRequired(BTaskConfig bean, int varId, int value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BTaskConfig)getBelong())._PreposeRequired = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -290,7 +322,8 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         sb.append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TaskConditions=").append(System.lineSeparator());
         _TaskConditions.buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
+        sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("PreposeRequired=").append(getPreposeRequired()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -389,6 +422,13 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
             else
                 _i_ = _j_;
         }
+        {
+            int _x_ = getPreposeRequired();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -438,6 +478,10 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
             _o_.ReadBean(_TaskConditions, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 8) {
+            setPreposeRequired(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -476,6 +520,8 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
             return true;
         if (_TaskConditions.negativeCheck())
             return true;
+        if (getPreposeRequired() < 0)
+            return true;
         return false;
     }
 
@@ -495,6 +541,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
                 case 5: _FinishNpc = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 6: _ExtendData.followerApply(vlog); break;
                 case 7: _TaskConditions.followerApply(vlog); break;
+                case 8: _PreposeRequired = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }
@@ -511,6 +558,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         parents.add("TaskConditions");
         _TaskConditions.decodeResultSet(parents, rs);
         parents.remove(parents.size() - 1);
+        setPreposeRequired(rs.getInt(_parents_name_ + "PreposeRequired"));
     }
 
     @Override
@@ -525,6 +573,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         parents.add("TaskConditions");
         _TaskConditions.encodeSQLStatement(parents, st);
         parents.remove(parents.size() - 1);
+        st.appendInt(_parents_name_ + "PreposeRequired", getPreposeRequired());
     }
 
     @Override
@@ -537,6 +586,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "FinishNpc", "int", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "ExtendData", "dynamic", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "TaskConditions", "BTask", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "PreposeRequired", "int", "", ""));
         return vars;
     }
 
@@ -573,6 +623,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     private Zeze.Builtin.Game.TaskModule.BTask.Data _TaskConditions; // 任务条件
+    private int _PreposeRequired; // 需要的前置任务完成数量，0表示全部。
 
     public int getTaskId() {
         return _TaskId;
@@ -632,6 +683,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _TaskConditions = value;
     }
 
+    public int getPreposeRequired() {
+        return _PreposeRequired;
+    }
+
+    public void setPreposeRequired(int value) {
+        _PreposeRequired = value;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _PreposeTasks = new java.util.HashSet<>();
@@ -641,7 +700,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _TaskId_, java.util.HashSet<Integer> _PreposeTasks_, java.util.HashSet<Integer> _FollowTasks_, int _AcceptNpc_, int _FinishNpc_, DynamicData_ExtendData _ExtendData_, Zeze.Builtin.Game.TaskModule.BTask.Data _TaskConditions_) {
+    public Data(int _TaskId_, java.util.HashSet<Integer> _PreposeTasks_, java.util.HashSet<Integer> _FollowTasks_, int _AcceptNpc_, int _FinishNpc_, DynamicData_ExtendData _ExtendData_, Zeze.Builtin.Game.TaskModule.BTask.Data _TaskConditions_, int _PreposeRequired_) {
         _TaskId = _TaskId_;
         if (_PreposeTasks_ == null)
             _PreposeTasks_ = new java.util.HashSet<>();
@@ -657,6 +716,7 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_TaskConditions_ == null)
             _TaskConditions_ = new Zeze.Builtin.Game.TaskModule.BTask.Data();
         _TaskConditions = _TaskConditions_;
+        _PreposeRequired = _PreposeRequired_;
     }
 
     @Override
@@ -668,6 +728,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _FinishNpc = 0;
         _ExtendData.reset();
         _TaskConditions.reset();
+        _PreposeRequired = 0;
     }
 
     @Override
@@ -692,6 +753,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _FinishNpc = other.getFinishNpc();
         _ExtendData.assign(other._ExtendData);
         _TaskConditions.assign(other._TaskConditions.getValue());
+        _PreposeRequired = other.getPreposeRequired();
     }
 
     public void assign(BTaskConfig.Data other) {
@@ -704,6 +766,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _FinishNpc = other._FinishNpc;
         _ExtendData.assign(other._ExtendData);
         _TaskConditions.assign(other._TaskConditions);
+        _PreposeRequired = other._PreposeRequired;
     }
 
     @Override
@@ -770,7 +833,8 @@ public static final class Data extends Zeze.Transaction.Data {
         sb.append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TaskConditions=").append(System.lineSeparator());
         _TaskConditions.buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
+        sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("PreposeRequired=").append(_PreposeRequired).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -854,6 +918,13 @@ public static final class Data extends Zeze.Transaction.Data {
             else
                 _i_ = _j_;
         }
+        {
+            int _x_ = _PreposeRequired;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -899,6 +970,10 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 7) {
             _o_.ReadBean(_TaskConditions, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 8) {
+            _PreposeRequired = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
