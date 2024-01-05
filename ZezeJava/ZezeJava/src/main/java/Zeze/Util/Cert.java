@@ -2,7 +2,6 @@ package Zeze.Util;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
@@ -21,7 +20,6 @@ import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAKeyGenParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Date;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -30,15 +28,7 @@ import javax.crypto.spec.SecretKeySpec;
 import sun.security.rsa.RSAPublicKeyImpl;
 import sun.security.rsa.RSAUtil;
 import sun.security.util.DerValue;
-import sun.security.x509.AlgorithmId;
-import sun.security.x509.CertificateAlgorithmId;
-import sun.security.x509.CertificateSerialNumber;
-import sun.security.x509.CertificateValidity;
-import sun.security.x509.CertificateVersion;
-import sun.security.x509.CertificateX509Key;
-import sun.security.x509.X500Name;
 import sun.security.x509.X509CertImpl;
-import sun.security.x509.X509CertInfo;
 
 // 生成KeyStore: keytool -genkeypair -keyalg RSA -keysize 2048 -keystore test.ks -storetype pkcs12 -storepass 123456 -alias test -validity 365 -dname "cn=CommonName, ou=OrgName, o=Org, c=Country"
 // 查看KeyStore: keytool -list -keystore test.ks -storepass 123456 -v
@@ -195,36 +185,6 @@ public final class Cert {
 		var keyPairGen = KeyPairGenerator.getInstance("EC");
 		keyPairGen.initialize(256);
 		return keyPairGen.generateKeyPair();
-	}
-
-	// 用owner的公钥为owner生成证书,并用issuer的私钥为证书签名,返回该证书
-	public static X509Certificate generateRsaCert(String ownerName, PublicKey publicKey, String issuerName,
-												  PrivateKey privateKeyForSign, int validDays)
-			throws GeneralSecurityException, IOException {
-		var certInfo = new X509CertInfo();
-		certInfo.setVersion(new CertificateVersion(CertificateVersion.V3));
-		certInfo.setSerialNumber(new CertificateSerialNumber(new BigInteger(160, new SecureRandom())));
-		certInfo.setSubject(new X500Name("CN=" + ownerName));
-		certInfo.setIssuer(new X500Name("CN=" + issuerName));
-		var nowTime = System.currentTimeMillis();
-		certInfo.setValidity(new CertificateValidity(new Date(nowTime), new Date(nowTime + validDays * 86400_000L)));
-		certInfo.setKey(new CertificateX509Key(publicKey));
-		certInfo.setAlgorithmId(new CertificateAlgorithmId(new AlgorithmId(AlgorithmId.SHA256withRSA_oid)));
-		return X509CertImpl.newSigned(certInfo, privateKeyForSign, "SHA256withRSA");
-	}
-
-	// 为RSA公钥和私钥生成自签名的公钥证书并连同私钥保存到用密码加密的KeyStore输出流
-	public static void saveKeyStore(OutputStream outputStream, String passwd, String alias, PublicKey publicKey,
-									PrivateKey privateKey, String ownerName, int validDays)
-			throws GeneralSecurityException, IOException {
-		var cert = generateRsaCert(ownerName, publicKey, ownerName, privateKey, validDays);
-		cert.verify(publicKey); // 此行可选
-
-		var keyStore = KeyStore.getInstance("pkcs12");
-		keyStore.load(null, null);
-		// keyStore.setCertificateEntry(alias, cert);
-		keyStore.setKeyEntry(alias, privateKey, null, new Certificate[]{cert});
-		keyStore.store(outputStream, passwd != null ? passwd.toCharArray() : null);
 	}
 
 	// 使用RSA私钥对数据签名

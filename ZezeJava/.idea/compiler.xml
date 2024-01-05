@@ -7,6 +7,7 @@
     <option name="ADDITIONAL_OPTIONS_STRING" value="-parameters" />
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="zeze-java.ZezeJava.main" options="-parameters --add-exports java.base/sun.security.x509=ALL-UNNAMED --add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/jdk.internal.reflect=ALL-UNNAMED" />
+      <module name="zeze-java.ZezeJavaTest.main" options="-parameters --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
     </option>
   </component>
 </project>

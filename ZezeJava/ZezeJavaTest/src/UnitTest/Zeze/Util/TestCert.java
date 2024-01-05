@@ -3,18 +3,69 @@ package UnitTest.Zeze.Util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAKey;
+import java.util.Date;
 import junit.framework.TestCase;
 import org.junit.Assert;
+import sun.security.x509.AlgorithmId;
+import sun.security.x509.CertificateAlgorithmId;
+import sun.security.x509.CertificateSerialNumber;
+import sun.security.x509.CertificateValidity;
+import sun.security.x509.CertificateVersion;
+import sun.security.x509.CertificateX509Key;
+import sun.security.x509.X500Name;
+import sun.security.x509.X509CertImpl;
+import sun.security.x509.X509CertInfo;
 import static Zeze.Util.Cert.*;
 
+// 编译时需要: --add-exports java.base/sun.security.x509=ALL-UNNAMED
 public class TestCert extends TestCase {
 	private static final int RSA_BLOCK_SIZE = 2048 / 8; // 256
 	private static final int AES_BLOCK_SIZE = 128 / 8; // 16
 	private static final int AES_KEY_SIZE = 256 / 8; // 32
+
+	// 用owner的公钥为owner生成证书,并用issuer的私钥为证书签名,返回该证书
+	public static X509Certificate generateRsaCert(String ownerName, PublicKey publicKey, String issuerName,
+												  PrivateKey privateKeyForSign, int validDays)
+			throws GeneralSecurityException, IOException {
+		var certInfo = new X509CertInfo();
+		certInfo.setVersion(new CertificateVersion(CertificateVersion.V3));
+		certInfo.setSerialNumber(new CertificateSerialNumber(new BigInteger(160, new SecureRandom())));
+		certInfo.setSubject(new X500Name("CN=" + ownerName));
+		certInfo.setIssuer(new X500Name("CN=" + issuerName));
+		var nowTime = System.currentTimeMillis();
+		certInfo.setValidity(new CertificateValidity(new Date(nowTime), new Date(nowTime + validDays * 86400_000L)));
+		certInfo.setKey(new CertificateX509Key(publicKey));
+		certInfo.setAlgorithmId(new CertificateAlgorithmId(new AlgorithmId(AlgorithmId.SHA256withRSA_oid)));
+		return X509CertImpl.newSigned(certInfo, privateKeyForSign, "SHA256withRSA");
+	}
+
+	// 为RSA公钥和私钥生成自签名的公钥证书并连同私钥保存到用密码加密的KeyStore输出流
+	public static void saveKeyStore(OutputStream outputStream, String passwd, String alias, PublicKey publicKey,
+									PrivateKey privateKey, String ownerName, int validDays)
+			throws GeneralSecurityException, IOException {
+		var cert = generateRsaCert(ownerName, publicKey, ownerName, privateKey, validDays);
+		cert.verify(publicKey); // 此行可选
+
+		var keyStore = KeyStore.getInstance("pkcs12");
+		keyStore.load(null, null);
+		// keyStore.setCertificateEntry(alias, cert);
+		keyStore.setKeyEntry(alias, privateKey, null, new Certificate[]{cert});
+		keyStore.store(outputStream, passwd != null ? passwd.toCharArray() : null);
+	}
 
 	public void testAll() throws Exception {
 		var pkcs12File = "test.ks";

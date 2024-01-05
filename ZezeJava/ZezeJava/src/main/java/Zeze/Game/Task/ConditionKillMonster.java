@@ -49,7 +49,8 @@ public class ConditionKillMonster implements Condition {
 
 	@Override
 	public boolean accept(ConditionEvent event) {
-		if (event instanceof Event e) {
+		if (event instanceof Event) {
+			Event e = (Event)event;
 			if (monsters.contains(e.getMonsterId())) {
 				count += e.getCount();
 				return true;

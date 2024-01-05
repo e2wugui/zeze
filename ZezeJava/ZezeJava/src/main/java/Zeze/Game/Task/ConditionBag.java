@@ -41,7 +41,8 @@ public class ConditionBag implements Condition {
 
 	@Override
 	public boolean accept(ConditionEvent event) {
-		if (event instanceof Event e) {
+		if (event instanceof Event) {
+			Event e = (Event)event;
 			if (itemId == e.getItemId()) {
 				count = bagCount(itemId);
 				// 注意，当存在多个ConditionBag需要拾取相同的物品时，不支持广播时，只会有一个条件被满足。

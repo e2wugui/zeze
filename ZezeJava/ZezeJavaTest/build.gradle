@@ -41,6 +41,10 @@ dependencies {
     // implementation 'com.github.marianobarrios:tls-channel:0.8.1'
 }
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ["--add-exports", "java.base/sun.security.x509=ALL-UNNAMED"]
+}
+
 sourceSets {
     main {
         java {

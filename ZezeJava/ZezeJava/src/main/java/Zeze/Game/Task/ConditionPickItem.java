@@ -49,7 +49,8 @@ public class ConditionPickItem implements Condition {
 
 	@Override
 	public boolean accept(ConditionEvent event) {
-		if (event instanceof Event e) {
+		if (event instanceof Event) {
+			Event e = (Event)event;
 			if (items.contains(e.getItemId())) {
 				count += e.getCount();
 				return true;
