@@ -114,7 +114,7 @@ class DynamicEpisodeTask {
 ```
 
 ## 要求的类型及它们引发的其他系统对接要求
-* int taskId;
-* int NpcId;
-* int monsterId;
-* int itemId;
+* int taskId; 强制要求。
+* int NpcId; 强制要求。
+* int monsterId; ConditionKillMonster用到了。类型不是int时，只要写个新的条件，不用预设的即可。
+* int itemId; ConditionPickItem，ConditionBag用到了。不使用这两个条件就可以接入其他类型Id的物品系统。
