@@ -1186,16 +1186,21 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		throw new NoSuchFieldError("the Unsafe");
 	}
 
+	@SuppressWarnings("deprecation")
+	private static long objectFieldOffset(Field field) {
+		return U.objectFieldOffset(field);
+	}
+
 	static {
 		try {
 			U = getUnsafe();
 			Class<?> k = LongConcurrentHashMap.class;
-			SIZECTL = U.objectFieldOffset(k.getDeclaredField("sizeCtl"));
-			TRANSFERINDEX = U.objectFieldOffset(k.getDeclaredField("transferIndex"));
-			BASECOUNT = U.objectFieldOffset(k.getDeclaredField("baseCount"));
-			CELLSBUSY = U.objectFieldOffset(k.getDeclaredField("cellsBusy"));
+			SIZECTL = objectFieldOffset(k.getDeclaredField("sizeCtl"));
+			TRANSFERINDEX = objectFieldOffset(k.getDeclaredField("transferIndex"));
+			BASECOUNT = objectFieldOffset(k.getDeclaredField("baseCount"));
+			CELLSBUSY = objectFieldOffset(k.getDeclaredField("cellsBusy"));
 			Class<?> ck = CounterCell.class;
-			CELLVALUE = U.objectFieldOffset(ck.getDeclaredField("value"));
+			CELLVALUE = objectFieldOffset(ck.getDeclaredField("value"));
 			Class<?> ak = Node[].class;
 			ABASE = U.arrayBaseOffset(ak);
 			int scale = U.arrayIndexScale(ak);

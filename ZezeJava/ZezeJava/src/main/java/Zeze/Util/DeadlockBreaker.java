@@ -39,8 +39,11 @@ public class DeadlockBreaker extends ThreadHelper {
 				var m = new HashMap<Long, Thread>();
 				for (int i = 0; i < size; ++i) {
 					Thread thread = threads[i];
-					if (null != thread)
-						m.put(thread.getId(), thread);
+					if (null != thread) {
+						@SuppressWarnings("deprecation")
+						var threadId = thread.getId();
+						m.put(threadId, thread);
+					}
 				}
 				return m;
 			}

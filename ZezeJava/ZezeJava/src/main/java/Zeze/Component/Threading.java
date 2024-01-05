@@ -46,6 +46,11 @@ public class Threading extends AbstractThreading {
 		p.Send(service.GetSocket());
 	}
 
+	@SuppressWarnings("deprecation")
+	private static long curThreadId() {
+		return Thread.currentThread().getId();
+	}
+
 	// 即使相同的名字，每个线程调用createMutex也是创建新的实例。
 	// 多个线程共享一个实例也是可以的。
 	public class Mutex {
@@ -61,7 +66,7 @@ public class Threading extends AbstractThreading {
 
 		public boolean tryLock(int timeoutMs) {
 			var r = new MutexTryLock();
-			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
+			var globalThreadId = new BGlobalThreadId(serverId, curThreadId());
 			var lockName = new BLockName(globalThreadId, name);
 			r.Argument.setLockName(lockName);
 			r.Argument.setTimeoutMs(timeoutMs);
@@ -71,7 +76,7 @@ public class Threading extends AbstractThreading {
 		}
 
 		public void unlock() {
-			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
+			var globalThreadId = new BGlobalThreadId(serverId, curThreadId());
 			var lockName = new BLockName(globalThreadId, name);
 
 			// 完美方案应该unlock成功以后才释放。这里先这样写了。
@@ -106,7 +111,7 @@ public class Threading extends AbstractThreading {
 
 		public boolean tryAcquire(int permits, int timeoutMs) {
 			var r = new SemaphoreTryAcquire();
-			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
+			var globalThreadId = new BGlobalThreadId(serverId, curThreadId());
 			var lockName = new BLockName(globalThreadId, name);
 			r.Argument.setLockName(lockName);
 			r.Argument.setPermits(permits);
@@ -121,7 +126,7 @@ public class Threading extends AbstractThreading {
 		}
 
 		public void release(int permits) {
-			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
+			var globalThreadId = new BGlobalThreadId(serverId, curThreadId());
 			var lockName = new BLockName(globalThreadId, name);
 
 			// 完美方案应该unlock成功以后才释放。这里先这样写了。
@@ -135,7 +140,7 @@ public class Threading extends AbstractThreading {
 
 		void create(int permits) {
 			var r = new SemaphoreCreate();
-			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
+			var globalThreadId = new BGlobalThreadId(serverId, curThreadId());
 			var lockName = new BLockName(globalThreadId, name);
 			r.Argument.setLockName(lockName);
 			r.Argument.setPermits(permits);
@@ -150,7 +155,8 @@ public class Threading extends AbstractThreading {
 	 * 其中参数permits只有第一次创建的时候才会被使用。
 	 * 比较建议的使用方式是只使用 createSemaphore 初始化一次，然后共享返回的变量。
 	 * 如果不保存返回值，后面建议使用 openSemaphore 继续访问这个信号量。
-	 * @param name semaphore name
+	 *
+	 * @param name    semaphore name
 	 * @param permits initial permits
 	 * @return created semaphore
 	 */
@@ -173,7 +179,7 @@ public class Threading extends AbstractThreading {
 
 		private boolean tryOperate(int timeoutMs, int operateType) {
 			var r = new ReadWriteLockOperate();
-			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
+			var globalThreadId = new BGlobalThreadId(serverId, curThreadId());
 			var lockName = new BLockName(globalThreadId, name);
 			r.Argument.setLockName(lockName);
 			r.Argument.setOperateType(operateType);
@@ -201,7 +207,7 @@ public class Threading extends AbstractThreading {
 
 		private void exitOperate(int operateType) {
 			var r = new ReadWriteLockOperate();
-			var globalThreadId = new BGlobalThreadId(serverId, Thread.currentThread().getId());
+			var globalThreadId = new BGlobalThreadId(serverId, curThreadId());
 			var lockName = new BLockName(globalThreadId, name);
 			r.Argument.setLockName(lockName);
 			r.Argument.setOperateType(operateType);

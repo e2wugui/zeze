@@ -310,7 +310,7 @@ public final class Json implements Cloneable {
 						}
 					} else
 						type = TYPE_CUSTOM;
-					long offset = unsafe.objectFieldOffset(field);
+					long offset = objectFieldOffset(field);
 					if (offset != (int)offset)
 						throw new IllegalStateException("unexpected offset(" + offset + ") from field: "
 								+ fieldName + " in " + klass.getName());
@@ -425,10 +425,10 @@ public final class Json implements Cloneable {
 			getDeclaredFields0MH = ensureNotNull(MethodHandles.lookup().unreflect(setAccessible(
 					Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class))));
 			Field valueField = getDeclaredField(String.class, "value");
-			STRING_VALUE_OFFSET = unsafe.objectFieldOffset(Objects.requireNonNull(valueField));
+			STRING_VALUE_OFFSET = objectFieldOffset(Objects.requireNonNull(valueField));
 			BYTE_STRING = valueField.getType() == byte[].class;
 			STRING_CODE_OFFSET = BYTE_STRING ?
-					unsafe.objectFieldOffset(Objects.requireNonNull(getDeclaredField(String.class, "coder"))) : 0;
+					objectFieldOffset(Objects.requireNonNull(getDeclaredField(String.class, "coder"))) : 0;
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
 		}
@@ -436,6 +436,11 @@ public final class Json implements Cloneable {
 
 	public static @NotNull Unsafe getUnsafe() {
 		return unsafe;
+	}
+
+	@SuppressWarnings("deprecation")
+	public static long objectFieldOffset(Field field) {
+		return unsafe.objectFieldOffset(field);
 	}
 
 	static Field[] getDeclaredFields(Class<?> klass) {
