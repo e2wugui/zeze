@@ -2,8 +2,8 @@
 start ..\GlobalCacheManager\bin\Debug\net6.0\GlobalCacheManager.exe
 start ..\ServiceManager\bin\Debug\net6.0\ServiceManager.exe
 
-copy /y zeze.xml .\linkd\bin\Debug\net6.0\
-copy /y zeze.xml .\server\bin\Debug\net6.0\
+copy /y linkd\linkd.xml .\linkd\bin\Debug\net6.0\
+copy /y server\zeze.xml .\server\bin\Debug\net6.0\serverd.xml
 
 start .\linkd\bin\Debug\net6.0\linkd.exe
 start .\server\bin\Debug\net6.0\server.exe -AutoKeyLocalId 0
