@@ -15,3 +15,20 @@ Zege 项目管理。
 Zege 文档，批注，多人编辑。
 Zege GMT 时间。
 Zege 好友列表也保存关注对象，可以接收通知。
+----------------------------------------------------------------------------------------------------------
+Focus Document
+----------------------------------------------------------------------------------------------------------
+Zege ChatControl 改成用WebView；
+Zege Notify客户端自行决定排序。
+Zege 消息已读；红点；
+Zege await Shell.Current.GoToAsync("///MainPage");
+Zege Task
+	BTask：内容描述，时间范围，发起人，执行人，附件，资源（对应实物，比如会议室）
+	CreateTask 自动给所有相关人发送Notify。Parent没指定就是自由任务，指定则形成系列任务。Parent可以用来追溯前置任务，是一种查看手段。
+	GetTask 查询任务信息。
+	ChangeTaskState 需要notify。Finish,Close。需要notify。
+	ChangeTask 修改任务内容（改描述，附件增删，等等），需要notify。
+	GetTasks 查询最近一段时间（一个月），显示为表格形状页面，作为整体视图。
+	task table: taskid -> btask
+	timeindex:  day ->set<taskid>
+	date begin <---> date end 限定半年 day ... day

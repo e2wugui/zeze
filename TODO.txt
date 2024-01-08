@@ -8,29 +8,13 @@ DatabaseDynamoDb 还需测试。
 c# fresh 有bug？
 c# 并发上不去，只有4/8.
 c# GenModule.cs 根据 ResultHandle 是否异步，决定 async 和 NewProcedure 的生成方式。
-Focus Document
-----------------------------------------------------------------------------------------------------------
-Zege ChatControl 改成用WebView；
-Zege Notify客户端自行决定排序。
-Zege 消息已读；红点；
-Zege await Shell.Current.GoToAsync("///MainPage");
-Zege Task
-	BTask：内容描述，时间范围，发起人，执行人，附件，资源（对应实物，比如会议室）
-	CreateTask 自动给所有相关人发送Notify。Parent没指定就是自由任务，指定则形成系列任务。Parent可以用来追溯前置任务，是一种查看手段。
-	GetTask 查询任务信息。
-	ChangeTaskState 需要notify。Finish,Close。需要notify。
-	ChangeTask 修改任务内容（改描述，附件增删，等等），需要notify。
-	GetTasks 查询最近一段时间（一个月），显示为表格形状页面，作为整体视图。
-	task table: taskid -> btask
-	timeindex:  day ->set<taskid>
-	date begin <---> date end 限定半年 day ... day
 ----------------------------------------------------------------------------------------------------------
 Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot alter 测试，需要mysql。
 ------------------------------------------------------------------------------------------------------------------------------
 2024/1/19 v1.4.0 Task; 
 ------------------------------------------------------------------------------------------------------------------------------
-Task 系统及相关继续完善。
+Task 系统及相关继续完善。任务配置缓存！！！
 
 ------------------------------------------------------------------------------------------------------------------------------
 2024/1/5 v1.3.9 Log4jQuery; Token; Dbh2.Operates; World; Astar.ScanNodes.maxScanNodes; Task & Reward; Database.Walk
