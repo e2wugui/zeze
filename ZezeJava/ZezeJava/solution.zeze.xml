@@ -838,6 +838,14 @@
 			</module> Rank 11015
 
 			<module name="TaskModule" id="11018">
+				<enum name="eTaskCondition" value="1"/>
+				<enum name="eTaskNotExists" value="2"/>
+				<enum name="eTaskAlreadyAccepted" value="3"/>
+				<enum name="eTaskTooManyAccepted" value="4"/>
+				<enum name="eTaskNotDone" value="5"/>
+				<enum name="eRewardNotExists" value="6"/>
+				<enum name="eTaskNotAccepted" value="7"/>
+
 				<bean name="BTaskId">
 					<variable id="1" name="TaskId"  type="int"/>
 				</bean>
@@ -876,6 +884,7 @@
 					</variable>
 					<variable id="7" name="TaskConditions" type="BTask"/> 任务条件
 					<variable id="8" name="PreposeRequired" type="int"/> 需要的前置任务完成数量，0表示全部。
+					<variable id="9" name="Repeatable" type="bool"/> 任务是否可重复完成
 				</bean>
 
 				<bean name="BTaskSet" UseData="true">

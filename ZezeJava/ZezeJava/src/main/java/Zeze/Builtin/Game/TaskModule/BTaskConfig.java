@@ -29,6 +29,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Game.TaskModule.BTask> _TaskConditions; // 任务条件
     private int _PreposeRequired; // 需要的前置任务完成数量，0表示全部。
+    private boolean _Repeatable; // 任务是否可重复完成
 
     @Override
     public int getTaskId() {
@@ -150,6 +151,26 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         txn.putLog(new Log__PreposeRequired(this, 8, value));
     }
 
+    @Override
+    public boolean isRepeatable() {
+        if (!isManaged())
+            return _Repeatable;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Repeatable;
+        var log = (Log__Repeatable)txn.getLog(objectId() + 9);
+        return log != null ? log.value : _Repeatable;
+    }
+
+    public void setRepeatable(boolean value) {
+        if (!isManaged()) {
+            _Repeatable = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Repeatable(this, 9, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BTaskConfig() {
         _PreposeTasks = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
@@ -162,7 +183,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskConfig(int _TaskId_, int _AcceptNpc_, int _FinishNpc_, int _PreposeRequired_) {
+    public BTaskConfig(int _TaskId_, int _AcceptNpc_, int _FinishNpc_, int _PreposeRequired_, boolean _Repeatable_) {
         _TaskId = _TaskId_;
         _PreposeTasks = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
         _PreposeTasks.variableId(2);
@@ -174,6 +195,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         _TaskConditions = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Game.TaskModule.BTask(), Zeze.Builtin.Game.TaskModule.BTask.class);
         _TaskConditions.variableId(7);
         _PreposeRequired = _PreposeRequired_;
+        _Repeatable = _Repeatable_;
     }
 
     @Override
@@ -186,6 +208,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         _ExtendData.reset();
         _TaskConditions.reset();
         setPreposeRequired(0);
+        setRepeatable(false);
         _unknown_ = null;
     }
 
@@ -214,6 +237,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         data_TaskConditions.assign(other._TaskConditions);
         _TaskConditions.setValue(data_TaskConditions);
         setPreposeRequired(other._PreposeRequired);
+        setRepeatable(other._Repeatable);
         _unknown_ = null;
     }
 
@@ -228,6 +252,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         _ExtendData.assign(other._ExtendData);
         _TaskConditions.assign(other._TaskConditions);
         setPreposeRequired(other.getPreposeRequired());
+        setRepeatable(other.isRepeatable());
         _unknown_ = other._unknown_;
     }
 
@@ -281,6 +306,13 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         public void commit() { ((BTaskConfig)getBelong())._PreposeRequired = value; }
     }
 
+    private static final class Log__Repeatable extends Zeze.Transaction.Logs.LogBool {
+        public Log__Repeatable(BTaskConfig bean, int varId, boolean value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BTaskConfig)getBelong())._Repeatable = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -323,7 +355,8 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         sb.append(Zeze.Util.Str.indent(level)).append("TaskConditions=").append(System.lineSeparator());
         _TaskConditions.buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("PreposeRequired=").append(getPreposeRequired()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("PreposeRequired=").append(getPreposeRequired()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Repeatable=").append(isRepeatable()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -429,6 +462,13 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            boolean _x_ = isRepeatable();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 9, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -480,6 +520,10 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         }
         if (_i_ == 8) {
             setPreposeRequired(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 9) {
+            setRepeatable(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -542,6 +586,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
                 case 6: _ExtendData.followerApply(vlog); break;
                 case 7: _TaskConditions.followerApply(vlog); break;
                 case 8: _PreposeRequired = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 9: _Repeatable = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
             }
         }
     }
@@ -559,6 +604,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         _TaskConditions.decodeResultSet(parents, rs);
         parents.remove(parents.size() - 1);
         setPreposeRequired(rs.getInt(_parents_name_ + "PreposeRequired"));
+        setRepeatable(rs.getBoolean(_parents_name_ + "Repeatable"));
     }
 
     @Override
@@ -574,6 +620,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         _TaskConditions.encodeSQLStatement(parents, st);
         parents.remove(parents.size() - 1);
         st.appendInt(_parents_name_ + "PreposeRequired", getPreposeRequired());
+        st.appendBoolean(_parents_name_ + "Repeatable", isRepeatable());
     }
 
     @Override
@@ -587,6 +634,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "ExtendData", "dynamic", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "TaskConditions", "BTask", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "PreposeRequired", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "Repeatable", "bool", "", ""));
         return vars;
     }
 
@@ -624,6 +672,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private Zeze.Builtin.Game.TaskModule.BTask.Data _TaskConditions; // 任务条件
     private int _PreposeRequired; // 需要的前置任务完成数量，0表示全部。
+    private boolean _Repeatable; // 任务是否可重复完成
 
     public int getTaskId() {
         return _TaskId;
@@ -691,6 +740,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _PreposeRequired = value;
     }
 
+    public boolean isRepeatable() {
+        return _Repeatable;
+    }
+
+    public void setRepeatable(boolean value) {
+        _Repeatable = value;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _PreposeTasks = new java.util.HashSet<>();
@@ -700,7 +757,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _TaskId_, java.util.HashSet<Integer> _PreposeTasks_, java.util.HashSet<Integer> _FollowTasks_, int _AcceptNpc_, int _FinishNpc_, DynamicData_ExtendData _ExtendData_, Zeze.Builtin.Game.TaskModule.BTask.Data _TaskConditions_, int _PreposeRequired_) {
+    public Data(int _TaskId_, java.util.HashSet<Integer> _PreposeTasks_, java.util.HashSet<Integer> _FollowTasks_, int _AcceptNpc_, int _FinishNpc_, DynamicData_ExtendData _ExtendData_, Zeze.Builtin.Game.TaskModule.BTask.Data _TaskConditions_, int _PreposeRequired_, boolean _Repeatable_) {
         _TaskId = _TaskId_;
         if (_PreposeTasks_ == null)
             _PreposeTasks_ = new java.util.HashSet<>();
@@ -717,6 +774,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _TaskConditions_ = new Zeze.Builtin.Game.TaskModule.BTask.Data();
         _TaskConditions = _TaskConditions_;
         _PreposeRequired = _PreposeRequired_;
+        _Repeatable = _Repeatable_;
     }
 
     @Override
@@ -729,6 +787,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _ExtendData.reset();
         _TaskConditions.reset();
         _PreposeRequired = 0;
+        _Repeatable = false;
     }
 
     @Override
@@ -754,6 +813,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _ExtendData.assign(other._ExtendData);
         _TaskConditions.assign(other._TaskConditions.getValue());
         _PreposeRequired = other.getPreposeRequired();
+        _Repeatable = other.isRepeatable();
     }
 
     public void assign(BTaskConfig.Data other) {
@@ -767,6 +827,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _ExtendData.assign(other._ExtendData);
         _TaskConditions.assign(other._TaskConditions);
         _PreposeRequired = other._PreposeRequired;
+        _Repeatable = other._Repeatable;
     }
 
     @Override
@@ -834,7 +895,8 @@ public static final class Data extends Zeze.Transaction.Data {
         sb.append(Zeze.Util.Str.indent(level)).append("TaskConditions=").append(System.lineSeparator());
         _TaskConditions.buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("PreposeRequired=").append(_PreposeRequired).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("PreposeRequired=").append(_PreposeRequired).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Repeatable=").append(_Repeatable).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -925,6 +987,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            boolean _x_ = _Repeatable;
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 9, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -974,6 +1043,10 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 8) {
             _PreposeRequired = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 9) {
+            _Repeatable = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

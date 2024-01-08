@@ -1,5 +1,7 @@
 package Zeze.Game.Task;
 
+import java.util.HashSet;
+import java.util.Set;
 import Zeze.Builtin.Game.TaskModule.BTask;
 import Zeze.Builtin.Game.TaskModule.BTaskConfig;
 import Zeze.Builtin.Game.TaskModule.BTaskSet;
@@ -61,17 +63,6 @@ public class TaskGraphics {
 		}
 	}
 
-	public BTask acceptTask(int taskId) throws RocksDBException {
-		var key = ByteBuffer.Allocate();
-		key.WriteInt(taskId);
-		var value = tasks.get(key.Bytes, key.ReadIndex, key.size());
-		if (null == value)
-			throw new RuntimeException("task not exist. " + taskId);
-		var config = new BTaskConfig.Data();
-		config.decode(ByteBuffer.Wrap(value));
-		return config.getTaskConditions().toBean();
-	}
-
 	public void close() {
 		db.close();
 	}
@@ -85,6 +76,24 @@ public class TaskGraphics {
 		var data = new BTaskConfig.Data();
 		data.decode(ByteBuffer.Wrap(value));
 		return data;
+	}
+
+	public Set<Integer> getAllGraphicsNode(BTaskConfig.Data hint) throws RocksDBException {
+		var result = new HashSet<Integer>();
+		recursiveAllGraphicsNode(hint, result);
+		return result;
+	}
+
+	public void recursiveAllGraphicsNode(BTaskConfig.Data hint, Set<Integer> result) throws RocksDBException {
+		if (result.contains(hint.getTaskId())) // 保险起见，实际上应该不可能发生重复的任务。
+			return;
+		result.add(hint.getTaskId());
+		for (var prepose : hint.getPreposeTasks()) {
+			recursiveAllGraphicsNode(getTask(prepose), result);
+		}
+		for (var follow : hint.getFollowTasks()) {
+			recursiveAllGraphicsNode(getTask(follow), result);
+		}
 	}
 
 	// 编辑方法。直接用于任务编辑器或者用于把任务编辑器自己的存储格式转换运行格式。

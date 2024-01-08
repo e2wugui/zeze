@@ -67,6 +67,13 @@ public class ProviderUserSession {
 		return context.isEmpty() ? null : Long.parseLong(context);
 	}
 
+	public @NotNull long getRoleIdNotNull() {
+		var roleId = getRoleId();
+		if (null == roleId)
+			throw new RuntimeException("roleId is null.");
+		return roleId;
+	}
+
 	public long getLinkSid() {
 		return dispatch.Argument.getLinkSid();
 	}

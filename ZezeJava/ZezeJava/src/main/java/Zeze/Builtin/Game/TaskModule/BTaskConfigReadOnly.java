@@ -15,4 +15,5 @@ public interface BTaskConfigReadOnly {
     Zeze.Transaction.DynamicBeanReadOnly getExtendDataReadOnly();
     Zeze.Builtin.Game.TaskModule.BTaskReadOnly getTaskConditionsReadOnly();
     int getPreposeRequired();
+    boolean isRepeatable();
 }

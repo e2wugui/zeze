@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Game.TaskModule.Abandon;
 import Zeze.Builtin.Game.TaskModule.Accept;
 import Zeze.Builtin.Game.TaskModule.BRoleTasks;
@@ -20,6 +21,15 @@ import Zeze.Transaction.EmptyBean;
 public class TaskModule extends AbstractTaskModule {
 	private final Online online;
 	private final LinkedMap.Module linkedMapModule;
+	private int maxAcceptedTaskCount = 50;
+
+	public void setMaxAcceptedTaskCount(int maxAcceptedTaskCount) {
+		this.maxAcceptedTaskCount = maxAcceptedTaskCount;
+	}
+
+	public int getMaxAcceptedTaskCount() {
+		return maxAcceptedTaskCount;
+	}
 
 	public TaskModule(Online online, LinkedMap.Module linkedMapModule) {
 		this.online = online;
@@ -33,17 +43,26 @@ public class TaskModule extends AbstractTaskModule {
 	// 玩家操作
 	@Override
 	protected long ProcessAbandonRequest(Abandon r) throws Exception {
+		var session = ProviderUserSession.get(r);
+		var roleId = session.getRoleIdNotNull();
+		var roleTasks = getRoleTasks(roleId);
+		TaskImpl.abandonTask(this, roleId, roleTasks, r.Argument.getTaskId());
+		r.SendResult();
 		return 0;
 	}
 
 	@Override
 	protected long ProcessAcceptRequest(Accept r) throws Exception {
-		return 0;
+		var session = ProviderUserSession.get(r);
+		var roleId = session.getRoleIdNotNull();
+		return TaskImpl.acceptTask(this, roleId, r);
 	}
 
 	@Override
 	protected long ProcessFinishRequest(Finish r) throws Exception {
-		return 0;
+		var session = ProviderUserSession.get(r);
+		var roleId = session.getRoleIdNotNull();
+		return TaskImpl.finishTask(this, roleId, r);
 	}
 
 	@Override
@@ -52,14 +71,6 @@ public class TaskModule extends AbstractTaskModule {
 	}
 
 	// 服务器内部接口
-	public void accept(long roleId, int taskId) {
-
-	}
-
-	public void abandon(long roleId, int taskId) {
-
-	}
-
 	public void dispatch(long roleId, ConditionEvent event) throws Exception {
 		TaskImpl.dispatch(this, roleId, event);
 	}

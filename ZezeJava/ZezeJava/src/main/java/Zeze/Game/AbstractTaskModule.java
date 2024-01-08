@@ -11,6 +11,13 @@ public abstract class AbstractTaskModule implements Zeze.IModule {
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
+    public static final int eTaskCondition = 1;
+    public static final int eTaskNotExists = 2;
+    public static final int eTaskAlreadyAccepted = 3;
+    public static final int eTaskTooManyAccepted = 4;
+    public static final int eTaskNotDone = 5;
+    public static final int eRewardNotExists = 6;
+    public static final int eTaskNotAccepted = 7;
     public static final int eTaskAccepted = 0; // 任务接受时的初始状态
     public static final int eTaskDone = 1; // 任务完成状态
     public static final int eTaskCompleted = 2; // 任务结束状态（已经发换奖励）
