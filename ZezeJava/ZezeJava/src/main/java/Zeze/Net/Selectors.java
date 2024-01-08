@@ -5,8 +5,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import Zeze.Util.FastLock;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -53,7 +52,7 @@ public class Selectors {
 	private final int selectTimeout;
 	private final int readBufferSize;
 	private final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池,需要考虑并发访问
-	private final Lock bbGlobalPoolLock = new ReentrantLock(); // 全局池的锁
+	private final FastLock bbGlobalPoolLock = new FastLock(); // 全局池的锁
 	private volatile @NotNull Selector[] selectorList;
 	private final AtomicLong choiceCount = new AtomicLong();
 
@@ -107,7 +106,7 @@ public class Selectors {
 		return bbGlobalPool;
 	}
 
-	@NotNull Lock getBbGlobalPoolLock() {
+	@NotNull FastLock getBbGlobalPoolLock() {
 		return bbGlobalPoolLock;
 	}
 

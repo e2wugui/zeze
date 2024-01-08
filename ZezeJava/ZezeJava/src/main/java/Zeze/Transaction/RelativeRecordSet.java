@@ -16,11 +16,10 @@ import org.jetbrains.annotations.Nullable;
  * see zeze/README.md -> 18) 事务提交模式
  * 一个事务内访问的记录的集合。如果事务没有没提交，需要合并集合。
  */
-public final class RelativeRecordSet {
+public final class RelativeRecordSet extends ReentrantLock {
 	private static final AtomicLong idGenerator = new AtomicLong(1);
 	private static final RelativeRecordSet deleted = new RelativeRecordSet();
 
-	private final ReentrantLock mutex = new ReentrantLock(true);
 	private final long id = idGenerator.getAndIncrement();
 	// 采用链表，可以O(1)处理Merge，但是由于Merge的时候需要更新Record所属的关联集合，
 	// 所以避免不了遍历，那就使用HashSet，遍历吧。
@@ -28,6 +27,10 @@ public final class RelativeRecordSet {
 	private HashSet<Record> recordSet;
 	private volatile RelativeRecordSet mergeTo; // 不为null表示发生了变化，其中 == Deleted 表示被删除（已经Flush了）。
 	private @Nullable Set<OnzProcedure> onzProcedures;
+
+	RelativeRecordSet() {
+		super(true);
+	}
 
 	HashSet<Record> getRecordSet() {
 		return recordSet;
@@ -97,19 +100,8 @@ public final class RelativeRecordSet {
 		}
 	}
 
-	private void lock() {
-		mutex.lock();
-	}
-
 	boolean tryLockWhenIdle() {
-		if (mutex.hasQueuedThreads())
-			return false;
-		return mutex.tryLock();
-	}
-
-	// 必须且仅调用一次。
-	void unLock() {
-		mutex.unlock();
+		return !hasQueuedThreads() && tryLock();
 	}
 
 	static void tryUpdateAndCheckpoint(Transaction trans, Procedure procedure, Runnable commit,
@@ -197,7 +189,7 @@ public final class RelativeRecordSet {
 			// else
 			// 本次事务没有访问任何数据。
 		} finally {
-			locked.forEach(RelativeRecordSet::unLock);
+			locked.forEach(ReentrantLock::unlock);
 		}
 	}
 
@@ -330,7 +322,7 @@ public final class RelativeRecordSet {
 					int unlockEndIndex = index;
 					for (; unlockEndIndex < n && locked.get(unlockEndIndex).id < rrs.id;
 						 ++unlockEndIndex) {
-						locked.get(unlockEndIndex).unLock();
+						locked.get(unlockEndIndex).unlock();
 					}
 					locked.subList(index, unlockEndIndex).clear();
 					n = locked.size();
@@ -340,7 +332,7 @@ public final class RelativeRecordSet {
 				// RelativeRecordSets发生了变化，并且出现排在当前已经锁住对象前面的集合。
 				// 从当前位置释放锁，再次尝试。
 				for (int i = index; i < n; ++i) {
-					locked.get(i).unLock();
+					locked.get(i).unlock();
 				}
 				locked.subList(index, n).clear();
 				n = locked.size();
@@ -358,7 +350,7 @@ public final class RelativeRecordSet {
 		rrs.lock();
 		var mergeTo = rrs.mergeTo;
 		if (mergeTo != null) {
-			rrs.unLock();
+			rrs.unlock();
 			all.remove(rrs.id); // remove merged or deleted rrs
 			if (mergeTo == deleted) {
 				// flush 后进入这个状态。此时表示旧的关联集合的checkpoint点已经完成。
@@ -467,7 +459,7 @@ public final class RelativeRecordSet {
 				if (null != DatabaseRocksDb.verifyAction)
 					DatabaseRocksDb.verifyAction.run();
 			} finally {
-				locks.forEach(RelativeRecordSet::unLock);
+				locks.forEach(RelativeRecordSet::unlock);
 				Checkpoint.logger.debug("flush: {} rrs, {} ns", n, System.nanoTime() - timeBegin);
 				synchronized (this) {
 					done = true;
@@ -488,7 +480,7 @@ public final class RelativeRecordSet {
 			if (DatabaseRocksDb.verifyAction != null)
 				DatabaseRocksDb.verifyAction.run();
 		} finally {
-			rrs.unLock();
+			rrs.unlock();
 		}
 	}
 
@@ -604,7 +596,7 @@ public final class RelativeRecordSet {
 
 			return rrs.mergeTo; // 返回这个能更快得到新集合的引用。
 		} finally {
-			rrs.unLock();
+			rrs.unlock();
 		}
 	}
 
@@ -621,7 +613,7 @@ public final class RelativeRecordSet {
 			}
 			return id + "-" + recordSet;
 		} finally {
-			unLock();
+			unlock();
 		}
 	}
 

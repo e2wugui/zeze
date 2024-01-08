@@ -13,7 +13,6 @@ import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
@@ -28,6 +27,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.FastLock;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -213,7 +213,7 @@ public final class BinLogger {
 		private BufferedOutputStream tsFile; // 每条日志的时间戳,小端保存为8字节整数,其中高44位是UTC毫秒时间戳,低20位是该时间戳的日志序号(从0开始)
 		private BufferedOutputStream dtFile; // 每条日志的Bean类型,小端保存为8字节整数
 		private BufferedOutputStream idFile; // 每条日志的所属ID,小端保存为8字节整数,通常为角色ID
-		private final @NotNull ReentrantLock queueLock = new ReentrantLock(); // 写日志队列的锁
+		private final @NotNull FastLock queueLock = new FastLock(); // 写日志队列的锁
 		private final @NotNull Condition queueLockCond = queueLock.newCondition(); // 写日志队列的锁等待条件
 		private Thread writeLogThread; // 处理并输出日志文件的线程
 		private ArrayList<LogData> writeLogQueue; // 写日志队列

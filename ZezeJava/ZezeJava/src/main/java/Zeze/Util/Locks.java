@@ -1,7 +1,5 @@
 package Zeze.Util;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 /**
  * <p>
  * Locks原来使用 单个容器管理锁，效率太低：
@@ -74,22 +72,21 @@ public class Locks<T extends Lockey<T>> {
 	}
 
 	/* ------------- 实现 --------------- */
-	private static final class Segment<T extends Lockey<T>> {
+	private static final class Segment<T extends Lockey<T>> extends FastLock {
 		private final WeakHashSet<T> locks = new WeakHashSet<>();
-		private final ReentrantLock lock = new ReentrantLock();
 
 		public boolean contains(T key) {
-			lock.lock();
+			lock();
 			try {
 				// 需要lock，get不是线程安全的
 				return locks.get(key) != null;
 			} finally {
-				lock.unlock();
+				unlock();
 			}
 		}
 
 		public T get(T key) {
-			lock.lock();
+			lock();
 			try {
 				var exist = locks.get(key);
 				if (exist != null)
@@ -97,7 +94,7 @@ public class Locks<T extends Lockey<T>> {
 				locks.add(key);
 				return key.alloc();
 			} finally {
-				lock.unlock();
+				unlock();
 			}
 		}
 	}

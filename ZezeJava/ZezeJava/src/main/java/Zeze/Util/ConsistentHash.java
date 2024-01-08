@@ -7,18 +7,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Serialize.ByteBuffer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class ConsistentHash<E> {
+public class ConsistentHash<E> extends FastLock {
 	private static final Logger logger = LogManager.getLogger(ConsistentHash.class);
 
 	private final SortedMap<Integer, E> circle = new SortedMap<>();
 	private final HashMap<E, Integer[]> nodes = new HashMap<>();
 	private final Set<E> nodesView = Collections.unmodifiableSet(nodes.keySet());
-	private final ReentrantLock lock = new ReentrantLock();
 
 	public Set<E> getNodes() {
 		return nodesView;
@@ -41,13 +39,13 @@ public class ConsistentHash<E> {
 		}
 
 		List<SortedMap.Entry<Integer, E>> conflicts;
-		lock.lock();
+		lock();
 		try {
 			if (nodes.putIfAbsent(node, virtual) != null)
 				return; // 忽略重复加入的node。不报告这个错误，简化外面的使用。
 			conflicts = circle.addAll(virtual, node);
 		} finally {
-			lock.unlock();
+			unlock();
 		}
 		for (var conflict : conflicts)
 			logger.warn("hash conflict! key={} node={}", conflict.key, conflict.value);
@@ -56,7 +54,7 @@ public class ConsistentHash<E> {
 	public void remove(E node) {
 		if (node == null)
 			throw new NullPointerException("node");
-		lock.lock();
+		lock();
 		try {
 			var virtual = nodes.remove(node);
 			if (null == virtual)
@@ -68,13 +66,13 @@ public class ConsistentHash<E> {
 				circle.remove(hash, node);
 			}
 		} finally {
-			lock.unlock();
+			unlock();
 		}
 	}
 
 	public E get(int hash) {
 		hash = ByteBuffer.calc_hashnr(((long)hash << 32) ^ hash);
-		lock.lock();
+		lock();
 		try {
 			// 换成新的SortedMap的方法。原来是ceilingEntry，对不对。
 			var e = circle.upperBound(hash);
@@ -85,7 +83,7 @@ public class ConsistentHash<E> {
 			}
 			return e.getValue();
 		} finally {
-			lock.unlock();
+			unlock();
 		}
 	}
 }

@@ -4,9 +4,9 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
+import Zeze.Util.FastLock;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
@@ -108,7 +108,7 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 	}
 }
 
-final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectAllFuture<R> {
+final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock implements RedirectAllFuture<R> {
 	private static final @NotNull VarHandle ON_ALL_DONE;
 
 	static {
@@ -123,19 +123,18 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	private volatile @Nullable Action1<RedirectAllContext<R>> onAllDone;
 	private volatile @Nullable RedirectAllContext<R> ctx;
 	private @Nullable IntHashSet finishedHashes; // lazy-init
-	private final ReentrantLock lock = new ReentrantLock();
-	private final @NotNull Condition cond = lock.newCondition();
+	private final @NotNull Condition cond = newCondition();
 
 	private @NotNull IntHashSet getFinishedHashes() {
 		var hashes = finishedHashes;
 		if (hashes == null) {
 			var newHashes = new IntHashSet();
-			lock.lock();
+			lock();
 			try {
 				if ((hashes = finishedHashes) == null)
 					finishedHashes = hashes = newHashes;
 			} finally {
-				lock.unlock();
+				unlock();
 			}
 		}
 		return hashes;
@@ -208,11 +207,11 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 				return Procedure.Success;
 			}, "RedirectAllFutureImpl.allDone").call();
 		}
-		lock.lock();
+		lock();
 		try {
 			cond.signalAll();
 		} finally {
-			lock.unlock();
+			unlock();
 		}
 	}
 
@@ -250,7 +249,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	public @NotNull RedirectAllFuture<R> await() {
 		var c = ctx;
 		if (c == null || !c.isCompleted()) {
-			lock.lock();
+			lock();
 			try {
 				try {
 					while ((c = ctx) == null || !c.isCompleted())
@@ -259,7 +258,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 					Task.forceThrow(e);
 				}
 			} finally {
-				lock.unlock();
+				unlock();
 			}
 		}
 		return this;

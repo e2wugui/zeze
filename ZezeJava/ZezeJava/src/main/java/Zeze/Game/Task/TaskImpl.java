@@ -75,7 +75,7 @@ public class TaskImpl {
 		des.setTaskState(task.getTaskState());
 
 		if (!task.getPhases().isEmpty()) {
-			var current = task.getPhases().getFirst();
+			var current = task.getPhases().get(0);
 			des.setPhaseDescription(current.getDescription());
 			for (var c : current.getConditions()) {
 				des.getPhaseConditions().add(Condition.construct(c).getDescription());

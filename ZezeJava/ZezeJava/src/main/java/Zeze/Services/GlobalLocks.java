@@ -1,7 +1,7 @@
 package Zeze.Services;
 
-import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Net.Binary;
+import Zeze.Util.FastLock;
 import Zeze.Util.WeakHashSet;
 
 /**
@@ -72,22 +72,21 @@ public final class GlobalLocks {
 	}
 
 	/* ------------- 实现 --------------- */
-	private static final class Segment {
+	private static final class Segment extends FastLock {
 		private final WeakHashSet<GlobalLockey> locks = new WeakHashSet<>();
-		private final ReentrantLock lock = new ReentrantLock();
 
 		public boolean contains(GlobalLockey key) {
-			lock.lock();
+			lock();
 			try {
 				// 需要lock，get不是线程安全的
 				return locks.get(key) != null;
 			} finally {
-				lock.unlock();
+				unlock();
 			}
 		}
 
 		public GlobalLockey get(GlobalLockey key) {
-			lock.lock();
+			lock();
 			try {
 				GlobalLockey exist = locks.get(key);
 				if (exist != null)
@@ -95,7 +94,7 @@ public final class GlobalLocks {
 				locks.add(key);
 				return key.alloc();
 			} finally {
-				lock.unlock();
+				unlock();
 			}
 		}
 	}

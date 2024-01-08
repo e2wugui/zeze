@@ -295,7 +295,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 					return tryRemoveRecordUnderLock(p);
 				} finally {
-					rrs.unLock();
+					rrs.unlock();
 				}
 			} finally {
 				p.getValue().exitFairLock();

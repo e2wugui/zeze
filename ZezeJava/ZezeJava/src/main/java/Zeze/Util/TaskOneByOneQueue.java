@@ -12,23 +12,14 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class TaskOneByOneQueue {
+public class TaskOneByOneQueue extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(TaskOneByOneQueue.class);
-	private final ReentrantLock lock = new ReentrantLock();
-	private final @NotNull Condition cond = lock.newCondition();
+	private final @NotNull Condition cond = newCondition();
 	private final BatchTask batch = new BatchTask();
 	private @NotNull ArrayDeque<Task> queue = new ArrayDeque<>();
 	private final Executor executor;
 	private boolean isShutdown;
 	private boolean removed;
-
-	public void lock() {
-		lock.lock();
-	}
-
-	public void unlock() {
-		lock.unlock();
-	}
 
 	void setRemoved() {
 		removed = true;
@@ -47,11 +38,11 @@ public class TaskOneByOneQueue {
 	}
 
 	public int size() {
-		lock.lock();
+		lock();
 		try {
 			return queue.size();
 		} finally {
-			lock.unlock();
+			unlock();
 		}
 	}
 
@@ -149,7 +140,7 @@ public class TaskOneByOneQueue {
 	}
 
 	private void runNext(int count) {
-		lock.lock();
+		lock();
 		try {
 			while (count-- > 0)
 				queue.pollFirst();
@@ -160,7 +151,7 @@ public class TaskOneByOneQueue {
 			}
 			batch.prepare();
 		} finally {
-			lock.unlock();
+			unlock();
 		}
 		if (executor != null) {
 			executor.execute(batch);
@@ -174,7 +165,7 @@ public class TaskOneByOneQueue {
 
 	public void shutdown(boolean cancel) {
 		ArrayDeque<Task> oldQueue;
-		lock.lock();
+		lock();
 		try {
 			if (isShutdown)
 				return;
@@ -185,7 +176,7 @@ public class TaskOneByOneQueue {
 			queue = new ArrayDeque<>(); // clear
 			queue.addLast(oldQueue.pollFirst()); // put back running task back
 		} finally {
-			lock.unlock();
+			unlock();
 		}
 		for (Task task : oldQueue) {
 			if (task.cancel != null) {
@@ -199,24 +190,24 @@ public class TaskOneByOneQueue {
 	}
 
 	public void waitComplete() throws InterruptedException {
-		lock.lock();
+		lock();
 		try {
 			while (!queue.isEmpty())
 				cond.await(); // wait running task
 		} finally {
-			lock.unlock();
+			unlock();
 		}
 	}
 
 	@Override
 	public @NotNull String toString() {
 		var sb = new StringBuilder().append('[');
-		lock.lock();
+		lock();
 		try {
 			for (var task : queue)
 				sb.append(task.name).append(',');
 		} finally {
-			lock.unlock();
+			unlock();
 		}
 		int n = sb.length();
 		if (n > 1)
@@ -331,8 +322,7 @@ public class TaskOneByOneQueue {
 		}
 	}
 
-	public static abstract class Barrier {
-		private final ReentrantLock lock = new ReentrantLock();
+	public static abstract class Barrier extends ReentrantLock {
 		private final HashSet<BatchTask> reached = new HashSet<>();
 		private final @Nullable Action0 cancelAction;
 		private int count;
@@ -343,7 +333,7 @@ public class TaskOneByOneQueue {
 			this.count = count;
 		}
 
-		abstract @NotNull public String getName();
+		public abstract @NotNull String getName();
 
 		public abstract void run() throws Exception;
 
@@ -353,7 +343,7 @@ public class TaskOneByOneQueue {
 		}
 
 		public boolean reach(@NotNull BatchTask batch, int sum) {
-			lock.lock();
+			lock();
 			try {
 				if (canceled)
 					return true;
@@ -376,12 +366,12 @@ public class TaskOneByOneQueue {
 				}
 				return false; // 返回false
 			} finally {
-				lock.unlock();
+				unlock();
 			}
 		}
 
 		public void cancel() {
-			lock.lock();
+			lock();
 			try {
 				if (canceled)
 					return;
@@ -399,7 +389,7 @@ public class TaskOneByOneQueue {
 					reachedRunNext();
 				}
 			} finally {
-				lock.unlock();
+				unlock();
 			}
 		}
 	}

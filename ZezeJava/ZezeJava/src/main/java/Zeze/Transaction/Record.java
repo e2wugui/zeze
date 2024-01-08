@@ -7,7 +7,7 @@ import Zeze.Services.GlobalCacheManagerConst;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class Record {
+public abstract class Record extends ReentrantLock {
 	public static final class RootInfo {
 		private final @NotNull Record record;
 		private final @NotNull TableKey tableKey;
@@ -34,7 +34,6 @@ public abstract class Record {
 		return timestampGen.getAndIncrement();
 	}
 
-	private final ReentrantLock fairLock = new ReentrantLock(true);
 	/**
 	 * Record.Dirty 的问题
 	 * 对于新的CheckpointMode，需要实现新的Dirty。
@@ -61,27 +60,26 @@ public abstract class Record {
 	private Database.Transaction databaseTransactionOldTmp;
 
 	public Record(@Nullable Bean value) {
+		super(true);
 		state = GlobalCacheManagerConst.StateInvalid;
 		softValue = new SoftReference<>(value);
 		// Timestamp = NextTimestamp; // Table.FindInCacheOrStorage 可能发生数据变化，这里初始化一次不够。
 	}
 
 	final void enterFairLock() {
-		fairLock.lock();
+		lock();
 	}
 
 	final boolean tryEnterFairLock() {
-		return fairLock.tryLock();
+		return tryLock();
 	}
 
 	final boolean tryEnterFairLockWhenIdle() {
-		if (fairLock.hasQueuedThreads())
-			return false;
-		return fairLock.tryLock();
+		return !hasQueuedThreads() && tryLock();
 	}
 
 	final void exitFairLock() {
-		fairLock.unlock();
+		unlock();
 	}
 
 	final boolean getDirty() {
