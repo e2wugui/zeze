@@ -1,7 +1,3 @@
-打包和更新工具
-ConfigEditor 自动完成: Foreign；自动id，Load 的时候记录maxid，以后编辑AddRow都使用这个递增；
-ConfigEditor 更多自动完成？普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
-ConfigEditor enum 现在不支持引用在其他文档定义的，有需要了再来加。
 DatabaseTikv.OperatesTikv
 ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
