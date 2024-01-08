@@ -5,6 +5,7 @@ import Zeze.Builtin.Game.TaskModule.Abandon;
 import Zeze.Builtin.Game.TaskModule.Accept;
 import Zeze.Builtin.Game.TaskModule.BRoleTasks;
 import Zeze.Builtin.Game.TaskModule.BTaskConfig;
+import Zeze.Builtin.Game.TaskModule.BTaskDescription;
 import Zeze.Builtin.Game.TaskModule.Finish;
 import Zeze.Builtin.Game.TaskModule.GetRoleTasks;
 import Zeze.Collections.BeanFactory;
@@ -67,6 +68,15 @@ public class TaskModule extends AbstractTaskModule {
 
 	@Override
 	protected long ProcessGetRoleTasksRequest(GetRoleTasks r) throws Exception {
+		var session = ProviderUserSession.get(r);
+		var roleId = session.getRoleIdNotNull();
+		var roleTasks = getRoleTasks(roleId);
+		for (var bTask : roleTasks.getTasks().values()) {
+			var des = new BTaskDescription();
+			TaskImpl.toDescription(this, roleId, bTask, des);
+			r.Result.getTasks().put(bTask.getTaskId(), des);
+		}
+		r.SendResult();
 		return 0;
 	}
 

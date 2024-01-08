@@ -5,6 +5,7 @@ import Zeze.Builtin.Game.TaskModule.BCondition;
 import Zeze.Builtin.Game.TaskModule.BRoleTasks;
 import Zeze.Builtin.Game.TaskModule.BTask;
 import Zeze.Builtin.Game.TaskModule.BTaskConfig;
+import Zeze.Builtin.Game.TaskModule.BTaskDescription;
 import Zeze.Builtin.Game.TaskModule.Finish;
 import Zeze.Builtin.Game.TaskModule.TaskChanged;
 import Zeze.Builtin.Game.TaskModule.TaskRemoved;
@@ -69,25 +70,29 @@ public class TaskImpl {
 		module.getOnline().send(roleId, r);
 	}
 
-	public static void notifyTaskChanged(TaskModule module, long roleId, BTask task) throws Exception {
-		var r = new TaskChanged();
-		r.Argument.setTaskId(task.getTaskId());
-		r.Argument.setTaskState(task.getTaskState());
+	public static void toDescription(TaskModule module, long roleId, BTask task, BTaskDescription des) throws Exception {
+		des.setTaskId(task.getTaskId());
+		des.setTaskState(task.getTaskState());
 
 		if (!task.getPhases().isEmpty()) {
-			var current = task.getPhases().get(0);
-			r.Argument.setPhaseDescription(current.getDescription());
+			var current = task.getPhases().getFirst();
+			des.setPhaseDescription(current.getDescription());
 			for (var c : current.getConditions()) {
-				r.Argument.getPhaseConditions().add(Condition.construct(c).getDescription());
+				des.getPhaseConditions().add(Condition.construct(c).getDescription());
 			}
 		}
 		for (var c : task.getConditions())
-			r.Argument.getConditions().add(Condition.construct(c).getDescription());
+			des.getConditions().add(Condition.construct(c).getDescription());
 
 		var reward = module.getRewardConfig().getReward(task.getRewardId());
-		r.Argument.setRewardId(reward.getRewardId());
-		r.Argument.setRewardType(reward.getRewardType());
-		r.Argument.setRewardParam(reward.getRewardParam(roleId));
+		des.setRewardId(reward.getRewardId());
+		des.setRewardType(reward.getRewardType());
+		des.setRewardParam(reward.getRewardParam(roleId));
+	}
+
+	public static void notifyTaskChanged(TaskModule module, long roleId, BTask task) throws Exception {
+		var r = new TaskChanged();
+		toDescription(module, roleId, task, r.Argument);
 		module.getOnline().send(roleId, r);
 	}
 
