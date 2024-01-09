@@ -7,6 +7,7 @@ import java.net.URLDecoder;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.OpenOption;
+import java.nio.file.StandardOpenOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -69,7 +70,7 @@ public class HttpExchange {
 	protected static final int CLOSE_PASSIVE = 4; // 同上,只是因远程主动关闭而关闭
 
 	protected static final @NotNull Pattern rangePattern = Pattern.compile("[ =\\-/]");
-	protected static final OpenOption[] emptyOpenOptions = new OpenOption[0];
+	protected static final OpenOption[] readOnlyOpenOptions = new OpenOption[]{StandardOpenOption.READ};
 	protected static final @NotNull VarHandle detachedHandle;
 	protected static final HttpDataFactory httpDataFactory = new DefaultHttpDataFactory(false);
 
@@ -669,11 +670,13 @@ public class HttpExchange {
 
 	public void sendFile(@NotNull String filePath) throws Exception {
 		var fileHome = server.fileHome;
-		if (fileHome == null) {
+		if (fileHome == null)
 			close(send404());
-			return;
-		}
-		var file = new File(fileHome.isEmpty() ? "." : fileHome, filePath);
+		else
+			sendFile(new File(fileHome.isEmpty() ? "." : fileHome, filePath));
+	}
+
+	public void sendFile(@NotNull File file) throws Exception {
 		if (!file.isFile() || file.isHidden()) {
 			close(send404());
 			return;
@@ -692,7 +695,7 @@ public class HttpExchange {
 			return;
 		}
 
-		var fc = FileChannel.open(file.toPath(), emptyOpenOptions);
+		var fc = FileChannel.open(file.toPath(), readOnlyOpenOptions);
 		var fsize = fc.size();
 		var r = parseRange(HttpHeaderNames.RANGE);
 		var from = Math.max(r[0], 0);
@@ -702,7 +705,7 @@ public class HttpExchange {
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, false);
 		HttpServer.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(filePath))
+				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(file.getName()))
 				.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
 				.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + (from + contentLen - 1) + '/' + fsize)
 				.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + server.fileCacheSeconds))
