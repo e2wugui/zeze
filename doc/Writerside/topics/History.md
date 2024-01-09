@@ -1,4 +1,4 @@
-# 第二十八章 History
+# History
 
 * 历史
 
