@@ -19,8 +19,8 @@ public class TaskGraphics {
 	// task cache
 	private final ConcurrentLruLike<Integer, BTaskConfig.Data> taskDataCache
 			= new ConcurrentLruLike<>("Zeze.Game.TaskDataCache", 5000);
-	private final ConcurrentLruLike<Integer, TaskConfig> taskCache
-			= new ConcurrentLruLike<>("Zeze.Game.TaskCache", 5000);
+//	private final ConcurrentLruLike<Integer, TaskConfig> taskCache
+//			= new ConcurrentLruLike<>("Zeze.Game.TaskCache", 5000);
 	// npcAcceptTasksCache
 	private final ConcurrentLruLike<Integer, BTaskSet.Data> npcAcceptTasksCache
 			= new ConcurrentLruLike<>("Zeze.Game.NpcAcceptTasksCache", 3000);
@@ -126,7 +126,7 @@ public class TaskGraphics {
 
 	// 编辑方法。直接用于任务编辑器或者用于把任务编辑器自己的存储格式转换运行格式。
 	public TaskConfig getTaskConfig(int taskId) throws Exception {
-		return taskCache.getOrAdd(taskId, () -> {
+		//return taskCache.getOrAdd(taskId, () -> {
 			try {
 				var data = getTask(taskId);
 				if (data == null)
@@ -136,7 +136,7 @@ public class TaskGraphics {
 				Task.forceThrow(ex);
 			}
 			throw new NullPointerException();
-		});
+		//});
 	}
 
 	public synchronized void putTask(TaskConfig config) throws RocksDBException {
@@ -154,7 +154,7 @@ public class TaskGraphics {
 
 		tasks.put(key.Bytes, key.ReadIndex, key.size(), value.Bytes, value.ReadIndex, value.size());
 		taskDataCache.remove(task.getTaskId());
-		taskCache.remove(task.getTaskId());
+		//taskCache.remove(task.getTaskId());
 	}
 
 	public synchronized void removeTask(int taskId) throws RocksDBException {
@@ -162,7 +162,7 @@ public class TaskGraphics {
 		key.WriteInt(taskId);
 		tasks.delete(key.Bytes, key.ReadIndex, key.size());
 		taskDataCache.remove(taskId);
-		taskCache.remove(taskId);
+		//taskCache.remove(taskId);
 	}
 
 	public synchronized void putRoot(int taskId) throws RocksDBException {
