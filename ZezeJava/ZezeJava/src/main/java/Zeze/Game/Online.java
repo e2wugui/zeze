@@ -95,6 +95,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
 	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
 
+	public ProviderApp getProviderApp() {
+		return providerApp;
+	}
+
 	public synchronized void setLocalActiveTimeout(long timeout) {
 		localActiveTimeout = timeout;
 	}

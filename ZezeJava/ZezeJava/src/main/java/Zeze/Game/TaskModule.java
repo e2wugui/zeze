@@ -20,7 +20,6 @@ import Zeze.Game.Task.TaskImpl;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.EmptyBean;
-import org.rocksdb.RocksDBException;
 
 public class TaskModule extends AbstractTaskModule {
 	private final Online online;

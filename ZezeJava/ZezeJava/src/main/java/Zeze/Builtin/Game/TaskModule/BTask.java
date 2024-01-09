@@ -13,7 +13,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.TaskModule.BCondition> _Conditions;
     private final Zeze.Transaction.Collections.PSet1<Integer> _IndexSet;
     private int _TaskState;
-    private boolean _AutoCompleted;
+    private boolean _AutoFinish;
     private int _RewardId;
 
     private transient Object __zeze_map_key__;
@@ -96,23 +96,23 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     }
 
     @Override
-    public boolean isAutoCompleted() {
+    public boolean isAutoFinish() {
         if (!isManaged())
-            return _AutoCompleted;
+            return _AutoFinish;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _AutoCompleted;
-        var log = (Log__AutoCompleted)txn.getLog(objectId() + 6);
-        return log != null ? log.value : _AutoCompleted;
+            return _AutoFinish;
+        var log = (Log__AutoFinish)txn.getLog(objectId() + 6);
+        return log != null ? log.value : _AutoFinish;
     }
 
-    public void setAutoCompleted(boolean value) {
+    public void setAutoFinish(boolean value) {
         if (!isManaged()) {
-            _AutoCompleted = value;
+            _AutoFinish = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__AutoCompleted(this, 6, value));
+        txn.putLog(new Log__AutoFinish(this, 6, value));
     }
 
     @Override
@@ -146,7 +146,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     }
 
     @SuppressWarnings("deprecation")
-    public BTask(int _TaskId_, int _TaskState_, boolean _AutoCompleted_, int _RewardId_) {
+    public BTask(int _TaskId_, int _TaskState_, boolean _AutoFinish_, int _RewardId_) {
         _TaskId = _TaskId_;
         _Phases = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.TaskModule.BPhase.class);
         _Phases.variableId(2);
@@ -155,7 +155,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         _IndexSet = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
         _IndexSet.variableId(4);
         _TaskState = _TaskState_;
-        _AutoCompleted = _AutoCompleted_;
+        _AutoFinish = _AutoFinish_;
         _RewardId = _RewardId_;
     }
 
@@ -166,7 +166,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         _Conditions.clear();
         _IndexSet.clear();
         setTaskState(0);
-        setAutoCompleted(false);
+        setAutoFinish(false);
         setRewardId(0);
         _unknown_ = null;
     }
@@ -200,7 +200,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         _IndexSet.clear();
         _IndexSet.addAll(other._IndexSet);
         setTaskState(other._TaskState);
-        setAutoCompleted(other._AutoCompleted);
+        setAutoFinish(other._AutoFinish);
         setRewardId(other._RewardId);
         _unknown_ = null;
     }
@@ -216,7 +216,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         _IndexSet.clear();
         _IndexSet.addAll(other._IndexSet);
         setTaskState(other.getTaskState());
-        setAutoCompleted(other.isAutoCompleted());
+        setAutoFinish(other.isAutoFinish());
         setRewardId(other.getRewardId());
         _unknown_ = other._unknown_;
     }
@@ -257,11 +257,11 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         public void commit() { ((BTask)getBelong())._TaskState = value; }
     }
 
-    private static final class Log__AutoCompleted extends Zeze.Transaction.Logs.LogBool {
-        public Log__AutoCompleted(BTask bean, int varId, boolean value) { super(bean, varId, value); }
+    private static final class Log__AutoFinish extends Zeze.Transaction.Logs.LogBool {
+        public Log__AutoFinish(BTask bean, int varId, boolean value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTask)getBelong())._AutoCompleted = value; }
+        public void commit() { ((BTask)getBelong())._AutoFinish = value; }
     }
 
     private static final class Log__RewardId extends Zeze.Transaction.Logs.LogInt {
@@ -321,7 +321,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         }
         sb.append('}').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TaskState=").append(getTaskState()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("AutoCompleted=").append(isAutoCompleted()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("AutoFinish=").append(isAutoFinish()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("RewardId=").append(getRewardId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -412,7 +412,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             }
         }
         {
-            boolean _x_ = isAutoCompleted();
+            boolean _x_ = isAutoFinish();
             if (_x_) {
                 _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.INTEGER);
                 _o_.WriteByte(1);
@@ -473,7 +473,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 6) {
-            setAutoCompleted(_o_.ReadBool(_t_));
+            setAutoFinish(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 7) {
@@ -531,7 +531,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
                 case 3: _Conditions.followerApply(vlog); break;
                 case 4: _IndexSet.followerApply(vlog); break;
                 case 5: _TaskState = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 6: _AutoCompleted = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 6: _AutoFinish = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
                 case 7: _RewardId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
@@ -545,7 +545,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         Zeze.Serialize.Helper.decodeJsonList(_Conditions, Zeze.Builtin.Game.TaskModule.BCondition.class, rs.getString(_parents_name_ + "Conditions"));
         Zeze.Serialize.Helper.decodeJsonSet(_IndexSet, Integer.class, rs.getString(_parents_name_ + "IndexSet"));
         setTaskState(rs.getInt(_parents_name_ + "TaskState"));
-        setAutoCompleted(rs.getBoolean(_parents_name_ + "AutoCompleted"));
+        setAutoFinish(rs.getBoolean(_parents_name_ + "AutoFinish"));
         setRewardId(rs.getInt(_parents_name_ + "RewardId"));
     }
 
@@ -557,7 +557,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         st.appendString(_parents_name_ + "Conditions", Zeze.Serialize.Helper.encodeJson(_Conditions));
         st.appendString(_parents_name_ + "IndexSet", Zeze.Serialize.Helper.encodeJson(_IndexSet));
         st.appendInt(_parents_name_ + "TaskState", getTaskState());
-        st.appendBoolean(_parents_name_ + "AutoCompleted", isAutoCompleted());
+        st.appendBoolean(_parents_name_ + "AutoFinish", isAutoFinish());
         st.appendInt(_parents_name_ + "RewardId", getRewardId());
     }
 
@@ -569,7 +569,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Conditions", "list", "", "BCondition"));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "IndexSet", "set", "", "int"));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "TaskState", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "AutoCompleted", "bool", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "AutoFinish", "bool", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "RewardId", "int", "", ""));
         return vars;
     }
@@ -583,7 +583,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> _Conditions;
     private java.util.HashSet<Integer> _IndexSet;
     private int _TaskState;
-    private boolean _AutoCompleted;
+    private boolean _AutoFinish;
     private int _RewardId;
 
     public int getTaskId() {
@@ -632,12 +632,12 @@ public static final class Data extends Zeze.Transaction.Data {
         _TaskState = value;
     }
 
-    public boolean isAutoCompleted() {
-        return _AutoCompleted;
+    public boolean isAutoFinish() {
+        return _AutoFinish;
     }
 
-    public void setAutoCompleted(boolean value) {
-        _AutoCompleted = value;
+    public void setAutoFinish(boolean value) {
+        _AutoFinish = value;
     }
 
     public int getRewardId() {
@@ -656,7 +656,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _TaskId_, java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BPhase.Data> _Phases_, java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> _Conditions_, java.util.HashSet<Integer> _IndexSet_, int _TaskState_, boolean _AutoCompleted_, int _RewardId_) {
+    public Data(int _TaskId_, java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BPhase.Data> _Phases_, java.util.ArrayList<Zeze.Builtin.Game.TaskModule.BCondition.Data> _Conditions_, java.util.HashSet<Integer> _IndexSet_, int _TaskState_, boolean _AutoFinish_, int _RewardId_) {
         _TaskId = _TaskId_;
         if (_Phases_ == null)
             _Phases_ = new java.util.ArrayList<>();
@@ -668,7 +668,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _IndexSet_ = new java.util.HashSet<>();
         _IndexSet = _IndexSet_;
         _TaskState = _TaskState_;
-        _AutoCompleted = _AutoCompleted_;
+        _AutoFinish = _AutoFinish_;
         _RewardId = _RewardId_;
     }
 
@@ -679,7 +679,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _Conditions.clear();
         _IndexSet.clear();
         _TaskState = 0;
-        _AutoCompleted = false;
+        _AutoFinish = false;
         _RewardId = 0;
     }
 
@@ -712,7 +712,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _IndexSet.clear();
         _IndexSet.addAll(other._IndexSet);
         _TaskState = other.getTaskState();
-        _AutoCompleted = other.isAutoCompleted();
+        _AutoFinish = other.isAutoFinish();
         _RewardId = other.getRewardId();
     }
 
@@ -727,7 +727,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _IndexSet.clear();
         _IndexSet.addAll(other._IndexSet);
         _TaskState = other._TaskState;
-        _AutoCompleted = other._AutoCompleted;
+        _AutoFinish = other._AutoFinish;
         _RewardId = other._RewardId;
     }
 
@@ -804,7 +804,7 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         sb.append('}').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TaskState=").append(_TaskState).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("AutoCompleted=").append(_AutoCompleted).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("AutoFinish=").append(_AutoFinish).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("RewardId=").append(_RewardId).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -882,7 +882,7 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
-            boolean _x_ = _AutoCompleted;
+            boolean _x_ = _AutoFinish;
             if (_x_) {
                 _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.INTEGER);
                 _o_.WriteByte(1);
@@ -941,7 +941,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 6) {
-            _AutoCompleted = _o_.ReadBool(_t_);
+            _AutoFinish = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 7) {

@@ -892,8 +892,7 @@
 				</bean>
 
 				<enum name="eTaskAccepted" value="0"/> 任务接受时的初始状态
-				<enum name="eTaskDone" value="1"/> 任务完成状态
-				<enum name="eTaskCompleted" value="2"/> 任务结束状态（已经发换奖励）
+				<enum name="eTaskDone" value="1"/> 任务完成状态（未发放奖励）
 
 				<bean name="BTask">
 					<variable id="1" name="TaskId"  type="int"/>
@@ -907,7 +906,7 @@
 					
 					<!-- 其他属性 -->
 					<variable id="5" name="TaskState"  type="int"/>
-					<variable id="6" name="AutoCompleted"  type="bool"/>
+					<variable id="6" name="AutoFinish"  type="bool"/>
 					<variable id="7" name="RewardId"  type="int"/>
 				</bean>
 

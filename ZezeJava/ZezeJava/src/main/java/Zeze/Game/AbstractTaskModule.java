@@ -19,8 +19,7 @@ public abstract class AbstractTaskModule implements Zeze.IModule {
     public static final int eRewardNotExists = 6;
     public static final int eTaskNotAccepted = 7;
     public static final int eTaskAccepted = 0; // 任务接受时的初始状态
-    public static final int eTaskDone = 1; // 任务完成状态
-    public static final int eTaskCompleted = 2; // 任务结束状态（已经发换奖励）
+    public static final int eTaskDone = 1; // 任务完成状态（未发放奖励）
 
     protected final Zeze.Builtin.Game.TaskModule.tRoleTasks _tRoleTasks = new Zeze.Builtin.Game.TaskModule.tRoleTasks();
 

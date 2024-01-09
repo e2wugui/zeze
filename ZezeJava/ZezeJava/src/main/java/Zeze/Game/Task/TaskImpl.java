@@ -14,6 +14,7 @@ import Zeze.Game.TaskModule;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
+import Zeze.Util.Task;
 import org.rocksdb.RocksDBException;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,10 +55,10 @@ public class TaskImpl {
 	public static void tryTaskDone(TaskModule module, long roleId, BRoleTasks roleTasks, BTask task) throws Exception {
 		if (task.getPhases().isEmpty() && task.getIndexSet().isEmpty()) {
 			task.setTaskState(TaskModule.eTaskDone);
-			if (task.isAutoCompleted()) {
-				task.setTaskState(TaskModule.eTaskCompleted);
-				roleTasks.getTasks().remove(task.getTaskId());
-				notifyTaskRemoved(module, roleId, task);
+			if (task.isAutoFinish()) {
+				// 自动完成任务在新的事务中执行，可能发生包裹满而失败。
+				Task.run(module.getOnline().getProviderApp().zeze.newProcedure(
+						() -> finishTask(module, roleId, task.getTaskId()), "autoFinishTask"));
 				return; // done;
 			}
 		}
@@ -205,14 +206,22 @@ public class TaskImpl {
 	}
 
 	public static long finishTask(TaskModule module, long roleId, Finish r) throws RocksDBException {
+		var rc = finishTask(module, roleId, r.Argument.getTaskId());
+		if (rc != 0)
+			return rc;
+		r.SendResult();
+		return 0;
+	}
+
+	public static long finishTask(TaskModule module, long roleId, int taskId) throws RocksDBException {
 		var roleTasks = module.getRoleTasks(roleId);
-		var bTask = roleTasks.getTasks().remove(r.Argument.getTaskId());
+		var bTask = roleTasks.getTasks().remove(taskId);
 		if (null == bTask)
 			return module.errorCode(TaskModule.eTaskNotAccepted);
 		if (bTask.getTaskState() != TaskModule.eTaskDone)
 			return module.errorCode(TaskModule.eTaskNotDone);
 
-		var task = module.getTaskGraphics().getTask(r.Argument.getTaskId());
+		var task = module.getTaskGraphics().getTask(taskId);
 		if (null == task)
 			return module.errorCode(TaskModule.eTaskNotExists);
 
@@ -231,13 +240,12 @@ public class TaskImpl {
 				completed.remove(tid);
 		} else {
 			// 记录到已完成任务集合中。
-			module.getRoleCompletedTasks(roleId).put(r.Argument.getTaskId(), EmptyBean.instance);
+			module.getRoleCompletedTasks(roleId).put(taskId, EmptyBean.instance);
 		}
 
 		// 注意这里调用abandon删除任务。
-		abandonTask(module, roleId, roleTasks, r.Argument.getTaskId());
+		abandonTask(module, roleId, roleTasks, taskId);
 
-		r.SendResult();
 		return 0;
 	}
 }
