@@ -100,7 +100,7 @@ public class TaskImpl {
 	public static boolean phaseAccept(List<BCondition> conditons, Set<Integer> indexSet, ConditionEvent event) throws Exception {
 		for (var i = 0; i < conditons.size(); ++i) {
 			var bean = conditons.get(i);
-			var condition = Condition.construct(bean);
+			var condition = Condition.construct(bean); // todo 这个怎么优化！
 			if (condition.accept(event)) {
 				if (condition.isDone())
 					indexSet.remove(i);
