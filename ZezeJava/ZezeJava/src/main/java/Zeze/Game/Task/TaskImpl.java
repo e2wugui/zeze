@@ -122,9 +122,10 @@ public class TaskImpl {
 										 List<BTaskConfig.Data> acceptableTasks,
 										 List<BTaskConfig.Data> hasTasks) throws RocksDBException {
 		var npcAcceptTasks = module.getTaskGraphics().getNpcAcceptTasks(npcId);
+		var completedTasks = module.getRoleCompletedTasks(roleId);
 		for (var taskId : npcAcceptTasks.getTaskIds()) {
 			var task = module.getTaskGraphics().getTask(taskId);
-			if (checkPreposeTask(task, module.getRoleCompletedTasks(roleId))
+			if (checkPreposeTask(task, completedTasks)
 					&& module.checkTaskAcceptCondition(task, roleId)) {
 				acceptableTasks.add(task); // 这个任务可接（黄色叹号）。
 			} else {
@@ -174,12 +175,19 @@ public class TaskImpl {
 			return module.errorCode(TaskModule.eTaskTooManyAccepted);
 		// 接受的时候，参数来自客户端，需要再次检查条件。
 		if (!checkPreposeTask(task, module.getRoleCompletedTasks(roleId))
-				|| module.checkTaskAcceptCondition(task, roleId))
+				|| !module.checkTaskAcceptCondition(task, roleId))
 			return module.errorCode(TaskModule.eTaskCondition);
 
 		acceptTask(module, roleId, roleTasks, task);
 		r.SendResult();
 		return 0;
+	}
+
+	// 接受任务，无条件检查。
+	public static void acceptTask(TaskModule module, long roleId, int taskId) throws Exception {
+		var roleTasks = module.getRoleTasks(roleId);
+		var task = module.getTaskGraphics().getTask(taskId);
+		acceptTask(module, roleId, roleTasks, task);
 	}
 
 	// 接受任务，无条件检查。

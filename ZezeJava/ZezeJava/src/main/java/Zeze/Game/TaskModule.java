@@ -1,9 +1,11 @@
 package Zeze.Game;
 
+import java.util.List;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Game.TaskModule.Abandon;
 import Zeze.Builtin.Game.TaskModule.Accept;
 import Zeze.Builtin.Game.TaskModule.BRoleTasks;
+import Zeze.Builtin.Game.TaskModule.BTask;
 import Zeze.Builtin.Game.TaskModule.BTaskConfig;
 import Zeze.Builtin.Game.TaskModule.BTaskDescription;
 import Zeze.Builtin.Game.TaskModule.Finish;
@@ -18,6 +20,7 @@ import Zeze.Game.Task.TaskImpl;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.EmptyBean;
+import org.rocksdb.RocksDBException;
 
 public class TaskModule extends AbstractTaskModule {
 	private final Online online;
@@ -83,6 +86,16 @@ public class TaskModule extends AbstractTaskModule {
 	// 服务器内部接口
 	public void dispatch(long roleId, ConditionEvent event) throws Exception {
 		TaskImpl.dispatch(this, roleId, event);
+	}
+
+	public void getNpcAcceptTasks(long roleId, int npcId,
+								  List<BTaskConfig.Data> acceptableTasks,
+								  List<BTaskConfig.Data> hasTasks) throws Exception {
+		TaskImpl.getNpcAcceptTasks(this, roleId, npcId, acceptableTasks, hasTasks);
+	}
+
+	public List<BTask> getNpcFinishTasks(long roleId, int npcId) throws Exception {
+		return TaskImpl.getNpcFinishTasks(this, roleId, npcId);
 	}
 
 	private TaskGraphics taskGraphics;
