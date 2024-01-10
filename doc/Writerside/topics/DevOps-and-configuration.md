@@ -585,3 +585,6 @@ GlobalCacheManagerHostNameOrAddress=”ip1:port1;ip2:port2;ip3:port3”。当使
 上面ServiceManager配置默认为空，表示启用单点版本的ServiceManager服务器，这个服
 务器的ServiceConf的名字是Zeze.Services.ServiceManager.Agent。取值”raft”表示启用
 ServiceManagerConf，其中的raftXml是raft的配置文件名。
+
+## porlardb-x2.0 Database URL额外参数
+seUnicode=true&characterEncoding=utf8
