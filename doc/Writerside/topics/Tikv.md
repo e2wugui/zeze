@@ -1,4 +1,6 @@
-##### 安装虚拟机及CentOS系统
+# Tikv
+
+## Windows安装虚拟机及CentOS系统
 
 1. 下载 CentOS7 光盘镜像: https://mirrors.aliyun.com/centos/ 选择最新的7.x版本, 进入isos/x86_64子目录, 下载 CentOS-7-x86_64-Minimal- 开头的iso镜像文件
 2. 下载安装 Virtual Box: https://www.virtualbox.org/wiki/Downloads
@@ -8,7 +10,7 @@
 6. 安装完成并重启后光盘会自动卸载, 进入系统后登录root账号, 查看虚拟机的IP地址(ip address), 其中"10.0."开头的用于访问互联网的NAT地址, "192.168."开头的用于跟主机连接的IP地址, 然后退出登录(exit)
 7. 主机启动SSH客户端, 连接"192.168."开头的IP地址, 22端口, 使用普通权限的账号和密码登录
 
-##### 安装TiKV
+## Install TiKV
 
 1. 下载 TiDB-community-server 的Linux端软件包: https://pingcap.com/zh/product-community
 2. 以下均在SSH客户端已登录虚拟机的环境, 先进入root账号(su)
@@ -19,7 +21,7 @@
 7. 重启虚拟机后, SSH客户端重新登录, 在home目录中创建tikv目录, 进入tikv目录后用rz命令上传主机下载好的tikv压缩包中的"pd-server"和"tikv-server"两个可执行程序文件
 8. 给上传的2个程序增加可执行权限(chmod +x *)
 
-##### 启动TiKV
+## Start TiKV
 1. 进入tikv目录(含有pd-server和tikv-server的目录)
 2. 执行如下命令启动TiKV(其中的"192.168.56.101"要换成自己虚拟机用于跟主机连接的IP地址, 注意首次执行会占用4G左右的硬盘空间):
 ```
@@ -31,7 +33,7 @@ nohup ./tikv-server --pd-endpoints="192.168.56.101:2379" --addr="192.168.56.101:
 3. 停止TiKV时用kill命令停止以上4个进程即可
 4. 以上的TiKV仅在单机启动服务用于测试, 如需分布式部署, 应参考官方文档(https://tikv.org/docs/6.1/deploy/install/production/)使用TiUP管理工具更加方便可靠
 
-##### 测试TiKV
+### Test TiKV
 1. Java客户端的测试代码:
 ```
 // 依赖 'org.tikv:tikv-client-java:3.3.0' 和 'org.slf4j:slf4j-api:1.7.36'
