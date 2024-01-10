@@ -1,11 +1,14 @@
 # 第十章 Serialize
 
-Zeze有一个很小的自己的系列化实现。麻雀虽小五脏俱全。
-Zeze.Transaction.Bean是在ByteBuffer基础上构建的一套对象系列化实现。
-主要如下两个类：
+Zeze有一个很小的自己的序列化实现。麻雀虽小五脏俱全。
+Zeze.Transaction.Bean是在ByteBuffer基础上构建的一套对象序列化实现。
+主要涉及以下三个类:
 
 1. Zeze.Serialize.Serializable 接口
-2. Zeze.Serialize.ByteBuffer 实现
+2. Zeze.Serialize.IByteBuffer 接口(目前只用于提供ByteBuffer的只读方法)
+3. Zeze.Serialize.ByteBuffer 实现
+
+以下是序列化标准的定义:
 
 ## 类型枚举(4-bit)
 
