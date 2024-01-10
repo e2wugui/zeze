@@ -30,7 +30,10 @@ public class TaskImpl {
 				if (phaseAccept(currentPhase.getConditions(), currentPhase.getIndexSet(), event)) {
 					// if phase done
 					if (currentPhase.getIndexSet().isEmpty()) {
-						task.getPhases().remove(0); // 阶段完成删除，意味着已经完成的任务，条件状态就看不到了。
+						// 阶段完成删除，意味着已经完成的任务，条件状态就看不到了。
+						// 这意味着阶段任务提交不能在完成以后又变得不满足了，也就是说，
+						// 阶段条件不允许出现需要Condition.finish阶段的条件，即ConditionBag类的条件。
+						task.getPhases().remove(0);
 						tryTaskDone(module, roleId, roleTasks, task);
 						// tryTaskDone 里面会主动调用 notifyUser
 					} else {
@@ -114,6 +117,25 @@ public class TaskImpl {
 			}
 		}
 		return false;
+	}
+
+	public static boolean phaseFinish(List<BCondition> conditons, Set<Integer> indexSet) throws Exception {
+		var result = true;
+		for (var i = 0; i < conditons.size(); ++i) {
+			var bean = conditons.get(i);
+			var condition = Condition.construct(bean); // todo 这个怎么优化！
+			if (!condition.finish()) {
+				// 结束失败，一般是任务条件发生变更，不再满足了，此时需要再次检查isDone，并恢复indexSet。
+				if (!condition.isDone())
+					indexSet.add(i);
+				// 保存条件状态
+				var bb = ByteBuffer.Allocate();
+				condition.encode(bb);
+				bean.setParameter(new Binary(bb));
+				result = false;
+			}
+		}
+		return result;
 	}
 
 	// 获取这个roleId在这个npc上的可接任务，初始版本，没有精确过滤。
@@ -205,7 +227,7 @@ public class TaskImpl {
 			TaskImpl.notifyTaskRemoved(module, roleId, bTask);
 	}
 
-	public static long finishTask(TaskModule module, long roleId, Finish r) throws RocksDBException {
+	public static long finishTask(TaskModule module, long roleId, Finish r) throws Exception {
 		var rc = finishTask(module, roleId, r.Argument.getTaskId());
 		if (rc != 0)
 			return rc;
@@ -213,7 +235,24 @@ public class TaskImpl {
 		return 0;
 	}
 
-	public static long finishTask(TaskModule module, long roleId, int taskId) throws RocksDBException {
+	public static boolean finishTask(BTask task) throws Exception {
+		var result = true;
+		if (!task.getPhases().isEmpty()) {
+			var currentPhase = task.getPhases().get(0);
+			if (!phaseFinish(currentPhase.getConditions(), currentPhase.getIndexSet()))
+				result = false;
+		}
+		// 给任务直接内含条件派发。看成一个阶段来处理。
+		if (!phaseFinish(task.getConditions(), task.getIndexSet()))
+			result = false;
+
+		if (!result)
+			task.setTaskState(TaskModule.eTaskAccepted);
+
+		return result;
+	}
+
+	public static long finishTask(TaskModule module, long roleId, int taskId) throws Exception {
 		var roleTasks = module.getRoleTasks(roleId);
 		var bTask = roleTasks.getTasks().remove(taskId);
 		if (null == bTask)
@@ -228,6 +267,11 @@ public class TaskImpl {
 		var reward = module.getRewardConfig().getReward(bTask.getRewardId());
 		if (null == reward)
 			return module.errorCode(TaskModule.eRewardNotExists);
+
+		if (!finishTask(bTask)) {
+			notifyTaskChanged(module, roleId, bTask);
+			return module.errorCode(TaskModule.eFinishError);
+		}
 
 		// 发放奖励。
 		reward.reward(roleId);

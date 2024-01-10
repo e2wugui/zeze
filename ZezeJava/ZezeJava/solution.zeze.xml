@@ -845,6 +845,7 @@
 				<enum name="eTaskNotDone" value="5"/>
 				<enum name="eRewardNotExists" value="6"/>
 				<enum name="eTaskNotAccepted" value="7"/>
+				<enum name="eFinishError" value="8"/>
 
 				<bean name="BTaskId">
 					<variable id="1" name="TaskId"  type="int"/>
