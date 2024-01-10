@@ -238,6 +238,7 @@ public class TaskImpl {
 	public static boolean finishTask(BTask task) throws Exception {
 		var result = true;
 		if (!task.getPhases().isEmpty()) {
+			// 这里实际上不可能发生，在任务完成阶段，phase肯定是空的。
 			var currentPhase = task.getPhases().get(0);
 			if (!phaseFinish(currentPhase.getConditions(), currentPhase.getIndexSet()))
 				result = false;
