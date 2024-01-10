@@ -76,39 +76,36 @@ void addItemToBag(long roleid, int itemId) {
 }
 ```
 
-##上手准备
+## 上手准备
 
-1.	git clone https://gitee.com/e2wugui/zeze
-2.	运行 zeze\gen_use_publish.bat。
-3.	再次 Build All，应该就正常了。
-4.	Csharp版使用vs2022或其他兼容编辑器打开zeze/Zeze.sln
-5.	Java版使用idea打开 zeze/ZezeJava即可正常Build All。
+1. git clone https://gitee.com/e2wugui/zeze
+2. 运行 zeze\gen_use_publish.bat。
+3. 再次 Build All，应该就正常了。
+4. Csharp版使用vs2022或其他兼容编辑器打开zeze/Zeze.sln
+5. Java版使用idea打开 zeze/ZezeJava即可正常Build All。
 
 ## Java开发准备 (如果只关注C#开发,可跳过)
 
-1. JDK 17 任意发行版均可
-   推荐: https://adoptium.net/releases
-   备选: https://jdk.java.net/
-2. IntelliJ IDEA 免费社区版(Community)即可, 2021.2.1版以上
-   https://www.jetbrains.com/idea/download/
+1. JDK 21 任意发行版均可
+   - 推荐: https://adoptium.net/releases
+   - 备选: https://jdk.java.net/
+2. IntelliJ IDEA 免费社区版(Community)即可, 2021.3版以上
+   - https://www.jetbrains.com/idea/download/
 3. (可选) Maven: https://maven.apache.org/download.cgi
-4. (可选) Ant: https://ant.apache.org/bindownload.cgi
 
 ## C#开发准备 (如果只关注Java开发,可只安装.NET SDK)
 
 1. .NET 6 SDK (如果安装下面的Visual Studio,可以不用单独安装这个)
-   https://dotnet.microsoft.com/en-us/download/dotnet/6.0 (通常选择Windows, x64)
+   - https://dotnet.microsoft.com/en-us/download/dotnet/6.0 (通常选择Windows, x64)
 2. Visual Studio 2022 (可用免费社区版,但需要联网激活,且只能个人或小规模商用)
-   Windows版本: https://visualstudio.microsoft.com/zh-hans/downloads/ (必选组件: .NET
-   桌面开发; 可选组件: Node.js开发)
-   Mac版本: https://visualstudio.microsoft.com/zh-hans/vs/mac/
+   - Windows版本: https://visualstudio.microsoft.com/zh-hans/downloads/ (必选组件: .NET桌面开发; 可选组件: Node.js开发)
+   - Mac版本: https://visualstudio.microsoft.com/zh-hans/vs/mac/
 3. (可选) VSCode (完全免费的轻量级IDE)
-   https://code.visualstudio.com/ (安装官方C#插件)
+   - https://code.visualstudio.com/ (安装官方C#插件)
 
 ## Java编译
 
-1. 启动IDEA, 打开zeze框架中的 ZezeJava 目录, 会自动加载4个模块(框架核心+测试+2
-   个示例)
+1. 启动IDEA, 打开zeze框架中的 ZezeJava 目录, 会自动加载4个模块(框架核心+测试+2个示例)
 2. 如果编译找不到某些类, 需要执行下面的"生成代码"
 
 ## C#编译
@@ -119,13 +116,13 @@ void addItemToBag(long roleid, int itemId) {
 
 ## Java Sample
 
-需要先执行上面的C#编译Gen工程
-1. 在 ZezeJava/ZezexJava, ZezeJava/ZezeJavaTest 目录下执行 gen.bat
+1. 需要先执行上面的C#编译Gen工程
+2. 在 ZezeJava/ZezexJava, ZezeJava/ZezeJavaTest 目录下执行 gen.bat
 
 ## C# Sample
 
-需要先执行上面的C#编译Gen工程
-在 Sample, UnitTest 目录下执行 gen.bat
+1. 需要先执行上面的C#编译Gen工程
+2. 在 Sample, UnitTest 目录下执行 gen.bat
 
 ## 分布式架构
 

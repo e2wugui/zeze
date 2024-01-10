@@ -79,6 +79,28 @@ Rpc提供同步等待、异步回调两种方式处理结果。
 4.	删除旧的协议处理ProtocolFactoryHandle。
 5.	注册自己MyProtocol。
 
+## 协议接收处理流程
+
+```
+Selector.run()
+ AsyncSocket.doHandle(SelectionKey)
+  AsyncSocket.processReceive(SocketChannel)
+*  Service.OnSocketProcessInputBuffer(AsyncSocket, ByteBuffer)   用于直接处理网络数据流(没有任何分包处理)
+    Protocol.decode(Service, AsyncSocket, ByteBuffer)   static方法,用(moduleId+protocolId+size+data)分包,但还没反序列化data
+*    Service.dispatchUnknownProtocol(AsyncSocket, int moduleId, int protocolId, ByteBuffer)   分支,条件:未注册(不再向下处理)
+*    Service.dispatchProtocol(long typeId, ByteBuffer, ProtocolFactoryHandle, AsyncSocket)   最底层的已注册协议处理,这里decodeProtocol出协议对象后再继续处理
+      Protocol/Rpc.handle(Service, ProtocolFactoryHandle)   分支,条件:握手协议同步处理;事务类型包装事务后Task.run处理
+       ProtocolHandle.handle(p/rpc)
+      Protocol/Rpc.dispatch(Service, ProtocolFactoryHandle)   分支,条件:非握手非事务类型
+*      Service.dispatchProtocol(Protocol, ProtocolFactoryHandle)   分支,条件:Protocol和Rpc请求
+        Protocol.handle(Service, ProtocolFactoryHandle)   通过Task.run处理
+         ProtocolHandle.handle(p)
+*      Service.dispatchRpcResponse(P rpc, ProtocolHandle<P>, ProtocolFactoryHandle)   分支,条件:Rpc回复且没有设置future,这里会把请求context的responseHandle传进第2个参数,第3个参数只用Level和Mode
+        ProtocolHandle.handle(rpc)   通过Task.runRpcResponse处理,事务类型包装事务后Task.runRpcResponse处理
+
+以上前面带"*"表示可以重载实现
+```
+
 ## 协议日志
 
 协议日志通过加JVM参数来开启,如: -DprotocolLog=DEBUG
