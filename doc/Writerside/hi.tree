@@ -38,6 +38,7 @@
     <toc-element topic="Task.md"/>
     <toc-element topic="Dbh2.md"/>
     <toc-element topic="Threads.md"/>
+    <toc-element topic="Signal.md"/>
     <toc-element topic="History.md"/>
     <toc-element topic="Git.md"/>
     <toc-element topic="Others.md"/>
