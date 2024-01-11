@@ -8,6 +8,7 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -718,6 +719,52 @@ public class HttpExchange {
 		if (contentLen > 0 && !HttpMethod.HEAD.equals(request.method())) // 发文件任务全部交给Netty，并且发送完毕时关闭。
 			context.write(new DefaultFileRegion(fc, from, contentLen), context.voidPromise());
 		close(context.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT).addListener(__ -> fc.close()));
+	}
+
+	@SuppressWarnings("deprecation")
+	public void sendPath(@NotNull File file) {
+		if (!file.isDirectory() || file.isHidden()) {
+			close(send404());
+			return;
+		}
+
+		int fileLimit = 10000; // 限制最多列出多少目录+文件,避免开销太大
+		var fn = file.getName();
+		var sb = new StringBuilder("<html><head><title>Index of ").append(fn)
+				.append("/</title></head><body><h1>Index of ").append(fn)
+				.append("/</h1><hr><pre><a href=\"../\">../</a>\n");
+		var fs = file.listFiles();
+		if (fs != null) {
+			for (var f : fs) {
+				if (f.isDirectory() && !f.isHidden()) { // 先列目录
+					if (--fileLimit < 0) {
+						sb.append("......\n");
+						break;
+					}
+					fn = f.getName();
+					var date = new Date(f.lastModified());
+					sb.append(String.format("%4d-%02d-%02d %02d:%02d:%02d %14s <a href=\"%s/\">%s/</a>\n",
+							date.getYear() + 1900, date.getMonth() + 1, date.getDate(),
+							date.getHours(), date.getMinutes(), date.getSeconds(),
+							"", fn, fn));
+				}
+			}
+			for (var f : fs) {
+				if (!f.isDirectory() && !f.isHidden()) { // 再列文件
+					if (--fileLimit < 0) {
+						sb.append("......\n");
+						break;
+					}
+					fn = f.getName();
+					var date = new Date(f.lastModified());
+					sb.append(String.format("%4d-%02d-%02d %02d:%02d:%02d %14d <a href=\"%s\">%s</a>\n",
+							date.getYear() + 1900, date.getMonth() + 1, date.getDate(),
+							date.getHours(), date.getMinutes(), date.getSeconds(),
+							f.length(), fn, fn));
+				}
+			}
+		}
+		close(sendHtml(HttpResponseStatus.OK, sb.append("</pre><hr></body></html>").toString()));
 	}
 
 	public @NotNull ChannelFuture send404() {

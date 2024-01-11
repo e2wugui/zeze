@@ -128,7 +128,7 @@ public class Mimes {
 			"xspf=application/xspf+xml\n" +
 			"zip=application/zip\n"; //@formatter:on
 
-	private static final String mimeDefault = "application/octet-stream";
+	private static final String mimeDefault = "text/plain";
 	private static final HashMap<String, String> mimesMap = new HashMap<>();
 
 	private static void load(@NotNull Reader input) throws IOException {

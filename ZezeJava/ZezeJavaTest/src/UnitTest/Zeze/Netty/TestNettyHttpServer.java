@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Netty;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -16,6 +17,7 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Netty.Http;
 import Zeze.Netty.HttpExchange;
+import Zeze.Netty.HttpHandler;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.HttpWebSocketHandle;
 import Zeze.Netty.Netty;
@@ -226,8 +228,23 @@ public class TestNettyHttpServer {
 		// ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
 		Task.tryInitThreadPool();
 
+		var fileHome = ".";
+		var defHandler = new HttpHandler(0, TransactionLevel.None, DispatchMode.Normal, x -> {
+			var f = new File(fileHome, x.path());
+			if (f.isDirectory())
+				x.sendPath(f);
+			else
+				x.sendFile(f);
+		});
+
 		// 运行，用浏览器访问 127.0.0.1/hello;127.0.0.1/exp;127.0.0.1/404
-		try (var netty = new Netty(); var http = new HttpServer(null, "", 600)) {
+		try (var netty = new Netty(); var http = new HttpServer(null, fileHome, 600) {
+			@Override
+			public @NotNull HttpHandler getHandler(@NotNull String path) {
+				var h = super.getHandler(path);
+				return h != null ? h : defHandler;
+			}
+		}) {
 			http.setCheckIdleInterval(1);
 			http.setReadIdleTimeout(1);
 			http.setWriteIdleTimeout(2);
