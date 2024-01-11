@@ -695,6 +695,7 @@ public class HttpExchange {
 			return;
 		}
 
+		var fn = file.getName();
 		var fc = FileChannel.open(file.toPath(), readOnlyOpenOptions);
 		var fsize = fc.size();
 		var r = parseRange(HttpHeaderNames.RANGE);
@@ -705,7 +706,8 @@ public class HttpExchange {
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, false);
 		HttpServer.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(file.getName()))
+				.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + fn + '"')
+				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(fn))
 				.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
 				.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + (from + contentLen - 1) + '/' + fsize)
 				.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + server.fileCacheSeconds))

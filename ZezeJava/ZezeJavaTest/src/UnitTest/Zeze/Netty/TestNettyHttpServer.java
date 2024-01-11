@@ -224,6 +224,7 @@ public class TestNettyHttpServer {
 
 	public static void main(String[] args) throws InterruptedException {
 		// ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
+		Task.tryInitThreadPool();
 
 		// 运行，用浏览器访问 127.0.0.1/hello;127.0.0.1/exp;127.0.0.1/404
 		try (var netty = new Netty(); var http = new HttpServer(null, "", 600)) {
