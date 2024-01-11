@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Arch.ProviderApp;
@@ -568,6 +569,17 @@ public final class Application {
 			stop();
 			logger.info("zeze({}) ShutdownHook end", this.projectName);
 		});
+
+		var urls = Application.class.getClassLoader().getResources("zeze.git.properties");
+		while (urls.hasMoreElements()) {
+			try (var is = urls.nextElement().openStream()) {
+				var p = new Properties();
+				p.load(is);
+				logger.info("Zeze Version={}, BuildTime={}, Rev={}", p.getProperty("git.build.version"),
+						p.getProperty("git.build.time"), p.getProperty("git.commit.id.full"));
+			}
+		}
+
 		var serverId = conf.getServerId();
 		logger.info("Start ServerId={}", serverId);
 
