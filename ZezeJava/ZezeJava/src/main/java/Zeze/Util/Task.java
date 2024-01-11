@@ -74,7 +74,6 @@ public final class Task {
 	public static @NotNull ExecutorService newFixedThreadPool(int threadCount, @NotNull String threadNamePrefix) {
 		if (USE_UNLIMITED_VIRTUAL_THREAD) {
 			try {
-				//noinspection JavaReflectionMemberAccess
 				var es = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
 						(Class<?>[])null).invoke(null);
 				logger.info("newFixedThreadPool({},{}) use unlimited virtual thread pool", threadCount, threadNamePrefix);

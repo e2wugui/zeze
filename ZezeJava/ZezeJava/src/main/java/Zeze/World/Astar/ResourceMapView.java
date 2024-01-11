@@ -21,8 +21,8 @@ public class ResourceMapView implements IResourceMap {
 		var z = center.z - range.z;
 		this.offset = map.toIndex(x, z);
 		this.map = map;
-		this.width = ((long)range.x << 1) + 1;
-		this.height= ((long)range.z << 1) + 1;
+		this.width = (range.x << 1) + 1;
+		this.height= (range.z << 1) + 1;
 	}
 
 	@Override

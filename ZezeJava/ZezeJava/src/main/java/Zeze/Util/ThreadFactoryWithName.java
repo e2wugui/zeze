@@ -17,7 +17,6 @@ public class ThreadFactoryWithName implements ThreadFactory {
 		MethodHandle mhUnstarted0;
 		try {
 			var lookup = MethodHandles.lookup();
-			//noinspection JavaLangInvokeHandleSignature
 			virtualThreadBuilder0 = lookup.findStatic(Thread.class, "ofVirtual",
 					MethodType.methodType(Class.forName("java.lang.Thread$Builder$OfVirtual"))).invoke();
 			mhUnstarted0 = lookup.findVirtual(Class.forName("java.lang.Thread$Builder"), "unstarted",

@@ -1,6 +1,5 @@
 package Zeze.Game.Task;
 
-import Zeze.Builtin.Game.TaskModule.BTask;
 import Zeze.Net.Binary;
 
 public interface Reward {

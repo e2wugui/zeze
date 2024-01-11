@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 public class RewardConfig {
 	private final HashMap<Integer, Reward> rewards = new HashMap<>();
 
-	public Reward getReward(int rewardId) {
+	public @Nullable Reward getReward(int rewardId) {
 		return rewards.get(rewardId);
 	}
 
