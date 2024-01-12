@@ -27,6 +27,18 @@ public final class PropertiesHelper {
 		return props.size();
 	}
 
+	public static boolean getBool(@NotNull String key, boolean def) {
+		var value = System.getProperty(key);
+		if (value == null || (value = value.trim()).isEmpty())
+			return def;
+		try {
+			return Boolean.parseBoolean(value);
+		} catch (NumberFormatException e) {
+			logger.warn("invalid bool property '{}' = '{}'", key, value);
+			return def;
+		}
+	}
+
 	public static int getInt(@NotNull String key, int def) {
 		var value = System.getProperty(key);
 		if (value == null || (value = value.trim()).isEmpty())

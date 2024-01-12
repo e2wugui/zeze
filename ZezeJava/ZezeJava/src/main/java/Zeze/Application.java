@@ -558,6 +558,21 @@ public final class Application {
 		}
 	}
 
+	public static boolean logZezeVersion() throws IOException {
+		var logged = false;
+		var urls = Application.class.getClassLoader().getResources("zeze.git.properties");
+		while (urls.hasMoreElements()) {
+			try (var is = urls.nextElement().openStream()) {
+				var p = new Properties();
+				p.load(is);
+				logger.info("Zeze Version={}, BuildTime={}, Rev={}", p.getProperty("git.build.version"),
+						p.getProperty("git.build.time"), p.getProperty("git.commit.id.full"));
+				logged = true;
+			}
+		}
+		return logged;
+	}
+
 	public synchronized void start() throws Exception {
 		if (startState == StartState.eStarted)
 			return;
@@ -570,15 +585,7 @@ public final class Application {
 			logger.info("zeze({}) ShutdownHook end", this.projectName);
 		});
 
-		var urls = Application.class.getClassLoader().getResources("zeze.git.properties");
-		while (urls.hasMoreElements()) {
-			try (var is = urls.nextElement().openStream()) {
-				var p = new Properties();
-				p.load(is);
-				logger.info("Zeze Version={}, BuildTime={}, Rev={}", p.getProperty("git.build.version"),
-						p.getProperty("git.build.time"), p.getProperty("git.commit.id.full"));
-			}
-		}
+		logZezeVersion();
 
 		var serverId = conf.getServerId();
 		logger.info("Start ServerId={}", serverId);

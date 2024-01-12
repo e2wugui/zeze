@@ -586,7 +586,8 @@ public final class BinLogger {
 		if (threadCount < 1)
 			threadCount = Runtime.getRuntime().availableProcessors();
 		Task.initThreadPool(Task.newCriticalThreadPool("ZezeTaskPool"),
-				Executors.newSingleThreadScheduledExecutor(new ThreadFactoryWithName("ZezeScheduledPool")));
+				Executors.newSingleThreadScheduledExecutor(
+						new ThreadFactoryWithName("ZezeScheduledPool", Thread.NORM_PRIORITY + 2)));
 		if (Selectors.getInstance().getCount() < threadCount)
 			Selectors.getInstance().add(threadCount - Selectors.getInstance().getCount());
 		PerfCounter.instance.tryStartScheduledLog();

@@ -27,7 +27,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class Task {
-	private static final boolean USE_UNLIMITED_VIRTUAL_THREAD = false; // 通常不建议开,事务并发量太大时并发冲突可能很高导致频繁redo
+	// 通常不建议开,事务并发量太大时并发冲突可能很高导致频繁redo
+	private static final boolean USE_UNLIMITED_VIRTUAL_THREAD = PropertiesHelper.getBool("useUnlimitedVirtualThread", false);
+	private static final boolean USE_VIRTUAL_THREAD = PropertiesHelper.getBool("useVirtualThread", true);
 
 	// 默认不开启热更，这个实现希望能被优化掉，几乎不造成影响。
 	// 开启热更时，由App.HotManager初始化的时候设置。
@@ -81,7 +83,8 @@ public final class Task {
 			} catch (ReflectiveOperationException ignored) {
 			}
 		}
-		return Executors.newFixedThreadPool(threadCount, new ThreadFactoryWithName(threadNamePrefix));
+		return Executors.newFixedThreadPool(threadCount,
+				new ThreadFactoryWithName(threadNamePrefix, Thread.NORM_PRIORITY, USE_VIRTUAL_THREAD));
 	}
 
 	// 关键线程池, 普通优先级+2, 不使用虚拟线程, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
@@ -129,7 +132,7 @@ public final class Task {
 					? app.getConfig().getScheduledThreads()
 					: Runtime.getRuntime().availableProcessors());
 			threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
-					new ThreadFactoryWithName("ZezeScheduledPool"));
+					new ThreadFactoryWithName("ZezeScheduledPool", Thread.NORM_PRIORITY, USE_VIRTUAL_THREAD));
 		} else
 			threadPoolScheduled = scheduled;
 		threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");

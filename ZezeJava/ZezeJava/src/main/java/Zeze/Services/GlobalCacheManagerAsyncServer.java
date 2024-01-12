@@ -1121,7 +1121,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		if (threadCount < 1)
 			threadCount = cpuCount;
 		Task.initThreadPool(Task.newFixedThreadPool(threadCount, "ZezeTaskPool"),
-				Executors.newSingleThreadScheduledExecutor(new ThreadFactoryWithName("ZezeScheduledPool")));
+				Executors.newSingleThreadScheduledExecutor(
+						new ThreadFactoryWithName("ZezeScheduledPool", Thread.NORM_PRIORITY + 2)));
 		if (Selectors.getInstance().getCount() < cpuCount)
 			Selectors.getInstance().add(cpuCount - Selectors.getInstance().getCount());
 
