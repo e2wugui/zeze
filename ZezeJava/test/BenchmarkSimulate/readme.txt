@@ -5,12 +5,12 @@
    zeze/ZezeJava/ZezexJava/lib/
    zeze/ZezeJava/ZezeJavaTest/build/libs/
    复制以下所需的jar到: zeze/ZezeJava/test/BenchmarkSimulate/lib/
-   log4j-api-2.17.1.jar
-   log4j-core-2.17.1.jar
-   pcollections-3.1.4.jar
-   rocksdbjni-7.0.3.jar
-   ZezeJava-0.9.22-SNAPSHOT.jar
-   ZezeJavaTest-0.9.22-SNAPSHOT.jar
+   log4j-api-*.jar
+   log4j-core-*.jar
+   pcollections-*.jar
+   rocksdbjni-*.jar
+   ZezeJava-*.jar
+   ZezeJavaTest-*.jar
 
 打包文件:
 本目录中所有版本库中的文件以及lib目录

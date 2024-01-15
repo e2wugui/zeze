@@ -230,8 +230,12 @@ public class TestNettyHttpServer {
 
 		var fileHome = ".";
 		var defHandler = new HttpHandler(0, TransactionLevel.None, DispatchMode.Normal, x -> {
-			// 这里要注意,path不能有"..",否则就成为漏洞读取到意外的文件,虽然一般的浏览器在发请求前会过滤掉带..的path
-			var f = new File(fileHome, x.path());
+			var path = x.path();
+			if (path.contains("..")) { // 这里要注意,path不能有"..",否则就成为漏洞读取到意外的文件,虽然一般的浏览器在发请求前会过滤掉带..的path
+				x.sendPlainText(HttpResponseStatus.FORBIDDEN, "");
+				return;
+			}
+			var f = new File(fileHome, path);
 			if (f.isDirectory())
 				x.sendPath(f);
 			else

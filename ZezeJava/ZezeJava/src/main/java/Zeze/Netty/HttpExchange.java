@@ -743,7 +743,7 @@ public class HttpExchange {
 					}
 					fn = f.getName();
 					var date = new Date(f.lastModified());
-					sb.append(String.format("%4d-%02d-%02d %02d:%02d:%02d %14s <a href=\"%s/\">%s/</a>\n",
+					sb.append(String.format("%4d-%02d-%02d %02d:%02d:%02d %18s <a href=\"%s/\">%s/</a>\n",
 							date.getYear() + 1900, date.getMonth() + 1, date.getDate(),
 							date.getHours(), date.getMinutes(), date.getSeconds(),
 							"", fn, fn));
@@ -757,7 +757,7 @@ public class HttpExchange {
 					}
 					fn = f.getName();
 					var date = new Date(f.lastModified());
-					sb.append(String.format("%4d-%02d-%02d %02d:%02d:%02d %14d <a href=\"%s\">%s</a>\n",
+					sb.append(String.format("%4d-%02d-%02d %02d:%02d:%02d %,18d <a href=\"%s\">%s</a>\n",
 							date.getYear() + 1900, date.getMonth() + 1, date.getDate(),
 							date.getHours(), date.getMinutes(), date.getSeconds(),
 							f.length(), fn, fn));

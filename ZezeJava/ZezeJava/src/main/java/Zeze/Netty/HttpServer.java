@@ -22,6 +22,7 @@ import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.GlobalTimer;
 import Zeze.Util.PropertiesHelper;
+import Zeze.Util.Reflect;
 import Zeze.Util.TaskOneByOneByKey;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -207,7 +208,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		}
 		idleTimeAttr.set(idleTime);
 		// 读写都超时了,那就主动关闭吧
-		if (idleTime >= writeIdleTimeout) {
+		if (idleTime >= writeIdleTimeout && !Reflect.inDebugMode) {
 			var x = exchanges.get(channel.id());
 			if (x != null)
 				x.close(HttpExchange.CLOSE_TIMEOUT, null);
