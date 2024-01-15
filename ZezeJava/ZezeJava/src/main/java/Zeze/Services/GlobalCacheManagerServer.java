@@ -1005,9 +1005,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		} else if (raftName.equals("RunAllNodes")) {
 			logger.info("Start Raft=RunAllNodes");
 			//noinspection unused
-			try (var GlobalRaft1 = new GlobalCacheManagerWithRaft("127.0.0.1:5556", RaftConfig.load(raftConf));
-				 var GlobalRaft2 = new GlobalCacheManagerWithRaft("127.0.0.1:5557", RaftConfig.load(raftConf));
-				 var GlobalRaft3 = new GlobalCacheManagerWithRaft("127.0.0.1:5558", RaftConfig.load(raftConf))) {
+			try (var GlobalRaft1 = new GlobalCacheManagerWithRaft("127.0.0.1_5556", RaftConfig.load(raftConf));
+				 var GlobalRaft2 = new GlobalCacheManagerWithRaft("127.0.0.1_5557", RaftConfig.load(raftConf));
+				 var GlobalRaft3 = new GlobalCacheManagerWithRaft("127.0.0.1_5558", RaftConfig.load(raftConf))) {
 				synchronized (Thread.currentThread()) {
 					Thread.currentThread().wait();
 				}
