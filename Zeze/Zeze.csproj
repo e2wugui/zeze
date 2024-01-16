@@ -1,41 +1,33 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
-	  <LangVersion>10</LangVersion>
-	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>10</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
     <DefineConstants>TRACE;USE_DATABASE,ENABLE_STATISTICS</DefineConstants>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
     <DefineConstants>TRACE;USE_DATABASE,ENABLE_STATISTICS</DefineConstants>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>$(DefineConstants);TRACE;USE_DATABASE;USE_DIAGNOSTICS;ENABLE_STATISTICS;HAS_NLOG</DefineConstants>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>$(DefineConstants);TRACE;USE_DATABASE;USE_DIAGNOSTICS;ENABLE_STATISTICS;HAS_NLOG</DefineConstants>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-	<DebugType>full</DebugType>
-	<DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
-
   <ItemGroup>
     <Compile Remove="Dummy\**" />
     <EmbeddedResource Remove="Dummy\**" />
     <None Remove="Dummy\**" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="DotNext.Threading" Version="4.12.3" />
     <PackageReference Include="MySql.Data" Version="8.0.33" />
@@ -43,9 +35,8 @@
     <PackageReference Include="NLog" Version="5.2.0" />
     <PackageReference Include="RocksDB" Version="8.1.1.38647" />
     <PackageReference Include="Scriban" Version="5.7.0" />
-    <PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
-    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="7.0.0" />
+    <PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
   </ItemGroup>
-
 </Project>
