@@ -73,6 +73,10 @@
     <ClCompile Include="..\CxxTest\main.cpp" />
     <ClCompile Include="..\CxxTest\TaskTest\TaskExt\ModuleTaskExt.cpp" />
     <ClCompile Include="..\CxxTest\TestByteBuffer.cpp" />
+    <ClCompile Include="Gen\demo\Module1\BKuafu.cpp" />
+    <ClCompile Include="Gen\demo\Module1\BKuafuResult.cpp" />
+    <ClCompile Include="Gen\demo\Module1\BOnlyData.cpp" />
+    <ClCompile Include="Gen\demo\Module1\BTestSchemas.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\cxx\Bean.h" />
@@ -137,6 +141,14 @@
     <ClInclude Include="..\CxxTest\Gen\TaskTest\TaskExt\BTConditionExploreWorld.hpp" />
     <ClInclude Include="..\CxxTest\Gen\TaskTest\TaskExt\BTConditionExploreWorldEvent.hpp" />
     <ClInclude Include="..\CxxTest\TaskTest\TaskExt\ModuleTaskExt.h" />
+    <ClInclude Include="Gen\demo\Module1\BKuafu.hpp" />
+    <ClInclude Include="Gen\demo\Module1\BKuafuResult.hpp" />
+    <ClInclude Include="Gen\demo\Module1\BOnlyData.hpp" />
+    <ClInclude Include="Gen\demo\Module1\BTestSchemas.hpp" />
+    <ClInclude Include="Gen\demo\Module1\ProtocolOnlyData.hpp" />
+    <ClInclude Include="Gen\demo\Module1\ProtocolOnlyUseData.hpp" />
+    <ClInclude Include="Gen\demo\Module1\RpcOnlyData.hpp" />
+    <ClInclude Include="Gen\demo\Module1\RpcOnlyUseData.hpp" />
   </ItemGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
