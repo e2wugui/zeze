@@ -258,8 +258,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				// 可能原因是lockey特别容易乱序, sync和raft版需要用队列保证顺序
 				record.acquire(StateInvalid, false, false);
 			} catch (Throwable e) { // logger.error
-				// critical .
-				logger.error("Acquire({}:{}) exception:", record.getTable().getName(), record.getObjectKey(), e);
+				// 降低这个日志级别，因为fastError或者其他原因，会导致大量的日志。而此时这里的错误是可以忽略的。
+				logger.debug("Acquire({}:{}) exception:", record.getTable().getName(), record.getObjectKey(), e);
 				// 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
 			}
 		}
