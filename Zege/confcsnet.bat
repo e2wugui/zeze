@@ -4,7 +4,7 @@ pushd %~dp0
 
 set zeze_src_dir=..
 set project_dir=.
-set gen=..\Gen\bin\Debug\net6.0\Gen.exe
+set gen=..\Gen\bin\Debug\net8.0\Gen.exe
 
 REM --------------------------------------------------------------
 REM conf+cs 系列化支持代码输出
