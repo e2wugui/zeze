@@ -319,7 +319,7 @@ namespace Zeze.Transaction
             try
             {
                 // record.lock 和事务并发。
-                using (var holder = await p.Value.Mutex.TryAcquireAsync(CancellationToken.None)) // 最好使用TryLock，先这样了。
+                using (var holder = await p.Value.Mutex.TryAcquireAsync(TimeSpan.Zero, CancellationToken.None)) // 最好使用TryLock，先这样了。
                 {
                     if (holder.IsEmpty)
                         return false;

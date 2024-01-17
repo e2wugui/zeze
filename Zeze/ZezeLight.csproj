@@ -5,6 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
 	  <LangVersion>10</LangVersion>
 	  <RootNamespace>Zeze</RootNamespace>
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0|AnyCPU'">
@@ -18,6 +19,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DotNext.Threading" Version="5.0.0" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
     <PackageReference Include="NLog" Version="4.7.4" />
     <PackageReference Include="RocksDbSharp" Version="6.2.2" />

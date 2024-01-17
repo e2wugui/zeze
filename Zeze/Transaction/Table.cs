@@ -358,7 +358,7 @@ namespace Zeze.Transaction
                 }
                 try
                 {
-                    using (var holder = await e.Value.Mutex.TryAcquireAsync(CancellationToken.None))
+                    using (var holder = await e.Value.Mutex.TryAcquireAsync(TimeSpan.Zero, CancellationToken.None))
                     {
                         if (holder.IsEmpty)
                         { 

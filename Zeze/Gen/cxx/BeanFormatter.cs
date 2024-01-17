@@ -1,5 +1,4 @@
-﻿using Org.BouncyCastle.Utilities.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Zeze.Gen.Types;
