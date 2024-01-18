@@ -42,7 +42,7 @@ public class ConditionNamedCount implements Condition {
 
 	@Override
 	public String getDescription() {
-		return name + " " + count + "/" + expected; // todo 国际化
+		return name + " " + count + "/" + expected;
 	}
 
 	@Override

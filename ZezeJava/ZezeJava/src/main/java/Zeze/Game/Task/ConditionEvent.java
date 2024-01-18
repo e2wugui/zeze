@@ -1,5 +1,7 @@
 package Zeze.Game.Task;
 
+import Zeze.Game.TaskModule;
+
 /**
  * 条件事件。
  * 事件名字(name)和条件名字匹配成功，将引起条件状态变化。
@@ -11,6 +13,7 @@ package Zeze.Game.Task;
  */
 public class ConditionEvent {
 	private final String name;
+	private TaskModule taskModule;
 
 	public ConditionEvent(String name) {
 		this.name = name;
@@ -18,5 +21,14 @@ public class ConditionEvent {
 
 	public String getName() {
 		return name;
+	}
+
+	// 条件执行上下文，由TaskImpl.dispatch设置。
+	public void setTaskModule(TaskModule taskModule) {
+		this.taskModule = taskModule;
+	}
+
+	public TaskModule getTaskModule() {
+		return taskModule;
 	}
 }

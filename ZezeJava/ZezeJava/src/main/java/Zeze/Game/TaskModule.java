@@ -14,6 +14,7 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Collections.LinkedMap;
 import Zeze.Game.Task.CheckTaskAcceptable;
 import Zeze.Game.Task.ConditionEvent;
+import Zeze.Game.Task.IBag;
 import Zeze.Game.Task.RewardConfig;
 import Zeze.Game.Task.TaskGraphics;
 import Zeze.Game.Task.TaskImpl;
@@ -24,6 +25,7 @@ import Zeze.Transaction.EmptyBean;
 public class TaskModule extends AbstractTaskModule {
 	private final Online online;
 	private final LinkedMap.Module linkedMapModule;
+	private final IBag bag;
 	private int maxAcceptedTaskCount = 50;
 
 	public void setMaxAcceptedTaskCount(int maxAcceptedTaskCount) {
@@ -34,13 +36,18 @@ public class TaskModule extends AbstractTaskModule {
 		return maxAcceptedTaskCount;
 	}
 
-	public TaskModule(Online online, LinkedMap.Module linkedMapModule) {
+	public TaskModule(Online online, IBag bag, LinkedMap.Module linkedMapModule) {
 		this.online = online;
 		this.linkedMapModule =linkedMapModule;
+		this.bag = bag;
 	}
 
 	public Online getOnline() {
 		return online;
+	}
+
+	public IBag getBag() {
+		return bag;
 	}
 
 	// 玩家操作

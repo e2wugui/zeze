@@ -74,7 +74,7 @@ public class ConditionPickItem implements Condition {
 				sb.append(" or ");
 			else
 				first = false;
-			sb.append(m); // todo to name;
+			sb.append(m);
 		}
 		sb.append(" ").append(count).append("/").append(expected);
 		return sb.toString();

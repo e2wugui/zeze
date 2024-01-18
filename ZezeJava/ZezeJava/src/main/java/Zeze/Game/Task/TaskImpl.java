@@ -22,6 +22,8 @@ import java.util.Set;
 
 public class TaskImpl {
 	public static void dispatch(TaskModule module, long roleId, ConditionEvent event) throws Exception {
+		event.setTaskModule(module); // set condition context
+
 		var roleTasks = module.getRoleTasks(roleId);
 		for (var task : roleTasks.getTasks().values()) {
 			// 给阶段派发事件。
@@ -119,12 +121,12 @@ public class TaskImpl {
 		return false;
 	}
 
-	public static boolean phaseFinish(List<BCondition> conditons, Set<Integer> indexSet) throws Exception {
+	public static boolean phaseFinish(TaskModule module, List<BCondition> conditons, Set<Integer> indexSet) throws Exception {
 		var result = true;
 		for (var i = 0; i < conditons.size(); ++i) {
 			var bean = conditons.get(i);
 			var condition = Condition.construct(bean); // todo 这个怎么优化！
-			if (!condition.finish()) {
+			if (!condition.finish(module)) {
 				// 结束失败，一般是任务条件发生变更，不再满足了，此时需要再次检查isDone，并恢复indexSet。
 				if (!condition.isDone())
 					indexSet.add(i);
@@ -235,16 +237,16 @@ public class TaskImpl {
 		return 0;
 	}
 
-	public static boolean finishTask(BTask task) throws Exception {
+	public static boolean finishTask(TaskModule module, BTask task) throws Exception {
 		var result = true;
 		if (!task.getPhases().isEmpty()) {
 			// 这里实际上不可能发生，在任务完成阶段，phase肯定是空的。
 			var currentPhase = task.getPhases().get(0);
-			if (!phaseFinish(currentPhase.getConditions(), currentPhase.getIndexSet()))
+			if (!phaseFinish(module, currentPhase.getConditions(), currentPhase.getIndexSet()))
 				result = false;
 		}
 		// 给任务直接内含条件派发。看成一个阶段来处理。
-		if (!phaseFinish(task.getConditions(), task.getIndexSet()))
+		if (!phaseFinish(module, task.getConditions(), task.getIndexSet()))
 			result = false;
 
 		if (!result)
@@ -269,7 +271,7 @@ public class TaskImpl {
 		if (null == reward)
 			return module.errorCode(TaskModule.eRewardNotExists);
 
-		if (!finishTask(bTask)) {
+		if (!finishTask(module, bTask)) {
 			notifyTaskChanged(module, roleId, bTask);
 			return module.errorCode(TaskModule.eFinishError);
 		}
