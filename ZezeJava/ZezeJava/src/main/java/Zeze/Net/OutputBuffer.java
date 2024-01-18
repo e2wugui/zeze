@@ -5,17 +5,19 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.GatheringByteChannel;
 import java.util.ArrayDeque;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 // 非线程安全,通常只能在selector线程调用
 public final class OutputBuffer implements Codec, Closeable {
-	private final ByteBufferAllocator allocator;
+	private final @NotNull ByteBufferAllocator allocator;
 	private final ArrayDeque<ByteBuffer> buffers = new ArrayDeque<>();
 	private final ByteBuffer[] outputs = new ByteBuffer[2];
-	private ByteBuffer head, tail; // head <- buffers <- tail
+	private @Nullable ByteBuffer head, tail; // head <- buffers <- tail
 	private int tailPos;
 	private int size;
 
-	public OutputBuffer(ByteBufferAllocator allocator) {
+	public OutputBuffer(@NotNull ByteBufferAllocator allocator) {
 		this.allocator = allocator;
 	}
 
@@ -50,11 +52,11 @@ public final class OutputBuffer implements Codec, Closeable {
 		return size;
 	}
 
-	public void put(byte[] src) {
+	public void put(byte @NotNull [] src) {
 		put(src, 0, src.length);
 	}
 
-	public void put(byte[] src, int offset, int length) {
+	public void put(byte @NotNull [] src, int offset, int length) {
 		if (length > 0) {
 			var tail = this.tail;
 			if (tail == null)
@@ -83,8 +85,9 @@ public final class OutputBuffer implements Codec, Closeable {
 		tail.put(b);
 	}
 
-	private ByteBuffer pushAndAllocTail() {
+	private @NotNull ByteBuffer pushAndAllocTail() {
 		var tail = this.tail;
+		//noinspection DataFlowIssue
 		tail.limit(tail.position());
 		tail.position(tailPos);
 		buffers.addLast(tail);
@@ -93,7 +96,7 @@ public final class OutputBuffer implements Codec, Closeable {
 		return tail;
 	}
 
-	public long writeTo(GatheringByteChannel channel) throws IOException {
+	public long writeTo(@NotNull GatheringByteChannel channel) throws IOException {
 		long r;
 		var head = this.head;
 		if (head == null && (head = buffers.pollFirst()) == null) { // head和队列都没有buffer了,只需要输出tail
@@ -121,6 +124,7 @@ public final class OutputBuffer implements Codec, Closeable {
 				var tail = this.tail; // 队列不空时,tail肯定不为null
 				outputs[0] = head;
 				outputs[1] = tail;
+				//noinspection DataFlowIssue
 				int writePos = tail.position();
 				tail.limit(writePos);
 				tail.position(0);
@@ -167,7 +171,7 @@ public final class OutputBuffer implements Codec, Closeable {
 	}
 
 	@Override
-	public void update(byte[] data, int off, int len) {
+	public void update(byte @NotNull [] data, int off, int len) {
 		put(data, off, len);
 	}
 }

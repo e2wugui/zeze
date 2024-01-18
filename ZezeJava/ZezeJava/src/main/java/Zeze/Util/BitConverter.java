@@ -101,7 +101,7 @@ public final class BitConverter {
 	}
 
 	// 十六进制字符串转成二进制数组. 大小写的A~F都支持,忽略其它字符
-	public static void toBytes(String hex, byte @NotNull [] bytes, int offset) {
+	public static void toBytes(@NotNull String hex, byte @NotNull [] bytes, int offset) {
 		final long MASK = ~0x007E_0000_007E_03FFL; // 0~9;A~F;a~f
 		for (int i = 0, v = 1, s = hex.length(); i < s; i++) {
 			int c = hex.charAt(i) - '0';

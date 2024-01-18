@@ -84,7 +84,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
-	public GlobalCacheManagerServer.GCMConfig getGcmConfig() {
+	public @NotNull GlobalCacheManagerServer.GCMConfig getGcmConfig() {
 		return gcmConfig;
 	}
 
@@ -102,10 +102,10 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 		if (config == null)
 			config = Config.load();
-		config.parseCustomize(this.gcmConfig);
+		config.parseCustomize(gcmConfig);
 
 		sessions = new LongConcurrentHashMap<>(4096);
-		global = new ConcurrentHashMap<>(this.gcmConfig.initialCapacity);
+		global = new ConcurrentHashMap<>(gcmConfig.initialCapacity);
 
 		server = new ServerService(config);
 
@@ -123,13 +123,15 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		server.AddFactoryHandle(Cleanup.TypeId_, new Service.ProtocolFactoryHandle<>(
 				Cleanup::new, this::processCleanup, TransactionLevel.None, DispatchMode.Direct));
 		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
-				KeepAlive::new, GlobalCacheManagerAsyncServer::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
+				KeepAlive::new, GlobalCacheManagerAsyncServer::processKeepAliveRequest,
+				TransactionLevel.None, DispatchMode.Direct));
 
 		serverSocket = server.newServerSocket(ipaddress, port,
 				new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
-		achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing, this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
+		achillesHeelConfig = new AchillesHeelConfig(gcmConfig.maxNetPing, gcmConfig.serverProcessTime,
+				gcmConfig.serverReleaseTimeout);
 		Task.schedule(5000, 5000, this::achillesHeelDaemon);
 	}
 
@@ -172,14 +174,15 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	 * 报告错误的时候带上相关信息（包括GlobalCacheManager和LogicServer等等）
 	 * 手动Cleanup时，连接正确的服务器执行。
 	 */
-	private long processCleanup(Cleanup rpc) {
+	private long processCleanup(@NotNull Cleanup rpc) {
 		logger.info("ProcessCleanup: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		if (achillesHeelConfig != null) // disable cleanup.
 			return 0;
 
 		// 安全性以后加强。
 		if (!rpc.Argument.secureKey.equals("Ok! verify secure.")) {
-			logger.warn("ProcessCleanup: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), CleanupErrorSecureKey);
+			logger.warn("ProcessCleanup: {} RequestId={} result={}",
+					rpc.getSender(), rpc.getSessionId(), CleanupErrorSecureKey);
 			rpc.SendResultCode(CleanupErrorSecureKey);
 			return 0;
 		}
@@ -187,14 +190,16 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
 		if (session.globalCacheManagerHashIndex != rpc.Argument.globalCacheManagerHashIndex) {
 			// 多点验证
-			logger.warn("ProcessCleanup: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), CleanupErrorGlobalCacheManagerHashIndex);
+			logger.warn("ProcessCleanup: {} RequestId={} result={}",
+					rpc.getSender(), rpc.getSessionId(), CleanupErrorGlobalCacheManagerHashIndex);
 			rpc.SendResultCode(CleanupErrorGlobalCacheManagerHashIndex);
 			return 0;
 		}
 
 		if (server.GetSocket(session.sessionId) != null) {
 			// 连接存在，禁止cleanup。
-			logger.warn("ProcessCleanup: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), CleanupErrorHasConnection);
+			logger.warn("ProcessCleanup: {} RequestId={} result={}",
+					rpc.getSender(), rpc.getSessionId(), CleanupErrorHasConnection);
 			rpc.SendResultCode(CleanupErrorHasConnection);
 			return 0;
 		}
@@ -214,7 +219,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return 0;
 	}
 
-	private long processLogin(Login rpc) {
+	private long processLogin(@NotNull Login rpc) {
 		logger.info("ProcessLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
 		if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.globalCacheManagerHashIndex, true)) {
@@ -236,7 +241,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return 0;
 	}
 
-	private long processReLogin(ReLogin rpc) {
+	private long processReLogin(@NotNull ReLogin rpc) {
 		logger.info("ProcessReLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
 		if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.globalCacheManagerHashIndex, false)) {
@@ -249,16 +254,18 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return 0;
 	}
 
-	private long processNormalClose(NormalClose rpc) {
+	private long processNormalClose(@NotNull NormalClose rpc) {
 		logger.info("ProcessNormalClose: {} RequestId={}", rpc.getSender(), rpc.getSessionId());
 		var session = (CacheHolder)rpc.getSender().getUserState();
 		if (session == null) {
-			logger.warn("ProcessNormalClose: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), AcquireNotLogin);
+			logger.warn("ProcessNormalClose: {} RequestId={} result={}",
+					rpc.getSender(), rpc.getSessionId(), AcquireNotLogin);
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0; // not login
 		}
 		if (!session.tryUnBindSocket(rpc.getSender())) {
-			logger.warn("ProcessNormalClose: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), NormalCloseUnbindFail);
+			logger.warn("ProcessNormalClose: {} RequestId={} result={}",
+					rpc.getSender(), rpc.getSessionId(), NormalCloseUnbindFail);
 			rpc.SendResultCode(NormalCloseUnbindFail);
 			return 0;
 		}
@@ -274,7 +281,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return 0;
 	}
 
-	private static long processKeepAliveRequest(KeepAlive rpc) {
+	private static long processKeepAliveRequest(@NotNull KeepAlive rpc) {
 		if (rpc.getSender().getUserState() == null) {
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0;
@@ -285,7 +292,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return 0;
 	}
 
-	private long processAcquireRequest(Acquire rpc) {
+	private long processAcquireRequest(@NotNull Acquire rpc) {
 		var acquireState = rpc.Argument.state;
 		if (ENABLE_PERF)
 			perf.onAcquireBegin(rpc, acquireState);
@@ -338,7 +345,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 		private volatile @SuppressWarnings("unused") int counter;
 
-		public CountDownFuture createOne() {
+		public @NotNull CountDownFuture createOne() {
 			vhCounter.getAndAdd(this, 1);
 			return this;
 		}
@@ -349,13 +356,13 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		}
 
 		@Override
-		public RedirectFuture<Object> then(Action1<Object> onResult) {
+		public @NotNull RedirectFuture<Object> then(@NotNull Action1<Object> onResult) {
 			finishOne();
 			return super.then(onResult);
 		}
 	}
 
-	private void releaseAsync(CacheHolder sender, Binary _gKey, CountDownFuture future) {
+	private void releaseAsync(@NotNull CacheHolder sender, @NotNull Binary _gKey, @NotNull CountDownFuture future) {
 		var cs = global.computeIfAbsent(_gKey, CacheState::new);
 		var state = new Object() {
 			int stage;
@@ -410,7 +417,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		});
 	}
 
-	private void releaseAsync(Acquire rpc) {
+	private void releaseAsync(@NotNull Acquire rpc) {
 		var cs = global.computeIfAbsent(rpc.Argument.globalKey, CacheState::new);
 		var state = new Object() {
 			int stage;
@@ -474,7 +481,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		});
 	}
 
-	private void acquireShareAsync(Acquire rpc) {
+	private void acquireShareAsync(@NotNull Acquire rpc) {
 		var cs = global.computeIfAbsent(rpc.Argument.globalKey, CacheState::new);
 		var state = new Object() {
 			int stage;
@@ -637,7 +644,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		});
 	}
 
-	private void acquireModifyAsync(Acquire rpc) {
+	private void acquireModifyAsync(@NotNull Acquire rpc) {
 		var cs = global.computeIfAbsent(rpc.Argument.globalKey, CacheState::new);
 		var state = new Object() {
 			int stage;
@@ -902,17 +909,17 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private static final class CacheState {
-		final Binary globalKey; // 这里的引用同global map的key,用于给CacheHolder里的map相同的key引用
+		final @NotNull Binary globalKey; // 这里的引用同global map的key,用于给CacheHolder里的map相同的key引用
 		final IdentityHashSet<CacheHolder> share = new IdentityHashSet<>();
 		final AsyncLock lock = new AsyncLock();
 		CacheHolder modify;
 		int acquireStatePending = StateInvalid;
 
-		public CacheState(Binary gKey) {
+		public CacheState(@NotNull Binary gKey) {
 			globalKey = gKey;
 		}
 
-		int getSenderCacheState(CacheHolder sender) {
+		int getSenderCacheState(@NotNull CacheHolder sender) {
 			if (modify == sender)
 				return StateModify;
 			if (share.contains(sender))
@@ -921,7 +928,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		}
 
 		@Override
-		public String toString() {
+		public @NotNull String toString() {
 			StringBuilder sb = new StringBuilder();
 			ByteBuffer.BuildString(sb, share);
 			return String.format("(P%d M%s S%s)", acquireStatePending, modify, sb);
@@ -959,7 +966,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			sessionId = 0; // 清除网络状态。
 		}
 
-		synchronized boolean tryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex, boolean login) {
+		synchronized boolean tryBindSocket(@NotNull AsyncSocket newSocket, int _GlobalCacheManagerHashIndex,
+										   boolean login) {
 			if (login) {
 				// login 相当于重置，允许再次Login。
 				logined = true;
@@ -969,7 +977,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					return false;
 			}
 			if (newSocket.getUserState() != null) {
-				logger.warn("TryBindSocket: already bound! newSocket.getUserState() != null, SessionId={}", newSocket.getSessionId());
+				logger.warn("TryBindSocket: already bound! newSocket.getUserState() != null, SessionId={}",
+						newSocket.getSessionId());
 				return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
 			}
 
@@ -986,7 +995,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			return false;
 		}
 
-		synchronized boolean tryUnBindSocket(AsyncSocket oldSocket) {
+		synchronized boolean tryUnBindSocket(@NotNull AsyncSocket oldSocket) {
 			// 这里检查比较严格，但是这些检查应该都不会出现。
 
 			if (oldSocket.getUserState() != this)
@@ -1001,7 +1010,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		}
 
 		@Override
-		public String toString() {
+		public @NotNull String toString() {
 			return String.valueOf(sessionId);
 		}
 
@@ -1014,7 +1023,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		/**
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
-		Reduce reduceWaitLater(Binary gkey, long fresh, ProtocolHandle<Rpc<BGlobalKeyState, BGlobalKeyState>> handle) {
+		@Nullable Reduce reduceWaitLater(@NotNull Binary gkey, long fresh,
+										 @NotNull ProtocolHandle<Rpc<BGlobalKeyState, BGlobalKeyState>> handle) {
 			try {
 				if (System.currentTimeMillis() - lastErrorTime < instance.achillesHeelConfig.globalForbidPeriod)
 					return null;
@@ -1039,19 +1049,19 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private static final class ServerService extends Service {
-		ServerService(Config config) {
+		ServerService(@Nullable Config config) {
 			super("GlobalCacheManager", config);
 		}
 
 		@Override
-		public void OnSocketAccept(AsyncSocket so) throws Exception {
+		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
 			logger.info("OnSocketAccept {}", so);
 			// so.UserState = new CacheHolder(so.SessionId); // Login ReLogin 的时候初始化。
 			super.OnSocketAccept(so);
 		}
 
 		@Override
-		public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
+		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
 			logger.info("OnSocketClose {}", so);
 			var session = (CacheHolder)so.getUserState();
 			if (session != null)
@@ -1060,15 +1070,17 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		}
 
 		@Override
-		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
-				throws Exception {
+		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb,
+									 @NotNull ProtocolFactoryHandle<?> factoryHandle,
+									 @Nullable AsyncSocket so) throws Exception {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			p.handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
 		}
 
 		@Override
-		public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
-																ProtocolFactoryHandle<?> factoryHandle) {
+		public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc,
+																@NotNull ProtocolHandle<P> responseHandle,
+																@NotNull ProtocolFactoryHandle<?> factoryHandle) {
 			// 在新的decode-dispatch流程中，上面的dispatchProtocol直接执行操作，实际上包含了rpc.handle，
 			// 这个函数不会被触发了。先保留在这里。
 			try {

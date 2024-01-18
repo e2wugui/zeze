@@ -10,19 +10,22 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ConsistentHash<E> extends FastLock {
 	private static final Logger logger = LogManager.getLogger(ConsistentHash.class);
 
 	private final SortedMap<Integer, E> circle = new SortedMap<>();
 	private final HashMap<E, Integer[]> nodes = new HashMap<>();
-	private final Set<E> nodesView = Collections.unmodifiableSet(nodes.keySet());
+	private final @NotNull Set<E> nodesView = Collections.unmodifiableSet(nodes.keySet());
 
-	public Set<E> getNodes() {
+	public @NotNull Set<E> getNodes() {
 		return nodesView;
 	}
 
-	public void add(String nodeKey, E node) {
+	public void add(@Nullable String nodeKey, @NotNull E node) {
+		//noinspection ConstantValue
 		if (node == null)
 			throw new NullPointerException("node");
 		var virtual = new Integer[160];
@@ -51,7 +54,8 @@ public class ConsistentHash<E> extends FastLock {
 			logger.warn("hash conflict! key={} node={}", conflict.key, conflict.value);
 	}
 
-	public void remove(E node) {
+	public void remove(@NotNull E node) {
+		//noinspection ConstantValue
 		if (node == null)
 			throw new NullPointerException("node");
 		lock();
@@ -70,7 +74,7 @@ public class ConsistentHash<E> extends FastLock {
 		}
 	}
 
-	public E get(int hash) {
+	public @Nullable E get(int hash) {
 		hash = ByteBuffer.calc_hashnr(((long)hash << 32) ^ hash);
 		lock();
 		try {

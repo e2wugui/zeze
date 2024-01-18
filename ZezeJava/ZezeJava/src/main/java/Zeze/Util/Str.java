@@ -28,7 +28,7 @@ public final class Str {
 	private Str() {
 	}
 
-	public static Charset lookupCharset(String csn) throws UnsupportedEncodingException {
+	public static @NotNull Charset lookupCharset(@NotNull String csn) throws UnsupportedEncodingException {
 		Objects.requireNonNull(csn);
 		try {
 			return Charset.forName(csn);
@@ -42,7 +42,7 @@ public final class Str {
 			INDENTS[i] = " ".repeat(i);
 	}
 
-	public static @NotNull String format(String f, Object... params) {
+	public static @NotNull String format(@NotNull String f, @Nullable Object... params) {
 		return Formatter.newMessage(f, params).getFormattedMessage();
 	}
 
@@ -178,7 +178,7 @@ public final class Str {
 		return (long)v;
 	}
 
-	public static String format(String str, Map<String, Object> params) {
+	public static @NotNull String format(@NotNull String str, @NotNull Map<String, Object> params) {
 		var formatSb = new StringBuilder();
 		var paramsList = new ArrayList<>();
 		String varName;
@@ -209,7 +209,7 @@ public final class Str {
 			} else if (p instanceof String) {
 				formatSb.append("%s");
 				paramsList.add(p);
-			} else  {
+			} else {
 				formatSb.append("%s");
 				paramsList.add(p);
 			}
@@ -220,7 +220,8 @@ public final class Str {
 		return new Formatter().format(newFormat, paramsList.toArray()).toString();
 	}
 
-	private static String parseVar(StringBuilder sb, String str, OutInt fromIndex) {
+	private static @Nullable String parseVar(@NotNull StringBuilder sb, @NotNull String str,
+											 @NotNull OutInt fromIndex) {
 		var quoteLeft = str.indexOf('{', fromIndex.value);
 		if (quoteLeft < 0) {
 			sb.append(str, fromIndex.value, str.length());

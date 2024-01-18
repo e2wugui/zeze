@@ -34,16 +34,16 @@ public final class AsyncLock {
 		return ownerThread == Thread.currentThread();
 	}
 
-	public Action0 getCurrent() {
+	public @Nullable Action0 getCurrent() {
 		return current;
 	}
 
-	public void setCurrent(Action0 current) {
+	public void setCurrent(@Nullable Action0 current) {
 		this.current = current;
 	}
 
 	// 获取锁成功时回调onEnter,回调回程中可以leave,回调完成时也会强制leave
-	public void enter(Action0 onEnter) {
+	public void enter(@NotNull Action0 onEnter) {
 		if (stateHandle.compareAndSet(this, 0, 1)) { // try lock, fast-path
 			try {
 				ownerThread = Thread.currentThread();
@@ -62,7 +62,7 @@ public final class AsyncLock {
 	}
 
 	// 同enter, 只是立即取到锁也异步执行onEnter
-	public void enterAsync(Action0 onEnter) {
+	public void enterAsync(@NotNull Action0 onEnter) {
 		readyQueue.offer(onEnter);
 		if (stateHandle.compareAndSet(this, 0, 1)) // try lock
 			tryNext();
@@ -129,7 +129,7 @@ public final class AsyncLock {
 	}
 
 	// 在获取锁的情况下,释放锁并等到有通知且获取锁时回调onNotify
-	public void leaveAndWaitNotify(Action0 onNotify) {
+	public void leaveAndWaitNotify(@NotNull Action0 onNotify) {
 		assert state == 1;
 		waitQueue.addLast(onNotify);
 		leave();

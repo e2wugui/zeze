@@ -157,19 +157,19 @@ public class Reflect {
 		}
 	}
 
-	public static @NotNull ArrayList<String> collectClassNamesFromPath(String path) {
+	public static @NotNull ArrayList<String> collectClassNamesFromPath(@NotNull String path) {
 		var classNames = new ArrayList<String>();
 		collectClassFromPath("", new File(path), classNames);
 		return classNames;
 	}
 
-	public static @NotNull ArrayList<String> collectClassNamesFromJar(String jarFile) throws IOException {
+	public static @NotNull ArrayList<String> collectClassNamesFromJar(@NotNull String jarFile) throws IOException {
 		try (var jf = new JarFile(jarFile)) {
 			return collectClassNamesFromJar(jf);
 		}
 	}
 
-	public static @NotNull ArrayList<String> collectClassNamesFromJar(JarFile jarFile) {
+	public static @NotNull ArrayList<String> collectClassNamesFromJar(@NotNull JarFile jarFile) {
 		var classNames = new ArrayList<String>();
 		for (var e = jarFile.entries(); e.hasMoreElements(); ) {
 			var fn = e.nextElement().getName();

@@ -259,7 +259,7 @@ public class HttpExchange {
 		return path.substring(i);
 	}
 
-	protected void channelRead(Object msg) throws Exception {
+	protected void channelRead(@Nullable Object msg) throws Exception {
 		var channel = context.channel();
 		channel.attr(HttpServer.idleTimeKey).set(null);
 		if (msg instanceof HttpRequest) {
@@ -522,7 +522,7 @@ public class HttpExchange {
 	// 上传请求/下载回复: content-range: bytes from-to/size 范围是[from,to]
 	// 参考: https://www.jianshu.com/p/acca9656e250
 	// 返回: [from, to, size]
-	protected long[] parseRange(@NotNull AsciiString headerName) {
+	protected long @NotNull [] parseRange(@NotNull AsciiString headerName) {
 		var r = new long[]{-1, -1, -1};
 		//noinspection DataFlowIssue
 		var headers = request.headers();

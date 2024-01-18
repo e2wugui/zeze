@@ -10,6 +10,8 @@ import java.util.Comparator;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquiredState;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.BCacheState;
 import Zeze.Serialize.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -216,7 +218,9 @@ public final class DumpRocksDb {
 		try (var rocksDb = RocksDB.openReadOnly(dbOptions, inputDbPath, columnFamilies, outHandles);
 			 var ro = new ReadOptions();
 			 var it = rocksDb.newIterator(outHandles.get(selectCfIndex), ro);
-			 var os = outputTxtFile.equals("-") ? System.out : new BufferedOutputStream(new FileOutputStream(outputTxtFile))) {
+			 var os = outputTxtFile.equals("-")
+					 ? System.out
+					 : new BufferedOutputStream(new FileOutputStream(outputTxtFile))) {
 			long n = 0;
 			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
 			var value = ByteBuffer.Wrap(ByteBuffer.Empty);
@@ -235,37 +239,38 @@ public final class DumpRocksDb {
 		}
 	}
 
-	private static void dump(OutputStream os, String fmt, Object... params) throws IOException {
+	private static void dump(@NotNull OutputStream os, @NotNull String fmt,
+							 @Nullable Object... params) throws IOException {
 		os.write(String.format(fmt, params).getBytes(UTF_8));
 	}
 
-	private static void dumpRaw(OutputStream os, ByteBuffer bb) throws IOException {
+	private static void dumpRaw(@NotNull OutputStream os, @NotNull ByteBuffer bb) throws IOException {
 		os.write('\'');
 		dumpBytes(os, bb.Bytes);
 		os.write('\'');
 	}
 
-	private static void dumpLong(OutputStream os, ByteBuffer bb) throws IOException {
+	private static void dumpLong(@NotNull OutputStream os, @NotNull ByteBuffer bb) throws IOException {
 		dump(os, "%d", bb.ReadLong());
 	}
 
-	private static void dumpString(OutputStream os, ByteBuffer bb) throws IOException {
+	private static void dumpString(@NotNull OutputStream os, @NotNull ByteBuffer bb) throws IOException {
 		os.write('"');
 		dumpString(os, bb.Bytes);
 		os.write('"');
 	}
 
-	private static void dumpNString(OutputStream os, ByteBuffer bb) throws IOException {
+	private static void dumpNString(@NotNull OutputStream os, @NotNull ByteBuffer bb) throws IOException {
 		os.write('"');
 		dumpString(os, bb.ReadBytes());
 		os.write('"');
 	}
 
-	private static void dumpBean(OutputStream os, ByteBuffer bb) throws IOException {
+	private static void dumpBean(@NotNull OutputStream os, @NotNull ByteBuffer bb) throws IOException {
 		dumpVar(os, bb, ByteBuffer.BEAN);
 	}
 
-	private static void dumpRaftLog(OutputStream os, ByteBuffer bb) throws Exception {
+	private static void dumpRaftLog(@NotNull OutputStream os, @NotNull ByteBuffer bb) throws Exception {
 		dump(os, "{term:%d, index:%d, log:", bb.ReadLong(), bb.ReadLong());
 		var logType = bb.ReadInt4();
 		if (logType == logTypeChanges) {
@@ -313,7 +318,7 @@ public final class DumpRocksDb {
 		os.write('\n');
 	}
 
-	private static void dumpString(OutputStream os, byte[] bytes) throws IOException {
+	private static void dumpString(@NotNull OutputStream os, byte @NotNull [] bytes) throws IOException {
 		for (var b : bytes) {
 			if (b == '"' || b == '\\') // escape
 				os.write('\\');
@@ -321,7 +326,7 @@ public final class DumpRocksDb {
 		}
 	}
 
-	private static void dumpBytes(OutputStream os, byte[] bytes) throws IOException {
+	private static void dumpBytes(@NotNull OutputStream os, byte @NotNull [] bytes) throws IOException {
 		for (var b : bytes) {
 			if (b >= 0x20 && b <= 0x7e) { // printable
 				if (b == '\'' || b == '\\') // escape
@@ -335,7 +340,7 @@ public final class DumpRocksDb {
 		}
 	}
 
-	private static String toStr(byte[] bytes) {
+	private static String toStr(byte @NotNull [] bytes) {
 		var sb = new StringBuilder(bytes.length * 3);
 		for (int b : bytes) {
 			if (b >= 0x20 && b <= 0x7e) { // printable
@@ -351,7 +356,7 @@ public final class DumpRocksDb {
 		return sb.toString();
 	}
 
-	private static boolean isUtf8(byte[] bytes) {
+	private static boolean isUtf8(byte @NotNull [] bytes) {
 		for (int i = 0, n = bytes.length; i < n; i++) {
 			int b = bytes[i];
 			if (b >= 0) { // 0xxx xxxx
@@ -372,7 +377,7 @@ public final class DumpRocksDb {
 		return true;
 	}
 
-	private static void dumpVar(OutputStream os, ByteBuffer bb, int type) throws IOException {
+	private static void dumpVar(@NotNull OutputStream os, @NotNull ByteBuffer bb, int type) throws IOException {
 		switch (type & ByteBuffer.TAG_MASK) {
 		case ByteBuffer.INTEGER:
 			dump(os, "%d", bb.ReadLong());
@@ -460,7 +465,7 @@ public final class DumpRocksDb {
 	private static final int logTypeChanges = hash32("Zeze.Raft.RocksRaft.Changes");
 	private static final int logTypeHeartbeat = hash32("Zeze.Raft.HeartbeatLog");
 	private static final IntHashMap<Action2<OutputStream, ByteBuffer>> logDecoders = new IntHashMap<>();
-	private static final Action2<OutputStream, ByteBuffer> logBeanDecoder;
+	private static final @NotNull Action2<OutputStream, ByteBuffer> logBeanDecoder;
 
 	static {
 		logDecoders.put(hash32("Zeze.Raft.RocksRaft.Log<bool>"), (os, bb) -> dump(os, "b:%b", bb.ReadBool()));

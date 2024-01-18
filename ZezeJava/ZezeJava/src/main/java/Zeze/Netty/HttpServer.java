@@ -297,7 +297,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	}
 
 	@Override
-	public void channelRead(@NotNull ChannelHandlerContext ctx, Object msg) throws Exception {
+	public void channelRead(@NotNull ChannelHandlerContext ctx, @Nullable Object msg) throws Exception {
 		try {
 			var channelId = ctx.channel().id();
 			HttpExchange x;
@@ -314,7 +314,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	}
 
 	@Override
-	public void userEventTriggered(@NotNull ChannelHandlerContext ctx, Object evt) throws Exception {
+	public void userEventTriggered(@NotNull ChannelHandlerContext ctx, @Nullable Object evt) throws Exception {
 		if (evt == ChannelInputShutdownEvent.INSTANCE) {
 			var x = exchanges.get(ctx.channel().id());
 			if (x != null)

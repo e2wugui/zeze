@@ -9,6 +9,7 @@ import Zeze.Net.Protocol;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class GlobalCacheManagerPerf {
 	private static final int ACQUIRE_STATE_COUNT = 3;
@@ -32,7 +33,7 @@ public class GlobalCacheManagerPerf {
 	private final ConcurrentSkipListMap<Long, LongAdder> totalReduceResults = new ConcurrentSkipListMap<>();
 	private final ConcurrentSkipListMap<String, LongAdder> others = new ConcurrentSkipListMap<>();
 
-	GlobalCacheManagerPerf(String perfName, AtomicLong serialIdGenerator) {
+	GlobalCacheManagerPerf(@NotNull String perfName, @NotNull AtomicLong serialIdGenerator) {
 		this.perfName = perfName;
 		this.serialIdGenerator = serialIdGenerator;
 		lastSerialId = serialIdGenerator.get();
@@ -45,14 +46,14 @@ public class GlobalCacheManagerPerf {
 		Task.schedule(1000, 1000, this::report);
 	}
 
-	void onAcquireBegin(Protocol<?> rpc, int state) {
+	void onAcquireBegin(@NotNull Protocol<?> rpc, int state) {
 		if ((state & 0xffff_ffffL) < ACQUIRE_STATE_COUNT) {
 			if (acquires.put(rpc, System.nanoTime()) != null)
 				logger.warn("onAcquireBegin again");
 		}
 	}
 
-	void onAcquireEnd(Protocol<?> rpc, int state) {
+	void onAcquireEnd(@NotNull Protocol<?> rpc, int state) {
 		var beginTime = acquires.remove(rpc);
 		if (beginTime != null) {
 			var time = System.nanoTime() - beginTime;
@@ -68,17 +69,17 @@ public class GlobalCacheManagerPerf {
 		}
 	}
 
-	void onReduceBegin(Protocol<?> rpc) {
+	void onReduceBegin(@NotNull Protocol<?> rpc) {
 		if (reduces.put(rpc, System.nanoTime()) != null)
 			logger.warn("already onReduceBegin: {}", rpc);
 	}
 
-	void onReduceCancel(Protocol<?> rpc) {
+	void onReduceCancel(@NotNull Protocol<?> rpc) {
 		if (reduces.remove(rpc) == null)
 			logger.warn("already onReduceCancel: {}", rpc);
 	}
 
-	void onReduceEnd(Protocol<?> rpc) {
+	void onReduceEnd(@NotNull Protocol<?> rpc) {
 		var beginTime = reduces.remove(rpc);
 		if (beginTime != null) {
 			var time = System.nanoTime() - beginTime;
@@ -94,7 +95,7 @@ public class GlobalCacheManagerPerf {
 			logger.warn("already onReduceEnd: {}", rpc);
 	}
 
-	void onOthers(String info) {
+	void onOthers(@NotNull String info) {
 		others.computeIfAbsent(info, __ -> new LongAdder()).increment();
 	}
 

@@ -17,7 +17,7 @@ public class GenericBean {
 
 	public final Map<Integer, Object> fields = new TreeMap<>(); // key=0 for parent bean
 
-	public @NotNull GenericBean decode(ByteBuffer bb) {
+	public @NotNull GenericBean decode(@NotNull ByteBuffer bb) {
 		fields.clear();
 		for (int id = 0; ; ) {
 			int tag = bb.ReadByte() & 0xff;

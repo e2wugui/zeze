@@ -1,29 +1,32 @@
 package Zeze.Util;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 public class StringSpan implements Comparable<Object> {
-	private String string;
+	private @NotNull String string;
 	private int offset;
 	private int length;
 
-	public StringSpan(String string) {
+	public StringSpan(@NotNull String string) {
 		this(string, 0, string.length());
 	}
 
-	public StringSpan(String string, int length) {
+	public StringSpan(@NotNull String string, int length) {
 		this(string, 0, length);
 	}
 
-	public StringSpan(String string, int offset, int length) {
+	public StringSpan(@NotNull String string, int offset, int length) {
 		this.string = string;
 		this.offset = offset;
 		this.length = length;
 	}
 
-	public String getString() {
+	public @NotNull String getString() {
 		return string;
 	}
 
-	public void setString(String string) {
+	public void setString(@NotNull String string) {
 		this.string = string;
 	}
 
@@ -52,7 +55,7 @@ public class StringSpan implements Comparable<Object> {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
 		if (obj instanceof String) {
@@ -87,7 +90,7 @@ public class StringSpan implements Comparable<Object> {
 	}
 
 	@Override
-	public int compareTo(Object obj) {
+	public int compareTo(@Nullable Object obj) {
 		if (this == obj)
 			return 0;
 		if (obj instanceof String) {
@@ -126,7 +129,7 @@ public class StringSpan implements Comparable<Object> {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return string.substring(offset, offset + length);
 	}
 }

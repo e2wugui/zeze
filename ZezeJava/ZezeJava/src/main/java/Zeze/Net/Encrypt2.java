@@ -3,15 +3,17 @@ package Zeze.Net;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import Zeze.Util.Json;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 // AES(CFB) Encrypt
 public final class Encrypt2 implements Codec {
 	static final int BLOCK_SIZE = 16;
-	static final MethodHandle mhCryptCtor;
-	static final MethodHandle mhCryptInit;
-	static final MethodHandle mhCryptEncrypt;
+	static final @NotNull MethodHandle mhCryptCtor;
+	static final @NotNull MethodHandle mhCryptInit;
+	static final @NotNull MethodHandle mhCryptEncrypt;
 
-	private final Object aesCrypt;
+	private final @NotNull Object aesCrypt;
 	private final byte[] out = new byte[BLOCK_SIZE];
 	private Codec sink;
 	private int sinkIndex;
@@ -41,7 +43,7 @@ public final class Encrypt2 implements Codec {
 	 * @param key  长度只支持16,24,32字节. 不能为null
 	 * @param iv   长度必须至少BLOCK_SIZE. 如果为null,则需要reset才能开始加密
 	 */
-	public Encrypt2(Codec sink, byte[] key, byte[] iv) throws CodecException {
+	public Encrypt2(@Nullable Codec sink, byte @NotNull [] key, byte @Nullable [] iv) throws CodecException {
 		this.sink = sink;
 		try {
 			aesCrypt = mhCryptCtor.invoke();
@@ -61,7 +63,7 @@ public final class Encrypt2 implements Codec {
 	 * @param sink 不能为null
 	 * @param iv   长度必须至少BLOCK_SIZE. 不能为null
 	 */
-	public void reset(Codec sink, byte[] iv) {
+	public void reset(@NotNull Codec sink, byte @NotNull [] iv) {
 		System.arraycopy(iv, 0, out, 0, BLOCK_SIZE);
 		this.sink = sink;
 		sinkIndex = 0;
@@ -93,7 +95,7 @@ public final class Encrypt2 implements Codec {
 	}
 
 	@Override
-	public void update(byte[] data, int off, int len) throws CodecException {
+	public void update(byte @NotNull [] data, int off, int len) throws CodecException {
 		try {
 			int wi = writeIndex, end = off + len;
 			if (wi > 0) {

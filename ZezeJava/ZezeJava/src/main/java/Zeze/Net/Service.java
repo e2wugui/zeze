@@ -728,12 +728,12 @@ public class Service {
 
 	// 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。
 
-	public final void foreach(@NotNull Action1<AsyncSocket> action) throws Exception {
+	public final void foreach(@NotNull Action1<@NotNull AsyncSocket> action) throws Exception {
 		for (var socket : socketMap)
 			action.run(socket);
 	}
 
-	public @NotNull KV<String, Integer> getOneAcceptorAddress() {
+	public @NotNull KV<@NotNull String, @NotNull Integer> getOneAcceptorAddress() {
 		var ipPort = KV.create("", 0);
 
 		config.forEachAcceptor2(a -> {
@@ -845,7 +845,7 @@ public class Service {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public void onRpcLostContext(Rpc<?, ?> rpc) {
+	public void onRpcLostContext(@NotNull Rpc<?, ?> rpc) {
 		logger.warn("rpc response: lost context, maybe timeout. {}", rpc);
 	}
 
@@ -883,7 +883,7 @@ public class Service {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	protected void onKeepAliveTimeout(AsyncSocket socket) throws Exception {
+	protected void onKeepAliveTimeout(@NotNull AsyncSocket socket) throws Exception {
 		socket.close(keepAliveException);
 	}
 
@@ -895,7 +895,7 @@ public class Service {
 	 * @param socket 当前连接
 	 */
 	@SuppressWarnings("MethodMayBeStatic")
-	protected void onSendKeepAlive(AsyncSocket socket) {
+	protected void onSendKeepAlive(@NotNull AsyncSocket socket) {
 		KeepAlive.instance.Send(socket); // skip result
 	}
 }

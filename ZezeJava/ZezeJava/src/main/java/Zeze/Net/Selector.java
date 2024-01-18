@@ -59,7 +59,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		return selectCount;
 	}
 
-	public void addTask(Runnable task) {
+	public void addTask(@NotNull Runnable task) {
 		taskQueue.offer(task);
 	}
 
@@ -182,7 +182,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 			thread.start();
 		}
 
-		public static void postWakeup(java.nio.channels.Selector selector) {
+		public static void postWakeup(@NotNull java.nio.channels.Selector selector) {
 			if (!wakeupQueue.offer(selector))
 				selector.wakeup();
 		}

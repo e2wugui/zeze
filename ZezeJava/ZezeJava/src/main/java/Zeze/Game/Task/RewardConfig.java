@@ -2,7 +2,6 @@ package Zeze.Game.Task;
 
 import java.util.HashMap;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class RewardConfig {
 	private final HashMap<Integer, Reward> rewards = new HashMap<>();

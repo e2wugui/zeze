@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import static Zeze.Net.Encrypt2.BLOCK_SIZE;
 import static Zeze.Net.Encrypt2.mhCryptCtor;
 import static Zeze.Net.Encrypt2.mhCryptEncrypt;
@@ -7,7 +9,7 @@ import static Zeze.Net.Encrypt2.mhCryptInit;
 
 // AES(CFB) Decrypt
 public final class Decrypt2 implements Codec {
-	private final Object aesCrypt;
+	private final @NotNull Object aesCrypt;
 	private final byte[] in = new byte[BLOCK_SIZE];
 	private final byte[] out = new byte[BLOCK_SIZE];
 	private Codec sink;
@@ -19,7 +21,7 @@ public final class Decrypt2 implements Codec {
 	 * @param key  长度只支持16,24,32字节. 不能为null
 	 * @param iv   长度必须至少Encrypt2.BLOCK_SIZE. 如果为null,则需要reset才能开始解密
 	 */
-	public Decrypt2(Codec sink, byte[] key, byte[] iv) throws CodecException {
+	public Decrypt2(@Nullable Codec sink, byte @NotNull [] key, byte @Nullable [] iv) throws CodecException {
 		this.sink = sink;
 		try {
 			aesCrypt = mhCryptCtor.invoke();
@@ -39,7 +41,7 @@ public final class Decrypt2 implements Codec {
 	 * @param sink 不能为null
 	 * @param iv   长度必须至少Encrypt2.BLOCK_SIZE. 不能为null
 	 */
-	public void reset(Codec sink, byte[] iv) {
+	public void reset(@NotNull Codec sink, byte @NotNull [] iv) {
 		System.arraycopy(iv, 0, out, 0, BLOCK_SIZE);
 		this.sink = sink;
 		sinkIndex = 0;
@@ -72,7 +74,7 @@ public final class Decrypt2 implements Codec {
 	}
 
 	@Override
-	public void update(byte[] data, int off, int len) throws CodecException {
+	public void update(byte @NotNull [] data, int off, int len) throws CodecException {
 		try {
 			int wi = writeIndex, end = off + len;
 			if (wi > 0) {
