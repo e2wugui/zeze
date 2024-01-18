@@ -37,6 +37,7 @@ import io.netty.channel.socket.ChannelInputShutdownEvent;
 import io.netty.channel.socket.ChannelInputShutdownReadComplete;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.unix.Errors;
+import io.netty.handler.codec.http.HttpDecoderConfig;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
@@ -56,6 +57,12 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected static final AttributeKey<Integer> idleTimeKey = AttributeKey.valueOf("ZezeIdleTime");
 	protected static final AttributeKey<Integer> outBufHashKey = AttributeKey.valueOf("ZezeOutBufHash"); // 用于判断输出buffer是否有变化
 	protected static final @NotNull ZoneId zoneId = ZoneId.of("GMT");
+	protected static final HttpDecoderConfig decCfg = new HttpDecoderConfig()
+			.setMaxInitialLineLength(4096)
+			.setMaxHeaderSize(8192)
+			.setMaxChunkSize(8192)
+			.setChunkedSupported(true)
+			.setValidateHeaders(false);
 	protected static long lastSecond;
 	protected static String lastDateStr;
 	protected final @Nullable Application zeze; // 只用于通过事务处理HTTP请求
@@ -275,7 +282,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 				super.write(ctx, msg, promise);
 			}
 		});
-		p.addLast(new HttpRequestDecoder(4096, 8192, 8192, false));
+		p.addLast(new HttpRequestDecoder(decCfg));
 		p.addLast(this);
 		ch.config().setWriteBufferHighWaterMark(writePendingLimit);
 		channels.add(ch);

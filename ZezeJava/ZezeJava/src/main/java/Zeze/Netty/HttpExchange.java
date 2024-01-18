@@ -29,12 +29,14 @@ import io.netty.channel.ChannelPromise;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpContent;
+import io.netty.handler.codec.http.DefaultHttpHeadersFactory;
 import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.DefaultLastHttpContent;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpHeadersFactory;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -74,6 +76,8 @@ public class HttpExchange {
 	protected static final OpenOption[] readOnlyOpenOptions = new OpenOption[]{StandardOpenOption.READ};
 	protected static final @NotNull VarHandle detachedHandle;
 	protected static final HttpDataFactory httpDataFactory = new DefaultHttpDataFactory(false);
+	protected static final HttpHeadersFactory headersFactory = DefaultHttpHeadersFactory.headersFactory().withValidation(false);
+	protected static final HttpHeadersFactory trailersFactory = DefaultHttpHeadersFactory.trailersFactory().withValidation(false);
 
 	static {
 		try {
@@ -291,11 +295,12 @@ public class HttpExchange {
 				if (HttpUtil.is100ContinueExpected(request)) {
 					if (!handler.isStreamMode() && HttpUtil.getContentLength(request, 0) > handler.MaxContentLength) {
 						closeConnectionOnFlush(context.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-								HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER, false)));
+								HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
+								headersFactory, trailersFactory)));
 						return;
 					}
-					context.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-							HttpResponseStatus.CONTINUE, Unpooled.EMPTY_BUFFER, false), context.voidPromise());
+					context.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE,
+							Unpooled.EMPTY_BUFFER, headersFactory, trailersFactory), context.voidPromise());
 				}
 				return;
 			}
@@ -321,7 +326,8 @@ public class HttpExchange {
 					Netty.logger.error("content size = {} + {} > {} from {}", content.readableBytes(), n,
 							handler.MaxContentLength, channel.remoteAddress());
 					closeConnectionOnFlush(context.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-							HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER, false)));
+							HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
+							headersFactory, trailersFactory)));
 					return;
 				}
 				b.retain();
@@ -628,7 +634,7 @@ public class HttpExchange {
 									   @Nullable ByteBuf content) { // content所有权会被转移
 		if (content == null)
 			content = Unpooled.EMPTY_BUFFER;
-		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, false);
+		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, headersFactory, trailersFactory);
 		var headers = HttpServer.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 				.set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
@@ -688,7 +694,7 @@ public class HttpExchange {
 		var ifModifiedSince = request != null ? request.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE) : null;
 		if (ifModifiedSince != null && !ifModifiedSince.isEmpty() && lastModified == HttpServer.parseDate(ifModifiedSince)) {
 			var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED, // 文件未改变
-					Unpooled.EMPTY_BUFFER, false);
+					Unpooled.EMPTY_BUFFER, headersFactory, trailersFactory);
 			HttpServer.setDate(res.headers())
 					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 					.set(HttpHeaderNames.CONTENT_LENGTH, 0);
@@ -704,7 +710,7 @@ public class HttpExchange {
 		var to = r[1];
 		var contentLen = Math.max((to >= 0 ? to : fsize) - from, 0L);
 
-		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, false);
+		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, headersFactory);
 		HttpServer.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 				.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + fn + '"')

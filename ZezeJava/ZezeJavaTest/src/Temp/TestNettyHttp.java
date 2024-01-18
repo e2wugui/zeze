@@ -23,6 +23,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.HttpDecoderConfig;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpRequestDecoder;
@@ -52,7 +53,8 @@ public class TestNettyHttp {
 				try {
 					if (((HttpRequest)msg).uri().equals("/")) {
 						var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-								HttpResponseStatus.OK, Unpooled.wrappedBuffer(RES_BODY), false);
+								HttpResponseStatus.OK, Unpooled.wrappedBuffer(RES_BODY));
+						//noinspection VulnerableCodeUsages
 						res.headers()
 								.set(HttpHeaderNames.CONTENT_LENGTH, CONTENT_LENGTH)
 								.set(HttpHeaderNames.CONTENT_TYPE, CONTENT_TYPE)
@@ -61,7 +63,7 @@ public class TestNettyHttp {
 						ctx.write(res, ctx.voidPromise());
 					} else
 						ctx.write(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND,
-								Unpooled.EMPTY_BUFFER, false)).addListener(ChannelFutureListener.CLOSE);
+								Unpooled.EMPTY_BUFFER)).addListener(ChannelFutureListener.CLOSE);
 				} finally {
 					ReferenceCountUtil.release(msg);
 				}
@@ -94,16 +96,24 @@ public class TestNettyHttp {
 		loopGroup.next().scheduleWithFixedDelay(() -> Handler.date = format.format(new Date()), 0, 1, TimeUnit.SECONDS);
 		var addr = new InetSocketAddress(Integer.getInteger("port", 80));
 		System.out.println("use " + serverChannelClass.getName() + ", listen " + addr);
+		//noinspection VulnerableCodeUsages
 		b.group(loopGroup)
 				.option(ChannelOption.SO_BACKLOG, 8192)
 				.option(ChannelOption.SO_REUSEADDR, true)
 				.childOption(ChannelOption.SO_REUSEADDR, true)
 				.channel(serverChannelClass).childHandler(new ChannelInitializer<SocketChannel>() {
+					private static final HttpDecoderConfig decCfg = new HttpDecoderConfig()
+							.setMaxInitialLineLength(4096)
+							.setMaxHeaderSize(8192)
+							.setMaxChunkSize(8192)
+							.setChunkedSupported(true)
+							.setValidateHeaders(false);
+
 					@Override
 					protected void initChannel(SocketChannel ch) {
 						ch.pipeline()
 								.addLast("encoder", new HttpResponseEncoder())
-								.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192, false))
+								.addLast("decoder", new HttpRequestDecoder(decCfg))
 								.addLast("handler", new Handler());
 					}
 				}).bind(addr); //.sync().channel().closeFuture().sync();
