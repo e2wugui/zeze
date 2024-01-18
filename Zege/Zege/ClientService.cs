@@ -9,7 +9,7 @@ namespace Zege
 {
     public sealed partial class ClientService
     {
-        private static readonly ILogger logger = LogManager.GetLogger();
+        private new static readonly ILogger logger = LogManager.GetLogger();
 
         // 网络查询结果
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
