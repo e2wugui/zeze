@@ -194,10 +194,9 @@ public class CubeMap {
 
 	// 选出position开始，面向direct方向，distance距离，直线路径经过的cube。
 	public final SortedMap<CubeIndex, Cube> line2d(Vector3 position, Vector3 direct, int distance) {
-		// todo 计算end-cube的索引。下面这个实现是不对的。
-		// direct 向量有约定？就是归一化什么的？不清楚。
+		direct = direct.normalized();
 		var endX = position.x + distance * direct.x;
-		var endY = 0; // 2d
+		var endY = position.y + distance * direct.y;
 		var endZ = position.x + distance * direct.x;
 
 		var endIndex = toIndex(endX, endY, endZ);
