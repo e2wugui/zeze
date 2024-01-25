@@ -57,6 +57,19 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
+	public float magnitude() {
+		return (float)Math.sqrt(x * x + y * y + z * z + w * w);
+	}
+
+	@Override
+	public Vector4 normalized() {
+		var len = Math.sqrt((double)x * x + (double)y * y + (double)z * z + (double)w * w);
+		if (len > 1e-6f)
+			return new Vector4((float)(x / len), (float)(y / len), (float)(z / len), (float)(w / len));
+		return this;
+	}
+
+	@Override
 	public boolean equals(@Nullable Object o) {
 		if (this == o)
 			return true;

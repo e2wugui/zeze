@@ -5,6 +5,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.Vector3;
+import Zeze.World.Graphics.Graphics2D;
 
 /**
  * 把三维空间划分成一个个相邻的Cube。

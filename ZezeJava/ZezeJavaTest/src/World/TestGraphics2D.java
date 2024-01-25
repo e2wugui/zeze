@@ -2,7 +2,7 @@ package World;
 
 import java.util.ArrayList;
 import Zeze.Serialize.Vector3;
-import Zeze.World.Graphics2D;
+import Zeze.World.Graphics.Graphics2D;
 import org.junit.Assert;
 import org.junit.Test;
 

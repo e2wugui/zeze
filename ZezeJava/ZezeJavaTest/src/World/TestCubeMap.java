@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import Zeze.Serialize.Vector3;
 import Zeze.Util.Benchmark;
 import Zeze.World.CubeMap;
-import Zeze.World.Graphics2D;
+import Zeze.World.Graphics.Graphics2D;
 import demo.App;
 import org.junit.Assert;
 import org.junit.Before;

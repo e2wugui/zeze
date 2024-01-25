@@ -8,7 +8,8 @@ import Zeze.World.Cube;
 import Zeze.World.CubeIndex;
 import Zeze.World.CubeMap;
 import Zeze.World.Entity;
-import Zeze.World.Graphics2D;
+import Zeze.World.Graphics.Graphics2D;
+import Zeze.World.Graphics.Graphics3D;
 import Zeze.World.ICompute;
 import Zeze.World.ISelector;
 
@@ -34,7 +35,7 @@ public class Polygon implements ISelector {
 	}
 
 	static class PolygonContext extends ICompute.Context {
-		public final java.util.List<Vector3> worldPolygon = new ArrayList<>();
+		public java.util.List<Vector3> worldPolygon;
 	}
 
 	@Override
@@ -46,19 +47,12 @@ public class Polygon implements ISelector {
 	public SortedMap<CubeIndex, Cube> cubes(ICompute.Context context) {
 		var origin = context.compute.caster();
 		var myContext = (PolygonContext)context;
+		var newPolygon = Graphics3D.transformPolygon(polygon, Vector3.ZERO, Graphics3D.DirectionToZ,
+				origin.getBean().getMoving().getPosition(), origin.getBean().getMoving().getDirect());
 
-		// 转换成以origin为原定的坐标。
-		var worldPolygon = myContext.worldPolygon;
-		for (var p : polygon) {
-			worldPolygon.add(p.add(origin.getBean().getMoving().getPosition()));
-		}
-		//origin.getBean().getMoving().getDirect();
-		// todo rotate polygon
-		// polygon = new polygon: list, position(0,0,0),direct(1, 0, 0)
-		// polygon.setPosition(caster.position());
-		// polygon.setDirect(caster.direct());
-		// polygon.list();
-		context.cubes = CubeMap.polygon2d(origin.getCube().map, worldPolygon, isConvex);
+		// 在Context里面保存结果，以后需要的时候可以直接使用，不用再次计算。
+		context.cubes = CubeMap.polygon2d(origin.getCube().map, newPolygon, isConvex);
+		myContext.worldPolygon = newPolygon;
 		return context.cubes;
 	}
 

@@ -1,7 +1,9 @@
-package Zeze.World;
+package Zeze.World.Graphics;
 
 import java.util.ArrayList;
 import Zeze.Serialize.Vector3;
+import Zeze.World.Action2dInt;
+import Zeze.World.CubeIndex;
 
 /**
  * 2d 图形算法包装。

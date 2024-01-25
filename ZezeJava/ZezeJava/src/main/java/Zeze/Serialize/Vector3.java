@@ -81,19 +81,37 @@ public class Vector3 extends Vector2 {
 		return new Vector3(x - b.x, y - b.y, z - b.z);
 	}
 
+	public Vector3 subtract(Vector3 b) {
+		return sub(b);
+	}
+
 	public Vector3 multiply(float m) {
 		return new Vector3(x * m, y * m, z * m);
 	}
 
 	public Vector3 normalized() {
-		double f = 1 / Math.sqrt((double)x * x + (double)y * y + (double)z * z);
-		return new Vector3((float)(x * f), (float)(y * f), (float)(z * f));
+		double magnitude = Math.sqrt((double)x * x + (double)y * y + (double)z * z);
+		if (magnitude > 1e-6f)
+			return new Vector3((float)(x / magnitude), (float)(y / magnitude), (float)(z / magnitude));
+		return this;
 	}
 
-	public static Vector3 cross(Vector3 left, Vector3 right) {
-		var x = left.y * right.z - left.z * right.y;
-		var y = left.z * right.x - left.x * right.z;
-		var z = left.x * right.y - left.y * right.x;
+	public float sqrMagnitude() {
+		return x * x + y * y + z * z;
+	}
+
+	public float magnitude() {
+		return (float)Math.sqrt(x * x + y * y + z * z);
+	}
+
+	public static Vector3 cross(Vector3 u, Vector3 v) {
+		var x = u.y * v.z - u.z * v.y;
+		var y = u.z * v.x - u.x * v.z;
+		var z = u.x * v.y - u.y * v.x;
 		return new Vector3(x, y, z);
+	}
+
+	public static float dot(Vector3 u, Vector3 v) {
+		return u.x * v.x + u.y * v.y + u.z * v.z;
 	}
 }

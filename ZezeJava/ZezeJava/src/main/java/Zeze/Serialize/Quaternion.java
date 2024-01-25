@@ -38,4 +38,12 @@ public class Quaternion extends Vector4 {
 	public @NotNull String toString() {
 		return "Quaternion(" + x + ',' + y + ',' + z + ',' + w + ')';
 	}
+
+	@Override
+	public Quaternion normalized() {
+		var len = Math.sqrt((double)x * x + (double)y * y + (double)z * z + (double)w * w);
+		if (len > 1e-6f)
+			return new Quaternion((float)(x / len), (float)(y / len), (float)(z / len), (float)(w / len));
+		return this;
+	}
 }
