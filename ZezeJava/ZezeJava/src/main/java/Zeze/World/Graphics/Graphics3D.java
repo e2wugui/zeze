@@ -1,9 +1,8 @@
 package Zeze.World.Graphics;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import Zeze.Serialize.Vector3;
-import Zeze.Serialize.Vector4;
 
 /**
  * 3d 图形算法。
@@ -39,7 +38,7 @@ public class Graphics3D {
 		var m = new Matrix3x3f();
 		m.setFromToRotation(from, to);
 		var v = m.multiplyVector(from);
-		System.out.println("from : " + from + ", to : " + to  + ", m.multiplyVector : " + v + ", m : \n" + m);
+		System.out.println("from : " + from + ", to : " + to + ", m.multiplyVector : " + v + ", m : \n" + m);
 		float magnitude = v.subtract(to).magnitude();
 		if (magnitude > 1e-2f) {
 			throw new java.lang.RuntimeException("result not match, magnitude : " + magnitude);
