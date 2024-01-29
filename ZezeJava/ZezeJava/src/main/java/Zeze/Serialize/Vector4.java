@@ -58,14 +58,16 @@ public class Vector4 extends Vector3 {
 
 	@Override
 	public float magnitude() {
-		return (float)Math.sqrt(x * x + y * y + z * z + w * w);
+		return (float)Math.sqrt((double)x * x + (double)y * y + (double)z * z + (double)w * w);
 	}
 
 	@Override
-	public Vector4 normalized() {
-		var len = Math.sqrt((double)x * x + (double)y * y + (double)z * z + (double)w * w);
-		if (len > 1e-6f)
-			return new Vector4((float)(x / len), (float)(y / len), (float)(z / len), (float)(w / len));
+	public @Nullable Vector4 normalized() {
+		double magnitude = Math.sqrt((double)x * x + (double)y * y + (double)z * z + (double)w * w);
+		if (magnitude > 1e-6f) {
+			double f = 1 / magnitude;
+			return new Vector4((float)(x * f), (float)(y * f), (float)(z * f), (float)(w * f));
+		}
 		return this;
 	}
 

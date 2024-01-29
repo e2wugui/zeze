@@ -73,45 +73,47 @@ public class Vector3 extends Vector2 {
 		return "Vector3(" + x + ',' + y + ',' + z + ')';
 	}
 
-	public Vector3 add(Vector3 b) {
+	public @NotNull Vector3 add(@NotNull Vector3 b) {
 		return new Vector3(x + b.x, y + b.y, z + b.z);
 	}
 
-	public Vector3 sub(Vector3 b) {
+	public @NotNull Vector3 sub(@NotNull Vector3 b) {
 		return new Vector3(x - b.x, y - b.y, z - b.z);
 	}
 
-	public Vector3 subtract(Vector3 b) {
+	public @NotNull Vector3 subtract(@NotNull Vector3 b) {
 		return sub(b);
 	}
 
-	public Vector3 multiply(float m) {
+	public @NotNull Vector3 multiply(float m) {
 		return new Vector3(x * m, y * m, z * m);
 	}
 
-	public Vector3 normalized() {
+	public @NotNull Vector3 normalized() {
 		double magnitude = Math.sqrt((double)x * x + (double)y * y + (double)z * z);
-		if (magnitude > 1e-6f)
-			return new Vector3((float)(x / magnitude), (float)(y / magnitude), (float)(z / magnitude));
+		if (magnitude > 1e-6f) {
+			double f = 1 / magnitude;
+			return new Vector3((float)(x * f), (float)(y * f), (float)(z * f));
+		}
 		return this;
 	}
 
 	public float sqrMagnitude() {
-		return x * x + y * y + z * z;
+		return (float)((double)x * x + (double)y * y + (double)z * z);
 	}
 
 	public float magnitude() {
-		return (float)Math.sqrt(x * x + y * y + z * z);
+		return (float)Math.sqrt((double)x * x + (double)y * y + (double)z * z);
 	}
 
-	public static Vector3 cross(Vector3 u, Vector3 v) {
-		var x = u.y * v.z - u.z * v.y;
-		var y = u.z * v.x - u.x * v.z;
-		var z = u.x * v.y - u.y * v.x;
-		return new Vector3(x, y, z);
+	public static @NotNull Vector3 cross(@NotNull Vector3 u, @NotNull Vector3 v) {
+		double x = (double)u.y * v.z - (double)u.z * v.y;
+		double y = (double)u.z * v.x - (double)u.x * v.z;
+		double z = (double)u.x * v.y - (double)u.y * v.x;
+		return new Vector3((float)x, (float)y, (float)z);
 	}
 
-	public static float dot(Vector3 u, Vector3 v) {
-		return u.x * v.x + u.y * v.y + u.z * v.z;
+	public static float dot(@NotNull Vector3 u, @NotNull Vector3 v) {
+		return (float)((double)u.x * v.x + (double)u.y * v.y + (double)u.z * v.z);
 	}
 }

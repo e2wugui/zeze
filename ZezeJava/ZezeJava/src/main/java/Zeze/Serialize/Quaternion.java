@@ -40,10 +40,12 @@ public class Quaternion extends Vector4 {
 	}
 
 	@Override
-	public Quaternion normalized() {
-		var len = Math.sqrt((double)x * x + (double)y * y + (double)z * z + (double)w * w);
-		if (len > 1e-6f)
-			return new Quaternion((float)(x / len), (float)(y / len), (float)(z / len), (float)(w / len));
+	public @NotNull Quaternion normalized() {
+		double magnitude = Math.sqrt((double)x * x + (double)y * y + (double)z * z + (double)w * w);
+		if (magnitude > 1e-6f) {
+			double f = 1 / magnitude;
+			return new Quaternion((float)(x * f), (float)(y * f), (float)(z * f), (float)(w * f));
+		}
 		return this;
 	}
 }
