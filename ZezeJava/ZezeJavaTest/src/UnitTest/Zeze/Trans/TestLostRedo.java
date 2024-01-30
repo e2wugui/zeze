@@ -26,11 +26,11 @@ public class TestLostRedo {
 		//App.Instance.Stop();
 	}
 
-	ConcurrentHashSet<Long> keys = new ConcurrentHashSet<>();
+	final ConcurrentHashSet<Long> keys = new ConcurrentHashSet<>();
 
 	@Test
 	public void test() throws ExecutionException, InterruptedException {
-		App.Instance.Zeze.newProcedure(this::clear, "clear").call();
+		App.Instance.Zeze.newProcedure(TestLostRedo::clear, "clear").call();
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < 1_0000; ++i)
 			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::write, "write")));
@@ -40,11 +40,11 @@ public class TestLostRedo {
 			App.Instance.Zeze.newProcedure(() -> verify(key), "verify").call();
 	}
 
-	private long clear() {
+	private static long clear() {
 		return 0; // 使用了内存表了。
 	}
 
-	private long verify(long key) {
+	private static long verify(long key) {
 		var v1 = App.Instance.demo_Module1.getTable1().get(key);
 		if (null != v1) {
 			for (var lkey : v1.getLongList())
@@ -80,9 +80,7 @@ public class TestLostRedo {
 		runTimes.incrementAndGet();
 		@SuppressWarnings("deprecation")
 		var key = App.Instance.Zeze.getAutoKeyOld("conflict.autokey").nextId();
-		Transaction.whileCommit(() -> {
-			Assert.assertNull(autos.putIfAbsent(key, key));
-		});
+		Transaction.whileCommit(() -> Assert.assertNull(autos.putIfAbsent(key, key)));
 		return 0;
 	}
 

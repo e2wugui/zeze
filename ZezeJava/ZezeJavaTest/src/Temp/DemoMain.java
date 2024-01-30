@@ -12,7 +12,7 @@ public class DemoMain {
 		void helloB();
 	}
 
-	static String Impl =
+	static final String Impl =
 
 			"""
 					public class Ab implements Temp.DemoMain.Ia, Temp.DemoMain.Ib {

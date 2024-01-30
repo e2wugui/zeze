@@ -3,7 +3,6 @@ package UnitTest.Zeze;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import org.junit.Assert;
 

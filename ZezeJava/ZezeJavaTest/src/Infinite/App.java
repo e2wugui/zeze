@@ -55,7 +55,7 @@ public class App {
 		app.Stop();
 	}
 
-	public void Run(Tasks.Task task) {
+	void Run(Tasks.Task task) {
 		task.App = app;
 		String name = task.getClass().getName();
 		int keyBound = task.getKeyBound();

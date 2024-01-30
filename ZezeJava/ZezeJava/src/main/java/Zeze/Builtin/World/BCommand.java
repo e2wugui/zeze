@@ -297,8 +297,6 @@ public final class BCommand extends Zeze.Transaction.Bean implements BCommandRea
         setMapInstanceId(rs.getLong(_parents_name_ + "MapInstanceId"));
         setCommandId(rs.getInt(_parents_name_ + "CommandId"));
         setParam(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Param")));
-        if (getParam() == null)
-            setParam(Zeze.Net.Binary.Empty);
     }
 
     @Override

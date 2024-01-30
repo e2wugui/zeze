@@ -28,6 +28,7 @@ public class TestGameTimer {
 			if (!linkd.LinkdApp.zeze.getServiceManager().getSubscribeStates().isEmpty())
 				break;
 			System.out.println("wait Linkd Provider.");
+			//noinspection BusyWait
 			Thread.sleep(1000);
 		}
 	}
@@ -133,7 +134,7 @@ public class TestGameTimer {
 			auth(client1, "account0");
 			login(client1, roleId);
 			sleep(100, 6);
-			Assert.assertTrue(bean.getTestValue() == 5); // 确保客户端0的timer被踢掉了【不变】
+			Assert.assertEquals(5, bean.getTestValue()); // 确保客户端0的timer被踢掉了【不变】
 			log("测试二通过");
 
 			TestBean namedBean = new TestBean();
@@ -149,8 +150,8 @@ public class TestGameTimer {
 			}, "testOnlineWithBean").call());
 			sleep(100, 10);
 
-			Assert.assertTrue(namedBean.getTestValue() == 5);
-			Assert.assertTrue(newNamedBean1.getTestValue() == 0);
+			Assert.assertEquals(5, namedBean.getTestValue());
+			Assert.assertEquals(0, newNamedBean1.getTestValue());
 
 			// 在执行完后注册同名NamedTimer，应该成功
 			TestBean newNamedBean2 = new TestBean();
@@ -162,7 +163,6 @@ public class TestGameTimer {
 			Assert.assertTrue(newNamedBean2.getTestValue() >= 10);
 			log("测试三通过");
 		} catch (Throwable e) {
-			//noinspection CallToPrintStackTrace
 			e.printStackTrace();
 			throw e;
 		} finally {
@@ -231,7 +231,6 @@ public class TestGameTimer {
 
 			sleep(100, 5);
 		} catch (Throwable e) {
-			//noinspection CallToPrintStackTrace
 			e.printStackTrace();
 			throw e;
 		} finally {

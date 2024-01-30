@@ -286,8 +286,6 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         setOnzTid(rs.getLong(_parents_name_ + "OnzTid"));
         setCancel(rs.getBoolean(_parents_name_ + "Cancel"));
         setFuncArgument(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "FuncArgument")));
-        if (getFuncArgument() == null)
-            setFuncArgument(Zeze.Net.Binary.Empty);
     }
 
     @Override

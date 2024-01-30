@@ -1,12 +1,11 @@
 package UnitTest.Zeze.Misc;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import Zeze.Services.RocketMQ.Consumer;
 import demo.App;
 import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.After;
 import org.junit.Before;
@@ -31,19 +30,16 @@ public class TestRocketMQ {
 		App.Instance.RocketMQProducer.start("testRocketMQ", clientConfig);
 		var consumer = new Consumer(App.Instance.Zeze, "testRocketMQ", clientConfig);
 
-		consumer.setMessageListener(new org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently() {
-			@Override
-			public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
-				for (MessageExt msg : msgs) {
-					System.out.println("Receive: ");
-					System.out.println("\tBody: " + new String(msg.getBody()));
-					System.out.println("\tTags: " + msg.getTags());
-					System.out.println("\tKeys: " + msg.getKeys());
-					System.out.println("\tTopic: " + msg.getTopic());
-					System.out.println("\tMsgId: " + msg.getMsgId());
-				}
-				return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+		consumer.setMessageListener((MessageListenerConcurrently)(msgs, context) -> {
+			for (MessageExt msg : msgs) {
+				System.out.println("Receive: ");
+				System.out.println("\tBody: " + new String(msg.getBody()));
+				System.out.println("\tTags: " + msg.getTags());
+				System.out.println("\tKeys: " + msg.getKeys());
+				System.out.println("\tTopic: " + msg.getTopic());
+				System.out.println("\tMsgId: " + msg.getMsgId());
 			}
+			return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
 		});
 		consumer.subscribe("topic2", "*");
 		consumer.start();

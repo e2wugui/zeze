@@ -187,8 +187,6 @@ public final class BFuncProcedureResult extends Zeze.Transaction.Bean implements
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setFuncResult(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "FuncResult")));
-        if (getFuncResult() == null)
-            setFuncResult(Zeze.Net.Binary.Empty);
     }
 
     @Override

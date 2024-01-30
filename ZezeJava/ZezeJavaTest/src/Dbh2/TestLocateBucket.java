@@ -32,14 +32,14 @@ public class TestLocateBucket {
 			meta.setKeyFirst(Binary.Empty);
 			meta.setKeyLast(Binary.Empty);
 			buckets.put(meta.getKeyFirst(), meta);
-			Assert.assertTrue(locate(buckets, keyEmpty) == meta);
-			Assert.assertTrue(locate(buckets, key00) == meta);
-			Assert.assertTrue(locate(buckets, key10) == meta);
-			Assert.assertTrue(locate(buckets, key11) == meta);
-			Assert.assertTrue(locate(buckets, key20) == meta);
-			Assert.assertTrue(locate(buckets, key22) == meta);
-			Assert.assertTrue(locate(buckets, key30) == meta);
-			Assert.assertTrue(locate(buckets, key33) == meta);
+			Assert.assertSame(locate(buckets, keyEmpty), meta);
+			Assert.assertSame(locate(buckets, key00), meta);
+			Assert.assertSame(locate(buckets, key10), meta);
+			Assert.assertSame(locate(buckets, key11), meta);
+			Assert.assertSame(locate(buckets, key20), meta);
+			Assert.assertSame(locate(buckets, key22), meta);
+			Assert.assertSame(locate(buckets, key30), meta);
+			Assert.assertSame(locate(buckets, key33), meta);
 		}
 		buckets.clear();
 
@@ -75,13 +75,13 @@ public class TestLocateBucket {
 		metaKey30.setKeyLast(Binary.Empty);
 		buckets.put(metaKey30.getKeyFirst(), metaKey30);
 
-		Assert.assertTrue(locate(buckets, keyEmpty) == metaEmpty);
-		Assert.assertTrue(locate(buckets, key00) == metaEmpty);
-		Assert.assertTrue(locate(buckets, key10) == metaKey10);
-		Assert.assertTrue(locate(buckets, key11) == metaKey10);
-		Assert.assertTrue(locate(buckets, key20) == metaKey20);
-		Assert.assertTrue(locate(buckets, key22) == metaKey20);
-		Assert.assertTrue(locate(buckets, key30) == metaKey30);
-		Assert.assertTrue(locate(buckets, key33) == metaKey30);
+		Assert.assertSame(locate(buckets, keyEmpty), metaEmpty);
+		Assert.assertSame(locate(buckets, key00), metaEmpty);
+		Assert.assertSame(locate(buckets, key10), metaKey10);
+		Assert.assertSame(locate(buckets, key11), metaKey10);
+		Assert.assertSame(locate(buckets, key20), metaKey20);
+		Assert.assertSame(locate(buckets, key22), metaKey20);
+		Assert.assertSame(locate(buckets, key30), metaKey30);
+		Assert.assertSame(locate(buckets, key33), metaKey30);
 	}
 }

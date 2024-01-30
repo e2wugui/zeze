@@ -1,9 +1,6 @@
 package UnitTest.Zeze.Game;
 
-import Zeze.Builtin.Game.Bag.BBag;
-import Zeze.Game.Bag;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.TableWalkHandle;
 import demo.App;
 import org.junit.After;
 import org.junit.Assert;
@@ -113,7 +110,7 @@ public class TestBag {
 	private static long preRemove() {
 		var table = App.getInstance().BagModule.getTable();
 		table.remove("test1");
-		System.out.println(String.format("delete table %s", table.getName()));
+		System.out.printf("delete table %s%n", table.getName());
 		return Procedure.Success;
 	}
 }

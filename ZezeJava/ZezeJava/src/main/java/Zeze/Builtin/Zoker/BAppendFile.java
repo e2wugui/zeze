@@ -346,8 +346,6 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
             setFileName("");
         setOffset(rs.getLong(_parents_name_ + "Offset"));
         setChunk(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Chunk")));
-        if (getChunk() == null)
-            setChunk(Zeze.Net.Binary.Empty);
     }
 
     @Override

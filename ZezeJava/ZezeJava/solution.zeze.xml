@@ -484,11 +484,11 @@
 			<!-- gs to link -->
 			<bean name="BAnnounceProviderInfo">
 				<variable name="ServiceNamePrefix"  id="1" type="string"/>
-				<variable name="ServiceIndentity"   id="2" type="string"/>
+				<variable name="ServiceIdentity"    id="2" type="string"/>
 				<variable name="ProviderDirectIp"   id="3" type="string"/>
 				<variable name="ProviderDirectPort" id="4" type="int"/>
-				<variable name="AppVersion" id="5" type="int"/> gs 版本，报告给linkd，让linkd只给最新版本的gs分发请求。
-				<variable name="DisableChoice" id="6" type="bool"/>
+				<variable name="AppVersion"         id="5" type="int"/> gs 版本，报告给linkd，让linkd只给最新版本的gs分发请求。
+				<variable name="DisableChoice"      id="6" type="bool"/>
 			</bean>
 
 			<protocol name="AnnounceProviderInfo" NoProcedure="true" argument="BAnnounceProviderInfo" handle="client"/>

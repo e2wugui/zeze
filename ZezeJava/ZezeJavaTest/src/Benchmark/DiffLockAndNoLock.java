@@ -1,7 +1,6 @@
 package Benchmark;
 
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Serialize.ByteBuffer;
@@ -16,8 +15,8 @@ import org.rocksdb.RocksDBException;
 public class DiffLockAndNoLock {
 	Zeze.Util.RocksDatabase db;
 	RocksDatabase.Table table;
-	AtomicLong atomicKey = new AtomicLong();
-	ReentrantLock lock = new ReentrantLock();
+	final AtomicLong atomicKey = new AtomicLong();
+	final ReentrantLock lock = new ReentrantLock();
 
 	@Before
 	public void before() throws RocksDBException {

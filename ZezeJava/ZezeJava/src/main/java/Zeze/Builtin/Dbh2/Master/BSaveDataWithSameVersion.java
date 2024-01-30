@@ -294,11 +294,7 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Key")));
-        if (getKey() == null)
-            setKey(Zeze.Net.Binary.Empty);
         setData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Data")));
-        if (getData() == null)
-            setData(Zeze.Net.Binary.Empty);
         setVersion(rs.getLong(_parents_name_ + "Version"));
     }
 

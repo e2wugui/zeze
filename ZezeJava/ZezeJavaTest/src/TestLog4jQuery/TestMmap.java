@@ -20,7 +20,6 @@ public class TestMmap {
 	public final static int ePageSize = 16;
 	public final static int ePageMask = ePageSize - 1;
 
-	@SuppressWarnings("ResultOfMethodCallIgnored")
 	@Test
 	public void testMmap() throws Exception {
 		var file = new File("testMmapFile");

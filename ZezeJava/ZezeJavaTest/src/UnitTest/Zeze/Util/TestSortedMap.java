@@ -81,17 +81,17 @@ public class TestSortedMap {
 		System.out.println(sortedMap.get(9L));
 		System.out.println(sortedMap.get(10L));
 		*/
-		Assert.assertEquals(sortedMap.get(0L), null);
+		Assert.assertNull(sortedMap.get(0L));
 		Assert.assertEquals(sortedMap.get(1L).getKey(), Long.valueOf(1));
-		Assert.assertEquals(sortedMap.get(2L), null);
+		Assert.assertNull(sortedMap.get(2L));
 		Assert.assertEquals(sortedMap.get(3L).getKey(), Long.valueOf(3));
-		Assert.assertEquals(sortedMap.get(4L), null);
+		Assert.assertNull(sortedMap.get(4L));
 		Assert.assertEquals(sortedMap.get(5L).getKey(), Long.valueOf(5));
 		Assert.assertEquals(sortedMap.get(6L).getKey(), Long.valueOf(6));
-		Assert.assertEquals(sortedMap.get(7L), null);
-		Assert.assertEquals(sortedMap.get(8L), null);
+		Assert.assertNull(sortedMap.get(7L));
+		Assert.assertNull(sortedMap.get(8L));
 		Assert.assertEquals(sortedMap.get(9L).getKey(), Long.valueOf(9));
-		Assert.assertEquals(sortedMap.get(10L), null);
+		Assert.assertNull(sortedMap.get(10L));
 	}
 
 	@Test

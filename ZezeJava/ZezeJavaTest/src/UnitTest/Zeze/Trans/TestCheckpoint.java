@@ -1,6 +1,5 @@
 package UnitTest.Zeze.Trans;
 
-import java.lang.reflect.InvocationTargetException;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import demo.App;
@@ -83,7 +82,7 @@ public class TestCheckpoint{
 		Assert.assertEquals(resetVersion(value), resetVersion(bValueTrans));
 	}
 
-	private ByteBuffer resetVersion(BValue value) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+	private static ByteBuffer resetVersion(BValue value) throws ReflectiveOperationException {
 		var method = value.getClass().getDeclaredMethod("version", long.class);
 		method.setAccessible(true);
 		method.invoke(value, 0);

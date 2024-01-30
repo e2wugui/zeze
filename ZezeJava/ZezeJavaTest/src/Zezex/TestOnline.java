@@ -68,6 +68,7 @@ public class TestOnline extends TestCase {
 				if (fightModule.getService().isAreYouFightDone())
 					return;
 			}
+			//noinspection BusyWait
 			Thread.sleep(1);
 		}
 	}

@@ -9,7 +9,7 @@ public interface BAnnounceProviderInfoReadOnly {
     BAnnounceProviderInfo copy();
 
     String getServiceNamePrefix();
-    String getServiceIndentity();
+    String getServiceIdentity();
     String getProviderDirectIp();
     int getProviderDirectPort();
     int getAppVersion();

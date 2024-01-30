@@ -51,10 +51,9 @@ public class MysqlTransactionBehaviorWhenHaltProgram {
 	}
 
 	static void druid(String url, String cmd) throws SQLException, InterruptedException {
-		var dataSource = new DruidDataSource();
-		dataSource.setUrl(url);
-		dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
-		try {
+		try (var dataSource = new DruidDataSource()) {
+			dataSource.setUrl(url);
+			dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
 			switch (cmd) {
 			case "prepare":
 				prepare(dataSource);
@@ -68,8 +67,6 @@ public class MysqlTransactionBehaviorWhenHaltProgram {
 				verify(dataSource);
 				break;
 			}
-		} finally {
-			dataSource.close();
 		}
 	}
 

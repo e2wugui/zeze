@@ -47,7 +47,7 @@ public class TestProcessDaemon {
 				"-cp",
 				"C:/Users/10501/Desktop/code/zeze/ZezeJava/ZezeJavaTest/build/classes/java/main",
 				"-D" + ProcessDaemonPort + "=" + port,
-				"-D" + ProcessDaemonMMap + "=" + "",
+				"-D" + ProcessDaemonMMap + "=",
 				"Temp.TestProcessDaemon"
 		);
 		var sub = pb.inheritIO().start();

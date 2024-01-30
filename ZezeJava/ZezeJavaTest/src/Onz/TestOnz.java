@@ -14,7 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestOnz {
-	private App zeze2 = new App();
+	private final App zeze2 = new App();
 	private OnzServer onzServer;
 
 	@Before

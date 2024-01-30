@@ -2,7 +2,6 @@ package Benchmark;
 
 import Zeze.Serialize.ByteBuffer;
 import demo.Module1.BValue;
-import demo.Module1.BValue;
 import org.junit.Test;
 
 public class TestToData {

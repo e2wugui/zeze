@@ -1,7 +1,6 @@
 package demo;
 
 import Benchmark.ABasicSimpleAddOneThread;
-import Benchmark.CBasicSimpleAddConcurrent;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderDirectService;

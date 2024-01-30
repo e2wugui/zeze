@@ -170,8 +170,6 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setFullEncodedProtocol(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "FullEncodedProtocol")));
-        if (getFullEncodedProtocol() == null)
-            setFullEncodedProtocol(Zeze.Net.Binary.Empty);
     }
 
     @Override

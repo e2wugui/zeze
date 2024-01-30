@@ -7,12 +7,11 @@ import Zeze.World.Graphics.Matrix3x3f;
 import org.junit.Test;
 
 public class TestGraphics3D {
-	@Test
-	public float test(Vector3 from, Vector3 to) {
+	public static float test(Vector3 from, Vector3 to) {
 		var m = new Matrix3x3f();
 		m.setFromToRotation(from, to);
 		var v = m.multiplyVector(from);
-		System.out.println("from : " + from + ", to : " + to  + ", m.multiplyVector : " + v + ", m : \n" + m);
+		System.out.println("from : " + from + ", to : " + to + ", m.multiplyVector : " + v + ", m : \n" + m);
 		float magnitude = v.subtract(to).magnitude();
 		if (magnitude > 1e-2f) {
 			throw new java.lang.RuntimeException("result not match, magnitude : " + magnitude);

@@ -288,8 +288,6 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         setModuleId(rs.getInt(_parents_name_ + "ModuleId"));
         setServerId(rs.getInt(_parents_name_ + "ServerId"));
         setParams(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Params")));
-        if (getParams() == null)
-            setParams(Zeze.Net.Binary.Empty);
     }
 
     @Override

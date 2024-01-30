@@ -84,7 +84,7 @@ public class TestRoleTimer {
 		}
 	}
 
-	TaskCompletionSource<Boolean> timerFuture = new TaskCompletionSource<>();
+	final TaskCompletionSource<Boolean> timerFuture = new TaskCompletionSource<>();
 
 	public class NullCustomDataHandle implements TimerHandle {
 

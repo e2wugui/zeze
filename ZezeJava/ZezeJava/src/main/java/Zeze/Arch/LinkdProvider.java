@@ -256,7 +256,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 						serviceName, BSubscribeInfo.SubscribeTypeSimple, providerModuleState);
 				// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 				// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
-				subState.setServiceIdentityReadyState(providerInfo.getServiceIndentity(), providerModuleState);
+				subState.setServiceIdentityReadyState(providerInfo.getServiceIdentity(), providerModuleState);
 				providerSession.getStaticBinds().add(moduleId);
 			}
 		} else {
@@ -289,7 +289,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 					serviceName, module.getSubscribeType(), providerModuleState);
 			// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 			// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
-			subState.setServiceIdentityReadyState(providerInfo.getServiceIndentity(), providerModuleState);
+			subState.setServiceIdentityReadyState(providerInfo.getServiceIdentity(), providerModuleState);
 		}
 
 		rpc.SendResult();
@@ -311,7 +311,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			if (volatileProviders != null) {
 				// UnBind 不删除provider-list，这个总是通过ServiceManager通告更新。
 				// 这里仅仅设置该moduleId对应的服务的状态不可用。
-				volatileProviders.setServiceIdentityReadyState(providerInfo.getServiceIndentity(), null);
+				volatileProviders.setServiceIdentityReadyState(providerInfo.getServiceIdentity(), null);
 			}
 		}
 	}

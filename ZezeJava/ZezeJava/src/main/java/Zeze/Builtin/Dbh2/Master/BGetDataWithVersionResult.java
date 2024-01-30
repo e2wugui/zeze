@@ -239,8 +239,6 @@ public final class BGetDataWithVersionResult extends Zeze.Transaction.Bean imple
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Data")));
-        if (getData() == null)
-            setData(Zeze.Net.Binary.Empty);
         setVersion(rs.getLong(_parents_name_ + "Version"));
     }
 

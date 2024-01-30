@@ -34,7 +34,7 @@ public class CheckpointFlush {
 		System.out.println(PerfCounter.instance.getLogAndReset());
 	}
 
-	private void bench(CheckpointFlushMode mode) throws Exception {
+	private static void bench(CheckpointFlushMode mode) throws Exception {
 		var cfg = Config.load("zeze.xml");
 		cfg.setCheckpointPeriod(Integer.MAX_VALUE); // disable auto flush
 		cfg.setCheckpointFlushMode(mode);
@@ -58,6 +58,5 @@ public class CheckpointFlush {
 		} finally {
 			//App.Instance.Stop();
 		}
-
 	}
 }

@@ -91,7 +91,7 @@ public class TestAoi {
 
 	volatile boolean testRunning = true;
 
-	AtomicLong moveCount = new AtomicLong();
+	final AtomicLong moveCount = new AtomicLong();
 
 	@Before
 	public void before() throws Exception {

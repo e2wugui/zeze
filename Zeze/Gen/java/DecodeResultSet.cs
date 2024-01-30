@@ -134,8 +134,6 @@ namespace Zeze.Gen.java
         {
             ensureParentsName();
             sw.WriteLine($"{prefix}{AssignText($"new Zeze.Net.Binary({bb}.getBytes({ParaneName}\"{ColumnName}\"))")};");
-            sw.WriteLine($"{prefix}if ({Getter} == null)");
-            sw.WriteLine($"{prefix}    {AssignText("Zeze.Net.Binary.Empty")};");
         }
 
         public void Visit(TypeString type)

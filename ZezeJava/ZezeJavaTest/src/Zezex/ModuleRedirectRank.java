@@ -1,7 +1,6 @@
 package Zezex;
 
 import Game.App;
-import Game.Rank.IModuleRank;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.TaskCompletionSource;

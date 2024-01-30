@@ -69,11 +69,8 @@ public class TestGlobal extends TestCase {
 		var config2 = Config.load("zeze.xml");
 		config2.setServerId(2);
 		var commitService = config2.getServiceConf("Zeze.Dbh2.Commit");
-		if (null != commitService) {
-			commitService.forEachAcceptor((a) -> {
-				a.setPort(a.getPort() + config2.getServerId());
-			});
-		}
+		if (commitService != null)
+			commitService.forEachAcceptor(a -> a.setPort(a.getPort() + config2.getServerId()));
 		config1.getServiceConfMap().remove("TestServer");
 		config2.getServiceConfMap().remove("TestServer");
 		config1.getServiceConfMap().remove("Zeze.Onz.Server");

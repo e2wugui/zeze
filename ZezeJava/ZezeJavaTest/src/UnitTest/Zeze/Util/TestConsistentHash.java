@@ -15,7 +15,7 @@ public class TestConsistentHash {
 	public void testConsistentHash() throws IOException {
 		var consistentHash = new ConsistentHash<Integer>();
 
-		Assert.assertEquals(consistentHash.get(Integer.hashCode(1)), null);
+		Assert.assertNull(consistentHash.get(Integer.hashCode(1)));
 
 		consistentHash.add("1", 1);
 		consistentHash.add("2", 2);
@@ -77,6 +77,6 @@ public class TestConsistentHash {
 		consistentHash.remove(3);
 		consistentHash.remove(4);
 
-		Assert.assertEquals(consistentHash.get(Integer.hashCode(1)), null);
+		Assert.assertNull(consistentHash.get(Integer.hashCode(1)));
 	}
 }

@@ -492,14 +492,10 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
             setAccount("");
         setProtocolType(rs.getLong(_parents_name_ + "protocolType"));
         setProtocolData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "protocolData")));
-        if (getProtocolData() == null)
-            setProtocolData(Zeze.Net.Binary.Empty);
         setContext(rs.getString(_parents_name_ + "context"));
         if (getContext() == null)
             setContext("");
         setContextx(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "contextx")));
-        if (getContextx() == null)
-            setContextx(Zeze.Net.Binary.Empty);
         setOnlineSetName(rs.getString(_parents_name_ + "onlineSetName"));
         if (getOnlineSetName() == null)
             setOnlineSetName("");

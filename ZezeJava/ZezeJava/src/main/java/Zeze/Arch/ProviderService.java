@@ -162,7 +162,7 @@ public class ProviderService extends HandshakeClient {
 
 		var announce = new AnnounceProviderInfo();
 		announce.Argument.setServiceNamePrefix(providerApp.serverServiceNamePrefix);
-		announce.Argument.setServiceIndentity(String.valueOf(getZeze().getConfig().getServerId()));
+		announce.Argument.setServiceIdentity(String.valueOf(getZeze().getConfig().getServerId()));
 		announce.Argument.setProviderDirectIp(providerApp.directIp);
 		announce.Argument.setProviderDirectPort(providerApp.directPort);
 		announce.Argument.setAppVersion(providerApp.zeze.getSchemas().getAppPublishVersion());

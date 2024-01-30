@@ -604,8 +604,6 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         if (getMethodFullName() == null)
             setMethodFullName("");
         setParams(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Params")));
-        if (getParams() == null)
-            setParams(Zeze.Net.Binary.Empty);
         setServiceNamePrefix(rs.getString(_parents_name_ + "ServiceNamePrefix"));
         if (getServiceNamePrefix() == null)
             setServiceNamePrefix("");
