@@ -3,7 +3,7 @@ package Zeze.Arch;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
@@ -48,7 +48,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	// 内部的Provider可以支持完全不同的solution，不过这个仅仅保留给未来扩展用，
 	// 不建议在一个项目里面使用多个Prefix。
 	private String serverServiceNamePrefix = "";
-	private final AtomicInteger maxAppVersion = new AtomicInteger();
+	private final AtomicLong maxAppVersion = new AtomicLong();
 
 	protected FileOutputStream dumpFile;
 	protected AsyncSocket dumpSocket;

@@ -12,7 +12,7 @@ public class ProviderSession {
 	protected int serverId;
 	protected long sessionId;
 	protected @NotNull String serverLoadIp = "";
-	protected int appVersion;
+	protected long appVersion;
 	protected int serverLoadPort;
 	protected boolean disableChoice = false;
 

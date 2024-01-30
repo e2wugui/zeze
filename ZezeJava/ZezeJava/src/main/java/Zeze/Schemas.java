@@ -738,13 +738,13 @@ public class Schemas implements Serializable {
 	public final ConcurrentHashMap<String, Bean> beans = new ConcurrentHashMap<>();
 	private transient final ConcurrentHashMap<String, Type> basicTypes = new ConcurrentHashMap<>();
 
-	private int appPublishVersion;
+	private long appPublishVersion;
 
-	public int getAppPublishVersion() {
+	public long getAppPublishVersion() {
 		return appPublishVersion;
 	}
 
-	public void setAppPublishVersion(int version) {
+	public void setAppPublishVersion(long version) {
 		appPublishVersion = version;
 	}
 
@@ -796,9 +796,8 @@ public class Schemas implements Serializable {
 				throw new IllegalStateException("duplicate bean=" + bean.name);
 		}
 		// 新增的appPublishVersion在旧版里面可能没有。
-		if (bb.getWriteIndex() > bb.getReadIndex()) {
-			appPublishVersion = bb.ReadInt();
-		}
+		if (bb.getWriteIndex() > bb.getReadIndex())
+			appPublishVersion = bb.ReadLong();
 	}
 
 	@Override
@@ -809,7 +808,7 @@ public class Schemas implements Serializable {
 		bb.WriteInt(beans.size());
 		for (var bean : beans.values())
 			bean.encode(bb);
-		bb.WriteInt(appPublishVersion);
+		bb.WriteLong(appPublishVersion);
 	}
 
 	public void compile() {

@@ -120,7 +120,7 @@ public class ProviderDistribute {
 		return true;
 	}
 
-	public boolean choiceLoad(Agent.SubscribeState providers, OutLong provider, int maxAppVersion) {
+	public boolean choiceLoad(Agent.SubscribeState providers, OutLong provider, long maxAppVersion) {
 		provider.value = 0L;
 
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
@@ -181,7 +181,7 @@ public class ProviderDistribute {
 		return false;
 	}
 
-	public boolean choiceRequest(Agent.SubscribeState providers, OutLong provider, int maxAppVersion) {
+	public boolean choiceRequest(Agent.SubscribeState providers, OutLong provider, long maxAppVersion) {
 		provider.value = 0L;
 
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
@@ -242,7 +242,8 @@ public class ProviderDistribute {
 	}
 
 	// 查找时增加索引，和喂饱时增加索引，需要原子化。提高并发以后慢慢想，这里应该足够快了。
-	public synchronized boolean choiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider, int maxAppVersion) {
+	public synchronized boolean choiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider,
+													   long maxAppVersion) {
 		provider.value = 0L;
 
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
