@@ -285,9 +285,10 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	@Override
 	protected long ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) {
-		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
+		if (!AsyncSocket.ENABLE_PROTOCOL_LOG) {
 			logger.info("AnnounceLinkInfo[{}]: {}",
 					protocol.getSender().getSessionId(), AsyncSocket.toStr(protocol.Argument));
+		}
 		// var linkSession = (ProviderService.LinkSession)protocol.getSender().getUserState();
 		return Procedure.Success;
 	}

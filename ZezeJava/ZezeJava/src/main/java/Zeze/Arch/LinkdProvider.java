@@ -460,21 +460,29 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	@Override
 	protected long ProcessAnnounceProviderInfo(AnnounceProviderInfo protocol) {
-		var session = (LinkdProviderSession)protocol.getSender().getUserState();
-		session.setInfo(protocol.Argument); // 全部记住
+		var arg = protocol.Argument;
+		var sender = protocol.getSender();
+		if (!AsyncSocket.ENABLE_PROTOCOL_LOG) {
+			logger.info("AnnounceProviderInfo[{}]: name={}, id={}, ip={}, port={}, ver={}, disableChoice={}",
+					sender.getSessionId(),
+					arg.getServiceNamePrefix(), arg.getServiceIdentity(), arg.getProviderDirectIp(),
+					arg.getProviderDirectPort(), arg.getAppVersion(), arg.isDisableChoice());
+		}
+
+		var session = (LinkdProviderSession)sender.getUserState();
+		session.setInfo(arg); // 全部记住
 
 		// 下面再记录一份到其他需要的地方。这里有冗余。
-		serverServiceNamePrefix = protocol.Argument.getServiceNamePrefix();
-		session.serverLoadIp = protocol.Argument.getProviderDirectIp();
-		session.serverLoadPort = protocol.Argument.getProviderDirectPort();
-		session.appVersion = protocol.Argument.getAppVersion();
-		session.disableChoice = protocol.Argument.isDisableChoice();
+		serverServiceNamePrefix = arg.getServiceNamePrefix();
+		session.serverLoadIp = arg.getProviderDirectIp();
+		session.serverLoadPort = arg.getProviderDirectPort();
+		session.appVersion = arg.getAppVersion();
+		session.disableChoice = arg.isDisableChoice();
 		linkdApp.linkdProviderService.providerSessions.put(session.getServerLoadName(), session);
 
 		while (true) {
 			var current = maxAppVersion.get();
-			if (protocol.Argument.getAppVersion() <= current
-					|| maxAppVersion.compareAndSet(current, protocol.Argument.getAppVersion()))
+			if (arg.getAppVersion() <= current || maxAppVersion.compareAndSet(current, arg.getAppVersion()))
 				break;
 		}
 
