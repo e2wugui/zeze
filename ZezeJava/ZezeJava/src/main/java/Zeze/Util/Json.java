@@ -391,6 +391,7 @@ public final class Json implements Cloneable {
 	static final long STRING_VALUE_OFFSET, STRING_CODE_OFFSET;
 	static final boolean BYTE_STRING;
 	static final int keyHashMultiplier = 0x100_0193; // 1677_7619 can be changed to another prime number
+	public static final int javaVersion;
 	public static final Json instance = new Json();
 
 	private final @NotNull ConcurrentHashMap<Class<?>, ClassMeta<?>> classMetas = new ConcurrentHashMap<>();
@@ -429,6 +430,9 @@ public final class Json implements Cloneable {
 			BYTE_STRING = valueField.getType() == byte[].class;
 			STRING_CODE_OFFSET = BYTE_STRING ?
 					objectFieldOffset(Objects.requireNonNull(getDeclaredField(String.class, "coder"))) : 0;
+			String v = System.getProperty("java.version");
+			int p = v.indexOf('.');
+			javaVersion = Integer.parseInt(p < 0 ? v : v.substring(0, p));
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
 		}

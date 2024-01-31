@@ -755,9 +755,9 @@ public final class JsonWriter {
 		return r;
 	}
 
-//	public static long umulHigh18(long a, long b) { // for JDK18+
-//		return Math.unsignedMultiplyHigh(a, b);
-//	}
+	public static long umulHigh18(long a, long b) { // for JDK18+
+		return Math.unsignedMultiplyHigh(a, b);
+	}
 
 	void grisuRound(final int len, final long delta, long rest, final long tenKappa, final long mpf) {
 		while (Long.compareUnsigned(rest, mpf) < 0 && Long.compareUnsigned(delta - rest, tenKappa) >= 0
@@ -811,7 +811,11 @@ public final class JsonWriter {
 		kk = 348 - (idx << 3); // decimal exponent no need lookup table
 
 		final long cmkf = CACHED_POWERS_F[idx]; // highest bit == 1
-		if (BYTE_STRING) { // for JDK9+
+		if (javaVersion >= 18) { // for JDK18+
+			f = umulHigh18(f, cmkf);
+			pf = umulHigh18(pf, cmkf);
+			mf = umulHigh18(mf, cmkf);
+		} else if (javaVersion >= 9) { // for JDK9+
 			f = umulHigh9(f, cmkf);
 			pf = umulHigh9(pf, cmkf);
 			mf = umulHigh9(mf, cmkf);

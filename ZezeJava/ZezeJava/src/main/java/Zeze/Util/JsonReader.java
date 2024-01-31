@@ -23,7 +23,7 @@ JSON5 additional features:
  YES : Numbers may be IEEE 754 "Infinity", "-Infinity", and "NaN".
  YES : Numbers may begin with an explicit plus sign.
  YES : Single and multi-line comments are allowed.
-  NO : Additional white space characters are allowed: \t,\n,\v(\x0b),\f(\x0c),\r, (\x20),\xa0,\u2028,\u2029,\uFEFF
+PART : Additional white space characters are allowed: \t,\n,\v(\x0b),\f(\x0c),\r, (\x20),\xa0,\u2028,\u2029,\uFEFF
 */
 public final class JsonReader {
 	private static final @NotNull Double NEGATIVE_INFINITY = Double.NEGATIVE_INFINITY;
