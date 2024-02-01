@@ -677,11 +677,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	public static class DelayLogout implements TimerHandle {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
+			logout((BDelayLogoutCustom)context.customData);
+		}
+
+		public static void logout(BDelayLogoutCustom custom) throws Exception {
 			if (null != defaultInstance) {
 				// 这里虽然调用instanceDefaultOnline，但里面执行会根据context里面OnlineSetName访问的不同的Online数据
 				// 也许这里改成 getOnlineSet(name).tryLogout，tryLogout 就直接访问自身数据比较好。
 				// 能工作，先这样了。
-				var custom = (BDelayLogoutCustom)context.customData;
 				var onlineSet = defaultInstance.getOnline(custom.getOnlineSetName());
 				if (onlineSet != null) {
 					var ret = onlineSet.tryLogout(custom);
@@ -697,6 +700,41 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		@Override
 		public void onTimerCancel() throws Exception {
 		}
+	}
+
+	public long sendError(@NotNull String account, long roleId,
+						  @NotNull String linkName, long linkSid) throws Exception {
+		var online = getOrAddOnline(roleId);
+
+		var local = _tlocal.get(roleId);
+		if (local != null) {
+			// 本机数据已经过时，马上删除。
+			if (local.getLoginVersion() != online.getLoginVersion()) {
+				var ret = removeLocalAndTrigger(roleId);
+				if (ret != 0) {
+					logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={}, removeLocalAndTrigger={}",
+							multiInstanceName, account, roleId, linkName, linkSid, ret);
+				}
+			}
+		}
+
+		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
+		var link = online.getLink();
+		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid) {
+			logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={} != linkName={}, linkSid={}",
+					multiInstanceName, account, roleId, linkName, linkSid, link.getLinkName(), link.getLinkSid());
+			return 0;
+		}
+
+		online.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
+		var ret = linkBrokenTrigger(account, roleId);
+		// for shorter use
+		var zeze = providerApp.zeze;
+		var delay = zeze.getConfig().getOnlineLogoutDelay();
+		logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}, delay={}",
+				multiInstanceName, account, roleId, linkName, linkSid, ret, delay);
+		DelayLogout.logout(new BDelayLogoutCustom(roleId, online.getLoginVersion(), multiInstanceName));
+		return 0;
 	}
 
 	public long linkBroken(@NotNull String account, long roleId,
@@ -1014,7 +1052,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			var roleId = context.get(linkSid);
 			// 补发的linkBroken没有account上下文。
 			if (roleId != null) {
-				return linkBroken("", roleId, linkName, linkSid);
+				return sendError("", roleId, linkName, linkSid);
 			}
 			return 0;
 		}, "Online.triggerLinkBroken").call());
@@ -1122,7 +1160,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		errorSids.foreach(linkSid -> Task.run(providerApp.zeze.newProcedure(() -> {
 			int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 			// 补发的linkBroken没有account上下文
-			return idx >= 0 ? linkBroken("", group.roleIds.get(idx), group.linkName, linkSid) : 0;
+			return idx >= 0 ? sendError("", group.roleIds.get(idx), group.linkName, linkSid) : 0;
 		}, "Online.triggerLinkBroken2")));
 	}
 
@@ -1201,14 +1239,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (connector == null) {
 			logger.warn("sendDirect: not found connector for linkName={} roleId={}", linkName, roleId);
 			// link miss
-			Task.run(providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, link.getLinkSid()),
+			Task.run(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken0_a"));
 			return false;
 		}
 		if (!connector.isHandshakeDone()) {
 			logger.warn("sendDirect: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
 			// link miss
-			Task.run(providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, link.getLinkSid()),
+			Task.run(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken0_b"));
 			return false;
 		}
@@ -1217,7 +1255,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (linkSocket == null) {
 			logger.warn("sendDirect: closed connector for linkName={} roleId={}", linkName, roleId);
 			// link miss
-			Task.run(providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, link.getLinkSid()),
+			Task.run(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken0_c"));
 			return false;
 		}
@@ -1228,7 +1266,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
 				// 补发的linkBroken没有account上下文
-				providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, linkSid),
+				providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, linkSid),
 						"Online.triggerLinkBroken1").call();
 			}
 			return Procedure.Success;
