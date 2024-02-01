@@ -729,10 +729,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		online.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
 		var ret = linkBrokenTrigger(account, roleId);
 		// for shorter use
-		var zeze = providerApp.zeze;
-		var delay = zeze.getConfig().getOnlineLogoutDelay();
-		logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}, delay={}",
-				multiInstanceName, account, roleId, linkName, linkSid, ret, delay);
+		logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}",
+				multiInstanceName, account, roleId, linkName, linkSid, ret);
 		DelayLogout.logout(new BDelayLogoutCustom(roleId, online.getLoginVersion(), multiInstanceName));
 		return 0;
 	}

@@ -461,8 +461,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	public static class DelayLogout implements TimerHandle {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
+			logout((BDelayLogoutCustom)context.customData);
+		}
+
+		public static void logout(BDelayLogoutCustom custom) throws Exception {
 			if (null != instance) {
-				var ret = instance.tryLogout((BDelayLogoutCustom)context.customData);
+				var ret = instance.tryLogout(custom);
 				if (ret != 0)
 					Online.logger.error("tryLogout fail. {}", ret);
 			}
@@ -471,6 +475,35 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		@Override
 		public void onTimerCancel() throws Exception {
 		}
+	}
+
+	public long sendError(@NotNull String account, @NotNull String clientId,
+						  @NotNull String linkName, long linkSid) throws Exception {
+		// todo 这个版本的处理没有经过考验，需要参考Game.Online。
+
+		var online = getOrAddOnline(account);
+		var loginOnline = online.getLogins().getOrAdd(clientId);
+		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
+		var link = loginOnline.getLink();
+		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid)
+			return 0;
+
+		var local = _tlocal.get(account);
+		if (local != null) {
+			var loginLocal = local.getLogins().get(clientId);
+			if (loginLocal != null) {
+				loginOnline.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
+				if (loginOnline.getLoginVersion() != loginLocal.getLoginVersion()) {
+					var ret = removeLocalAndTrigger(account, clientId); // 本机数据已经过时，马上删除。
+					if (ret != 0)
+						logger.info("sendError removeLocalAndTrigger ret{}", ret);
+				}
+			}
+		}
+
+		// shorter use
+		DelayLogout.logout(new BDelayLogoutCustom(account, clientId, loginOnline.getLoginVersion()));
+		return 0;
 	}
 
 	public long linkBroken(@NotNull String account, @NotNull String clientId,
@@ -696,7 +729,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
 			var ctx = contexts.get(sid);
 			if (ctx != null) {
-				return linkBroken(ctx.account, ctx.clientId, linkName, sid);
+				return sendError(ctx.account, ctx.clientId, linkName, sid);
 			}
 			return 0;
 		}, "Online.triggerLinkBroken").call());
@@ -797,7 +830,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		errorSids.foreach(linkSid -> Task.run(providerApp.zeze.newProcedure(() -> {
 			int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 			var loginKey = group.accounts.get(idx);
-			return idx >= 0 ? linkBroken(loginKey.account, loginKey.clientId, group.linkName, linkSid) : 0;
+			return idx >= 0 ? sendError(loginKey.account, loginKey.clientId, group.linkName, linkSid) : 0;
 		}, "Online.triggerLinkBroken2")));
 	}
 
@@ -886,14 +919,14 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (connector == null) {
 			logger.warn("sendDirect: not found connector for linkName={} account={} clientId={}",
 					linkName, account, clientId);
-			Task.run(providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, link.getLinkSid()),
+			Task.run(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken1"));
 			return false;
 		}
 		if (!connector.isHandshakeDone()) {
 			logger.warn("sendDirect: not isHandshakeDone for linkName={} account={} clientId={}",
 					linkName, account, clientId);
-			Task.run(providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, link.getLinkSid()),
+			Task.run(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken1"));
 			return false;
 		}
@@ -902,7 +935,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (linkSocket == null) {
 			logger.warn("sendDirect: closed connector for linkName={} account={} clientId={}",
 					linkName, account, clientId);
-			Task.run(providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, link.getLinkSid()),
+			Task.run(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken1"));
 			return false;
 		}
@@ -911,7 +944,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return send.Send(linkSocket, rpc -> {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
-				providerApp.zeze.newProcedure(() -> linkBroken(account, clientId, linkName, linkSid),
+				providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, linkSid),
 						"Online.triggerLinkBroken1").call();
 			}
 			return Procedure.Success;
