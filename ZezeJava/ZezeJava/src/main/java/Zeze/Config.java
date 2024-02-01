@@ -611,6 +611,10 @@ public final class Config {
 		if (!attr.isBlank())
 			deadLockBreakerPeriod = Integer.parseInt(attr);
 
+		attr = self.getAttribute("ProcedureLockWatcherMin");
+		if (!attr.isBlank())
+			procedureLockWatcherMin = Integer.parseInt(attr);
+
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {
 			Node node = childNodes.item(i);
