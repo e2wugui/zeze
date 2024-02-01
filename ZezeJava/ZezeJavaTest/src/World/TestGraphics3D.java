@@ -21,7 +21,7 @@ public class TestGraphics3D {
 
 	@Test
 	public void testFromTo() {
-		test(new Vector3(0, 0, 1), new Vector3(0, 1, 2));
+		test(new Vector3(0, 0, 1).normalized(), new Vector3(0, 1, 2).normalized());
 	}
 
 	@Test
