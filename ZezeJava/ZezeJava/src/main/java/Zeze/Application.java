@@ -37,6 +37,7 @@ import Zeze.Transaction.GlobalAgent;
 import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Locks;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.ProcedureLockWatcher;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
@@ -78,6 +79,11 @@ public final class Application {
 	private Future<?> flushWhenReduceTimerTask;
 	private Schemas schemas;
 	private Schemas schemasPrevious; // maybe null
+	private final ProcedureLockWatcher procedureLockWatcher = new ProcedureLockWatcher(this);
+
+	public ProcedureLockWatcher getProcedureLockWatcher() {
+		return procedureLockWatcher;
+	}
 
 	public enum StartState {
 		eStopped,

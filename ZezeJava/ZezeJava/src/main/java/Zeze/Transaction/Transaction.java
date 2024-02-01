@@ -406,6 +406,8 @@ public final class Transaction {
 		}
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		// 可以在最终提交里可以实现每事务checkpoint。
+		procedure.getZeze().getProcedureLockWatcher().doWatch(procedure, accessedRecords);
+
 		var lastSp = savepoints.get(savepoints.size() - 1);
 		RelativeRecordSet.tryUpdateAndCheckpoint(this, procedure, () -> {
 			try {

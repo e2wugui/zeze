@@ -102,6 +102,16 @@ public final class Config {
 	private String hotDistributeDir = "distributes";
 	private int deadLockBreakerPeriod = 60000;
 
+	private int procedureLockWatcherMin = 25;
+
+	public int getProcedureLockWatcherMin() {
+		return procedureLockWatcherMin;
+	}
+
+	public void setProcedureLockWatcherMin(int procedureLockWatcherMin) {
+		this.procedureLockWatcherMin = procedureLockWatcherMin;
+	}
+
 	public String getHotWorkingDir() {
 		return hotWorkingDir;
 	}
