@@ -4,6 +4,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
+import Zeze.Config;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.OutInt;
 import org.apache.logging.log4j.LogManager;
@@ -12,20 +13,16 @@ import org.jetbrains.annotations.NotNull;
 
 public class ProcedureLockWatcher {
 	private static final Logger logger = LogManager.getLogger(ProcedureLockWatcher.class);
-	private final @NotNull Application zeze;
+	private final @NotNull Config config;
 	private final ConcurrentHashMap<String, AtomicInteger> procedureMaxLocks = new ConcurrentHashMap<>();
 
 	public ProcedureLockWatcher(@NotNull Application zeze) {
-		this.zeze = zeze;
-	}
-
-	public @NotNull Application getZeze() {
-		return zeze;
+		config = zeze.getConfig();
 	}
 
 	public void doWatch(@NotNull Procedure p, @NotNull TreeMap<TableKey, RecordAccessed> recordAccessed) {
 		var lockCount = recordAccessed.size();
-		if (lockCount < zeze.getConfig().getProcedureLockWatcherMin())
+		if (lockCount < config.getProcedureLockWatcherMin())
 			return;
 
 		var max = procedureMaxLocks.computeIfAbsent(p.getActionName(), __ -> new AtomicInteger());
@@ -41,7 +38,7 @@ public class ProcedureLockWatcher {
 	}
 
 	private static void log(@NotNull Procedure p, @NotNull TreeMap<TableKey, RecordAccessed> recordAccessed) {
-		// 统计表的锁数量。按名字排序。
+		// 统计表的锁数量。
 		var tableIdCount = new IntHashMap<OutInt>();
 		for (var tableKey : recordAccessed.keySet())
 			tableIdCount.computeIfAbsent(tableKey.getId(), __ -> new OutInt()).value++;
