@@ -7,7 +7,7 @@ import Zeze.World.Graphics.Matrix3x3f;
 import org.junit.Test;
 
 public class TestGraphics3D {
-	public float test(Vector3 from, Vector3 to) {
+	public static float test(Vector3 from, Vector3 to) {
 		var m = new Matrix3x3f();
 		m.setFromToRotation(from, to);
 		var v = m.multiplyVector(from);
