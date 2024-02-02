@@ -756,7 +756,8 @@ public final class JsonWriter {
 	}
 
 	public static long umulHigh18(long a, long b) { // for JDK18+
-		return Math.unsignedMultiplyHigh(a, b);
+		// return Math.unsignedMultiplyHigh(a, b);
+		return umulHigh9(a, b); //TEMP: for JDK11 compatibility
 	}
 
 	void grisuRound(final int len, final long delta, long rest, final long tenKappa, final long mpf) {

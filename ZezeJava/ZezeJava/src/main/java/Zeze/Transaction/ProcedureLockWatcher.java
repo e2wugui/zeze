@@ -4,7 +4,6 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
-import Zeze.Config;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.OutInt;
 import org.apache.logging.log4j.LogManager;
@@ -13,16 +12,16 @@ import org.jetbrains.annotations.NotNull;
 
 public class ProcedureLockWatcher {
 	private static final Logger logger = LogManager.getLogger(ProcedureLockWatcher.class);
-	private final @NotNull Config config;
+	private final int procedureLockWatcherMin;
 	private final ConcurrentHashMap<String, AtomicInteger> procedureMaxLocks = new ConcurrentHashMap<>();
 
 	public ProcedureLockWatcher(@NotNull Application zeze) {
-		config = zeze.getConfig();
+		procedureLockWatcherMin = zeze.getConfig().getProcedureLockWatcherMin();
 	}
 
 	public void doWatch(@NotNull Procedure p, @NotNull TreeMap<TableKey, RecordAccessed> recordAccessed) {
 		var lockCount = recordAccessed.size();
-		if (lockCount < config.getProcedureLockWatcherMin())
+		if (lockCount < procedureLockWatcherMin)
 			return;
 
 		var max = procedureMaxLocks.computeIfAbsent(p.getActionName(), __ -> new AtomicInteger());

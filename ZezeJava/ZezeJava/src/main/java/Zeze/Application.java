@@ -79,7 +79,7 @@ public final class Application {
 	private Future<?> flushWhenReduceTimerTask;
 	private Schemas schemas;
 	private Schemas schemasPrevious; // maybe null
-	private final ProcedureLockWatcher procedureLockWatcher = new ProcedureLockWatcher(this);
+	private final ProcedureLockWatcher procedureLockWatcher;
 
 	public ProcedureLockWatcher getProcedureLockWatcher() {
 		return procedureLockWatcher;
@@ -185,6 +185,7 @@ public final class Application {
 		conf = config != null ? config : Config.load();
 		if (conf.getServerId() > 0x3FFF) // 16383 encoded size = 2 bytes
 			throw new IllegalStateException("serverId too big. > 16383.");
+		procedureLockWatcher = new ProcedureLockWatcher(this);
 
 		// Start Thread Pool
 		Task.tryInitThreadPool(this); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化
