@@ -165,7 +165,7 @@ public class ProviderService extends HandshakeClient {
 		announce.Argument.setServiceIdentity(String.valueOf(getZeze().getConfig().getServerId()));
 		announce.Argument.setProviderDirectIp(providerApp.directIp);
 		announce.Argument.setProviderDirectPort(providerApp.directPort);
-		announce.Argument.setAppVersion(providerApp.zeze.getSchemas().getAppPublishVersion());
+		announce.Argument.setAppVersion(providerApp.zeze.getConfig().getAppVersion());
 		announce.Argument.setDisableChoice(disableChoice);
 
 		announce.Send(so);

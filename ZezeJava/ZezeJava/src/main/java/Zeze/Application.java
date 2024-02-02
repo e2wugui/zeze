@@ -492,6 +492,7 @@ public final class Application {
 		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		if (schemas != null) {
 			schemas.compile();
+			schemas.setAppVersion(conf.getAppVersion());
 			var keyOfSchemas = ByteBuffer.Allocate(32);
 			var serverId = conf.getServerId();
 			keyOfSchemas.WriteString("zeze.Schemas.V3." + serverId);
@@ -508,7 +509,7 @@ public final class Application {
 						schemasPrevious = null;
 						throw new IllegalStateException("Schemas Implement Changed? serverId=" + serverId, ex);
 					}
-					if (schemas.getAppPublishVersion() < schemasPrevious.getAppPublishVersion())
+					if (schemas.getAppVersion() < schemasPrevious.getAppVersion())
 						return; // 当前的发布版本小于先前时，不做任何操作，直接返回。
 
 					schemas.checkCompatible(schemasPrevious, this);

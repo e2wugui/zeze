@@ -26,6 +26,7 @@ import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
+import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -466,8 +467,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			logger.info("AnnounceProviderInfo[{}]: name={}, id={}, ip={}, port={}, ver={}, disableChoice={}",
 					sender.getSessionId(),
 					arg.getServiceNamePrefix(), arg.getServiceIdentity(), arg.getProviderDirectIp(),
-					arg.getProviderDirectPort(), String.format("0x%X", arg.getAppVersion()),
-					arg.isDisableChoice());
+					arg.getProviderDirectPort(), Str.toVersionStr(arg.getAppVersion()), arg.isDisableChoice());
 		}
 
 		var session = (LinkdProviderSession)sender.getUserState();

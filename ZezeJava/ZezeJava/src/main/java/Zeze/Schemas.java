@@ -737,15 +737,14 @@ public class Schemas implements Serializable {
 	public final ConcurrentHashMap<String, Table> tables = new ConcurrentHashMap<>();
 	public final ConcurrentHashMap<String, Bean> beans = new ConcurrentHashMap<>();
 	private transient final ConcurrentHashMap<String, Type> basicTypes = new ConcurrentHashMap<>();
+	private long appVersion;
 
-	private long appPublishVersion;
-
-	public long getAppPublishVersion() {
-		return appPublishVersion;
+	public long getAppVersion() {
+		return appVersion;
 	}
 
-	public void setAppPublishVersion(long version) {
-		appPublishVersion = version;
+	public void setAppVersion(long version) {
+		appVersion = version;
 	}
 
 	public void checkCompatible(@Nullable Schemas other, @NotNull Application app) {
@@ -797,7 +796,7 @@ public class Schemas implements Serializable {
 		}
 		// 新增的appPublishVersion在旧版里面可能没有。
 		if (bb.getWriteIndex() > bb.getReadIndex())
-			appPublishVersion = bb.ReadLong();
+			appVersion = bb.ReadLong();
 	}
 
 	@Override
@@ -808,7 +807,7 @@ public class Schemas implements Serializable {
 		bb.WriteInt(beans.size());
 		for (var bean : beans.values())
 			bean.encode(bb);
-		bb.WriteLong(appPublishVersion);
+		bb.WriteLong(appVersion);
 	}
 
 	public void compile() {

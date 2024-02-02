@@ -123,7 +123,7 @@ public class ProviderDistribute {
 	public static boolean checkAppVersion(long serverAppVersion, long clientAppVersion) {
 		if (clientAppVersion == 0) // 表示按以前的默认行为,不判断版本号
 			return true;
-		return ((serverAppVersion ^ clientAppVersion) & 0xffff_0000_0000_0000L) != 0 && // 主版本必须一致
+		return (serverAppVersion >>> 48) == (clientAppVersion >>> 48) && // 主版本必须一致
 				(serverAppVersion >>> 32) >= (clientAppVersion >>> 32); // 次版本不小于客户端次版本
 	}
 

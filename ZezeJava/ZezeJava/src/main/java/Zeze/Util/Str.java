@@ -178,6 +178,32 @@ public final class Str {
 		return (long)v;
 	}
 
+	public static long parseVersion(@NotNull String version) {
+		long v = 0;
+		int t = 0, s = 48;
+		for (int i = 0, n = version.length(); i < n; i++) {
+			int c = version.charAt(i);
+			if (c >= '0' && c <= '9') {
+				t = t * 10 + c - '0';
+				if (t > 0xffff)
+					throw new NumberFormatException(version);
+			} else if (c == '.') {
+				if (s == 0)
+					break;
+				v += (long)t << s;
+				t = 0;
+				s -= 16;
+			} else if (!Character.isSpaceChar(c))
+				throw new NumberFormatException(version);
+		}
+		return v + ((long)t << s);
+	}
+
+	public static @NotNull String toVersionStr(long version) {
+		return String.format("%d.%d.%d.%d",
+				version >>> 48, (version >> 32) & 0xffff, (version >> 16) & 0xffff, version & 0xffff);
+	}
+
 	public static @NotNull String format(@NotNull String str, @NotNull Map<String, Object> params) {
 		var formatSb = new StringBuilder();
 		var paramsList = new ArrayList<>();

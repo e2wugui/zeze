@@ -15,6 +15,7 @@ import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DatabaseSqlServer;
 import Zeze.Transaction.DatabaseTikv;
+import Zeze.Util.Str;
 import Zeze.Util.Task;
 import com.amazonaws.regions.Regions;
 import org.apache.logging.log4j.Level;
@@ -103,6 +104,7 @@ public final class Config {
 	private int deadLockBreakerPeriod = 60000;
 
 	private int procedureLockWatcherMin = 25;
+	private long appVersion;
 
 	public int getProcedureLockWatcherMin() {
 		return procedureLockWatcherMin;
@@ -349,6 +351,14 @@ public final class Config {
 
 	public void setFastRedoWhenConflict(boolean value) {
 		fastRedoWhenConflict = value;
+	}
+
+	public long getAppVersion() {
+		return appVersion;
+	}
+
+	public void setAppVersion(long version) {
+		appVersion = version;
 	}
 
 	public @NotNull ConcurrentHashMap<String, Element> getCustomizes() {
@@ -614,6 +624,10 @@ public final class Config {
 		attr = self.getAttribute("ProcedureLockWatcherMin");
 		if (!attr.isBlank())
 			procedureLockWatcherMin = Integer.parseInt(attr);
+
+		attr = self.getAttribute("AppVersion");
+		if (!attr.isBlank())
+			appVersion = Str.parseVersion(attr);
 
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {
