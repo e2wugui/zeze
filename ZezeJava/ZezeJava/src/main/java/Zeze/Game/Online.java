@@ -731,7 +731,17 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// for shorter use
 		logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}",
 				multiInstanceName, account, roleId, linkName, linkSid, ret);
-		DelayLogout.logout(new BDelayLogoutCustom(roleId, online.getLoginVersion(), multiInstanceName));
+
+		// see tryLogout
+		// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
+		if (online.getLink().getState() != eOffline && assignLogoutVersion(online)) {
+			var ret2 = logoutTrigger(roleId, LogoutReason.LOGOUT);
+			logger.info("sendError: roleId={}, state={}, logoutTrigger={}",
+					roleId, online.getLink().getState(), ret2);
+		} else {
+			logger.info("sendError: roleId={}, state={}, version.login/logoutVersion={}",
+					roleId, online.getLink().getState(), online.getLoginVersion());
+		}
 		return 0;
 	}
 
