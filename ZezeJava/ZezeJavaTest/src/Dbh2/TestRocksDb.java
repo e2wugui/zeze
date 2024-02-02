@@ -9,7 +9,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.BitConverter;
 import Zeze.Util.RocksDatabase;
 import org.junit.Test;
-import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.RocksDBException;
 
 public class TestRocksDb {
@@ -18,7 +17,9 @@ public class TestRocksDb {
 	public void testKeyGet() throws IOException, RocksDBException {
 		var path = Path.of("TestRocksDb");
 		LogSequence.deleteDirectory(path.toFile());
-		try (var db = OptimisticTransactionDB.open(RocksDatabase.getCommonOptions(), path.toString())) {
+		try (var rdb = new RocksDatabase(path.toString(), RocksDatabase.DbType.eOptimisticTransactionDb)) {
+			var db = rdb.getOptimisticTransactionDb();
+			assert db != null;
 			var key = "key".getBytes(StandardCharsets.UTF_8);
 			var value = "value".getBytes(StandardCharsets.UTF_8);
 			byte[] key1;

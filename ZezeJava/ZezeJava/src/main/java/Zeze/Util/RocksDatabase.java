@@ -243,6 +243,10 @@ public class RocksDatabase implements Closeable {
 		return rocksDb;
 	}
 
+	public @Nullable OptimisticTransactionDB getOptimisticTransactionDb() {
+		return optimisticTransactionDb;
+	}
+
 	public @NotNull Map<String, Table> getTableMap() {
 		var view = tableMapView;
 		if (view == null)
