@@ -429,7 +429,7 @@ namespace Zeze.Gen.Types
 				}
 
             }
-			return dynamicCount <= 1;
+			return dynamicCount <= n;
         }
 
         public string MappingClassName(List<Types.Bean> inherits)
