@@ -21,6 +21,7 @@ public class LinkdUserSession {
 	protected final ReentrantReadWriteLock bindsLock = new ReentrantReadWriteLock();
 	protected IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
 	protected long sessionId; // Linkd.SessionId
+	protected long clientAppVersion;
 	protected long keepAliveTime = GlobalTimer.getCurrentMillis();
 	protected long lastReportUnbindDynamicModuleTime;
 	protected volatile boolean authed;
@@ -45,6 +46,14 @@ public class LinkdUserSession {
 
 	public void setAccount(String value) {
 		account = value;
+	}
+
+	public long getClientAppVersion() {
+		return clientAppVersion;
+	}
+
+	public void setClientAppVersion(long clientAppVersion) {
+		this.clientAppVersion = clientAppVersion;
 	}
 
 	public boolean trySetAccount(String newAccount) {

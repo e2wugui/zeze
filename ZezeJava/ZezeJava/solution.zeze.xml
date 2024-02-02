@@ -328,13 +328,13 @@
 			<!-- gs to link -->
 			<bean name="BModule">
 				<!-- ChoiceType -->
-				<enum name="ChoiceTypeDefault"     value="0"/> choice by load
-				<enum name="ChoiceTypeHashAccount" value="1"/>
-				<enum name="ChoiceTypeHashRoleId"  value="2"/>
-				<enum name="ChoiceTypeFeedFullOneByOne" value="3"/>
-				<enum name="ChoiceTypeHashSourceAddress" value="4"/>
-				<enum name="ChoiceTypeLoad" value="5"/>
-				<enum name="ChoiceTypeRequest" value="6"/>
+				<enum name="ChoiceTypeDefault"           value="0"/> 默认是ChoiceTypeRequest
+				<enum name="ChoiceTypeHashAccount"       value="1"/> 按账号名的一致性hash选取
+				<enum name="ChoiceTypeHashRoleId"        value="2"/> 按角色ID的一致性hash选取
+				<enum name="ChoiceTypeFeedFullOneByOne"  value="3"/> 使用全局迭代器选取符合条件的(有效,非过载,非超限,匹配版本)
+				<enum name="ChoiceTypeHashSourceAddress" value="4"/> 按来源IP地址端口的一致性hash选取
+				<enum name="ChoiceTypeLoad"              value="5"/> 从符合条件的(有效,非过载,匹配版本)里面以剩余承载量为权重选取
+				<enum name="ChoiceTypeRequest"           value="6"/> 从符合条件的(有效,非过载,匹配版本)里面以最近5秒请求量反比为权重选取
 
 				<variable name="ChoiceType" id="1" type="int"/>
 
@@ -487,7 +487,7 @@
 				<variable name="ServiceIdentity"    id="2" type="string"/>
 				<variable name="ProviderDirectIp"   id="3" type="string"/>
 				<variable name="ProviderDirectPort" id="4" type="int"/>
-				<variable name="AppVersion"         id="5" type="long"/> gs 版本，报告给linkd，让linkd只给最新版本的gs分发请求。
+				<variable name="AppVersion"         id="5" type="long"/> 4段版本号(a.b.c.d),从高到低依次占16位,a位不兼容,b位向后兼容,c和d前后兼容
 				<variable name="DisableChoice"      id="6" type="bool"/>
 			</bean>
 

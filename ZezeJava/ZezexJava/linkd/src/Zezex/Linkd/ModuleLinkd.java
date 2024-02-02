@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 
 public final class ModuleLinkd extends AbstractModule {
 	public static final Logger logger = LogManager.getLogger(ModuleLinkd.class);
+
 	@SuppressWarnings("RedundantThrows")
 	public void Start(@SuppressWarnings("unused") Zezex.App app) throws Exception {
 	}
@@ -29,6 +30,7 @@ public final class ModuleLinkd extends AbstractModule {
 		*/
 		var linkSession = (LinkdUserSession)rpc.getSender().getUserState();
 		linkSession.setAccount(rpc.Argument.getAccount());
+		linkSession.setClientAppVersion(rpc.Argument.getAppVersion());
 		linkSession.setAuthed();
 		rpc.SendResultCode(Auth.Success);
 		logger.info("Auth accout:{} ip:{}", linkSession.getAccount(), rpc.getSender().getRemoteAddress());

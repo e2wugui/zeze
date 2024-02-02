@@ -3,7 +3,6 @@ package Zeze.Arch;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
@@ -48,7 +47,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	// 内部的Provider可以支持完全不同的solution，不过这个仅仅保留给未来扩展用，
 	// 不建议在一个项目里面使用多个Prefix。
 	private String serverServiceNamePrefix = "";
-	private final AtomicLong maxAppVersion = new AtomicLong();
 
 	protected FileOutputStream dumpFile;
 	protected AsyncSocket dumpSocket;
@@ -125,7 +123,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			break; // bind static later
 
 		case BModule.ChoiceTypeFeedFullOneByOne:
-			if (!distribute.choiceFeedFullOneByOne(providers, provider, maxAppVersion.get()))
+			if (!distribute.choiceFeedFullOneByOne(providers, provider, linkSession.clientAppVersion))
 				return false;
 			break; // bind static later
 
@@ -138,14 +136,14 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			break; // bind static later
 
 		case BModule.ChoiceTypeLoad:
-			if (!distribute.choiceLoad(providers, provider, maxAppVersion.get()))
+			if (!distribute.choiceLoad(providers, provider, linkSession.clientAppVersion))
 				return false;
 			break; // bind static later
 
 		case BModule.ChoiceTypeRequest:
 			// fall down
 		default:
-			if (!distribute.choiceRequest(providers, provider, maxAppVersion.get()))
+			if (!distribute.choiceRequest(providers, provider, linkSession.clientAppVersion))
 				return false;
 			break; // bind static later
 		}
@@ -153,9 +151,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		// 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
 		var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
 		ProviderSession ps;
-		if (providerSocket == null || providerSocket.isClosed()
-				|| (ps = (ProviderSession)providerSocket.getUserState()).appVersion != maxAppVersion.get()
-				|| ps.isDisableChoice()) {
+		if (providerSocket == null
+				|| providerSocket.isClosed()
+				|| (ps = (ProviderSession)providerSocket.getUserState()).isDisableChoice()
+				|| !ProviderDistribute.checkAppVersion(ps.appVersion, linkSession.clientAppVersion)) {
 			// 版本不匹配，继续尝试查找。
 			providerSocket = null; // clear first.
 
@@ -172,7 +171,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 					}
 
 					ps = (ProviderSession)providerSocket.getUserState();
-					if (ps.appVersion == maxAppVersion.get() && !ps.isDisableChoice()) {
+					if (!ps.isDisableChoice()
+							&& ProviderDistribute.checkAppVersion(ps.appVersion, linkSession.clientAppVersion)) {
 						provider.value = sessionId;
 						break;
 					}
@@ -466,7 +466,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			logger.info("AnnounceProviderInfo[{}]: name={}, id={}, ip={}, port={}, ver={}, disableChoice={}",
 					sender.getSessionId(),
 					arg.getServiceNamePrefix(), arg.getServiceIdentity(), arg.getProviderDirectIp(),
-					arg.getProviderDirectPort(), arg.getAppVersion(), arg.isDisableChoice());
+					arg.getProviderDirectPort(), String.format("0x%X", arg.getAppVersion()),
+					arg.isDisableChoice());
 		}
 
 		var session = (LinkdProviderSession)sender.getUserState();
@@ -479,12 +480,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		session.appVersion = arg.getAppVersion();
 		session.disableChoice = arg.isDisableChoice();
 		linkdApp.linkdProviderService.providerSessions.put(session.getServerLoadName(), session);
-
-		while (true) {
-			var current = maxAppVersion.get();
-			if (arg.getAppVersion() <= current || maxAppVersion.compareAndSet(current, arg.getAppVersion()))
-				break;
-		}
 
 		return Procedure.Success;
 	}

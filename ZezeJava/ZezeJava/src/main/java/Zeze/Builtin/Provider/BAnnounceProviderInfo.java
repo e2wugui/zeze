@@ -13,7 +13,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     private String _ServiceIdentity;
     private String _ProviderDirectIp;
     private int _ProviderDirectPort;
-    private long _AppVersion; // gs 版本，报告给linkd，让linkd只给最新版本的gs分发请求。
+    private long _AppVersion; // 4段版本号(a.b.c.d),从高到低依次占16位,a位不兼容,b位向后兼容,c和d前后兼容
     private boolean _DisableChoice;
 
     @Override
@@ -477,7 +477,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private String _ServiceIdentity;
     private String _ProviderDirectIp;
     private int _ProviderDirectPort;
-    private long _AppVersion; // gs 版本，报告给linkd，让linkd只给最新版本的gs分发请求。
+    private long _AppVersion; // 4段版本号(a.b.c.d),从高到低依次占16位,a位不兼容,b位向后兼容,c和d前后兼容
     private boolean _DisableChoice;
 
     public String getServiceNamePrefix() {

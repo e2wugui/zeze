@@ -9,13 +9,13 @@ import Zeze.Serialize.IByteBuffer;
 public final class BModule extends Zeze.Transaction.Bean implements BModuleReadOnly {
     public static final long TYPEID = 5883923521926593765L;
 
-    public static final int ChoiceTypeDefault = 0; // choice by load
-    public static final int ChoiceTypeHashAccount = 1;
-    public static final int ChoiceTypeHashRoleId = 2;
-    public static final int ChoiceTypeFeedFullOneByOne = 3;
-    public static final int ChoiceTypeHashSourceAddress = 4;
-    public static final int ChoiceTypeLoad = 5;
-    public static final int ChoiceTypeRequest = 6;
+    public static final int ChoiceTypeDefault = 0; // 默认是ChoiceTypeRequest
+    public static final int ChoiceTypeHashAccount = 1; // 按账号名的一致性hash选取
+    public static final int ChoiceTypeHashRoleId = 2; // 按角色ID的一致性hash选取
+    public static final int ChoiceTypeFeedFullOneByOne = 3; // 使用全局迭代器选取符合条件的(有效,非过载,非超限,匹配版本)
+    public static final int ChoiceTypeHashSourceAddress = 4; // 按来源IP地址端口的一致性hash选取
+    public static final int ChoiceTypeLoad = 5; // 从符合条件的(有效,非过载,匹配版本)里面以剩余承载量为权重选取
+    public static final int ChoiceTypeRequest = 6; // 从符合条件的(有效,非过载,匹配版本)里面以最近5秒请求量反比为权重选取
     public static final int ConfigTypeDefault = 0;
     public static final int ConfigTypeSpecial = 1;
     public static final int ConfigTypeDynamic = 2;
@@ -333,13 +333,13 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 5883923521926593765L;
 
-    public static final int ChoiceTypeDefault = 0; // choice by load
-    public static final int ChoiceTypeHashAccount = 1;
-    public static final int ChoiceTypeHashRoleId = 2;
-    public static final int ChoiceTypeFeedFullOneByOne = 3;
-    public static final int ChoiceTypeHashSourceAddress = 4;
-    public static final int ChoiceTypeLoad = 5;
-    public static final int ChoiceTypeRequest = 6;
+    public static final int ChoiceTypeDefault = 0; // 默认是ChoiceTypeRequest
+    public static final int ChoiceTypeHashAccount = 1; // 按账号名的一致性hash选取
+    public static final int ChoiceTypeHashRoleId = 2; // 按角色ID的一致性hash选取
+    public static final int ChoiceTypeFeedFullOneByOne = 3; // 使用全局迭代器选取符合条件的(有效,非过载,非超限,匹配版本)
+    public static final int ChoiceTypeHashSourceAddress = 4; // 按来源IP地址端口的一致性hash选取
+    public static final int ChoiceTypeLoad = 5; // 从符合条件的(有效,非过载,匹配版本)里面以剩余承载量为权重选取
+    public static final int ChoiceTypeRequest = 6; // 从符合条件的(有效,非过载,匹配版本)里面以最近5秒请求量反比为权重选取
     public static final int ConfigTypeDefault = 0;
     public static final int ConfigTypeSpecial = 1;
     public static final int ConfigTypeDynamic = 2;
