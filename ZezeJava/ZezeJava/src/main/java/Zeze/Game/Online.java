@@ -714,6 +714,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				if (ret != 0) {
 					logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={}, removeLocalAndTrigger={}",
 							multiInstanceName, account, roleId, linkName, linkSid, ret);
+					return ret;
 				}
 			}
 		}
@@ -738,10 +739,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			var ret2 = logoutTrigger(roleId, LogoutReason.LOGOUT);
 			logger.info("sendError: roleId={}, state={}, logoutTrigger={}",
 					roleId, online.getLink().getState(), ret2);
-		} else {
-			logger.info("sendError: roleId={}, state={}, version.login/logoutVersion={}",
-					roleId, online.getLink().getState(), online.getLoginVersion());
+			return ret2;
 		}
+		logger.info("sendError: roleId={}, state={}, version.login/logoutVersion={}",
+				roleId, online.getLink().getState(), online.getLoginVersion());
 		return 0;
 	}
 
