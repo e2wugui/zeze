@@ -388,6 +388,8 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
         if (getFuncName() == null)
             setFuncName("");
         setFuncArgument(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "FuncArgument")));
+        if (getFuncArgument() == null)
+            setFuncArgument(Zeze.Net.Binary.Empty);
         setFlushMode(rs.getInt(_parents_name_ + "FlushMode"));
         setFlushTimeout(rs.getInt(_parents_name_ + "FlushTimeout"));
     }

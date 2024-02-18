@@ -293,6 +293,8 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         if (getFileName() == null)
             setFileName("");
         setMd5(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Md5")));
+        if (getMd5() == null)
+            setMd5(Zeze.Net.Binary.Empty);
     }
 
     @Override

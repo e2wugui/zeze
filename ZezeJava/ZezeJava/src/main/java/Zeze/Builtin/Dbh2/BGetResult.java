@@ -233,6 +233,8 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setNull(rs.getBoolean(_parents_name_ + "Null"));
         setValue(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Value")));
+        if (getValue() == null)
+            setValue(Zeze.Net.Binary.Empty);
     }
 
     @Override

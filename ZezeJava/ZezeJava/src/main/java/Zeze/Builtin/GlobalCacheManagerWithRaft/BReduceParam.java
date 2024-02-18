@@ -221,6 +221,8 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setGlobalKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "GlobalKey")));
+        if (getGlobalKey() == null)
+            setGlobalKey(Zeze.Net.Binary.Empty);
         setState(rs.getInt(_parents_name_ + "State"));
     }
 

@@ -547,6 +547,8 @@ public final class BTaskDescription extends Zeze.Transaction.Bean implements BTa
         setRewardId(rs.getInt(_parents_name_ + "RewardId"));
         setRewardType(rs.getInt(_parents_name_ + "RewardType"));
         setRewardParam(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "RewardParam")));
+        if (getRewardParam() == null)
+            setRewardParam(Zeze.Net.Binary.Empty);
     }
 
     @Override

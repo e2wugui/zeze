@@ -287,6 +287,8 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setProtocolType(rs.getLong(_parents_name_ + "protocolType"));
         setProtocolWholeData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "protocolWholeData")));
+        if (getProtocolWholeData() == null)
+            setProtocolWholeData(Zeze.Net.Binary.Empty);
         setTime(rs.getInt(_parents_name_ + "time"));
     }
 

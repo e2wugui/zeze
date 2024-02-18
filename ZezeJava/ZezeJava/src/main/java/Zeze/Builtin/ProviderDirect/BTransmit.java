@@ -413,6 +413,8 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         Zeze.Serialize.Helper.decodeJsonSet(_Roles, Long.class, rs.getString(_parents_name_ + "Roles"));
         setSender(rs.getLong(_parents_name_ + "Sender"));
         setParameter(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Parameter")));
+        if (getParameter() == null)
+            setParameter(Zeze.Net.Binary.Empty);
         setOnlineSetName(rs.getString(_parents_name_ + "OnlineSetName"));
         if (getOnlineSetName() == null)
             setOnlineSetName("");

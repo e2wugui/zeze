@@ -269,6 +269,8 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
         setRoleId(rs.getLong(_parents_name_ + "RoleId"));
         setValue(rs.getLong(_parents_name_ + "Value"));
         setValueEx(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "ValueEx")));
+        if (getValueEx() == null)
+            setValueEx(Zeze.Net.Binary.Empty);
     }
 
     @Override

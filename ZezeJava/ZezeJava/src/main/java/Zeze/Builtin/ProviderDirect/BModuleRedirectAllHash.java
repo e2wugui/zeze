@@ -252,6 +252,8 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setReturnCode(rs.getLong(_parents_name_ + "ReturnCode"));
         setParams(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Params")));
+        if (getParams() == null)
+            setParams(Zeze.Net.Binary.Empty);
     }
 
     @Override

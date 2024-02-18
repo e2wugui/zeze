@@ -393,7 +393,11 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         if (getTableName() == null)
             setTableName("");
         setKeyFirst(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "KeyFirst")));
+        if (getKeyFirst() == null)
+            setKeyFirst(Zeze.Net.Binary.Empty);
         setKeyLast(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "KeyLast")));
+        if (getKeyLast() == null)
+            setKeyLast(Zeze.Net.Binary.Empty);
         setRaftConfig(rs.getString(_parents_name_ + "RaftConfig"));
         if (getRaftConfig() == null)
             setRaftConfig("");

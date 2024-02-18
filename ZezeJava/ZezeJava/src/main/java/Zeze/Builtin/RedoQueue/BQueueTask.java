@@ -367,6 +367,8 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         setTaskType(rs.getInt(_parents_name_ + "TaskType"));
         setTaskId(rs.getLong(_parents_name_ + "TaskId"));
         setTaskParam(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "TaskParam")));
+        if (getTaskParam() == null)
+            setTaskParam(Zeze.Net.Binary.Empty);
         setPrevTaskId(rs.getLong(_parents_name_ + "PrevTaskId"));
     }
 

@@ -405,6 +405,8 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         if (getActionName() == null)
             setActionName("");
         setParameter(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Parameter")));
+        if (getParameter() == null)
+            setParameter(Zeze.Net.Binary.Empty);
         Zeze.Serialize.Helper.decodeJsonSet(_TargetAccounts, String.class, rs.getString(_parents_name_ + "TargetAccounts"));
         setSenderAccount(rs.getString(_parents_name_ + "SenderAccount"));
         if (getSenderAccount() == null)

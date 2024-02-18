@@ -273,6 +273,8 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         if (getTableName() == null)
             setTableName("");
         setEncodedKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "EncodedKey")));
+        if (getEncodedKey() == null)
+            setEncodedKey(Zeze.Net.Binary.Empty);
         setEnqueueTime(rs.getLong(_parents_name_ + "EnqueueTime"));
     }
 

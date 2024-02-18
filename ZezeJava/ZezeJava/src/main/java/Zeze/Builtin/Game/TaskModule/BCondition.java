@@ -240,6 +240,8 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         if (getClassName() == null)
             setClassName("");
         setParameter(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Parameter")));
+        if (getParameter() == null)
+            setParameter(Zeze.Net.Binary.Empty);
     }
 
     @Override
