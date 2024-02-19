@@ -27,6 +27,9 @@ dependencies {
     // dynamodb
     compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.568'
 
+    // foundationDB
+    compileOnly 'org.foundationdb:fdb-java:7.3.33'
+
     // for rocketmq
     compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.7'
     compileOnly 'javax:javaee-api:8.0.1'

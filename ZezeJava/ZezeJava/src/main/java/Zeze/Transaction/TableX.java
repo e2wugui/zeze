@@ -478,7 +478,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var globalAgent = getZeze().getGlobalAgent();
 		var locks = getZeze().getLocks();
 		var remain = new ArrayList<KV<Lockey, Record1<K, V>>>(cache.getDataMap().size());
-		logger.info("ReduceInvalidAllLocalOnly CacheSize=" + cache.getDataMap().size());
+		logger.info("ReduceInvalidAllLocalOnly Table={} CacheSize={}", getName(), cache.getDataMap().size());
 		for (var e : cache.getDataMap().entrySet()) {
 			var k = e.getKey();
 			//noinspection DataFlowIssue
