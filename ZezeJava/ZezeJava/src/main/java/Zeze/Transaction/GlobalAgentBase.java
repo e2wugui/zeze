@@ -1,6 +1,6 @@
 package Zeze.Transaction;
 
-import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Application;
 import Zeze.Services.AchillesHeelConfig;
@@ -62,28 +62,42 @@ public abstract class GlobalAgentBase {
 			return CheckReleaseResult.NoRelease;
 		}
 
-		return now - r.startTime > timeout ? CheckReleaseResult.Timeout : CheckReleaseResult.Releasing;
+		if (now - r.startTime > timeout) {
+			logger.warn("Global Releaser Tasks={}", r.getTableNames());
+			return CheckReleaseResult.Timeout;
+		}
+		return CheckReleaseResult.Releasing;
 	}
 
 	public static class Releaser {
 		public final int globalIndex;
 		public final long startTime = System.currentTimeMillis();
-		public final ArrayList<Future<Boolean>> tasks = new ArrayList<>();
+		public final ConcurrentHashMap<String, Future<Boolean>> tasks = new ConcurrentHashMap<>();
 		public final Runnable endAction;
 
+		public final String getTableNames() {
+			var sb = new StringBuilder();
+			for (var e : tasks.entrySet()) {
+				sb.append(e.getKey()).append(",");
+			}
+			return sb.toString();
+		}
+
 		public final boolean isCompletedSuccessfully() {
-			try {
-				for (var task : tasks) {
-					if (!task.isDone() || !task.get())
-						return false;
+			for (var task : tasks.entrySet()) {
+				try {
+					if (task.getValue().isDone() && task.getValue().get())
+						tasks.remove(task.getKey());
+				} catch (Exception e) {
+					logger.error("Releaser exception:", e);
 				}
+			}
+			if (tasks.isEmpty()) {
 				if (endAction != null)
 					endAction.run();
 				return true;
-			} catch (Throwable e) { // logger.error
-				logger.error("Releaser exception:", e);
-				return false;
 			}
+			return false;
 		}
 
 		public Releaser(Application zeze, int index, Runnable endAction) {
@@ -92,7 +106,7 @@ public abstract class GlobalAgentBase {
 			for (var database : zeze.getDatabases().values()) {
 				for (var table : database.getTables()) {
 					if (!table.isMemory()) {
-						tasks.add(Task.getCriticalThreadPool().submit(() -> {
+						tasks.put(table.getName(), Task.getCriticalThreadPool().submit(() -> {
 							table.reduceInvalidAllLocalOnly(index);
 							return true;
 						}));
