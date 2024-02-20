@@ -11,8 +11,17 @@ Game.Online Local 表改成持久化+实现一个Clear，在停止和启动的�
 FoundationDB support
 
 ------------------------------------------------------------------------------------------------------------------------------
-2024/3/1 v1.4.2 Global.Releaser; CheckpointMode;
+2024/3/1 v1.4.2 Global.Releaser; CheckpointMode; 3Others Component;
 ------------------------------------------------------------------------------------------------------------------------------
+
+3Others Component 第三方组件库，参见：git@gitee.com:e2wugui/ZeroBpm.git
+	规范一：
+	<Solution name="MySolutionName">          项目自定义解决方案名字
+		<module name="builtion" id="1">  所有第三方组件库的模块必须放在这个builtiin模块里面
+			<module name="" id="2"> 自定义模块...
+	规范二：
+	<component name="CExample" gendir="src/main/java" genrelativedir="zerobpm" platform="zeze+java"> genrelativedir 必须指定，比在提供默认值。
+
 Global.Releaser reduceInvalidAllLocalOnly不在flush，改成全服checkpoint。
 CheckpointMode 多线程及合并流程改成parallelStream.
 
