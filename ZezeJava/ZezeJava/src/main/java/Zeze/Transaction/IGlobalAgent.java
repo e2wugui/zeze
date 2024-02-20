@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.io.Closeable;
+import Zeze.Application;
 import Zeze.Net.Binary;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,4 +31,6 @@ public interface IGlobalAgent extends Closeable {
 	@Nullable AcquireResult acquire(@NotNull Binary gkey, int state, boolean fresh, boolean noWait);
 
 	int getGlobalCacheManagerHashIndex(@NotNull Binary gkey);
+	GlobalAgentBase getAgent(int index);
+	int getAgentCount();
 }

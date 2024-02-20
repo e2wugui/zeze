@@ -53,7 +53,7 @@ public class CheckpointFlush {
 				future.get();
 			var b = new Zeze.Util.Benchmark();
 			App.Instance.Zeze.checkpointRun();
-			var name = "flush " + mode + " threads=" + cfg.getCheckpointModeTableFlushConcurrent();
+			var name = "flush " + mode;
 			b.report(name, count);
 		} finally {
 			//App.Instance.Stop();

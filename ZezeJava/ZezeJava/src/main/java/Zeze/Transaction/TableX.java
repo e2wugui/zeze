@@ -479,38 +479,37 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var locks = getZeze().getLocks();
 		var remain = new ArrayList<KV<Lockey, Record1<K, V>>>(cache.getDataMap().size());
 		logger.info("ReduceInvalidAllLocalOnly Table={} CacheSize={}", getName(), cache.getDataMap().size());
-		for (var e : cache.getDataMap().entrySet()) {
+		cache.getDataMap().entrySet().parallelStream().forEach((e) -> {
 			var k = e.getKey();
-			//noinspection DataFlowIssue
-			if (globalAgent.getGlobalCacheManagerHashIndex(encodeGlobalKey(k)) != GlobalCacheManagerHashIndex)
-				continue;
-
 			var v = e.getValue();
-			var lockey = locks.get(new TableKey(getId(), k));
-			if (!lockey.tryEnterWriteLock(0)) {
-				remain.add(KV.create(lockey, v));
-				continue;
-			}
-			try {
-				if (!v.tryEnterFairLock()) {
+			//noinspection DataFlowIssue
+			if (globalAgent.getGlobalCacheManagerHashIndex(encodeGlobalKey(k)) == GlobalCacheManagerHashIndex) {
+				var lockey = locks.get(new TableKey(getId(), k));
+				if (lockey.tryEnterWriteLock(0)) {
+					try {
+						if (v.tryEnterFairLock()) {
+							try {
+								// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
+								v.setState(StateInvalid);
+								// flushWhenReduce(v); // 改成使用全服checkpoint.
+							} finally {
+								v.exitFairLock();
+							}
+						} else {
+							remain.add(KV.create(lockey, v));
+						}
+					} finally {
+						lockey.exitWriteLock();
+					}
+				} else {
 					remain.add(KV.create(lockey, v));
-					continue;
 				}
-				try {
-					// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
-					v.setState(StateInvalid);
-					flushWhenReduce(v);
-				} finally {
-					v.exitFairLock();
-				}
-			} finally {
-				lockey.exitWriteLock();
 			}
-		}
+		});
 
 		if (!remain.isEmpty()) {
 			logger.info("ReduceInvalidAllLocalOnly Remain=" + remain.size());
-			for (var e : remain) {
+			remain.parallelStream().forEach((e) -> {
 				var k = e.getKey();
 				k.enterWriteLock();
 				try {
@@ -518,14 +517,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					v.enterFairLock();
 					try {
 						v.setState(StateInvalid);
-						flushWhenReduce(v);
+						// flushWhenReduce(v); // 改成使用全服checkpoint.
 					} finally {
 						v.exitFairLock();
 					}
 				} finally {
 					k.exitWriteLock();
 				}
-			}
+			});
 		}
 		/*
 		while (!remain.isEmpty()) {

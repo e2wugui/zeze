@@ -233,6 +233,7 @@ public class AchillesHeelDaemon {
 							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
 								// 本地发现超时，先自杀，不用等进程守护来杀。
 								logger.fatal("ProcessDaemon.AchillesHeelDaemon global release timeout. index={}", r.globalIndex);
+								zeze.checkpointRun();
 								LogManager.shutdown();
 								Runtime.getRuntime().halt(123123);
 							}
@@ -266,6 +267,7 @@ public class AchillesHeelDaemon {
 			} catch (Throwable ex) { // halt
 				// 这个线程不准出错。除了里面应该忽略的。
 				logger.fatal("ProcessDaemon.AchillesHeelDaemon ", ex);
+				zeze.checkpointRun();
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(321321);
 			}
@@ -322,6 +324,7 @@ public class AchillesHeelDaemon {
 						var rr = agent.checkReleaseTimeout(now, config.serverReleaseTimeout);
 						if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
 							logger.fatal("AchillesHeelDaemon global release timeout. index={}", i);
+							zeze.checkpointRun();
 							LogManager.shutdown();
 							Runtime.getRuntime().halt(123123);
 						}
@@ -353,6 +356,7 @@ public class AchillesHeelDaemon {
 			} catch (Throwable ex) { // halt
 				// 这个线程不准出错。
 				logger.fatal("AchillesHeelDaemon", ex);
+				zeze.checkpointRun();
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(321321);
 			}

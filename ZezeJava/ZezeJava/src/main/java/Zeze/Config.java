@@ -237,10 +237,12 @@ public final class Config {
 		checkpointFlushMode = value != null ? value : CheckpointFlushMode.MultiThreadMerge;
 	}
 
+	@Deprecated
 	public int getCheckpointModeTableFlushConcurrent() {
 		return checkpointModeTableFlushConcurrent;
 	}
 
+	@Deprecated
 	public void setCheckpointModeTableFlushConcurrent(int value) {
 		checkpointModeTableFlushConcurrent = value;
 	}

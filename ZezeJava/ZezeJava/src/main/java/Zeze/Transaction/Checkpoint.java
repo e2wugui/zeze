@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -32,7 +30,6 @@ public final class Checkpoint {
 	private volatile boolean isRunning;
 	private ArrayList<Runnable> actionCurrent;
 	private volatile ArrayList<Runnable> actionPending = new ArrayList<>();
-	final ExecutorService flushThreadPool;
 	final ConcurrentHashSet<RelativeRecordSet> relativeRecordSetMap = new ConcurrentHashSet<>();
 
 	public Checkpoint(Application zeze, CheckpointMode mode, int serverId) {
@@ -41,9 +38,6 @@ public final class Checkpoint {
 
 	public Checkpoint(Application zeze, CheckpointMode mode, Iterable<Database> dbs, int serverId) {
 		this.zeze = zeze;
-		var concurrent = this.zeze.getConfig().getCheckpointModeTableFlushConcurrent();
-		flushThreadPool = concurrent > 1 ? Executors.newFixedThreadPool(concurrent) : null;
-
 		this.mode = mode;
 		if (dbs != null)
 			add(dbs);
@@ -176,17 +170,6 @@ public final class Checkpoint {
 		case Table:
 			RelativeRecordSet.flushWhenCheckpoint(this);
 			break;
-		}
-		if (null != flushThreadPool) {
-			flushThreadPool.shutdown();
-			while (true) {
-				try {
-					if (flushThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS))
-						break;
-				} catch (InterruptedException ex) {
-					// skip
-				}
-			}
 		}
 		logger.info("final checkpoint end.");
 	}

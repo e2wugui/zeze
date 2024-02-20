@@ -80,7 +80,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 		int maxNetPing = 3_000;
 		int serverProcessTime = 14_000;
-		int serverReleaseTimeout = 10_000;
+		int serverReleaseTimeout = 60_000;
 
 		@Override
 		public String getName() {

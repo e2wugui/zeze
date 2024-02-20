@@ -19,7 +19,7 @@ public abstract class GlobalAgentBase {
 
 	public GlobalAgentBase(Application zeze) {
 		this.zeze = zeze;
-		config = new AchillesHeelConfig(1500, 10000, 10 * 1000);
+		config = new AchillesHeelConfig(1500, 10000, 60 * 1000);
 	}
 
 	public final AchillesHeelConfig getConfig() {
@@ -56,43 +56,28 @@ public abstract class GlobalAgentBase {
 			return CheckReleaseResult.NoRelease;
 
 		if (r.isCompletedSuccessfully()) {
+			logger.info("Global.Releaser End.");
 			releaser = null;
 			// 每次成功Release，设置一次活动时间，阻止AchillesHeelDaemon马上再次触发Release。
 			setActiveTime(System.currentTimeMillis());
 			return CheckReleaseResult.NoRelease;
 		}
 
-		if (now - r.startTime > timeout) {
-			logger.warn("Global Releaser Tasks={}", r.getTableNames());
+		if (now - r.startTime > timeout)
 			return CheckReleaseResult.Timeout;
-		}
+
 		return CheckReleaseResult.Releasing;
 	}
 
-	public static class Releaser {
+	public static class Releaser extends Thread {
+		public final Application zeze;
 		public final int globalIndex;
 		public final long startTime = System.currentTimeMillis();
-		public final ConcurrentHashMap<String, Future<Boolean>> tasks = new ConcurrentHashMap<>();
 		public final Runnable endAction;
-
-		public final String getTableNames() {
-			var sb = new StringBuilder();
-			for (var e : tasks.entrySet()) {
-				sb.append(e.getKey()).append(",");
-			}
-			return sb.toString();
-		}
+		private volatile boolean done = false;
 
 		public final boolean isCompletedSuccessfully() {
-			for (var task : tasks.entrySet()) {
-				try {
-					if (task.getValue().isDone() && task.getValue().get())
-						tasks.remove(task.getKey());
-				} catch (Exception e) {
-					logger.error("Releaser exception:", e);
-				}
-			}
-			if (tasks.isEmpty()) {
+			if (done) {
 				if (endAction != null)
 					endAction.run();
 				return true;
@@ -101,18 +86,26 @@ public abstract class GlobalAgentBase {
 		}
 
 		public Releaser(Application zeze, int index, Runnable endAction) {
+			setDaemon(true);
+			logger.info("Global.Releaser Start...");
 			this.endAction = endAction;
-			globalIndex = index;
-			for (var database : zeze.getDatabases().values()) {
-				for (var table : database.getTables()) {
+			this.zeze = zeze;
+			this.globalIndex = index;
+		}
+
+		@Override
+		public void run() {
+			zeze.getDatabases().values().parallelStream().forEach((database) -> {
+				database.getTables().parallelStream().forEach((table) -> {
 					if (!table.isMemory()) {
-						tasks.put(table.getName(), Task.getCriticalThreadPool().submit(() -> {
-							table.reduceInvalidAllLocalOnly(index);
-							return true;
-						}));
+						table.reduceInvalidAllLocalOnly(globalIndex);
 					}
-				}
-			}
+				});
+			});
+			logger.warn("Global.Releaser Checkpoint Start ...");
+			zeze.checkpointRun();
+			logger.warn("Global.Releaser Checkpoint End .");
+			done = true;
 		}
 	}
 
@@ -123,6 +116,7 @@ public abstract class GlobalAgentBase {
 	public void startRelease(Application zeze, Runnable endAction) {
 		synchronized (this) {
 			releaser = new Releaser(zeze, globalCacheManagerHashIndex, endAction);
+			releaser.start();
 		}
 		cancelPending();
 	}

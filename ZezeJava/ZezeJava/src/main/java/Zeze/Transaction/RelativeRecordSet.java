@@ -10,6 +10,7 @@ import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import com.amazonaws.event.DeliveryMode;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -407,18 +408,6 @@ public final class RelativeRecordSet extends ReentrantLock {
 			return sortedRrs.size();
 		}
 
-		private boolean done = false;
-
-		private synchronized void waitDone() {
-			while (!done) {
-				try {
-					this.wait();
-				} catch (InterruptedException e) {
-					Task.forceThrow(e);
-				}
-			}
-		}
-
 		private void flush() {
 			var timeBegin = System.nanoTime();
 			var n = sortedRrs.size();
@@ -461,10 +450,6 @@ public final class RelativeRecordSet extends ReentrantLock {
 			} finally {
 				locks.forEach(RelativeRecordSet::unlock);
 				Checkpoint.logger.debug("flush: {} rrs, {} ns", n, System.nanoTime() - timeBegin);
-				synchronized (this) {
-					done = true;
-					this.notify();
-				}
 			}
 		}
 	}
@@ -486,17 +471,6 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	static void flushWhenCheckpoint(Checkpoint checkpoint) {
 		var mode = checkpoint.zeze.getConfig().getCheckpointFlushMode();
-		// 没有配置线程池，修订一下选项。
-		if (null == checkpoint.flushThreadPool) {
-			switch (mode) {
-			case MultiThread:
-				mode = CheckpointFlushMode.SingleThread;
-				break;
-			case MultiThreadMerge:
-				mode = CheckpointFlushMode.SingleThreadMerge;
-			}
-		}
-
 		// 根据选项执行不同的flush模式。
 		switch (mode) {
 		case SingleThread:
@@ -506,20 +480,9 @@ public final class RelativeRecordSet extends ReentrantLock {
 			break;
 
 		case MultiThread: {
-			var futures = new ArrayList<TaskCompletionSource<Boolean>>(checkpoint.relativeRecordSetMap.size());
-			for (var rrs : checkpoint.relativeRecordSetMap) {
-				var future = new TaskCompletionSource<Boolean>();
-				futures.add(future);
-				checkpoint.flushThreadPool.execute(() -> {
-					try {
-						flush(checkpoint, rrs);
-					} finally {
-						future.setResult(true);
-					}
-				});
-			}
-			for (var future : futures)
-				future.await();
+			checkpoint.relativeRecordSetMap.entrySet().parallelStream().forEach((e) -> {
+				flush(checkpoint, (RelativeRecordSet)e.getValue());
+			});
 		}
 		break;
 
@@ -536,25 +499,33 @@ public final class RelativeRecordSet extends ReentrantLock {
 		break;
 
 		case MultiThreadMerge: {
-			var flushSets = new ArrayList<FlushSet>();
-			var flushSet = new FlushSet(checkpoint);
+			var flushSets = new HashSet<FlushSet>();
 			var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
-			for (var rrs : checkpoint.relativeRecordSetMap) {
-				if (flushSet.add(rrs) >= flushLimit) {
-					flushSets.add(flushSet);
-					checkpoint.flushThreadPool.execute(flushSet::flush);
-					flushSet = new FlushSet(checkpoint);
-				}
+			checkpoint.relativeRecordSetMap.entrySet().parallelStream().forEach((e) -> {
+				var rrs = (RelativeRecordSet)e.getValue();
+				var fs = parallelFlushSet(checkpoint, flushSets);
+				if (fs.add(rrs) >= flushLimit)
+					fs.flush();
+			});
+			for (var fs : flushSets) {
+				if (fs.size() > 0)
+					fs.flush();
 			}
-			if (flushSet.size() > 0) {
-				flushSets.add(flushSet);
-				checkpoint.flushThreadPool.execute(flushSet::flush);
-			}
-			for (var fs : flushSets)
-				fs.waitDone();
 		}
 		break;
 		}
+	}
+
+	private static final ThreadLocal<FlushSet> parallelFlushSet = new ThreadLocal<>();
+	private static FlushSet parallelFlushSet(Checkpoint checkpoint, Set<FlushSet> collector) {
+		var fs = parallelFlushSet.get();
+		if (fs != null) {
+			collector.add(fs);
+			return fs;
+		}
+		parallelFlushSet.set((fs = new FlushSet(checkpoint)));
+		collector.add(fs);
+		return fs;
 	}
 
 	static void flushWhenReduce(Record r, Checkpoint checkpoint) {

@@ -2,7 +2,7 @@
 
 <zeze
 	GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5002"
-	CheckpointPeriod="60000" ServerId="0" CheckpointMode="Table" CheckpointFlushMode="SingleThread" CheckpointModeTableFlushConcurrent="4"
+	CheckpointPeriod="60000" ServerId="0" CheckpointMode="Table" CheckpointFlushMode="MultiThreadMerge" CheckpointModeTableFlushConcurrent="4"
 	ServiceManager=""
 	>
 
@@ -25,7 +25,11 @@
 		/>
 	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="172.21.15.68:2379"/>
 	-->
-	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
+	<DatabaseConf
+		Name=""
+		DatabaseType="MySql"
+		DatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"
+		/>
 
 	<TableConf CacheCapacity="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
 	<TableConf Name="demo_Module1_tflush" CacheCapacity="1000"/>

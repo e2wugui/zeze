@@ -642,12 +642,12 @@ public final class Application {
 				if (!isRaft) {
 					var impl = new GlobalAgent(this, hosts, conf.getGlobalCacheManagerPort());
 					globalAgent = impl;
-					achillesHeelDaemon = new AchillesHeelDaemon(this, impl.agents);
+					achillesHeelDaemon = new AchillesHeelDaemon(this, impl.getAgents());
 					impl.start();
 				} else {
 					var impl = new GlobalCacheManagerWithRaftAgent(this, hosts);
 					globalAgent = impl;
-					achillesHeelDaemon = new AchillesHeelDaemon(this, impl.agents);
+					achillesHeelDaemon = new AchillesHeelDaemon(this, impl.getAgents());
 					impl.start();
 				}
 			}

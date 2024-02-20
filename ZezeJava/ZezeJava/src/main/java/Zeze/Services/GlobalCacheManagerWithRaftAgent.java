@@ -30,7 +30,21 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	// private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	private final Application zz;
-	public final RaftAgent[] agents;
+	private final RaftAgent[] agents;
+
+	public RaftAgent[] getAgents() {
+		return agents;
+	}
+
+	@Override
+	public int getAgentCount() {
+		return agents.length;
+	}
+
+	@Override
+	public GlobalAgentBase getAgent(int index) {
+		return agents[index];
+	}
 
 	public GlobalCacheManagerWithRaftAgent(Application zeze, String[] hosts) throws Exception {
 		zz = zeze;
