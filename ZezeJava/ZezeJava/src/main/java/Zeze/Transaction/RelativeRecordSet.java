@@ -477,8 +477,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 			break;
 
 		case MultiThread: {
-			checkpoint.relativeRecordSetMap.entrySet().parallelStream().forEach(
-					e -> flush(checkpoint, (RelativeRecordSet)e.getValue()));
+			checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> flush(checkpoint, rrs));
 		}
 		break;
 
@@ -497,8 +496,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		case MultiThreadMerge: {
 			var flushSets = new HashSet<FlushSet>();
 			var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
-			checkpoint.relativeRecordSetMap.entrySet().parallelStream().forEach((e) -> {
-				var rrs = (RelativeRecordSet)e.getValue();
+			checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> {
 				var fs = parallelFlushSet(checkpoint, flushSets);
 				if (fs.add(rrs) >= flushLimit)
 					fs.flush();
