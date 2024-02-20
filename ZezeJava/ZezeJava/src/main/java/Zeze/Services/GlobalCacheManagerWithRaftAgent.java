@@ -367,7 +367,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 					} else {
 						setActiveTime(System.currentTimeMillis());
 						loginTimes.getAndIncrement();
-						this.initialize(login.Result.getMaxNetPing(), login.Result.getServerProcessTime(), login.Result.getServerReleaseTimeout());
+						this.initialize(login.Result.getMaxNetPing(),
+								login.Result.getServerProcessTime(), login.Result.getServerReleaseTimeout());
 						future.setResult(true);
 					}
 					return 0;

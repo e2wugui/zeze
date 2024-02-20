@@ -70,7 +70,8 @@ public final class GlobalClient extends Service {
 					logger.debug("GlobalClient Recv Login");
 					agent.setActiveTime(System.currentTimeMillis());
 					agent.getLoginTimes().getAndIncrement();
-					agent.initialize(login.Result.maxNetPing, login.Result.serverProcessTime, login.Result.serverReleaseTimeout);
+					agent.initialize(login.Result.maxNetPing,
+							login.Result.serverProcessTime, login.Result.serverReleaseTimeout);
 					super.OnHandshakeDone(so);
 				}
 				return 0;

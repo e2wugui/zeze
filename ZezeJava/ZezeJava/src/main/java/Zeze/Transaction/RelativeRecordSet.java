@@ -387,11 +387,11 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 	*/
 
-	private static class FlushSet {
+	static class FlushSet {
 		private final Checkpoint checkpoint;
 		private final TreeMap<Long, RelativeRecordSet> sortedRrs = new TreeMap<>();
 
-		private FlushSet(Checkpoint cp) {
+		public FlushSet(Checkpoint cp) {
 			checkpoint = cp;
 		}
 
@@ -494,10 +494,12 @@ public final class RelativeRecordSet extends ReentrantLock {
 		break;
 
 		case MultiThreadMerge: {
+			Checkpoint.logger.info("Global.Releaser rrs={}", checkpoint.relativeRecordSetMap.size());
 			var flushSets = new HashSet<FlushSet>();
+			var parallelFlushSet = new ThreadLocal<RelativeRecordSet.FlushSet>();
 			var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
 			checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> {
-				var fs = parallelFlushSet(checkpoint, flushSets);
+				var fs = parallelFlushSet(parallelFlushSet, checkpoint, flushSets);
 				if (fs.add(rrs) >= flushLimit)
 					fs.flush();
 			});
@@ -510,15 +512,14 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	private static final ThreadLocal<FlushSet> parallelFlushSet = new ThreadLocal<>();
 
-	private static FlushSet parallelFlushSet(Checkpoint checkpoint, Set<FlushSet> collector) {
+	static RelativeRecordSet.FlushSet parallelFlushSet(ThreadLocal<RelativeRecordSet.FlushSet> parallelFlushSet,
+												Checkpoint checkpoint, Set<RelativeRecordSet.FlushSet> collector) {
 		var fs = parallelFlushSet.get();
 		if (fs != null) {
-			collector.add(fs);
 			return fs;
 		}
-		parallelFlushSet.set((fs = new FlushSet(checkpoint)));
+		parallelFlushSet.set((fs = new RelativeRecordSet.FlushSet(checkpoint)));
 		collector.add(fs);
 		return fs;
 	}

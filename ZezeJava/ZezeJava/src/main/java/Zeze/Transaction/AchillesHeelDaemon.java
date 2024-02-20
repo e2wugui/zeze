@@ -323,7 +323,7 @@ public class AchillesHeelDaemon {
 
 						var rr = agent.checkReleaseTimeout(now, config.serverReleaseTimeout);
 						if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
-							logger.fatal("AchillesHeelDaemon global release timeout. index={}", i);
+							logger.fatal("global release timeout. index={}", i);
 							zeze.checkpointRun();
 							LogManager.shutdown();
 							Runtime.getRuntime().halt(123123);

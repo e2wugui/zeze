@@ -21,7 +21,7 @@ public class TempGlobalRelease {
 				for (var i = 0; i < eRecordCountPerTable; ++i) {
 					var key = (long)i;
 					prepareFutures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(() -> {
-						App.Instance.demo_Module1.getTable1().getOrAdd(key);
+						App.Instance.demo_Module1.getTable1().getOrAdd(key).setLong2(1L);
 						return 0;
 					}, "prepare data")));
 				}
