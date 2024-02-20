@@ -15,7 +15,6 @@ import Zeze.Services.GlobalCacheManager.NormalClose;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Services.GlobalCacheManagerWithRaftAgent;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -132,7 +131,6 @@ public final class GlobalAgent implements IGlobalAgent {
 	public GlobalAgentBase getAgent(int index) {
 		return agents[index];
 	}
-
 
 	public GlobalAgent(Application app, String[] hostNameOrAddress, int port) {
 		zeze = app;

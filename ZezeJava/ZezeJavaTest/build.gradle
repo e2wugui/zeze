@@ -19,13 +19,13 @@ dependencies {
     implementation 'com.mysql:mysql-connector-j:8.3.0'
 
     // for websocket
-    implementation 'org.java-websocket:Java-WebSocket:1.5.5'
+    implementation 'org.java-websocket:Java-WebSocket:1.5.6'
 
     // for log4j2
     implementation 'com.lmax:disruptor:3.4.4'
 
     // for rocketMQ
-    implementation('org.apache.rocketmq:rocketmq-client:4.9.7') {
+    implementation('org.apache.rocketmq:rocketmq-client:4.9.8') {
         exclude group: 'io.netty', module: 'netty-all'
     }
     implementation 'javax:javaee-api:8.0.1'

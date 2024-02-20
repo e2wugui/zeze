@@ -8,9 +8,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Util.Task;
-import Zeze.Util.TaskCompletionSource;
-import com.amazonaws.event.DeliveryMode;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -480,9 +477,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 			break;
 
 		case MultiThread: {
-			checkpoint.relativeRecordSetMap.entrySet().parallelStream().forEach((e) -> {
-				flush(checkpoint, (RelativeRecordSet)e.getValue());
-			});
+			checkpoint.relativeRecordSetMap.entrySet().parallelStream().forEach(
+					e -> flush(checkpoint, (RelativeRecordSet)e.getValue()));
 		}
 		break;
 
@@ -517,6 +513,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	private static final ThreadLocal<FlushSet> parallelFlushSet = new ThreadLocal<>();
+
 	private static FlushSet parallelFlushSet(Checkpoint checkpoint, Set<FlushSet> collector) {
 		var fs = parallelFlushSet.get();
 		if (fs != null) {

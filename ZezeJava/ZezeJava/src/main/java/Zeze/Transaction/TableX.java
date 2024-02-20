@@ -508,7 +508,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		});
 
 		if (!remain.isEmpty()) {
-			logger.info("ReduceInvalidAllLocalOnly Remain=" + remain.size());
+			logger.info("ReduceInvalidAllLocalOnly Table={} Remain={}", getName(), remain.size());
 			remain.parallelStream().forEach((e) -> {
 				var k = e.getKey();
 				k.enterWriteLock();
@@ -528,7 +528,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 		/*
 		while (!remain.isEmpty()) {
-			logger.info("ReduceInvalidAllLocalOnly Remain=" + remain.size());
+			logger.info("ReduceInvalidAllLocalOnly Table={} Remain={}", getName(), remain.size());
 			var remain2 = new ArrayList<KV<Lockey, Record1<K, V>>>(remain.size());
 			for (var e : remain) {
 				var k = e.getKey();

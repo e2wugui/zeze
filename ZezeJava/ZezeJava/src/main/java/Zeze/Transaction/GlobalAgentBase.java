@@ -1,10 +1,7 @@
 package Zeze.Transaction;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 import Zeze.Application;
 import Zeze.Services.AchillesHeelConfig;
-import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -86,6 +83,7 @@ public abstract class GlobalAgentBase {
 		}
 
 		public Releaser(Application zeze, int index, Runnable endAction) {
+			super("Global.Releaser");
 			setDaemon(true);
 			logger.info("Global.Releaser Start...");
 			this.endAction = endAction;
@@ -95,13 +93,12 @@ public abstract class GlobalAgentBase {
 
 		@Override
 		public void run() {
-			zeze.getDatabases().values().parallelStream().forEach((database) -> {
-				database.getTables().parallelStream().forEach((table) -> {
-					if (!table.isMemory()) {
-						table.reduceInvalidAllLocalOnly(globalIndex);
-					}
-				});
-			});
+			zeze.getDatabases().values().parallelStream().forEach(database ->
+					database.getTables().parallelStream().forEach(table -> {
+						if (!table.isMemory()) {
+							table.reduceInvalidAllLocalOnly(globalIndex);
+						}
+					}));
 			logger.warn("Global.Releaser Checkpoint Start ...");
 			zeze.checkpointRun();
 			logger.warn("Global.Releaser Checkpoint End .");

@@ -11,7 +11,7 @@ dependencies {
     // for netty
     implementation 'io.netty:netty-codec-http:4.1.105.Final'
     implementation 'io.netty:netty-transport-native-epoll:4.1.105.Final:linux-x86_64'
-    implementation 'org.slf4j:slf4j-api:2.0.11'
+    implementation 'org.slf4j:slf4j-api:2.0.12'
     implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.22.1'
 
     // optional dependencies
@@ -31,7 +31,7 @@ dependencies {
     compileOnly 'org.foundationdb:fdb-java:7.3.33'
 
     // for rocketmq
-    compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.7'
+    compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.8'
     compileOnly 'javax:javaee-api:8.0.1'
 
     // for task component
