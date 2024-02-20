@@ -6,5 +6,4 @@ public interface BAppendFileResultReadOnly {
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
     BAppendFileResult copy();
-
 }

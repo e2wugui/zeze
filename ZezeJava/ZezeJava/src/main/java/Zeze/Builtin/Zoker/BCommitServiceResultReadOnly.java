@@ -6,5 +6,4 @@ public interface BCommitServiceResultReadOnly {
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
     BCommitServiceResult copy();
-
 }
