@@ -38,7 +38,7 @@
 		<Logger name="io.netty" level="INFO" />
 		<Logger name="com.alibaba.druid.pool" level="INFO" />
 
-		<Root level="${sys:loglevel:-INFO}">
+		<Root level="${sys:loglevel:-DEBUG}">
 			<AppenderRef ref="${sys:logconsole:-Console}" />
 			<AppenderRef ref="AllLog" />
 			<AppenderRef ref="ErrorLog" />

@@ -446,7 +446,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 					DatabaseRocksDb.verifyAction.run();
 			} finally {
 				locks.forEach(RelativeRecordSet::unlock);
-				Checkpoint.logger.debug("flush: {} rrs, {} ns", n, System.nanoTime() - timeBegin);
+				Checkpoint.logger.trace("flush: {} rrs, {} ns", n, System.nanoTime() - timeBegin);
 			}
 		}
 	}

@@ -7,13 +7,12 @@ Hot alter 测试，需要mysql。
 Dbh2 Query 是不是没有必要，可以省掉，
 因为agent已经实现了永久重试，而查询也是agent实现的功能。重试+反向查询，功能重复了。
 
-Game.Online Local 表改成持久化+实现一个Clear，在停止和启动的时候执行一遍。
 FoundationDB support
 
 ------------------------------------------------------------------------------------------------------------------------------
-2024/3/1 v1.4.2 Global.Releaser; CheckpointMode; 3Others Component;
+2024/3/1 v1.4.2 Global.Releaser; CheckpointMode; 3Others Component; Online Local; 
 ------------------------------------------------------------------------------------------------------------------------------
-
+Game.Online Local 表改成持久化+实现一个Clear，在停止和启动的时候执行一遍。
 3Others Component 第三方组件库，参见：git@gitee.com:e2wugui/ZeroBpm.git
 	规范一：
 	<Solution name="MySolutionName">          项目自定义解决方案名字
