@@ -805,14 +805,14 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		private <K extends Comparable<K>, V extends Bean>
 		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
-			   TableWalkHandle<K, V> callback, String orderBy) {
+			   TableWalkHandle<K, V> callback, String orderBy, boolean asc) {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				var st = new SQLStatement();
-				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, orderBy.isEmpty());
+				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
 				String sql = "SELECT * FROM " + getName() + keyWhere + orderBy + " LIMIT ?";
 				try (var cmd = connection.prepareStatement(sql)) {
 					setParams(cmd, 1, st.params);
@@ -833,14 +833,15 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
-		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, String orderBy) {
+		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
+				  TableWalkKey<K> callback, String orderBy, boolean asc) {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				var st = new SQLStatement();
-				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, orderBy.isEmpty());
+				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
 				String sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName()
 						+ keyWhere + orderBy + " LIMIT ?";
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -864,26 +865,26 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) {
-			return walk(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table));
+			return walk(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table), true);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
 				   TableWalkHandle<K, V> callback) {
-			return walk(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table));
+			return walk(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table), false);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
-			return walkKey(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table));
+			return walkKey(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table), true);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
-			return walkKey(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table));
+			return walkKey(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table), false);
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
@@ -966,14 +967,14 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		private <K extends Comparable<K>, V extends Bean>
 		K walkDatabase(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
-					   TableWalkHandle<K, V> callback, String orderBy) {
+					   TableWalkHandle<K, V> callback, String orderBy, boolean asc) {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				var st = new SQLStatement();
-				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, orderBy.isEmpty());
+				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
 				String sql = "SELECT * FROM " + getName() + keyWhere + orderBy + " LIMIT ?";
 				try (var cmd = connection.prepareStatement(sql)) {
 					setParams(cmd, 1, st.params);
@@ -1000,14 +1001,14 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		private <K extends Comparable<K>, V extends Bean>
 		K walkDatabaseKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
-						  TableWalkKey<K> callback, String orderBy) {
+						  TableWalkKey<K> callback, String orderBy, boolean asc) {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				var st = new SQLStatement();
-				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, orderBy.isEmpty());
+				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
 				String sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName()
 						+ keyWhere + orderBy + " LIMIT ?";
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -1034,28 +1035,28 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public <K extends Comparable<K>, V extends Bean>
 		K walkDatabase(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 					   @NotNull TableWalkHandle<K, V> callback) {
-			return walkDatabase(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table));
+			return walkDatabase(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table), true);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		K walkDatabaseDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 						   @NotNull TableWalkHandle<K, V> callback) {
-			return walkDatabase(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table));
+			return walkDatabase(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table), false);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		K walkDatabaseKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 						  @NotNull TableWalkKey<K> callback) {
-			return walkDatabaseKey(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table));
+			return walkDatabaseKey(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table), true);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		K walkDatabaseKeyDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 							  @NotNull TableWalkKey<K> callback) {
-			return walkDatabaseKey(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table));
+			return walkDatabaseKey(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table), false);
 		}
 
 		@Override
