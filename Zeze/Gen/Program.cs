@@ -492,6 +492,9 @@ namespace Zeze.Gen
 
         private static void DeleteOldFileInGenDir(string dir)
         {
+            if (!Directory.Exists(dir))
+                return;
+
             foreach (var subDir in Directory.GetDirectories(dir))
             {
                 DeleteOldFileInGenDir(subDir);
