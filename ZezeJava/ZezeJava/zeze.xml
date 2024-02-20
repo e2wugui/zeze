@@ -23,5 +23,5 @@
 		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
 	</ServiceConf>
 
-	<CustomizeConf Name="GlobalCacheManager" InitialCapacity="10000000" MaxNetPing="1500" ServerProcessTime="30000" ServerReleaseTimeout="10000"/>
+	<CustomizeConf Name="GlobalCacheManager" InitialCapacity="10000000" MaxNetPing="1500" ServerProcessTime="30000" ServerReleaseTimeout="600000"/>
 </zeze>
