@@ -15,7 +15,8 @@ namespace Zeze.Gen.java
             sw.WriteLine($"{prefix}void encode(Zeze.Serialize.ByteBuffer _o_);");
             sw.WriteLine($"{prefix}boolean negativeCheck();");
             sw.WriteLine($"{prefix}{bean.Name} copy();");
-            sw.WriteLine();
+            if (bean.Variables.Count > 0)
+                sw.WriteLine();
             foreach (Variable var in bean.Variables)
             {
                 if (bean.Version.Equals(var.Name))

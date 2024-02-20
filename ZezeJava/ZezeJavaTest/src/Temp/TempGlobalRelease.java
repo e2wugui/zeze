@@ -3,6 +3,7 @@ package Temp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Future;
+import Zeze.Services.Daemon;
 import Zeze.Transaction.GlobalAgentBase;
 import Zeze.Util.Benchmark;
 import Zeze.Util.Task;
@@ -12,6 +13,7 @@ public class TempGlobalRelease {
 	public final static int eRecordCountPerTable = 10_0000;
 
 	public static void main(String [] args) throws Exception {
+		System.setProperty(Daemon.propertyNameClearInUse, "true");
 		App.Instance.Start();
 		try {
 			{
@@ -42,6 +44,7 @@ public class TempGlobalRelease {
 					}
 					if (allDone(releaseResults))
 						break;
+					//noinspection BusyWait
 					Thread.sleep(100);
 				}
 			}
@@ -51,8 +54,8 @@ public class TempGlobalRelease {
 	}
 
 	public static boolean allDone(GlobalAgentBase.CheckReleaseResult[] releaseResults) {
-		for (var i = 0; i < releaseResults.length; ++i)
-			if (releaseResults[i] == GlobalAgentBase.CheckReleaseResult.Releasing)
+		for (var releaseResult : releaseResults)
+			if (releaseResult == GlobalAgentBase.CheckReleaseResult.Releasing)
 				return false;
 		return true;
 	}

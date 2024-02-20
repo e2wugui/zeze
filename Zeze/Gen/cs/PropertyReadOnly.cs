@@ -15,7 +15,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"{prefix}public void Encode(ByteBuffer _os_);");
             sw.WriteLine($"{prefix}public bool NegativeCheck();");
             sw.WriteLine($"{prefix}public {bean.Name} Copy();");
-            sw.WriteLine();
+            if (bean.Variables.Count > 0)
+                sw.WriteLine();
             foreach (Variable var in bean.Variables)
             {
                 if (bean.Version.Equals(var.Name))

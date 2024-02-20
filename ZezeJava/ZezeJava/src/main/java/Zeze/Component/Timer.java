@@ -42,7 +42,6 @@ import org.apache.logging.log4j.core.util.CronExpression;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-
 public class Timer extends AbstractTimer implements HotBeanFactory {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
@@ -95,6 +94,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	}
 
 	private boolean started = false;
+
 	/**
 	 * 非事务环境调用。用于启动Timer服务。
 	 */
@@ -831,7 +831,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 									   long delay, long period, long times, long endTime,
 									   String oneByOneKey) {
 		if (delay < 0)
-			throw new IllegalArgumentException("delay(" + delay +") < 0");
+			throw new IllegalArgumentException("delay(" + delay + ") < 0");
 		var now = System.currentTimeMillis();
 		//timer.setDelay(delay);
 		simpleTimer.setPeriod(period);
@@ -1173,7 +1173,14 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		var node = new OutLong(first);
 		do {
 			// skip error. 使用node返回的值决定是否继续循环。
-			Task.call(zeze.newProcedure(() -> loadTimer(node, last, serverId), "Timer.loadTimer"));
+			var r = Task.call(zeze.newProcedure(() -> loadTimer(node, last, serverId), "Timer.loadTimer"));
+			if (r != Procedure.Success) {
+				try {
+					//noinspection BusyWait
+					Thread.sleep(1000); // 避免因FastErrorPeriod导致过于频繁的事务失败
+				} catch (InterruptedException ignored) {
+				}
+			}
 		} while (node.value != last);
 		return 0L;
 	}
