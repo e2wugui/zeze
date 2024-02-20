@@ -459,13 +459,16 @@ namespace Zeze.Gen
             return sw;
         }
 
-        public static void AddGenDir(string dir)
+        public static void AddGenDir(string dir, bool createDir = true)
         {
             var full = Path.GetFullPath(dir);
             // gen 目录也是源码，都会加入Project，即使完全没有输出，也应该存在。
-            FileSystem.CreateDirectory(full);
-            if (false == FileSystem.IsDirectory(full))
-                throw new Exception($"{dir} Is Not A Directory.");
+            if (createDir)
+            {
+                FileSystem.CreateDirectory(full);
+                if (false == FileSystem.IsDirectory(full))
+                    throw new Exception($"{dir} Is Not A Directory.");
+            }
             GenDirs.Add(full);
         }
 
