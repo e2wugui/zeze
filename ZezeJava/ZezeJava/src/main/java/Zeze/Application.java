@@ -246,11 +246,11 @@ public final class Application {
 		return serviceManager;
 	}
 
-	public @Nullable IGlobalAgent getGlobalAgent() {
+	public IGlobalAgent getGlobalAgent() {
 		return globalAgent;
 	}
 
-	public @Nullable Checkpoint getCheckpoint() {
+	public Checkpoint getCheckpoint() {
 		return checkpoint;
 	}
 

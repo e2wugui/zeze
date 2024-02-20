@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Collections;
 
 import java.util.ArrayList;
+import java.util.List;
 import Game.Equip.BEquipExtra;
 import Zeze.Collections.CsQueue;
 import demo.App;
@@ -9,13 +10,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestCsQueue {
-
 	@Before
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
-	private static java.util.List<Integer> walk(CsQueue<BEquipExtra> csq) {
+	private static List<Integer> walk(CsQueue<BEquipExtra> csq) {
 		//System.out.println(csq.getInnerName());
 		var out = new ArrayList<Integer>();
 		csq.walk((k, v) -> {
@@ -27,12 +27,12 @@ public class TestCsQueue {
 	}
 
 	private static void clear(CsQueue<BEquipExtra> csq) {
-		App.getInstance().Zeze.newProcedure(() -> {
+		Assert.assertEquals(0, App.getInstance().Zeze.newProcedure(() -> {
 			while (csq.poll() != null) {
 				// nothing.
 			}
 			return 0;
-		}, "csq0.clear");
+		}, "csq0.clear").call());
 	}
 
 	@Test
@@ -49,7 +49,7 @@ public class TestCsQueue {
 			return 0;
 		}, "csq0.add").call();
 
-		Assert.assertEquals(java.util.List.of(0, 1, 2), walk(csq0));
+		Assert.assertEquals(List.of(0, 1, 2), walk(csq0));
 
 		var csq1 = new CsQueue<>(qm, "TestCsQueue", 1, BEquipExtra.class, 100);
 		clear(csq1);
@@ -59,11 +59,10 @@ public class TestCsQueue {
 			csq1.add(new BEquipExtra(5, 5, 5));
 			return 0;
 		}, "csq1.add").call();
-		Assert.assertEquals(java.util.List.of(3, 4, 5), walk(csq1));
+		Assert.assertEquals(List.of(3, 4, 5), walk(csq1));
 
 		csq0.splice(1, csq0.getLoadSerialNo());
-		Assert.assertEquals(java.util.List.of(), walk(csq1));
-		Assert.assertEquals(java.util.List.of(3, 4, 5, 0, 1, 2), walk(csq0));
+		Assert.assertEquals(List.of(), walk(csq1));
+		Assert.assertEquals(List.of(3, 4, 5, 0, 1, 2), walk(csq0));
 	}
-
 }
