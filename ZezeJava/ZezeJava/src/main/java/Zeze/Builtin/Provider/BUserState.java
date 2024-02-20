@@ -290,8 +290,6 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         if (getContext() == null)
             setContext("");
         setContextx(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "contextx")));
-        if (getContextx() == null)
-            setContextx(Zeze.Net.Binary.Empty);
         setOnlineSetName(rs.getString(_parents_name_ + "onlineSetName"));
         if (getOnlineSetName() == null)
             setOnlineSetName("");

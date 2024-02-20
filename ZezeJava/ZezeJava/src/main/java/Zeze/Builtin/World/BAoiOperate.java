@@ -335,8 +335,6 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setOperateId(rs.getInt(_parents_name_ + "OperateId"));
         setParam(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Param")));
-        if (getParam() == null)
-            setParam(Zeze.Net.Binary.Empty);
         Zeze.Serialize.Helper.decodeJsonMap(this, "Children", _Children, rs.getString(_parents_name_ + "Children"));
     }
 

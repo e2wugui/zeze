@@ -474,8 +474,6 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         if (getCustomClass() == null)
             setCustomClass("");
         setCustomBean(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "CustomBean")));
-        if (getCustomBean() == null)
-            setCustomBean(Zeze.Net.Binary.Empty);
         setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
         setHot(rs.getBoolean(_parents_name_ + "Hot"));
     }

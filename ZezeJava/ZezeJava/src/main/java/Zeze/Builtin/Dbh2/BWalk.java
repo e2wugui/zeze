@@ -284,8 +284,6 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setExclusiveStartKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "ExclusiveStartKey")));
-        if (getExclusiveStartKey() == null)
-            setExclusiveStartKey(Zeze.Net.Binary.Empty);
         setProposeLimit(rs.getInt(_parents_name_ + "ProposeLimit"));
         setDesc(rs.getBoolean(_parents_name_ + "Desc"));
     }

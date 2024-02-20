@@ -34,7 +34,16 @@ namespace Zeze.Gen.java
         {
             string projectBasedir = Project.GenDir;
             string genDir = projectBasedir; // 公共类（Bean，Protocol，Rpc，Table）生成目录。
-            Program.AddGenDir(Path.Combine(genDir, "Zeze", "Builtin"), false);
+            if (Project.Solution.Name.Equals("Zeze"))
+            {
+                Program.AddGenDir(Path.Combine(genDir, "Zeze", "Builtin"));
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(Project.GenRelativeDir))
+                    throw new System.Exception("genrelativedir can not empty for component 3others.");
+                Program.AddGenDir(Path.Combine(genDir, Project.Solution.Name, "builtin"));
+            }
 
             var relativeSrcDir = string.IsNullOrEmpty(Project.GenRelativeDir) ? "Zeze/Component" : Project.GenRelativeDir;
             string srcDir = Path.Combine(projectBasedir, relativeSrcDir); // 生成源代码全部放到同一个目录下。

@@ -237,11 +237,7 @@ public final class BWalkKeyValue extends Zeze.Transaction.Bean implements BWalkK
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Key")));
-        if (getKey() == null)
-            setKey(Zeze.Net.Binary.Empty);
         setValue(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Value")));
-        if (getValue() == null)
-            setValue(Zeze.Net.Binary.Empty);
     }
 
     @Override

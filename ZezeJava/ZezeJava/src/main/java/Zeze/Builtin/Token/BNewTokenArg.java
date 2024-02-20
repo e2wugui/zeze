@@ -239,8 +239,6 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setContext(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "context")));
-        if (getContext() == null)
-            setContext(Zeze.Net.Binary.Empty);
         setTtl(rs.getLong(_parents_name_ + "ttl"));
     }
 

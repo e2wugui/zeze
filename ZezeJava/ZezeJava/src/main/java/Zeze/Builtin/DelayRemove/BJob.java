@@ -234,8 +234,6 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
         if (getJobHandleName() == null)
             setJobHandleName("");
         setJobState(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "JobState")));
-        if (getJobState() == null)
-            setJobState(Zeze.Net.Binary.Empty);
     }
 
     @Override

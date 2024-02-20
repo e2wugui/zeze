@@ -285,8 +285,6 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
         if (getTopic() == null)
             setTopic("");
         setContent(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "content")));
-        if (getContent() == null)
-            setContent(Zeze.Net.Binary.Empty);
         setBroadcast(rs.getBoolean(_parents_name_ + "broadcast"));
     }
 

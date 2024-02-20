@@ -299,8 +299,6 @@ public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocat
         if (getTable() == null)
             setTable("");
         setKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Key")));
-        if (getKey() == null)
-            setKey(Zeze.Net.Binary.Empty);
     }
 
     @Override
