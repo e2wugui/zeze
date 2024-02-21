@@ -10,6 +10,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
 
     private long _LoginVersion;
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Online.BAny> _Datas;
+    private Zeze.Builtin.Game.Online.BLink _Link;
 
     @Override
     public long getLoginVersion() {
@@ -40,23 +41,50 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Datas);
     }
 
+    @Override
+    public Zeze.Builtin.Game.Online.BLink getLink() {
+        if (!isManaged())
+            return _Link;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Link;
+        var log = (Log__Link)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Link;
+    }
+
+    public void setLink(Zeze.Builtin.Game.Online.BLink value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Link = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Link(this, 3, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BLocal() {
         _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.Online.BAny.class);
         _Datas.variableId(2);
+        _Link = new Zeze.Builtin.Game.Online.BLink();
     }
 
     @SuppressWarnings("deprecation")
-    public BLocal(long _LoginVersion_) {
+    public BLocal(long _LoginVersion_, Zeze.Builtin.Game.Online.BLink _Link_) {
         _LoginVersion = _LoginVersion_;
         _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.Online.BAny.class);
         _Datas.variableId(2);
+        if (_Link_ == null)
+            _Link_ = new Zeze.Builtin.Game.Online.BLink();
+        _Link = _Link_;
     }
 
     @Override
     public void reset() {
         setLoginVersion(0);
         _Datas.clear();
+        setLink(new Zeze.Builtin.Game.Online.BLink());
         _unknown_ = null;
     }
 
@@ -65,6 +93,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         _Datas.clear();
         for (var e : other._Datas.entrySet())
             _Datas.put(e.getKey(), e.getValue().copy());
+        setLink(other.getLink());
         _unknown_ = other._unknown_;
     }
 
@@ -97,6 +126,13 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         public void commit() { ((BLocal)getBelong())._LoginVersion = value; }
     }
 
+    private static final class Log__Link extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Game.Online.BLink> {
+        public Log__Link(BLocal bean, int varId, Zeze.Builtin.Game.Online.BLink value) { super(Zeze.Builtin.Game.Online.BLink.class, bean, varId, value); }
+
+        @Override
+        public void commit() { ((BLocal)getBelong())._Link = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -122,7 +158,10 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append('}').append(System.lineSeparator());
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Link=").append(System.lineSeparator());
+        getLink().buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -177,6 +216,16 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        {
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 3, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            getLink().encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -204,6 +253,10 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 3) {
+            _o_.ReadBean(getLink(), _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -222,6 +275,8 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
     public boolean negativeCheck() {
         if (getLoginVersion() < 0)
             return true;
+        if (getLink().negativeCheck())
+            return true;
         return false;
     }
 
@@ -236,6 +291,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
             switch (vlog.getVariableId()) {
                 case 1: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _Datas.followerApply(vlog); break;
+                case 3: _Link = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Game.Online.BLink>)vlog).value; break;
             }
         }
     }
@@ -245,6 +301,9 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
         Zeze.Serialize.Helper.decodeJsonMap(this, "Datas", _Datas, rs.getString(_parents_name_ + "Datas"));
+        parents.add("Link");
+        getLink().decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
     }
 
     @Override
@@ -252,6 +311,9 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
         st.appendString(_parents_name_ + "Datas", Zeze.Serialize.Helper.encodeJson(_Datas));
+        parents.add("Link");
+        getLink().encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
     }
 
     @Override
@@ -259,6 +321,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "LoginVersion", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Datas", "map", "string", "BAny"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Link", "BLink", "", ""));
         return vars;
     }
 }

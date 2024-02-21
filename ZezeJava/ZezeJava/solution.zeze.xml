@@ -728,9 +728,12 @@
 				<bean name="BLocal">
 					<variable id="1" name="LoginVersion" type="long"/>
 					<variable id="2" name="Datas" type="map" key="string" value="BAny"/>
+					<variable id="3" name="Link"  type="BLink"/>
 				</bean>
 
-				<table name="tlocal" key="long" memory="true" value="BLocal"/>
+				<table name="tlocalTempalte" key="long" memory="false" value="BLocal"/>
+				local改成持久表，这是它的模板定义，不实际使用。
+				实际使用TableDynamic按 tlocal{serverId}的名字每服务器使用。
 
 				<table name="tRoleTimers" key="string" value="Zeze.Builtin.Timer.BGameOnlineTimer" memory="true"/>
 				<table name="tRoleOfflineTimers" key="long" value="Zeze.Builtin.Timer.BOfflineTimers"/>

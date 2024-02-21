@@ -6,23 +6,19 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
-public final class tlocal extends TableX<Long, Zeze.Builtin.Game.Online.BLocal>
+public final class tlocalTempalte extends TableX<Long, Zeze.Builtin.Game.Online.BLocal>
         implements TableReadOnly<Long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly> {
-    public tlocal() {
-        super(-1657900798, "Zeze_Builtin_Game_Online_tlocal");
+    public tlocalTempalte() {
+        super(429884625, "Zeze_Builtin_Game_Online_tlocalTempalte");
     }
 
-    public tlocal(String suffix) {
-        super(-1657900798, "Zeze_Builtin_Game_Online_tlocal", suffix);
-    }
-
-    @Override
-    public boolean isMemory() {
-        return true;
+    public tlocalTempalte(String suffix) {
+        super(429884625, "Zeze_Builtin_Game_Online_tlocalTempalte", suffix);
     }
 
     public static final int VAR_LoginVersion = 1;
     public static final int VAR_Datas = 2;
+    public static final int VAR_Link = 3;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {

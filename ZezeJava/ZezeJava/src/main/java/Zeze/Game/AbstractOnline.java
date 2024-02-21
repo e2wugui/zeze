@@ -25,7 +25,7 @@ public abstract class AbstractOnline implements Zeze.IModule {
 
     protected final String multiInstanceName;
 
-    protected final Zeze.Builtin.Game.Online.tlocal _tlocal;
+    protected final Zeze.Builtin.Game.Online.tlocalTempalte _tlocalTempalte;
     protected final Zeze.Builtin.Game.Online.tonline _tonline;
     protected final Zeze.Builtin.Game.Online.tRoleOfflineTimers _tRoleOfflineTimers;
     protected final Zeze.Builtin.Game.Online.tRoleTimers _tRoleTimers;
@@ -33,7 +33,7 @@ public abstract class AbstractOnline implements Zeze.IModule {
     protected AbstractOnline(String name) {
         multiInstanceName = name;
         var suffix = name.isEmpty() ? name : "__" + name;
-        _tlocal = new Zeze.Builtin.Game.Online.tlocal(suffix);
+        _tlocalTempalte = new Zeze.Builtin.Game.Online.tlocalTempalte(suffix);
         _tonline = new Zeze.Builtin.Game.Online.tonline(suffix);
         _tRoleOfflineTimers = new Zeze.Builtin.Game.Online.tRoleOfflineTimers(suffix);
         _tRoleTimers = new Zeze.Builtin.Game.Online.tRoleTimers(suffix);
@@ -83,14 +83,14 @@ public abstract class AbstractOnline implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
+        zeze.addTable(zeze.getConfig().getTableConf(_tlocalTempalte.getName()).getDatabaseName(), _tlocalTempalte);
         zeze.addTable(zeze.getConfig().getTableConf(_tonline.getName()).getDatabaseName(), _tonline);
         zeze.addTable(zeze.getConfig().getTableConf(_tRoleOfflineTimers.getName()).getDatabaseName(), _tRoleOfflineTimers);
         zeze.addTable(zeze.getConfig().getTableConf(_tRoleTimers.getName()).getDatabaseName(), _tRoleTimers);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tlocalTempalte.getName()).getDatabaseName(), _tlocalTempalte);
         zeze.removeTable(zeze.getConfig().getTableConf(_tonline.getName()).getDatabaseName(), _tonline);
         zeze.removeTable(zeze.getConfig().getTableConf(_tRoleOfflineTimers.getName()).getDatabaseName(), _tRoleOfflineTimers);
         zeze.removeTable(zeze.getConfig().getTableConf(_tRoleTimers.getName()).getDatabaseName(), _tRoleTimers);

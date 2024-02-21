@@ -20,6 +20,17 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	private final Factory<V> valueFactory;
 	private final boolean isAutoKey;
 
+	public TableDynamic(Application zeze, String tableName,
+						TableX<K, V> template
+						) {
+		this(zeze, tableName,
+				template::encodeKey,
+				template::decodeKey,
+				template::newValue,
+				template.isAutoKey(),
+				template.getName());
+	}
+
 	/**
 	 * 创建动态表。
 	 * 创建之后就能使用。
