@@ -338,53 +338,56 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private boolean processOffline(Long roleId, @NotNull BLocal local) {
-		try {
-			var online = getOrAddOnline(roleId);
-			var account = online.getAccount();
+		providerApp.zeze.newProcedure(
+				() -> procedureOffline(roleId, local),
+				"procedureOffline").call();
+		return true; // continue walk
+	}
 
-			// 本机数据已经过时，马上删除。
-			if (local.getLoginVersion() != online.getLoginVersion()) {
-				var ret = removeLocalAndTrigger(roleId);
-				if (ret != 0) {
-					logger.info("processOffline({}): account={}, roleId={}, removeLocalAndTrigger={}",
-							multiInstanceName, account, roleId, ret);
-					return true;
-				}
+	private long procedureOffline(Long roleId, @NotNull BLocal local) throws Exception {
+		var online = getOrAddOnline(roleId);
+		var account = online.getAccount();
+
+		// 本机数据已经过时，马上删除。
+		if (local.getLoginVersion() != online.getLoginVersion()) {
+			var ret = removeLocalAndTrigger(roleId);
+			if (ret != 0) {
+				logger.info("processOffline({}): account={}, roleId={}, removeLocalAndTrigger={}",
+						multiInstanceName, account, roleId, ret);
+				return ret;
 			}
-
-			// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
-			var link = online.getLink();
-			// local 里面的Link的State没有意义。
-			var linkName = local.getLink().getLinkName();
-			var linkSid = local.getLink().getLinkSid();
-			if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid) {
-				logger.info("processOffline({}): account={}, roleId={}, linkName={}, linkSid={} != linkName={}, linkSid={}",
-						multiInstanceName, account, roleId, linkName, linkSid, link.getLinkName(), link.getLinkSid());
-				return true;
-			}
-
-			online.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
-			// local 在这个流程里面不需要setLink，如果是这个登录的，那么扇面已经删除（removeLocalAndTrigger），否则不需要修改。
-
-			var ret = linkBrokenTrigger(account, roleId);
-			// for shorter use
-			logger.info("processOffline({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}",
-					multiInstanceName, account, roleId, linkName, linkSid, ret);
-
-			// see tryLogout
-			// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-			if (online.getLink().getState() != eOffline && assignLogoutVersion(online)) {
-				var ret2 = logoutTrigger(roleId, LogoutReason.LOGOUT);
-				logger.info("processOffline: roleId={}, state={}, logoutTrigger={}",
-						roleId, online.getLink().getState(), ret2);
-				return true;
-			}
-			logger.info("processOffline: roleId={}, state={}, version.login/logoutVersion={}",
-					roleId, online.getLink().getState(), online.getLoginVersion());
-		} catch (Exception ex) {
-			logger.error("", ex);
 		}
-		return true;
+
+		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
+		var link = online.getLink();
+		// local 里面的Link的State没有意义。
+		var linkName = local.getLink().getLinkName();
+		var linkSid = local.getLink().getLinkSid();
+		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid) {
+			logger.info("processOffline({}): account={}, roleId={}, linkName={}, linkSid={} != linkName={}, linkSid={}",
+					multiInstanceName, account, roleId, linkName, linkSid, link.getLinkName(), link.getLinkSid());
+			return 0;
+		}
+
+		online.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
+		// local 在这个流程里面不需要setLink，如果是这个登录的，那么扇面已经删除（removeLocalAndTrigger），否则不需要修改。
+
+		var ret = linkBrokenTrigger(account, roleId);
+		// for shorter use
+		logger.info("processOffline({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}",
+				multiInstanceName, account, roleId, linkName, linkSid, ret);
+
+		// see tryLogout
+		// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
+		if (online.getLink().getState() != eOffline && assignLogoutVersion(online)) {
+			var ret2 = logoutTrigger(roleId, LogoutReason.LOGOUT);
+			logger.info("processOffline: roleId={}, state={}, logoutTrigger={}",
+					roleId, online.getLink().getState(), ret2);
+			return ret2;
+		}
+		logger.info("processOffline: roleId={}, state={}, version.login/logoutVersion={}",
+				roleId, online.getLink().getState(), online.getLoginVersion());
+		return 0;
 	}
 
 	/**
