@@ -127,15 +127,36 @@ public class ProviderService extends HandshakeClient {
 	}
 
 	public void setDisableChoiceFromLinks(boolean value) {
-		for (var link : links.values()) {
-			var r = new SetDisableChoice();
-			r.Argument.setDisableChoice(value);
-			r.Send(link.getSocket(), (p) -> {
-				if (r.isTimeout() || r.getResultCode() != 0)
-					logger.error("setDisableChoice fail. {}", link.getName());
-				return 0;
-			});
+		// ProviderApp 构造的时候初始化，相当于final了。
+		// 这样写是为了用户不用在构造ProviderService的时候传参数。
+		//noinspection SynchronizeOnNonFinalField
+		synchronized (providerApp) {
+			if (!providerApp.isOnlineReady())
+				throw new RuntimeException("online not ready.");
+			providerApp.setUserDisableChoice(value);
+			for (var link : links.values())
+				sendDisableChoiceToLink(link, value);
 		}
+	}
+
+	void trySetLinkChoice() {
+		for (var link : links.values())
+			trySetLinkChoice(link);
+	}
+
+	private void trySetLinkChoice(Connector link) {
+		if (providerApp.isOnlineReady())
+			sendDisableChoiceToLink(link, providerApp.isUserDisableChoice());
+	}
+
+	private static void sendDisableChoiceToLink(Connector link, boolean value) {
+		var r = new SetDisableChoice();
+		r.Argument.setDisableChoice(value);
+		r.Send(link.getSocket(), (p) -> {
+			if (r.isTimeout() || r.getResultCode() != 0)
+				logger.error("setDisableChoice fail. {}", link.getName());
+			return 0;
+		});
 	}
 
 	public @Nullable AsyncSocket randomLink() {
@@ -183,6 +204,8 @@ public class ProviderService extends HandshakeClient {
 			providerDynamicSubscribeCompleted.setResult(true);
 			return 0;
 		});
+
+		trySetLinkChoice(so.getConnector());
 	}
 
 	// 热更新增模块。

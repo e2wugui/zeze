@@ -25,6 +25,7 @@ public class LinkdProviderSession extends ProviderSession {
 
 	public LinkdProviderSession(long ssid) {
 		super.sessionId = ssid;
+		super.disableChoice = true; // link-gs 连接新建立的时候，默认禁止选择。
 	}
 
 	public BAnnounceProviderInfo.Data getInfo() {

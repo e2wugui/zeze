@@ -328,6 +328,20 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			hotManager.addHotBeanFactory(this);
 			beanFactory.registerWatch(this::tryRecordHotModule);
 		}
+
+		offlineLocal();
+	}
+
+	private void offlineLocal() {
+	}
+
+	/**
+	 * 应用在开始停机前主动调用。
+	 * 此时应用还是完整的环境。
+	 */
+	public void stopBefore() {
+		providerApp.providerService.setDisableChoiceFromLinks(true);
+		offlineLocal();
 	}
 
 	public void stop() {
