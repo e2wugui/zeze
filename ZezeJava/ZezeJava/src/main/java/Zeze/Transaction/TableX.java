@@ -482,7 +482,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		cache.getDataMap().entrySet().parallelStream().forEach((e) -> {
 			var k = e.getKey();
 			var v = e.getValue();
-			//noinspection DataFlowIssue
 			if (globalAgent.getGlobalCacheManagerHashIndex(encodeGlobalKey(k)) == GlobalCacheManagerHashIndex) {
 				var lockey = locks.get(new TableKey(getId(), k));
 				if (lockey.tryEnterWriteLock(0)) {
@@ -779,17 +778,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public long getDatabaseSize() {
-		var s = storage;
-		if (null == s)
-			throw new NullPointerException();
-		return s.getDatabaseTable().getSize();
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().getSize();
 	}
 
 	public long getDatabaseSizeApproximation() {
-		var s = storage;
-		if (null == s)
-			throw new NullPointerException();
-		return s.getDatabaseTable().getSizeApproximation();
+		var storage = this.storage;
+		if (storage == null)
+			throw new IllegalStateException("storage is in-memory or closed");
+		return storage.getDatabaseTable().getSizeApproximation();
 	}
 
 	public final K walk(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback) {
