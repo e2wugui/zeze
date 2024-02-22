@@ -240,8 +240,9 @@ public class DatabaseRocksDb extends Database {
 		public long getSizeApproximation() {
 			try {
 				return table.getKeyNumbers();
-			} catch (RocksDBException ignored) {
-				return -1;
+			} catch (RocksDBException e) {
+				Task.forceThrow(e);
+				return 0; // never run here
 			}
 		}
 
