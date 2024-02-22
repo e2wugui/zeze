@@ -778,6 +778,20 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return decodeValue(ByteBuffer.Wrap(bytes));
 	}
 
+	public long getDatabaseSize() {
+		var s = storage;
+		if (null == s)
+			throw new NullPointerException();
+		return s.getDatabaseTable().getSize();
+	}
+
+	public long getDatabaseSizeApproximation() {
+		var s = storage;
+		if (null == s)
+			throw new NullPointerException();
+		return s.getDatabaseTable().getSizeApproximation();
+	}
+
 	public final K walk(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback) {
 		var storage = this.storage;
 		if (storage == null)

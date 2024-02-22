@@ -15,6 +15,7 @@ import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
+import com.alibaba.druid.pool.DruidDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
@@ -1062,6 +1063,22 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public void close() {
 		}
+
+		@Override
+		public long getSize() {
+			if (dropped)
+				return -1;
+			return queryLong1(dataSource, "SELECT count(*) FROM " + name);
+		}
+
+		@Override
+		public long getSizeApproximation() {
+			if (dropped)
+				return -1;
+			return queryLong1(dataSource,
+					"SELECT TABLE_ROWS FROM information_schema.tables where TABLE_SCHEMA="
+							+ name + " AND TABLE_NAME=" + name);
+		}
 	}
 
 	public final class TableMysql extends Database.AbstractKVTable {
@@ -1409,6 +1426,42 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				Task.forceThrow(e);
 				return null; // never run here
 			}
+		}
+
+		@Override
+		public long getSize() {
+			if (dropped)
+				return -1;
+			return queryLong1(dataSource, "SELECT count(*) FROM " + name);
+		}
+
+		@Override
+		public long getSizeApproximation() {
+			if (dropped)
+				return -1;
+			return queryLong1(dataSource,
+					"SELECT TABLE_ROWS FROM information_schema.tables where TABLE_SCHEMA="
+							+ name + " AND TABLE_NAME=" + name);
+		}
+	}
+
+	public static long queryLong1(DruidDataSource dataSource, String sql) {
+		var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+		try (var conn = dataSource.getConnection()) {
+			conn.setAutoCommit(true);
+			try (var pre = conn.prepareStatement(sql)) {
+				try (var rs = pre.executeQuery()) {
+					if (!rs.next())
+						return -1;
+					return rs.getLong(1);
+				}
+			}
+		} catch (SQLException e) {
+			Task.forceThrow(e);
+			return -1; // never run here
+		} finally {
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addRunInfo("MySQL.select", System.nanoTime() - timeBegin);
 		}
 	}
 }

@@ -96,6 +96,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
 	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
 	private TableDynamic<Long, BLocal> _tlocal;
+	private volatile long verifyLocalCount;
 
 	public ProviderApp getProviderApp() {
 		return providerApp;
@@ -178,7 +179,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	public void upgrade(Function<Bean, Bean> retreatFunc) {
 		// 如果需要，重建_tlocal内存表的用户设置的bean。
 		var retreats = new ArrayList<Retreat>();
-		_tlocal.walkMemory((roleId, locals) -> {
+		_tlocal.walk((roleId, locals) -> {
 			for (var data : locals.getDatas()) {
 				var retreatBean = retreatFunc.apply(data.getValue().getAny().getBean());
 				if (retreatBean != null) {
@@ -483,7 +484,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public int getLocalCount() {
-		return _tlocal.getCacheSize(); // todo
+		return (int)_tlocal.getDatabaseSize();
+	}
+
+	public long getVerifyLocalCount() {
+		return verifyLocalCount;
 	}
 
 	public long walkLocal(@NotNull TableWalkHandle<Long, BLocal> walker) {
@@ -1721,11 +1726,20 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	class VerifyBatch {
 		final ArrayList<Long> roleIds = new ArrayList<>();
+		private long walkCount;
+		private long removeCount;
+
+		public long getRemainCount() {
+			return walkCount - removeCount;
+		}
 
 		public boolean add(long roleId) {
+			++ walkCount;
 			var aTime = localActiveTimes.get(roleId);
-			if (null != aTime && System.currentTimeMillis() - aTime > localActiveTimeout)
+			if (null != aTime && System.currentTimeMillis() - aTime > localActiveTimeout) {
 				roleIds.add(roleId);
+				++ removeCount;
+			}
 			return true;
 		}
 
@@ -1755,12 +1769,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private void verifyLocal() {
 		var batch = new VerifyBatch();
 		// 锁外执行事务
-		_tlocal.walkMemory((k, v) -> {
+		_tlocal.walk((k, v) -> {
 			batch.add(k);
 			batch.tryPerform();
 			return true;
 		});
 		batch.perform();
+		verifyLocalCount = batch.getRemainCount();
 		startLocalCheck();
 	}
 

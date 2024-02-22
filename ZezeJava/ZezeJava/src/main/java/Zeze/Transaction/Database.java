@@ -287,6 +287,14 @@ public abstract class Database {
 		default void clear() {
 			// rocksdb支持；
 		}
+
+		default long getSize() {
+			throw new UnsupportedOperationException();
+		}
+
+		default long getSizeApproximation() {
+			throw new UnsupportedOperationException();
+		}
 	}
 
 	// KV表辅助类，实现所有的下沉的带类型接口。
