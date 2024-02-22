@@ -5,7 +5,6 @@ import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Component.Timer;
 import Zeze.Game.Rank;
-import Zeze.World.World;
 
 /**
  * 1. 所有需要Redirect支持的内建模块在这里生成代码。
@@ -35,7 +34,6 @@ public final class RedirectGenMain {
 				Zeze.Game.Online.class,
 				Rank.class,
 				Timer.class,
-				World.class
 		});
 
 		System.out.println("==================");

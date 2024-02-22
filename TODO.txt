@@ -6,8 +6,9 @@ Hot alter 测试，需要mysql。
 迁移Task，World到MetaGame。
 FoundationDB support
 ------------------------------------------------------------------------------------------------------------------------------
-2024/3/1 v1.4.2 Global.Releaser; CheckpointMode; 3Others Component; Online Local; 
+2024/3/1 v1.4.2 Global.Releaser; CheckpointMode; 3Others Component; Online Local; MetaGame; 
 ------------------------------------------------------------------------------------------------------------------------------
+MetaGame 迁移Task，World到这个独立项目。
 Game.Online Local 表改成持久化+实现一个Clear，在停止和启动的时候执行一遍。
 Dbh2 Query 是不是没有必要，可以省掉，
 	因为agent已经实现了永久重试，而查询也是agent实现的功能。重试+反向查询，功能重复了。

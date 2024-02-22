@@ -188,7 +188,6 @@ public final class App extends Zeze.AppBase {
 
     public Game.Map.ModuleMap Game_Map;
     public Game.Rank.ModuleRank Game_Rank;
-    public Game.MyWorld.ModuleMyWorld Game_MyWorld;
 
     @Override
     public Zeze.Application getZeze() {
@@ -221,7 +220,6 @@ public final class App extends Zeze.AppBase {
         var _modules_ = createRedirectModules(new Class[] {
             Game.Map.ModuleMap.class,
             Game.Rank.ModuleRank.class,
-            Game.MyWorld.ModuleMyWorld.class,
         });
         if (_modules_ == null)
             return;
@@ -236,16 +234,10 @@ public final class App extends Zeze.AppBase {
         if (modules.put(Game_Rank.getFullName(), Game_Rank) != null)
             throw new IllegalStateException("duplicate module name: Game_Rank");
 
-        Game_MyWorld = (Game.MyWorld.ModuleMyWorld)_modules_[2];
-        Game_MyWorld.Initialize(this);
-        if (modules.put(Game_MyWorld.getFullName(), Game_MyWorld) != null)
-            throw new IllegalStateException("duplicate module name: Game_MyWorld");
-
         Zeze.setSchemas(new Game.Schemas());
     }
 
     public synchronized void destroyModules() throws Exception {
-        Game_MyWorld = null;
         Game_Rank = null;
         Game_Map = null;
         if (null != Zeze.getHotManager()) {
@@ -267,7 +259,6 @@ public final class App extends Zeze.AppBase {
     public synchronized void startModules() throws Exception {
         Game_Map.Start(this);
         Game_Rank.Start(this);
-        Game_MyWorld.Start(this);
         if (null != Zeze.getHotManager()) {
             var definedOrder = new java.util.HashSet<String>();
             Zeze.getHotManager().startModulesExcept(definedOrder);
@@ -278,7 +269,6 @@ public final class App extends Zeze.AppBase {
     public synchronized void startLastModules() throws Exception {
         Game_Map.StartLast();
         Game_Rank.StartLast();
-        Game_MyWorld.StartLast();
         if (null != Zeze.getHotManager()) {
             var definedOrder = new java.util.HashSet<String>();
             Zeze.getHotManager().startLastModulesExcept(definedOrder);
@@ -286,8 +276,6 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void stopModules() throws Exception {
-        if (Game_MyWorld != null)
-            Game_MyWorld.Stop(this);
         if (Game_Rank != null)
             Game_Rank.Stop(this);
         if (Game_Map != null)
@@ -299,8 +287,6 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void stopBeforeModules() throws Exception {
-        if (Game_MyWorld != null)
-            Game_MyWorld.StopBefore();
         if (Game_Rank != null)
             Game_Rank.StopBefore();
         if (Game_Map != null)

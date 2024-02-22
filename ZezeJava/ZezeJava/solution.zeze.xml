@@ -839,99 +839,6 @@
 
 				<table name="trank" key="BConcurrentKey" value="BRankList"/>
 			</module> Rank 11015
-
-			<module name="TaskModule" id="11018">
-				<enum name="eTaskCondition" value="1"/>
-				<enum name="eTaskNotExists" value="2"/>
-				<enum name="eTaskAlreadyAccepted" value="3"/>
-				<enum name="eTaskTooManyAccepted" value="4"/>
-				<enum name="eTaskNotDone" value="5"/>
-				<enum name="eRewardNotExists" value="6"/>
-				<enum name="eTaskNotAccepted" value="7"/>
-				<enum name="eFinishError" value="8"/>
-
-				<bean name="BTaskId">
-					<variable id="1" name="TaskId"  type="int"/>
-				</bean>
-				
-				<rpc name="Accept" argument="BTaskId" handle="server"/>
-				<rpc name="Finish" argument="BTaskId" handle="server"/>
-				<rpc name="Abandon" argument="BTaskId" handle="server"/>
-
-				<bean name="BTaskDescription">
-					<variable id="1" name="TaskId"  type="int"/>
-					<variable id="2" name="TaskState"  type="int"/>
-					<variable id="3" name="PhaseDescription"  type="string"/> 
-					<variable id="4" name="PhaseConditions"  type="list[string]"/>
-					<variable id="5" name="Conditions"  type="list[string]"/>
-					<variable id="6" name="RewardId"  type="int"/> 调试目的，客户端未用。
-					<variable id="7" name="RewardType"  type="int"/>
-					<variable id="8" name="RewardParam"  type="binary"/>
-				</bean>
-				<bean name="BGetRoleTasksResult">
-					<variable id="1" name="Tasks"  type="map[int, BTaskDescription]"/>
-				</bean>
-				<rpc name="GetRoleTasks" result="BGetRoleTasksResult" handle="server"/>
-				<protocol name="TaskRemoved" argument="BTaskId" handle="client"/>
-				<protocol name="TaskChanged" argument="BTaskDescription" handle="client"/> 这里分解成Accepted等明确操作更灵活，但这样应该足够了。
-				
-				<bean name="BTaskConfig" UseData="true">
-					<variable id="1" name="TaskId"  type="int"/>
-					<variable id="2" name="PreposeTasks"  type="set[int]"/> 前置任务
-					<variable id="3" name="FollowTasks"  type="set[int]"/> 后续任务
-					<variable id="4" name="AcceptNpc"  type="int"/> 接受任务的NpcId
-					<variable id="5" name="FinishNpc"  type="int"/> 完成任务的NpcId
-					<variable id="6" name="ExtendData"  type="dynamic"> 任务自定义属性
-						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskModule::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskModule::createBeanFromSpecialTypeId"/>
-						<CreateDataFromSpecialTypeId value="Zeze.Game.TaskModule::createDataFromSpecialTypeId"/>
-					</variable>
-					<variable id="7" name="TaskConditions" type="BTask"/> 任务条件
-					<variable id="8" name="PreposeRequired" type="int"/> 需要的前置任务完成数量，0表示全部。
-					<variable id="9" name="Repeatable" type="bool"/> 任务是否可重复完成
-				</bean>
-
-				<bean name="BTaskSet" UseData="true">
-					<variable id="1" name="TaskIds"  type="set[int]"/>
-				</bean>
-
-				<enum name="eTaskAccepted" value="0"/> 任务接受时的初始状态
-				<enum name="eTaskDone" value="1"/> 任务完成状态（未发放奖励）
-
-				<bean name="BTask">
-					<variable id="1" name="TaskId"  type="int"/>
-
-					<!-- 阶段或者直接内含的多个条件两种模式一般分开使用，要嘛单独使用阶段，要嘛内含多个条件，当然混用也是可以的。-->
-					<!-- 阶段 -->
-					<variable id="2" name="Phases"  type="list[BPhase]"/>
-					<!-- 直接内含的多个条件 -->
-					<variable id="3" name="Conditions"  type="list[BCondition]"/>
-					<variable id="4" name="IndexSet"  type="set[int]"/>
-					
-					<!-- 其他属性 -->
-					<variable id="5" name="TaskState"  type="int"/>
-					<variable id="6" name="AutoFinish"  type="bool"/>
-					<variable id="7" name="RewardId"  type="int"/>
-				</bean>
-
-				<bean name="BPhase">
-					<variable id="1" name="Conditions"  type="list[BCondition]"/>
-					<variable id="2" name="IndexSet"  type="set[int]"/>
-					<variable id="3" name="Description"  type="string"/>
-				</bean>
-
-				<bean name="BCondition">
-					<variable id="1" name="ClassName"  type="string"/>
-					<variable id="2" name="Parameter"  type="binary"/>
-				</bean>
-
-				<bean name="BRoleTasks">
-					<variable id="1" name="Tasks"  type="map[int, BTask]"/> key是taskId，这种描述意味着相同的任务不能同时接多次。
-				</bean>
-				<table name="tRoleTasks" key="long" value="BRoleTasks"/>
-
-			</module> TaskModule
-
 		</module> Game
 
 		<module name="Online" id="11100">
@@ -1637,166 +1544,6 @@
 			<rpc name="ReadWriteLockOperate" argument="BReadWriteLock" handle="server"/>
 		</module>
 
-		<module name="World" id="11031" UseData="true" DefaultTransactionLevel="None">
-			<bean name="BObject">
-				<!-- 自定义数据。 -->
-				<variable id="1" name="Data"      type="dynamic">
-					<GetSpecialTypeIdFromBean value="Zeze.World.World::getSpecialTypeIdFromBean"/>
-					<CreateBeanFromSpecialTypeId value="Zeze.World.World::createBeanFromSpecialTypeId"/>
-					<CreateDataFromSpecialTypeId value="Zeze.World.World::createDataFromSpecialTypeId"/>
-				</variable>
-
-				<!-- 命令型移动同步可以直接使用这个结构，如果其他模式，这里面部分变量可能未用。 -->
-				<variable id="2" name="Moving"      type="BMove"/>
-
-				<!-- 玩家的Account或RoleId，自动根据Online类型从ProviderUserSession里面读取。总是用String表示。非玩家为空。 -->
-				<variable id="3" name="PlayerId"     type="string"/>
-
-				<!-- 玩家在Link上的信息，用来与玩家通讯。非玩家LinkName为空，LinkSid为0. -->
-				<variable id="4" name="LinkName"  type="string"/>
-				<variable id="5" name="LinkSid"       type="long"/>
-
-				<!-- 实体的类型和配置Id，用来索引配置数据。 -->
-				<variable id="6" name="Type"           type="int"/>
-				<variable id="7" name="ConfigId"     type="int"/>
-			</bean>
-
-			<enum name="eCommandHandlerMissing" value="1"/>
-
-			<!-- 抽象的交互协议，用来封装任意客户端服务器Protocol,Rpc -->
-			<bean name="BCommand"> 一个具体的操作。
-				<enum name="eReserveCommandId" value="2000"/> 保留Id给组件内部用。自定义的必须大于这个值。
-
-				<enum name="eMoveMmo"   value="0"/> handle=server,client 位置同步命令。
-
-				<!-- enum name="eSwitchWorld"  value="1"/> handle=server，地图切换流程涉及的协议。需要在静态模块里面定义。-->
-				<enum name="eEnterWorld"    value="2"/> handle=client
-				<enum name="eEnterConfirm" value="3"/> handle=server
-
-				<enum name="eAoiOperate"  value="4"/> handle=client，需要同步的其他任意操作，完全抽象。
-				<enum name="eAoiEnter"       value="5"/> handle=client
-				<enum name="eAoiLeave"      value="6"/> handle=client
-
-				<variable id="1" name="MapInstanceId" type="long"/>
-				<variable id="2" name="CommandId" type="int"/>
-				<variable id="3" name="Param" type="binary"/>
-			</bean>
-			<protocol name="Command" argument="BCommand" handle="client,server"/>
-			<rpc name="Query" argument="BCommand" result="BCommand" handle="server"/>
-
-			<!-- MoveMmo-->
-			<bean name="BMove">
-				<variable id="1" name="Position"      type="vector3"/> 命令时刻的客户端真实位置。
-				<variable id="2" name="Direct"         type="vector3"/> 命令时刻的客户端真实朝向。
-				<variable id="3" name="State"           type="int"/> 状态
-				<variable id="4" name="Control"       type="int"/> 控制命令
-				<variable id="5" name="Timestamp" type="long"/>  命令时刻的时戳。
-
-				<!-- State: 互斥，用低4描述，其他位保留，必须为0 -->
-				<enum name="eStateMask"  value="0xf"/>
-
-				<enum name="eStateStand"                    value="0"/> 站立，静止状态
-				<enum name="eStateSlide"                      value="1"/> 滑动（斜坡）这是一种失控状态，滑动方向由斜坡决定
-				<enum name="eStateFly"                          value="2"/> 空中允许转向
-				<enum name="eStateFlyLine"                    value="3"/> 空中不允许转向
-				<enum name="eStateSwim"                      value="4"/> 水面（游泳）
-				<enum name="eStateSwimUnderwater"   value="5"/> 水中（游泳）
-				<enum name="eStateStandUnderwater"   value="6"/> 水中（游泳）
-
-				<!-- Control: 按键命令Flags -->
-				<enum name="eControlMoveMask"       value="0x3"/>
-				<enum name="eControlMoveNone"       value="0"/>
-				<enum name="eControlMoveForward"   value="1"/>
-				<enum name="eControlMoveBack"         value="2"/>
-
-				<enum name="eControlTurnMask"       value="0xc"/>
-				<enum name="eControlTurnNone"       value="0"/>
-				<enum name="eControlTurnLeft"          value="4"/>
-				<enum name="eControlTurnRight"        value="8"/>
-			</bean>
-
-			<!--
-			地图(场景)切换协议。这些协议实际上也可以定义成Command。由于比较重要，而且大概率可重用，就升级了。
-			一般流程：
-			client  send SwitchWorld(mapId) 对于一般游戏，第一次进入地图时，mapId设置为-1，此时服务器让玩家进入最后登录所在地图或者初始地图。
-			server send EnterWorld(mapId, mapInstanceId, position) 服务器通知玩家无条件切换地图。
-			client  load mapId's resource 客户端显示Loading界面（可选），装载资源。
-			client  send EnterConfirm(mapInstanceId) 客户端发送装载完成，服务器收到以后让这个玩家可以被其他人看到，并且开始同步数据。
-			server send AoiEnter(data). 服务器开始发送动态数据，可能分批发送。还有一些重要的数据在上面的EnterWorld时就发送。
-			-->
-			<!-- 为了不污染根空间，改成Command了。
-			<protocol name="SwitchWorld" argument="BSwitchWorld" handle="server"/> mapId==-1，进入地图由服务器控制，此时仅仅表示客户端准备好进入地图了。
-			<protocol name="EnterWorld" argument="BEnterWorld" handle="client"/>
-			<protocol name="EnterConfirm" argument="BEnterConfirm" handle="server"/>
-
-			Aoi-Notify
-			<protocol name="AoiEnter" argument="BAoiEnter" handle="client"/>
-			<protocol name="AoiOperate" argument="BAoiOperate" handle="client"/>
-			<protocol name="AoiLeave" argument="BAoiLeave" handle="client"/>
-			-->
-
-			<bean name="BEnterWorld">
-				<variable id="1" name="MapId" type="int"/>
-				<variable id="2" name="MapInstanceId" type="long"/>
-				<variable id="3" name="Position" type="vector3"/>
-				<variable id="4" name="Direct" type="vector3"/>
-				<variable id="5" name="PriorityData" type="list[BAoiOperates]"/> 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
-			</bean>
-			<bean name="BEnterConfirm">
-				<variable id="1" name="MapInstanceId" type="long"/>
-			</bean>
-			<bean name="BAoiOperate"> 一个具体的操作。
-				<variable id="1" name="OperateId" type="int"/>
-				<variable id="2" name="Param" type="binary"/>
-				<!--
-				实体属于一颗树时，整颗树传输（过滤掉玩家）。
-				需要考虑去重，可能从多个叶子回溯到同一棵树。
-				整棵树传输的时候以第一次构建的数据为准，忽略后面重复的。
-				客户端更新整棵树到本地数据中需要遍历并把数据铺开，对每个实体，加入正确的Cube。
-				-->
-				<variable id="3" name="Children" type="map[long, BAoiOperate]"/>
-			</bean>
-			<bean name="BAoiOperates"> 命令 eAoiEnter,eAoiOperate的参数。
-				<variable id="1" name="Operates" type="map[long, BAoiOperate]"/>
-			</bean>
-			<bean name="BAoiLeaves"> 命令 eAoiLeave 的参数。
-				<variable id="1" name="Keys" type="list[long]"/>
-			</bean>
-
-			<bean name="BLoad"> 地图实例（线）的负载
-				<variable id="1" name="PlayerCount" type="int"/> 玩家数量（可用于简单规则）
-				<variable id="2" name="ComputeCount" type="long"/> 逻辑计算计数（衡量CPU）
-
-				<!-- 用于进程内保存计算值，保存数据库和从数据库中读出时没有意义。 -->
-				<variable id="3" name="ComputeCountPS" type="long"/>
-				<variable id="4" name="ComputeCountLast" type="long"/>
-				<variable id="5" name="ComputeCountTime" type="long"/>
-			</bean>
-			<bean name="BLoadMap">
-				<variable id="1" name="MapId" type="int"/> 地图配置编号
-				<variable id="2" name="LoadSum" type="BLoad"/> 所有地图实例的累计
-				<variable id="3" name="Instances" type="map[long, BLoad]"/> 地图实例（线）的负载
-			</bean>
-			<beankey name="BServerMapKey">
-				<variable id="1" name="ServerId" type="int"/> 服务器编号
-				<variable id="2" name="MapId" type="int"/> 地图配置编号
-			</beankey>
-			<table name="tLoad" key="BServerMapKey" value="BLoadMap"/> key is serverId，一台服务器一个记录。
-
-			<!-- World模块是dynamic的，但是部分协议需要常住，这些协议就定义到这里面。-->
-			<module name="Static" id="11032">
-				<bean name="BSwitchWorld">
-					<variable id="1" name="MapId"    type="int"/>
-					<variable id="2" name="FromMapId"   type="int"/>
-					<variable id="3" name="FromGateId"   type="int"/>
-				</bean>
-				<bean name="BSwitchWorldResult">
-					<variable id="1" name="MapInstanceId"  type="long"/>
-				</bean>
-				<rpc name="SwitchWorld" argument="BSwitchWorld" result="BSwitchWorldResult" handle="server"/>
-			</module>
-		</module>
-
 		<module name="HotDistribute" id="11033" UseData="true" DefaultTransactionLevel="None">
 			<bean name="BVariable">
 				<variable id="1" name="Id" type="int"/>
@@ -2087,7 +1834,7 @@
 		</module>
 
 		<!--
-		可用id范围 [11039, 11100) [11102, 11999]
+		可用id范围 11018, 11031, 11032, [11039, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
@@ -2144,17 +1891,6 @@
 	<component name="HotAgent" gendir="src/main/java" genrelativedir="Zeze/Hot" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.HotDistribute"/>
-		</service>
-	</component>
-
-	<component name="WorldStatic" gendir="src/main/java" genrelativedir="Zeze/World" platform="zeze+java">
-		<service name="" handle="server">
-			<module ref="Zeze.Builtin.World.Static"/>
-		</service>
-	</component>
-	<component name="World" gendir="src/main/java" genrelativedir="Zeze/World" NoRecursiveModule="true" platform="zeze+java">
-		<service name="" handle="server">
-			<module ref="Zeze.Builtin.World"/>
 		</service>
 	</component>
 
@@ -2265,12 +2001,6 @@
 	<component name="Rank" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Game.Rank"/>
-		</service>
-	</component>
-
-	<component name="TaskModule" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
-		<service name="" handle="server">
-			<module ref="Zeze.Builtin.Game.TaskModule"/>
 		</service>
 	</component>
 

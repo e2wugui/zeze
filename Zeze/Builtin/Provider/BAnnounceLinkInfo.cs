@@ -13,6 +13,7 @@ namespace Zeze.Builtin.Provider
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
         public BAnnounceLinkInfo Copy();
+
     }
 
     public sealed class BAnnounceLinkInfo : Zeze.Transaction.Bean, BAnnounceLinkInfoReadOnly

@@ -339,10 +339,6 @@
 		<table name="tIndexs" key="string" value="BNodeId"/> key is "{name}#{value}"
 	</module>
 
-	<!-- 用来封装和扩展Zeze.World，可能需要定义表，但一般不需要定义协议（就是不直接跟客户端交互）。 -->
-	<module name="MyWorld" id="13">
-	</module>
-
 	<!--
 	name 项目名字
 	gendir 代码生成输出目录，默认是当前目录
@@ -365,7 +361,6 @@
 			<module ref="Rank"/>
 			<module ref="Timer"/>
 			<module ref="LongSet"/>
-			<module ref="MyWorld"/>
 		</service>
 
 		<ModuleStartOrder>

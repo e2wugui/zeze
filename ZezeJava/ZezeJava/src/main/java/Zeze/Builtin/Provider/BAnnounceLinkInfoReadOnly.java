@@ -6,4 +6,5 @@ public interface BAnnounceLinkInfoReadOnly {
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
     BAnnounceLinkInfo copy();
+
 }

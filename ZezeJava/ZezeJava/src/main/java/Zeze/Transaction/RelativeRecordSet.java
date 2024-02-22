@@ -498,7 +498,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		break;
 
 		case MultiThreadMerge: {
-			Checkpoint.logger.info("Global.Releaser rrs={}", checkpoint.relativeRecordSetMap.size());
+			//Checkpoint.logger.info("Global.Releaser rrs={}", checkpoint.relativeRecordSetMap.size());
 			var flushSetMap = new ConcurrentHashMap<Thread, FlushSet>();
 			var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
 			checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> {
