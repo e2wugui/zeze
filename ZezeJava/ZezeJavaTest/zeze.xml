@@ -25,11 +25,7 @@
 		/>
 	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="172.21.15.68:2379"/>
 	-->
-	<DatabaseConf
-		Name=""
-		DatabaseType="MySql"
-		DatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"
-		/>
+	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 
 	<TableConf CacheCapacity="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
 	<TableConf Name="demo_Module1_tflush" CacheCapacity="1000"/>
