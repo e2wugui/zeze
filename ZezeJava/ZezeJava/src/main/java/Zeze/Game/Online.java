@@ -96,7 +96,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
 	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
 	private TableDynamic<Long, BLocal> _tlocal;
-	private volatile long verifyLocalCount;
+	private volatile int verifyLocalCount;
 
 	public ProviderApp getProviderApp() {
 		return providerApp;
@@ -487,7 +487,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return (int)_tlocal.getDatabaseSize();
 	}
 
-	public long getVerifyLocalCount() {
+	public int getVerifyLocalCount() {
 		return verifyLocalCount;
 	}
 
@@ -1726,10 +1726,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	class VerifyBatch {
 		final ArrayList<Long> roleIds = new ArrayList<>();
-		private long walkCount;
-		private long removeCount;
+		private int walkCount;
+		private int removeCount;
 
-		public long getRemainCount() {
+		public int getRemainCount() {
 			return walkCount - removeCount;
 		}
 
