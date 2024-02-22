@@ -5,6 +5,7 @@ import java.util.Map;
 import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
+import Zeze.Game.ProviderWithOnline;
 import Zeze.IModule;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.IntHashMap;
@@ -170,6 +171,10 @@ public class ProviderApp {
 		zeze.getTimer().start();
 		zeze.getAppBase().startLastModules();
 
+		if (providerImplement instanceof ProviderWithOnline) {
+			var game = (ProviderWithOnline)providerImplement;
+			game.getOnline().startAfter();
+		}
 		// 这个应该在Online.Start里面设置更合理。
 		// 但是Online有多个版本，而且跨包设置需要方法，就这里直接设置了。
 		// 是启动流程的一部分。

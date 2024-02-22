@@ -333,8 +333,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			hotManager.addHotBeanFactory(this);
 			beanFactory.registerWatch(this::tryRecordHotModule);
 		}
-
-		_tlocal.walk(this::processOffline);
 	}
 
 	private boolean processOffline(Long roleId, @NotNull BLocal local) {
@@ -388,6 +386,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		logger.info("processOffline: roleId={}, state={}, version.login/logoutVersion={}",
 				roleId, online.getLink().getState(), online.getLoginVersion());
 		return 0;
+	}
+
+	/**
+	 * 启动过程自动调用。
+	 */
+	public void startAfter() {
+		_tlocal.walk(this::processOffline);
 	}
 
 	/**
