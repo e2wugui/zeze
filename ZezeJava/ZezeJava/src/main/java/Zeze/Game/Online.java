@@ -394,7 +394,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * 启动过程自动调用。
 	 */
 	public void startAfter() {
-		_tlocal.walk(this::processOffline);
+		// default online 负责所有的online set。
+		if (defaultInstance == this) {
+			getProviderWithOnline().foreachOnline(online -> {
+				online._tlocal.walk(this::processOffline);
+			});
+		}
 	}
 
 	/**
@@ -402,8 +407,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * 此时应用还是完整的环境。
 	 */
 	public void stopBefore() {
-		providerApp.providerService.setDisableChoiceFromLinks(true);
-		_tlocal.walk(this::processOffline);
+		// default online 负责所有的online set。
+		if (defaultInstance == this) {
+			providerApp.providerService.setDisableChoiceFromLinks(true);
+			getProviderWithOnline().foreachOnline(online -> {
+				online._tlocal.walk(this::processOffline);
+			});
+		}
 	}
 
 	public void stop() {
