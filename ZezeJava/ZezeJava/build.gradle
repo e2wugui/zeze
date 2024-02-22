@@ -25,7 +25,7 @@ dependencies {
     compileOnly 'com.mysql:mysql-connector-j:8.3.0'
 
     // dynamodb
-    compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.568'
+    compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.663'
 
     // foundationDB
     compileOnly 'org.foundationdb:fdb-java:7.3.33'
