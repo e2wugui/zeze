@@ -315,7 +315,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public void start() {
-		var localTableName = "Zeze.Game.Online._tlocal" + providerApp.zeze.getConfig().getServerId();
+		var localTableName = "Zeze_Game_Online_Local_"
+				+ getOnlineSetName().replaceAll("\\.", "_")
+				+ "_" + providerApp.zeze.getConfig().getServerId();
 		_tlocal = new TableDynamic<>(providerApp.zeze, localTableName, _tlocalTempalte);
 
 		// default online 负责启动所有的online set。
@@ -471,11 +473,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public int getLocalCount() {
-		return _tlocal.getCacheSize();
+		return _tlocal.getCacheSize(); // todo
 	}
 
 	public long walkLocal(@NotNull TableWalkHandle<Long, BLocal> walker) {
-		return _tlocal.walkMemory(walker);
+		return _tlocal.walk(walker);
 	}
 
 	public long getLoginTimes() {
