@@ -12,7 +12,7 @@ dependencies {
     // for tikv
     implementation 'org.tikv:tikv-client-java:3.3.5'
     // runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
-    // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.22.1'
+    // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.23.0'
 
     // for jdbc(mysql,sqlserver,tidb)
     implementation 'com.alibaba:druid:1.2.21'
