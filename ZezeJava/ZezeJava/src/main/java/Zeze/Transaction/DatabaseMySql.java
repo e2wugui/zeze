@@ -459,7 +459,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		table.encodeKeySQLStatement(st, exclusiveStartKey);
 		var where = st.sql.toString();
 		where = where.replace(",", " AND ");
-		where = where.replace("=", asc ? ">" : "<");
+		where = where.replace('=', asc ? '>' : '<');
 		return " WHERE " + where;
 	}
 

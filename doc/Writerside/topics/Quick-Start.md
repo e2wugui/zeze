@@ -29,7 +29,7 @@
 </bean>
 客户端直接增加经验是不合理的，但这个例子就是这样做了，不管作弊啦。
 <rpc name=”AddExperience” argument=”BAddExperience”
-　　TransactionLevel=“Serializable“ handle=”server”/> 
+　　TransactionLevel=“Serializable“ handle=”server”/>
 </module>
 <project name="GameServer" scriptdir="src" platform="java">
 <service name="Server" handle="server”>
@@ -87,19 +87,18 @@ void addItemToBag(long roleid, int itemId) {
 ## Java开发准备 (如果只关注C#开发,可跳过)
 
 1. JDK 21 任意发行版均可
-   - 推荐: https://adoptium.net/releases
-   - 备选: https://jdk.java.net/
-2. IntelliJ IDEA 免费社区版(Community)即可, 2021.3版以上
+   - 推荐: https://adoptium.net/zh-CN/temurin/archive/?version=21
+   - 备选: https://jdk.java.net/21/
+2. IntelliJ IDEA 免费社区版(Community)即可, 2023.3版以上
    - https://www.jetbrains.com/idea/download/
 3. (可选) Maven: https://maven.apache.org/download.cgi
 
 ## C#开发准备 (如果只关注Java开发,可只安装.NET SDK)
 
-1. .NET 6 SDK (如果安装下面的Visual Studio,可以不用单独安装这个)
-   - https://dotnet.microsoft.com/en-us/download/dotnet/6.0 (通常选择Windows, x64)
+1. .NET 8 SDK (如果安装下面的Visual Studio,可以不用单独安装这个)
+   - https://dotnet.microsoft.com/en-us/download/dotnet/8.0 (通常选择Windows, x64)
 2. Visual Studio 2022 (可用免费社区版,但需要联网激活,且只能个人或小规模商用)
    - Windows版本: https://visualstudio.microsoft.com/zh-hans/downloads/ (必选组件: .NET桌面开发; 可选组件: Node.js开发)
-   - Mac版本: https://visualstudio.microsoft.com/zh-hans/vs/mac/
 3. (可选) VSCode (完全免费的轻量级IDE)
    - https://code.visualstudio.com/ (安装官方C#插件)
 
@@ -156,7 +155,7 @@ void addItemToBag(long roleid, int itemId) {
 ```
 <?xml version="1.0" encoding="utf-8"?>
 
-<solution name="Game" ModuleIdAllowRanges="1-1000"> 
+<solution name="Game" ModuleIdAllowRanges="1-1000">
 　　Game是解决方案的名字，它将作为生成代码的根名字空间。
 　　<import file="../ZezeJava/solution.zeze.xml"/> 路径需要修改为正确的相对目录。
 	<module name="Login" id="1" hot="true"> 自定义模块
@@ -198,7 +197,7 @@ void addItemToBag(long roleid, int itemId) {
 		</service>定义网络服务
 		<ModuleStartOrder>
 		</ModuleStartOrder>
-		<service name="ServerDirect" handle="server,client" 
+		<service name="ServerDirect" handle="server,client"
 base="Zeze.Arch.ProviderDirectService">
 		</service>分布式情况下，Server之间互联的网络服务定义。
 	</project>
@@ -271,7 +270,7 @@ public final class ModuleLogin extends AbstractModule {
 			<module ref="Linkd"/>
 		</service>
 
-		<service name="ProviderService" handle="client"  
+		<service name="ProviderService" handle="client"
 base="Zeze.Arch.LinkdProviderService">
 		</service>
 	</project>
@@ -294,11 +293,11 @@ Solution.linkd.xml生成代码时，会生成linkd/src/Zezex/App.java，其中St
 		if (serverId != -1)
 			config.setServerId(serverId);
 		if (linkPort != -1) {
-			config.getServiceConfMap().get("LinkdService").forEachAcceptor((a) -> 
+			config.getServiceConfMap().get("LinkdService").forEachAcceptor((a) ->
 a.setPort(linkPort));
 		}
 		if (linkPort != -1) {
-			config.getServiceConfMap().get("ProviderService").forEachAcceptor((a) -> 
+			config.getServiceConfMap().get("ProviderService").forEachAcceptor((a) ->
 a.setPort(providerPort));
 		}
 		createZeze(config);
@@ -306,7 +305,7 @@ a.setPort(providerPort));
 
 		// 3. 这几行代码不是生成的，而是使用Zeze.Arch的初始化代码。
 		LinkdProvider = new LinkdProvider();
-		LinkdApp = new LinkdApp("Game.Linkd", Zeze, LinkdProvider, ProviderService, 
+		LinkdApp = new LinkdApp("Game.Linkd", Zeze, LinkdProvider, ProviderService,
 LinkdService, LoadConfig());
 		createModules();
 		// Start
@@ -350,7 +349,7 @@ Zeze.Arch。
 		}
 		if (providerDirectPort != -1) {
 			final int port = providerDirectPort;
-			config.getServiceConfMap().get("ServerDirect").forEachAcceptor((a) -> 
+			config.getServiceConfMap().get("ServerDirect").forEachAcceptor((a) ->
 a.setPort(port));
 		}
 		// create
@@ -389,7 +388,7 @@ a.setPort(port));
 
 		// 6. Zeze.Arch 初始化
 		Provider.start();
-		PersistentAtomicLong socketSessionIdGen = 
+		PersistentAtomicLong socketSessionIdGen =
 PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
 		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
 		startService(); // 启动网络
