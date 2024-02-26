@@ -207,17 +207,19 @@ public class HttpExchange {
 	}
 
 	public @NotNull String path() {
-		if (request == null)
+		var req = request;
+		if (req == null)
 			return "";
-		var uri = request.uri();
+		var uri = req.uri();
 		var i = uri.indexOf('?');
 		return urlDecode(i >= 0 ? uri.substring(0, i) : uri);
 	}
 
 	public @Nullable String query() {
-		if (request == null)
-			return null;
-		var uri = request.uri();
+		var req = request;
+		if (req == null)
+			return "";
+		var uri = req.uri();
 		var i = uri.indexOf('?');
 		return i >= 0 ? uri.substring(i + 1) : null;
 	}
@@ -263,7 +265,8 @@ public class HttpExchange {
 		var channel = context.channel();
 		channel.attr(HttpServer.idleTimeKey).set(null);
 		if (msg instanceof HttpRequest) {
-			request = ReferenceCountUtil.retain((HttpRequest)msg);
+			var req = ReferenceCountUtil.retain((HttpRequest)msg);
+			request = req;
 			var path = path();
 			handler = server.getHandler(path);
 			if (handler == null) {
@@ -288,12 +291,12 @@ public class HttpExchange {
 				return;
 			}
 			if (handler.isStreamMode()) {
-				fireBeginStream();
+				fireBeginStream(req);
 				inStreamMode = true;
 			}
 			if (!(msg instanceof HttpContent)) {
-				if (HttpUtil.is100ContinueExpected(request)) {
-					if (!handler.isStreamMode() && HttpUtil.getContentLength(request, 0) > handler.MaxContentLength) {
+				if (HttpUtil.is100ContinueExpected(req)) {
+					if (!handler.isStreamMode() && HttpUtil.getContentLength(req, 0) > handler.MaxContentLength) {
 						closeConnectionOnFlush(context.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
 								HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
 								headersFactory, trailersFactory)));
@@ -346,10 +349,10 @@ public class HttpExchange {
 	}
 
 	@SuppressWarnings("DataFlowIssue")
-	protected void fireBeginStream() {
+	protected void fireBeginStream(@NotNull HttpRequest req) {
 		if (handler == null)
 			return;
-		var r = parseRange(HttpHeaderNames.CONTENT_RANGE);
+		var r = parseRange(req, HttpHeaderNames.CONTENT_RANGE);
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			var p = server.zeze.newProcedure(() -> {
 				handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
@@ -522,10 +525,9 @@ public class HttpExchange {
 	// 上传请求/下载回复: content-range: bytes from-to/size 范围是[from,to]
 	// 参考: https://www.jianshu.com/p/acca9656e250
 	// 返回: [from, to, size]
-	protected long @NotNull [] parseRange(@NotNull AsciiString headerName) {
+	protected static long @NotNull [] parseRange(@NotNull HttpRequest req, @NotNull AsciiString headerName) {
 		var r = new long[]{-1, -1, -1};
-		//noinspection DataFlowIssue
-		var headers = request.headers();
+		var headers = req.headers();
 		var range = headers.get(headerName);
 		if (range != null) {
 			var p = range.indexOf(',');
@@ -577,8 +579,9 @@ public class HttpExchange {
 			}
 		}
 		releaseContent();
-		if (request != null) {
-			ReferenceCountUtil.release(request);
+		var req = request;
+		if (req != null) {
+			ReferenceCountUtil.release(req);
 			request = null;
 		}
 		if (willCloseConnection)
@@ -688,10 +691,15 @@ public class HttpExchange {
 			close(send404());
 			return;
 		}
+		var req = request;
+		if (req == null) {
+			close(send500(""));
+			return;
+		}
 
 		// 检查 if-modified-since
 		var lastModified = file.lastModified() / 1000;
-		var ifModifiedSince = request != null ? request.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE) : null;
+		var ifModifiedSince = req.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
 		if (ifModifiedSince != null && !ifModifiedSince.isEmpty() && lastModified == HttpServer.parseDate(ifModifiedSince)) {
 			var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED, // 文件未改变
 					Unpooled.EMPTY_BUFFER, headersFactory, trailersFactory);
@@ -705,7 +713,7 @@ public class HttpExchange {
 		var fn = file.getName();
 		var fc = FileChannel.open(file.toPath(), readOnlyOpenOptions);
 		var fsize = fc.size();
-		var r = parseRange(HttpHeaderNames.RANGE);
+		var r = parseRange(req, HttpHeaderNames.RANGE);
 		var from = Math.max(r[0], 0);
 		var to = r[1];
 		var contentLen = Math.max((to >= 0 ? to : fsize) - from, 0L);
@@ -722,7 +730,7 @@ public class HttpExchange {
 				.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
 		context.write(res, context.voidPromise());
 
-		if (contentLen > 0 && !HttpMethod.HEAD.equals(request.method())) // 发文件任务全部交给Netty，并且发送完毕时关闭。
+		if (contentLen > 0 && !HttpMethod.HEAD.equals(req.method())) // 发文件任务全部交给Netty，并且发送完毕时关闭。
 			context.write(new DefaultFileRegion(fc, from, contentLen), context.voidPromise());
 		close(context.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT).addListener(__ -> fc.close()));
 	}
