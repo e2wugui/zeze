@@ -74,6 +74,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+
 public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
 	protected static final BeanFactory beanFactory = new BeanFactory();
@@ -339,20 +340,20 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 	}
 
-	private boolean processOffline(Long roleId, @NotNull BLocal local) {
+	private boolean processOffline(Long roleId, @NotNull BLocal local, boolean serverStart) {
 		providerApp.zeze.newProcedure(
-				() -> procedureOffline(roleId, local),
+				() -> procedureOffline(roleId, local, serverStart),
 				"procedureOffline").call();
 		return true; // continue walk
 	}
 
-	private long procedureOffline(Long roleId, @NotNull BLocal local) throws Exception {
+	private long procedureOffline(Long roleId, @NotNull BLocal local, boolean serverStart) throws Exception {
 		var online = getOrAddOnline(roleId);
 		var account = online.getAccount();
 
 		// 本机数据已经过时，马上删除。
 		if (local.getLoginVersion() != online.getLoginVersion()) {
-			var ret = removeLocalAndTrigger(roleId);
+			var ret = removeLocalAndTrigger(roleId, !serverStart);
 			if (ret != 0) {
 				logger.info("processOffline({}): account={}, roleId={}, removeLocalAndTrigger={}",
 						multiInstanceName, account, roleId, ret);
@@ -399,7 +400,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// default online 负责所有的online set。
 		if (defaultInstance == this) {
 			getProviderWithOnline().foreachOnline(online -> {
-				online._tlocal.walk(this::processOffline);
+				online._tlocal.walk((roleId, local) -> processOffline(roleId, local, true));
 			});
 		}
 	}
@@ -413,7 +414,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (defaultInstance == this) {
 			providerApp.providerService.setDisableChoiceFromLinks(true);
 			getProviderWithOnline().foreachOnline(online -> {
-				online._tlocal.walk(this::processOffline);
+				online._tlocal.walk((roleId, local) -> processOffline(roleId, local, false));
 			});
 		}
 	}
