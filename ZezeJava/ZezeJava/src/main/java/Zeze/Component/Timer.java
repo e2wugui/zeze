@@ -33,6 +33,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.LongHashSet;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -108,7 +109,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			hotManager.addHotBeanFactory(this);
 			beanFactory.registerWatch(this::tryRecordHotModule);
 		}
-		Task.run(this::loadTimer, "Timer.loadTimer");
+		// Task.run(this::loadTimer, "Timer.loadTimer");
+		loadTimer();
 	}
 
 	/**
@@ -1102,13 +1104,14 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	private void loadTimer() {
 		var serverId = zeze.getConfig().getServerId();
 		final var out = new OutObject<BNodeRoot>();
-		if (Procedure.Success == Task.call(zeze.newProcedure(() -> {
+		var r = Task.call(zeze.newProcedure(() -> {
 			var root = _tNodeRoot.getOrAdd(serverId);
 			// 本地每次load都递增。用来处理和接管的并发。
 			root.setLoadSerialNo(root.getLoadSerialNo() + 1);
 			out.value = root.copy();
 			return 0L;
-		}, "Timer.loadTimerLocal"))) {
+		}, "Timer.loadTimerLocal"));
+		if (r == Procedure.Success) {
 			var root = out.value;
 			var offlineNotify = new BOfflineNotify();
 			offlineNotify.serverId = zeze.getConfig().getServerId();
@@ -1117,11 +1120,16 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			zeze.getServiceManager().offlineRegister(offlineNotify,
 					(notify) -> spliceLoadTimer(notify.serverId, notify.notifySerialId));
 			loadTimer(root.getHeadNodeId(), root.getHeadNodeId(), serverId);
-		}
+		} else
+			logger.error("loadTimer failed: r={}", r);
 	}
 
-	// 收到接管通知的服务器调用这个函数进行接管处理。
-	// @serverId 需要接管的服务器Id。
+	/**
+	 * 收到接管通知的服务器调用这个函数进行接管处理。
+	 *
+	 * @param serverId 需要接管的服务器Id
+	 * @return 事务执行结果. 0表示成功
+	 */
 	private long spliceLoadTimer(int serverId, long loadSerialNo) {
 		if (serverId == zeze.getConfig().getServerId())
 			return 0; // skip self
@@ -1143,10 +1151,15 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			var srcHead = _tNodes.get(src.getHeadNodeId());
 			var srcTail = _tNodes.get(src.getTailNodeId());
 			var head = _tNodes.get(root.getHeadNodeId());
-			//var tail = _tNodes.get(root.getTailNodeId());
+			var tail = _tNodes.get(root.getTailNodeId());
 
-			if (null == srcHead || null == srcTail || null == head)
+			if (null == srcHead || null == srcTail)
 				throw new IllegalStateException("maybe operate before timer created.");
+
+			if (head == null || tail == null) {
+				root.setHeadNodeId(src.getHeadNodeId());
+				root.setTailNodeId(src.getTailNodeId());
+			}
 
 			// 先保存存储过程退出以后需要装载的timer范围。
 			first.value = src.getHeadNodeId();
@@ -1154,7 +1167,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			// splice
 			srcTail.setNextNodeId(root.getHeadNodeId());
 			root.setHeadNodeId(src.getHeadNodeId());
-			head.setPrevNodeId(src.getTailNodeId());
+			if (head != null)
+				head.setPrevNodeId(src.getTailNodeId());
+			if (tail != null)
+				tail.setNextNodeId(src.getHeadNodeId());
 			srcHead.setPrevNodeId(root.getTailNodeId());
 			// clear src
 			src.setHeadNodeId(0L);
@@ -1170,11 +1186,16 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 	// 如果存在node，至少执行一次循环。
 	private long loadTimer(long first, long last, int serverId) {
+		var idSet = new LongHashSet();
 		var node = new OutLong(first);
 		do {
+			var nodeId = node.value;
+			if (!idSet.add(nodeId)) // 检测并避免死循环
+				break;
 			// skip error. 使用node返回的值决定是否继续循环。
 			var r = Task.call(zeze.newProcedure(() -> loadTimer(node, last, serverId), "Timer.loadTimer"));
 			if (r != Procedure.Success) {
+				logger.error("loadTimer failed: r={}, nodeId={}", r, nodeId);
 				try {
 					//noinspection BusyWait
 					Thread.sleep(1000); // 避免因FastErrorPeriod导致过于频繁的事务失败
@@ -1188,10 +1209,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	private long loadTimer(@NotNull OutLong first, long last, int serverId) throws ParseException {
 		var node = _tNodes.get(first.value);
 		if (null == node) {
+			logger.warn("loadTimer not found nodeId={}", first.value);
 			first.value = last; // 马上结束外面的循环。last仅用在这里。
 			return 0; // when root is empty。no node。skip error.
 		}
-		// BUG 修复，如果fitst.value直接设置，在发生redo时，当前node会被跳过。
+		// BUG 修复，如果first.value直接设置，在发生redo时，当前node会被跳过。
 		// 这是因为first是in&out的。另一个解决办法是，first改成只out，当前node用另一个值参数传入。
 		Transaction.whileCommit(() -> {
 			first.value = node.getNextNodeId(); // 设置下一个node。
