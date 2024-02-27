@@ -1206,6 +1206,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			if (index == null)
 				continue;
 
+			// 优化不能用Config.getServerId整体判断，因为load中断会导致传入的serverId就是当前Config的，
+			// 这回导致load中断后，部分数据没有被设置正确的serverId。
+			// 需要提前到schedule之前，后面的schedule会判断这个值。
+			if (serverId != index.getServerId()) {
+				index.setServerId(serverId);
+			}
 			if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
 				var simpleTimer = (BSimpleTimer)timer.getTimerObj().getBean();
 				if (simpleTimer.getNextExpectedTime() < now) { // missFire found
@@ -1259,9 +1265,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 						serverId, timer.getTimerName(), cronTimer,
 						timer.getConcurrentFireSerialNo(),
 						true, cronTimer.getOneByOneKey());
-			}
-			if (serverId != zeze.getConfig().getServerId()) {
-				index.setServerId(serverId);
 			}
 		}
 		return 0L;
