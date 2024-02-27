@@ -276,15 +276,15 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 					// link to root head
 					var head = _tNodes.get(root.getHeadNodeId());
 					if (null == head)
-						throw new IllegalStateException("head is null. maybe operate before create.");
+						throw new IllegalStateException("headNode is null. maybe operate before create.");
 					head.setPrevNodeId(nodeId);
 					node.setNextNodeId(root.getHeadNodeId());
 					node.setPrevNodeId(root.getTailNodeId());
 					root.setHeadNodeId(nodeId);
-					var tailNode = _tNodes.get(root.getTailNodeId());
-					if (null == tailNode)
+					var tail = _tNodes.get(root.getTailNodeId());
+					if (null == tail)
 						throw new IllegalStateException("tailNode is null. maybe operate before create.");
-					tailNode.setNextNodeId(root.getHeadNodeId());
+					tail.setNextNodeId(root.getHeadNodeId());
 				}
 			}
 
@@ -471,15 +471,15 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 					// link to root head
 					var head = _tNodes.get(root.getHeadNodeId());
 					if (null == head)
-						throw new IllegalStateException("head is null. maybe operate before create.");
+						throw new IllegalStateException("headNode is null. maybe operate before create.");
 					head.setPrevNodeId(nodeId);
 					node.setNextNodeId(root.getHeadNodeId());
 					node.setPrevNodeId(root.getTailNodeId());
 					root.setHeadNodeId(nodeId);
-					var tailNode = _tNodes.get(root.getTailNodeId());
-					if (null == tailNode)
+					var tail = _tNodes.get(root.getTailNodeId());
+					if (null == tail)
 						throw new IllegalStateException("tailNode is null. maybe operate before create.");
-					tailNode.setNextNodeId(root.getHeadNodeId());
+					tail.setNextNodeId(root.getHeadNodeId());
 				}
 			}
 
@@ -1134,8 +1134,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		if (serverId == zeze.getConfig().getServerId())
 			return 0; // skip self
 
-		final var first = new OutObject<Long>();
-		final var last = new OutObject<Long>();
+		final var first = new OutLong();
+		final var last = new OutLong();
 
 		var result = Task.call(zeze.newProcedure(() -> {
 			// 当接管别的服务器的定时器时，有可能那台服务器有新的CustomData，这个时候重新加载一次。
@@ -1186,6 +1186,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 	// 如果存在node，至少执行一次循环。
 	private long loadTimer(long first, long last, int serverId) {
+		if (first == 0 && last == 0)
+			return 0;
 		var idSet = new LongHashSet();
 		var node = new OutLong(first);
 		do {
