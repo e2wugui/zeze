@@ -16,6 +16,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Table;
+import Zeze.Transaction.TableDynamic;
 import Zeze.Transaction.TableWalkKey;
 import Zeze.Transaction.TableX;
 import Zeze.Util.Json;
@@ -27,8 +28,12 @@ import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class DbWeb extends AbstractDbWeb {
+	private static final Logger logger = LogManager.getLogger(DbWeb.class);
+
 	private Application zeze;
 	private String cachedListHtml;
 
@@ -83,8 +88,17 @@ public class DbWeb extends AbstractDbWeb {
 			for (var table : tables) {
 				var tableName = table.getName();
 				sb.append("<option value=\"").append(tableName).append("\">").append(tableName).append(" (");
-				sb.append(((Class<?>)(((ParameterizedType)table.getClass().getGenericSuperclass())
-						.getActualTypeArguments()[0])).getSimpleName());
+				if (table instanceof TableDynamic)
+					sb.append("TableDynamic");
+				else {
+					try {
+						sb.append(((Class<?>)(((ParameterizedType)table.getClass().getGenericSuperclass())
+								.getActualTypeArguments()[0])).getSimpleName());
+					} catch (Exception e) {
+						logger.error("unexpected key type: {}", tableName, e);
+						sb.append('?');
+					}
+				}
 				sb.append(")</option>\n");
 			}
 			sb.append("</select> <input type=submit value=clear onclick=\"return c()\"/><p>key: <input id=k />\n"
