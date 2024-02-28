@@ -3,9 +3,8 @@ ServiceManager::OfflineNotify 选择目标遍历优化。
 DatabaseDynamoDb 还需测试。
 Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 Hot alter 测试，需要mysql。
-FoundationDB support
 ------------------------------------------------------------------------------------------------------------------------------
-2024/3/1 v1.4.2 Global.Releaser; CheckpointMode; 3Others Component; Online Local; MetaGame; 
+2024/3/1 v1.4.2 Global.Releaser; CheckpointMode; 3Others Component; Online Local; MetaGame; Timer;
 ------------------------------------------------------------------------------------------------------------------------------
 MetaGame 迁移Task，World到这个独立项目。
 Game.Online Local 表改成持久化+实现一个Clear，在停止和启动的时候执行一遍。
