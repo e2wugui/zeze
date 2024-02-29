@@ -7,5 +7,4 @@ public interface BFuncSagaEndResultReadOnly {
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
     BFuncSagaEndResult copy();
-
 }
