@@ -49,8 +49,8 @@ public class TestGameTimer {
 			links.get(i).Start(-(i+1), 12000 + i, 15000 + i);
 		for (int i = 40; i < serverCount + 40; ++i) {
 			servers.get(i - 40).Start(i, 20000 + i - 40);
-			servers.get(i - 40).getZeze().getTimer().initializeOnlineTimer(servers.get(i - 40).ProviderApp);
-			servers.get(i - 40).getZeze().getTimer().start();
+			//servers.get(i - 40).getZeze().getTimer().initializeOnlineTimer(servers.get(i - 40).ProviderApp);
+			//servers.get(i - 40).getZeze().getTimer().start();
 		}
 		for (var link : links) {
 			waitLinkdProvider(link);

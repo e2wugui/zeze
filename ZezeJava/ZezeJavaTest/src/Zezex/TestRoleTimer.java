@@ -39,8 +39,8 @@ public class TestRoleTimer {
 			links.get(i).Start(-(i+1), 12000 + i, 15000 + i);
 		for (int i = 0; i < serverCount; ++i) {
 			servers.get(i).Start(i + 40, 20000 + i);
-			servers.get(i).getZeze().getTimer().initializeOnlineTimer(servers.get(i).ProviderApp);
-			servers.get(i).getZeze().getTimer().start();
+			//servers.get(i).getZeze().getTimer().initializeOnlineTimer(servers.get(i).ProviderApp);
+			//servers.get(i).getZeze().getTimer().start();
 		}
 		Thread.sleep(2000);
 		for (int i = 0; i < clientCount; ++i) {
