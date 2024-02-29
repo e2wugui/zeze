@@ -17,7 +17,7 @@ public class LogCommitBatch extends Log {
 	}
 
 	public LogCommitBatch(CommitBatch req) {
-		super(null);
+		super(req);
 		if (null != req)
 			tid = req.Argument.getTid();
 	}

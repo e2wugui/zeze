@@ -177,7 +177,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	@Override
 	protected long ProcessSetBucketMetaRequest(SetBucketMeta r) throws Exception {
 		var log = new LogSetBucketMeta(r);
-		raft.appendLog(log, r.Result, (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException)); // result is empty
+		raft.appendLog(log, r.Result, (raftLog, result)
+				-> r.SendResultCode(result ? 0 : Procedure.CancelException)); // result is empty
 		return 0;
 	}
 
@@ -259,7 +260,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			}
 
 			// apply to raft
-			getRaft().appendLog(new LogPrepareBatch(r),
+			getRaft().appendLog(new LogPrepareBatch(r), r.Result,
 					(raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 
 			// 操作成功，释放所有权。see finally.
@@ -275,13 +276,15 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	@Override
 	protected long ProcessCommitBatchRequest(CommitBatch r) throws Exception {
-		getRaft().appendLog(new LogCommitBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
+		getRaft().appendLog(new LogCommitBatch(r), r.Result,
+				(raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 		return 0;
 	}
 
 	@Override
 	protected long ProcessUndoBatchRequest(UndoBatch r) throws Exception {
-		getRaft().appendLog(new LogUndoBatch(r), (raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
+		getRaft().appendLog(new LogUndoBatch(r), r.Result,
+				(raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 		return 0;
 	}
 

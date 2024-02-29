@@ -18,7 +18,7 @@ public class LogPrepareBatch extends Log {
 	}
 
 	public LogPrepareBatch(PrepareBatch req) {
-		super(null);
+		super(req);
 		if (null != req)
 			this.argument = req.Argument.getBatch();
 	}

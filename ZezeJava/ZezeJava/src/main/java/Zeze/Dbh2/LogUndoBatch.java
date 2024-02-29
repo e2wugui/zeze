@@ -17,7 +17,7 @@ public class LogUndoBatch extends Log {
 	}
 
 	public LogUndoBatch(UndoBatch req) {
-		super(null);
+		super(req);
 		if (null != req)
 			this.tid = req.Argument.getTid();
 	}
