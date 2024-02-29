@@ -488,6 +488,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	protected long ProcessSetDisableChoiceRequest(Zeze.Builtin.Provider.SetDisableChoice r) throws Exception {
 		var session = (LinkdProviderSession)r.getSender().getUserState();
 		session.setDisableChoice(r.Argument.isDisableChoice());
+		r.SendResultCode(0);
 		return 0;
 	}
 }
