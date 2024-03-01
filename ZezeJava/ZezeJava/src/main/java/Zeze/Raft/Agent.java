@@ -45,7 +45,7 @@ public final class Agent {
 	private final PersistentAtomicLong uniqueRequestIdGenerator;
 	private RaftConfig raftConfig;
 	private NetClient client;
-	private volatile ConnectorEx leader;
+	private volatile ConnectorProxy leader;
 	private final LongConcurrentHashMap<RaftRpc<?, ?>> pending = new LongConcurrentHashMap<>();
 	private long term;
 	public boolean dispatchProtocolToInternalThreadPool;
@@ -78,7 +78,7 @@ public final class Agent {
 		return client.getName();
 	}
 
-	public ConnectorEx getLeader() {
+	public ConnectorProxy getLeader() {
 		return leader;
 	}
 
@@ -131,9 +131,9 @@ public final class Agent {
 			throw new IllegalStateException("duplicate requestId rpc=" + rpc);
 
 		rpc.setResponseHandle(p -> sendHandle(p, rpc));
-		ConnectorEx leader = this.leader;
+		ConnectorProxy leader = this.leader;
 		if (!ProxyAgent.send(client, proxyAgent, rpc,
-				leader, (null != leader) ? leader.TryGetReadySocket() : null))
+				leader, (null != leader) ? leader.getConnector().TryGetReadySocket() : null))
 			logger.debug("Send failed: leader={}, rpc={}", leader, rpc);
 	}
 
@@ -221,36 +221,47 @@ public final class Agent {
 			throw new IllegalStateException("duplicate requestId rpc=" + rpc);
 
 		rpc.setResponseHandle(p -> sendForWaitHandle(p, rpc));
-		ConnectorEx leader = this.leader;
+		ConnectorProxy leader = this.leader;
 		if (!ProxyAgent.send(client, proxyAgent, rpc,
-				leader, (null != leader) ? leader.TryGetReadySocket() : null))
+				leader, (null != leader) ? leader.getConnector().TryGetReadySocket() : null))
 			logger.debug("Send failed: leader={}, rpc={}", leader, rpc);
 		return future;
 	}
 
-	public static class ConnectorEx extends Connector {
-		private String raftName;
+	/**
+	 * Connector 代理，
+	 * 1. 当没有启用代理时，它和里面指向的connector一一对应。
+	 * 2. 当启用代理时，它和里面指向的connector是多对一的关系。
+	 */
+	public static class ConnectorProxy {
+		private final String raftName;
+		private final Connector connector;
 
-		@Override
 		public String getName() {
-			return (null == raftName || raftName.isBlank()) ? super.getName() : raftName;
+			return (null == raftName || raftName.isBlank()) ? connector.getName() : raftName;
 		}
 
-		// proxy new 的时候需要设置。
-		public void setRaftName(String raftName) {
+		public Connector getConnector() {
+			return connector;
+		}
+
+		/**
+		 * 启用代理构造函数
+		 * @param raftName raftName
+		 * @param connector connector
+		 */
+		public ConnectorProxy(String raftName, Connector connector) {
 			this.raftName = raftName;
+			this.connector = connector;
 		}
 
-		public ConnectorEx(String host) {
-			this(host, 0);
-		}
-
-		public ConnectorEx(String host, int port) {
-			super(host, port);
-		}
-
-		public ConnectorEx(String host, int port, boolean autoReconnect) {
-			super(host, port, autoReconnect);
+		/**
+		 * 没有启用代理构造函数
+		 * @param connector connector
+		 */
+		public ConnectorProxy(Connector connector) {
+			this.raftName = null;
+			this.connector = connector;
 		}
 	}
 
@@ -359,12 +370,12 @@ public final class Agent {
 		if (proxyAgent == null) {
 			// 没有启用代理，按原始raft方式建立连接器。
 			for (var node : raftConfig.getNodes().values())
-				this.client.getConfig().addConnector(new ConnectorEx(node.getHost(), node.getPort()));
+				this.client.getConfig().addConnector(new Connector(node.getHost(), node.getPort()));
 		} else {
 			proxyAgent.addAgent(this);
 			leader = proxyAgent.getLeader(raftConfig.getNodes().values().iterator().next());
 			logger.info("proxy first leader {} {}_{}",
-					leader.getName(), leader.getHostNameOrAddress(), leader.getPort());
+					leader.getName(), leader.getConnector().getHostNameOrAddress(), leader.getConnector().getPort());
 		}
 
 		this.client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
@@ -390,7 +401,7 @@ public final class Agent {
 	}
 
 	private long processLeaderIs(LeaderIs r) throws Exception {
-		ConnectorEx leader = this.leader;
+		ConnectorProxy leader = this.leader;
 		logger.info("=============== LEADERIS Old={} New={} From={}",
 				leader != null ? leader.getName() : null, r.Argument.getLeaderId(), r.getSender());
 
@@ -430,7 +441,7 @@ public final class Agent {
 			}
 		}
 
-		if (setLeader(r, node instanceof ConnectorEx ? (ConnectorEx)node : null))
+		if (setLeader(r, new ConnectorProxy(node)))
 			resend(true);
 
 		r.SendResultCode(0);
@@ -459,11 +470,11 @@ public final class Agent {
 	}
 
 	private void resend(boolean immediately) {
-		ConnectorEx leader = this.leader;
+		ConnectorProxy leader = this.leader;
 		if (leader != null)
-			leader.start();
+			leader.getConnector().start();
 		// ReSendPendingRpc
-		var leaderSocket = leader != null ? leader.TryGetReadySocket() : null;
+		var leaderSocket = leader != null ? leader.getConnector().TryGetReadySocket() : null;
 		ArrayList<RaftRpc<?, ?>> removed = null;
 		long now = System.currentTimeMillis();
 		long timeout = raftConfig.getAppendEntriesTimeout() + 200; // 比一次raft-rpc超时大一些。
@@ -538,7 +549,7 @@ public final class Agent {
 		}
 	}
 
-	public boolean setLeader(LeaderIs r, ConnectorEx newLeader) throws Exception {
+	public boolean setLeader(LeaderIs r, ConnectorProxy newLeader) throws Exception {
 		mutex.lock();
 		try {
 			if (r.Argument.getTerm() < term) {
@@ -548,14 +559,14 @@ public final class Agent {
 
 			logger.info("proxy set leader {} {}_{}->{} {}_{}",
 					null != leader ? leader.getName() : "",
-					null != leader ? leader.getHostNameOrAddress() : "",
-					null != leader ? leader.getPort() : "",
+					null != leader ? leader.getConnector().getHostNameOrAddress() : "",
+					null != leader ? leader.getConnector().getPort() : "",
 					newLeader.getName(),
-					newLeader.getHostNameOrAddress(),
-					newLeader.getPort());
+					newLeader.getConnector().getHostNameOrAddress(),
+					newLeader.getConnector().getPort());
 			leader = newLeader; // change current Leader
 			term = r.Argument.getTerm();
-			newLeader.start(); // try connect immediately
+			newLeader.getConnector().start(); // try connect immediately
 			Action1<Agent> onSetLeader = this.onSetLeader;
 			if (onSetLeader != null)
 				onSetLeader.run(this);
@@ -615,15 +626,15 @@ public final class Agent {
 		send(new GetLeader(), (p) -> handle.applyAsLong((GetLeader)p));
 	}
 
-	public static ConnectorEx waitForLeader(RaftConfig raftConfig) {
+	public static Connector waitForLeader(RaftConfig raftConfig) {
 		return waitForLeader(raftConfig, 0, null);
 	}
 
-	public static ConnectorEx waitForLeader(RaftConfig raftConfig, long timeoutMs) {
+	public static Connector waitForLeader(RaftConfig raftConfig, long timeoutMs) {
 		return waitForLeader(raftConfig, timeoutMs, null);
 	}
 
-	public static ConnectorEx waitForLeader(RaftConfig raftConfig, long timeoutMs, OutObject<Agent> out) {
+	public static Connector waitForLeader(RaftConfig raftConfig, long timeoutMs, OutObject<Agent> out) {
 		if (raftConfig.getSuggestMajorityCount() < raftConfig.getMajorityCount())
 			throw new RuntimeException("suggest majority node too few.");
 
@@ -632,8 +643,8 @@ public final class Agent {
 			Zeze.Util.Random.getInstance().nextBytes(randName);
 			var agent = new Agent(Arrays.toString(randName), raftConfig);
 			try {
-				var future = new TaskCompletionSource<ConnectorEx>();
-				agent.setOnSetLeader((_agent) -> future.setResult(_agent.getLeader()));
+				var future = new TaskCompletionSource<Connector>();
+				agent.setOnSetLeader((_agent) -> future.setResult(_agent.getLeader().getConnector()));
 				agent.getClient().start();
 				var netConfig = agent.getClient().getConfig();
 				// 如果相信onSetLeader是即时的，不会丢失，本来不需要主动GetLeader。
@@ -641,7 +652,7 @@ public final class Agent {
 				// 这个请求在没有leader的时候也可以发送，它会resend，最终等到leader选举出来，当然也有超时。
 				agent.getLeaderAsync((get) -> {
 					if (get.getResultCode() == 0)
-						future.setResult((ConnectorEx)netConfig.findConnector(get.Result.getLeaderId()));
+						future.setResult(netConfig.findConnector(get.Result.getLeaderId()));
 					return 0;
 				});
 				// 上面有两个地方setResult，谁先都可以。一般onSetLeader先完成。
@@ -662,13 +673,13 @@ public final class Agent {
 		}
 	}
 
-	public static ConnectorEx waitForLeader(Agent agent, RaftConfig raftConfig, long timeoutMs) throws Exception {
-		var future = new TaskCompletionSource<ConnectorEx>();
-		agent.setOnSetLeader((_agent) -> future.setResult(_agent.getLeader()));
+	public static Connector waitForLeader(Agent agent, RaftConfig raftConfig, long timeoutMs) throws Exception {
+		var future = new TaskCompletionSource<Connector>();
+		agent.setOnSetLeader((_agent) -> future.setResult(_agent.getLeader().getConnector()));
 		var netConfig = agent.getClient().getConfig();
 		agent.getLeaderAsync((get) -> {
 			if (get.getResultCode() == 0)
-				future.setResult((ConnectorEx)netConfig.findConnector(get.Result.getLeaderId()));
+				future.setResult(netConfig.findConnector(get.Result.getLeaderId()));
 			return 0;
 		});
 		// 上面有两个地方setResult，谁先都可以。一般onSetLeader先完成。
@@ -682,12 +693,12 @@ public final class Agent {
 		return future.get(timeoutMs, TimeUnit.MILLISECONDS); // 这里使用用户超时，需要确保超时大于选举需要的时间。
 	}
 
-	public java.util.List<ConnectorEx> getActiveSuggestMajorityConnectors() {
-		var result = new ArrayList<ConnectorEx>();
+	public java.util.List<ConnectorProxy> getActiveSuggestMajorityConnectors() {
+		var result = new ArrayList<ConnectorProxy>();
 		for (var node : raftConfig.getNodes().values()) {
 			var connector = client.getConfig().findConnector(node.getName());
 			if (null != connector && connector.TryGetReadySocket() != null)
-				result.add((ConnectorEx)connector);
+				result.add(new ConnectorProxy(connector));
 		}
 		return result;
 	}
@@ -709,7 +720,7 @@ public final class Agent {
 		// 检测活跃的建议的节点数量足够，达到多数派；
 		if (agentOut.value.getActiveSuggestMajorityConnectors().size() < raftConfig.getMajorityCount())
 			return "active suggest majority count not enough.";
-		var stoppeds = new ArrayList<ConnectorEx>();
+		var stoppeds = new ArrayList<Connector>();
 		try {
 			// 停止非建议的节点的Leader；
 			// 不能一下子停止所有的非建议节点；

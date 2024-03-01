@@ -58,22 +58,36 @@ public class ProxyAgent extends Service {
 		return 0;
 	}
 
+	public static class ConnectorEx extends Connector {
+		private final ConcurrentHashMap<String, Agent.ConnectorProxy> proxys = new ConcurrentHashMap<>();
+
+		public ConnectorEx(String host, int port) {
+			super(host, port, true);
+		}
+
+		public ConnectorEx(String host, int port, boolean autoConnect) {
+			super(host, port, autoConnect);
+		}
+
+		public Agent.ConnectorProxy getConnectorProxy(String name) {
+			return proxys.computeIfAbsent(name, __ -> new Agent.ConnectorProxy(name, this));
+		}
+	}
 	/**
 	 * 获取Leader的ConnectorEx，
 	 *
 	 * @param node leader node config
 	 * @return Agent.ConnectorEx
 	 */
-	public Agent.ConnectorEx getLeader(RaftConfig.Node node) {
+	public Agent.ConnectorProxy getLeader(RaftConfig.Node node) {
 		if (!node.getProxyHost().isBlank() && node.getProxyPort() != 0) {
 			var outConnector = new OutObject<Connector>();
 			if (getConfig().tryGetOrAddConnector(
 					node.getProxyHost(), node.getProxyPort(),
-					true, outConnector, Agent.ConnectorEx::new)) {
-				((Agent.ConnectorEx)outConnector.value).setRaftName(node.getName());
+					true, outConnector, ConnectorEx::new)) {
 				outConnector.value.start();
 			}
-			return (Agent.ConnectorEx)outConnector.value;
+			return ((ConnectorEx)outConnector.value).getConnectorProxy(node.getName());
 		}
 		return null;
 	}
@@ -103,7 +117,7 @@ public class ProxyAgent extends Service {
 	public static boolean send(Service localService,
 							   ProxyAgent proxyAgent,
 							   RaftRpc<?, ?> rpc,
-							   Agent.ConnectorEx leader,
+							   Agent.ConnectorProxy leader,
 							   AsyncSocket leaderSocket) {
 
 		if (null != proxyAgent) {
