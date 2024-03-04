@@ -4,8 +4,16 @@ import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseMySql;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+/*
+:test
+java -cp * Temp.TestJdbcHalt
+if %errorlevel% == 9 goto test
+*/
 public class TestJdbcHalt {
+	private static final Logger logger = LogManager.getLogger(TestJdbcHalt.class);
 	private static final int tableCount = 5;
 	private static final int recordCount = 10000;
 	private static volatile long curKey;
@@ -49,38 +57,43 @@ public class TestJdbcHalt {
 			if (v >= 0)
 				n++;
 		}
-		System.out.println("checked " + n + " records OK!");
+		logger.info("checked {} records OK!", n);
 		return max;
 	}
 
-	public static void main(String[] args) throws Exception {
-		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseType(Config.DbType.MySql);
-		dbConf.setDatabaseUrl("jdbc:mysql://"
-				+ (args.length > 0 ? args[0] : "localhost:3306/devtest?user=dev&password=devtest12345")
-				+ "&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true");
-		dbConf.setName("mysql");
-		dbConf.setDruidConf(new Config.DruidConf());
+	public static void main(String[] args) {
+		try {
+			var dbConf = new Config.DatabaseConf();
+			dbConf.setDatabaseType(Config.DbType.MySql);
+			dbConf.setDatabaseUrl("jdbc:mysql://"
+					+ (args.length > 0 ? args[0] : "localhost:3306/devtest?user=dev&password=devtest12345")
+					+ "&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true");
+			dbConf.setName("mysql");
+			dbConf.setDruidConf(new Config.DruidConf());
 
-		System.out.println("init mysql client ...");
-		var mysql = new DatabaseMySql(null, dbConf);
-		var tables = new DatabaseMySql.TableMysql[tableCount];
-		for (int i = 0; i < tableCount; i++)
-			tables[i] = (DatabaseMySql.TableMysql)mysql.openTable("TestJdbcHalt" + i);
+			logger.info("init mysql client ...");
+			var mysql = new DatabaseMySql(null, dbConf);
+			var tables = new DatabaseMySql.TableMysql[tableCount];
+			for (int i = 0; i < tableCount; i++)
+				tables[i] = (DatabaseMySql.TableMysql)mysql.openTable("TestJdbcHalt" + i);
 
-		System.out.println("check tables ...");
-		var max = check(tables);
-		curKey = max;
-		new Thread(() -> {
-			var ms = ThreadLocalRandom.current().nextInt(1000, 5000);
-			System.out.println("wait " + ms + " ms");
-			try {
-				Thread.sleep(ms);
-			} catch (InterruptedException ignored) {
-			}
-			System.out.println("halt! curKey = " + curKey);
-			Runtime.getRuntime().halt(9);
-		}).start();
-		updateLoop(mysql, tables, max + 1);
+			logger.info("check tables ...");
+			var max = check(tables);
+			curKey = max;
+			new Thread(() -> {
+				var ms = ThreadLocalRandom.current().nextInt(1000, 5000);
+				logger.info("wait {} ms", ms);
+				try {
+					Thread.sleep(ms);
+				} catch (InterruptedException ignored) {
+				}
+				logger.info("halt! curKey = {}", curKey);
+				Runtime.getRuntime().halt(9);
+			}).start();
+			updateLoop(mysql, tables, max + 1);
+		} catch (Throwable e) {
+			logger.error("main exception:", e);
+			System.exit(1);
+		}
 	}
 }
