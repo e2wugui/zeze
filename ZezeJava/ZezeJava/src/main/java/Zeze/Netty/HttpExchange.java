@@ -460,22 +460,14 @@ public class HttpExchange {
 		if (handler == null)
 			return;
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
-			frame.retain();
 			var p = server.zeze.newProcedure(() -> {
-				try {
-					fireWebSocket0(frame);
-				} finally {
-					frame.release();
-				}
+				fireWebSocket0(frame);
 				return Procedure.Success;
 			}, "fireWebSocket");
-			if (handler.Mode == DispatchMode.Direct) {
-				try {
-					Task.call(p);
-				} finally {
-					frame.release();
-				}
-			} else {
+			if (handler.Mode == DispatchMode.Direct)
+				Task.call(p);
+			else {
+				frame.retain();
 				server.task11Executor.Execute(context.channel().id(), () -> {
 					try {
 						return p.call();
