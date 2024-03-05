@@ -386,7 +386,7 @@ public final class Config {
 		return databaseConfMap;
 	}
 
-	private static Database createDatabase(@NotNull Application zeze, @NotNull DatabaseConf conf) throws Exception {
+	public static Database createDatabase(@NotNull Application zeze, @NotNull DatabaseConf conf) throws Exception {
 		switch (conf.databaseType) {
 		case Memory:
 			return new DatabaseMemory(zeze, conf);
