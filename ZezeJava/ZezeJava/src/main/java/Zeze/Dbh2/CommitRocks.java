@@ -13,6 +13,7 @@ import Zeze.IModule;
 import Zeze.Raft.RaftRpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.Func2;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -143,7 +144,7 @@ public class CommitRocks {
 		var futuresRedirect = new ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
 		for (var e : futures) {
 			var r = e.get();
-			if (r.getResultCode() != 0)
+			if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
 				throw new RuntimeException("prepare error=" + IModule.getErrorCode(r.getResultCode()));
 			// 【dbh2 拒绝模式结果处理】
 			var refused = r.Result.getRefused();
