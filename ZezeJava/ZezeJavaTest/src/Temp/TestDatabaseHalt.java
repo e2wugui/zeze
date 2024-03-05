@@ -20,7 +20,7 @@ public class TestDatabaseHalt {
 			tables[i] = (Database.AbstractKVTable)database.openTable("TableTestDatabaseHalt" + i);
 
 		// verify and get
-		long count;
+		var count = 0L;
 		{
 			ByteBuffer key = ByteBuffer.Allocate();
 			key.WriteInt(1);
@@ -30,12 +30,14 @@ public class TestDatabaseHalt {
 				if (null != value)
 					counts.add(ByteBuffer.Wrap(value).ReadLong());
 			}
-			if (!counts.isEmpty() && counts.size() != tables.length)
-				throw new RuntimeException("table count mismatch that has value."); // empty is ok.
-			count = counts.get(0);
-			for (var i = 1; i < counts.size(); ++i) {
-				if (!counts.get(i).equals(count))
-					throw new RuntimeException("halt test fail!!!");
+			if (!counts.isEmpty()) {
+				if (counts.size() != tables.length)
+					throw new RuntimeException("table count mismatch that has value."); // empty is ok.
+				count = counts.get(0);
+				for (var i = 1; i < counts.size(); ++i) {
+					if (!counts.get(i).equals(count))
+						throw new RuntimeException("halt test fail!!!");
+				}
 			}
 		}
 		// start halt thread
