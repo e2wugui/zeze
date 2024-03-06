@@ -139,7 +139,8 @@ public class ProxyAgent extends Service {
 							localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
 						}
 					} else {
-						logger.error("Agent ProxyRequest error={}", IModule.getErrorCode(proxyRpc.getResultCode()));
+						logger.error("Agent ProxyRequest({}) error={}",
+								proxyArgument.getRaftName(), IModule.getErrorCode(proxyRpc.getResultCode()));
 					}
 					return 0;
 				}, proxyAgent.rpcTimeout);

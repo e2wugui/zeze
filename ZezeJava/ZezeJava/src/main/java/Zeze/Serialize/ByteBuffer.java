@@ -283,7 +283,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	protected int toPower2(int needSize) {
-		if ((needSize & 0xffff_ffffL) > 0x4000_0000) {
+		if (Integer.compareUnsigned(needSize, 0x4000_0000) > 0) {
 			throw new IllegalStateException("invalid needSize=" + needSize
 					+ " at " + ReadIndex + '/' + WriteIndex);
 		}

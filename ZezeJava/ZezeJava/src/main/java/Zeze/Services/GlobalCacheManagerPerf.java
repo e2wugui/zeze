@@ -47,10 +47,9 @@ public class GlobalCacheManagerPerf {
 	}
 
 	void onAcquireBegin(@NotNull Protocol<?> rpc, int state) {
-		if ((state & 0xffff_ffffL) < ACQUIRE_STATE_COUNT) {
-			if (acquires.put(rpc, System.nanoTime()) != null)
-				logger.warn("onAcquireBegin again");
-		}
+		if (Integer.compareUnsigned(state, ACQUIRE_STATE_COUNT) < 0
+				&& acquires.put(rpc, System.nanoTime()) != null)
+			logger.warn("onAcquireBegin again");
 	}
 
 	void onAcquireEnd(@NotNull Protocol<?> rpc, int state) {

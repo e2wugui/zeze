@@ -9,6 +9,6 @@ java -DGenFileSrcRoot=ZezeJava/src/main/java -cp ZezeJava;ZezeJava\build\classes
 echo.
 
 cd ZezexJava\server
-java -DGenFileSrcRoot=src -cp ..\..\ZezeJava;..\..\ZezeJava\build\classes\java\main;..\..\ZezeJava\build\resources\main;..\..\ZezeJava\lib\*;build\classes\java\main Program
+java -DGenFileSrcRoot=src -cp build\classes\java\main;..\..\ZezeJava;..\..\ZezeJava\build\classes\java\main;..\..\ZezeJava\build\resources\main;..\..\ZezeJavaTest\lib\* Program
 
 pause
