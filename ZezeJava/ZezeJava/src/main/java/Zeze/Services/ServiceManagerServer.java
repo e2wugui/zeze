@@ -506,7 +506,7 @@ public final class ServiceManagerServer implements Closeable {
 			logger.info("OfflineNotify: serverId={} end", offlineRegisterServerId);
 		}
 
-		// 从注册了这个notifyId的其他session中随机选择一个。
+		// 从注册了这个notifyId的其他session中随机选择一个。【实际实现是从连接里面按顺序挑选的】
 		private KV<Session, AsyncSocket> randomFor(String notifyId, HashSet<Session> skips) {
 			var sessions = new ArrayList<KV<Session, AsyncSocket>>();
 			try {
