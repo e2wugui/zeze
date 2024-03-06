@@ -14,7 +14,7 @@ if not exist hot run (
 
 set zeze_classes=../../ZezeJava/build/classes/java/main;../../ZezeJava/build/resources/main
 
-start "server" java -cp %zeze_classes%;./hotrun/server.jar;../../ZezeJavaTest/lib/jgrapht-core-1.5.2.jar;../../ZezeJava/lib/* Program
+start "server" java -cp %zeze_classes%;./hotrun/server.jar;../../ZezeJavaTest/lib/* Program
 
 set linkd_classes=%zeze_classes%;../linkd/build/classes/java/main
 start "linkd" java -cp %linkd_classes%;../../ZezeJavaTest/lib/jgrapht-core-1.5.2.jar;../../ZezeJava/lib/* Program

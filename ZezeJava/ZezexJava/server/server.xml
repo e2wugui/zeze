@@ -19,7 +19,19 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 
 	<ServiceManagerConf raftXml="servicemanager.raft.xml"/>
 
+	<DatabaseConf
+		Name=""
+		DatabaseType="MySql"
+		DatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"
+		/>
+	<!--
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
+	<DatabaseConf
+		Name=""
+		DatabaseType="MySql"
+		DatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"
+		/>
+	-->
 
 	<ServiceConf Name="Server" InputBufferMaxProtocolSize="2M">
 	</ServiceConf>

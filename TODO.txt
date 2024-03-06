@@ -1,13 +1,11 @@
 DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
 Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
+TestDatabaseHalt Dbh2 启动错误（再执行一次正常）怀疑问题（table创建等）。
+Hot alter 测试，需要mysql。
 ------------------------------------------------------------------------------------------------------------------------------
 2024/3/15 v1.4.3 Raft.Dbh2; Halt Test; OfflineNotify; Hot Alter; 
 ------------------------------------------------------------------------------------------------------------------------------
-Hot alter 测试，需要mysql。
-
-TestDatabaseHalt Dbh2 启动错误（再执行一次正常）怀疑问题（table创建等）。
-
 ServiceManager::OfflineNotify 选择目标遍历优化。
 【问题】
 1. gs会注册自己关心的慢速离线通知，允许不同的gs注册不同的notifyId。
