@@ -25,12 +25,15 @@ public class TestDatabaseHalt {
 		zeze.getServiceManager().start();
 		zeze.getServiceManager().waitReady();
 		var defaultDatabaseConf = config.getDatabaseConfMap().get("");
+		logger.info(defaultDatabaseConf.getDatabaseUrl());
+		zeze.getDbh2AgentManager().start();
 		var database = Config.createDatabase(zeze, defaultDatabaseConf);
 		var tableCount = 5;
 		var tables = new Database.AbstractKVTable[tableCount];
 		for (var i = 0; i < tableCount; ++i)
 			tables[i] = (Database.AbstractKVTable)database.openTable("TableTestDatabaseHalt" + i);
-
+		for (var table : tables)
+			table.waitReady();
 		// verify and get
 		var count = 0L;
 		{
@@ -42,6 +45,7 @@ public class TestDatabaseHalt {
 				if (null != value)
 					counts.add(ByteBuffer.Wrap(value).ReadLong());
 			}
+			logger.info("counts={}", counts);
 			if (!counts.isEmpty()) {
 				if (counts.size() != tables.length)
 					throw new RuntimeException("table count mismatch that has value."); // empty is ok.
@@ -55,7 +59,7 @@ public class TestDatabaseHalt {
 		// start halt thread
 		new Thread(() -> {
 			try {
-				Thread.sleep(new Random().nextInt(1000) + 500);
+				Thread.sleep(new Random().nextInt(500) + 500);
 				logger.info("halt!");
 				Runtime.getRuntime().halt(1314);
 			} catch (Exception ex) {
