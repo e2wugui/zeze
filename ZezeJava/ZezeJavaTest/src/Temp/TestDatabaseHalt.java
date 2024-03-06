@@ -6,10 +6,20 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Database;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class TestDatabaseHalt {
+	private static final Logger logger = LogManager.getLogger(TestDatabaseHalt.class);
+
 	@SuppressWarnings({"InfiniteLoopStatement", "CallToPrintStackTrace"})
-	public static void main(String [] args) throws Exception {
+	public static void main(String[] args) throws Exception {
+		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+			//noinspection CallToPrintStackTrace
+			e.printStackTrace();
+			logger.error("uncaught exception in {}:", t, e);
+		});
+
 		var config = Config.load();
 		var zeze = new Application("TestDatabaseHalt", config);
 		zeze.getServiceManager().start();
@@ -46,9 +56,10 @@ public class TestDatabaseHalt {
 		new Thread(() -> {
 			try {
 				Thread.sleep(new Random().nextInt(1000) + 500);
+				logger.info("halt!");
 				Runtime.getRuntime().halt(1314);
 			} catch (Exception ex) {
-				ex.printStackTrace();
+				logger.error("", ex);
 			}
 		}).start();
 		// infinite loop
