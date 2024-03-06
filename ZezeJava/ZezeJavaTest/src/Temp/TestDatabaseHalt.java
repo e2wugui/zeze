@@ -12,6 +12,8 @@ public class TestDatabaseHalt {
 	public static void main(String [] args) throws Exception {
 		var config = Config.load();
 		var zeze = new Application("TestDatabaseHalt", config);
+		zeze.getServiceManager().start();
+		zeze.getServiceManager().waitReady();
 		var defaultDatabaseConf = config.getDatabaseConfMap().get("");
 		var database = Config.createDatabase(zeze, defaultDatabaseConf);
 		var tableCount = 5;
@@ -44,7 +46,7 @@ public class TestDatabaseHalt {
 		new Thread(() -> {
 			try {
 				Thread.sleep(new Random().nextInt(1000) + 500);
-				Runtime.getRuntime().halt(1);
+				Runtime.getRuntime().halt(1314);
 			} catch (Exception ex) {
 				ex.printStackTrace();
 			}
