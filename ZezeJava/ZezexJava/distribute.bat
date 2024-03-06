@@ -11,7 +11,7 @@ cd server
 set classes=../../ZezeJava/build/classes/java/main;build/classes/java/main
 
 echo ´ò°ü...
-java -cp %classes%;../../ZezeJava/lib/* Zeze.Hot.Distribute -privateBean -app Game.App -workingDir hot -classes  build/classes/java/main -providerModuleBinds ../provider.module.binds.xml -config server.xml
+java -cp %classes%;../../ZezeJavaTest/lib/* Zeze.Hot.Distribute -privateBean -app Game.App -workingDir hot -classes  build/classes/java/main -providerModuleBinds ../provider.module.binds.xml -config server.xml
 echo OK
 
 cd ..

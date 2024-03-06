@@ -5,6 +5,8 @@ dependencies {
 
     implementation 'org.jgrapht:jgrapht-core:1.5.2'
     implementation 'com.opencsv:opencsv:5.9'
+    implementation 'com.mysql:mysql-connector-j:8.3.0'
+    implementation 'com.alibaba:druid:1.2.21'
 }
 
 sourceSets {
