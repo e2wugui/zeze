@@ -17,10 +17,10 @@ public final class Helper {
 	/**
 	 * @param size size
 	 * @return 符合 2^n 并且不小于size
-	 * @throws IllegalArgumentException if size < 0 || size > 0x4000_0000
+	 * @throws IllegalArgumentException if size < 0 || size > MAX_BUFFER_SIZE
 	 */
 	public static int roundup(int size) {
-		if (size < 0 || size > MAX_BUFFER_SIZE)
+		if (Integer.compareUnsigned(size, MAX_BUFFER_SIZE) > 0)
 			throw new IllegalArgumentException("Helper.roundup size=" + size);
 		int capacity = 16;
 		while (size > capacity)

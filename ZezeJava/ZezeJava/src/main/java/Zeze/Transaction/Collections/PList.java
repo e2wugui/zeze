@@ -145,7 +145,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 	@Override
 	public @NotNull ListIterator<V> listIterator(int index) {
 		int size = size();
-		if (index < 0 || index > size)
+		if (Integer.compareUnsigned(index, size) > 0)
 			throw new IndexOutOfBoundsException("invalid index = " + index + " (size = " + size + ')');
 		return new ListIterator<>() {
 			private int cursor = index;

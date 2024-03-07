@@ -58,7 +58,7 @@ public final class TaskOneByOneByKey extends TaskOneByOneBase {
 	}
 
 	public int getQueueSize(int index) {
-		return index >= 0 && index < concurrency.length ? concurrency[index].size() : -1; // 可能有并发问题导致结果不准确,但通常问题不大
+		return Integer.compareUnsigned(index, concurrency.length) < 0 ? concurrency[index].size() : -1; // 可能有并发问题导致结果不准确,但通常问题不大
 	}
 
 	@Override

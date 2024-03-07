@@ -110,7 +110,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		if (fromIdx >= this.count || count <= 0)
 			return EMPTY;
 		int n = fromIdx + count;
-		n = n < 0 || n > this.count ? this.count - fromIdx : count;
+		n = Integer.compareUnsigned(n, this.count) > 0 ? this.count - fromIdx : count;
 		float[] buf = new float[n];
 		System.arraycopy(buffer, fromIdx, buf, 0, n);
 		return buf;
@@ -313,19 +313,19 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 	}
 
 	public @NotNull FloatList remove(int idx) {
-		int lastIdx = count - 1;
-		if (idx < 0 || idx > lastIdx)
-			return this;
-		count = lastIdx;
-		if (idx != lastIdx)
-			System.arraycopy(buffer, idx + 1, buffer, idx, lastIdx - idx);
+		int lastIdx = count;
+		if (Integer.compareUnsigned(idx, lastIdx) < 0) {
+			count = --lastIdx;
+			if (idx != lastIdx)
+				System.arraycopy(buffer, idx + 1, buffer, idx, lastIdx - idx);
+		}
 		return this;
 	}
 
 	public @NotNull FloatList removeAndExchangeLast(int idx) {
-		int lastIdx = count - 1;
-		if (idx >= 0 && idx <= lastIdx) {
-			count = lastIdx;
+		int lastIdx = count;
+		if (Integer.compareUnsigned(idx, lastIdx) < 0) {
+			count = --lastIdx;
 			buffer[idx] = buffer[lastIdx];
 		}
 		return this;

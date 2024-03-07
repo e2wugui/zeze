@@ -27,7 +27,7 @@ public class TimeThrottleCounter implements TimeThrottle {
 	public boolean checkNow(int size) {
 		++counter;
 		bandwidth += size; // 变成负数以后一直失败。
-		return counter < limit && (bandwidth >= 0 && bandwidth < bandwidthLimit);
+		return counter < limit && Integer.compareUnsigned(bandwidth, bandwidthLimit) < 0;
 	}
 
 	@Override

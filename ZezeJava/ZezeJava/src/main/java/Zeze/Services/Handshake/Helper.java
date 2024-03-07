@@ -36,7 +36,7 @@ public final class Helper {
 	}
 
 	public static boolean isDHGroupSupported(int group) {
-		return group >= 0 && group < dh_group.length && !dh_group[group].equals(BigInteger.ZERO);
+		return Integer.compareUnsigned(group, dh_group.length) < 0 && !dh_group[group].equals(BigInteger.ZERO);
 	}
 
 	public static BigInteger makeDHRandom() {

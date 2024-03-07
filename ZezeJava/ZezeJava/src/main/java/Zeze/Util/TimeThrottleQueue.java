@@ -54,6 +54,6 @@ public class TimeThrottleQueue implements TimeThrottle {
 			return false; // 防止客户端发送大量请求，造成marks过大，此时不加入mark。
 		bandwidth += size; // 变成负数以后一直失败。
 		marks.offer(new Packet(now, size)); // 不重新读取now了。
-		return marks.size() <= limit && (bandwidth >= 0 && bandwidth < bandwidthLimit);
+		return marks.size() <= limit && Integer.compareUnsigned(bandwidth, bandwidthLimit) < 0;
 	}
 }

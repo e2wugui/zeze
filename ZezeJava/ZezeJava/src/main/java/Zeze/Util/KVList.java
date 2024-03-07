@@ -365,21 +365,21 @@ public class KVList<K, V> implements Cloneable {
 	}
 
 	public @NotNull KVList<K, V> remove(int idx) {
-		int lastIdx = count - 1;
-		if (idx < 0 || idx > lastIdx)
-			return this;
-		count = lastIdx;
-		if (idx != lastIdx) {
-			System.arraycopy(keys, idx + 1, keys, idx, lastIdx - idx);
-			System.arraycopy(values, idx + 1, values, idx, lastIdx - idx);
+		int lastIdx = count;
+		if (Integer.compareUnsigned(idx, lastIdx) < 0) {
+			count = --lastIdx;
+			if (idx != lastIdx) {
+				System.arraycopy(keys, idx + 1, keys, idx, lastIdx - idx);
+				System.arraycopy(values, idx + 1, values, idx, lastIdx - idx);
+			}
 		}
 		return this;
 	}
 
 	public @NotNull KVList<K, V> removeAndExchangeLast(int idx) {
-		int lastIdx = count - 1;
-		if (idx >= 0 && idx <= lastIdx) {
-			count = lastIdx;
+		int lastIdx = count;
+		if (Integer.compareUnsigned(idx, lastIdx) < 0) {
+			count = --lastIdx;
 			keys[idx] = keys[lastIdx];
 			values[idx] = values[lastIdx];
 		}
