@@ -2,6 +2,7 @@ DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
 Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 TestDatabaseHalt Dbh2 启动错误（再执行一次正常）怀疑问题（table创建等）。
+在Dbh2上跑test all。
 Hot alter 测试，需要mysql。
 ------------------------------------------------------------------------------------------------------------------------------
 2024/3/15 v1.4.3 Raft.Dbh2; Halt Test; OfflineNotify;
