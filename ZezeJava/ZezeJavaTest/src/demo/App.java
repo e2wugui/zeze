@@ -11,6 +11,7 @@ import Zeze.Config;
 import Zeze.Game.Bag;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderWithOnline;
+import Zeze.Services.Daemon;
 import Zeze.Services.RocketMQ.Producer;
 import Zeze.Util.ShutdownHook;
 
@@ -65,6 +66,7 @@ public class App extends Zeze.AppBase {
 	public void Start(Config config) throws Exception {
 		if (started)
 			return;
+		System.setProperty(Daemon.propertyNameClearInUse, "true");
 		started = true;
 		// 测试本地事务性能需要容量大一点
 		adjustTableConf(config.getDefaultTableConf());
