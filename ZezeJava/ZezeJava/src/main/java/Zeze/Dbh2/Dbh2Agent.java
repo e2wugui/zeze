@@ -72,7 +72,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		if (r.getResultCode() == errorCode(eBucketMismatch))
 			return KV.create(false, null);
 
-		if (r.getResultCode() != 0)
+		if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
 			throw new RuntimeException("fail! code=" + r.getResultCode());
 
 		var bb = r.Result.isNull() ? null : ByteBuffer.Wrap(r.Result.getValue());
