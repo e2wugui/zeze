@@ -55,6 +55,8 @@ public class Dbh2Manager {
 	}
 
 	protected long ProcessCreateBucketRequest(CreateBucket r) throws Exception {
+		logger.info("CreateBucket: db={}, table={}, config={}",
+				r.Argument.getDatabaseName(), r.Argument.getTableName(), r.Argument.getRaftConfig());
 		var raftConfig = RaftConfig.loadFromString(r.Argument.getRaftConfig());
 		var portId = Integer.parseInt(raftConfig.getName().split("_")[1]);
 		var bucketDir = Path.of(
@@ -63,7 +65,7 @@ public class Dbh2Manager {
 				r.Argument.getTableName(),
 				String.valueOf(portId));
 
-		var nodeDirPart = raftConfig.getName().replace(":", "_");
+		var nodeDirPart = raftConfig.getName().replace(':', '_');
 		var dbHome = new File(bucketDir.toFile(), nodeDirPart);
 		//noinspection ResultOfMethodCallIgnored
 		dbHome.mkdirs();
@@ -75,6 +77,7 @@ public class Dbh2Manager {
 		dbh2s.computeIfAbsent(r.Argument.getRaftConfig(), __ -> {
 			var dbh2 = new Dbh2(this, raftConfig.getName(), raftConfig, null, false);
 			proxyServer.addRaft(dbh2.getRaft());
+			logger.info("CreateBucket: add raftName = '{}'", dbh2.getRaft().getName());
 			return dbh2;
 		});
 		r.SendResult();
@@ -133,6 +136,7 @@ public class Dbh2Manager {
 		ShutdownHook.add(this, this::stop);
 		var raftXmlFiles = new ArrayList<File>();
 		listRaftXmlFiles(new File(home), raftXmlFiles);
+		logger.info("loading {} raftXmlFiles from '{}'", raftXmlFiles.size(), home);
 		for (var raftXml : raftXmlFiles) {
 			var bytes = java.nio.file.Files.readAllBytes(raftXml.toPath());
 			var raftStr = new String(bytes, StandardCharsets.UTF_8);
@@ -141,6 +145,7 @@ public class Dbh2Manager {
 			dbh2s.computeIfAbsent(raftStr, __ -> {
 				var dbh2 = new Dbh2(this, raftConfig.getName(), raftConfig, null, false);
 				proxyServer.addRaft(dbh2.getRaft());
+				logger.info("start: add raftName = '{}'", dbh2.getRaft().getName());
 				return dbh2;
 			});
 		}

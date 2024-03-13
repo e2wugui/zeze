@@ -117,8 +117,11 @@ public class MasterDatabase {
 
 			// allocate first bucket service and setup table
 			var managers = master.choiceManagers();
-			if (managers.size() < master.getDbh2Config().getRaftClusterCount())
+			if (managers.size() < master.getDbh2Config().getRaftClusterCount()) {
+				logger.warn("managers.size({}) < raftClusterCount({})",
+						managers.size(), master.getDbh2Config().getRaftClusterCount());
 				return null;
+			}
 
 			var raftNames = buildRaftConfig(bucket, managers);
 			createBucketRafts(managers, bucket, raftNames);
@@ -174,6 +177,7 @@ public class MasterDatabase {
 
 	private static void setBucketMeta(BBucketMeta.Data bucket) throws Exception {
 		// 第一条Dbh2桶协议，桶必须初始化以后才能使用。
+		logger.info("setBucketMeta: new Dbh2Agent: {}", bucket.getRaftConfig());
 		var agent = new Dbh2Agent(bucket.getRaftConfig());
 		try {
 			agent.setBucketMeta(bucket);

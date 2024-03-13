@@ -203,6 +203,7 @@ public class Dbh2AgentManager {
 			MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName,
 			Action2<Integer, Boolean> callback) {
+		logger.info("createTableAsync: db={}, table={}", databaseName, tableName);
 		masterAgent.createTableAsync(databaseName, tableName, (rc, isNew, masterTable) -> {
 			if (rc == 0) {
 				putBuckets(masterTable, masterName, databaseName, tableName);
@@ -243,6 +244,7 @@ public class Dbh2AgentManager {
 
 	public Dbh2Agent openBucket(String raftString) {
 		return agents.computeIfAbsent(raftString, _raft -> {
+			logger.info("openBucket: new Dbh2Agent: {}", raftString);
 			try {
 				return new Dbh2Agent(raftString, proxyAgent);
 			} catch (Exception e) {

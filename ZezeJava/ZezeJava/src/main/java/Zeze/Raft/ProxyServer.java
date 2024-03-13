@@ -46,8 +46,10 @@ public class ProxyServer extends Service {
 	 */
 	private long ProcessProxyRequest(ProxyRequest r) throws Exception {
 		var raft = rafts.get(r.Argument.getRaftName());
-		if (null == raft)
+		if (null == raft) {
+			logger.warn("ProxyRequest: not found raftName={}, available={}", r.Argument.getRaftName(), rafts.keySet());
 			return Procedure.ProviderNotExist;
+		}
 		var server = raft.getServer();
 		var outFactoryHandle = new OutObject<ProtocolFactoryHandle<?>>();
 		var p = Protocol.decode(server::findProtocolFactoryHandle, ByteBuffer.Wrap(r.Argument.getRpcBinary()), outFactoryHandle);

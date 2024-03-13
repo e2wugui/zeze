@@ -18,9 +18,12 @@ import Zeze.Transaction.DatabaseMySql;
 import Zeze.Util.OutObject;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.RocksDatabase;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 
 public class Master extends AbstractMaster {
+	private static final Logger logger = LogManager.getLogger(Master.class);
 	public static final String MasterDbName = "__master__";
 
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
@@ -171,6 +174,7 @@ public class Master extends AbstractMaster {
 
 	@Override
 	protected long ProcessCreateTableRequest(CreateTable r) throws Exception {
+		logger.info("CreateTable: db={}, table={}", r.Argument.getDatabase(), r.Argument.getTable());
 		var database = databases.get(r.Argument.getDatabase());
 		if (null == database)
 			return errorCode(eDatabaseNotFound);

@@ -270,6 +270,7 @@ public final class Transaction {
 							// retry clear in finally
 							if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
 								checkResult = CheckResult.RedoAndReleaseLock;
+							logger.info("perform({}): {}", procedure, checkResult);
 							triggerRedoActions();
 						} catch (Throwable e) { // logger.error, logger.warn, rethrow AssertionError, ignored
 							// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
@@ -315,6 +316,7 @@ public final class Transaction {
 							default: // case Completed:
 								if (e instanceof AssertionError)
 									throw (AssertionError)e;
+								logger.error("perform({}) {} exception. run count:{}", procedure, state, tryCount, e);
 							}
 							triggerRedoActions();
 							// retry
@@ -441,11 +443,12 @@ public final class Transaction {
 		// 不再支持在回调中再次执行事务。
 		// 在Notify之前设置的。
 		state = TransactionState.Completed;
-		for (var act : logActions)
-			act.run();
 
-		// collect logs and notify listeners
 		try {
+			for (var act : logActions)
+				act.run();
+
+			// collect logs and notify listeners
 			var cc = new Changes(this);
 			var it = lastSp.logIterator();
 			if (it != null) {
@@ -465,11 +468,11 @@ public final class Transaction {
 					cc.collectRecord(ar);
 			}
 			cc.notifyListener();
+
+			triggerCommitActions(procedure);
 		} catch (Throwable ex) { // logger.error
 			logger.error("finalCommit({}) exception:", procedure, ex);
 		}
-
-		triggerCommitActions(procedure);
 	}
 
 	private void finalRollback(@NotNull Procedure procedure) {
@@ -482,10 +485,13 @@ public final class Transaction {
 		}
 		savepoints.clear(); // 这里可以安全的清除日志，这样如果 rollback_action 需要读取数据，将读到原始的。
 		state = TransactionState.Completed;
-		for (var act : logActions)
-			act.run();
-		if (executeRollbackAction) {
-			triggerRollbackActions(procedure);
+		try {
+			for (var act : logActions)
+				act.run();
+			if (executeRollbackAction)
+				triggerRollbackActions(procedure);
+		} catch (Throwable ex) { // logger.error
+			logger.error("finalRollback({}) exception:", procedure, ex);
 		}
 	}
 
