@@ -668,8 +668,8 @@ public class HotManager extends ClassLoader {
 	}
 
 	public void throwIfMatch(String step) {
-		if (null != getReadyLines() && !getReadyLines().isEmpty() && getReadyLines().get(0).startsWith(step))
-			throw new RuntimeException("throwExceptionIfMatch " + step);
+		if (null != getReadyLines() && !getReadyLines().isEmpty() && getReadyLines().get(0).trim().startsWith(step))
+			throw new RuntimeException("throwExceptionIfMatch " + step + ", " + getReadyLines().get(0));
 	}
 
 	public void renameDistributes() throws IOException {
