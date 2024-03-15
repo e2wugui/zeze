@@ -324,6 +324,7 @@ public final class Application {
 		for (var table : replaceTableRecent) {
 			if (!table.isRelationalMapping())
 				continue;
+			logger.info("tryAlter {}", table.getName());
 			table.tryAlter();
 		}
 		replaceTableRecent.clear();
@@ -489,7 +490,7 @@ public final class Application {
 	}
 	*/
 
-	// 数据库Meta兼容检查，返回旧的Schemas。
+	// 数据库Meta兼容检查，初始化。
 	private void schemasCompatible() {
 		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		if (schemas != null) {
@@ -511,8 +512,10 @@ public final class Application {
 						schemasPrevious = null;
 						throw new IllegalStateException("Schemas Implement Changed? serverId=" + serverId, ex);
 					}
-					if (schemas.getAppVersion() < schemasPrevious.getAppVersion())
+					if (schemas.getAppVersion() < schemasPrevious.getAppVersion()) {
+						logger.info("OldAppVersion Skip.");
 						return; // 当前的发布版本小于先前时，不做任何操作，直接返回。
+					}
 
 					schemas.checkCompatible(schemasPrevious, this);
 					version = dataVersion.version;

@@ -589,15 +589,18 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				System.out.println(name);
 			}
 			*/
-			if (isNew)
+			if (isNew) {
+				logger.info("tryAlter isNew {}", name);
 				return; // 已经是最新的表。不需要alter。
-
+			}
 			var table = getDatabase().getTable(name);
 			if (table == null)
 				throw new IllegalStateException("not found table: " + name);
 			var r = table.getRelationalTable();
-			if (r.add.isEmpty() && r.remove.isEmpty() && r.change.isEmpty())
+			if (r.add.isEmpty() && r.remove.isEmpty() && r.change.isEmpty()) {
+				logger.info("tryAlter no change {}", name);
 				return; // do nothing
+			}
 
 			var sb = new StringBuilder();
 			sb.append("ALTER TABLE ").append(name);
@@ -629,7 +632,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			//System.out.println(sb);
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
-				try (var pre = conn.prepareStatement(sb.toString())) {
+				var sql = sb.toString();
+				logger.info("tryAlter {} {}", table.getName(), sql);
+				try (var pre = conn.prepareStatement(sql)) {
 					pre.executeUpdate();
 				}
 			} catch (SQLException e) {
