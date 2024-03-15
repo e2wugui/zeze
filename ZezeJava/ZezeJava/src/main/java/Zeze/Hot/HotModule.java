@@ -156,6 +156,8 @@ public class HotModule extends ClassLoader implements Closeable {
 	private Class<?> loadModuleClass(String className) {
 		String classFileName = className.replace('.', '/') + ".class";
 		var entry = jar.getEntry(classFileName);
+		if (entry == null)
+			logger.error("loadModuleClass: not found entry: '{}'", classFileName);
 		return loadModuleClass(className, entry);
 	}
 
