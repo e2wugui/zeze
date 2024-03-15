@@ -6,7 +6,7 @@
 
 	<groupId>com.zezeno</groupId>
 	<artifactId>zezex-java-server</artifactId>
-	<version>1.4.2-SNAPSHOT</version>
+	<version>1.4.3-SNAPSHOT</version>
 
 	<name>zezex-java-server</name>
 	<url>https://github.com/e2wugui/zeze</url>
@@ -101,7 +101,7 @@
 		<dependency>
 			<groupId>com.zezeno</groupId>
 			<artifactId>zeze-java</artifactId>
-			<version>1.4.2-SNAPSHOT</version>
+			<version>1.4.3-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 </project>
