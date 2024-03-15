@@ -23,6 +23,7 @@ public class HotModule extends ClassLoader implements Closeable {
 	private JarFile jar; // 模块的class（interface除外）必须打包成一个jar，只支持一个。
 	private final Class<?> moduleClass;
 	private HotService service;
+	private final boolean isLoadSchemas;
 
 	// 每个版本的接口一个上下文。
 	private final ConcurrentHashMap<Class<?>, HotModuleContext<?>> contexts = new ConcurrentHashMap<>();
@@ -37,6 +38,7 @@ public class HotModule extends ClassLoader implements Closeable {
 		// MyName 一般就叫模块名字。
 		var moduleClassName = namespace + ".Module" + last(namespace);
 		this.moduleClass = loadClass(moduleClassName);
+		this.isLoadSchemas = false;
 	}
 
 	// 用于装载 Schemas. 借用这个类实现单独的装载。
@@ -44,6 +46,7 @@ public class HotModule extends ClassLoader implements Closeable {
 		this.jarFile = jarFile;
 		this.jar = new JarFile(jarFile);
 		this.moduleClass = null;
+		this.isLoadSchemas = true;
 	}
 
 	public String getJarFileName() {
@@ -136,6 +139,13 @@ public class HotModule extends ClassLoader implements Closeable {
 			context.setModule(this);
 		}
 		service.upgrade(old.service);
+	}
+
+	@Override
+	public Class<?> loadClass(String className, boolean resolve) throws ClassNotFoundException {
+		return isLoadSchemas && className.equals("Game.Schemas")
+				? loadModuleClass(className)
+				: super.loadClass(className, resolve);
 	}
 
 	@Override
