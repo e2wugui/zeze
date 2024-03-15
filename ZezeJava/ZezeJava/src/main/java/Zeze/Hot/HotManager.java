@@ -527,13 +527,13 @@ public class HotManager extends ClassLoader {
 		}
 		var interfaceDstBackup = Path.of(workingDir, "interfaces", namespace + ".interface.jar.backup").toFile();
 		if (!interfaceDst.renameTo(interfaceDstBackup))
-			throw new RuntimeException("backup interface.jar fail. " + interfaceDstBackup);
+			throw new RuntimeException("backup interface.jar fail. " + interfaceDst + " -> " + interfaceDstBackup);
 		// 从备份恢复，并且重新加载旧文件。
 		txn.whileRollback(() -> {
 			if (interfaceDstBackup.renameTo(interfaceDst))
 				putJar(interfaceDst);
 			else
-				logger.error("restore interface backup fail {}", interfaceDstBackup);
+				logger.error("restore interface backup fail {} -> {}", interfaceDstBackup, interfaceDst);
 		});
 		// 提交的时候删除备份
 		txn.whileCommit(() -> Files.deleteIfExists(interfaceDstBackup.toPath()));
@@ -544,7 +544,7 @@ public class HotManager extends ClassLoader {
 		putJar(interfaceDst);
 		txn.whileRollback(() -> {
 			if (!interfaceDst.renameTo(interfaceSrc))
-				logger.error("uninstall {} fail", interfaceSrc);
+				logger.error("uninstall {} -> {} fail", interfaceDst, interfaceSrc);
 		});
 		throwIfMatch("install2");
 
@@ -552,11 +552,11 @@ public class HotManager extends ClassLoader {
 		var moduleDst = Path.of(workingDir, "modules", namespace + ".jar");
 		var moduleDstBackup = Path.of(workingDir, "modules", namespace + ".jar.backup").toFile();
 		if (!moduleDst.toFile().renameTo(moduleDstBackup))
-			throw new RuntimeException("backup module.jar fail. " + moduleDstBackup);
+			throw new RuntimeException("backup module.jar fail. " + moduleDst + " -> " + moduleDstBackup);
 
 		txn.whileRollback(() -> {
 			if (!moduleDstBackup.renameTo(moduleDst.toFile()))
-				logger.error("restore module backup fail {}", moduleDstBackup);
+				logger.error("restore module backup fail {} -> {}", moduleDstBackup, moduleDst);
 			// module.jar 不用预先装载，在旧HotModule重启的时候会用本来的文件名重新打开。
 		});
 		txn.whileCommit(() -> Files.deleteIfExists(moduleDstBackup.toPath()));
@@ -568,7 +568,7 @@ public class HotManager extends ClassLoader {
 
 		txn.whileRollback(() -> {
 			if (!moduleDstFile.renameTo(moduleSrc))
-				logger.error("uninstall {}} fail", moduleSrc);
+				logger.error("uninstall {} -> {} fail", moduleDstFile, moduleSrc);
 		});
 		throwIfMatch("install4");
 
@@ -640,7 +640,7 @@ public class HotManager extends ClassLoader {
 				}
 			}
 		} catch (Throwable ex) {
-			logger.error("", ex);
+			logger.error("distributeDir = '{}'", distributeDir, ex);
 		}
 		return Procedure.Exception;
 	}
@@ -668,7 +668,7 @@ public class HotManager extends ClassLoader {
 	}
 
 	public void throwIfMatch(String step) {
-		if (null != getReadyLines() && !getReadyLines().isEmpty() && getReadyLines().get(0).trim().startsWith(step))
+		if (null != getReadyLines() && !getReadyLines().isEmpty() && getReadyLines().get(0).startsWith(step))
 			throw new RuntimeException("throwExceptionIfMatch " + step + ", " + getReadyLines().get(0));
 	}
 
