@@ -902,12 +902,10 @@ public class Schemas implements Serializable {
 
 		@Override
 		public String toString() {
-			var sb = new StringBuilder();
-			sb.append(tableName);
-			sb.append(" add:").append(add);
-			sb.append(" change:").append(change);
-			sb.append(" remove:").append(remove);
-			return sb.toString();
+			return tableName +
+					" add:" + add +
+					" change:" + change +
+					" remove:" + remove;
 		}
 
 		public RelationalTable(@NotNull String name) {
