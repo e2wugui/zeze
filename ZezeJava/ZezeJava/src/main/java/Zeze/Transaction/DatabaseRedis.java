@@ -11,7 +11,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
-import static redis.clients.jedis.params.ScanParams.SCAN_POINTER_START;
 import static redis.clients.jedis.params.ScanParams.SCAN_POINTER_START_BINARY;
 
 public class DatabaseRedis extends Database {
