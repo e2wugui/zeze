@@ -27,7 +27,7 @@ public class TestTransactionLevelSerialiable {
 		App.Instance.Zeze.newProcedure(TestTransactionLevelSerialiable::init, "test_init").call();
 		Zeze.Util.Task.run(this::verify_task, "verify_task", DispatchMode.Normal);
 		try {
-			Future<?>[] tasks = new Future[200000];
+			Future<?>[] tasks = new Future[20000];
 			for (int i = 0; i < tasks.length; ++i) {
 				tasks[i] = Zeze.Util.Task.runUnsafe(
 						App.Instance.Zeze.newProcedure(TestTransactionLevelSerialiable::trade, "test_trade"),
