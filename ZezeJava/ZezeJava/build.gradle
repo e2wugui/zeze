@@ -24,6 +24,9 @@ dependencies {
     compileOnly 'com.alibaba:druid:1.2.21'
     compileOnly 'com.mysql:mysql-connector-j:8.3.0'
 
+    // for redis(kvrocks,pika,tendis)
+    compileOnly 'redis.clients:jedis:5.1.2'
+
     // dynamodb
     compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.663'
 
