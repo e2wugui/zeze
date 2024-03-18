@@ -1,263 +1,195 @@
 package Zeze.Transaction;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Arrays;
-import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Util.OutObject;
-import Zeze.Util.RocksDatabase;
-import Zeze.Util.Task;
+import Zeze.Util.KV;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import static redis.clients.jedis.params.ScanParams.SCAN_POINTER_START;
+import static redis.clients.jedis.params.ScanParams.SCAN_POINTER_START_BINARY;
 
 public class DatabaseRedis extends Database {
-	private final @NotNull JedisPool jedisPool;
-	private final ConcurrentHashMap<String, TableRedis> tableMap = new ConcurrentHashMap<>();
+	private final JedisPool pool;
 
 	public DatabaseRedis(@NotNull Application zeze, @NotNull Config.DatabaseConf conf) {
 		super(zeze, conf);
-
-		var config = new JedisPoolConfig();
-		config.setMaxTotal(1024); // 并发连接上限,默认8
-		config.setMaxIdle(8); // 空闲连接上限,默认8
-		config.setMaxWait(Duration.ofMillis(10_000)); // 等待可用连接的时长上限,超时会抛JedisConnectionException,默认-1表示没有超时
-
 		try {
-			var uri = new URI(conf.getDatabaseUrl()); // redis://xxx.xxx.xxx.xxx:yyy/?password=zzz
-			jedisPool = new JedisPool(config, uri);
-			// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
-			// setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesRocksDb());
-		} catch (URISyntaxException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			var url = new URI(getDatabaseUrl());
+			pool = new JedisPool(new JedisPoolConfig(), url.getHost(), url.getPort());
+		} catch (Exception e) {
+			throw new RuntimeException(e);
 		}
+		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesRedis());
 	}
 
 	@Override
-	public synchronized void close() {
-		logger.info("Close: {}", getDatabaseUrl());
-		super.close();
-		jedisPool.close();
+	public @NotNull Table openTable(@NotNull String name) {
+		return new RedisTable(name);
 	}
 
 	@Override
 	public @NotNull Transaction beginTransaction() {
-		return new RedisTrans();
+		return new RedisTransaction();
 	}
 
-	private final class RedisTrans implements Transaction {
-		private @Nullable RocksDatabase.Batch batch;
+	public final class RedisTransaction implements Zeze.Transaction.Database.Transaction {
+		private final redis.clients.jedis.Transaction jedisTrans;
 
-		private RocksDatabase.Batch getBatch() {
-			throw new UnsupportedOperationException();
+		public RedisTransaction() {
+			var jedis = pool.getResource();
+			jedisTrans = jedis.multi();
 		}
 
-		void put(byte[] key, byte[] value, TableRedis table) {
-			try (var jedis = jedisPool.getResource()) {
-				jedis.set(table.buildKey(key), value);
-			}
+		public void replace(byte[] table, byte[] key, byte[] value) {
+			jedisTrans.hset(table, key, value);
 		}
 
-		void remove(byte[] key, TableRedis table) {
-			try (var jedis = jedisPool.getResource()) {
-				jedis.del(table.buildKey(key));
-			}
+		public void remove(byte[] table, byte[] key) {
+			jedisTrans.hdel(table, key);
 		}
 
 		@Override
 		public void commit() {
-			throw new UnsupportedOperationException();
+			jedisTrans.exec();
+			jedisTrans.close();
 		}
 
 		@Override
 		public void rollback() {
+			jedisTrans.discard();
+			jedisTrans.close();
 		}
 
 		@Override
-		public void close() {
-			if (batch != null) {
-				batch.close();
-				batch = null;
-			}
+		public void close() throws Exception {
+			jedisTrans.close();
 		}
 	}
 
-	public synchronized @NotNull TableRedis getOrAddTable(@NotNull String name, @Nullable OutObject<Boolean> isNew) {
-		var table = tableMap.get(name);
-		if (table != null) {
-			if (isNew != null)
-				isNew.value = false;
-			return table;
-		}
-		if (isNew != null)
-			isNew.value = true;
-		table = new TableRedis(name, true);
-		tableMap.put(name, table);
-		return table;
-	}
+	public final class RedisTable extends Zeze.Transaction.Database.AbstractKVTable {
+		private final byte[] keyOfSet;
 
-	@Override
-	public Table openTable(String name) {
-		return getOrAddTable(name, null);
-	}
-
-	@Override
-	public synchronized @NotNull Table @NotNull [] openTables(String @NotNull [] names) {
-		var n = names.length;
-		var tables = new Table[n];
-		for (int i = 0; i < n; i++)
-			tables[i] = getOrAddTable(names[i], null);
-		return tables;
-	}
-
-	public final class TableRedis extends AbstractKVTable {
-		private final byte[] tableName;
-		private final boolean isNew;
-
-		TableRedis(String tableName, boolean isNew) {
-			this.tableName = tableName.getBytes(StandardCharsets.UTF_8);
-			this.isNew = isNew;
-		}
-
-		@Override
-		public void clear() {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public DatabaseRedis getDatabase() {
-			return DatabaseRedis.this;
+		public RedisTable(String name) {
+			keyOfSet = name.getBytes(StandardCharsets.UTF_8);
 		}
 
 		@Override
 		public boolean isNew() {
-			return isNew;
+			return false;
+		}
+
+		@Override
+		public @NotNull Database getDatabase() {
+			return DatabaseRedis.this;
 		}
 
 		@Override
 		public void close() {
 		}
 
-		private byte[] buildKey(ByteBuffer key) {
-			var keyBytes = Arrays.copyOf(tableName, tableName.length + 1 + key.size());
-			System.arraycopy(key.Bytes, key.ReadIndex, keyBytes, tableName.length + 1, key.size());
-			return keyBytes;
-		}
-
-		private byte[] buildKey(byte[] key) {
-			var keyBytes = Arrays.copyOf(tableName, tableName.length + 1 + key.length);
-			System.arraycopy(key, 0, keyBytes, tableName.length + 1, key.length);
-			return keyBytes;
-		}
-
 		@Override
-		public ByteBuffer find(ByteBuffer key) {
-			try (var jedis = jedisPool.getResource()) {
-				var value = jedis.get(buildKey(key));
-				return value != null ? ByteBuffer.Wrap(value) : null;
+		public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
+			try (var jedis = pool.getResource()) {
+				var value = jedis.hget(keyOfSet, copyIf(key));
+				if (null == value)
+					return null;
+				return ByteBuffer.Wrap(value);
 			}
 		}
 
 		@Override
-		public void remove(Transaction txn, ByteBuffer key) {
-			((RedisTrans)txn).remove(key.CopyIf(), this);
+		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
+			var redisT = (RedisTransaction)t;
+			redisT.replace(keyOfSet, copyIf(key), copyIf(value));
 		}
 
 		@Override
-		public void replace(Transaction txn, ByteBuffer key, ByteBuffer value) {
-			((RedisTrans)txn).put(key.CopyIf(), value.CopyIf(), this);
+		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
+			var redisT = (RedisTransaction)t;
+			redisT.remove(keyOfSet, copyIf(key));
 		}
 
 		@Override
-		public long getSize() {
+		public long walk(@NotNull TableWalkHandleRaw callback) {
+			var count = 0L;
+			try (var jedis = pool.getResource()) {
+				byte[] cursor = SCAN_POINTER_START_BINARY;
+				while (true) {
+					var result = jedis.hscan(keyOfSet, cursor);
+					for (var entry : result.getResult()) {
+						if (!callback.handle(entry.getKey(), entry.getValue()))
+							return count;
+						count ++; // callback 是可中断的，所以这里不用+=size();
+					}
+					cursor = result.getCursorAsBytes();
+					if (Arrays.equals(cursor, SCAN_POINTER_START_BINARY))
+						return count;
+				}
+			}
+		}
+
+		@Override
+		public long walkKey(@NotNull TableWalkKeyRaw callback) {
+			return walk((key, value) -> callback.handle(key));
+		}
+
+		@Override
+		public long walkDesc(@NotNull TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public long getSizeApproximation() {
+		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public long walk(TableWalkHandleRaw callback) {
+		public ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public long walkKey(TableWalkKeyRaw callback) {
+		public ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public long walkDesc(TableWalkHandleRaw callback) {
+		public ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public long walkKeyDesc(TableWalkKeyRaw callback) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 	}
-/*
-	private final class OperatesRocksDb implements Operates {
-		private final TableRedis table = getOrAddTable("zeze.OperatesRocksDb.Schemas", null);
 
-		@Override
-		public synchronized DataWithVersion getDataWithVersion(ByteBuffer key) {
-			return DataWithVersion.decode(table.get(key.Bytes, key.ReadIndex, key.size()));
-		}
-
-		@Override
-		public synchronized KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
-			var dv = DataWithVersion.decode(table.get(key.Bytes, key.ReadIndex, key.size()));
-			if (dv.version != version)
-				return KV.create(version, false);
-
-			dv.version = ++version;
-			dv.data = data;
-			var value = ByteBuffer.Allocate(5 + 9 + dv.data.size());
-			dv.encode(value);
-			table.put(key.Bytes, key.ReadIndex, key.size(), value.Bytes, 0, value.WriteIndex);
-			return KV.create(version, true);
-		}
+	public final class OperatesRedis implements Operates {
 
 		@Override
 		public void setInUse(int localId, String global) {
-			// rocksdb 独占由它自己打开的时候保证。
+
 		}
 
 		@Override
 		public int clearInUse(int localId, String global) {
-			// rocksdb 独占由它自己打开的时候保证。
 			return 0;
 		}
+
+		@Override
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+			return null;
+		}
+
+		@Override
+		public DataWithVersion getDataWithVersion(ByteBuffer key) {
+			return null;
+		}
 	}
-*/
 }
