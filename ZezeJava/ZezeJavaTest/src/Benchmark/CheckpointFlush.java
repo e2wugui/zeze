@@ -7,6 +7,7 @@ import Zeze.Transaction.CheckpointFlushMode;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
 import demo.App;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class CheckpointFlush {

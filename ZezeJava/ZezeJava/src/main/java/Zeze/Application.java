@@ -526,7 +526,7 @@ public final class Application {
 				var newData = ByteBuffer.Allocate(1024);
 				schemas.encode(newData);
 				var versionRc = defaultDb.getDirectOperates().saveDataWithSameVersion(keyOfSchemas, newData, version);
-				if (versionRc.getValue())
+				if (null == versionRc || versionRc.getValue())
 					break;
 			}
 		}

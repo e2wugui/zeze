@@ -41,6 +41,7 @@ public final class Config {
 		RocksDb,
 		DynamoDb,
 		Dbh2,
+		Redis,
 	}
 
 	private @NotNull String name = "";
@@ -402,6 +403,8 @@ public final class Config {
 			return new DatabaseRocksDb(zeze, conf);
 		case Dbh2:
 			return new Zeze.Dbh2.Database(zeze, zeze.tryNewDbh2AgentManager(), conf);
+		case Redis:
+			return new Zeze.Transaction.DatabaseRedis(zeze, conf);
 		default:
 			throw new UnsupportedOperationException("unknown database type.");
 		}
@@ -932,6 +935,9 @@ public final class Config {
 				break;
 			case "Dbh2":
 				databaseType = DbType.Dbh2;
+				break;
+			case "Redis":
+				databaseType = DbType.Redis;
 				break;
 			default:
 				throw new UnsupportedOperationException("unknown database type.");
