@@ -3,12 +3,17 @@ package Zeze.Transaction;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashSet;
 import Zeze.Application;
 import Zeze.Config;
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
+import Zeze.Serialize.Serializable;
 import Zeze.Util.KV;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import static redis.clients.jedis.params.ScanParams.SCAN_POINTER_START_BINARY;
@@ -170,25 +175,160 @@ public class DatabaseRedis extends Database {
 	}
 
 	public final class OperatesRedis implements Operates {
+		private final byte[] keyDataVersion;
+		private final byte[] keyInUse;
+
+		public OperatesRedis() {
+			keyDataVersion = "_ZezeDataWithVersion_".getBytes(StandardCharsets.UTF_8);
+			keyInUse = "_ZezeInstances_".getBytes(StandardCharsets.UTF_8);
+		}
+
+		public static class InUse implements Serializable {
+			public final HashSet<Integer> instances = new HashSet<>();
+			public String global;
+
+			@Override
+			public void encode(@NotNull ByteBuffer bb) {
+				bb.WriteInt(instances.size());
+				for (var ins : instances)
+					bb.WriteInt(ins);
+				bb.WriteString(global);
+			}
+
+			@Override
+			public void decode(@NotNull IByteBuffer bb) {
+				for (var count = bb.ReadInt(); count > 0; --count)
+					instances.add(bb.ReadInt());
+				global = bb.ReadString();
+			}
+
+			public static InUse decode(byte[] bytes) {
+				var inUse = new InUse();
+				if (null != bytes)
+					inUse.decode(ByteBuffer.Wrap(bytes));
+				return inUse;
+			}
+
+			public ByteBuffer encode() {
+				var bb = ByteBuffer.Allocate();
+				encode(bb);
+				return bb;
+			}
+		}
 
 		@Override
 		public void setInUse(int localId, String global) {
+			while (true) {
+				if (tryLock()) {
+					try (var jedis = pool.getResource()) {
+						var inUse = InUse.decode(jedis.hget(keyInUse, ByteBuffer.Empty));
+						if (inUse.instances.contains(localId))
+							throw new IllegalStateException("Instance Exist.");
+						inUse.instances.add(localId);
 
+						if (inUse.global != null && !inUse.global.equals(global))
+							throw new IllegalStateException("Global Not Equals");
+
+						inUse.global = global;
+						if (inUse.instances.size() == 1) {
+							jedis.hset(keyInUse, ByteBuffer.Empty, copyIf(inUse.encode()));
+							return; // success;
+						}
+
+						if (global.isEmpty())
+							throw new IllegalStateException("Instance Greater Than One But No Global");
+						jedis.hset(keyInUse, ByteBuffer.Empty, copyIf(inUse.encode()));
+					} finally {
+						unlock();
+					}
+				}
+				try {
+					Thread.sleep(150);
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
+			}
 		}
 
 		@Override
 		public int clearInUse(int localId, String global) {
-			return 0;
+			while (true) {
+				if (tryLock()) {
+					try (var jedis = pool.getResource()) {
+						var inUse = InUse.decode(jedis.hget(keyInUse, ByteBuffer.Empty));
+						var result = 1;
+						if (inUse.global != null) {
+							// has data
+							result = inUse.instances.remove(localId) ? 0 : 2;
+							if (inUse.instances.isEmpty())
+								jedis.hdel(keyInUse, ByteBuffer.Empty);
+							else
+								jedis.hset(keyInUse, ByteBuffer.Empty, copyIf(inUse.encode())); // save
+						}
+						// 不抛出异常，仅仅返回;
+						return result;
+					} finally {
+						unlock();
+					}
+				}
+				try {
+					Thread.sleep(150);
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}
+
+		@Override
+		public boolean tryLock() {
+			// todo redis 整体级别的锁，关系数据库是 update table set lock=1 where row=? and lock=0
+			return true;
+		}
+
+		@Override
+		public void unlock() {
+			// todo redis 整体级别的锁，update table set lock=0 where row=?
 		}
 
 		@Override
 		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
-			return null;
+			while (true) {
+				if (tryLock()) {
+					try (var jedis = pool.getResource()) {
+						var exist = getDataWithVersion(jedis, copyIf(key));
+						if (null != exist && exist.version != version)
+							return KV.create(version, false);
+						var dv = new DataWithVersion();
+						dv.data = data;
+						dv.version = version;
+						var dvBb = ByteBuffer.Allocate();
+						dv.encode(dvBb);
+						jedis.hset(keyDataVersion, copyIf(key), copyIf(dvBb));
+						return KV.create(version, true);
+					} finally {
+						unlock();
+					}
+				}
+				try {
+					Thread.sleep(150);
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
+			}
 		}
 
 		@Override
 		public DataWithVersion getDataWithVersion(ByteBuffer key) {
-			return null;
+			try (var jedis = pool.getResource()) {
+				return getDataWithVersion(jedis, copyIf(key));
+			}
+		}
+
+		private DataWithVersion getDataWithVersion(Jedis jedis, byte[] field) {
+			var value = jedis.hget(keyDataVersion, field);
+			if (null == value)
+				return null; // no data version
+			return DataWithVersion.decode(value);
 		}
 	}
 }
