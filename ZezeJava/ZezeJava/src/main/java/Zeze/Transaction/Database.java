@@ -5,13 +5,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.KV;
+import Zeze.Util.OutInt;
 import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -325,17 +325,17 @@ public abstract class Database {
 
 		public abstract long walkKeyDesc(@NotNull TableWalkKeyRaw callback);
 
-		public abstract ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-										@NotNull TableWalkHandleRaw callback);
+		public abstract @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+												  @NotNull TableWalkHandleRaw callback);
 
-		public abstract ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-										   @NotNull TableWalkKeyRaw callback);
+		public abstract @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+													 @NotNull TableWalkKeyRaw callback);
 
-		public abstract ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											@NotNull TableWalkHandleRaw callback);
+		public abstract @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+													  @NotNull TableWalkHandleRaw callback);
 
-		public abstract ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											   @NotNull TableWalkKeyRaw callback);
+		public abstract @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+														 @NotNull TableWalkKeyRaw callback);
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean> V find(@NotNull TableX<K, V> table, @NotNull Object key) {
@@ -587,18 +587,18 @@ public abstract class Database {
 		public long version;
 
 		@Override
-		public void encode(ByteBuffer bb) {
+		public void encode(@NotNull ByteBuffer bb) {
 			bb.WriteByteBuffer(data);
 			bb.WriteLong(version);
 		}
 
 		@Override
-		public void decode(IByteBuffer bb) {
+		public void decode(@NotNull IByteBuffer bb) {
 			data = ByteBuffer.Wrap(bb.ReadBytes());
 			version = bb.ReadLong();
 		}
 
-		public static DataWithVersion decode(byte[] bytes) {
+		public static @NotNull DataWithVersion decode(byte @Nullable [] bytes) {
 			var dv = new DataWithVersion();
 			if (bytes != null)
 				dv.decode(ByteBuffer.Wrap(bytes));
@@ -635,9 +635,9 @@ public abstract class Database {
 		    commit;
 		    return true;
 		*/
-		void setInUse(int localId, String global);
+		void setInUse(int localId, @NotNull String global);
 
-		int clearInUse(int localId, String global);
+		int clearInUse(int localId, @NotNull String global);
 
 		/*
 		  if (Exist(key)) {
@@ -649,9 +649,10 @@ public abstract class Database {
 		  InsertData(data);
 		  return (CurrentVersion = version, true);
 		*/
-		KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version);
+		@Nullable KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
+															long version);
 
-		DataWithVersion getDataWithVersion(ByteBuffer key);
+		@Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key);
 
 		// 只有mysql,dbh2实现这个。
 		default boolean tryLock() {
@@ -663,60 +664,60 @@ public abstract class Database {
 	}
 
 	public static class NullOperates implements Operates {
-
 		@Override
-		public void setInUse(int localId, String global) {
-
+		public void setInUse(int localId, @NotNull String global) {
 		}
 
 		@Override
-		public int clearInUse(int localId, String global) {
+		public int clearInUse(int localId, @NotNull String global) {
 			return 0;
 		}
 
 		@Override
-		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+		public @Nullable KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
+																   long version) {
 			return KV.create(version, true);
 		}
 
 		@Override
-		public DataWithVersion getDataWithVersion(ByteBuffer key) {
+		public @Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
 			return null;
 		}
 	}
 
-	public static class ReentrantLockHelper {
-		private final ThreadLocal<AtomicInteger> count = new ThreadLocal<>();
+	public static final class ReentrantLockHelper {
+		private final ThreadLocal<OutInt> count = new ThreadLocal<>();
 
 		/**
 		 * lock
+		 *
 		 * @return false 表示第一次调用，此时需要执行真正的lock实现。
 		 */
 		public boolean tryLock() {
 			var c = count.get();
-			if (null != c && c.get() > 0) {
-				c.incrementAndGet();
+			if (c != null && c.value > 0) {
+				c.value++;
 				return true;
 			}
 			return false;
 		}
 
 		public void lockSuccess() {
-			count.set(new AtomicInteger(1));
+			count.set(new OutInt(1));
 		}
 
 		/**
 		 * unlock
+		 *
 		 * @return true 计数达到0，可以执行真正的unlock实现。
 		 */
 		public boolean tryUnlock() {
 			var c = count.get();
-			return c.decrementAndGet() == 0;
+			return --c.value == 0;
 		}
 
 		public void unlockSuccess() {
 			count.remove();
 		}
-
 	}
 }
