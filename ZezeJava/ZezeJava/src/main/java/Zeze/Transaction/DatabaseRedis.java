@@ -44,10 +44,11 @@ public class DatabaseRedis extends Database {
 	}
 
 	public final class RedisTransaction implements Zeze.Transaction.Database.Transaction {
+		private final Jedis jedis;
 		private final redis.clients.jedis.Transaction jedisTrans;
 
 		public RedisTransaction() {
-			var jedis = pool.getResource();
+			jedis = pool.getResource();
 			jedisTrans = jedis.multi();
 		}
 
@@ -63,12 +64,14 @@ public class DatabaseRedis extends Database {
 		public void commit() {
 			jedisTrans.exec();
 			jedisTrans.close();
+			jedis.close();
 		}
 
 		@Override
 		public void rollback() {
 			jedisTrans.discard();
 			jedisTrans.close();
+			jedis.close();
 		}
 
 		@Override
