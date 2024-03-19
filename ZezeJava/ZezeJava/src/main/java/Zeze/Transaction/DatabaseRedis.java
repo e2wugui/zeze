@@ -181,6 +181,7 @@ public class DatabaseRedis extends Database {
 	public final class OperatesRedis implements Operates {
 		private static final byte[] keyDataVersion = "_ZezeDataWithVersion_".getBytes(StandardCharsets.UTF_8);
 		private static final byte[] keyInUse = "_ZezeInstances_".getBytes(StandardCharsets.UTF_8);
+		private final ReentrantLockHelper lockHelper = new ReentrantLockHelper();
 
 		public OperatesRedis() {
 		}
@@ -286,15 +287,24 @@ public class DatabaseRedis extends Database {
 
 		@Override
 		public boolean tryLock() {
+			if (lockHelper.tryLock())
+				return true;
 			try (var jedis = pool.getResource()) {
-				return 1 == jedis.setnx( lockKey, "1");
+				var success = 1 == jedis.setnx( lockKey, "1");
+				if (success)
+					lockHelper.lockSuccess();
+				return success;
 			}
 		}
 
 		@Override
 		public void unlock() {
-			try (var jedis = pool.getResource()) {
-				jedis.del(lockKey);
+			if (lockHelper.tryUnlock()) {
+				try (var jedis = pool.getResource()) {
+					var success = 1 == jedis.del(lockKey);
+					if (success)
+						lockHelper.unlockSuccess();
+				}
 			}
 		}
 

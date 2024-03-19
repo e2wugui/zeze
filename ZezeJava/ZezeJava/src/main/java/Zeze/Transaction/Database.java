@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
@@ -682,5 +683,40 @@ public abstract class Database {
 		public DataWithVersion getDataWithVersion(ByteBuffer key) {
 			return null;
 		}
+	}
+
+	public static class ReentrantLockHelper {
+		private final ThreadLocal<AtomicInteger> count = new ThreadLocal<>();
+
+		/**
+		 * lock
+		 * @return false 表示第一次调用，此时需要执行真正的lock实现。
+		 */
+		public boolean tryLock() {
+			var c = count.get();
+			if (null != c && c.get() > 0) {
+				c.incrementAndGet();
+				return true;
+			}
+			return false;
+		}
+
+		public void lockSuccess() {
+			count.set(new AtomicInteger(1));
+		}
+
+		/**
+		 * unlock
+		 * @return true 计数达到0，可以执行真正的unlock实现。
+		 */
+		public boolean tryUnlock() {
+			var c = count.get();
+			return c.decrementAndGet() == 0;
+		}
+
+		public void unlockSuccess() {
+			count.remove();
+		}
+
 	}
 }
