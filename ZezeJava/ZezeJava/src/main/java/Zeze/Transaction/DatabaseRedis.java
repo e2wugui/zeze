@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.params.SetParams;
 import static redis.clients.jedis.params.ScanParams.SCAN_POINTER_START_BINARY;
 
 public class DatabaseRedis extends Database {
@@ -175,12 +176,10 @@ public class DatabaseRedis extends Database {
 	}
 
 	public final class OperatesRedis implements Operates {
-		private final byte[] keyDataVersion;
-		private final byte[] keyInUse;
+		private static final byte[] keyDataVersion = "_ZezeDataWithVersion_".getBytes(StandardCharsets.UTF_8);
+		private static final byte[] keyInUse = "_ZezeInstances_".getBytes(StandardCharsets.UTF_8);
 
 		public OperatesRedis() {
-			keyDataVersion = "_ZezeDataWithVersion_".getBytes(StandardCharsets.UTF_8);
-			keyInUse = "_ZezeInstances_".getBytes(StandardCharsets.UTF_8);
 		}
 
 		public static class InUse implements Serializable {
@@ -223,11 +222,11 @@ public class DatabaseRedis extends Database {
 					try (var jedis = pool.getResource()) {
 						var inUse = InUse.decode(jedis.hget(keyInUse, ByteBuffer.Empty));
 						if (inUse.instances.contains(localId))
-							throw new IllegalStateException("Instance Exist.");
+							throw new IllegalStateException("Instance Exist." + localId + " " + global);
 						inUse.instances.add(localId);
 
 						if (inUse.global != null && !inUse.global.equals(global))
-							throw new IllegalStateException("Global Not Equals");
+							throw new IllegalStateException("Global Not Equals" + localId + " " + global);
 
 						inUse.global = global;
 						if (inUse.instances.size() == 1) {
@@ -236,8 +235,9 @@ public class DatabaseRedis extends Database {
 						}
 
 						if (global.isEmpty())
-							throw new IllegalStateException("Instance Greater Than One But No Global");
+							throw new IllegalStateException("Instance Greater Than One But No Global" + localId + " " + global);
 						jedis.hset(keyInUse, ByteBuffer.Empty, copyIf(inUse.encode()));
+						return; // success
 					} finally {
 						unlock();
 					}
@@ -279,41 +279,35 @@ public class DatabaseRedis extends Database {
 			}
 		}
 
+		private final static String lockKey = "_Zeze_Redis_Global_Lock_";
+
 		@Override
 		public boolean tryLock() {
-			// todo redis 整体级别的锁，关系数据库是 update table set lock=1 where row=? and lock=0
-			return true;
+			try (var jedis = pool.getResource()) {
+				return 1 == jedis.setnx( lockKey, "1");
+			}
 		}
 
 		@Override
 		public void unlock() {
-			// todo redis 整体级别的锁，update table set lock=0 where row=?
+			try (var jedis = pool.getResource()) {
+				jedis.del(lockKey);
+			}
 		}
 
 		@Override
 		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
-			while (true) {
-				if (tryLock()) {
-					try (var jedis = pool.getResource()) {
-						var exist = getDataWithVersion(jedis, copyIf(key));
-						if (null != exist && exist.version != version)
-							return KV.create(version, false);
-						var dv = new DataWithVersion();
-						dv.data = data;
-						dv.version = version;
-						var dvBb = ByteBuffer.Allocate();
-						dv.encode(dvBb);
-						jedis.hset(keyDataVersion, copyIf(key), copyIf(dvBb));
-						return KV.create(version, true);
-					} finally {
-						unlock();
-					}
-				}
-				try {
-					Thread.sleep(150);
-				} catch (InterruptedException e) {
-					throw new RuntimeException(e);
-				}
+			try (var jedis = pool.getResource()) {
+				var exist = getDataWithVersion(jedis, copyIf(key));
+				if (null != exist && exist.version != version)
+					return KV.create(version, false);
+				var dv = new DataWithVersion();
+				dv.data = data;
+				dv.version = version;
+				var dvBb = ByteBuffer.Allocate();
+				dv.encode(dvBb);
+				jedis.hset(keyDataVersion, copyIf(key), copyIf(dvBb));
+				return KV.create(version, true);
 			}
 		}
 
