@@ -1320,7 +1320,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(sql)) {
 					var index = 1;
 					if (exclusiveStartKey != null)
-						cmd.setBytes(index++, copyIf(exclusiveStartKey));
+						cmd.setBytes(index++, exclusiveStartKey.CopyIf());
 					cmd.setInt(index, proposeLimit);
 					byte[] lastKey = null;
 					try (var rs = cmd.executeQuery()) {
@@ -1351,7 +1351,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(sql)) {
 					var index = 1;
 					if (exclusiveStartKey != null)
-						cmd.setBytes(index++, copyIf(exclusiveStartKey));
+						cmd.setBytes(index++, exclusiveStartKey.CopyIf());
 					cmd.setInt(index, proposeLimit);
 					byte[] lastKey = null;
 					try (var rs = cmd.executeQuery()) {
@@ -1383,7 +1383,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(sql)) {
 					var index = 1;
 					if (exclusiveStartKey != null)
-						cmd.setBytes(index++, copyIf(exclusiveStartKey));
+						cmd.setBytes(index++, exclusiveStartKey.CopyIf());
 					cmd.setInt(index, proposeLimit);
 					byte[] lastKey = null;
 					try (var rs = cmd.executeQuery()) {
@@ -1415,7 +1415,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(sql)) {
 					var index = 1;
 					if (exclusiveStartKey != null)
-						cmd.setBytes(index++, copyIf(exclusiveStartKey));
+						cmd.setBytes(index++, exclusiveStartKey.CopyIf());
 					cmd.setInt(index, proposeLimit);
 					byte[] lastKey = null;
 					try (var rs = cmd.executeQuery()) {

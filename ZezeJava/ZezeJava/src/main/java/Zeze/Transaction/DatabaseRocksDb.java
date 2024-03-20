@@ -306,7 +306,7 @@ public class DatabaseRocksDb extends Database {
 				if (exclusiveStartKey == null)
 					it.seekToFirst();
 				else
-					it.seek(copyIf(exclusiveStartKey));
+					it.seek(exclusiveStartKey.CopyIf());
 				if (!it.isValid())
 					return null;
 
@@ -332,7 +332,7 @@ public class DatabaseRocksDb extends Database {
 				if (exclusiveStartKey == null)
 					it.seekToFirst();
 				else
-					it.seek(copyIf(exclusiveStartKey));
+					it.seek(exclusiveStartKey.CopyIf());
 				if (!it.isValid())
 					return null;
 
@@ -358,7 +358,7 @@ public class DatabaseRocksDb extends Database {
 				if (exclusiveStartKey == null)
 					it.seekToLast();
 				else
-					it.seekForPrev(copyIf(exclusiveStartKey));
+					it.seekForPrev(exclusiveStartKey.CopyIf());
 				if (!it.isValid())
 					return null;
 
@@ -384,7 +384,7 @@ public class DatabaseRocksDb extends Database {
 				if (exclusiveStartKey == null)
 					it.seekToLast();
 				else
-					it.seekForPrev(copyIf(exclusiveStartKey));
+					it.seekForPrev(exclusiveStartKey.CopyIf());
 				if (!it.isValid())
 					return null;
 

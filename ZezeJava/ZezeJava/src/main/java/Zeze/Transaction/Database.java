@@ -195,12 +195,6 @@ public abstract class Database {
 		return Arrays.copyOfRange(bb.array(), bb.arrayOffset(), bb.limit());
 	}
 
-	public static byte @NotNull [] copyIf(@NotNull ByteBuffer bb) {
-		if (bb.ReadIndex == 0 && bb.WriteIndex == bb.capacity())
-			return bb.Bytes;
-		return Arrays.copyOfRange(bb.Bytes, bb.ReadIndex, bb.WriteIndex);
-	}
-
 	public static byte @NotNull [] copyIf(byte @NotNull [] bytes, int offset, int len) {
 		if (offset == 0 && bytes.length == len)
 			return bytes;

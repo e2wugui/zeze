@@ -494,7 +494,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.setInt(1, proposeLimit);
 					if (exclusiveStartKey != null)
-						cmd.setBytes(2, copyIf(exclusiveStartKey));
+						cmd.setBytes(2, exclusiveStartKey.CopyIf());
 
 					byte[] lastKey = null;
 					try (var reader = cmd.executeQuery()) {
@@ -526,7 +526,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.setInt(1, proposeLimit);
 					if (exclusiveStartKey != null)
-						cmd.setBytes(2, copyIf(exclusiveStartKey));
+						cmd.setBytes(2, exclusiveStartKey.CopyIf());
 
 					byte[] lastKey = null;
 					try (var reader = cmd.executeQuery()) {
@@ -558,7 +558,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.setInt(1, proposeLimit);
 					if (exclusiveStartKey != null)
-						cmd.setBytes(2, copyIf(exclusiveStartKey));
+						cmd.setBytes(2, exclusiveStartKey.CopyIf());
 
 					byte[] lastKey = null;
 					try (var reader = cmd.executeQuery()) {
@@ -590,7 +590,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.setInt(1, proposeLimit);
 					if (exclusiveStartKey != null)
-						cmd.setBytes(2, copyIf(exclusiveStartKey));
+						cmd.setBytes(2, exclusiveStartKey.CopyIf());
 
 					byte[] lastKey = null;
 					try (var reader = cmd.executeQuery()) {
