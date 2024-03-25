@@ -22,7 +22,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.params.ScanParams;
 
-// 需要redis支持以下命令:
+// 需要redis支持以下命令(Redis 2.8+, Kvrocks 2.02+, Pika 3.5.2+)
 // get, set, setnx, del
 // hget, hset, hdel, hscan
 // multi, exec, discard

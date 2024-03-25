@@ -3,6 +3,7 @@ package UnitTest.Zeze.Trans;
 import java.util.ArrayList;
 import java.util.List;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DatabaseRedis;
 import Zeze.Util.OutInt;
 import demo.App;
 import demo.Bean1;
@@ -13,7 +14,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestWalkPage {
-
 	@Before
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
@@ -45,12 +45,18 @@ public class TestWalkPage {
 		}));
 		Assert.assertEquals(walkTimes.value, walkedKeys.size());
 		var expected = List.of(1, 2, 3, 4, 5);
-		Assert.assertEquals(expected, walkedKeys);
+		if (t.getDatabase() instanceof DatabaseRedis) // unordered
+			Assert.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
+		else
+			Assert.assertEquals(expected, walkedKeys);
 	}
 
 	@Test
 	public void testWalkPage_2() throws Exception {
 		var t = TestWalkPage.prepareTable();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
 		var walkedKeys = new ArrayList<Integer>();
 		Integer exclusiveStartKey = null;
 		var walkTimes = new OutInt(0);
@@ -70,6 +76,9 @@ public class TestWalkPage {
 	@Test
 	public void testWalkPageDesc_1() throws Exception {
 		var t = TestWalkPage.prepareTableDesc();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 		t.walkDesc(((key, value) -> {
@@ -85,6 +94,9 @@ public class TestWalkPage {
 	@Test
 	public void testWalkPageDesc_2() throws Exception {
 		var t = TestWalkPage.prepareTableDesc();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		Integer exclusiveStartKey = null;
 		var walkTimes = new OutInt(0);
@@ -104,6 +116,9 @@ public class TestWalkPage {
 	@Test
 	public void testWalkKey() throws Exception {
 		var t = TestWalkPage.prepareTable();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 		Integer exclusiveStartKey = null;
@@ -123,6 +138,9 @@ public class TestWalkPage {
 	@Test
 	public void testWalkKeyDesc() throws Exception {
 		var t = TestWalkPage.prepareTableDesc();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
 		ArrayList<Integer> walkingKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 		Integer exclusiveStartKey = null;
@@ -166,7 +184,10 @@ public class TestWalkPage {
 
 		Assert.assertEquals(walkTimes.value, walkedKeys.size());
 		var expected = List.of(1, 2, 3, 4, 5);
-		Assert.assertEquals(expected, walkedKeys);
+		if (t.getDatabase() instanceof DatabaseRedis) // unordered
+			Assert.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
+		else
+			Assert.assertEquals(expected, walkedKeys);
 	}
 
 	@Test
@@ -184,13 +205,19 @@ public class TestWalkPage {
 			});
 			Assert.assertEquals(walkTimes.value, walkedKeys.size());
 			var expected = List.of(1, 2, 3, 4, 5);
-			Assert.assertEquals(expected, walkedKeys);
+			if (t.getDatabase() instanceof DatabaseRedis) // unordered
+				Assert.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
+			else
+				Assert.assertEquals(expected, walkedKeys);
 		}
 	}
 
 	@Test
 	public void testWalkDatabaseDescRaw() {
 		var t = TestWalkPage.prepareTableDesc();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 
@@ -221,12 +248,18 @@ public class TestWalkPage {
 
 		Assert.assertEquals(walkTimes.value, walkedKeys.size());
 		var expected = List.of(1, 2, 3, 4, 5);
-		Assert.assertEquals(expected, walkedKeys);
+		if (t.getDatabase() instanceof DatabaseRedis) // unordered
+			Assert.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
+		else
+			Assert.assertEquals(expected, walkedKeys);
 	}
 
 	@Test
 	public void testWalkDatabaseDesc() {
 		var t = TestWalkPage.prepareTableDesc();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 
