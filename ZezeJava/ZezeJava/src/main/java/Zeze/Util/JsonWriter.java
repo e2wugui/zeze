@@ -28,6 +28,8 @@ public final class JsonWriter {
 	public static final int FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT = FLAG_PRETTY_FORMAT | FLAG_WRAP_ELEMENT;
 	//@formatter:on
 
+	private static final byte[] LONG_MIN_BYTES = "-9223372036854775808".getBytes(StandardCharsets.ISO_8859_1);
+
 	private static final byte[] DIGITES_LUT = { // [200]
 			'0', '0', '0', '1', '0', '2', '0', '3', '0', '4', '0', '5', '0', '6', '0', '7', '0', '8', '0', '9', '1',
 			'0', '1', '1', '1', '2', '1', '3', '1', '4', '1', '5', '1', '6', '1', '7', '1', '8', '1', '9', '2', '0',
@@ -847,15 +849,15 @@ public final class JsonWriter {
 		// @formatter:on
 		do {
 			switch (kappa) { //@formatter:off
-				case 9:  v = p1 / 1_0000_0000; p1 %= 1_0000_0000; break;
-				case 8:  v = p1 /   1000_0000; p1 %=   1000_0000; break;
-				case 7:  v = p1 /    100_0000; p1 %=    100_0000; break;
-				case 6:  v = p1 /     10_0000; p1 %=     10_0000; break;
-				case 5:  v = p1 /      1_0000; p1 %=      1_0000; break;
-				case 4:  v = p1 /        1000; p1 %=        1000; break;
-				case 3:  v = p1 /         100; p1 %=         100; break;
-				case 2:  v = p1 /          10; p1 %=          10; break;
 				case 1:  v = p1;               p1  =           0; break;
+				case 2:  v = p1 /          10; p1 %=          10; break;
+				case 3:  v = p1 /         100; p1 %=         100; break;
+				case 4:  v = p1 /        1000; p1 %=        1000; break;
+				case 5:  v = p1 /      1_0000; p1 %=      1_0000; break;
+				case 6:  v = p1 /     10_0000; p1 %=     10_0000; break;
+				case 7:  v = p1 /    100_0000; p1 %=    100_0000; break;
+				case 8:  v = p1 /   1000_0000; p1 %=   1000_0000; break;
+				case 9:  v = p1 / 1_0000_0000; p1 %= 1_0000_0000; break;
 				default: continue;
 			} //@formatter:on
 			if ((v | len) != 0)
@@ -1013,29 +1015,37 @@ public final class JsonWriter {
 			value = -value;
 		}
 		if (value < 1_0000) {
-			final int d1 = (value / 100) << 1;
-			final int d2 = (value % 100) << 1;
-			if (value >= 1000)
-				buf[pos++] = DIGITES_LUT[d1];
-			if (value >= 100)
-				buf[pos++] = DIGITES_LUT[d1 + 1];
-			if (value >= 10)
+			if (value < 10)
+				buf[pos++] = (byte)('0' + value);
+			else {
+				final int d1 = (value / 100) << 1;
+				final int d2 = (value % 100) << 1;
+				if (value >= 100) {
+					if (value >= 1000)
+						buf[pos++] = DIGITES_LUT[d1];
+					buf[pos++] = DIGITES_LUT[d1 + 1];
+				}
 				buf[pos++] = DIGITES_LUT[d2];
-			buf[pos++] = DIGITES_LUT[d2 + 1];
+				buf[pos++] = DIGITES_LUT[d2 + 1];
+			}
 		} else if (value < 1_0000_0000) { // value = bbbb_cccc
 			final int b = value / 1_0000;
 			final int c = value % 1_0000;
-			final int d1 = (b / 100) << 1;
-			final int d2 = (b % 100) << 1;
 			final int d3 = (c / 100) << 1;
 			final int d4 = (c % 100) << 1;
-			if (value >= 1000_0000)
-				buf[pos++] = DIGITES_LUT[d1];
-			if (value >= 100_0000)
-				buf[pos++] = DIGITES_LUT[d1 + 1];
-			if (value >= 10_0000)
+			if (value < 10_0000)
+				buf[pos++] = (byte)('0' + b);
+			else {
+				final int d1 = (b / 100) << 1;
+				final int d2 = (b % 100) << 1;
+				if (value >= 100_0000) {
+					if (value >= 1000_0000)
+						buf[pos++] = DIGITES_LUT[d1];
+					buf[pos++] = DIGITES_LUT[d1 + 1];
+				}
 				buf[pos++] = DIGITES_LUT[d2];
-			buf[pos++] = DIGITES_LUT[d2 + 1];
+				buf[pos++] = DIGITES_LUT[d2 + 1];
+			}
 			buf[pos++] = DIGITES_LUT[d3];
 			buf[pos++] = DIGITES_LUT[d3 + 1];
 			buf[pos++] = DIGITES_LUT[d4];
@@ -1043,18 +1053,19 @@ public final class JsonWriter {
 		} else { // value = aa_bbbb_cccc in decimal
 			final int a = value / 1_0000_0000; // [1,21]
 			value %= 1_0000_0000;
-			if (a >= 10) {
-				final int i = a << 1;
-				buf[pos++] = DIGITES_LUT[i];
-				buf[pos++] = DIGITES_LUT[i + 1];
-			} else
-				buf[pos++] = (byte)('0' + a);
 			final int b = value / 1_0000;
 			final int c = value % 1_0000;
 			final int d1 = (b / 100) << 1;
 			final int d2 = (b % 100) << 1;
 			final int d3 = (c / 100) << 1;
 			final int d4 = (c % 100) << 1;
+			if (a < 10)
+				buf[pos++] = (byte)('0' + a);
+			else {
+				final int i = a << 1;
+				buf[pos++] = DIGITES_LUT[i];
+				buf[pos++] = DIGITES_LUT[i + 1];
+			}
 			buf[pos++] = DIGITES_LUT[d1];
 			buf[pos++] = DIGITES_LUT[d1 + 1];
 			buf[pos++] = DIGITES_LUT[d2];
@@ -1069,7 +1080,7 @@ public final class JsonWriter {
 	public void write(long value) { // 7FFF_FFFF_FFFF_FFFF = 922_3372_0368_5477_5807
 		if (value < 0) {
 			if (value == Long.MIN_VALUE) {
-				System.arraycopy("-9223372036854775808".getBytes(StandardCharsets.ISO_8859_1), 0, buf, pos, 20);
+				System.arraycopy(LONG_MIN_BYTES, 0, buf, pos, 20);
 				pos += 20;
 				return;
 			}
@@ -1079,35 +1090,91 @@ public final class JsonWriter {
 		if (value < 1_0000_0000) {
 			int v = (int)value;
 			if (v < 1_0000) {
-				final int d1 = (v / 100) << 1;
-				final int d2 = (v % 100) << 1;
-				if (v >= 1000)
-					buf[pos++] = DIGITES_LUT[d1];
-				if (v >= 100)
-					buf[pos++] = DIGITES_LUT[d1 + 1];
-				if (v >= 10)
+				if (v < 10)
+					buf[pos++] = (byte)('0' + v);
+				else {
+					final int d1 = (v / 100) << 1;
+					final int d2 = (v % 100) << 1;
+					if (v >= 100) {
+						if (v >= 1000)
+							buf[pos++] = DIGITES_LUT[d1];
+						buf[pos++] = DIGITES_LUT[d1 + 1];
+					}
 					buf[pos++] = DIGITES_LUT[d2];
-				buf[pos++] = DIGITES_LUT[d2 + 1];
-			} else { // value = bbbbcccc
+					buf[pos++] = DIGITES_LUT[d2 + 1];
+				}
+			} else { // value = bbbb_cccc
 				final int b = v / 1_0000;
 				final int c = v % 1_0000;
-				final int d1 = (b / 100) << 1;
-				final int d2 = (b % 100) << 1;
 				final int d3 = (c / 100) << 1;
 				final int d4 = (c % 100) << 1;
-				if (value >= 1000_0000)
-					buf[pos++] = DIGITES_LUT[d1];
-				if (value >= 100_0000)
-					buf[pos++] = DIGITES_LUT[d1 + 1];
-				if (value >= 10_0000)
+				if (v < 10_0000)
+					buf[pos++] = (byte)('0' + b);
+				else {
+					final int d1 = (b / 100) << 1;
+					final int d2 = (b % 100) << 1;
+					if (v >= 100_0000) {
+						if (v >= 1000_0000)
+							buf[pos++] = DIGITES_LUT[d1];
+						buf[pos++] = DIGITES_LUT[d1 + 1];
+					}
 					buf[pos++] = DIGITES_LUT[d2];
-				buf[pos++] = DIGITES_LUT[d2 + 1];
+					buf[pos++] = DIGITES_LUT[d2 + 1];
+				}
 				buf[pos++] = DIGITES_LUT[d3];
 				buf[pos++] = DIGITES_LUT[d3 + 1];
 				buf[pos++] = DIGITES_LUT[d4];
 				buf[pos++] = DIGITES_LUT[d4 + 1];
 			}
 		} else if (value < 1_0000_0000_0000_0000L) {
+			final int v0 = (int)(value / 1_0000_0000);
+			final int v1 = (int)(value % 1_0000_0000);
+			final int b1 = v1 / 1_0000;
+			final int c1 = v1 % 1_0000;
+			final int d5 = (b1 / 100) << 1;
+			final int d6 = (b1 % 100) << 1;
+			final int d7 = (c1 / 100) << 1;
+			final int d8 = (c1 % 100) << 1;
+			if (value < 10_0000_0000L)
+				buf[pos++] = (byte)('0' + v0);
+			else {
+				final int d4 = (v0 % 100) << 1;
+				if (value >= 100_0000_0000L) {
+					final int v2 = v0 / 100;
+					final int d3 = (v2 % 100) << 1;
+					if (value >= 1000_0000_0000L) {
+						if (value >= 1_0000_0000_0000L) {
+							final int v3 = v2 / 100;
+							final int d2 = (v3 % 100) << 1;
+							if (value >= 10_0000_0000_0000L) {
+								if (value >= 100_0000_0000_0000L) {
+									final int d1 = (v3 / 100 % 100) << 1;
+									if (value >= 1000_0000_0000_0000L)
+										buf[pos++] = DIGITES_LUT[d1];
+									buf[pos++] = DIGITES_LUT[d1 + 1];
+								}
+								buf[pos++] = DIGITES_LUT[d2];
+							}
+							buf[pos++] = DIGITES_LUT[d2 + 1];
+						}
+						buf[pos++] = DIGITES_LUT[d3];
+					}
+					buf[pos++] = DIGITES_LUT[d3 + 1];
+				}
+				buf[pos++] = DIGITES_LUT[d4];
+				buf[pos++] = DIGITES_LUT[d4 + 1];
+			}
+			buf[pos++] = DIGITES_LUT[d5];
+			buf[pos++] = DIGITES_LUT[d5 + 1];
+			buf[pos++] = DIGITES_LUT[d6];
+			buf[pos++] = DIGITES_LUT[d6 + 1];
+			buf[pos++] = DIGITES_LUT[d7];
+			buf[pos++] = DIGITES_LUT[d7 + 1];
+			buf[pos++] = DIGITES_LUT[d8];
+			buf[pos++] = DIGITES_LUT[d8 + 1];
+		} else {
+			final int a = (int)(value / 1_0000_0000_0000_0000L); // [1,922]
+			value %= 1_0000_0000_0000_0000L;
 			final int v0 = (int)(value / 1_0000_0000);
 			final int v1 = (int)(value % 1_0000_0000);
 			final int b0 = v0 / 1_0000;
@@ -1122,32 +1189,6 @@ public final class JsonWriter {
 			final int d6 = (b1 % 100) << 1;
 			final int d7 = (c1 / 100) << 1;
 			final int d8 = (c1 % 100) << 1;
-			if (value >= 1000_0000_0000_0000L)
-				buf[pos++] = DIGITES_LUT[d1];
-			if (value >= 100_0000_0000_0000L)
-				buf[pos++] = DIGITES_LUT[d1 + 1];
-			if (value >= 10_0000_0000_0000L)
-				buf[pos++] = DIGITES_LUT[d2];
-			if (value >= 1_0000_0000_0000L)
-				buf[pos++] = DIGITES_LUT[d2 + 1];
-			if (value >= 1000_0000_0000L)
-				buf[pos++] = DIGITES_LUT[d3];
-			if (value >= 100_0000_0000L)
-				buf[pos++] = DIGITES_LUT[d3 + 1];
-			if (value >= 10_0000_0000L)
-				buf[pos++] = DIGITES_LUT[d4];
-			buf[pos++] = DIGITES_LUT[d4 + 1];
-			buf[pos++] = DIGITES_LUT[d5];
-			buf[pos++] = DIGITES_LUT[d5 + 1];
-			buf[pos++] = DIGITES_LUT[d6];
-			buf[pos++] = DIGITES_LUT[d6 + 1];
-			buf[pos++] = DIGITES_LUT[d7];
-			buf[pos++] = DIGITES_LUT[d7 + 1];
-			buf[pos++] = DIGITES_LUT[d8];
-			buf[pos++] = DIGITES_LUT[d8 + 1];
-		} else {
-			final int a = (int)(value / 1_0000_0000_0000_0000L); // [1,922]
-			value %= 1_0000_0000_0000_0000L;
 			if (a < 10)
 				buf[pos++] = (byte)('0' + a);
 			else if (a < 100) {
@@ -1160,20 +1201,6 @@ public final class JsonWriter {
 				buf[pos++] = DIGITES_LUT[i];
 				buf[pos++] = DIGITES_LUT[i + 1];
 			}
-			final int v0 = (int)(value / 1_0000_0000);
-			final int v1 = (int)(value % 1_0000_0000);
-			final int b0 = v0 / 1_0000;
-			final int c0 = v0 % 1_0000;
-			final int d1 = (b0 / 100) << 1;
-			final int d2 = (b0 % 100) << 1;
-			final int d3 = (c0 / 100) << 1;
-			final int d4 = (c0 % 100) << 1;
-			final int b1 = v1 / 1_0000;
-			final int c1 = v1 % 1_0000;
-			final int d5 = (b1 / 100) << 1;
-			final int d6 = (b1 % 100) << 1;
-			final int d7 = (c1 / 100) << 1;
-			final int d8 = (c1 % 100) << 1;
 			buf[pos++] = DIGITES_LUT[d1];
 			buf[pos++] = DIGITES_LUT[d1 + 1];
 			buf[pos++] = DIGITES_LUT[d2];
