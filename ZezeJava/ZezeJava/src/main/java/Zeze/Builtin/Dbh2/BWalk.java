@@ -11,6 +11,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     private Zeze.Net.Binary _ExclusiveStartKey;
     private int _ProposeLimit;
     private boolean _Desc;
+    private Zeze.Net.Binary _Prefix;
 
     @Override
     public Zeze.Net.Binary getExclusiveStartKey() {
@@ -74,18 +75,44 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         txn.putLog(new Log__Desc(this, 3, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BWalk() {
-        _ExclusiveStartKey = Zeze.Net.Binary.Empty;
+    @Override
+    public Zeze.Net.Binary getPrefix() {
+        if (!isManaged())
+            return _Prefix;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Prefix;
+        var log = (Log__Prefix)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _Prefix;
+    }
+
+    public void setPrefix(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Prefix = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Prefix(this, 4, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BWalk(Zeze.Net.Binary _ExclusiveStartKey_, int _ProposeLimit_, boolean _Desc_) {
+    public BWalk() {
+        _ExclusiveStartKey = Zeze.Net.Binary.Empty;
+        _Prefix = Zeze.Net.Binary.Empty;
+    }
+
+    @SuppressWarnings("deprecation")
+    public BWalk(Zeze.Net.Binary _ExclusiveStartKey_, int _ProposeLimit_, boolean _Desc_, Zeze.Net.Binary _Prefix_) {
         if (_ExclusiveStartKey_ == null)
             _ExclusiveStartKey_ = Zeze.Net.Binary.Empty;
         _ExclusiveStartKey = _ExclusiveStartKey_;
         _ProposeLimit = _ProposeLimit_;
         _Desc = _Desc_;
+        if (_Prefix_ == null)
+            _Prefix_ = Zeze.Net.Binary.Empty;
+        _Prefix = _Prefix_;
     }
 
     @Override
@@ -93,6 +120,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         setExclusiveStartKey(Zeze.Net.Binary.Empty);
         setProposeLimit(0);
         setDesc(false);
+        setPrefix(Zeze.Net.Binary.Empty);
         _unknown_ = null;
     }
 
@@ -112,6 +140,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         setExclusiveStartKey(other._ExclusiveStartKey);
         setProposeLimit(other._ProposeLimit);
         setDesc(other._Desc);
+        setPrefix(other._Prefix);
         _unknown_ = null;
     }
 
@@ -119,6 +148,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         setExclusiveStartKey(other.getExclusiveStartKey());
         setProposeLimit(other.getProposeLimit());
         setDesc(other.isDesc());
+        setPrefix(other.getPrefix());
         _unknown_ = other._unknown_;
     }
 
@@ -165,6 +195,13 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         public void commit() { ((BWalk)getBelong())._Desc = value; }
     }
 
+    private static final class Log__Prefix extends Zeze.Transaction.Logs.LogBinary {
+        public Log__Prefix(BWalk bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BWalk)getBelong())._Prefix = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -178,7 +215,8 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ExclusiveStartKey=").append(getExclusiveStartKey()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ProposeLimit=").append(getProposeLimit()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Desc=").append(isDesc()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Desc=").append(isDesc()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Prefix=").append(getPrefix()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -232,6 +270,13 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
                 _o_.WriteByte(1);
             }
         }
+        {
+            var _x_ = getPrefix();
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -251,6 +296,10 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         }
         if (_i_ == 3) {
             setDesc(_o_.ReadBool(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setPrefix(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -276,6 +325,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
                 case 1: _ExclusiveStartKey = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
                 case 2: _ProposeLimit = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 3: _Desc = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 4: _Prefix = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }
@@ -286,6 +336,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         setExclusiveStartKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "ExclusiveStartKey")));
         setProposeLimit(rs.getInt(_parents_name_ + "ProposeLimit"));
         setDesc(rs.getBoolean(_parents_name_ + "Desc"));
+        setPrefix(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Prefix")));
     }
 
     @Override
@@ -294,6 +345,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         st.appendBinary(_parents_name_ + "ExclusiveStartKey", getExclusiveStartKey());
         st.appendInt(_parents_name_ + "ProposeLimit", getProposeLimit());
         st.appendBoolean(_parents_name_ + "Desc", isDesc());
+        st.appendBinary(_parents_name_ + "Prefix", getPrefix());
     }
 
     @Override
@@ -302,6 +354,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ExclusiveStartKey", "binary", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ProposeLimit", "int", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Desc", "bool", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Prefix", "binary", "", ""));
         return vars;
     }
 
@@ -312,6 +365,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private Zeze.Net.Binary _ExclusiveStartKey;
     private int _ProposeLimit;
     private boolean _Desc;
+    private Zeze.Net.Binary _Prefix;
 
     public Zeze.Net.Binary getExclusiveStartKey() {
         return _ExclusiveStartKey;
@@ -339,18 +393,32 @@ public static final class Data extends Zeze.Transaction.Data {
         _Desc = value;
     }
 
-    @SuppressWarnings("deprecation")
-    public Data() {
-        _ExclusiveStartKey = Zeze.Net.Binary.Empty;
+    public Zeze.Net.Binary getPrefix() {
+        return _Prefix;
+    }
+
+    public void setPrefix(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Prefix = value;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Net.Binary _ExclusiveStartKey_, int _ProposeLimit_, boolean _Desc_) {
+    public Data() {
+        _ExclusiveStartKey = Zeze.Net.Binary.Empty;
+        _Prefix = Zeze.Net.Binary.Empty;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(Zeze.Net.Binary _ExclusiveStartKey_, int _ProposeLimit_, boolean _Desc_, Zeze.Net.Binary _Prefix_) {
         if (_ExclusiveStartKey_ == null)
             _ExclusiveStartKey_ = Zeze.Net.Binary.Empty;
         _ExclusiveStartKey = _ExclusiveStartKey_;
         _ProposeLimit = _ProposeLimit_;
         _Desc = _Desc_;
+        if (_Prefix_ == null)
+            _Prefix_ = Zeze.Net.Binary.Empty;
+        _Prefix = _Prefix_;
     }
 
     @Override
@@ -358,6 +426,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _ExclusiveStartKey = Zeze.Net.Binary.Empty;
         _ProposeLimit = 0;
         _Desc = false;
+        _Prefix = Zeze.Net.Binary.Empty;
     }
 
     @Override
@@ -376,12 +445,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _ExclusiveStartKey = other.getExclusiveStartKey();
         _ProposeLimit = other.getProposeLimit();
         _Desc = other.isDesc();
+        _Prefix = other.getPrefix();
     }
 
     public void assign(BWalk.Data other) {
         _ExclusiveStartKey = other._ExclusiveStartKey;
         _ProposeLimit = other._ProposeLimit;
         _Desc = other._Desc;
+        _Prefix = other._Prefix;
     }
 
     @Override
@@ -420,7 +491,8 @@ public static final class Data extends Zeze.Transaction.Data {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ExclusiveStartKey=").append(_ExclusiveStartKey).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ProposeLimit=").append(_ProposeLimit).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Desc=").append(_Desc).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Desc=").append(_Desc).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Prefix=").append(_Prefix).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -459,6 +531,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteByte(1);
             }
         }
+        {
+            var _x_ = _Prefix;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -476,6 +555,10 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 3) {
             _Desc = _o_.ReadBool(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _Prefix = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

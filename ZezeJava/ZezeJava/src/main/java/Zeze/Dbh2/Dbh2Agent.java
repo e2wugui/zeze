@@ -27,6 +27,7 @@ import Zeze.Util.Func3;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskCompletionSourceX;
+import org.jetbrains.annotations.Nullable;
 
 public class Dbh2Agent extends AbstractDbh2Agent {
 	// private static final Logger logger = LogManager.getLogger(Dbh2Agent.class);
@@ -162,22 +163,26 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return raftClient;
 	}
 
-	public Walk walk(Binary exclusiveStartKey, int proposeLimit, boolean desc) {
+	public Walk walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, @Nullable byte[] prefix) {
 		var r = new Walk();
 		r.Argument.setExclusiveStartKey(exclusiveStartKey);
 		r.Argument.setProposeLimit(proposeLimit);
 		r.Argument.setDesc(desc);
+		if (null != prefix)
+			r.Argument.setPrefix(new Binary(prefix));
 		r.setTimeout(config.getRpcTimeout());
 		raftClient.sendForWait(r).await();
 		// 错误在外面处理。
 		return r;
 	}
 
-	public WalkKey walkKey(Binary exclusiveStartKey, int proposeLimit, boolean desc) {
+	public WalkKey walkKey(Binary exclusiveStartKey, int proposeLimit, boolean desc, @Nullable byte[] prefix) {
 		var r = new WalkKey();
 		r.Argument.setExclusiveStartKey(exclusiveStartKey);
 		r.Argument.setProposeLimit(proposeLimit);
 		r.Argument.setDesc(desc);
+		if (null != prefix)
+			r.Argument.setPrefix(new Binary(prefix));
 		r.setTimeout(config.getRpcTimeout());
 		raftClient.sendForWait(r).await();
 		// 错误在外面处理。

@@ -25,6 +25,7 @@ import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 这个类管理到桶的raft-client-agent。
@@ -294,7 +295,8 @@ public class Dbh2AgentManager {
 	public long walk(MasterAgent masterAgent,
 					 String masterName, String databaseName, String tableName,
 					 TableWalkHandleRaw callback,
-					 boolean desc) {
+					 boolean desc,
+					 @Nullable byte[] prefix) {
 		var table = buckets.get(masterName).get(databaseName).get(tableName);
 		var count = 0L;
 		for (var bucketIt = table.buckets().iterator(); bucketIt.hasNext(); /* nothing */) {
@@ -302,7 +304,7 @@ public class Dbh2AgentManager {
 			var proposeLimit = 5000;
 			var bucket = bucketIt.next();
 			while (true) {
-				var r = openBucket(bucket.getRaftConfig()).walk(exclusiveStartKey, proposeLimit, desc);
+				var r = openBucket(bucket.getRaftConfig()).walk(exclusiveStartKey, proposeLimit, desc, prefix);
 				// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
 				if (r.getResultCode() != 0)
 					throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
@@ -332,7 +334,8 @@ public class Dbh2AgentManager {
 						   String masterName, String databaseName, String tableName,
 						   ByteBuffer exclusiveStartKey, int proposeLimit,
 						   TableWalkHandleRaw callback,
-						   boolean desc) {
+						   boolean desc,
+						   @Nullable byte[] prefix) {
 		var exclusiveKey = exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty;
 		var bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey);
 		if (!bucketIt.hasNext())
@@ -340,7 +343,7 @@ public class Dbh2AgentManager {
 		var bucket = bucketIt.next();
 		while (true) {
 			Binary lastKey = null;
-			var r = openBucket(bucket.getRaftConfig()).walk(exclusiveKey, proposeLimit, desc);
+			var r = openBucket(bucket.getRaftConfig()).walk(exclusiveKey, proposeLimit, desc, prefix);
 			// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
 			if (r.getResultCode() != 0)
 				throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
@@ -366,7 +369,8 @@ public class Dbh2AgentManager {
 	public long walkKey(MasterAgent masterAgent,
 						String masterName, String databaseName, String tableName,
 						TableWalkKeyRaw callback,
-						boolean desc) {
+						boolean desc,
+						@Nullable byte[] prefix) {
 		var table = buckets.get(masterName).get(databaseName).get(tableName);
 		var count = 0L;
 		for (var bucketIt = table.buckets().iterator(); bucketIt.hasNext(); /* nothing */) {
@@ -374,7 +378,7 @@ public class Dbh2AgentManager {
 			var proposeLimit = 5000;
 			var bucket = bucketIt.next();
 			while (true) {
-				var r = openBucket(bucket.getRaftConfig()).walkKey(exclusiveStartKey, proposeLimit, desc);
+				var r = openBucket(bucket.getRaftConfig()).walkKey(exclusiveStartKey, proposeLimit, desc, prefix);
 				// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
 				if (r.getResultCode() != 0)
 					throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
@@ -404,7 +408,8 @@ public class Dbh2AgentManager {
 							  String masterName, String databaseName, String tableName,
 							  ByteBuffer exclusiveStartKey, int proposeLimit,
 							  TableWalkKeyRaw callback,
-							  boolean desc) {
+							  boolean desc,
+							  @Nullable byte[] prefix) {
 		var exclusiveKey = exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty;
 		var bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey);
 		if (!bucketIt.hasNext())
@@ -412,7 +417,7 @@ public class Dbh2AgentManager {
 		var bucket = bucketIt.next();
 		Binary lastKey = null;
 		while (true) {
-			var r = openBucket(bucket.getRaftConfig()).walkKey(exclusiveKey, proposeLimit, desc);
+			var r = openBucket(bucket.getRaftConfig()).walkKey(exclusiveKey, proposeLimit, desc, prefix);
 			// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
 			if (r.getResultCode() != 0)
 				throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));

@@ -17,12 +17,8 @@ import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Bean;
-import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.TableWalkHandleRaw;
-import Zeze.Transaction.TableWalkKey;
 import Zeze.Transaction.TableWalkKeyRaw;
-import Zeze.Transaction.TableX;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.NotNull;
@@ -200,7 +196,9 @@ public class Database extends Zeze.Transaction.Database {
 		public void close() {
 		}
 
-		private ByteBuffer prefix(ByteBuffer key) {
+		private ByteBuffer addPrefix(@Nullable ByteBuffer key) {
+			if (null == key)
+				return ByteBuffer.Wrap(prefix);
 			var prefixKey = ByteBuffer.Allocate(4 + key.size());
 			prefixKey.Append(prefix);
 			prefixKey.Append(key.Bytes, key.ReadIndex, key.WriteIndex);
@@ -209,59 +207,83 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
-			return table.find(prefix(key));
+			return table.find(addPrefix(key));
 		}
 
 		@Override
 		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
 			var txn = (Dbh2Transaction)t;
-			txn.replace(table.getName(), prefix(key), value);
+			txn.replace(table.getName(), addPrefix(key), value);
 		}
 
 		@Override
 		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
 			var txn = (Dbh2Transaction)t;
-			txn.remove(table.getName(), prefix(key));
+			txn.remove(table.getName(), addPrefix(key));
 		}
 
 		@Override
 		public long walk(@NotNull TableWalkHandleRaw callback) {
-			return 0;
+			return dbh2AgentManager.walk(masterAgent, masterName, databaseName,
+					table.getName(), callback, false, prefix);
 		}
 
 		@Override
 		public long walkKey(@NotNull TableWalkKeyRaw callback) {
-			return 0;
+			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName,
+					table.getName(), callback, false, prefix);
 		}
 
 		@Override
 		public long walkDesc(@NotNull TableWalkHandleRaw callback) {
-			return 0;
+			return dbh2AgentManager.walk(masterAgent, masterName, databaseName,
+					table.getName(), callback, true, prefix);
 		}
 
 		@Override
 		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) {
-			return 0;
+			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName,
+					table.getName(), callback, true, prefix);
+		}
+
+		private static ByteBuffer removePrefix(@Nullable ByteBuffer key) {
+			if (null == key)
+				return null;
+			key.ReadIndex += 4;
+			return key;
+		}
+
+		// 【注意】
+		// 由于prefix使用了exclusiveStartKey的api实现，
+		// 所以如果Dbh2PrefixTable的key是空的，那么遍历的时候，这条记录会被忽略。
+		// 目前zeze不会使用空的key，所以没问题。
+
+		@Override
+		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey,
+										 int proposeLimit, @NotNull TableWalkHandleRaw callback) {
+			return removePrefix(dbh2AgentManager.walk(masterAgent, masterName, databaseName, table.getName(),
+					addPrefix(exclusiveStartKey), proposeLimit, callback, false, prefix));
 		}
 
 		@Override
-		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
-			return null;
+		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey,
+											int proposeLimit, @NotNull TableWalkKeyRaw callback) {
+			return removePrefix(dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, table.getName(),
+					addPrefix(exclusiveStartKey), proposeLimit, callback, false, prefix));
 		}
 
 		@Override
-		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
-			return null;
+		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey,
+											 int proposeLimit, @NotNull TableWalkHandleRaw callback) {
+			return removePrefix(dbh2AgentManager.walk(masterAgent, masterName, databaseName, table.getName(),
+					addPrefix(exclusiveStartKey), proposeLimit, callback, true, prefix));
 		}
 
 		@Override
-		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
-			return null;
-		}
-
-		@Override
-		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
-			return null;
+		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey,
+												int proposeLimit, @NotNull TableWalkKeyRaw callback) {
+			return removePrefix(dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, table.getName(),
+					addPrefix(exclusiveStartKey), proposeLimit, callback, true, prefix));
 		}
 	}
 
@@ -387,46 +409,46 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public long walk(TableWalkHandleRaw callback) {
-			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name, callback, false);
+			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name, callback, false, null);
 		}
 
 		@Override
 		public long walkKey(TableWalkKeyRaw callback) {
-			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name, callback, false);
+			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name, callback, false, null);
 		}
 
 		@Override
 		public long walkDesc(TableWalkHandleRaw callback) {
-			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name, callback, true);
+			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name, callback, true, null);
 		}
 
 		@Override
 		public long walkKeyDesc(TableWalkKeyRaw callback) {
-			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name, callback, true);
+			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name, callback, true, null);
 		}
 
 		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name,
-					exclusiveStartKey, proposeLimit, callback, false);
+					exclusiveStartKey, proposeLimit, callback, false, null);
 		}
 
 		@Override
 		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
 			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name,
-					exclusiveStartKey, proposeLimit, callback, false);
+					exclusiveStartKey, proposeLimit, callback, false, null);
 		}
 
 		@Override
 		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name,
-					exclusiveStartKey, proposeLimit, callback, true);
+					exclusiveStartKey, proposeLimit, callback, true, null);
 		}
 
 		@Override
 		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
 			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name,
-					exclusiveStartKey, proposeLimit, callback, true);
+					exclusiveStartKey, proposeLimit, callback, true, null);
 		}
 
 		@Override

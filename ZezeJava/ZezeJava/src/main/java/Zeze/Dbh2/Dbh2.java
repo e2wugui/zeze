@@ -288,7 +288,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		return 0;
 	}
 
-	private boolean walkDesc(Binary exclusiveStartKey, int proposeLimit,
+	private boolean walkDesc(Binary exclusiveStartKey, int proposeLimit, Binary prefix,
 							 Action2<Binary, RocksIterator> fill) throws Exception {
 		try (var it = stateMachine.getBucket().getData().iterator()) {
 			if (exclusiveStartKey.size() > 0) {
@@ -309,19 +309,24 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			}
 
 			var count = proposeLimit;
+			var bucketEnd = false;
 			for (; it.isValid() && count > 0; it.prev(), count--) {
 				var key = new Binary(it.key());
+				if (prefix.size() > 0 && !key.startsWith(prefix)) {
+					bucketEnd = true;
+					break;
+				}
 				fill.run(key, it);
 			}
 
-			return !it.isValid();
+			return bucketEnd || !it.isValid();
 		}
 	}
 
-	private boolean walk(Binary exclusiveStartKey, int proposeLimit, boolean desc,
+	private boolean walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, Binary prefix,
 						 Action2<Binary, RocksIterator> fill) throws Exception {
 		if (desc) {
-			return walkDesc(exclusiveStartKey, proposeLimit, fill);
+			return walkDesc(exclusiveStartKey, proposeLimit, prefix, fill);
 		}
 
 		try (var it = stateMachine.getBucket().getData().iterator()) {
@@ -347,6 +352,11 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 					bucketEnd = true;
 					break;
 				}
+				// 如果使用了prefix，那么发现了新的prefix时，也表示搜索结束。
+				if (prefix.size() >= 0 && !key.startsWith(prefix)) {
+					bucketEnd = true;
+					break;
+				}
 				fill.run(key, it);
 			}
 
@@ -365,6 +375,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				r.Argument.getExclusiveStartKey(),
 				r.Argument.getProposeLimit(),
 				r.Argument.isDesc(),
+				r.Argument.getPrefix(),
 				(key, it) -> r.Result.getKeyValues().add(new BWalkKeyValue.Data(key, new Binary(it.value()))));
 		r.Result.setBucketEnd(bucketEnd);
 		r.SendResult();
@@ -383,6 +394,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				r.Argument.getExclusiveStartKey(),
 				r.Argument.getProposeLimit(),
 				r.Argument.isDesc(),
+				r.Argument.getPrefix(),
 				(key, it) -> r.Result.getKeys().add(key));
 		r.Result.setBucketEnd(bucketEnd);
 		r.SendResult();

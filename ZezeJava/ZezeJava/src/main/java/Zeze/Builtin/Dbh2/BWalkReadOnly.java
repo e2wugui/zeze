@@ -10,4 +10,5 @@ public interface BWalkReadOnly {
     Zeze.Net.Binary getExclusiveStartKey();
     int getProposeLimit();
     boolean isDesc();
+    Zeze.Net.Binary getPrefix();
 }
