@@ -1,6 +1,7 @@
 package Zeze.Dbh2;
 
 import java.net.URI;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
@@ -16,10 +17,15 @@ import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
+import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.TableWalkHandleRaw;
+import Zeze.Transaction.TableWalkKey;
 import Zeze.Transaction.TableWalkKeyRaw;
+import Zeze.Transaction.TableX;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import Zeze.Builtin.Dbh2.Master.BSetInUse;
 
@@ -149,16 +155,114 @@ public class Database extends Zeze.Transaction.Database {
 		}
 	}
 
+	private final ConcurrentHashMap<String, Dbh2Table> tables = new ConcurrentHashMap<>();
+
 	@Override
 	public Table openTable(String name, int id) {
 		if (name.contains("@"))
 			throw new RuntimeException("'@' is reserve.");
+
+		var special = "___"; // prefix table 使用这个最后
+		var idx = name.indexOf(special);
+		if (idx >= 0) {
+			var tableName = name.substring(idx + special.length());
+			return new Dbh2PrefixTable(tables.computeIfAbsent(tableName, Dbh2Table::new), id);
+		}
+		// 这里不使用tables，保留的旧的逻辑不变。
 		return new Dbh2Table(name);
 	}
 
 	@Override
 	public Transaction beginTransaction() {
 		return new Dbh2Transaction();
+	}
+
+	public class Dbh2PrefixTable extends AbstractKVTable {
+		private final Dbh2Table table;
+		private final byte[] prefix = new byte[4];
+
+		public Dbh2PrefixTable(Dbh2Table table, int id) {
+			this.table = table;
+			ByteBuffer.intLeHandler.set(this.prefix, 0, id);
+		}
+
+		@Override
+		public boolean isNew() {
+			return false;
+		}
+
+		@Override
+		public Zeze.Transaction.@NotNull Database getDatabase() {
+			return Database.this;
+		}
+
+		@Override
+		public void close() {
+		}
+
+		private ByteBuffer prefix(ByteBuffer key) {
+			var prefixKey = ByteBuffer.Allocate(4 + key.size());
+			prefixKey.Append(prefix);
+			prefixKey.Append(key.Bytes, key.ReadIndex, key.WriteIndex);
+			return prefixKey;
+		}
+
+		@Override
+		public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
+			return table.find(prefix(key));
+		}
+
+		@Override
+		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
+			var txn = (Dbh2Transaction)t;
+			txn.replace(table.getName(), prefix(key), value);
+		}
+
+		@Override
+		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
+			var txn = (Dbh2Transaction)t;
+			txn.remove(table.getName(), prefix(key));
+		}
+
+		@Override
+		public long walk(@NotNull TableWalkHandleRaw callback) {
+			return 0;
+		}
+
+		@Override
+		public long walkKey(@NotNull TableWalkKeyRaw callback) {
+			return 0;
+		}
+
+		@Override
+		public long walkDesc(@NotNull TableWalkHandleRaw callback) {
+			return 0;
+		}
+
+		@Override
+		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) {
+			return 0;
+		}
+
+		@Override
+		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
+			return null;
+		}
+
+		@Override
+		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
+			return null;
+		}
+
+		@Override
+		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
+			return null;
+		}
+
+		@Override
+		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
+			return null;
+		}
 	}
 
 	public class Dbh2Transaction implements Zeze.Transaction.Database.Transaction {
