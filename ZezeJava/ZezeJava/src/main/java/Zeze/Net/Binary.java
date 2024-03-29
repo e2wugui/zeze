@@ -34,11 +34,10 @@ public final class Binary implements Comparable<Binary> {
 	}
 
 	public boolean startsWith(Binary prefix) {
-		if (prefix.size() > size())
-			return false;
-		return Arrays.equals(
-				bytes, 0, prefix.size(),
-				prefix.bytes, 0, prefix.size());
+		int prefixSize = prefix.count;
+		return count >= prefixSize && Arrays.equals(
+				bytes, offset, offset + prefixSize,
+				prefix.bytes, prefix.offset, prefix.offset + prefixSize);
 	}
 
 	/**
