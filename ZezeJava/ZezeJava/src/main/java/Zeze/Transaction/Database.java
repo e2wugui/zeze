@@ -213,6 +213,10 @@ public abstract class Database {
 
 		@NotNull Database getDatabase();
 
+		default int keyOffsetInRawKey() {
+			return 0;
+		}
+
 		///////////////////////////////////////////////////////////
 		// TableX类型下沉到这里，准备添加关系表映射。
 		<K extends Comparable<K>, V extends Bean> @Nullable V find(@NotNull TableX<K, V> table, @NotNull Object key);
@@ -365,7 +369,7 @@ public abstract class Database {
 
 		private static <K extends Comparable<K>, V extends Bean>
 		boolean invokeCallback(TableX<K, V> table, byte[] key, byte[] value, TableWalkHandle<K, V> callback) {
-			K k = table.decodeKey(ByteBuffer.Wrap(key));
+			K k = table.decodeKey(key);
 			V v = null;
 			var r = table.getCache().get(k);
 			if (r != null) {
@@ -384,12 +388,12 @@ public abstract class Database {
 				// 继续后面的处理：使用数据库中的数据。
 			}
 			// cache中有数据，使用最新的数据; 缓存中不存在或者正在被删除但还没提交，使用数据库中的数据。
-			return callback.handle(k, v != null ? v : table.decodeValue(ByteBuffer.Wrap(value)));
+			return callback.handle(k, v != null ? v : table.decodeValue(value));
 		}
 
 		private static <K extends Comparable<K>, V extends Bean>
 		boolean invokeCallback(TableX<K, V> table, byte[] key, TableWalkKey<K> callback) {
-			K k = table.decodeKey(ByteBuffer.Wrap(key));
+			K k = table.decodeKey(key);
 			var r = table.getCache().get(k);
 			if (r != null) {
 				r.enterFairLock();
@@ -501,8 +505,8 @@ public abstract class Database {
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback) {
 			return walk((key, value) -> {
-				K k = table.decodeKey(ByteBuffer.Wrap(key));
-				V v = table.decodeValue(ByteBuffer.Wrap(value));
+				K k = table.decodeKey(key);
+				V v = table.decodeValue(value);
 				return callback.handle(k, v);
 			});
 		}
@@ -511,8 +515,8 @@ public abstract class Database {
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDatabaseDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) {
 			return walkDesc((key, value) -> {
-				K k = table.decodeKey(ByteBuffer.Wrap(key));
-				V v = table.decodeValue(ByteBuffer.Wrap(value));
+				K k = table.decodeKey(key);
+				V v = table.decodeValue(value);
 				return callback.handle(k, v);
 			});
 		}
@@ -520,13 +524,13 @@ public abstract class Database {
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback) {
-			return walkKey(key -> callback.handle(table.decodeKey(ByteBuffer.Wrap(key))));
+			return walkKey(key -> callback.handle(table.decodeKey(key)));
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) {
-			return walkKeyDesc(key -> callback.handle(table.decodeKey(ByteBuffer.Wrap(key))));
+			return walkKeyDesc(key -> callback.handle(table.decodeKey(key)));
 		}
 
 		@Override
@@ -534,8 +538,8 @@ public abstract class Database {
 		K walkDatabase(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walk(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
-				K k = table.decodeKey(ByteBuffer.Wrap(key));
-				V v = table.decodeValue(ByteBuffer.Wrap(value));
+				K k = table.decodeKey(key);
+				V v = table.decodeValue(value);
 				return callback.handle(k, v);
 			});
 			return lastKey != null ? table.decodeKey(lastKey) : null;
@@ -547,8 +551,8 @@ public abstract class Database {
 						   TableWalkHandle<K, V> callback) {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkDesc(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
-				K k = table.decodeKey(ByteBuffer.Wrap(key));
-				V v = table.decodeValue(ByteBuffer.Wrap(value));
+				K k = table.decodeKey(key);
+				V v = table.decodeValue(value);
 				return callback.handle(k, v);
 			});
 			return lastKey != null ? table.decodeKey(lastKey) : null;
@@ -559,7 +563,7 @@ public abstract class Database {
 		K walkDatabaseKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit,
-					key -> callback.handle(table.decodeKey(ByteBuffer.Wrap(key))));
+					key -> callback.handle(table.decodeKey(key)));
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
 
@@ -568,7 +572,7 @@ public abstract class Database {
 		K walkDatabaseKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkKeyDesc(encodedExclusiveStartKey, proposeLimit,
-					key -> callback.handle(table.decodeKey(ByteBuffer.Wrap(key))));
+					key -> callback.handle(table.decodeKey(key)));
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
 	}

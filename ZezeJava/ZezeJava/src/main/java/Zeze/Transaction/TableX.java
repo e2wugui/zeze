@@ -113,6 +113,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return oldTable;
 	}
 
+	public int keyOffsetInRawKey() {
+		var s = storage;
+		return s != null ? s.getDatabaseTable().keyOffsetInRawKey() : 0;
+	}
+
 	public boolean isUseRelationalMapping() {
 		return useRelationalMapping;
 	}
@@ -738,7 +743,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public @NotNull K decodeKey(byte @NotNull [] bytes) {
-		return decodeKey(ByteBuffer.Wrap(bytes));
+		int keyOffset = keyOffsetInRawKey();
+		return decodeKey(ByteBuffer.Wrap(bytes, keyOffset, bytes.length - keyOffset));
 	}
 
 	@Override

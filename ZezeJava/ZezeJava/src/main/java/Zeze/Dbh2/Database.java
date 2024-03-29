@@ -59,7 +59,6 @@ public class Database extends Zeze.Transaction.Database {
 	}
 
 	private final class OperatesDbh2 implements Operates {
-
 		@Override
 		public void setInUse(int localId, String global) {
 			var r = new SetInUse();
@@ -108,14 +107,13 @@ public class Database extends Zeze.Transaction.Database {
 			r.SendForWait(masterAgent.getService().GetSocket()).await();
 			var error = IModule.getErrorCode(r.getResultCode());
 			switch (error) {
-				case BSaveDataWithSameVersion.eSuccess:
-					return KV.create(r.Result.getVersion(), true);
-				case BSaveDataWithSameVersion.eVersionMismatch:
-					return KV.create(0L, false);
-				default:
-					throw new RuntimeException("SaveDataWithSameVersion error=" + error);
+			case BSaveDataWithSameVersion.eSuccess:
+				return KV.create(r.Result.getVersion(), true);
+			case BSaveDataWithSameVersion.eVersionMismatch:
+				return KV.create(0L, false);
+			default:
+				throw new RuntimeException("SaveDataWithSameVersion error=" + error);
 			}
-
 		}
 
 		@Override
@@ -173,13 +171,27 @@ public class Database extends Zeze.Transaction.Database {
 		return new Dbh2Transaction();
 	}
 
+	private static ByteBuffer removePrefix(@Nullable ByteBuffer key) {
+		if (null == key)
+			return null;
+		key.ReadIndex += Dbh2PrefixTable.TABLE_PREFIX;
+		return key;
+	}
+
 	public class Dbh2PrefixTable extends AbstractKVTable {
+		private static final int TABLE_PREFIX = 4; // sizeof(int)
+
 		private final Dbh2Table table;
-		private final byte[] prefix = new byte[4];
+		private final byte[] prefix = new byte[TABLE_PREFIX];
 
 		public Dbh2PrefixTable(Dbh2Table table, int id) {
 			this.table = table;
 			ByteBuffer.intLeHandler.set(this.prefix, 0, id);
+		}
+
+		@Override
+		public int keyOffsetInRawKey() {
+			return TABLE_PREFIX;
 		}
 
 		@Override
@@ -199,9 +211,9 @@ public class Database extends Zeze.Transaction.Database {
 		private ByteBuffer addPrefix(@Nullable ByteBuffer key) {
 			if (null == key)
 				return ByteBuffer.Wrap(prefix);
-			var prefixKey = ByteBuffer.Allocate(4 + key.size());
+			var prefixKey = ByteBuffer.Allocate(TABLE_PREFIX + key.size());
 			prefixKey.Append(prefix);
-			prefixKey.Append(key.Bytes, key.ReadIndex, key.WriteIndex);
+			prefixKey.Append(key.Bytes, key.ReadIndex, key.size());
 			return prefixKey;
 		}
 
@@ -244,13 +256,6 @@ public class Database extends Zeze.Transaction.Database {
 		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) {
 			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName,
 					table.getName(), callback, true, prefix);
-		}
-
-		private static ByteBuffer removePrefix(@Nullable ByteBuffer key) {
-			if (null == key)
-				return null;
-			key.ReadIndex += 4;
-			return key;
 		}
 
 		// 【注意】
@@ -453,12 +458,10 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public void close() {
-
 		}
 	}
 
 	public static class Dbh2Operates implements Zeze.Transaction.Database.Operates {
-
 		@Override
 		public void setInUse(int localId, String global) {
 		}
@@ -478,5 +481,4 @@ public class Database extends Zeze.Transaction.Database {
 			return null;
 		}
 	}
-
 }

@@ -198,7 +198,7 @@ public class TestWalkPage {
 
 		if (!t.isUseRelationalMapping()) {
 			t.walkDatabaseRaw((key, value) -> {
-				var bbKey = t.decodeKey(ByteBuffer.Wrap(key));
+				var bbKey = t.decodeKey(key);
 				walkTimes.value += 1;
 				walkedKeys.add(bbKey);
 				return true;
@@ -223,7 +223,7 @@ public class TestWalkPage {
 
 		if (!t.isUseRelationalMapping()) {
 			t.walkDatabaseRawDesc((key, value) -> {
-				var bbKey = t.decodeKey(ByteBuffer.Wrap(key));
+				var bbKey = t.decodeKey(key);
 				walkTimes.value += 1;
 				walkedKeys.add(bbKey);
 				return true;

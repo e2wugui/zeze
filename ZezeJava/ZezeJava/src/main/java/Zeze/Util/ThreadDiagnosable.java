@@ -63,7 +63,12 @@ public final class ThreadDiagnosable {
 
 		// 注意必须使用try包装,确保new和close配对
 		public Timeout(long timeout) {
-			timeoutTime = System.nanoTime() + timeout * 1_000_000;
+			if (timeout > Long.MAX_VALUE / 1_000_000)
+				timeout = Long.MAX_VALUE / 1_000_000;
+			else if (timeout < 0)
+				timeout = 0;
+			timeout += System.nanoTime();
+			timeoutTime = timeout < 0 ? Long.MAX_VALUE : timeout;
 			timeouts.add(this);
 		}
 

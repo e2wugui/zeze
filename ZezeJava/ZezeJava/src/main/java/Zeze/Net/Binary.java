@@ -37,8 +37,8 @@ public final class Binary implements Comparable<Binary> {
 		if (prefix.size() > size())
 			return false;
 		return Arrays.equals(
-				bytes, 0, prefix.size() - 1,
-				prefix.bytes, 0, prefix.size() - 1);
+				bytes, 0, prefix.size(),
+				prefix.bytes, 0, prefix.size());
 	}
 
 	/**
