@@ -20,7 +20,7 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 			databaseTable = mysql.openRelationalTable(tableName);
 			return; // done
 		}
-		databaseTable = database.openTable(tableName);
+		databaseTable = database.openTable(tableName, table.getId());
 	}
 
 	public Table getTable() {

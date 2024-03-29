@@ -55,7 +55,7 @@ public class DatabaseRedis extends Database {
 	}
 
 	@Override
-	public @NotNull Table openTable(@NotNull String name) {
+	public @NotNull Table openTable(@NotNull String name, int id) {
 		return new RedisTable(name);
 	}
 

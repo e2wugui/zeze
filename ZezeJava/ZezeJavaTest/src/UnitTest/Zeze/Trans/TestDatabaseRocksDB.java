@@ -4,6 +4,7 @@ import Zeze.Config;
 import Zeze.Config.DatabaseConf;
 import Zeze.Config.DbType;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseRocksDb;
 import junit.framework.TestCase;
@@ -21,7 +22,7 @@ public class TestDatabaseRocksDB extends TestCase {
 
 		DatabaseRocksDb db = getDatabaseRocksDb();
 		try {
-			var table = (Database.AbstractKVTable)db.openTable("test_1");
+			var table = (Database.AbstractKVTable)db.openTable("test_1", Bean.hash32("test_1"));
 			{
 				try (var trans = db.beginTransaction()) {
 					{
@@ -89,7 +90,7 @@ public class TestDatabaseRocksDB extends TestCase {
 
 		DatabaseRocksDb db = getDatabaseRocksDb();
 		try {
-			var table = (Database.AbstractKVTable)db.openTable("test_1");
+			var table = (Database.AbstractKVTable)db.openTable("test_1", Bean.hash32("test_1"));
 			Assert.assertEquals(2, table.walk(TestDatabaseRocksDB::PrintRecord));
 		} finally {
 			db.close();

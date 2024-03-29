@@ -3,6 +3,7 @@ package Temp;
 import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.DatabaseMySql;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -74,8 +75,10 @@ public class TestJdbcHalt {
 			logger.info("init mysql client ...");
 			var mysql = new DatabaseMySql(null, dbConf);
 			var tables = new DatabaseMySql.TableMysql[tableCount];
-			for (int i = 0; i < tableCount; i++)
-				tables[i] = (DatabaseMySql.TableMysql)mysql.openTable("TestJdbcHalt" + i);
+			for (int i = 0; i < tableCount; i++) {
+				var tableName = "TestJdbcHalt" + i;
+				tables[i] = (DatabaseMySql.TableMysql)mysql.openTable(tableName, Bean.hash32(tableName));
+			}
 
 			logger.info("check tables ...");
 			var max = check(tables);

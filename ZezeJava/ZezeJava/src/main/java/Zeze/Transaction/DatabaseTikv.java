@@ -51,7 +51,7 @@ public class DatabaseTikv extends Database {
 	}
 
 	@Override
-	public AbstractKVTable openTable(String name) {
+	public AbstractKVTable openTable(String name, int id) {
 		return new TikvTable(name);
 	}
 
@@ -82,7 +82,8 @@ public class DatabaseTikv extends Database {
 		private final AbstractKVTable table;
 
 		public OperatesTikv() {
-			table = openTable("zeze.OperatesTikv.Schemas");
+			var schemaTableName = "zeze.OperatesTikv.Schemas";
+			table = openTable(schemaTableName, Bean.hash32(schemaTableName));
 		}
 
 		@Override

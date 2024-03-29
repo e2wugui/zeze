@@ -28,7 +28,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	}
 
 	@Override
-	public Database.Table openTable(String name) {
+	public Database.Table openTable(String name, int id) {
 		return new TableMysql(name);
 	}
 

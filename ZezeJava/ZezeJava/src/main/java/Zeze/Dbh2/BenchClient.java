@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
@@ -83,8 +84,10 @@ public class BenchClient {
 			dbh2AgentManager.start();
 			var database = newDatabase(dbh2AgentManager, masterIp, masterPort);
 			var tables = new ArrayList<Zeze.Transaction.Database.AbstractKVTable>();
-			for (int i = 0; i < tableNumber; ++i)
-				tables.add((Database.AbstractKVTable)database.openTable("table" + i));
+			for (int i = 0; i < tableNumber; ++i) {
+				var tableName = "table" + i;
+				tables.add((Database.AbstractKVTable)database.openTable(tableName, Bean.hash32(tableName)));
+			}
 			for (var table : tables)
 				table.waitReady();
 

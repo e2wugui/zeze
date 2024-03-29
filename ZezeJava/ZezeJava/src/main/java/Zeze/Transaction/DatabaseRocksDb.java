@@ -151,14 +151,14 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	@Override
-	public Table openTable(String name) {
+	public Table openTable(String name, int id) {
 		var isNew = new OutObject<Boolean>();
 		var table = getOrAddTable(name, isNew);
 		return new TableRocksDb(table, isNew.value);
 	}
 
 	@Override
-	public synchronized @NotNull Table @NotNull [] openTables(String @NotNull [] names) {
+	public synchronized @NotNull Table @NotNull [] openTables(String @NotNull [] names, int @NotNull [] ids) {
 		try {
 			var n = names.length;
 			var tables = new Table[n];

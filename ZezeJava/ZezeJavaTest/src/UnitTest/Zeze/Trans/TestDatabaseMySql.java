@@ -7,6 +7,7 @@ import Zeze.Config;
 import Zeze.Config.DatabaseConf;
 import Zeze.Config.DbType;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMySql;
 import junit.framework.TestCase;
@@ -67,7 +68,7 @@ public class TestDatabaseMySql extends TestCase {
 		DatabaseMySql sqlserver = new DatabaseMySql(null, databaseConf);
 		Database.AbstractKVTable table;
 		{
-			Database.Table tableTmp = sqlserver.openTable("test_1");
+			Database.Table tableTmp = sqlserver.openTable("test_1", Bean.hash32("test_1"));
 			if (tableTmp instanceof Database.AbstractKVTable)
 				table = (Database.AbstractKVTable)tableTmp;
 			else

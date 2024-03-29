@@ -708,8 +708,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		relationalTable = getZeze().getSchemas().relationalTables.get(getName()); // maybe null
 		storage = isMemory() ? null : new Storage<>(this, database, getName());
 		oldTable = getTableConf().getDatabaseOldMode() == 1
-				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName()) : null;
-		localRocksCacheTable = localTable != null ? localTable : app.getLocalRocksCacheDb().openTable(getName());
+				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName(), getId()) : null;
+		localRocksCacheTable = localTable != null ? localTable : app.getLocalRocksCacheDb().openTable(getName(), getId());
 		useRelationalMapping = isRelationalMapping() && database instanceof DatabaseMySql;
 		return storage;
 	}

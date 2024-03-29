@@ -4,6 +4,7 @@ import Zeze.Config;
 import Zeze.Config.DatabaseConf;
 import Zeze.Config.DbType;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseSqlServer;
 import junit.framework.TestCase;
@@ -25,7 +26,7 @@ public class TestDatabaseSqlServer extends TestCase {
 		databaseConf.setDruidConf(new Config.DruidConf());
 
 		DatabaseSqlServer sqlserver = new DatabaseSqlServer(null, databaseConf);
-		Database.Table tableTmp = sqlserver.openTable("test1");
+		Database.Table tableTmp = sqlserver.openTable("test1", Bean.hash32("test1"));
 		if (! (tableTmp instanceof Database.AbstractKVTable))
 			return;
 		var table = (Database.AbstractKVTable)tableTmp;

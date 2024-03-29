@@ -42,7 +42,7 @@ public class DatabaseDynamoDb extends Database {
 	}
 
 	@Override
-	public Table openTable(String name) {
+	public Table openTable(String name, int id) {
 		return new TableDynamoDb(name);
 	}
 
@@ -55,7 +55,8 @@ public class DatabaseDynamoDb extends Database {
 		private final TableDynamoDb dataWithVersion;
 
 		public OperatesDynamoDb() {
-			dataWithVersion = (TableDynamoDb)openTable("zeze.OperatesDynamoDb.Schemas");
+			var schemaTableName = "zeze.OperatesDynamoDb.Schemas";
+			dataWithVersion = (TableDynamoDb)openTable(schemaTableName, Bean.hash32(schemaTableName));
 		}
 
 		@Override

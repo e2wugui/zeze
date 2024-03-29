@@ -5,6 +5,7 @@ import java.util.Random;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,8 +31,10 @@ public class TestDatabaseHalt {
 		var database = Config.createDatabase(zeze, defaultDatabaseConf);
 		var tableCount = 5;
 		var tables = new Database.AbstractKVTable[tableCount];
-		for (var i = 0; i < tableCount; ++i)
-			tables[i] = (Database.AbstractKVTable)database.openTable("TableTestDatabaseHalt" + i);
+		for (var i = 0; i < tableCount; ++i) {
+			var tableName = "TableTestDatabaseHalt" + i;
+			tables[i] = (Database.AbstractKVTable)database.openTable(tableName, Bean.hash32(tableName));
+		}
 		for (var table : tables)
 			table.waitReady();
 		// verify and get

@@ -9,6 +9,7 @@ import Zeze.Dbh2.Database;
 import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.Dbh2.Dbh2Manager;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Util.Task;
 import org.junit.Assert;
 import org.junit.Test;
@@ -64,8 +65,10 @@ public class Dbh2FullTest {
 
 			database = newDatabase(dbh2AgentManager, "dbh2TestDb");
 			var tables = new ArrayList<AbstractKVTable>();
-			for (int i = 0; i < 4; ++i)
-				tables.add((Database.AbstractKVTable)database.openTable("table" + i));
+			for (int i = 0; i < 4; ++i) {
+				var tableName = "table" + i;
+				tables.add((Database.AbstractKVTable)database.openTable(tableName, Bean.hash32(tableName)));
+			}
 			for (var table : tables)
 				table.waitReady();
 
@@ -118,7 +121,7 @@ public class Dbh2FullTest {
 			dbh2AgentManager.start();
 
 			database = newDatabase(dbh2AgentManager, "dbh2TestDb");
-			var table1 = (Database.AbstractKVTable)database.openTable("table1");
+			var table1 = (Database.AbstractKVTable)database.openTable("table1", Bean.hash32("table1"));
 			table1.waitReady();
 
 			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
@@ -165,8 +168,8 @@ public class Dbh2FullTest {
 			dbh2AgentManager.start();
 
 			database = newDatabase(dbh2AgentManager, "dbh2TestDb");
-			var table1 = (Database.AbstractKVTable)database.openTable("table1");
-			var table2 = (Database.AbstractKVTable)database.openTable("table2");
+			var table1 = (Database.AbstractKVTable)database.openTable("table1", Bean.hash32("table1"));
+			var table2 = (Database.AbstractKVTable)database.openTable("table2", Bean.hash32("table2"));
 			table1.waitReady();
 			table2.waitReady();
 

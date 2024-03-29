@@ -119,7 +119,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	}
 
 	@Override
-	public Database.Table openTable(String name) {
+	public Database.Table openTable(String name, int id) {
 		lock.writeLock().lock();
 		try {
 			var tables = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new HashMap<>());

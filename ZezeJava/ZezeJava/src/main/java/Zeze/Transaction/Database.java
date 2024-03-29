@@ -118,13 +118,16 @@ public abstract class Database {
 	public final void open(@NotNull Application app) {
 		var ts = tables.values().toArray(new Zeze.Transaction.Table[tables.size()]);
 		var names = new String[ts.length];
-		int i = 0;
-		for (var table : ts)
-			names[i++] = table.getName();
-		var localTables = app.getLocalRocksCacheDb().openTables(names);
-		i = 0;
-		for (var table : ts) {
-			var storage = table.open(app, this, localTables[i++]);
+		var ids = new int[ts.length];
+		for (var i = 0; i < ts.length; ++i) {
+			var table = ts[i];
+			names[i] = table.getName();
+			ids[i] = table.getId();
+		}
+		var localTables = app.getLocalRocksCacheDb().openTables(names, ids);
+		for (var i = 0; i < ts.length; ++i) {
+			var table = ts[i];
+			var storage = table.open(app, this, localTables[i]);
 			if (storage != null)
 				storages.add(storage);
 		}
@@ -180,12 +183,14 @@ public abstract class Database {
 			storage.cleanup();
 	}
 
-	public abstract @NotNull Table openTable(@NotNull String name);
+	public abstract @NotNull Table openTable(@NotNull String name, int id);
 
-	public @NotNull Table @NotNull [] openTables(String @NotNull [] names) {
+	public @NotNull Table @NotNull [] openTables(String @NotNull [] names, int @NotNull [] ids) {
+		if (names.length != ids.length)
+			throw new RuntimeException("tables name & id count mismatch.");
 		var tables = new Table[names.length];
 		for (int i = 0, n = names.length; i < n; i++)
-			tables[i] = openTable(names[i]);
+			tables[i] = openTable(names[i], ids[i]);
 		return tables;
 	}
 

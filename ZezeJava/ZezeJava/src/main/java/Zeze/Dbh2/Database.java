@@ -150,7 +150,7 @@ public class Database extends Zeze.Transaction.Database {
 	}
 
 	@Override
-	public Table openTable(String name) {
+	public Table openTable(String name, int id) {
 		if (name.contains("@"))
 			throw new RuntimeException("'@' is reserve.");
 		return new Dbh2Table(name);
