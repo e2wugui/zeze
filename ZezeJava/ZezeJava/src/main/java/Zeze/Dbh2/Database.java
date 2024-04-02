@@ -2,6 +2,7 @@ package Zeze.Dbh2;
 
 import java.net.URI;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
@@ -186,6 +187,7 @@ public class Database extends Zeze.Transaction.Database {
 
 		public Dbh2PrefixTable(Dbh2Table table, int id) {
 			this.table = table;
+			table.addRef();
 			ByteBuffer.intLeHandler.set(this.prefix, 0, id);
 		}
 
@@ -206,6 +208,7 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public void close() {
+			table.decRef();
 		}
 
 		private ByteBuffer addPrefix(@Nullable ByteBuffer key) {
@@ -336,6 +339,17 @@ public class Database extends Zeze.Transaction.Database {
 		private final String name;
 		private boolean isNew;
 		private final TaskCompletionSource<Integer> ready = new TaskCompletionSource<>();
+		private final AtomicInteger ref = new AtomicInteger();
+
+		public void addRef() {
+			ref.incrementAndGet();
+		}
+
+		public void decRef() {
+			if (ref.decrementAndGet() == 0) {
+				close();
+			}
+		}
 
 		public Dbh2Table(String tableName) {
 			this.name = tableName;
@@ -458,6 +472,7 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public void close() {
+			tables.remove(name);
 		}
 	}
 
