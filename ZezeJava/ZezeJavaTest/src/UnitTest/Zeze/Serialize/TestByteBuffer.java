@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.NioByteBuffer;
 import Zeze.Serialize.Vector2;
 import Zeze.Serialize.Vector2Int;
 import Zeze.Serialize.Vector3;
@@ -45,19 +46,36 @@ public class TestByteBuffer extends TestCase {
 		assertEquals(BitConverter.toString(v), BitConverter.toString(bb.ReadBytes()));
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.WriteIndex);
+		assertEquals(1, nbb.size());
+		// assertEquals("00", nbb.toString());
+		assertEquals(BitConverter.toString(v), BitConverter.toString(nbb.ReadBytes()));
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = new byte[]{1, 2};
 		bb.WriteBytes(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(3, bb.size());
 		assertEquals("02-01-02", bb.toString());
 		assertEquals(BitConverter.toString(v), BitConverter.toString(bb.ReadBytes()));
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(3, nbb.size());
+		// assertEquals("02-01-02", nbb.toString());
+		assertEquals(BitConverter.toString(v), BitConverter.toString(nbb.ReadBytes()));
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		var str = "abc汉字123";
 		bb.WriteString(str);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(13, bb.size());
 		assertEquals("0C-61-62-63-E6-B1-89-E5-AD-97-31-32-33", bb.toString());
 		assertEquals(str, bb.ReadString());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+		assertEquals(13, nbb.size());
+		assertEquals(str, nbb.ReadString());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
 
 		str = new String(new char[]{0xd800 + 0x155, 0xdc00 + 0x2aa, 0xd800 + 0x2aa, 0xdc00 + 0x155}); // surrogate chars
 		byte[] b0 = str.getBytes(StandardCharsets.UTF_8);
@@ -69,6 +87,9 @@ public class TestByteBuffer extends TestCase {
 		Assert.assertArrayEquals(b0, bb.ReadBytes());
 		bb.ReadIndex = 0;
 		assertEquals(str, bb.ReadString());
+
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.WriteIndex);
+		assertEquals(str, nbb.ReadString());
 	}
 
 	public void testBasic() {
@@ -78,66 +99,106 @@ public class TestByteBuffer extends TestCase {
 		{
 			boolean v = true;
 			bb.WriteBool(v);
+			var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 			assertEquals(1, bb.size());
 			assertEquals(1, bb.Bytes[bb.ReadIndex]);
 			assertEquals(v, bb.ReadBool());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+			assertEquals(1, nbb.size());
+			assertEquals(v, nbb.ReadBool());
+			assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
 		}
 		{
 			byte v = 1;
 			bb.WriteByte(v);
+			var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 			assertEquals(1, bb.size());
 			assertEquals(1, bb.Bytes[bb.ReadIndex]);
 			assertEquals(v, bb.ReadByte());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+			assertEquals(1, nbb.size());
+			assertEquals(v, nbb.ReadByte());
+			assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
 		}
 		{
 			double v = 1.1;
 			bb.WriteDouble(v);
+			var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 			assertEquals(8, bb.size());
 			assertEquals("9A-99-99-99-99-99-F1-3F", bb.toString());
 			assertEquals(v, bb.ReadDouble());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+			assertEquals(8, nbb.size());
+			assertEquals(v, nbb.ReadDouble());
+			assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
 		}
 		{
 			float v = 1.1f;
 			bb.WriteFloat(v);
+			var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 			assertEquals(4, bb.size());
 			assertEquals("CD-CC-8C-3F", bb.toString());
 			assertEquals(v, bb.ReadFloat());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+			assertEquals(4, nbb.size());
+			assertEquals(v, nbb.ReadFloat());
+			assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
 		}
 		{
 			int int4 = 0x12345678;
 			bb.WriteInt4(int4);
+			var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 			assertEquals(4, bb.size());
 			assertEquals("78-56-34-12", bb.toString());
 			assertEquals(int4, bb.ReadInt4());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+			assertEquals(4, nbb.size());
+			assertEquals(int4, nbb.ReadInt4());
+			assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
 		}
 		{
 			long long8 = 0x1234567801020304L;
 			bb.WriteLong8(long8);
+			var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 			assertEquals(8, bb.size());
 			assertEquals("04-03-02-01-78-56-34-12", bb.toString());
 			assertEquals(long8, bb.ReadLong8());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+			assertEquals(8, nbb.size());
+			assertEquals(long8, nbb.ReadLong8());
+			assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
 		}
 		{
 			long long8 = -12345678;
 			bb.WriteLong8(long8);
+			var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 			assertEquals(8, bb.size());
 			assertEquals("B2-9E-43-FF-FF-FF-FF-FF", bb.toString());
 			assertEquals(long8, bb.ReadLong8());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+			assertEquals(8, nbb.size());
+			assertEquals(long8, nbb.ReadLong8());
+			assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
 		}
 		{
 			long long8 = -1;
 			bb.WriteLong8(long8);
+			var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 			assertEquals(8, bb.size());
 			assertEquals("FF-FF-FF-FF-FF-FF-FF-FF", bb.toString());
 			assertEquals(long8, bb.ReadLong8());
 			assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+			assertEquals(8, nbb.size());
+			assertEquals(long8, nbb.ReadLong8());
+			assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
 		}
 	}
 
@@ -147,45 +208,75 @@ public class TestByteBuffer extends TestCase {
 
 		int v = 1;
 		bb.WriteUInt(v);
+		var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(1, bb.size());
 		assertEquals("01", bb.toString());
 		assertEquals(v, bb.ReadUInt());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(1, nbb.size());
+		assertEquals(v, nbb.ReadUInt());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x80;
 		bb.WriteUInt(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(2, bb.size());
 		assertEquals("80-80", bb.toString());
 		assertEquals(v, bb.ReadUInt());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(2, nbb.size());
+		assertEquals(v, nbb.ReadUInt());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x4000;
 		bb.WriteUInt(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(3, bb.size());
 		assertEquals("C0-40-00", bb.toString());
 		assertEquals(v, bb.ReadUInt());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(3, nbb.size());
+		assertEquals(v, nbb.ReadUInt());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x20_0000;
 		bb.WriteUInt(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(4, bb.size());
 		assertEquals("E0-20-00-00", bb.toString());
 		assertEquals(v, bb.ReadUInt());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(4, nbb.size());
+		assertEquals(v, nbb.ReadUInt());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x1000_0000;
 		bb.WriteUInt(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(5, bb.size());
 		assertEquals("F0-10-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadUInt());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(5, nbb.size());
+		assertEquals(v, nbb.ReadUInt());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = -1;
 		bb.WriteUInt(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(5, bb.size());
 		assertEquals("F0-FF-FF-FF-FF", bb.toString());
 		assertEquals(v, bb.ReadUInt());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+		assertEquals(5, nbb.size());
+		assertEquals(v, nbb.ReadUInt());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
 	}
 
 	public void testLong() {
@@ -194,98 +285,165 @@ public class TestByteBuffer extends TestCase {
 
 		long v = 1;
 		bb.WriteLong(v);
+		var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(1, bb.size());
 		assertEquals("01", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(1, nbb.size());
+		assertEquals(v, nbb.ReadLong());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x80L;
 		bb.WriteLong(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(2, bb.size());
 		assertEquals("40-80", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(2, nbb.size());
+		assertEquals(v, nbb.ReadLong());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x4000L;
 		bb.WriteLong(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(3, bb.size());
 		assertEquals("60-40-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(3, nbb.size());
+		assertEquals(v, nbb.ReadLong());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x20_0000L;
 		bb.WriteLong(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(4, bb.size());
 		assertEquals("70-20-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(4, nbb.size());
+		assertEquals(v, nbb.ReadLong());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x1000_0000L;
 		bb.WriteLong(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(5, bb.size());
 		assertEquals("78-10-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(5, nbb.size());
+		assertEquals(v, nbb.ReadLong());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x8_0000_0000L;
 		bb.WriteLong(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(6, bb.size());
 		assertEquals("7C-08-00-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(6, nbb.size());
+		assertEquals(v, nbb.ReadLong());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x400_0000_0000L;
 		bb.WriteLong(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(7, bb.size());
 		assertEquals("7E-04-00-00-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(7, nbb.size());
+		assertEquals(v, nbb.ReadLong());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x2_0000_0000_0000L;
 		bb.WriteLong(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(8, bb.size());
 		assertEquals("7F-02-00-00-00-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(8, nbb.size());
+		assertEquals(v, nbb.ReadLong());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x100_0000_0000_0000L;
 		bb.WriteLong(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(9, bb.size());
 		assertEquals("7F-81-00-00-00-00-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(9, nbb.size());
+		assertEquals(v, nbb.ReadLong());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = 0x8000_0000_0000_0000L;
 		bb.WriteLong(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(9, bb.size());
 		assertEquals("80-00-00-00-00-00-00-00-00", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 
+		assertEquals(9, nbb.size());
+		assertEquals(v, nbb.ReadLong());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+
 		v = -1;
 		bb.WriteLong(v);
+		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 		assertEquals(1, bb.size());
 		assertEquals("FF", bb.toString());
 		assertEquals(v, bb.ReadLong());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+		assertEquals(1, nbb.size());
+		assertEquals(v, nbb.ReadLong());
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
 	}
 
 	private static void testInt(int x) {
 		ByteBuffer bb = ByteBuffer.Allocate();
 		bb.WriteInt(x);
+		var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.WriteIndex);
 		int y = bb.ReadInt();
 		assertEquals(x, y);
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 		assertEquals(bb.WriteIndex, ByteBuffer.WriteLongSize(x));
+
+		y = nbb.ReadInt();
+		assertEquals(x, y);
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+		assertEquals(nbb.getWriteIndex(), ByteBuffer.WriteLongSize(x));
 	}
 
 	private static void testLong(long x) {
 		ByteBuffer bb = ByteBuffer.Allocate();
 		bb.WriteLong(x);
+		var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.WriteIndex);
 		long y = bb.ReadLong();
 		assertEquals(x, y);
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 		assertEquals(bb.WriteIndex, ByteBuffer.WriteLongSize(x));
+
+		y = nbb.ReadLong();
+		assertEquals(x, y);
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+		assertEquals(nbb.getWriteIndex(), ByteBuffer.WriteLongSize(x));
 	}
 
 	private static void testUInt(int x) {
@@ -293,51 +451,87 @@ public class TestByteBuffer extends TestCase {
 		ByteBuffer bb1 = ByteBuffer.Allocate();
 		bb.WriteUInt(x);
 		bb1.WriteULong(x & 0xffff_ffffL);
+		var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.WriteIndex);
+		var nbb1 = NioByteBuffer.Wrap(bb1.Bytes, bb1.WriteIndex);
 		assertTrue(bb.equals(bb1));
 		int y = bb.ReadUInt();
 		assertEquals(x, y);
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 		assertEquals(bb.WriteIndex, ByteBuffer.WriteUIntSize(x));
 		assertEquals(bb.WriteIndex, ByteBuffer.WriteULongSize(x & 0xffff_ffffL));
+
+		assertTrue(nbb.equals(nbb1));
+		y = nbb.ReadUInt();
+		assertEquals(x, y);
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+		assertEquals(nbb.getWriteIndex(), ByteBuffer.WriteUIntSize(x));
+		assertEquals(nbb.getWriteIndex(), ByteBuffer.WriteULongSize(x & 0xffff_ffffL));
 	}
 
 	private static void testULong(long x) {
 		ByteBuffer bb = ByteBuffer.Allocate();
 		bb.WriteULong(x);
+		var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.WriteIndex);
 		long y = bb.ReadULong();
 		assertEquals(x, y);
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 		assertEquals(bb.WriteIndex, ByteBuffer.WriteULongSize(x));
+
+		y = nbb.ReadULong();
+		assertEquals(x, y);
+		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
+		assertEquals(nbb.getWriteIndex(), ByteBuffer.WriteULongSize(x));
 	}
 
 	private static void testSkipUInt(int x) {
 		ByteBuffer bb = ByteBuffer.Allocate();
 		bb.WriteUInt(x);
+		var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.WriteIndex);
 		bb.ReadUInt();
 		int ri = bb.ReadIndex;
 		bb.ReadIndex = 0;
 		bb.SkipUInt();
 		assertEquals(ri, bb.ReadIndex);
+
+		nbb.ReadUInt();
+		ri = nbb.getReadIndex();
+		nbb.setReadIndex(0);
+		nbb.SkipUInt();
+		assertEquals(ri, nbb.getReadIndex());
 	}
 
 	private static void testSkipLong(long x) {
 		ByteBuffer bb = ByteBuffer.Allocate();
 		bb.WriteLong(x);
+		var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.WriteIndex);
 		bb.ReadLong();
 		int ri = bb.ReadIndex;
 		bb.ReadIndex = 0;
 		bb.SkipLong();
 		assertEquals(ri, bb.ReadIndex);
+
+		nbb.ReadLong();
+		ri = nbb.getReadIndex();
+		nbb.setReadIndex(0);
+		nbb.SkipLong();
+		assertEquals(ri, nbb.getReadIndex());
 	}
 
 	private static void testSkipULong(long x) {
 		ByteBuffer bb = ByteBuffer.Allocate();
 		bb.WriteULong(x);
+		var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.WriteIndex);
 		bb.ReadULong();
 		int ri = bb.ReadIndex;
 		bb.ReadIndex = 0;
 		bb.SkipULong();
 		assertEquals(ri, bb.ReadIndex);
+
+		nbb.ReadULong();
+		ri = nbb.getReadIndex();
+		nbb.setReadIndex(0);
+		nbb.SkipULong();
+		assertEquals(ri, nbb.getReadIndex());
 	}
 
 	private static void testAll(long x) {
@@ -416,17 +610,26 @@ public class TestByteBuffer extends TestCase {
 
 		ByteBuffer bb = ByteBuffer.Allocate();
 		v.encode(bb);
+		var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.WriteIndex);
 		BValue v2 = new BValue();
 		v2.decode(bb);
 		bb.ReadIndex = 0;
 		ByteBuffer bb2 = ByteBuffer.Allocate();
 		v2.encode(bb2);
+		var nbb2 = NioByteBuffer.Wrap(bb2.Bytes, bb2.WriteIndex);
+
+		v2 = new BValue();
+		v2.decode(nbb);
+		nbb.setReadIndex(0);
 
 //		System.out.println(v);
 //		System.out.println(v2);
 
 		assertEquals(bb.size(), bb2.size());
 		assertEquals(bb, bb2);
+
+		assertEquals(nbb.size(), nbb2.size());
+		assertEquals(nbb, nbb2);
 	}
 
 	public void testUnknown() {
@@ -435,13 +638,22 @@ public class TestByteBuffer extends TestCase {
 		a.setShort5((short)456);
 		var bb1 = ByteBuffer.Allocate();
 		a.encode(bb1);
+		var nbb1 = NioByteBuffer.Wrap(bb1.Bytes, bb1.WriteIndex);
 		var b = new Bean1();
 		b.decode(bb1);
 		bb1.ReadIndex = 0;
 		assertEquals(123, b.getV1());
 		var bb2 = ByteBuffer.Allocate();
 		b.encode(bb2);
+		var nbb2 = NioByteBuffer.Wrap(bb2.Bytes, bb2.WriteIndex);
 		assertEquals(bb1, bb2);
+
+		b = new Bean1();
+		b.decode(nbb1);
+		nbb1.setReadIndex(0);
+		assertEquals(123, b.getV1());
+
+		assertEquals(nbb1, nbb2);
 	}
 
 	public void testCollections() {
@@ -516,11 +728,22 @@ public class TestByteBuffer extends TestCase {
 			var db = ByteBuffer.Allocate();
 			b.encode(bb);
 			d.encode(db);
+			var nbb = NioByteBuffer.Wrap(bb.Bytes, bb.WriteIndex);
+			var ndb = NioByteBuffer.Wrap(db.Bytes, db.WriteIndex);
+
 			assertEquals(bb, db);
 			b.reset();
 			d.reset();
 			b.decode(bb);
 			d.decode(db);
+			assertEquals(b.toData(), d);
+			assertEquals(b, d.toBean());
+
+			assertEquals(nbb, ndb);
+			b.reset();
+			d.reset();
+			b.decode(nbb);
+			d.decode(ndb);
 			assertEquals(b.toData(), d);
 			assertEquals(b, d.toBean());
 		}
