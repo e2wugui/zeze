@@ -178,7 +178,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	public long ReadLong2BE() {
 		ensureRead(2);
 		bb.order(ByteOrder.BIG_ENDIAN);
-		return bb.getShort();
+		return bb.getShort() & 0xffff;
 	}
 
 	@Override
