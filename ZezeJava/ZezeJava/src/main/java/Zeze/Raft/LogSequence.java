@@ -469,6 +469,16 @@ public class LogSequence {
 		rafts.put(writeOptions, raftsNodeReadyKey, 0, raftsNodeReadyKey.length, value.Bytes, 0, value.WriteIndex);
 	}
 
+	/**
+	 * 查询请求的状态。
+	 * 1. return null 表示RaftExpired，这个错误不可忽略。
+	 * 2. return state.NOT_FOUND 第一次收到请求，是合理状态的一种，外面正常处理。
+	 * 3. return state 重复的请求，后面根据状态进行处理。分为RaftApplied，DuplicateRequest两种。
+	 *
+	 * @param p request
+	 * @return state
+	 * @throws RocksDBException RocksDBException
+	 */
 	UniqueRequestState tryGetRequestState(Protocol<?> p) throws RocksDBException {
 		var raftRpc = (IRaftRpc)p;
 
