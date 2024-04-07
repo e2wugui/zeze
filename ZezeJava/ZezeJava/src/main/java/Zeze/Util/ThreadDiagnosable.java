@@ -30,7 +30,7 @@ public final class ThreadDiagnosable {
 											&& t.getPriority() <= Thread.NORM_PRIORITY) {
 										var sb = new StringBuilder();
 										formatStackTrace(t.getStackTrace(), sb);
-										logger.warn("INTERRUPT thread '{}' for task timeout {}", t.getName(), sb.toString());
+										logger.warn("INTERRUPT thread '{}' for task timeout\n{}", t.getName(), sb.toString());
 										t.interrupt();
 										// more more ...
 									}

@@ -3,6 +3,7 @@ package Zeze.Dbh2;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BWalkKeyValue;
@@ -32,6 +33,7 @@ import Zeze.Util.Action2;
 import Zeze.Util.FuncLong;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
+import Zeze.Util.TaskOneByOneQueue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -67,17 +69,28 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			setInstanceName(raft.getName());
 		}
 
+		private ReentrantLock prepareQueueLock = new ReentrantLock();
 		private ConcurrentLinkedQueue<Action0> prepareQueue;
 
-		public synchronized void setupPrepareQueue() {
-			if (null == prepareQueue)
-				prepareQueue = new ConcurrentLinkedQueue<>();
+		public void setupPrepareQueue() {
+			prepareQueueLock.lock();
+			try {
+				if (null == prepareQueue)
+					prepareQueue = new ConcurrentLinkedQueue<>();
+			} finally {
+				prepareQueueLock.unlock();
+			}
 		}
 
-		public synchronized ConcurrentLinkedQueue<Action0> takePrepareQueue() {
-			var tmp = prepareQueue;
-			prepareQueue = null;
-			return tmp;
+		public ConcurrentLinkedQueue<Action0> takePrepareQueue() {
+			prepareQueueLock.lock();
+			try {
+				var tmp = prepareQueue;
+				prepareQueue = null;
+				return tmp;
+			} finally {
+				prepareQueueLock.unlock();
+			}
 		}
 
 		@Override
@@ -93,11 +106,19 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		}
 
 		@Override
-		public synchronized void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
+		public void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
 													 DispatchMode mode) throws Exception {
-			if (null != prepareQueue && isPrepareRequest(p.getTypeId())) {
-				prepareQueue.add(() -> Task.call(func, p));
-			} else if (isQueryRequest(p.getTypeId())) {
+			prepareQueueLock.lock();
+			try {
+				if (null != prepareQueue && isPrepareRequest(p.getTypeId())) {
+					prepareQueue.add(() -> Task.call(func, p));
+					return;
+				}
+			} finally {
+				prepareQueueLock.unlock();
+			}
+
+			if (isQueryRequest(p.getTypeId())) {
 				// 允许Get请求并发
 				super.dispatchRaftRequest(p, func, name, cancel, mode);
 			} else {
