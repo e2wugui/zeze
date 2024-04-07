@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
+import static Zeze.Util.DeadlockBreaker.MAX_DEPTH;
 
 public final class ThreadDiagnosable {
 	private static final Logger logger = LogManager.getLogger(ThreadDiagnosable.class);
@@ -27,7 +28,9 @@ public final class ThreadDiagnosable {
 									var t = timeout.thread;
 									if (t != null && !t.isInterrupted() && t.isAlive()
 											&& t.getPriority() <= Thread.NORM_PRIORITY) {
-										logger.warn("INTERRUPT thread '{}' for task timeout", t.getName());
+										var sb = new StringBuilder();
+										formatStackTrace(t.getStackTrace(), sb);
+										logger.warn("INTERRUPT thread '{}' for task timeout {}", t.getName(), sb.toString());
 										t.interrupt();
 										// more more ...
 									}
@@ -50,6 +53,19 @@ public final class ThreadDiagnosable {
 		thread.setDaemon(true);
 		thread.setPriority(Thread.NORM_PRIORITY + 2);
 		thread.start();
+	}
+
+	public static void formatStackTrace(StackTraceElement[] stackTrace, StringBuilder sb) {
+		int i = 0;
+		for (; i < stackTrace.length && i < MAX_DEPTH; i++) {
+			var ste = stackTrace[i];
+			sb.append("\tat ").append(ste.toString());
+			sb.append('\n');
+		}
+		if (i < stackTrace.length) {
+			sb.append("\t...");
+			sb.append('\n');
+		}
 	}
 
 	// 停止诊断检测。

@@ -62,6 +62,7 @@ public class Service {
 	}
 
 	private final @NotNull String name;
+	private @NotNull String instanceName = ""; // 用来区分多实例的Service，用于日志，不影响逻辑。
 	private final Application zeze;
 	private @NotNull SocketOptions socketOptions; // 同一个 Service 下的所有连接都是用相同配置。
 	private @NotNull ServiceConf config;
@@ -82,6 +83,14 @@ public class Service {
 	private @Nullable ScheduledFuture<?> statisticLogFuture;
 	private boolean noProcedure = false;
 	protected Future<?> keepCheckTimer;
+
+	public String getInstanceName() {
+		return instanceName;
+	}
+
+	public void setInstanceName(String instanceName) {
+		this.instanceName = instanceName;
+	}
 
 	public Service(@NotNull String name) {
 		this(name, (Config)null);
@@ -823,8 +832,8 @@ public class Service {
 				});
 				operates.value /= periodSec;
 				outBufSize.value /= periodSec;
-				logger.info("{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
-						getClass().getName(), sn, selectors.getCount(), rs, rc, ss, sc, sr, getSocketCount(),
+				logger.info("{}.{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
+						name, instanceName, sn, selectors.getCount(), rs, rc, ss, sc, sr, getSocketCount(),
 						operates.value, outBufSize.value);
 			}
 			lastSizes[0] = selectCount;

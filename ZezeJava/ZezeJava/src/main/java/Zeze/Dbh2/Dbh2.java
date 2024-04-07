@@ -64,6 +64,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	public class Dbh2RaftServer extends Zeze.Raft.Server {
 		public Dbh2RaftServer(Raft raft, String name, Config config) {
 			super(raft, name, config);
+			setInstanceName(raft.getName());
 		}
 
 		private ConcurrentLinkedQueue<Action0> prepareQueue;

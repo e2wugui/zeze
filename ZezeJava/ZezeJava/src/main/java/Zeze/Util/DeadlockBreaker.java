@@ -90,7 +90,7 @@ public class DeadlockBreaker extends ThreadHelper {
 	/**
 	 * ThreadInfo 最多只打印出8层的栈信息 see ThreadInfo.MAX_FRAMES
 	 */
-	private static final int MAX_DEPTH = 255;
+	public static final int MAX_DEPTH = 255;
 
 	/**
 	 * 检测死锁，并尝试打破死锁环。
@@ -155,7 +155,7 @@ public class DeadlockBreaker extends ThreadHelper {
 		return true;
 	}
 
-	private static void dumpThreadInfoTo(ThreadInfo tinfo, StringBuilder sb) {
+	public static void dumpThreadInfoTo(ThreadInfo tinfo, StringBuilder sb) {
 		sb.append("\"").append(tinfo.getThreadName()).append("\"");
 		sb.append(" Id=").append(tinfo.getThreadId()).append(" ");
 		sb.append(tinfo.getThreadState());
