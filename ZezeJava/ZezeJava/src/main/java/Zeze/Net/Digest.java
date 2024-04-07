@@ -19,6 +19,7 @@ public final class Digest {
 			return md5.digest();
 		} catch (Exception e) {
 			Task.forceThrow(e);
+			//noinspection UnreachableCode
 			return ByteBuffer.Empty; // never run here
 		}
 	}
@@ -31,6 +32,7 @@ public final class Digest {
 			return mac.doFinal();
 		} catch (Exception e) {
 			Task.forceThrow(e);
+			//noinspection UnreachableCode
 			return ByteBuffer.Empty; // never run here
 		}
 	}

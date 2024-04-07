@@ -228,8 +228,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 					groupResult.computeIfAbsent(r.getTable().getName(), __ -> new ArrayList<>()).add(r.getObjectKey());
 				}
 			}
-			Checkpoint.logger.info("locked.size=" + groupLocked.size() + " trans.size=" + groupTrans.size()
-					+ "\nlocked:" + groupLocked + "\ntrans:" + groupTrans + "\nresult:" + groupResult);
+			Checkpoint.logger.info("locked.size={} trans.size={}\nlocked:{}\ntrans:{}\nresult:{}",
+					groupLocked.size(), groupTrans.size(), groupLocked, groupTrans, groupResult);
 		}
 	}
 

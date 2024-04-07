@@ -106,7 +106,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		public synchronized <P extends Protocol<?>> void dispatchRaftRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 																				 ProtocolFactoryHandle<?> factoryHandle) {
 			if (logger.isDebugEnabled())
-				logger.debug("dispatchRaftRpcResponse: " + rpc.getClass().getName() + rpc);
+				logger.debug("dispatchRaftRpcResponse: {}{}", rpc.getClass().getName(), rpc);
 			var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
 			Task.call(procedure::call, rpc);
 		}
@@ -117,7 +117,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			if (logger.isDebugEnabled()) {
 				var netSession = (Session)p.getSender().getUserState();
 				var ssName = null != netSession ? netSession.name : "";
-				logger.debug("dispatchRaftRequest: " + p.getClass().getName() + "@" + ssName + p);
+				logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
 			}
 			var procedure = new Procedure(rocks, func);
 			Task.call(procedure::call, p, Protocol::SendResultCode);
@@ -128,7 +128,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			var netSession = (Session)so.getUserState();
 			if (null != netSession) {
 				if (logger.isDebugEnabled())
-					logger.info("OnSocketClose: " + netSession.name);
+					logger.info("OnSocketClose: {}", netSession.name);
 				synchronized (this) {
 					var procedure = rocks.newProcedure(() -> {
 						netSession.onClose();

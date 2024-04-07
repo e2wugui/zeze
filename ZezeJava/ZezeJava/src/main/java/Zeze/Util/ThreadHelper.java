@@ -32,7 +32,7 @@ public class ThreadHelper extends Thread {
 				join();
 				break;
 			} catch (Throwable ex) {
-				logger.warn(this.getClass().getName() + "shutdown. ignore ex=" + ex);
+				logger.warn("{} shutdown. ignore ex:", getClass().getName(), ex);
 			}
 		}
 	}
@@ -60,7 +60,7 @@ public class ThreadHelper extends Thread {
 			if (idle)
 				this.wait(ms);
 		} catch (InterruptedException ex) {
-			logger.warn(this.getClass().getName() + "sleepOut. ex=" + ex);
+			logger.warn("{} sleepOut. ex:", getClass().getName(), ex);
 		} finally {
 			idle = true;
 		}

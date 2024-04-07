@@ -131,6 +131,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			return Cert.encryptRsa(rsaPubKey, data);
 		} catch (GeneralSecurityException e) {
 			Task.forceThrow(e);
+			//noinspection UnreachableCode
 			return ByteBuffer.Empty; // never run here
 		}
 	}

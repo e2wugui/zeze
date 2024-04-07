@@ -263,7 +263,7 @@ public class MasterDatabase {
 		var bucket = r.Argument;
 		String tableName = bucket.getTableName();
 		if (null == tables.get(tableName)) {
-			logger.error("createBucket but table not found. database=" + databaseName + " table=" + tableName);
+			logger.error("createBucket but table not found. database={} table={}", databaseName, tableName);
 			return master.errorCode(Master.eTableNotFound);
 		}
 
@@ -271,7 +271,7 @@ public class MasterDatabase {
 		synchronized (table) {
 			if (table.buckets.get(bucket.getKeyFirst()) != null) {
 				// 桶已经存在，断点续传由manager自己负责，不能重复创建桶。
-				logger.info("bucket exist. database=" + databaseName + " table=" + tableName);
+				logger.info("bucket exist. database={} table={}", databaseName, tableName);
 				return master.errorCode(Master.eSplittingBucketExist);
 			}
 
@@ -280,7 +280,7 @@ public class MasterDatabase {
 			// allocate first bucket service and setup table
 			var managers = master.choiceSmallLoadManagers();
 			if (managers.size() < master.getDbh2Config().getRaftClusterCount()) {
-				logger.info("too few small load manager. database=" + databaseName + " table=" + tableName);
+				logger.info("too few small load manager. database={} table={}", databaseName, tableName);
 				return master.errorCode(Master.eTooFewManager);
 			}
 

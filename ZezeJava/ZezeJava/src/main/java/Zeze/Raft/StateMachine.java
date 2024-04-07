@@ -33,7 +33,7 @@ public abstract class StateMachine {
 		Supplier<Log> factory = logFactorys.get(logTypeId);
 		if (factory != null)
 			return factory.get();
-		logger.fatal("Unknown Log: " + logTypeId, new Exception());
+		logger.fatal("Unknown Log: {}", logTypeId, new Exception());
 		raft.fatalKill();
 		return null;
 	}

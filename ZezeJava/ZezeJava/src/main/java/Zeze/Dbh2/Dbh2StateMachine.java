@@ -190,7 +190,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			var state = commitAgent.query(t.getQueryIp(), t.getQueryPort(), tid, dbh2.getDbh2Config().getRpcTimeout());
 			if (Commit.eCommitNotExist == state.getState()
 					|| Commit.ePreparing == state.getState()) {
-				logger.warn("timeout undo tid=" + tid + " state=" + state);
+				logger.warn("timeout undo tid={} state={}", tid, state);
 				getRaft().appendLog(new LogUndoBatch(tid));
 			}
 		}

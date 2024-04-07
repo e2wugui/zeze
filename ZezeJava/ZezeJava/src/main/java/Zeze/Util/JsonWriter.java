@@ -284,7 +284,7 @@ public final class JsonWriter {
 	@SuppressWarnings({"null", "unused"})
 	void appendBlock(int len) {
 		Block block = allocator.alloc(len);
-		//noinspection ConstantConditions
+		//noinspection ConstantConditions,UnreachableCode
 		if (tail != null) {
 			block.next = tail.next;
 			tail.next = block;

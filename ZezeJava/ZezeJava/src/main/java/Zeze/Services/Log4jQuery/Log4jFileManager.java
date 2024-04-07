@@ -135,7 +135,7 @@ public class Log4jFileManager {
 					var indexFile = Path.of(logConf.logDir, getCurrentIndexFileName()).toFile();
 					if (indexFile.exists()) {
 						if (!indexFile.renameTo(new File(logConf.logDir, fileName + ".index")))
-							logger.error("rename error. " + indexFile);
+							logger.error("rename error: {}", indexFile);
 					}
 					// 修改file指向新的logFile。index保持不变。
 					last.file = new File(logConf.logDir, fileName);
@@ -204,7 +204,7 @@ public class Log4jFileManager {
 			for (var link : links) {
 				if (link != maxFile) {
 					if (!link.delete())
-						logger.warn("delete link error: " + link);
+						logger.warn("delete link error: {}", link);
 				}
 			}
 		}

@@ -190,7 +190,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 			r.Argument.setOnzTid(onzTid);
 			r.SendForWait(zeze).await();
 			if (r.getResultCode() != 0)
-				logger.fatal("commit error " + IModule.getErrorCode(r.getResultCode()));
+				logger.fatal("commit error {}", IModule.getErrorCode(r.getResultCode()));
 		}
 
 		// 对于procedure，下面函数里面访问的zezeSagas是空的。
@@ -207,7 +207,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 			r.Argument.setOnzTid(onzTid);
 			r.SendForWait(zeze).await();
 			if (r.getResultCode() != 0) {
-				logger.fatal("rollback error " + IModule.getErrorCode(r.getResultCode()));
+				logger.fatal("rollback error {}", IModule.getErrorCode(r.getResultCode()));
 			}
 		}
 

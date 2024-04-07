@@ -76,7 +76,7 @@ public class Daemon {
 				joinMonitors();
 				logger.warn("Subprocess Restart! ExitCode={}", exitCode);
 				if (System.currentTimeMillis() - startTime < minAliveTime) {
-					logger.fatal("subprocess alive too short. " + minAliveTime);
+					logger.fatal("subprocess alive too short: {}", minAliveTime);
 					break;
 				}
 				restart = true;

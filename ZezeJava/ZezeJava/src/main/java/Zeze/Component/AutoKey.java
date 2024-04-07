@@ -217,6 +217,7 @@ public class AutoKey {
 				return result.value;
 		} catch (InterruptedException | ExecutionException e) {
 			Task.forceThrow(e);
+			//noinspection UnreachableCode
 			return -1; // never run here
 		}
 		throw new IllegalStateException("AutoKey.getSeed failed: " + ret);
@@ -269,6 +270,7 @@ public class AutoKey {
 					}
 				} catch (InterruptedException | ExecutionException e) {
 					Task.forceThrow(e);
+					//noinspection UnreachableCode
 					return -1; // never run here
 				}
 				throw new IllegalStateException("AutoKey.nextSeed failed: " + ret);

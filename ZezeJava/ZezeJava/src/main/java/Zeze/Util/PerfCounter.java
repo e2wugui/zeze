@@ -21,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class PerfCounter {
-	private static final Logger logger = LogManager.getLogger(PerfCounter.class);
+	public static final @NotNull Logger logger = LogManager.getLogger("StatLog");
 
 	private static class RunInfo {
 		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目

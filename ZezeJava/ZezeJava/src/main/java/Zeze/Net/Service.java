@@ -28,6 +28,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -84,11 +85,11 @@ public class Service {
 	private boolean noProcedure = false;
 	protected Future<?> keepCheckTimer;
 
-	public String getInstanceName() {
+	public @NotNull String getInstanceName() {
 		return instanceName;
 	}
 
-	public void setInstanceName(String instanceName) {
+	public void setInstanceName(@NotNull String instanceName) {
 		this.instanceName = instanceName;
 	}
 
@@ -832,7 +833,8 @@ public class Service {
 				});
 				operates.value /= periodSec;
 				outBufSize.value /= periodSec;
-				logger.info("{}.{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
+				PerfCounter.logger.info(
+						"{}.{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
 						name, instanceName, sn, selectors.getCount(), rs, rc, ss, sc, sr, getSocketCount(),
 						operates.value, outBufSize.value);
 			}

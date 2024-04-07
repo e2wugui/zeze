@@ -847,8 +847,7 @@ public final class Config {
 			return name;
 		}
 
-		public void setName(@NotNull String name) {
-			//noinspection ConstantValue
+		public void setName(@Nullable String name) {
 			this.name = name != null ? name : "";
 		}
 
@@ -865,8 +864,7 @@ public final class Config {
 			return databaseUrl;
 		}
 
-		public void setDatabaseUrl(@NotNull String databaseUrl) {
-			//noinspection ConstantValue
+		public void setDatabaseUrl(@Nullable String databaseUrl) {
 			this.databaseUrl = databaseUrl != null ? databaseUrl : "";
 		}
 

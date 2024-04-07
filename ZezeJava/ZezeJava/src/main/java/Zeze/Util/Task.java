@@ -155,7 +155,7 @@ public final class Task {
 		try {
 			action.run();
 		} catch (Exception ex) {
-			//noinspection ConstantValue
+			//noinspection ConstantValue,UnreachableCode
 			logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", ex);
 		} finally {
 			//noinspection ConstantValue
@@ -169,7 +169,7 @@ public final class Task {
 		try {
 			return func.call();
 		} catch (Exception ex) {
-			//noinspection ConstantValue
+			//noinspection ConstantValue,UnreachableCode
 			logger.error("{} exception:", name != null ? name : func != null ? func.getClass().getName() : "", ex);
 			return Procedure.Exception;
 		} finally {
@@ -222,7 +222,7 @@ public final class Task {
 				action.run();
 				future.setResult(0L);
 			} catch (Exception e) {
-				//noinspection ConstantValue
+				//noinspection ConstantValue,UnreachableCode
 				logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", e);
 				future.setException(e);
 			} finally {
@@ -240,7 +240,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
-				//noinspection ConstantValue
+				//noinspection ConstantValue,UnreachableCode
 				logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", e);
 			} finally {
 				//noinspection ConstantValue
@@ -268,7 +268,7 @@ public final class Task {
 			try {
 				action.run();
 			} catch (Exception e) {
-				//noinspection ConstantValue
+				//noinspection ConstantValue,UnreachableCode
 				logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", e);
 			} finally {
 				//noinspection ConstantValue
@@ -285,7 +285,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
-				//noinspection ConstantValue
+				//noinspection ConstantValue,UnreachableCode
 				logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", e);
 			} finally {
 				//noinspection ConstantValue

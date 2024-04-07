@@ -3,13 +3,9 @@ package Zeze.Transaction;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
 import Zeze.Util.TimerFuture;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public final class ProcedureStatistics {
-	private static final Logger logger = LogManager.getLogger(ProcedureStatistics.class);
-
 	private ProcedureStatistics() {
 	}
 
@@ -49,7 +45,7 @@ public final class ProcedureStatistics {
 				try {
 					reachHandle.run();
 				} catch (Throwable e) { // logger.error
-					logger.error("ProcedureStatistics.Watcher.check exception:", e);
+					PerfCounter.logger.error("ProcedureStatistics.Watcher.check exception:", e);
 				}
 			}
 			last = total;

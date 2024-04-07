@@ -33,7 +33,6 @@ import Zeze.Util.Action2;
 import Zeze.Util.FuncLong;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
-import Zeze.Util.TaskOneByOneQueue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -69,7 +68,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			setInstanceName(raft.getName());
 		}
 
-		private ReentrantLock prepareQueueLock = new ReentrantLock();
+		private final ReentrantLock prepareQueueLock = new ReentrantLock();
 		private ConcurrentLinkedQueue<Action0> prepareQueue;
 
 		public void setupPrepareQueue() {
@@ -187,7 +186,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	@Override
 	public void close() throws IOException {
-		logger.info("closeRaft: " + raft.getName());
+		logger.info("closeRaft: {}", raft.getName());
 		try {
 			raft.shutdown();
 			stateMachine.close();

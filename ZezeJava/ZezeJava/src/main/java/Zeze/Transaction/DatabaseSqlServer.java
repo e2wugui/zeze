@@ -70,6 +70,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
+				//noinspection UnreachableCode
 				return -1; // never run here
 			}
 		}
@@ -448,6 +449,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
+				//noinspection UnreachableCode
 				return -1; // never run here
 			}
 		}
@@ -476,6 +478,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
+				//noinspection UnreachableCode
 				return -1; // never run here
 			}
 		}

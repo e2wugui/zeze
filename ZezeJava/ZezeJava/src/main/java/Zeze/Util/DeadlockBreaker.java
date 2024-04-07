@@ -82,7 +82,7 @@ public class DeadlockBreaker extends ThreadHelper {
 				}
 				sleepIdle(sleepIdleMs);
 			} catch (Throwable ex) {
-				logger.error("angel run " + ex);
+				logger.error("angel run exception:", ex);
 			}
 		}
 	}
@@ -231,12 +231,11 @@ public class DeadlockBreaker extends ThreadHelper {
 				thread.interrupt();
 				return allThreads;
 			}
-			logger.info("thread not found. " + tinfo);
+			logger.info("thread not found: {}", tinfo);
 
 		} catch (Throwable e) {
 			logger.fatal(tinfo, e);
 		}
 		return allThreads;
 	}
-
 }

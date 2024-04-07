@@ -179,7 +179,8 @@ public class TimerRole {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion) {
 			if (fromTransmit) {
-				logger.warn("schedule from transmit, but not login. roleId=" + roleId + " " + name.getClass().getName());
+				logger.warn("schedule simple from transmit, but not login. roleId={} {}",
+						roleId, name.getClass().getName());
 				return;
 			}
 			var loginOnline = online.getLoginOnline(roleId);
@@ -198,7 +199,7 @@ public class TimerRole {
 				online.transmitEmbed(roleId, eTransmitSimpleTimer, List.of(roleId),
 						new Binary(ByteBuffer.encode(p)), false);
 
-				logger.info("not online but transmit {}", roleId);
+				logger.info("scheduleOnline(Simple): not online but transmit {}", roleId);
 				return; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
 			throw new IllegalStateException("not online " + roleId);
@@ -225,7 +226,7 @@ public class TimerRole {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion) {
 			if (fromTransmit) {
-				logger.warn("schedule from transmit, but not login. roleId=" + roleId + " " + name.getName());
+				logger.warn("schedule hot simple from transmit, but not login. roleId={} {}", roleId, name.getName());
 				return;
 			}
 			var loginOnline = online.getLoginOnline(roleId);
@@ -243,7 +244,7 @@ public class TimerRole {
 				}
 				online.transmitEmbed(roleId, eTransmitSimpleTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)), false);
 			}
-			logger.info("not online {}", roleId);
+			logger.info("scheduleOnlineHot(Simple): not online {}", roleId);
 		} else {
 			var timer = online.providerApp.zeze.getTimer();
 			var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, timer.timerSerialId.nextId());
@@ -358,7 +359,8 @@ public class TimerRole {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion) {
 			if (fromTransmit) {
-				logger.warn("schedule from transmit, but not login. roleId=" + roleId + " " + name.getClass().getName());
+				logger.warn("schedule cron from transmit, but not login. roleId={} {}",
+						roleId, name.getClass().getName());
 				return;
 			}
 			var loginOnline = online.getLoginOnline(roleId);
@@ -375,7 +377,7 @@ public class TimerRole {
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
 				}
 				online.transmitEmbed(roleId, eTransmitCronTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)), false);
-				logger.info("not online but transmit {}", roleId);
+				logger.info("scheduleOnline(Cron): not online but transmit {}", roleId);
 				return; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
 			throw new IllegalStateException("not online " + roleId);
@@ -401,7 +403,7 @@ public class TimerRole {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion) {
 			if (fromTransmit) {
-				logger.warn("schedule from transmit, but not login. roleId=" + roleId + " " + name.getName());
+				logger.warn("schedule hot cron from transmit, but not login. roleId={} {}", roleId, name.getName());
 				return;
 			}
 			var loginOnline = online.getLoginOnline(roleId);
@@ -419,7 +421,7 @@ public class TimerRole {
 				}
 				online.transmitEmbed(roleId, eTransmitCronTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)), false);
 			}
-			logger.info("not online {}", roleId);
+			logger.info("scheduleOnlineHot(Cron): not online {}", roleId);
 			return;
 		}
 
