@@ -33,6 +33,7 @@ import Zeze.Util.Action2;
 import Zeze.Util.FuncLong;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
+import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -95,7 +96,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		@Override
 		public <P extends Protocol<?>> void dispatchRaftRpcResponse(P p, ProtocolHandle<P> responseHandle,
 																	ProtocolFactoryHandle<?> factoryHandle) throws Exception {
-			raft.getImportantThreadExecutor().execute(() -> {
+			Raft.executeImportantTask(() -> {
 				try {
 					responseHandle.handle(p);
 				} catch (Exception e) {
@@ -121,7 +122,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 允许Get请求并发
 				super.dispatchRaftRequest(p, func, name, cancel, mode);
 			} else {
-				raft.getUserThreadExecutor().execute(() -> Task.call(func, p));
+				raft.executeUserTask(() -> Task.call(func, p));
 			}
 		}
 	}
@@ -152,7 +153,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		return dbh2Config;
 	}
 
-	public Dbh2(Dbh2Manager manager, String raftName, RaftConfig raftConf, Config config, boolean writeOptionSync) {
+	public Dbh2(Dbh2Manager manager, String raftName, RaftConfig raftConf, Config config, boolean writeOptionSync,
+				TaskOneByOneByKey taskOneByOne) {
 		this.manager = manager;
 
 		var selfNode = raftConf.getNodes().get(raftName);
@@ -167,7 +169,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 		try {
 			stateMachine = new Dbh2StateMachine(this);
-			raft = new Raft(stateMachine, raftName, raftConf, config, "Zeze.Dbh2.Server", Dbh2RaftServer::new);
+			raft = new Raft(stateMachine, raftName, raftConf, config,
+					"Zeze.Dbh2.Server", Dbh2RaftServer::new, taskOneByOne);
 			raftConf.setSnapshotCommitDelayed(true);
 			logger.info("newRaft: {}", raft.getName());
 			stateMachine.openBucket();
@@ -431,7 +434,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		@Override
 		public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 																ProtocolFactoryHandle<?> factoryHandle) {
-			raft.getUserThreadExecutor().execute(() -> {
+			raft.executeUserTask(() -> {
 				try {
 					responseHandle.handle(rpc);
 				} catch (Throwable e) { // run handle. 必须捕捉所有异常。logger.error
@@ -446,7 +449,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (p.getTypeId() == Zeze.Raft.LeaderIs.TypeId_) {
 				Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), "InternalRequest"));
 			} else {
-				raft.getUserThreadExecutor().execute(() -> Task.executeUnsafe(
+				raft.executeUserTask(() -> Task.executeUnsafe(
 						() -> p.handle(this, factoryHandle),
 						p,
 						null,
@@ -683,13 +686,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 		// 设置一个超时，每秒放行一次。
 		Task.scheduleUnsafe(1000,
-				() -> getRaft().getUserThreadExecutor().execute(() -> consumePrepareAndBlockAgain(isMove)));
+				() -> getRaft().executeUserTask(() -> consumePrepareAndBlockAgain(isMove)));
 
 		// 在队列中增加endSplit启动任务，先要处理完队列中的请求。
 		// 此时PrepareBatch已经被拦截，但是还有CommitBatch,UndoBatch等其他请求在处理。
 		// setupHandleIfNoTransaction 将在没有进行中的事务时触发。
-		getRaft().getUserThreadExecutor().execute(() ->
-				stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove)));
+		getRaft().executeUserTask(() -> stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove)));
 	}
 
 	private void consumePrepareAndBlockAgain(boolean isMove) {

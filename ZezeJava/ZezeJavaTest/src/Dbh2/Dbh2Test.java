@@ -13,6 +13,7 @@ import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.Task;
+import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -25,6 +26,8 @@ public class Dbh2Test {
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}
+
+	private final static TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 
 	public static class Bucket {
 		private final ArrayList<Zeze.Dbh2.Dbh2> raftNodes = new ArrayList<>();
@@ -186,6 +189,6 @@ public class Dbh2Test {
 
 	private static Zeze.Dbh2.Dbh2 start(String config, String raftName) throws Exception {
 		var raftConfig = RaftConfig.loadFromString(config);
-		return new Zeze.Dbh2.Dbh2(null, raftName, raftConfig, null, false);
+		return new Zeze.Dbh2.Dbh2(null, raftName, raftConfig, null, false, taskOneByOne);
 	}
 }

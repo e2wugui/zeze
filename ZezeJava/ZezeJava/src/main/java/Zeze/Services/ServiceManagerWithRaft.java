@@ -28,6 +28,7 @@ import Zeze.Util.KV;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -64,7 +65,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			config = Config.load();
 		config.parseCustomize(conf);
 
-		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync, SMServer::new);
+		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync,
+				SMServer::new, new TaskOneByOneByKey());
+
 		RegisterRocksTables(rocks);
 		RegisterProtocols(rocks.getRaft().getServer());
 		rocks.getRaft().getServer().start();

@@ -40,6 +40,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
+import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -101,11 +102,12 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	public Rocks(String raftName, RocksMode mode, RaftConfig raftConfig, Zeze.Config config,
 				 boolean RocksDbWriteOptionSync) throws Exception {
-		this(raftName, mode, raftConfig, config, RocksDbWriteOptionSync, Server::new);
+		this(raftName, mode, raftConfig, config, RocksDbWriteOptionSync, Server::new, new TaskOneByOneByKey());
 	}
 
 	public Rocks(String raftName, RocksMode mode, RaftConfig raftConfig, Zeze.Config config,
-				 boolean RocksDbWriteOptionSync, Func3<Raft, String, Config, Server> serverFactory) throws Exception {
+				 boolean RocksDbWriteOptionSync, Func3<Raft, String, Config, Server> serverFactory,
+				 TaskOneByOneByKey taskOneByOne) throws Exception {
 		rocksMode = mode;
 
 		addFactory(Changes.TypeId_, () -> new Changes(this));
@@ -114,7 +116,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				? RocksDatabase.getSyncWriteOptions()
 				: RocksDatabase.getDefaultWriteOptions();
 		// 这个赋值是不必要的，new Raft(...)内部会赋值。有点奇怪。
-		setRaft(new Raft(this, raftName, raftConfig, config, "Zeze.Raft.Server", serverFactory));
+		setRaft(new Raft(this, raftName, raftConfig, config, "Zeze.Raft.Server", serverFactory, taskOneByOne));
 		getRaft().addAtFatalKill(() -> {
 			if (storage != null)
 				storage.close();

@@ -9,8 +9,6 @@ import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -33,8 +31,10 @@ import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCanceledException;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
 
 /**
@@ -48,8 +48,8 @@ public final class Raft {
 	private final RaftConfig raftConfig;
 	private final LogSequence logSequence;
 	private final Server server;
-	private final ExecutorService doubleImportantThreadExecutor = Executors.newFixedThreadPool(2);
-	private final ExecutorService singleUserThreadExecutor = Executors.newSingleThreadExecutor();
+	private final TaskOneByOneByKey taskOneByOne;
+	private final String userTaskOneByOneKey;
 
 	private final StateMachine stateMachine;
 	public volatile boolean isShutdown = false;
@@ -89,6 +89,10 @@ public final class Raft {
 
 	public String getName() {
 		return raftConfig.getName();
+	}
+
+	public String getUserTaskOneByOneKey() {
+		return userTaskOneByOneKey;
 	}
 
 	public String getLeaderId() {
@@ -174,12 +178,12 @@ public final class Raft {
 		return isLeader() && !isShutdown;
 	}
 
-	public ExecutorService getImportantThreadExecutor() {
-		return doubleImportantThreadExecutor;
+	public static void executeImportantTask(@NotNull Runnable task) {
+		Task.getCriticalThreadPool().execute(task);
 	}
 
-	public ExecutorService getUserThreadExecutor() {
-		return singleUserThreadExecutor;
+	public void executeUserTask(@NotNull Action0 task) {
+		taskOneByOne.Execute(getUserTaskOneByOneKey(), task);
 	}
 
 	public StateMachine getStateMachine() {
@@ -301,8 +305,6 @@ public final class Raft {
 		} finally {
 			unlock();
 		}
-		doubleImportantThreadExecutor.shutdown(); // 需要停止线程。
-		singleUserThreadExecutor.shutdown();
 	}
 
 	public Raft(StateMachine sm) throws Exception {
@@ -323,16 +325,19 @@ public final class Raft {
 
 	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Config config, String name)
 			throws Exception {
-		this(sm, RaftName, raftConf, config, name, Server::new);
+		this(sm, RaftName, raftConf, config, name, Server::new, new TaskOneByOneByKey());
 	}
 
 	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Config config, String name,
-				Func3<Raft, String, Config, Server> serverFactory) throws Exception {
+				Func3<Raft, String, Config, Server> serverFactory, @NotNull TaskOneByOneByKey taskOneByOne) throws Exception {
+
 		if (raftConf == null)
 			raftConf = RaftConfig.load();
 		raftConf.verify();
 
+		this.taskOneByOne = taskOneByOne;
 		raftConfig = raftConf;
+		userTaskOneByOneKey = "Zeze.Raft.UserTaskOneByOneKey." + raftConfig.getName();
 		sm.setRaft(this);
 		stateMachine = sm;
 
