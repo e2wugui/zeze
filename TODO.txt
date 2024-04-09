@@ -2,8 +2,9 @@ DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
 Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 ------------------------------------------------------------------------------------------------------------------------------
-2024/4/19 v1.4.5 ThreadDiagnosable；Service；StatisticLog; 
+2024/4/19 v1.4.5 ThreadDiagnosable；Service；StatisticLog; Raft; 
 ------------------------------------------------------------------------------------------------------------------------------
+Raft 去掉两个ExecutorThreadPool. 使用 taskOneByOne 和 criticalPool;
 全局唯一统计Logger，专门用来日志统计信息。使用者可以用log4j配置把统计日志记录到其他文件。@zl
 ThreadDiagnosable 打印中断目标线程的堆栈。
 Service 增加InstanceName，当前用于统计日志的输出，其他地方需要再加上。目前Dbh2RaftServer会设置这个属性。
