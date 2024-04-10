@@ -75,7 +75,6 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-
 public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
 	protected static final BeanFactory beanFactory = new BeanFactory();
@@ -421,9 +420,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	public void startAfter() {
 		// default online 负责所有的online set。
 		if (defaultInstance == this) {
-			getProviderWithOnline().foreachOnline(online -> {
-				online._tlocal.walk((roleId, local) -> processOffline(roleId, local, true));
-			});
+			getProviderWithOnline().foreachOnline(
+					online -> online._tlocal.walk((roleId, local) -> processOffline(roleId, local, true)));
 		}
 	}
 
@@ -435,9 +433,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// default online 负责所有的online set。
 		if (defaultInstance == this) {
 			providerApp.providerService.setDisableChoiceFromLinks(true);
-			getProviderWithOnline().foreachOnline(online -> {
-				online._tlocal.walk((roleId, local) -> processOffline(roleId, local, false));
-			});
+			getProviderWithOnline().foreachOnline(
+					online -> online._tlocal.walk((roleId, local) -> processOffline(roleId, local, false)));
 		}
 	}
 
@@ -1768,11 +1765,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 
 		public boolean add(long roleId) {
-			++ walkCount;
+			++walkCount;
 			var aTime = localActiveTimes.get(roleId);
 			if (null != aTime && System.currentTimeMillis() - aTime > localActiveTimeout) {
 				roleIds.add(roleId);
-				++ removeCount;
+				++removeCount;
 			}
 			return true;
 		}

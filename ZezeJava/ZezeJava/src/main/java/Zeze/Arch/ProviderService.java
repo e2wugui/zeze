@@ -40,10 +40,12 @@ public class ProviderService extends HandshakeClient {
 
 	private final ReentrantLock thisLock = new ReentrantLock();
 
+	@Override
 	public void lock() {
 		thisLock.lock();
 	}
 
+	@Override
 	public void unlock() {
 		thisLock.unlock();
 	}

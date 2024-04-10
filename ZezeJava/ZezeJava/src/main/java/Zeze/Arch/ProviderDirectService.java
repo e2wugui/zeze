@@ -42,10 +42,12 @@ public class ProviderDirectService extends HandshakeBoth {
 	private final LongConcurrentHashMap<ConcurrentHashSet<Action0>> serverReadyEvents = new LongConcurrentHashMap<>();
 	private final ReentrantLock thisLock = new ReentrantLock();
 
+	@Override
 	public void lock() {
 		thisLock.lock();
 	}
 
+	@Override
 	public void unlock() {
 		thisLock.unlock();
 	}

@@ -27,6 +27,8 @@ public class ModuleRedirectRank extends TestCase {
 			try {
 				app1.Stop();
 			} catch (Exception ex) {
+				//noinspection CallToPrintStackTrace
+				e.printStackTrace();
 				throw new RuntimeException(ex);
 			}
 			throw new RuntimeException(e);
@@ -43,6 +45,8 @@ public class ModuleRedirectRank extends TestCase {
 			try {
 				app2.Stop();
 			} catch (Exception ex) {
+				//noinspection CallToPrintStackTrace
+				e.printStackTrace();
 				throw new RuntimeException(ex);
 			}
 			throw new RuntimeException(e);

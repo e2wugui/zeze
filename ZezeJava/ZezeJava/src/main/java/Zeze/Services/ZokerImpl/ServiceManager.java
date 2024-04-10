@@ -40,7 +40,7 @@ public class ServiceManager {
 		}
 	}
 
-	private List<String> buildCommand(String serviceName) {
+	private static List<String> buildCommand(@SuppressWarnings("unused") String serviceName) {
 		return new ArrayList<>();
 	}
 
