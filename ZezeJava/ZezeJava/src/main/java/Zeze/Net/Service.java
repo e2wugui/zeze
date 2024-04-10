@@ -22,6 +22,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
 import Zeze.Util.Factory;
+import Zeze.Util.FastLock;
 import Zeze.Util.GlobalTimer;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
@@ -36,7 +37,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class Service {
+public class Service extends FastLock {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
 	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(1);
 	private static final @NotNull VarHandle closedRecvCountHandle, closedRecvSizeHandle;
@@ -266,20 +267,25 @@ public class Service {
 		stop();
 	}
 
-	public synchronized void stop() throws Exception {
-		config.stop();
+	public void stop() throws Exception {
+		lock();
+		try {
+			config.stop();
 
-		for (AsyncSocket as : socketMap)
-			as.close(serviceStoppedException); // remove in callback OnSocketClose
+			for (AsyncSocket as : socketMap)
+				as.close(serviceStoppedException); // remove in callback OnSocketClose
 
-		// 先不清除，让Rpc的TimerTask仍然在超时以后触发回调。
-		// 【考虑一下】也许在服务停止时马上触发回调并且清除上下文比较好。
-		// 【注意】直接清除会导致同步等待的操作无法继续。异步只会没有回调，没问题。
-		// _RpcContexts.Clear();
+			// 先不清除，让Rpc的TimerTask仍然在超时以后触发回调。
+			// 【考虑一下】也许在服务停止时马上触发回调并且清除上下文比较好。
+			// 【注意】直接清除会导致同步等待的操作无法继续。异步只会没有回调，没问题。
+			// _RpcContexts.Clear();
 
-		if (keepCheckTimer != null) {
-			keepCheckTimer.cancel(true);
-			keepCheckTimer = null;
+			if (keepCheckTimer != null) {
+				keepCheckTimer.cancel(true);
+				keepCheckTimer = null;
+			}
+		} finally {
+			unlock();
 		}
 	}
 
@@ -803,56 +809,66 @@ public class Service {
 		return false;
 	}
 
-	public synchronized @NotNull ScheduledFuture<?> startStatisticLog(int periodSec) {
-		var f = statisticLogFuture;
-		if (f != null && !f.isCancelled())
+	public @NotNull ScheduledFuture<?> startStatisticLog(int periodSec) {
+		lock();
+		try {
+			var f = statisticLogFuture;
+			if (f != null && !f.isCancelled())
+				return f;
+			var lastSizes = new long[6];
+			lastSizes[0] = -1;
+			f = Task.scheduleUnsafe(Random.getInstance().nextLong(periodSec * 1000L), periodSec * 1000L, () -> {
+				updateRecvSendSize();
+				var selectors = getSelectors();
+				long selectCount = selectors.getSelectCount();
+				long recvCount = this.recvCount;
+				long recvSize = this.recvSize;
+				long sendCount = this.sendCount;
+				long sendSize = this.sendSize;
+				long sendRawSize = this.sendRawSize;
+				if (lastSizes[0] != -1) {
+					long sn = (selectCount - lastSizes[0]) / periodSec;
+					long rc = (recvCount - lastSizes[1]) / periodSec;
+					long rs = (recvSize - lastSizes[2]) / periodSec;
+					long sc = (sendCount - lastSizes[3]) / periodSec;
+					long ss = (sendSize - lastSizes[4]) / periodSec;
+					long sr = (sendRawSize - lastSizes[5]) / periodSec;
+					var operates = new OutLong();
+					var outBufSize = new OutLong();
+					foreach(socket -> {
+						operates.value += socket.getOperateSize();
+						outBufSize.value += socket.getOutputBufferSize();
+					});
+					operates.value /= periodSec;
+					outBufSize.value /= periodSec;
+					PerfCounter.logger.info(
+							"{}.{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
+							name, instanceName, sn, selectors.getCount(), rs, rc, ss, sc, sr, getSocketCount(),
+							operates.value, outBufSize.value);
+				}
+				lastSizes[0] = selectCount;
+				lastSizes[1] = recvCount;
+				lastSizes[2] = recvSize;
+				lastSizes[3] = sendCount;
+				lastSizes[4] = sendSize;
+				lastSizes[5] = sendRawSize;
+			});
+			statisticLogFuture = f;
 			return f;
-		var lastSizes = new long[6];
-		lastSizes[0] = -1;
-		f = Task.scheduleUnsafe(Random.getInstance().nextLong(periodSec * 1000L), periodSec * 1000L, () -> {
-			updateRecvSendSize();
-			var selectors = getSelectors();
-			long selectCount = selectors.getSelectCount();
-			long recvCount = this.recvCount;
-			long recvSize = this.recvSize;
-			long sendCount = this.sendCount;
-			long sendSize = this.sendSize;
-			long sendRawSize = this.sendRawSize;
-			if (lastSizes[0] != -1) {
-				long sn = (selectCount - lastSizes[0]) / periodSec;
-				long rc = (recvCount - lastSizes[1]) / periodSec;
-				long rs = (recvSize - lastSizes[2]) / periodSec;
-				long sc = (sendCount - lastSizes[3]) / periodSec;
-				long ss = (sendSize - lastSizes[4]) / periodSec;
-				long sr = (sendRawSize - lastSizes[5]) / periodSec;
-				var operates = new OutLong();
-				var outBufSize = new OutLong();
-				foreach(socket -> {
-					operates.value += socket.getOperateSize();
-					outBufSize.value += socket.getOutputBufferSize();
-				});
-				operates.value /= periodSec;
-				outBufSize.value /= periodSec;
-				PerfCounter.logger.info(
-						"{}.{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
-						name, instanceName, sn, selectors.getCount(), rs, rc, ss, sc, sr, getSocketCount(),
-						operates.value, outBufSize.value);
-			}
-			lastSizes[0] = selectCount;
-			lastSizes[1] = recvCount;
-			lastSizes[2] = recvSize;
-			lastSizes[3] = sendCount;
-			lastSizes[4] = sendSize;
-			lastSizes[5] = sendRawSize;
-		});
-		statisticLogFuture = f;
-		return f;
+		} finally {
+			unlock();
+		}
 	}
 
-	public synchronized boolean cancelStartStatisticLog() {
-		var f = statisticLogFuture;
-		statisticLogFuture = null;
-		return f != null && f.cancel(false);
+	public boolean cancelStartStatisticLog() {
+		lock();
+		try {
+			var f = statisticLogFuture;
+			statisticLogFuture = null;
+			return f != null && f.cancel(false);
+		} finally {
+			unlock();
+		}
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
@@ -860,13 +876,18 @@ public class Service {
 		logger.warn("rpc response: lost context, maybe timeout. {}", rpc);
 	}
 
-	public synchronized void tryStartKeepAliveCheckTimer() {
-		if (keepCheckTimer == null) {
-			var period = getConfig().getHandshakeOptions().getKeepCheckPeriod() * 1000L;
-			if (period > 0) {
-				keepCheckTimer = Task.scheduleUnsafe(
-						Random.getInstance().nextLong(period) + 1, period, this::checkKeepAlive);
+	public void tryStartKeepAliveCheckTimer() {
+		lock();
+		try {
+			if (keepCheckTimer == null) {
+				var period = getConfig().getHandshakeOptions().getKeepCheckPeriod() * 1000L;
+				if (period > 0) {
+					keepCheckTimer = Task.scheduleUnsafe(
+							Random.getInstance().nextLong(period) + 1, period, this::checkKeepAlive);
+				}
 			}
+		} finally {
+			unlock();
 		}
 	}
 

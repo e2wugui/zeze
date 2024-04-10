@@ -6,7 +6,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import static Zeze.Util.DeadlockBreaker.MAX_DEPTH;
 
-public final class ThreadDiagnosable {
+public final class ThreadDiagnosable extends FastLock {
 	private static final Logger logger = LogManager.getLogger(ThreadDiagnosable.class);
 	private static final AtomicLong currentSerial = new AtomicLong();
 	private static final ConcurrentHashSet<Timeout> timeouts = new ConcurrentHashSet<>();
@@ -23,8 +23,8 @@ public final class ThreadDiagnosable {
 						for (var timeout : timeouts) {
 							if (timeout.timeoutTime <= now && !Boolean.TRUE.equals(Critical.tlCritical.get())
 									&& timeouts.remove(timeout) != null) { // 每个timeout仅触发一次
-								//noinspection SynchronizationOnLocalVariableOrMethodParameter
-								synchronized (timeout) {
+								timeout.lock();
+								try {
 									var t = timeout.thread;
 									if (t != null && !t.isInterrupted() && t.isAlive()
 											&& t.getPriority() <= Thread.NORM_PRIORITY) {
@@ -34,6 +34,8 @@ public final class ThreadDiagnosable {
 										t.interrupt();
 										// more more ...
 									}
+								} finally {
+									timeout.unlock();
 								}
 							}
 						}
@@ -73,7 +75,7 @@ public final class ThreadDiagnosable {
 		currentSerial.incrementAndGet(); // 让正在运行的诊断任务退出。
 	}
 
-	public static final class Timeout implements AutoCloseable {
+	public static final class Timeout extends FastLock implements AutoCloseable {
 		private @Nullable Thread thread = Thread.currentThread();
 		private final long timeoutTime;
 
@@ -91,10 +93,13 @@ public final class ThreadDiagnosable {
 		@Override
 		public void close() {
 			if (timeouts.remove(this) == null) { // 判断是否已经触发了打断
-				synchronized (this) {
+				lock();
+				try {
 					thread = null; // 阻止后续再打断
 					//noinspection ResultOfMethodCallIgnored
 					Thread.interrupted(); // 清除interrupted标记,避免影响后续任务
+				} finally {
+					unlock();
 				}
 			}
 		}

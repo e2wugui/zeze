@@ -61,6 +61,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.EventDispatcher;
+import Zeze.Util.FastLock;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
@@ -99,19 +100,38 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
 	private TableDynamic<Long, BLocal> _tlocal;
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
+	private final FastLock thisLock = new FastLock();
+
+	public void lock() {
+		thisLock.lock();
+	}
+
+	public void unlock() {
+		thisLock.unlock();
+	}
 
 	public ProviderApp getProviderApp() {
 		return providerApp;
 	}
 
-	public synchronized void setLocalActiveTimeout(long timeout) {
-		localActiveTimeout = timeout;
+	public void setLocalActiveTimeout(long timeout) {
+		lock();
+		try {
+			localActiveTimeout = timeout;
+		} finally {
+			unlock();
+		}
 	}
 
-	public synchronized void setLocalCheckPeriod(long period) {
-		if (period <= 1)
-			throw new IllegalArgumentException();
-		localCheckPeriod = period;
+	public void setLocalCheckPeriod(long period) {
+		lock();
+		try {
+			if (period <= 1)
+				throw new IllegalArgumentException();
+			localCheckPeriod = period;
+		} finally {
+			unlock();
+		}
 	}
 
 	private void startLocalCheck() {

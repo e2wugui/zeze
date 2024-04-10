@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Dbh2.Commit.DummyImportBean;
 import Zeze.Config;
 import Zeze.Transaction.DispatchMode;
@@ -9,6 +10,7 @@ import org.rocksdb.RocksDBException;
 public class Commit extends AbstractCommit {
     private CommitRocks rocks;
     private final CommitService service;
+    private final ReentrantLock thisLock = new ReentrantLock();
 
     public Commit(Dbh2AgentManager manager, Config config) throws RocksDBException {
         rocks = new CommitRocks(manager, config.getServerId());
@@ -21,11 +23,16 @@ public class Commit extends AbstractCommit {
         service.start(); // 网络后启动。
     }
 
-    public synchronized void stop() throws Exception {
-        service.stop(); // 网络先关闭。否则请求过来访问rocks会导致jvm-crash。
-        if (null != rocks) {
-            rocks.close();
-            rocks = null;
+    public void stop() throws Exception {
+        thisLock.lock();
+        try {
+            service.stop(); // 网络先关闭。否则请求过来访问rocks会导致jvm-crash。
+            if (null != rocks) {
+                rocks.close();
+                rocks = null;
+            }
+        } finally {
+            thisLock.unlock();
         }
     }
 

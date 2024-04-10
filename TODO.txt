@@ -2,7 +2,7 @@ DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
 Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运行。能不能用就看实际疗效了。
 ------------------------------------------------------------------------------------------------------------------------------
-2024/4/19 v1.4.5 ThreadDiagnosable；Service；StatisticLog; Raft; Dbh2; 
+2024/4/19 v1.4.5 ThreadDiagnosable；Service；StatLog; Raft; Dbh2; 
 ------------------------------------------------------------------------------------------------------------------------------
 synchronized -> ReentrantLock
 Dbh2 Master.createTable synchronized (table) 改成 ReentrantLock，适配虚拟线程，否则很可能饥饿。

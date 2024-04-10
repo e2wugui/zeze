@@ -5,6 +5,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Config;
 import Zeze.Util.Random;
@@ -13,19 +14,24 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
-public class ProviderOverload {
+public class ProviderOverload extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(ProviderOverload.class);
 	private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
 			new ThreadFactoryWithName("ZezeLoadThread", Thread.MAX_PRIORITY));
 
 	private final ArrayList<ThreadPoolMonitor> threadPools = new ArrayList<>();
 
-	public synchronized boolean register(@NotNull ExecutorService threadPool, @NotNull Config config) {
-		for (var tp : threadPools)
-			if (tp.threadPool == threadPool)
-				return false;
-		threadPools.add(new ThreadPoolMonitor(threadPool, config));
-		return true;
+	public boolean register(@NotNull ExecutorService threadPool, @NotNull Config config) {
+		lock();
+		try {
+			for (var tp : threadPools)
+				if (tp.threadPool == threadPool)
+					return false;
+			threadPools.add(new ThreadPoolMonitor(threadPool, config));
+			return true;
+		} finally {
+			unlock();
+		}
 	}
 
 	// 由LoadReporter读取报告。
@@ -42,7 +48,7 @@ public class ProviderOverload {
 		return result;
 	}
 
-	static final class ThreadPoolMonitor {
+	static final class ThreadPoolMonitor extends ReentrantLock {
 		private final @NotNull ExecutorService threadPool;
 		private final @NotNull Config config;
 		private volatile long overload = BLoad.eWorkFine;
@@ -53,9 +59,14 @@ public class ProviderOverload {
 			startDetectDelay();
 		}
 
-		private synchronized void startDetectDelay() {
-			scheduledExecutorService.schedule(
-					this::detecting, Random.getInstance().nextInt(1000) + 1000, TimeUnit.MILLISECONDS);
+		private void startDetectDelay() {
+			lock();
+			try {
+				scheduledExecutorService.schedule(
+						this::detecting, Random.getInstance().nextInt(1000) + 1000, TimeUnit.MILLISECONDS);
+			} finally {
+				unlock();
+			}
 		}
 
 		private int calcOverload(long elapse) {

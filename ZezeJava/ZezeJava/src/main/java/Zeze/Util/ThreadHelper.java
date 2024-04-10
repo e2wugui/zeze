@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.util.concurrent.locks.Condition;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -8,6 +9,16 @@ public class ThreadHelper extends Thread {
 
 	private volatile boolean running = true;
 	private boolean idle = true;
+	private final FastLock thisLock = new FastLock();
+	private final Condition thisCond = thisLock.newCondition();
+
+	public Condition getThisCond() {
+		return thisCond;
+	}
+
+	public FastLock getThisLock() {
+		return thisLock;
+	}
 
 	public ThreadHelper(String name) {
 		super(name);
@@ -43,9 +54,14 @@ public class ThreadHelper extends Thread {
 		joinAssuring();
 	}
 
-	public synchronized void wakeup() {
-		idle = false;
-		this.notify();
+	public void wakeup() {
+		thisLock.lock();
+		try {
+			idle = false;
+			thisCond.notify();
+		} finally {
+			thisLock.unlock();
+		}
 	}
 
 	/**
@@ -55,14 +71,16 @@ public class ThreadHelper extends Thread {
 	 *
 	 * @param ms ms
 	 */
-	public final synchronized void sleepIdle(long ms) {
+	public final void sleepIdle(long ms) {
+		thisLock.lock();
 		try {
 			if (idle)
-				this.wait(ms);
+				thisCond.wait(ms);
 		} catch (InterruptedException ex) {
 			logger.warn("{} sleepOut. ex:", getClass().getName(), ex);
 		} finally {
 			idle = true;
+			thisLock.unlock();
 		}
 	}
 

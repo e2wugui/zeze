@@ -52,37 +52,52 @@ public class ProviderWithOnline extends ProviderImplement {
 	}
 
 	// 创建默认的Online和指定name的若干Online,重复创建会抛异常
-	public synchronized void create(@NotNull AppBase app, @NotNull String... names) throws Exception {
-		if (online != null)
-			throw new IllegalStateException("duplicate default");
-		online = Online.create(app);
-		online.Initialize(app);
-		onlineSetMap.put("", online);
-		for (var name : names) {
-			if (onlineSetMap.containsKey(name))
-				throw new IllegalStateException("duplicate name='" + name + '\'');
-			onlineSetMap.put(name, online.createOnlineSet(app, name));
+	public void create(@NotNull AppBase app, @NotNull String... names) throws Exception {
+		lock();
+		try {
+			if (online != null)
+				throw new IllegalStateException("duplicate default");
+			online = Online.create(app);
+			online.Initialize(app);
+			onlineSetMap.put("", online);
+			for (var name : names) {
+				if (onlineSetMap.containsKey(name))
+					throw new IllegalStateException("duplicate name='" + name + '\'');
+				onlineSetMap.put(name, online.createOnlineSet(app, name));
+			}
+			// load报告仅定义在默认online实例中，OnlineSet不报告load，
+			// 【以后考虑改造定义方式】
+			// 即，OnlineSet的Load不独立报告，会单独定义但被综合以后，由默认Load统一报告。
+			load = new ProviderLoadWithOnline(online);
+			var config = app.getZeze().getConfig();
+			load.getOverload().register(Task.getThreadPool(), config);
+		} finally {
+			unlock();
 		}
-		// load报告仅定义在默认online实例中，OnlineSet不报告load，
-		// 【以后考虑改造定义方式】
-		// 即，OnlineSet的Load不独立报告，会单独定义但被综合以后，由默认Load统一报告。
-		load = new ProviderLoadWithOnline(online);
-		var config = app.getZeze().getConfig();
-		load.getOverload().register(Task.getThreadPool(), config);
 	}
 
-	public synchronized void start() {
-		load.start();
-		online.start();
+	public void start() {
+		lock();
+		try {
+			load.start();
+			online.start();
+		} finally {
+			unlock();
+		}
 	}
 
-	public synchronized void stop() {
-		if (online != null) {
-			online.stop();
-			onlineSetMap.clear();
-			online = null;
+	public void stop() {
+		lock();
+		try {
+			if (online != null) {
+				online.stop();
+				onlineSetMap.clear();
+				online = null;
+			}
+			if (load != null)
+				load.stop();
+		} finally {
+			unlock();
 		}
-		if (load != null)
-			load.stop();
 	}
 }

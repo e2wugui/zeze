@@ -3,6 +3,7 @@ package Zeze.Arch;
 import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
@@ -39,51 +40,70 @@ public class ProviderDirectService extends HandshakeBoth {
 	public final ConcurrentHashMap<String, ProviderSession> providerByLoadName = new ConcurrentHashMap<>();
 	public final LongConcurrentHashMap<ProviderSession> providerByServerId = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ConcurrentHashSet<Action0>> serverReadyEvents = new LongConcurrentHashMap<>();
+	private final ReentrantLock thisLock = new ReentrantLock();
+
+	public void lock() {
+		thisLock.lock();
+	}
+
+	public void unlock() {
+		thisLock.unlock();
+	}
 
 	public ProviderDirectService(@NotNull String name, @NotNull Application zeze) {
 		super(name, zeze);
 	}
 
-	public synchronized void removeServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
-		var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
-		var conn = getConfig().findConnector(connName);
-		if (conn != null) {
-			conn.stop();
-			providerByLoadName.remove(connName);
-			var serverId = Integer.parseInt(pm.getServiceIdentity());
-			providerByServerId.remove(serverId);
-			ss.setServiceIdentityReadyState(pm.getServiceIdentity(), null);
-			getConfig().removeConnector(conn);
+	public void removeServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
+		lock();
+		try {
+			var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
+			var conn = getConfig().findConnector(connName);
+			if (conn != null) {
+				conn.stop();
+				providerByLoadName.remove(connName);
+				var serverId = Integer.parseInt(pm.getServiceIdentity());
+				providerByServerId.remove(serverId);
+				ss.setServiceIdentityReadyState(pm.getServiceIdentity(), null);
+				getConfig().removeConnector(conn);
+			}
+		} finally {
+			unlock();
 		}
 	}
 
-	public synchronized void addServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
-		var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
-		var ps = providerByLoadName.get(connName);
-		if (ps != null) {
-			// connection has ready.
-			var mid = Integer.parseInt(pm.getServiceName().split("#")[1]);
-			var m = providerApp.modules.get(mid);
-			if (m != null)
-				setReady(ss, pm, ps, mid, m);
-			else
-				logger.error("addServer: not found module: {}", pm.getServiceName());
-			return;
-		}
-		if (pm.getServiceIdentity().startsWith("@")) // from linkd
-			return;
-		var serverId = Integer.parseInt(pm.getServiceIdentity());
-		if (serverId < getZeze().getConfig().getServerId())
-			return;
-		if (serverId == getZeze().getConfig().getServerId()) {
-			setRelativeServiceReady(newSession(serverId), providerApp.directIp, providerApp.directPort);
-			return;
-		}
-		var out = new OutObject<Connector>();
-		if (getConfig().tryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
-			// 新建的Connector。开始连接。
-			out.value.userState = newSession(serverId);
-			out.value.start();
+	public void addServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
+		lock();
+		try {
+			var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
+			var ps = providerByLoadName.get(connName);
+			if (ps != null) {
+				// connection has ready.
+				var mid = Integer.parseInt(pm.getServiceName().split("#")[1]);
+				var m = providerApp.modules.get(mid);
+				if (m != null)
+					setReady(ss, pm, ps, mid, m);
+				else
+					logger.error("addServer: not found module: {}", pm.getServiceName());
+				return;
+			}
+			if (pm.getServiceIdentity().startsWith("@")) // from linkd
+				return;
+			var serverId = Integer.parseInt(pm.getServiceIdentity());
+			if (serverId < getZeze().getConfig().getServerId())
+				return;
+			if (serverId == getZeze().getConfig().getServerId()) {
+				setRelativeServiceReady(newSession(serverId), providerApp.directIp, providerApp.directPort);
+				return;
+			}
+			var out = new OutObject<Connector>();
+			if (getConfig().tryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
+				// 新建的Connector。开始连接。
+				out.value.userState = newSession(serverId);
+				out.value.start();
+			}
+		} finally {
+			unlock();
 		}
 	}
 
@@ -159,11 +179,14 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	public void waitDirectServerReady(int serverId, @NotNull Action0 callback) {
-		synchronized (this) {
+		lock();
+		try {
 			if (!providerByServerId.containsKey(serverId)) {
 				serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()).add(callback);
 				return;
 			}
+		} finally {
+			unlock();
 		}
 		try {
 			callback.run(); // 锁外回调，避免死锁风险。
@@ -189,11 +212,14 @@ public class ProviderDirectService extends HandshakeBoth {
 		}
 		// 得到没有direct没有好的。
 		var pending = new HashSet<Integer>();
-		synchronized (this) {
+		lock();
+		try {
 			for (var serverId : servers) {
 				if (!providerByServerId.containsKey(serverId))
 					pending.add(serverId);
 			}
+		} finally {
+			unlock();
 		}
 		// 订阅没有准备好的。
 		for (var pend : pending) {
@@ -215,37 +241,42 @@ public class ProviderDirectService extends HandshakeBoth {
 		watchers.clear();
 	}
 
-	synchronized void setRelativeServiceReady(@NotNull ProviderSession ps, @NotNull String ip, int port) {
-		ps.serverLoadIp = ip;
-		ps.serverLoadPort = port;
-		// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
-		if (providerByLoadName.putIfAbsent(ps.getServerLoadName(), ps) != null)
-			return;
-		providerByServerId.put(ps.getServerId(), ps);
+	void setRelativeServiceReady(@NotNull ProviderSession ps, @NotNull String ip, int port) {
+		lock();
+		try {
+			ps.serverLoadIp = ip;
+			ps.serverLoadPort = port;
+			// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
+			if (providerByLoadName.putIfAbsent(ps.getServerLoadName(), ps) != null)
+				return;
+			providerByServerId.put(ps.getServerId(), ps);
 
-		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
-		for (var ss : getZeze().getServiceManager().getSubscribeStates().values()) {
-			if (ss.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
-				var infos = ss.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple
-						? ss.getServiceInfos() : ss.getServiceInfosPending();
-				if (infos == null)
-					continue;
-				var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
-				var m = providerApp.modules.get(mid);
-				if (m == null) {
-					logger.error("setRelativeServiceReady: not found module: {}", ss.getServiceName());
-					continue;
-				}
-				for (var server : infos.getServiceInfoListSortedByIdentity()) {
-					// 符合当前连接目标。每个Identity标识的服务的(ip,port)必须不一样。
-					if (server.getPassiveIp().equals(ip) && server.getPassivePort() == port) {
-						setReady(ss, server, ps, mid, m);
+			// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
+			for (var ss : getZeze().getServiceManager().getSubscribeStates().values()) {
+				if (ss.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
+					var infos = ss.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple
+							? ss.getServiceInfos() : ss.getServiceInfosPending();
+					if (infos == null)
+						continue;
+					var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
+					var m = providerApp.modules.get(mid);
+					if (m == null) {
+						logger.error("setRelativeServiceReady: not found module: {}", ss.getServiceName());
+						continue;
+					}
+					for (var server : infos.getServiceInfoListSortedByIdentity()) {
+						// 符合当前连接目标。每个Identity标识的服务的(ip,port)必须不一样。
+						if (server.getPassiveIp().equals(ip) && server.getPassivePort() == port) {
+							setReady(ss, server, ps, mid, m);
+						}
 					}
 				}
 			}
+			// 最后才通知成功。
+			notifyServerReady(ps.getServerId());
+		} finally {
+			unlock();
 		}
-		// 最后才通知成功。
-		notifyServerReady(ps.getServerId());
 	}
 
 	private void setReady(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo server, @NotNull ProviderSession ps,

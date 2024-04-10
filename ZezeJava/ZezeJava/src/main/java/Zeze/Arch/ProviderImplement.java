@@ -20,6 +20,7 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.FastLock;
 import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
@@ -35,6 +36,15 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	protected ProviderApp providerApp;
 	private volatile int controlKick = BKick.eControlClose;
+	private final FastLock thisLock = new FastLock();
+
+	public void lock() {
+		thisLock.lock();
+	}
+
+	public void unlock() {
+		thisLock.unlock();
+	}
 
 	public void setControlKick(int control) {
 		controlKick = control;

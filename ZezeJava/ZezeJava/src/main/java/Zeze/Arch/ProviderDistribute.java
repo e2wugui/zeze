@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.Service;
@@ -19,7 +20,7 @@ import Zeze.Util.Random;
  * Provider负载分发算法。
  * Linkd,Provider都需要使用。这里原则上必须是抽象的。
  */
-public class ProviderDistribute {
+public class ProviderDistribute extends ReentrantLock {
 	public final Application zeze;
 	public final LoadConfig loadConfig;
 	private final Service providerService;
@@ -249,43 +250,48 @@ public class ProviderDistribute {
 	}
 
 	// 查找时增加索引，和喂饱时增加索引，需要原子化。提高并发以后慢慢想，这里应该足够快了。
-	public synchronized boolean choiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider,
+	public boolean choiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider,
 													   long clientAppVersion) {
-		provider.value = 0L;
+		lock();
+		try {
+			provider.value = 0L;
 
-		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
-		// 最多遍历一次。循环里面 continue 时，需要递增索引。
-		for (int i = 0; i < list.size(); ++i, feedFullOneByOneIndex.incrementAndGet()) {
-			var index = Integer.remainderUnsigned(feedFullOneByOneIndex.get(), list.size()); // current
-			var serviceInfo = list.get(index);
-			var providerModuleState = (ProviderModuleState)providers.localStates.get(serviceInfo.getServiceIdentity());
-			if (providerModuleState == null)
-				continue;
-			var providerSocket = providerService.GetSocket(providerModuleState.sessionId);
-			if (providerSocket == null)
-				continue;
-			var ps = (ProviderSession)providerSocket.getUserState();
+			var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
+			// 最多遍历一次。循环里面 continue 时，需要递增索引。
+			for (int i = 0; i < list.size(); ++i, feedFullOneByOneIndex.incrementAndGet()) {
+				var index = Integer.remainderUnsigned(feedFullOneByOneIndex.get(), list.size()); // current
+				var serviceInfo = list.get(index);
+				var providerModuleState = (ProviderModuleState)providers.localStates.get(serviceInfo.getServiceIdentity());
+				if (providerModuleState == null)
+					continue;
+				var providerSocket = providerService.GetSocket(providerModuleState.sessionId);
+				if (providerSocket == null)
+					continue;
+				var ps = (ProviderSession)providerSocket.getUserState();
 
-			// 这里发现关闭的服务，仅仅忽略.
-			if (ps == null)
-				continue;
+				// 这里发现关闭的服务，仅仅忽略.
+				if (ps == null)
+					continue;
 
-			if (ps.load.getOverload() == BLoad.eOverload)
-				continue; // 忽略过载服务器。
+				if (ps.load.getOverload() == BLoad.eOverload)
+					continue; // 忽略过载服务器。
 
-			// 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
-			if (ps.load.getOnlineNew() > loadConfig.getMaxOnlineNew())
-				continue;
+				// 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
+				if (ps.load.getOnlineNew() > loadConfig.getMaxOnlineNew())
+					continue;
 
-			if (!checkAppVersion(ps.appVersion, clientAppVersion))
-				continue;
+				if (!checkAppVersion(ps.appVersion, clientAppVersion))
+					continue;
 
-			provider.value = ps.getSessionId();
-			if (ps.load.getOnline() >= ps.load.getProposeMaxOnline())
-				feedFullOneByOneIndex.incrementAndGet(); // 已经喂饱了一个，下一个。
-			return true;
+				provider.value = ps.getSessionId();
+				if (ps.load.getOnline() >= ps.load.getProposeMaxOnline())
+					feedFullOneByOneIndex.incrementAndGet(); // 已经喂饱了一个，下一个。
+				return true;
+			}
+			return false;
+		} finally {
+			unlock();
 		}
-		return false;
 	}
 
 	public boolean choiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, OutLong provider) {

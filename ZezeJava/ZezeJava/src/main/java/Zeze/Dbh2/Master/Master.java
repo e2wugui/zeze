@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Dbh2.Master.*;
 import Zeze.Config;
 import Zeze.Dbh2.Dbh2Config;
@@ -28,6 +29,15 @@ public class Master extends AbstractMaster {
 
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
 	private final String home;
+	private final ReentrantLock thisLock = new ReentrantLock();
+
+	public void lock() {
+		thisLock.lock();
+	}
+
+	public void unlock() {
+		thisLock.unlock();
+	}
 
 	public static class Manager {
 		public final AsyncSocket socket;
@@ -90,29 +100,39 @@ public class Master extends AbstractMaster {
 		masterDb.close();
 	}
 
-	public synchronized int nextBucketPortId(String acceptorName) throws RocksDBException {
-		// seedTable 不使用事务。
-		var seed = PropertiesHelper.getInt("Dbh2MasterDefaultBucketPortId", 10000);
-		var seedKey = acceptorName.getBytes(StandardCharsets.UTF_8);
-		var seedValue = seedTable.get(RocksDatabase.getDefaultReadOptions(), seedKey);
-		if (null != seedValue) {
-			seed = ByteBuffer.Wrap(seedValue).ReadInt();
+	public int nextBucketPortId(String acceptorName) throws RocksDBException {
+		lock();
+		try {
+			// seedTable 不使用事务。
+			var seed = PropertiesHelper.getInt("Dbh2MasterDefaultBucketPortId", 10000);
+			var seedKey = acceptorName.getBytes(StandardCharsets.UTF_8);
+			var seedValue = seedTable.get(RocksDatabase.getDefaultReadOptions(), seedKey);
+			if (null != seedValue) {
+				seed = ByteBuffer.Wrap(seedValue).ReadInt();
+			}
+			seed++;
+			var bb = ByteBuffer.Allocate(5);
+			bb.WriteInt(seed);
+			seedTable.put(RocksDatabase.getDefaultWriteOptions(), seedKey,
+					0, seedKey.length, bb.Bytes, 0, bb.WriteIndex);
+			return seed;
+		} finally {
+			unlock();
 		}
-		seed++;
-		var bb = ByteBuffer.Allocate(5);
-		bb.WriteInt(seed);
-		seedTable.put(RocksDatabase.getDefaultWriteOptions(), seedKey,
-				0, seedKey.length, bb.Bytes, 0, bb.WriteIndex);
-		return seed;
 	}
 
-	public synchronized void tryRemoveManager(AsyncSocket manager) {
-		for (int i = 0; i < managers.size(); ++i) {
-			var e = managers.get(i);
-			if (e.socket == manager) {
-				managers.remove(i);
-				break;
+	public void tryRemoveManager(AsyncSocket manager) {
+		lock();
+		try {
+			for (int i = 0; i < managers.size(); ++i) {
+				var e = managers.get(i);
+				if (e.socket == manager) {
+					managers.remove(i);
+					break;
+				}
 			}
+		} finally {
+			unlock();
 		}
 	}
 
@@ -125,9 +145,12 @@ public class Master extends AbstractMaster {
 
 	public Manager[] shadowManager() {
 		Manager[] shadow;
-		synchronized (this) {
+		lock();
+		try {
 			shadow = new Manager[managers.size()];
 			managers.toArray(shadow);
+		} finally {
+			unlock();
 		}
 		return shadow;
 	}
@@ -146,10 +169,15 @@ public class Master extends AbstractMaster {
 	}
 
 	// small load & small bucket count
-	public synchronized ArrayList<Manager> choiceManagers() {
-		Manager[] shadow = shadowManager();
-		Arrays.sort(shadow, new ManagerBucketCountComparator());
-		return choiceSmallLoadManagers(shadow);
+	public ArrayList<Manager> choiceManagers() {
+		lock();
+		try {
+			Manager[] shadow = shadowManager();
+			Arrays.sort(shadow, new ManagerBucketCountComparator());
+			return choiceSmallLoadManagers(shadow);
+		} finally {
+			unlock();
+		}
 	}
 
 	public ArrayList<Manager> choiceSmallLoadManagers(Manager[] managers) {
@@ -216,10 +244,15 @@ public class Master extends AbstractMaster {
 	}
 
 	@Override
-	protected synchronized long ProcessRegisterRequest(Register r) throws Exception {
-		managers.add(new Manager(r.getSender(), r.Argument));
-		r.SendResult();
-		return 0;
+	protected long ProcessRegisterRequest(Register r) throws Exception {
+		lock();
+		try {
+			managers.add(new Manager(r.getSender(), r.Argument));
+			r.SendResult();
+			return 0;
+		} finally {
+			unlock();
+		}
 	}
 
 	private Manager findManager(AsyncSocket sender) {
@@ -230,13 +263,18 @@ public class Master extends AbstractMaster {
 	}
 
 	@Override
-	protected synchronized long ProcessReportLoadRequest(ReportLoad r) throws Exception {
-		var manager = findManager(r.getSender());
-		if (null == manager)
-			return errorCode(eManagerNotFound);
-		manager.load = r.Argument.getLoad();
-		r.SendResult();
-		return 0;
+	protected long ProcessReportLoadRequest(ReportLoad r) throws Exception {
+		lock();
+		try {
+			var manager = findManager(r.getSender());
+			if (null == manager)
+				return errorCode(eManagerNotFound);
+			manager.load = r.Argument.getLoad();
+			r.SendResult();
+			return 0;
+		} finally {
+			unlock();
+		}
 	}
 
 	@Override
@@ -264,13 +302,18 @@ public class Master extends AbstractMaster {
 	}
 
 	@Override
-	protected synchronized long ProcessReportBucketCountRequest(ReportBucketCount r) throws Exception {
-		var manager = findManager(r.getSender());
-		if (null == manager)
-			return errorCode(eManagerNotFound);
-		manager.data.setBucketCount(r.Argument.getCount());
-		r.SendResult();
-		return 0;
+	protected long ProcessReportBucketCountRequest(ReportBucketCount r) throws Exception {
+		lock();
+		try {
+			var manager = findManager(r.getSender());
+			if (null == manager)
+				return errorCode(eManagerNotFound);
+			manager.data.setBucketCount(r.Argument.getCount());
+			r.SendResult();
+			return 0;
+		} finally {
+			unlock();
+		}
 	}
 
 	@Override
@@ -284,7 +327,8 @@ public class Master extends AbstractMaster {
 	private final static byte[] emptyValue = new byte[0];
 
 	@Override
-	protected synchronized long ProcessSetInUseRequest(SetInUse r) throws Exception {
+	protected long ProcessSetInUseRequest(SetInUse r) throws Exception {
+		lock();
 		try (var trans = masterDb.beginOptimisticTransaction()) {
 			r.setResultCode(errorCode(BSetInUse.eDefaultError));
 
@@ -326,12 +370,15 @@ public class Master extends AbstractMaster {
 			trans.commit();
 		} finally {
 			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
+			unlock();
 		}
 		return 0;
 	}
 
 	@Override
-	protected synchronized long ProcessClearInUseRequest(ClearInUse r) throws Exception {
+	protected long ProcessClearInUseRequest(ClearInUse r) throws Exception {
+		lock();
+
 		try (var trans = masterDb.beginOptimisticTransaction()) {
 			r.setResultCode(errorCode(BClearInUse.eDefaultError));
 
@@ -361,12 +408,15 @@ public class Master extends AbstractMaster {
 			trans.commit();
 		} finally {
 			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
+			unlock();
 		}
 		return 0;
 	}
 
 	@Override
-	protected synchronized long ProcessSaveDataWithSameVersionRequest(SaveDataWithSameVersion r) throws Exception {
+	protected long ProcessSaveDataWithSameVersionRequest(SaveDataWithSameVersion r) throws Exception {
+		lock();
+
 		try (var trans = masterDb.beginOptimisticTransaction()) {
 			r.setResultCode(errorCode(BSaveDataWithSameVersion.eDefaultError));
 			var id = r.Argument.getKey();
@@ -396,61 +446,76 @@ public class Master extends AbstractMaster {
 			return 0;
 		} finally {
 			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
+			unlock();
 		}
 	}
 
 	@Override
-	protected synchronized long ProcessGetDataWithVersionRequest(GetDataWithVersion r) throws Exception {
-		var id = r.Argument.getKey();
-		var exist = zezeDataTable.get(id.bytesUnsafe(), id.getOffset(), id.size());
-		if (null == exist)
-			return errorCode(BGetDataWithVersion.eDataNotExists);
-		var dv = Database.DataWithVersion.decode(exist);
-		r.Result.setData(new Binary(dv.data));
-		r.Result.setVersion(dv.version);
-		r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
-		return 0;
+	protected long ProcessGetDataWithVersionRequest(GetDataWithVersion r) throws Exception {
+		lock();
+		try {
+			var id = r.Argument.getKey();
+			var exist = zezeDataTable.get(id.bytesUnsafe(), id.getOffset(), id.size());
+			if (null == exist)
+				return errorCode(BGetDataWithVersion.eDataNotExists);
+			var dv = Database.DataWithVersion.decode(exist);
+			r.Result.setData(new Binary(dv.data));
+			r.Result.setVersion(dv.version);
+			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
+			return 0;
+		} finally {
+			unlock();
+		}
 	}
 
 	@Override
-	protected synchronized long ProcessTryLockRequest(TryLock r) throws Exception {
-		var exist = zezeDataTable.get(DatabaseMySql.keyOfLock);
-		var bbData = ByteBuffer.Allocate();
-		if (exist != null) {
-			var dvExist = Database.DataWithVersion.decode(exist);
-			if (dvExist.version != 0)
+	protected long ProcessTryLockRequest(TryLock r) throws Exception {
+		lock();
+		try {
+			var exist = zezeDataTable.get(DatabaseMySql.keyOfLock);
+			var bbData = ByteBuffer.Allocate();
+			if (exist != null) {
+				var dvExist = Database.DataWithVersion.decode(exist);
+				if (dvExist.version != 0)
+					return errorCode(TryLock.eLockNotExists);
+
+				dvExist.version = 1;
+				dvExist.encode(bbData);
+			} else {
+				var dvInsert = new Database.DataWithVersion();
+				dvInsert.data = ByteBuffer.Allocate();
+				dvInsert.version = 1;
+				dvInsert.encode(bbData);
+			}
+			zezeDataTable.put(DatabaseMySql.keyOfLock, 0, DatabaseMySql.keyOfLock.length,
+					bbData.Bytes, bbData.ReadIndex, bbData.size());
+			r.SendResult();
+			return 0;
+		} finally {
+			unlock();
+		}
+	}
+
+	@Override
+	protected long ProcessUnLockRequest(UnLock r) throws Exception {
+		// 完全忽略错误的写法是直接put一个干净的记录(version==0)到表内。
+		lock();
+		try {
+			var exist = zezeDataTable.get(DatabaseMySql.keyOfLock);
+			if (exist == null)
 				return errorCode(TryLock.eLockNotExists);
 
-			dvExist.version = 1;
-			dvExist.encode(bbData);
-		} else {
-			var dvInsert = new Database.DataWithVersion();
-			dvInsert.data = ByteBuffer.Allocate();
-			dvInsert.version = 1;
-			dvInsert.encode(bbData);
+			var dv = Database.DataWithVersion.decode(exist);
+			dv.version = 0;
+			var bbData = ByteBuffer.Allocate();
+			dv.encode(bbData);
+			zezeDataTable.put(DatabaseMySql.keyOfLock, 0, DatabaseMySql.keyOfLock.length,
+					bbData.Bytes, bbData.ReadIndex, bbData.size());
+			r.SendResult();
+			return 0;
+		} finally {
+			unlock();
 		}
-		zezeDataTable.put(DatabaseMySql.keyOfLock, 0, DatabaseMySql.keyOfLock.length,
-				bbData.Bytes, bbData.ReadIndex, bbData.size());
-		r.SendResult();
-		return 0;
-	}
-
-	@Override
-	protected synchronized long ProcessUnLockRequest(UnLock r) throws Exception {
-		// 完全忽略错误的写法是直接put一个干净的记录(version==0)到表内。
-
-		var exist = zezeDataTable.get(DatabaseMySql.keyOfLock);
-		if (exist == null)
-			return errorCode(TryLock.eLockNotExists);
-
-		var dv = Database.DataWithVersion.decode(exist);
-		dv.version = 0;
-		var bbData = ByteBuffer.Allocate();
-		dv.encode(bbData);
-		zezeDataTable.put(DatabaseMySql.keyOfLock, 0, DatabaseMySql.keyOfLock.length,
-				bbData.Bytes, bbData.ReadIndex, bbData.size());
-		r.SendResult();
-		return 0;
 	}
 
 }

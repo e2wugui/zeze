@@ -33,7 +33,7 @@ public class HotHandle<THandle> {
 		if (null != handle)
 			return handle;
 
-		// synchronized (handleCache)
+		// synchronize_d (handleCache)
 		thisLock.lock();
 		try {
 			handle = handleCache.get(handleClassName);

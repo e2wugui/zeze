@@ -402,7 +402,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				if (enableDump)
 					tryDump(link, pdata);
 			} else {
-				synchronized (r) {
+				synchr_onized (r) {
 					r.Result.getErrorLinkSids().add(linkSid);
 				}
 			}

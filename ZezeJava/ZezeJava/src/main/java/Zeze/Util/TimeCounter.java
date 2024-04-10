@@ -4,7 +4,7 @@ package Zeze.Util;
  * 用于几秒内的计数，
  * 每秒删除队头的计数，
  */
-public class TimeCounter {
+public class TimeCounter extends FastLock {
 	private final CounterSecond[] counters; // 5-10个。
 	private int lastIndex;
 
@@ -17,25 +17,35 @@ public class TimeCounter {
 		increment(GlobalTimer.getCurrentSeconds());
 	}
 
-	public synchronized void increment(long nowSeconds) {
-		var last = counters[lastIndex];
-		if (nowSeconds == last.seconds) {
-			// 同一秒，简单计数
-			last.counter++;
-		} else {
-			if (++lastIndex >= counters.length)
-				lastIndex = 0;
-			last = counters[lastIndex];
-			last.seconds = nowSeconds;
-			last.counter = 1;
+	public void increment(long nowSeconds) {
+		lock();
+		try {
+			var last = counters[lastIndex];
+			if (nowSeconds == last.seconds) {
+				// 同一秒，简单计数
+				last.counter++;
+			} else {
+				if (++lastIndex >= counters.length)
+					lastIndex = 0;
+				last = counters[lastIndex];
+				last.seconds = nowSeconds;
+				last.counter = 1;
+			}
+		} finally {
+			unlock();
 		}
 	}
 
-	public synchronized long count() {
-		var count = 0L;
-		for (var c : counters)
-			count += c.counter;
-		return count;
+	public long count() {
+		lock();
+		try {
+			var count = 0L;
+			for (var c : counters)
+				count += c.counter;
+			return count;
+		} finally {
+			unlock();
+		}
 	}
 
 	public TimeCounter(int seconds) {
@@ -59,21 +69,26 @@ public class TimeCounter {
 		discard(GlobalTimer.getCurrentSeconds());
 	}
 
-	public synchronized void discard(long nowSeconds) {
-		var headIndex = lastIndex;
+	public void discard(long nowSeconds) {
+		lock();
+		try {
+			var headIndex = lastIndex;
 
-		for (var i = 0; i < counters.length; ++i) {
-			if (++headIndex >= counters.length)
-				headIndex = 0;
-			var head = counters[headIndex];
-			if (nowSeconds - head.seconds <= counters.length)
-				break;
+			for (var i = 0; i < counters.length; ++i) {
+				if (++headIndex >= counters.length)
+					headIndex = 0;
+				var head = counters[headIndex];
+				if (nowSeconds - head.seconds <= counters.length)
+					break;
 
-			// reset
-			// 这个结合上面的if，会导致不必要的reset；这里用Long.MAX_VALUE，可以避免多余的reset，
-			// 但要求记住headIndex，不能从lastIndex+1开始判断。
-			head.seconds = 0;
-			head.counter = 0;
+				// reset
+				// 这个结合上面的if，会导致不必要的reset；这里用Long.MAX_VALUE，可以避免多余的reset，
+				// 但要求记住headIndex，不能从lastIndex+1开始判断。
+				head.seconds = 0;
+				head.counter = 0;
+			}
+		} finally {
+			unlock();
 		}
 	}
 }

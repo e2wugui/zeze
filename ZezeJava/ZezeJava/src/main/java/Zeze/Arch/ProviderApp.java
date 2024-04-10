@@ -2,6 +2,7 @@ package Zeze.Arch;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
@@ -41,6 +42,15 @@ public class ProviderApp {
 	private boolean startLast;
 	private boolean isOnlineReady = false;
 	private boolean isUserDisableChoice = true;
+	private final ReentrantLock thisLock = new ReentrantLock();
+
+	public void lock() {
+		thisLock.lock();
+	}
+
+	public void unlock() {
+		thisLock.unlock();
+	}
 
 	public boolean isOnlineReady() {
 		return isOnlineReady;
@@ -164,24 +174,29 @@ public class ProviderApp {
 		isUserDisableChoice = userDisableChoice;
 	}
 
-	public synchronized void startLast(@NotNull ProviderModuleBinds binds, @NotNull Map<String, IModule> modules) throws Exception {
-		buildProviderModuleBinds(binds, modules);
-		providerImplement.registerModulesAndSubscribeLinkd();
-		startLast = true;
-		zeze.getTimer().start();
-		zeze.getAppBase().startLastModules();
+	public void startLast(@NotNull ProviderModuleBinds binds, @NotNull Map<String, IModule> modules) throws Exception {
+		lock();
+		try {
+			buildProviderModuleBinds(binds, modules);
+			providerImplement.registerModulesAndSubscribeLinkd();
+			startLast = true;
+			zeze.getTimer().start();
+			zeze.getAppBase().startLastModules();
 
-		if (providerImplement instanceof ProviderWithOnline) {
-			var game = (ProviderWithOnline)providerImplement;
-			game.getOnline().startAfter();
+			if (providerImplement instanceof ProviderWithOnline) {
+				var game = (ProviderWithOnline)providerImplement;
+				game.getOnline().startAfter();
+			}
+			// 这个应该在Online.Start里面设置更合理。
+			// 但是Online有多个版本，而且跨包设置需要方法，就这里直接设置了。
+			// 是启动流程的一部分。
+			isOnlineReady = true;
+
+			// 开启link，默认开启。
+			setUserDisableChoice(false);
+			providerService.trySetLinkChoice();
+		} finally {
+			unlock();
 		}
-		// 这个应该在Online.Start里面设置更合理。
-		// 但是Online有多个版本，而且跨包设置需要方法，就这里直接设置了。
-		// 是启动流程的一部分。
-		isOnlineReady = true;
-
-		// 开启link，默认开启。
-		setUserDisableChoice(false);
-		providerService.trySetLinkChoice();
 	}
 }

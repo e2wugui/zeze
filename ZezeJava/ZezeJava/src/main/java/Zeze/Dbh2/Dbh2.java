@@ -30,6 +30,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.Action2;
+import Zeze.Util.FastLock;
 import Zeze.Util.FuncLong;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -47,6 +48,15 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private final Dbh2StateMachine stateMachine;
 	private final Dbh2Manager manager;
 	private final Locks locks = new Locks();
+	private final FastLock thisLock = new FastLock();
+
+	public void lock() {
+		thisLock.lock();
+	}
+
+	public void unlock() {
+		thisLock.unlock();
+	}
 
 	public Locks getLocks() {
 		return locks;
@@ -563,74 +573,79 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	// 开始分桶流程有两个线程需要访问：timer & raft.UserThreadExecutor
-	private synchronized void startSplit(boolean isMove) throws Exception {
-		if (!getRaft().isLeader())
-			return;
-
-		// 后面需要在lambda中传递系列号作为上下文，使用成员变量是不是会跟随变化？
-		var serialNo = manager.atomicSerialNo.incrementAndGet();
-		splitSerialNo = serialNo;
-		var bucket = stateMachine.getBucket();
-		RocksIterator it = null;
+	private void startSplit(boolean isMove) throws Exception {
+		lock();
 		try {
-			var splitting = bucket.getSplittingMeta(); // 对于timer，这个会调用两次。
-			if (null == splitting) {
-				// 第一次开始分桶，准备阶段。
-				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
-				// 先去manager查一下可用的manager是否够，简单判断，不原子化。
-				if (manager.getMasterAgent().checkFreeManager() < dbh2Config.getRaftClusterCount()) {
-					logger.warn("splitting not enough free manager. isMove={}", isMove);
-					return;
-				}
-				// 上一次分桶结束的deleteRange可能还没compact，此时keyNumbers不准确，这里总是执行一次。
-				bucket.getData().compact();
+			if (!getRaft().isLeader())
+				return;
 
-				it = isMove ? locateFirst() : locateMiddle();
+			// 后面需要在lambda中传递系列号作为上下文，使用成员变量是不是会跟随变化？
+			var serialNo = manager.atomicSerialNo.incrementAndGet();
+			splitSerialNo = serialNo;
+			var bucket = stateMachine.getBucket();
+			RocksIterator it = null;
+			try {
+				var splitting = bucket.getSplittingMeta(); // 对于timer，这个会调用两次。
+				if (null == splitting) {
+					// 第一次开始分桶，准备阶段。
+					// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
+					// 先去manager查一下可用的manager是否够，简单判断，不原子化。
+					if (manager.getMasterAgent().checkFreeManager() < dbh2Config.getRaftClusterCount()) {
+						logger.warn("splitting not enough free manager. isMove={}", isMove);
+						return;
+					}
+					// 上一次分桶结束的deleteRange可能还没compact，此时keyNumbers不准确，这里总是执行一次。
+					bucket.getData().compact();
+
+					it = isMove ? locateFirst() : locateMiddle();
+					if (null == it) {
+						logger.info("splitting break start: it is null. isMove={}", isMove);
+						return; // empty？不需要执行后续操作。break progress.
+					}
+					var newMeta = stateMachine.getBucket().getBucketMeta().copy();
+					newMeta.setRaftConfig("");
+					if (!isMove)
+						newMeta.setKeyFirst(new Binary(it.key()));
+					splitting = manager.getMasterAgent().createSplitBucket(newMeta);
+
+					// 设置分桶进行中的标记到raft集群中。
+					getRaft().appendLog(new LogSetSplittingMeta(splitting));
+					// 创建到分桶目标的客户端。
+					logger.info("splitting start... isMove={} {}->{}",
+							isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
+				}
+
+				// 重启的时候，需要重建到分桶的连接。
+				if (null == dbh2Splitting) {
+					dbh2Splitting = new Dbh2Agent(splitting.getRaftConfig(), RaftAgentNetClient::new);
+					dbh2Splitting.getRaftAgent().setPendingLimit(Integer.MAX_VALUE);
+				}
+
+				var server = (Dbh2RaftServer)getRaft().getServer();
+				performPrepareQueue(server.takePrepareQueue());
+
 				if (null == it) {
-					logger.info("splitting break start: it is null. isMove={}", isMove);
-					return; // empty？不需要执行后续操作。break progress.
+					// 重新开始分桶时走这个分支，根据上次找到的middle，定位it。
+					it = isMove ? locateFirst() : locateMiddle(splitting.getKeyFirst());
+					if (null == it) {
+						logger.info("splitting break restart: it is null. isMove={}", isMove);
+						return;
+					}
+					logger.info("splitting restart... isMove={} {}->{}",
+							isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
 				}
-				var newMeta = stateMachine.getBucket().getBucketMeta().copy();
-				newMeta.setRaftConfig("");
-				if (!isMove)
-					newMeta.setKeyFirst(new Binary(it.key()));
-				splitting = manager.getMasterAgent().createSplitBucket(newMeta);
 
-				// 设置分桶进行中的标记到raft集群中。
-				getRaft().appendLog(new LogSetSplittingMeta(splitting));
-				// 创建到分桶目标的客户端。
-				logger.info("splitting start... isMove={} {}->{}",
-						isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
+				// 开始同步数据，这个阶段对于rocks时同步访问的，对于网络是异步的。
+				var puts = buildSplitPut(it);
+				var fit = it;
+				dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, fit, serialNo));
+				it = null;
+			} finally {
+				if (null != it)
+					it.close();
 			}
-
-			// 重启的时候，需要重建到分桶的连接。
-			if (null == dbh2Splitting) {
-				dbh2Splitting = new Dbh2Agent(splitting.getRaftConfig(), RaftAgentNetClient::new);
-				dbh2Splitting.getRaftAgent().setPendingLimit(Integer.MAX_VALUE);
-			}
-
-			var server = (Dbh2RaftServer)getRaft().getServer();
-			performPrepareQueue(server.takePrepareQueue());
-
-			if (null == it) {
-				// 重新开始分桶时走这个分支，根据上次找到的middle，定位it。
-				it = isMove ? locateFirst() : locateMiddle(splitting.getKeyFirst());
-				if (null == it) {
-					logger.info("splitting break restart: it is null. isMove={}", isMove);
-					return;
-				}
-				logger.info("splitting restart... isMove={} {}->{}",
-						isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
-			}
-
-			// 开始同步数据，这个阶段对于rocks时同步访问的，对于网络是异步的。
-			var puts = buildSplitPut(it);
-			var fit = it;
-			dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, fit, serialNo));
-			it = null;
 		} finally {
-			if (null != it)
-				it.close();
+			unlock();
 		}
 	}
 

@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.AppBase;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
@@ -38,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
  * 如果需要就动态生成子类实现代码并编译并返回新的实例。
  * 可以提供和原来模块一致的接口。
  */
-public final class GenModule {
+public final class GenModule extends ReentrantLock {
 	public static final String REDIRECT_PREFIX = "Redirect_";
 	public static final GenModule instance = new GenModule();
 
@@ -97,90 +98,95 @@ public final class GenModule {
 		}
 	}
 
-	public synchronized IModule[] createRedirectModules(@NotNull AppBase userApp, Class<?> @NotNull [] moduleClasses) {
-		int i = 0, n = moduleClasses.length;
+	public IModule[] createRedirectModules(@NotNull AppBase userApp, Class<?> @NotNull [] moduleClasses) {
+		lock();
 		try {
-			var classNames = new String[n];
-			var classNameAndCodes = new HashMap<String, String>(); // <className, code>
-			for (; i < n; i++) {
-				var moduleClass = moduleClasses[i];
-				if (moduleClass.getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
-					continue;
-
-				var overrides = new ArrayList<MethodOverride>();
-				for (var method : moduleClass.getDeclaredMethods()) {
-					for (var anno : method.getAnnotations()) {
-						var type = anno.annotationType();
-						if (type == RedirectToServer.class || type == RedirectHash.class || type == RedirectAll.class) {
-							overrides.add(new MethodOverride(method, anno));
-							break;
-						}
-					}
-				}
-				if (overrides.isEmpty())
-					continue; // 没有需要重定向的方法。
-				overrides.sort(Comparator.comparing(o -> o.method.getName())); // 按方法名排序，避免每次生成结果发生变化。
-
-				String genClassName = getRedirectClassName(moduleClass);
-				if (genFileSrcRoot == null) { // 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
-					var genClass = genClassMap.get(genClassName);
-					if (genClass == null) {
-						try {
-							genClass = Class.forName(genClassName);
-							genClassMap.put(genClassName, genClass);
-						} catch (ClassNotFoundException ignored) {
-						}
-					}
-					if (genClass != null) {
-						classNames[i] = genClassName;
+			int i = 0, n = moduleClasses.length;
+			try {
+				var classNames = new String[n];
+				var classNameAndCodes = new HashMap<String, String>(); // <className, code>
+				for (; i < n; i++) {
+					var moduleClass = moduleClasses[i];
+					if (moduleClass.getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
 						continue;
-					}
-				}
 
-				var code = genModuleCode(genClassName, moduleClass, overrides, userApp);
-
-				if (genFileSrcRoot != null) {
-					byte[] oldBytes = null;
-					byte[] newBytes = code.getBytes(StandardCharsets.UTF_8);
-					var file = new File(genFileSrcRoot, genClassName + ".java");
-					if (file.exists()) {
-						oldBytes = Files.readAllBytes(file.toPath());
-						if (Arrays.equals(oldBytes, newBytes))
-							System.out.println("  Existed File: " + file.getAbsolutePath());
-						else {
-							System.out.println("Overwrite File: " + file.getAbsolutePath());
-							oldBytes = null;
-						}
-					} else
-						System.out.println("      New File: " + file.getAbsolutePath());
-					if (oldBytes == null) {
-						try (var fos = new FileOutputStream(file)) {
-							fos.write(newBytes);
-						} catch (IOException e) {
-							//noinspection CallToPrintStackTrace
-							e.printStackTrace();
+					var overrides = new ArrayList<MethodOverride>();
+					for (var method : moduleClass.getDeclaredMethods()) {
+						for (var anno : method.getAnnotations()) {
+							var type = anno.annotationType();
+							if (type == RedirectToServer.class || type == RedirectHash.class || type == RedirectAll.class) {
+								overrides.add(new MethodOverride(method, anno));
+								break;
+							}
 						}
 					}
-				}
-				classNames[i] = genClassName;
-				classNameAndCodes.put(genClassName, code);
-			}
-			if (genFileSrcRoot != null) // 仅生成代码时无需编译和创建模块实例
-				return null;
+					if (overrides.isEmpty())
+						continue; // 没有需要重定向的方法。
+					overrides.sort(Comparator.comparing(o -> o.method.getName())); // 按方法名排序，避免每次生成结果发生变化。
 
-			var modules = new IModule[n];
-			if (!classNameAndCodes.isEmpty())
-				compiler.compileAll(classNameAndCodes, genClassMap);
-			for (i = 0; i < n; i++) {
-				var className = classNames[i];
-				modules[i] = newModule(className != null ? genClassMap.get(className) : moduleClasses[i], userApp);
+					String genClassName = getRedirectClassName(moduleClass);
+					if (genFileSrcRoot == null) { // 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
+						var genClass = genClassMap.get(genClassName);
+						if (genClass == null) {
+							try {
+								genClass = Class.forName(genClassName);
+								genClassMap.put(genClassName, genClass);
+							} catch (ClassNotFoundException ignored) {
+							}
+						}
+						if (genClass != null) {
+							classNames[i] = genClassName;
+							continue;
+						}
+					}
+
+					var code = genModuleCode(genClassName, moduleClass, overrides, userApp);
+
+					if (genFileSrcRoot != null) {
+						byte[] oldBytes = null;
+						byte[] newBytes = code.getBytes(StandardCharsets.UTF_8);
+						var file = new File(genFileSrcRoot, genClassName + ".java");
+						if (file.exists()) {
+							oldBytes = Files.readAllBytes(file.toPath());
+							if (Arrays.equals(oldBytes, newBytes))
+								System.out.println("  Existed File: " + file.getAbsolutePath());
+							else {
+								System.out.println("Overwrite File: " + file.getAbsolutePath());
+								oldBytes = null;
+							}
+						} else
+							System.out.println("      New File: " + file.getAbsolutePath());
+						if (oldBytes == null) {
+							try (var fos = new FileOutputStream(file)) {
+								fos.write(newBytes);
+							} catch (IOException e) {
+								//noinspection CallToPrintStackTrace
+								e.printStackTrace();
+							}
+						}
+					}
+					classNames[i] = genClassName;
+					classNameAndCodes.put(genClassName, code);
+				}
+				if (genFileSrcRoot != null) // 仅生成代码时无需编译和创建模块实例
+					return null;
+
+				var modules = new IModule[n];
+				if (!classNameAndCodes.isEmpty())
+					compiler.compileAll(classNameAndCodes, genClassMap);
+				for (i = 0; i < n; i++) {
+					var className = classNames[i];
+					modules[i] = newModule(className != null ? genClassMap.get(className) : moduleClasses[i], userApp);
+				}
+				return modules;
+			} catch (Exception e) {
+				if (i < n)
+					throw new IllegalStateException("module class: " + moduleClasses[i].getName(), e);
+				Task.forceThrow(e);
+				return null; // never run here
 			}
-			return modules;
-		} catch (Exception e) {
-			if (i < n)
-				throw new IllegalStateException("module class: " + moduleClasses[i].getName(), e);
-			Task.forceThrow(e);
-			return null; // never run here
+		} finally {
+			unlock();
 		}
 	}
 

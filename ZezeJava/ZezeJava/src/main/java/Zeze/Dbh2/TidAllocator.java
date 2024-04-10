@@ -1,8 +1,9 @@
 package Zeze.Dbh2;
 
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Util.FastLock;
 
-public class TidAllocator {
+public class TidAllocator extends FastLock {
 	private volatile Range range; // 只有 raft 修改，单线程。
 	private static final int ALLOCATE_COUNT_MIN = 64;
 	private static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
@@ -31,7 +32,8 @@ public class TidAllocator {
 				if (next != 0)
 					return next; // allocate in range success
 			}
-			synchronized (this) {
+			lock();
+			try {
 				//noinspection NumberEquality
 				if (range != localRange)
 					continue; // 可能有并发的分配已经完成。
@@ -40,6 +42,8 @@ public class TidAllocator {
 				var log = new LogAllocateTid(allocateCount);
 				stateMachine.getRaft().appendLog(log);
 				// log.apply 里面会生成新的Range。
+			} finally {
+				unlock();
 			}
 		}
 	}

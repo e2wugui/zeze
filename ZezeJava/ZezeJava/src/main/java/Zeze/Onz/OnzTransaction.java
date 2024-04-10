@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.Condition;
 import Zeze.Builtin.Onz.BSavedCommits;
 import Zeze.Builtin.Onz.Checkpoint;
 import Zeze.Builtin.Onz.Commit;
@@ -17,6 +18,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Data;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.FastLock;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -31,16 +33,28 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 	private A argument;
 	private R result;
 	private boolean pendingAsync = false;
+	private final FastLock thisLock = new FastLock();
+	private final Condition thisCond = thisLock.newCondition();
 
-	synchronized void waitPendingAsync() throws InterruptedException {
-		while (pendingAsync) {
-			this.wait();
+	void waitPendingAsync() throws InterruptedException {
+		thisLock.lock();
+		try {
+			while (pendingAsync) {
+				thisCond.wait();
+			}
+		} finally {
+			thisLock.unlock();
 		}
 	}
 
-	public synchronized void setPendingAsync(boolean pending) {
-		this.pendingAsync = pending;
-		this.notify();
+	public void setPendingAsync(boolean pending) {
+		thisLock.lock();
+		try {
+			this.pendingAsync = pending;
+			this.notify();
+		} finally {
+			thisLock.unlock();
+		}
 	}
 
 	protected abstract long perform() throws Exception;
