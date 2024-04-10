@@ -218,7 +218,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 		// unbind LinkSession
 		var linkSessionIds = providerSession.getLinkSessionIds();
-		linkSessionIds.lock();
+		providerSession.getLinkSessionIdsLock().lock();
 		try {
 			for (var it = linkSessionIds.iterator(); it.moveToNext(); ) {
 				int moduleId = it.key();
@@ -239,7 +239,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			}
 			linkSessionIds.clear();
 		} finally {
-			linkSessionIds.unlock();
+			providerSession.getLinkSessionIdsLock().unlock();
 		}
 	}
 

@@ -20,15 +20,6 @@ public class IntHashMap<V> implements Cloneable {
 	private int threshold;
 	private int mask;
 	private int shift;
-	private final ReentrantLock thisLock = new ReentrantLock();
-
-	public void lock() {
-		thisLock.lock();
-	}
-
-	public void unlock() {
-		thisLock.unlock();
-	}
 
 	public IntHashMap() {
 		this(2, 0.8f);

@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Provider.BAnnounceProviderInfo;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.IntHashMap;
@@ -14,6 +15,7 @@ public class LinkdProviderSession extends ProviderSession {
 	 * 多线程：主要由LinkSession回调.  需要保护。
 	 */
 	protected final IntHashMap<LongHashSet> linkSessionIds = new IntHashMap<>();
+	protected final ReentrantLock linkSessionIdsLock = new ReentrantLock();
 
 	/**
 	 * 维护此Provider上绑定的StaticBinds，用来在Provider关闭的时候，进行 UnBind。
@@ -40,21 +42,25 @@ public class LinkdProviderSession extends ProviderSession {
 		return linkSessionIds;
 	}
 
+	public ReentrantLock getLinkSessionIdsLock() {
+		return linkSessionIdsLock;
+	}
+
 	public ConcurrentHashSet<Integer> getStaticBinds() {
 		return staticBinds;
 	}
 
 	public void addLinkSession(int moduleId, long linkSessionId) {
-		linkSessionIds.lock();
+		linkSessionIdsLock.lock();
 		try {
 			linkSessionIds.computeIfAbsent(moduleId, __ -> new LongHashSet()).add(linkSessionId);
 		} finally {
-			linkSessionIds.unlock();
+			linkSessionIdsLock.unlock();
 		}
 	}
 
 	public void removeLinkSession(int moduleId, long linkSessionId) {
-		linkSessionIds.lock();
+		linkSessionIdsLock.lock();
 		try {
 			var linkSids = linkSessionIds.get(moduleId);
 			if (linkSids != null) {
@@ -67,12 +73,12 @@ public class LinkdProviderSession extends ProviderSession {
 				}
 			}
 		} finally {
-			linkSessionIds.unlock();
+			linkSessionIdsLock.unlock();
 		}
 	}
 
 	public void updateLinkSessionId(int moduleId, long oldLinkSessionId, long newLinkSessionId) {
-		linkSessionIds.lock();
+		linkSessionIdsLock.lock();
 		try {
 			var linkSids = linkSessionIds.get(moduleId);
 			if (linkSids != null) {
@@ -80,7 +86,7 @@ public class LinkdProviderSession extends ProviderSession {
 				linkSids.add(newLinkSessionId);
 			}
 		} finally {
-			linkSessionIds.unlock();
+			linkSessionIdsLock.unlock();
 		}
 	}
 }
