@@ -50,10 +50,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private final Locks locks = new Locks();
 	private final FastLock thisLock = new FastLock();
 
+	@Override
 	public void lock() {
 		thisLock.lock();
 	}
 
+	@Override
 	public void unlock() {
 		thisLock.unlock();
 	}

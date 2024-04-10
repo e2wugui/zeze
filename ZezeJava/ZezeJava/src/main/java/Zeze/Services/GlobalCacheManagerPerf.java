@@ -6,12 +6,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Net.Protocol;
+import Zeze.Util.FastLock;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
-public class GlobalCacheManagerPerf {
+public class GlobalCacheManagerPerf extends FastLock {
 	private static final int ACQUIRE_STATE_COUNT = 3;
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerPerf.class);
 
@@ -98,58 +99,63 @@ public class GlobalCacheManagerPerf {
 		others.computeIfAbsent(info, __ -> new LongAdder()).increment();
 	}
 
-	private synchronized void report() {
-		long curSerialId = serialIdGenerator.get();
-		long serialIds = curSerialId - lastSerialId;
-		lastSerialId = curSerialId;
-		long totalReduceCountSum = totalReduceCount.sumThenReset();
-		long acquiresSize = acquires.size();
-		long reducesSize = reduces.size();
-		long[] totalAcquireCounts0 = new long[ACQUIRE_STATE_COUNT];
-		for (int i = 0; i < ACQUIRE_STATE_COUNT; i++)
-			totalAcquireCounts0[i] = totalAcquireCounts[i].sumThenReset();
+	private void report() {
+		lock();
+		try {
+			long curSerialId = serialIdGenerator.get();
+			long serialIds = curSerialId - lastSerialId;
+			lastSerialId = curSerialId;
+			long totalReduceCountSum = totalReduceCount.sumThenReset();
+			long acquiresSize = acquires.size();
+			long reducesSize = reduces.size();
+			long[] totalAcquireCounts0 = new long[ACQUIRE_STATE_COUNT];
+			for (int i = 0; i < ACQUIRE_STATE_COUNT; i++)
+				totalAcquireCounts0[i] = totalAcquireCounts[i].sumThenReset();
 
-		if ((serialIds | totalReduceCountSum | acquiresSize | reducesSize) == 0) {
-			int i = 0;
-			for (; i < ACQUIRE_STATE_COUNT; i++) {
-				if (totalAcquireCounts0[i] != 0)
-					break;
+			if ((serialIds | totalReduceCountSum | acquiresSize | reducesSize) == 0) {
+				int i = 0;
+				for (; i < ACQUIRE_STATE_COUNT; i++) {
+					if (totalAcquireCounts0[i] != 0)
+						break;
+				}
+				if (i == ACQUIRE_STATE_COUNT)
+					return;
 			}
-			if (i == ACQUIRE_STATE_COUNT)
-				return;
-		}
 
-		var sb = new StringBuilder().append("SerialIds = ").append(serialIds).append('\n');
-		for (int i = 0; i < ACQUIRE_STATE_COUNT; i++) {
-			long count = totalAcquireCounts0[i];
-			sb.append("Acquires[").append(i).append("] = ").append(count);
-			if (count > 0) {
-				sb.append(", ").append(totalAcquireTimes[i].sumThenReset() / count / 1_000).append(" us/acquire, max: ")
-						.append(maxAcquireTimes[i].getAndSet(0) / 1_000_000).append(" ms");
+			var sb = new StringBuilder().append("SerialIds = ").append(serialIds).append('\n');
+			for (int i = 0; i < ACQUIRE_STATE_COUNT; i++) {
+				long count = totalAcquireCounts0[i];
+				sb.append("Acquires[").append(i).append("] = ").append(count);
+				if (count > 0) {
+					sb.append(", ").append(totalAcquireTimes[i].sumThenReset() / count / 1_000).append(" us/acquire, max: ")
+							.append(maxAcquireTimes[i].getAndSet(0) / 1_000_000).append(" ms");
+				}
+				for (var e : totalAcquireResults[i].entrySet())
+					sb.append(", r=").append(e.getKey()).append(':').append(e.getValue().sum());
+				totalAcquireResults[i].clear();
+				sb.append('\n');
 			}
-			for (var e : totalAcquireResults[i].entrySet())
-				sb.append(", r=").append(e.getKey()).append(':').append(e.getValue().sum());
-			totalAcquireResults[i].clear();
-			sb.append('\n');
+			sb.append("Reduces = ").append(totalReduceCountSum);
+			if (totalReduceCountSum > 0) {
+				sb.append(", ").append(totalReduceTime.sumThenReset() / totalReduceCountSum / 1_000)
+						.append(" us/reduce, max: ").append(maxReduceTime.getAndSet(0) / 1_000_000).append(" ms");
+				for (var e : totalReduceResults.entrySet())
+					sb.append(", r=").append(e.getKey()).append(':').append(e.getValue().sum());
+				totalReduceResults.clear();
+			}
+			sb.append("\nAcquire/Reduce Pendings = ").append(acquiresSize).append(" / ").append(reducesSize).append('\n');
+			for (var e : others.entrySet())
+				sb.append(e.getKey()).append(" = ").append(e.getValue().sum()).append('\n');
+			others.clear();
+			var es = Task.getThreadPool();
+			if (es instanceof ThreadPoolExecutor) {
+				var queueSize = ((ThreadPoolExecutor)es).getQueue().size();
+				if (queueSize != 0)
+					sb.append("ThreadPoolQueueSize = ").append(queueSize).append('\n');
+			}
+			logger.info("{}\n{}", perfName, sb.toString());
+		} finally {
+			unlock();
 		}
-		sb.append("Reduces = ").append(totalReduceCountSum);
-		if (totalReduceCountSum > 0) {
-			sb.append(", ").append(totalReduceTime.sumThenReset() / totalReduceCountSum / 1_000)
-					.append(" us/reduce, max: ").append(maxReduceTime.getAndSet(0) / 1_000_000).append(" ms");
-			for (var e : totalReduceResults.entrySet())
-				sb.append(", r=").append(e.getKey()).append(':').append(e.getValue().sum());
-			totalReduceResults.clear();
-		}
-		sb.append("\nAcquire/Reduce Pendings = ").append(acquiresSize).append(" / ").append(reducesSize).append('\n');
-		for (var e : others.entrySet())
-			sb.append(e.getKey()).append(" = ").append(e.getValue().sum()).append('\n');
-		others.clear();
-		var es = Task.getThreadPool();
-		if (es instanceof ThreadPoolExecutor) {
-			var queueSize = ((ThreadPoolExecutor)es).getQueue().size();
-			if (queueSize != 0)
-				sb.append("ThreadPoolQueueSize = ").append(queueSize).append('\n');
-		}
-		logger.info("{}\n{}", perfName, sb.toString());
 	}
 }

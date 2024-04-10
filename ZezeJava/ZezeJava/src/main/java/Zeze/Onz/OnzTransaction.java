@@ -40,7 +40,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 		thisLock.lock();
 		try {
 			while (pendingAsync) {
-				thisCond.wait();
+				thisCond.await();
 			}
 		} finally {
 			thisLock.unlock();

@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Condition;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
@@ -25,6 +26,7 @@ import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.FastLock;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
@@ -39,7 +41,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 
-public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
+public final class GlobalCacheManagerServer extends FastLock implements GlobalCacheManagerConst {
 	static {
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
@@ -117,46 +119,51 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		start(ipaddress, port, null);
 	}
 
-	public synchronized void start(@Nullable InetAddress ipaddress, int port, @Nullable Config config) {
-		if (server != null)
-			return;
+	public void start(@Nullable InetAddress ipaddress, int port, @Nullable Config config) {
+		lock();
+		try {
+			if (server != null)
+				return;
 
-		if (ENABLE_PERF)
-			perf = new GlobalCacheManagerPerf("", serialIdGenerator);
-		PerfCounter.instance.tryStartScheduledLog();
+			if (ENABLE_PERF)
+				perf = new GlobalCacheManagerPerf("", serialIdGenerator);
+			PerfCounter.instance.tryStartScheduledLog();
 
-		if (config == null)
-			config = Config.load();
-		config.parseCustomize(this.gcmConfig);
+			if (config == null)
+				config = Config.load();
+			config.parseCustomize(this.gcmConfig);
 
-		sessions = new LongConcurrentHashMap<>(4096);
-		global = new ConcurrentHashMap<>(this.gcmConfig.initialCapacity);
+			sessions = new LongConcurrentHashMap<>(4096);
+			global = new ConcurrentHashMap<>(this.gcmConfig.initialCapacity);
 
-		server = new ServerService(config);
+			server = new ServerService(config);
 
-		server.AddFactoryHandle(Acquire.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Acquire::new, this::processAcquireRequest, TransactionLevel.None, DispatchMode.Normal));
-		server.AddFactoryHandle(Reduce.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Reduce::new, null, TransactionLevel.None, DispatchMode.Critical));
-		server.AddFactoryHandle(Login.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Login::new, this::processLogin, TransactionLevel.None, DispatchMode.Critical));
-		server.AddFactoryHandle(ReLogin.TypeId_, new Service.ProtocolFactoryHandle<>(
-				ReLogin::new, this::processReLogin, TransactionLevel.None, DispatchMode.Critical));
-		server.AddFactoryHandle(NormalClose.TypeId_, new Service.ProtocolFactoryHandle<>(
-				NormalClose::new, this::processNormalClose, TransactionLevel.None, DispatchMode.Critical));
-		// 临时注册到这里，安全起见应该起一个新的Service，并且仅绑定到 localhost。
-		server.AddFactoryHandle(Cleanup.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Cleanup::new, this::processCleanup, TransactionLevel.None, DispatchMode.Direct));
-		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
-				KeepAlive::new, GlobalCacheManagerServer::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
+			server.AddFactoryHandle(Acquire.TypeId_, new Service.ProtocolFactoryHandle<>(
+					Acquire::new, this::processAcquireRequest, TransactionLevel.None, DispatchMode.Normal));
+			server.AddFactoryHandle(Reduce.TypeId_, new Service.ProtocolFactoryHandle<>(
+					Reduce::new, null, TransactionLevel.None, DispatchMode.Critical));
+			server.AddFactoryHandle(Login.TypeId_, new Service.ProtocolFactoryHandle<>(
+					Login::new, this::processLogin, TransactionLevel.None, DispatchMode.Critical));
+			server.AddFactoryHandle(ReLogin.TypeId_, new Service.ProtocolFactoryHandle<>(
+					ReLogin::new, this::processReLogin, TransactionLevel.None, DispatchMode.Critical));
+			server.AddFactoryHandle(NormalClose.TypeId_, new Service.ProtocolFactoryHandle<>(
+					NormalClose::new, this::processNormalClose, TransactionLevel.None, DispatchMode.Critical));
+			// 临时注册到这里，安全起见应该起一个新的Service，并且仅绑定到 localhost。
+			server.AddFactoryHandle(Cleanup.TypeId_, new Service.ProtocolFactoryHandle<>(
+					Cleanup::new, this::processCleanup, TransactionLevel.None, DispatchMode.Direct));
+			server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
+					KeepAlive::new, GlobalCacheManagerServer::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 
-		serverSocket = server.newServerSocket(ipaddress, port,
-				new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
+			serverSocket = server.newServerSocket(ipaddress, port,
+					new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 
-		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
-		achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing,
-				this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
-		Task.schedule(5000, 5000, this::achillesHeelDaemon);
+			// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
+			achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing,
+					this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
+			Task.schedule(5000, 5000, this::achillesHeelDaemon);
+		} finally {
+			unlock();
+		}
 	}
 
 	private void achillesHeelDaemon() {
@@ -165,7 +172,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		sessions.forEach(session -> {
 			if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
-				synchronized (session) {
+				session.lock();
+				try {
 					session.kick();
 					if (!session.acquired.isEmpty()) {
 						var releaseCount = 0L;
@@ -182,18 +190,25 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						if (releaseCount > 0)
 							logger.info("AchillesHeelDaemon.Release session={} count={}", session, releaseCount);
 					}
+				} finally {
+					session.unlock();
 				}
 			}
 		});
 	}
 
-	public synchronized void stop() throws Exception {
-		if (server == null)
-			return;
-		serverSocket.close();
-		serverSocket = null;
-		server.stop();
-		server = null;
+	public void stop() throws Exception {
+		lock();
+		try {
+			if (server == null)
+				return;
+			serverSocket.close();
+			serverSocket = null;
+			server.stop();
+			server = null;
+		} finally {
+			unlock();
+		}
 	}
 
 	/**
@@ -353,7 +368,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private int release(CacheHolder sender, Binary _gKey, boolean noWait) throws InterruptedException {
 		while (true) {
 			CacheState cs = global.computeIfAbsent(_gKey, CacheState::new);
-			synchronized (cs) { //await 等锁
+			cs.lock();
+			try { //await 等锁
 				if (cs.acquireStatePending == StateRemoved) {
 					// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 					continue;
@@ -373,7 +389,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						// release 不会导致死锁，等待即可。
 						break;
 					}
-					cs.wait(); //await 等通知
+					cs.await(); //await 等通知
 				}
 				if (cs.acquireStatePending == StateRemoved)
 					continue;
@@ -390,9 +406,12 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					global.remove(gKey);
 				} else
 					cs.acquireStatePending = StateInvalid;
-				cs.notifyAll(); //notify
+				cs.signalAll(); //notify
 				return StateInvalid;
-			} //notify
+				//notify
+			} finally {
+				cs.unlock();
+			}
 		}
 	}
 
@@ -400,7 +419,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.globalKey, CacheState::new);
-			synchronized (cs) { //await 等锁
+			cs.lock();
+			try { //await 等锁
 				if (cs.acquireStatePending == StateRemoved)
 					continue;
 
@@ -434,7 +454,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 					if (isDebugEnabled)
 						logger.debug("3 {} {} {}", sender, StateShare, cs);
-					cs.wait(); //await 等通知
+					cs.await(); //await 等通知
 					if (cs.modify != null && !cs.share.isEmpty())
 						throw new IllegalStateException("CacheState state error");
 				}
@@ -463,14 +483,17 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						reduceResultState.value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.state;
-						synchronized (cs) {
-							cs.notifyAll(); //notify
+						cs.lock();
+						try {
+							cs.signalAll(); //notify
+						} finally {
+							cs.unlock();
 						}
 						return 0;
 					})) {
 						if (isDebugEnabled)
 							logger.debug("5 {} {} {}", sender, StateShare, cs);
-						cs.wait();
+						cs.await();
 					}
 					switch (reduceResultState.value) {
 					case StateShare:
@@ -485,7 +508,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 					case StateReduceErrorFreshAcquire:
 						cs.acquireStatePending = StateInvalid;
-						cs.notifyAll(); //notify
+						cs.signalAll(); //notify
 						if (ENABLE_PERF)
 							perf.onOthers("XXX Fresh " + StateShare);
 						// logger.error("XXX Fresh {} {} {}", sender, StateShare, cs);
@@ -499,7 +522,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						// case StateReduceException: // 12
 						// case StateReduceNetError: // 13
 						cs.acquireStatePending = StateInvalid;
-						cs.notifyAll(); //notify
+						cs.signalAll(); //notify
 						if (ENABLE_PERF)
 							perf.onOthers("XXX 8 " + StateShare + " " + reduceResultState.value);
 						// logger.error("XXX 8 {} {} {} {}", sender, StateShare, cs, reduceResultState.Value);
@@ -512,7 +535,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					cs.modify = null;
 					cs.share.add(sender);
 					cs.acquireStatePending = StateInvalid;
-					cs.notifyAll(); //notify
+					cs.signalAll(); //notify
 					if (isDebugEnabled)
 						logger.debug("6 {} {} {}", sender, StateShare, cs);
 					rpc.SendResultCode(0);
@@ -522,12 +545,14 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				sender.acquired.put(gKey, StateShare);
 				cs.share.add(sender);
 				cs.acquireStatePending = StateInvalid;
-				cs.notifyAll(); //notify
+				cs.signalAll(); //notify
 				if (isDebugEnabled)
 					logger.debug("7 {} {} {}", sender, StateShare, cs);
 				rpc.SendResultCode(0);
 				return 0;
-			} //notify
+			} finally {
+				cs.unlock();
+			}
 		}
 	}
 
@@ -570,7 +595,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 					if (isDebugEnabled)
 						logger.debug("3 {} {} {}", sender, StateModify, cs);
-					cs.wait(); //await 等通知
+					cs.await(); //await 等通知
 					if (cs.modify != null && !cs.share.isEmpty())
 						throw new IllegalStateException("CacheState state error");
 				}
@@ -589,7 +614,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						// 更新一下。应该是不需要的。
 						sender.acquired.put(gKey, StateModify);
 						cs.acquireStatePending = StateInvalid;
-						cs.notifyAll(); //notify
+						cs.signalAll(); //notify
 						rpc.SendResultCode(AcquireModifyAlreadyIsModify);
 						return 0;
 					}
@@ -599,14 +624,17 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						reduceResultState.value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.state;
-						synchronized (cs) {
-							cs.notifyAll(); //notify
+						cs.lock();
+						try {
+							cs.signalAll(); //notify
+						} finally {
+							cs.unlock();
 						}
 						return 0;
 					})) {
 						if (isDebugEnabled)
 							logger.debug("5 {} {} {}", sender, StateModify, cs);
-						cs.wait(); //await 等通知
+						cs.await(); //await 等通知
 					}
 
 					switch (reduceResultState.value) {
@@ -616,7 +644,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 					case StateReduceErrorFreshAcquire:
 						cs.acquireStatePending = StateInvalid;
-						cs.notifyAll(); //notify
+						cs.signalAll(); //notify
 						if (ENABLE_PERF)
 							perf.onOthers("XXX Fresh " + StateModify);
 						// logger.error("XXX Fresh {} {} {}", sender, StateModify, cs);
@@ -629,7 +657,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						// case StateReduceException: // 12
 						// case StateReduceNetError: // 13
 						cs.acquireStatePending = StateInvalid;
-						cs.notifyAll(); //notify
+						cs.signalAll(); //notify
 						if (ENABLE_PERF)
 							perf.onOthers("XXX 9 " + StateModify + " " + reduceResultState.value);
 						// logger.error("XXX 9 {} {} {} {}", sender, StateModify, cs, reduceResultState.Value);
@@ -642,7 +670,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					cs.modify = sender;
 					cs.share.remove(sender);
 					cs.acquireStatePending = StateInvalid;
-					cs.notifyAll(); //notify
+					cs.signalAll(); //notify
 					if (isDebugEnabled)
 						logger.debug("6 {} {} {}", sender, StateModify, cs);
 					rpc.SendResultCode(0);
@@ -709,14 +737,17 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 							}
 						}
 						errorFreshAcquire.value = freshAcquire;
-						synchronized (cs) {
+						cs.lock();
+						try {
 							// 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
-							cs.notifyAll(); //notify
+							cs.signalAll(); //notify
+						} finally {
+							cs.unlock();
 						}
 					}, "GlobalCacheManager.AcquireModify.WaitReduce", DispatchMode.Normal);
 					if (isDebugEnabled)
 						logger.debug("7 {} {} {}", sender, StateModify, cs);
-					cs.wait(); //await 等通知
+					cs.await(); //await 等通知
 				}
 
 				// 移除成功的。
@@ -735,7 +766,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					sender.acquired.put(gKey, StateModify);
 					cs.modify = sender;
 					cs.acquireStatePending = StateInvalid;
-					cs.notifyAll(); //notify
+					cs.signalAll(); //notify
 					if (isDebugEnabled)
 						logger.debug("8 {} {} {}", sender, StateModify, cs);
 					rpc.SendResultCode(0);
@@ -745,7 +776,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					if (senderIsShare)
 						cs.share.add(sender);
 					cs.acquireStatePending = StateInvalid;
-					cs.notifyAll(); //notify
+					cs.signalAll(); //notify
 					if (ENABLE_PERF)
 						perf.onOthers("XXX 10 " + StateModify + ' ' + errorFreshAcquire.value);
 					// logger.error("XXX 10 {} {} {}", sender, StateModify, cs);
@@ -762,14 +793,24 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		}
 	}
 
-	private static final class CacheState {
+	private static final class CacheState extends FastLock {
 		final Binary globalKey; // 这里的引用同global map的key,用于给CacheHolder里的map相同的key引用
 		final IdentityHashSet<CacheHolder> share = new IdentityHashSet<>();
 		CacheHolder modify;
 		int acquireStatePending = StateInvalid;
+		private final Condition thisCond;
 
 		public CacheState(Binary gKey) {
 			globalKey = gKey;
+			thisCond = newCondition();
+		}
+
+		public void await() throws InterruptedException {
+			thisCond.await();
+		}
+
+		public void signalAll() {
+			thisCond.signalAll();
 		}
 
 		int getSenderCacheState(CacheHolder sender) {
@@ -788,7 +829,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		}
 	}
 
-	private static final class CacheHolder {
+	private static final class CacheHolder extends FastLock {
 		final ConcurrentHashMap<Binary, Integer> acquired = new ConcurrentHashMap<>();
 		long sessionId;
 		int globalCacheManagerHashIndex;
@@ -819,45 +860,55 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			this.debugMode = debugMode;
 		}
 
-		synchronized boolean tryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex, boolean login) {
-			if (login) {
-				// login 相当于重置，允许再次Login。
-				logined = true;
-			} else {
-				// relogin 必须login之后才允许ReLogin。这个用来检测Global宕机并重启。
-				if (!logined)
-					return false;
-			}
-			if (newSocket.getUserState() != null) {
-				logger.warn("TryBindSocket: already bound! newSocket.getUserState() != null, SessionId={}", newSocket.getSessionId());
-				return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
-			}
+		boolean tryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex, boolean login) {
+			lock();
+			try {
+				if (login) {
+					// login 相当于重置，允许再次Login。
+					logined = true;
+				} else {
+					// relogin 必须login之后才允许ReLogin。这个用来检测Global宕机并重启。
+					if (!logined)
+						return false;
+				}
+				if (newSocket.getUserState() != null) {
+					logger.warn("TryBindSocket: already bound! newSocket.getUserState() != null, SessionId={}", newSocket.getSessionId());
+					return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
+				}
 
-			var socket = instance.server.GetSocket(sessionId);
-			if (socket == null) {
-				// old socket not exist or has lost.
-				sessionId = newSocket.getSessionId();
-				newSocket.setUserState(this);
-				globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-				return true;
+				var socket = instance.server.GetSocket(sessionId);
+				if (socket == null) {
+					// old socket not exist or has lost.
+					sessionId = newSocket.getSessionId();
+					newSocket.setUserState(this);
+					globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+					return true;
+				}
+				// 每个AutoKeyLocalId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
+				logger.warn("TryBindSocket: already bound! GetSocket(SessionId={}) != null", newSocket.getSessionId());
+				return false;
+			} finally {
+				unlock();
 			}
-			// 每个AutoKeyLocalId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
-			logger.warn("TryBindSocket: already bound! GetSocket(SessionId={}) != null", newSocket.getSessionId());
-			return false;
 		}
 
-		synchronized boolean tryUnBindSocket(AsyncSocket oldSocket) {
-			// 这里检查比较严格，但是这些检查应该都不会出现。
+		boolean tryUnBindSocket(AsyncSocket oldSocket) {
+			lock();
+			try {
+				// 这里检查比较严格，但是这些检查应该都不会出现。
 
-			if (oldSocket.getUserState() != this)
-				return false; // not bind to this
+				if (oldSocket.getUserState() != this)
+					return false; // not bind to this
 
-			var current = instance.server.GetSocket(sessionId);
-			if (current != null && current != oldSocket)
-				return false; // not same socket
+				var current = instance.server.GetSocket(sessionId);
+				if (current != null && current != oldSocket)
+					return false; // not same socket
 
-			sessionId = 0;
-			return true;
+				sessionId = 0;
+				return true;
+			} finally {
+				unlock();
+			}
 		}
 
 		@Override

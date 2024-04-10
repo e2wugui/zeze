@@ -36,37 +36,48 @@ public class RedoQueue extends HandshakeClient {
 	}
 
 	@Override
-	public synchronized void start() throws Exception {
-		if (db != null)
-			return;
-		db = new RocksDatabase(getName());
-		tableLastDoneTaskId = db.getOrAddTable("FamilyLastDoneTaskId");
-		tableTaskQueue = db.getOrAddTable("FamilyTaskQueue");
-		try (var qit = tableTaskQueue.iterator()) {
-			qit.seekToLast();
-			if (qit.isValid()) {
-				var last = ByteBuffer.Wrap(qit.key());
-				lastTaskId = last.ReadLong();
+	public void start() throws Exception {
+		lock();
+		try {
+			if (db != null)
+				return;
+			db = new RocksDatabase(getName());
+			tableLastDoneTaskId = db.getOrAddTable("FamilyLastDoneTaskId");
+			tableTaskQueue = db.getOrAddTable("FamilyTaskQueue");
+			try (var qit = tableTaskQueue.iterator()) {
+				qit.seekToLast();
+				if (qit.isValid()) {
+					var last = ByteBuffer.Wrap(qit.key());
+					lastTaskId = last.ReadLong();
+				}
 			}
+			var done = tableLastDoneTaskId.get(lastDoneTaskIdKey);
+			if (done != null)
+				lastDoneTaskId = ByteBuffer.Wrap(done).ReadLong();
+			super.start();
+		} finally {
+			unlock();
 		}
-		var done = tableLastDoneTaskId.get(lastDoneTaskIdKey);
-		if (done != null)
-			lastDoneTaskId = ByteBuffer.Wrap(done).ReadLong();
-		super.start();
 	}
 
 	@Override
-	public synchronized void stop() throws Exception {
-		super.stop();
-		if (db != null) {
-			db.close();
-			db = null;
-			tableLastDoneTaskId = null;
-			tableTaskQueue = null;
+	public void stop() throws Exception {
+		lock();
+		try {
+			super.stop();
+			if (db != null) {
+				db.close();
+				db = null;
+				tableLastDoneTaskId = null;
+				tableTaskQueue = null;
+			}
+		} finally {
+			unlock();
 		}
 	}
 
-	public synchronized void add(int taskType, Serializable taskParam) {
+	public void add(int taskType, Serializable taskParam) {
+		lock();
 		try {
 			var key = ByteBuffer.Allocate(9);
 			key.WriteLong(++lastTaskId);
@@ -84,6 +95,8 @@ public class RedoQueue extends HandshakeClient {
 			tryStartSendNextTask(task, null);
 		} catch (RocksDBException e) {
 			Task.forceThrow(e);
+		} finally {
+			unlock();
 		}
 	}
 
@@ -118,37 +131,48 @@ public class RedoQueue extends HandshakeClient {
 		}
 	}
 
-	private synchronized long processRunTaskResult(Rpc<BQueueTask, BTaskId> rpc) throws Exception {
-		if (pending != rpc)
-			return Procedure.LogicError;
+	private long processRunTaskResult(Rpc<BQueueTask, BTaskId> rpc) throws Exception {
+		lock();
+		try {
+			if (pending != rpc)
+				return Procedure.LogicError;
 
-		pending = null;
-		if (rpc.getResultCode() == 0L || rpc.getResultCode() == Procedure.ErrorRequestId) {
-			lastDoneTaskId = rpc.Result.getTaskId();
-			var value = ByteBuffer.Allocate(9);
-			value.WriteLong(lastDoneTaskId);
-			tableLastDoneTaskId.put(lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
-			tryStartSendNextTask(null, rpc.getSender());
-			return 0L;
+			pending = null;
+			if (rpc.getResultCode() == 0L || rpc.getResultCode() == Procedure.ErrorRequestId) {
+				lastDoneTaskId = rpc.Result.getTaskId();
+				var value = ByteBuffer.Allocate(9);
+				value.WriteLong(lastDoneTaskId);
+				tableLastDoneTaskId.put(lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
+				tryStartSendNextTask(null, rpc.getSender());
+				return 0L;
+			}
+
+			return rpc.getResultCode();
+		} finally {
+			unlock();
 		}
-
-		return rpc.getResultCode();
 	}
 
 	@Override
 	public void OnHandshakeDone(AsyncSocket so) throws Exception {
 		super.OnHandshakeDone(so);
-		synchronized (this) {
+		lock();
+		try {
 			tryStartSendNextTask(null, so);
+		} finally {
+			unlock();
 		}
 	}
 
 	@Override
 	public void OnSocketClose(AsyncSocket so, Throwable ex) throws Exception {
 		super.OnSocketClose(so, ex);
-		synchronized (this) {
+		lock();
+		try {
 			if (socket == so)
 				socket = null;
+		} finally {
+			unlock();
 		}
 	}
 }

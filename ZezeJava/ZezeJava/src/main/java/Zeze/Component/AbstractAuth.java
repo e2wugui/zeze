@@ -10,6 +10,11 @@ public abstract class AbstractAuth implements Zeze.IModule {
     @Override public String getName() { return ModuleName; }
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
+    private final Zeze.Util.FastLock __thisLock = new Zeze.Util.FastLock();
+    @Override public void lock() { __thisLock.lock(); }
+    @Override public void unlock() { __thisLock.unlock(); }
+    @Override public java.util.concurrent.locks.Lock getLock() { return __thisLock; }
+
 
     protected final Zeze.Builtin.Auth.tAccountAuth _tAccountAuth = new Zeze.Builtin.Auth.tAccountAuth();
     protected final Zeze.Builtin.Auth.tRoleAuth _tRoleAuth = new Zeze.Builtin.Auth.tRoleAuth();

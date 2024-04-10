@@ -31,10 +31,12 @@ public class Master extends AbstractMaster {
 	private final String home;
 	private final ReentrantLock thisLock = new ReentrantLock();
 
+	@Override
 	public void lock() {
 		thisLock.lock();
 	}
 
+	@Override
 	public void unlock() {
 		thisLock.unlock();
 	}

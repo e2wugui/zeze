@@ -102,10 +102,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
 	private final FastLock thisLock = new FastLock();
 
+	@Override
 	public void lock() {
 		thisLock.lock();
 	}
 
+	@Override
 	public void unlock() {
 		thisLock.unlock();
 	}

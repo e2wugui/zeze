@@ -32,6 +32,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.Action1;
 import Zeze.Util.AsyncLock;
+import Zeze.Util.FastLock;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
@@ -46,7 +47,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerConst {
+public final class GlobalCacheManagerAsyncServer extends FastLock implements GlobalCacheManagerConst {
 	static {
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
@@ -92,47 +93,52 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		start(ipaddress, port, null);
 	}
 
-	public synchronized void start(@Nullable InetAddress ipaddress, int port, @Nullable Config config) {
-		if (server != null)
-			return;
+	public void start(@Nullable InetAddress ipaddress, int port, @Nullable Config config) {
+		lock();
+		try {
+			if (server != null)
+				return;
 
-		if (ENABLE_PERF)
-			perf = new GlobalCacheManagerPerf("", serialIdGenerator);
-		PerfCounter.instance.tryStartScheduledLog();
+			if (ENABLE_PERF)
+				perf = new GlobalCacheManagerPerf("", serialIdGenerator);
+			PerfCounter.instance.tryStartScheduledLog();
 
-		if (config == null)
-			config = Config.load();
-		config.parseCustomize(gcmConfig);
+			if (config == null)
+				config = Config.load();
+			config.parseCustomize(gcmConfig);
 
-		sessions = new LongConcurrentHashMap<>(4096);
-		global = new ConcurrentHashMap<>(gcmConfig.initialCapacity);
+			sessions = new LongConcurrentHashMap<>(4096);
+			global = new ConcurrentHashMap<>(gcmConfig.initialCapacity);
 
-		server = new ServerService(config);
+			server = new ServerService(config);
 
-		server.AddFactoryHandle(Acquire.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Acquire::new, this::processAcquireRequest, TransactionLevel.None, DispatchMode.Direct));
-		server.AddFactoryHandle(Reduce.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Reduce::new, null, TransactionLevel.None, DispatchMode.Direct));
-		server.AddFactoryHandle(Login.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Login::new, this::processLogin, TransactionLevel.None, DispatchMode.Direct));
-		server.AddFactoryHandle(ReLogin.TypeId_, new Service.ProtocolFactoryHandle<>(
-				ReLogin::new, this::processReLogin, TransactionLevel.None, DispatchMode.Direct));
-		server.AddFactoryHandle(NormalClose.TypeId_, new Service.ProtocolFactoryHandle<>(
-				NormalClose::new, this::processNormalClose, TransactionLevel.None, DispatchMode.Direct));
-		// 临时注册到这里，安全起见应该起一个新的Service，并且仅绑定到 localhost。
-		server.AddFactoryHandle(Cleanup.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Cleanup::new, this::processCleanup, TransactionLevel.None, DispatchMode.Direct));
-		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
-				KeepAlive::new, GlobalCacheManagerAsyncServer::processKeepAliveRequest,
-				TransactionLevel.None, DispatchMode.Direct));
+			server.AddFactoryHandle(Acquire.TypeId_, new Service.ProtocolFactoryHandle<>(
+					Acquire::new, this::processAcquireRequest, TransactionLevel.None, DispatchMode.Direct));
+			server.AddFactoryHandle(Reduce.TypeId_, new Service.ProtocolFactoryHandle<>(
+					Reduce::new, null, TransactionLevel.None, DispatchMode.Direct));
+			server.AddFactoryHandle(Login.TypeId_, new Service.ProtocolFactoryHandle<>(
+					Login::new, this::processLogin, TransactionLevel.None, DispatchMode.Direct));
+			server.AddFactoryHandle(ReLogin.TypeId_, new Service.ProtocolFactoryHandle<>(
+					ReLogin::new, this::processReLogin, TransactionLevel.None, DispatchMode.Direct));
+			server.AddFactoryHandle(NormalClose.TypeId_, new Service.ProtocolFactoryHandle<>(
+					NormalClose::new, this::processNormalClose, TransactionLevel.None, DispatchMode.Direct));
+			// 临时注册到这里，安全起见应该起一个新的Service，并且仅绑定到 localhost。
+			server.AddFactoryHandle(Cleanup.TypeId_, new Service.ProtocolFactoryHandle<>(
+					Cleanup::new, this::processCleanup, TransactionLevel.None, DispatchMode.Direct));
+			server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
+					KeepAlive::new, GlobalCacheManagerAsyncServer::processKeepAliveRequest,
+					TransactionLevel.None, DispatchMode.Direct));
 
-		serverSocket = server.newServerSocket(ipaddress, port,
-				new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
+			serverSocket = server.newServerSocket(ipaddress, port,
+					new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 
-		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
-		achillesHeelConfig = new AchillesHeelConfig(gcmConfig.maxNetPing, gcmConfig.serverProcessTime,
-				gcmConfig.serverReleaseTimeout);
-		Task.schedule(5000, 5000, this::achillesHeelDaemon);
+			// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
+			achillesHeelConfig = new AchillesHeelConfig(gcmConfig.maxNetPing, gcmConfig.serverProcessTime,
+					gcmConfig.serverReleaseTimeout);
+			Task.schedule(5000, 5000, this::achillesHeelDaemon);
+		} finally {
+			unlock();
+		}
 	}
 
 	private void achillesHeelDaemon() {
@@ -141,7 +147,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		sessions.forEach(session -> {
 			if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
-				synchronized (session) {
+				session.lock();
+				try {
 					session.kick();
 					if (!session.acquired.isEmpty()) {
 						var releaseCount = 0L;
@@ -156,18 +163,25 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 							logger.info("AchillesHeelDaemon.Release session={} count={}", session, releaseCount);
 						// skip allReleaseFuture result
 					}
+				} finally {
+					session.unlock();
 				}
 			}
 		});
 	}
 
-	public synchronized void stop() throws Exception {
-		if (server == null)
-			return;
-		serverSocket.close();
-		serverSocket = null;
-		server.stop();
-		server = null;
+	public void stop() throws Exception {
+		lock();
+		try {
+			if (server == null)
+				return;
+			serverSocket.close();
+			serverSocket = null;
+			server.stop();
+			server = null;
+		} finally {
+			unlock();
+		}
 	}
 
 	/**
@@ -935,7 +949,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		}
 	}
 
-	private static final class CacheHolder {
+	private static final class CacheHolder extends FastLock {
 		final ConcurrentHashMap<Binary, Integer> acquired = new ConcurrentHashMap<>();
 		long sessionId;
 		int globalCacheManagerHashIndex;
@@ -966,47 +980,57 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			sessionId = 0; // 清除网络状态。
 		}
 
-		synchronized boolean tryBindSocket(@NotNull AsyncSocket newSocket, int _GlobalCacheManagerHashIndex,
+		boolean tryBindSocket(@NotNull AsyncSocket newSocket, int _GlobalCacheManagerHashIndex,
 										   boolean login) {
-			if (login) {
-				// login 相当于重置，允许再次Login。
-				logined = true;
-			} else {
-				// relogin 必须login之后才允许ReLogin。这个用来检测Global宕机并重启。
-				if (!logined)
-					return false;
-			}
-			if (newSocket.getUserState() != null) {
-				logger.warn("TryBindSocket: already bound! newSocket.getUserState() != null, SessionId={}",
-						newSocket.getSessionId());
-				return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
-			}
+			lock();
+			try {
+				if (login) {
+					// login 相当于重置，允许再次Login。
+					logined = true;
+				} else {
+					// relogin 必须login之后才允许ReLogin。这个用来检测Global宕机并重启。
+					if (!logined)
+						return false;
+				}
+				if (newSocket.getUserState() != null) {
+					logger.warn("TryBindSocket: already bound! newSocket.getUserState() != null, SessionId={}",
+							newSocket.getSessionId());
+					return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
+				}
 
-			var socket = instance.server.GetSocket(sessionId);
-			if (socket == null) {
-				// old socket not exist or has lost.
-				sessionId = newSocket.getSessionId();
-				newSocket.setUserState(this);
-				globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-				return true;
+				var socket = instance.server.GetSocket(sessionId);
+				if (socket == null) {
+					// old socket not exist or has lost.
+					sessionId = newSocket.getSessionId();
+					newSocket.setUserState(this);
+					globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+					return true;
+				}
+				// 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
+				logger.warn("TryBindSocket: already bound! GetSocket(SessionId={}) != null", newSocket.getSessionId());
+				return false;
+			} finally {
+				unlock();
 			}
-			// 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
-			logger.warn("TryBindSocket: already bound! GetSocket(SessionId={}) != null", newSocket.getSessionId());
-			return false;
 		}
 
-		synchronized boolean tryUnBindSocket(@NotNull AsyncSocket oldSocket) {
-			// 这里检查比较严格，但是这些检查应该都不会出现。
+		boolean tryUnBindSocket(@NotNull AsyncSocket oldSocket) {
+			lock();
+			try {
+				// 这里检查比较严格，但是这些检查应该都不会出现。
 
-			if (oldSocket.getUserState() != this)
-				return false; // not bind to this
+				if (oldSocket.getUserState() != this)
+					return false; // not bind to this
 
-			var current = instance.server.GetSocket(sessionId);
-			if (current != null && current != oldSocket)
-				return false; // not same socket
+				var current = instance.server.GetSocket(sessionId);
+				if (current != null && current != oldSocket)
+					return false; // not same socket
 
-			sessionId = 0;
-			return true;
+				sessionId = 0;
+				return true;
+			} finally {
+				unlock();
+			}
 		}
 
 		@Override

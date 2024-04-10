@@ -589,6 +589,12 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    public static final String ModuleName = \"{moduleName}\";");
             sw.WriteLine($"    public static final String ModuleFullName = \"{module.Path()}\";");
             sw.WriteLine();
+            sw.WriteLine($"    private final Zeze.Util.FastLock __thisLock = new Zeze.Util.FastLock();");
+
+            sw.WriteLine($"    @Override public void lock() {{ __thisLock.lock(); }}");
+            sw.WriteLine($"    @Override public void unlock() {{ __thisLock.unlock(); }}");
+            sw.WriteLine($"    @Override public java.util.concurrent.locks.Lock getLock() {{ return __thisLock; }}");
+            sw.WriteLine();
             sw.WriteLine($"    @Override public int getId() {{ return ModuleId; }}");
             sw.WriteLine($"    @Override public String getName() {{ return ModuleName; }}");
             sw.WriteLine($"    @Override public String getFullName() {{ return ModuleFullName; }}");

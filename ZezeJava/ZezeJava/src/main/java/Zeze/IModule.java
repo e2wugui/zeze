@@ -1,5 +1,6 @@
 package Zeze;
 
+import java.util.concurrent.locks.Lock;
 import Zeze.Net.Protocol;
 
 public interface IModule {
@@ -8,6 +9,18 @@ public interface IModule {
 	String getName();
 
 	int getId();
+
+	default void lock() {
+		throw new UnsupportedOperationException();
+	}
+
+	default void unlock() {
+		throw new UnsupportedOperationException();
+	}
+
+	default Lock getLock() {
+		throw new UnsupportedOperationException();
+	}
 
 	default String getWebPathBase() {
 		return "";

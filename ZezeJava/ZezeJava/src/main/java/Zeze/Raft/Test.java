@@ -23,6 +23,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
+import Zeze.Util.FastLock;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
@@ -729,7 +730,7 @@ public class Test {
 		}
 	}
 
-	public static class TestRaft {
+	public static class TestRaft extends FastLock {
 		private Raft raft;
 		private TestStateMachine stateMachine;
 		private final String raftConfigFileName;
@@ -785,13 +786,18 @@ public class Test {
 			}
 		}
 
-		public synchronized void stopRaft() throws Exception {
-			logger.debug("Raft {} Stop ...", raftName);
-			// 在同一个进程中，没法模拟进程退出，
-			// 此时RocksDb应该需要关闭，否则重启会失败吧。
-			if (raft != null) {
-				raft.shutdown();
-				raft = null;
+		public void stopRaft() throws Exception {
+			lock();
+			try {
+				logger.debug("Raft {} Stop ...", raftName);
+				// 在同一个进程中，没法模拟进程退出，
+				// 此时RocksDb应该需要关闭，否则重启会失败吧。
+				if (raft != null) {
+					raft.shutdown();
+					raft = null;
+				}
+			} finally {
+				unlock();
 			}
 		}
 
@@ -799,35 +805,40 @@ public class Test {
 			startRaft(false);
 		}
 
-		public synchronized void startRaft(boolean resetLog) throws Exception {
-			if (raft != null) {
+		public void startRaft(boolean resetLog) throws Exception {
+			lock();
+			try {
+				if (raft != null) {
+					raft.getServer().start();
+					return;
+				}
+				logger.debug("Raft {} Start ...", raftName);
+				stateMachine = new TestStateMachine();
+
+				var raftConfig = RaftConfig.load(raftConfigFileName);
+				raftConfig.setUniqueRequestExpiredDays(1);
+				raftConfig.setDbHome(Paths.get(raftName.replace(':', '_')).toString());
+				if (resetLog) {
+					logger.warn("------------------------------------------------");
+					logger.warn("- Reset Log {} -", raftConfig.getDbHome());
+					logger.warn("------------------------------------------------");
+					// 只删除日志相关数据库。保留重复请求数据库。
+					LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "logs"));
+					LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "rafts"));
+					LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "snapshot.dat"));
+				}
+				Files.createDirectories(Paths.get(raftConfig.getDbHome()));
+
+				raft = new Raft(stateMachine, raftName, raftConfig);
+				raft.getLogSequence().setWriteOptions(RocksDatabase.getDefaultWriteOptions());
+				raft.getServer().AddFactoryHandle(AddCount.TypeId_,
+						new Service.ProtocolFactoryHandle<>(AddCount::new, this::processAddCount));
+				raft.getServer().AddFactoryHandle(GetCount.TypeId_,
+						new Service.ProtocolFactoryHandle<>(GetCount::new, this::processGetCount));
 				raft.getServer().start();
-				return;
+			} finally {
+				unlock();
 			}
-			logger.debug("Raft {} Start ...", raftName);
-			stateMachine = new TestStateMachine();
-
-			var raftConfig = RaftConfig.load(raftConfigFileName);
-			raftConfig.setUniqueRequestExpiredDays(1);
-			raftConfig.setDbHome(Paths.get(raftName.replace(':', '_')).toString());
-			if (resetLog) {
-				logger.warn("------------------------------------------------");
-				logger.warn("- Reset Log {} -", raftConfig.getDbHome());
-				logger.warn("------------------------------------------------");
-				// 只删除日志相关数据库。保留重复请求数据库。
-				LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "logs"));
-				LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "rafts"));
-				LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "snapshot.dat"));
-			}
-			Files.createDirectories(Paths.get(raftConfig.getDbHome()));
-
-			raft = new Raft(stateMachine, raftName, raftConfig);
-			raft.getLogSequence().setWriteOptions(RocksDatabase.getDefaultWriteOptions());
-			raft.getServer().AddFactoryHandle(AddCount.TypeId_,
-					new Service.ProtocolFactoryHandle<>(AddCount::new, this::processAddCount));
-			raft.getServer().AddFactoryHandle(GetCount.TypeId_,
-					new Service.ProtocolFactoryHandle<>(GetCount::new, this::processGetCount));
-			raft.getServer().start();
 		}
 
 		private long processAddCount(AddCount r) {
@@ -835,9 +846,12 @@ public class Test {
 				return Procedure.RaftRetry; // fast fail
 
 			TestStateMachine sm = stateMachine;
-			synchronized (sm) {
+			sm.lock();
+			try {
 				sm.addCountAndWait(r);
 				r.SendResultCode(0);
+			} finally {
+				sm.unlock();
 			}
 			return Procedure.Success;
 		}
@@ -845,9 +859,12 @@ public class Test {
 		@SuppressWarnings("SameReturnValue")
 		private long processGetCount(GetCount r) {
 			//noinspection SynchronizeOnNonFinalField
-			synchronized (stateMachine) {
+			stateMachine.lock();
+			try {
 				r.Result.count = stateMachine.count;
 				r.SendResult();
+			} finally {
+				stateMachine.unlock();
 			}
 			return Procedure.Success;
 		}

@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,7 +59,7 @@ public class ThreadHelper extends Thread {
 		thisLock.lock();
 		try {
 			idle = false;
-			thisCond.notify();
+			thisCond.signal();
 		} finally {
 			thisLock.unlock();
 		}
@@ -74,8 +75,10 @@ public class ThreadHelper extends Thread {
 	public final void sleepIdle(long ms) {
 		thisLock.lock();
 		try {
-			if (idle)
-				thisCond.wait(ms);
+			if (idle) {
+				if (!thisCond.await(ms, TimeUnit.MILLISECONDS))
+					logger.debug("await timeout");
+			}
 		} catch (InterruptedException ex) {
 			logger.warn("{} sleepOut. ex:", getClass().getName(), ex);
 		} finally {

@@ -214,32 +214,42 @@ public class ThreadingServer extends AbstractThreadingServer {
         }
     }
 
-    private synchronized boolean simulateThreadExit(BGlobalThreadId id) {
-        return null == simulateThreads.computeIfPresent(id, (key, This) -> {
-            if (This.actions.isEmpty()) {
-                logger.info("simulate exit thread=({}, {})", id.getServerId(), id.getThreadId());
-                var x = simulateThreadsByServerId.get(This.id.getServerId());
-                if (null != x)
-                    x.threads.remove(This);
-                return null;
-            }
-            return This;
-        });
+    private boolean simulateThreadExit(BGlobalThreadId id) {
+        lock();
+        try {
+            return null == simulateThreads.computeIfPresent(id, (key, This) -> {
+                if (This.actions.isEmpty()) {
+                    logger.info("simulate exit thread=({}, {})", id.getServerId(), id.getThreadId());
+                    var x = simulateThreadsByServerId.get(This.id.getServerId());
+                    if (null != x)
+                        x.threads.remove(This);
+                    return null;
+                }
+                return This;
+            });
+        } finally {
+            unlock();
+        }
     }
 
-    private synchronized void simulateThreadOffer(BGlobalThreadId id, Action1<SimulateThread> action) {
-        var st = simulateThreads.computeIfAbsent(
-                id,
-                (key) -> {
-                    var simulate = new SimulateThread(key);
-                    simulateThreadsByServerId.computeIfAbsent(id.getServerId(), SimulateThreads::new)
-                            .threads.add(simulate);
-                    simulate.start();
-                    logger.info("simulate new thread=({}, {})",
-                            key.getServerId(), key.getThreadId());
-                    return simulate;
-                });
-        st.actions.offer(action);
+    private void simulateThreadOffer(BGlobalThreadId id, Action1<SimulateThread> action) {
+        lock();
+        try {
+            var st = simulateThreads.computeIfAbsent(
+                    id,
+                    (key) -> {
+                        var simulate = new SimulateThread(key);
+                        simulateThreadsByServerId.computeIfAbsent(id.getServerId(), SimulateThreads::new)
+                                .threads.add(simulate);
+                        simulate.start();
+                        logger.info("simulate new thread=({}, {})",
+                                key.getServerId(), key.getThreadId());
+                        return simulate;
+                    });
+            st.actions.offer(action);
+        } finally {
+            unlock();
+        }
     }
 
     @Override

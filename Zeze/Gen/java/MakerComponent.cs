@@ -109,6 +109,13 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"    @Override public String getFullName() {{ return ModuleFullName; }}");
                     sw.WriteLine($"    @Override public boolean isBuiltin() {{ return true; }}");
 
+                    sw.WriteLine($"    private final Zeze.Util.FastLock __thisLock = new Zeze.Util.FastLock();");
+
+                    sw.WriteLine($"    @Override public void lock() {{ __thisLock.lock(); }}");
+                    sw.WriteLine($"    @Override public void unlock() {{ __thisLock.unlock(); }}");
+                    sw.WriteLine($"    @Override public java.util.concurrent.locks.Lock getLock() {{ return __thisLock; }}");
+                    sw.WriteLine();
+
                     foreach (var mf in mfs) mf.GenEnums(sw);
                     foreach (var mf in mfs) mf.DefineZezeTables(sw);
 

@@ -10,6 +10,11 @@ public abstract class AbstractTimer implements Zeze.IModule {
     @Override public String getName() { return ModuleName; }
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
+    private final Zeze.Util.FastLock __thisLock = new Zeze.Util.FastLock();
+    @Override public void lock() { __thisLock.lock(); }
+    @Override public void unlock() { __thisLock.unlock(); }
+    @Override public java.util.concurrent.locks.Lock getLock() { return __thisLock; }
+
 
     public static final int eMissfirePolicyNothing = 0; // quartz 兼容
     public static final int eMissfirePolicyRunOnce = 1; // quartz 兼容

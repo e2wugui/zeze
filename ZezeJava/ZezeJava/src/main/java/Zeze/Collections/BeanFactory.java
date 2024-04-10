@@ -15,6 +15,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.FastLock;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
@@ -26,12 +27,15 @@ import org.jetbrains.annotations.Nullable;
 public final class BeanFactory {
 	private static final Logger logger = LogManager.getLogger(BeanFactory.class);
 	private static final LongHashMap<Object> allClassNameMap = new LongHashMap<>();
+	private static final FastLock allClassNameMapLock = new FastLock();
 	private static final LongHashMap<Object> allDataClassNameMap = new LongHashMap<>();
 	private static Application zeze;
 
 	private final LongHashMap<MethodHandle> writingBeanFactory = new LongHashMap<>();
+	private final FastLock writingBeanFactoryLock = new FastLock();
 	private volatile @Nullable LongHashMap<MethodHandle> readingBeanFactory;
 	private final LongHashMap<MethodHandle> writingDataFactory = new LongHashMap<>();
+	private final FastLock writingDataFactoryLock = new FastLock();
 	private volatile @Nullable LongHashMap<MethodHandle> readingDataFactory;
 	private final ConcurrentHashSet<Consumer<Class<?>>> globalToLocalWatchers = new ConcurrentHashSet<>();
 
@@ -77,7 +81,8 @@ public final class BeanFactory {
 		for (var e : beanFactories.entrySet()) {
 			var bf = e.getKey();
 			var classes = e.getValue();
-			synchronized (bf.writingBeanFactory) {
+			bf.writingBeanFactoryLock.lock();
+			try {
 				bf.writingBeanFactory.foreachUpdate((typeId, beanCtor) -> {
 					try {
 						var beanNewClass = hotRedirect.loadClass(((Bean)beanCtor.invoke()).getClass().getName());
@@ -89,8 +94,11 @@ public final class BeanFactory {
 					}
 				});
 				bf.readingBeanFactory = null;
+			} finally {
+				bf.writingBeanFactoryLock.unlock();
 			}
-			synchronized (bf.writingDataFactory) {
+			bf.writingDataFactoryLock.lock();
+			try {
 				bf.writingDataFactory.foreachUpdate((typeId, dataCtor) -> {
 					try {
 						var beanNewClass = hotRedirect.loadClass(((Data)dataCtor.invoke()).getClass().getName());
@@ -102,6 +110,8 @@ public final class BeanFactory {
 					}
 				});
 				bf.readingDataFactory = null;
+			} finally {
+				bf.writingDataFactoryLock.unlock();
 			}
 		}
 	}
@@ -115,11 +125,14 @@ public final class BeanFactory {
 	public static int loadAllClasses(@NotNull String classPrefix, boolean initClasses) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
-		synchronized (allClassNameMap) {
+		allClassNameMapLock.lock();
+		try {
 			for (var cn : Reflect.collectAllClassNames(null)) {
 				if (cn.startsWith(classPrefix) && (initClasses ? loadClass(cn) : loadClassName(cn)))
 					n++;
 			}
+		} finally {
+			allClassNameMapLock.unlock();
 		}
 		logger.info("loaded {} {} for prefix '{}' ({} ms)",
 				n, initClasses ? "classes" : "class names", classPrefix, (System.nanoTime() - timeBegin) / 1_000_000);
@@ -129,11 +142,14 @@ public final class BeanFactory {
 	public static int loadClassesFromPath(@NotNull String path, boolean initClasses) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
-		synchronized (allClassNameMap) {
+		allClassNameMapLock.lock();
+		try {
 			for (var cn : Reflect.collectClassNamesFromPath(path)) {
 				if (initClasses ? loadClass(cn) : loadClassName(cn))
 					n++;
 			}
+		} finally {
+			allClassNameMapLock.unlock();
 		}
 		logger.info("loaded {} {} from path '{}' ({} ms)",
 				n, initClasses ? "classes" : "class names", path, (System.nanoTime() - timeBegin) / 1_000_000);
@@ -143,11 +159,14 @@ public final class BeanFactory {
 	public static int loadClassesFromJar(@NotNull String jarFile, boolean initClasses) throws IOException {
 		var timeBegin = System.nanoTime();
 		int n = 0;
-		synchronized (allClassNameMap) {
+		allClassNameMapLock.lock();
+		try {
 			for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
 				if (initClasses ? loadClass(cn) : loadClassName(cn))
 					n++;
 			}
+		} finally {
+			allClassNameMapLock.unlock();
 		}
 		logger.info("loaded {} {} from jar '{}' ({} ms)",
 				n, initClasses ? "classes" : "class names", jarFile, (System.nanoTime() - timeBegin) / 1_000_000);
@@ -157,11 +176,14 @@ public final class BeanFactory {
 	public static int reloadClassesFromJar(@NotNull JarFile jarFile) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
-		synchronized (allClassNameMap) {
+		allClassNameMapLock.lock();
+		try {
 			for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
 				reloadClassName(cn);
 				n++;
 			}
+		} finally {
+			allClassNameMapLock.unlock();
 		}
 		logger.info("reloaded {} class names from jar '{}' ({} ms)",
 				n, jarFile, (System.nanoTime() - timeBegin) / 1_000_000);
@@ -236,7 +258,8 @@ public final class BeanFactory {
 	 */
 	@SuppressWarnings("unchecked")
 	public static @Nullable Class<? extends Bean> findClass(long typeId) {
-		synchronized (allClassNameMap) {
+		allClassNameMapLock.lock();
+		try {
 			var obj = allClassNameMap.get(typeId);
 			if (obj instanceof Class)
 				return (Class<? extends Bean>)obj;
@@ -259,6 +282,8 @@ public final class BeanFactory {
 			}
 			if (allClassNameMap.isEmpty() && loadAllClasses("", false) != 0)
 				return findClass(typeId);
+		} finally {
+			allClassNameMapLock.unlock();
 		}
 		return null;
 	}
@@ -268,7 +293,8 @@ public final class BeanFactory {
 	 */
 	@SuppressWarnings("unchecked")
 	public static @Nullable Class<? extends Data> findDataClass(long typeId) {
-		synchronized (allClassNameMap) {
+		allClassNameMapLock.lock();
+		try {
 			var obj = allDataClassNameMap.get(typeId);
 			if (obj instanceof Class)
 				return (Class<? extends Data>)obj;
@@ -288,6 +314,8 @@ public final class BeanFactory {
 			}
 			if (allDataClassNameMap.isEmpty() && loadAllClasses("", false) != 0)
 				return findDataClass(typeId);
+		} finally {
+			allClassNameMapLock.unlock();
 		}
 		return null;
 	}
@@ -312,14 +340,20 @@ public final class BeanFactory {
 			return null; // never run here
 		}
 		if (s instanceof Bean) {
-			synchronized (writingBeanFactory) {
+			writingBeanFactoryLock.lock();
+			try {
 				if (writingBeanFactory.put(s.typeId(), ctor) != ctor)
 					readingBeanFactory = null;
+			} finally {
+				writingBeanFactoryLock.unlock();
 			}
 		} else if (s instanceof Data) {
-			synchronized (writingDataFactory) {
+			writingDataFactoryLock.lock();
+			try {
 				if (writingDataFactory.put(s.typeId(), ctor) != ctor)
 					readingDataFactory = null;
+			} finally {
+				writingDataFactoryLock.unlock();
 			}
 		} else
 			throw new IllegalArgumentException("not Bean or Data: " + s.getClass().getName());
@@ -329,14 +363,20 @@ public final class BeanFactory {
 	public @NotNull MethodHandle register(@NotNull Serializable s) {
 		var ctor = Reflect.getDefaultConstructor(s.getClass());
 		if (s instanceof Bean) {
-			synchronized (writingBeanFactory) {
+			writingBeanFactoryLock.lock();
+			try {
 				if (writingBeanFactory.put(s.typeId(), ctor) != ctor)
 					readingBeanFactory = null;
+			} finally {
+				writingBeanFactoryLock.unlock();
 			}
 		} else if (s instanceof Data) {
-			synchronized (writingDataFactory) {
+			writingDataFactoryLock.lock();
+			try {
 				if (writingDataFactory.put(s.typeId(), ctor) != ctor)
 					readingDataFactory = null;
+			} finally {
+				writingDataFactoryLock.unlock();
 			}
 		} else
 			throw new IllegalArgumentException("not Bean or Data: " + s.getClass().getName());
@@ -344,16 +384,22 @@ public final class BeanFactory {
 	}
 
 	private void register(long typeId, @NotNull MethodHandle beanCtor) {
-		synchronized (writingBeanFactory) {
+		writingBeanFactoryLock.lock();
+		try {
 			if (writingBeanFactory.put(typeId, beanCtor) != beanCtor)
 				readingBeanFactory = null;
+		} finally {
+			writingBeanFactoryLock.unlock();
 		}
 	}
 
 	private void registerData(long typeId, @NotNull MethodHandle dataCtor) {
-		synchronized (writingDataFactory) {
+		writingDataFactoryLock.lock();
+		try {
 			if (writingDataFactory.put(typeId, dataCtor) != dataCtor)
 				readingDataFactory = null;
+		} finally {
+			writingDataFactoryLock.unlock();
 		}
 	}
 
@@ -365,10 +411,13 @@ public final class BeanFactory {
 		try {
 			var factory = readingBeanFactory;
 			if (factory == null) {
-				synchronized (writingBeanFactory) {
+				writingBeanFactoryLock.lock();
+				try {
 					factory = readingBeanFactory;
 					if (factory == null)
 						readingBeanFactory = factory = writingBeanFactory.clone();
+				} finally {
+					writingBeanFactoryLock.unlock();
 				}
 			}
 			var beanCtor = factory.get(typeId);
@@ -398,10 +447,13 @@ public final class BeanFactory {
 		try {
 			var factory = readingDataFactory;
 			if (factory == null) {
-				synchronized (writingDataFactory) {
+				writingDataFactoryLock.lock();
+				try {
 					factory = readingDataFactory;
 					if (factory == null)
 						readingDataFactory = factory = writingDataFactory.clone();
+				} finally {
+					writingDataFactoryLock.unlock();
 				}
 			}
 			var dataCtor = factory.get(typeId);

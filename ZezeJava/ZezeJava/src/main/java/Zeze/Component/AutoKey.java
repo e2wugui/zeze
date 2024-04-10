@@ -11,13 +11,14 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.FastLock;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class AutoKey {
+public class AutoKey extends FastLock {
 	public static class Module extends AbstractAutoKey {
 		private final ConcurrentHashMap<String, AutoKey> map = new ConcurrentHashMap<>();
 		public final @NotNull Application zeze;
@@ -232,7 +233,8 @@ public class AutoKey {
 					return next; // allocate in range success
 			}
 
-			synchronized (this) {
+			lock();
+			try {
 				//noinspection NumberEquality
 				if (range != localRange)
 					continue;
@@ -274,6 +276,8 @@ public class AutoKey {
 					return -1; // never run here
 				}
 				throw new IllegalStateException("AutoKey.nextSeed failed: " + ret);
+			} finally {
+				unlock();
 			}
 		}
 	}

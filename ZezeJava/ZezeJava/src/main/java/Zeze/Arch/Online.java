@@ -78,10 +78,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	private boolean freshStopModule = false;
 	private final ReentrantLock thisLock = new ReentrantLock();
 
+	@Override
 	public void lock() {
 		thisLock.lock();
 	}
 
+	@Override
 	public void unlock() {
 		thisLock.unlock();
 	}

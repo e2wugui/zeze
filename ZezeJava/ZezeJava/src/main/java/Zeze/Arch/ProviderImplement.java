@@ -38,10 +38,12 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	private volatile int controlKick = BKick.eControlClose;
 	private final FastLock thisLock = new FastLock();
 
+	@Override
 	public void lock() {
 		thisLock.lock();
 	}
 
+	@Override
 	public void unlock() {
 		thisLock.unlock();
 	}
