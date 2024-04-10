@@ -3,7 +3,6 @@ package Zeze.Util;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
@@ -331,7 +330,8 @@ public class IntHashMap<V> implements Cloneable {
 	}
 
 	public interface IntObjectFunction<V> {
-		@Nullable V apply(int key, V value);
+		@Nullable
+		V apply(int key, V value);
 	}
 
 	public V compute(int key, @NotNull IntObjectFunction<V> op) {

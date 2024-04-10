@@ -68,6 +68,7 @@ public final class Token extends AbstractToken {
 			&& AsyncSocket.canLogProtocol(NotifyTopic.TypeId_);
 	private static final int perfIndexTokenSoftRefClean = PerfCounter.instance.registerCountIndex("TokenSoftRefClean");
 	private static final ReferenceQueue<Object> refQueue = new ReferenceQueue<>();
+	private static final FastLock tokenRefCleanerLock = new FastLock();
 	private static Thread tokenRefCleaner;
 
 	static {
@@ -400,7 +401,8 @@ public final class Token extends AbstractToken {
 			// bb.ReadLong(); // count
 		}
 
-		@NotNull ByteBuffer encode(@Nullable ByteBuffer bb) {
+		@NotNull
+		ByteBuffer encode(@Nullable ByteBuffer bb) {
 			if (bb == null)
 				bb = ByteBuffer.Allocate(32);
 			bb.WriteByte(remoteAddr != null ? 1 : 0);
@@ -415,7 +417,8 @@ public final class Token extends AbstractToken {
 			return bb;
 		}
 
-		@NotNull String getRemoteAddr() {
+		@NotNull
+		String getRemoteAddr() {
 			var addr = remoteAddr != null ? remoteAddr.getAddress().getHostAddress() : null;
 			return addr != null ? addr : "";
 		}
@@ -498,13 +501,16 @@ public final class Token extends AbstractToken {
 			rocksdb = new RocksDatabase(PropertiesHelper.getString("token.rocksdb", "token_db"));
 			tokenMapTable = rocksdb.getOrAddTable("tokenMap");
 
-			synchronized (Token.class) {
+			tokenRefCleanerLock.lock();
+			try {
 				if (tokenRefCleaner == null) {
 					tokenRefCleaner = new Thread(Token::cleanTokenRef, "TokenRefCleaner");
 					tokenRefCleaner.setDaemon(true);
 					tokenRefCleaner.setPriority(Thread.MAX_PRIORITY);
 					tokenRefCleaner.start();
 				}
+			} finally {
+				tokenRefCleanerLock.unlock();
 			}
 
 			PerfCounter.instance.tryStartScheduledLog();

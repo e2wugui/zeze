@@ -208,7 +208,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		var ctx = providerApp.providerDirectService.
 				<RedirectAllContext<?>>tryGetManualContext(protocol.Argument.getSessionId());
 		if (ctx != null)
-			ctx.processResult(providerApp.zeze, protocol);
+			ctx.processResult(protocol);
 		return Procedure.Success;
 	}
 

@@ -117,11 +117,9 @@ public class DatabaseRocksDb extends Database {
 			if (null != verifyAction) {
 				lock();
 				try {
-					try {
-						batch.commit(RocksDatabase.getDefaultWriteOptions());
-					} catch (RocksDBException e) {
-						Task.forceThrow(e);
-					}
+					batch.commit(RocksDatabase.getDefaultWriteOptions());
+				} catch (RocksDBException e) {
+					Task.forceThrow(e);
 				} finally {
 					unlock();
 				}

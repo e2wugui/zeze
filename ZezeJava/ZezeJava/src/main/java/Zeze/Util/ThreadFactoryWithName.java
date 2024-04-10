@@ -21,7 +21,7 @@ public class ThreadFactoryWithName implements ThreadFactory {
 					MethodType.methodType(Class.forName("java.lang.Thread$Builder$OfVirtual"))).invoke();
 			mhUnstarted0 = lookup.findVirtual(Class.forName("java.lang.Thread$Builder"), "unstarted",
 					MethodType.methodType(Thread.class, Runnable.class));
-			Task.logger.info("ThreadFactoryWithName use virtual thread");
+			Task.logger.info("ThreadFactoryWithName can use virtual thread");
 		} catch (Throwable ignored) {
 			virtualThreadBuilder0 = null;
 			mhUnstarted0 = null;

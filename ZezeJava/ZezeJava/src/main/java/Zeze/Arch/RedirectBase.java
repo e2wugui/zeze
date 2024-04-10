@@ -159,9 +159,9 @@ public class RedirectBase {
 		exist.Argument.getHashCodes().add(index);
 	}
 
-	public <T extends RedirectResult> @NotNull RedirectAllFuture<T> redirectAll(@NotNull IModule module,
-																				@NotNull ModuleRedirectAllRequest req,
-																				@NotNull RedirectAllContext<T> ctx) {
+	public <T extends RedirectResult> RedirectAllFuture<T> redirectAll(@NotNull IModule module,
+																	   @NotNull ModuleRedirectAllRequest req,
+																	   @NotNull RedirectAllContext<T> ctx) {
 		var future = ctx.getFuture();
 		var arg = req.Argument;
 		if (arg.getHashCodeConcurrentLevel() <= 0) {

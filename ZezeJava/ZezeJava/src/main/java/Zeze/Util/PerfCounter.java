@@ -121,7 +121,8 @@ public final class PerfCounter extends FastLock {
 			this.tableName = tableName;
 		}
 
-		@NotNull TableInfo checkpointAndReset() {
+		@NotNull
+		TableInfo checkpointAndReset() {
 			readLockCount = readLock.sumThenReset();
 			writeLockCount = writeLock.sumThenReset();
 			storageGetCount = storageGet.sumThenReset();

@@ -94,7 +94,7 @@ public final class Task {
 	}
 
 	public static void initThreadPool(@NotNull ExecutorService pool,
-												   @NotNull ScheduledExecutorService scheduled) {
+									  @NotNull ScheduledExecutorService scheduled) {
 		taskLock.lock();
 		try {
 			//noinspection ConstantValue
@@ -121,7 +121,7 @@ public final class Task {
 	}
 
 	public static boolean tryInitThreadPool(@Nullable Application app, @Nullable ExecutorService pool,
-														 @Nullable ScheduledExecutorService scheduled) {
+											@Nullable ScheduledExecutorService scheduled) {
 		taskLock.lock();
 		try {
 			if (threadPoolDefault != null || threadPoolScheduled != null)

@@ -7,7 +7,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import static Zeze.Util.DeadlockBreaker.MAX_DEPTH;
 
-public final class ThreadDiagnosable extends ReentrantLock {
+public final class ThreadDiagnosable {
 	private static final Logger logger = LogManager.getLogger(ThreadDiagnosable.class);
 	private static final AtomicLong currentSerial = new AtomicLong();
 	private static final ConcurrentHashSet<Timeout> timeouts = new ConcurrentHashSet<>();

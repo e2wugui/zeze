@@ -4,9 +4,9 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
+import Zeze.Util.FastLock;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
@@ -108,7 +108,7 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 	}
 }
 
-final class RedirectAllFutureImpl<R extends RedirectResult> extends ReentrantLock implements RedirectAllFuture<R> {
+final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock implements RedirectAllFuture<R> {
 	private static final @NotNull VarHandle ON_ALL_DONE;
 
 	static {
@@ -146,9 +146,12 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends ReentrantLoc
 		if (onResult == null)
 			return; // 等设置了onResult再处理
 		var hashes = getFinishedHashes();
-		synchronized (hashes) {
+		lock(); // synchronized (hashes)
+		try {
 			if (!hashes.add(result.getHash())) // 跟onResult并发时有可能失败,谁加成功谁执行回调
 				return;
+		} finally {
+			unlock();
 		}
 		ctx.getService().getZeze().newProcedure(() -> {
 			//noinspection DataFlowIssue
@@ -169,13 +172,19 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends ReentrantLoc
 			return this; // 等有了result再处理
 		var hashes = getFinishedHashes();
 		var readyResults = new ArrayList<R>();
-		synchronized (c) {
+		c.lock();
+		try {
 			for (var it = c.getAllResults().iterator(); it.moveToNext(); ) {
-				synchronized (hashes) {
+				lock(); // synchronized (hashes)
+				try {
 					if (hashes.add(it.key())) // 跟onResult并发时有可能失败,谁加成功谁执行回调
 						readyResults.add(it.value());
+				} finally {
+					unlock();
 				}
 			}
+		} finally {
+			c.unlock();
 		}
 		for (R result : readyResults) {
 			c.getService().getZeze().newProcedure(() -> {

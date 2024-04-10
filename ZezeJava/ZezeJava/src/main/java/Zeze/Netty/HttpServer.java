@@ -80,7 +80,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected @Nullable SslContext sslCtx;
 	protected @Nullable Future<?> scheduler;
 	protected @Nullable ChannelFuture channelFuture;
-	private final ReentrantLock thisLock = new ReentrantLock();
+	protected final ReentrantLock thisLock = new ReentrantLock();
 
 	public void lock() {
 		thisLock.lock();

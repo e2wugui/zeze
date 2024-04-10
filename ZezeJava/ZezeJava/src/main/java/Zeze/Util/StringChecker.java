@@ -138,6 +138,7 @@ public final class StringChecker {
 
 	private @Nullable Trie root;
 	private final HashSet<String> newAdds = new HashSet<>(); // 动态添加的部分
+	private final FastLock newAddsLock = new FastLock();
 
 	private static boolean addLine(@NotNull Trie trie, @NotNull String line) {
 		line = line.trim();
@@ -162,11 +163,14 @@ public final class StringChecker {
 					n++;
 			}
 		}
-		synchronized (newAdds) {
+		newAddsLock.lock();
+		try {
 			for (String line : newAdds) {
 				if (addLine(trie, line))
 					n++;
 			}
+		} finally {
+			newAddsLock.unlock();
 		}
 		trie.calFail(trie, new char[1000], 0);
 		root = trie;
@@ -182,8 +186,11 @@ public final class StringChecker {
 	}
 
 	public void addNewLine(@NotNull String line) { // 添加后需要reload才能生效
-		synchronized (newAdds) {
+		newAddsLock.lock();
+		try {
 			newAdds.add(line);
+		} finally {
+			newAddsLock.unlock();
 		}
 	}
 

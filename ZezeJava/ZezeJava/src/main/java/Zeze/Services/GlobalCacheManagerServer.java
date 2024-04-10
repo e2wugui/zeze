@@ -171,7 +171,6 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 
 		sessions.forEach(session -> {
 			if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
-				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				session.lock();
 				try {
 					session.kick();
@@ -801,11 +800,10 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		final IdentityHashSet<CacheHolder> share = new IdentityHashSet<>();
 		CacheHolder modify;
 		int acquireStatePending = StateInvalid;
-		private final Condition thisCond;
+		private final Condition thisCond = newCondition();
 
 		public CacheState(Binary gKey) {
 			globalKey = gKey;
-			thisCond = newCondition();
 		}
 
 		public void await() throws InterruptedException {

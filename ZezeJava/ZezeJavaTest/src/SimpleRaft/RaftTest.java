@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class RaftTest {
 	private final class Env implements Raft.Env {
@@ -17,7 +19,7 @@ public final class RaftTest {
 		private final ArrayDeque<Object> events = new ArrayDeque<>(16);
 		private final ArrayDeque<Object> clientEvents = new ArrayDeque<>(16);
 		private final HashMap<Long, Raft.Log> logMap = new HashMap<>();
-		private Raft.Log[] logs = new Raft.Log[4]; // 初始容量
+		private Raft.Log @NotNull [] logs = new Raft.Log[4]; // 初始容量
 		private long logCount; // logs的有效数量
 		private long randSeed;
 		private final int id;
@@ -29,6 +31,7 @@ public final class RaftTest {
 			raft = new Raft(this, RAFT_COUNT, id, curTime);
 		}
 
+		@NotNull
 		Raft getRaft() {
 			return raft;
 		}
@@ -46,21 +49,22 @@ public final class RaftTest {
 		}
 
 		@Override
-		public Object recvEvent() {
+		public @Nullable Object recvEvent() {
 			return events.pollFirst();
 		}
 
 		@Override
-		public void sendEvent(int id, Object obj) {
+		public void sendEvent(int id, @NotNull Object obj) {
 			envs[id].events.addLast(obj);
 		}
 
+		@Nullable
 		Object recvClientEvent() {
 			return clientEvents.pollFirst();
 		}
 
 		@Override
-		public void sendClientEvent(Object obj) {
+		public void sendClientEvent(@NotNull Object obj) {
 			clientEvents.addLast(obj);
 		}
 
@@ -79,7 +83,7 @@ public final class RaftTest {
 		}
 
 		@Override
-		public Raft.Log[] getLogs(long indexBegin, long indexEnd) {
+		public @NotNull Raft.Log @NotNull [] getLogs(long indexBegin, long indexEnd) {
 			if (indexBegin < 0 || indexBegin > indexEnd)
 				throw new IllegalArgumentException("invalid indexBegin=" + indexBegin + " or indexEnd=" + indexEnd);
 			if (indexEnd > logCount)
@@ -88,12 +92,12 @@ public final class RaftTest {
 		}
 
 		@Override
-		public Raft.Log getLogByKey(long key) {
+		public @Nullable Raft.Log getLogByKey(long key) {
 			return null;
 		}
 
 		@Override
-		public boolean appendLog(Raft.Log log) {
+		public boolean appendLog(@NotNull Raft.Log log) {
 			if (log.index != logCount)
 				throw new IllegalArgumentException("log.index(" + log.index + ") != logCount(" + logCount + ')');
 			if (logMap.containsKey(log.key))
@@ -108,7 +112,7 @@ public final class RaftTest {
 		}
 
 		@Override
-		public void appendLogs(Raft.Log[] logs) {
+		public void appendLogs(@NotNull Raft.Log @NotNull [] logs) {
 			int appendCount = logs.length;
 			for (int i = 0; i < appendCount; i++)
 				if (logs[i].index != logCount + i)
@@ -140,7 +144,7 @@ public final class RaftTest {
 		}
 
 		@Override
-		public void traceInfo(String info) {
+		public void traceInfo(@NotNull String info) {
 			strBuf.setLength(0);
 			date.setTime(System.currentTimeMillis());
 			dtf.format(date, strBuf, fieldPos);
@@ -150,7 +154,7 @@ public final class RaftTest {
 		}
 
 		@Override
-		public String toString() {
+		public @NotNull String toString() {
 			return "Env{" + "events=" + events + ", clientEvents=" + clientEvents + ", logs=" + Arrays.toString(logs)
 					+ ", logCount=" + logCount + ", randSeed=" + randSeed + ", raft=" + raft + '}';
 		}
@@ -158,7 +162,7 @@ public final class RaftTest {
 
 	private static final int RAFT_COUNT = 3;
 
-	private final Env[] envs = new Env[RAFT_COUNT];
+	private final @NotNull Env[] envs = new Env[RAFT_COUNT];
 	private final HashSet<Long> sendingSerials = new HashSet<>();
 	private long curTime;
 	private long serialCounter;
@@ -195,7 +199,7 @@ public final class RaftTest {
 				env.getRaft().run();
 				for (Object event; (event = env.recvClientEvent()) != null; ) {
 					env.traceInfo("recvClientEvent: " + event);
-					Raft.AddLogRe re = ((Raft.AddLogRe)event);
+					Raft.AddLogRe re = (Raft.AddLogRe)event;
 					sendingSerials.remove(re.serial);
 					if (re.result < 0)
 						throw new IllegalStateException("AddLogRe.result=" + re.result);
@@ -219,9 +223,10 @@ public final class RaftTest {
 			throw new IllegalStateException("sendingSerials.size=" + sendingSerials.size());
 		if (leftSendAddLogCount != 0)
 			throw new IllegalStateException("leftSendAddLogCount=" + leftSendAddLogCount);
-		for (Env env : envs)
+		for (Env env : envs) {
 			if (env.getRaft().getCommitIndex() != serialCounter - 1)
 				throw new IllegalStateException("unmatched commitIndex for id=" + env.id);
+		}
 		System.out.println("CHECK OK!");
 	}
 

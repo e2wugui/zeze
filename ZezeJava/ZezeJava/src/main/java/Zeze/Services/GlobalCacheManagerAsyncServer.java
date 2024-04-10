@@ -146,7 +146,6 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 
 		sessions.forEach(session -> {
 			if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
-				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				session.lock();
 				try {
 					session.kick();
@@ -980,8 +979,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			sessionId = 0; // 清除网络状态。
 		}
 
-		boolean tryBindSocket(@NotNull AsyncSocket newSocket, int _GlobalCacheManagerHashIndex,
-										   boolean login) {
+		boolean tryBindSocket(@NotNull AsyncSocket newSocket, int _GlobalCacheManagerHashIndex, boolean login) {
 			lock();
 			try {
 				if (login) {
@@ -1047,8 +1045,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		/**
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
-		@Nullable Reduce reduceWaitLater(@NotNull Binary gkey, long fresh,
-										 @NotNull ProtocolHandle<Rpc<BGlobalKeyState, BGlobalKeyState>> handle) {
+		@Nullable
+		Reduce reduceWaitLater(@NotNull Binary gkey, long fresh,
+							   @NotNull ProtocolHandle<Rpc<BGlobalKeyState, BGlobalKeyState>> handle) {
 			try {
 				if (System.currentTimeMillis() - lastErrorTime < instance.achillesHeelConfig.globalForbidPeriod)
 					return null;

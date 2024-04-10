@@ -10,11 +10,11 @@ public abstract class AbstractZokerAgent implements Zeze.IModule {
     @Override public String getName() { return ModuleName; }
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
-    private final java.util.concurrent.locks.ReentrantLock __thisLock = new java.util.concurrent.locks.ReentrantLock();
+
+    private transient final java.util.concurrent.locks.ReentrantLock __thisLock = new java.util.concurrent.locks.ReentrantLock();
     @Override public void lock() { __thisLock.lock(); }
     @Override public void unlock() { __thisLock.unlock(); }
     @Override public java.util.concurrent.locks.Lock getLock() { return __thisLock; }
-
 
     public static final int eDuplicateZoker = 1; // Zoker名字重复了
     public static final int eOpenError = 1; // 打开文件发生了系统错误
