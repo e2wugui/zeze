@@ -5,6 +5,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.NotNull;
@@ -36,6 +37,7 @@ public class Connector {
 	private @Nullable Future<?> reconnectTask;
 	private int maxReconnectDelay = 8000; // 毫秒
 	private int reConnectDelay;
+	private final ReentrantLock thisLock = new ReentrantLock();
 
 	public static @NotNull Connector Create(@NotNull Element e) {
 		String className = e.getAttribute("Class");
@@ -116,11 +118,14 @@ public class Connector {
 		if (isAutoReconnect) {
 			TryReconnect();
 		} else {
-			synchronized (this) {
+			thisLock.lock();
+			try {
 				if (reconnectTask != null) {
 					reconnectTask.cancel(false);
 					reconnectTask = null;
 				}
+			} finally {
+				thisLock.unlock();
 			}
 		}
 	}
@@ -133,10 +138,15 @@ public class Connector {
 		return TryGetReadySocket() != null;
 	}
 
-	public final synchronized void SetService(@NotNull Service service) {
-		if (this.service != null)
-			throw new IllegalStateException("Connector of '" + getName() + "' Service != null");
-		this.service = service;
+	public final void SetService(@NotNull Service service) {
+		thisLock.lock();
+		try {
+			if (this.service != null)
+				throw new IllegalStateException("Connector of '" + getName() + "' Service != null");
+			this.service = service;
+		} finally {
+			thisLock.unlock();
+		}
 	}
 
 	// 允许子类重新定义Ready.
@@ -160,46 +170,69 @@ public class Connector {
 		}
 	}
 
-	public synchronized void OnSocketClose(@NotNull AsyncSocket closed, @Nullable Throwable e) throws Exception {
-		if (socket == closed) {
-			stop(e);
-			TryReconnect();
+	public void OnSocketClose(@NotNull AsyncSocket closed, @Nullable Throwable e) throws Exception {
+		thisLock.lock();
+		try {
+			if (socket == closed) {
+				stop(e);
+				TryReconnect();
+			}
+		} finally {
+			thisLock.unlock();
 		}
 	}
 
-	public synchronized void OnSocketConnected(@SuppressWarnings("unused") @NotNull AsyncSocket so) {
-		isConnected = true;
-		reConnectDelay = 0;
+	public void OnSocketConnected(@SuppressWarnings("unused") @NotNull AsyncSocket so) {
+		thisLock.lock();
+		try {
+			isConnected = true;
+			reConnectDelay = 0;
+		} finally {
+			thisLock.unlock();
+		}
 	}
 
-	public synchronized void TryReconnect() {
-		if (!isAutoReconnect || socket != null || reconnectTask != null)
-			return;
+	public void TryReconnect() {
+		thisLock.lock();
+		try {
+			if (!isAutoReconnect || socket != null || reconnectTask != null)
+				return;
 
-		reConnectDelay = reConnectDelay > 0 ? Math.min(reConnectDelay * 2, maxReconnectDelay) : 1000;
-		reconnectTask = Task.scheduleUnsafe(reConnectDelay, this::start);
+			reConnectDelay = reConnectDelay > 0 ? Math.min(reConnectDelay * 2, maxReconnectDelay) : 1000;
+			reconnectTask = Task.scheduleUnsafe(reConnectDelay, this::start);
+		} finally {
+			thisLock.unlock();
+		}
 	}
 
 	// 需要逻辑相关的握手行为时，重载这个方法。
 	public void OnSocketHandshakeDone(@NotNull AsyncSocket so) {
-		synchronized (this) {
+		thisLock.lock();
+		try {
 			if (socket == so) {
 				// java 没有TrySetResult，所以如果上面的检查不充分，仍然会有问题。
 				futureSocket.setResult(so);
 				return;
 			}
+		} finally {
+			thisLock.unlock();
 		}
 		so.close(new Exception("not owner?"));
 	}
 
-	public synchronized void start() {
-		// always try cancel reconnect task
-		if (reconnectTask != null) {
-			reconnectTask.cancel(false);
-			reconnectTask = null;
+	public void start() {
+		thisLock.lock();
+		try {
+			// always try cancel reconnect task
+			if (reconnectTask != null) {
+				reconnectTask.cancel(false);
+				reconnectTask = null;
+			}
+			if (socket == null)
+				socket = service.newClientSocket(hostNameOrAddress, port, userState, this);
+		} finally {
+			thisLock.unlock();
 		}
-		if (socket == null)
-			socket = service.newClientSocket(hostNameOrAddress, port, userState, this);
 	}
 
 	public void stop() {
@@ -208,7 +241,8 @@ public class Connector {
 
 	public void stop(@Nullable Throwable e) {
 		AsyncSocket as;
-		synchronized (this) {
+		thisLock.lock();
+		try {
 			// always try cancel reconnect task
 			if (reconnectTask != null) {
 				reconnectTask.cancel(false);
@@ -223,6 +257,8 @@ public class Connector {
 			isConnected = false;
 			as = socket;
 			socket = null; // 阻止递归。
+		} finally {
+			thisLock.unlock();
 		}
 		as.close(e);
 	}

@@ -159,7 +159,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			// 版本不匹配，继续尝试查找。
 			providerSocket = null; // clear first.
 
-			synchronized (providers) {
+			providers.lock();
+			try {
 				for (int i = 0, n = providers.localStates.size(); i < n; i++) {
 					var e = providers.getNextStateEntry();
 					if (e == null)
@@ -179,6 +180,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 					}
 					providerSocket = null; // BUG，否则如果刚好是最后一个，跳出循环后面的条件就成立了。
 				}
+			} finally {
+				providers.unlock();
 			}
 			if (providerSocket == null) // 这个条件，见上BUG。
 				return false;
@@ -215,7 +218,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 		// unbind LinkSession
 		var linkSessionIds = providerSession.getLinkSessionIds();
-		synchronized (linkSessionIds) {
+		linkSessionIds.lock();
+		try {
 			for (var it = linkSessionIds.iterator(); it.moveToNext(); ) {
 				int moduleId = it.key();
 				var p = moduleId == Online.ModuleId || moduleId == Zeze.Game.Online.ModuleId
@@ -234,6 +238,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				}
 			}
 			linkSessionIds.clear();
+		} finally {
+			linkSessionIds.unlock();
 		}
 	}
 

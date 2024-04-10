@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.RedirectBase;
 import Zeze.Component.Auth;
@@ -80,6 +81,7 @@ public final class Application {
 	private Schemas schemas;
 	private Schemas schemasPrevious; // maybe null
 	private final ProcedureLockWatcher procedureLockWatcher;
+	private final ReentrantLock thisLock = new ReentrantLock();
 
 	public ProcedureLockWatcher getProcedureLockWatcher() {
 		return procedureLockWatcher;
@@ -220,10 +222,15 @@ public final class Application {
 		this.providerApp = providerApp;
 	}
 
-	public synchronized void initialize(@NotNull AppBase app) {
-		appBase = app;
-		if (timer == null && !isNoDatabase() && redirect != null)
-			timer = Timer.create(app);
+	public void initialize(@NotNull AppBase app) {
+		thisLock.lock();
+		try {
+			appBase = app;
+			if (timer == null && !isNoDatabase() && redirect != null)
+				timer = Timer.create(app);
+		} finally {
+			thisLock.unlock();
+		}
 	}
 
 	public boolean isNoDatabase() {
@@ -255,12 +262,17 @@ public final class Application {
 	}
 
 	/*
-	public synchronized void setCheckpoint(Checkpoint value) {
-		if (value == null)
-			throw new NullPointerException();
-		if (IsStart)
-			throw new IllegalStateException("Checkpoint only can setup before start.");
-		_checkpoint = value;
+	public void setCheckpoint(Checkpoint value) {
+		thisLock.lock();
+		try {
+			if (value == null)
+				throw new NullPointerException();
+			if (IsStart)
+				throw new IllegalStateException("Checkpoint only can setup before start.");
+			_checkpoint = value;
+		} finally {
+			thisLock.unlock();
+		}
 	}
 	*/
 
@@ -375,8 +387,13 @@ public final class Application {
 		return startState;
 	}
 
-	public synchronized void openDynamicTable(@NotNull String dbName, @NotNull Table table) {
-		addTable(dbName, table).openDynamicTable(this, table);
+	public void openDynamicTable(@NotNull String dbName, @NotNull Table table) {
+		thisLock.lock();
+		try {
+			addTable(dbName, table).openDynamicTable(this, table);
+		} finally {
+			thisLock.unlock();
+		}
 	}
 
 	public void removeTable(@NotNull String dbName, @NotNull Table table) {
@@ -586,185 +603,195 @@ public final class Application {
 		return logged;
 	}
 
-	public synchronized void start() throws Exception {
-		if (startState == StartState.eStarted)
-			return;
-		if (startState == StartState.eStartingOrStopping)
-			stop();
-		startState = StartState.eStartingOrStopping;
-		ShutdownHook.add(this, () -> {
-			logger.info("zeze({}) ShutdownHook begin", this.projectName);
-			stop();
-			logger.info("zeze({}) ShutdownHook end", this.projectName);
-		});
+	public void start() throws Exception {
+		thisLock.lock();
+		try {
+			if (startState == StartState.eStarted)
+				return;
+			if (startState == StartState.eStartingOrStopping)
+				stop();
+			startState = StartState.eStartingOrStopping;
+			ShutdownHook.add(this, () -> {
+				logger.info("zeze({}) ShutdownHook begin", this.projectName);
+				stop();
+				logger.info("zeze({}) ShutdownHook end", this.projectName);
+			});
 
-		logZezeVersion();
+			logZezeVersion();
 
-		var serverId = conf.getServerId();
-		logger.info("Start ServerId={}", serverId);
+			var serverId = conf.getServerId();
+			logger.info("Start ServerId={}", serverId);
 
-		var noDatabase = isNoDatabase();
-		if (!noDatabase) {
-			if ("true".equalsIgnoreCase(System.getProperty(Daemon.propertyNameClearInUse))) {
-				conf.clearInUseAndIAmSureAppStopped(this, databases);
-				//var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
-				//defaultDb.getDirectOperates().unlock();
+			var noDatabase = isNoDatabase();
+			if (!noDatabase) {
+				if ("true".equalsIgnoreCase(System.getProperty(Daemon.propertyNameClearInUse))) {
+					conf.clearInUseAndIAmSureAppStopped(this, databases);
+					//var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
+					//defaultDb.getDirectOperates().unlock();
+				}
+
+				// Set Database InUse
+				for (var db : databases.values())
+					db.getDirectOperates().setInUse(serverId, conf.getGlobalCacheManagerHostNameOrAddress());
+
+				// Open RocksCache
+				var dbConf = new Config.DatabaseConf();
+				dbConf.setName("zeze_cache_" + serverId);
+				dbConf.setDatabaseUrl(dbConf.getName());
+				deleteDirectory(new File(dbConf.getDatabaseUrl()));
+				dbConf.setDatabaseType(Config.DbType.RocksDb);
+				LocalRocksCacheDb = new DatabaseRocksDb(this, dbConf);
+				LocalRocksCacheDb.open(this);
 			}
 
-			// Set Database InUse
-			for (var db : databases.values())
-				db.getDirectOperates().setInUse(serverId, conf.getGlobalCacheManagerHostNameOrAddress());
-
-			// Open RocksCache
-			var dbConf = new Config.DatabaseConf();
-			dbConf.setName("zeze_cache_" + serverId);
-			dbConf.setDatabaseUrl(dbConf.getName());
-			deleteDirectory(new File(dbConf.getDatabaseUrl()));
-			dbConf.setDatabaseType(Config.DbType.RocksDb);
-			LocalRocksCacheDb = new DatabaseRocksDb(this, dbConf);
-			LocalRocksCacheDb.open(this);
-		}
-
-		// Start ServiceManager
-		var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
-		if (serviceManagerConf != null && serviceManager != null) {
-			serviceManager.start();
-			try {
-				serviceManager.waitReady();
-			} catch (Exception ignored) {
-				// raft 版第一次等待由于选择leader原因肯定会失败一次。
-				serviceManager.waitReady();
-			}
-		}
-
-		if (!noDatabase) {
-			atomicOpenDatabase();
-
-			// Open Global
-			var hosts = Str.trim(conf.getGlobalCacheManagerHostNameOrAddress().split(";"));
-			if (hosts.length > 0) {
-				var isRaft = hosts[0].endsWith(".xml");
-				if (!isRaft) {
-					var impl = new GlobalAgent(this, hosts, conf.getGlobalCacheManagerPort());
-					globalAgent = impl;
-					achillesHeelDaemon = new AchillesHeelDaemon(this, impl.getAgents());
-					impl.start();
-				} else {
-					var impl = new GlobalCacheManagerWithRaftAgent(this, hosts);
-					globalAgent = impl;
-					achillesHeelDaemon = new AchillesHeelDaemon(this, impl.getAgents());
-					impl.start();
+			// Start ServiceManager
+			var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
+			if (serviceManagerConf != null && serviceManager != null) {
+				serviceManager.start();
+				try {
+					serviceManager.waitReady();
+				} catch (Exception ignored) {
+					// raft 版第一次等待由于选择leader原因肯定会失败一次。
+					serviceManager.waitReady();
 				}
 			}
 
-			this.deadlockBreaker = new DeadlockBreaker(this);
-			// Checkpoint
-			checkpoint = new Checkpoint(this, conf.getCheckpointMode(), databases.values(), serverId);
-			checkpoint.start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
+			if (!noDatabase) {
+				atomicOpenDatabase();
 
-			// start last
-			if (null != achillesHeelDaemon)
-				achillesHeelDaemon.start();
-			startState = StartState.eStarted;
+				// Open Global
+				var hosts = Str.trim(conf.getGlobalCacheManagerHostNameOrAddress().split(";"));
+				if (hosts.length > 0) {
+					var isRaft = hosts[0].endsWith(".xml");
+					if (!isRaft) {
+						var impl = new GlobalAgent(this, hosts, conf.getGlobalCacheManagerPort());
+						globalAgent = impl;
+						achillesHeelDaemon = new AchillesHeelDaemon(this, impl.getAgents());
+						impl.start();
+					} else {
+						var impl = new GlobalCacheManagerWithRaftAgent(this, hosts);
+						globalAgent = impl;
+						achillesHeelDaemon = new AchillesHeelDaemon(this, impl.getAgents());
+						impl.start();
+					}
+				}
 
-			delayRemove.start();
-			if (auth != null)
-				auth.start();
-			if (timer != null) {
-				timer.loadCustomClassAnd();
-			}
-			if (null != deadlockBreaker)
-				deadlockBreaker.start();
-			if (null != onz)
-				onz.start();
-		} else
-			startState = StartState.eStarted;
+				this.deadlockBreaker = new DeadlockBreaker(this);
+				// Checkpoint
+				checkpoint = new Checkpoint(this, conf.getCheckpointMode(), databases.values(), serverId);
+				checkpoint.start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
+
+				// start last
+				if (null != achillesHeelDaemon)
+					achillesHeelDaemon.start();
+				startState = StartState.eStarted;
+
+				delayRemove.start();
+				if (auth != null)
+					auth.start();
+				if (timer != null) {
+					timer.loadCustomClassAnd();
+				}
+				if (null != deadlockBreaker)
+					deadlockBreaker.start();
+				if (null != onz)
+					onz.start();
+			} else
+				startState = StartState.eStarted;
+		} finally {
+			thisLock.unlock();
+		}
 	}
 
-	public synchronized void stop() throws Exception {
-		if (null != onz) {
-			onz.stop();
-			onz = null;
-		}
+	public void stop() throws Exception {
+		thisLock.lock();
+		try {
+			if (null != onz) {
+				onz.stop();
+				onz = null;
+			}
 
-		if (null != deadlockBreaker) {
-			this.deadlockBreaker.shutdown();
-			deadlockBreaker = null;
-		}
+			if (null != deadlockBreaker) {
+				this.deadlockBreaker.shutdown();
+				deadlockBreaker = null;
+			}
 
-		if (startState == StartState.eStopped)
-			return;
-		startState = StartState.eStartingOrStopping;
-		ShutdownHook.remove(this);
-		logger.info("Stop ServerId={}", conf.getServerId());
+			if (startState == StartState.eStopped)
+				return;
+			startState = StartState.eStartingOrStopping;
+			ShutdownHook.remove(this);
+			logger.info("Stop ServerId={}", conf.getServerId());
 
-		if (achillesHeelDaemon != null) {
-			achillesHeelDaemon.stopAndJoin();
-			achillesHeelDaemon = null;
-		}
+			if (achillesHeelDaemon != null) {
+				achillesHeelDaemon.stopAndJoin();
+				achillesHeelDaemon = null;
+			}
 
-		if (globalAgent != null) {
-			globalAgent.close();
-			globalAgent = null;
-		}
-		if (flushWhenReduceTimerTask != null) {
-			flushWhenReduceTimerTask.cancel(false);
-			flushWhenReduceTimerTask = null;
-		}
+			if (globalAgent != null) {
+				globalAgent.close();
+				globalAgent = null;
+			}
+			if (flushWhenReduceTimerTask != null) {
+				flushWhenReduceTimerTask.cancel(false);
+				flushWhenReduceTimerTask = null;
+			}
 
-		if (checkpoint != null) {
-			checkpoint.stopAndJoin();
-			checkpoint = null;
-		}
+			if (checkpoint != null) {
+				checkpoint.stopAndJoin();
+				checkpoint = null;
+			}
 
-		if (delayRemove != null) {
-			delayRemove.stop();
-			delayRemove = null;
-		}
+			if (delayRemove != null) {
+				delayRemove.stop();
+				delayRemove = null;
+			}
 
-		if (timer != null) {
-			timer.stop();
-			timer = null;
-		}
+			if (timer != null) {
+				timer.stop();
+				timer = null;
+			}
 
-		if (auth != null) {
-			auth.stop();
-			auth = null;
-		}
+			if (auth != null) {
+				auth.stop();
+				auth = null;
+			}
 
-		if (LocalRocksCacheDb != null) {
-			var dir = LocalRocksCacheDb.getDatabaseUrl();
-			LocalRocksCacheDb.close();
-			deleteDirectory(new File(dir));
-			LocalRocksCacheDb = null;
-		}
+			if (LocalRocksCacheDb != null) {
+				var dir = LocalRocksCacheDb.getDatabaseUrl();
+				LocalRocksCacheDb.close();
+				deleteDirectory(new File(dir));
+				LocalRocksCacheDb = null;
+			}
 
-		if (serviceManager != null)
-			serviceManager.close();
+			if (serviceManager != null)
+				serviceManager.close();
 
-		if (queueModule != null) {
-			queueModule.UnRegisterZezeTables(this);
-			queueModule = null;
-		}
-		if (autoKey != null) {
-			autoKey.UnRegister();
-			autoKey = null;
-		}
-		if (autoKeyOld != null) {
-			autoKeyOld.UnRegister();
-			autoKeyOld = null;
-		}
+			if (queueModule != null) {
+				queueModule.UnRegisterZezeTables(this);
+				queueModule = null;
+			}
+			if (autoKey != null) {
+				autoKey.UnRegister();
+				autoKey = null;
+			}
+			if (autoKeyOld != null) {
+				autoKeyOld.UnRegister();
+				autoKeyOld = null;
+			}
 
-		conf.clearInUseAndIAmSureAppStopped(this, databases);
+			conf.clearInUseAndIAmSureAppStopped(this, databases);
 
-		for (var db : databases.values())
-			db.close();
+			for (var db : databases.values())
+				db.close();
 
-		if (null != dbh2AgentManager) {
-			dbh2AgentManager.stop();
-			dbh2AgentManager = null;
+			if (null != dbh2AgentManager) {
+				dbh2AgentManager.stop();
+				dbh2AgentManager = null;
+			}
+			startState = StartState.eStopped;
+		} finally {
+			thisLock.unlock();
 		}
-		startState = StartState.eStopped;
 	}
 
 	public void checkpointRun() {

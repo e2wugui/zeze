@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Component.Threading;
 import Zeze.Config;
 import Zeze.Net.Binary;
@@ -121,6 +122,15 @@ public abstract class AbstractAgent implements Closeable {
 		public final BSubscribeInfo subscribeInfo;
 		public volatile BServiceInfos serviceInfos;
 		public volatile BServiceInfos serviceInfosPending;
+		private final ReentrantLock thisLock = new ReentrantLock();
+
+		public void lock() {
+			thisLock.lock();
+		}
+
+		public void unlock() {
+			thisLock.unlock();
+		}
 
 		/**
 		 * 刚初始化时为false，任何修改ServiceInfos都会设置成true。 用来处理Subscribe返回的第一份数据和Commit可能乱序的问题。

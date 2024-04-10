@@ -2,11 +2,13 @@ package Zeze.Hot;
 
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 
 public class HotHandle<THandle> {
 	private final ConcurrentHashMap<String, THandle> handleCache = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<HotModule, HashSet<String>> classNameWithHotModule = new ConcurrentHashMap<>();
+	private final ReentrantLock thisLock = new ReentrantLock();
 
 	private void onHotModuleStop(HotModule hot) {
 		var classNames = classNameWithHotModule.remove(hot);
@@ -31,7 +33,9 @@ public class HotHandle<THandle> {
 		if (null != handle)
 			return handle;
 
-		synchronized (handleCache) {
+		// synchronized (handleCache)
+		thisLock.lock();
+		try {
 			handle = handleCache.get(handleClassName);
 			if (null != handle)
 				return handle;
@@ -48,6 +52,8 @@ public class HotHandle<THandle> {
 			handle = (THandle)handleClass.getConstructor().newInstance();
 			handleCache.put(handleClassName, handle);
 			return handle;
+		} finally {
+			thisLock.unlock();
 		}
 	}
 }

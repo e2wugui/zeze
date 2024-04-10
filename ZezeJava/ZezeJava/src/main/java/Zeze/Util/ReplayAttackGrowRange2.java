@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.Arrays;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ReplayAttackGrowRange2 implements ReplayAttack {
 	private static final int BITS_SHIFT = 6; // 1 << 6 = 64 (bit count for long)
@@ -10,6 +11,18 @@ public class ReplayAttackGrowRange2 implements ReplayAttack {
 	private final int indexMask;
 	private final int windowSize;
 	private long maxSerialId = -1;
+
+	private final ReentrantLock thisLock = new ReentrantLock();
+
+	@Override
+	public void lock() {
+		thisLock.lock();
+	}
+
+	@Override
+	public void unlock() {
+		thisLock.unlock();
+	}
 
 	public ReplayAttackGrowRange2() {
 		this(1024 - BITS_MASK);

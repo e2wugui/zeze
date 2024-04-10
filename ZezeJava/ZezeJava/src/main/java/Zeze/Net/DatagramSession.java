@@ -133,9 +133,12 @@ public class DatagramSession {
 			return;
 		bb.ReadIndex = 16; // 跳过头部的sessionId和serialId
 		var serialId = ByteBuffer.ToLong(bb.Bytes, 8);
-		synchronized (replayAttack) {
+		replayAttack.lock();
+		try {
 			if (replayAttack.replay(serialId))
 				return;
+		} finally {
+			replayAttack.unlock();
 		}
 		this.remote = remote;
 		socket.getService().onProcessDatagram(this, bb, serialId);

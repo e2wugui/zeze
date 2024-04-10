@@ -1,11 +1,23 @@
 package Zeze.Util;
 
 import java.util.Arrays;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ReplayAttackGrowRange implements ReplayAttack {
 	private long max;
 	private final byte[] range;
 	private int position;
+	private final ReentrantLock thisLock = new ReentrantLock();
+
+	@Override
+	public void lock() {
+		thisLock.lock();
+	}
+
+	@Override
+	public void unlock() {
+		thisLock.unlock();
+	}
 
 	@Override
 	public String toString() {

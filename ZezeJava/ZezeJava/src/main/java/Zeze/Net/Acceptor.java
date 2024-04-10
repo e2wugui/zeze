@@ -1,6 +1,7 @@
 package Zeze.Net;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.locks.ReentrantLock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
@@ -10,6 +11,7 @@ public class Acceptor {
 	private int Port;
 	private Service Service;
 	private AsyncSocket Socket;
+	private final ReentrantLock thisLock = new ReentrantLock();
 
 	public Acceptor(int port, @Nullable String ip) {
 		Ip = ip != null ? ip : "";
@@ -64,23 +66,38 @@ public class Acceptor {
 		return Socket;
 	}
 
-	public final synchronized void SetService(Service service) {
-		if (Service != null)
-			throw new IllegalStateException("Acceptor of '" + getName() + "' Service != null");
-		Service = service;
+	public final void SetService(Service service) {
+		thisLock.lock();
+		try {
+			if (Service != null)
+				throw new IllegalStateException("Acceptor of '" + getName() + "' Service != null");
+			Service = service;
+		} finally {
+			thisLock.unlock();
+		}
 	}
 
-	public final synchronized void Start() {
-		if (Socket == null)
-			Socket = Ip.isEmpty()
-					? Service.newServerSocket(new InetSocketAddress(Port), this)
-					: Service.newServerSocket(Ip, Port, this);
+	public final void Start() {
+		thisLock.lock();
+		try {
+			if (Socket == null)
+				Socket = Ip.isEmpty()
+						? Service.newServerSocket(new InetSocketAddress(Port), this)
+						: Service.newServerSocket(Ip, Port, this);
+		} finally {
+			thisLock.unlock();
+		}
 	}
 
-	public final synchronized void Stop() {
-		if (Socket != null) {
-			Socket.close();
-			Socket = null;
+	public final void Stop() {
+		thisLock.lock();
+		try {
+			if (Socket != null) {
+				Socket.close();
+				Socket = null;
+			}
+		} finally {
+			thisLock.unlock();
 		}
 	}
 }

@@ -6,4 +6,6 @@ public interface ReplayAttack {
 	 * @return 是否判断传入的serialId是否非法
 	 */
 	boolean replay(long serialId);
+	void lock();
+	void unlock();
 }

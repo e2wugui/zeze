@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Config;
@@ -49,17 +50,23 @@ public class Dbh2AgentManager {
 	private Future<?> refreshMasterTableTask;
 	private final AbstractAgent serviceManager;
 	private final AutoKey tidAutoKey;
+	private final ReentrantLock thisLock = new ReentrantLock();
 
-	public synchronized void startRefreshMasterTable(
+	public void startRefreshMasterTable(
 			String masterName, String databaseName, String tableName) {
-		if (null != refreshMasterTableTask)
-			return;
+		thisLock.lock();
+		try {
+			if (null != refreshMasterTableTask)
+				return;
 
-		refreshMasterTableTask = Task.scheduleUnsafe(200,
-				() -> {
-					reload(openMasterAgent(masterName), masterName, databaseName, tableName);
-					refreshMasterTableTask = null;
-				});
+			refreshMasterTableTask = Task.scheduleUnsafe(200,
+					() -> {
+						reload(openMasterAgent(masterName), masterName, databaseName, tableName);
+						refreshMasterTableTask = null;
+					});
+		} finally {
+			thisLock.unlock();
+		}
 	}
 
 	public Dbh2Config getDbh2Config() {
@@ -151,22 +158,27 @@ public class Dbh2AgentManager {
 		ShutdownHook.add(this, this::stop);
 	}
 
-	public synchronized void stop() throws Exception {
-		proxyAgent.stop();
-		for (var ma : masterAgent.values())
-			ma.stop();
-		masterAgent.clear();
-		for (var da : agents.values())
-			da.close();
-		agents.clear();
+	public void stop() throws Exception {
+		thisLock.lock();
+		try {
+			proxyAgent.stop();
+			for (var ma : masterAgent.values())
+				ma.stop();
+			masterAgent.clear();
+			for (var da : agents.values())
+				da.close();
+			agents.clear();
 
-		if (null != commit) {
-			commit.stop();
-			commit = null;
-		}
-		if (null != commitAgent) {
-			commitAgent.stop();
-			commitAgent = null;
+			if (null != commit) {
+				commit.stop();
+				commit = null;
+			}
+			if (null != commitAgent) {
+				commitAgent.stop();
+				commitAgent = null;
+			}
+		} finally {
+			thisLock.unlock();
 		}
 	}
 
@@ -254,42 +266,52 @@ public class Dbh2AgentManager {
 		});
 	}
 
-	public synchronized void reload(
+	public void reload(
 			MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName) {
-		var masterTable = masterAgent.getBuckets(databaseName, tableName);
-		logger.info("reload ... {}", masterTable);
-		putBuckets(masterTable, masterName, databaseName, tableName);
+		thisLock.lock();
+		try {
+			var masterTable = masterAgent.getBuckets(databaseName, tableName);
+			logger.info("reload ... {}", masterTable);
+			putBuckets(masterTable, masterName, databaseName, tableName);
+		} finally {
+			thisLock.unlock();
+		}
 	}
 
-	public synchronized void putBuckets(
+	public void putBuckets(
 			MasterTable.Data buckets,
 			String masterName,
 			String databaseName,
 			String tableName) {
-		var master = this.buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
-		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
-		var table = database.get(tableName);
-		if (table == null) {
-			database.put(tableName, buckets);
-			return;
-		}
-		var oldRaft = new HashSet<String>();
-		for (var bucket : table.buckets())
-			oldRaft.add(bucket.getRaftConfig());
-		for (var bucket : buckets.buckets())
-			oldRaft.remove(bucket.getRaftConfig());
-		for (var raft : oldRaft) {
-			var agent = agents.remove(raft);
-			if (null != agent) {
-				try {
-					agent.close();
-				} catch (Exception e) {
-					logger.error("", e);
+		thisLock.lock();
+		try {
+			var master = this.buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
+			var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
+			var table = database.get(tableName);
+			if (table == null) {
+				database.put(tableName, buckets);
+				return;
+			}
+			var oldRaft = new HashSet<String>();
+			for (var bucket : table.buckets())
+				oldRaft.add(bucket.getRaftConfig());
+			for (var bucket : buckets.buckets())
+				oldRaft.remove(bucket.getRaftConfig());
+			for (var raft : oldRaft) {
+				var agent = agents.remove(raft);
+				if (null != agent) {
+					try {
+						agent.close();
+					} catch (Exception e) {
+						logger.error("", e);
+					}
 				}
 			}
+			database.put(tableName, buckets);
+		} finally {
+			thisLock.unlock();
 		}
-		database.put(tableName, buckets);
 	}
 
 	public long walk(MasterAgent masterAgent,

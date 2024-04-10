@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import Zeze.AppBase;
 import Zeze.Arch.Beans.BSend;
@@ -75,6 +76,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	// 缓存拥有Local数据的HotModule，用来优化。
 	private final ConcurrentHashSet<HotModule> hotModulesHaveLocal = new ConcurrentHashSet<>();
 	private boolean freshStopModule = false;
+	private final ReentrantLock thisLock = new ReentrantLock();
+
+	public void lock() {
+		thisLock.lock();
+	}
+
+	public void unlock() {
+		thisLock.unlock();
+	}
 
 	private void onHotModuleStop(HotModule hot) {
 		freshStopModule |= hotModulesHaveLocal.remove(hot) != null;
@@ -191,14 +201,24 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			hotManager.addHotUpgrade(this);
 	}
 
-	public synchronized void setLocalActiveTimeout(long timeout) {
-		localActiveTimeout = timeout;
+	public void setLocalActiveTimeout(long timeout) {
+		lock();
+		try {
+			localActiveTimeout = timeout;
+		} finally {
+			unlock();
+		}
 	}
 
-	public synchronized void setLocalCheckPeriod(long period) {
-		if (period <= 1)
-			throw new IllegalArgumentException();
-		localCheckPeriod = period;
+	public void setLocalCheckPeriod(long period) {
+		lock();
+		try {
+			if (period <= 1)
+				throw new IllegalArgumentException();
+			localCheckPeriod = period;
+		} finally {
+			unlock();
+		}
 	}
 
 	private void startLocalCheck() {

@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import java.net.InetAddress;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -27,6 +28,7 @@ public final class ServiceConf {
 	private final ConcurrentHashMap<String, Acceptor> acceptors = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Connector> connectors = new ConcurrentHashMap<>();
 	private int maxConnections = 1024; // 适合绝大多数网络服务，对于连接机，比如Linkd，Gated等需要自己加大。
+	private final ReentrantLock thisLock = new ReentrantLock();
 
 	public Service getService() {
 		return service;
@@ -60,13 +62,18 @@ public final class ServiceConf {
 			handshakeOptions = value;
 	}
 
-	public synchronized void setService(Service service) {
-		if (this.service != null) {
-			throw new IllegalStateException(String.format("ServiceConf of '%s' Service != null", getName()));
+	public void setService(Service service) {
+		thisLock.lock();
+		try {
+			if (this.service != null) {
+				throw new IllegalStateException(String.format("ServiceConf of '%s' Service != null", getName()));
+			}
+			this.service = service;
+			forEachAcceptor(a -> a.SetService(service));
+			forEachConnector(c -> c.SetService(service));
+		} finally {
+			thisLock.unlock();
 		}
-		this.service = service;
-		forEachAcceptor(a -> a.SetService(service));
-		forEachConnector(c -> c.SetService(service));
 	}
 
 	public void addConnector(@NotNull Connector connector) {

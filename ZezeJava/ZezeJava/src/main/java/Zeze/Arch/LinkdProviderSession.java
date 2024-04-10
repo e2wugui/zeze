@@ -45,13 +45,17 @@ public class LinkdProviderSession extends ProviderSession {
 	}
 
 	public void addLinkSession(int moduleId, long linkSessionId) {
-		synchronized (linkSessionIds) {
+		linkSessionIds.lock();
+		try {
 			linkSessionIds.computeIfAbsent(moduleId, __ -> new LongHashSet()).add(linkSessionId);
+		} finally {
+			linkSessionIds.unlock();
 		}
 	}
 
 	public void removeLinkSession(int moduleId, long linkSessionId) {
-		synchronized (linkSessionIds) {
+		linkSessionIds.lock();
+		try {
 			var linkSids = linkSessionIds.get(moduleId);
 			if (linkSids != null) {
 				if (linkSids.remove(linkSessionId)) {
@@ -62,16 +66,21 @@ public class LinkdProviderSession extends ProviderSession {
 						linkSessionIds.remove(moduleId);
 				}
 			}
+		} finally {
+			linkSessionIds.unlock();
 		}
 	}
 
 	public void updateLinkSessionId(int moduleId, long oldLinkSessionId, long newLinkSessionId) {
-		synchronized (linkSessionIds) {
+		linkSessionIds.lock();
+		try {
 			var linkSids = linkSessionIds.get(moduleId);
 			if (linkSids != null) {
 				linkSids.remove(oldLinkSessionId);
 				linkSids.add(newLinkSessionId);
 			}
+		} finally {
+			linkSessionIds.unlock();
 		}
 	}
 }

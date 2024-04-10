@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Util.FastLock;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
@@ -55,6 +56,7 @@ public class Selectors {
 	private final FastLock bbGlobalPoolLock = new FastLock(); // 全局池的锁
 	private volatile @NotNull Selector[] selectorList;
 	private final AtomicLong choiceCount = new AtomicLong();
+	private final ReentrantLock thisLock = new ReentrantLock();
 
 	public Selectors(@NotNull String name) {
 		this(name, 1, null);
@@ -157,12 +159,17 @@ public class Selectors {
 		return tmp[index];
 	}
 
-	public synchronized void close() {
-		Selector[] tmp = selectorList;
-		if (tmp != null) {
-			selectorList = null;
-			for (Selector s : tmp)
-				s.close();
+	public void close() {
+		thisLock.lock();
+		try {
+			Selector[] tmp = selectorList;
+			if (tmp != null) {
+				selectorList = null;
+				for (Selector s : tmp)
+					s.close();
+			}
+		} finally {
+			thisLock.unlock();
 		}
 	}
 }
