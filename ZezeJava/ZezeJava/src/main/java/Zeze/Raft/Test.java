@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
@@ -23,7 +24,6 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
-import Zeze.Util.FastLock;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
@@ -730,7 +730,7 @@ public class Test {
 		}
 	}
 
-	public static class TestRaft extends FastLock {
+	public static class TestRaft extends ReentrantLock {
 		private Raft raft;
 		private TestStateMachine stateMachine;
 		private final String raftConfigFileName;

@@ -33,7 +33,6 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.FastLock;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
@@ -100,18 +99,23 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	/**
 	 * 非事务环境调用。用于启动Timer服务。
 	 */
-	public synchronized void start() {
-		if (started)
-			return;
+	public void start() {
+		lock();
+		try {
+			if (started)
+				return;
 
-		started = true;
-		var hotManager = zeze.getHotManager();
-		if (null != hotManager) {
-			hotManager.addHotBeanFactory(this);
-			beanFactory.registerWatch(this::tryRecordHotModule);
+			started = true;
+			var hotManager = zeze.getHotManager();
+			if (null != hotManager) {
+				hotManager.addHotBeanFactory(this);
+				beanFactory.registerWatch(this::tryRecordHotModule);
+			}
+			// Task.run(this::loadTimer, "Timer.loadTimer");
+			loadTimer();
+		} finally {
+			unlock();
 		}
-		// Task.run(this::loadTimer, "Timer.loadTimer");
-		loadTimer();
 	}
 
 	/**
@@ -133,17 +137,22 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	/**
 	 * 停止Timer服务。
 	 */
-	public synchronized void stop() {
-		if (!started)
-			return;
-		started = false;
-		var hotManager = zeze.getHotManager();
-		if (null != hotManager) {
-			hotManager.removeHotBeanFactory(this);
-			beanFactory.unregisterWatch(this::tryRecordHotModule);
-		}
+	public void stop() {
+		lock();
+		try {
+			if (!started)
+				return;
+			started = false;
+			var hotManager = zeze.getHotManager();
+			if (null != hotManager) {
+				hotManager.removeHotBeanFactory(this);
+				beanFactory.unregisterWatch(this::tryRecordHotModule);
+			}
 
-		UnRegisterZezeTables(this.zeze);
+			UnRegisterZezeTables(this.zeze);
+		} finally {
+			unlock();
+		}
 	}
 
 	TimerHandle findTimerHandle(String handleClassName) throws Exception {

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
@@ -26,7 +27,6 @@ import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.FastLock;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
@@ -41,7 +41,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 
-public final class GlobalCacheManagerServer extends FastLock implements GlobalCacheManagerConst {
+public final class GlobalCacheManagerServer extends ReentrantLock implements GlobalCacheManagerConst {
 	static {
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
@@ -560,7 +560,8 @@ public final class GlobalCacheManagerServer extends FastLock implements GlobalCa
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.globalKey, CacheState::new);
-			synchronized (cs) { //await 等锁
+			cs.lock();
+			try { //await 等锁
 				if (cs.acquireStatePending == StateRemoved)
 					continue;
 
@@ -789,11 +790,13 @@ public final class GlobalCacheManagerServer extends FastLock implements GlobalCa
 				// 很好，网络失败不再看成成功，发现除了加break，
 				// 其他处理已经能包容这个改动，都不用动。
 				return 0;
-			} //notify
+			} finally {
+				cs.unlock();
+			}
 		}
 	}
 
-	private static final class CacheState extends FastLock {
+	private static final class CacheState extends ReentrantLock {
 		final Binary globalKey; // 这里的引用同global map的key,用于给CacheHolder里的map相同的key引用
 		final IdentityHashSet<CacheHolder> share = new IdentityHashSet<>();
 		CacheHolder modify;
@@ -829,7 +832,7 @@ public final class GlobalCacheManagerServer extends FastLock implements GlobalCa
 		}
 	}
 
-	private static final class CacheHolder extends FastLock {
+	private static final class CacheHolder extends ReentrantLock {
 		final ConcurrentHashMap<Binary, Integer> acquired = new ConcurrentHashMap<>();
 		long sessionId;
 		int globalCacheManagerHashIndex;

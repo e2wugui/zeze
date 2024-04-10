@@ -589,7 +589,7 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    public static final String ModuleName = \"{moduleName}\";");
             sw.WriteLine($"    public static final String ModuleFullName = \"{module.Path()}\";");
             sw.WriteLine();
-            sw.WriteLine($"    private final Zeze.Util.FastLock __thisLock = new Zeze.Util.FastLock();");
+            sw.WriteLine($"    private final java.util.concurrent.locks.ReentrantLock __thisLock = new java.util.concurrent.locks.ReentrantLock();");
 
             sw.WriteLine($"    @Override public void lock() {{ __thisLock.lock(); }}");
             sw.WriteLine($"    @Override public void unlock() {{ __thisLock.unlock(); }}");

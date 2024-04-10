@@ -109,7 +109,7 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"    @Override public String getFullName() {{ return ModuleFullName; }}");
                     sw.WriteLine($"    @Override public boolean isBuiltin() {{ return true; }}");
 
-                    sw.WriteLine($"    private final Zeze.Util.FastLock __thisLock = new Zeze.Util.FastLock();");
+                    sw.WriteLine($"    private final java.util.concurrent.locks.ReentrantLock __thisLock = new java.util.concurrent.locks.ReentrantLock();");
 
                     sw.WriteLine($"    @Override public void lock() {{ __thisLock.lock(); }}");
                     sw.WriteLine($"    @Override public void unlock() {{ __thisLock.unlock(); }}");

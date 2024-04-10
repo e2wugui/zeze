@@ -1,12 +1,13 @@
 package Zeze.Util;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import static Zeze.Util.DeadlockBreaker.MAX_DEPTH;
 
-public final class ThreadDiagnosable extends FastLock {
+public final class ThreadDiagnosable extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(ThreadDiagnosable.class);
 	private static final AtomicLong currentSerial = new AtomicLong();
 	private static final ConcurrentHashSet<Timeout> timeouts = new ConcurrentHashSet<>();
@@ -75,7 +76,7 @@ public final class ThreadDiagnosable extends FastLock {
 		currentSerial.incrementAndGet(); // 让正在运行的诊断任务退出。
 	}
 
-	public static final class Timeout extends FastLock implements AutoCloseable {
+	public static final class Timeout extends ReentrantLock implements AutoCloseable {
 		private @Nullable Thread thread = Thread.currentThread();
 		private final long timeoutTime;
 

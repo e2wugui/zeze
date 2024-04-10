@@ -4,13 +4,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	private transient volatile Map<K, V> read;
 	private final HashMap<K, V> write;
-	private final FastLock writeLock = new FastLock();
+	private final ReentrantLock writeLock = new ReentrantLock();
 
 	public FewModifyMap() {
 		write = new HashMap<>();

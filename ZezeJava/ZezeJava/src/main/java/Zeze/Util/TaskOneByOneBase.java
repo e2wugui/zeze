@@ -4,48 +4,59 @@ import java.util.Collection;
 import java.util.List;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class TaskOneByOneBase {
-	public synchronized <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull Procedure procedure,
+public abstract class TaskOneByOneBase extends ReentrantLock {
+	public <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull Procedure procedure,
 													  @Nullable Action0 cancel, @Nullable DispatchMode mode) {
-		if (keys.isEmpty())
-			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
+		lock();
+		try {
+			if (keys.isEmpty())
+				throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
-		keys.sort(Comparable::compareTo);
-		var group = new HashMap<TaskOneByOneQueue, OutInt>();
-		int count = 0;
-		for (var key : keys) {
-			group.computeIfAbsent(getAndLockQueue(key), __ -> new OutInt()).value++;
-			count++;
-		}
-		var barrier = new TaskOneByOneQueue.BarrierProcedure(procedure, count, cancel);
-		for (var e : group.entrySet()) {
-			var sum = e.getValue().value;
-			executeAndUnlock(e.getKey(), new TaskOneByOneQueue.TaskBarrierProcedure(barrier, sum, mode), sum);
+			keys.sort(Comparable::compareTo);
+			var group = new HashMap<TaskOneByOneQueue, OutInt>();
+			int count = 0;
+			for (var key : keys) {
+				group.computeIfAbsent(getAndLockQueue(key), __ -> new OutInt()).value++;
+				count++;
+			}
+			var barrier = new TaskOneByOneQueue.BarrierProcedure(procedure, count, cancel);
+			for (var e : group.entrySet()) {
+				var sum = e.getValue().value;
+				executeAndUnlock(e.getKey(), new TaskOneByOneQueue.TaskBarrierProcedure(barrier, sum, mode), sum);
+			}
+		} finally {
+			unlock();
 		}
 	}
 
-	public synchronized <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull String actionName,
+	public <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull String actionName,
 													  @NotNull Action0 action, @Nullable Action0 cancel,
 													  @Nullable DispatchMode mode) {
-		if (keys.isEmpty())
-			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
+		lock();
+		try {
+			if (keys.isEmpty())
+				throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
-		keys.sort(Comparable::compareTo);
-		var group = new HashMap<TaskOneByOneQueue, OutInt>();
-		int count = 0;
-		for (var key : keys) {
-			group.computeIfAbsent(getAndLockQueue(key), __ -> new OutInt()).value++;
-			count++;
-		}
-		var barrier = new TaskOneByOneQueue.BarrierAction(actionName, action, count, cancel);
-		for (var e : group.entrySet()) {
-			var sum = e.getValue().value;
-			executeAndUnlock(e.getKey(), new TaskOneByOneQueue.TaskBarrierAction(barrier, sum, mode), sum);
+			keys.sort(Comparable::compareTo);
+			var group = new HashMap<TaskOneByOneQueue, OutInt>();
+			int count = 0;
+			for (var key : keys) {
+				group.computeIfAbsent(getAndLockQueue(key), __ -> new OutInt()).value++;
+				count++;
+			}
+			var barrier = new TaskOneByOneQueue.BarrierAction(actionName, action, count, cancel);
+			for (var e : group.entrySet()) {
+				var sum = e.getValue().value;
+				executeAndUnlock(e.getKey(), new TaskOneByOneQueue.TaskBarrierAction(barrier, sum, mode), sum);
+			}
+		} finally {
+			unlock();
 		}
 	}
 

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.concurrent.locks.ReentrantLock;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -15,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
  * 3. 支持position
  * 4. 支持buffered
  */
-public final class BufferedRandomFile implements Closeable {
+public final class BufferedRandomFile extends ReentrantLock implements Closeable {
 	private final RandomAccessFile randomAccessFile;
 	private final ByteBuffer buffer;
 	private long pos = 0;
@@ -32,15 +33,25 @@ public final class BufferedRandomFile implements Closeable {
 		buffer.flip(); // ready for read out
 	}
 
-	public synchronized long getPosition() {
-		return pos;
+	public long getPosition() {
+		lock();
+		try {
+			return pos;
+		} finally {
+			unlock();
+		}
 	}
 
-	public synchronized void seek(long offset) throws IOException {
-		randomAccessFile.seek(offset);
-		buffer.clear();
-		buffer.flip(); // ready for read out
-		pos = offset;
+	public void seek(long offset) throws IOException {
+		lock();
+		try {
+			randomAccessFile.seek(offset);
+			buffer.clear();
+			buffer.flip(); // ready for read out
+			pos = offset;
+		} finally {
+			unlock();
+		}
 	}
 
 	/**
@@ -51,25 +62,30 @@ public final class BufferedRandomFile implements Closeable {
 	 * @return n read bytes, -1 means eof.
 	 * @throws IOException exception
 	 */
-	public synchronized int read(@NotNull byte[] buf, int off, int len) throws IOException {
-		var n = 0;
-		while (len > n) {
-			var remaining = buffer.remaining();
-			var copy = Math.min(remaining, len - n);
-			System.arraycopy(buffer.array(), buffer.position(), buf, off, copy);
-			buffer.position(buffer.position() + copy);
-			n += copy;
-			off += copy;
-			if (!fillBuffer()) {
-				if (n > 0) {
-					pos += n;
-					return n;
+	public int read(@NotNull byte[] buf, int off, int len) throws IOException {
+		lock();
+		try {
+			var n = 0;
+			while (len > n) {
+				var remaining = buffer.remaining();
+				var copy = Math.min(remaining, len - n);
+				System.arraycopy(buffer.array(), buffer.position(), buf, off, copy);
+				buffer.position(buffer.position() + copy);
+				n += copy;
+				off += copy;
+				if (!fillBuffer()) {
+					if (n > 0) {
+						pos += n;
+						return n;
+					}
+					return -1; // eof
 				}
-				return -1; // eof
 			}
+			pos += n;
+			return n;
+		} finally {
+			unlock();
 		}
-		pos += n;
-		return n;
 	}
 
 	/**
@@ -100,33 +116,38 @@ public final class BufferedRandomFile implements Closeable {
 		return buffer.get();
 	}
 
-	public synchronized String readLine() throws IOException {
-		var line = Zeze.Serialize.ByteBuffer.Allocate(4096);
-		int c = -1;
-		boolean eol = false;
+	public String readLine() throws IOException {
+		lock();
+		try {
+			var line = Zeze.Serialize.ByteBuffer.Allocate(4096);
+			int c = -1;
+			boolean eol = false;
 
-		while (!eol) {
-			switch (c = read()) {
-			case -1:
-			case '\n':
-				eol = true;
-				break;
-			case '\r':
-				eol = true;
-				if (peek() == '\n') {
-					read(); // 如果是换行，读走。
+			while (!eol) {
+				switch (c = read()) {
+				case -1:
+				case '\n':
+					eol = true;
+					break;
+				case '\r':
+					eol = true;
+					if (peek() == '\n') {
+						read(); // 如果是换行，读走。
+					}
+					break;
+				default:
+					line.WriteByte(c);
+					break;
 				}
-				break;
-			default:
-				line.WriteByte(c);
-				break;
 			}
-		}
 
-		if ((c == -1) && line.isEmpty()) {
-			return null;
+			if ((c == -1) && line.isEmpty()) {
+				return null;
+			}
+			return new String(line.Bytes, line.ReadIndex, line.size(), charset);
+		} finally {
+			unlock();
 		}
-		return new String(line.Bytes, line.ReadIndex, line.size(), charset);
 	}
 
 	@Override

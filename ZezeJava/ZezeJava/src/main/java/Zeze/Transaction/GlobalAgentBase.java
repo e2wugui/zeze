@@ -1,11 +1,12 @@
 package Zeze.Transaction;
 
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Services.AchillesHeelConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public abstract class GlobalAgentBase {
+public abstract class GlobalAgentBase extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(GlobalAgentBase.class);
 
 	public final Application zeze;
@@ -111,9 +112,12 @@ public abstract class GlobalAgentBase {
 	// 2. 超时没有释放完成，程序中止。see tryHalt。
 	// 3. 每个Global服务一个Releaser.
 	public void startRelease(Application zeze, Runnable endAction) {
-		synchronized (this) {
+		lock();
+		try {
 			releaser = new Releaser(zeze, globalCacheManagerHashIndex, endAction);
 			releaser.start();
+		} finally {
+			unlock();
 		}
 		cancelPending();
 	}

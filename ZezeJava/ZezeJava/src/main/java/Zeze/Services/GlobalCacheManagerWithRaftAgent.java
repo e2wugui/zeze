@@ -60,17 +60,22 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		return zz;
 	}
 
-	public final synchronized void start() throws Exception {
-		for (var agent : agents)
-			agent.getRaftClient().getClient().start();
+	public final void start() throws Exception {
+		lock();
+		try {
+			for (var agent : agents)
+				agent.getRaftClient().getClient().start();
 
-		for (var agent : agents) {
-			try {
-				agent.waitLoginSuccess();
-			} catch (Exception ignored) {
-				// raft 登录需要选择leader，所以总是会起新的登录，第一次等待会失败，所以下面尝试两次。
-				agent.waitLoginSuccess();
+			for (var agent : agents) {
+				try {
+					agent.waitLoginSuccess();
+				} catch (Exception ignored) {
+					// raft 登录需要选择leader，所以总是会起新的登录，第一次等待会失败，所以下面尝试两次。
+					agent.waitLoginSuccess();
+				}
 			}
+		} finally {
+			unlock();
 		}
 	}
 
@@ -83,9 +88,14 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 	}
 
-	public final synchronized void stop() throws Exception {
-		for (var agent : agents)
-			agent.close();
+	public final void stop() throws Exception {
+		lock();
+		try {
+			for (var agent : agents)
+				agent.close();
+		} finally {
+			unlock();
+		}
 	}
 
 	public static class ReduceBridge extends Zeze.Services.GlobalCacheManager.Reduce {
@@ -312,11 +322,14 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		public final void close() throws Exception {
-			synchronized (this) {
+			lock();
+			try {
 				// 简单保护一下，Close 正常程序退出的时候才调用这个，应该不用保护。
 				if (activeClose)
 					return;
 				activeClose = true;
+			} finally {
+				unlock();
 			}
 			if (loginTimes.get() > 0)
 				raftClient.sendForWait(new NormalClose()).await(10 * 1000); // 10s
@@ -339,9 +352,14 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			throw new IllegalStateException("login timeout.");
 		}
 
-		private synchronized TaskCompletionSource<Boolean> startNewLogin() {
-			loginFuture.cancel(true); // 如果旧的Future上面有人在等，让他们失败。
-			return loginFuture = new TaskCompletionSource<>();
+		private TaskCompletionSource<Boolean> startNewLogin() {
+			lock();
+			try {
+				loginFuture.cancel(true); // 如果旧的Future上面有人在等，让他们失败。
+				return loginFuture = new TaskCompletionSource<>();
+			} finally {
+				unlock();
+			}
 		}
 
 		private void raftOnSetLeader(Agent agent) {

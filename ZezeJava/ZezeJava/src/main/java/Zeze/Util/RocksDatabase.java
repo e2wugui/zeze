@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Database;
@@ -20,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.rocksdb.*;
 
-public class RocksDatabase implements Closeable {
+public class RocksDatabase extends ReentrantLock implements Closeable {
 	static {
 		RocksDB.loadLibrary();
 	}
@@ -262,83 +263,103 @@ public class RocksDatabase implements Closeable {
 		return getOrAddTable(name, null);
 	}
 
-	public synchronized @NotNull Table getOrAddTable(@NotNull String name, @Nullable OutObject<Boolean> isNew)
+	public @NotNull Table getOrAddTable(@NotNull String name, @Nullable OutObject<Boolean> isNew)
 			throws RocksDBException {
-		var table = tableMap.get(name);
-		if (table != null) {
+		lock();
+		try {
+			var table = tableMap.get(name);
+			if (table != null) {
+				if (isNew != null)
+					isNew.value = false;
+				return table;
+			}
 			if (isNew != null)
-				isNew.value = false;
+				isNew.value = true;
+			table = new Table(name, rocksDb.createColumnFamily(
+					new ColumnFamilyDescriptor(name.getBytes(StandardCharsets.UTF_8), commonCfOptions)));
+			tableMap.put(name, table);
 			return table;
+		} finally {
+			unlock();
 		}
-		if (isNew != null)
-			isNew.value = true;
-		table = new Table(name, rocksDb.createColumnFamily(
-				new ColumnFamilyDescriptor(name.getBytes(StandardCharsets.UTF_8), commonCfOptions)));
-		tableMap.put(name, table);
-		return table;
 	}
 
 	public @NotNull Table @NotNull [] getOrAddTables(String @NotNull [] names) throws RocksDBException {
 		return getOrAddTables(names, null);
 	}
 
-	public synchronized @NotNull Table @NotNull [] getOrAddTables(String @NotNull [] names,
+	public @NotNull Table @NotNull [] getOrAddTables(String @NotNull [] names,
 																  boolean @Nullable [] isNews) throws RocksDBException {
-		var n = names.length;
-		var tables = new Table[n];
-		var newIndexes = new IntList();
-		var newNames = new ArrayList<byte[]>();
-		for (int i = 0; i < n; i++) {
-			var table = tableMap.get(names[i]);
-			if (table != null)
-				tables[i] = table;
-			else {
-				newIndexes.add(i);
-				newNames.add(names[i].getBytes(StandardCharsets.UTF_8));
-			}
-			if (isNews != null && i < isNews.length)
-				isNews[i] = table == null;
-		}
-		n = newIndexes.size();
-		if (n > 0) {
-			var cfhs = rocksDb.createColumnFamilies(commonCfOptions, newNames);
-			if (cfhs.size() != newNames.size()) {
-				throw new IllegalStateException("createColumnFamilies unmatched: "
-						+ cfhs.size() + " != " + newNames.size());
-			}
+		lock();
+		try {
+			var n = names.length;
+			var tables = new Table[n];
+			var newIndexes = new IntList();
+			var newNames = new ArrayList<byte[]>();
 			for (int i = 0; i < n; i++) {
-				var idx = newIndexes.get(i);
-				var table = new Table(names[idx], cfhs.get(i));
-				tableMap.put(table.name, table);
-				tables[idx] = table;
+				var table = tableMap.get(names[i]);
+				if (table != null)
+					tables[i] = table;
+				else {
+					newIndexes.add(i);
+					newNames.add(names[i].getBytes(StandardCharsets.UTF_8));
+				}
+				if (isNews != null && i < isNews.length)
+					isNews[i] = table == null;
 			}
+			n = newIndexes.size();
+			if (n > 0) {
+				var cfhs = rocksDb.createColumnFamilies(commonCfOptions, newNames);
+				if (cfhs.size() != newNames.size()) {
+					throw new IllegalStateException("createColumnFamilies unmatched: "
+							+ cfhs.size() + " != " + newNames.size());
+				}
+				for (int i = 0; i < n; i++) {
+					var idx = newIndexes.get(i);
+					var table = new Table(names[idx], cfhs.get(i));
+					tableMap.put(table.name, table);
+					tables[idx] = table;
+				}
+			}
+			return tables;
+		} finally {
+			unlock();
 		}
-		return tables;
 	}
 
-	public synchronized boolean dropTable(@NotNull String name) throws RocksDBException {
-		var table = tableMap.remove(name);
-		if (table == null)
-			return false;
-		var cfh = table.getCfHandle();
-		rocksDb.dropColumnFamily(cfh);
-		rocksDb.destroyColumnFamilyHandle(cfh);
-		return true;
-	}
-
-	public synchronized int dropTables(String @NotNull [] names) throws RocksDBException {
-		var cfhs = new ArrayList<ColumnFamilyHandle>();
-		for (var name : names) {
+	public boolean dropTable(@NotNull String name) throws RocksDBException {
+		lock();
+		try {
 			var table = tableMap.remove(name);
-			if (table != null)
-				cfhs.add(table.getCfHandle());
-		}
-		if (cfhs.isEmpty())
-			return 0;
-		rocksDb.dropColumnFamilies(cfhs);
-		for (var cfh : cfhs)
+			if (table == null)
+				return false;
+			var cfh = table.getCfHandle();
+			rocksDb.dropColumnFamily(cfh);
 			rocksDb.destroyColumnFamilyHandle(cfh);
-		return cfhs.size();
+			return true;
+		} finally {
+			unlock();
+		}
+	}
+
+	public int dropTables(String @NotNull [] names) throws RocksDBException {
+		lock();
+		try {
+			var cfhs = new ArrayList<ColumnFamilyHandle>();
+			for (var name : names) {
+				var table = tableMap.remove(name);
+				if (table != null)
+					cfhs.add(table.getCfHandle());
+			}
+			if (cfhs.isEmpty())
+				return 0;
+			rocksDb.dropColumnFamilies(cfhs);
+			for (var cfh : cfhs)
+				rocksDb.destroyColumnFamilyHandle(cfh);
+			return cfhs.size();
+		} finally {
+			unlock();
+		}
 	}
 
 	// Batch用完时需确保调用close回收堆外内存,推荐使用try(var b = newBatch()) {...}
@@ -348,20 +369,26 @@ public class RocksDatabase implements Closeable {
 
 	// Batch用完时需确保调用close归还pool,推荐使用try(var b = borrowBatch()) {...}
 	public @NotNull Batch borrowBatch() {
-		synchronized (this) {
+		lock();
+		try {
 			var bp = batchPool;
 			if (bp == null)
 				batchPool = bp = new ArrayList<>();
 			int n = bp.size();
 			if (n > 0)
 				return bp.remove(n - 1);
+		} finally {
+			unlock();
 		}
 		return new Batch() {
 			@Override
 			public void close() {
-				synchronized (RocksDatabase.this) {
+				RocksDatabase.this.lock();
+				try {
 					clear();
 					batchPool.add(this);
+				} finally {
+					RocksDatabase.this.unlock();
 				}
 			}
 		};
@@ -385,15 +412,20 @@ public class RocksDatabase implements Closeable {
 	}
 
 	@Override
-	public synchronized void close() {
-		var bp = batchPool;
-		if (bp != null) {
-			for (var b : bp)
-				b.batch.close();
-			bp.clear();
+	public void close() {
+		lock();
+		try {
+			var bp = batchPool;
+			if (bp != null) {
+				for (var b : bp)
+					b.batch.close();
+				bp.clear();
+			}
+			tableMap.clear();
+			rocksDb.close();
+		} finally {
+			unlock();
 		}
-		tableMap.clear();
-		rocksDb.close();
 	}
 
 	public static void backup(@NotNull String checkpointDir, @NotNull String backupDir) throws RocksDBException {

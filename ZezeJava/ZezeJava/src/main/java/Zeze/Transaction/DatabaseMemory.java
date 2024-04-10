@@ -45,30 +45,40 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	}
 
 	@Override
-	public synchronized DataWithVersion getDataWithVersion(ByteBuffer key) {
-		var exist = dataWithVersions.get(key);
-		if (exist == null)
-			return null;
-		var copy = new DataWithVersion();
-		copy.data = ByteBuffer.Wrap(exist.data.Copy());
-		copy.version = exist.version;
-		return copy;
+	public DataWithVersion getDataWithVersion(ByteBuffer key) {
+		lock();
+		try {
+			var exist = dataWithVersions.get(key);
+			if (exist == null)
+				return null;
+			var copy = new DataWithVersion();
+			copy.data = ByteBuffer.Wrap(exist.data.Copy());
+			copy.version = exist.version;
+			return copy;
+		} finally {
+			unlock();
+		}
 	}
 
 	@Override
-	public synchronized KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
-		var exist = dataWithVersions.get(key);
-		if (exist != null) {
-			if (exist.version != version)
-				return KV.create(exist.version, false);
-			exist.data = ByteBuffer.Wrap(data.Copy());
-			return KV.create(++exist.version, true);
+	public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+		lock();
+		try {
+			var exist = dataWithVersions.get(key);
+			if (exist != null) {
+				if (exist.version != version)
+					return KV.create(exist.version, false);
+				exist.data = ByteBuffer.Wrap(data.Copy());
+				return KV.create(++exist.version, true);
+			}
+			DataWithVersion tempVar = new DataWithVersion();
+			tempVar.data = ByteBuffer.Wrap(data.Copy());
+			tempVar.version = version;
+			dataWithVersions.put(ByteBuffer.Wrap(key.Copy()), tempVar);
+			return KV.create(version, true);
+		} finally {
+			unlock();
 		}
-		DataWithVersion tempVar = new DataWithVersion();
-		tempVar.data = ByteBuffer.Wrap(data.Copy());
-		tempVar.version = version;
-		dataWithVersions.put(ByteBuffer.Wrap(key.Copy()), tempVar);
-		return KV.create(version, true);
 	}
 
 	public final class MemTrans implements Transaction {

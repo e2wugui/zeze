@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
@@ -24,7 +25,7 @@ import static Zeze.Services.GlobalCacheManagerConst.StateShare;
  * 数据访问的效率主要来自TableCache的命中。根据以往的经验，命中率是很高的。
  * 所以数据库层就不要求很高的效率。马马虎虎就可以了。
  */
-public abstract class Database {
+public abstract class Database extends ReentrantLock {
 	protected static final Logger logger = LogManager.getLogger(Database.class);
 
 	// 当数据库对Key长度有限制时，使用这个常量。这个数字来自 PolarDb-X。其中MySql 8是3072.

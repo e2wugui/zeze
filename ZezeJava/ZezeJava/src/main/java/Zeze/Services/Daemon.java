@@ -19,10 +19,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import Zeze.Util.FastLock;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -42,7 +42,7 @@ public class Daemon {
 	private static Process subprocess;
 
 	private static final LongConcurrentHashMap<PendingPacket> pendings = new LongConcurrentHashMap<>();
-	private static final FastLock pendingsLock = new FastLock();
+	private static final ReentrantLock pendingsLock = new ReentrantLock();
 	private static volatile Future<?> timer;
 
 	public static long getLongProperty(String name, long def) {
@@ -257,7 +257,7 @@ public class Daemon {
 		private final String fileName;
 		private final RandomAccessFile raf;
 		private final FileChannel channel;
-		private final FastLock channelLock = new FastLock();
+		private final ReentrantLock channelLock = new ReentrantLock();
 		private final MappedByteBuffer mmap;
 		private volatile boolean running = true;
 

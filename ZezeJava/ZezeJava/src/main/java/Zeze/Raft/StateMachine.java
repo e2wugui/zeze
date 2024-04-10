@@ -1,12 +1,12 @@
 package Zeze.Raft;
 
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
-import Zeze.Util.FastLock;
 import Zeze.Util.LongConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public abstract class StateMachine extends FastLock {
+public abstract class StateMachine extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(StateMachine.class);
 
 	private Raft raft;

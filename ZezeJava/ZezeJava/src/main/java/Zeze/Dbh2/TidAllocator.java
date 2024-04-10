@@ -1,9 +1,9 @@
 package Zeze.Dbh2;
 
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Util.FastLock;
+import java.util.concurrent.locks.ReentrantLock;
 
-public class TidAllocator extends FastLock {
+public class TidAllocator extends ReentrantLock {
 	private volatile Range range; // 只有 raft 修改，单线程。
 	private static final int ALLOCATE_COUNT_MIN = 64;
 	private static final int ALLOCATE_COUNT_MAX = 1024 * 1024;

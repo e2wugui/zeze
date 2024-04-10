@@ -1,8 +1,9 @@
 package Zeze.Services.ServiceManager;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
-public final class AutoKey {
+public final class AutoKey extends ReentrantLock {
 	private final String name;
 	private final AbstractAgent agent;
 	private final AtomicLong current = new AtomicLong();
@@ -55,11 +56,14 @@ public final class AutoKey {
 				continue;
 			}
 
-			synchronized (this) {
+			lock();
+			try {
 				if (idEnd == end) {
 					adjustAllocateCount();
 					agent.allocate(this, allocateCount);
 				}
+			} finally {
+				unlock();
 			}
 		}
 	}

@@ -7,13 +7,14 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import Zeze.Serialize.ByteBuffer;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-public class Cache {
+public class Cache extends ReentrantLock {
 	private final String name;
 	private final Function<String, CacheObject> loader;
 	private final BiFunction<String, ByteBuffer, CacheObject> decoder;
@@ -116,7 +117,8 @@ public class Cache {
 		// 第一次执行时，如果nowDays等于0（即days的初始值），会返回null。
 		// 这种情况就不处理了。
 		if (todayDays != nowDays) {
-			synchronized (this) {
+			lock();
+			try {
 				if (todayDays != nowDays) {
 					todayDays = nowDays;
 					if (null != todayFile)
@@ -124,6 +126,8 @@ public class Cache {
 					todayFile = new FileOutputStream(Paths.get(name, "days_" + todayDays).toFile());
 				}
 				return todayFile;
+			} finally {
+				unlock();
 			}
 		}
 		return todayFile;

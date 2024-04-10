@@ -3,8 +3,9 @@ package Zeze.Services.Log4jQuery;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
-public class Log4jLog {
+public class Log4jLog extends ReentrantLock {
 	private final long time;
 	private final long offset;
 	private volatile String log;
@@ -32,9 +33,12 @@ public class Log4jLog {
 		if (null != tmp)
 			return tmp;
 
-		synchronized (this) {
+		lock();
+		try {
 			log = lines.toString();
 			return log;
+		} finally {
+			unlock();
 		}
 	}
 

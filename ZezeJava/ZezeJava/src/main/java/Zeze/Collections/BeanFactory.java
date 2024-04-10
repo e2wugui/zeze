@@ -5,6 +5,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.jar.JarFile;
 import Zeze.Application;
@@ -15,7 +16,6 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.FastLock;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
@@ -27,15 +27,15 @@ import org.jetbrains.annotations.Nullable;
 public final class BeanFactory {
 	private static final Logger logger = LogManager.getLogger(BeanFactory.class);
 	private static final LongHashMap<Object> allClassNameMap = new LongHashMap<>();
-	private static final FastLock allClassNameMapLock = new FastLock();
+	private static final ReentrantLock allClassNameMapLock = new ReentrantLock();
 	private static final LongHashMap<Object> allDataClassNameMap = new LongHashMap<>();
 	private static Application zeze;
 
 	private final LongHashMap<MethodHandle> writingBeanFactory = new LongHashMap<>();
-	private final FastLock writingBeanFactoryLock = new FastLock();
+	private final ReentrantLock writingBeanFactoryLock = new ReentrantLock();
 	private volatile @Nullable LongHashMap<MethodHandle> readingBeanFactory;
 	private final LongHashMap<MethodHandle> writingDataFactory = new LongHashMap<>();
-	private final FastLock writingDataFactoryLock = new FastLock();
+	private final ReentrantLock writingDataFactoryLock = new ReentrantLock();
 	private volatile @Nullable LongHashMap<MethodHandle> readingDataFactory;
 	private final ConcurrentHashSet<Consumer<Class<?>>> globalToLocalWatchers = new ConcurrentHashSet<>();
 

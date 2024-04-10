@@ -1,10 +1,12 @@
 package Zeze.Util;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * 用于几秒内的计数，
  * 每秒删除队头的计数，
  */
-public class TimeCounter extends FastLock {
+public class TimeCounter extends ReentrantLock {
 	private final CounterSecond[] counters; // 5-10个。
 	private int lastIndex;
 

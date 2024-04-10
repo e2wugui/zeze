@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Onz.BSavedCommits;
 import Zeze.Builtin.Onz.Checkpoint;
 import Zeze.Builtin.Onz.Commit;
@@ -18,7 +19,6 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Data;
 import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.FastLock;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -33,7 +33,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 	private A argument;
 	private R result;
 	private boolean pendingAsync = false;
-	private final FastLock thisLock = new FastLock();
+	private final ReentrantLock thisLock = new ReentrantLock();
 	private final Condition thisCond = thisLock.newCondition();
 
 	void waitPendingAsync() throws InterruptedException {

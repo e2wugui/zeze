@@ -35,6 +35,7 @@ public final class Task {
 	// 开启热更时，由App.HotManager初始化的时候设置。
 	@SuppressWarnings("CanBeFinal")
 	public static volatile Factory<HotGuard> hotGuard = () -> null;
+	private static final FastLock taskLock = new FastLock();
 
 	public interface ILogAction {
 		void run(Throwable ex, long result, Protocol<?> p, String actionName);
@@ -92,18 +93,23 @@ public final class Task {
 		return Executors.newCachedThreadPool(new ThreadFactoryWithName(threadNamePrefix, Thread.NORM_PRIORITY + 2));
 	}
 
-	public static synchronized void initThreadPool(@NotNull ExecutorService pool,
+	public static void initThreadPool(@NotNull ExecutorService pool,
 												   @NotNull ScheduledExecutorService scheduled) {
-		//noinspection ConstantValue
-		if (pool == null || scheduled == null)
-			throw new IllegalArgumentException();
+		taskLock.lock();
+		try {
+			//noinspection ConstantValue
+			if (pool == null || scheduled == null)
+				throw new IllegalArgumentException();
 
-		if (threadPoolDefault != null || threadPoolScheduled != null)
-			throw new IllegalStateException("ThreadPool Has Inited.");
-		threadPoolDefault = pool;
-		threadPoolScheduled = scheduled;
-		threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
-		ThreadDiagnosable.startDiagnose(30_000);
+			if (threadPoolDefault != null || threadPoolScheduled != null)
+				throw new IllegalStateException("ThreadPool Has Inited.");
+			threadPoolDefault = pool;
+			threadPoolScheduled = scheduled;
+			threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
+			ThreadDiagnosable.startDiagnose(30_000);
+		} finally {
+			taskLock.unlock();
+		}
 	}
 
 	public static boolean tryInitThreadPool() {
@@ -114,30 +120,35 @@ public final class Task {
 		return tryInitThreadPool(app, null, null);
 	}
 
-	public static synchronized boolean tryInitThreadPool(@Nullable Application app, @Nullable ExecutorService pool,
+	public static boolean tryInitThreadPool(@Nullable Application app, @Nullable ExecutorService pool,
 														 @Nullable ScheduledExecutorService scheduled) {
-		if (threadPoolDefault != null || threadPoolScheduled != null)
-			return false;
+		taskLock.lock();
+		try {
+			if (threadPoolDefault != null || threadPoolScheduled != null)
+				return false;
 
-		if (pool == null) {
-			int workerThreads = app == null ? 240 : (app.getConfig().getWorkerThreads() > 0
-					? app.getConfig().getWorkerThreads()
-					: Runtime.getRuntime().availableProcessors() * 30);
-			threadPoolDefault = newFixedThreadPool(workerThreads, "ZezeTaskPool");
-		} else
-			threadPoolDefault = pool;
+			if (pool == null) {
+				int workerThreads = app == null ? 240 : (app.getConfig().getWorkerThreads() > 0
+						? app.getConfig().getWorkerThreads()
+						: Runtime.getRuntime().availableProcessors() * 30);
+				threadPoolDefault = newFixedThreadPool(workerThreads, "ZezeTaskPool");
+			} else
+				threadPoolDefault = pool;
 
-		if (scheduled == null) {
-			int workerThreads = app == null ? 8 : (app.getConfig().getScheduledThreads() > 0
-					? app.getConfig().getScheduledThreads()
-					: Runtime.getRuntime().availableProcessors());
-			threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
-					new ThreadFactoryWithName("ZezeScheduledPool", Thread.NORM_PRIORITY, USE_VIRTUAL_THREAD));
-		} else
-			threadPoolScheduled = scheduled;
-		threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
-		ThreadDiagnosable.startDiagnose(30_000);
-		return true;
+			if (scheduled == null) {
+				int workerThreads = app == null ? 8 : (app.getConfig().getScheduledThreads() > 0
+						? app.getConfig().getScheduledThreads()
+						: Runtime.getRuntime().availableProcessors());
+				threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
+						new ThreadFactoryWithName("ZezeScheduledPool", Thread.NORM_PRIORITY, USE_VIRTUAL_THREAD));
+			} else
+				threadPoolScheduled = scheduled;
+			threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
+			ThreadDiagnosable.startDiagnose(30_000);
+			return true;
+		} finally {
+			taskLock.unlock();
+		}
 	}
 
 	// 注意必须使用try包装,确保create和close配对

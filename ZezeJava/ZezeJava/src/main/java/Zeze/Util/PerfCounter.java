@@ -20,7 +20,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public final class PerfCounter {
+public final class PerfCounter extends FastLock {
 	public static final @NotNull Logger logger = LogManager.getLogger("StatLog");
 
 	private static class RunInfo {
@@ -219,28 +219,48 @@ public final class PerfCounter {
 		return directCount.get();
 	}
 
-	public synchronized int registerCountIndex(String name) {
-		int n = countInfos.length;
-		var cis = new CountInfo[n + 1];
-		cis[n] = new CountInfo(name);
-		System.arraycopy(countInfos, 0, cis, 0, n);
-		countInfos = cis;
-		return n;
+	public int registerCountIndex(String name) {
+		lock();
+		try {
+			int n = countInfos.length;
+			var cis = new CountInfo[n + 1];
+			cis[n] = new CountInfo(name);
+			System.arraycopy(countInfos, 0, cis, 0, n);
+			countInfos = cis;
+			return n;
+		} finally {
+			unlock();
+		}
 	}
 
 	// 只能在启动统计前调用
-	public synchronized boolean addExcludeRunKey(@NotNull String key) {
-		return excludeRunKeys.add(key);
+	public boolean addExcludeRunKey(@NotNull String key) {
+		lock();
+		try {
+			return excludeRunKeys.add(key);
+		} finally {
+			unlock();
+		}
 	}
 
 	// 只能在启动统计前调用
-	public synchronized boolean addExcludeRunKey(@NotNull Class<?> cls) {
-		return excludeRunKeys.add(cls);
+	public boolean addExcludeRunKey(@NotNull Class<?> cls) {
+		lock();
+		try {
+			return excludeRunKeys.add(cls);
+		} finally {
+			unlock();
+		}
 	}
 
 	// 只能在启动统计前调用
-	public synchronized boolean addExcludeProtocolTypeId(long typeId) {
-		return excludeProtocolTypeIds.add(typeId);
+	public boolean addExcludeProtocolTypeId(long typeId) {
+		lock();
+		try {
+			return excludeProtocolTypeIds.add(typeId);
+		} finally {
+			unlock();
+		}
 	}
 
 	public void addRunInfo(@NotNull Object key, long timeNs) {
@@ -386,19 +406,29 @@ public final class PerfCounter {
 		return scheduleFuture;
 	}
 
-	public synchronized @Nullable ScheduledFuture<?> tryStartScheduledLog() {
-		var f = scheduleFuture;
-		if (ENABLE_PERF && (f == null || f.isCancelled())) {
-			var periodMs = Math.max(PERF_PERIOD, 1) * 1000L;
-			scheduleFuture = f = Task.scheduleUnsafe(periodMs, periodMs, () -> logger.info(getLogAndReset()));
+	public @Nullable ScheduledFuture<?> tryStartScheduledLog() {
+		lock();
+		try {
+			var f = scheduleFuture;
+			if (ENABLE_PERF && (f == null || f.isCancelled())) {
+				var periodMs = Math.max(PERF_PERIOD, 1) * 1000L;
+				scheduleFuture = f = Task.scheduleUnsafe(periodMs, periodMs, () -> logger.info(getLogAndReset()));
+			}
+			return f;
+		} finally {
+			unlock();
 		}
-		return f;
 	}
 
-	public synchronized boolean cancelScheduledLog() {
-		var f = scheduleFuture;
-		scheduleFuture = null;
-		return f != null && f.cancel(false);
+	public boolean cancelScheduledLog() {
+		lock();
+		try {
+			var f = scheduleFuture;
+			scheduleFuture = null;
+			return f != null && f.cancel(false);
+		} finally {
+			unlock();
+		}
 	}
 
 	public void resetCounter() {
@@ -410,172 +440,177 @@ public final class PerfCounter {
 		}
 	}
 
-	public synchronized @NotNull String getLogAndReset() {
-		if (!ENABLE_PERF)
-			return lastLog = "";
-		var curTime = System.currentTimeMillis();
-		var time = curTime - lastLogTime;
-		lastLogTime = curTime;
-		var curCpuTime = osBean.getProcessCpuTime();
-		var cpuTime = curCpuTime - lastCpuTime;
-		lastCpuTime = curCpuTime;
+	public @NotNull String getLogAndReset() {
+		lock();
+		try {
+			if (!ENABLE_PERF)
+				return lastLog = "";
+			var curTime = System.currentTimeMillis();
+			var time = curTime - lastLogTime;
+			lastLogTime = curTime;
+			var curCpuTime = osBean.getProcessCpuTime();
+			var cpuTime = curCpuTime - lastCpuTime;
+			lastCpuTime = curCpuTime;
 
-		var procCountAll = 0L;
-		var procTimeAll = 0L;
-		var rList = new ArrayList<RunInfo>(runInfoMap.size());
-		for (var it = runInfoMap.values().iterator(); it.hasNext(); ) {
-			var ri = it.next();
-			ri.lastProcCount = ri.procCount.sumThenReset();
-			if (ri.lastProcCount == 0) {
-				if (++ri.idleCount >= RunInfo.MAX_IDLE_COUNT)
-					it.remove();
-				continue;
+			var procCountAll = 0L;
+			var procTimeAll = 0L;
+			var rList = new ArrayList<RunInfo>(runInfoMap.size());
+			for (var it = runInfoMap.values().iterator(); it.hasNext(); ) {
+				var ri = it.next();
+				ri.lastProcCount = ri.procCount.sumThenReset();
+				if (ri.lastProcCount == 0) {
+					if (++ri.idleCount >= RunInfo.MAX_IDLE_COUNT)
+						it.remove();
+					continue;
+				}
+				ri.lastProcTime = ri.procTime.sumThenReset();
+				procCountAll += ri.lastProcCount;
+				procTimeAll += ri.lastProcTime;
+				ri.idleCount = 0;
+				rList.add(ri);
 			}
-			ri.lastProcTime = ri.procTime.sumThenReset();
-			procCountAll += ri.lastProcCount;
-			procTimeAll += ri.lastProcTime;
-			ri.idleCount = 0;
-			rList.add(ri);
-		}
-		var runtime = Runtime.getRuntime();
-		@SuppressWarnings("deprecation")
-		var sb = new StringBuilder(100 + 50 * 3 * PERF_COUNT).append("count last ").append(time).append("ms:\n")
-				.append(" [load: ").append(cpuTime / 1_000_000).append("ms ")
-				.append(String.format("%.2f%%", osBean.getProcessCpuLoad() * 100))
-				.append(" free/total/max:").append(runtime.freeMemory() >> 20)
-				.append('/').append(runtime.totalMemory() >> 20).append('/').append(runtime.maxMemory() >> 20)
-				.append("M direct:").append(getReservedDirectMemory() >> 20).append('/')
-				.append(getMaxDirectMemory() >> 20).append('M').append(',')
-				.append(getTotalDirectCapacity() >> 20).append('M').append('/').append(getDirectCount())
-				.append(" commit/free/all:").append(osBean.getCommittedVirtualMemorySize() >> 20).append('/')
-				.append(osBean.getFreePhysicalMemorySize() >> 20).append('+')
-				.append(osBean.getFreeSwapSpaceSize() >> 20).append('/')
-				.append(osBean.getTotalPhysicalMemorySize() >> 20).append('+')
-				.append(osBean.getTotalSwapSpaceSize() >> 20)
-				.append("M]\n [run: ").append(procCountAll).append(',').append(' ')
-				.append(procTimeAll / 1_000_000).append("ms]\n");
-		rList.sort((ri0, ri1) -> Long.signum(ri1.lastProcTime - ri0.lastProcTime));
-		for (int i = 0, n = Math.min(rList.size(), PERF_COUNT); i < n; i++) {
-			var ri = rList.get(i);
-			var perTime = ri.lastProcTime / ri.lastProcCount;
-			sb.append(' ').append(' ').append(ri.name).append(':').append(' ').append(ri.lastProcTime / 1_000_000)
-					.append("ms = ").append(ri.lastProcCount).append(" * ")
-					.append(numFormatter.format(perTime)).append("ns\n");
-		}
-
-		procCountAll = 0;
-		procTimeAll = 0;
-		var recvSizeAll = 0L;
-		var sendCountAll = 0L;
-		var sendSizeAll = 0L;
-		var pList = new ArrayList<ProtocolInfo>(protocolInfoMap.size());
-		for (var it = protocolInfoMap.entryIterator(); it.moveToNext(); ) {
-			var pi = it.value();
-			pi.lastProcCount = pi.procCount.sumThenReset();
-			pi.lastSendCount = pi.sendCount.sumThenReset();
-			if ((pi.lastProcCount | pi.lastSendCount) == 0) {
-				if (++pi.idleCount >= RunInfo.MAX_IDLE_COUNT)
-					protocolInfoMap.remove(it.key());
-				continue;
+			var runtime = Runtime.getRuntime();
+			@SuppressWarnings("deprecation")
+			var sb = new StringBuilder(100 + 50 * 3 * PERF_COUNT).append("count last ").append(time).append("ms:\n")
+					.append(" [load: ").append(cpuTime / 1_000_000).append("ms ")
+					.append(String.format("%.2f%%", osBean.getProcessCpuLoad() * 100))
+					.append(" free/total/max:").append(runtime.freeMemory() >> 20)
+					.append('/').append(runtime.totalMemory() >> 20).append('/').append(runtime.maxMemory() >> 20)
+					.append("M direct:").append(getReservedDirectMemory() >> 20).append('/')
+					.append(getMaxDirectMemory() >> 20).append('M').append(',')
+					.append(getTotalDirectCapacity() >> 20).append('M').append('/').append(getDirectCount())
+					.append(" commit/free/all:").append(osBean.getCommittedVirtualMemorySize() >> 20).append('/')
+					.append(osBean.getFreePhysicalMemorySize() >> 20).append('+')
+					.append(osBean.getFreeSwapSpaceSize() >> 20).append('/')
+					.append(osBean.getTotalPhysicalMemorySize() >> 20).append('+')
+					.append(osBean.getTotalSwapSpaceSize() >> 20)
+					.append("M]\n [run: ").append(procCountAll).append(',').append(' ')
+					.append(procTimeAll / 1_000_000).append("ms]\n");
+			rList.sort((ri0, ri1) -> Long.signum(ri1.lastProcTime - ri0.lastProcTime));
+			for (int i = 0, n = Math.min(rList.size(), PERF_COUNT); i < n; i++) {
+				var ri = rList.get(i);
+				var perTime = ri.lastProcTime / ri.lastProcCount;
+				sb.append(' ').append(' ').append(ri.name).append(':').append(' ').append(ri.lastProcTime / 1_000_000)
+						.append("ms = ").append(ri.lastProcCount).append(" * ")
+						.append(numFormatter.format(perTime)).append("ns\n");
 			}
-			pi.lastProcTime = pi.procTime.sumThenReset();
-			pi.lastRecvSize = pi.recvSize.sumThenReset();
-			pi.lastSendSize = pi.sendSize.sumThenReset();
-			procCountAll += pi.lastProcCount;
-			procTimeAll += pi.lastProcTime;
-			recvSizeAll += pi.lastRecvSize;
-			sendCountAll += pi.lastSendCount;
-			sendSizeAll += pi.lastSendSize;
-			pi.idleCount = 0;
-			pList.add(pi);
-		}
-		sb.append(" [recv: ").append(procCountAll).append(',').append(' ').append(recvSizeAll / 1000).append("K, ")
-				.append(procTimeAll / 1_000_000).append("ms]\n");
-		pList.sort((pi0, pi1) -> Long.signum(pi1.lastProcTime - pi0.lastProcTime));
-		for (int i = 0, n = Math.min(pList.size(), PERF_COUNT); i < n; i++) {
-			var pi = pList.get(i);
-			if (pi.lastProcCount == 0)
-				continue;
-			var perTime = pi.lastProcTime / pi.lastProcCount;
-			var perSize = pi.lastRecvSize / pi.lastProcCount;
-			sb.append(' ').append(' ').append(pi.name).append(':').append(' ').append(pi.lastProcTime / 1_000_000)
-					.append("ms = ").append(pi.lastProcCount).append(" * ")
-					.append(numFormatter.format(perTime)).append("ns,")
-					.append(numFormatter.format(perSize)).append('B').append('\n');
-		}
-		sb.append(" [send: ").append(sendCountAll).append(',').append(' ').append(sendSizeAll / 1000).append("K]\n");
-		pList.sort((pi0, pi1) -> Long.signum(pi1.lastSendSize - pi0.lastSendSize));
-		for (int i = 0, n = Math.min(pList.size(), PERF_COUNT); i < n; i++) {
-			var pi = pList.get(i);
-			if (pi.lastSendCount == 0)
-				break;
-			var perSize = pi.lastSendSize / pi.lastSendCount;
-			sb.append(' ').append(' ').append(pi.name).append(':').append(' ').append(pi.lastSendSize / 1_000)
-					.append("K = ").append(pi.lastSendCount).append(" * ")
-					.append(numFormatter.format(perSize)).append('B').append('\n');
-		}
 
-		var procedureTotal = 0L;
-		var procedureSucc = 0L;
-		var prList = new ArrayList<ProcedureInfo>(procedureInfoMap.size());
-		for (var it = procedureInfoMap.values().iterator(); it.hasNext(); ) {
-			var pi = it.next();
-			pi.resultMapLast = pi.resultMap;
-			pi.resultMap = new LongConcurrentHashMap<>();
-			var totalCount = 0L;
-			var succCount = 0L;
-			for (var it2 = pi.resultMapLast.entryIterator(); it2.moveToNext(); ) {
-				var v = it2.value().sum();
-				totalCount += v;
-				if (it2.key() == 0)
-					succCount = v;
+			procCountAll = 0;
+			procTimeAll = 0;
+			var recvSizeAll = 0L;
+			var sendCountAll = 0L;
+			var sendSizeAll = 0L;
+			var pList = new ArrayList<ProtocolInfo>(protocolInfoMap.size());
+			for (var it = protocolInfoMap.entryIterator(); it.moveToNext(); ) {
+				var pi = it.value();
+				pi.lastProcCount = pi.procCount.sumThenReset();
+				pi.lastSendCount = pi.sendCount.sumThenReset();
+				if ((pi.lastProcCount | pi.lastSendCount) == 0) {
+					if (++pi.idleCount >= RunInfo.MAX_IDLE_COUNT)
+						protocolInfoMap.remove(it.key());
+					continue;
+				}
+				pi.lastProcTime = pi.procTime.sumThenReset();
+				pi.lastRecvSize = pi.recvSize.sumThenReset();
+				pi.lastSendSize = pi.sendSize.sumThenReset();
+				procCountAll += pi.lastProcCount;
+				procTimeAll += pi.lastProcTime;
+				recvSizeAll += pi.lastRecvSize;
+				sendCountAll += pi.lastSendCount;
+				sendSizeAll += pi.lastSendSize;
+				pi.idleCount = 0;
+				pList.add(pi);
 			}
-			if (totalCount == 0) {
-				if (++pi.idleCount >= ProcedureInfo.MAX_IDLE_COUNT)
-					it.remove();
-				continue;
+			sb.append(" [recv: ").append(procCountAll).append(',').append(' ').append(recvSizeAll / 1000).append("K, ")
+					.append(procTimeAll / 1_000_000).append("ms]\n");
+			pList.sort((pi0, pi1) -> Long.signum(pi1.lastProcTime - pi0.lastProcTime));
+			for (int i = 0, n = Math.min(pList.size(), PERF_COUNT); i < n; i++) {
+				var pi = pList.get(i);
+				if (pi.lastProcCount == 0)
+					continue;
+				var perTime = pi.lastProcTime / pi.lastProcCount;
+				var perSize = pi.lastRecvSize / pi.lastProcCount;
+				sb.append(' ').append(' ').append(pi.name).append(':').append(' ').append(pi.lastProcTime / 1_000_000)
+						.append("ms = ").append(pi.lastProcCount).append(" * ")
+						.append(numFormatter.format(perTime)).append("ns,")
+						.append(numFormatter.format(perSize)).append('B').append('\n');
 			}
-			procedureTotal += totalCount;
-			procedureSucc += succCount;
-			pi.totalCount = totalCount;
-			pi.succRatio = (int)(succCount * 100 / totalCount);
-			pi.idleCount = 0;
-			prList.add(pi);
-		}
-		sb.append(" [procedure: ").append(procedureSucc).append('/').append(procedureTotal).append('=')
-				.append(procedureTotal != 0 ? procedureSucc * 100 / procedureTotal : 0).append("%]\n");
-		prList.sort((pi0, pi1) -> {
-			var c = pi0.succRatio - pi1.succRatio;
-			return c != 0 ? Long.signum(c) : Long.signum(pi1.totalCount - pi0.totalCount);
-		});
-		for (int i = 0, n = Math.min(prList.size(), PERF_COUNT); i < n; i++)
-			sb.append(' ').append(' ').append(prList.get(i)).append('\n');
+			sb.append(" [send: ").append(sendCountAll).append(',').append(' ').append(sendSizeAll / 1000).append("K]\n");
+			pList.sort((pi0, pi1) -> Long.signum(pi1.lastSendSize - pi0.lastSendSize));
+			for (int i = 0, n = Math.min(pList.size(), PERF_COUNT); i < n; i++) {
+				var pi = pList.get(i);
+				if (pi.lastSendCount == 0)
+					break;
+				var perSize = pi.lastSendSize / pi.lastSendCount;
+				sb.append(' ').append(' ').append(pi.name).append(':').append(' ').append(pi.lastSendSize / 1_000)
+						.append("K = ").append(pi.lastSendCount).append(" * ")
+						.append(numFormatter.format(perSize)).append('B').append('\n');
+			}
 
-		var tList = new ArrayList<TableInfo>(tableInfoMap.size());
-		for (var ti : tableInfoMap)
-			tList.add(ti.checkpointAndReset());
-		sb.append(" [table: ").append(tList.size()).append(']').append('\n');
-		int n = Math.min(tList.size(), PERF_COUNT);
-		if (n > 0) {
-			tList.sort((ti0, ti1) -> Long.signum(ti1.lockCount - ti0.lockCount));
-			sb.append(' ').append(' ').append(TableInfo.getLogTitle()).append('\n');
-			for (int i = 0; i < n; i++)
-				sb.append(' ').append(' ').append(tList.get(i)).append('\n');
-		}
+			var procedureTotal = 0L;
+			var procedureSucc = 0L;
+			var prList = new ArrayList<ProcedureInfo>(procedureInfoMap.size());
+			for (var it = procedureInfoMap.values().iterator(); it.hasNext(); ) {
+				var pi = it.next();
+				pi.resultMapLast = pi.resultMap;
+				pi.resultMap = new LongConcurrentHashMap<>();
+				var totalCount = 0L;
+				var succCount = 0L;
+				for (var it2 = pi.resultMapLast.entryIterator(); it2.moveToNext(); ) {
+					var v = it2.value().sum();
+					totalCount += v;
+					if (it2.key() == 0)
+						succCount = v;
+				}
+				if (totalCount == 0) {
+					if (++pi.idleCount >= ProcedureInfo.MAX_IDLE_COUNT)
+						it.remove();
+					continue;
+				}
+				procedureTotal += totalCount;
+				procedureSucc += succCount;
+				pi.totalCount = totalCount;
+				pi.succRatio = (int)(succCount * 100 / totalCount);
+				pi.idleCount = 0;
+				prList.add(pi);
+			}
+			sb.append(" [procedure: ").append(procedureSucc).append('/').append(procedureTotal).append('=')
+					.append(procedureTotal != 0 ? procedureSucc * 100 / procedureTotal : 0).append("%]\n");
+			prList.sort((pi0, pi1) -> {
+				var c = pi0.succRatio - pi1.succRatio;
+				return c != 0 ? Long.signum(c) : Long.signum(pi1.totalCount - pi0.totalCount);
+			});
+			for (int i = 0, n = Math.min(prList.size(), PERF_COUNT); i < n; i++)
+				sb.append(' ').append(' ').append(prList.get(i)).append('\n');
 
-		var cList = new ArrayList<CountInfo>(countInfos.length);
-		for (var ci : countInfos) {
-			ci.lastCount = ci.count.sumThenReset();
-			if (ci.lastCount != 0)
-				cList.add(ci);
-		}
-		if (!cList.isEmpty()) {
-			cList.sort((ci0, ci1) -> Long.signum(ci1.lastCount - ci0.lastCount));
-			sb.append(" [count]\n");
-			for (var ci : cList)
-				sb.append(' ').append(' ').append(ci.name).append(':').append(' ').append(ci.lastCount).append('\n');
-		}
+			var tList = new ArrayList<TableInfo>(tableInfoMap.size());
+			for (var ti : tableInfoMap)
+				tList.add(ti.checkpointAndReset());
+			sb.append(" [table: ").append(tList.size()).append(']').append('\n');
+			int n = Math.min(tList.size(), PERF_COUNT);
+			if (n > 0) {
+				tList.sort((ti0, ti1) -> Long.signum(ti1.lockCount - ti0.lockCount));
+				sb.append(' ').append(' ').append(TableInfo.getLogTitle()).append('\n');
+				for (int i = 0; i < n; i++)
+					sb.append(' ').append(' ').append(tList.get(i)).append('\n');
+			}
 
-		return lastLog = sb.toString();
+			var cList = new ArrayList<CountInfo>(countInfos.length);
+			for (var ci : countInfos) {
+				ci.lastCount = ci.count.sumThenReset();
+				if (ci.lastCount != 0)
+					cList.add(ci);
+			}
+			if (!cList.isEmpty()) {
+				cList.sort((ci0, ci1) -> Long.signum(ci1.lastCount - ci0.lastCount));
+				sb.append(" [count]\n");
+				for (var ci : cList)
+					sb.append(' ').append(' ').append(ci.name).append(':').append(' ').append(ci.lastCount).append('\n');
+			}
+
+			return lastLog = sb.toString();
+		} finally {
+			unlock();
+		}
 	}
 }

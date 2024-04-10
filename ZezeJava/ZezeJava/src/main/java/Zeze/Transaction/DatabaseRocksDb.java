@@ -60,7 +60,8 @@ public class DatabaseRocksDb extends Database {
 		for (var tks : tableKeys.entrySet())
 			result.put(tks.getKey(), new HashMap<>(tks.getValue().size()));
 
-		synchronized (rocksDb) {
+		lock();
+		try {
 			for (var tks : tableKeys.entrySet()) {
 				var tableName = tks.getKey();
 				var table = getTable(tableName);
@@ -76,6 +77,8 @@ public class DatabaseRocksDb extends Database {
 					}
 				}
 			}
+		} finally {
+			unlock();
 		}
 		return result;
 	}
@@ -112,12 +115,15 @@ public class DatabaseRocksDb extends Database {
 				return;
 
 			if (null != verifyAction) {
-				synchronized (rocksDb) {
+				lock();
+				try {
 					try {
 						batch.commit(RocksDatabase.getDefaultWriteOptions());
 					} catch (RocksDBException e) {
 						Task.forceThrow(e);
 					}
+				} finally {
+					unlock();
 				}
 			} else {
 				try {
@@ -141,12 +147,15 @@ public class DatabaseRocksDb extends Database {
 		}
 	}
 
-	private synchronized @NotNull RocksDatabase.Table getOrAddTable(String name, @Nullable OutObject<Boolean> isNew) {
+	private @NotNull RocksDatabase.Table getOrAddTable(String name, @Nullable OutObject<Boolean> isNew) {
+		lock();
 		try {
 			return rocksDb.getOrAddTable(name, isNew);
 		} catch (RocksDBException e) {
 			Task.forceThrow(e);
 			return null; // never run here
+		} finally {
+			unlock();
 		}
 	}
 
@@ -158,7 +167,8 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	@Override
-	public synchronized @NotNull Table @NotNull [] openTables(String @NotNull [] names, int @NotNull [] ids) {
+	public @NotNull Table @NotNull [] openTables(String @NotNull [] names, int @NotNull [] ids) {
+		lock();
 		try {
 			var n = names.length;
 			var tables = new Table[n];
@@ -170,6 +180,8 @@ public class DatabaseRocksDb extends Database {
 		} catch (RocksDBException e) {
 			Task.forceThrow(e);
 			return null; // never run here
+		} finally {
+			unlock();
 		}
 	}
 
@@ -407,17 +419,21 @@ public class DatabaseRocksDb extends Database {
 		private final RocksDatabase.Table table = getOrAddTable("zeze.OperatesRocksDb.Schemas", null);
 
 		@Override
-		public synchronized DataWithVersion getDataWithVersion(ByteBuffer key) {
+		public DataWithVersion getDataWithVersion(ByteBuffer key) {
+			lock();
 			try {
 				return DataWithVersion.decode(table.get(key.Bytes, key.ReadIndex, key.size()));
 			} catch (RocksDBException e) {
 				Task.forceThrow(e);
 				return null; // never run here
+			} finally {
+				unlock();
 			}
 		}
 
 		@Override
-		public synchronized KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+			lock();
 			try {
 				var dv = DataWithVersion.decode(table.get(key.Bytes, key.ReadIndex, key.size()));
 				if (dv.version != version)
@@ -432,6 +448,8 @@ public class DatabaseRocksDb extends Database {
 			} catch (RocksDBException e) {
 				Task.forceThrow(e);
 				return null; // never run here
+			} finally {
+				unlock();
 			}
 		}
 

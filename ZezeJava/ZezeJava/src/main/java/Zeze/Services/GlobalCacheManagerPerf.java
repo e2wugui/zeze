@@ -5,14 +5,14 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Net.Protocol;
-import Zeze.Util.FastLock;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
-public class GlobalCacheManagerPerf extends FastLock {
+public class GlobalCacheManagerPerf extends ReentrantLock {
 	private static final int ACQUIRE_STATE_COUNT = 3;
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerPerf.class);
 

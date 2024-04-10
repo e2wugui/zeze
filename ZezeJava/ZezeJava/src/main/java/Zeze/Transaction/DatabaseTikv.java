@@ -87,34 +87,44 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public synchronized KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
-			var value = table.find(key);
-			var dv = new DataWithVersion();
-			if (value != null)
-				dv.decode(value);
-			if (dv.version != version)
-				return KV.create(version, false);
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+			lock();
+			try {
+				var value = table.find(key);
+				var dv = new DataWithVersion();
+				if (value != null)
+					dv.decode(value);
+				if (dv.version != version)
+					return KV.create(version, false);
 
-			dv.version = ++version;
-			dv.data = data;
-			var bb = ByteBuffer.Allocate(5 + 9 + dv.data.size());
-			dv.encode(bb);
-			try (var txn = beginTransaction()) {
-				table.replace(txn, key, bb);
-				txn.commit();
-			} catch (Exception e) {
-				Task.forceThrow(e);
+				dv.version = ++version;
+				dv.data = data;
+				var bb = ByteBuffer.Allocate(5 + 9 + dv.data.size());
+				dv.encode(bb);
+				try (var txn = beginTransaction()) {
+					table.replace(txn, key, bb);
+					txn.commit();
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+				return KV.create(version, true);
+			} finally {
+				unlock();
 			}
-			return KV.create(version, true);
 		}
 
 		@Override
-		public synchronized DataWithVersion getDataWithVersion(ByteBuffer key) {
-			var dv = new DataWithVersion();
-			var value = table.find(key);
-			if (value != null)
-				dv.decode(value);
-			return dv;
+		public DataWithVersion getDataWithVersion(ByteBuffer key) {
+			lock();
+			try {
+				var dv = new DataWithVersion();
+				var value = table.find(key);
+				if (value != null)
+					dv.decode(value);
+				return dv;
+			} finally {
+				unlock();
+			}
 		}
 
 		@Override

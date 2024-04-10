@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
@@ -32,7 +33,6 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.Action1;
 import Zeze.Util.AsyncLock;
-import Zeze.Util.FastLock;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
@@ -47,7 +47,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public final class GlobalCacheManagerAsyncServer extends FastLock implements GlobalCacheManagerConst {
+public final class GlobalCacheManagerAsyncServer extends ReentrantLock implements GlobalCacheManagerConst {
 	static {
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
@@ -949,7 +949,7 @@ public final class GlobalCacheManagerAsyncServer extends FastLock implements Glo
 		}
 	}
 
-	private static final class CacheHolder extends FastLock {
+	private static final class CacheHolder extends ReentrantLock {
 		final ConcurrentHashMap<Binary, Integer> acquired = new ConcurrentHashMap<>();
 		long sessionId;
 		int globalCacheManagerHashIndex;

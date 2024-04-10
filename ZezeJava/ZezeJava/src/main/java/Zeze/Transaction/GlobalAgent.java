@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -21,7 +22,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public final class GlobalAgent implements IGlobalAgent {
+public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 	private static final Logger logger = LogManager.getLogger(GlobalAgent.class);
 
 	public static final class Agent extends GlobalAgentBase {
@@ -99,11 +100,14 @@ public final class GlobalAgent implements IGlobalAgent {
 
 		public void close() {
 			try {
-				synchronized (this) {
+				lock();
+				try {
 					// 简单保护一下重复主动调用 Close
 					if (activeClose)
 						return;
 					activeClose = true;
+				} finally {
+					unlock();
 				}
 				var ready = connector.TryGetReadySocket();
 				if (ready != null)
@@ -271,22 +275,32 @@ public final class GlobalAgent implements IGlobalAgent {
 		}
 	}
 
-	public synchronized void start() throws Exception {
-		client.start();
+	public void start() throws Exception {
+		lock();
+		try {
+			client.start();
 
-		for (var agent : agents) {
-			try {
-				agent.connect();
-			} catch (Throwable ex) { // logger.error
-				// 允许部分GlobalCacheManager连接错误时，继续启动程序，虽然后续相关事务都会失败。
-				logger.error("GlobalAgent.Connect", ex);
+			for (var agent : agents) {
+				try {
+					agent.connect();
+				} catch (Throwable ex) { // logger.error
+					// 允许部分GlobalCacheManager连接错误时，继续启动程序，虽然后续相关事务都会失败。
+					logger.error("GlobalAgent.Connect", ex);
+				}
 			}
+		} finally {
+			unlock();
 		}
 	}
 
-	public synchronized void stop() throws Exception {
-		for (var agent : agents)
-			agent.close();
-		client.stop();
+	public void stop() throws Exception {
+		lock();
+		try {
+			for (var agent : agents)
+				agent.close();
+			client.stop();
+		} finally {
+			unlock();
+		}
 	}
 }

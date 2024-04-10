@@ -48,10 +48,15 @@ public class DatabaseRedis extends Database {
 	}
 
 	@Override
-	public synchronized void close() {
-		logger.info("close: {}", getDatabaseUrl());
-		super.close();
-		pool.close();
+	public void close() {
+		lock();
+		try {
+			logger.info("close: {}", getDatabaseUrl());
+			super.close();
+			pool.close();
+		} finally {
+			unlock();
+		}
 	}
 
 	@Override

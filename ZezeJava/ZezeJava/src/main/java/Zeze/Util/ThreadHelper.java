@@ -2,6 +2,8 @@ package Zeze.Util;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -10,14 +12,14 @@ public class ThreadHelper extends Thread {
 
 	private volatile boolean running = true;
 	private boolean idle = true;
-	private final FastLock thisLock = new FastLock();
+	private final ReentrantLock thisLock = new ReentrantLock();
 	private final Condition thisCond = thisLock.newCondition();
 
 	public Condition getThisCond() {
 		return thisCond;
 	}
 
-	public FastLock getThisLock() {
+	public Lock getThisLock() {
 		return thisLock;
 	}
 

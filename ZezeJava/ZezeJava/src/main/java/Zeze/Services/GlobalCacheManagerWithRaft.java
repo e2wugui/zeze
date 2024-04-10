@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquiredState;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.BCacheState;
@@ -128,7 +129,8 @@ public class GlobalCacheManagerWithRaft
 		if (raft != null && raft.isLeader()) {
 			sessions.forEach(session -> {
 				if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
-					synchronized (session) {
+					session.lock();
+					try {
 						session.kick();
 						var Acquired = serverAcquiredTemplate.openTable(session.serverId);
 						try {
@@ -155,6 +157,8 @@ public class GlobalCacheManagerWithRaft
 							// 但是删除session并发上复杂点。先这样了。
 							session.setActiveTime(System.currentTimeMillis());
 						}
+					} finally {
+						session.unlock();
 					}
 				}
 			});
@@ -800,7 +804,7 @@ public class GlobalCacheManagerWithRaft
 		}
 	}
 
-	private static final class CacheHolder {
+	private static final class CacheHolder extends ReentrantLock {
 		final GlobalCacheManagerWithRaft globalRaft;
 		final int serverId;
 		private long sessionId;
@@ -839,34 +843,44 @@ public class GlobalCacheManagerWithRaft
 			this.debugMode = debugMode;
 		}
 
-		synchronized boolean tryBindSocket(AsyncSocket newSocket, int globalCacheManagerHashIndex) {
-			if (newSocket.getUserState() != null && newSocket.getUserState() != this)
-				return false; // 允许重复login|relogin，但不允许切换ServerId。
+		boolean tryBindSocket(AsyncSocket newSocket, int globalCacheManagerHashIndex) {
+			lock();
+			try {
+				if (newSocket.getUserState() != null && newSocket.getUserState() != this)
+					return false; // 允许重复login|relogin，但不允许切换ServerId。
 
-			var socket = globalRaft.getRocks().getRaft().getServer().GetSocket(sessionId);
-			if (socket == null || socket == newSocket) {
-				// old socket not exist or has lost.
-				sessionId = newSocket.getSessionId();
-				newSocket.setUserState(this);
-				this.globalCacheManagerHashIndex = globalCacheManagerHashIndex;
-				return true;
+				var socket = globalRaft.getRocks().getRaft().getServer().GetSocket(sessionId);
+				if (socket == null || socket == newSocket) {
+					// old socket not exist or has lost.
+					sessionId = newSocket.getSessionId();
+					newSocket.setUserState(this);
+					this.globalCacheManagerHashIndex = globalCacheManagerHashIndex;
+					return true;
+				}
+				// 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
+				return false;
+			} finally {
+				unlock();
 			}
-			// 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
-			return false;
 		}
 
-		synchronized boolean tryUnBindSocket(AsyncSocket oldSocket) {
-			// 这里检查比较严格，但是这些检查应该都不会出现。
+		boolean tryUnBindSocket(AsyncSocket oldSocket) {
+			lock();
+			try {
+				// 这里检查比较严格，但是这些检查应该都不会出现。
 
-			if (oldSocket.getUserState() != this)
-				return false; // not bind to this
+				if (oldSocket.getUserState() != this)
+					return false; // not bind to this
 
-			var socket = globalRaft.getRocks().getRaft().getServer().GetSocket(sessionId);
-			if (socket != null && socket != oldSocket)
-				return false; // not same socket
+				var socket = globalRaft.getRocks().getRaft().getServer().GetSocket(sessionId);
+				if (socket != null && socket != oldSocket)
+					return false; // not same socket
 
-			sessionId = 0;
-			return true;
+				sessionId = 0;
+				return true;
+			} finally {
+				unlock();
+			}
 		}
 
 		void setError() {

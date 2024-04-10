@@ -135,34 +135,49 @@ public final class Token extends AbstractToken {
 		}
 
 		@Override
-		public synchronized void start() throws Exception {
-			if (connector != null)
-				stop();
-			var cfg = getConfig();
-			int n = cfg.connectorCount();
-			if (n != 1)
-				throw new IllegalStateException("connectorCount = " + n + " != 1");
-			cfg.forEachConnector(c -> this.connector = c);
-			super.start();
+		public void start() throws Exception {
+			lock();
+			try {
+				if (connector != null)
+					stop();
+				var cfg = getConfig();
+				int n = cfg.connectorCount();
+				if (n != 1)
+					throw new IllegalStateException("connectorCount = " + n + " != 1");
+				cfg.forEachConnector(c -> this.connector = c);
+				super.start();
+			} finally {
+				unlock();
+			}
 		}
 
-		public synchronized @NotNull TokenClient start(@NotNull String host, int port) throws Exception {
-			if (connector != null)
-				stop();
-			connector = new Connector(host, port, true);
-			connector.SetService(this);
-			connector.setAutoReconnect(true);
-			connector.start();
-			return this;
+		public @NotNull TokenClient start(@NotNull String host, int port) throws Exception {
+			lock();
+			try {
+				if (connector != null)
+					stop();
+				connector = new Connector(host, port, true);
+				connector.SetService(this);
+				connector.setAutoReconnect(true);
+				connector.start();
+				return this;
+			} finally {
+				unlock();
+			}
 		}
 
 		@Override
-		public synchronized void stop() throws Exception {
-			if (connector != null) {
-				connector.stop();
-				connector = null;
+		public void stop() throws Exception {
+			lock();
+			try {
+				if (connector != null) {
+					connector.stop();
+					connector = null;
+				}
+				super.stop();
+			} finally {
+				unlock();
 			}
-			super.stop();
 		}
 
 		public void waitReady() {
@@ -474,69 +489,84 @@ public final class Token extends AbstractToken {
 	}
 
 	// 参数host,port优先; 如果传null/<=0则以conf为准; 如果conf也没配置则用默认值null/DEFAULT_PORT
-	public synchronized Token start(@Nullable Config conf, @Nullable String host, int port) throws Exception {
-		if (service != null)
-			return this;
+	public Token start(@Nullable Config conf, @Nullable String host, int port) throws Exception {
+		lock();
+		try {
+			if (service != null)
+				return this;
 
-		rocksdb = new RocksDatabase(PropertiesHelper.getString("token.rocksdb", "token_db"));
-		tokenMapTable = rocksdb.getOrAddTable("tokenMap");
+			rocksdb = new RocksDatabase(PropertiesHelper.getString("token.rocksdb", "token_db"));
+			tokenMapTable = rocksdb.getOrAddTable("tokenMap");
 
-		synchronized (Token.class) {
-			if (tokenRefCleaner == null) {
-				tokenRefCleaner = new Thread(Token::cleanTokenRef, "TokenRefCleaner");
-				tokenRefCleaner.setDaemon(true);
-				tokenRefCleaner.setPriority(Thread.MAX_PRIORITY);
-				tokenRefCleaner.start();
+			synchronized (Token.class) {
+				if (tokenRefCleaner == null) {
+					tokenRefCleaner = new Thread(Token::cleanTokenRef, "TokenRefCleaner");
+					tokenRefCleaner.setDaemon(true);
+					tokenRefCleaner.setPriority(Thread.MAX_PRIORITY);
+					tokenRefCleaner.start();
+				}
 			}
+
+			PerfCounter.instance.tryStartScheduledLog();
+
+			service = new TokenServer(conf != null ? conf : new Config().loadAndParse());
+			RegisterProtocols(service);
+			var sc = service.getConfig();
+			if (sc.acceptorCount() == 0)
+				sc.addAcceptor(new Acceptor(port > 0 ? port : DEFAULT_PORT, host));
+			else {
+				sc.forEachAcceptor2(acceptor -> {
+					if (host != null)
+						acceptor.setIp(host);
+					if (port > 0)
+						acceptor.setPort(port);
+					return false;
+				});
+			}
+			service.start();
+
+			cleanTokenMapFuture = Task.scheduleUnsafe(1000, 1000, this::cleanTokenMap);
+			cleanTokenMapTableFuture = Task.scheduleAtUnsafe(3, 14, this::cleanTokenMapTable);
+			return this;
+		} finally {
+			unlock();
 		}
-
-		PerfCounter.instance.tryStartScheduledLog();
-
-		service = new TokenServer(conf != null ? conf : new Config().loadAndParse());
-		RegisterProtocols(service);
-		var sc = service.getConfig();
-		if (sc.acceptorCount() == 0)
-			sc.addAcceptor(new Acceptor(port > 0 ? port : DEFAULT_PORT, host));
-		else {
-			sc.forEachAcceptor2(acceptor -> {
-				if (host != null)
-					acceptor.setIp(host);
-				if (port > 0)
-					acceptor.setPort(port);
-				return false;
-			});
-		}
-		service.start();
-
-		cleanTokenMapFuture = Task.scheduleUnsafe(1000, 1000, this::cleanTokenMap);
-		cleanTokenMapTableFuture = Task.scheduleAtUnsafe(3, 14, this::cleanTokenMapTable);
-		return this;
 	}
 
-	public synchronized void stop() throws Exception {
-		if (cleanTokenMapTableFuture != null) {
-			cleanTokenMapTableFuture.cancel(true);
-			cleanTokenMapTableFuture = null;
+	public void stop() throws Exception {
+		lock();
+		try {
+			if (cleanTokenMapTableFuture != null) {
+				cleanTokenMapTableFuture.cancel(true);
+				cleanTokenMapTableFuture = null;
+			}
+			if (cleanTokenMapFuture != null) {
+				cleanTokenMapFuture.cancel(true);
+				cleanTokenMapFuture = null;
+			}
+			if (service != null) {
+				service.stop();
+				service = null;
+			}
+			if (rocksdb != null)
+				saveDB();
+			tokenMap.clear();
+		} finally {
+			unlock();
 		}
-		if (cleanTokenMapFuture != null) {
-			cleanTokenMapFuture.cancel(true);
-			cleanTokenMapFuture = null;
-		}
-		if (service != null) {
-			service.stop();
-			service = null;
-		}
-		if (rocksdb != null)
-			saveDB();
-		tokenMap.clear();
 	}
 
-	public synchronized void closeDb() {
-		if (rocksdb != null) {
-			rocksdb.close();
-			rocksdb = null;
+	public void closeDb() {
+		lock();
+		try {
+			if (rocksdb != null) {
+				rocksdb.close();
+				rocksdb = null;
+			}
+			tokenMapTable = null;
+		} finally {
+			unlock();
 		}
-		tokenMapTable = null;
 	}
 
 	private void cleanTokenMap() {

@@ -1,20 +1,22 @@
 package Zeze.Util;
 
-public abstract class Cube<TObject> {
+import java.util.concurrent.locks.ReentrantLock;
+
+public abstract class Cube<TObject> extends ReentrantLock {
 	public static final int StateNormal = 0;
 	public static final int StateRemoved = -1;
 
 	/**
 	 * 子类实现可以利用这个状态，自定义状态必须大于等于0，负数保留给内部使用。
 	 */
-	private int state;
+	private int cubeState;
 
-	public final int getState() {
-		return state;
+	public final int getCubeState() {
+		return cubeState;
 	}
 
-	public final void setState(int value) {
-		state = value;
+	public final void setCubeState(int value) {
+		cubeState = value;
 	}
 
 	// under lock(cube)

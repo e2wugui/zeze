@@ -14,12 +14,12 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLException;
 import Zeze.Application;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.FastLock;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.GlobalTimer;
 import Zeze.Util.PropertiesHelper;
@@ -80,7 +80,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected @Nullable SslContext sslCtx;
 	protected @Nullable Future<?> scheduler;
 	protected @Nullable ChannelFuture channelFuture;
-	private final FastLock thisLock = new FastLock();
+	private final ReentrantLock thisLock = new ReentrantLock();
 
 	public void lock() {
 		thisLock.lock();

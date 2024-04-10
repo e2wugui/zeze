@@ -76,9 +76,12 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	public final void tryPerform(CubeIndex index, CubeHandle<TCube> action) {
 		var cube = cubes.get(index);
 		if (cube != null) {
-			synchronized (cube) {
-				if (cube.getState() != Cube.StateRemoved)
+			cube.lock();
+			try {
+				if (cube.getCubeState() != Cube.StateRemoved)
 					action.handle(index, cube);
+			} finally {
+				cube.unlock();
 			}
 		}
 	}
@@ -90,11 +93,14 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	public final void perform(CubeIndex index, CubeHandle<TCube> action) {
 		while (true) {
 			var cube = cubes.computeIfAbsent(index, __ -> factory.create());
-			synchronized (cube) {
-				if (cube.getState() == Cube.StateRemoved)
+			cube.lock();
+			try {
+				if (cube.getCubeState() == Cube.StateRemoved)
 					continue;
 				action.handle(index, cube);
 				break;
+			} finally {
+				cube.unlock();
 			}
 		}
 	}
@@ -120,7 +126,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 
 	private void removeObject(CubeIndex index, TCube cube, TObject obj) {
 		if (cube.remove(index, obj)) {
-			cube.setState(Cube.StateRemoved);
+			cube.setCubeState(Cube.StateRemoved);
 			cubes.remove(index, cube);
 		}
 	}

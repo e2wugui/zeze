@@ -7,8 +7,9 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.ReentrantLock;
 
-public class Counters {
+public class Counters extends ReentrantLock {
 	private static volatile boolean enable = false;
 
 	public static void setEnable(boolean value) {
@@ -52,23 +53,28 @@ public class Counters {
 			counters.computeIfAbsent(name, __ -> new LongAdder()).increment();
 	}
 
-	private synchronized void report() {
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-		var c = Calendar.getInstance();
-		var sb = new StringBuilder();
-		sb.append(dateFormat.format(c.getTime())).append(name).append("\n");
-		var changed = false;
-		for (var e : counters.entrySet()) {
-			var prev = reports.computeIfAbsent(e.getKey(), __ -> new AtomicLong());
-			var total = e.getValue().sum();
-			var diff = total - prev.get();
-			if (diff > 0)
-				changed = true;
-			var count = (long)(diff * 1000.0f / period);
-			sb.append(e.getKey()).append(" = ").append(count).append('\n');
-			prev.set(total);
+	private void report() {
+		lock();
+		try {
+			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+			var c = Calendar.getInstance();
+			var sb = new StringBuilder();
+			sb.append(dateFormat.format(c.getTime())).append(name).append("\n");
+			var changed = false;
+			for (var e : counters.entrySet()) {
+				var prev = reports.computeIfAbsent(e.getKey(), __ -> new AtomicLong());
+				var total = e.getValue().sum();
+				var diff = total - prev.get();
+				if (diff > 0)
+					changed = true;
+				var count = (long)(diff * 1000.0f / period);
+				sb.append(e.getKey()).append(" = ").append(count).append('\n');
+				prev.set(total);
+			}
+			if (changed)
+				System.out.println(sb);
+		} finally {
+			unlock();
 		}
-		if (changed)
-			System.out.println(sb);
 	}
 }

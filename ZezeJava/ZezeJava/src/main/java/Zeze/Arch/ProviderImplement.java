@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Arch.Beans.BSend;
 import Zeze.Builtin.Provider.AnnounceLinkInfo;
 import Zeze.Builtin.Provider.BKick;
@@ -20,7 +21,6 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.FastLock;
 import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
@@ -36,7 +36,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	protected ProviderApp providerApp;
 	private volatile int controlKick = BKick.eControlClose;
-	private final FastLock thisLock = new FastLock();
+	private final ReentrantLock thisLock = new ReentrantLock();
 
 	@Override
 	public void lock() {

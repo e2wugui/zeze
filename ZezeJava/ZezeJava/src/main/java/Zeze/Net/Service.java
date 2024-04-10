@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import Zeze.Application;
@@ -22,7 +23,6 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
 import Zeze.Util.Factory;
-import Zeze.Util.FastLock;
 import Zeze.Util.GlobalTimer;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
@@ -37,7 +37,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class Service extends FastLock {
+public class Service extends ReentrantLock {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
 	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(1);
 	private static final @NotNull VarHandle closedRecvCountHandle, closedRecvSizeHandle;

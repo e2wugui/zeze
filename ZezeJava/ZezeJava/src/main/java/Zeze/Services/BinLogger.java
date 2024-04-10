@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
@@ -46,7 +47,7 @@ import org.jetbrains.annotations.Nullable;
 瓶颈及风险: 如果发送的日志速率超过写日志线程的写入速率,会达到传输队列指定的条数或大小上限,导致服务器端接收日志的IO线程暂停工作,
       进而导致客户端无法发送或产生堆积,此时发送方应主动丢弃. 记录的日志时间戳由服务器端在写入时确定. 过时的日志文件需要其它清理手段.
 */
-public final class BinLogger extends FastLock {
+public final class BinLogger extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(BinLogger.class);
 	private static final int perfIndexSendLogFail = PerfCounter.instance.registerCountIndex("BinLogger.SendLogFail");
 	private static final int perfIndexWriteLog = PerfCounter.instance.registerCountIndex("BinLogger.WriteLog");

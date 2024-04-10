@@ -6,6 +6,7 @@ import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import org.jetbrains.annotations.NotNull;
 
 public class PersistentAtomicLong {
@@ -46,7 +47,8 @@ public class PersistentAtomicLong {
 
 		try {
 			var fs = open(fileName);
-			synchronized (fs) {
+			fs.lock();
+			try {
 				var lock = fs.getChannel().lock();
 				try {
 					var line = fs.readLine();
@@ -58,6 +60,8 @@ public class PersistentAtomicLong {
 				} finally {
 					lock.release();
 				}
+			} finally {
+				fs.unlock();
 			}
 		} catch (IOException e) {
 			Task.forceThrow(e);
@@ -80,12 +84,26 @@ public class PersistentAtomicLong {
 		}
 	}
 
-	private static final ConcurrentHashMap<String, RandomAccessFile> allocFiles = new ConcurrentHashMap<>();
+	public static class FileWithLock extends RandomAccessFile {
+		public final ReentrantLock thisLock = new ReentrantLock();
+		public FileWithLock(String name, String mode) throws FileNotFoundException {
+			super(name, mode);
+		}
 
-	private static @NotNull RandomAccessFile open(@NotNull String fileName) {
+		public void lock() {
+			thisLock.lock();
+		}
+
+		public void unlock() {
+			thisLock.unlock();
+		}
+	}
+	private static final ConcurrentHashMap<String, FileWithLock> allocFiles = new ConcurrentHashMap<>();
+
+	private static @NotNull FileWithLock open(@NotNull String fileName) {
 		return allocFiles.computeIfAbsent(fileName, (k) -> {
 			try {
-				return new RandomAccessFile(k, "rw");
+				return new FileWithLock(k, "rw");
 			} catch (FileNotFoundException e) {
 				Task.forceThrow(e);
 				return null; // never run here
@@ -97,7 +115,8 @@ public class PersistentAtomicLong {
 		try {
 			// 应该尽量减少allocate的次数，所以这里文件就不保持打开了。
 			var fs = open(fileName);
-			synchronized (fs) {
+			fs.lock();
+			try {
 				var lock = fs.getChannel().lock();
 				try {
 					if (currentId.get() < allocated)
@@ -117,6 +136,8 @@ public class PersistentAtomicLong {
 				} finally {
 					lock.release();
 				}
+			} finally {
+				fs.unlock();
 			}
 		} catch (Exception e) {
 			Task.forceThrow(e);

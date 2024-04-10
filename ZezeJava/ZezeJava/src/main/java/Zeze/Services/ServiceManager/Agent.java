@@ -339,16 +339,21 @@ public final class Agent extends AbstractAgent {
 		return threading;
 	}
 
-	public synchronized void stop() throws Exception {
-		if (client != null) {
-			var so = client.getSocket();
-			if (so != null) // 有可能提前关闭,so==null时执行下面这行会抛异常
-				new NormalClose().SendAndWaitCheckResultCode(so);
-			client.stop();
-		}
-		if (null != threading) {
-			threading.close();
-			threading = null;
+	public void stop() throws Exception {
+		lock();
+		try {
+			if (client != null) {
+				var so = client.getSocket();
+				if (so != null) // 有可能提前关闭,so==null时执行下面这行会抛异常
+					new NormalClose().SendAndWaitCheckResultCode(so);
+				client.stop();
+			}
+			if (null != threading) {
+				threading.close();
+				threading = null;
+			}
+		} finally {
+			unlock();
 		}
 	}
 

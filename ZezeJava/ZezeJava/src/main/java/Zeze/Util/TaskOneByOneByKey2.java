@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import org.apache.logging.log4j.LogManager;
@@ -18,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
  * 同TaskOneByOneByKey,只是用ConcurrentLinkedQueue代替ArrayDeque和锁.
  * 另外由于不用临界区,shutdown和加任务的并发很难做,所以暂时不支持shutdown,也不支持cancel了.
  */
-public final class TaskOneByOneByKey2 {
+public final class TaskOneByOneByKey2 extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey2.class);
 	private static final @NotNull VarHandle vhSubmitted;
 
@@ -154,39 +155,49 @@ public final class TaskOneByOneByKey2 {
 		}
 	}
 
-	public synchronized <T> void executeCyclicBarrier(@NotNull Collection<T> keys, @NotNull Procedure procedure,
+	public <T> void executeCyclicBarrier(@NotNull Collection<T> keys, @NotNull Procedure procedure,
 													  @Nullable DispatchMode mode) {
-		if (keys.isEmpty())
-			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
+		lock();
+		try {
+			if (keys.isEmpty())
+				throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
-		var group = new HashMap<TaskOneByOne, OutInt>();
-		int count = 0;
-		for (var key : keys) {
-			group.computeIfAbsent(bucket(key), __ -> new OutInt()).value++;
-			count++;
-		}
-		var barrier = new BarrierProcedure(procedure, count);
-		for (var e : group.entrySet()) {
-			var sum = e.getValue().value;
-			e.getKey().executeBarrier(barrier, sum, mode);
+			var group = new HashMap<TaskOneByOne, OutInt>();
+			int count = 0;
+			for (var key : keys) {
+				group.computeIfAbsent(bucket(key), __ -> new OutInt()).value++;
+				count++;
+			}
+			var barrier = new BarrierProcedure(procedure, count);
+			for (var e : group.entrySet()) {
+				var sum = e.getValue().value;
+				e.getKey().executeBarrier(barrier, sum, mode);
+			}
+		} finally {
+			unlock();
 		}
 	}
 
-	public synchronized <T> void executeCyclicBarrier(@NotNull Collection<T> keys, @NotNull String actionName,
+	public <T> void executeCyclicBarrier(@NotNull Collection<T> keys, @NotNull String actionName,
 													  @NotNull Action0 action, @Nullable DispatchMode mode) {
-		if (keys.isEmpty())
-			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
+		lock();
+		try {
+			if (keys.isEmpty())
+				throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
-		var group = new HashMap<TaskOneByOne, OutInt>();
-		int count = 0;
-		for (var key : keys) {
-			group.computeIfAbsent(bucket(key), __ -> new OutInt()).value++;
-			count++;
-		}
-		var barrier = new BarrierAction(actionName, action, count);
-		for (var e : group.entrySet()) {
-			var sum = e.getValue().value;
-			e.getKey().executeBarrier(barrier, sum, mode);
+			var group = new HashMap<TaskOneByOne, OutInt>();
+			int count = 0;
+			for (var key : keys) {
+				group.computeIfAbsent(bucket(key), __ -> new OutInt()).value++;
+				count++;
+			}
+			var barrier = new BarrierAction(actionName, action, count);
+			for (var e : group.entrySet()) {
+				var sum = e.getValue().value;
+				e.getKey().executeBarrier(barrier, sum, mode);
+			}
+		} finally {
+			unlock();
 		}
 	}
 

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.IntUnaryOperator;
 import java.util.function.LongUnaryOperator;
 import Zeze.AppBase;
@@ -18,7 +19,6 @@ import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BRankList;
 import Zeze.Builtin.Game.Rank.BRankValue;
 import Zeze.Net.Binary;
-import Zeze.Util.FastLock;
 import Zeze.Util.OutObject;
 
 public class Rank extends AbstractRank {
@@ -259,7 +259,7 @@ public class Rank extends AbstractRank {
 		return result;
 	}
 
-	public static class RankTotal extends FastLock {
+	public static class RankTotal extends ReentrantLock {
 		private long BuildTime;
 		private BRankList TableValue;
 

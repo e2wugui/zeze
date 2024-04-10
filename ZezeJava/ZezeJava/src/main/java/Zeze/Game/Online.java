@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import Zeze.AppBase;
 import Zeze.Arch.Beans.BSend;
@@ -61,7 +62,6 @@ import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.EventDispatcher;
-import Zeze.Util.FastLock;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
@@ -100,7 +100,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
 	private TableDynamic<Long, BLocal> _tlocal;
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
-	private final FastLock thisLock = new FastLock();
+	private final ReentrantLock thisLock = new ReentrantLock();
 
 	@Override
 	public void lock() {

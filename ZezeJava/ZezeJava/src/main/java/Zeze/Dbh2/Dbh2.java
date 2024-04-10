@@ -30,7 +30,6 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.Action2;
-import Zeze.Util.FastLock;
 import Zeze.Util.FuncLong;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -48,7 +47,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private final Dbh2StateMachine stateMachine;
 	private final Dbh2Manager manager;
 	private final Locks locks = new Locks();
-	private final FastLock thisLock = new FastLock();
+	private final ReentrantLock thisLock = new ReentrantLock();
 
 	@Override
 	public void lock() {

@@ -8,12 +8,13 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.RandomAccess;
 import java.util.Spliterator;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.UnaryOperator;
 
 public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.io.Serializable {
 	private transient volatile List<E> read;
 	private final ArrayList<E> write;
-	private final FastLock writeLock = new FastLock();
+	private final ReentrantLock writeLock = new ReentrantLock();
 
 	public FewModifyList() {
 		write = new ArrayList<>();

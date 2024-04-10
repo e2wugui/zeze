@@ -226,9 +226,14 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		throw new IllegalStateException("login timeout.");
 	}
 
-	private synchronized TaskCompletionSource<Boolean> startNewLogin() {
-		loginFuture.cancel(true); // 如果旧的Future上面有人在等，让他们失败。
-		return loginFuture = new TaskCompletionSource<>();
+	private TaskCompletionSource<Boolean> startNewLogin() {
+		lock();
+		try {
+			loginFuture.cancel(true); // 如果旧的Future上面有人在等，让他们失败。
+			return loginFuture = new TaskCompletionSource<>();
+		} finally {
+			unlock();
+		}
 	}
 
 	@Override

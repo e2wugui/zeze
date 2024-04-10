@@ -106,24 +106,34 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 
 		@Override
-		public synchronized <P extends Protocol<?>> void dispatchRaftRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+		public <P extends Protocol<?>> void dispatchRaftRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 																				 ProtocolFactoryHandle<?> factoryHandle) {
-			if (logger.isDebugEnabled())
-				logger.debug("dispatchRaftRpcResponse: {}{}", rpc.getClass().getName(), rpc);
-			var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
-			Task.call(procedure::call, rpc);
+			lock();
+			try {
+				if (logger.isDebugEnabled())
+					logger.debug("dispatchRaftRpcResponse: {}{}", rpc.getClass().getName(), rpc);
+				var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
+				Task.call(procedure::call, rpc);
+			} finally {
+				unlock();
+			}
 		}
 
 		@Override
-		public synchronized void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
+		public void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
 													 DispatchMode mode) {
-			if (logger.isDebugEnabled()) {
-				var netSession = (Session)p.getSender().getUserState();
-				var ssName = null != netSession ? netSession.name : "";
-				logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
+			lock();
+			try {
+				if (logger.isDebugEnabled()) {
+					var netSession = (Session)p.getSender().getUserState();
+					var ssName = null != netSession ? netSession.name : "";
+					logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
+				}
+				var procedure = new Procedure(rocks, func);
+				Task.call(procedure::call, p, Protocol::SendResultCode);
+			} finally {
+				unlock();
 			}
-			var procedure = new Procedure(rocks, func);
-			Task.call(procedure::call, p, Protocol::SendResultCode);
 		}
 
 		@Override
@@ -132,12 +142,15 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			if (null != netSession) {
 				if (logger.isDebugEnabled())
 					logger.info("OnSocketClose: {}", netSession.name);
-				synchronized (this) {
+				lock();
+				try {
 					var procedure = rocks.newProcedure(() -> {
 						netSession.onClose();
 						return 0;
 					});
 					procedure.call();
+				} finally {
+					unlock();
 				}
 			}
 			super.OnSocketClose(so, e);

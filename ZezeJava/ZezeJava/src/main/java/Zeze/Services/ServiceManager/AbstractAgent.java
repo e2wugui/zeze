@@ -15,7 +15,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class AbstractAgent implements Closeable {
+public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	static final Logger logger = LogManager.getLogger(AbstractAgent.class);
 
 	// key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
@@ -141,10 +141,15 @@ public abstract class AbstractAgent implements Closeable {
 		public final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
 		private @Nullable Iterator<Map.Entry<String, Object>> localStatesIterator;
 
-		public synchronized @Nullable Map.Entry<String, Object> getNextStateEntry() {
-			if (localStatesIterator == null || !localStatesIterator.hasNext())
-				localStatesIterator = localStates.entrySet().iterator();
-			return localStatesIterator.hasNext() ? localStatesIterator.next() : null;
+		public @Nullable Map.Entry<String, Object> getNextStateEntry() {
+			lock();
+			try {
+				if (localStatesIterator == null || !localStatesIterator.hasNext())
+					localStatesIterator = localStates.entrySet().iterator();
+				return localStatesIterator.hasNext() ? localStatesIterator.next() : null;
+			} finally {
+				unlock();
+			}
 		}
 
 		@Override
@@ -197,9 +202,12 @@ public abstract class AbstractAgent implements Closeable {
 			else
 				localStates.put(identity, state);
 
-			synchronized (this) {
+			lock();
+			try {
 				// 尝试发送Ready，如果有pending.
 				trySendReadyServiceList();
+			} finally {
+				unlock();
 			}
 		}
 
@@ -215,123 +223,153 @@ public abstract class AbstractAgent implements Closeable {
 			}
 		}
 
-		public synchronized void onRegister(BServiceInfo info) {
-			serviceInfos.insert(info);
-			if (onUpdate != null) {
-				Task.getCriticalThreadPool().execute(() -> {
-					try {
-						onUpdate.run(this, info);
-					} catch (Throwable e) { // logger.error
-						logger.error("", e);
-					}
-				});
-			} else if (onChanged != null) {
-				Task.getCriticalThreadPool().execute(() -> {
-					try {
-						onChanged.run(this);
-					} catch (Throwable e) { // logger.error
-						logger.error("", e);
-					}
-				});
+		public void onRegister(BServiceInfo info) {
+			lock();
+			try {
+				serviceInfos.insert(info);
+				if (onUpdate != null) {
+					Task.getCriticalThreadPool().execute(() -> {
+						try {
+							onUpdate.run(this, info);
+						} catch (Throwable e) { // logger.error
+							logger.error("", e);
+						}
+					});
+				} else if (onChanged != null) {
+					Task.getCriticalThreadPool().execute(() -> {
+						try {
+							onChanged.run(this);
+						} catch (Throwable e) { // logger.error
+							logger.error("", e);
+						}
+					});
+				}
+			} finally {
+				unlock();
 			}
 		}
 
-		public synchronized void onUnRegister(BServiceInfo info) {
-			var removed = serviceInfos.remove(info);
-			if (removed == null)
-				return;
-			if (onRemove != null) {
-				Task.getCriticalThreadPool().execute(() -> {
-					try {
-						onRemove.run(this, removed);
-					} catch (Throwable e) { // logger.error
-						logger.error("", e);
-					}
-				});
-			} else if (onChanged != null) {
-				Task.getCriticalThreadPool().execute(() -> {
-					try {
-						onChanged.run(this);
-					} catch (Throwable e) { // logger.error
-						logger.error("", e);
-					}
-				});
+		public void onUnRegister(BServiceInfo info) {
+			lock();
+			try {
+				var removed = serviceInfos.remove(info);
+				if (removed == null)
+					return;
+				if (onRemove != null) {
+					Task.getCriticalThreadPool().execute(() -> {
+						try {
+							onRemove.run(this, removed);
+						} catch (Throwable e) { // logger.error
+							logger.error("", e);
+						}
+					});
+				} else if (onChanged != null) {
+					Task.getCriticalThreadPool().execute(() -> {
+						try {
+							onChanged.run(this);
+						} catch (Throwable e) { // logger.error
+							logger.error("", e);
+						}
+					});
+				}
+			} finally {
+				unlock();
 			}
 		}
 
-		public synchronized void onUpdate(BServiceInfo info) {
-			var exist = serviceInfos.findServiceInfo(info);
-			if (exist == null)
-				return;
-			exist.setPassiveIp(info.getPassiveIp());
-			exist.setPassivePort(info.getPassivePort());
-			exist.setExtraInfo(info.getExtraInfo());
+		public void onUpdate(BServiceInfo info) {
+			lock();
+			try {
+				var exist = serviceInfos.findServiceInfo(info);
+				if (exist == null)
+					return;
+				exist.setPassiveIp(info.getPassiveIp());
+				exist.setPassivePort(info.getPassivePort());
+				exist.setExtraInfo(info.getExtraInfo());
 
-			if (onUpdate != null) {
-				Task.getCriticalThreadPool().execute(() -> {
-					try {
-						onUpdate.run(this, exist);
-					} catch (Throwable e) { // logger.error
-						logger.error("", e);
-					}
-				});
-			} else if (onChanged != null) {
-				Task.getCriticalThreadPool().execute(() -> {
-					try {
-						onChanged.run(this);
-					} catch (Throwable e) { // logger.error
-						logger.error("", e);
-					}
-				});
+				if (onUpdate != null) {
+					Task.getCriticalThreadPool().execute(() -> {
+						try {
+							onUpdate.run(this, exist);
+						} catch (Throwable e) { // logger.error
+							logger.error("", e);
+						}
+					});
+				} else if (onChanged != null) {
+					Task.getCriticalThreadPool().execute(() -> {
+						try {
+							onChanged.run(this);
+						} catch (Throwable e) { // logger.error
+							logger.error("", e);
+						}
+					});
+				}
+			} finally {
+				unlock();
 			}
 		}
 
-		public synchronized void onNotify(BServiceInfos infos) {
-			switch (getSubscribeType()) {
-			case BSubscribeInfo.SubscribeTypeSimple:
+		public void onNotify(BServiceInfos infos) {
+			lock();
+			try {
+				switch (getSubscribeType()) {
+				case BSubscribeInfo.SubscribeTypeSimple:
+					serviceInfos = infos;
+					committed = true;
+					prepareAndTriggerOnChanged();
+					break;
+
+				case BSubscribeInfo.SubscribeTypeReadyCommit:
+					if (serviceInfosPending == null || infos.getSerialId() > serviceInfosPending.getSerialId()) {
+						serviceInfosPending = infos;
+						if (onPrepare != null) {
+							Task.getCriticalThreadPool().execute(() -> {
+								try {
+									onPrepare.run(this);
+								} catch (Throwable e) { // logger.error
+									logger.error("", e);
+								}
+							});
+						}
+						trySendReadyServiceList();
+					}
+					break;
+				}
+			} finally {
+				unlock();
+			}
+		}
+
+		public void onFirstCommit(BServiceInfos infos) {
+			lock();
+			try {
+				if (committed)
+					return;
+				if (getSubscribeType() == BSubscribeInfo.SubscribeTypeReadyCommit)
+					return; // ReadyCommit 模式不会走到这里。OnNotify(infos);
+				committed = true;
 				serviceInfos = infos;
+				serviceInfosPending = null;
+				prepareAndTriggerOnChanged();
+			} finally {
+				unlock();
+			}
+		}
+
+		public void onCommit(BServiceListVersion version) {
+			lock();
+			try {
+				if (serviceInfosPending == null)
+					return; // 并发过来的Commit，只需要处理一个。
+				if (version.serialId != serviceInfosPending.getSerialId())
+					logger.warn("onCommit {} {} != {}", getServiceName(), version.serialId, serviceInfosPending.getSerialId());
+				serviceInfos = serviceInfosPending;
+				serviceInfosPending = null;
 				committed = true;
 				prepareAndTriggerOnChanged();
-				break;
-
-			case BSubscribeInfo.SubscribeTypeReadyCommit:
-				if (serviceInfosPending == null || infos.getSerialId() > serviceInfosPending.getSerialId()) {
-					serviceInfosPending = infos;
-					if (onPrepare != null) {
-						Task.getCriticalThreadPool().execute(() -> {
-							try {
-								onPrepare.run(this);
-							} catch (Throwable e) { // logger.error
-								logger.error("", e);
-							}
-						});
-					}
-					trySendReadyServiceList();
-				}
-				break;
+			} finally {
+				unlock();
 			}
-		}
-
-		public synchronized void onFirstCommit(BServiceInfos infos) {
-			if (committed)
-				return;
-			if (getSubscribeType() == BSubscribeInfo.SubscribeTypeReadyCommit)
-				return; // ReadyCommit 模式不会走到这里。OnNotify(infos);
-			committed = true;
-			serviceInfos = infos;
-			serviceInfosPending = null;
-			prepareAndTriggerOnChanged();
-		}
-
-		public synchronized void onCommit(BServiceListVersion version) {
-			if (serviceInfosPending == null)
-				return; // 并发过来的Commit，只需要处理一个。
-			if (version.serialId != serviceInfosPending.getSerialId())
-				logger.warn("onCommit {} {} != {}", getServiceName(), version.serialId, serviceInfosPending.getSerialId());
-			serviceInfos = serviceInfosPending;
-			serviceInfosPending = null;
-			committed = true;
-			prepareAndTriggerOnChanged();
 		}
 	}
 
