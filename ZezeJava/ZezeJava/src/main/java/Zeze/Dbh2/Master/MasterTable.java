@@ -3,6 +3,7 @@ package Zeze.Dbh2.Master;
 import java.util.Collection;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -13,6 +14,15 @@ public class MasterTable {
 	public static class Data implements Serializable {
 		final TreeMap<Binary, BBucketMeta.Data> buckets = new TreeMap<>(); // key is meta.first
 		volatile boolean created = false;
+		private final ReentrantLock lock = new ReentrantLock();
+
+		public void lock() {
+			lock.lock();
+		}
+
+		public void unlock() {
+			lock.unlock();
+		}
 
 		public Collection<BBucketMeta.Data> buckets() {
 			return buckets.values();

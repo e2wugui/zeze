@@ -91,10 +91,6 @@ public final class Raft {
 		return raftConfig.getName();
 	}
 
-	public String getUserTaskOneByOneKey() {
-		return userTaskOneByOneKey;
-	}
-
 	public String getLeaderId() {
 		return leaderId;
 	}
@@ -183,7 +179,7 @@ public final class Raft {
 	}
 
 	public void executeUserTask(@NotNull Action0 task) {
-		taskOneByOne.Execute(getUserTaskOneByOneKey(), task);
+		taskOneByOne.Execute(userTaskOneByOneKey, task);
 	}
 
 	public StateMachine getStateMachine() {

@@ -99,7 +99,8 @@ public class MasterDatabase {
 			return table;
 		}
 
-		synchronized (table) {
+		table.lock();
+		try {
 			// 加锁后再次检查一次。
 			if (table.created) {
 				logger.info("create table exist: {}.{}", databaseName, tableName);
@@ -128,6 +129,8 @@ public class MasterDatabase {
 			setBucketMeta(bucket);
 			table.created = true;
 			saveRocks(rocksTables, tableName, table);
+		} finally {
+			table.unlock();
 		}
 		logger.info("create table new: {}.{}", databaseName, tableName);
 		return table;
@@ -192,7 +195,8 @@ public class MasterDatabase {
 		if (null == table)
 			return master.errorCode(Master.eTableNotFound);
 
-		synchronized (table) {
+		table.lock();
+		try {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 			var bucketNew = r.Argument.getTo();
 			var bucket = splitting.buckets.get(bucketNew.getKeyFirst());
@@ -218,6 +222,8 @@ public class MasterDatabase {
 				r.SendResult();
 				return 0;
 			}
+		} finally {
+			table.unlock();
 		}
 		return master.errorCode(Master.eSplittingBucketNotFound);
 	}
@@ -228,7 +234,8 @@ public class MasterDatabase {
 		if (null == table)
 			return master.errorCode(Master.eTableNotFound);
 
-		synchronized (table) {
+		table.lock();
+		try {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 			var bucketNew = r.Argument.getTo();
 			var bucket = splitting.buckets.get(bucketNew.getKeyFirst());
@@ -255,6 +262,8 @@ public class MasterDatabase {
 				r.SendResult();
 				return 0;
 			}
+		} finally {
+			table.unlock();
 		}
 		return master.errorCode(Master.eSplittingBucketNotFound);
 	}
@@ -268,7 +277,8 @@ public class MasterDatabase {
 		}
 
 		var table = splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-		synchronized (table) {
+		table.lock();
+		try {
 			if (table.buckets.get(bucket.getKeyFirst()) != null) {
 				// 桶已经存在，断点续传由manager自己负责，不能重复创建桶。
 				logger.info("bucket exist. database={} table={}", databaseName, tableName);
@@ -291,6 +301,8 @@ public class MasterDatabase {
 			r.Result = bucket;
 			r.SendResult();
 			return 0;
+		} finally {
+			table.unlock();
 		}
 	}
 
