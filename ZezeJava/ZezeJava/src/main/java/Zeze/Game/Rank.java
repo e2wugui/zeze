@@ -18,6 +18,7 @@ import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BRankList;
 import Zeze.Builtin.Game.Rank.BRankValue;
 import Zeze.Net.Binary;
+import Zeze.Util.FastLock;
 import Zeze.Util.OutObject;
 
 public class Rank extends AbstractRank {
@@ -258,7 +259,7 @@ public class Rank extends AbstractRank {
 		return result;
 	}
 
-	public static class RankTotal {
+	public static class RankTotal extends FastLock {
 		private long BuildTime;
 		private BRankList TableValue;
 
@@ -284,7 +285,8 @@ public class Rank extends AbstractRank {
 
 	public RankTotal getRankTotal(BConcurrentKey keyHint, int countNeed) throws Exception {
 		var rank = rankCached.computeIfAbsent(keyHint, __ -> new RankTotal());
-		synchronized (rank) {
+		rank.lock();
+		try {
 			long now = System.currentTimeMillis();
 			if (now - rank.getBuildTime() < getRankCacheTimeout(keyHint.getRankType())) {
 				return rank;
@@ -329,6 +331,8 @@ public class Rank extends AbstractRank {
 				}
 			}).await();
 			return rank;
+		} finally {
+			rank.unlock();
 		}
 	}
 

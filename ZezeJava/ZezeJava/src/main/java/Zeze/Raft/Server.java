@@ -37,8 +37,13 @@ public class Server extends HandshakeBoth {
 		return proxyServer;
 	}
 
-	public synchronized void setProxyServer(ProxyServer proxyServer) {
-		this.proxyServer = proxyServer;
+	public void setProxyServer(ProxyServer proxyServer) {
+		lock();
+		try {
+			this.proxyServer = proxyServer;
+		} finally {
+			unlock();
+		}
 	}
 
 	public Raft getRaft() {

@@ -15,6 +15,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Util.FastLock;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.Task;
@@ -28,7 +29,7 @@ import org.apache.logging.log4j.Logger;
  * 2 处理乱序。
  * 3 没有流量控制。
  */
-public class ReliableUdp implements SelectorHandle, Closeable {
+public class ReliableUdp extends FastLock implements SelectorHandle, Closeable {
 	private static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 
 	public static final int TypePacket = 0;
@@ -341,14 +342,19 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 	}
 
 	@Override
-	public synchronized void close() {
-		if (selectionKey == null)
-			return;
+	public void close() {
+		lock();
 		try {
-			selectionKey.channel().close();
-		} catch (IOException skip) {
-			logger.error("", skip);
+			if (selectionKey == null)
+				return;
+			try {
+				selectionKey.channel().close();
+			} catch (IOException skip) {
+				logger.error("", skip);
+			}
+			selectionKey = null;
+		} finally {
+			unlock();
 		}
-		selectionKey = null;
 	}
 }

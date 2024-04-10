@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.FastLock;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -41,6 +42,7 @@ public class Daemon {
 	private static Process subprocess;
 
 	private static final LongConcurrentHashMap<PendingPacket> pendings = new LongConcurrentHashMap<>();
+	private static final FastLock pendingsLock = new FastLock();
 	private static volatile Future<?> timer;
 
 	public static long getLongProperty(String name, long def) {
@@ -195,7 +197,8 @@ public class Daemon {
 
 			// auto start Timer
 			if (timer == null) {
-				synchronized (pendings) {
+				pendingsLock.lock();
+				try {
 					if (timer == null) {
 						timer = Task.scheduleUnsafe(1000, 1000, () -> {
 							var now = System.currentTimeMillis();
@@ -208,6 +211,8 @@ public class Daemon {
 						});
 						ShutdownHook.add(() -> timer.cancel(false));
 					}
+				} finally {
+					pendingsLock.unlock();
 				}
 			}
 		}
@@ -252,6 +257,7 @@ public class Daemon {
 		private final String fileName;
 		private final RandomAccessFile raf;
 		private final FileChannel channel;
+		private final FastLock channelLock = new FastLock();
 		private final MappedByteBuffer mmap;
 		private volatile boolean running = true;
 
@@ -273,7 +279,8 @@ public class Daemon {
 		}
 
 		private ByteBuffer copyMMap() throws IOException {
-			synchronized (channel) {
+			channelLock.lock();
+			try {
 				// Channel.lock 对同一个进程不能并发。
 				var lock = channel.lock();
 				try {
@@ -284,6 +291,8 @@ public class Daemon {
 				} finally {
 					lock.release();
 				}
+			} finally {
+				channelLock.unlock();
 			}
 		}
 

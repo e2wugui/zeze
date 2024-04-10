@@ -9,12 +9,13 @@ import java.nio.channels.SelectionKey;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.FastLock;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ReplayAttackPolicy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class DatagramSocket implements SelectorHandle, Closeable {
+public class DatagramSocket extends FastLock implements SelectorHandle, Closeable {
 	private static final Logger logger = LogManager.getLogger(DatagramSocket.class);
 	private static final AtomicLong sessionIdGen = new AtomicLong(); // 只用于分配DatagramSocket的sessionId
 
@@ -127,11 +128,14 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 	@Override
 	public void close() {
 		SelectionKey key;
-		synchronized (this) {
+		lock();
+		try {
 			if (selectionKey == null)
 				return;
 			key = selectionKey;
 			selectionKey = null;
+		} finally {
+			unlock();
 		}
 		try {
 			service.onSocketClose(this);

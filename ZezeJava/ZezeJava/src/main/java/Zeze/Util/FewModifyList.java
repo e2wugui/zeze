@@ -13,6 +13,7 @@ import java.util.function.UnaryOperator;
 public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.io.Serializable {
 	private transient volatile List<E> read;
 	private final ArrayList<E> write;
+	private final FastLock writeLock = new FastLock();
 
 	public FewModifyList() {
 		write = new ArrayList<>();
@@ -29,9 +30,12 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	private List<E> prepareRead() {
 		var r = read;
 		if (r == null) {
-			synchronized (write) {
+			writeLock.lock();
+			try {
 				if ((r = read) == null)
 					read = r = List.copyOf(write);
+			} finally {
+				writeLock.unlock();
 			}
 		}
 		return r;
@@ -44,27 +48,36 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 
 	@Override
 	public E set(int index, E element) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			var prev = write.set(index, element);
 			read = null;
 			return prev;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public void add(int index, E element) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			write.add(index, element);
 			read = null;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public E remove(int index) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			var prev = write.remove(index);
 			read = null;
 			return prev;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
@@ -125,21 +138,27 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 
 	@Override
 	public boolean add(E e) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			if (!write.add(e))
 				return false;
 			read = null;
 			return true;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public boolean remove(Object o) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			if (!write.remove(o))
 				return false;
 			read = null;
 			return true;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
@@ -150,67 +169,88 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 
 	@Override
 	public boolean addAll(Collection<? extends E> c) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			if (!write.addAll(c))
 				return false;
 			read = null;
 			return true;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public boolean addAll(int index, Collection<? extends E> c) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			if (!write.addAll(index, c))
 				return false;
 			read = null;
 			return true;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public boolean removeAll(Collection<?> c) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			if (!write.removeAll(c))
 				return false;
 			read = null;
 			return true;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public boolean retainAll(Collection<?> c) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			if (!write.retainAll(c))
 				return false;
 			read = null;
 			return true;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public void replaceAll(UnaryOperator<E> operator) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			write.replaceAll(operator);
 			read = null;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public void clear() {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			if (write.isEmpty())
 				return;
 			write.clear();
 			read = null;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public void sort(Comparator<? super E> c) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			write.sort(c);
 			read = null;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
@@ -223,8 +263,11 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	@Override
 	public FewModifyList<E> clone() throws CloneNotSupportedException {
 		if (getClass() == FewModifyList.class) {
-			synchronized (write) {
+			writeLock.lock();
+			try {
 				return new FewModifyList<>(write);
+			} finally {
+				writeLock.unlock();
 			}
 		}
 		throw new CloneNotSupportedException();

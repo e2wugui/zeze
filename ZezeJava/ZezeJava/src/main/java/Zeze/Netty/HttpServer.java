@@ -19,6 +19,7 @@ import Zeze.Application;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.FastLock;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.GlobalTimer;
 import Zeze.Util.PropertiesHelper;
@@ -79,6 +80,15 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected @Nullable SslContext sslCtx;
 	protected @Nullable Future<?> scheduler;
 	protected @Nullable ChannelFuture channelFuture;
+	private final FastLock thisLock = new FastLock();
+
+	public void lock() {
+		thisLock.lock();
+	}
+
+	public void unlock() {
+		thisLock.unlock();
+	}
 
 	public static @NotNull String getDate() {
 		var second = GlobalTimer.getCurrentMillis() / 1000;
@@ -164,30 +174,40 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		return start(netty, null, port);
 	}
 
-	public synchronized @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) {
-		if (scheduler != null)
-			throw new IllegalStateException("already started");
-		scheduler = netty.getEventLoopGroup().scheduleWithFixedDelay(
-				() -> channels.keySet().forEach(this::checkTimeout),
-				checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
-		return channelFuture = netty.startServer(this, host, port);
+	public @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) {
+		lock();
+		try {
+			if (scheduler != null)
+				throw new IllegalStateException("already started");
+			scheduler = netty.getEventLoopGroup().scheduleWithFixedDelay(
+					() -> channels.keySet().forEach(this::checkTimeout),
+					checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
+			return channelFuture = netty.startServer(this, host, port);
+		} finally {
+			unlock();
+		}
 	}
 
 	@Override
-	public synchronized void close() {
-		task11Executor.shutdown(true);
-		if (scheduler == null)
-			return;
-		Netty.logger.info("close {}", getClass().getName());
-		scheduler.cancel(true);
-		scheduler = null;
-		exchanges.values().forEach(HttpExchange::closeConnectionNow);
-		exchanges.clear();
-		if (channelFuture != null) {
-			var ch = channelFuture.channel();
-			channelFuture = null;
-			if (ch != null)
-				ch.close();
+	public void close() {
+		lock();
+		try {
+			task11Executor.shutdown(true);
+			if (scheduler == null)
+				return;
+			Netty.logger.info("close {}", getClass().getName());
+			scheduler.cancel(true);
+			scheduler = null;
+			exchanges.values().forEach(HttpExchange::closeConnectionNow);
+			exchanges.clear();
+			if (channelFuture != null) {
+				var ch = channelFuture.channel();
+				channelFuture = null;
+				if (ch != null)
+					ch.close();
+			}
+		} finally {
+			unlock();
 		}
 	}
 

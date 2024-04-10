@@ -10,6 +10,7 @@ import java.util.function.Function;
 public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	private transient volatile Map<K, V> read;
 	private final HashMap<K, V> write;
+	private final FastLock writeLock = new FastLock();
 
 	public FewModifyMap() {
 		write = new HashMap<>();
@@ -26,10 +27,13 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	protected Map<K, V> prepareRead() {
 		var r = read;
 		if (r == null) {
-			synchronized (write) {
+			writeLock.lock();
+			try {
 				if ((r = read) == null) {
 					read = r = Map.copyOf(write);
 				}
+			} finally {
+				writeLock.unlock();
 			}
 		}
 		return r;
@@ -62,57 +66,75 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 
 	@Override
 	public V put(K key, V value) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			var prev = write.put(key, value);
 			read = null;
 			return prev;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public V putIfAbsent(K key, V value) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			var prev = write.putIfAbsent(key, value);
 			read = null;
 			return prev;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public V replace(K key, V value) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			var prev = write.replace(key, value);
 			read = null;
 			return prev;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public boolean replace(K key, V oldValue, V newValue) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			if (!write.replace(key, oldValue, newValue))
 				return false;
 			read = null;
 			return true;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public V remove(Object key) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			var prev = write.remove(key);
 			read = null;
 			return prev;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public boolean remove(Object key, Object value) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			if (!write.remove(key, value))
 				return false;
 			read = null;
 			return true;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
@@ -120,29 +142,39 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	public void putAll(Map<? extends K, ? extends V> m) {
 		if (m.isEmpty())
 			return;
-		synchronized (write) {
+
+		writeLock.lock();
+		try {
 			write.putAll(m);
 			read = null;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			if (write.isEmpty())
 				return;
 			write.replaceAll(function);
 			read = null;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public void clear() {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			if (write.isEmpty())
 				return;
 			write.clear();
 			read = null;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
@@ -163,37 +195,49 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 
 	@Override
 	public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			var v = write.compute(key, remappingFunction);
 			read = null;
 			return v;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			var v = write.computeIfAbsent(key, mappingFunction);
 			read = null;
 			return v;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			var v = write.computeIfPresent(key, remappingFunction);
 			read = null;
 			return v;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	@Override
 	public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
-		synchronized (write) {
+		writeLock.lock();
+		try {
 			var v = write.merge(key, value, remappingFunction);
 			read = null;
 			return v;
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
