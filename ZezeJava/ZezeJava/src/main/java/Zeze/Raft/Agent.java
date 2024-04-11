@@ -2,6 +2,8 @@ package Zeze.Raft;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -279,6 +281,10 @@ public final class Agent {
 			client = null;
 
 			leader = null;
+
+			trigger(pending.iterator(), "stopPending");
+			trigger(urgentPending.iterator(), "stopUrgentPending");
+
 			pending.clear();
 			urgentPending.clear();
 		} finally {
@@ -466,7 +472,7 @@ public final class Agent {
 		}
 		if (isDebugEnabled)
 			logger.debug("Found {} RaftRpc cancel", removed.size());
-		Task.getCriticalThreadPool().execute(() -> trigger(removed, "Cancel"));
+		Task.getCriticalThreadPool().execute(() -> trigger(removed.iterator(), "Cancel"));
 	}
 
 	private void resend(boolean immediately) {
@@ -524,16 +530,17 @@ public final class Agent {
 			if (isDebugEnabled)
 				logger.debug("Found {} RaftRpc timeout", removed.size());
 			var removed0 = removed;
-			Task.getCriticalThreadPool().execute(() -> trigger(removed0));
+			Task.getCriticalThreadPool().execute(() -> trigger(removed0.iterator()));
 		}
 	}
 
-	private static void trigger(ArrayList<RaftRpc<?, ?>> removed) {
+	private static void trigger(Iterator<RaftRpc<?, ?>> removed) {
 		trigger(removed, "Timeout");
 	}
 
-	private static void trigger(ArrayList<RaftRpc<?, ?>> removed, String reason) {
-		for (var r : removed) {
+	private static void trigger(Iterator<RaftRpc<?, ?>> removed, String reason) {
+		while (removed.hasNext()) {
+			var r = removed.next();
 			if (null == r)
 				continue;
 			r.setIsTimeout(true);
