@@ -46,7 +46,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public class OrderedIterator implements Iterator<V> {
-		private final Iterator<K> queueIt = queue.iterator();
+		private final @NotNull Iterator<K> queueIt = queue.iterator();
 		private K key;
 		private V value;
 
@@ -111,18 +111,23 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		}
 	}
 
-	public V put(@NotNull K key, @NotNull V value) {
+	public @Nullable V put(@NotNull K key, @NotNull V value) {
 		V old = map.put(key, value);
 		if (old == null)
 			queue.add(key); // 第一次加入。只保持第一次的顺序，重复put不加入queue。
 		return old == deleted ? null : old;
 	}
 
-	public V putIfAbsent(@NotNull K key, @NotNull V value) {
-		V old = map.putIfAbsent(key, value);
-		if (old == null)
-			queue.add(key);
-		return old == deleted ? null : old;
+	public @Nullable V putIfAbsent(@NotNull K key, @NotNull V value) {
+		var oldValue = new OutObject<V>();
+		map.compute(key, (k, v) -> {
+			if (v == null || v == deleted) {
+				return value;
+			}
+			oldValue.value = v;
+			return value;
+		});
+		return oldValue.value;
 	}
 
 	public @Nullable V get(@NotNull K key) {
