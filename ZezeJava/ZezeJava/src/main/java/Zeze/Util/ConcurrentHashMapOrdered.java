@@ -121,7 +121,11 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	public @Nullable V putIfAbsent(@NotNull K key, @NotNull V value) {
 		var oldValue = new OutObject<V>();
 		map.compute(key, (k, v) -> {
-			if (v == null || v == deleted)
+			if (v == null) {
+				queue.add(key);
+				return value;
+			}
+			if (v == deleted)
 				return value;
 			oldValue.value = v;
 			return v;
