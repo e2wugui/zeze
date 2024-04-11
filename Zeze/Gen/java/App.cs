@@ -131,7 +131,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("            if (Zeze != null)");
             sw.WriteLine("                throw new IllegalStateException(\"Zeze Has Created!\");");
             sw.WriteLine();
-            sw.WriteLine($"           Zeze = new Zeze.Application(\"{project.Name}\", config);");
+            sw.WriteLine($"            Zeze = new Zeze.Application(\"{project.Name}\", config);");
             sw.WriteLine("        } finally {");
             sw.WriteLine("            unlock();");
             sw.WriteLine("        }");

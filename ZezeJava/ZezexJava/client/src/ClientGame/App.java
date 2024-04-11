@@ -64,7 +64,7 @@ public class App extends Zeze.AppBase {
             if (Zeze != null)
                 throw new IllegalStateException("Zeze Has Created!");
 
-           Zeze = new Zeze.Application("client", config);
+            Zeze = new Zeze.Application("client", config);
         } finally {
             unlock();
         }

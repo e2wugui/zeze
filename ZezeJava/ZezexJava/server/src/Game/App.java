@@ -205,7 +205,7 @@ public final class App extends Zeze.AppBase {
             if (Zeze != null)
                 throw new IllegalStateException("Zeze Has Created!");
 
-           Zeze = new Zeze.Application("server", config);
+            Zeze = new Zeze.Application("server", config);
         } finally {
             unlock();
         }
