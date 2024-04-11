@@ -18,12 +18,17 @@ public class ConcurrentHashMapOrdered<K, V> {
 		map = new ConcurrentHashMap<>(initialCapacity);
 	}
 
-	private class OrderedIterator implements Iterator<V> {
+	public class OrderedIterator implements Iterator<V> {
 		private final Iterator<K> queueIt;
+		private transient K key;
 		private transient V value;
 
 		public OrderedIterator(Iterator<K> queueIt) {
 			this.queueIt = queueIt;
+		}
+
+		public K key() {
+			return key;
 		}
 
 		@Override
@@ -32,7 +37,7 @@ public class ConcurrentHashMapOrdered<K, V> {
 				var has = queueIt.hasNext();
 				if (!has)
 					return false;
-				var key = queueIt.next();
+				key = queueIt.next();
 				value = map.get(key);
 				if (null == value)
 					queueIt.remove();
@@ -51,7 +56,7 @@ public class ConcurrentHashMapOrdered<K, V> {
 		}
 	}
 
-	public Iterator<V> iterator() {
+	public OrderedIterator iterator() {
 		return new OrderedIterator(queue.iterator());
 	}
 

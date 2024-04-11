@@ -16,11 +16,12 @@ public class TestConcurrentHashMapOrdered {
 		//orderedMap.dumpMap();
 		var foreachKeys = new ArrayList<String>();
 		orderedMap.foreach((key, value) -> foreachKeys.add(key));
-		var itValues = new ArrayList<String>();
+		var itKeys = new ArrayList<String>();
 		for (var it = orderedMap.iterator(); it.hasNext(); ) {
-			itValues.add(it.next());
+			it.next();
+			itKeys.add(it.key());
 		}
 		Assert.assertEquals(foreachKeys, keys);
-		Assert.assertEquals(itValues, keys);
+		Assert.assertEquals(itKeys, keys);
 	}
 }
