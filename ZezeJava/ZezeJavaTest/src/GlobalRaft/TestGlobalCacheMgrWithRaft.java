@@ -448,20 +448,26 @@ public class TestGlobalCacheMgrWithRaft {
 		}
 
 		public void Start() throws Exception {
-			synchronized (this) {
+			lock();
+			try {
 				logger.debug("GlobalCacheManagerWithRaft {} Start ...", RaftName);
 				var GlobalRaftConfig = Zeze.Raft.RaftConfig.load(GlobalRaftConfigFileName);
 				GlobalCacheManagerWithRaft = new GlobalCacheManagerWithRaft(RaftName, GlobalRaftConfig);
+			} finally {
+				unlock();
 			}
 		}
 
 		public void Stop() {
-			synchronized (this) {
+			lock();
+			try {
 				logger.debug("GlobalCacheManagerWithRaft {} Stop ...", RaftName);
 				if (GlobalCacheManagerWithRaft != null) {
 					GlobalCacheManagerWithRaft.close();
 					GlobalCacheManagerWithRaft = null;
 				}
+			} finally {
+				unlock();
 			}
 		}
 

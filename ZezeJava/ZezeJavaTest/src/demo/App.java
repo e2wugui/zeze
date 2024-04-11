@@ -143,126 +143,186 @@ public class App extends Zeze.AppBase {
     }
 
     @Override
-    public synchronized void createZeze(Zeze.Config config) throws Exception {
-        if (Zeze != null)
-            throw new IllegalStateException("Zeze Has Created!");
+    public void createZeze(Zeze.Config config) throws Exception {
+        lock();
+        try {
+            if (Zeze != null)
+                throw new IllegalStateException("Zeze Has Created!");
 
-        Zeze = new Zeze.Application("ZezeJavaTest", config);
+           Zeze = new Zeze.Application("ZezeJavaTest", config);
+        } finally {
+            unlock();
+        }
     }
 
     @Override
-    public synchronized void createService() {
-        TestServer = new demo.TestServer(Zeze);
+    public void createService() {
+        lock();
+        try {
+            TestServer = new demo.TestServer(Zeze);
+        } finally {
+            unlock();
+        }
     }
 
     @Override
-    public synchronized void createModules() throws Exception {
-        Zeze.initialize(this);
-        var _modules_ = createRedirectModules(new Class[] {
-            demo.Module1.ModuleModule1.class,
-            demo.Module1.Module11.ModuleModule11.class,
-            demo.M6.ModuleM6.class,
-            demo.M6.M7.ModuleM7.class,
-            TaskTest.TaskExt.ModuleTaskExt.class,
-        });
-        if (_modules_ == null)
-            return;
+    public void createModules() throws Exception {
+        lock();
+        try {
+            Zeze.initialize(this);
+            var _modules_ = createRedirectModules(new Class[] {
+                demo.Module1.ModuleModule1.class,
+                demo.Module1.Module11.ModuleModule11.class,
+                demo.M6.ModuleM6.class,
+                demo.M6.M7.ModuleM7.class,
+                TaskTest.TaskExt.ModuleTaskExt.class,
+            });
+            if (_modules_ == null)
+                return;
 
-        demo_Module1 = (demo.Module1.ModuleModule1)_modules_[0];
-        demo_Module1.Initialize(this);
-        if (modules.put(demo_Module1.getFullName(), demo_Module1) != null)
-            throw new IllegalStateException("duplicate module name: demo_Module1");
+            demo_Module1 = (demo.Module1.ModuleModule1)_modules_[0];
+            demo_Module1.Initialize(this);
+            if (modules.put(demo_Module1.getFullName(), demo_Module1) != null)
+                throw new IllegalStateException("duplicate module name: demo_Module1");
 
-        demo_Module1_Module11 = (demo.Module1.Module11.ModuleModule11)_modules_[1];
-        demo_Module1_Module11.Initialize(this);
-        if (modules.put(demo_Module1_Module11.getFullName(), demo_Module1_Module11) != null)
-            throw new IllegalStateException("duplicate module name: demo_Module1_Module11");
+            demo_Module1_Module11 = (demo.Module1.Module11.ModuleModule11)_modules_[1];
+            demo_Module1_Module11.Initialize(this);
+            if (modules.put(demo_Module1_Module11.getFullName(), demo_Module1_Module11) != null)
+                throw new IllegalStateException("duplicate module name: demo_Module1_Module11");
 
-        demo_M6 = (demo.M6.ModuleM6)_modules_[2];
-        demo_M6.Initialize(this);
-        if (modules.put(demo_M6.getFullName(), demo_M6) != null)
-            throw new IllegalStateException("duplicate module name: demo_M6");
+            demo_M6 = (demo.M6.ModuleM6)_modules_[2];
+            demo_M6.Initialize(this);
+            if (modules.put(demo_M6.getFullName(), demo_M6) != null)
+                throw new IllegalStateException("duplicate module name: demo_M6");
 
-        demo_M6_M7 = (demo.M6.M7.ModuleM7)_modules_[3];
-        demo_M6_M7.Initialize(this);
-        if (modules.put(demo_M6_M7.getFullName(), demo_M6_M7) != null)
-            throw new IllegalStateException("duplicate module name: demo_M6_M7");
+            demo_M6_M7 = (demo.M6.M7.ModuleM7)_modules_[3];
+            demo_M6_M7.Initialize(this);
+            if (modules.put(demo_M6_M7.getFullName(), demo_M6_M7) != null)
+                throw new IllegalStateException("duplicate module name: demo_M6_M7");
 
-        TaskTest_TaskExt = (TaskTest.TaskExt.ModuleTaskExt)_modules_[4];
-        TaskTest_TaskExt.Initialize(this);
-        if (modules.put(TaskTest_TaskExt.getFullName(), TaskTest_TaskExt) != null)
-            throw new IllegalStateException("duplicate module name: TaskTest_TaskExt");
+            TaskTest_TaskExt = (TaskTest.TaskExt.ModuleTaskExt)_modules_[4];
+            TaskTest_TaskExt.Initialize(this);
+            if (modules.put(TaskTest_TaskExt.getFullName(), TaskTest_TaskExt) != null)
+                throw new IllegalStateException("duplicate module name: TaskTest_TaskExt");
 
-        Zeze.setSchemas(new demo.Schemas());
+            Zeze.setSchemas(new demo.Schemas());
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void destroyModules() throws Exception {
-        TaskTest_TaskExt = null;
-        demo_M6_M7 = null;
-        demo_M6 = null;
-        demo_Module1_Module11 = null;
-        demo_Module1 = null;
-        modules.clear();
+    public void destroyModules() throws Exception {
+        lock();
+        try {
+            TaskTest_TaskExt = null;
+            demo_M6_M7 = null;
+            demo_M6 = null;
+            demo_Module1_Module11 = null;
+            demo_Module1 = null;
+            modules.clear();
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void destroyServices() {
-        TestServer = null;
+    public void destroyServices() {
+        lock();
+        try {
+            TestServer = null;
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void destroyZeze() {
-        Zeze = null;
+    public void destroyZeze() {
+        lock();
+        try {
+            Zeze = null;
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void startModules() throws Exception {
-        demo_Module1.Start(this);
-        demo_Module1_Module11.Start(this);
-        demo_M6.Start(this);
-        demo_M6_M7.Start(this);
-        TaskTest_TaskExt.Start(this);
+    public void startModules() throws Exception {
+        lock();
+        try {
+            demo_Module1.Start(this);
+            demo_Module1_Module11.Start(this);
+            demo_M6.Start(this);
+            demo_M6_M7.Start(this);
+            TaskTest_TaskExt.Start(this);
+        } finally {
+            unlock();
+        }
     }
 
     @Override
-    public synchronized void startLastModules() throws Exception {
-        demo_Module1.StartLast();
-        demo_Module1_Module11.StartLast();
-        demo_M6.StartLast();
-        demo_M6_M7.StartLast();
-        TaskTest_TaskExt.StartLast();
+    public void startLastModules() throws Exception {
+        lock();
+        try {
+            demo_Module1.StartLast();
+            demo_Module1_Module11.StartLast();
+            demo_M6.StartLast();
+            demo_M6_M7.StartLast();
+            TaskTest_TaskExt.StartLast();
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void stopModules() throws Exception {
-        if (TaskTest_TaskExt != null)
-            TaskTest_TaskExt.Stop(this);
-        if (demo_M6_M7 != null)
-            demo_M6_M7.Stop(this);
-        if (demo_M6 != null)
-            demo_M6.Stop(this);
-        if (demo_Module1_Module11 != null)
-            demo_Module1_Module11.Stop(this);
-        if (demo_Module1 != null)
-            demo_Module1.Stop(this);
+    public void stopModules() throws Exception {
+        lock();
+        try {
+            if (TaskTest_TaskExt != null)
+                TaskTest_TaskExt.Stop(this);
+            if (demo_M6_M7 != null)
+                demo_M6_M7.Stop(this);
+            if (demo_M6 != null)
+                demo_M6.Stop(this);
+            if (demo_Module1_Module11 != null)
+                demo_Module1_Module11.Stop(this);
+            if (demo_Module1 != null)
+                demo_Module1.Stop(this);
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void stopBeforeModules() throws Exception {
-        if (TaskTest_TaskExt != null)
-            TaskTest_TaskExt.StopBefore();
-        if (demo_M6_M7 != null)
-            demo_M6_M7.StopBefore();
-        if (demo_M6 != null)
-            demo_M6.StopBefore();
-        if (demo_Module1_Module11 != null)
-            demo_Module1_Module11.StopBefore();
-        if (demo_Module1 != null)
-            demo_Module1.StopBefore();
+    public void stopBeforeModules() throws Exception {
+        lock();
+        try {
+            if (TaskTest_TaskExt != null)
+                TaskTest_TaskExt.StopBefore();
+            if (demo_M6_M7 != null)
+                demo_M6_M7.StopBefore();
+            if (demo_M6 != null)
+                demo_M6.StopBefore();
+            if (demo_Module1_Module11 != null)
+                demo_Module1_Module11.StopBefore();
+            if (demo_Module1 != null)
+                demo_Module1.StopBefore();
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void startService() throws Exception {
-        TestServer.start();
+    public void startService() throws Exception {
+        lock();
+        try {
+            TestServer.start();
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void stopService() throws Exception {
-        if (TestServer != null)
-            TestServer.stop();
+    public void stopService() throws Exception {
+        lock();
+        try {
+            if (TestServer != null)
+                TestServer.stop();
+        } finally {
+            unlock();
+        }
     }
 	// ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }

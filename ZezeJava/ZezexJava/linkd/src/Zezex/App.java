@@ -100,79 +100,139 @@ public final class App extends Zeze.AppBase {
     }
 
     @Override
-    public synchronized void createZeze(Zeze.Config config) throws Exception {
-        if (Zeze != null)
-            throw new IllegalStateException("Zeze Has Created!");
+    public void createZeze(Zeze.Config config) throws Exception {
+        lock();
+        try {
+            if (Zeze != null)
+                throw new IllegalStateException("Zeze Has Created!");
 
-        Zeze = new Zeze.Application("linkd", config);
+           Zeze = new Zeze.Application("linkd", config);
+        } finally {
+            unlock();
+        }
     }
 
     @Override
-    public synchronized void createService() {
-        LinkdService = new Zezex.LinkdService(Zeze);
-        ProviderService = new Zezex.ProviderService(Zeze);
+    public void createService() {
+        lock();
+        try {
+            LinkdService = new Zezex.LinkdService(Zeze);
+            ProviderService = new Zezex.ProviderService(Zeze);
+        } finally {
+            unlock();
+        }
     }
 
     @Override
-    public synchronized void createModules() throws Exception {
-        Zeze.initialize(this);
-        var _modules_ = createRedirectModules(new Class[] {
-            Zezex.Linkd.ModuleLinkd.class,
-        });
-        if (_modules_ == null)
-            return;
+    public void createModules() throws Exception {
+        lock();
+        try {
+            Zeze.initialize(this);
+            var _modules_ = createRedirectModules(new Class[] {
+                Zezex.Linkd.ModuleLinkd.class,
+            });
+            if (_modules_ == null)
+                return;
 
-        Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)_modules_[0];
-        Zezex_Linkd.Initialize(this);
-        if (modules.put(Zezex_Linkd.getFullName(), Zezex_Linkd) != null)
-            throw new IllegalStateException("duplicate module name: Zezex_Linkd");
+            Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)_modules_[0];
+            Zezex_Linkd.Initialize(this);
+            if (modules.put(Zezex_Linkd.getFullName(), Zezex_Linkd) != null)
+                throw new IllegalStateException("duplicate module name: Zezex_Linkd");
 
-        Zeze.setSchemas(new Zezex.Schemas());
+            Zeze.setSchemas(new Zezex.Schemas());
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void destroyModules() throws Exception {
-        Zezex_Linkd = null;
-        modules.clear();
+    public void destroyModules() throws Exception {
+        lock();
+        try {
+            Zezex_Linkd = null;
+            modules.clear();
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void destroyServices() {
-        LinkdService = null;
-        ProviderService = null;
+    public void destroyServices() {
+        lock();
+        try {
+            LinkdService = null;
+            ProviderService = null;
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void destroyZeze() {
-        Zeze = null;
+    public void destroyZeze() {
+        lock();
+        try {
+            Zeze = null;
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void startModules() throws Exception {
-        Zezex_Linkd.Start(this);
+    public void startModules() throws Exception {
+        lock();
+        try {
+            Zezex_Linkd.Start(this);
+        } finally {
+            unlock();
+        }
     }
 
     @Override
-    public synchronized void startLastModules() throws Exception {
-        Zezex_Linkd.StartLast();
+    public void startLastModules() throws Exception {
+        lock();
+        try {
+            Zezex_Linkd.StartLast();
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void stopModules() throws Exception {
-        if (Zezex_Linkd != null)
-            Zezex_Linkd.Stop(this);
+    public void stopModules() throws Exception {
+        lock();
+        try {
+            if (Zezex_Linkd != null)
+                Zezex_Linkd.Stop(this);
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void stopBeforeModules() throws Exception {
-        if (Zezex_Linkd != null)
-            Zezex_Linkd.StopBefore();
+    public void stopBeforeModules() throws Exception {
+        lock();
+        try {
+            if (Zezex_Linkd != null)
+                Zezex_Linkd.StopBefore();
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void startService() throws Exception {
-        LinkdService.start();
-        ProviderService.start();
+    public void startService() throws Exception {
+        lock();
+        try {
+            LinkdService.start();
+            ProviderService.start();
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void stopService() throws Exception {
-        if (LinkdService != null)
-            LinkdService.stop();
-        if (ProviderService != null)
-            ProviderService.stop();
+    public void stopService() throws Exception {
+        lock();
+        try {
+            if (LinkdService != null)
+                LinkdService.stop();
+            if (ProviderService != null)
+                ProviderService.stop();
+        } finally {
+            unlock();
+        }
     }
     // ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }

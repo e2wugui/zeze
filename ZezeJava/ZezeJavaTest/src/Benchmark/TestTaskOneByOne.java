@@ -6,6 +6,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
@@ -16,6 +18,8 @@ public class TestTaskOneByOne {
 	public final static int TaskCount = 1000_0000;
 
 	private final AtomicLong counter = new AtomicLong();
+	private final ReentrantLock lock = new ReentrantLock();
+	private final Condition cond = lock.newCondition();
 
 	@Test
 	public void testBenchmark() throws InterruptedException {
@@ -28,13 +32,19 @@ public class TestTaskOneByOne {
 			});
 		}
 		oo.Execute(1, () -> {
-			synchronized (this) {
+			lock.lock();
+			try {
 				counter.incrementAndGet();
-				this.notify();
+				cond.signal();
+			} finally {
+				lock.unlock();
 			}
 		});
-		synchronized (this) {
-			this.wait();
+		lock.lock();
+		try {
+			cond.await();
+		} finally {
+			lock.unlock();
 		}
 		b.report("TestTaskOneByOne.testBenchmark", TaskCount);
 		System.out.println(counter.get());
@@ -51,13 +61,19 @@ public class TestTaskOneByOne {
 			});
 		}
 		oo.Execute(1, () -> {
-			synchronized (this) {
+			lock.lock();
+			try {
 				counter.incrementAndGet();
-				this.notify();
+				cond.signal();
+			} finally {
+				lock.unlock();
 			}
 		});
-		synchronized (this) {
-			this.wait();
+		lock.lock();
+		try {
+			cond.await();
+		} finally {
+			lock.unlock();
 		}
 		b.report("TestTaskOneByOne.testBenchmark2", TaskCount);
 		System.out.println(counter.get());

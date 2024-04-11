@@ -199,114 +199,174 @@ public final class App extends Zeze.AppBase {
     }
 
     @Override
-    public synchronized void createZeze(Zeze.Config config) throws Exception {
-        if (Zeze != null)
-            throw new IllegalStateException("Zeze Has Created!");
+    public void createZeze(Zeze.Config config) throws Exception {
+        lock();
+        try {
+            if (Zeze != null)
+                throw new IllegalStateException("Zeze Has Created!");
 
-        Zeze = new Zeze.Application("server", config);
-    }
-
-    @Override
-    public synchronized void createService() {
-        Server = new Game.Server(Zeze);
-        ServerDirect = new Game.ServerDirect(Zeze);
-    }
-
-    @Override
-    public synchronized void createModules() throws Exception {
-        Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));
-        Zeze.initialize(this);
-        Zeze.getHotManager().initialize(modules);
-        var _modules_ = createRedirectModules(new Class[] {
-            Game.Map.ModuleMap.class,
-            Game.Rank.ModuleRank.class,
-        });
-        if (_modules_ == null)
-            return;
-
-        Game_Map = (Game.Map.ModuleMap)_modules_[0];
-        Game_Map.Initialize(this);
-        if (modules.put(Game_Map.getFullName(), Game_Map) != null)
-            throw new IllegalStateException("duplicate module name: Game_Map");
-
-        Game_Rank = (Game.Rank.ModuleRank)_modules_[1];
-        Game_Rank.Initialize(this);
-        if (modules.put(Game_Rank.getFullName(), Game_Rank) != null)
-            throw new IllegalStateException("duplicate module name: Game_Rank");
-
-        Zeze.setSchemas(new Game.Schemas());
-    }
-
-    public synchronized void destroyModules() throws Exception {
-        Game_Rank = null;
-        Game_Map = null;
-        if (null != Zeze.getHotManager()) {
-            Zeze.getHotManager().destroyModules();
-            Zeze.setHotManager(null);
-        }
-        modules.clear();
-    }
-
-    public synchronized void destroyServices() {
-        Server = null;
-        ServerDirect = null;
-    }
-
-    public synchronized void destroyZeze() {
-        Zeze = null;
-    }
-
-    public synchronized void startModules() throws Exception {
-        Game_Map.Start(this);
-        Game_Rank.Start(this);
-        if (null != Zeze.getHotManager()) {
-            var definedOrder = new java.util.HashSet<String>();
-            Zeze.getHotManager().startModulesExcept(definedOrder);
+           Zeze = new Zeze.Application("server", config);
+        } finally {
+            unlock();
         }
     }
 
     @Override
-    public synchronized void startLastModules() throws Exception {
-        Game_Map.StartLast();
-        Game_Rank.StartLast();
-        if (null != Zeze.getHotManager()) {
-            var definedOrder = new java.util.HashSet<String>();
-            Zeze.getHotManager().startLastModulesExcept(definedOrder);
+    public void createService() {
+        lock();
+        try {
+            Server = new Game.Server(Zeze);
+            ServerDirect = new Game.ServerDirect(Zeze);
+        } finally {
+            unlock();
         }
     }
 
-    public synchronized void stopModules() throws Exception {
-        if (Game_Rank != null)
-            Game_Rank.Stop(this);
-        if (Game_Map != null)
-            Game_Map.Stop(this);
-        if (null != Zeze.getHotManager()) {
-            var definedOrder = new java.util.HashSet<String>();
-            Zeze.getHotManager().stopModulesExcept(definedOrder);
+    @Override
+    public void createModules() throws Exception {
+        lock();
+        try {
+            Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));
+            Zeze.initialize(this);
+            Zeze.getHotManager().initialize(modules);
+            var _modules_ = createRedirectModules(new Class[] {
+                Game.Map.ModuleMap.class,
+                Game.Rank.ModuleRank.class,
+            });
+            if (_modules_ == null)
+                return;
+
+            Game_Map = (Game.Map.ModuleMap)_modules_[0];
+            Game_Map.Initialize(this);
+            if (modules.put(Game_Map.getFullName(), Game_Map) != null)
+                throw new IllegalStateException("duplicate module name: Game_Map");
+
+            Game_Rank = (Game.Rank.ModuleRank)_modules_[1];
+            Game_Rank.Initialize(this);
+            if (modules.put(Game_Rank.getFullName(), Game_Rank) != null)
+                throw new IllegalStateException("duplicate module name: Game_Rank");
+
+            Zeze.setSchemas(new Game.Schemas());
+        } finally {
+            unlock();
         }
     }
 
-    public synchronized void stopBeforeModules() throws Exception {
-        if (Game_Rank != null)
-            Game_Rank.StopBefore();
-        if (Game_Map != null)
-            Game_Map.StopBefore();
-        if (null != Zeze.getHotManager()) {
-            var definedOrder = new java.util.HashSet<String>();
-            Zeze.getHotManager().stopBeforeModulesExcept(definedOrder);
+    public void destroyModules() throws Exception {
+        lock();
+        try {
+            Game_Rank = null;
+            Game_Map = null;
+            if (null != Zeze.getHotManager()) {
+                Zeze.getHotManager().destroyModules();
+                Zeze.setHotManager(null);
+            }
+            modules.clear();
+        } finally {
+            unlock();
         }
     }
 
-    public synchronized void startService() throws Exception {
-        Server.start();
-        ServerDirect.start();
+    public void destroyServices() {
+        lock();
+        try {
+            Server = null;
+            ServerDirect = null;
+        } finally {
+            unlock();
+        }
     }
 
-    public synchronized void stopService() throws Exception {
-        if (Server != null)
-            Server.stop();
-        if (ServerDirect != null)
-            ServerDirect.stop();
+    public void destroyZeze() {
+        lock();
+        try {
+            Zeze = null;
+        } finally {
+            unlock();
+        }
+    }
+
+    public void startModules() throws Exception {
+        lock();
+        try {
+            Game_Map.Start(this);
+            Game_Rank.Start(this);
+            if (null != Zeze.getHotManager()) {
+                var definedOrder = new java.util.HashSet<String>();
+                Zeze.getHotManager().startModulesExcept(definedOrder);
+            }
+        } finally {
+            unlock();
+        }
+    }
+
+    @Override
+    public void startLastModules() throws Exception {
+        lock();
+        try {
+            Game_Map.StartLast();
+            Game_Rank.StartLast();
+            if (null != Zeze.getHotManager()) {
+                var definedOrder = new java.util.HashSet<String>();
+                Zeze.getHotManager().startLastModulesExcept(definedOrder);
+            }
+        } finally {
+            unlock();
+        }
+    }
+
+    public void stopModules() throws Exception {
+        lock();
+        try {
+            if (Game_Rank != null)
+                Game_Rank.Stop(this);
+            if (Game_Map != null)
+                Game_Map.Stop(this);
+            if (null != Zeze.getHotManager()) {
+                var definedOrder = new java.util.HashSet<String>();
+                Zeze.getHotManager().stopModulesExcept(definedOrder);
+            }
+        } finally {
+            unlock();
+        }
+    }
+
+    public void stopBeforeModules() throws Exception {
+        lock();
+        try {
+            if (Game_Rank != null)
+                Game_Rank.StopBefore();
+            if (Game_Map != null)
+                Game_Map.StopBefore();
+            if (null != Zeze.getHotManager()) {
+                var definedOrder = new java.util.HashSet<String>();
+                Zeze.getHotManager().stopBeforeModulesExcept(definedOrder);
+            }
+        } finally {
+            unlock();
+        }
+    }
+
+    public void startService() throws Exception {
+        lock();
+        try {
+            Server.start();
+            ServerDirect.start();
+        } finally {
+            unlock();
+        }
+    }
+
+    public void stopService() throws Exception {
+        lock();
+        try {
+            if (Server != null)
+                Server.stop();
+            if (ServerDirect != null)
+                ServerDirect.stop();
+        } finally {
+            unlock();
+        }
     }
 
     public static void distributeHot(Zeze.Hot.Distribute distribute) throws Exception {

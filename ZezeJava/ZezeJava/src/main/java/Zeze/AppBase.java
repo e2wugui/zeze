@@ -2,11 +2,12 @@ package Zeze;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Arch.Gen.GenModule;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class AppBase {
+public abstract class AppBase extends ReentrantLock {
 	public abstract Application getZeze();
 
 	public @Nullable IModule[] createRedirectModules(Class<?> @NotNull [] moduleClasses) {

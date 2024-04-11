@@ -5,6 +5,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import Game.App;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectAll;
@@ -108,7 +109,7 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 
 	}
 
-	public static class Rank {
+	public static class Rank extends ReentrantLock {
 		private long BuildTime;
 
 		public final long getBuildTime() {
@@ -163,7 +164,8 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	private Rank GetRankSync(BConcurrentKey keyHint) {
 		var Rank = Ranks.computeIfAbsent(keyHint, __ -> new Rank());
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (Rank) {
+		Rank.lock();
+		try {
 			long now = System.currentTimeMillis();
 			if (now - Rank.BuildTime < RebuildTime) {
 				return Rank;
@@ -211,6 +213,8 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 					Rank.TableValue.getRankList().remove(ir);
 				//Rank.TableValue.getRankList().RemoveRange(countNeed, Rank.TableValue.RankList.Count - countNeed);
 			}
+		} finally {
+			Rank.unlock();
 		}
 		return Rank;
 	}
