@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiConsumer;
@@ -14,6 +16,43 @@ public class ConcurrentHashMapOrdered<K, V> {
 
 	public ConcurrentHashMapOrdered(int initialCapacity) {
 		map = new ConcurrentHashMap<>(initialCapacity);
+	}
+
+	private class OrderedIterator implements Iterator<V> {
+		private final Iterator<K> queueIt;
+		private transient V value;
+
+		public OrderedIterator(Iterator<K> queueIt) {
+			this.queueIt = queueIt;
+		}
+
+		@Override
+		public boolean hasNext() {
+			while (null == value) {
+				var has = queueIt.hasNext();
+				if (!has)
+					return false;
+				var key = queueIt.next();
+				value = map.get(key);
+				if (null == value)
+					queueIt.remove();
+			}
+			return true;
+		}
+
+		@Override
+		public V next() {
+			if (null == value && !hasNext())
+				throw new NoSuchElementException();
+
+			var next = value;
+			value = null;
+			return next;
+		}
+	}
+
+	public Iterator<V> iterator() {
+		return new OrderedIterator(queue.iterator());
 	}
 
 	public void foreach(BiConsumer<K, V> consumer) {
@@ -48,5 +87,9 @@ public class ConcurrentHashMapOrdered<K, V> {
 
 	public V remove(K key) {
 		return map.remove(key);
+	}
+
+	public void dumpMap() {
+		System.out.println(map);
 	}
 }
