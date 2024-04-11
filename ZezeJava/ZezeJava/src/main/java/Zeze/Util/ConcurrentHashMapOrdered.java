@@ -8,8 +8,17 @@ import java.util.function.BiConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
-	private static final Object deleted = new Object();
+/**
+ * 使用ConcurrentHashMap和ConcurrentLinkedQueue包装实现的简单Map实现，
+ * 【它会记住映射项第一次加入的顺序，并一直保持不变。】
+ * 【需要定时遍历，以从Queue中回收被删除的项。】
+ *
+ * @param <K> key
+ * @param <V> value
+ */
+public class ConcurrentHashMapOrdered<K, V> {
+	private final ConcurrentHashMap<K, V> map;
+	private final ConcurrentLinkedQueue<K> queue = new ConcurrentLinkedQueue<>();
 
 	private final @NotNull ConcurrentHashMap<K, V> map;
 	private final @NotNull ConcurrentLinkedQueue<K> queue = new ConcurrentLinkedQueue<>();
@@ -30,7 +39,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	// 不太准
 	public boolean isEmpty() {
 		return queue.isEmpty();
-	}
+		}
 
 	public boolean containsKey(@NotNull K key) {
 		return get(key) != null;
@@ -68,13 +77,13 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 					if (map.remove(key, value)) {
 						value = null;
 						break;
-					}
+			}
 					value = map.get(key);
 				}
 				if (value != null)
-					return true;
+			return true;
 				queueIt.remove();
-			}
+		}
 		}
 
 		@Override
@@ -107,7 +116,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 			if (v == null)
 				it.remove();
 			else
-				consumer.accept(k, v);
+			consumer.accept(k, v);
 		}
 	}
 
@@ -122,9 +131,9 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		var oldValue = new OutObject<V>();
 		map.compute(key, (k, v) -> {
 			if (v == null) {
-				queue.add(key);
+			queue.add(key);
 				return value;
-			}
+	}
 			if (v == deleted)
 				return value;
 			oldValue.value = v;
@@ -152,7 +161,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	@SuppressWarnings("unchecked")
 	public boolean remove(@NotNull K key, @NotNull V value) {
 		return map.replace(key, value, (V)deleted);
-	}
+}
 
 	public @Nullable V replace(@NotNull K key, @NotNull V value) {
 		var oldValue = new OutObject<V>();
