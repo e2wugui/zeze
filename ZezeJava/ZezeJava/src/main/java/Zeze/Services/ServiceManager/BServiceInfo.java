@@ -4,44 +4,46 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class BServiceInfo extends Bean implements Comparable<BServiceInfo> {
 	/**
 	 * 服务名，比如"GameServer"
 	 */
-	public String serviceName;
+	public @NotNull String serviceName;
 
 	/**
 	 * 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
 	 * 这里使用类型 string 是为了更好的支持扩展。
 	 */
-	public String serviceIdentity;
+	public @NotNull String serviceIdentity;
 
 	/**
 	 * 服务ip-port，如果没有，保持空和0.
 	 */
-	private String passiveIp = "";
-	private int passivePort = 0;
+	private @NotNull String passiveIp = "";
+	private int passivePort;
 
 	// 服务扩展信息，可选。
-	private Binary extraInfo = Binary.Empty;
+	private @NotNull Binary extraInfo = Binary.Empty;
 
 	// ServiceManager用来存储服务器的SessionId。算是一个优化吧。
-	public Long sessionId;
+	public @Nullable Long sessionId;
 
-	public String getServiceName() {
+	public @NotNull String getServiceName() {
 		return serviceName;
 	}
 
-	public String getServiceIdentity() {
+	public @NotNull String getServiceIdentity() {
 		return serviceIdentity;
 	}
 
-	public String getPassiveIp() {
+	public @NotNull String getPassiveIp() {
 		return passiveIp;
 	}
 
-	public void setPassiveIp(String value) {
+	public void setPassiveIp(@NotNull String value) {
 		passiveIp = value;
 	}
 
@@ -53,30 +55,32 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 		passivePort = value;
 	}
 
-	public Binary getExtraInfo() {
+	public @NotNull Binary getExtraInfo() {
 		return extraInfo;
 	}
 
-	public void setExtraInfo(Binary value) {
-		extraInfo = value;
+	public void setExtraInfo(@Nullable Binary value) {
+		extraInfo = value != null ? value : Binary.Empty;
 	}
 
 	public BServiceInfo() {
+		this("", "", null, 0, null);
 	}
 
-	public BServiceInfo(String name, String identity, String ip, int port) {
+	public BServiceInfo(@NotNull String name, @NotNull String identity, @Nullable String ip, int port) {
 		this(name, identity, ip, port, null);
 	}
 
-	public BServiceInfo(String name, String identity, String ip) {
+	public BServiceInfo(@NotNull String name, @NotNull String identity, @Nullable String ip) {
 		this(name, identity, ip, 0, null);
 	}
 
-	public BServiceInfo(String name, String identity) {
+	public BServiceInfo(@NotNull String name, @NotNull String identity) {
 		this(name, identity, null, 0, null);
 	}
 
-	public BServiceInfo(String name, String identity, String ip, int port, Binary extraInfo) {
+	public BServiceInfo(@NotNull String name, @NotNull String identity, @Nullable String ip, int port,
+						@Nullable Binary extraInfo) {
 		serviceName = name;
 		serviceIdentity = identity;
 		if (ip != null)
@@ -87,7 +91,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		serviceName = bb.ReadString();
 		serviceIdentity = bb.ReadString();
 		passiveIp = bb.ReadString();
@@ -96,7 +100,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteString(getServiceName());
 		bb.WriteString(getServiceIdentity());
 		bb.WriteString(getPassiveIp());
@@ -149,7 +153,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return "BServiceInfo{" + "ServiceName='" + serviceName + '\'' + ", ServiceIdentity='" + serviceIdentity + '\'' +
 				", PassiveIp='" + passiveIp + '\'' + ", PassivePort=" + passivePort + ", ExtraInfo=" + extraInfo + '}';
 	}

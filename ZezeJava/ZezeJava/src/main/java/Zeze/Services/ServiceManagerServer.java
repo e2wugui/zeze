@@ -64,22 +64,22 @@ import org.w3c.dom.Element;
  * 3. 列表不一致时，分发请求可能引起cache不命中，但不影响正确性（cache-sync保证了正确性）；
  * <p>
  * 【主要事件和流程】
- * 1. gs停止时调用 RegisterService,UnRegisterService 向ServiceManager声明自己服务状态。
- * 2. linkd启动时调用 UseService, UnUseService 向ServiceManager申请使用gs-list。
- * 3. ServiceManager在RegisterService,UnRegisterService处理时发送 NotifyServiceList 给所有的 linkd。
+ * 1. gs停止时调用 registerService,unRegisterService 向ServiceManager声明自己服务状态。
+ * 2. linkd启动时调用 subscribeService, unSubscribeService 向ServiceManager申请使用gs-list。
+ * 3. ServiceManager在 registerService,unRegisterService 处理时发送 NotifyServiceList 给所有的 linkd。
  * 4. linkd收到NotifyServiceList先记录到本地，同时持续关注自己和gs之间的连接，
  * 当列表中的所有service都准备完成时调用 ReadyServiceList。
  * 5. ServiceManager收到所有的linkd的ReadyServiceList后，向所有的linkd广播 CommitServiceList。
  * 6. linkd 收到 CommitServiceList 时，启用新的服务列表。
  * <p>
  * 【特别规则和错误处理】
- * 1. linkd 异常停止，ServiceManager 按 UnUseService 处理，仅仅简单移除use-list。相当于减少了以后请求来源。
- * 2. gs 异常停止，ServiceManager 按 UnRegisterService 处理，移除可用服务，并启动列表更新流程（NotifyServiceList）。
+ * 1. linkd 异常停止，ServiceManager 按 unSubscribeService 处理，仅仅简单移除use-list。相当于减少了以后请求来源。
+ * 2. gs 异常停止，ServiceManager 按 unRegisterService 处理，移除可用服务，并启动列表更新流程（NotifyServiceList）。
  * 3. linkd 处理 gs 关闭（在NotifyServiceList之前），仅仅更新本地服务列表状态，让该服务暂时不可用，但不改变列表。
  * linkd总是使用ServiceManager提交给他的服务列表，自己不主动增删。
  * linkd在NotifyServiceList的列表减少的处理：一般总是立即进入ready（因为其他gs都是可用状态）。
  * 4. ServiceManager 异常关闭：
- * a) 启用raft以后，新的master会有正确列表数据，但服务状态（连接）未知，此时等待gs的RegisterService一段时间,
+ * a) 启用raft以后，新的master会有正确列表数据，但服务状态（连接）未知，此时等待gs的registerService一段时间,
  * 然后开启新的一轮NotifyServiceList，等待时间内没有再次注册的gs以后当作新的处理。
  * b) 启用raft的好处是raft的非master服务器会识别这种状态，并重定向请求到master，使得系统内只有一个master启用服务。
  * 实际上raft不需要维护相同数据状态（gs-list），从空的开始即可，启用raft的话仅使用他的选举功能。
@@ -96,21 +96,21 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}
 
-	private static final Logger logger = LogManager.getLogger(ServiceManagerServer.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerServer.class);
 
 	// ServiceInfo.Name -> ServiceState
-	private final ConcurrentHashMap<String, ServerState> serverStates = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, ServiceState> serviceStates = new ConcurrentHashMap<>();
 
 	// 简单负载广播，
-	// 在RegisterService/UpdateService时自动订阅，会话关闭的时候删除。
+	// 在registerService/updateService时自动订阅，会话关闭的时候删除。
 	// ProcessSetLoad时广播，本来不需要记录负载数据的，但为了以后可能的查询，保存一份。
 	private final ConcurrentHashMap<String, LoadObservers> loads = new ConcurrentHashMap<>();
 
-	public static final class LoadObservers extends ReentrantLock {
-		private final ServiceManagerServer serviceManager;
+	private static final class LoadObservers extends FastLock {
+		private final @NotNull ServiceManagerServer serviceManager;
 		private final LongHashSet observers = new LongHashSet();
 
-		public LoadObservers(ServiceManagerServer m) {
+		public LoadObservers(@NotNull ServiceManagerServer m) {
 			serviceManager = m;
 		}
 
@@ -123,7 +123,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		public void setLoad(BServerLoad load) {
+		public void setLoad(@NotNull BServerLoad load) {
 			lock();
 			try {
 				var set = new SetServerLoad(load);
@@ -150,10 +150,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
 	private final Conf conf = new Conf();
 	private NetServer server;
-	private final AsyncSocket serverSocket;
-	private final RocksDB autoKeysDb;
+	private final @NotNull AsyncSocket serverSocket;
+	private final @NotNull RocksDB autoKeysDb;
 	private final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
-	private volatile Future<?> startNotifyDelayTask;
+	private volatile @Nullable Future<?> startNotifyDelayTask;
 
 	public static final class Conf implements Config.ICustomize {
 		public int keepAlivePeriod = -1;
@@ -165,17 +165,17 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		 */
 		public int startNotifyDelay = 12 * 1000;
 		public int retryNotifyDelayWhenNotAllReady = 30 * 1000;
-		public String dbHome = ".";
+		public @NotNull String dbHome = ".";
 
 		public long threadingReleaseTimeout = 30 * 60 * 1000;
 
 		@Override
-		public String getName() {
+		public @NotNull String getName() {
 			return "Zeze.Services.ServiceManager";
 		}
 
 		@Override
-		public void parse(Element self) {
+		public void parse(@NotNull Element self) {
 			String attr = self.getAttribute("KeepAlivePeriod");
 			if (!attr.isEmpty())
 				keepAlivePeriod = Integer.parseInt(attr);
@@ -195,18 +195,18 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	// 每个服务的状态
-	public static final class ServerState extends ReentrantLock {
-		private final ServiceManagerServer serviceManager;
-		private final String serviceName;
+	public static final class ServiceState extends ReentrantLock {
+		private final @NotNull ServiceManagerServer serviceManager;
+		private final @NotNull String serviceName;
 		// identity ->
 		// 记录一下SessionId，方便以后找到服务所在的连接。
 		private final HashMap<String, BServiceInfo> serviceInfos = new HashMap<>(); // key:serverId
 		private final LongHashMap<SubscribeState> simple = new LongHashMap<>(); // key:sessionId
 		private final LongHashMap<SubscribeState> readyCommit = new LongHashMap<>(); // key:sessionId
-		private Future<?> notifyTimeoutTask;
+		private @Nullable Future<?> notifyTimeoutTask;
 		private long serialId;
 
-		public ServerState(ServiceManagerServer sm, String serviceName) {
+		public ServiceState(@NotNull ServiceManagerServer sm, @NotNull String serviceName) {
 			serviceManager = sm;
 			this.serviceName = serviceName;
 		}
@@ -223,7 +223,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		public void getServiceInfos(List<BServiceInfo> target) {
+		public void getServiceInfos(@NotNull List<BServiceInfo> target) {
 			lock();
 			try {
 				target.addAll(serviceInfos.values());
@@ -282,7 +282,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		public void notifySimpleOnRegister(BServiceInfo info) {
+		public void notifySimpleOnRegister(@NotNull BServiceInfo info) {
 			lock();
 			try {
 				if (simple.isEmpty())
@@ -292,14 +292,15 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					var sessionId = it.key();
 					if (new Register(info).Send(serviceManager.server.GetSocket(sessionId)))
 						sb.append(sessionId).append(',');
-					else
-						logger.warn("NotifySimpleOnRegister {} failed: serverId({}) => sessionId({})",
+					else {
+						logger.warn("notifySimpleOnRegister {} failed: serverId({}) => sessionId({})",
 								info.getServiceName(), info.getServiceIdentity(), sessionId);
+					}
 				}
 				var n = sb.length();
 				if (n > 0) {
 					sb.setLength(n - 1);
-					logger.info("NotifySimpleOnRegister {} serverId({}) => sessionIds({})",
+					logger.info("notifySimpleOnRegister {} serverId({}) => sessionIds({})",
 							info.getServiceName(), info.getServiceIdentity(), sb);
 				}
 			} finally {
@@ -307,7 +308,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		public void notifySimpleOnUnRegister(BServiceInfo info) {
+		public void notifySimpleOnUnRegister(@NotNull BServiceInfo info) {
 			lock();
 			try {
 				if (simple.isEmpty())
@@ -317,14 +318,15 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					var sessionId = it.key();
 					if (new UnRegister(info).Send(serviceManager.server.GetSocket(sessionId)))
 						sb.append(sessionId).append(',');
-					else
-						logger.warn("NotifySimpleOnUnRegister {} failed: serverId({}) => sessionId({})",
+					else {
+						logger.warn("notifySimpleOnUnRegister {} failed: serverId({}) => sessionId({})",
 								info.getServiceName(), info.getServiceIdentity(), sessionId);
+					}
 				}
 				var n = sb.length();
 				if (n > 0) {
 					sb.setLength(n - 1);
-					logger.info("NotifySimpleOnUnRegister {} serverId({}) => sessionIds({})",
+					logger.info("notifySimpleOnUnRegister {} serverId({}) => sessionIds({})",
 							info.getServiceName(), info.getServiceIdentity(), sb);
 				}
 			} finally {
@@ -332,7 +334,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		public int updateAndNotify(BServiceInfo info) {
+		public int updateAndNotify(@NotNull BServiceInfo info) {
 			lock();
 			try {
 				var current = serviceInfos.get(info.getServiceIdentity());
@@ -349,9 +351,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					var sessionId = it.key();
 					if (new Update(current).Send(serviceManager.server.GetSocket(sessionId)))
 						sb.append(sessionId).append(',');
-					else
-						logger.warn("UpdateAndNotify {} failed: serverId({}) => sessionId({})",
+					else {
+						logger.warn("updateAndNotify simple {} failed: serverId({}) => sessionId({})",
 								info.getServiceName(), info.getServiceIdentity(), sessionId);
+					}
 				}
 				var n = sb.length();
 				if (n > 0)
@@ -362,13 +365,15 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					var sessionId = it.key();
 					if (new Update(current).Send(serviceManager.server.GetSocket(sessionId)))
 						sb.append(sessionId).append(',');
-					else
-						logger.warn("UpdateAndNotify {} failed: serverId({}) => sessionId({})",
+					else {
+						logger.warn("updateAndNotify readyCommit {} failed: serverId({}) => sessionId({})",
 								info.getServiceName(), info.getServiceIdentity(), sessionId);
+					}
 				}
-				if (sb.length() > 1)
-					logger.info("UpdateAndNotify {} serverId({}) => sessionIds({})",
+				if (sb.length() > 1) {
+					logger.info("updateAndNotify {} serverId({}) => sessionIds({})",
 							info.getServiceName(), info.getServiceIdentity(), sb);
+				}
 				return 0;
 			} finally {
 				unlock();
@@ -404,7 +409,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		 * 订阅时候返回的ServiceInfos，必须和Notify流程互斥。
 		 * 原子的得到当前信息并发送，然后加入订阅(simple or readyCommit)。
 		 */
-		public long subscribeAndSend(Subscribe r, long sessionId) {
+		public long subscribeAndSend(@NotNull Subscribe r, long sessionId) {
 			lock();
 			try {
 				// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
@@ -431,7 +436,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		public void setReady(ReadyServiceList p, long sessionId) {
+		public void setReady(@NotNull ReadyServiceList p, long sessionId) {
 			lock();
 			try {
 				if (p.Argument.serialId != serialId) {
@@ -450,7 +455,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
-	public static final class SubscribeState {
+	private static final class SubscribeState {
 		private boolean ready;
 	}
 
@@ -458,21 +463,22 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	// 每个server连接的状态
 	public static final class Session {
-		private final ServiceManagerServer serviceManager;
+		private static final long eOfflineNotifyDelay = 600 * 1000;
+
+		private final @NotNull ServiceManagerServer serviceManager;
 		private final long sessionId;
 		private final ConcurrentHashSet<BServiceInfo> registers = new ConcurrentHashSet<>(); // 以'服务名+ID'作为key的set
 		// key is ServiceName: 会话订阅
 		private final ConcurrentHashMap<String, BSubscribeInfo> subscribes = new ConcurrentHashMap<>();
-		private final Future<?> keepAliveTimerTask;
+		private final @Nullable Future<?> keepAliveTimerTask;
 		private int offlineRegisterServerId; // 原样通知,服务端不关心!!!
 		// 目前SM的客户端没有Id，只能使用这个区分来自哪里，所以对于Server来说，这个值必须填写。
 		// 如果是负数，将不会进行延迟通知，即这种情况下，通知马上发出。
 
 		private final FastLock offlineRegisterNotifiesLock = new FastLock();
 		private final HashMap<String, BOfflineNotify> offlineRegisterNotifies = new HashMap<>(); // 使用的时候加锁保护。value:notifyId
-		public static final long eOfflineNotifyDelay = 600 * 1000;
 
-		public Session(ServiceManagerServer sm, long sid) {
+		public Session(@NotNull ServiceManagerServer sm, long sid) {
 			serviceManager = sm;
 			sessionId = sid;
 			if (serviceManager.conf.keepAlivePeriod > 0) {
@@ -504,13 +510,13 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			for (var info : subscribes.values())
 				serviceManager.unSubscribeNow(sessionId, info);
 
-			var changed = new HashMap<String, ServerState>(registers.size());
+			var changed = new HashMap<String, ServiceState>(registers.size());
 			for (var info : registers) {
 				var state = serviceManager.unRegisterNow(sessionId, info);
 				if (state != null)
 					changed.putIfAbsent(state.serviceName, state);
 			}
-			changed.values().forEach(ServerState::startReadyCommitNotify);
+			changed.values().forEach(ServiceState::startReadyCommitNotify);
 
 			// offline notify，开启一个线程执行，避免互等造成麻烦。
 			// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
@@ -543,7 +549,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				offlineRegisterNotifiesLock.unlock();
 			}
 
-			logger.info("OfflineNotify: serverId={} notifyIds={} begin",
+			logger.info("offlineNotify: serverId={} notifyIds={} begin",
 					offlineRegisterServerId, Arrays.toString(notifyIds));
 			for (var notifyId : notifyIds) {
 				var skips = new HashSet<Session>();
@@ -554,7 +560,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 						break; // 没有找到可用的通知对象，放弃通知。
 					try {
 						notify.SendForWait(selected.getValue()).await();
-						logger.info("OfflineNotify: serverId={} notifyId={} selectSessionId={} resultCode={}",
+						logger.info("offlineNotify: serverId={} notifyId={} selectSessionId={} resultCode={}",
 								offlineRegisterServerId, notifyId, selected.getKey().sessionId, notify.getResultCode());
 						if (notify.getResultCode() == 0)
 							break; // 成功通知。done
@@ -564,11 +570,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					skips.add(selected.getKey());
 				}
 			}
-			logger.info("OfflineNotify: serverId={} end", offlineRegisterServerId);
+			logger.info("offlineNotify: serverId={} end", offlineRegisterServerId);
 		}
 
 		// 从注册了这个notifyId的其他session中随机选择一个。【实际实现是从连接里面按顺序挑选的】
-		private KV<Session, AsyncSocket> randomFor(String notifyId, HashSet<Session> skips) {
+		private @Nullable KV<Session, AsyncSocket> randomFor(@NotNull String notifyId,
+															 @NotNull HashSet<Session> skips) {
 			var sessions = new ArrayList<KV<Session, AsyncSocket>>();
 			try {
 				serviceManager.server.foreach(socket -> {
@@ -594,23 +601,25 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
-	private void addLoadObserver(String ip, int port, AsyncSocket sender) {
+	private void addLoadObserver(@NotNull String ip, int port, @NotNull AsyncSocket sender) {
 		if (!ip.isEmpty() && port != 0)
 			loads.computeIfAbsent(ip + "_" + port, __ -> new LoadObservers(this)).addObserver(sender.getSessionId());
 	}
 
-	private long processRegister(Register r) {
+	private long processRegister(@NotNull Register r) {
 		var session = (Session)r.getSender().getUserState();
 
 		// 允许重复登录，断线重连Agent不好原子实现重发。
 		if (session.registers.add(r.Argument)) {
-			logger.info("{}: Register {} serverId={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
-					r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
+			logger.info("{}: Register {} serverId={} ip={} port={}",
+					r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity(),
+					r.Argument.getPassiveIp(), r.Argument.getPassivePort());
 		} else {
-			logger.info("{}: Already Registered {} serverId={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
-					r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
+			logger.info("{}: Already Registered {} serverId={} ip={} port={}",
+					r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity(),
+					r.Argument.getPassiveIp(), r.Argument.getPassivePort());
 		}
-		var state = serverStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServerState(this, name));
+		var state = serviceStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServiceState(this, name));
 
 		// 【警告】
 		// 为了简单，这里没有创建新的对象，直接修改并引用了r.Argument。
@@ -633,13 +642,13 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return Procedure.Success;
 	}
 
-	public ServerState unRegisterNow(long sessionId, BServiceInfo info) {
-		var state = serverStates.get(info.getServiceName());
+	public @Nullable ServiceState unRegisterNow(long sessionId, @NotNull BServiceInfo info) {
+		var state = serviceStates.get(info.getServiceName());
 		if (state != null) {
 			state.lock();
 			try {
 				var exist = state.serviceInfos.remove(info.getServiceIdentity());
-				if (exist != null && exist.sessionId == sessionId) {
+				if (exist != null && exist.sessionId != null && exist.sessionId == sessionId) {
 					// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
 					state.notifySimpleOnUnRegister(exist);
 					return state;
@@ -651,7 +660,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return null;
 	}
 
-	private long processUnRegister(UnRegister r) {
+	private long processUnRegister(@NotNull UnRegister r) {
 		logger.info("{}: UnRegister {} serverId={}",
 				r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
 		unRegisterNow(r.getSender().getSessionId(), r.Argument); // ignore UnRegisterNow failed
@@ -661,14 +670,14 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return Procedure.Success;
 	}
 
-	private long processUpdate(Update r) {
+	private long processUpdate(@NotNull Update r) {
 		logger.info("{}: Update {} serverId={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
 				r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
 		var session = (Session)r.getSender().getUserState();
 		if (!session.registers.containsKey(r.Argument))
 			return Update.ServiceNotRegister;
 
-		var state = serverStates.get(r.Argument.getServiceName());
+		var state = serviceStates.get(r.Argument.getServiceName());
 		if (state == null)
 			return Update.ServerStateError;
 
@@ -679,17 +688,17 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return 0;
 	}
 
-	private long processSubscribe(Subscribe r) {
+	private long processSubscribe(@NotNull Subscribe r) {
 		logger.info("{}: Subscribe {} type={}",
 				r.getSender(), r.Argument.getServiceName(), r.Argument.getSubscribeType());
 		var session = (Session)r.getSender().getUserState();
 		session.subscribes.putIfAbsent(r.Argument.getServiceName(), r.Argument);
-		return serverStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServerState(this, name))
+		return serviceStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServiceState(this, name))
 				.subscribeAndSend(r, session.sessionId);
 	}
 
-	public ServerState unSubscribeNow(long sessionId, BSubscribeInfo info) {
-		var state = serverStates.get(info.getServiceName());
+	public ServiceState unSubscribeNow(long sessionId, @NotNull BSubscribeInfo info) {
+		var state = serviceStates.get(info.getServiceName());
 		if (state != null) {
 			LongHashMap<SubscribeState> subState;
 			switch (info.getSubscribeType()) {
@@ -713,7 +722,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return null;
 	}
 
-	private long processUnSubscribe(UnSubscribe r) {
+	private long processUnSubscribe(@NotNull UnSubscribe r) {
 		logger.info("{}: UnSubscribe {} type={}",
 				r.getSender(), r.Argument.getServiceName(), r.Argument.getSubscribeType());
 		var session = (Session)r.getSender().getUserState();
@@ -738,19 +747,19 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return Procedure.Success;
 	}
 
-	private long processReadyServiceList(ReadyServiceList r) {
-		serverStates.computeIfAbsent(r.Argument.serviceName, name -> new ServerState(this, name))
+	private long processReadyServiceList(@NotNull ReadyServiceList r) {
+		serviceStates.computeIfAbsent(r.Argument.serviceName, name -> new ServiceState(this, name))
 				.setReady(r, ((Session)r.getSender().getUserState()).sessionId);
 		return Procedure.Success;
 	}
 
-	private long processSetLoad(SetServerLoad setServerLoad) {
+	private long processSetLoad(@NotNull SetServerLoad setServerLoad) {
 		loads.computeIfAbsent(setServerLoad.Argument.getName(), __ -> new LoadObservers(this))
 				.setLoad(setServerLoad.Argument);
 		return 0;
 	}
 
-	private long processOfflineRegister(OfflineRegister r) {
+	private long processOfflineRegister(@NotNull OfflineRegister r) {
 		logger.info("{}: OfflineRegister serverId={} notifyId={}",
 				r.getSender(), r.Argument.serverId, r.Argument.notifyId);
 		var session = (Session)r.getSender().getUserState();
@@ -771,7 +780,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	private long processNormalClose(NormalClose r) {
+	private long processNormalClose(@NotNull NormalClose r) {
 		var session = (Session)r.getSender().getUserState();
 		session.offlineRegisterNotifiesLock.lock();
 		try {
@@ -793,7 +802,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
-	private final ThreadingServer threading;
+	private final @NotNull ThreadingServer threading;
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port, @NotNull Config config) throws Exception {
 		this(ipaddress, port, config, -1);
@@ -806,7 +815,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
 								@NotNull Config config, int startNotifyDelay,
-								String autokeys) throws Exception {
+								@NotNull String autokeys) throws Exception {
 		PerfCounter.instance.tryStartScheduledLog();
 		config.parseCustomize(this.conf);
 
@@ -843,7 +852,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			//noinspection NonAtomicOperationOnVolatileField
 			startNotifyDelayTask = Task.scheduleUnsafe(this.conf.startNotifyDelay, () -> {
 				startNotifyDelayTask = null;
-				serverStates.values().forEach(s -> s.startReadyCommitNotify(true));
+				serviceStates.values().forEach(s -> s.startReadyCommitNotify(true));
 			});
 		}
 
@@ -858,12 +867,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		server.start();
 	}
 
-	public static final class AutoKey extends ReentrantLock {
-		private final ServiceManagerServer sms;
-		private final byte[] key;
+	private static final class AutoKey extends FastLock {
+		private final @NotNull ServiceManagerServer sms;
+		private final byte @NotNull [] key;
 		private long current;
 
-		public AutoKey(String name, ServiceManagerServer sms) {
+		public AutoKey(@NotNull String name, @NotNull ServiceManagerServer sms) {
 			this.sms = sms;
 			byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
 			var bb = ByteBuffer.Allocate(ByteBuffer.WriteUIntSize(nameBytes.length) + nameBytes.length);
@@ -878,7 +887,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		public void allocate(AllocateId rpc) {
+		public void allocate(@NotNull AllocateId rpc) {
 			lock();
 			try {
 				rpc.Result.setStartId(current);
@@ -908,7 +917,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
-	private long processAllocateId(AllocateId r) {
+	private long processAllocateId(@NotNull AllocateId r) {
 		var name = r.Argument.getName();
 		r.Result.setName(name);
 		autoKeys.computeIfAbsent(name, key -> new AutoKey(key, this)).allocate(r);
@@ -927,11 +936,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			serverSocket.close();
 			server.stop();
 			server = null;
-			serverStates.values().forEach(ServerState::close);
-			if (autoKeysDb != null) {
-				logger.info("closeDb: {}, autokeys", this.conf.dbHome);
-				autoKeysDb.close();
-			}
+			serviceStates.values().forEach(ServiceState::close);
+			logger.info("closeDb: {}, autokeys", this.conf.dbHome);
+			autoKeysDb.close();
 			threading.close();
 		} finally {
 			unlock();
@@ -939,23 +946,23 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	public static final class NetServer extends HandshakeServer {
-		private final ServiceManagerServer serviceManager;
+		private final @NotNull ServiceManagerServer serviceManager;
 		private final TaskOneByOneByKey oneByOneByKey = new TaskOneByOneByKey();
 
-		public NetServer(ServiceManagerServer sm, Config config) {
+		public NetServer(@NotNull ServiceManagerServer sm, Config config) {
 			super("Zeze.Services.ServiceManager", config);
 			serviceManager = sm;
 		}
 
 		@Override
-		public void OnSocketAccept(AsyncSocket so) throws Exception {
+		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
 			logger.info("OnSocketAccept: {} sessionId={}", so, so.getSessionId());
 			so.setUserState(new Session(serviceManager, so.getSessionId()));
 			super.OnSocketAccept(so);
 		}
 
 		@Override
-		public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
+		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
 			logger.info("OnSocketClose: {} sessionId={}", so, so.getSessionId());
 			var session = (Session)so.getUserState();
 			if (session != null)
@@ -964,10 +971,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 
 		@Override
-		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb,
+									 @NotNull ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			oneByOneByKey.Execute(p.getSender(),
-					() -> Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode), factoryHandle.Mode);
+					() -> Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode),
+					factoryHandle.Mode);
 			// 不支持事务，由于这里直接OneByOne执行，所以下面两个方法就不重载了。
 		}
 		/*

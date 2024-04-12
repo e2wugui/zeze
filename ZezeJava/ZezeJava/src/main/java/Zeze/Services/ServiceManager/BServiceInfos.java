@@ -29,7 +29,7 @@ public final class BServiceInfos extends Bean {
 		this.serviceName = serviceName;
 	}
 
-	public BServiceInfos(String serviceName, ServiceManagerServer.ServerState state, long serialId) {
+	public BServiceInfos(String serviceName, ServiceManagerServer.ServiceState state, long serialId) {
 		this.serviceName = serviceName;
 		state.getServiceInfos(serviceInfoListSortedByIdentity);
 		serviceInfoListSortedByIdentity.sort(Comparer);
