@@ -1,6 +1,5 @@
 package Zeze.Arch;
 
-import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Arch.Beans.BSend;
 import Zeze.Builtin.Provider.AnnounceLinkInfo;
 import Zeze.Builtin.Provider.BKick;
@@ -36,17 +35,6 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	protected ProviderApp providerApp;
 	private volatile int controlKick = BKick.eControlClose;
-	private final ReentrantLock thisLock = new ReentrantLock();
-
-	@Override
-	public void lock() {
-		thisLock.lock();
-	}
-
-	@Override
-	public void unlock() {
-		thisLock.unlock();
-	}
 
 	public void setControlKick(int control) {
 		controlKick = control;

@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
  * 这个类管理到桶的raft-client-agent。
  * 实际上不能算池子，一个桶目前考虑只建立一个实例，多线程使用时共享同一个实例。
  */
-public class Dbh2AgentManager {
+public class Dbh2AgentManager extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(Dbh2AgentManager.class);
 	// 多master支持
 	private final ConcurrentHashMap<String, MasterAgent> masterAgent = new ConcurrentHashMap<>();
@@ -50,11 +50,9 @@ public class Dbh2AgentManager {
 	private Future<?> refreshMasterTableTask;
 	private final AbstractAgent serviceManager;
 	private final AutoKey tidAutoKey;
-	private final ReentrantLock thisLock = new ReentrantLock();
 
-	public void startRefreshMasterTable(
-			String masterName, String databaseName, String tableName) {
-		thisLock.lock();
+	public void startRefreshMasterTable(String masterName, String databaseName, String tableName) {
+		lock();
 		try {
 			if (null != refreshMasterTableTask)
 				return;
@@ -65,7 +63,7 @@ public class Dbh2AgentManager {
 						refreshMasterTableTask = null;
 					});
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
@@ -159,7 +157,7 @@ public class Dbh2AgentManager {
 	}
 
 	public void stop() throws Exception {
-		thisLock.lock();
+		lock();
 		try {
 			proxyAgent.stop();
 			for (var ma : masterAgent.values())
@@ -178,7 +176,7 @@ public class Dbh2AgentManager {
 				commitAgent = null;
 			}
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
@@ -269,13 +267,13 @@ public class Dbh2AgentManager {
 	public void reload(
 			MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName) {
-		thisLock.lock();
+		lock();
 		try {
 			var masterTable = masterAgent.getBuckets(databaseName, tableName);
 			logger.info("reload ... {}", masterTable);
 			putBuckets(masterTable, masterName, databaseName, tableName);
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
@@ -284,7 +282,7 @@ public class Dbh2AgentManager {
 			String masterName,
 			String databaseName,
 			String tableName) {
-		thisLock.lock();
+		lock();
 		try {
 			var master = this.buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
 			var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
@@ -310,7 +308,7 @@ public class Dbh2AgentManager {
 			}
 			database.put(tableName, buckets);
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 

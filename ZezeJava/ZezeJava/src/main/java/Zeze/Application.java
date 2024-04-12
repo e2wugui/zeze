@@ -56,7 +56,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public final class Application {
+public final class Application extends ReentrantLock {
 	static final Logger logger = LogManager.getLogger(Application.class);
 
 	private final @NotNull String projectName;
@@ -81,7 +81,6 @@ public final class Application {
 	private Schemas schemas;
 	private Schemas schemasPrevious; // maybe null
 	private final ProcedureLockWatcher procedureLockWatcher;
-	private final ReentrantLock thisLock = new ReentrantLock();
 
 	public ProcedureLockWatcher getProcedureLockWatcher() {
 		return procedureLockWatcher;
@@ -223,13 +222,13 @@ public final class Application {
 	}
 
 	public void initialize(@NotNull AppBase app) {
-		thisLock.lock();
+		lock();
 		try {
 			appBase = app;
 			if (timer == null && !isNoDatabase() && redirect != null)
 				timer = Timer.create(app);
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
@@ -263,7 +262,7 @@ public final class Application {
 
 	/*
 	public void setCheckpoint(Checkpoint value) {
-		thisLock.lock();
+		lock();
 		try {
 			if (value == null)
 				throw new NullPointerException();
@@ -271,7 +270,7 @@ public final class Application {
 				throw new IllegalStateException("Checkpoint only can setup before start.");
 			_checkpoint = value;
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 	*/
@@ -388,11 +387,11 @@ public final class Application {
 	}
 
 	public void openDynamicTable(@NotNull String dbName, @NotNull Table table) {
-		thisLock.lock();
+		lock();
 		try {
 			addTable(dbName, table).openDynamicTable(this, table);
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
@@ -604,7 +603,7 @@ public final class Application {
 	}
 
 	public void start() throws Exception {
-		thisLock.lock();
+		lock();
 		try {
 			if (startState == StartState.eStarted)
 				return;
@@ -699,12 +698,12 @@ public final class Application {
 			} else
 				startState = StartState.eStarted;
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
 	public void stop() throws Exception {
-		thisLock.lock();
+		lock();
 		try {
 			if (null != onz) {
 				onz.stop();
@@ -790,7 +789,7 @@ public final class Application {
 			}
 			startState = StartState.eStopped;
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 

@@ -118,19 +118,10 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	// 记住当前已经注册和订阅信息，当ServiceManager连接发生重连时，重新发送请求。
 	// 维护这些状态数据都是先更新本地再发送远程请求，在失败的时候rollback。
 	// 当同一个Key(比如ServiceName)存在并发时，现在处理所有情况，但不保证都是合理的。
-	public final class SubscribeState {
+	public final class SubscribeState extends ReentrantLock {
 		public final BSubscribeInfo subscribeInfo;
 		public volatile BServiceInfos serviceInfos;
 		public volatile BServiceInfos serviceInfosPending;
-		private final ReentrantLock thisLock = new ReentrantLock();
-
-		public void lock() {
-			thisLock.lock();
-		}
-
-		public void unlock() {
-			thisLock.unlock();
-		}
 
 		/**
 		 * 刚初始化时为false，任何修改ServiceInfos都会设置成true。 用来处理Subscribe返回的第一份数据和Commit可能乱序的问题。

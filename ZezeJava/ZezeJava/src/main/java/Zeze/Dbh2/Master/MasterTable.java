@@ -11,18 +11,9 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
 public class MasterTable {
-	public static class Data implements Serializable {
+	public static class Data extends ReentrantLock implements Serializable {
 		final TreeMap<Binary, BBucketMeta.Data> buckets = new TreeMap<>(); // key is meta.first
 		volatile boolean created = false;
-		private final ReentrantLock lock = new ReentrantLock();
-
-		public void lock() {
-			lock.lock();
-		}
-
-		public void unlock() {
-			lock.unlock();
-		}
 
 		public Collection<BBucketMeta.Data> buckets() {
 			return buckets.values();

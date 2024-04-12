@@ -3,7 +3,6 @@ package Zeze.Arch;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Builtin.Provider.AnnounceProviderInfo;
 import Zeze.Builtin.Provider.BModule;
@@ -37,18 +36,6 @@ public class ProviderService extends HandshakeClient {
 	// 用来同步等待Provider的静态绑定完成。
 	public final TaskCompletionSource<Boolean> providerStaticBindCompleted = new TaskCompletionSource<>();
 	public final TaskCompletionSource<Boolean> providerDynamicSubscribeCompleted = new TaskCompletionSource<>();
-
-	private final ReentrantLock thisLock = new ReentrantLock();
-
-	@Override
-	public void lock() {
-		thisLock.lock();
-	}
-
-	@Override
-	public void unlock() {
-		thisLock.unlock();
-	}
 
 	public ProviderService(@NotNull String name, @NotNull Application zeze) {
 		super(name, zeze);
@@ -147,7 +134,6 @@ public class ProviderService extends HandshakeClient {
 	public void setDisableChoiceFromLinks(boolean value) {
 		// ProviderApp 构造的时候初始化，相当于final了。
 		// 这样写是为了用户不用在构造ProviderService的时候传参数。
-		//noinspection SynchronizeOnNonFinalField
 		providerApp.lock();
 		try {
 			if (!providerApp.isOnlineReady())

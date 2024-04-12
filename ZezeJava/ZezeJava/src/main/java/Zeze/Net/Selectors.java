@@ -11,7 +11,7 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class Selectors {
+public class Selectors extends ReentrantLock {
 	public static final class InstanceHolder { // for lazy-init
 		private static final Selectors instance = new Selectors("Selector");
 	}
@@ -56,7 +56,6 @@ public class Selectors {
 	private final FastLock bbGlobalPoolLock = new FastLock(); // 全局池的锁
 	private volatile @NotNull Selector[] selectorList;
 	private final AtomicLong choiceCount = new AtomicLong();
-	private final ReentrantLock thisLock = new ReentrantLock();
 
 	public Selectors(@NotNull String name) {
 		this(name, 1, null);
@@ -104,11 +103,13 @@ public class Selectors {
 		return readBufferSize;
 	}
 
-	@NotNull ArrayList<ByteBuffer> getBbGlobalPool() {
+	@NotNull
+	ArrayList<ByteBuffer> getBbGlobalPool() {
 		return bbGlobalPool;
 	}
 
-	@NotNull FastLock getBbGlobalPoolLock() {
+	@NotNull
+	FastLock getBbGlobalPoolLock() {
 		return bbGlobalPoolLock;
 	}
 
@@ -160,7 +161,7 @@ public class Selectors {
 	}
 
 	public void close() {
-		thisLock.lock();
+		lock();
 		try {
 			Selector[] tmp = selectorList;
 			if (tmp != null) {
@@ -169,7 +170,7 @@ public class Selectors {
 					s.close();
 			}
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 }

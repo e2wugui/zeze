@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import Zeze.AppBase;
 import Zeze.Arch.Beans.BSend;
@@ -99,17 +98,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
 	private TableDynamic<Long, BLocal> _tlocal;
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
-	private final ReentrantLock thisLock = new ReentrantLock();
-
-	@Override
-	public void lock() {
-		thisLock.lock();
-	}
-
-	@Override
-	public void unlock() {
-		thisLock.unlock();
-	}
 
 	public ProviderApp getProviderApp() {
 		return providerApp;

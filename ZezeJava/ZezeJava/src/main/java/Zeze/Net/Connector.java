@@ -20,7 +20,7 @@ import org.w3c.dom.Element;
  * 1. 在配置中通过 class="FullClassName" 的。
  * 2. 动态创建并加入Service
  */
-public class Connector {
+public class Connector extends ReentrantLock {
 	private static final int READY_TIMEOUT = 5000;
 
 	private final @NotNull String hostNameOrAddress;
@@ -37,7 +37,6 @@ public class Connector {
 	private @Nullable Future<?> reconnectTask;
 	private int maxReconnectDelay = 8000; // 毫秒
 	private int reConnectDelay;
-	private final ReentrantLock thisLock = new ReentrantLock();
 
 	public static @NotNull Connector Create(@NotNull Element e) {
 		String className = e.getAttribute("Class");
@@ -59,6 +58,7 @@ public class Connector {
 		this.name = this.hostNameOrAddress + "_" + this.port;
 		this.isAutoReconnect = autoReconnect;
 	}
+
 	public Connector(@NotNull String host, int port) {
 		this(host, port, true);
 	}
@@ -118,14 +118,14 @@ public class Connector {
 		if (isAutoReconnect) {
 			TryReconnect();
 		} else {
-			thisLock.lock();
+			lock();
 			try {
 				if (reconnectTask != null) {
 					reconnectTask.cancel(false);
 					reconnectTask = null;
 				}
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 	}
@@ -139,13 +139,13 @@ public class Connector {
 	}
 
 	public final void SetService(@NotNull Service service) {
-		thisLock.lock();
+		lock();
 		try {
 			if (this.service != null)
 				throw new IllegalStateException("Connector of '" + getName() + "' Service != null");
 			this.service = service;
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
@@ -171,29 +171,29 @@ public class Connector {
 	}
 
 	public void OnSocketClose(@NotNull AsyncSocket closed, @Nullable Throwable e) throws Exception {
-		thisLock.lock();
+		lock();
 		try {
 			if (socket == closed) {
 				stop(e);
 				TryReconnect();
 			}
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
 	public void OnSocketConnected(@SuppressWarnings("unused") @NotNull AsyncSocket so) {
-		thisLock.lock();
+		lock();
 		try {
 			isConnected = true;
 			reConnectDelay = 0;
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
 	public void TryReconnect() {
-		thisLock.lock();
+		lock();
 		try {
 			if (!isAutoReconnect || socket != null || reconnectTask != null)
 				return;
@@ -201,13 +201,13 @@ public class Connector {
 			reConnectDelay = reConnectDelay > 0 ? Math.min(reConnectDelay * 2, maxReconnectDelay) : 1000;
 			reconnectTask = Task.scheduleUnsafe(reConnectDelay, this::start);
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
 	// 需要逻辑相关的握手行为时，重载这个方法。
 	public void OnSocketHandshakeDone(@NotNull AsyncSocket so) {
-		thisLock.lock();
+		lock();
 		try {
 			if (socket == so) {
 				// java 没有TrySetResult，所以如果上面的检查不充分，仍然会有问题。
@@ -215,13 +215,13 @@ public class Connector {
 				return;
 			}
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 		so.close(new Exception("not owner?"));
 	}
 
 	public void start() {
-		thisLock.lock();
+		lock();
 		try {
 			// always try cancel reconnect task
 			if (reconnectTask != null) {
@@ -231,7 +231,7 @@ public class Connector {
 			if (socket == null)
 				socket = service.newClientSocket(hostNameOrAddress, port, userState, this);
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
@@ -241,7 +241,7 @@ public class Connector {
 
 	public void stop(@Nullable Throwable e) {
 		AsyncSocket as;
-		thisLock.lock();
+		lock();
 		try {
 			// always try cancel reconnect task
 			if (reconnectTask != null) {
@@ -258,7 +258,7 @@ public class Connector {
 			as = socket;
 			socket = null; // 阻止递归。
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 		as.close(e);
 	}

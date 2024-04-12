@@ -2,14 +2,13 @@ package Zeze.Util;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public final class ShutdownHook {
 	private static final Logger logger = LogManager.getLogger(ShutdownHook.class);
 	private static final LinkedHashMap<Object, Action0> shutdownActions = new LinkedHashMap<>();
-	private static final ReentrantLock shutdownActionsLock = new ReentrantLock();
+	private static final FastLock shutdownActionsLock = new FastLock();
 
 	static {
 		Runtime.getRuntime().addShutdownHook(new Thread("ShutdownHook") {

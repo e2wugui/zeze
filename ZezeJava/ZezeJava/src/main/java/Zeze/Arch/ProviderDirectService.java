@@ -3,7 +3,6 @@ package Zeze.Arch;
 import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
@@ -40,17 +39,6 @@ public class ProviderDirectService extends HandshakeBoth {
 	public final ConcurrentHashMap<String, ProviderSession> providerByLoadName = new ConcurrentHashMap<>();
 	public final LongConcurrentHashMap<ProviderSession> providerByServerId = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ConcurrentHashSet<Action0>> serverReadyEvents = new LongConcurrentHashMap<>();
-	private final ReentrantLock thisLock = new ReentrantLock();
-
-	@Override
-	public void lock() {
-		thisLock.lock();
-	}
-
-	@Override
-	public void unlock() {
-		thisLock.unlock();
-	}
 
 	public ProviderDirectService(@NotNull String name, @NotNull Application zeze) {
 		super(name, zeze);

@@ -24,7 +24,7 @@ import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public abstract class OnzTransaction<A extends Data, R extends Data> {
+public abstract class OnzTransaction<A extends Data, R extends Data> extends ReentrantLock {
 	protected static final Logger logger = LogManager.getLogger();
 
 	private OnzServer onzServer;
@@ -33,27 +33,26 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 	private A argument;
 	private R result;
 	private boolean pendingAsync = false;
-	private final ReentrantLock thisLock = new ReentrantLock();
-	private final Condition thisCond = thisLock.newCondition();
+	private final Condition thisCond = newCondition();
 
 	void waitPendingAsync() throws InterruptedException {
-		thisLock.lock();
+		lock();
 		try {
 			while (pendingAsync) {
 				thisCond.await();
 			}
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
 	public void setPendingAsync(boolean pending) {
-		thisLock.lock();
+		lock();
 		try {
 			this.pendingAsync = pending;
 			this.notify();
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
@@ -98,7 +97,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 
 	// 远程调用辅助函数
 	public <A2 extends Data, R2 extends Data> TaskCompletionSource<R2>
-		callProcedureAsync(String zezeName, String onzProcedureName, A2 argument, R2 result) {
+	callProcedureAsync(String zezeName, String onzProcedureName, A2 argument, R2 result) {
 		// procedure sage 互斥。
 		if (!zezeSagas.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. saga has called.");
@@ -114,7 +113,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 	}
 
 	public <A2 extends Data, R2 extends Data> TaskCompletionSource<R2>
-		callSagaAsync(String zezeName, String onzProcedureName, A2 argument, R2 result) {
+	callSagaAsync(String zezeName, String onzProcedureName, A2 argument, R2 result) {
 		// procedure sage 互斥。
 		if (!zezeProcedures.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. procedure has called.");
@@ -123,7 +122,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> {
 		var newCall = new OutObject<TaskCompletionSource<R2>>();
 		zezeSagas.computeIfAbsent(zezeInstance, __ -> newCall.value
 				= OnzAgent.callSagaAsync(
-					this, zezeInstance, onzProcedureName, argument, result, flushMode));
+				this, zezeInstance, onzProcedureName, argument, result, flushMode));
 		if (newCall.value == null)
 			throw new RuntimeException("too many funcSaga on same zezeInstance.");
 		return newCall.value;

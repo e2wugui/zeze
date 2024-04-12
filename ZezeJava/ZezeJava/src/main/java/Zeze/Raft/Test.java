@@ -858,7 +858,6 @@ public class Test {
 
 		@SuppressWarnings("SameReturnValue")
 		private long processGetCount(GetCount r) {
-			//noinspection SynchronizeOnNonFinalField
 			stateMachine.lock();
 			try {
 				r.Result.count = stateMachine.count;

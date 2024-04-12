@@ -25,6 +25,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.FastLock;
 import Zeze.Util.KV;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.LongHashSet;
@@ -89,7 +90,7 @@ import org.w3c.dom.Element;
  * 另外为了更健壮的处理通告，通告加一个超时机制。超时没有全部ready，就启动一次新的通告。
  * 原则是：总按最新的gs-list通告。中间不一致的ready全部忽略。
  */
-public final class ServiceManagerServer implements Closeable {
+public final class ServiceManagerServer extends ReentrantLock implements Closeable {
 	static {
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
@@ -105,26 +106,25 @@ public final class ServiceManagerServer implements Closeable {
 	// ProcessSetLoad时广播，本来不需要记录负载数据的，但为了以后可能的查询，保存一份。
 	private final ConcurrentHashMap<String, LoadObservers> loads = new ConcurrentHashMap<>();
 
-	public static final class LoadObservers {
+	public static final class LoadObservers extends ReentrantLock {
 		private final ServiceManagerServer serviceManager;
 		private final LongHashSet observers = new LongHashSet();
-		private final ReentrantLock thisLock = new ReentrantLock();
 
 		public LoadObservers(ServiceManagerServer m) {
 			serviceManager = m;
 		}
 
 		public void addObserver(long sessionId) {
-			thisLock.lock();
+			lock();
 			try {
 				observers.add(sessionId);
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 
 		public void setLoad(BServerLoad load) {
-			thisLock.lock();
+			lock();
 			try {
 				var set = new SetServerLoad(load);
 				LongList removed = null;
@@ -142,7 +142,7 @@ public final class ServiceManagerServer implements Closeable {
 				if (removed != null)
 					removed.foreach(observers::remove);
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 	}
@@ -154,15 +154,6 @@ public final class ServiceManagerServer implements Closeable {
 	private final RocksDB autoKeysDb;
 	private final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
 	private volatile Future<?> startNotifyDelayTask;
-	private final ReentrantLock thisLock = new ReentrantLock();
-
-	public void lock() {
-		thisLock.lock();
-	}
-
-	public void unlock() {
-		thisLock.unlock();
-	}
 
 	public static final class Conf implements Config.ICustomize {
 		public int keepAlivePeriod = -1;
@@ -204,7 +195,7 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	// 每个服务的状态
-	public static final class ServerState {
+	public static final class ServerState extends ReentrantLock {
 		private final ServiceManagerServer serviceManager;
 		private final String serviceName;
 		// identity ->
@@ -214,15 +205,6 @@ public final class ServiceManagerServer implements Closeable {
 		private final LongHashMap<SubscribeState> readyCommit = new LongHashMap<>(); // key:sessionId
 		private Future<?> notifyTimeoutTask;
 		private long serialId;
-		private final ReentrantLock thisLock = new ReentrantLock();
-
-		public void lock() {
-			thisLock.lock();
-		}
-
-		public void unlock() {
-			thisLock.unlock();
-		}
 
 		public ServerState(ServiceManagerServer sm, String serviceName) {
 			serviceManager = sm;
@@ -230,23 +212,23 @@ public final class ServiceManagerServer implements Closeable {
 		}
 
 		public void close() {
-			thisLock.lock();
+			lock();
 			try {
 				if (notifyTimeoutTask != null) {
 					notifyTimeoutTask.cancel(false);
 					notifyTimeoutTask = null;
 				}
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 
 		public void getServiceInfos(List<BServiceInfo> target) {
-			thisLock.lock();
+			lock();
 			try {
 				target.addAll(serviceInfos.values());
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 
@@ -255,7 +237,7 @@ public final class ServiceManagerServer implements Closeable {
 		}
 
 		public void startReadyCommitNotify(boolean notifySimple) {
-			thisLock.lock();
+			lock();
 			try {
 				if (serviceManager.startNotifyDelayTask != null)
 					return;
@@ -296,12 +278,12 @@ public final class ServiceManagerServer implements Closeable {
 							});
 				}
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 
 		public void notifySimpleOnRegister(BServiceInfo info) {
-			thisLock.lock();
+			lock();
 			try {
 				if (simple.isEmpty())
 					return;
@@ -321,12 +303,12 @@ public final class ServiceManagerServer implements Closeable {
 							info.getServiceName(), info.getServiceIdentity(), sb);
 				}
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 
 		public void notifySimpleOnUnRegister(BServiceInfo info) {
-			thisLock.lock();
+			lock();
 			try {
 				if (simple.isEmpty())
 					return;
@@ -346,12 +328,12 @@ public final class ServiceManagerServer implements Closeable {
 							info.getServiceName(), info.getServiceIdentity(), sb);
 				}
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 
 		public int updateAndNotify(BServiceInfo info) {
-			thisLock.lock();
+			lock();
 			try {
 				var current = serviceInfos.get(info.getServiceIdentity());
 				if (current == null)
@@ -389,12 +371,12 @@ public final class ServiceManagerServer implements Closeable {
 							info.getServiceName(), info.getServiceIdentity(), sb);
 				return 0;
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 
 		public void tryCommit() {
-			thisLock.lock();
+			lock();
 			try {
 				if (notifyTimeoutTask == null)
 					return; // no pending notify
@@ -414,7 +396,7 @@ public final class ServiceManagerServer implements Closeable {
 					notifyTimeoutTask = null;
 				}
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 
@@ -423,7 +405,7 @@ public final class ServiceManagerServer implements Closeable {
 		 * 原子的得到当前信息并发送，然后加入订阅(simple or readyCommit)。
 		 */
 		public long subscribeAndSend(Subscribe r, long sessionId) {
-			thisLock.lock();
+			lock();
 			try {
 				// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
 				switch (r.Argument.getSubscribeType()) {
@@ -445,12 +427,12 @@ public final class ServiceManagerServer implements Closeable {
 				r.SendResultCode(Subscribe.Success);
 				return Procedure.Success;
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 
 		public void setReady(ReadyServiceList p, long sessionId) {
-			thisLock.lock();
+			lock();
 			try {
 				if (p.Argument.serialId != serialId) {
 					logger.debug("Ready Skip: SerialId Not Equal. {} Now={}", p.Argument.serialId, serialId);
@@ -463,7 +445,7 @@ public final class ServiceManagerServer implements Closeable {
 					tryCommit();
 				}
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 	}
@@ -486,7 +468,7 @@ public final class ServiceManagerServer implements Closeable {
 		// 目前SM的客户端没有Id，只能使用这个区分来自哪里，所以对于Server来说，这个值必须填写。
 		// 如果是负数，将不会进行延迟通知，即这种情况下，通知马上发出。
 
-		private final ReentrantLock offlineRegisterNotifiesLock = new ReentrantLock();
+		private final FastLock offlineRegisterNotifiesLock = new FastLock();
 		private final HashMap<String, BOfflineNotify> offlineRegisterNotifies = new HashMap<>(); // 使用的时候加锁保护。value:notifyId
 		public static final long eOfflineNotifyDelay = 600 * 1000;
 
@@ -773,16 +755,17 @@ public final class ServiceManagerServer implements Closeable {
 				r.getSender(), r.Argument.serverId, r.Argument.notifyId);
 		var session = (Session)r.getSender().getUserState();
 		// 允许重复注册：简化server注册逻辑。
+		Future<?> future;
 		session.offlineRegisterNotifiesLock.lock();
 		try {
 			session.offlineRegisterServerId = r.Argument.serverId;
 			session.offlineRegisterNotifies.put(r.Argument.notifyId, r.Argument);
-			var future = offlineNotifyFutures.remove(session.offlineRegisterServerId);
-			if (null != future)
-				future.cancel(true);
+			future = offlineNotifyFutures.remove(session.offlineRegisterServerId);
 		} finally {
 			session.offlineRegisterNotifiesLock.unlock();
 		}
+		if (future != null)
+			future.cancel(true);
 		r.SendResult();
 		return 0;
 	}
@@ -817,7 +800,7 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
-								@NotNull Config config, int startNotifyDelay) throws Exception{
+								@NotNull Config config, int startNotifyDelay) throws Exception {
 		this(ipaddress, port, config, startNotifyDelay, "autokeys");
 	}
 
@@ -875,11 +858,10 @@ public final class ServiceManagerServer implements Closeable {
 		server.start();
 	}
 
-	public static final class AutoKey {
+	public static final class AutoKey extends ReentrantLock {
 		private final ServiceManagerServer sms;
 		private final byte[] key;
 		private long current;
-		private final ReentrantLock thisLock = new ReentrantLock();
 
 		public AutoKey(String name, ServiceManagerServer sms) {
 			this.sms = sms;
@@ -897,7 +879,7 @@ public final class ServiceManagerServer implements Closeable {
 		}
 
 		public void allocate(AllocateId rpc) {
-			thisLock.lock();
+			lock();
 			try {
 				rpc.Result.setStartId(current);
 
@@ -921,7 +903,7 @@ public final class ServiceManagerServer implements Closeable {
 
 				rpc.Result.setCount(count);
 			} finally {
-				thisLock.unlock();
+				unlock();
 			}
 		}
 	}
@@ -935,7 +917,7 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	public void stop() throws Exception {
-		thisLock.lock();
+		lock();
 		try {
 			if (server == null)
 				return;
@@ -952,7 +934,7 @@ public final class ServiceManagerServer implements Closeable {
 			}
 			threading.close();
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 

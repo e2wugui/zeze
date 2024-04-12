@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
  * 设置相关对象之间的引用，
  * 初始化。
  */
-public class ProviderApp {
+public class ProviderApp extends ReentrantLock {
 	public final @NotNull Application zeze;
 
 	public final @NotNull ProviderImplement providerImplement;
@@ -42,15 +42,6 @@ public class ProviderApp {
 	private boolean startLast;
 	private boolean isOnlineReady = false;
 	private boolean isUserDisableChoice = true;
-	private final ReentrantLock thisLock = new ReentrantLock();
-
-	public void lock() {
-		thisLock.lock();
-	}
-
-	public void unlock() {
-		thisLock.unlock();
-	}
 
 	public boolean isOnlineReady() {
 		return isOnlineReady;

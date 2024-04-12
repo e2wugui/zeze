@@ -3,7 +3,6 @@ package Zeze.Dbh2;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BWalkKeyValue;
@@ -30,6 +29,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.Action2;
+import Zeze.Util.FastLock;
 import Zeze.Util.FuncLong;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -47,17 +47,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	private final Dbh2StateMachine stateMachine;
 	private final Dbh2Manager manager;
 	private final Locks locks = new Locks();
-	private final ReentrantLock thisLock = new ReentrantLock();
-
-	@Override
-	public void lock() {
-		thisLock.lock();
-	}
-
-	@Override
-	public void unlock() {
-		thisLock.unlock();
-	}
 
 	public Locks getLocks() {
 		return locks;
@@ -80,7 +69,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			setInstanceName(raft.getName());
 		}
 
-		private final ReentrantLock prepareQueueLock = new ReentrantLock();
+		private final FastLock prepareQueueLock = new FastLock();
 		private ConcurrentLinkedQueue<Action0> prepareQueue;
 
 		public void setupPrepareQueue() {
@@ -118,7 +107,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 		@Override
 		public void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
-													 DispatchMode mode) throws Exception {
+										DispatchMode mode) throws Exception {
 			prepareQueueLock.lock();
 			try {
 				if (null != prepareQueue && isPrepareRequest(p.getTypeId())) {
@@ -223,18 +212,18 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 //		var lock = getLocks().get(r.Argument.getKey());
 //		lock.lock(this);
 //		try {
-			// 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
-			var bucket = stateMachine.getBucket();
-			if (!bucket.inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
-				return errorCode(eBucketMismatch);
-			var value = bucket.get(r.Argument.getKey());
-			if (null == value)
-				r.Result.setNull(true);
-			else {
-				r.Result.setValue(value);
-				stateMachine.sizeGet.addAndGet(value.size());
-			}
-			r.SendResult();
+		// 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
+		var bucket = stateMachine.getBucket();
+		if (!bucket.inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
+			return errorCode(eBucketMismatch);
+		var value = bucket.get(r.Argument.getKey());
+		if (null == value)
+			r.Result.setNull(true);
+		else {
+			r.Result.setValue(value);
+			stateMachine.sizeGet.addAndGet(value.size());
+		}
+		r.SendResult();
 //		} finally {
 //			lock.unlock();
 //		}

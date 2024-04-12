@@ -20,7 +20,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-public final class ServiceConf {
+public final class ServiceConf extends ReentrantLock {
 	private Service service;
 	private final @NotNull String name;
 	private @NotNull SocketOptions socketOptions = new SocketOptions();
@@ -28,7 +28,6 @@ public final class ServiceConf {
 	private final ConcurrentHashMap<String, Acceptor> acceptors = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Connector> connectors = new ConcurrentHashMap<>();
 	private int maxConnections = 1024; // 适合绝大多数网络服务，对于连接机，比如Linkd，Gated等需要自己加大。
-	private final ReentrantLock thisLock = new ReentrantLock();
 
 	public Service getService() {
 		return service;
@@ -63,7 +62,7 @@ public final class ServiceConf {
 	}
 
 	public void setService(Service service) {
-		thisLock.lock();
+		lock();
 		try {
 			if (this.service != null) {
 				throw new IllegalStateException(String.format("ServiceConf of '%s' Service != null", getName()));
@@ -72,7 +71,7 @@ public final class ServiceConf {
 			forEachAcceptor(a -> a.SetService(service));
 			forEachConnector(c -> c.SetService(service));
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 

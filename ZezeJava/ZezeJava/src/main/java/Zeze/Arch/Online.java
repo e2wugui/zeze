@@ -10,7 +10,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import Zeze.AppBase;
 import Zeze.Arch.Beans.BSend;
@@ -76,17 +75,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	// 缓存拥有Local数据的HotModule，用来优化。
 	private final ConcurrentHashSet<HotModule> hotModulesHaveLocal = new ConcurrentHashSet<>();
 	private boolean freshStopModule = false;
-	private final ReentrantLock thisLock = new ReentrantLock();
-
-	@Override
-	public void lock() {
-		thisLock.lock();
-	}
-
-	@Override
-	public void unlock() {
-		thisLock.unlock();
-	}
 
 	private void onHotModuleStop(HotModule hot) {
 		freshStopModule |= hotModulesHaveLocal.remove(hot) != null;

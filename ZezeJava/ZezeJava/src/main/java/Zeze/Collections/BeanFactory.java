@@ -16,6 +16,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.FastLock;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
@@ -32,10 +33,10 @@ public final class BeanFactory {
 	private static Application zeze;
 
 	private final LongHashMap<MethodHandle> writingBeanFactory = new LongHashMap<>();
-	private final ReentrantLock writingBeanFactoryLock = new ReentrantLock();
+	private final FastLock writingBeanFactoryLock = new FastLock();
 	private volatile @Nullable LongHashMap<MethodHandle> readingBeanFactory;
 	private final LongHashMap<MethodHandle> writingDataFactory = new LongHashMap<>();
-	private final ReentrantLock writingDataFactoryLock = new ReentrantLock();
+	private final FastLock writingDataFactoryLock = new FastLock();
 	private volatile @Nullable LongHashMap<MethodHandle> readingDataFactory;
 	private final ConcurrentHashSet<Consumer<Class<?>>> globalToLocalWatchers = new ConcurrentHashSet<>();
 

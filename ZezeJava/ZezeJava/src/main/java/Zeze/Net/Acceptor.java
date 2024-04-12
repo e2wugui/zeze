@@ -6,12 +6,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 
-public class Acceptor {
+public class Acceptor extends ReentrantLock {
 	private @NotNull String Ip;
 	private int Port;
 	private Service Service;
 	private AsyncSocket Socket;
-	private final ReentrantLock thisLock = new ReentrantLock();
 
 	public Acceptor(int port, @Nullable String ip) {
 		Ip = ip != null ? ip : "";
@@ -67,37 +66,37 @@ public class Acceptor {
 	}
 
 	public final void SetService(Service service) {
-		thisLock.lock();
+		lock();
 		try {
 			if (Service != null)
 				throw new IllegalStateException("Acceptor of '" + getName() + "' Service != null");
 			Service = service;
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
 	public final void Start() {
-		thisLock.lock();
+		lock();
 		try {
 			if (Socket == null)
 				Socket = Ip.isEmpty()
 						? Service.newServerSocket(new InetSocketAddress(Port), this)
 						: Service.newServerSocket(Ip, Port, this);
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 
 	public final void Stop() {
-		thisLock.lock();
+		lock();
 		try {
 			if (Socket != null) {
 				Socket.close();
 				Socket = null;
 			}
 		} finally {
-			thisLock.unlock();
+			unlock();
 		}
 	}
 }
