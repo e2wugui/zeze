@@ -3,8 +3,8 @@ package UnitTest.Zeze.Util;
 import java.util.ArrayList;
 import java.util.List;
 import Zeze.Util.ConcurrentHashMapOrdered;
-import org.junit.Assert;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 public class TestConcurrentHashMapOrdered {
 	@Test
@@ -21,7 +21,111 @@ public class TestConcurrentHashMapOrdered {
 			it.next();
 			itKeys.add(it.key());
 		}
-		Assert.assertEquals(foreachKeys, keys);
-		Assert.assertEquals(itKeys, keys);
+		assertEquals(foreachKeys, keys);
+		assertEquals(itKeys, keys);
+	}
+
+	@Test
+	public void testSize() {
+		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
+		map.put("key1", "value1");
+		map.put("key2", "value2");
+		assertEquals(2, map.size());
+	}
+
+	@Test
+	public void testIsEmpty() {
+		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
+		assertTrue(map.isEmpty());
+		map.put("key1", "value1");
+		assertFalse(map.isEmpty());
+	}
+
+	@Test
+	public void testContainsKey() {
+		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
+		map.put("key1", "value1");
+		assertTrue(map.containsKey("key1"));
+		assertFalse(map.containsKey("key2"));
+	}
+
+	@Test
+	public void testContainsValue() {
+		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
+		map.put("key1", "value1");
+		assertTrue(map.containsValue("value1"));
+		assertFalse(map.containsValue("value2"));
+	}
+
+	@Test
+	public void testClear() {
+		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
+		map.put("key1", "value1");
+		map.put("key2", "value2");
+		map.clear();
+		assertTrue(map.isEmpty());
+	}
+
+	@Test
+	public void testPut() {
+		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
+		assertNull(map.put("key1", "value1"));
+		assertEquals("value1", map.get("key1"));
+	}
+
+	@Test
+	public void testPutIfAbsent() {
+		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
+		assertNull(map.putIfAbsent("key1", "value1"));
+		assertEquals("value1", map.get("key1"));
+		assertEquals("value1", map.putIfAbsent("key1", "value2"));
+		assertEquals("value1", map.get("key1"));
+	}
+
+	@Test
+	public void testGet() {
+		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
+		map.put("key1", "value1");
+		assertEquals("value1", map.get("key1"));
+		assertNull(map.get("key2"));
+	}
+
+	@Test
+	public void testRemove() {
+		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
+		map.put("key1", "value1");
+		assertEquals("value1", map.remove("key1"));
+		assertNull(map.remove("key1"));
+	}
+
+	@Test
+	public void testReplace() {
+		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
+		map.put("key1", "value1");
+		assertEquals("value1", map.replace("key1", "value2"));
+		assertEquals("value2", map.get("key1"));
+		assertNull(map.replace("key2", "value3"));
+	}
+
+	@Test
+	public void testForeach() {
+		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
+		map.put("key1", "value1");
+		map.put("key2", "value2");
+		StringBuilder sb = new StringBuilder();
+		map.foreach((key, value) -> sb.append(key).append("=").append(value).append(", "));
+		assertEquals("key1=value1, key2=value2, ", sb.toString());
+	}
+
+	@Test
+	public void testOrderedIterator() {
+		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
+		map.put("key1", "value1");
+		map.put("key2", "value2");
+		StringBuilder sb = new StringBuilder();
+		for (String value : map) {
+			sb.append(value).append(", ");
+		}
+		assertEquals("value1, value2, ", sb.toString());
 	}
 }

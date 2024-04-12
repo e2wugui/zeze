@@ -38,7 +38,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	// 不太准
 	public boolean isEmpty() {
 		return queue.isEmpty();
-		}
+	}
 
 	public boolean containsKey(@NotNull K key) {
 		return get(key) != null;
@@ -76,13 +76,13 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 					if (map.remove(key, value)) {
 						value = null;
 						break;
-			}
+					}
 					value = map.get(key);
 				}
 				if (value != null)
-			return true;
+					return true;
 				queueIt.remove();
-		}
+			}
 		}
 
 		@Override
@@ -115,7 +115,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 			if (v == null)
 				it.remove();
 			else
-			consumer.accept(k, v);
+				consumer.accept(k, v);
 		}
 	}
 
@@ -130,9 +130,9 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		var oldValue = new OutObject<V>();
 		map.compute(key, (k, v) -> {
 			if (v == null) {
-			queue.add(key);
+				queue.add(key);
 				return value;
-	}
+			}
 			if (v == deleted)
 				return value;
 			oldValue.value = v;
@@ -160,7 +160,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	@SuppressWarnings("unchecked")
 	public boolean remove(@NotNull K key, @NotNull V value) {
 		return map.replace(key, value, (V)deleted);
-}
+	}
 
 	public @Nullable V replace(@NotNull K key, @NotNull V value) {
 		var oldValue = new OutObject<V>();
