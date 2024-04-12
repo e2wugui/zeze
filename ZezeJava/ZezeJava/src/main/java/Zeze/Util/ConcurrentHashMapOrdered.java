@@ -16,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
  * @param <K> key
  * @param <V> value
  */
-public class ConcurrentHashMapOrdered<K, V> {
+public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	private final static Object deleted = new Object();
 
 	private final @NotNull ConcurrentHashMap<K, V> map;
