@@ -17,9 +17,6 @@ import org.jetbrains.annotations.Nullable;
  * @param <V> value
  */
 public class ConcurrentHashMapOrdered<K, V> {
-	private final ConcurrentHashMap<K, V> map;
-	private final ConcurrentLinkedQueue<K> queue = new ConcurrentLinkedQueue<>();
-
 	private final @NotNull ConcurrentHashMap<K, V> map;
 	private final @NotNull ConcurrentLinkedQueue<K> queue = new ConcurrentLinkedQueue<>();
 
