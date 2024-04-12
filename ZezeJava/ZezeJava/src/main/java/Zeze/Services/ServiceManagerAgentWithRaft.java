@@ -76,7 +76,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 				future.setResult(true);
 			}
 			return 0;
-		}, true);
+		});
 	}
 
 	////////////////////////////////////////////////////////////////////////

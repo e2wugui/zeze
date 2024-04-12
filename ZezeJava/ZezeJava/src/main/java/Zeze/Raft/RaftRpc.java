@@ -14,7 +14,6 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	private long createTime;
 	private UniqueRequestId unique = new UniqueRequestId();
 	private long sendTime;
-	private boolean urgent;
 
 	TaskCompletionSource<RaftRpc<TArgument, TResult>> future;
 	ToLongFunction<Protocol<?>> handle;
@@ -52,14 +51,6 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	@Override
 	public void setSendTime(long value) {
 		sendTime = value;
-	}
-
-	public boolean isUrgent() {
-		return urgent;
-	}
-
-	public void setUrgent(boolean urgent) {
-		this.urgent = urgent;
 	}
 
 	@Override

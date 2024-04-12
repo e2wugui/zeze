@@ -390,7 +390,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 						future.setResult(true);
 					}
 					return 0;
-				}, true);
+				});
 			} else {
 				var relogin = new ReLogin();
 				relogin.Argument.setServerId(config.getServerId());
@@ -406,7 +406,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 						future.setResult(true);
 					}
 					return 0;
-				}, true);
+				});
 			}
 		}
 	}
