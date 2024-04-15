@@ -4,7 +4,8 @@ Hot 所有服务器为单位进行原子的热更，避免新旧版本同时运�
 ------------------------------------------------------------------------------------------------------------------------------
 2024/4/19 v1.4.5 ThreadDiagnosable；Service；StatLog; Raft; Dbh2; AppBase & Gen; ConcurrentHashMapOrdered
 ------------------------------------------------------------------------------------------------------------------------------
-ConcurrentHashMapOrdered 【准备替换Raft.Agent.pending urgentPending.】
+Raft.Agent 去掉 urgentPending，统一使用 Zeze.Util.ConcurrentHashMapOrdered.
+ConcurrentHashMapOrdered 【准备替换Raft.Agent.pending urgentPending.】【已修改！】
 AppBase extends ReentrantLock & Gen.exe
 synchronized -> ReentrantLock
 Dbh2 Master.createTable synchronized (table) 改成 ReentrantLock，适配虚拟线程，否则很可能饥饿。
