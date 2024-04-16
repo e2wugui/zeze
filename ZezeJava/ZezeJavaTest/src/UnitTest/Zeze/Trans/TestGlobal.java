@@ -94,17 +94,23 @@ public class TestGlobal extends TestCase {
 				return Procedure.Success;
 			}, "RemoveClean").call());
 
-			Future<?>[] task2 = new Future[2];
+			@SuppressWarnings("unchecked")
+			Future<Long>[] task2 = new Future[2];
 			int count = 2000;
-			task2[0] = Zeze.Util.Task.runUnsafe(() -> ConcurrentAdd(app1, count, 1), "TestGlobal.ConcurrentAdd1", DispatchMode.Normal);
-			task2[1] = Zeze.Util.Task.runUnsafe(() -> ConcurrentAdd(app2, count, 2), "TestGlobal.ConcurrentAdd2", DispatchMode.Normal);
+			task2[0] = Zeze.Util.Task.runUnsafe(() -> (long)ConcurrentAdd(app1, count, 1), null);
+			task2[1] = Zeze.Util.Task.runUnsafe(() -> (long)ConcurrentAdd(app2, count, 2), null);
+			long success0 = 0;
+			long success1 = 0;
 			try {
-				task2[0].get();
-				task2[1].get();
+				success0 = task2[0].get();
+				success1 = task2[1].get();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			int countall = count * 2;
+			long countall = success0 + success1;
+			if (countall != count * 2)
+				Thread.sleep(5000); // wait for globalForbidPeriod
+
 			Assert.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
 				int last1 = app1.demo_Module1.getTable1().get(6785L).getInt_1();
 				System.out.println("app1 " + last1);
@@ -123,8 +129,9 @@ public class TestGlobal extends TestCase {
 		}
 	}
 
-	private static void ConcurrentAdd(demo.App app, int count, int appId) {
-		Future<?>[] tasks = new Future[count];
+	private static int ConcurrentAdd(demo.App app, int count, int appId) {
+		@SuppressWarnings("unchecked")
+		Future<Long>[] tasks = new Future[count];
 		for (int i = 0; i < tasks.length; ++i) {
 			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.newProcedure(() -> {
 				BValue b = app.demo_Module1.getTable1().getOrAdd(6785L);
@@ -135,12 +142,18 @@ public class TestGlobal extends TestCase {
 				return Procedure.Success;
 			}, "ConcurrentAdd" + appId), DispatchMode.Normal);
 		}
-		for (Future<?> task : tasks) {
+		int success = 0;
+		for (Future<Long> task : tasks) {
 			try {
-				task.get();
+				var r = task.get();
+				if (r == Procedure.Success)
+					success++;
+				else
+					Assert.assertEquals(Procedure.AbortException, r.longValue());
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
+		return success;
 	}
 }

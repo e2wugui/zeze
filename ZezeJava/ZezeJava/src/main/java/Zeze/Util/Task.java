@@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
 
 public final class Task {
 	// 通常不建议开,事务并发量太大时并发冲突可能很高导致频繁redo
-	private static final boolean USE_UNLIMITED_VIRTUAL_THREAD = PropertiesHelper.getBool("useUnlimitedVirtualThread", false);
+	private static final boolean USE_UNLIMITED_VIRTUAL_THREAD = PropertiesHelper.getBool("useUnlimitedVirtualThread", true);
 	private static final boolean USE_VIRTUAL_THREAD = PropertiesHelper.getBool("useVirtualThread", true);
 
 	// 默认不开启热更，这个实现希望能被优化掉，几乎不造成影响。
@@ -75,7 +75,7 @@ public final class Task {
 
 	// 固定数量的线程池, 普通优先级, 自动优先使用支持虚拟线程(不限制数量), 用于处理普通任务
 	public static @NotNull ExecutorService newFixedThreadPool(int threadCount, @NotNull String threadNamePrefix) {
-		if (USE_UNLIMITED_VIRTUAL_THREAD) {
+		if (USE_UNLIMITED_VIRTUAL_THREAD && isVirtualThreadEnabled()) {
 			try {
 				var es = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
 						(Class<?>[])null).invoke(null);
