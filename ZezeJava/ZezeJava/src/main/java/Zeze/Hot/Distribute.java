@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
@@ -16,6 +18,8 @@ import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
+import Zeze.Builtin.HotDistribute.Commit;
+import Zeze.Builtin.HotDistribute.TryDistribute;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Config;
 import Zeze.IModule;
@@ -31,6 +35,7 @@ public class Distribute {
 	private String projectName;
 	private final String providerModuleBinds;
 	private final String configXml;
+	private final boolean atomicAll;
 
 	private final HashMap<String, JarOutputStream> hotModuleJars = new HashMap<>();
 	private JarOutputStream projectJar; // 所有非热更代码都打包到这里。
@@ -41,7 +46,8 @@ public class Distribute {
 					  boolean exportBean,
 					  String workingDir,
 					  String providerModuleBinds,
-					  String configXml) {
+					  String configXml,
+					  boolean atomicAll) {
 
 		this.classesDir = classesDir;
 		this.classesHome = Path.of(classesDir);
@@ -49,6 +55,7 @@ public class Distribute {
 		this.workingDir = workingDir;
 		this.providerModuleBinds = providerModuleBinds;
 		this.configXml = configXml;
+		this.atomicAll = atomicAll;
 
 		Path.of(workingDir, "interfaces").toFile().mkdirs();
 		Path.of(workingDir, "modules").toFile().mkdirs();
@@ -111,16 +118,99 @@ public class Distribute {
 		for (var hotManager : hotManagers) {
 			hotAgents.add(new HotAgent(hotManager));
 		}
+		// 开始发布准备阶段。
+		var distributeId = 0;
+		for (var hotAgent : hotAgents) {
+			hotAgent.prepareDistribute(distributeId); // 开始远程发布需要禁止服务器自带的定时发布功能。
+		}
+		// 拷贝文件
 		for (var hotAgent : hotAgents) {
 			hotAgent.distribute(new File(workingDir, "modules"));
 			hotAgent.distribute(new File(workingDir, "interfaces"));
 		}
-		// HotManager 加上Ready阶段（保持锁定）；然后集中Commit即可实现原子发布。
+		// 开始发布，参数决定是否两阶段（全局原子化）。
+		var futures = new ArrayList<TryDistribute>();
 		for (var hotAgent : hotAgents) {
-			hotAgent.commit();
+			futures.add(hotAgent.tryDistribute(atomicAll));
+		}
+		// 检查结果
+		if (atomicAll) {
+			// 全局原子化，检查结果，并回滚或者提交
+			try {
+				if (checkDistributeFutures(hotAgents, futures)) {
+					// 全部成功，提交发布。
+					var commit2Futures = new ArrayList<Commit>();
+					for (var hotAgent : hotAgents) {
+						commit2Futures.add(hotAgent.commit(distributeId));
+					}
+					// 二次提交，因为发布有个不可出错阶段（不可回滚），所以需要commit两次。
+					var hotAgentCommit2 = new ArrayList<HotAgent>();
+					for (var i = 0; i < commit2Futures.size(); ++i) {
+						try {
+							var r = commit2Futures.get(i);
+							assert r.getFuture() != null;
+							r.getFuture().await(30_000);
+							if (r.getResultCode() == 0) {
+								hotAgentCommit2.add(hotAgents.get(i)); // 只有成功的才真正commit2。
+							} else {
+								System.out.println("commit2Future =" + IModule.getErrorCode(r.getResultCode()));
+							}
+						} catch (Exception ex0) {
+							System.out.println("commit2Future exception: " + ex0);
+						}
+					}
+					for (var hotAgent : hotAgentCommit2) {
+						try {
+							hotAgent.commit2(distributeId);
+						} catch (Exception ex0) {
+							System.out.println("commit2 exception: " + ex0);
+						}
+					}
+					return; // success done
+				}
+			} catch (Exception ex) {
+				System.out.println("exception: " + ex);
+			}
+			// rollback
+			for (var hotAgent : hotAgents) {
+				try {
+					hotAgent.tryRollback(distributeId);
+				} catch (Exception ex0) {
+					System.out.println(hotAgent.getPeer() + "exception: " + ex0);
+				}
+			}
+		} else {
+			// 每个独立发布模式，仅检查并报告错误。
+			for (var i = 0; i < hotAgents.size(); ++i) {
+				try {
+					var r = futures.get(i);
+					assert r.getFuture() != null;
+					r.getFuture().await(30_000);
+					if (r.getResultCode() != 0) {
+						System.out.println(hotAgents.get(i).getPeer() + "=" + IModule.getErrorCode(r.getResultCode()));
+					}
+				} catch (Exception ex) {
+					System.out.println("exception: " + ex);
+				}
+			}
 		}
 	}
 
+	private static boolean checkDistributeFutures(ArrayList<HotAgent> hotAgents,
+												  ArrayList<TryDistribute> tryDistributes)
+			throws ExecutionException, InterruptedException, TimeoutException {
+
+		for (var i = 0; i < hotAgents.size(); ++i) {
+			var rpc = tryDistributes.get(i);
+			assert rpc.getFuture() != null;
+			rpc.getFuture().await(30_000);
+			if (rpc.getResultCode() != 0) {
+				System.out.println(hotAgents.get(i).getPeer() + "=" + IModule.getErrorCode(rpc.getResultCode()));
+				return false;
+			}
+		}
+		return true;
+	}
 	private void packModuleConfig(IModule module, BModule.Data config) {
 		try {
 			var moduleJar = hotModuleJars.get(module.getFullName());
@@ -155,6 +245,7 @@ public class Distribute {
 		var app = "";
 		var providerModuleBinds = "";
 		var configXml = "";
+		var atomicAll = false;
 
 		for (var i = 0; i < args.length; ++i) {
 			switch (args[i]) {
@@ -176,6 +267,9 @@ public class Distribute {
 			case "-config":
 				configXml = args[++i];
 				break;
+			case "-atomicAll":
+				atomicAll = true;
+				break;
 			default:
 				hotManagers.add(args[i]);
 				break;
@@ -184,7 +278,7 @@ public class Distribute {
 
 		var distribute = new Distribute(
 				classesDir, exportBean, workingDir,
-				providerModuleBinds, configXml);
+				providerModuleBinds, configXml, atomicAll);
 
 		var appClass = Class.forName(app);
 		var method = appClass.getMethod("distributeHot", Distribute.class);

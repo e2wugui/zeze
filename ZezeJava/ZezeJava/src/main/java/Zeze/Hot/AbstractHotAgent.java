@@ -48,6 +48,13 @@ public abstract class AbstractHotAgent implements Zeze.IModule {
             service.AddFactoryHandle(47390636330467L, factoryHandle); // 11033, -32813597
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.Commit2.class, Zeze.Builtin.HotDistribute.Commit2.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.HotDistribute.Commit2::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommit2Response", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommit2Response", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47387265579966L, factoryHandle); // 11033, 891403198
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.GetLastVersionBeanInfo.class, Zeze.Builtin.HotDistribute.GetLastVersionBeanInfo.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.HotDistribute.GetLastVersionBeanInfo::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessGetLastVersionBeanInfoResponse", Zeze.Transaction.TransactionLevel.None);
@@ -61,14 +68,39 @@ public abstract class AbstractHotAgent implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessOpenFileResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47390201795475L, factoryHandle); // 11033, -467348589
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.PrepareDistribute.class, Zeze.Builtin.HotDistribute.PrepareDistribute.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.HotDistribute.PrepareDistribute::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessPrepareDistributeResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessPrepareDistributeResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47389258998777L, factoryHandle); // 11033, -1410145287
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.TryDistribute.class, Zeze.Builtin.HotDistribute.TryDistribute.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.HotDistribute.TryDistribute::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessTryDistributeResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessTryDistributeResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47388449680241L, factoryHandle); // 11033, 2075503473
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.TryRollback.class, Zeze.Builtin.HotDistribute.TryRollback.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.HotDistribute.TryRollback::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessTryRollbackResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessTryRollbackResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47386455650973L, factoryHandle); // 11033, 81474205
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47389309196186L);
         service.getFactorys().remove(47390444626489L);
         service.getFactorys().remove(47390636330467L);
+        service.getFactorys().remove(47387265579966L);
         service.getFactorys().remove(47389512970537L);
         service.getFactorys().remove(47390201795475L);
+        service.getFactorys().remove(47389258998777L);
+        service.getFactorys().remove(47388449680241L);
+        service.getFactorys().remove(47386455650973L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {

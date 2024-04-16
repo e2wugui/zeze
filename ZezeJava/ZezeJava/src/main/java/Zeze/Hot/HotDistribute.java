@@ -3,7 +3,11 @@ package Zeze.Hot;
 import Zeze.Builtin.HotDistribute.AppendFile;
 import Zeze.Builtin.HotDistribute.CloseFile;
 import Zeze.Builtin.HotDistribute.Commit;
+import Zeze.Builtin.HotDistribute.Commit2;
 import Zeze.Builtin.HotDistribute.OpenFile;
+import Zeze.Builtin.HotDistribute.PrepareDistribute;
+import Zeze.Builtin.HotDistribute.TryDistribute;
+import Zeze.Builtin.HotDistribute.TryRollback;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 
@@ -43,6 +47,21 @@ public class HotDistribute extends AbstractHotDistribute {
     }
 
     @Override
+    protected long ProcessPrepareDistributeRequest(PrepareDistribute r) throws Exception {
+        return 0;
+    }
+
+    @Override
+    protected long ProcessTryDistributeRequest(TryDistribute r) throws Exception {
+        return 0;
+    }
+
+    @Override
+    protected long ProcessTryRollbackRequest(TryRollback r) throws Exception {
+        return 0;
+    }
+
+    @Override
     protected long ProcessAppendFileRequest(AppendFile r) throws Exception {
         distributeManager.append(
                 r.Argument.getFileName(),
@@ -65,6 +84,11 @@ public class HotDistribute extends AbstractHotDistribute {
         distributeManager.commitDistribute();
         var rc = distributeManager.getHotManager().tryDistribute();
         r.SendResultCode(rc);
+        return 0;
+    }
+
+    @Override
+    protected long ProcessCommit2Request(Commit2 r) throws Exception {
         return 0;
     }
 

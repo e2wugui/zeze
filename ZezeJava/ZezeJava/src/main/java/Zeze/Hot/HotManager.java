@@ -488,6 +488,7 @@ public class HotManager extends ClassLoader {
 					logger.error("", ex);
 				}
 			}
+			// unlock. final commit point.
 			return result;
 		} finally {
 			upgrading = false;

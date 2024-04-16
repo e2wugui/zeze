@@ -1592,15 +1592,22 @@
 			</bean>
 			<bean name="BCloseFileResult">
 			</bean>
-			<bean name="BCommit">
+			<bean name="BDistributeId">
+				<variable id="1" name="DistributeId" type="long"/>
 			</bean>
-			<bean name="BCommitResult">
+			<bean name="BTryDistribute">
+				<variable id="1" name="AtomicAll" type="bool"/>
 			</bean>
 
 			<rpc name="OpenFile" argument="BOpenFile" result="BOpenFileResult" handle="server"/>
 			<rpc name="AppendFile" argument="BAppendFile" result="BAppendFileResult"  handle="server"/>
 			<rpc name="CloseFile" argument="BCloseFile" result="BCloseFileResult"  handle="server"/>
-			<rpc name="Commit" argument="BCommit" result="BCommitResult"  handle="server"/>
+
+			<rpc name="PrepareDistribute" argument="BDistributeId" handle="server"/>
+			<rpc name="TryDistribute" argument="BTryDistribute" handle="server"/>
+			<rpc name="Commit" argument="BDistributeId" handle="server"/>
+			<rpc name="Commit2" argument="BDistributeId" handle="server"/>
+			<rpc name="TryRollback" argument="BDistributeId" handle="server"/>
 		</module>
 
 		<module name="LogService" id="11035" UseData="true"  DefaultTransactionLevel="None">

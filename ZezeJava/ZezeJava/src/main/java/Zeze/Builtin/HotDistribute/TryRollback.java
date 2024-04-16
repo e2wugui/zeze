@@ -1,11 +1,11 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.HotDistribute;
 
-public class Commit extends Zeze.Net.Rpc<Zeze.Builtin.HotDistribute.BDistributeId.Data, Zeze.Transaction.EmptyBean.Data> {
+public class TryRollback extends Zeze.Net.Rpc<Zeze.Builtin.HotDistribute.BDistributeId.Data, Zeze.Transaction.EmptyBean.Data> {
     public static final int ModuleId_ = 11033;
-    public static final int ProtocolId_ = -32813597; // 4262153699
-    public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47390636330467
-    static { register(TypeId_, Commit.class); }
+    public static final int ProtocolId_ = 81474205;
+    public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47386455650973
+    static { register(TypeId_, TryRollback.class); }
 
     @Override
     public int getModuleId() {
@@ -22,12 +22,12 @@ public class Commit extends Zeze.Net.Rpc<Zeze.Builtin.HotDistribute.BDistributeI
         return TypeId_;
     }
 
-    public Commit() {
+    public TryRollback() {
         Argument = new Zeze.Builtin.HotDistribute.BDistributeId.Data();
         Result = Zeze.Transaction.EmptyBean.Data.instance;
     }
 
-    public Commit(Zeze.Builtin.HotDistribute.BDistributeId.Data arg) {
+    public TryRollback(Zeze.Builtin.HotDistribute.BDistributeId.Data arg) {
         Argument = arg;
         Result = Zeze.Transaction.EmptyBean.Data.instance;
     }
