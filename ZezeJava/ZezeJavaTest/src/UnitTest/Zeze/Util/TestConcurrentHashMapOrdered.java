@@ -64,6 +64,7 @@ public class TestConcurrentHashMapOrdered {
 		map.put("key2", "value2");
 		map.clear();
 		assertTrue(map.isEmpty());
+		assertEquals(0, map.size());
 	}
 
 	@Test
@@ -71,6 +72,7 @@ public class TestConcurrentHashMapOrdered {
 		ConcurrentHashMapOrdered<String, String> map = new ConcurrentHashMapOrdered<>();
 		assertNull(map.put("key1", "value1"));
 		assertEquals("value1", map.get("key1"));
+		assertEquals(1, map.size());
 	}
 
 	@Test
@@ -80,6 +82,7 @@ public class TestConcurrentHashMapOrdered {
 		assertEquals("value1", map.get("key1"));
 		assertEquals("value1", map.putIfAbsent("key1", "value2"));
 		assertEquals("value1", map.get("key1"));
+		assertEquals(1, map.size());
 	}
 
 	@Test
@@ -88,6 +91,7 @@ public class TestConcurrentHashMapOrdered {
 		map.put("key1", "value1");
 		assertEquals("value1", map.get("key1"));
 		assertNull(map.get("key2"));
+		assertEquals(1, map.size());
 	}
 
 	@Test
@@ -96,6 +100,7 @@ public class TestConcurrentHashMapOrdered {
 		map.put("key1", "value1");
 		assertEquals("value1", map.remove("key1"));
 		assertNull(map.remove("key1"));
+		assertEquals(0, map.size());
 	}
 
 	@Test
@@ -105,6 +110,7 @@ public class TestConcurrentHashMapOrdered {
 		assertEquals("value1", map.replace("key1", "value2"));
 		assertEquals("value2", map.get("key1"));
 		assertNull(map.replace("key2", "value3"));
+		assertEquals(1, map.size());
 	}
 
 	@Test
@@ -115,6 +121,7 @@ public class TestConcurrentHashMapOrdered {
 		StringBuilder sb = new StringBuilder();
 		map.foreach((key, value) -> sb.append(key).append("=").append(value).append(", "));
 		assertEquals("key1=value1, key2=value2, ", sb.toString());
+		assertEquals(2, map.size());
 	}
 
 	@Test
@@ -127,5 +134,6 @@ public class TestConcurrentHashMapOrdered {
 			sb.append(value).append(", ");
 		}
 		assertEquals("value1, value2, ", sb.toString());
+		assertEquals(2, map.size());
 	}
 }

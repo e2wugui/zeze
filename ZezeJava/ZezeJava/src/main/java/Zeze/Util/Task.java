@@ -88,8 +88,17 @@ public final class Task {
 				new ThreadFactoryWithName(threadNamePrefix, Thread.NORM_PRIORITY, USE_VIRTUAL_THREAD));
 	}
 
-	// 关键线程池, 普通优先级+2, 不使用虚拟线程, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
+	// 关键线程池, 不使用虚拟线程时设为普通优先级+2, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
 	public static @NotNull ExecutorService newCriticalThreadPool(@NotNull String threadNamePrefix) {
+		if (USE_VIRTUAL_THREAD) {
+			try {
+				var es = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
+						(Class<?>[])null).invoke(null);
+				logger.info("newCriticalThreadPool({}) use unlimited virtual thread pool", threadNamePrefix);
+				return es;
+			} catch (ReflectiveOperationException ignored) {
+			}
+		}
 		return Executors.newCachedThreadPool(new ThreadFactoryWithName(threadNamePrefix, Thread.NORM_PRIORITY + 2));
 	}
 
@@ -128,17 +137,21 @@ public final class Task {
 				return false;
 
 			if (pool == null) {
-				int workerThreads = app == null ? 240 : (app.getConfig().getWorkerThreads() > 0
-						? app.getConfig().getWorkerThreads()
-						: Runtime.getRuntime().availableProcessors() * 30);
+				int workerThreads;
+				if (app != null && app.getConfig().getWorkerThreads() > 0)
+					workerThreads = app.getConfig().getWorkerThreads();
+				else
+					workerThreads = Runtime.getRuntime().availableProcessors() * 30;
 				threadPoolDefault = newFixedThreadPool(workerThreads, "ZezeTaskPool");
 			} else
 				threadPoolDefault = pool;
 
 			if (scheduled == null) {
-				int workerThreads = app == null ? 8 : (app.getConfig().getScheduledThreads() > 0
-						? app.getConfig().getScheduledThreads()
-						: Runtime.getRuntime().availableProcessors());
+				int workerThreads;
+				if (app != null && app.getConfig().getScheduledThreads() > 0)
+					workerThreads = app.getConfig().getScheduledThreads();
+				else
+					workerThreads = Runtime.getRuntime().availableProcessors();
 				threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
 						new ThreadFactoryWithName("ZezeScheduledPool", Thread.NORM_PRIORITY, USE_VIRTUAL_THREAD));
 			} else

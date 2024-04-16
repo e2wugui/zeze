@@ -12,7 +12,8 @@ import org.junit.Test;
 @SuppressWarnings("NewClassNamingConvention")
 public final class Simulate {
 	static {
-		System.getProperties().putIfAbsent("log4j2.contextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector");
+		System.getProperties().putIfAbsent("log4j2.contextSelector",
+				"org.apache.logging.log4j.core.async.AsyncLoggerContextSelector");
 	}
 
 	static final Logger logger = LogManager.getLogger(Simulate.class);
@@ -66,6 +67,8 @@ public final class Simulate {
 
 	@After
 	public void After() throws Exception {
+		if (Apps.isEmpty())
+			return;
 		logger.fatal("After");
 		for (var app : Apps) {
 			app.app.demo_Module1.getTflush().getSimulateTables = null;
