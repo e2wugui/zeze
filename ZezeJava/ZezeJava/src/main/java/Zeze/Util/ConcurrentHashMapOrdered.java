@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,6 +22,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 
 	private final @NotNull ConcurrentHashMap<K, V> map;
 	private final @NotNull ConcurrentLinkedQueue<K> queue = new ConcurrentLinkedQueue<>();
+	private final @NotNull AtomicInteger size = new AtomicInteger();
 
 	public ConcurrentHashMapOrdered() {
 		map = new ConcurrentHashMap<>();
@@ -30,14 +32,12 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		map = new ConcurrentHashMap<>(initialCapacity);
 	}
 
-	// 不太准
 	public int size() {
-		return map.size();
+		return size.get();
 	}
 
-	// 不太准
 	public boolean isEmpty() {
-		return queue.isEmpty();
+		return size.get() == 0;
 	}
 
 	public boolean containsKey(@NotNull K key) {
@@ -51,6 +51,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	public void clear() {
 		queue.clear();
 		map.clear();
+		size.set(0);
 	}
 
 	public class OrderedIterator implements Iterator<V> {
@@ -121,9 +122,15 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 
 	public @Nullable V put(@NotNull K key, @NotNull V value) {
 		V old = map.put(key, value);
-		if (old == null)
+		if (old == null) {
 			queue.add(key); // 第一次加入。只保持第一次的顺序，重复put不加入queue。
-		return old == deleted ? null : old;
+			size.incrementAndGet();
+		}
+		if (old == deleted) {
+			size.incrementAndGet();
+			return null;
+		}
+		return old;
 	}
 
 	public @Nullable V putIfAbsent(@NotNull K key, @NotNull V value) {
@@ -131,10 +138,13 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		map.compute(key, (k, v) -> {
 			if (v == null) {
 				queue.add(key);
+				size.incrementAndGet();
 				return value;
 			}
-			if (v == deleted)
+			if (v == deleted) {
+				size.incrementAndGet();
 				return value;
+			}
 			oldValue.value = v;
 			return v;
 		});
@@ -153,13 +163,20 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 
 	public @Nullable V remove(@NotNull K key) {
 		@SuppressWarnings("unchecked")
-		V old = map.put(key, (V)deleted);
-		return old == deleted ? null : old;
+		V old = map.replace(key, (V)deleted);
+		if (old == null || old == deleted)
+			return null;
+		size.decrementAndGet();
+		return old;
 	}
 
 	@SuppressWarnings("unchecked")
 	public boolean remove(@NotNull K key, @NotNull V value) {
-		return map.replace(key, value, (V)deleted);
+		if (map.replace(key, value, (V)deleted)) {
+			size.decrementAndGet();
+			return true;
+		}
+		return false;
 	}
 
 	public @Nullable V replace(@NotNull K key, @NotNull V value) {
