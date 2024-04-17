@@ -22,7 +22,14 @@ public abstract class AbstractHotAgent implements Zeze.IModule {
     public static final int eMd5Mismatch = 4; // 关闭文件时，验证md5失败
     public static final int eServiceOldExists = 5; // 发布更新服务时，发现备份目录存在
     public static final int eMoveOldFail = 6; // 发布更新服务时，备份失败
-    public static final int eCommitFail = 7; // 发布更新服务时，发布服务失败
+    public static final int eIdle = 0;
+    public static final int ePrepare = 7;
+    public static final int eTryDistribute = 8;
+    public static final int eCommit = 9;
+    public static final int eCommit2 = 10;
+    public static final int eDistributeIdMismatch = 11;
+    public static final int eTryRollback = 12;
+    public static final int eInstall = 13;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());

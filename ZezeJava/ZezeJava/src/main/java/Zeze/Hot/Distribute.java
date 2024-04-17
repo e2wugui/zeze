@@ -119,7 +119,7 @@ public class Distribute {
 			hotAgents.add(new HotAgent(hotManager));
 		}
 		// 开始发布准备阶段。
-		var distributeId = 0;
+		var distributeId = 817123; // 使用魔数。发布流程不并发，不需要动态多值，当然提供动态多值更加完善。
 		for (var hotAgent : hotAgents) {
 			hotAgent.prepareDistribute(distributeId); // 开始远程发布需要禁止服务器自带的定时发布功能。
 		}
@@ -131,7 +131,7 @@ public class Distribute {
 		// 开始发布，参数决定是否两阶段（全局原子化）。
 		var futures = new ArrayList<TryDistribute>();
 		for (var hotAgent : hotAgents) {
-			futures.add(hotAgent.tryDistribute(atomicAll));
+			futures.add(hotAgent.tryDistribute(distributeId, atomicAll));
 		}
 		// 检查结果
 		if (atomicAll) {

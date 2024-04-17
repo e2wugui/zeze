@@ -7,5 +7,6 @@ public interface BTryDistributeReadOnly {
     boolean negativeCheck();
     BTryDistribute copy();
 
+    long getDistributeId();
     boolean isAtomicAll();
 }

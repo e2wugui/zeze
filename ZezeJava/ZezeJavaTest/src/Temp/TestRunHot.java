@@ -10,7 +10,7 @@ public class TestRunHot {
 		// 这样测试能运行，但没有完全模拟出实际热更模式。
 		System.out.println("hot install ...");
 		try {
-			var module = tempApp.manager.installReadies();
+			var module = tempApp.manager.installReadies(false);
 			System.out.println(tempApp.manager.getClass().getClassLoader());
 		} catch (Exception ex) {
 			throw new RuntimeException("maybe run this 'zeze\\ZezeJava\\ZezeJavaTest\\hot\\distribute.bat'", ex);

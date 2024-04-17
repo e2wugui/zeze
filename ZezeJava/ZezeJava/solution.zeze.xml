@@ -1578,6 +1578,9 @@
 			<enum name="eTryDistribute"  value="8"/>
 			<enum name="eCommit"  value="9"/>
 			<enum name="eCommit2"  value="10"/>
+			<enum name="eDistributeIdMismatch"  value="11"/>
+			<enum name="eTryRollback"  value="12"/>
+			<enum name="eInstall"  value="13"/>
 
 			<bean name="BOpenFile">
 				<variable id="1" name="FileName" type="string"/>
@@ -1602,7 +1605,8 @@
 				<variable id="1" name="DistributeId" type="long"/>
 			</bean>
 			<bean name="BTryDistribute">
-				<variable id="1" name="AtomicAll" type="bool"/>
+				<variable id="1" name="DistributeId" type="long"/>
+				<variable id="2" name="AtomicAll" type="bool"/>
 			</bean>
 
 			<rpc name="OpenFile" argument="BOpenFile" result="BOpenFileResult" handle="server"/>

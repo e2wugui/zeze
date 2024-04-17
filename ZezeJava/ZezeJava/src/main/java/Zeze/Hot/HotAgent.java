@@ -122,9 +122,10 @@ public class HotAgent extends AbstractHotAgent {
 			throw new RuntimeException("prepareDistribute error " + IModule.getErrorCode(r.getResultCode()));
 	}
 
-	public TryDistribute tryDistribute(boolean atomicAll) {
+	public TryDistribute tryDistribute(long id, boolean atomicAll) {
 		var hotManager = connector.TryGetReadySocket();
 		var r = new TryDistribute();
+		r.Argument.setDistributeId(id);
 		r.Argument.setAtomicAll(atomicAll);
 		r.SendForWait(hotManager);
 		return r;

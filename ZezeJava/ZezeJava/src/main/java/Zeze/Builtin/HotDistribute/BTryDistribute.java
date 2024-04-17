@@ -8,7 +8,28 @@ import Zeze.Serialize.IByteBuffer;
 public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryDistributeReadOnly {
     public static final long TYPEID = -555413257891539268L;
 
+    private long _DistributeId;
     private boolean _AtomicAll;
+
+    @Override
+    public long getDistributeId() {
+        if (!isManaged())
+            return _DistributeId;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _DistributeId;
+        var log = (Log__DistributeId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _DistributeId;
+    }
+
+    public void setDistributeId(long value) {
+        if (!isManaged()) {
+            _DistributeId = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__DistributeId(this, 1, value));
+    }
 
     @Override
     public boolean isAtomicAll() {
@@ -17,7 +38,7 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _AtomicAll;
-        var log = (Log__AtomicAll)txn.getLog(objectId() + 1);
+        var log = (Log__AtomicAll)txn.getLog(objectId() + 2);
         return log != null ? log.value : _AtomicAll;
     }
 
@@ -27,7 +48,7 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__AtomicAll(this, 1, value));
+        txn.putLog(new Log__AtomicAll(this, 2, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -35,12 +56,14 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
     }
 
     @SuppressWarnings("deprecation")
-    public BTryDistribute(boolean _AtomicAll_) {
+    public BTryDistribute(long _DistributeId_, boolean _AtomicAll_) {
+        _DistributeId = _DistributeId_;
         _AtomicAll = _AtomicAll_;
     }
 
     @Override
     public void reset() {
+        setDistributeId(0);
         setAtomicAll(false);
         _unknown_ = null;
     }
@@ -58,11 +81,13 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
     }
 
     public void assign(BTryDistribute.Data other) {
+        setDistributeId(other._DistributeId);
         setAtomicAll(other._AtomicAll);
         _unknown_ = null;
     }
 
     public void assign(BTryDistribute other) {
+        setDistributeId(other.getDistributeId());
         setAtomicAll(other.isAtomicAll());
         _unknown_ = other._unknown_;
     }
@@ -89,6 +114,13 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
         return TYPEID;
     }
 
+    private static final class Log__DistributeId extends Zeze.Transaction.Logs.LogLong {
+        public Log__DistributeId(BTryDistribute bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BTryDistribute)getBelong())._DistributeId = value; }
+    }
+
     private static final class Log__AtomicAll extends Zeze.Transaction.Logs.LogBool {
         public Log__AtomicAll(BTryDistribute bean, int varId, boolean value) { super(bean, varId, value); }
 
@@ -107,6 +139,7 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.HotDistribute.BTryDistribute: {").append(System.lineSeparator());
         level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("DistributeId=").append(getDistributeId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("AtomicAll=").append(isAtomicAll()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -141,9 +174,16 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
         var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
+            long _x_ = getDistributeId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
             boolean _x_ = isAtomicAll();
             if (_x_) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteByte(1);
             }
         }
@@ -157,11 +197,22 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
+            setDistributeId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
             setAtomicAll(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
+    }
+
+    @Override
+    public boolean negativeCheck() {
+        if (getDistributeId() < 0)
+            return true;
+        return false;
     }
 
     @SuppressWarnings("unchecked")
@@ -173,7 +224,8 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _AtomicAll = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 1: _DistributeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _AtomicAll = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
             }
         }
     }
@@ -181,19 +233,22 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setDistributeId(rs.getLong(_parents_name_ + "DistributeId"));
         setAtomicAll(rs.getBoolean(_parents_name_ + "AtomicAll"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "DistributeId", getDistributeId());
         st.appendBoolean(_parents_name_ + "AtomicAll", isAtomicAll());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "AtomicAll", "bool", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "DistributeId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "AtomicAll", "bool", "", ""));
         return vars;
     }
 
@@ -201,7 +256,16 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -555413257891539268L;
 
+    private long _DistributeId;
     private boolean _AtomicAll;
+
+    public long getDistributeId() {
+        return _DistributeId;
+    }
+
+    public void setDistributeId(long value) {
+        _DistributeId = value;
+    }
 
     public boolean isAtomicAll() {
         return _AtomicAll;
@@ -216,12 +280,14 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(boolean _AtomicAll_) {
+    public Data(long _DistributeId_, boolean _AtomicAll_) {
+        _DistributeId = _DistributeId_;
         _AtomicAll = _AtomicAll_;
     }
 
     @Override
     public void reset() {
+        _DistributeId = 0;
         _AtomicAll = false;
     }
 
@@ -238,10 +304,12 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BTryDistribute other) {
+        _DistributeId = other.getDistributeId();
         _AtomicAll = other.isAtomicAll();
     }
 
     public void assign(BTryDistribute.Data other) {
+        _DistributeId = other._DistributeId;
         _AtomicAll = other._AtomicAll;
     }
 
@@ -279,6 +347,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.HotDistribute.BTryDistribute: {").append(System.lineSeparator());
         level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("DistributeId=").append(_DistributeId).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("AtomicAll=").append(_AtomicAll).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -298,9 +367,16 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
+            long _x_ = _DistributeId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
             boolean _x_ = _AtomicAll;
             if (_x_) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteByte(1);
             }
         }
@@ -312,6 +388,10 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
+            _DistributeId = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
             _AtomicAll = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
