@@ -28,8 +28,9 @@ import org.jetbrains.annotations.Nullable;
 
 public final class Task {
 	// 通常不建议开,事务并发量太大时并发冲突可能很高导致频繁redo
-	private static final boolean USE_UNLIMITED_VIRTUAL_THREAD = PropertiesHelper.getBool("useUnlimitedVirtualThread", true);
 	private static final boolean USE_VIRTUAL_THREAD = PropertiesHelper.getBool("useVirtualThread", true);
+	private static final boolean USE_UNLIMITED_VIRTUAL_THREAD = USE_VIRTUAL_THREAD
+			&& PropertiesHelper.getBool("useUnlimitedVirtualThread", !inJUnitTest());
 
 	// 默认不开启热更，这个实现希望能被优化掉，几乎不造成影响。
 	// 开启热更时，由App.HotManager初始化的时候设置。
@@ -59,6 +60,10 @@ public final class Task {
 
 	public static boolean isVirtualThreadEnabled() {
 		return ThreadFactoryWithName.isVirtualThreadEnabled();
+	}
+
+	public static boolean inJUnitTest() {
+		return System.getProperty("sun.java.command").split(" ")[0].endsWith(".JUnitStarter");
 	}
 
 	public static ExecutorService getThreadPool() {
