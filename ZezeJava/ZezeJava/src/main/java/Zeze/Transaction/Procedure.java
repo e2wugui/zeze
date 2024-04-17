@@ -116,22 +116,23 @@ public class Procedure {
 	 * @return 0 success; other means error.
 	 */
 	public final long call() {
+		long result = Exception;
 		Transaction currentT = Transaction.getCurrent();
 		if (currentT == null) {
 			long timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
-				return Transaction.create(zeze.getLocks(), userState).perform(this);
+				return result = Transaction.create(zeze.getLocks(), userState).perform(this);
 			} finally {
 				Transaction.destroy();
 				if (PerfCounter.ENABLE_PERF)
 					PerfCounter.instance.addRunInfo(getActionName(), System.nanoTime() - timeBegin);
+				PerfCounter.instance.addProcedureInfo(actionName, result);
 			}
 		}
 
 		currentT.begin();
 		currentT.getProcedureStack().add(this);
-		long result = Exception;
 		try {
 //			var r = runWhileCommit;
 //			if (r != null) {
@@ -173,7 +174,6 @@ public class Procedure {
 			return e instanceof TaskCanceledException ? CancelException : Exception;
 		} finally {
 			currentT.getProcedureStack().remove(currentT.getProcedureStack().size() - 1);
-			PerfCounter.instance.addProcedureInfo(actionName, result);
 		}
 	}
 
