@@ -68,9 +68,6 @@ public class App extends Zeze.AppBase {
 		if (started)
 			return;
 
-		Task.setUseUnlimitedVirtualThread(false);
-		Task.setUseVirtualThread(true);
-
 		System.setProperty(Daemon.propertyNameClearInUse, "true");
 		started = true;
 		// 测试本地事务性能需要容量大一点

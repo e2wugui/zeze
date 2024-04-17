@@ -37,14 +37,6 @@ public final class Task {
 	public static volatile Factory<HotGuard> hotGuard = () -> null;
 	private static final FastLock taskLock = new FastLock();
 
-	public static void setUseUnlimitedVirtualThread(boolean b) {
-		System.setProperty("useUnlimitedVirtualThread", String.valueOf(b));
-	}
-
-	public static void setUseVirtualThread(boolean b) {
-		System.setProperty("useVirtualThread", String.valueOf(b));
-	}
-
 	public interface ILogAction {
 		void run(Throwable ex, long result, Protocol<?> p, String actionName);
 	}
