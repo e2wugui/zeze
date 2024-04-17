@@ -72,14 +72,6 @@ public class HotDistribute extends AbstractHotDistribute {
     }
 
     @Override
-    protected long ProcessCloseFileRequest(CloseFile r) throws Exception {
-        if (!distributeManager.closeAndVerify(r.Argument.getFileName(), r.Argument.getMd5()))
-            return errorCode(eMd5Mismatch);
-        r.SendResult();
-        return 0;
-    }
-
-    @Override
     protected long ProcessCommitRequest(Commit r) throws Exception {
         distributeManager.commitDistribute();
         var rc = distributeManager.getHotManager().tryDistribute();
@@ -89,6 +81,14 @@ public class HotDistribute extends AbstractHotDistribute {
 
     @Override
     protected long ProcessCommit2Request(Commit2 r) throws Exception {
+        return 0;
+    }
+
+    @Override
+    protected long ProcessCloseFileRequest(CloseFile r) throws Exception {
+        if (!distributeManager.closeAndVerify(r.Argument.getFileName(), r.Argument.getMd5()))
+            return errorCode(eMd5Mismatch);
+        r.SendResult();
         return 0;
     }
 

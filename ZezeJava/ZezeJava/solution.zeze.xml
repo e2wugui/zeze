@@ -1571,7 +1571,13 @@
 			<enum name="eMd5Mismatch"  value="4"/> 关闭文件时，验证md5失败
 			<enum name="eServiceOldExists"  value="5"/> 发布更新服务时，发现备份目录存在
 			<enum name="eMoveOldFail"  value="6"/> 发布更新服务时，备份失败
-			<enum name="eCommitFail"  value="7"/> 发布更新服务时，发布服务失败
+
+			<!-- 作为错误码，同时也作为状态 -->
+			<enum name="eIdle"  value="0"/>
+			<enum name="ePrepare"  value="7"/>
+			<enum name="eTryDistribute"  value="8"/>
+			<enum name="eCommit"  value="9"/>
+			<enum name="eCommit2"  value="10"/>
 
 			<bean name="BOpenFile">
 				<variable id="1" name="FileName" type="string"/>

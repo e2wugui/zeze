@@ -14,6 +14,7 @@ import Zeze.Game.ProviderWithOnline;
 import Zeze.Services.Daemon;
 import Zeze.Services.RocketMQ.Producer;
 import Zeze.Util.ShutdownHook;
+import Zeze.Util.Task;
 
 public class App extends Zeze.AppBase {
 	public static void main(String[] args) throws Exception {
@@ -66,6 +67,10 @@ public class App extends Zeze.AppBase {
 	public void Start(Config config) throws Exception {
 		if (started)
 			return;
+
+		Task.setUseUnlimitedVirtualThread(false);
+		Task.setUseVirtualThread(true);
+
 		System.setProperty(Daemon.propertyNameClearInUse, "true");
 		started = true;
 		// 测试本地事务性能需要容量大一点
