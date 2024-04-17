@@ -49,7 +49,7 @@ public final class Agent {
 	private final ConcurrentHashMapOrdered<Long, RaftRpc<?, ?>> pending = new ConcurrentHashMapOrdered<>();
 	private long term;
 	public boolean dispatchProtocolToInternalThreadPool;
-	private volatile int pendingLimit = 5000; // -1 no limit // 实际上没有进行线程保护。
+	private volatile int pendingLimit = -1; // -1 no limit // 实际上没有进行线程保护。
 	private Future<?> resendTask;
 
 	private Action1<Agent> onSetLeader;
