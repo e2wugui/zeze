@@ -1,5 +1,7 @@
 package Zeze.Hot;
 
+import java.sql.Time;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import Zeze.Builtin.HotDistribute.AppendFile;
 import Zeze.Builtin.HotDistribute.CloseFile;
@@ -60,8 +62,10 @@ public class HotDistribute extends AbstractHotDistribute {
 
                 if (rc == 0) {
                     // 成功的结果才等待后续步骤。
-                    while (state != eCommit && state != eTryRollback)
-                        cond.await();
+                    while (state != eCommit && state != eTryRollback) {
+                        if (!cond.await(10_000, TimeUnit.MILLISECONDS))
+                            throw new InterruptedException("timeout");
+                    }
 
                     if (state == eTryRollback)
                         throw new IllegalStateException();
@@ -136,8 +140,10 @@ public class HotDistribute extends AbstractHotDistribute {
 
                 if (rc == 0) {
                     // 成功的结果才等待后续步骤。
-                    while (state != eCommit2)
-                        cond.await();
+                    while (state != eCommit2) {
+                        if (!cond.await(10_000, TimeUnit.MILLISECONDS))
+                            throw new InterruptedException("timeout");
+                    }
                 }
             }
         } finally {

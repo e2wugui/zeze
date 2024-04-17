@@ -479,12 +479,20 @@ public class HotManager extends ClassLoader {
 						var moduleConfig = module.loadModuleConfig();
 						zeze.getProviderApp().providerService.addHotModule((IModule)module.getService(), moduleConfig);
 					}
+
+					// 本来这个代码应该放在下面的final commit point. 那里。
+					// 但有个超时错误需要处理，这个错误也停止进程。
+					// 由于后续的startLast是忽略错误的，所以代码移到这里也是可以的。
+					if (atomicAll) {
+						hotDistribute.sendCommitResultAndWaitCommit2(0);
+					}
 				} catch (Throwable ex) {
 					logger.error("too much changes. impossible to rollback.", ex);
 					LogManager.shutdown();
 					Runtime.getRuntime().halt(111222);
 				}
 			}
+			// 最后启动，startLast.
 			for (var module : result) {
 				try {
 					module.startLast();
@@ -492,9 +500,7 @@ public class HotManager extends ClassLoader {
 					logger.error("", ex);
 				}
 			}
-			// unlock. final commit point.
-			if (atomicAll)
-				hotDistribute.sendCommitResultAndWaitCommit2(0);
+			// final commit point.
 			return result;
 		} finally {
 			upgrading = false;
