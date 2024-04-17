@@ -362,7 +362,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 		// 本机数据已经过时，马上删除。
 		if (local.getLoginVersion() != online.getLoginVersion()) {
-			var ret = removeLocalAndTrigger(roleId, !serverStart);
+			var ret = removeLocalAndTrigger(roleId, serverStart);
 			if (ret != 0) {
 				logger.info("processOffline({}): account={}, roleId={}, removeLocalAndTrigger={}",
 						multiInstanceName, account, roleId, ret);
