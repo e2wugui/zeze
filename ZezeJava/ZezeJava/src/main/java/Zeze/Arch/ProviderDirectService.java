@@ -17,7 +17,6 @@ import Zeze.Services.HandshakeBoth;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
-import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.LongConcurrentHashMap;

@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
-import Zeze.Builtin.HotDistribute.BDistributeId;
 import Zeze.Builtin.HotDistribute.Commit;
 import Zeze.Builtin.HotDistribute.Commit2;
 import Zeze.Builtin.HotDistribute.PrepareDistribute;
@@ -19,9 +18,7 @@ import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Net.Service;
-import Zeze.Transaction.EmptyBean;
 import Zeze.Util.OutObject;
-import Zeze.Util.TaskCompletionSource;
 
 public class HotAgent extends AbstractHotAgent {
 	public static class HotAgentService extends Service {

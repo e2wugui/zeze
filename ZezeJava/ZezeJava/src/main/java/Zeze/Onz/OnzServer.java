@@ -20,7 +20,6 @@ import Zeze.Net.Connector;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.AutoKey;
-import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;

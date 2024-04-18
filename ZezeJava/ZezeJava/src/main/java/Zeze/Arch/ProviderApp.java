@@ -8,7 +8,6 @@ import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Game.ProviderWithOnline;
 import Zeze.IModule;
-import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.IntHashMap;
 import org.jetbrains.annotations.NotNull;
 

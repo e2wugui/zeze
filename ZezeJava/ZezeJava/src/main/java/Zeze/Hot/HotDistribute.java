@@ -1,6 +1,5 @@
 package Zeze.Hot;
 
-import java.sql.Time;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import Zeze.Builtin.HotDistribute.AppendFile;

@@ -250,8 +250,7 @@ public class ProviderDistribute extends ReentrantLock {
 	}
 
 	// 查找时增加索引，和喂饱时增加索引，需要原子化。提高并发以后慢慢想，这里应该足够快了。
-	public boolean choiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider,
-													   long clientAppVersion) {
+	public boolean choiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider, long clientAppVersion) {
 		lock();
 		try {
 			provider.value = 0L;

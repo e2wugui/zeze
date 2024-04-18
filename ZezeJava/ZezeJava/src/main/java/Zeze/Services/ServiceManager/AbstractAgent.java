@@ -15,6 +15,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
+/*
+ * Agent发起协议	ServiceManager处理后通知			Agent接收通知后回调
+ * Register		给订阅者广播Register				优先onUpdate,没有则onChanged
+ * UnRegister	给订阅者广播UnRegister			优先onRemove,没有则onChanged
+ * Update		给订阅者广播Update				优先onUpdate,没有则onChanged
+ * Subscribe	给发起者通知SubscribeFirstCommit	onChanged
+ * UnSubscribe	无								无
+ */
 public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	static final Logger logger = LogManager.getLogger(AbstractAgent.class);
 
@@ -27,9 +35,9 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	/**
 	 * 订阅服务状态发生变化时回调。 如果需要处理这个事件，请在订阅前设置回调。
 	 */
-	protected Action1<Agent.SubscribeState> onChanged; // Simple (如果没有定义OnUpdate和OnRemove) Or ReadyCommit (Notify, Commit)
-	protected Action2<Agent.SubscribeState, BServiceInfo> onUpdate; // Simple (Register, Update)
-	protected Action2<Agent.SubscribeState, BServiceInfo> onRemove; // Simple (UnRegister)
+	protected Action1<Agent.SubscribeState> onChanged;
+	protected Action2<Agent.SubscribeState, BServiceInfo> onUpdate;
+	protected Action2<Agent.SubscribeState, BServiceInfo> onRemove;
 	protected Action1<BServerLoad> onSetServerLoad;
 
 	// 返回是否处理成功且不需要其它notifier继续处理

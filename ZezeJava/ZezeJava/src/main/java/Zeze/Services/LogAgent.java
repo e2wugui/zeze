@@ -12,7 +12,6 @@ import Zeze.Services.Log4jQuery.Session;
 import Zeze.Services.Log4jQuery.SessionAll;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.Agent;
-import Zeze.Services.ServiceManager.BSubscribeInfo;
 
 public class LogAgent extends AbstractLogAgent {
 	private final Config conf;
