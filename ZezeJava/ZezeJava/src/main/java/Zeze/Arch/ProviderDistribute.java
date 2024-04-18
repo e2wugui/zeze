@@ -55,7 +55,7 @@ public class ProviderDistribute extends ReentrantLock {
 				return c > 0; // 如果服务名和ID都相同,说明是服务本身的多个虚拟节点有冲突,那么选择哪个都行
 			};
 
-	public void addServer(Agent.SubscribeState state, BServiceInfo s) {
+	public void addServer(BServiceInfo s) {
 		consistentHashes.computeIfAbsent(s.getServiceName(), __ -> new ConsistentHash<>(selector))
 				.add(s.getServiceIdentity(), s);
 	}
