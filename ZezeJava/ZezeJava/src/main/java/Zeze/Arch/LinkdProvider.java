@@ -161,7 +161,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 			providers.lock();
 			try {
-				for (int i = 0, n = providers.localStates.size(); i < n; i++) {
+				for (int i = 0, n = providers.getLocalStates().size(); i < n; i++) {
 					var e = providers.getNextStateEntry();
 					if (e == null)
 						return false;

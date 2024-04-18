@@ -1184,7 +1184,6 @@
 				<variable id="5" name="SerialId" type="long"/>
 			</bean>
 			<bean name="BSubscribeStateRocks" kind="rocks">
-				<variable id="1" name="Ready" type="bool"/>
 			</bean>
 			<table name="tServerState" key="string" value="BServerState" kind="rocks"/>
 		</module>

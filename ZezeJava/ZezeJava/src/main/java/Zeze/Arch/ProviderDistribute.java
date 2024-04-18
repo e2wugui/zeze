@@ -77,7 +77,7 @@ public class ProviderDistribute extends ReentrantLock {
 //			+ consistentHash.getNodes().size() + " > " + dataConcurrentLevel);
 		var serviceInfo = consistentHash.get(ByteBuffer.calc_hashnr(dataIndex));
 		if (null != serviceInfo) {
-			var providerModuleState = (ProviderModuleState)providers.localStates.get(serviceInfo.getServiceIdentity());
+			var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(serviceInfo.getServiceIdentity());
 			if (providerModuleState == null)
 				return null;
 			if (providerModuleState.sessionId == 0)
@@ -113,7 +113,7 @@ public class ProviderDistribute extends ReentrantLock {
 		if (serviceInfo == null)
 			return false;
 
-		var providerModuleState = (ProviderModuleState)providers.localStates.get(serviceInfo.getServiceIdentity());
+		var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(serviceInfo.getServiceIdentity());
 		if (providerModuleState == null)
 			return false;
 
@@ -139,7 +139,7 @@ public class ProviderDistribute extends ReentrantLock {
 		// 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
 		for (int i = list.size() - 1; i >= 0; --i) {
 			var serviceInfo = list.get(i);
-			var providerModuleState = (ProviderModuleState)providers.localStates.get(serviceInfo.getServiceIdentity());
+			var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(serviceInfo.getServiceIdentity());
 			if (providerModuleState == null) {
 				continue;
 			}
@@ -201,7 +201,7 @@ public class ProviderDistribute extends ReentrantLock {
 		// 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
 		for (int i = list.size() - 1; i >= 0; --i) {
 			var serviceInfo = list.get(i);
-			var providerModuleState = (ProviderModuleState)providers.localStates.get(serviceInfo.getServiceIdentity());
+			var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(serviceInfo.getServiceIdentity());
 			if (providerModuleState == null) {
 				continue;
 			}
@@ -261,7 +261,7 @@ public class ProviderDistribute extends ReentrantLock {
 			for (int i = 0; i < list.size(); ++i, feedFullOneByOneIndex.incrementAndGet()) {
 				var index = Integer.remainderUnsigned(feedFullOneByOneIndex.get(), list.size()); // current
 				var serviceInfo = list.get(index);
-				var providerModuleState = (ProviderModuleState)providers.localStates.get(serviceInfo.getServiceIdentity());
+				var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(serviceInfo.getServiceIdentity());
 				if (providerModuleState == null)
 					continue;
 				var providerSocket = providerService.GetSocket(providerModuleState.sessionId);
@@ -300,7 +300,7 @@ public class ProviderDistribute extends ReentrantLock {
 		if (providers != null) {
 			var si = providers.getServiceInfos().findServiceInfoByServerId(serverId);
 			if (si != null) {
-				provider.value = ((ProviderModuleState)providers.localStates.get(si.getServiceIdentity())).sessionId;
+				provider.value = ((ProviderModuleState)providers.getLocalStates().get(si.getServiceIdentity())).sessionId;
 				return true;
 			}
 		}

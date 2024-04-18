@@ -117,7 +117,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		public volatile BServiceInfos serviceInfosPending;
 
 		// 服务准备好。
-		public final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
 		private @Nullable Iterator<Map.Entry<String, Object>> localStatesIterator;
 
 		public @Nullable Map.Entry<String, Object> getNextStateEntry() {
@@ -162,6 +162,11 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 
 		// NOT UNDER LOCK
+
+		public ConcurrentHashMap<String, Object> getLocalStates() {
+			return localStates;
+		}
+
 		public void setIdentityLocalState(String identity, Object state) {
 			if (state == null)
 				localStates.remove(identity);

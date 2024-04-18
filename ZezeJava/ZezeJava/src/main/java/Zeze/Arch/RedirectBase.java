@@ -111,14 +111,14 @@ public class RedirectBase {
 
 		AsyncSocket socket;
 		var service = providerApp.providerDirectService;
-		var ps = (ProviderModuleState)servers.localStates.get(serviceInfo.getServiceIdentity());
+		var ps = (ProviderModuleState)servers.getLocalStates().get(serviceInfo.getServiceIdentity());
 		if (ps != null && (socket = service.GetSocket(ps.sessionId)) != null && !socket.isClosed())
 			return socket;
 
 		if (dataConcurrentLevel <= 1) {
 			servers.lock();
 			try {
-				for (int i = 0, n = servers.localStates.size(); i < n; i++) {
+				for (int i = 0, n = servers.getLocalStates().size(); i < n; i++) {
 					var e = servers.getNextStateEntry();
 					if (e == null)
 						break;
@@ -134,7 +134,7 @@ public class RedirectBase {
 		throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
 				"choiceHash: not found socket for serviceName=" + serviceName + ", hash=" + hash
 						+ ", conc=" + dataConcurrentLevel + ", serverId=" + serviceInfo.getServiceIdentity()
-						+ ", count=" + servers.localStates.size());
+						+ ", count=" + servers.getLocalStates().size());
 	}
 
 	private static void addMiss(@NotNull ModuleRedirectAllResult miss, int i,
@@ -186,7 +186,7 @@ public class RedirectBase {
 				addTransmits(transmits, 0, i, req);
 				continue; // loop-back
 			}
-			var localState = providers.localStates.get(target.getServiceIdentity());
+			var localState = providers.getLocalStates().get(target.getServiceIdentity());
 			if (localState == null) {
 				addMiss(miss, i, Procedure.ProviderNotExist);
 				continue; // not ready
