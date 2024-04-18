@@ -69,7 +69,8 @@ namespace Zeze.Gen.rrjava
                 }
                 */
             }
-            sw.WriteLine();
+            if (bean.Variables.Count > 0)
+                sw.WriteLine();
 
             Property.Make(bean, sw, "    ");
             Construct.Make(bean, sw, "    ");

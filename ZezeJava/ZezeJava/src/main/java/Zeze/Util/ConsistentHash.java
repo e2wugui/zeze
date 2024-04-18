@@ -3,24 +3,35 @@ package Zeze.Util;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.IdentityHashMap;
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ConsistentHash<E> extends FastLock {
 	private final SortedMap<Integer, E> circle;
-	private final HashMap<E, Integer[]> nodes = new HashMap<>();
-	private final @NotNull Set<E> nodesView = Collections.unmodifiableSet(nodes.keySet());
+	private final IdentityHashMap<E, Integer[]> nodes = new IdentityHashMap<>();
 
 	public ConsistentHash(@Nullable SortedMap.Selector<Integer, E> selector) {
 		circle = new SortedMap<>(selector);
 	}
 
-	public @NotNull Set<E> getNodes() {
-		return nodesView;
+	public int size() {
+		lock();
+		try {
+			return nodes.size();
+		} finally {
+			unlock();
+		}
+	}
+
+	public @NotNull E @NotNull [] toArray(E @NotNull [] array) {
+		lock();
+		try {
+			return nodes.keySet().toArray(array);
+		} finally {
+			unlock();
+		}
 	}
 
 	public void add(@NotNull String nodeKey, @NotNull E node) {
@@ -31,10 +42,12 @@ public class ConsistentHash<E> extends FastLock {
 		var virtual = new Integer[160];
 		try {
 			var md5 = MessageDigest.getInstance("MD5");
-			for (int i = 0, n = virtual.length / 4; i < n; i++) {
-				var hash4 = md5.digest((nodeKey + i).getBytes(StandardCharsets.UTF_8));
-				for (int j = 0; j < 4; ++j)
-					virtual[i * 4 + j] = ByteBuffer.ToInt(hash4, j * 4);
+			for (int i = 0, n = virtual.length; i < n; ) {
+				var md5Hash = md5.digest((nodeKey + i / 4).getBytes(StandardCharsets.UTF_8));
+				virtual[i++] = ByteBuffer.ToInt(md5Hash, 0);
+				virtual[i++] = ByteBuffer.ToInt(md5Hash, 4);
+				virtual[i++] = ByteBuffer.ToInt(md5Hash, 8);
+				virtual[i++] = ByteBuffer.ToInt(md5Hash, 12);
 			}
 		} catch (NoSuchAlgorithmException e) {
 			Task.forceThrow(e);
@@ -87,7 +100,12 @@ public class ConsistentHash<E> extends FastLock {
 	}
 
 	@Override
-	public String toString() {
-		return circle.toString();
+	public @NotNull String toString() {
+		lock();
+		try {
+			return circle.toString();
+		} finally {
+			unlock();
+		}
 	}
 }

@@ -13,7 +13,6 @@ import Zeze.Services.Log4jQuery.SessionAll;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BEdit;
-import Zeze.Services.ServiceManager.BSubscribeInfo;
 import org.jetbrains.annotations.NotNull;
 
 public class LogAgent extends AbstractLogAgent {

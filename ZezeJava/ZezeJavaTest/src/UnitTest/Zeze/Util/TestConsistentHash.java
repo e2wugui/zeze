@@ -113,7 +113,7 @@ public class TestConsistentHash {
 			for (int i = begin + 1000; i-- != begin; )
 				ch2.add(String.valueOf(i), i);
 
-			Assert.assertEquals(ch1.getNodes().size(), ch2.getNodes().size());
+			Assert.assertEquals(ch1.size(), ch2.size());
 			Assert.assertEquals(ch1.toString(), ch2.toString());
 		}
 	}

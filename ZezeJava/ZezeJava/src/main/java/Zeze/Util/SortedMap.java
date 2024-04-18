@@ -10,12 +10,12 @@ import org.jetbrains.annotations.Nullable;
  * 除只读方法外不支持并发
  */
 public class SortedMap<K extends Comparable<K>, V> {
-	public static class Entry<K extends Comparable<K>, V> implements Comparable<Entry<K, V>> {
-		final @NotNull K key;
-		final @NotNull V value;
-		final int index;
+	public static class Entry<K, V> {
+		private final @NotNull K key;
+		private final @NotNull V value;
+		private final int index;
 
-		public Entry(@NotNull K key, @NotNull V value, int index) {
+		private Entry(@NotNull K key, @NotNull V value, int index) {
 			this.key = key;
 			this.value = value;
 			this.index = index;
@@ -30,13 +30,8 @@ public class SortedMap<K extends Comparable<K>, V> {
 		}
 
 		@Override
-		public int compareTo(@NotNull SortedMap.Entry<K, V> o) {
-			return key.compareTo(o.key);
-		}
-
-		@Override
 		public @NotNull String toString() {
-			return "(" + key + "," + value + ")";
+			return "(" + key + ',' + value + ',' + index + ')';
 		}
 	}
 

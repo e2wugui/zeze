@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Zeze.Gen.rrjava
 {
@@ -25,14 +21,20 @@ namespace Zeze.Gen.rrjava
             }
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + $"public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {{");
-            sw.WriteLine(prefix + "    switch (vlog.getVariableId()) {");
+            var hasVar = false;
             foreach (var v in bean.Variables)
             {
                 if (v.Transient)
                     continue;
+                if (!hasVar)
+                {
+                    hasVar = true;
+                    sw.WriteLine(prefix + "    switch (vlog.getVariableId()) {");
+                }
                 v.VariableType.Accept(new LeaderApplyNoRecursive(v, sw, prefix + "    "));
             }
-            sw.WriteLine(prefix + "    }");
+            if (hasVar)
+                sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
